@@ -1,0 +1,30 @@
+<!-- templates/results.html -->
+<div class="box">
+    <div class="columns is-vcentered">
+        <div class="column">
+            <h4 class="title is-5">Skill Details</h4>
+            <div class="content">
+                <p><strong>Rotation:</strong> {{if .Backward}}-{{end}}{{.Rotation}}/4 turns</p>
+                <p><strong>Twist:</strong> {{.Twist}}/2 turns</p>
+                <p><strong>Takeoff:</strong> {{.TakeoffPosition.String}}</p>
+                <p><strong>Shape:</strong> {{.Shape.String}}</p>
+                {{if .SeatLanding}}<p class="has-text-danger">Seat Landing</p>{{end}}
+            </div>
+        </div>
+
+        <div class="column">
+            <div class="has-text-centered">
+                <p class="title is-3">Tariff</p>
+                <p class="subtitle is-1 has-text-primary">{{printf "%.2f" .Tariff}}</p>
+                {{$landing := .LandingPosition}}
+                {{if eq $landing.String "Invalid"}}
+                <div class="notification is-danger">
+                    Invalid landing position!
+                </div>
+                {{else}}
+                <p class="has-text-success">Lands to: {{$landing.String}}</p>
+                {{end}}
+            </div>
+        </div>
+    </div>
+</div>

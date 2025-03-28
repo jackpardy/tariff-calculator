@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Trampoline Tariff Calculator</title>
+    <link rel="stylesheet" href="/static/css/bulma.min.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/htmx.min.js"></script>
+    <style>
+        .hero.is-primary {
+            background-color: #485fc7;
+        }
+        .skill-card {
+            margin-bottom: 1rem;
+        }
+        .routine-total {
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+<section class="hero is-primary">
+    <div class="hero-body">
+        <div class="container">
+            <h1 class="title">Trampoline Tariff Calculator</h1>
+            <h2 class="subtitle">Calculate difficulty scores for skills and routines</h2>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        {{template "content" .}}
+    </div>
+</section>
+
+<footer class="footer">
+    <div class="content has-text-centered">
+        <p>© 2023 Trampoline Tariff Calculator</p>
+    </div>
+</footer>
+</body>
+</html>

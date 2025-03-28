@@ -1,0 +1,554 @@
+<!-- templates/calculator.html -->
+{{define "content"}}
+<div class="container">
+    <!-- Skill Calculator -->
+    <div class="box">
+        <h3 class="title is-4">Skill Calculator</h3>
+        <form id="main-form" class="columns is-multiline is-align-items-flex-end">
+            <!-- Row 1: Rotation and Twist -->
+            <div class="column is-2">
+                <div class="field">
+                    <label class="label">Rotation in 1/4s </label>
+                    <div class="control">
+                        <input class="input" type="number" id="rotation" name="rotation"
+                               min="-16" max="16" step="1" value="4"
+                               oninput="validateRotation(this)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-4" id="twist-distribution-container">
+                <div class="field">
+                    <label class="label">Twist in 1/2s per somersault</label>
+                    <div class="columns is-multiline" id="twist-fields">
+                        <div class="column is-3">
+                            <div class="field">
+                                <input class="input twist-rotation" type="number"
+                                       min="0"  value="0" data-rotation="1">
+                            </div>
+                        </div>
+                        <div class="column is-3">
+                            <div class="field">
+                                <input class="input twist-rotation" type="number"
+                                       min="0"  value="0" data-rotation="2">
+                            </div>
+                        </div>
+                        <div class="column is-3">
+                            <div class="field">
+                                <input class="input twist-rotation" type="number"
+                                       min="0" value="0" data-rotation="3">
+                            </div>
+                        </div>
+                        <div class="column is-3">
+                            <div class="field">
+                                <input class="input twist-rotation" type="number"
+                                       min="0"  value="0" data-rotation="4">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Takeoff and Shape (now horizontal) -->
+            <div class="column is-2">
+                <div class="field">
+                    <label class="label">Takeoff</label>
+                    <div class="select is-fullwidth">
+                        <select name="takeoff" id="takeoff_position">
+                            <option value="feet">Feet</option>
+                            <option value="front">Front</option>
+                            <option value="back">Back</option>
+                            <option value="seat">Seat</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-2">
+                <div class="field">
+                    <label class="label">Shape</label>
+                    <div class="select is-fullwidth">
+                        <select name="shape" id="shape">
+                            <option value="straight">Straight</option>
+                            <option value="tuck">Tuck</option>
+                            <option value="pike">Pike</option>
+                            <option value="straddle">Straddle</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-2">
+                <div class="field">
+                    <label class="label">&nbsp;</label>
+                    <label class="checkbox">
+                        <input type="checkbox" name="seat_landing" id="seat_landing">
+                        Seat Landing
+                    </label>
+                    <label class="checkbox mt-2">
+                        <input type="checkbox" id="backward-flag" name="backward">
+                        Backwards Rotation
+                    </label>
+                </div>
+            </div>
+
+            <!-- Button -->
+            <div class="column is-2">
+                <div class="field">
+                    <label class="label">&nbsp;</label>
+                    <button type="button" id="submit-btn"
+                            class="button is-primary is-fullwidth"
+                            onclick="calculateAndAdd()">
+                        Add to Routine
+                    </button>
+                </div>
+            </div>
+            <div class="column is-2">
+                <div class="field">
+                    <label class="label">&nbsp;</label>
+                    <button type="button" class="button is-info is-fullwidth"
+                            onclick="evaluateSkill()">
+                        Evaluate Skill
+                    </button>
+                </div>
+            </div>
+            <div class="column is-2" id="cancel-btn-wrapper">
+                <div class="field">
+                    <label class="label">&nbsp;</label>
+                    <button type="button" id="cancel-btn"
+                            class="button is-danger is-fullwidth is-hidden"
+                            onclick="cancelEdit()">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="box" id="evaluation-preview" style="display: none;">
+        <h4 class="title is-6 mb-3">Skill Evaluation</h4>
+        <div class="content">
+            <div class="columns is-vcentered">
+                <div class="column">
+                    <p><strong>Rotation:</strong> ${Math.abs(data.rotation)} ${data.backward ? 'B' : 'F'}</p>
+                    <p><strong>Twists:</strong> ${data.twist_distribution.join(' | ')}</p>
+                </div>
+                <div class="column">
+                    <p><strong>Takeoff:</strong> ${data.takeoff_position}</p>
+                    <p><strong>Landing:</strong> ${data.landing_position}</p>
+                </div>
+                <div class="column">
+                    <p><strong>Shape:</strong> ${data.shape}</p>
+                    <p><strong class="has-text-primary">Tariff: ${data.tariff.toFixed(2)}</strong></p>
+                </div>
+            </div>
+        </div>
+        <div class="buttons mt-3">
+            <button class="button is-info" onclick="addEvaluatedSkill()">Add to Routine</button>
+            <button class="button" onclick="document.getElementById('evaluation-preview').style.display='none'">Close</button>
+        </div>
+    </div>
+
+    <!-- Routine Display -->
+    <div class="box">
+        <h3 class="title is-4">Routine Builder</h3>
+        <div id="routine-skills" class="routine-skills">
+            <!-- Skills will be added here -->
+        </div>
+        <div id="routine-results" class="mt-4">
+            <div id="routine-total"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function validateRotation(input) {
+        // Enforce maximum value
+        if (input.value > 16) {
+            input.value = 16;
+            showErrorToast("Maximum rotation is 16 (4 full rotations)");
+        }
+        if (input.value < 0) {
+            const backwardCheckbox = document.getElementById('backward-flag');
+            backwardCheckbox.checked = true;
+            input.value = Math.abs(input.value); // Convert to positive
+        }
+        updateTwistFields(input.value);
+    }
+
+    function showErrorToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'notification is-danger is-light';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    function cancelEdit() {
+        resetForm();
+        document.getElementById('cancel-btn').classList.add('is-hidden');
+    }
+    function removeSkill(button) {
+        const skillDiv = button.closest('.routine-skill');
+        if (skillDiv && skillDiv.parentNode) {
+            skillDiv.parentNode.removeChild(skillDiv);
+            updateRoutineTotal();
+            validateRoutineSequence();
+        }
+    }
+    function updateBackward(input) {
+        const backwardCheckbox = document.getElementById('backward-flag');
+        backwardCheckbox.checked = parseInt(input.value) < 0;
+        if (backwardCheckbox.checked) {
+            input.value = Math.abs(parseInt(input.value));
+        }
+    }
+    let editingIndex = null;
+
+    function editSkill(button) {
+        const skillDiv = button.closest('.routine-skill');
+        const skill = JSON.parse(skillDiv.dataset.skill);
+
+        // Populate form with proper element IDs
+        document.getElementById('rotation').value = Math.abs(skill.rotation);
+        document.getElementById('takeoff_position').value = skill.takeoff_position.toLowerCase();
+        document.getElementById('shape').value = skill.shape.toLowerCase();
+        document.getElementById('backward-flag').checked = skill.backward;
+        document.getElementById('seat_landing').checked = skill.seat_landing;
+        document.getElementById('cancel-btn').classList.remove('is-hidden');
+        if (skill.twist_distribution) {
+            skill.twist_distribution.forEach((twist, i) => {
+                const input = document.querySelector(`.twist-rotation[data-rotation="${i+1}"]`);
+                if (input) {
+                    input.value = twist;
+                    savedTwists[i] = twist;
+                }
+            });
+        }
+        updateTwistFields(Math.abs(skill.rotation));
+        // Update button behavior
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.textContent = "Update Skill";
+        submitBtn.onclick = () => updateSkill(skillDiv);
+    }
+    function resetForm() {
+        const form = document.getElementById('main-form');
+        form.reset();
+        document.getElementById('submit-btn').textContent = "Add Skill";
+        document.getElementById('cancel-btn').classList.add('is-hidden');
+        document.getElementById('submit-btn').onclick = calculateAndAdd;
+    }
+
+    function updateSkill(skillDiv) {
+        const numRotations = Math.ceil(Math.abs(parseInt(document.getElementById('rotation').value)) / 4);
+        const twistInputs = [...document.querySelectorAll('.twist-rotation')];
+        const twistDistribution = twistInputs
+            .slice(0, numRotations) // Only take needed rotations
+            .map(input => parseInt(input.value) || 0);
+        const form = document.getElementById('main-form');
+        const index = Array.from(document.getElementById('routine-skills').children).indexOf(skillDiv);
+
+        const updatedSkill = {
+            rotation: parseInt(form.rotation.value) || 0,
+            twist_distribution: twistDistribution,
+            takeoff_position: form.takeoff_position.value,
+            shape: form.shape.value,
+            backward: document.getElementById('backward-flag').checked,
+            seat_landing: form.seat_landing.checked
+        };
+
+        fetch('/api/calculate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(updatedSkill)
+        })
+            .then(response => response.json())
+            .then(data => {
+                skillDiv.replaceWith(createSkillElement(data));
+                resetForm()
+                updateRoutineTotal();
+                validateRoutineSequence();
+            });
+    }
+
+    function calculateAndAdd() {
+        const form = document.getElementById('main-form');
+        const numRotations = Math.ceil(Math.abs(parseInt(document.getElementById('rotation').value)) / 4);
+        const twistInputs = [...document.querySelectorAll('.twist-rotation')];
+
+        const twistDistribution = twistInputs
+            .slice(0, numRotations) // Only take needed rotations
+            .map(input => parseInt(input.value) || 0);
+        // Use form.elements instead of querySelector
+        const formData = {
+            rotation: Math.abs(parseInt(form.elements.rotation.value)) || 0,
+            twist_distribution: twistDistribution,
+            takeoff_position: form.elements.takeoff.value, // Changed from takeoff_position to takeoff
+            shape: form.elements.shape.value,
+            backward: document.getElementById('backward-flag').checked,
+            seat_landing: form.elements.seat_landing.checked
+        };
+
+        fetch('/api/calculate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                addToRoutine(data);
+                updateRoutineTotal();
+                form.reset();
+                //document.getElementById('evaluation-preview').style.display = 'none';
+            });
+    }
+    let draggedSkill = null;
+
+    function addToRoutine(skill, isUpdate = false, index = null) {
+        const routineSkills = document.getElementById('routine-skills');
+        const skills = Array.from(routineSkills.children);
+
+        if (isUpdate && index !== null) {
+            const newElement = createSkillElement(skill, index);
+            routineSkills.replaceChild(newElement, routineSkills.children[index]);
+        } else {
+            const newIndex = skills.length;
+            routineSkills.appendChild(createSkillElement(skill, newIndex));
+        }
+
+        // Reset form
+        document.querySelector('button').textContent = "Add Skill";
+        updateRoutineTotal();
+        validateRoutineSequence();
+    }
+
+    function createSkillElement(skill, index) {
+        const skillDiv = document.createElement('div');
+        skillDiv.className = 'routine-skill box mb-2 is-flex is-align-items-center';
+        skillDiv.draggable = true;
+        skillDiv.dataset.skill = JSON.stringify(skill);
+
+        skillDiv.innerHTML = `
+        <div class="columns is-mobile is-vcentered is-flex-grow-1">
+            <div class="column is-2">
+                <p class="has-text-weight-bold">${skill.rotation}${skill.backward ? 'B' : 'F'}</p>
+            </div>
+            <div class="column is-2">
+                <p> ${skill.twist_distribution.join(' | ')}</p>
+            </div>
+            <div class="column is-2">
+                <p> ${skill.takeoff_position}/${skill.landing_position}</p>
+            </div>
+            <div class="column is-2">
+                <p> ${skill.shape}</p>
+            </div>
+            <div class="column is-2">
+                <p class="has-text-primary" >${skill.tariff.toFixed(2)}</p>
+            </div>
+            <div class="column is-2">
+                <div class="buttons are-small">
+                    <button class="button is-info" onclick="editSkill(this)">Edit</button>
+                    <button class="delete" onclick="removeSkill(this)"></button>
+                </div>
+            </div>
+        </div>
+    `;
+
+        // Drag events
+        skillDiv.addEventListener('dragstart', () => {
+            draggedSkill = skillDiv;
+            setTimeout(() => skillDiv.classList.add('is-dragging'), 0);
+        });
+
+        skillDiv.addEventListener('dragend', () => {
+            draggedSkill = null;
+            skillDiv.classList.remove('is-dragging');
+            validateRoutineSequence();
+            updateRoutineTotal();
+        });
+
+        return skillDiv;
+    }
+
+
+    // Drag-and-drop handlers
+    document.getElementById('routine-skills').addEventListener('dragover', e => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(e.clientY);
+        const container = document.getElementById('routine-skills');
+
+        if (!afterElement) {
+            container.appendChild(draggedSkill);
+        } else {
+            container.insertBefore(draggedSkill, afterElement);
+        }
+    });
+    function getDragAfterElement(y) {
+        const skills = [...document.querySelectorAll('.routine-skill:not(.is-dragging)')];
+
+        return skills.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+
+            // Check if we're at the end of the list
+            if (offset < 0 && offset > closest.offset) {
+                return { offset, element: child };
+            } else if (offset > 0 && child === skills[skills.length - 1]) {
+                return { offset: Infinity, element: null }; // Special case for end
+            }
+            return closest;
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    // Routine validation
+    function validateRoutineSequence() {
+        const skills = [...document.querySelectorAll('.routine-skill')].map(el =>
+            JSON.parse(el.dataset.skill)
+        );
+
+        fetch('/validate-routine', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(skills)
+        })
+            .then(response => response.json())
+            .then(validation => {
+                document.querySelectorAll('.routine-skill').forEach(el => {
+                    el.style.borderLeft = '4px solid #485fc7'; // Reset all
+                });
+
+                if (!validation.valid) {
+                    const invalidIndex = validation.invalidIndex;
+                    if (invalidIndex >= 0) {
+                        const invalidSkill = document.querySelectorAll('.routine-skill')[invalidIndex];
+                        invalidSkill.style.borderLeft = '4px solid #ff3860';
+                        invalidSkill.querySelector('.transition-status').textContent = validation.message;
+                    }
+                }
+            });
+    }
+
+    function updateRoutineTotal() {
+        const skills = [...document.querySelectorAll('.routine-skill')];
+        let total = 0;
+
+        skills.forEach(skillElement => {
+            // Get the tariff value directly from the parsed skill data
+            const skill = JSON.parse(skillElement.dataset.skill);
+            if (skill && skill.tariff) {
+                total += skill.tariff;
+            }
+        });
+
+        const totalElement = document.getElementById('routine-total');
+        if (totalElement) {
+            totalElement.innerHTML = `
+            <div class="card">
+                <div class="card-content">
+                    <p class="title">Total Tariff: ${total.toFixed(2)}</p>
+                    <p class="subtitle">${skills.length} of 10 skills</p>
+                    ${skills.length >= 10 ? '<p class="has-text-danger">Maximum skills reached</p>' : ''}
+                </div>
+            </div>
+        `;
+        }
+    }
+    function evaluateSkill() {
+        const form = document.getElementById('main-form');
+        const twistInputs = [...document.querySelectorAll('.twist-rotation:not(:disabled)')];
+        const twistDistribution = twistInputs.map(input => parseInt(input.value) || 0);
+        const formData = {
+            rotation: Math.abs(parseInt(form.rotation.value)) || 0,
+            twist_distribution: twistDistribution,
+            takeoff_position: form.takeoff.value,
+            shape: form.shape.value,
+            backward: document.getElementById('backward-flag').checked,
+            seat_landing: form.seat_landing.checked
+        };
+
+        fetch('/api/calculate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('evaluation-preview').style.display = 'block';
+                document.getElementById('evaluation-preview').innerHTML = `
+            <h4 class="title is-6 mb-3">Skill Evaluation</h4>
+            <div class="content">
+                <div class="columns is-vcentered">
+                    <div class="column">
+                        <p><strong>Rotation:</strong> ${Math.abs(data.rotation)} ${data.backward ? 'B' : 'F'}</p>
+                        <p><strong>Twists:</strong> ${data.twist_distribution.join(' | ')}</p>
+                    </div>
+                    <div class="column">
+                        <p><strong>Takeoff:</strong> ${data.takeoff_position}</p>
+                        <p><strong>Landing:</strong> ${data.landing_position}</p>
+                    </div>
+                    <div class="column">
+                        <p><strong>Shape:</strong> ${data.shape}</p>
+                        <p><strong>Tariff:</strong> ${data.tariff.toFixed(2)}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="buttons mt-3">
+                <!--<button class="button is-info" onclick="addEvaluatedSkill()">Add to Routine</button>-->
+                <button class="button" onclick="document.getElementById('evaluation-preview').style.display='none'">Close</button>
+            </div>
+        `;
+                document.getElementById('evaluation-preview').dataset.skill = JSON.stringify(data);
+            });
+    }
+
+    // Function to add evaluated skill
+    function addEvaluatedSkill(skillData) {
+        try {
+            const skill = document.getElementById('evaluation-preview').dataset.skill
+            addToRoutine(skill);
+            document.getElementById('evaluation-preview').style.display = 'none';
+            updateRoutineTotal();
+        } catch (error) {
+            console.error('Error adding skill:', error);
+            showErrorToast("Failed to add skill to routine");
+        }
+    }
+    let savedTwists = [0, 0, 0, 0];
+
+    function updateTwistFields(rotation) {
+        const numRotations = Math.ceil(rotation / 4);
+        const inputs = document.querySelectorAll('.twist-rotation');
+
+        // Save current values
+        inputs.forEach((input, i) => {
+            savedTwists[i] = parseInt(input.value) || 0;
+        });
+
+        // Update field states
+        inputs.forEach((input, i) => {
+            const rotationNum = i + 1;
+            if (rotationNum <= numRotations) {
+                input.disabled = false;
+                input.value = savedTwists[i];
+                input.parentNode.parentNode.style.opacity = '1';
+            } else {
+                input.disabled = true;
+                input.parentNode.parentNode.style.opacity = '0.5';
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateTwistFields(document.getElementById('rotation').value);
+    });
+</script>
+
+<style>
+    .routine-skills .box {
+        margin-bottom: 1rem;
+        border-left: 4px solid #485fc7;
+    }
+    .routine-skill:hover {
+        background-color: #f5f5f5;
+    }
+</style>
+{{end}}
