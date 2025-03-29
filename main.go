@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-	"math"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"tariffCalculator/skills"
@@ -21,8 +21,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Template parsing error: %v", err)
 	}
-	log.Println("Successfully parsed templates:", tmpl.DefinedTemplates())
-	//tmpl := template.Must(template.New("").Funcs(funcMap).ParseGlob("templates/*.html"))
 
 	// Serve static files
 	http.Handle("/static/", http.StripPrefix("/static/", staticFileServer("static")))
@@ -77,71 +75,36 @@ func main() {
 		tmpl.ExecuteTemplate(w, "results.html", skill)
 	})
 
-	http.HandleFunc("/api/calculate", func(w http.ResponseWriter, r *http.Request) {
-		var skill skills.TrampolineSkill
-		if err := json.NewDecoder(r.Body).Decode(&skill); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		skill.SetTariff()
-
-		response := struct {
-			Rotation          int     `json:"rotation"`
-			TwistDistribution []int   `json:"twist_distribution"`
-			Shape             string  `json:"shape"`
-			Backward          bool    `json:"backward"`
-			SeatLanding       bool    `json:"seat_landing"`
-			Tariff            float64 `json:"tariff"`
-			TakeoffPosition   string  `json:"takeoff_position"`
-			LandingPosition   string  `json:"landing_position"`
-		}{
-			Rotation:          skill.Rotation,
-			TwistDistribution: skill.TwistDistribution,
-			Shape:             skill.Shape.String(),
-			Backward:          skill.Backward,
-			SeatLanding:       skill.SeatLanding,
-			Tariff:            skill.Tariff,
-			TakeoffPosition:   skill.TakeoffPosition.String(),
-			LandingPosition:   skill.LandingPosition().String(),
+	http.HandleFunc("/api/calculate", calculateHandler)
+	http.HandleFunc("/validate-routine", validateRoutineHandler)
+	http.HandleFunc("/api/common-skills", func(w http.ResponseWriter, r *http.Request) {
+		// Create a copy of the map with calculated tariffs
+		skillsWithTariff := make(map[string]skills.TrampolineSkill)
+		for key, skill := range skills.CommonSkills {
+			s := skill    // Copy to avoid modifying original
+			s.SetTariff() // Calculate tariff
+			skillsWithTariff[key] = s
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		json.NewEncoder(w).Encode(skillsWithTariff)
 	})
-	http.HandleFunc("/validate-routine", func(w http.ResponseWriter, r *http.Request) {
-		var trampolineSkills []skills.TrampolineSkill
-		if err := json.NewDecoder(r.Body).Decode(&trampolineSkills); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+
+	http.HandleFunc("/api/common-skill/", func(w http.ResponseWriter, r *http.Request) {
+		skillName := strings.TrimPrefix(r.URL.Path, "/api/common-skill/")
+		skill, exists := skills.GetCommonSkill(skillName)
+		if !exists {
+			http.Error(w, "Skill not found", http.StatusNotFound)
 			return
 		}
-
-		response := ValidationResponse{Valid: true, TotalTariff: 0}
-
-		for i, skill := range trampolineSkills {
-			response.TotalTariff += math.Abs(skill.Tariff)
-
-			if i > 0 {
-				prevLanding := trampolineSkills[i-1].LandingPosition()
-				if prevLanding != skill.TakeoffPosition {
-					response.Valid = false
-					response.InvalidIndex = i
-					response.Message = fmt.Sprintf(
-						"Cannot %s after %s landing",
-						skill.TakeoffPosition.String(),
-						prevLanding.String(),
-					)
-					break
-				}
-			}
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		json.NewEncoder(w).Encode(skill)
 	})
 
-	log.Println("Server starting on :8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 func staticFileServer(dir string) http.Handler {
 	fs := http.FileServer(http.Dir(dir))
@@ -166,72 +129,136 @@ func multiply(a, b int) int {
 func validateRoutineHandler(w http.ResponseWriter, r *http.Request) {
 	var trampolineSkills []skills.TrampolineSkill
 	if err := json.NewDecoder(r.Body).Decode(&trampolineSkills); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if len(trampolineSkills) == 0 {
-		json.NewEncoder(w).Encode(map[string]interface{}{"valid": false, "message": "Empty routine"})
+	response := ValidationResponse{
+		Valid:              true,
+		InvalidTransitions: []int{},
+		Duplicates:         []int{},
+		InvalidLandings:    []int{}, // New field
+		TenthSkillWarning:  false,
+		TotalTariff:        0,
+		RawTariff:          0,
+		Messages:           make([]string, len(trampolineSkills)),
+	}
+	response.TotalTariff = 0
+	response.RawTariff = 0
+	seenIndices := make(map[int]bool) // Track first occurrences
+	for i := range trampolineSkills {
+		response.RawTariff += trampolineSkills[i].Tariff
+		var messages []string
+		// Check transitions
+		if i > 0 {
+			prevLanding := trampolineSkills[i-1].LandingPosition()
+			currentTakeoff := trampolineSkills[i].TakeoffPosition
+			if prevLanding != currentTakeoff {
+				response.InvalidTransitions = append(response.InvalidTransitions, i)
+				messages = append(messages, fmt.Sprintf(
+					"Invalid transition from %s landing to %s takeoff",
+					prevLanding.String(),
+					currentTakeoff.String(),
+				))
+			}
+		}
+		// Check duplicates
+
+		// Check transitions (existing code)
+		// Check duplicates by comparing with all previous skills
+		isDuplicate := false
+		for j := 0; j < i; j++ {
+			if trampolineSkills[i].Equal(&trampolineSkills[j]) {
+				isDuplicate = true
+				// Mark first duplicate if not already marked
+				if !seenIndices[j] {
+					response.Duplicates = append(response.Duplicates, j)
+					seenIndices[j] = true
+				}
+				break
+			}
+		}
+		if isDuplicate {
+			response.Duplicates = append(response.Duplicates, i)
+			messages = append(messages, "Duplicate skill detected")
+		}
+		if !isDuplicate {
+			response.TotalTariff += trampolineSkills[i].Tariff
+		}
+		seenIndices[i] = isDuplicate
+
+		landing := trampolineSkills[i].LandingPosition()
+		if landing == skills.Invalid {
+			response.InvalidLandings = append(response.InvalidLandings, i)
+			messages = append(messages, "Invalid landing position")
+		}
+		response.Messages[i] = strings.Join(messages, " + ")
+
+		// Track validation states
+		if len(messages) > 0 {
+			response.Valid = false
+		}
+
+	}
+	if len(trampolineSkills) == 10 {
+		lastSkill := trampolineSkills[9]
+		if lastSkill.LandingPosition() != skills.Feet {
+			response.TenthSkillWarning = true
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+type ValidationResponse struct {
+	Valid              bool     `json:"valid"`
+	Messages           []string `json:"messages"`
+	InvalidTransitions []int    `json:"invalidTransitions"`
+	InvalidLandings    []int    `json:"invalidLandings"`   // Added
+	TenthSkillWarning  bool     `json:"tenthSkillWarning"` // Added
+	Duplicates         []int    `json:"duplicates"`
+	TotalTariff        float64  `json:"totalTariff"` // Unique skills total
+	RawTariff          float64  `json:"rawTariff"`
+}
+
+func calculateHandler(w http.ResponseWriter, r *http.Request) {
+	var skill skills.TrampolineSkill
+	if err := json.NewDecoder(r.Body).Decode(&skill); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	validation := struct {
-		Valid         bool    `json:"valid"`
-		Message       string  `json:"message,omitempty"`
-		CurrentTariff float64 `json:"current_tariff"`
-		TotalTariff   float64 `json:"total_tariff"`
+	skill.SetTariff()
+
+	response := struct {
+		Name              string  `json:"name"`
+		Rotation          int     `json:"rotation"`
+		TwistDistribution []int   `json:"twist_distribution"`
+		Shape             string  `json:"shape"`
+		Backward          bool    `json:"backward"`
+		SeatLanding       bool    `json:"seat_landing"`
+		Tariff            float64 `json:"tariff"`
+		TakeoffPosition   string  `json:"takeoff_position"`
+		LandingPosition   string  `json:"landing_position"`
 	}{
-		CurrentTariff: trampolineSkills[len(trampolineSkills)-1].Tariff,
+		Name:              skill.Name,
+		Rotation:          skill.Rotation,
+		TwistDistribution: skill.TwistDistribution,
+		Shape:             skill.Shape.String(),
+		Backward:          skill.Backward,
+		SeatLanding:       skill.SeatLanding,
+		Tariff:            skill.Tariff,
+		TakeoffPosition:   skill.TakeoffPosition.String(),
+		LandingPosition:   skill.LandingPosition().String(),
 	}
-
-	// Validate transitions
-	for i := 1; i < len(trampolineSkills); i++ {
-		prev := trampolineSkills[i-1].LandingPosition()
-		current := trampolineSkills[i].TakeoffPosition
-
-		if prev != current {
-			validation.Valid = false
-			validation.Message = fmt.Sprintf(
-				"Invalid transition from %s to %s at skill %d",
-				prev.String(),
-				current.String(),
-				i+1,
-			)
+	for _, commonSkill := range skills.CommonSkills {
+		if skill.Equal(&commonSkill) {
+			response.Name = commonSkill.Name // Use common name if match found
 			break
 		}
 	}
 
-	// Calculate total tariff
-	for _, skill := range trampolineSkills {
-		validation.TotalTariff += skill.Tariff
-	}
-
-	if validation.Message == "" {
-		validation.Valid = true
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(validation)
-}
-
-type ValidationResponse struct {
-	Valid        bool    `json:"valid"`
-	Message      string  `json:"message,omitempty"`
-	InvalidIndex int     `json:"invalidIndex,omitempty"`
-	TotalTariff  float64 `json:"totalTariff"`
-}
-
-func validateSkill(skill skills.TrampolineSkill) error {
-	requiredTwistRotations := (skill.Rotation + 3) / 4 // Ceiling division
-	if len(skill.TwistDistribution) != requiredTwistRotations {
-		return fmt.Errorf("expected %d twist rotations for %d/4 rotation",
-			requiredTwistRotations, skill.Rotation)
-	}
-
-	totalTwist := 0
-	for _, t := range skill.TwistDistribution {
-		totalTwist += t
-	}
-
-	return nil
+	json.NewEncoder(w).Encode(response)
 }

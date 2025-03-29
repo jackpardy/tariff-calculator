@@ -5,6 +5,44 @@
     <div class="box">
         <h3 class="title is-4">Skill Calculator</h3>
         <form id="main-form" class="columns is-multiline is-align-items-flex-end">
+            <div class="column is-8">
+                <div class="columns is-mobile is-vcentered mb-2">
+                    <div class="column is-9">
+                        <label class="label">Common Skills</label>
+                    </div>
+                    <div class="column is-3 has-text-right">
+                        <div class="select is-small">
+                            <select id="skill-sort" class="is-pulled-right" onchange="loadCommonSkillList(this.value)">
+                                <option value="tariff">Sort by Tariff</option>
+                                <option value="name">Sort by Name</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="field">
+                    <div class="select is-fullwidth">
+                        <select id="common-skills" onchange="loadCommonSkill(this.value)">
+                            <option value="">Select common skill...</option>
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+            <div class="column is-4">
+                <input type="hidden" id="skill-name" name="name">
+                <input type="hidden" id="base-skill-name">
+                <div class="field">
+                    <label class="label">Skill Name</label>
+                    <div class="control">
+                        <input class="input" type="text" id="skill-name-display"
+                               readonly
+                               placeholder="Custom Skill">
+                    </div>
+                </div>
+            </div>
             <!-- Row 1: Rotation and Twist -->
             <div class="column is-2">
                 <div class="field">
@@ -80,14 +118,13 @@
 
             <div class="column is-2">
                 <div class="field">
-                    <label class="label">&nbsp;</label>
-                    <label class="checkbox">
+                    <label class="checkbox mt-2">
                         <input type="checkbox" name="seat_landing" id="seat_landing">
                         Seat Landing
                     </label>
                     <label class="checkbox mt-2">
                         <input type="checkbox" id="backward-flag" name="backward">
-                        Backwards Rotation
+                        Back S/S
                     </label>
                 </div>
             </div>
@@ -162,6 +199,99 @@
 </div>
 
 <script>
+    let commonSkills = {};
+
+    async function loadCommonSkillList(sortBy = 'tariff') {
+        try {
+            const response = await fetch('/api/common-skills');
+            const commonSkillsMap = await response.json();
+            localStorage.setItem('commonSkills', JSON.stringify(commonSkillsMap));
+
+            // Convert to sorted array
+            const skillArray = Object.entries(commonSkillsMap).map(([key, skill]) => ({
+                key,
+                name: skill.name,
+                tariff: skill.tariff || 0,
+                raw: skill
+            }));
+
+            // Sorting logic
+            skillArray.sort((a, b) => {
+                if (sortBy === 'tariff') {
+                    return a.tariff - b.tariff || a.name.localeCompare(b.name);
+                }
+                return a.name.localeCompare(b.name);
+            });
+
+            // Update dropdown
+            const select = document.getElementById('common-skills');
+            select.innerHTML = '<option value="">Select common skill...</option>';
+            skillArray.forEach(({key, name, tariff}) => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = `${name} (${tariff.toFixed(1)})`;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Failed to load skills:", error);
+            showErrorToast("Couldn't load skill list");
+        }
+    }
+
+
+
+
+    // Call this on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCommonSkillList();
+        // ... other initialization
+    });
+
+    async function loadCommonSkill(skillKey) {
+        try {
+            if (!skillKey) return;
+
+            // Fetch skill using the original key-based endpoint
+            const response = await fetch(`/api/common-skill/${encodeURIComponent(skillKey)}`);
+            if (!response.ok) throw new Error("Skill not found");
+            const skill = await response.json();
+
+            // Update form fields using MAP CASE
+            document.getElementById('rotation').value = Math.abs(skill.rotation || 0);
+            document.getElementById('backward-flag').checked = skill.backward || false;
+            document.getElementById('takeoff_position').value = skill.takeoff_position.toLowerCase();
+            document.getElementById('shape').value = skill.shape.toLowerCase();
+            document.getElementById('seat_landing').checked = skill.seat_landing || false;
+
+            // Set twist distribution
+            (skill.twist_distribution || []).forEach((twist, i) => {
+                const input = document.querySelector(`.twist-rotation[data-rotation="${i+1}"]`);
+                if (input) input.value = twist || 0;
+            });
+            handleRotationChange()
+            document.getElementById('skill-name-display').value = skill.name;
+            document.getElementById('base-skill-name').value = skill.name;
+            document.getElementById('skill-name').value = skill.name;
+
+        } catch (error) {
+            console.error("Failed to load skill:", error);
+            showErrorToast("Couldn't load skill: " + error.message);
+            document.getElementById('common-skills').value = "";
+        }
+    }
+    const clearNameOnChange = () => {
+        if (document.getElementById('skill-name-display').value ===
+            document.getElementById('base-skill-name').value) {
+            document.getElementById('skill-name-display').value = "Custom Skill";
+            document.getElementById('base-skill-name').value = "";
+            document.getElementById('skill-name').value = "";
+        }
+    };
+
+    document.querySelectorAll('#main-form input, #main-form select')
+        .forEach(element => {
+            element.addEventListener('change', clearNameOnChange);
+        });
     function validateRotation(input) {
         // Enforce maximum value
         if (input.value > 16) {
@@ -187,19 +317,12 @@
         resetForm();
         document.getElementById('cancel-btn').classList.add('is-hidden');
     }
-    function removeSkill(button) {
+    async function removeSkill(button) {
         const skillDiv = button.closest('.routine-skill');
         if (skillDiv && skillDiv.parentNode) {
             skillDiv.parentNode.removeChild(skillDiv);
-            updateRoutineTotal();
-            validateRoutineSequence();
-        }
-    }
-    function updateBackward(input) {
-        const backwardCheckbox = document.getElementById('backward-flag');
-        backwardCheckbox.checked = parseInt(input.value) < 0;
-        if (backwardCheckbox.checked) {
-            input.value = Math.abs(parseInt(input.value));
+            await updateRoutineTotal();
+            await validateRoutineSequence();
         }
     }
     let editingIndex = null;
@@ -209,6 +332,9 @@
         const skill = JSON.parse(skillDiv.dataset.skill);
 
         // Populate form with proper element IDs
+        document.getElementById('skill-name-display').value = skill.name;
+        document.getElementById('base-skill-name').value = skill.name;
+        document.getElementById('skill-name').value = skill.name || "";
         document.getElementById('rotation').value = Math.abs(skill.rotation);
         document.getElementById('takeoff_position').value = skill.takeoff_position.toLowerCase();
         document.getElementById('shape').value = skill.shape.toLowerCase();
@@ -224,7 +350,7 @@
                 }
             });
         }
-        updateTwistFields(Math.abs(skill.rotation));
+        handleRotationChange()
         // Update button behavior
         const submitBtn = document.getElementById('submit-btn');
         submitBtn.textContent = "Update Skill";
@@ -233,13 +359,14 @@
     function resetForm() {
         const form = document.getElementById('main-form');
         form.reset();
+        handleRotationChange()
         document.getElementById('submit-btn').textContent = "Add Skill";
         document.getElementById('cancel-btn').classList.add('is-hidden');
         document.getElementById('submit-btn').onclick = calculateAndAdd;
     }
 
-    function updateSkill(skillDiv) {
-        const numRotations = Math.ceil(Math.abs(parseInt(document.getElementById('rotation').value)) / 4);
+    async function updateSkill(skillDiv) {
+        const numRotations = calculatePhases(Math.abs(parseInt(document.getElementById('rotation').value)));
         const twistInputs = [...document.querySelectorAll('.twist-rotation')];
         const twistDistribution = twistInputs
             .slice(0, numRotations) // Only take needed rotations
@@ -248,6 +375,7 @@
         const index = Array.from(document.getElementById('routine-skills').children).indexOf(skillDiv);
 
         const updatedSkill = {
+            name: document.getElementById('skill-name-display').value,
             rotation: parseInt(form.rotation.value) || 0,
             twist_distribution: twistDistribution,
             takeoff_position: form.takeoff_position.value,
@@ -256,30 +384,35 @@
             seat_landing: form.seat_landing.checked
         };
 
-        fetch('/api/calculate', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(updatedSkill)
-        })
-            .then(response => response.json())
-            .then(data => {
-                skillDiv.replaceWith(createSkillElement(data));
-                resetForm()
-                updateRoutineTotal();
-                validateRoutineSequence();
+        try {
+            const response = await fetch('/api/calculate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(updatedSkill)
             });
+            const data = await response.json();
+            skillDiv.replaceWith(createSkillElement(data));
+            resetForm();
+            await updateRoutineTotal(); // Added await
+            await validateRoutineSequence(); // Added await
+        } catch (error) {
+            console.error('Update failed:', error);
+            showErrorToast("Failed to update skill");
+        }
     }
 
-    function calculateAndAdd() {
+    async function calculateAndAdd() {
         const form = document.getElementById('main-form');
-        const numRotations = Math.ceil(Math.abs(parseInt(document.getElementById('rotation').value)) / 4);
+        const numRotations = calculatePhases(Math.abs(parseInt(document.getElementById('rotation').value)));
         const twistInputs = [...document.querySelectorAll('.twist-rotation')];
 
         const twistDistribution = twistInputs
             .slice(0, numRotations) // Only take needed rotations
             .map(input => parseInt(input.value) || 0);
+        try{
         // Use form.elements instead of querySelector
         const formData = {
+            name: document.getElementById('skill-name-display').value,
             rotation: Math.abs(parseInt(form.elements.rotation.value)) || 0,
             twist_distribution: twistDistribution,
             takeoff_position: form.elements.takeoff.value, // Changed from takeoff_position to takeoff
@@ -288,22 +421,26 @@
             seat_landing: form.elements.seat_landing.checked
         };
 
-        fetch('/api/calculate', {
+        const response = await fetch('/api/calculate', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(formData)
-        })
-            .then(response => response.json())
-            .then(data => {
-                addToRoutine(data);
-                updateRoutineTotal();
-                form.reset();
-                //document.getElementById('evaluation-preview').style.display = 'none';
-            });
+        });
+
+        if (!response.ok) throw new Error('Calculation failed');
+        const data = await response.json();
+
+        await addToRoutine(data);// Changed to await
+        form.reset();
+
+    }catch (error) {
+        console.error('Error:', error);
+        showErrorToast("Failed to calculate skill: " + error.message);
+    }
     }
     let draggedSkill = null;
 
-    function addToRoutine(skill, isUpdate = false, index = null) {
+    async function addToRoutine(skill, isUpdate = false, index = null) {
         const routineSkills = document.getElementById('routine-skills');
         const skills = Array.from(routineSkills.children);
 
@@ -317,26 +454,28 @@
 
         // Reset form
         document.querySelector('button').textContent = "Add Skill";
-        updateRoutineTotal();
-        validateRoutineSequence();
+        await updateRoutineTotal();
+        await validateRoutineSequence();
     }
 
-    function createSkillElement(skill, index) {
+     function createSkillElement(skill, index) {
         const skillDiv = document.createElement('div');
-        skillDiv.className = 'routine-skill box mb-2 is-flex is-align-items-center';
+        skillDiv.className = 'routine-skill box mb-2';
         skillDiv.draggable = true;
         skillDiv.dataset.skill = JSON.stringify(skill);
-
+        const skillName = skill.name || getCommonSkillName(skill) || 'Custom Skill';
         skillDiv.innerHTML = `
         <div class="columns is-mobile is-vcentered is-flex-grow-1">
             <div class="column is-2">
-                <p class="has-text-weight-bold">${skill.rotation}${skill.backward ? 'B' : 'F'}</p>
+                <p><strong>${skillName}</strong></p>
+                <p>${Math.abs(skill.rotation)} ${skill.backward  ? 'B' : 'F'}</p>
             </div>
             <div class="column is-2">
-                <p> ${skill.twist_distribution.join(' | ')}</p>
+                <p>${skill.twist_distribution.join(' | ')}</p>
             </div>
             <div class="column is-2">
-                <p> ${skill.takeoff_position}/${skill.landing_position}</p>
+                <p>${skill.takeoff_position} → ${skill.landing_position}</p>
+
             </div>
             <div class="column is-2">
                 <p> ${skill.shape}</p>
@@ -350,6 +489,13 @@
                     <button class="delete" onclick="removeSkill(this)"></button>
                 </div>
             </div>
+
+        </div>
+        <div class="columns is-mobile">
+                <div class="column is-12">
+                    <p class="transition-status has-text-danger is-size-7 mt-1"></p>
+                </div>
+            </div>
         </div>
     `;
 
@@ -359,16 +505,25 @@
             setTimeout(() => skillDiv.classList.add('is-dragging'), 0);
         });
 
-        skillDiv.addEventListener('dragend', () => {
+        skillDiv.addEventListener('dragend', async () => {
             draggedSkill = null;
             skillDiv.classList.remove('is-dragging');
-            validateRoutineSequence();
-            updateRoutineTotal();
+            await validateRoutineSequence();
+            await updateRoutineTotal();
         });
 
         return skillDiv;
     }
-
+    function getCommonSkillName(skillData) {
+        const commonSkills = JSON.parse(localStorage.getItem('commonSkills')) || {};
+        return Object.values(commonSkills).find(skill =>
+            skill.rotation === skillData.rotation &&
+            skill.backward === skillData.backward &&
+            skill.takeoff_position === skillData.takeoff_position &&
+            skill.shape === skillData.shape &&
+            JSON.stringify(skill.twist_distribution) === JSON.stringify(skillData.twist_distribution)
+        )?.name;
+    }
 
     // Drag-and-drop handlers
     document.getElementById('routine-skills').addEventListener('dragover', e => {
@@ -400,58 +555,86 @@
     }
 
     // Routine validation
-    function validateRoutineSequence() {
+    async function validateRoutineSequence() {
         const skills = [...document.querySelectorAll('.routine-skill')].map(el =>
             JSON.parse(el.dataset.skill)
         );
 
-        fetch('/validate-routine', {
+        try {
+            const validation = await validateRoutine(skills);
+
+            // Clear previous status
+            document.querySelectorAll('.routine-skill').forEach(el => {
+                el.style.borderLeft = '4px solid #485fc7';
+                el.querySelector('.transition-status').textContent = '';
+            });
+
+            // Highlight invalid transitions
+            validation.messages.forEach((message, index) => {
+                if (!message) return;
+
+                const skillEl = document.querySelectorAll('.routine-skill')[index];
+                if (!skillEl) return;
+
+                // Set border color based on priority
+                if (validation.invalidLandings.includes(index)) {
+                    skillEl.style.borderLeft = '4px solid #ff69b4'; // Pink
+                } else if (validation.invalidTransitions.includes(index)) {
+                    skillEl.style.borderLeft = '4px solid #ff3860'; // Red
+                } else if (validation.duplicates.includes(index)) {
+                    skillEl.style.borderLeft = '4px solid #ffdd57'; // Yellow
+                }
+                skillEl.querySelector('.transition-status').textContent = message;
+            });
+        }catch (error) {
+            console.error("Validation failed:", error);
+            showErrorToast("Couldn't validate routine");
+        }
+    }
+
+
+
+    async function updateRoutineTotal() {
+        const skills = [...document.querySelectorAll('.routine-skill')].map(el =>
+            JSON.parse(el.dataset.skill)
+        );
+
+        try {
+            const validation = await validateRoutine(skills);
+            const totalElement = document.getElementById('routine-total');
+            const rawTotal = validation.duplicates.length > 0 ?'<p class="subtitle">Raw Total (with duplicates):'+ validation.rawTariff.toFixed(2) + '</p>':'';
+            totalElement.innerHTML = `
+            <div class="card">
+    <div class="card-content">
+        <p class="title">Total Tariff: ${validation.totalTariff.toFixed(2)}</p>
+        <p class="subtitle">${skills.length} of 10 skills</p>
+        ${rawTotal ? rawTotal : ''}
+        <div class="validation-messages mt-3">
+            ${validation.duplicates.length > 0 ?
+                '<p class="has-text-warning mb-2">⚠️ Duplicate skills only count once!</p>' : ''}
+            ${validation.invalidTransitions.length >0 ?
+                '<p class="has-text-danger">❌ Invalid transitions detected</p>' : ''}
+            ${validation.tenthSkillWarning ?
+                '<p class="has-text-danger">⚠️ The final skill must land on feet!</p>' : ''}
+        </div>
+    </div>
+</div>
+        `;
+        } catch (error) {
+            console.error("Failed to update total:", error);
+            showErrorToast("Couldn't calculate routine total");
+        }
+    }
+
+    async function validateRoutine(skills) {
+        const response = await fetch('/validate-routine', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(skills)
-        })
-            .then(response => response.json())
-            .then(validation => {
-                document.querySelectorAll('.routine-skill').forEach(el => {
-                    el.style.borderLeft = '4px solid #485fc7'; // Reset all
-                });
-
-                if (!validation.valid) {
-                    const invalidIndex = validation.invalidIndex;
-                    if (invalidIndex >= 0) {
-                        const invalidSkill = document.querySelectorAll('.routine-skill')[invalidIndex];
-                        invalidSkill.style.borderLeft = '4px solid #ff3860';
-                        invalidSkill.querySelector('.transition-status').textContent = validation.message;
-                    }
-                }
-            });
-    }
-
-    function updateRoutineTotal() {
-        const skills = [...document.querySelectorAll('.routine-skill')];
-        let total = 0;
-
-        skills.forEach(skillElement => {
-            // Get the tariff value directly from the parsed skill data
-            const skill = JSON.parse(skillElement.dataset.skill);
-            if (skill && skill.tariff) {
-                total += skill.tariff;
-            }
         });
-
-        const totalElement = document.getElementById('routine-total');
-        if (totalElement) {
-            totalElement.innerHTML = `
-            <div class="card">
-                <div class="card-content">
-                    <p class="title">Total Tariff: ${total.toFixed(2)}</p>
-                    <p class="subtitle">${skills.length} of 10 skills</p>
-                    ${skills.length >= 10 ? '<p class="has-text-danger">Maximum skills reached</p>' : ''}
-                </div>
-            </div>
-        `;
-        }
+        return response.json();
     }
+    let currentEvaluatedSkill = null;
     function evaluateSkill() {
         const form = document.getElementById('main-form');
         const twistInputs = [...document.querySelectorAll('.twist-rotation:not(:disabled)')];
@@ -472,9 +655,11 @@
         })
             .then(response => response.json())
             .then(data => {
+                currentEvaluatedSkill = data
+                currentEvaluatedSkill.name = document.getElementById('skill-name-display').value;
                 document.getElementById('evaluation-preview').style.display = 'block';
                 document.getElementById('evaluation-preview').innerHTML = `
-            <h4 class="title is-6 mb-3">Skill Evaluation</h4>
+            <h4 class="title is-6 mb-3">Skill Evaluation - ${currentEvaluatedSkill.name}</h4>
             <div class="content">
                 <div class="columns is-vcentered">
                     <div class="column">
@@ -492,7 +677,7 @@
                 </div>
             </div>
             <div class="buttons mt-3">
-                <!--<button class="button is-info" onclick="addEvaluatedSkill()">Add to Routine</button>-->
+                <button class="button is-info" onclick="addEvaluatedSkill()">Add to Routine</button>
                 <button class="button" onclick="document.getElementById('evaluation-preview').style.display='none'">Close</button>
             </div>
         `;
@@ -501,21 +686,18 @@
     }
 
     // Function to add evaluated skill
-    function addEvaluatedSkill(skillData) {
-        try {
-            const skill = document.getElementById('evaluation-preview').dataset.skill
-            addToRoutine(skill);
-            document.getElementById('evaluation-preview').style.display = 'none';
-            updateRoutineTotal();
-        } catch (error) {
-            console.error('Error adding skill:', error);
-            showErrorToast("Failed to add skill to routine");
-        }
+    function addEvaluatedSkill() {
+        if (!currentEvaluatedSkill) return;
+
+        // Use the existing addToRoutine function in "add new" mode
+        addToRoutine(currentEvaluatedSkill);
+        document.getElementById('evaluation-preview').style.display = 'none';
+        resetForm();
     }
     let savedTwists = [0, 0, 0, 0];
 
     function updateTwistFields(rotation) {
-        const numRotations = Math.ceil(rotation / 4);
+        const phases = calculatePhases(rotation);
         const inputs = document.querySelectorAll('.twist-rotation');
 
         // Save current values
@@ -526,7 +708,7 @@
         // Update field states
         inputs.forEach((input, i) => {
             const rotationNum = i + 1;
-            if (rotationNum <= numRotations) {
+            if (rotationNum <= phases) {
                 input.disabled = false;
                 input.value = savedTwists[i];
                 input.parentNode.parentNode.style.opacity = '1';
@@ -540,6 +722,19 @@
     document.addEventListener('DOMContentLoaded', () => {
         updateTwistFields(document.getElementById('rotation').value);
     });
+    document.getElementById('rotation').addEventListener('input', handleRotationChange);
+    function handleRotationChange(){
+        const rotationInput = document.getElementById('rotation');
+        const rotationValue = Math.abs(parseInt(rotationInput.value) || 0);
+        updateTwistFields(rotationValue);
+    }
+    function calculatePhases(rotation) {
+        rotation = Math.abs(rotation);
+        if (rotation <= 6) return 1;
+        if (rotation <= 10) return 2;
+        if (rotation <= 14) return 3;
+        return 4;
+    }
 </script>
 
 <style>

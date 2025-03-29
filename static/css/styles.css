@@ -131,7 +131,7 @@
 
 /* Ensure consistent height of fields */
 .field .control, .field .checkbox {
-    min-height: 2.25em;
+    min-height: 1.25rem;
     display: flex;
     align-items: center;
 }
@@ -167,5 +167,59 @@
 
 .checkbox {
     margin-right: 1.5rem;
-    margin-bottom: 0.5rem;
+}
+#skill-name-display {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    font-style: italic;
+}
+.validation-messages {
+    border-top: 1px solid #eee;
+    padding-top: 0.75rem;
+    margin-top: 1rem;
+}
+
+.transition-status {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.has-text-danger.has-text-warning {
+    background: linear-gradient(90deg, #ff3860 50%, #ffdd57 50%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.has-text-danger {
+    color: #ff3860 !important; /* Red for transitions */
+}
+.has-text-landing-warning {
+    color: #ff69b4 !important; /* Pink for landings */
+}
+.has-text-tenth-warning {
+    color: #ff851b !important; /* Orange for 10th skill */
+}
+
+.subtitle.tariff-difference {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.has-text-warning .icon {
+    margin-right: 0.5rem;
+}
+.routine-skill.has-multiple-warnings {
+    position: relative;
+    overflow: hidden;
+}
+
+.routine-skill.has-multiple-warnings::after {
+    content: "";
+    position: absolute;
+    right: -10px;
+    top: -10px;
+    width: 20px;
+    height: 20px;
+    background: #ff69b4;
+    transform: rotate(45deg);
 }
