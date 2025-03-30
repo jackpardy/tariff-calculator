@@ -200,6 +200,10 @@
 </div>
 
 <script>
+    let dragActivationTimer = null;
+    const DRAG_ACTIVATION_DELAY = 300; // 300ms delay
+    const TOUCH_MOVE_THRESHOLD = 5; // 5px movement cancels drag
+
     let commonSkills = {};
 
     async function loadCommonSkillList(sortBy = 'tariff') {
@@ -801,24 +805,42 @@
         const touch = e.touches[0];
         const target = touch.target;
 
-        // Ignore if touching a button or its children
-        if (target.closest('button, .delete')) {
-            return;
-        }
+        if (target.closest('button, .delete')) return;
 
         touchStartY = touch.clientY;
+        const startX = touch.clientX;
+        const startY = touch.clientY;
         draggedElement = target.closest('.routine-skill');
+
         if (!draggedElement) return;
 
-        originalIndex = Array.from(draggedElement.parentNode.children)
-            .indexOf(draggedElement);
-        draggedElement.style.transition = 'none';
-        draggedElement.style.opacity = '0.8';
-        e.preventDefault();
-    }, { passive: false });
+        // Set activation timer
+        dragActivationTimer = setTimeout(() => {
+            originalIndex = Array.from(draggedElement.parentNode.children)
+                .indexOf(draggedElement);
+            draggedElement.style.transition = 'none';
+            draggedElement.style.opacity = '0.8';
+            draggedElement.classList.add('dragging');
+        }, DRAG_ACTIVATION_DELAY);
+
+        // Track initial position
+        const checkMovement = (moveEvent) => {
+            const currentX = moveEvent.touches[0].clientX;
+            const currentY = moveEvent.touches[0].clientY;
+
+            // Cancel drag if movement exceeds threshold during activation delay
+            if (Math.abs(currentX - startX) > TOUCH_MOVE_THRESHOLD ||
+                Math.abs(currentY - startY) > TOUCH_MOVE_THRESHOLD) {
+                clearTimeout(dragActivationTimer);
+                document.removeEventListener('touchmove', checkMovement);
+            }
+        };
+
+        document.addEventListener('touchmove', checkMovement);
+    }, { passive: true });
 
     document.addEventListener('touchmove', e => {
-        if (!draggedElement) return;
+        if (!draggedElement || !draggedElement.classList.contains('dragging')) return;
         e.preventDefault();
 
         const touch = e.touches[0];
@@ -847,21 +869,26 @@
     }, { passive: false });
 
     document.addEventListener('touchend', () => {
-        if (!draggedElement) return;
+        clearTimeout(dragActivationTimer);
+        if (draggedElement && draggedElement.classList.contains('dragging')) {
 
-        draggedElement.style.transition = '';
-        draggedElement.style.opacity = '';
+            draggedElement.style.transition = '';
+            draggedElement.style.opacity = '';
 
-        // Only trigger validation if position changed
-        const newIndex = Array.from(draggedElement.parentNode.children)
-            .indexOf(draggedElement);
-        if (newIndex !== originalIndex) {
-            validateRoutineSequence();
-            updateRoutineTotal();
+            // Only trigger validation if position changed
+            const newIndex = Array.from(draggedElement.parentNode.children)
+                .indexOf(draggedElement);
+            if (newIndex !== originalIndex) {
+                validateRoutineSequence();
+                updateRoutineTotal();
+            }
+
+            touchStartY = null;
+            draggedElement = null;
+            originalIndex = null;
         }
-
-        touchStartY = null;
         draggedElement = null;
+        touchStartY = null;
         originalIndex = null;
     });
 
