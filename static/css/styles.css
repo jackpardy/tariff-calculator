@@ -302,3 +302,53 @@
 .insertion-point.active::after {
     opacity: 1;
 }
+
+
+@media screen and (max-width: 768px) {
+    .routine-skill .column {
+        padding: 0.25rem !important;
+    }
+
+    .routine-skill .buttons {
+        min-width: 120px;
+        justify-content: flex-end !important;
+    }
+
+    .routine-skill .delete {
+        margin-left: 0.5rem !important;
+    }
+
+    .routine-skill p {
+        font-size: 0.9rem;
+        line-height: 1.2;
+    }
+
+    .routine-skill .has-text-primary {
+        font-size: 1rem;
+    }
+
+    .routine-skill .is-hidden-mobile {
+        display: none !important;
+    }
+
+    .routine-skill .is-hidden-tablet {
+        display: flex !important;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .routine-skill .columns.is-mobile > .column:not(:last-child) {
+        margin-bottom: 0.5rem;
+    }
+
+    .routine-skill .column.is-4-mobile {
+        flex: none;
+        width: 100%;
+    }
+
+    .routine-skill .buttons {
+        width: 100%;
+        justify-content: space-between !important;
+    }
+}
+

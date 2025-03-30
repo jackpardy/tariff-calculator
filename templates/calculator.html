@@ -58,7 +58,7 @@
             <div class="column is-4" id="twist-distribution-container">
                 <div class="field">
                     <label class="label">Twist in 1/2s per somersault</label>
-                    <div class="columns is-multiline" id="twist-fields">
+                    <div class="columns is-mobile is-multiline" id="twist-fields">
                         <div class="column is-3">
                             <div class="field">
                                 <input class="input twist-rotation" type="number"
@@ -474,41 +474,52 @@
         const skillName = skill.name || getCommonSkillName(skill) || 'Custom Skill';
         skillDiv.innerHTML = `
         <div class="columns is-mobile is-vcentered is-flex-grow-1">
-            <div class="column is-2">
-                <p><strong>${skillName}</strong></p>
-                <p>${Math.abs(skill.rotation)} ${skill.backward ? 'B' : 'F'}</p>
-            </div>
-            <div class="column is-2">
-                <p>${skill.twist_distribution.join(' | ')}</p>
-            </div>
-            <div class="column is-2">
-                <p>${skill.takeoff_position} → ${skill.landing_position}</p>
-
-            </div>
-            <div class="column is-2">
-                <p> ${skill.shape}</p>
-            </div>
-            <div class="column is-2">
-                <p class="has-text-primary" >${skill.tariff.toFixed(2)}</p>
-            </div>
-            <div class="column is-2">
-                <div class="buttons are-small" style="flex-wrap: nowrap; align-items: center; gap: 0.25rem">
-    <!-- Left Group: Edit + Delete -->
-    <div style="display: flex; align-items: center; gap: 0.25rem">
-        <button class="button is-info" onclick="editSkill(this)">Edit</button>
-        <button class="delete is-danger" onclick="removeSkill(this)"></button>
+    <!-- Skill Details -->
+    <div class="column is-4-mobile is-3-tablet">
+        <p><strong>${skillName}</strong></p>
+        <p>${Math.abs(skill.rotation)} ${skill.backward ? 'B' : 'F'}</p>
     </div>
 
-    <!-- Right Group: Vertical Arrows -->
-    <div class="buttons is-vertical" style="gap: 2px; margin-left: 0.5rem; padding: 2px 0;">
-        <button class="button py-1" onclick="moveSkillUp(this)">↑</button>
-        <button class="button py-1" onclick="moveSkillDown(this)">↓</button>
+    <div class="column is-2-mobile is-2-tablet">
+        <p>${skill.twist_distribution.join(' | ')}</p>
+    </div>
+
+    <div class="column is-3-mobile is-2-tablet">
+        <p>${skill.takeoff_position} → ${skill.landing_position}</p>
+    </div>
+
+    <div class="column is-2-mobile is-2-tablet">
+        <p>${skill.shape}</p>
+    </div>
+
+    <div class="column is-2-mobile is-1-tablet">
+        <p class="has-text-primary">${skill.tariff.toFixed(2)}</p>
+    </div>
+
+    <!-- Controls Column - Updated Structure -->
+    <div class="column is-4-mobile is-2-tablet">
+        <div class="buttons are-small is-flex is-justify-content-flex-end">
+            <div class="is-flex is-align-items-center" style="gap: 0.5rem">
+                <!-- Vertical Arrows for Tablet+ -->
+                <div class="is-hidden-mobile">
+                    <button class="button" onclick="moveSkillUp(this)">↑</button>
+                    <button class="button" onclick="moveSkillDown(this)">↓</button>
+                </div>
+
+                <!-- Horizontal Arrows for Mobile -->
+                <div class="is-flex is-hidden-tablet" style="gap: 0.25rem">
+                    <button class="button" onclick="moveSkillUp(this)">↑</button>
+                    <button class="button" onclick="moveSkillDown(this)">↓</button>
+                </div>
+
+                <button class="button is-info is-small"
+                        onclick="editSkill(this)">Edit</button>
+                <button class="delete is-danger"
+                        onclick="removeSkill(this)"></button>
+            </div>
+        </div>
     </div>
 </div>
-            </div>
-        </div>
-
-        </div>
         <div class="columns is-mobile">
                 <div class="column is-12">
                     <p class="transition-status has-text-danger is-size-7 mt-1"></p>
