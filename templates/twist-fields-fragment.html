@@ -1,0 +1,13 @@
+{{range $i, $e := .Phases}}
+<div class="column is-3">
+    <div class="field">
+        {{/* Determine if this input should be enabled */}}
+        {{$enabled := le (add $i 1) $.EnabledPhases}}
+        {{/* Get current value, defaulting to 0 */}}
+        {{$currentValue := index $.CurrentTwists $i | default 0}}
+        <input class="input twist-rotation" type="number" name="twist_distribution[]"
+               min="0" value="{{$currentValue}}" data-rotation="{{add $i 1}}"
+               {{if not $enabled}}disabled style="opacity: 0.5;"{{end}}>
+    </div>
+</div>
+{{end}}

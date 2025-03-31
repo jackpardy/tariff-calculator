@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/static/css/bulma.min.css">
     <link rel="stylesheet" href="/static/css/styles.css">
     <script src="/static/js/htmx.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         .hero.is-primary {
             background-color: #485fc7;
@@ -17,9 +18,16 @@
         .routine-total {
             margin-top: 2rem;
         }
+        /* Basic style for dragging indication */
+        .dragging {
+            opacity: 0.5;
+        }
+        /* Hide template elements */
+        [x-cloak] { display: none !important; }
     </style>
 </head>
-<body>
+<body x-data="tariffCalculatorStore()" x-init="init()">
+
 <section class="hero is-primary">
     <div class="hero-body">
         <div class="container">
@@ -40,5 +48,6 @@
         <p>2025 Trampoline Tariff Calculator</p>
     </div>
 </footer>
+
 </body>
 </html>

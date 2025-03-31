@@ -3,6 +3,7 @@ package skills
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"slices"
 	"strings"
 )
@@ -16,6 +17,8 @@ type TrampolineSkill struct {
 	Tariff            float64      `json:"tariff,omitempty"`
 	Backward          bool         `json:"backward"`
 	SeatLanding       bool         `json:"seat_landing"`
+	LandingPosStr     string       `json:"landing_position"` // Add this field
+	SkillDataJSON     string       `json:"-"`                // Add this field
 }
 
 func (skill *TrampolineSkill) TotalTwist() int {
@@ -362,6 +365,15 @@ func calculatePhases(rotation int) int {
 	default: // 15-16
 		return 4
 	}
+}
+func ShapeFromString(s string) Shape {
+	for shapeEnum, name := range ShapeName {
+		if strings.EqualFold(s, name) {
+			return shapeEnum
+		}
+	}
+	log.Printf("Warning: Invalid shape string '%s' received, using default.", s)
+	return Straight // Or InvalidShape, depending on desired default
 }
 func (skill *TrampolineSkill) Validate() error {
 	requiredPhases := calculatePhases(skill.Rotation)

@@ -1,0 +1,172 @@
+{{/* This template now ONLY renders the form element and its contents */}}
+<form id="main-form" class="columns is-multiline is-align-items-flex-end" hx-indicator="#main-form .button">
+    <input type="hidden" name="skillIndex" value="{{.Index}}"> {{/* Index is -1 for new/common, >=0 for edit */}}
+
+    <div class="column is-8">
+        <div class="field">
+            <label class="label">Common Skills (Optional)</label>
+            <div class="select is-fullwidth">
+                <select id="common-skills" name="commonSkillKey"
+                        hx-get="/skill-form-fragment"
+                        hx-trigger="change"
+                        hx-target="#skill-form-wrapper"
+                hx-swap="innerHTML"
+                hx-indicator="#skill-form-wrapper"
+                    hx-vals='{"editIndex": "{{.Index}}"}'>
+                <option value="">Select to load skill data...</option>
+                {{range .CommonSkills}}
+                <option value="{{.Key}}" {{if eq .Key (skillKey $.Skill)}}selected{{end}}>
+                    {{.Name}} ({{printf "%.1f" .Tariff}})
+                </option>
+                {{end}}
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="column is-4">
+        <div class="field">
+            <label class="label">Skill Name (Auto-filled or Custom)</label>
+            <div class="control">
+                <input class="input" type="text" id="skill-name-display" name="name"
+                       value="{{default "Custom Skill" .Skill.Name}}"
+                placeholder="Custom Skill">
+            </div>
+        </div>
+    </div>
+
+    <div class="column is-2">
+        <div class="field">
+            <label class="label">Rotation (1/4s)</label>
+            <div class="control">
+                <input class="input" type="number" id="rotation" name="rotation"
+                       min="0" max="16" step="1" value="{{.Skill.Rotation | abs}}" required
+                       {{/* CORRECTED Comment Syntax Below */}}
+                @input="updateTwistInputs($event.target.value)"> {{/* Example Alpine trigger */}}
+            </div>
+        </div>
+    </div>
+
+    <div class="column is-4" id="twist-distribution-container">
+        <label class="label">Twist (1/2s per S/S)</label>
+        <div class="columns is-mobile is-multiline is-gapless" id="twist-fields">
+            {{/* Render twist fields directly using Go template */}}
+            {{$enabledPhases := .EnabledPhases}} {{/* Get from context */}}
+            {{$currentTwists := .CurrentTwists}} {{/* Get from context */}}
+            {{range $i, $e := (seq 0 3)}} {{/* Loop 4 times for 4 slots (using 0-based index) */}}
+            <div class="column is-3">
+                <div class="field">
+                    {{$phaseNum := add $i 1}} {{/* 1-based phase number */}}
+                    {{$isEnabled := le $phaseNum $enabledPhases}}
+                    {{$twistValue := index $currentTwists $i | default 0}}
+                    <input class="input twist-rotation" type="number" name="twist_distribution[]"
+                           min="0" value="{{$twistValue}}" data-rotation="{{$phaseNum}}"
+                           {{if not $isEnabled}}disabled style="opacity: 0.5;"{{end}}>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <div class="column is-2">
+        <div class="field">
+            <label class="label">Takeoff</label>
+            <div class="select is-fullwidth">
+                <select name="takeoff_position" id="takeoff_position">
+                    <option value="feet" {{if eq .Skill.TakeoffPosition.String "Feet"}}selected{{end}}>Feet</option>
+                    <option value="front" {{if eq .Skill.TakeoffPosition.String "Front"}}selected{{end}}>Front</option>
+                    <option value="back" {{if eq .Skill.TakeoffPosition.String "Back"}}selected{{end}}>Back</option>
+                    <option value="seat" {{if eq .Skill.TakeoffPosition.String "Seat"}}selected{{end}}>Seat</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="column is-2">
+        <div class="field">
+            <label class="label">Shape</label>
+            <div class="select is-fullwidth">
+                <select name="shape" id="shape">
+                    <option value="straight" {{if eq .Skill.Shape.String "Straight"}}selected{{end}}>Straight</option>
+                    <option value="tuck" {{if eq .Skill.Shape.String "Tuck"}}selected{{end}}>Tuck</option>
+                    <option value="pike" {{if eq .Skill.Shape.String "Pike"}}selected{{end}}>Pike</option>
+                    <option value="straddle" {{if eq .Skill.Shape.String "Straddle"}}selected{{end}}>Straddle</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="column is-2">
+        <div class="field is-grouped is-grouped-multiline">
+            <div class="control">
+                <label class="checkbox">
+                    <input type="checkbox" name="seat_landing" id="seat_landing" {{if .Skill.SeatLanding}}checked{{end}}>
+                    Seat Ldg
+                </label>
+            </div>
+            <div class="control">
+                <label class="checkbox">
+                    <input type="checkbox" id="backward-flag" name="backward" {{if .Skill.Backward}}checked{{end}}>
+                    Back S/S
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="column is-2">
+        <div class="field">
+            <label class="label">&nbsp;</label>
+            {{if eq .Index -1}} <button type="button" id="add-btn"
+                                        class="button is-primary is-fullwidth"
+                                        @click.prevent="handleAddSkillClick()"> {{/* Alpine adds skill */}}
+            Add to Routine
+        </button>
+            {{else}} <button type="button" id="update-btn"
+                             class="button is-success is-fullwidth"
+                             @click.prevent="handleUpdateSkill({{.Index}}, getFormData('#main-form'))"> {{/* Alpine updates skill */}}
+            Update Skill
+        </button>
+            {{end}}
+        </div>
+    </div>
+    <div class="column is-2">
+        <div class="field">
+            <label class="label">&nbsp;</label>
+            <button type="button" class="button is-info is-fullwidth"
+                    hx-post="/evaluate-skill-fragment" {{/* Optional: HTMX for preview */}}
+            hx-target="#evaluation-preview"
+            hx-swap="innerHTML"
+            hx-include="#main-form">
+            Evaluate Skill
+            </button>
+        </div>
+    </div>
+    <div class="column is-2" id="cancel-btn-wrapper">
+        <div class="field">
+            <label class="label">&nbsp;</label>
+            {{if ne .Index -1}} <button type="button" id="cancel-btn"
+                                        class="button is-danger is-fullwidth"
+                                        @click="cancelEdit()"> {{/* Alpine triggers empty form load */}}
+            Cancel Edit
+        </button>
+            {{end}}
+        </div>
+    </div>
+</form>
+
+{{/* Optional Alpine handler for immediate client-side reaction to rotation */}}
+{{/* Using correct comment syntax now */}}
+{{/*
+<script>
+    document.addEventListener('alpine:initializing', () => {
+        Alpine.data('skillForm', () => ({
+            handleRotationChange(rotationValue) {
+                // This is where you *could* manually update twist input disabled state client-side
+                // For now, we rely on the Go template rendering the correct state on load/reload
+                console.log('Rotation changed (client):', rotationValue);
+                const store = Alpine.store('tariffCalculatorStore'); // Access store if needed
+                if(store) store.updateTwistInputs(rotationValue); // Call store method
+            }
+        }))
+    })
+</script>
+*/}}

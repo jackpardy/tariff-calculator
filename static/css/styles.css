@@ -240,7 +240,7 @@
     }
 }
 .routine-skill {
-    touch-action: none; /* Prevent browser touch actions */
+   /* touch-action: none; /* Prevent browser touch actions */
     user-select: none;  /* Prevent text selection */
     transition: transform 0.2s ease;
 }
@@ -258,9 +258,6 @@
     pointer-events: auto;
 }
 
-.routine-skill > *:not(.buttons) {
-    pointer-events: none;
-}
 .insertion-controls {
     position: relative;
     margin-bottom: 1rem;
