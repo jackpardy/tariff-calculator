@@ -1,0 +1,100 @@
+{{/* templates/skill-inputs-fragment.html */}}
+{{/* This fragment contains ONLY the inputs updated when a common skill is selected */}}
+
+{{/* Hidden index field - needed if updating an existing skill */}}
+<input type="hidden" name="skillIndex" value="{{.Index}}">
+
+{{/* Skill Name - Updated based on common skill or custom */}}
+<div class="column is-4">
+    <div class="field">
+        <label class="label">Skill Name (Auto-filled or Custom)</label>
+        <div class="control">
+            <input class="input" type="text" id="skill-name-display" name="name"
+                   value="{{default "Custom Skill" .Skill.Name}}"
+            placeholder="Custom Skill">
+        </div>
+    </div>
+</div>
+
+{{/* Rotation Input */}}
+<div class="column is-2">
+    <div class="field">
+        <label class="label">Rotation (1/4s)</label>
+        <div class="control">
+            <input class="input" type="number" id="rotation" name="rotation"
+                   min="0" max="16" step="1" value="{{.Skill.Rotation | abs}}" required
+                   @input="updateTwistInputs($event.target.value)"> {{/* Alpine trigger remains for manual changes */}}
+        </div>
+    </div>
+</div>
+
+{{/* Twist Distribution Inputs */}}
+<div class="column is-4" id="twist-distribution-container">
+    <label class="label">Twist (1/2s per S/S)</label>
+    <div class="columns is-mobile is-multiline is-gapless" id="twist-fields">
+        {{/* Render twist fields directly using Go template data */}}
+        {{$enabledPhases := .EnabledPhases}}
+        {{$currentTwists := .CurrentTwists}}
+        {{range $i, $e := (seq 0 3)}} {{/* Loop 4 times for 4 slots */}}
+        <div class="column is-3">
+            <div class="field">
+                {{$phaseNum := add $i 1}}
+                {{$isEnabled := le $phaseNum $enabledPhases}}
+                {{$twistValue := index $currentTwists $i | default 0}}
+                <input class="input twist-rotation" type="number" name="twist_distribution[]"
+                       min="0" value="{{$twistValue}}" data-rotation="{{$phaseNum}}"
+                       {{if not $isEnabled}}disabled style="opacity: 0.5;"{{end}}>
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+
+{{/* Takeoff Position Select */}}
+<div class="column is-2">
+    <div class="field">
+        <label class="label">Takeoff</label>
+        <div class="select is-fullwidth">
+            <select name="takeoff_position" id="takeoff_position">
+                <option value="feet" {{if eq .Skill.TakeoffPosition.String "Feet"}}selected{{end}}>Feet</option>
+                <option value="front" {{if eq .Skill.TakeoffPosition.String "Front"}}selected{{end}}>Front</option>
+                <option value="back" {{if eq .Skill.TakeoffPosition.String "Back"}}selected{{end}}>Back</option>
+                <option value="seat" {{if eq .Skill.TakeoffPosition.String "Seat"}}selected{{end}}>Seat</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+{{/* Shape Select */}}
+<div class="column is-2">
+    <div class="field">
+        <label class="label">Shape</label>
+        <div class="select is-fullwidth">
+            <select name="shape" id="shape">
+                <option value="straight" {{if eq .Skill.Shape.String "Straight"}}selected{{end}}>Straight</option>
+                <option value="tuck" {{if eq .Skill.Shape.String "Tuck"}}selected{{end}}>Tuck</option>
+                <option value="pike" {{if eq .Skill.Shape.String "Pike"}}selected{{end}}>Pike</option>
+                <option value="straddle" {{if eq .Skill.Shape.String "Straddle"}}selected{{end}}>Straddle</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+{{/* Flags (Checkboxes) */}}
+<div class="column is-2">
+    <div class="field is-grouped is-grouped-multiline">
+        <div class="control">
+            <label class="checkbox">
+                <input type="checkbox" name="seat_landing" id="seat_landing" {{if .Skill.SeatLanding}}checked{{end}}>
+                Seat Ldg
+            </label>
+        </div>
+        <div class="control">
+            <label class="checkbox">
+                <input type="checkbox" id="backward-flag" name="backward" {{if .Skill.Backward}}checked{{end}}>
+                Back S/S
+            </label>
+        </div>
+    </div>
+</div>
+

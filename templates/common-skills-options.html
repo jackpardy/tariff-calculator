@@ -1,0 +1,12 @@
+{{/* templates/common-skills-options.html */}}
+{{/* Renders only the <option> elements for the common skills dropdown */}}
+
+    {{/* Placeholder option */}}
+<option value="">Select to load skill data...</option>
+
+{{/* Loop through the sorted skills passed from the handler */}}
+{{range .CommonSkills}}
+<option value="{{.Key}}" {{if eq .Key $.SelectedValue}}selected{{end}}>
+    {{.Name}} ({{printf "%.1f" .Tariff}})
+</option>
+{{end}}

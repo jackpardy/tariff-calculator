@@ -1,53 +1,61 @@
+/* General styles for routine items */
 .routine-skill {
     cursor: grab;
     margin-bottom: 0.75rem;
     transition: transform 0.1s ease;
+    position: relative; /* Needed for pseudo-elements like drag indicator */
+    transition: all 0.3s ease; /* Smooth transitions */
+    pointer-events: auto; /* Ensure the item itself is interactive */
 }
 
+/* Style for when an item is being dragged */
 .routine-skill.is-dragging {
     opacity: 0.5;
     cursor: grabbing;
+    transform: scale(1.02); /* Slight scale effect */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15); /* Add shadow */
+    z-index: 10; /* Ensure it's above other items */
 }
 
+/* Hover effect for routine items */
 .routine-skill:hover {
     transform: translateY(-2px);
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
+/* Style for validation messages within routine items */
 .transition-status {
     font-size: 0.8rem;
     margin-top: 0.5rem;
 }
 
+/* Style for seat landing indicator */
 .has-seat-landing {
     border-left: 4px solid #ff3860 !important;
 }
 
-.routine-skill {
-    position: relative;
-    transition: all 0.3s ease;
-}
+/* Style for indicating an item is being edited */
 .routine-skill.editing {
     box-shadow: 0 0 0 2px #485fc7;
 }
-.is-dragging {
-    opacity: 0.5;
-    transform: scale(0.98);
-}
 
+/* Minimum height for the routine builder container */
 #routine-skills {
     min-height: 100px;
     transition: background-color 0.2s;
 }
 
+/* Style for indicating a drag-over state */
 #routine-skills.drag-over {
     background-color: #f8f9fa;
 }
 
+/* Minimum height for the routine total display */
 #routine-total {
     min-height: 120px;
 }
 
+/* Style for loading indicator in routine total */
 .loading-total::after {
     content: "Calculating...";
     display: block;
@@ -55,7 +63,7 @@
     color: #666;
 }
 
-/* Evaluation preview */
+/* Styling for the skill evaluation preview box */
 #evaluation-preview {
     margin: 1rem 0;
     background-color: #f8f9fa;
@@ -64,47 +72,108 @@
 #evaluation-results p {
     margin-bottom: 0.5rem;
 }
+
+/* General column padding within a routine skill */
 .routine-skill .columns {
     padding: 0.25rem;
-    min-width: 800px; /* Minimum width for desktop */
 }
 
+/* Styling for individual columns within a routine skill */
 .routine-skill .column {
     padding: 0.25rem 0.5rem;
     font-size: 0.85rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex; /* Use flex for alignment within columns */
+    align-items: center; /* Vertically center content in columns */
 }
 
-/* Mobile Responsiveness */
-@media screen and (max-width: 768px) {
-    .routine-skill .columns {
-        min-width: unset;
-        flex-wrap: wrap;
-    }
+/* --- Start Routine Button Fixes --- */
 
-    .routine-skill .column {
-        flex: none;
-        width: 50%;
-        padding: 0.25rem;
-    }
-
-    .routine-skill .column:last-child {
-        width: 100%;
-        text-align: right;
-    }
+/* Button column: Push right, don't shrink, give slightly more width on tablet+ */
+/* Increased tablet width to is-4 */
+.routine-skill .column.is-4-mobile.is-4-tablet { /* Changed is-3-tablet to is-4-tablet */
+    flex-shrink: 0; /* Prevent shrinking */
+    margin-left: auto; /* Push column to the right */
+    padding: 0.25rem 0.5rem; /* Ensure padding is consistent */
+    justify-content: flex-end; /* Align content (the buttons div) to the right */
 }
 
+/* Buttons container: Align buttons to the end, force no wrapping */
+.routine-skill .buttons.are-small {
+    justify-content: flex-end; /* Align buttons right */
+    flex-wrap: nowrap; /* IMPORTANT: Prevent wrapping within the button group */
+    margin-bottom: 0; /* Remove default bottom margin from buttons group */
+}
+
+/* Specific button styling */
 .buttons.are-small .button {
     height: 1.5em;
     font-size: 0.75rem;
     padding: 0 0.5rem;
 }
 
-.delete {
-    margin-left: 0.5rem;
+/* Reduce spacing between buttons */
+.routine-skill .buttons.are-small .button:not(:last-child) {
+    margin-right: 0.25rem; /* Reduced from Bulma default */
 }
+
+/* Adjust delete button margin */
+.routine-skill .buttons.are-small .delete {
+    margin-left: 0.25rem; /* Reduced margin */
+}
+
+/* Mobile Responsiveness for Routine Items */
+@media screen and (max-width: 768px) {
+    .routine-skill .columns.is-mobile {
+        flex-wrap: wrap; /* Allow wrapping */
+        margin-bottom: 0; /* Remove negative margin if needed */
+    }
+
+    /* Skill details columns: Full width, allow wrapping, reset alignment */
+    .routine-skill .columns.is-mobile > .column:not(:last-child) {
+        flex-basis: 100%;
+        width: 100%;
+        margin-bottom: 0.5rem; /* Add space between details and buttons */
+        white-space: normal; /* Allow text wrapping */
+        overflow: visible;
+        justify-content: flex-start; /* Align text left */
+        padding: 0.25rem 0.5rem; /* Ensure consistent padding */
+    }
+
+    /* Button column: Full width below details, align buttons right */
+    .routine-skill .columns.is-mobile > .column:last-child {
+        flex-basis: 100%;
+        width: 100%;
+        margin-left: 0; /* Reset margin */
+        justify-content: flex-end; /* Align the buttons div itself right */
+        padding: 0.25rem 0.5rem; /* Ensure consistent padding */
+    }
+
+    /* Explicitly align buttons right within their container on mobile */
+    /* Ensure nowrap is still applied if needed, though justify-end might be enough */
+    .routine-skill .buttons.are-small {
+        justify-content: flex-end;
+        flex-wrap: nowrap; /* Explicitly prevent wrap on mobile too */
+        width: auto; /* Allow buttons group to size naturally */
+        display: inline-flex; /* Or flex, ensure it's not block */
+    }
+
+    /* Adjust text size on mobile */
+    .routine-skill p {
+        font-size: 0.9rem;
+        line-height: 1.2;
+    }
+
+    .routine-skill .has-text-primary {
+        font-size: 1rem;
+    }
+}
+/* --- End Routine Button Fixes --- */
+
+
+/* Toast notification styling */
 .notification {
     position: fixed;
     bottom: 1rem;
@@ -113,23 +182,26 @@
     animation: slideIn 0.3s ease-out;
 }
 
+/* Slide-in animation for toast */
 @keyframes slideIn {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }
 }
+
+/* Style for disabled twist inputs */
 .twist-rotation:disabled {
     background-color: #f5f5f5;
     border-color: #dbdbdb;
     color: #7a7a7a;
 }
 
-/* Fade out inactive rotation fields */
+/* Fade effect for inactive twist fields */
 #twist-fields .column {
     transition: opacity 0.3s ease;
 }
 
 
-/* Ensure consistent height of fields */
+/* Consistent height for form fields */
 .field .control, .field .checkbox {
     min-height: 1.25rem;
     display: flex;
@@ -139,57 +211,69 @@
     margin-top: 0.5rem;
 }
 
-/* Twist input fields */
+/* Padding for gapless columns (twist inputs) */
 .columns.is-gapless > .column {
     padding-left: 0.25rem;
     padding-right: 0.25rem;
 }
 
-/* Align labels with inputs */
+/* Label margin */
 .field .label {
     margin-bottom: 0.5rem;
 }
 
-/* Consistent input heights */
+/* Consistent input/select height */
 .input, .select select {
     height: 2.25em;
 }
+
+/* Negative margins for gapless columns */
 .is-gapless {
     margin-left: -0.25rem;
     margin-right: -0.25rem;
 }
 
+/* Styling for grouped, multiline fields */
 .field.is-grouped.is-grouped-multiline {
     flex-wrap: wrap;
     align-items: center;
     min-height: 2.5rem;
 }
 
+/* Checkbox margin */
 .checkbox {
     margin-right: 1.5rem;
 }
+
+/* Style for the auto-filled skill name display */
 #skill-name-display {
     background-color: #f5f5f5;
     cursor: not-allowed;
     font-style: italic;
 }
+
+/* Styling for validation message area */
 .validation-messages {
     border-top: 1px solid #eee;
     padding-top: 0.75rem;
     margin-top: 1rem;
 }
 
+/* Styling for individual validation messages */
 .transition-status {
     margin-top: 0.25rem;
     font-size: 0.75rem;
 }
 
+/* Gradient text for multiple warnings (example) */
 .has-text-danger.has-text-warning {
     background: linear-gradient(90deg, #ff3860 50%, #ffdd57 50%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
 }
+
+/* Specific warning colors */
 .has-text-danger {
     color: #ff3860 !important; /* Red for transitions */
 }
@@ -200,14 +284,18 @@
     color: #ff851b !important; /* Orange for 10th skill */
 }
 
+/* Tariff difference subtitle */
 .subtitle.tariff-difference {
     font-size: 0.9rem;
     color: #666;
 }
 
+/* Icon margin for warnings */
 .has-text-warning .icon {
     margin-right: 0.5rem;
 }
+
+/* Styling for multiple warnings indicator */
 .routine-skill.has-multiple-warnings {
     position: relative;
     overflow: hidden;
@@ -224,40 +312,31 @@
     transform: rotate(45deg);
 }
 
-@media (max-width: 768px) {
-    .routine-skill .columns {
-        flex-wrap: wrap;
-    }
-
-    .routine-skill .column {
-        flex: none;
-        width: 100%;
-        padding: 0.25rem 0.5rem;
-    }
-
-    .routine-skill .buttons {
-        justify-content: flex-end;
-    }
-}
-.routine-skill {
-   /* touch-action: none; /* Prevent browser touch actions */
-    user-select: none;  /* Prevent text selection */
-    transition: transform 0.2s ease;
+/* Dragging indicator text */
+.routine-skill::after {
+    content: "Drag to reorder";
+    position: absolute;
+    bottom: -20px; /* Position below the item */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    color: #666;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s ease;
+    pointer-events: none; /* Prevent interference */
 }
 
-.routine-skill.dragging {
-    transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 10;
+/* Show indicator when dragging */
+.routine-skill.dragging::after {
+    opacity: 1;
 }
+
+/* Ensure buttons inside draggable items remain clickable */
 .routine-skill .buttons * {
     pointer-events: auto !important;
 }
 
-.routine-skill {
-    pointer-events: auto;
-}
-
+/* --- Insertion Point Styling (if used) --- */
 .insertion-controls {
     position: relative;
     margin-bottom: 1rem;
@@ -300,74 +379,107 @@
     opacity: 1;
 }
 
+/* Bulma clearfix helper */
+.is-clearfix::after {
+    clear: both;
+    content: " ";
+    display: table;
+}
 
+routine-skills .box {
+    margin-bottom: 0; border-radius: 0; border-left: 4px solid #ddd;
+    cursor: grab; transition: border-left-color 0.3s ease, opacity 0.2s ease;
+    -webkit-user-select: none; user-select: none; touch-action: none;
+}
+.routine-skill.invalid-transition { border-left-color: #ff3860 !important; }
+.routine-skill.invalid-landing { border-left-color: #ff69b4 !important; }
+.routine-skill.duplicate-skill { border-left-color: #ffdd57 !important; }
+.routine-skill.is-dragging { opacity: 0.4 !important; cursor: grabbing; }
+.routine-skill-container.editing .routine-skill { box-shadow: 0 0 0 2px #485fc7 inset; }
+.is-fixed-bottom-right { position: fixed; bottom: 1rem; right: 1rem; z-index: 1000; }
+[x-cloak] { display: none !important; }
+body.htmx-dragging-touch { overflow: hidden; -webkit-user-select: none; user-select: none;}
+#routine-skills.is-dragging-touch { overflow: hidden !important; }
+
+.routine-skill button, .routine-skill .delete { pointer-events: auto; }
+.transition-status { font-size: 0.8rem; margin-top: 0.25rem; }
+#routine-skills { min-height: 100px; transition: background-color 0.2s; border: 1px solid #dbdbdb; border-radius: 4px; padding: 0.5rem; overflow-y: auto; /* Ensure container can scroll if needed */ }
+#routine-total { min-height: 120px; }
+.loading-total::after { content: "Calculating..."; display: block; padding: 1rem; color: #666; }
+#evaluation-preview { margin: 1rem 0; background-color: #f8f9fa; }
+#evaluation-results p { margin-bottom: 0.5rem; }
+.subtitle.tariff-difference { font-size: 0.9rem; color: #666; }
+.has-text-danger { color: #ff3860 !important; }
+.has-text-landing-warning { color: #ff69b4 !important; }
+.has-text-tenth-warning { color: #ff851b !important; }
+.validation-messages { border-top: 1px solid #eee; padding-top: 0.75rem; margin-top: 1rem; }
+
+/* --- Layout Styles --- */
+.routine-skill { padding: 0.75rem; }
+/* Name Block */
+.skill-name-block { margin-bottom: 0.5rem; /* Space below this block */ }
+.skill-name { font-size: 1rem; font-weight: 600; line-height: 1.2; }
+/* Details/Buttons Row */
+.skill-details-columns { align-items: center; /* Vertical alignment */ }
+.skill-details-columns .column { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.skill-details-columns p { font-size: 0.85rem; white-space: nowrap; }
+.skill-details-columns .detail-label { display: none; } /* Hide labels by default */
+.skill-details-columns .buttons { margin-bottom: 0; } /* Remove button group margin */
+/* Define the margin utility for tablet and up */
+@media screen and (min-width: 769px) {
+    .ml-auto-tablet { margin-left: auto !important; }
+    /* Ensure detail columns take up space */
+    .skill-details-columns .column:not(.is-narrow) {
+        flex-basis: 0; /* Allow columns to grow */
+        flex-grow: 1;  /* Allow columns to grow */
+        min-width: 50px; /* Adjust as needed */
+    }
+}
+
+
+.skill-validation-row { width: 100%; border-top: 1px solid #eee; margin-top: 0.5rem; padding-top: 0.5rem; }
+
+/* --- Insertion Point Styling --- */
+.insertion-point { height: 10px; margin: 2px 0; border: 1px dashed #485fc755; border-radius: 3px; cursor: pointer; transition: all 0.2s ease; position: relative; opacity: 0; pointer-events: none; }
+#routine-skills:hover .insertion-point, .routine-skills .insertion-point.active { opacity: 1; pointer-events: auto; }
+.insertion-point:hover, .insertion-point.active { height: 20px; border-color: #485fc7; background: #485fc711; }
+.insertion-point::after { content: "+ Drop here"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #485fc7; font-size: 0.7rem; font-weight: bold; opacity: 0.5; white-space: nowrap; }
+.insertion-point:hover::after, .insertion-point.active::after { opacity: 1; }
+.routine-skill.is-dragging + .insertion-point, [x-id]:has(+ .routine-skill.is-dragging) .insertion-point { opacity: 0.1 !important; pointer-events: none !important; }
+
+/* --- Mobile Layout Styles --- */
 @media screen and (max-width: 768px) {
-    .routine-skill .column {
-        padding: 0.25rem !important;
+    .skill-details-columns {
+        flex-direction: column; /* Stack columns vertically */
+        align-items: flex-start; /* Align items left */
     }
-
-    .routine-skill .buttons {
-        min-width: 120px;
-        justify-content: flex-end !important;
+    .skill-details-columns .column {
+        width: 100% !important; /* Make each column take full width */
+        flex-basis: auto !important;
+        padding-left: 0; /* Align left */
+        padding-right: 0;
+        white-space: normal; /* Allow wrapping */
+        margin-bottom: 0.5rem; /* Space between stacked items */
+        margin-left: 0 !important; /* Override ml-auto-tablet */
     }
-
-    .routine-skill .delete {
-        margin-left: 0.5rem !important;
+    .skill-details-columns .column.is-hidden-mobile {
+        display: none !important; /* Hide the desktop spacer */
     }
-
-    .routine-skill p {
-        font-size: 0.9rem;
-        line-height: 1.2;
+    .skill-details-columns .column:last-child {
+        margin-bottom: 0; /* No margin on last item (buttons) */
+        width: 100% !important; /* Ensure buttons take full width */
     }
-
-    .routine-skill .has-text-primary {
-        font-size: 1rem;
+    .skill-details-columns .detail-label {
+        display: inline; /* Show labels */
+        font-weight: 600;
+        margin-right: 0.25em;
     }
-
-    .routine-skill .is-hidden-mobile {
-        display: none !important;
+    .skill-details-columns .buttons.are-small {
+        display: block; /* Let buttons flow naturally (left) */
+        margin-top: 0.25rem; /* Add space above buttons */
     }
-
-    .routine-skill .is-hidden-tablet {
-        display: flex !important;
+    .skill-details-columns .buttons.are-small .button {
+        margin-bottom: 0.25rem; /* Space below buttons if they wrap */
     }
+    .routine-skill p { line-height: 1.3; } /* Adjust line height */
 }
-
-@media screen and (max-width: 480px) {
-    .routine-skill .columns.is-mobile > .column:not(:last-child) {
-        margin-bottom: 0.5rem;
-    }
-
-    .routine-skill .column.is-4-mobile {
-        flex: none;
-        width: 100%;
-    }
-
-    .routine-skill .buttons {
-        width: 100%;
-        justify-content: space-between !important;
-    }
-}
-.routine-skill.dragging {
-    transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 10;
-    transition: transform 0.2s ease;
-}
-
-.routine-skill::after {
-    content: "Drag to reorder";
-    position: absolute;
-    bottom: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.8rem;
-    color: #666;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.routine-skill.dragging::after {
-    opacity: 1;
-}
-

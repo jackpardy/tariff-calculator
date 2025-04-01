@@ -2,9 +2,11 @@
 package main
 
 import (
+	"bytes" // Required for body reading/replacement
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io" // Required for body reading
 	"log"
 	"math"
 	"net/http"
@@ -52,10 +54,17 @@ type CommonSkillEntry struct {
 
 type SkillFormData struct {
 	Skill         skills.TrampolineSkill
-	CommonSkills  []CommonSkillEntry
+	CommonSkills  []CommonSkillEntry // Keep this for the main form fragment
 	Index         int
 	EnabledPhases int
-	CurrentTwists []int
+	CurrentTwists []int  // Note: This is for FORM display, might still be 4 elements
+	SortBy        string // Add SortBy for initial form load state
+}
+
+// Added struct for the options template
+type CommonSkillsOptionsData struct {
+	CommonSkills  []CommonSkillEntry
+	SelectedValue string // The key of the currently selected skill (if any)
 }
 
 // --- Template Setup ---
@@ -111,7 +120,12 @@ var funcMap = template.FuncMap{
 	},
 	"safeHTMLAttr": func(s string) template.HTMLAttr { return template.HTMLAttr(s) },
 	"skillKey": func(s skills.TrampolineSkill) string {
-		return fmt.Sprintf("R%d_T%s_S%s_B%t_SL%t_TP%s", s.Rotation, strings.Join(convertIntSliceToStringSlice(s.TwistDistribution), "_"), s.Shape.String(), s.Backward, s.SeatLanding, s.TakeoffPosition.String())
+		// Ensure TwistDistribution is not nil before joining
+		twists := []int{0} // Default if nil
+		if s.TwistDistribution != nil {
+			twists = s.TwistDistribution
+		}
+		return fmt.Sprintf("R%d_T%s_S%s_B%t_SL%t_TP%s", s.Rotation, strings.Join(convertIntSliceToStringSlice(twists), "_"), s.Shape.String(), s.Backward, s.SeatLanding, s.TakeoffPosition.String())
 	},
 	"join": func(sep string, a []int) string { return strings.Join(convertIntSliceToStringSlice(a), sep) },
 	"seq":  seq,
@@ -126,10 +140,12 @@ func loadTemplates() {
 		log.Fatal("No template files found in templates/ directory")
 	}
 
+	// Add the new options template
 	fragmentFiles := []string{
 		"templates/skill-form-fragment.html",
-		// "templates/twist-fields-fragment.html", // Removed
+		"templates/skill-inputs-fragment.html",
 		"templates/evaluation-fragment.html",
+		"templates/common-skills-options.html", // <-- Add new template
 	}
 	allFiles := append(tmplFiles, fragmentFiles...)
 	existingFiles := []string{}
@@ -140,10 +156,12 @@ func loadTemplates() {
 		} else if !os.IsNotExist(err) {
 			log.Printf("Error checking template file %s: %v", f, err)
 		} else {
-			if strings.Contains(f, "-fragment.html") && f != "templates/twist-fields-fragment.html" {
+			// Adjust logging based on which files are expected fragments
+			isFragment := strings.Contains(f, "-fragment.html") || strings.Contains(f, "common-skills-options.html")
+			if isFragment {
 				log.Printf("Warning: Template fragment '%s' not found, skipping.", f)
-			} else if !strings.Contains(f, "-fragment.html") && !strings.Contains(f, "results.html") {
-				log.Printf("Warning: Core template file '%s' not found.", f) // Log if core files missing
+			} else if !strings.Contains(f, "results.html") { // Don't warn about results.html if missing
+				log.Printf("Warning: Core template file '%s' not found.", f)
 			}
 		}
 	}
@@ -163,11 +181,12 @@ func main() {
 	// --- Routes ---
 	http.HandleFunc("/", handleIndex)
 	http.HandleFunc("/skill-form-fragment", handleSkillFormFragment)
+	http.HandleFunc("/skill-inputs-fragment", handleSkillInputsFragment)
 	http.HandleFunc("/edit-skill-form-data/", handleEditSkillFormData)
-	// No /twist-fields route needed
 	http.HandleFunc("/calculate-skill", handleCalculateSingleSkill)
 	http.HandleFunc("/evaluate-skill-fragment", handleEvaluateSkillFragment)
 	http.HandleFunc("/validate-routine-client-state", handleValidateRoutineClientState)
+	http.HandleFunc("/common-skills-options", handleCommonSkillsOptions) // <-- Add new route
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -203,26 +222,95 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getSortedCommonSkills() []CommonSkillEntry {
+// getSortedCommonSkills retrieves and sorts common skills based on parameters.
+// sortBy: "tariff-desc" (default), "tariff-asc", "alpha-asc", "alpha-desc"
+func getSortedCommonSkills(sortBy string) []CommonSkillEntry {
 	skillList := make([]CommonSkillEntry, 0, len(skills.CommonSkills))
 	for key, s := range skills.CommonSkills {
 		tempSkill := s
 		tempSkill.SetTariff()
 		skillList = append(skillList, CommonSkillEntry{Key: key, Name: tempSkill.Name, Tariff: tempSkill.Tariff})
 	}
+
+	// Sorting logic
 	sort.Slice(skillList, func(i, j int) bool {
-		if skillList[i].Tariff != skillList[j].Tariff {
-			return skillList[i].Tariff > skillList[j].Tariff
+		switch sortBy {
+		case "tariff-asc":
+			if skillList[i].Tariff != skillList[j].Tariff {
+				return skillList[i].Tariff < skillList[j].Tariff
+			}
+			return skillList[i].Name < skillList[j].Name // Secondary sort by name
+		case "alpha-asc":
+			if skillList[i].Name != skillList[j].Name {
+				return skillList[i].Name < skillList[j].Name
+			}
+			return skillList[i].Tariff > skillList[j].Tariff // Secondary sort by tariff desc
+		case "alpha-desc":
+			if skillList[i].Name != skillList[j].Name {
+				return skillList[i].Name > skillList[j].Name
+			}
+			return skillList[i].Tariff > skillList[j].Tariff // Secondary sort by tariff desc
+		case "tariff-desc":
+			fallthrough // Default case
+		default:
+			if skillList[i].Tariff != skillList[j].Tariff {
+				return skillList[i].Tariff > skillList[j].Tariff
+			}
+			return skillList[i].Name < skillList[j].Name // Secondary sort by name
 		}
-		return skillList[i].Name < skillList[j].Name
 	})
 	return skillList
 }
 
-// handleSkillFormFragment serves the form, rendering twist fields directly.
+// calculatePhases determines the number of expected twist phases based on rotation.
+func calculatePhases(rotation int) int {
+	absRotation := int(math.Abs(float64(rotation)))
+	switch {
+	case absRotation == 0: // Jumps/Twists
+		return 1 // Even 0 rotation skills can have twists (1 phase)
+	case absRotation <= 6: // Up to 1.5 somersaults
+		return 1
+	case absRotation <= 10: // Up to 2.5 somersaults
+		return 2
+	case absRotation <= 14: // Up to 3.5 somersaults
+		return 3
+	default: // 4 somersaults (16/4) or more
+		return 4
+	}
+}
+
+// prepareSkillFormData calculates derived data needed for form templates.
+func prepareSkillFormData(skillData skills.TrampolineSkill, index int, sortBy string) SkillFormData {
+	enabledPhases := calculatePhases(skillData.Rotation)
+
+	currentTwists := make([]int, 4)
+	if skillData.TwistDistribution != nil {
+		copyCount := len(skillData.TwistDistribution)
+		if copyCount > 4 {
+			copyCount = 4
+		}
+		copy(currentTwists, skillData.TwistDistribution[:copyCount])
+	}
+
+	return SkillFormData{
+		Skill:         skillData,
+		CommonSkills:  nil, // Will be populated later if needed
+		Index:         index,
+		EnabledPhases: enabledPhases,
+		CurrentTwists: currentTwists,
+		SortBy:        sortBy, // Store current sort order
+	}
+}
+
+// handleSkillFormFragment serves the *entire* form fragment.
 func handleSkillFormFragment(w http.ResponseWriter, r *http.Request) {
 	skillKey := r.URL.Query().Get("commonSkillKey")
 	editIndexStr := r.URL.Query().Get("editIndex")
+	sortBy := r.URL.Query().Get("sortBy") // Get sort preference
+	if sortBy == "" {
+		sortBy = "tariff-desc" // Default sort
+	}
+
 	editIndex, err := strconv.Atoi(editIndexStr)
 	if err != nil || editIndex < 0 {
 		editIndex = -1
@@ -235,33 +323,32 @@ func handleSkillFormFragment(w http.ResponseWriter, r *http.Request) {
 			skillData.SetTariff()
 		} else {
 			skillData = skills.TrampolineSkill{Rotation: 4, TakeoffPosition: skills.Feet, Shape: skills.Straight, TwistDistribution: []int{0}}
+			skillData.SetTariff()
 		}
 	} else if editIndex == -1 {
 		skillData = skills.TrampolineSkill{Rotation: 4, TakeoffPosition: skills.Feet, Shape: skills.Straight, TwistDistribution: []int{0}}
+		skillData.SetTariff()
 	} else {
-		skillData = skills.TrampolineSkill{Rotation: 4, TakeoffPosition: skills.Feet, Shape: skills.Straight, TwistDistribution: []int{0}}
-	} // Load empty but keep index
-
-	absRotation := int(math.Abs(float64(skillData.Rotation)))
-	enabledPhases := 1
-	if absRotation <= 6 {
-		enabledPhases = 1
-	} else if absRotation <= 10 {
-		enabledPhases = 2
-	} else if absRotation <= 14 {
-		enabledPhases = 3
-	} else if absRotation > 0 {
-		enabledPhases = 4
+		// When loading for edit, we need the actual skill data, not a default
+		routine, parseErr := parseRoutineFromRequest(r)
+		if parseErr == nil && editIndex < len(routine) {
+			skillData = routine[editIndex]
+			// Recalculate tariff just in case
+			skillData.SetTariff()
+		} else {
+			log.Printf("Error parsing routine or index out of bounds for edit in handleSkillFormFragment: %v", parseErr)
+			// Fallback to default if parsing fails or index is bad
+			skillData = skills.TrampolineSkill{Rotation: 4, TakeoffPosition: skills.Feet, Shape: skills.Straight, TwistDistribution: []int{0}}
+			skillData.SetTariff()
+		}
 	}
-	currentTwists := make([]int, 4)
-	copy(currentTwists, skillData.TwistDistribution)
 
-	commonSkillsList := getSortedCommonSkills()
-	formData := SkillFormData{Skill: skillData, CommonSkills: commonSkillsList, Index: editIndex, EnabledPhases: enabledPhases, CurrentTwists: currentTwists}
+	formData := prepareSkillFormData(skillData, editIndex, sortBy)
+	formData.CommonSkills = getSortedCommonSkills(sortBy) // Get sorted skills
 
 	if tmpl.Lookup("skill-form-fragment.html") == nil {
 		log.Println("Error: skill-form-fragment.html template not loaded")
-		http.Error(w, "ISE", 500)
+		http.Error(w, "Internal Server Error", 500)
 		return
 	}
 	err = tmpl.ExecuteTemplate(w, "skill-form-fragment.html", formData)
@@ -270,7 +357,57 @@ func handleSkillFormFragment(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleEditSkillFormData loads data for editing and renders the form fragment.
+// handleSkillInputsFragment serves ONLY the inputs part of the form.
+func handleSkillInputsFragment(w http.ResponseWriter, r *http.Request) {
+	skillKey := r.URL.Query().Get("commonSkillKey")
+	editIndexStr := r.URL.Query().Get("editIndex")
+	sortBy := r.URL.Query().Get("sortBy") // Get sort preference (though not directly used here)
+	if sortBy == "" {
+		sortBy = "tariff-desc" // Default sort
+	}
+
+	editIndex, err := strconv.Atoi(editIndexStr)
+	if err != nil || editIndex < 0 {
+		editIndex = -1
+	}
+
+	var skillData skills.TrampolineSkill
+	if skillKey != "" {
+		if commonSkill, exists := skills.CommonSkills[skillKey]; exists {
+			skillData = commonSkill
+		} else {
+			skillData = skills.TrampolineSkill{Rotation: 4, TakeoffPosition: skills.Feet, Shape: skills.Straight, TwistDistribution: []int{0}}
+		}
+	} else {
+		// If no common skill, load default or existing skill for edit
+		if editIndex != -1 {
+			routine, parseErr := parseRoutineFromRequest(r)
+			if parseErr == nil && editIndex < len(routine) {
+				skillData = routine[editIndex]
+			} else {
+				log.Printf("Error parsing routine or index out of bounds for edit in handleSkillInputsFragment: %v", parseErr)
+				skillData = skills.TrampolineSkill{Rotation: 4, TakeoffPosition: skills.Feet, Shape: skills.Straight, TwistDistribution: []int{0}}
+			}
+		} else {
+			skillData = skills.TrampolineSkill{Rotation: 4, TakeoffPosition: skills.Feet, Shape: skills.Straight, TwistDistribution: []int{0}}
+		}
+	}
+
+	// We still need to prepare the full form data to pass to the fragment template
+	formData := prepareSkillFormData(skillData, editIndex, sortBy)
+
+	if tmpl.Lookup("skill-inputs-fragment.html") == nil {
+		log.Println("Error: skill-inputs-fragment.html template not loaded")
+		http.Error(w, "Internal Server Error", 500)
+		return
+	}
+	err = tmpl.ExecuteTemplate(w, "skill-inputs-fragment.html", formData)
+	if err != nil {
+		log.Printf("Error executing skill-inputs-fragment template: %v", err)
+	}
+}
+
+// handleEditSkillFormData loads data for editing and renders the *entire* form fragment.
 func handleEditSkillFormData(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/edit-skill-form-data/"), "/")
 	if len(parts) < 1 {
@@ -280,41 +417,36 @@ func handleEditSkillFormData(w http.ResponseWriter, r *http.Request) {
 	indexStr := parts[0]
 	index, err := strconv.Atoi(indexStr)
 	if err != nil || index < 0 {
-		http.Error(w, "Bad Request", 400)
+		http.Error(w, "Bad Request: Invalid index", 400)
 		return
 	}
+
+	// Get sort preference if provided (e.g., from hidden input or previous state)
+	sortBy := r.URL.Query().Get("sortBy")
+	if sortBy == "" {
+		sortBy = "tariff-desc" // Default
+	}
+
 	routine, err := parseRoutineFromRequest(r)
 	if err != nil {
 		log.Printf("Error parsing routine for edit: %v", err)
-		http.Error(w, "Bad Request", 400)
+		http.Error(w, "Bad Request: Could not parse routine data", 400)
 		return
 	}
+
 	if index >= len(routine) {
-		http.Error(w, "Bad Request: Index OOB", 400)
+		log.Printf("Error: Edit index %d out of bounds for routine length %d", index, len(routine))
+		http.Error(w, "Bad Request: Index out of bounds", 400)
 		return
 	}
 
 	skillToEdit := routine[index]
-	absRotation := int(math.Abs(float64(skillToEdit.Rotation)))
-	enabledPhases := 1
-	if absRotation <= 6 {
-		enabledPhases = 1
-	} else if absRotation <= 10 {
-		enabledPhases = 2
-	} else if absRotation <= 14 {
-		enabledPhases = 3
-	} else if absRotation > 0 {
-		enabledPhases = 4
-	}
-	currentTwists := make([]int, 4)
-	copy(currentTwists, skillToEdit.TwistDistribution)
-
-	commonSkillsList := getSortedCommonSkills()
-	formData := SkillFormData{Skill: skillToEdit, CommonSkills: commonSkillsList, Index: index, EnabledPhases: enabledPhases, CurrentTwists: currentTwists}
+	formData := prepareSkillFormData(skillToEdit, index, sortBy)
+	formData.CommonSkills = getSortedCommonSkills(sortBy) // Get sorted skills
 
 	if tmpl.Lookup("skill-form-fragment.html") == nil {
-		log.Println("Error: skill-form-fragment.html not loaded")
-		http.Error(w, "ISE", 500)
+		log.Println("Error: skill-form-fragment.html template not loaded")
+		http.Error(w, "Internal Server Error", 500)
 		return
 	}
 	err = tmpl.ExecuteTemplate(w, "skill-form-fragment.html", formData)
@@ -322,58 +454,38 @@ func handleEditSkillFormData(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error executing edit form fragment template: %v", err)
 	}
 }
+
+// --- Utility Functions (parseSkillFromForm, ShapeFromString, etc.) ---
+
+// parseSkillFromForm parses skill data from a submitted form.
 func parseSkillFromForm(r *http.Request) (skills.TrampolineSkill, error) {
-	// Note: Assumes r.ParseForm() has already been called successfully
 	skill := skills.TrampolineSkill{}
-	skill.Name = r.FormValue("name") // Read name if submitted
-
+	skill.Name = r.FormValue("name")
 	rotationVal := r.FormValue("rotation")
-	rotation, _ := strconv.Atoi(rotationVal) // Default 0 if invalid
-
-	skill.TakeoffPosition = skills.BodyPositionFromString(r.FormValue("takeoff_position")) // Use correct form name
-	skill.Shape = ShapeFromString(r.FormValue("shape"))                                    // Use helper
-
-	skill.Backward = r.FormValue("backward") == "on" // Standard form value for checked
+	rotation, _ := strconv.Atoi(rotationVal)
+	skill.Rotation = rotation
+	skill.TakeoffPosition = skills.BodyPositionFromString(r.FormValue("takeoff_position"))
+	skill.Shape = skills.ShapeFromString(r.FormValue("shape")) // Use function from skills package
+	skill.Backward = r.FormValue("backward") == "on"
 	skill.SeatLanding = r.FormValue("seat_landing") == "on"
 
-	absRotation := int(math.Abs(float64(rotation)))
-	numPhases := 1
-	if absRotation <= 6 {
-		numPhases = 1
-	} else if absRotation <= 10 {
-		numPhases = 2
-	} else if absRotation <= 14 {
-		numPhases = 3
-	} else if absRotation > 0 {
-		numPhases = 4
-	}
+	numPhases := calculatePhases(skill.Rotation)
 
-	// Get twists using the correct form key 'twist_distribution[]'
 	twistValues := r.Form["twist_distribution[]"]
 	skill.TwistDistribution = make([]int, 0, numPhases)
 	for i := 0; i < numPhases; i++ {
 		twist := 0
 		if i < len(twistValues) {
 			parsedTwist, err := strconv.Atoi(twistValues[i])
-			if err != nil {
-				log.Printf("Warning: Invalid twist value '%s', using 0.", twistValues[i])
-			} else {
+			if err == nil {
 				twist = parsedTwist
+			} else {
+				log.Printf("Warning: Invalid twist value '%s' at index %d, using 0.", twistValues[i], i)
 			}
+		} else {
+			log.Printf("Warning: Missing twist value for phase %d, using 0.", i+1)
 		}
 		skill.TwistDistribution = append(skill.TwistDistribution, twist)
-	}
-
-	skill.Rotation = absRotation // Store absolute
-
-	// Find common name only if name wasn't provided or was placeholder
-	if skill.Name == "" || skill.Name == "Custom Skill" {
-		foundName := findCommonSkillName(skill)
-		if foundName != "" {
-			skill.Name = foundName
-		} else {
-			skill.Name = "Custom Skill"
-		}
 	}
 
 	return skill, nil
@@ -398,21 +510,45 @@ func handleCalculateSingleSkill(w http.ResponseWriter, r *http.Request) {
 	decoder.DisallowUnknownFields()
 	err := decoder.Decode(&requestPayload)
 	if err != nil {
-		log.Printf("Error decoding JSON payload: %v", err)
-		http.Error(w, "Bad Request", 400)
+		log.Printf("Error decoding JSON payload for calculation: %v", err)
+		http.Error(w, "Bad Request: "+err.Error(), 400)
 		return
 	}
 
-	skill := skills.TrampolineSkill{Name: requestPayload.Name, Rotation: requestPayload.Rotation, TwistDistribution: requestPayload.TwistDistribution, TakeoffPosition: skills.BodyPositionFromString(requestPayload.TakeoffPosition), Shape: ShapeFromString(requestPayload.Shape), Backward: requestPayload.Backward, SeatLanding: requestPayload.SeatLanding}
-	foundName := findCommonSkillName(skill) // Check if params match any common skill
-	if foundName != "" {
-		skill.Name = foundName // Use the found common name
+	skill := skills.TrampolineSkill{
+		Name:              requestPayload.Name, // Start with name from request
+		Rotation:          requestPayload.Rotation,
+		TwistDistribution: requestPayload.TwistDistribution,
+		TakeoffPosition:   skills.BodyPositionFromString(requestPayload.TakeoffPosition),
+		Shape:             skills.ShapeFromString(requestPayload.Shape), // Use function from skills package
+		Backward:          requestPayload.Backward,
+		SeatLanding:       requestPayload.SeatLanding,
+	}
+
+	// Adjust twist distribution slice length based on rotation
+	expectedPhases := calculatePhases(skill.Rotation)
+	if len(skill.TwistDistribution) > expectedPhases {
+		skill.TwistDistribution = skill.TwistDistribution[:expectedPhases]
 	} else {
-		skill.Name = "Custom Skill" // Default to Custom if no match
+		for len(skill.TwistDistribution) < expectedPhases {
+			skill.TwistDistribution = append(skill.TwistDistribution, 0)
+		}
+	}
+
+	// Find common name based on parameters
+	foundName := findCommonSkillName(skill)
+	if foundName != "" {
+		skill.Name = foundName // Update name if match found
+	} else {
+		// *** MODIFIED LOGIC: If no common name found, always set to Custom Skill ***
+		skill.Name = "Custom Skill"
+		// *** END MODIFICATION ***
 	}
 
 	skill.SetTariff()
 	landingPos := skill.LandingPosition()
+
+	// Prepare response
 	response := struct {
 		Name              string  `json:"name"`
 		Rotation          int     `json:"rotation"`
@@ -424,26 +560,31 @@ func handleCalculateSingleSkill(w http.ResponseWriter, r *http.Request) {
 		Tariff            float64 `json:"tariff"`
 		LandingPosition   string  `json:"landing_position"`
 	}{
-		Name: skill.Name, Rotation: skill.Rotation, TwistDistribution: skill.TwistDistribution, TakeoffPosition: skill.TakeoffPosition.String(), Shape: skill.Shape.String(), Backward: skill.Backward, SeatLanding: skill.SeatLanding, Tariff: skill.Tariff, LandingPosition: landingPos.String(),
+		Name:              skill.Name, // Use the final name (either found common name or "Custom Skill")
+		Rotation:          skill.Rotation,
+		TwistDistribution: skill.TwistDistribution, // Use the adjusted slice
+		TakeoffPosition:   skill.TakeoffPosition.String(),
+		Shape:             skill.Shape.String(),
+		Backward:          skill.Backward,
+		SeatLanding:       skill.SeatLanding,
+		Tariff:            skill.Tariff,
+		LandingPosition:   landingPos.String(),
 	}
 
-	// w.Header().Set("HX-Trigger", "reloadForm") // Removed for now to prevent EOF errors with fetch
 	w.Header().Set("Content-Type", "application/json")
 	encodeErr := json.NewEncoder(w).Encode(response)
 	if encodeErr != nil {
-		log.Printf("Error encoding JSON response: %v", encodeErr)
-		return
+		log.Printf("Error encoding JSON response for calculation: %v", encodeErr)
 	}
 }
 
-// handleEvaluateSkillFragment parses JSON, calculates, renders HTML fragment.
+// handleEvaluateSkillFragment parses Form Data, calculates, renders HTML fragment.
 func handleEvaluateSkillFragment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
 
-	// --- Parse Form Data ---
 	err := r.ParseForm()
 	if err != nil {
 		log.Printf("Error parsing form for eval: %v", err)
@@ -451,18 +592,36 @@ func handleEvaluateSkillFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	skill, err := parseSkillFromForm(r) // Use the form parsing helper
+	skill, err := parseSkillFromForm(r)
 	if err != nil {
-		// parseSkillFromForm doesn't return error currently, but good practice
 		log.Printf("Error processing form data for eval: %v", err)
 		http.Error(w, "Bad Request: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	// --- End Parse Form ---
+
+	// Find common name for display in evaluation
+	foundName := findCommonSkillName(skill)
+	if foundName != "" {
+		skill.Name = foundName
+	} else {
+		// Also set to Custom Skill here for consistency in evaluation display
+		skill.Name = "Custom Skill"
+	}
 
 	skill.SetTariff()
 	landingPos := skill.LandingPosition()
-	skillJson, _ := json.Marshal(skill)
+
+	// Ensure skill data for fragment has correct twist length before marshalling
+	expectedPhases := calculatePhases(skill.Rotation)
+	if len(skill.TwistDistribution) > expectedPhases {
+		skill.TwistDistribution = skill.TwistDistribution[:expectedPhases]
+	}
+
+	skillJson, jsonErr := json.Marshal(skill)
+	if jsonErr != nil {
+		log.Printf("Error marshalling skill to JSON for eval fragment: %v", jsonErr)
+		skillJson = []byte("{}")
+	}
 
 	data := map[string]interface{}{
 		"Skill":          skill,
@@ -471,17 +630,14 @@ func handleEvaluateSkillFragment(w http.ResponseWriter, r *http.Request) {
 		"SkillDataJSON":  string(skillJson),
 	}
 
-	w.Header().Set("X-Skill-Data", string(skillJson)) // Keep for Alpine if needed
-
 	if tmpl.Lookup("evaluation-fragment.html") == nil {
 		log.Println("Error: evaluation-fragment.html template not loaded")
-		http.Error(w, "ISE", 500)
+		http.Error(w, "Internal Server Error", 500)
 		return
 	}
 	err = tmpl.ExecuteTemplate(w, "evaluation-fragment.html", data)
 	if err != nil {
 		log.Printf("Error executing eval fragment: %v", err)
-	} else {
 	}
 }
 
@@ -494,137 +650,263 @@ func handleValidateRoutineClientState(w http.ResponseWriter, r *http.Request) {
 	routine, err := parseRoutineFromRequest(r)
 	if err != nil {
 		log.Printf("Error parsing routine for validation: %v", err)
-		http.Error(w, "Bad Request", 400)
+		http.Error(w, "Bad Request: "+err.Error(), 400)
 		return
 	}
+
+	// Ensure twist lengths and names are correct in the routine before validation
+	for i := range routine {
+		expectedPhases := calculatePhases(routine[i].Rotation)
+		if len(routine[i].TwistDistribution) > expectedPhases {
+			routine[i].TwistDistribution = routine[i].TwistDistribution[:expectedPhases]
+		} else {
+			for len(routine[i].TwistDistribution) < expectedPhases {
+				routine[i].TwistDistribution = append(routine[i].TwistDistribution, 0)
+			}
+		}
+		// Also ensure Name is correct based on parameters (in case loaded from storage)
+		foundName := findCommonSkillName(routine[i])
+		if foundName != "" {
+			routine[i].Name = foundName
+		} else {
+			// If loaded from storage/request and doesn't match, ensure it's Custom Skill
+			routine[i].Name = "Custom Skill"
+		}
+
+	}
+
 	validationData := performRoutineValidation(routine)
 	w.Header().Set("Content-Type", "application/json")
 	encodeErr := json.NewEncoder(w).Encode(validationData)
 	if encodeErr != nil {
 		log.Printf("Error encoding validation JSON: %v", encodeErr)
+	}
+}
+
+// handleCommonSkillsOptions serves *only* the <option> tags for the dropdown.
+func handleCommonSkillsOptions(w http.ResponseWriter, r *http.Request) {
+	sortBy := r.URL.Query().Get("sortBy")
+	selectedValue := r.URL.Query().Get("selectedValue") // Get the current value if needed
+	if sortBy == "" {
+		sortBy = "tariff-desc" // Default sort
+	}
+
+	sortedSkills := getSortedCommonSkills(sortBy)
+
+	data := CommonSkillsOptionsData{
+		CommonSkills:  sortedSkills,
+		SelectedValue: selectedValue,
+	}
+
+	// Execute the specific template for options
+	if tmpl.Lookup("common-skills-options.html") == nil {
+		log.Println("Error: common-skills-options.html template not loaded")
+		http.Error(w, "Internal Server Error", 500)
 		return
+	}
+	err := tmpl.ExecuteTemplate(w, "common-skills-options.html", data)
+	if err != nil {
+		log.Printf("Error executing common-skills-options template: %v", err)
 	}
 }
 
 // --- Helper Functions ---
 
-// ShapeFromString converts string to skills.Shape
-func ShapeFromString(s string) skills.Shape {
-	for shapeEnum, name := range skills.ShapeName {
-		if strings.EqualFold(s, name) {
-			return shapeEnum
-		}
-	}
-	log.Printf("Warning: Invalid shape string '%s' received, using default Straight.", s)
-	return skills.Straight
-}
-
 // findCommonSkillName attempts to match parsed skill to a common skill name.
 func findCommonSkillName(parsedSkill skills.TrampolineSkill) string {
+	compareSkill := parsedSkill
+	expectedPhases := calculatePhases(compareSkill.Rotation)
+
+	// Create a temporary twist slice with the correct length for comparison
+	compareTwists := make([]int, expectedPhases)
+	if compareSkill.TwistDistribution != nil {
+		copyCount := len(compareSkill.TwistDistribution)
+		if copyCount > expectedPhases {
+			copyCount = expectedPhases
+		}
+		copy(compareTwists, compareSkill.TwistDistribution[:copyCount])
+	}
+	compareSkill.TwistDistribution = compareTwists // Use the adjusted slice for comparison
+
 	for _, commonSkill := range skills.CommonSkills {
 		tempCommon := commonSkill
-		match := parsedSkill.Equal(&tempCommon)
-		if match {
-			return tempCommon.Name
+		commonExpectedPhases := calculatePhases(tempCommon.Rotation)
+
+		// Create a temporary twist slice for the common skill with correct length
+		tempCommonTwists := make([]int, commonExpectedPhases)
+		if tempCommon.TwistDistribution != nil {
+			copyCount := len(tempCommon.TwistDistribution)
+			if copyCount > commonExpectedPhases {
+				copyCount = commonExpectedPhases
+			}
+			copy(tempCommonTwists, tempCommon.TwistDistribution[:copyCount])
+		}
+		tempCommon.TwistDistribution = tempCommonTwists // Use the adjusted slice for comparison
+
+		if compareSkill.Equal(&tempCommon) {
+			return commonSkill.Name
 		}
 	}
 	return ""
 }
 
-// parseRoutineFromRequest parses JSON routine data from form/query.
+// parseRoutineFromRequest parses JSON routine data from form/query/body.
 func parseRoutineFromRequest(r *http.Request) ([]skills.TrampolineSkill, error) {
 	var routine []skills.TrampolineSkill
-	if err := r.ParseForm(); err != nil && r.ContentLength > 0 {
-		log.Printf("Warning: Error parsing form in parseRoutine: %v", err)
+	var rawData []byte
+	var err error
+
+	// Try form value first
+	if errForm := r.ParseForm(); errForm == nil {
+		routineDataStr := r.FormValue("routineData")
+		if routineDataStr != "" {
+			rawData = []byte(routineDataStr)
+		}
+	} else if r.ContentLength > 0 {
+		log.Printf("Warning: Error parsing form in parseRoutineFromRequest: %v", errForm)
 	}
-	routineDataStr := r.FormValue("routineData")
-	if routineDataStr == "" {
-		routineDataStr = r.URL.Query().Get("routineData")
+
+	// Fallback to query parameter
+	if len(rawData) == 0 {
+		routineDataStr := r.URL.Query().Get("routineData")
+		if routineDataStr != "" {
+			rawData = []byte(routineDataStr)
+		}
 	}
-	if routineDataStr == "" {
-		return []skills.TrampolineSkill{}, nil
+
+	// Fallback to request body
+	if len(rawData) == 0 && r.Body != nil && r.ContentLength > 0 && (r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodPatch) {
+		bodyBytes, readErr := io.ReadAll(r.Body)
+		if readErr == nil {
+			rawData = bodyBytes
+		} else if readErr != io.EOF {
+			log.Printf("Error reading request body: %v", readErr)
+		}
+		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // Replace body
+		if r.Form != nil {                                // Reset ContentLength if ParseForm was called
+			r.ContentLength = int64(len(bodyBytes))
+		}
 	}
-	err := json.Unmarshal([]byte(routineDataStr), &routine)
+
+	if len(rawData) == 0 {
+		return []skills.TrampolineSkill{}, nil // No data found
+	}
+
+	// Attempt to unmarshal
+	err = json.Unmarshal(rawData, &routine)
 	if err != nil {
-		decodedStr, decErr := url.QueryUnescape(routineDataStr)
+		decodedStr, decErr := url.QueryUnescape(string(rawData))
 		if decErr == nil {
 			err = json.Unmarshal([]byte(decodedStr), &routine)
 		}
 		if err != nil {
-			log.Printf("ERROR: Failed to decode routine JSON: %v", err)
+			log.Printf("ERROR: Failed to decode routine JSON: %v. Raw data: %s", err, string(rawData))
 			return nil, fmt.Errorf("failed to decode routine JSON: %w", err)
 		}
 	}
+
+	// Post-processing: Set tariff, landing string, and correct twist length
 	for i := range routine {
 		routine[i].SetTariff()
 		routine[i].LandingPosStr = routine[i].LandingPosition().String()
-	} // Recalc server-side
+		expectedPhases := calculatePhases(routine[i].Rotation)
+		if len(routine[i].TwistDistribution) > expectedPhases {
+			routine[i].TwistDistribution = routine[i].TwistDistribution[:expectedPhases]
+		} else {
+			for len(routine[i].TwistDistribution) < expectedPhases {
+				routine[i].TwistDistribution = append(routine[i].TwistDistribution, 0)
+			}
+		}
+		// Don't update name here, let validation handle it if needed
+	}
 	return routine, nil
 }
 
 // performRoutineValidation performs validation and returns structured data.
 func performRoutineValidation(routine []skills.TrampolineSkill) RoutineValidationData {
-	data := RoutineValidationData{Skills: make([]ValidatedSkill, len(routine)), Messages: make([]string, len(routine)), RoutineTooLong: len(routine) > 10}
-	seenIndices := make(map[int]bool)
+	data := RoutineValidationData{
+		Skills:                make([]ValidatedSkill, len(routine)),
+		Messages:              make([]string, len(routine)),
+		HasDuplicates:         false,
+		HasInvalidTransitions: false,
+		HasInvalidLandings:    false,
+		TenthSkillWarning:     false,
+		RoutineTooLong:        len(routine) > 10,
+		TotalTariff:           0.0,
+		RawTariff:             0.0,
+	}
+
+	duplicateMap := make(map[int]bool)
 	validSkillCount := 0
+
 	for i := range routine {
-		data.Skills[i].TrampolineSkill = routine[i]
-		data.Skills[i].SetTariff()
+		data.Skills[i].TrampolineSkill = routine[i] // Already has correct twist length and name from caller
 		landing := data.Skills[i].LandingPosition()
 		data.Skills[i].LandingPosStr = landing.String()
+
 		data.RawTariff += data.Skills[i].Tariff
+
 		var messages []string
-		isDuplicate := false
+		isCurrentSkillDuplicate := false
 		for j := 0; j < i; j++ {
+			// Use the Equal method which compares based on rules
 			if data.Skills[i].Equal(&data.Skills[j].TrampolineSkill) {
-				isDuplicate = true
-				if !seenIndices[j] {
+				isCurrentSkillDuplicate = true
+				data.HasDuplicates = true
+
+				if _, marked := duplicateMap[j]; !marked {
 					data.Skills[j].IsDuplicate = true
-					seenIndices[j] = true
+					duplicateMap[j] = true
+					if data.Messages[j] == "" {
+						data.Messages[j] = "Duplicate (Counts Once)"
+					} else {
+						data.Messages[j] += " / Duplicate (Counts Once)"
+					}
 				}
+				data.Skills[i].IsDuplicate = true
+				messages = append(messages, "Duplicate")
 				break
 			}
 		}
-		if isDuplicate {
-			data.Skills[i].IsDuplicate = true
-			data.HasDuplicates = true
-			messages = append(messages, "Duplicate")
-		}
-		if !isDuplicate && validSkillCount < 10 {
+
+		if !isCurrentSkillDuplicate && validSkillCount < 10 {
 			data.TotalTariff += data.Skills[i].Tariff
 			validSkillCount++
 		}
-		if isDuplicate {
-			seenIndices[i] = true
-		}
+
 		if i > 0 {
 			prevLanding := data.Skills[i-1].LandingPosition()
 			currentTakeoff := data.Skills[i].TakeoffPosition
 			if prevLanding != skills.Invalid && prevLanding != currentTakeoff {
 				data.Skills[i].InvalidTransition = true
 				data.HasInvalidTransitions = true
-				if i < 10 || len(routine) <= 10 {
+				if i < 10 || !data.RoutineTooLong {
 					messages = append(messages, fmt.Sprintf("Bad Transition: %s -> %s", prevLanding.String(), currentTakeoff.String()))
 				}
 			}
 		}
+
 		if landing == skills.Invalid {
 			data.Skills[i].InvalidLanding = true
 			data.HasInvalidLandings = true
-			if i < 10 || len(routine) <= 10 {
+			if i < 10 || !data.RoutineTooLong {
 				messages = append(messages, "Invalid Landing")
 			}
 		}
+
 		if i == 9 {
 			if landing != skills.Feet {
 				data.TenthSkillWarning = true
 				messages = append(messages, "10th Must Land Feet")
 			}
 		}
+
 		if i >= 10 {
-			messages = append(messages, "Skill >10")
+			messages = append(messages, "Skill >10 (No Tariff)")
 		}
+
 		data.Messages[i] = strings.Join(messages, " / ")
 	}
+
 	return data
 }

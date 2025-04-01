@@ -1,106 +1,184 @@
 {{define "content"}}
 <div class="container" x-data="tariffCalculatorStore()" x-init="init()">
 
+    {{/* Hidden input to potentially pass routine data if needed, managed by Alpine */}}
     <input type="hidden" name="routineData" :value="JSON.stringify(routine)">
 
+    {{/* Box containing the skill input form */}}
     <div class="box">
         <h3 class="title is-4">Skill Calculator</h3>
-        <div id="skill-form-wrapper">
-            {{/* This inner div will now be the target for reloads */}}
+        {{/* Wrapper for the skill form, targeted by HTMX for reloading */}}
+        <div id="skill-form-wrapper" style="scroll-margin-top: 20px;"> {{/* scroll-margin for better scrollIntoView targeting */}}
+            {{/* This inner div will be replaced by HTMX */}}
             <div id="skill-form-content"
-                 hx-trigger="load"
-            hx-get="/skill-form-fragment"
-            hx-target="this"
-            hx-swap="outerHTML"
-            x-init="console.log('Loading initial skill form content...')">
-            <p>Loading form...</p>
+                 hx-trigger="load" {{/* Load form on initial page load */}}
+            hx-get="/skill-form-fragment" {{/* Endpoint to get the form fragment */}}
+            hx-target="this" {{/* Replace this div with the response */}}
+            hx-swap="outerHTML" {{/* Replace the entire div, not just inner content */}}
+            x-init="console.log('Loading initial skill form content...');" {{/* Watcher setup moved to init() */}}
+            >
+            <p>Loading form...</p> {{/* Placeholder content */}}
         </div>
     </div>
 </div>
 
-<div id="evaluation-preview" class="box" style="min-height: 100px;">
-    {{/* Content loaded by HTMX from /evaluate-skill-fragment */}}
+{{/* Box for displaying skill evaluation results, loaded via HTMX */}}
+<div id="evaluation-preview"
+     class="box"
+     x-show="showEvaluation" {{/* Controlled by Alpine state */}}
+x-transition {{/* Alpine transition for show/hide */}}
+style="display: none;" {{/* Initially hidden */}}
+{{/* Dropdown population triggered by listener after swap */}}
+>
+{{/* Content for evaluation results will be loaded here by HTMX */}}
 </div>
 
+{{/* Box containing the routine builder */}}
 <div class="box">
-    <h3 class="title is-4">Routine Builder</h3>
-    <div id="routine-skills" class="routine-skills">
-        <template x-for="(skill, index) in routine" :key="index">
-            <div class="routine-skill box mb-2"
-                 :class="{
-                        'invalid-transition': validationResults?.invalidTransitions?.includes(index),
-                        'invalid-landing': validationResults?.invalidLandings?.includes(index),
-                        'duplicate-skill': validationResults?.duplicates?.includes(index),
-                        'dragging': draggedIndex === index
-                     }"
-                 draggable="true"
-                 @dragstart="handleDragStart($event, index)"
-                 @dragover.prevent="handleDragOver($event, index)"
-                 @dragleave="handleDragLeave($event)"
-                 @drop="handleDrop($event, index)"
-                 @dragend="handleDragEnd($event)"
-                 @touchstart="handleTouchStart($event, index)"
-                 @touchmove="handleTouchMove($event)"
-                 @touchend="handleTouchEnd($event)"
-                 @touchcancel="handleTouchEnd($event)">
-
-                {{/* Single columns div for the main skill info row */}}
-                <div class="columns is-mobile is-vcentered is-flex-grow-1">
-                    {{/* Skill Details Columns */}}
-                    <div class="column is-4-mobile is-3-tablet"><p><strong x-text="`${index + 1}. ${skill.name || 'Custom Skill'}`"></strong></p><p><span x-text="Math.abs(skill.rotation)"></span> <span x-text="skill.backward ? 'B' : 'F'"></span></p></div>
-                    <div class="column is-2-mobile is-2-tablet"><p x-text="(skill.twist_distribution || []).join(' | ')"></p></div>
-                    <div class="column is-3-mobile is-2-tablet"><p x-text="`${skill.takeoff_position} → ${skill.landing_position || calculateLanding(skill)}`"></p></div>
-                    <div class="column is-2-mobile is-2-tablet"><p x-text="skill.shape"></p></div>
-                    <div class="column is-2-mobile is-1-tablet"><p class="has-text-primary" x-text="skill.tariff.toFixed(2)"></p></div>
-
-                    {{/* Controls Column - Buttons Go Here */}}
-                    <div class="column is-4-mobile is-2-tablet">
-                        <div class="buttons are-small is-flex is-justify-content-flex-end">
-                            {{/* Up Button */}}
-                            <button class="button" title="Move Up" @click="moveSkillUp(index)" :disabled="index === 0">↑</button>
-                            {{/* Down Button */}}
-                            <button class="button" title="Move Down" @click="moveSkillDown(index)" :disabled="index === routine.length - 1">↓</button>
-                            {{/* Edit Button */}}
-                            <button class="button is-info is-small" title="Edit" @click="editSkill(index)">Edit</button>
-                            {{/* Remove Button */}}
-                            <button class="button is-danger is-small delete" title="Remove" @click="removeSkill(index)"></button>
-                        </div>
-                    </div>
-                </div> {{/* End main columns div */}}
-
-                {{/* Validation Message Display */}}
-                <div x-show="validationResults?.messages?.[index]" class="columns is-mobile">
-                    <div class="column is-12">
-                        <p class="transition-status is-size-7 mt-1 has-text-danger"
-                           x-text="validationResults?.messages?.[index] ?? ''"></p>
-                    </div>
-                </div>
-            </div> {{/* End routine-skill div */}}
-        </template>
-
-        <template x-if="routine.length === 0">
-            <p class="has-text-grey">Add skills using the form above.</p>
-        </template>
+    {{/* Header for the routine builder section */}}
+    <div class="level">
+        <div class="level-left">
+            <h3 class="title is-4">Routine Builder</h3>
+        </div>
+        <div class="level-right">
+            {{/* Button to clear the entire routine */}}
+            <button
+                    class="button is-danger is-outlined"
+                    @click="clearRoutine()"
+                    x-show="routine.length > 0" {{/* Only show if routine is not empty */}}
+            type="button">
+            Clear Routine
+            </button>
+        </div>
     </div>
 
-    <div id="routine-results" class="mt-4">
-        <div class="card">
-            <div class="card-content">
-                <p class="title">Total Tariff: <span x-text="validationResults?.totalTariff?.toFixed(2) ?? '0.00'"></span></p>
-                <p class="subtitle"><span x-text="routine.length"></span> of 10 skills</p>
-                <p x-show="validationResults?.rawTariff > validationResults?.totalTariff" class="subtitle tariff-difference">(Raw Total: <span x-text="validationResults?.rawTariff?.toFixed(2)"></span>)</p>
-                <div class="validation-messages mt-3">
-                    <p x-show="validationResults?.routineTooLong" class="has-text-warning mb-2">⚠️ Routine has more than 10 skills (only first 10 non-duplicates count toward Tariff).</p>
-                    <p x-show="validationResults?.duplicates?.length > 0" class="has-text-warning mb-2">⚠️ Duplicate skills only count once toward total!</p>
-                    <p x-show="validationResults?.invalidTransitions?.length > 0" class="has-text-danger">❌ Invalid transitions detected.</p>
-                    <p x-show="validationResults?.invalidLandings?.length > 0" class="has-text-landing-warning">🚫 Invalid landing positions detected.</p>
-                    <p x-show="validationResults?.tenthSkillWarning" class="has-text-tenth-warning">🎯 10th skill must land on feet!</p>
-                </div>
+    {{/* Container for the list of skills in the routine */}}
+    {{/* x-ref allows referencing this element in Alpine JS */}}
+    <div id="routine-skills" class="routine-skills" x-ref="routineSkillsContainer">
+        {{/* Insertion point shown when dragging, placed at the very top */}}
+        <div class="insertion-point"
+             x-show="isDragging && routine.length > 0"
+             :class="{ 'active': dropIndex === 0 }"
+             @dragover.prevent="handleDragOver($event, 0)"
+             @dragleave="handleDragLeave($event)"
+             @drop="handleDrop($event, 0)"
+             @touchend="handleTouchEnd($event, 0)">
+        </div>
+
+        {{/* Alpine template loop to render each skill in the routine */}}
+        <template x-for="(skill, index) in routine" :key="index">
+            {{/* Unique ID for each skill's container */}}
+            <div x-id="['skill']" :id="$id('skill')">
+                {{/* Container to manage editing state style */}}
+                <div class="routine-skill-container"
+                     :class="{ 'editing': editingIndex === index }">
+                    {{/* The actual skill item box, draggable */}}
+                    <div class="routine-skill box mb-2"
+                         :class="{
+                                    'invalid-transition': validationResults?.skills?.[index]?.InvalidTransition,
+                                    'invalid-landing': validationResults?.skills?.[index]?.InvalidLanding,
+                                    'duplicate-skill': validationResults?.skills?.[index]?.IsDuplicate,
+                                    'is-dragging': draggedIndex === index
+                                 }"
+                         draggable="true"
+                         {{/* Mouse drag event handlers */}}
+                    @dragstart="handleDragStart($event, index)"
+                    @dragover.prevent {{/* Prevent default to allow drop */}}
+                    @dragleave="handleDragLeave($event)"
+                    @drop="handleDrop($event, index)" {{/* Handle drop on the item itself */}}
+                    @dragend="handleDragEnd($event)"
+                    {{/* Touch drag event handlers */}}
+                    @touchstart="handleTouchStart($event, index)"
+                    @touchmove="handleTouchMove($event)"
+                    @touchend="handleTouchEnd($event)"
+                    @touchcancel="handleTouchCancel($event)">
+
+                    {{/* Skill Name block */}}
+                    <div class="skill-name-block mb-2">
+                        <p class="skill-name"><strong x-text="`${index + 1}. ${skill.name || 'Custom Skill'}`"></strong></p>
+                    </div>
+
+                    {{/* Details + Buttons Row using Bulma columns */}}
+                    <div class="skill-details-columns columns is-mobile is-variable is-1">
+                        {{/* Rotation Column */}}
+                        <div class="column is-narrow-mobile">
+                            <p><span class="detail-label">Rotation: </span><span x-text="Math.abs(skill.rotation)"></span> <span x-text="skill.backward ? 'B' : 'F'"></span></p>
+                        </div>
+                        {{/* Twists Column */}}
+                        <div class="column is-narrow-mobile">
+                            <p><span class="detail-label">Twists: </span><span x-text="(skill.twist_distribution || []).join(' | ') || '0'"></span></p>
+                        </div>
+                        {{/* Landing Column */}}
+                        <div class="column is-narrow-mobile">
+                            <p><span class="detail-label">Landing: </span><span x-text="`${skill.takeoff_position} → ${skill.landing_position || calculateLanding(skill)}`"></span></p>
+                        </div>
+                        {{/* Shape Column */}}
+                        <div class="column is-narrow-mobile">
+                            <p><span class="detail-label">Shape: </span><span x-text="skill.shape"></span></p>
+                        </div>
+                        {{/* Tariff Column */}}
+                        <div class="column is-narrow-mobile">
+                            <p><span class="detail-label">Tariff: </span><span class="has-text-primary" x-text="skill.tariff.toFixed(2)"></span></p>
+                        </div>
+
+                        {{/* Controls Column (Buttons) */}}
+                        {{/* ml-auto-tablet pushes buttons right on desktop */}}
+                        <div class="column is-narrow ml-auto-tablet">
+                            <div class="buttons are-small skill-buttons">
+                                <button class="button" title="Move Up" @click="moveSkillUp(index)" :disabled="index === 0">↑</button>
+                                <button class="button" title="Move Down" @click="moveSkillDown(index)" :disabled="index === routine.length - 1">↓</button>
+                                <button class="button is-info is-small" title="Edit" @click="editSkill(index)">Edit</button>
+                                <button class="button is-danger is-small delete" title="Remove" @click="removeSkill(index)"></button>
+                            </div>
+                        </div>
+                    </div> {{/* End skill-details-columns */}}
+
+                    {{/* Validation Message Display Row */}}
+                    <div x-show="validationResults?.messages?.[index]" class="skill-validation-row mt-1">
+                        <p class="transition-status is-size-7 has-text-danger"
+                           x-text="validationResults?.messages?.[index] ?? ''"></p>
+                    </div>
+                </div> {{/* End routine-skill div */}}
+            </div> {{/* End routine-skill-container div */}}
+
+            {{/* Insertion point shown when dragging, placed between items */}}
+            <div class="insertion-point"
+                 x-show="isDragging"
+                 :class="{ 'active': dropIndex === index + 1 }"
+                 @dragover.prevent="handleDragOver($event, index + 1)"
+                 @dragleave="handleDragLeave($event)"
+                 @drop="handleDrop($event, index + 1)"
+                 @touchend="handleTouchEnd($event, index + 1)">
+            </div>
+    </div>
+    </template>
+
+    {{/* Message shown when routine is empty */}}
+    <template x-if="routine.length === 0">
+        <p class="has-text-grey">Add skills using the form above.</p>
+    </template>
+</div>
+
+{{/* Section to display routine totals and validation messages */}}
+<div id="routine-results" class="mt-4">
+    <div class="card">
+        <div class="card-content">
+            <p class="title">Total Tariff: <span x-text="validationResults?.totalTariff?.toFixed(2) ?? '0.00'"></span></p>
+            <p class="subtitle"><span x-text="routine.length"></span> of 10 skills</p>
+            <p x-show="validationResults?.rawTariff > validationResults?.totalTariff" class="subtitle tariff-difference">(Raw Total: <span x-text="validationResults?.rawTariff?.toFixed(2)"></span>)</p>
+            <div class="validation-messages mt-3">
+                <p x-show="validationResults?.routineTooLong" class="has-text-warning mb-2">⚠️ Routine has more than 10 skills (only first 10 non-duplicates count toward Tariff).</p>
+                <p x-show="validationResults?.HasDuplicates" class="has-text-warning mb-2">⚠️ Duplicate skills only count once toward total!</p>
+                <p x-show="validationResults?.HasInvalidTransitions" class="has-text-danger">❌ Invalid transitions detected.</p>
+                <p x-show="validationResults?.HasInvalidLandings" class="has-text-landing-warning">🚫 Invalid landing positions detected.</p>
+                <p x-show="validationResults?.tenthSkillWarning" class="has-text-tenth-warning">🎯 10th skill must land on feet!</p>
             </div>
         </div>
     </div>
 </div>
+</div>
 
+{{/* Toast notification area */}}
 <div x-show="toast.show" x-transition
      class="notification is-fixed-bottom-right"
      :class="toast.type === 'error' ? 'is-danger' : 'is-info'">
@@ -108,158 +186,409 @@
     <span x-text="toast.message"></span>
 </div>
 
-</div><script>
+</div>
+<script>
     function tariffCalculatorStore() {
         return {
-            // --- Properties ---
+            // --- Alpine Component State ---
             routine: [],
             editingIndex: null,
-            validationResults: { skills: [], valid: true, messages: [], invalidTransitions: [], invalidLandings: [], tenthSkillWarning: false, routineTooLong: false, duplicates: [], totalTariff: 0.0, rawTariff: 0.0 },
+            validationResults: {
+                skills: [], totalTariff: 0.0, rawTariff: 0.0, HasDuplicates: false,
+                HasInvalidTransitions: false, HasInvalidLandings: false,
+                tenthSkillWarning: false, routineTooLong: false, messages: []
+            },
             toast: { show: false, message: '', type: 'info' },
-            draggedIndex: null,
-            dropIndex: null,
-            isDragging: false,
-            touchStartY: null,
-            draggedElement: null,
-            _processingCalculation: false,
+            draggedIndex: null, dropIndex: null, isDragging: false,
+            touchStartY: null, touchCurrentY: null, draggedElement: null,
+            _processingCalculation: false, showEvaluation: false,
+            lastInsertPosition: null, isInitialLoad: true,
 
             // --- Initialization ---
             init() {
-                // console.log('Alpine store initialized');
+                console.log("Alpine init starting...");
                 const savedRoutine = localStorage.getItem('trampolineRoutine');
-                if (savedRoutine) { try { this.routine = JSON.parse(savedRoutine); } catch (e) { console.error('Failed to parse saved routine:', e); localStorage.removeItem('trampolineRoutine'); } }
+                if (savedRoutine) {
+                    try { this.routine = JSON.parse(savedRoutine); console.log(`init: Loaded ${this.routine.length} skills.`); }
+                    catch (e) { console.error('Failed to parse saved routine:', e); localStorage.removeItem('trampolineRoutine'); this.routine = []; }
+                } else { this.routine = []; console.log("init: No routine found."); }
+                this.lastInsertPosition = this.routine.length > 0 ? this.routine.length + 1 : 1;
+                console.log(`init: Initial lastInsertPosition set to: ${this.lastInsertPosition}`);
 
-                this.$watch('routine', (newRoutine) => { this.validateRoutineBackend(); localStorage.setItem('trampolineRoutine', JSON.stringify(newRoutine)); });
+                // Watch routine for changes
+                this.$watch('routine', (newRoutine, oldRoutine) => {
+                    const oldLen = oldRoutine?.length ?? 'N/A'; const newLen = newRoutine?.length ?? 'N/A';
+                    console.log(`Routine watcher triggered. Old length: ${oldLen}, New length: ${newLen}`);
+                    if (newLen !== oldLen) {
+                        console.log('--> Routine length changed, calling dropdown updates.');
+                        this.updatePositionDropdown(); // Update main form dropdown
+                        if(this.showEvaluation) { this.populateEvalPositionDropdown(); } // Update eval dropdown if visible
+                    } else { console.log('--> Routine watcher: Length did not change.'); }
+                    this.validateRoutineBackend();
+                    localStorage.setItem('trampolineRoutine', JSON.stringify(newRoutine));
+                });
 
-                // Central HTMX Event Listener
+                // Watch editingIndex
+                this.$watch('editingIndex', (newIndex, oldIndex) => {
+                    console.log(`EditingIndex watcher triggered. Old: ${oldIndex}, New: ${newIndex}`);
+                    if (newIndex === null && oldIndex !== null) {
+                        console.log('--> Exited edit mode. Form reload handled by cancelEdit/handleUpdateSkill.');
+                    }
+                });
+
+                // Initial validation
+                this.validateRoutineBackend();
+
+                // HTMX Listeners
+                document.body.addEventListener('htmx:afterSwap', (event) => {
+                    const target = event.detail.target;
+                    const targetId = target?.id ?? 'N/A';
+                    const closestFormContent = target?.closest('#skill-form-content');
+
+                    console.log(`htmx:afterSwap triggered. Target ID: ${targetId}`);
+
+                    // Check if the main form content was swapped
+                    if (targetId === 'skill-form-content' || closestFormContent) {
+                        // *** MODIFIED: Only update dropdown on initial load via listener ***
+                        if (this.isInitialLoad) {
+                            console.log('--> Initial form fragment swapped, calling updatePositionDropdown.');
+                            const rotationInput = document.getElementById('rotation');
+                            if(rotationInput){ this.updateTwistInputs(rotationInput.value); }
+                            this.updatePositionDropdown(); // Update options & selection AFTER the swap
+                            this.isInitialLoad = false; // Clear the flag
+                        } else {
+                            console.log('--> Form fragment swapped (not initial), dropdown update handled by action.');
+                        }
+                    }
+                    // Check if the target IS the evaluation preview div
+                    else if (targetId === 'evaluation-preview') {
+                        console.log('--> Eval preview swapped/loaded, calling populateEvalPositionDropdown.');
+                        this.populateEvalPositionDropdown(); // Update options & selection AFTER the swap
+                    } else {
+                        console.log("--> htmx:afterSwap detected, but target doesn't match form or eval preview container.");
+                    }
+                });
                 document.body.addEventListener('htmx:afterRequest', (event) => {
                     const xhr = event.detail.xhr;
-                    const requestPath = event.detail.requestConfig?.path;
-                    const target = event.detail.target;
-                    const swapMode = event.detail.requestConfig?.verb === 'get' ? event.detail.requestConfig?.swapStyle : null; // Get swap style for relevant requests
+                    const requestConfig = event.detail.requestConfig;
+                    const requestPath = requestConfig?.path ?? 'N/A';
 
-                    // Handle /validate-routine-client-state Response
                     if (requestPath === '/validate-routine-client-state') {
                         if (xhr.status === 200) {
                             try {
                                 const results = JSON.parse(xhr.responseText);
-                                this.validationResults = { skills: results.skills || [], valid: results.valid === true, messages: results.messages || [], invalidTransitions: results.invalidTransitions || [], invalidLandings: results.invalidLandings || [], tenthSkillWarning: results.tenthSkillWarning === true, routineTooLong: results.routineTooLong === true, duplicates: results.duplicates || [], totalTariff: results.totalTariff || 0.0, rawTariff: results.rawTariff || 0.0 };
+                                this.validationResults = {
+                                    skills: results.skills || [], totalTariff: results.totalTariff || 0.0,
+                                    rawTariff: results.rawTariff || 0.0, HasDuplicates: results.hasDuplicates || false,
+                                    HasInvalidTransitions: results.hasInvalidTransitions || false,
+                                    HasInvalidLandings: results.hasInvalidLandings || false,
+                                    tenthSkillWarning: results.tenthSkillWarning || false,
+                                    routineTooLong: results.routineTooLong || false, messages: results.messages || []
+                                };
                             } catch(e) { console.error("Error parsing validation response:", e); this.showToast('Could not update validation.', 'error'); }
                         } else { console.error(`/validate-routine-client-state request failed: ${xhr.status}`); this.showToast('Validation update failed.', 'error'); }
                     }
-                    // Handle Form Fragment Load (covers initial, common skill, cancel edit, update)
-                    else if (target?.id === 'skill-form-wrapper' && swapMode === 'innerHTML' || target?.id === 'skill-form-content' && swapMode === 'outerHTML') {
-                        const rotationInput = document.getElementById('rotation');
-                        if(rotationInput){ this.updateTwistInputs(rotationInput.value); }
-                    }
-                }); // End listener
-
-                this.validateRoutineBackend(); // Initial validation
-            }, // End init
-
-            // --- Actions ---
-            addSkill(skillData) {
-                if (this.routine.length >= 10) { this.showToast('Warning: Routines typically have 10 skills.', 'warning'); }
-                const newSkill = { name: skillData.name || 'Custom Skill', rotation: skillData.rotation, twist_distribution: skillData.twist_distribution || [], takeoff_position: skillData.takeoff_position, shape: skillData.shape, backward: skillData.backward, seat_landing: skillData.seat_landing, tariff: skillData.tariff, landing_position: skillData.landing_position };
-                this.routine.push(newSkill);
-            },
-            removeSkill(index) { if (index >= 0 && index < this.routine.length) { this.routine.splice(index, 1); if (this.editingIndex === index) this.cancelEdit(); else if (this.editingIndex > index) this.editingIndex--; } },
-            editSkill(index) { this.editingIndex = index; htmx.ajax('GET', `/edit-skill-form-data/${index}`, { target: '#skill-form-wrapper', swap: 'innerHTML', values: { routineData: JSON.stringify(this.routine) }, indicator: '#skill-form-wrapper' }).catch(err => { console.error("Failed to load edit form", err); this.showToast("Failed to load edit form.", "error"); this.editingIndex = null; }); },
-            handleUpdateSkill(index, formDataObject) { // formDataObject comes directly from getFormData
-
-                if (index === null || index < 0 || index >= this.routine.length) {
-
-                    this.showToast('Error: Invalid skill index for update.', 'error');
-                    return;
-                }
-
-                // Use formDataObject directly from getFormData (parseFormDataForCalc removed)
-                const skillData = formDataObject;
-
-
-                this.calculateSkill(skillData, (calculatedSkill) => {
-                    // This callback runs ONLY on successful calculation/JSON parsing
-
-                    if (calculatedSkill) {
-                        // --- Add Logging Around Splice ---
-
-
-                        if (index >= this.routine.length) {
-
-                            this.showToast('Error updating skill: index mismatch.', 'error');
-                            return;
-                        }
-
-                        // Perform the replacement - Ensure 'calculatedSkill' has correct twists/backward from backend response
-                        this.routine.splice(index, 1, calculatedSkill);
-
-
-                        // --- End Logging Around Splice ---
-
-
-                        this.cancelEdit(); // Call the updated cancelEdit
-                    } else {
-
-                        this.showToast('Failed to recalculate skill during update.', 'error');
+                    else if (requestPath === '/evaluate-skill-fragment' && event.detail.target.id === 'evaluation-preview' ) {
+                        console.log("--> Showing evaluation preview after request.");
+                        this.showEvaluation = true;
                     }
                 });
-
+                console.log("Alpine init finished.");
             },
-            cancelEdit() { this.editingIndex = null; htmx.ajax('GET', '/skill-form-fragment', { target: '#skill-form-wrapper', swap: 'innerHTML', indicator: '#skill-form-wrapper' }).then(() => { const rotationInput = document.getElementById('rotation'); if(rotationInput){ this.updateTwistInputs(rotationInput.value); } }).catch(err => { console.error("Failed to load empty form", err); this.showToast("Failed to load empty form.", "error"); }); },
-            moveSkillUp(index) { if (index > 0) { [this.routine[index], this.routine[index - 1]] = [this.routine[index - 1], this.routine[index]]; if (this.editingIndex === index) this.editingIndex--; else if (this.editingIndex === index - 1) this.editingIndex++; } },
-            moveSkillDown(index) { if (index < this.routine.length - 1) { [this.routine[index], this.routine[index + 1]] = [this.routine[index + 1], this.routine[index]]; if (this.editingIndex === index) this.editingIndex++; else if (this.editingIndex === index + 1) this.editingIndex--; } },
+
+            // --- Dropdown Update Functions ---
+            updatePositionDropdown() {
+                console.log(`updatePositionDropdown called. Current lastInsertPosition: ${this.lastInsertPosition}, routine.length: ${this.routine.length}`);
+                this.$nextTick(() => {
+                    const selectElement = document.getElementById('insert-position');
+                    if (!selectElement) { console.warn("updatePositionDropdown: #insert-position element not found."); return; }
+                    const currentLength = this.routine.length;
+                    const maxPosition = currentLength + 1;
+                    // Calculate default based on lastInsertPosition + 1 (for incrementing after add)
+                    let defaultSelection = this.lastInsertPosition ? this.lastInsertPosition + 1 : maxPosition;
+                    // Cap at max position
+                    if (defaultSelection > maxPosition || defaultSelection < 1) {
+                        console.log(`--> Capping defaultSelection ${defaultSelection} to ${maxPosition}`);
+                        defaultSelection = maxPosition;
+                    }
+                    console.log(`updatePositionDropdown: MaxPos: ${maxPosition}, Default: ${defaultSelection}`);
+                    selectElement.innerHTML = '';
+                    for (let i = 1; i <= maxPosition; i++) { const option = document.createElement('option'); option.value = i; option.text = `Position ${i}${i === maxPosition ? ' (End)' : ''}`; selectElement.appendChild(option); }
+                    // Use String() when setting value for robustness
+                    selectElement.value = String(defaultSelection);
+                    console.log(`updatePositionDropdown: Set #insert-position value to ${selectElement.value}`);
+                });
+            },
+            populateEvalPositionDropdown() {
+                console.log(`populateEvalPositionDropdown called. Current lastInsertPosition: ${this.lastInsertPosition}, routine.length: ${this.routine.length}`);
+                this.$nextTick(() => {
+                    const selectElement = document.getElementById('evaluation-insert-position');
+                    if (!selectElement) { console.warn("populateEvalPositionDropdown: #evaluation-insert-position element not found."); return; }
+                    console.log("--> Populating evaluation position dropdown.");
+                    const currentLength = this.routine.length;
+                    const maxPosition = currentLength + 1;
+                    // Calculate default based on lastInsertPosition + 1 (for incrementing after add)
+                    let defaultSelection = this.lastInsertPosition ? this.lastInsertPosition + 1 : maxPosition;
+                    // Cap at max position
+                    if (defaultSelection > maxPosition || defaultSelection < 1) {
+                        console.log(`--> Capping eval defaultSelection ${defaultSelection} to ${maxPosition}`);
+                        defaultSelection = maxPosition;
+                    }
+                    console.log(`populateEvalPositionDropdown: MaxPos: ${maxPosition}, Default: ${defaultSelection}`);
+                    selectElement.innerHTML = '';
+                    for (let i = 1; i <= maxPosition; i++) { const option = document.createElement('option'); option.value = i; option.text = `Position ${i}${i === maxPosition ? ' (End)' : ''}`; selectElement.appendChild(option); }
+                    // Use String() when setting value for robustness
+                    selectElement.value = String(defaultSelection);
+                    console.log(`populateEvalPositionDropdown: Set #evaluation-insert-position value to ${selectElement.value}`);
+                });
+            },
+
+            // --- Actions ---
+            addSkill(skillData, position = null) {
+                const newSkill = { name: skillData.name || 'Custom Skill', rotation: skillData.rotation, twist_distribution: skillData.twist_distribution || [], takeoff_position: skillData.takeoff_position, shape: skillData.shape, backward: skillData.backward, seat_landing: skillData.seat_landing, tariff: skillData.tariff, landing_position: skillData.landing_position };
+                const targetPosition = parseInt(position);
+                const currentLength = this.routine.length;
+                let actualInsertPosition = currentLength + 1; // Default to end
+
+                if (!isNaN(targetPosition) && targetPosition >= 1 && targetPosition <= currentLength) {
+                    const index = targetPosition - 1;
+                    this.routine.splice(index, 0, newSkill); // Modify routine
+                    this.showToast(`Skill added at position ${targetPosition}.`, 'info');
+                    actualInsertPosition = targetPosition;
+                } else {
+                    if (currentLength >= 10) { this.showToast('Warning: Routines typically have 10 skills.', 'warning'); }
+                    this.routine.push(newSkill); // Modify routine
+                    actualInsertPosition = this.routine.length;
+                    this.showToast('Skill added to end.', 'info');
+                }
+                this.showEvaluation = false;
+
+                // Update lastInsertPosition AFTER modifying the routine
+                this.lastInsertPosition = actualInsertPosition;
+                console.log(`addSkill: Updated lastInsertPosition to ${this.lastInsertPosition}`);
+
+                // Explicitly call dropdown update here
+                console.log("addSkill: Explicitly calling updatePositionDropdown().");
+                this.updatePositionDropdown();
+                // Routine watcher will still handle validation and saving.
+            },
+            removeSkill(index) {
+                if (index >= 0 && index < this.routine.length) {
+                    this.routine.splice(index, 1); // Modify routine FIRST
+                    // Update lastInsertPosition AFTER modifying the routine
+                    this.lastInsertPosition = this.routine.length + 1; // Default to new end
+                    console.log(`removeSkill: Updated lastInsertPosition to ${this.lastInsertPosition}`);
+                    if (this.editingIndex === index) { this.editingIndex = null; }
+                    else if (this.editingIndex > index) { this.editingIndex--; }
+                    // Routine watcher handles validation, saving, and dropdown update.
+                }
+            },
+            editSkill(index) {
+                this.editingIndex = index; this.showEvaluation = false;
+                htmx.ajax('GET', `/edit-skill-form-data/${index}`, { target: '#skill-form-wrapper', swap: 'innerHTML', values: { routineData: JSON.stringify(this.routine) }, indicator: '#skill-form-wrapper' })
+                    .then(() => {
+                        this.$nextTick(() => {
+                            const formWrapper = document.getElementById('skill-form-wrapper');
+                            if (formWrapper) { formWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+                            const rotationInput = document.getElementById('rotation');
+                            if(rotationInput){ this.updateTwistInputs(rotationInput.value); }
+                            // Dropdown update handled by htmx:afterSwap (initial load flag will be false)
+                        });
+                    })
+                    .catch(err => { console.error("Failed to load edit form", err); this.showToast("Failed to load edit form.", "error"); this.editingIndex = null; });
+            },
+            handleUpdateSkill(index, formDataObject) {
+                // *** Reverted: Call cancelEdit(true) to reset state and reload ***
+                if (index === null || index < 0 || index >= this.routine.length) { this.showToast('Error: Invalid skill index for update.', 'error'); return; }
+                this.calculateSkill(formDataObject, (calculatedSkill) => {
+                    if (calculatedSkill) {
+                        if (index >= this.routine.length) { this.showToast('Error updating: index mismatch.', 'error'); return; }
+                        this.editingIndex = null; // Exit edit mode BEFORE modifying routine/state
+                        this.routine.splice(index, 1, calculatedSkill); // Modify routine
+                        // Call cancelEdit(true) to reset state and reload form
+                        console.log(`handleUpdateSkill: Calling cancelEdit(true) to reset form.`);
+                        this.cancelEdit(true);
+                        // cancelEdit(true) handles resetting lastInsertPosition and reloading the form.
+                        // The htmx:afterSwap listener should NOT update the dropdown here, cancelEdit will handle it post-reload.
+                    } else { this.showToast('Failed to recalculate skill during update.', 'error'); }
+                });
+            },
+            cancelEdit(resetState = true) {
+                // *** MODIFIED: Use promise to update dropdown AFTER swap ***
+                console.log(`cancelEdit called with resetState: ${resetState}`);
+                if (resetState) {
+                    this.editingIndex = null;
+                    // Update lastInsertPosition AFTER state change
+                    this.lastInsertPosition = this.routine.length + 1; // Reset to end
+                    console.log(`cancelEdit: Reset lastInsertPosition to ${this.lastInsertPosition}`);
+                }
+                this.showEvaluation = false;
+                // Use htmx.ajax which returns a promise-like object
+                htmx.ajax('GET', '/skill-form-fragment', { target: '#skill-form-wrapper', swap: 'innerHTML', indicator: '#skill-form-wrapper' })
+                    .then(() => {
+                        // This executes after the HTMX swap is complete
+                        console.log("cancelEdit: HTMX swap finished, calling updatePositionDropdown.");
+                        this.updatePositionDropdown(); // Update dropdown AFTER the form is loaded
+                    })
+                    .catch(err => {
+                        console.error("Failed to load empty form via HTMX in cancelEdit", err);
+                        this.showToast("Failed to load empty form.", "error");
+                    });
+            },
+            moveSkillUp(index) {
+                if (index > 0) {
+                    let oldLastInsertPos = this.lastInsertPosition;
+                    if (this.lastInsertPosition === index + 1) { this.lastInsertPosition--; } else if (this.lastInsertPosition === index) { this.lastInsertPosition++; }
+                    if(oldLastInsertPos !== this.lastInsertPosition) console.log(`moveSkillUp: Adjusted lastInsertPosition to ${this.lastInsertPosition}`);
+                    [this.routine[index], this.routine[index - 1]] = [this.routine[index - 1], this.routine[index]]; // Modify routine
+                    if (this.editingIndex === index) { this.editingIndex--; } else if (this.editingIndex === index - 1) { this.editingIndex++; }
+                    // Routine watcher handles updates
+                }
+            },
+            moveSkillDown(index) {
+                if (index < this.routine.length - 1) {
+                    let oldLastInsertPos = this.lastInsertPosition;
+                    if (this.lastInsertPosition === index + 1) { this.lastInsertPosition++; } else if (this.lastInsertPosition === index + 2) { this.lastInsertPosition--; }
+                    if(oldLastInsertPos !== this.lastInsertPosition) console.log(`moveSkillDown: Adjusted lastInsertPosition to ${this.lastInsertPosition}`);
+                    [this.routine[index], this.routine[index + 1]] = [this.routine[index + 1], this.routine[index]]; // Modify routine
+                    if (this.editingIndex === index) { this.editingIndex++; } else if (this.editingIndex === index + 1) { this.editingIndex--; }
+                    // Routine watcher handles updates
+                }
+            },
+            clearRoutine() {
+                if (this.routine.length > 0 && confirm('Are you sure?')) {
+                    this.routine = []; // Modify routine FIRST
+                    // Update lastInsertPosition AFTER modifying the routine
+                    this.lastInsertPosition = 1; // Reset to 1
+                    console.log(`clearRoutine: Reset lastInsertPosition to ${this.lastInsertPosition}`);
+                    this.editingIndex = null; this.showEvaluation = false;
+                    this.showToast('Routine cleared.', 'info');
+                    // Routine watcher handles updates
+                }
+            },
 
             // --- Client Side Calculation / Update ---
-            updateTwistInputs(rotationValue) { const rotation = Math.abs(parseInt(rotationValue) || 0); const phases = this.calculatePhases(rotation); const twistInputs = document.querySelectorAll('#main-form .twist-rotation'); twistInputs.forEach((input, i) => { const phaseNum = i + 1; const shouldBeEnabled = (phaseNum <= phases); input.disabled = !shouldBeEnabled; input.style.opacity = shouldBeEnabled ? '1' : '0.5'; }); },
+            updateTwistInputs(rotationValue) {
+                const rotation = Math.abs(parseInt(rotationValue) || 0);
+                const phases = this.calculatePhases(rotation);
+                const twistInputs = document.querySelectorAll('#main-form .twist-rotation');
+                twistInputs.forEach((input, i) => {
+                    const phaseNum = i + 1;
+                    const shouldBeEnabled = (phaseNum <= phases);
+                    input.disabled = !shouldBeEnabled;
+                    input.style.opacity = shouldBeEnabled ? '1' : '0.5';
+                });
+            },
 
             // --- Backend Interaction ---
-            validateRoutineBackend() { htmx.ajax('POST', '/validate-routine-client-state', { values: { routineData: JSON.stringify(this.routine) }, swap: 'none' }).catch(error => { console.error('Validation AJAX initiation error:', error); this.showToast('Failed to connect for validation.', 'error'); }); },
+            validateRoutineBackend() {
+                console.log("--> Sending routine for backend validation...");
+                htmx.ajax('POST', '/validate-routine-client-state', {
+                    values: { routineData: JSON.stringify(this.routine) },
+                    swap: 'none' // Response handled by htmx:afterRequest listener
+                }).catch(error => {
+                    console.error('Validation AJAX initiation error:', error);
+                    this.showToast('Failed to connect for validation.', 'error');
+                });
+            },
             calculateSkill(skillData, callbackOnSuccess) {
-                if (typeof callbackOnSuccess !== 'function') { console.error("calculateSkill callback missing!"); return; } if (this._processingCalculation) { console.warn("Calculation already in progress."); return; } this._processingCalculation = true; const payload = { name: skillData.name || "Custom Skill", rotation: skillData.rotation, twist_distribution: skillData.twist_distribution || [], takeoff_position: String(skillData.takeoff_position), shape: String(skillData.shape), backward: skillData.backward, seat_landing: skillData.seat_landing }; const jsonPayload = JSON.stringify(payload); if (!jsonPayload || jsonPayload === "{}") { console.error("Payload is empty/invalid before fetch!"); this.showToast("Cannot calculate empty skill.", "error"); this._processingCalculation = false; return; }
-                fetch('/calculate-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: jsonPayload })
+                console.log("calculateSkill called with data:", skillData);
+                if (typeof callbackOnSuccess !== 'function') { console.error("calculateSkill callback missing!"); return; }
+                if (!skillData || Object.keys(skillData).length === 0) { console.error("Payload is empty/invalid before fetch!"); this.showToast("Cannot calculate empty skill.", "error"); callbackOnSuccess(null); return; }
+                if (this._processingCalculation) { console.warn("Calculation already in progress."); return; }
+                this._processingCalculation = true;
+                const payload = { name: skillData.name || "Custom Skill", rotation: skillData.rotation, twist_distribution: skillData.twist_distribution || [], takeoff_position: String(skillData.takeoff_position), shape: String(skillData.shape), backward: skillData.backward, seat_landing: skillData.seat_landing };
+                console.log("Sending payload to /calculate-skill:", payload);
+                fetch('/calculate-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                     .then(response => { if (!response.ok) { throw new Error(`HTTP error ${response.status}`); } return response.json(); })
-                    .then(calculatedData => { callbackOnSuccess(calculatedData); })
-                    .catch(error => { console.error('calculateSkill Fetch error:', error); this.showToast(`Calculation Request Failed: ${error.message}`, 'error'); })
+                    .then(calculatedData => { console.log("Successfully calculated data:", calculatedData); callbackOnSuccess(calculatedData); })
+                    .catch(error => { console.error('calculateSkill Fetch error:', error); this.showToast(`Calculation Request Failed: ${error.message}`, 'error'); callbackOnSuccess(null); })
                     .finally(() => { this._processingCalculation = false; });
             },
-            handleAddSkillClick(event) { if(event) { event.stopPropagation(); } const form = document.getElementById('main-form'); if (!form) { this.showToast('Form not found.', 'error'); return; } const skillData = this.getFormData('#main-form'); this.calculateSkill(skillData, (calculatedSkill) => { if (calculatedSkill) { this.addSkill(calculatedSkill); /* Form reload handled by HX-Trigger from Go */ } }); },
-            addEvaluatedSkillToRoutine() { const previewDiv = document.getElementById('evaluation-preview'); const skillJson = previewDiv.querySelector('[data-skill-data]')?.dataset.skillData; if (skillJson) { try { const skill = JSON.parse(skillJson); this.addSkill(skill); previewDiv.innerHTML = ''; } catch(e) { console.error("Error parsing evaluated skill data:", e); this.showToast('Could not add evaluated skill.', 'error'); } } else { console.warn("Could not find skill data in evaluation preview."); } },
+            handleAddSkillClick(event) {
+                console.log("handleAddSkillClick called.");
+                if(event) { event.stopPropagation(); }
+                const skillData = this.getFormData('#main-form');
+                if (!skillData || Object.keys(skillData).length === 0) { this.showToast('Could not read form data.', 'error'); return; }
+                const positionSelect = document.getElementById('insert-position');
+                const position = positionSelect ? positionSelect.value : null;
+                console.log("Insert position selected:", position);
+                this.calculateSkill(skillData, (calculatedSkill) => {
+                    if (calculatedSkill) { this.addSkill(calculatedSkill, position); } // addSkill now calls updatePositionDropdown
+                });
+            },
+            addEvaluatedSkillToRoutine() {
+                const previewDiv = document.getElementById('evaluation-preview');
+                const dataHolder = previewDiv?.querySelector('[data-skill-data]');
+                const skillJson = dataHolder?.dataset.skillData;
+                if (skillJson) {
+                    try {
+                        const skill = JSON.parse(skillJson);
+                        const positionSelect = document.getElementById('evaluation-insert-position');
+                        const position = positionSelect ? positionSelect.value : null;
+                        console.log("Adding evaluated skill at position:", position, skill);
+                        this.addSkill(skill, position); // addSkill now calls updatePositionDropdown
+                        previewDiv.innerHTML = '';
+                        this.showEvaluation = false;
+                    } catch(e) { console.error("Error parsing evaluated skill data:", e); this.showToast('Could not add evaluated skill.', 'error'); }
+                } else { this.showToast('No evaluated skill data found to add.', 'warning'); }
+            },
 
             // --- Utilities ---
             calculateLanding(skill) { const BP = { F: 0, Fr: 1, B: 3, S: 4, I: -1 }; const PA = { 'Feet': 0, 'Front': 1, 'Back': 3, 'Seat': 0, 'feet': 0, 'front': 1, 'back': 3, 'seat': 0 }; const PN = ["Feet", "Front", "Back", "Seat", "Invalid"]; let tr = 0; const ta = PA[skill.takeoff_position]; if (ta === undefined) return PN[BP.I]; if (skill.backward) { tr = ta - skill.rotation; } else { tr = ta + skill.rotation; } let tt = (skill.twist_distribution || []).reduce((s, t) => s + t, 0); let fp = BP.I; let ak = (tr % 4); if (ak < 0) ak += 4; if (tt % 2 !== 0) { if (ak === 1) ak = 3; else if (ak === 3) ak = 1; } if (ak === 0) fp = BP.F; else if (ak === 1) fp = BP.Fr; else if (ak === 3) fp = BP.B; if (skill.seat_landing) { return (fp === BP.F) ? PN[BP.S] : PN[BP.I]; } return PN[fp] ?? PN[BP.I]; },
             showToast(message, type = 'info') { this.toast.message = message; this.toast.type = type; this.toast.show = true; setTimeout(() => this.toast.show = false, 3000); },
             isFirstOccurrence(index) { if (index < 0 || index >= this.routine.length) return false; const cs = this.routine[index]; for(let i=0; i < index; i++){ if (this.skillsAreEqual(cs, this.routine[i])) return false; } return true; },
             skillsAreEqual(sA, sB) { const tA = (sA.twist_distribution || []).reduce((s, t) => s + t, 0); const tB = (sB.twist_distribution || []).reduce((s, t) => s + t, 0); if (tA !== tB || sA.rotation !== sB.rotation || sA.backward !== sB.backward || sA.seat_landing !== sB.seat_landing || sA.takeoff_position !== sB.takeoff_position) return false; if (sA.rotation === 0 && tA === 0) return sA.shape === sB.shape; if (sA.rotation < 3) return true; if (sA.rotation >= 3 && sA.rotation < 6) { if (tA < 2) return sA.shape === sB.shape; return true; } if (sA.shape !== sB.shape) return false; if (sA.rotation >= 7) { const dA = JSON.stringify(sA.twist_distribution || []); const dB = JSON.stringify(sB.twist_distribution || []); if (dA !== dB) return false; } return true; },
-            handleDragStart(event, index) { this.draggedIndex = index; this.isDragging = true; event.dataTransfer.effectAllowed = 'move'; setTimeout(() => { const el = event.target.closest('.routine-skill'); if(el) el.classList.add('dragging'); }, 0); },
-            handleDragOver(event, index) { event.preventDefault(); if (index !== this.draggedIndex) { const t = event.target.closest('.routine-skill'); document.querySelectorAll('.drop-target-active').forEach(el => el.classList.remove('drop-target-active')); if(t) t.classList.add('drop-target-active'); this.dropIndex = index; } else { this.dropIndex = null; document.querySelectorAll('.drop-target-active').forEach(el => el.classList.remove('drop-target-active')); } return false; },
-            handleDragLeave(event) { const t = event.target.closest('.routine-skill'); if (t && !t.contains(event.relatedTarget)) { t.classList.remove('drop-target-active'); if (this.dropIndex === Array.from(t.parentNode.children).indexOf(t)) { this.dropIndex = null; } } },
-            handleDrop(event, index) { event.preventDefault(); document.querySelectorAll('.drop-target-active').forEach(el => el.classList.remove('drop-target-active')); const t = event.target.closest('.routine-skill'); const ti = t ? Array.from(t.parentNode.children).indexOf(t) : this.routine.length; if (this.draggedIndex !== null && this.draggedIndex !== ti) { const i = this.routine.splice(this.draggedIndex, 1)[0]; const ii = (this.draggedIndex < ti) ? ti -1 : ti; this.routine.splice(ii, 0, i); if (this.editingIndex !== null) { let o = this.editingIndex; if (o === this.draggedIndex) this.editingIndex = ii; else if (this.draggedIndex < o && ii >= o) this.editingIndex--; else if (this.draggedIndex > o && ii <= o) this.editingIndex++; } } this.draggedIndex = null; this.dropIndex = null; this.isDragging = false; },
-            handleDragEnd(event) { try { document.querySelectorAll('.routine-skill.dragging').forEach(el => el.classList.remove('dragging')); document.querySelectorAll('.drop-target-active').forEach(el => el.classList.remove('drop-target-active')); } finally { this.draggedIndex = null; this.dropIndex = null; this.isDragging = false; } },
-            handleTouchStart(event, index) { if (event.target.closest('button, .delete')) return; this.draggedIndex = index; this.isDragging = true; this.touchStartY = event.touches[0].clientY; this.draggedElement = event.target.closest('.routine-skill'); if (this.draggedElement) { this.draggedElement.classList.add('dragging'); document.body.classList.add('dragging-touch'); } },
-            handleTouchMove(event) { if (this.draggedIndex === null || !this.draggedElement) return;  const touch = event.touches[0]; const cY = touch.clientY; const p = this.draggedElement.parentNode; let ti = null; const children = Array.from(p.children); document.querySelectorAll('.drop-target-active').forEach(el => el.classList.remove('drop-target-active')); for (let i = 0; i < children.length; i++) { const c = children[i]; if (c === this.draggedElement) continue; const r = c.getBoundingClientRect(); if (cY > r.top && cY < r.bottom) { ti = i; c.classList.add('drop-target-active'); break; } } this.dropIndex = ti; },
-            handleTouchEnd(event) { if (this.draggedIndex === null || !this.draggedElement) return; this.draggedElement.classList.remove('dragging'); document.body.classList.remove('dragging-touch'); document.querySelectorAll('.drop-target-active').forEach(el => el.classList.remove('drop-target-active')); if (this.dropIndex !== null && this.dropIndex !== this.draggedIndex) { const i = this.routine.splice(this.draggedIndex, 1)[0]; const ii = this.dropIndex; this.routine.splice(ii, 0, i); if (this.editingIndex !== null) { let o = this.editingIndex; if (o === this.draggedIndex) this.editingIndex = ii; else if (this.draggedIndex < o && ii >= o) this.editingIndex--; else if (this.draggedIndex > o && ii <= o) this.editingIndex++; } } this.draggedIndex = null; this.dropIndex = null; this.touchStartY = null; this.draggedElement = null; this.isDragging = false; },
-            calculatePhases(rotation) { rotation = Math.abs(rotation); if (rotation <= 6) return 1; if (rotation <= 10) return 2; if (rotation <= 14) return 3; if (rotation > 0) return 4; return 1; },
-            getFormData(formSelector) { const form = document.querySelector(formSelector); if (!form) { console.error("getFormData: Form not found!"); return {}; } const fd = new FormData(form); const data = Object.fromEntries(fd.entries()); const bc = form.querySelector('#backward-flag'); data.backward = bc ? bc.checked : false; data.seat_landing = fd.has('seat_landing'); data.rotation = parseInt(data.rotation) || 0; const absR = Math.abs(data.rotation); const nP = this.calculatePhases(absR); const twists = []; const allTwistInputs = form.querySelectorAll('input[name="twist_distribution[]"]'); for (let i = 0; i < nP; i++) { let val = 0; if (allTwistInputs[i] && !allTwistInputs[i].disabled) { val = parseInt(allTwistInputs[i].value) || 0; } twists.push(val); } data.twist_distribution = twists; delete data['twist_distribution[]']; data.name = form.querySelector('#skill-name-display')?.value || 'Custom Skill'; return data; },
-            parseFormDataForCalc(formDataObject) { const data = { ...formDataObject }; data.backward = formDataObject.backward === 'on' || formDataObject.backward === true; data.seat_landing = formDataObject.seat_landing === 'on' || formDataObject.seat_landing === true; data.rotation = parseInt(data.rotation) || 0; const absR = Math.abs(data.rotation); const nP = this.calculatePhases(absR); const twists = []; const tVals = formDataObject['twist_distribution[]']; if (Array.isArray(tVals)) { for(let i=0; i<nP && i<tVals.length; i++) { twists.push(parseInt(tVals[i]) || 0); } } else if (tVals !== undefined && nP >= 1) { twists.push(parseInt(tVals) || 0); } while (twists.length < nP) { twists.push(0); } data.twist_distribution = twists.slice(0, nP); delete data['twist_distribution[]']; return data; }
 
-        } // End store
-    } // End function
+            // --- Drag & Drop ---
+            handleDragStart(event, index) { this.draggedIndex = index; this.isDragging = true; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', index); this.$nextTick(() => { document.getElementById(this.$id('skill'))?.querySelector('.routine-skill')?.classList.add('is-dragging'); }); },
+            handleDragOver(event, index) { event.preventDefault(); if (this.draggedIndex !== null) { this.dropIndex = index; } return false; },
+            handleDragLeave(event) { const relatedTarget = event.relatedTarget; const currentTarget = event.currentTarget; if (!currentTarget.contains(relatedTarget)) { this.dropIndex = null; document.querySelectorAll('.insertion-point.active').forEach(el => el.classList.remove('active')); } },
+            handleDrop(event, index) {
+                event.preventDefault(); const finalDropIndex = index;
+                if (this.draggedIndex !== null && this.draggedIndex !== finalDropIndex && this.draggedIndex + 1 !== finalDropIndex) {
+                    const adjustedTargetIndex = (this.draggedIndex < finalDropIndex) ? finalDropIndex - 1 : finalDropIndex;
+                    const itemToMove = this.routine.splice(this.draggedIndex, 1)[0]; // Modify routine
+                    this.routine.splice(adjustedTargetIndex, 0, itemToMove); // Modify routine again
+                    // Update lastInsertPosition AFTER modifying the routine
+                    this.lastInsertPosition = this.routine.length + 1; // Default to end after reorder
+                    console.log(`handleDrop: Updated lastInsertPosition to ${this.lastInsertPosition}`);
+                    if (this.editingIndex !== null) { let oldEditIndex = this.editingIndex; if (oldEditIndex === this.draggedIndex) { this.editingIndex = adjustedTargetIndex; } else if (this.draggedIndex < oldEditIndex && adjustedTargetIndex >= oldEditIndex) { this.editingIndex--; } else if (this.draggedIndex > oldEditIndex && adjustedTargetIndex <= oldEditIndex) { this.editingIndex++; } }
+                    // Routine watcher handles updates
+                } this.handleDragEnd();
+            },
+            handleDragEnd(event) { this.$nextTick(() => { this.draggedIndex = null; this.dropIndex = null; this.isDragging = false; document.querySelectorAll('.routine-skill.is-dragging').forEach(el => el.classList.remove('is-dragging')); document.querySelectorAll('.insertion-point.active').forEach(el => el.classList.remove('active')); }); },
+            handleTouchStart(event, index) { if (event.target.closest('button, .delete')) return; this.draggedIndex = index; this.isDragging = true; this.touchStartY = event.touches[0].clientY; this.touchCurrentY = this.touchStartY; this.draggedElement = document.getElementById(this.$id('skill'))?.querySelector('.routine-skill'); if (this.draggedElement) { this.draggedElement.style.opacity = '0.4'; this.$refs.routineSkillsContainer.classList.add('is-dragging-touch'); } },
+            handleTouchMove(event) { if (this.draggedIndex === null || !this.isDragging) return; event.preventDefault(); const touch = event.touches[0]; this.touchCurrentY = touch.clientY; let potentialDropIndex = null; if (this.draggedElement) this.draggedElement.style.visibility = 'hidden'; const elementUnderFinger = document.elementFromPoint(touch.clientX, touch.clientY); if (this.draggedElement) this.draggedElement.style.visibility = 'visible'; const insertionPoints = this.$el.querySelectorAll('.insertion-point'); insertionPoints.forEach(point => point.classList.remove('active')); if (elementUnderFinger) { const closestInsertionPoint = elementUnderFinger.closest('.insertion-point'); if (closestInsertionPoint) { potentialDropIndex = Array.from(insertionPoints).indexOf(closestInsertionPoint); } } if (potentialDropIndex !== null && potentialDropIndex !== this.draggedIndex && potentialDropIndex !== this.draggedIndex + 1) { this.dropIndex = potentialDropIndex; if (insertionPoints[this.dropIndex]) { insertionPoints[this.dropIndex].classList.add('active'); } } else { this.dropIndex = null; } },
+            handleTouchEnd(event, indexFromEvent) {
+                const targetIsInsertionPoint = event.currentTarget.classList.contains('insertion-point');
+                const finalDropIndex = targetIsInsertionPoint ? indexFromEvent : this.dropIndex;
+                if (this.draggedIndex !== null && finalDropIndex !== null && finalDropIndex !== this.draggedIndex && finalDropIndex !== this.draggedIndex + 1) {
+                    const adjustedTargetIndex = (this.draggedIndex < finalDropIndex) ? finalDropIndex - 1 : finalDropIndex;
+                    const itemToMove = this.routine.splice(this.draggedIndex, 1)[0]; // Modify routine
+                    this.routine.splice(adjustedTargetIndex, 0, itemToMove); // Modify routine again
+                    // Update lastInsertPosition AFTER modifying the routine
+                    this.lastInsertPosition = this.routine.length + 1; // Default to end after reorder
+                    console.log(`handleTouchEnd: Updated lastInsertPosition to ${this.lastInsertPosition}`);
+                    if (this.editingIndex !== null) { let oldEditIndex = this.editingIndex; if (oldEditIndex === this.draggedIndex) { this.editingIndex = adjustedTargetIndex; } else if (this.draggedIndex < oldEditIndex && adjustedTargetIndex >= oldEditIndex) { this.editingIndex--; } else if (this.draggedIndex > oldEditIndex && adjustedTargetIndex <= oldEditIndex) { this.editingIndex++; } }
+                    // Routine watcher handles updates
+                } this.cleanupTouchDrag();
+            },
+            handleTouchCancel(event) { this.cleanupTouchDrag(); },
+            cleanupTouchDrag() { if (this.draggedElement) { this.draggedElement.style.opacity = '1'; } this.$refs.routineSkillsContainer.classList.remove('is-dragging-touch'); document.querySelectorAll('.insertion-point.active').forEach(el => el.classList.remove('active')); this.draggedIndex = null; this.dropIndex = null; this.isDragging = false; this.touchStartY = null; this.touchCurrentY = null; this.draggedElement = null; },
+
+            // --- Form Data Handling ---
+            calculatePhases(rotation) { rotation = Math.abs(rotation); if (rotation <= 6) return 1; if (rotation <= 10) return 2; if (rotation <= 14) return 3; if (rotation > 0) return 4; return 1; },
+            getFormData(formSelector) {
+                const form = document.querySelector(formSelector); if (!form) { console.error("getFormData: Form not found!"); return {}; }
+                try { const fd = new FormData(form); const data = {}; data.name = fd.get('name') || 'Custom Skill'; data.rotation = parseInt(fd.get('rotation')) || 0; data.takeoff_position = fd.get('takeoff_position') || 'Feet'; data.shape = fd.get('shape') || 'Straight'; data.backward = fd.has('backward'); data.seat_landing = fd.has('seat_landing'); const twistInputs = form.querySelectorAll('input[name="twist_distribution[]"]:not(:disabled)'); const numPhases = this.calculatePhases(Math.abs(data.rotation)); data.twist_distribution = []; for (let i = 0; i < numPhases; i++) { const inputForPhase = Array.from(twistInputs).find(input => input.dataset.rotation == (i + 1)); data.twist_distribution.push(inputForPhase ? (parseInt(inputForPhase.value) || 0) : 0); } console.log('Returning data from getFormData:', data); return data;
+                } catch (error) { console.error("Error in getFormData:", error); this.showToast('Error reading form data.', 'error'); return {}; }
+            }
+        }
+    }
 </script>
 
-<style>
-    /* Existing styles plus potential additions */
-    .routine-skills .box { margin-bottom: 1rem; border-left: 4px solid #ddd; cursor: grab; transition: border-left-color 0.3s ease, opacity 0.2s ease; -webkit-user-select: none; user-select: none; } /* Disable selection */
-    .routine-skill.invalid-transition { border-left-color: #ff3860 !important; }
-    .routine-skill.invalid-landing { border-left-color: #ff69b4 !important; }
-    .routine-skill.duplicate-skill { border-left-color: #ffdd57 !important; }
-    .routine-skill.dragging { opacity: 0.4; cursor: grabbing; z-index: 10; } /* Ensure dragging is on top */
-    .routine-skill.drop-target-active { border-top: 3px dashed blue !important; }
-    .is-fixed-bottom-right { position: fixed; bottom: 1rem; right: 1rem; z-index: 1000; }
-    [x-cloak] { display: none !important; }
-    /* Prevent selection during drag on mobile */
-    /*body.dragging-touch { overscroll-behavior: none; -webkit-user-select: none; user-select: none;}
-    /* Ensure buttons inside draggable are clickable on touch */
-    .routine-skill button, .routine-skill .delete { pointer-events: auto; }
-</style>
+{{/* Styles removed - assumed to be in styles.css */}}
 
 {{end}}
+    

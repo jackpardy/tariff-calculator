@@ -1,3 +1,4 @@
+{{/* templates/evaluation-fragment.html */}}
 {{/* Use data passed from handleEvaluateSkillFragment: .Skill, .LandingPosStr, .LandingIsValid, .SkillDataJSON */}}
 <div id="evaluation-preview-content"
      data-skill-data="{{ .SkillDataJSON | safeHTMLAttr }}"> {{/* Store data for Alpine */}}
@@ -9,9 +10,7 @@
         {{/* Block 1: Rotation & Twists */}}
         <div class="column is-one-third">
             <div class="content is-small">
-                {{/* CORRECTED ternary call syntax */}}
                 <p class="mb-1"><strong>Rotation:</strong> {{ .Skill.Rotation | abs }} {{ ternary .Skill.Backward "B" "F" }}</p>
-                {{/* RESTORED Twists display logic */}}
                 <p><strong>Twists:</strong> {{ if .Skill.TwistDistribution }}{{ .Skill.TwistDistribution | join " / " }}{{ else }}0{{ end }}</p>
             </div>
         </div>
@@ -33,16 +32,50 @@
         </div>
     </div>
 
-    {{/* Buttons */}}
-    <div class="buttons mt-4">
-        <button class="button is-info"
-                @click.prevent="addEvaluatedSkillToRoutine()"
-                :disabled="routine.length >= 10">
-            Add to Routine
-        </button>
-        <button class="button"
-                @click="document.getElementById('evaluation-preview').innerHTML = ''">
-            Close
-        </button>
+    {{/* --- Row for Buttons and Position Dropdown --- */}}
+    {{/* Use a single column and field grouping */}}
+    <div class="columns mt-3">
+        <div class="column">
+            <div class="field is-grouped is-grouped-multiline">
+                {{/* Buttons Control */}}
+                <div class="control">
+                    <div class="buttons has-addons"> {{/* Use has-addons for tighter buttons */}}
+                        <button class="button is-info"
+                                @click.prevent="addEvaluatedSkillToRoutine()"
+                                :disabled="routine.length >= 10">
+                            Add to Routine
+                        </button>
+                        <button class="button"
+                                @click="showEvaluation = false; $el.closest('#evaluation-preview').innerHTML = ''">
+                            Close
+                        </button>
+                    </div>
+                </div>
+                {{/* Spacer Control */}}
+                <div class="control" style="width: 1rem;"></div>
+                {{/* Position Dropdown Control */}}
+                <div class="control">
+                    <div class="field has-addons"> {{/* Group label and select */}}
+                        <div class="control">
+                            {{/* Using a static button as a label for alignment */}}
+                            <span class="button is-static is-small">
+                                     Add at:
+                                 </span>
+                        </div>
+                        <div class="control">
+                            <div class="select is-small">
+                                {{/* Options populated by Alpine's populateEvalPositionDropdown */}}
+                                <select name="evaluation_insert_position" id="evaluation-insert-position">
+                                    <option value="1">1 (End)</option> {{/* Default placeholder */}}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    {{/* --- End Buttons and Position Dropdown Row --- */}}
+
 </div>
+    
