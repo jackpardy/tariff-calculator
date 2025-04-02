@@ -316,7 +316,6 @@ var CommonSkills = map[string]TrampolineSkill{
 	"backToFeet":      {Name: "Back To Feet", Rotation: 1, TwistDistribution: []int{0}, TakeoffPosition: Back, Backward: false, Shape: Straight, SeatLanding: false},
 	"frontToFeet":     {Name: "Front To Feet", Rotation: 1, TwistDistribution: []int{0}, TakeoffPosition: Front, Backward: true, Shape: Straight, SeatLanding: false},
 	"front":           {Name: "Front", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: false, Shape: Tuck, SeatLanding: false},
-	"straightFront":   {Name: "Straight Front", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: false, Shape: Straight, SeatLanding: false},
 	"ballOut":         {Name: "Ball-Out", Rotation: 5, TwistDistribution: []int{0}, TakeoffPosition: Back, Backward: false, Shape: Tuck, SeatLanding: false},
 	"baraniBallOut":   {Name: "Barani Ball-Out", Rotation: 5, TwistDistribution: []int{1}, TakeoffPosition: Back, Backward: false, Shape: Tuck, SeatLanding: false},
 	"rudiBallOut":     {Name: "Rudi Ball-Out", Rotation: 5, TwistDistribution: []int{3}, TakeoffPosition: Back, Backward: false, Shape: Straight, SeatLanding: false},
