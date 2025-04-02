@@ -95,7 +95,7 @@ style="display: none;" {{/* Initially hidden */}}
 
                     {{/* Skill Name block */}}
                     <div class="skill-name-block mb-2">
-                        <p class="skill-name"><strong x-text="`${index + 1}. ${skill.name || 'Custom Skill'}`"></strong></p>
+                        <p class="skill-name"><strong x-text="`${index + 1}. ${skill.name || 'Custom Skill'} ${validationResults?.skills?.[index]?.FIGNotation ?? '?'}`"></strong></p>
                     </div>
 
                     {{/* Details + Buttons Row using Bulma columns */}}
@@ -203,12 +203,15 @@ style="display: none;" {{/* Initially hidden */}}
             touchStartY: null, touchCurrentY: null, draggedElement: null,
             _processingCalculation: false, showEvaluation: false,
             lastInsertPosition: null, isInitialLoad: true,isTouchDevice: false,
+            //selectedCommonSkillKey: '',
+            commonSkillSortBy: 'tariff-asc',
 
             // --- Initialization ---
             init() {
                 console.log("Alpine init starting...");
                 this.isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
 
+                // Load routine from localStorage
                 const savedRoutine = localStorage.getItem('trampolineRoutine');
                 if (savedRoutine) {
                     try { this.routine = JSON.parse(savedRoutine); console.log(`init: Loaded ${this.routine.length} skills.`); }
@@ -216,6 +219,15 @@ style="display: none;" {{/* Initially hidden */}}
                 } else { this.routine = []; console.log("init: No routine found."); }
                 this.lastInsertPosition = this.routine.length > 0 ? this.routine.length + 1 : 1;
                 console.log(`init: Initial lastInsertPosition set to: ${this.lastInsertPosition}`);
+
+                // Load selected common skill key from localStorage
+                // this.selectedCommonSkillKey = localStorage.getItem('selectedCommonSkillKey') || '';
+                // console.log(`init: Loaded selectedCommonSkillKey: '${this.selectedCommonSkillKey}'`);
+
+                // <-- NEW: Load sort preference from localStorage
+                this.commonSkillSortBy = localStorage.getItem('commonSkillSortBy') || 'tariff-asc';
+                console.log(`init: Loaded commonSkillSortBy: '${this.commonSkillSortBy}'`);
+
 
                 // Watch routine for changes
                 this.$watch('routine', (newRoutine, oldRoutine) => {
@@ -235,6 +247,11 @@ style="display: none;" {{/* Initially hidden */}}
                     console.log(`EditingIndex watcher triggered. Old: ${oldIndex}, New: ${newIndex}`);
                     if (newIndex === null && oldIndex !== null) {
                         console.log('--> Exited edit mode. Form reload handled by cancelEdit/handleUpdateSkill.');
+                        // Re-apply persisted selections after exiting edit mode
+                        this.$nextTick(() => {
+
+                            this.applyPersistedSortPreference(); // <-- NEW: Apply sort preference too
+                        });
                     }
                 });
 
@@ -251,16 +268,29 @@ style="display: none;" {{/* Initially hidden */}}
 
                     // Check if the main form content was swapped
                     if (targetId === 'skill-form-content' || closestFormContent) {
-                        // *** MODIFIED: Only update dropdown on initial load via listener ***
-                        if (this.isInitialLoad) {
-                            console.log('--> Initial form fragment swapped, calling updatePositionDropdown.');
-                            const rotationInput = document.getElementById('rotation');
-                            if(rotationInput){ this.updateTwistInputs(rotationInput.value); }
-                            this.updatePositionDropdown(); // Update options & selection AFTER the swap
-                            this.isInitialLoad = false; // Clear the flag
-                        } else {
-                            console.log('--> Form fragment swapped (not initial), dropdown update handled by action.');
-                        }
+                        console.log('--> Main form fragment swapped.');
+                        const rotationInput = document.getElementById('rotation');
+                        if(rotationInput){ this.updateTwistInputs(rotationInput.value); }
+                        this.updatePositionDropdown(); // Always update position dropdown
+
+                        // Apply persisted selections AFTER swap
+                        this.applyPersistedSortPreference(); // <-- NEW: Apply sort preference
+
+                        // Add change listeners AFTER elements are loaded
+                        this.$nextTick(() => {
+                            // Listener for common skill selection
+                            // <-- NEW: Listener for sort preference change
+                            const sortSelect = document.getElementById('common-skills-sort');
+                            if (sortSelect) {
+                                sortSelect.removeEventListener('change', this.handleSortChange.bind(this)); // Remove old listener if any
+                                sortSelect.addEventListener('change', this.handleSortChange.bind(this));
+                                console.log("--> Added change listener to #common-skills-sort");
+                            } else {
+                                console.warn("--> Could not find #common-skills-sort to add listener after swap.");
+                            }
+                        });
+
+                        this.isInitialLoad = false; // Clear the flag after first load
                     }
                     // Check if the target IS the evaluation preview div
                     else if (targetId === 'evaluation-preview') {
@@ -296,6 +326,62 @@ style="display: none;" {{/* Initially hidden */}}
                     }
                 });
                 console.log("Alpine init finished.");
+            },
+            // applyPersistedCommonSkill() {
+            //     if (this.editingIndex !== null) { console.log("applyPersistedCommonSkill: In edit mode, skipping application."); return; }
+            //     this.$nextTick(() => {
+            //         const commonSkillsSelect = document.getElementById('common-skills');
+            //         if (commonSkillsSelect && this.selectedCommonSkillKey !== '') {
+            //             const optionExists = Array.from(commonSkillsSelect.options).some(opt => opt.value === this.selectedCommonSkillKey);
+            //             if (optionExists) {
+            //                 if (commonSkillsSelect.value !== this.selectedCommonSkillKey) {
+            //                     console.log(`applyPersistedCommonSkill: Applying saved key '${this.selectedCommonSkillKey}' to #common-skills.`);
+            //                     commonSkillsSelect.value = this.selectedCommonSkillKey;
+            //                     commonSkillsSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            //                     console.log("--> Dispatched change event on #common-skills.");
+            //                 } else { console.log("applyPersistedCommonSkill: Dropdown already has the correct value."); }
+            //             } else {
+            //                 console.warn(`applyPersistedCommonSkill: Saved key '${this.selectedCommonSkillKey}' not found in options. Resetting selection.`);
+            //                 commonSkillsSelect.value = ''; this.selectedCommonSkillKey = ''; localStorage.removeItem('selectedCommonSkillKey'); commonSkillsSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            //             }
+            //         } else if (commonSkillsSelect && commonSkillsSelect.value !== '') {
+            //             console.log("applyPersistedCommonSkill: No saved key, ensuring dropdown is reset.");
+            //             commonSkillsSelect.value = ''; commonSkillsSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            //         } else { console.log("applyPersistedCommonSkill: No saved key or element not found."); }
+            //     });
+            // },
+            applyPersistedSortPreference() { // <-- NEW
+                if (this.editingIndex !== null) { console.log("applyPersistedSortPreference: In edit mode, skipping application."); return; }
+                this.$nextTick(() => { // Ensure the element exists in the DOM
+                    const sortSelect = document.getElementById('common-skills-sort');
+                    if (sortSelect) {
+                        if (sortSelect.value !== this.commonSkillSortBy) {
+                            console.log(`applyPersistedSortPreference: Applying saved sort '${this.commonSkillSortBy}' to #common-skills-sort.`);
+                            sortSelect.value = this.commonSkillSortBy;
+                            // No need to dispatch change here unless applying the sort *itself* should trigger an HTMX request
+                            // The sort preference is used when the *options* are requested by HTMX
+                        } else {
+                            console.log("applyPersistedSortPreference: Sort dropdown already has the correct value.");
+                        }
+                    } else {
+                        console.warn("applyPersistedSortPreference: Sort dropdown element not found.");
+                    }
+                });
+            },
+            // handleCommonSkillChange(event) {
+            //     const newValue = event.target.value;
+            //     console.log(`#common-skills changed. New value: '${newValue}'`);
+            //     this.selectedCommonSkillKey = newValue;
+            //     if (newValue === '') { localStorage.removeItem('selectedCommonSkillKey'); console.log("--> Removed common skill key from localStorage."); }
+            //     else { localStorage.setItem('selectedCommonSkillKey', newValue); console.log("--> Saved common skill key to localStorage."); }
+            // },
+            handleSortChange(event) { // <-- NEW
+                const newValue = event.target.value;
+                console.log(`#common-skills-sort changed. New value: '${newValue}'`);
+                this.commonSkillSortBy = newValue; // Update Alpine state
+                localStorage.setItem('commonSkillSortBy', newValue); // Save to localStorage
+                console.log("--> Saved sort preference to localStorage.");
+                // HTMX handles reloading the options via its own attributes on the select
             },
 
             // --- Dropdown Update Functions ---
@@ -387,14 +473,21 @@ style="display: none;" {{/* Initially hidden */}}
             },
             editSkill(index) {
                 this.editingIndex = index; this.showEvaluation = false;
-                htmx.ajax('GET', `/edit-skill-form-data/${index}`, { target: '#skill-form-wrapper', swap: 'innerHTML', values: { routineData: JSON.stringify(this.routine) }, indicator: '#skill-form-wrapper' })
+                // Pass the current (persisted) sort preference when loading the edit form
+                const currentSort = this.commonSkillSortBy;
+                htmx.ajax('GET', `/edit-skill-form-data/${index}`, {
+                    target: '#skill-form-wrapper',
+                    swap: 'innerHTML',
+                    values: { routineData: JSON.stringify(this.routine), sortBy: currentSort }, // Pass sortBy
+                    indicator: '#skill-form-wrapper'
+                })
                     .then(() => {
                         this.$nextTick(() => {
                             const formWrapper = document.getElementById('skill-form-wrapper');
                             if (formWrapper) { formWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
                             const rotationInput = document.getElementById('rotation');
                             if(rotationInput){ this.updateTwistInputs(rotationInput.value); }
-                            // Dropdown update handled by htmx:afterSwap (initial load flag will be false)
+                            // applyPersistedSortPreference will run via htmx:afterSwap and set the dropdown
                         });
                     })
                     .catch(err => { console.error("Failed to load edit form", err); this.showToast("Failed to load edit form.", "error"); this.editingIndex = null; });
@@ -416,28 +509,31 @@ style="display: none;" {{/* Initially hidden */}}
                 });
             },
             cancelEdit(resetState = true) {
-                // *** MODIFIED: Use promise to update dropdown AFTER swap ***
                 console.log(`cancelEdit called with resetState: ${resetState}`);
                 if (resetState) {
                     this.editingIndex = null;
-                    // Update lastInsertPosition AFTER state change
-                    this.lastInsertPosition = this.routine.length + 1; // Reset to end
+                    this.lastInsertPosition = this.routine.length + 1;
                     console.log(`cancelEdit: Reset lastInsertPosition to ${this.lastInsertPosition}`);
                 }
                 this.showEvaluation = false;
-                // Use htmx.ajax which returns a promise-like object
-                htmx.ajax('GET', '/skill-form-fragment', { target: '#skill-form-wrapper', swap: 'innerHTML', indicator: '#skill-form-wrapper' })
+                // Pass the current (persisted) sort preference when reloading the empty form
+                const currentSort = this.commonSkillSortBy;
+                htmx.ajax('GET', '/skill-form-fragment', {
+                    target: '#skill-form-wrapper',
+                    swap: 'innerHTML',
+                    values: { sortBy: currentSort }, // Pass sortBy
+                    indicator: '#skill-form-wrapper'
+                })
                     .then(() => {
-                        // This executes after the HTMX swap is complete
-                        console.log("cancelEdit: HTMX swap finished, calling updatePositionDropdown.");
-                        this.updatePositionDropdown(); // Update dropdown AFTER the form is loaded
+                        console.log("cancelEdit: HTMX swap finished, applying persisted selections.");
+                        this.updatePositionDropdown();
+                        this.applyPersistedSortPreference(); // Ensure sort dropdown is correct
                     })
                     .catch(err => {
                         console.error("Failed to load empty form via HTMX in cancelEdit", err);
                         this.showToast("Failed to load empty form.", "error");
                     });
-            },
-            moveSkillUp(index) {
+            },SkillUp(index) {
                 if (index > 0) {
                     let oldLastInsertPos = this.lastInsertPosition;
                     if (this.lastInsertPosition === index + 1) { this.lastInsertPosition--; } else if (this.lastInsertPosition === index) { this.lastInsertPosition++; }
@@ -459,13 +555,12 @@ style="display: none;" {{/* Initially hidden */}}
             },
             clearRoutine() {
                 if (this.routine.length > 0 && confirm('Are you sure?')) {
-                    this.routine = []; // Modify routine FIRST
-                    // Update lastInsertPosition AFTER modifying the routine
-                    this.lastInsertPosition = 1; // Reset to 1
-                    console.log(`clearRoutine: Reset lastInsertPosition to ${this.lastInsertPosition}`);
+                    this.routine = [];
+                    this.lastInsertPosition = 1;
                     this.editingIndex = null; this.showEvaluation = false;
                     this.showToast('Routine cleared.', 'info');
-                    // Routine watcher handles updates
+                    // Trigger form reload to reflect cleared state
+                    this.cancelEdit(false); // Don't reset editingIndex again
                 }
             },
 

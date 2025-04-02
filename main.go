@@ -8,11 +8,11 @@ import (
 	"html/template"
 	"io" // Required for body reading
 	"log"
-	"math"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -32,6 +32,7 @@ type ValidatedSkill struct {
 	IsDuplicate       bool   `json:"-"`
 	LandingPosStr     string `json:"landing_position"`
 	SkillDataJSON     string `json:"-"`
+	FIGNotation       string `json:"FIGNotation"`
 }
 
 type RoutineValidationData struct {
@@ -262,26 +263,9 @@ func getSortedCommonSkills(sortBy string) []CommonSkillEntry {
 	return skillList
 }
 
-// calculatePhases determines the number of expected twist phases based on rotation.
-func calculatePhases(rotation int) int {
-	absRotation := int(math.Abs(float64(rotation)))
-	switch {
-	case absRotation == 0: // Jumps/Twists
-		return 1 // Even 0 rotation skills can have twists (1 phase)
-	case absRotation <= 6: // Up to 1.5 somersaults
-		return 1
-	case absRotation <= 10: // Up to 2.5 somersaults
-		return 2
-	case absRotation <= 14: // Up to 3.5 somersaults
-		return 3
-	default: // 4 somersaults (16/4) or more
-		return 4
-	}
-}
-
 // prepareSkillFormData calculates derived data needed for form templates.
 func prepareSkillFormData(skillData skills.TrampolineSkill, index int, sortBy string) SkillFormData {
-	enabledPhases := calculatePhases(skillData.Rotation)
+	enabledPhases := skills.CalculatePhases(skillData.Rotation)
 
 	currentTwists := make([]int, 4)
 	if skillData.TwistDistribution != nil {
@@ -469,7 +453,7 @@ func parseSkillFromForm(r *http.Request) (skills.TrampolineSkill, error) {
 	skill.Backward = r.FormValue("backward") == "on"
 	skill.SeatLanding = r.FormValue("seat_landing") == "on"
 
-	numPhases := calculatePhases(skill.Rotation)
+	numPhases := skills.CalculatePhases(skill.Rotation)
 
 	twistValues := r.Form["twist_distribution[]"]
 	skill.TwistDistribution = make([]int, 0, numPhases)
@@ -526,7 +510,7 @@ func handleCalculateSingleSkill(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Adjust twist distribution slice length based on rotation
-	expectedPhases := calculatePhases(skill.Rotation)
+	expectedPhases := skills.CalculatePhases(skill.Rotation)
 	if len(skill.TwistDistribution) > expectedPhases {
 		skill.TwistDistribution = skill.TwistDistribution[:expectedPhases]
 	} else {
@@ -535,15 +519,7 @@ func handleCalculateSingleSkill(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Find common name based on parameters
-	foundName := findCommonSkillName(skill)
-	if foundName != "" {
-		skill.Name = foundName // Update name if match found
-	} else {
-		// *** MODIFIED LOGIC: If no common name found, always set to Custom Skill ***
-		skill.Name = "Custom Skill"
-		// *** END MODIFICATION ***
-	}
+	skill.Name = findCommonSkillName(skill)
 
 	skill.SetTariff()
 	landingPos := skill.LandingPosition()
@@ -599,20 +575,14 @@ func handleEvaluateSkillFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find common name for display in evaluation
-	foundName := findCommonSkillName(skill)
-	if foundName != "" {
-		skill.Name = foundName
-	} else {
-		// Also set to Custom Skill here for consistency in evaluation display
-		skill.Name = "Custom Skill"
-	}
+	skill.Name = findCommonSkillName(skill)
 
 	skill.SetTariff()
 	landingPos := skill.LandingPosition()
+	figNotation := skill.FIGNotation()
 
 	// Ensure skill data for fragment has correct twist length before marshalling
-	expectedPhases := calculatePhases(skill.Rotation)
+	expectedPhases := skills.CalculatePhases(skill.Rotation)
 	if len(skill.TwistDistribution) > expectedPhases {
 		skill.TwistDistribution = skill.TwistDistribution[:expectedPhases]
 	}
@@ -628,7 +598,7 @@ func handleEvaluateSkillFragment(w http.ResponseWriter, r *http.Request) {
 		"LandingPosStr":  landingPos.String(),
 		"LandingIsValid": landingPos != skills.Invalid,
 		"SkillDataJSON":  string(skillJson),
-	}
+		"FIGNotation":    figNotation}
 
 	if tmpl.Lookup("evaluation-fragment.html") == nil {
 		log.Println("Error: evaluation-fragment.html template not loaded")
@@ -656,7 +626,7 @@ func handleValidateRoutineClientState(w http.ResponseWriter, r *http.Request) {
 
 	// Ensure twist lengths and names are correct in the routine before validation
 	for i := range routine {
-		expectedPhases := calculatePhases(routine[i].Rotation)
+		expectedPhases := skills.CalculatePhases(routine[i].Rotation)
 		if len(routine[i].TwistDistribution) > expectedPhases {
 			routine[i].TwistDistribution = routine[i].TwistDistribution[:expectedPhases]
 		} else {
@@ -712,42 +682,80 @@ func handleCommonSkillsOptions(w http.ResponseWriter, r *http.Request) {
 
 // --- Helper Functions ---
 
-// findCommonSkillName attempts to match parsed skill to a common skill name.
 func findCommonSkillName(parsedSkill skills.TrampolineSkill) string {
-	compareSkill := parsedSkill
-	expectedPhases := calculatePhases(compareSkill.Rotation)
+	compareSkill := parsedSkill // Use the input skill directly for checks
 
-	// Create a temporary twist slice with the correct length for comparison
-	compareTwists := make([]int, expectedPhases)
-	if compareSkill.TwistDistribution != nil {
-		copyCount := len(compareSkill.TwistDistribution)
-		if copyCount > expectedPhases {
-			copyCount = expectedPhases
+	// Ensure twist distribution slice length is correct based on rotation for comparison
+	expectedPhases := skills.CalculatePhases(compareSkill.Rotation)
+	if len(compareSkill.TwistDistribution) > expectedPhases {
+		compareSkill.TwistDistribution = compareSkill.TwistDistribution[:expectedPhases]
+	} else {
+		for len(compareSkill.TwistDistribution) < expectedPhases {
+			compareSkill.TwistDistribution = append(compareSkill.TwistDistribution, 0)
 		}
-		copy(compareTwists, compareSkill.TwistDistribution[:copyCount])
 	}
-	compareSkill.TwistDistribution = compareTwists // Use the adjusted slice for comparison
 
+	// Iterate through the refactored CommonSkills map
 	for _, commonSkill := range skills.CommonSkills {
-		tempCommon := commonSkill
-		commonExpectedPhases := calculatePhases(tempCommon.Rotation)
+		tempCommon := commonSkill // Work with a copy
 
-		// Create a temporary twist slice for the common skill with correct length
-		tempCommonTwists := make([]int, commonExpectedPhases)
-		if tempCommon.TwistDistribution != nil {
-			copyCount := len(tempCommon.TwistDistribution)
-			if copyCount > commonExpectedPhases {
-				copyCount = commonExpectedPhases
+		// Ensure common skill twist distribution is also correct length for comparison
+		commonExpectedPhases := skills.CalculatePhases(tempCommon.Rotation)
+		if len(tempCommon.TwistDistribution) > commonExpectedPhases {
+			tempCommon.TwistDistribution = tempCommon.TwistDistribution[:commonExpectedPhases]
+		} else {
+			for len(tempCommon.TwistDistribution) < commonExpectedPhases {
+				tempCommon.TwistDistribution = append(tempCommon.TwistDistribution, 0)
 			}
-			copy(tempCommonTwists, tempCommon.TwistDistribution[:copyCount])
 		}
-		tempCommon.TwistDistribution = tempCommonTwists // Use the adjusted slice for comparison
 
-		if compareSkill.Equal(&tempCommon) {
-			return commonSkill.Name
+		// --- Core Parameter Check (Ignoring Shape initially) ---
+		// Check Rotation, Takeoff, Backward, SeatLanding, and Twist Distribution
+		// Note: Using slices.Equal for twist distribution comparison.
+		if compareSkill.Rotation == tempCommon.Rotation &&
+			compareSkill.TakeoffPosition == tempCommon.TakeoffPosition &&
+			compareSkill.Backward == tempCommon.Backward &&
+			compareSkill.SeatLanding == tempCommon.SeatLanding &&
+			slices.Equal(compareSkill.TwistDistribution, tempCommon.TwistDistribution) {
+
+			// Found a match based on core parameters! Now check shape.
+			baseName := tempCommon.Name
+			inputShape := compareSkill.Shape
+			defaultShape := tempCommon.Shape // Shape stored in the CommonSkills map entry
+
+			// Determine if shape matters for uniqueness based on FIG rules
+			shapeMatters := false
+			rotation := compareSkill.Rotation
+			totalTwist := compareSkill.TotalTwist() // Use the method from skills.go
+
+			if rotation == 0 && totalTwist == 0 && compareSkill.LandingPosition() != skills.Seat && compareSkill.TakeoffPosition != skills.Seat { // Basic Jumps
+				// Shape always matters for non-straight basic jumps
+				if baseName == "Shape Jump" && (inputShape == skills.Tuck || inputShape == skills.Pike || inputShape == skills.Straddle) {
+					return fmt.Sprintf("%s Jump", inputShape.String())
+				} else {
+					return "Straight Jump"
+				}
+				// For straight jump, shape doesn't result in appending name
+			} else if rotation >= 6 { // Doubles+
+				shapeMatters = true
+			} else if rotation >= 3 && totalTwist < 2 { // Singles/Crash/Lazy with < Full twist
+				shapeMatters = true
+			}
+			// Note: For Rotation < 3 (Front/Back drops) or Rotation 3-5 with >= Full twist, shapeMatters remains false.
+
+			// Append shape name ONLY if it matters AND it's different from the default
+			if shapeMatters && (defaultShape != skills.Straight || defaultShape != inputShape) {
+				// Append the actual shape name
+				return fmt.Sprintf("%s %s", baseName, inputShape.String())
+			} else {
+				// Return the base name (shape didn't matter, or it matched the default)
+				return baseName
+			}
 		}
 	}
-	return ""
+
+	// No common skill match found
+	return "Custom Skill"
 }
 
 // parseRoutineFromRequest parses JSON routine data from form/query/body.
@@ -809,7 +817,7 @@ func parseRoutineFromRequest(r *http.Request) ([]skills.TrampolineSkill, error) 
 	for i := range routine {
 		routine[i].SetTariff()
 		routine[i].LandingPosStr = routine[i].LandingPosition().String()
-		expectedPhases := calculatePhases(routine[i].Rotation)
+		expectedPhases := skills.CalculatePhases(routine[i].Rotation)
 		if len(routine[i].TwistDistribution) > expectedPhases {
 			routine[i].TwistDistribution = routine[i].TwistDistribution[:expectedPhases]
 		} else {
@@ -845,6 +853,7 @@ func performRoutineValidation(routine []skills.TrampolineSkill) RoutineValidatio
 		data.Skills[i].LandingPosStr = landing.String()
 
 		data.RawTariff += data.Skills[i].Tariff
+		data.Skills[i].FIGNotation = data.Skills[i].TrampolineSkill.FIGNotation() // Calculate and store
 
 		var messages []string
 		isCurrentSkillDuplicate := false

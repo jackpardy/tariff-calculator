@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -275,7 +276,8 @@ func BodyPositionFromString(s string) BodyPosition {
 
 func (skill *TrampolineSkill) Equal(b *TrampolineSkill) bool {
 	if skill.TotalTwist() == b.TotalTwist() && skill.Rotation == b.Rotation && skill.Backward == b.Backward && skill.SeatLanding == b.SeatLanding && skill.TakeoffPosition == b.TakeoffPosition {
-		if skill.Rotation == 0 && skill.TotalTwist() == 0 {
+
+		if skill.Rotation == 0 && skill.TotalTwist() == 0 && skill.LandingPosition() != Seat && skill.TakeoffPosition != Seat {
 			return skill.Shape == b.Shape
 		}
 		if skill.Rotation < 3 {
@@ -300,23 +302,20 @@ func (skill *TrampolineSkill) Equal(b *TrampolineSkill) bool {
 }
 
 var CommonSkills = map[string]TrampolineSkill{
-	"tuck":            {Name: "Tuck Jump", SeatLanding: false, Shape: Tuck, Backward: false, Rotation: 0, TwistDistribution: []int{0}, TakeoffPosition: Feet},
-	"pike":            {Name: "Pike Jump", SeatLanding: false, Shape: Pike, Backward: false, Rotation: 0, TwistDistribution: []int{0}, TakeoffPosition: Feet},
-	"straddle":        {Name: "Straddle Jump", SeatLanding: false, Shape: Straddle, Backward: false, Rotation: 0, TwistDistribution: []int{0}, TakeoffPosition: Feet},
+	"shapeJump":       {Name: "Shape Jump", SeatLanding: false, Shape: Tuck, Backward: false, Rotation: 0, TwistDistribution: []int{0}, TakeoffPosition: Feet},
 	"halfTwist":       {Name: "Half Twist", SeatLanding: false, Shape: Straight, Backward: false, Rotation: 0, TwistDistribution: []int{1}, TakeoffPosition: Feet},
 	"fullTwist":       {Name: "Full Twist", SeatLanding: false, Shape: Straight, Backward: false, Rotation: 0, TwistDistribution: []int{2}, TakeoffPosition: Feet},
 	"seatDrop":        {Name: "Seat Drop", SeatLanding: true, Shape: Straight, Backward: false, Rotation: 0, TwistDistribution: []int{0}, TakeoffPosition: Feet},
 	"seatToFeet":      {Name: "Seat To Feet", TakeoffPosition: Seat, Shape: Straight, Backward: false, SeatLanding: false, Rotation: 0, TwistDistribution: []int{0}},
-	"tuckFrontToSeat": {Name: "Tuck Front To Seat", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: false, Shape: Tuck, SeatLanding: true},
-	"tuckBackToSeat":  {Name: "Tuck Back To Seat", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: true, Shape: Tuck, SeatLanding: true},
+	"frontToSeat":     {Name: "Front To Seat", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: false, Shape: Tuck, SeatLanding: true},
+	"backToSeat":      {Name: "Back To Seat", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: true, Shape: Tuck, SeatLanding: true},
 	"baraniToFront":   {Name: "Barani To Front", Rotation: 3, TwistDistribution: []int{1}, TakeoffPosition: Feet, Backward: false, Shape: Tuck, SeatLanding: false},
 	"backDrop":        {Name: "Back Drop", Rotation: 1, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: true, Shape: Straight, SeatLanding: false},
 	"frontDrop":       {Name: "Front Drop", Rotation: 1, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: false, Shape: Straight, SeatLanding: false},
 	"backHalfToFeet":  {Name: "Back Half Twist To Feet", Rotation: 1, TwistDistribution: []int{1}, TakeoffPosition: Back, Backward: false, Shape: Straight, SeatLanding: false},
 	"backToFeet":      {Name: "Back To Feet", Rotation: 1, TwistDistribution: []int{0}, TakeoffPosition: Back, Backward: false, Shape: Straight, SeatLanding: false},
 	"frontToFeet":     {Name: "Front To Feet", Rotation: 1, TwistDistribution: []int{0}, TakeoffPosition: Front, Backward: true, Shape: Straight, SeatLanding: false},
-	"tuckFront":       {Name: "Tuck Front", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: false, Shape: Tuck, SeatLanding: false},
-	"pikeFront":       {Name: "Pike Front", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: false, Shape: Pike, SeatLanding: false},
+	"front":           {Name: "Front", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: false, Shape: Tuck, SeatLanding: false},
 	"straightFront":   {Name: "Straight Front", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: false, Shape: Straight, SeatLanding: false},
 	"ballOut":         {Name: "Ball-Out", Rotation: 5, TwistDistribution: []int{0}, TakeoffPosition: Back, Backward: false, Shape: Tuck, SeatLanding: false},
 	"baraniBallOut":   {Name: "Barani Ball-Out", Rotation: 5, TwistDistribution: []int{1}, TakeoffPosition: Back, Backward: false, Shape: Tuck, SeatLanding: false},
@@ -326,24 +325,18 @@ var CommonSkills = map[string]TrampolineSkill{
 	"seatHalfToFeet":  {Name: "Seat Half Twist To Feet", Rotation: 0, TakeoffPosition: Seat, Shape: Straight, Backward: false, SeatLanding: false, TwistDistribution: []int{1}},
 	"seatHalfToSeat":  {Name: "Seat Half Twist To Seat", Rotation: 0, TakeoffPosition: Seat, Shape: Straight, Backward: false, SeatLanding: true, TwistDistribution: []int{1}},
 	"seatHalfToFront": {Name: "Seat Half Twist To Front", TakeoffPosition: Seat, Shape: Straight, SeatLanding: false, TwistDistribution: []int{1}, Backward: true, Rotation: 1},
-	"tuckBarani":      {Name: "Tuck Barani", Rotation: 4, TwistDistribution: []int{1}, TakeoffPosition: Feet, Backward: false, Shape: Tuck, SeatLanding: false},
-	"pikeBarani":      {Name: "Pike Barani", Rotation: 4, TwistDistribution: []int{1}, TakeoffPosition: Feet, Backward: false, Shape: Pike, SeatLanding: false},
-	"straightBack":    {Name: "Straight Back", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: true, Shape: Straight, SeatLanding: false},
-	"straightBarani":  {Name: "Straight Barani", Rotation: 4, TwistDistribution: []int{1}, TakeoffPosition: Feet, Backward: false, Shape: Straight, SeatLanding: false},
+	"barani":          {Name: "Barani", Rotation: 4, TwistDistribution: []int{1}, TakeoffPosition: Feet, Backward: false, Shape: Tuck, SeatLanding: false},
 	"rudi":            {Name: "Rudi", Rotation: 4, TwistDistribution: []int{3}, TakeoffPosition: Feet, Backward: false, Shape: Straight, SeatLanding: false},
 	"randi":           {Name: "Randi", Rotation: 4, TwistDistribution: []int{5}, TakeoffPosition: Feet, Backward: false, Shape: Straight, SeatLanding: false},
 	"fullBack":        {Name: "Full Back", Rotation: 4, TwistDistribution: []int{2}, TakeoffPosition: Feet, Backward: true, Shape: Straight, SeatLanding: false},
 	"doubleFullBack":  {Name: "Double Full Back", Rotation: 4, TwistDistribution: []int{4}, TakeoffPosition: Feet, Backward: true, Shape: Straight, SeatLanding: false},
-	"tuckBack":        {Name: "Tuck Back", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: true, Shape: Tuck, SeatLanding: false},
-	"pikeBack":        {Name: "Pike Back", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: true, Shape: Pike, SeatLanding: false},
+	"backSomersault":  {Name: "Back", Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: true, Shape: Tuck, SeatLanding: false},
 	"fullCody":        {Name: "Full Cody", Rotation: 5, TwistDistribution: []int{2}, TakeoffPosition: Front, Backward: true, Shape: Straight, SeatLanding: false},
 	"cody":            {Name: "Cody", Rotation: 5, TwistDistribution: []int{0}, TakeoffPosition: Front, Backward: true, Shape: Tuck, SeatLanding: false},
-	"doubleBackTuck":  {Name: "Double Back", Rotation: 8, TwistDistribution: []int{0, 0}, TakeoffPosition: Feet, Backward: true, Shape: Tuck, SeatLanding: false},
-	"tripleBackTuck":  {Name: "Triple Back", Rotation: 12, TwistDistribution: []int{0, 0, 0}, TakeoffPosition: Feet, Backward: true, Shape: Tuck, SeatLanding: false},
+	"doubleBack":      {Name: "Double Back", Rotation: 8, TwistDistribution: []int{0, 0}, TakeoffPosition: Feet, Backward: true, Shape: Tuck, SeatLanding: false},
+	"tripleBack":      {Name: "Triple Back", Rotation: 12, TwistDistribution: []int{0, 0, 0}, TakeoffPosition: Feet, Backward: true, Shape: Tuck, SeatLanding: false},
 	"halfOut":         {Name: "Half-Out", Rotation: 8, TwistDistribution: []int{0, 1}, TakeoffPosition: Feet, Backward: false, Shape: Tuck, SeatLanding: false},
-	"halfOutPike":     {Name: "Pike Half-Out", Rotation: 8, TwistDistribution: []int{0, 1}, TakeoffPosition: Feet, Backward: false, Shape: Pike, SeatLanding: false},
 	"halfhalf":        {Name: "Half Half", Rotation: 8, TwistDistribution: []int{1, 1}, TakeoffPosition: Feet, Backward: true, Shape: Tuck, SeatLanding: false},
-	"halfhalfPike":    {Name: "Pike Half Half", Rotation: 8, TwistDistribution: []int{1, 1}, TakeoffPosition: Feet, Backward: true, Shape: Pike, SeatLanding: false},
 	"trifHalfOut":     {Name: "Trif Half-Out", Rotation: 12, TwistDistribution: []int{0, 0, 1}, TakeoffPosition: Feet, Backward: false, Shape: Tuck, SeatLanding: false},
 	"fullFull":        {Name: "Full Full", Rotation: 8, TwistDistribution: []int{2, 2}, TakeoffPosition: Feet, Backward: true, Shape: Straight, SeatLanding: false},
 	"fullRudi":        {Name: "Full Rudi", Rotation: 8, TwistDistribution: []int{2, 3}, TakeoffPosition: Feet, Backward: false, Shape: Straight, SeatLanding: false},
@@ -354,13 +347,17 @@ func GetCommonSkill(name string) (TrampolineSkill, bool) {
 	skill, exists := CommonSkills[name]
 	return skill, exists
 }
-func calculatePhases(rotation int) int {
+func CalculatePhases(rotation int) int {
+	absRotation := rotation
+	if absRotation < 0 {
+		absRotation = -absRotation
+	}
 	switch {
-	case rotation <= 6:
+	case absRotation <= 6:
 		return 1
-	case rotation <= 10:
+	case absRotation <= 10:
 		return 2
-	case rotation <= 14:
+	case absRotation <= 14:
 		return 3
 	default: // 15-16
 		return 4
@@ -376,10 +373,91 @@ func ShapeFromString(s string) Shape {
 	return Straight // Or InvalidShape, depending on desired default
 }
 func (skill *TrampolineSkill) Validate() error {
-	requiredPhases := calculatePhases(skill.Rotation)
+	requiredPhases := CalculatePhases(skill.Rotation)
 	if len(skill.TwistDistribution) != requiredPhases {
 		return fmt.Errorf("requires %d twist phases for %d/4 rotation",
 			requiredPhases, skill.Rotation)
 	}
 	return nil
+}
+func (skill *TrampolineSkill) FIGNotation() string {
+	// Shape mapping
+	var shapeSymbol string
+	switch skill.Shape {
+	case Tuck:
+		shapeSymbol = "o"
+	case Pike:
+		shapeSymbol = "<"
+	case Straight:
+		shapeSymbol = "/"
+	case Straddle:
+		shapeSymbol = "v"
+	default:
+		shapeSymbol = "?" // Handle unexpected shapes
+	}
+
+	// Special case for zero rotation and zero twist (basic jumps)
+	if skill.Rotation == 0 && skill.TotalTwist() == 0 {
+		// Only return shape for non-straight basic jumps
+		if (skill.Shape == Tuck || skill.Shape == Pike || skill.Shape == Straddle) && skill.LandingPosition() != Seat && skill.TakeoffPosition != Seat {
+			return fmt.Sprintf("(%s)", shapeSymbol)
+		}
+		return "" // Return empty for straight jump (no rotation, no twist, straight shape)
+	}
+
+	// Twist distribution mapping
+	var twistParts []string
+	expectedPhases := CalculatePhases(skill.Rotation)
+	displayTwists := make([]int, expectedPhases)
+
+	// Use TotalTwist for single-phase (rotation 0) skills with twist
+	if expectedPhases == 1 && skill.Rotation == 0 && skill.TotalTwist() > 0 {
+		displayTwists[0] = skill.TotalTwist()
+	} else if skill.TwistDistribution != nil {
+		// Copy provided twists, respecting expected phases
+		copyCount := len(skill.TwistDistribution)
+		if copyCount > expectedPhases {
+			copyCount = expectedPhases
+		}
+		copy(displayTwists, skill.TwistDistribution[:copyCount])
+	}
+	// Note: displayTwists is already initialized with zeros if skill.TwistDistribution was nil or shorter
+
+	// Generate twist parts string
+	if len(displayTwists) == 0 {
+		// Fallback if somehow displayTwists is empty
+		twistParts = append(twistParts, "-")
+	} else {
+		for _, twistHalfTurns := range displayTwists {
+			if twistHalfTurns == 0 {
+				twistParts = append(twistParts, "-")
+			} else {
+				// Convert half-turns to string
+				twistParts = append(twistParts, strconv.Itoa(twistHalfTurns))
+			}
+		}
+	}
+	twistString := strings.Join(twistParts, " ")
+
+	// Determine if shape should be included based on FIG rules
+	includeShape := true // Default to include
+	totalTwist := skill.TotalTwist()
+
+	if skill.Rotation == 0 && totalTwist > 0 { // Twisting jumps (e.g., Full Twist)
+		includeShape = false
+	} else if skill.Rotation < 3 { // Less than 3/4 somersault (e.g., Front Drop)
+		includeShape = false
+	} else if skill.Rotation < 6 && totalTwist >= 2 { // Single somersaults with full twist or more
+		includeShape = false
+	}
+	// Note: For Rotation >= 6 (doubles+), includeShape remains true (shape always matters)
+	// Note: For Rotation 3-5 with twist < 2, includeShape remains true (shape matters)
+
+	// Combine into final notation string
+	rotationStr := strconv.Itoa(skill.Rotation)
+	if includeShape {
+		return fmt.Sprintf("(%s %s %s)", rotationStr, twistString, shapeSymbol)
+	} else {
+		return fmt.Sprintf("(%s %s)", rotationStr, twistString)
+	}
 }

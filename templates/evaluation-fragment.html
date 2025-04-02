@@ -3,7 +3,7 @@
 <div id="evaluation-preview-content"
      data-skill-data="{{ .SkillDataJSON | safeHTMLAttr }}"> {{/* Store data for Alpine */}}
 
-    <h4 class="title is-6 mb-4">Skill Evaluation - {{ .Skill.Name | default "Evaluated Skill" }}</h4>
+    <h4 class="title is-6 mb-4">Skill Evaluation - {{ .Skill.Name | default "Evaluated Skill" }}    {{ .FIGNotation }}</h4>
 
     {{/* Use Bulma columns for the three info blocks */}}
     <div class="columns">
