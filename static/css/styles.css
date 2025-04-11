@@ -403,7 +403,7 @@ body.htmx-dragging-touch { overflow: hidden; -webkit-user-select: none; user-sel
 
 .routine-skill button, .routine-skill .delete { pointer-events: auto; }
 .transition-status { font-size: 0.8rem; margin-top: 0.25rem; }
-#routine-skills { min-height: 100px; transition: background-color 0.2s; border: 1px solid #dbdbdb; border-radius: 4px; padding: 0.5rem; overflow-y: auto; /* Ensure container can scroll if needed */ }
+#routine-skills { min-height: 100px; transition: background-color 0.2s; border: 1px solid #dbdbdb; border-radius: 4px; padding: 0.5rem; }
 #routine-total { min-height: 120px; }
 .loading-total::after { content: "Calculating..."; display: block; padding: 1rem; color: #666; }
 #evaluation-preview { margin: 1rem 0; background-color: #f8f9fa; }
@@ -449,6 +449,7 @@ body.htmx-dragging-touch { overflow: hidden; -webkit-user-select: none; user-sel
 
 /* --- Mobile Layout Styles --- */
 @media screen and (max-width: 768px) {
+    .skill-name-block { margin-bottom: .5rem; padding-bottom: .6rem /* Space below this block */ }
     .skill-details-columns {
         flex-direction: column; /* Stack columns vertically */
         align-items: flex-start; /* Align items left */
@@ -459,7 +460,7 @@ body.htmx-dragging-touch { overflow: hidden; -webkit-user-select: none; user-sel
         padding-left: 0; /* Align left */
         padding-right: 0;
         white-space: normal; /* Allow wrapping */
-        margin-bottom: 0.5rem; /* Space between stacked items */
+        margin-bottom: 0.25rem; /* Space between stacked items */
         margin-left: 0 !important; /* Override ml-auto-tablet */
     }
     .skill-details-columns .column.is-hidden-mobile {
@@ -476,10 +477,11 @@ body.htmx-dragging-touch { overflow: hidden; -webkit-user-select: none; user-sel
     }
     .skill-details-columns .buttons.are-small {
         display: block; /* Let buttons flow naturally (left) */
-        margin-top: 0.25rem; /* Add space above buttons */
+        margin-top: 0.2rem; /* Add space above buttons */
     }
     .skill-details-columns .buttons.are-small .button {
-        margin-bottom: 0.25rem; /* Space below buttons if they wrap */
+        margin-bottom: 0.2rem; /* Space below buttons if they wrap */
     }
-    .routine-skill p { line-height: 1.3; } /* Adjust line height */
+    .skill-details-columns .column { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+    .routine-skill p { line-height: .7; } /* Adjust line height */
 }
