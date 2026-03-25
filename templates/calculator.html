@@ -533,7 +533,8 @@ style="display: none;" {{/* Initially hidden */}}
                         console.error("Failed to load empty form via HTMX in cancelEdit", err);
                         this.showToast("Failed to load empty form.", "error");
                     });
-            },SkillUp(index) {
+            },
+            moveSkillUp(index) {
                 if (index > 0) {
                     let oldLastInsertPos = this.lastInsertPosition;
                     if (this.lastInsertPosition === index + 1) { this.lastInsertPosition--; } else if (this.lastInsertPosition === index) { this.lastInsertPosition++; }
