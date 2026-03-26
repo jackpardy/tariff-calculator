@@ -8,183 +8,231 @@
     <div class="box">
         <h3 class="title is-4">Skill Calculator</h3>
         {{/* Wrapper for the skill form, targeted by HTMX for reloading */}}
-        <div id="skill-form-wrapper" style="scroll-margin-top: 20px;"> {{/* scroll-margin for better scrollIntoView targeting */}}
+        <div id="skill-form-wrapper" style="scroll-margin-top: 20px;"> {{/* scroll-margin for better scrollIntoView
+            targeting */}}
             {{/* This inner div will be replaced by HTMX */}}
-            <div id="skill-form-content"
-                 hx-trigger="load" {{/* Load form on initial page load */}}
-            hx-get="/skill-form-fragment" {{/* Endpoint to get the form fragment */}}
-            hx-target="this" {{/* Replace this div with the response */}}
-            hx-swap="outerHTML" {{/* Replace the entire div, not just inner content */}}
-            x-init="console.log('Loading initial skill form content...');" {{/* Watcher setup moved to init() */}}
-            >
-            <p>Loading form...</p> {{/* Placeholder content */}}
-        </div>
-    </div>
-</div>
-
-{{/* Box for displaying skill evaluation results, loaded via HTMX */}}
-<div id="evaluation-preview"
-     class="box"
-     x-show="showEvaluation" {{/* Controlled by Alpine state */}}
-x-transition {{/* Alpine transition for show/hide */}}
-style="display: none;" {{/* Initially hidden */}}
-{{/* Dropdown population triggered by listener after swap */}}
->
-{{/* Content for evaluation results will be loaded here by HTMX */}}
-</div>
-
-{{/* Box containing the routine builder */}}
-<div class="box">
-    {{/* Header for the routine builder section */}}
-    <div class="level">
-        <div class="level-left">
-            <h3 class="title is-4">Routine Builder</h3>
-        </div>
-        <div class="level-right">
-            {{/* Button to clear the entire routine */}}
-            <button
-                    class="button is-danger is-outlined"
-                    @click="clearRoutine()"
-                    x-show="routine.length > 0" {{/* Only show if routine is not empty */}}
-            type="button">
-            Clear Routine
-            </button>
+            <div id="skill-form-content" hx-trigger="load" {{/* Load form on initial page load */}}
+                hx-get="/skill-form-fragment" {{/* Endpoint to get the form fragment */}} hx-target="this" {{/* Replace
+                this div with the response */}} hx-swap="outerHTML" {{/* Replace the entire div, not just inner content
+                */}} x-init="console.log('Loading initial skill form content...');" {{/* Watcher setup moved to init()
+                */}}>
+                <p>Loading form...</p> {{/* Placeholder content */}}
+            </div>
         </div>
     </div>
 
-    {{/* Container for the list of skills in the routine */}}
-    {{/* x-ref allows referencing this element in Alpine JS */}}
-    <div id="routine-skills" class="routine-skills" x-ref="routineSkillsContainer">
-        {{/* Insertion point shown when dragging, placed at the very top */}}
-        <div class="insertion-point"
-             x-show="isDragging && routine.length > 0"
-             :class="{ 'active': dropIndex === 0 }"
-             @dragover.prevent="handleDragOver($event, 0)"
-             @dragleave="handleDragLeave($event)"
-             @drop="handleDrop($event, 0)"
-             @touchend="handleTouchEnd($event, 0)">
+    {{/* Box for displaying skill evaluation results, loaded via HTMX */}}
+    <div id="evaluation-preview" class="box" x-show="showEvaluation" {{/* Controlled by Alpine state */}} x-transition
+        {{/* Alpine transition for show/hide */}} style="display: none;" {{/* Initially hidden */}} {{/* Dropdown
+        population triggered by listener after swap */}}>
+        {{/* Content for evaluation results will be loaded here by HTMX */}}
+    </div>
+
+    {{/* Box containing the routine builder */}}
+    <div class="box">
+        {{/* Header for the routine builder section */}}
+        <div class="level mb-4">
+            <div class="level-left">
+                <h3 class="title is-4 mb-0">Routine Builder</h3>
+            </div>
+            <div class="level-right">
+                <div class="buttons mb-0">
+                    <button class="button is-info is-light is-small" @click="$dispatch('expand-all')">Expand
+                        All</button>
+                    <button class="button is-info is-light is-small" @click="$dispatch('collapse-all')">Collapse
+                        All</button>
+                    {{/* Button to clear the entire routine */}}
+                    <button class="button is-danger is-outlined is-small" @click="clearRoutine()"
+                        x-show="routine.length > 0" type="button">
+                        Clear Routine
+                    </button>
+                </div>
+            </div>
         </div>
 
-        {{/* Alpine template loop to render each skill in the routine */}}
-        <template x-for="(skill, index) in routine" :key="index">
-            {{/* Unique ID for each skill's container */}}
-            <div x-id="['skill']" :id="$id('skill')">
-                {{/* Container to manage editing state style */}}
-                <div class="routine-skill-container"
-                     :class="{ 'editing': editingIndex === index }">
-                    {{/* The actual skill item box, draggable */}}
-                    <div class="routine-skill box mb-2"
-                         :class="{
+        {{/* Container for the list of skills in the routine */}}
+        {{/* x-ref allows referencing this element in Alpine JS */}}
+        <div id="routine-skills" class="routine-skills" x-ref="routineSkillsContainer">
+            {{/* Insertion point shown when dragging, placed at the very top */}}
+            <div class="insertion-point" x-show="isDragging && routine.length > 0"
+                :class="{ 'active': dropIndex === 0 }" @dragover.prevent="handleDragOver($event, 0)"
+                @dragleave="handleDragLeave($event)" @drop="handleDrop($event, 0)"
+                @touchend="handleTouchEnd($event, 0)">
+            </div>
+
+            {{/* Alpine template loop to render each skill in the routine */}}
+            <template x-for="(skill, index) in routine" :key="index">
+                {{/* Unique ID for each skill's container */}}
+                <div x-id="['skill']" :id="$id('skill')">
+                    {{/* Container to manage editing state style */}}
+                    <div class="routine-skill-container" :class="{ 'editing': editingIndex === index }">
+                        {{/* The actual skill item box, draggable, with collapsable state */}}
+                        <div class="routine-skill box mb-2" :class="{
                                     'invalid-transition': validationResults?.skills?.[index]?.InvalidTransition,
                                     'invalid-landing': validationResults?.skills?.[index]?.InvalidLanding,
                                     'duplicate-skill': validationResults?.skills?.[index]?.IsDuplicate,
                                     'is-dragging': draggedIndex === index
-                                 }"
-                         :draggable="!isTouchDevice"
-                         {{/* Mouse drag event handlers */}}
-                    @dragstart="handleDragStart($event, index)"
-                    @dragover.prevent {{/* Prevent default to allow drop */}}
-                    @dragleave="handleDragLeave($event)"
-                    @drop="handleDrop($event, index)" {{/* Handle drop on the item itself */}}
-                    @dragend="handleDragEnd($event)"
-                    {{/* Touch drag event handlers */}}
-                    @touchstart="handleTouchStart($event, index)"
-                    @touchmove="handleTouchMove($event)"
-                    @touchend="handleTouchEnd($event)"
-                    @touchcancel="handleTouchCancel($event)">
+                                 }" :draggable="!isTouchDevice" @dragstart="handleDragStart($event, index)"
+                            @dragover.prevent @dragleave="handleDragLeave($event)" @drop="handleDrop($event, index)"
+                            @dragend="handleDragEnd($event)" @touchstart="handleTouchStart($event, index)"
+                            @touchmove="handleTouchMove($event)" @touchend="handleTouchEnd($event)"
+                            @touchcancel="handleTouchCancel($event)" x-data="{ expanded: false }"
+                            @expand-all.window="expanded = true" @collapse-all.window="expanded = false">
 
-                    {{/* Skill Name block */}}
-                    <div class="skill-name-block mb-2">
-                        <p class="skill-name"><strong x-text="`${index + 1}. ${skill.name || 'Custom Skill'} ${validationResults?.skills?.[index]?.FIGNotation ?? '?'}`"></strong></p>
-                    </div>
+                            {{/* Clickable Header for Toggling */}}
+                            <div class="is-flex is-justify-content-space-between is-align-items-center"
+                                style="cursor: pointer; padding: 4px 0;" @click="expanded = !expanded">
 
-                    {{/* Details + Buttons Row using Bulma columns */}}
-                    <div class="skill-details-columns columns is-mobile is-variable is-1">
-                        {{/* Rotation Column */}}
-                        <div class="column is-narrow-mobile">
-                            <p><span class="detail-label">Rotation: </span><span x-text="Math.abs(skill.rotation)"></span> <span x-text="skill.backward ? 'B' : 'F'"></span></p>
-                        </div>
-                        {{/* Twists Column */}}
-                        <div class="column is-narrow-mobile">
-                            <p><span class="detail-label">Twists: </span><span x-text="(skill.twist_distribution || []).join(' | ') || '0'"></span></p>
-                        </div>
-                        {{/* Landing Column */}}
-                        <div class="column is-narrow-mobile">
-                            <p><span class="detail-label">Landing: </span><span x-text="`${skill.takeoff_position} → ${skill.landing_position || calculateLanding(skill)}`"></span></p>
-                        </div>
-                        {{/* Shape Column */}}
-                        <div class="column is-narrow-mobile">
-                            <p><span class="detail-label">Shape: </span><span x-text="skill.shape"></span></p>
-                        </div>
-                        {{/* Tariff Column */}}
-                        <div class="column is-narrow-mobile">
-                            <p><span class="detail-label">Tariff: </span><span class="has-text-primary" x-text="skill.tariff.toFixed(2)"></span></p>
-                        </div>
+                                <div class="skill-name-block is-flex is-align-items-center mb-0 mr-2"
+                                    style="flex: 1; min-width: 0;">
 
-                        {{/* Controls Column (Buttons) */}}
-                        {{/* ml-auto-tablet pushes buttons right on desktop */}}
-                        <div class="column is-narrow ml-auto-tablet">
-                            <div class="buttons are-small skill-buttons">
-                                <button class="button" title="Move Up" @click="moveSkillUp(index)" :disabled="index === 0">↑</button>
-                                <button class="button" title="Move Down" @click="moveSkillDown(index)" :disabled="index === routine.length - 1">↓</button>
-                                <button class="button is-info is-small" title="Edit" @click="editSkill(index)">Edit</button>
-                                <button class="button is-danger is-small delete" title="Remove" @click="removeSkill(index)"></button>
+                                    {{/* 1. The Arrow: Stays to the left of the entire text block */}}
+                                    <span class="icon mr-1 has-text-grey"
+                                        style="font-size: 1.1rem; transition: transform 0.2s ease-in-out; display: flex; align-items: center;"
+                                        :style="expanded ? 'transform: rotate(90deg);' : 'transform: rotate(0deg);'">
+                                        ▶
+                                    </span>
+
+                                    {{/* 2. Text Wrapper: Stacks children on mobile, inline on tablet+ */}}
+                                    <div class="is-flex-tablet is-align-items-baseline" style="flex: 1; min-width: 0;">
+                                        {{/* Name */}}
+                                        <p class="skill-name mb-0 mr-2"
+                                            style="line-height: 1.2; word-wrap: break-word;">
+                                            <strong x-text="`${index + 1}. ${skill.name || 'Custom Skill'}`"></strong>
+                                        </p>
+                                        {{/* FIG Notation */}}
+                                        <p class="is-size-7 has-text-grey mb-0"
+                                            style="white-space: nowrap; line-height: 1.2;"
+                                            x-text="validationResults?.skills?.[index]?.FIGNotation ?? '?'">
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {{/* Compact Button Grid */}}
+                                <div style="display: grid; grid-template-columns: 40px 45px; gap: 3px; flex-shrink: 0;"
+                                    @click.stop>
+                                    <button class="button is-info is-small is-fullwidth px-0"
+                                        style="height: 24px; font-size: 0.75rem;" title="Edit"
+                                        @click="editSkill(index)">Edit</button>
+                                    <button class="button is-small is-fullwidth px-0" style="height: 24px;"
+                                        title="Move Up" @click="moveSkillUp(index)" :disabled="index === 0">↑</button>
+                                    <button class="button is-danger is-small is-fullwidth px-0"
+                                        style="height: 24px; font-size: 0.75rem;" title="Remove"
+                                        @click="removeSkill(index)">Del</button>
+                                    <button class="button is-small is-fullwidth px-0" style="height: 24px;"
+                                        title="Move Down" @click="moveSkillDown(index)"
+                                        :disabled="index === routine.length - 1">↓</button>
+
+                                </div>
                             </div>
-                        </div>
-                    </div> {{/* End skill-details-columns */}}
 
-                    {{/* Validation Message Display Row */}}
-                    <div x-show="validationResults?.messages?.[index]" class="skill-validation-row mt-1">
-                        <p class="transition-status is-size-7 has-text-danger"
-                           x-text="validationResults?.messages?.[index] ?? ''"></p>
+                            {{/* Collapsable Details Content */}}
+                            <div x-show="expanded" x-transition style="display: none;">
+                                <hr class="mt-2 mb-2">
+
+                                <div class="skill-details-columns columns is-mobile is-multiline is-variable is-2 mb-0">
+
+                                    {{/* Rotation Column: Full width on mobile, Narrow on desktop */}}
+                                    <div class="column is-full-mobile is-narrow-tablet py-1-mobile">
+                                        <p class="is-size-7-mobile">
+                                            <span class="has-text-grey mr-1">Rotation:</span>
+                                            <strong x-text="Math.abs(skill.rotation)"></strong> <strong
+                                                x-text="skill.backward ? 'B' : 'F'"></strong>
+                                        </p>
+                                    </div>
+
+                                    {{/* Twists Column */}}
+                                    <div class="column is-full-mobile is-narrow-tablet py-1-mobile">
+                                        <p class="is-size-7-mobile">
+                                            <span class="has-text-grey mr-1">Twists:</span>
+                                            <strong
+                                                x-text="(skill.twist_distribution || []).join(' | ') || '0'"></strong>
+                                        </p>
+                                    </div>
+
+                                    {{/* Landing Column */}}
+                                    <div class="column is-full-mobile is-narrow-tablet py-1-mobile">
+                                        <p class="is-size-7-mobile">
+                                            <span class="has-text-grey mr-1">Landing:</span>
+                                            <strong
+                                                x-text="`${skill.takeoff_position} → ${skill.landing_position || calculateLanding(skill)}`"></strong>
+                                        </p>
+                                    </div>
+
+                                    {{/* Shape Column */}}
+                                    <div class="column is-full-mobile is-narrow-tablet py-1-mobile">
+                                        <p class="is-size-7-mobile">
+                                            <span class="has-text-grey mr-1">Shape:</span>
+                                            <strong x-text="skill.shape"></strong>
+                                        </p>
+                                    </div>
+
+                                    {{/* Tariff Column */}}
+                                    <div class="column is-full-mobile is-narrow-tablet py-1-mobile">
+                                        <p class="is-size-7-mobile">
+                                            <span class="has-text-grey mr-1">Tariff:</span>
+                                            <strong class="has-text-primary" x-text="skill.tariff.toFixed(2)"></strong>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {{/* Validation Message Display Row */}}
+                                <div x-show="validationResults?.messages?.[index]" class="skill-validation-row mt-1">
+                                    <p class="transition-status is-size-7 has-text-danger"
+                                        x-text="validationResults?.messages?.[index] ?? ''"></p>
+                                </div>
+                            </div>
+
+                        </div> {{/* End routine-skill div */}}
+                    </div> {{/* End routine-skill-container div */}}
+
+                    {{/* Insertion point shown when dragging, placed between items */}}
+                    <div class="insertion-point" x-show="isDragging" :class="{ 'active': dropIndex === index + 1 }"
+                        @dragover.prevent="handleDragOver($event, index + 1)" @dragleave="handleDragLeave($event)"
+                        @drop="handleDrop($event, index + 1)" @touchend="handleTouchEnd($event, index + 1)">
                     </div>
-                </div> {{/* End routine-skill div */}}
-            </div> {{/* End routine-skill-container div */}}
+                </div>
+            </template>
 
-            {{/* Insertion point shown when dragging, placed between items */}}
-            <div class="insertion-point"
-                 x-show="isDragging"
-                 :class="{ 'active': dropIndex === index + 1 }"
-                 @dragover.prevent="handleDragOver($event, index + 1)"
-                 @dragleave="handleDragLeave($event)"
-                 @drop="handleDrop($event, index + 1)"
-                 @touchend="handleTouchEnd($event, index + 1)">
-            </div>
-    </div>
-    </template>
+            {{/* Message shown when routine is empty */}}
+            <template x-if="routine.length === 0">
+                <p class="has-text-grey">Add skills using the form above.</p>
+            </template>
+        </div>
 
-    {{/* Message shown when routine is empty */}}
-    <template x-if="routine.length === 0">
-        <p class="has-text-grey">Add skills using the form above.</p>
-    </template>
-</div>
-
-{{/* Section to display routine totals and validation messages */}}
-<div id="routine-results" class="mt-4">
-    <div class="card">
-        <div class="card-content">
-            <p class="title">Total Tariff: <span x-text="validationResults?.totalTariff?.toFixed(2) ?? '0.00'"></span></p>
-            <p class="subtitle"><span x-text="routine.length"></span> of 10 skills</p>
-            <p x-show="validationResults?.rawTariff > validationResults?.totalTariff" class="subtitle tariff-difference">(Raw Total: <span x-text="validationResults?.rawTariff?.toFixed(2)"></span>)</p>
-            <div class="validation-messages mt-3">
-                <p x-show="validationResults?.routineTooLong" class="has-text-warning mb-2">⚠️ Routine has more than 10 skills (only first 10 non-duplicates count toward Tariff).</p>
-                <p x-show="validationResults?.HasDuplicates" class="has-text-warning mb-2">⚠️ Duplicate skills only count once toward total!</p>
-                <p x-show="validationResults?.HasInvalidTransitions" class="has-text-danger">❌ Invalid transitions detected.</p>
-                <p x-show="validationResults?.HasInvalidLandings" class="has-text-landing-warning">🚫 Invalid landing positions detected.</p>
-                <p x-show="validationResults?.tenthSkillWarning" class="has-text-tenth-warning">🎯 10th skill must land on feet!</p>
+        {{/* Section to display routine totals and validation messages */}}
+        <div id="routine-results" class="mt-4">
+            <div class="card">
+                <div class="card-content">
+                    <p class="title">Total Tariff: <span
+                            x-text="validationResults?.totalTariff?.toFixed(2) ?? '0.00'"></span></p>
+                    <p class="subtitle"><span x-text="routine.length"></span> of 10 skills</p>
+                    <p x-show="validationResults?.rawTariff > validationResults?.totalTariff"
+                        class="subtitle tariff-difference">(Raw Total: <span
+                            x-text="validationResults?.rawTariff?.toFixed(2)"></span>)</p>
+                    <div class="validation-messages mt-3">
+                        <p x-show="validationResults?.routineTooLong" class="has-text-warning mb-2">⚠️ Routine has more
+                            than 10 skills (only first 10 non-duplicates count toward Tariff).</p>
+                        <p x-show="validationResults?.HasDuplicates" class="has-text-warning mb-2">⚠️ Duplicate skills
+                            only count once toward total!</p>
+                        <p x-show="validationResults?.HasInvalidTransitions" class="has-text-danger">❌ Invalid
+                            transitions detected.</p>
+                        <p x-show="validationResults?.HasInvalidLandings" class="has-text-landing-warning">🚫 Invalid
+                            landing positions detected.</p>
+                        <p x-show="validationResults?.tenthSkillWarning" class="has-text-tenth-warning">🎯 10th skill
+                            must land on feet!</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
-</div>
 
-{{/* Toast notification area */}}
-<div x-show="toast.show" x-transition
-     class="notification is-fixed-bottom-right"
-     :class="toast.type === 'error' ? 'is-danger' : 'is-info'">
-    <button class="delete" @click="toast.show = false"></button>
-    <span x-text="toast.message"></span>
-</div>
+    {{/* Toast notification area */}}
+    <div x-show="toast.show" x-transition class="notification is-fixed-bottom-right"
+        :class="toast.type === 'error' ? 'is-danger' : 'is-info'">
+        <button class="delete" @click="toast.show = false"></button>
+        <span x-text="toast.message"></span>
+    </div>
 
 </div>
 <script>
@@ -202,7 +250,7 @@ style="display: none;" {{/* Initially hidden */}}
             draggedIndex: null, dropIndex: null, isDragging: false,
             touchStartY: null, touchCurrentY: null, draggedElement: null,
             _processingCalculation: false, showEvaluation: false,
-            lastInsertPosition: null, isInitialLoad: true,isTouchDevice: false,
+            lastInsertPosition: null, isInitialLoad: true, isTouchDevice: false,
             //selectedCommonSkillKey: '',
             commonSkillSortBy: 'tariff-asc',
 
@@ -236,7 +284,7 @@ style="display: none;" {{/* Initially hidden */}}
                     if (newLen !== oldLen) {
                         console.log('--> Routine length changed, calling dropdown updates.');
                         this.updatePositionDropdown(); // Update main form dropdown
-                        if(this.showEvaluation) { this.populateEvalPositionDropdown(); } // Update eval dropdown if visible
+                        if (this.showEvaluation) { this.populateEvalPositionDropdown(); } // Update eval dropdown if visible
                     } else { console.log('--> Routine watcher: Length did not change.'); }
                     this.validateRoutineBackend();
                     localStorage.setItem('trampolineRoutine', JSON.stringify(newRoutine));
@@ -270,7 +318,7 @@ style="display: none;" {{/* Initially hidden */}}
                     if (targetId === 'skill-form-content' || closestFormContent) {
                         console.log('--> Main form fragment swapped.');
                         const rotationInput = document.getElementById('rotation');
-                        if(rotationInput){ this.updateTwistInputs(rotationInput.value); }
+                        if (rotationInput) { this.updateTwistInputs(rotationInput.value); }
                         this.updatePositionDropdown(); // Always update position dropdown
 
                         // Apply persisted selections AFTER swap
@@ -317,10 +365,10 @@ style="display: none;" {{/* Initially hidden */}}
                                     tenthSkillWarning: results.tenthSkillWarning || false,
                                     routineTooLong: results.routineTooLong || false, messages: results.messages || []
                                 };
-                            } catch(e) { console.error("Error parsing validation response:", e); this.showToast('Could not update validation.', 'error'); }
+                            } catch (e) { console.error("Error parsing validation response:", e); this.showToast('Could not update validation.', 'error'); }
                         } else { console.error(`/validate-routine-client-state request failed: ${xhr.status}`); this.showToast('Validation update failed.', 'error'); }
                     }
-                    else if (requestPath === '/evaluate-skill-fragment' && event.detail.target.id === 'evaluation-preview' ) {
+                    else if (requestPath === '/evaluate-skill-fragment' && event.detail.target.id === 'evaluation-preview') {
                         console.log("--> Showing evaluation preview after request.");
                         this.showEvaluation = true;
                     }
@@ -486,7 +534,7 @@ style="display: none;" {{/* Initially hidden */}}
                             const formWrapper = document.getElementById('skill-form-wrapper');
                             if (formWrapper) { formWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
                             const rotationInput = document.getElementById('rotation');
-                            if(rotationInput){ this.updateTwistInputs(rotationInput.value); }
+                            if (rotationInput) { this.updateTwistInputs(rotationInput.value); }
                             // applyPersistedSortPreference will run via htmx:afterSwap and set the dropdown
                         });
                     })
@@ -538,7 +586,7 @@ style="display: none;" {{/* Initially hidden */}}
                 if (index > 0) {
                     let oldLastInsertPos = this.lastInsertPosition;
                     if (this.lastInsertPosition === index + 1) { this.lastInsertPosition--; } else if (this.lastInsertPosition === index) { this.lastInsertPosition++; }
-                    if(oldLastInsertPos !== this.lastInsertPosition) console.log(`moveSkillUp: Adjusted lastInsertPosition to ${this.lastInsertPosition}`);
+                    if (oldLastInsertPos !== this.lastInsertPosition) console.log(`moveSkillUp: Adjusted lastInsertPosition to ${this.lastInsertPosition}`);
                     [this.routine[index], this.routine[index - 1]] = [this.routine[index - 1], this.routine[index]]; // Modify routine
                     if (this.editingIndex === index) { this.editingIndex--; } else if (this.editingIndex === index - 1) { this.editingIndex++; }
                     // Routine watcher handles updates
@@ -548,7 +596,7 @@ style="display: none;" {{/* Initially hidden */}}
                 if (index < this.routine.length - 1) {
                     let oldLastInsertPos = this.lastInsertPosition;
                     if (this.lastInsertPosition === index + 1) { this.lastInsertPosition++; } else if (this.lastInsertPosition === index + 2) { this.lastInsertPosition--; }
-                    if(oldLastInsertPos !== this.lastInsertPosition) console.log(`moveSkillDown: Adjusted lastInsertPosition to ${this.lastInsertPosition}`);
+                    if (oldLastInsertPos !== this.lastInsertPosition) console.log(`moveSkillDown: Adjusted lastInsertPosition to ${this.lastInsertPosition}`);
                     [this.routine[index], this.routine[index + 1]] = [this.routine[index + 1], this.routine[index]]; // Modify routine
                     if (this.editingIndex === index) { this.editingIndex++; } else if (this.editingIndex === index + 1) { this.editingIndex--; }
                     // Routine watcher handles updates
@@ -605,7 +653,7 @@ style="display: none;" {{/* Initially hidden */}}
             },
             handleAddSkillClick(event) {
                 console.log("handleAddSkillClick called.");
-                if(event) { event.stopPropagation(); }
+                if (event) { event.stopPropagation(); }
                 const skillData = this.getFormData('#main-form');
                 if (!skillData || Object.keys(skillData).length === 0) { this.showToast('Could not read form data.', 'error'); return; }
                 const positionSelect = document.getElementById('insert-position');
@@ -628,14 +676,14 @@ style="display: none;" {{/* Initially hidden */}}
                         this.addSkill(skill, position); // addSkill now calls updatePositionDropdown
                         previewDiv.innerHTML = '';
                         this.showEvaluation = false;
-                    } catch(e) { console.error("Error parsing evaluated skill data:", e); this.showToast('Could not add evaluated skill.', 'error'); }
+                    } catch (e) { console.error("Error parsing evaluated skill data:", e); this.showToast('Could not add evaluated skill.', 'error'); }
                 } else { this.showToast('No evaluated skill data found to add.', 'warning'); }
             },
 
             // --- Utilities ---
             calculateLanding(skill) { const BP = { F: 0, Fr: 1, B: 3, S: 4, I: -1 }; const PA = { 'Feet': 0, 'Front': 1, 'Back': 3, 'Seat': 0, 'feet': 0, 'front': 1, 'back': 3, 'seat': 0 }; const PN = ["Feet", "Front", "Back", "Seat", "Invalid"]; let tr = 0; const ta = PA[skill.takeoff_position]; if (ta === undefined) return PN[BP.I]; if (skill.backward) { tr = ta - skill.rotation; } else { tr = ta + skill.rotation; } let tt = (skill.twist_distribution || []).reduce((s, t) => s + t, 0); let fp = BP.I; let ak = (tr % 4); if (ak < 0) ak += 4; if (tt % 2 !== 0) { if (ak === 1) ak = 3; else if (ak === 3) ak = 1; } if (ak === 0) fp = BP.F; else if (ak === 1) fp = BP.Fr; else if (ak === 3) fp = BP.B; if (skill.seat_landing) { return (fp === BP.F) ? PN[BP.S] : PN[BP.I]; } return PN[fp] ?? PN[BP.I]; },
             showToast(message, type = 'info') { this.toast.message = message; this.toast.type = type; this.toast.show = true; setTimeout(() => this.toast.show = false, 3000); },
-            isFirstOccurrence(index) { if (index < 0 || index >= this.routine.length) return false; const cs = this.routine[index]; for(let i=0; i < index; i++){ if (this.skillsAreEqual(cs, this.routine[i])) return false; } return true; },
+            isFirstOccurrence(index) { if (index < 0 || index >= this.routine.length) return false; const cs = this.routine[index]; for (let i = 0; i < index; i++) { if (this.skillsAreEqual(cs, this.routine[i])) return false; } return true; },
             skillsAreEqual(sA, sB) { const tA = (sA.twist_distribution || []).reduce((s, t) => s + t, 0); const tB = (sB.twist_distribution || []).reduce((s, t) => s + t, 0); if (tA !== tB || sA.rotation !== sB.rotation || sA.backward !== sB.backward || sA.seat_landing !== sB.seat_landing || sA.takeoff_position !== sB.takeoff_position) return false; if (sA.rotation === 0 && tA === 0) return sA.shape === sB.shape; if (sA.rotation < 3) return true; if (sA.rotation >= 3 && sA.rotation < 6) { if (tA < 2) return sA.shape === sB.shape; return true; } if (sA.shape !== sB.shape) return false; if (sA.rotation >= 7) { const dA = JSON.stringify(sA.twist_distribution || []); const dB = JSON.stringify(sB.twist_distribution || []); if (dA !== dB) return false; } return true; },
 
             // --- Drag & Drop ---
@@ -704,7 +752,8 @@ style="display: none;" {{/* Initially hidden */}}
             calculatePhases(rotation) { rotation = Math.abs(rotation); if (rotation <= 6) return 1; if (rotation <= 10) return 2; if (rotation <= 14) return 3; if (rotation > 0) return 4; return 1; },
             getFormData(formSelector) {
                 const form = document.querySelector(formSelector); if (!form) { console.error("getFormData: Form not found!"); return {}; }
-                try { const fd = new FormData(form); const data = {}; data.name = fd.get('name') || 'Custom Skill'; data.rotation = parseInt(fd.get('rotation')) || 0; data.takeoff_position = fd.get('takeoff_position') || 'Feet'; data.shape = fd.get('shape') || 'Straight'; data.backward = fd.has('backward'); data.seat_landing = fd.has('seat_landing'); const twistInputs = form.querySelectorAll('input[name="twist_distribution[]"]:not(:disabled)'); const numPhases = this.calculatePhases(Math.abs(data.rotation)); data.twist_distribution = []; for (let i = 0; i < numPhases; i++) { const inputForPhase = Array.from(twistInputs).find(input => input.dataset.rotation == (i + 1)); data.twist_distribution.push(inputForPhase ? (parseInt(inputForPhase.value) || 0) : 0); } console.log('Returning data from getFormData:', data); return data;
+                try {
+                    const fd = new FormData(form); const data = {}; data.name = fd.get('name') || 'Custom Skill'; data.rotation = parseInt(fd.get('rotation')) || 0; data.takeoff_position = fd.get('takeoff_position') || 'Feet'; data.shape = fd.get('shape') || 'Straight'; data.backward = fd.has('backward'); data.seat_landing = fd.has('seat_landing'); const twistInputs = form.querySelectorAll('input[name="twist_distribution[]"]:not(:disabled)'); const numPhases = this.calculatePhases(Math.abs(data.rotation)); data.twist_distribution = []; for (let i = 0; i < numPhases; i++) { const inputForPhase = Array.from(twistInputs).find(input => input.dataset.rotation == (i + 1)); data.twist_distribution.push(inputForPhase ? (parseInt(inputForPhase.value) || 0) : 0); } console.log('Returning data from getFormData:', data); return data;
                 } catch (error) { console.error("Error in getFormData:", error); this.showToast('Error reading form data.', 'error'); return {}; }
             }
         }
@@ -714,4 +763,3 @@ style="display: none;" {{/* Initially hidden */}}
 {{/* Styles removed - assumed to be in styles.css */}}
 
 {{end}}
-    
