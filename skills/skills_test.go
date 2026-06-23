@@ -129,3 +129,92 @@ func TestLandingPosition(t *testing.T) {
 		})
 	}
 }
+
+// TestFindCommonSkillName covers the naming rule: append the shape whenever shape
+// is relevant (including "Straight"), and omit it when it is not.
+func TestFindCommonSkillName(t *testing.T) {
+	cases := []struct {
+		name string
+		s    TrampolineSkill
+		want string
+	}{
+		// Shape relevant -> always clarified, including straight.
+		{"front tuck", skill(4, []int{0}, Feet, Tuck, false, false), "Front Tuck"},
+		{"front straight", skill(4, []int{0}, Feet, Straight, false, false), "Front Straight"},
+		{"barani tuck", skill(4, []int{1}, Feet, Tuck, false, false), "Barani Tuck"},
+		{"miller straight", skill(8, []int{3, 3}, Feet, Straight, true, false), "Miller Straight"},
+		{"double back tuck", skill(8, []int{0, 0}, Feet, Tuck, true, false), "Double Back Tuck"},
+		{"triple back tuck", skill(12, []int{0, 0, 0}, Feet, Tuck, true, false), "Triple Back Tuck"},
+		// Shape NOT relevant -> never clarified.
+		{"rudi", skill(4, []int{3}, Feet, Straight, false, false), "Rudi"},
+		{"full back", skill(4, []int{2}, Feet, Straight, true, false), "Full Back"},
+		// Basic jumps: the shape is the skill name itself.
+		{"straight jump", skill(0, []int{0}, Feet, Straight, false, false), "Straight Jump"},
+		{"tuck jump", skill(0, []int{0}, Feet, Tuck, false, false), "Tuck Jump"},
+		// No match.
+		{"custom", skill(9, []int{0, 0}, Feet, Tuck, false, false), "Custom Skill"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := FindCommonSkillName(c.s); got != c.want {
+				t.Errorf("FindCommonSkillName(%s) = %q, want %q", c.name, got, c.want)
+			}
+		})
+	}
+}
+
+func TestValidateRoutine(t *testing.T) {
+	frontTuck := skill(4, []int{0}, Feet, Tuck, false, false) // lands Feet, 0.5
+
+	t.Run("duplicate counts once", func(t *testing.T) {
+		rv := ValidateRoutine([]TrampolineSkill{frontTuck, frontTuck})
+		if !rv.HasDuplicates {
+			t.Fatal("expected HasDuplicates")
+		}
+		if !rv.Skills[0].IsDuplicate || !rv.Skills[1].IsDuplicate {
+			t.Errorf("both occurrences should be flagged duplicate")
+		}
+		if rv.TotalTariff != 0.5 {
+			t.Errorf("TotalTariff = %.2f, want 0.50 (counts once)", rv.TotalTariff)
+		}
+		if rv.RawTariff != 1.0 {
+			t.Errorf("RawTariff = %.2f, want 1.00 (counts both)", rv.RawTariff)
+		}
+		if rv.Messages[0] != "Duplicate (Counts Once)" || rv.Messages[1] != "Duplicate" {
+			t.Errorf("messages = %q / %q", rv.Messages[0], rv.Messages[1])
+		}
+	})
+
+	t.Run("bad transition", func(t *testing.T) {
+		takeoffBack := skill(1, []int{0}, Back, Straight, false, false) // takes off Back
+		rv := ValidateRoutine([]TrampolineSkill{frontTuck, takeoffBack})
+		if !rv.HasInvalidTransitions || !rv.Skills[1].InvalidTransition {
+			t.Errorf("expected invalid transition Feet -> Back on skill 2")
+		}
+	})
+
+	t.Run("10th must land feet", func(t *testing.T) {
+		crashDive := skill(3, []int{0}, Feet, Straight, false, false) // lands Back
+		routine := make([]TrampolineSkill, 10)
+		for i := range routine {
+			routine[i] = crashDive
+		}
+		rv := ValidateRoutine(routine)
+		if !rv.TenthSkillWarning {
+			t.Errorf("expected TenthSkillWarning when 10th skill does not land on feet")
+		}
+		if rv.RoutineTooLong {
+			t.Errorf("10 skills should not be RoutineTooLong")
+		}
+	})
+
+	t.Run("more than 10 skills is too long", func(t *testing.T) {
+		routine := make([]TrampolineSkill, 11)
+		for i := range routine {
+			routine[i] = frontTuck
+		}
+		if rv := ValidateRoutine(routine); !rv.RoutineTooLong {
+			t.Errorf("expected RoutineTooLong for 11 skills")
+		}
+	})
+}

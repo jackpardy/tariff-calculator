@@ -484,3 +484,172 @@ func (skill *TrampolineSkill) FIGNotation() string {
 		return fmt.Sprintf("(%s %s)", rotationStr, twistString)
 	}
 }
+
+// FindCommonSkillName returns the display name for a skill: a known common-skill
+// name with the shape appended when shape is relevant (e.g. "Front Tuck"), the
+// basic-jump name (e.g. "Tuck Jump"), or "Custom Skill" when nothing matches.
+func FindCommonSkillName(parsedSkill TrampolineSkill) string {
+	compareSkill := parsedSkill
+
+	expectedPhases := CalculatePhases(compareSkill.Rotation)
+	if len(compareSkill.TwistDistribution) > expectedPhases {
+		compareSkill.TwistDistribution = compareSkill.TwistDistribution[:expectedPhases]
+	} else {
+		for len(compareSkill.TwistDistribution) < expectedPhases {
+			compareSkill.TwistDistribution = append(compareSkill.TwistDistribution, 0)
+		}
+	}
+
+	for _, commonSkill := range CommonSkills {
+		tempCommon := commonSkill
+
+		commonExpectedPhases := CalculatePhases(tempCommon.Rotation)
+		if len(tempCommon.TwistDistribution) > commonExpectedPhases {
+			tempCommon.TwistDistribution = tempCommon.TwistDistribution[:commonExpectedPhases]
+		} else {
+			for len(tempCommon.TwistDistribution) < commonExpectedPhases {
+				tempCommon.TwistDistribution = append(tempCommon.TwistDistribution, 0)
+			}
+		}
+
+		// Match on core parameters; shape is handled separately below.
+		if compareSkill.Rotation == tempCommon.Rotation &&
+			compareSkill.TakeoffPosition == tempCommon.TakeoffPosition &&
+			compareSkill.Backward == tempCommon.Backward &&
+			compareSkill.SeatLanding == tempCommon.SeatLanding &&
+			slices.Equal(compareSkill.TwistDistribution, tempCommon.TwistDistribution) {
+
+			baseName := tempCommon.Name
+			inputShape := compareSkill.Shape
+
+			// Basic jumps: the shape *is* the skill (Tuck/Pike/Straddle Jump, or Straight Jump).
+			if compareSkill.Rotation == 0 && compareSkill.TotalTwist() == 0 &&
+				compareSkill.LandingPosition() != Seat && compareSkill.TakeoffPosition != Seat {
+				if baseName == "Shape Jump" && (inputShape == Tuck || inputShape == Pike || inputShape == Straddle) {
+					return fmt.Sprintf("%s Jump", inputShape.String())
+				}
+				return "Straight Jump"
+			}
+
+			// Otherwise append the shape when it is relevant, omit it when it is not.
+			if compareSkill.ShapeIsRelevant() {
+				return fmt.Sprintf("%s %s", baseName, inputShape.String())
+			}
+			return baseName
+		}
+	}
+
+	return "Custom Skill"
+}
+
+// SkillValidation is the per-skill outcome of validating a routine.
+type SkillValidation struct {
+	Skill             TrampolineSkill
+	Landing           BodyPosition
+	FIGNotation       string
+	InvalidTransition bool
+	InvalidLanding    bool
+	IsDuplicate       bool
+}
+
+// RoutineValidation is the pure-domain result of validating a routine: per-skill
+// outcomes, per-skill messages (parallel to Skills), the counted vs raw tariff
+// totals, and the routine-level flags. It carries no view/transport concerns.
+type RoutineValidation struct {
+	Skills                []SkillValidation
+	Messages              []string
+	TotalTariff           float64
+	RawTariff             float64
+	HasDuplicates         bool
+	HasInvalidTransitions bool
+	HasInvalidLandings    bool
+	TenthSkillWarning     bool
+	RoutineTooLong        bool
+}
+
+// ValidateRoutine evaluates a routine: duplicate detection (a repeat counts once),
+// landing/take-off transition legality, invalid landings, the 10-skill tariff cap,
+// and the "10th skill must land on feet" rule. Tariffs are (re)computed defensively,
+// so the routine need not be pre-priced.
+func ValidateRoutine(routine []TrampolineSkill) RoutineValidation {
+	res := RoutineValidation{
+		Skills:         make([]SkillValidation, len(routine)),
+		Messages:       make([]string, len(routine)),
+		RoutineTooLong: len(routine) > 10,
+	}
+
+	duplicateMap := make(map[int]bool)
+	validSkillCount := 0
+
+	for i := range routine {
+		s := routine[i]
+		s.SetTariff() // idempotent; ensures the derived tariff is populated
+		res.Skills[i].Skill = s
+		landing := s.LandingPosition()
+		res.Skills[i].Landing = landing
+		res.Skills[i].FIGNotation = s.FIGNotation()
+
+		res.RawTariff += s.Tariff
+
+		var msgs []string
+		isCurrentSkillDuplicate := false
+		for j := 0; j < i; j++ {
+			if res.Skills[i].Skill.Equal(&res.Skills[j].Skill) {
+				isCurrentSkillDuplicate = true
+				res.HasDuplicates = true
+				if _, marked := duplicateMap[j]; !marked {
+					res.Skills[j].IsDuplicate = true
+					duplicateMap[j] = true
+					if res.Messages[j] == "" {
+						res.Messages[j] = "Duplicate (Counts Once)"
+					} else {
+						res.Messages[j] += " / Duplicate (Counts Once)"
+					}
+				}
+				res.Skills[i].IsDuplicate = true
+				msgs = append(msgs, "Duplicate")
+				break
+			}
+		}
+
+		if !isCurrentSkillDuplicate && validSkillCount < 10 {
+			res.TotalTariff += s.Tariff
+			validSkillCount++
+		}
+
+		if i > 0 {
+			prevLanding := res.Skills[i-1].Landing
+			currentTakeoff := s.TakeoffPosition
+			if prevLanding != Invalid && prevLanding != currentTakeoff {
+				res.Skills[i].InvalidTransition = true
+				res.HasInvalidTransitions = true
+				if i < 10 || !res.RoutineTooLong {
+					msgs = append(msgs, fmt.Sprintf("Bad Transition: %s -> %s", prevLanding.String(), currentTakeoff.String()))
+				}
+			}
+		}
+
+		if landing == Invalid {
+			res.Skills[i].InvalidLanding = true
+			res.HasInvalidLandings = true
+			if i < 10 || !res.RoutineTooLong {
+				msgs = append(msgs, "Invalid Landing")
+			}
+		}
+
+		if i == 9 {
+			if landing != Feet {
+				res.TenthSkillWarning = true
+				msgs = append(msgs, "10th Must Land Feet")
+			}
+		}
+
+		if i >= 10 {
+			msgs = append(msgs, "Skill >10 (No Tariff)")
+		}
+
+		res.Messages[i] = strings.Join(msgs, " / ")
+	}
+
+	return res
+}

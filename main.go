@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -526,7 +525,7 @@ func handleCalculateSingleSkill(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	skill.Name = findCommonSkillName(skill)
+	skill.Name = skills.FindCommonSkillName(skill)
 
 	skill.SetTariff()
 	landingPos := skill.LandingPosition()
@@ -582,7 +581,7 @@ func handleEvaluateSkillFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	skill.Name = findCommonSkillName(skill)
+	skill.Name = skills.FindCommonSkillName(skill)
 
 	skill.SetTariff()
 	landingPos := skill.LandingPosition()
@@ -642,7 +641,7 @@ func handleValidateRoutineClientState(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		// Also ensure Name is correct based on parameters (in case loaded from storage)
-		foundName := findCommonSkillName(routine[i])
+		foundName := skills.FindCommonSkillName(routine[i])
 		if foundName != "" {
 			routine[i].Name = foundName
 		} else {
@@ -652,7 +651,7 @@ func handleValidateRoutineClientState(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	validationData := performRoutineValidation(routine)
+	validationData := toValidationView(skills.ValidateRoutine(routine))
 	w.Header().Set("Content-Type", "application/json")
 	encodeErr := json.NewEncoder(w).Encode(validationData)
 	if encodeErr != nil {
@@ -688,69 +687,6 @@ func handleCommonSkillsOptions(w http.ResponseWriter, r *http.Request) {
 }
 
 // --- Helper Functions ---
-
-func findCommonSkillName(parsedSkill skills.TrampolineSkill) string {
-	compareSkill := parsedSkill // Use the input skill directly for checks
-
-	// Ensure twist distribution slice length is correct based on rotation for comparison
-	expectedPhases := skills.CalculatePhases(compareSkill.Rotation)
-	if len(compareSkill.TwistDistribution) > expectedPhases {
-		compareSkill.TwistDistribution = compareSkill.TwistDistribution[:expectedPhases]
-	} else {
-		for len(compareSkill.TwistDistribution) < expectedPhases {
-			compareSkill.TwistDistribution = append(compareSkill.TwistDistribution, 0)
-		}
-	}
-
-	// Iterate through the refactored CommonSkills map
-	for _, commonSkill := range skills.CommonSkills {
-		tempCommon := commonSkill // Work with a copy
-
-		// Ensure common skill twist distribution is also correct length for comparison
-		commonExpectedPhases := skills.CalculatePhases(tempCommon.Rotation)
-		if len(tempCommon.TwistDistribution) > commonExpectedPhases {
-			tempCommon.TwistDistribution = tempCommon.TwistDistribution[:commonExpectedPhases]
-		} else {
-			for len(tempCommon.TwistDistribution) < commonExpectedPhases {
-				tempCommon.TwistDistribution = append(tempCommon.TwistDistribution, 0)
-			}
-		}
-
-		// --- Core Parameter Check (Ignoring Shape initially) ---
-		// Check Rotation, Takeoff, Backward, SeatLanding, and Twist Distribution
-		// Note: Using slices.Equal for twist distribution comparison.
-		if compareSkill.Rotation == tempCommon.Rotation &&
-			compareSkill.TakeoffPosition == tempCommon.TakeoffPosition &&
-			compareSkill.Backward == tempCommon.Backward &&
-			compareSkill.SeatLanding == tempCommon.SeatLanding &&
-			slices.Equal(compareSkill.TwistDistribution, tempCommon.TwistDistribution) {
-
-			// Found a match based on core parameters! Now decide the display name.
-			baseName := tempCommon.Name
-			inputShape := compareSkill.Shape
-
-			// Basic jumps: the shape *is* the skill (Tuck/Pike/Straddle Jump, or Straight Jump).
-			if compareSkill.Rotation == 0 && compareSkill.TotalTwist() == 0 &&
-				compareSkill.LandingPosition() != skills.Seat && compareSkill.TakeoffPosition != skills.Seat {
-				if baseName == "Shape Jump" && (inputShape == skills.Tuck || inputShape == skills.Pike || inputShape == skills.Straddle) {
-					return fmt.Sprintf("%s Jump", inputShape.String())
-				}
-				return "Straight Jump"
-			}
-
-			// For every other element, append the shape whenever shape is relevant
-			// (e.g. "Front Tuck", "Triple Back Straight") and omit it when it isn't
-			// (e.g. "Rudi", "Full Back", twisting jumps, drops).
-			if compareSkill.ShapeIsRelevant() {
-				return fmt.Sprintf("%s %s", baseName, inputShape.String())
-			}
-			return baseName
-		}
-	}
-
-	// No common skill match found
-	return "Custom Skill"
-}
 
 // parseRoutineFromRequest parses JSON routine data from form/query/body.
 func parseRoutineFromRequest(r *http.Request) ([]skills.TrampolineSkill, error) {
@@ -824,92 +760,30 @@ func parseRoutineFromRequest(r *http.Request) ([]skills.TrampolineSkill, error) 
 	return routine, nil
 }
 
-// performRoutineValidation performs validation and returns structured data.
-func performRoutineValidation(routine []skills.TrampolineSkill) RoutineValidationData {
+// toValidationView adapts the pure-domain skills.RoutineValidation into the JSON
+// view model the client expects (RoutineValidationData). This is the only place
+// the domain result and the wire format meet.
+func toValidationView(rv skills.RoutineValidation) RoutineValidationData {
 	data := RoutineValidationData{
-		Skills:                make([]ValidatedSkill, len(routine)),
-		Messages:              make([]string, len(routine)),
-		HasDuplicates:         false,
-		HasInvalidTransitions: false,
-		HasInvalidLandings:    false,
-		TenthSkillWarning:     false,
-		RoutineTooLong:        len(routine) > 10,
-		TotalTariff:           0.0,
-		RawTariff:             0.0,
+		Skills:                make([]ValidatedSkill, len(rv.Skills)),
+		Messages:              rv.Messages,
+		TotalTariff:           rv.TotalTariff,
+		RawTariff:             rv.RawTariff,
+		HasDuplicates:         rv.HasDuplicates,
+		HasInvalidTransitions: rv.HasInvalidTransitions,
+		HasInvalidLandings:    rv.HasInvalidLandings,
+		TenthSkillWarning:     rv.TenthSkillWarning,
+		RoutineTooLong:        rv.RoutineTooLong,
 	}
-
-	duplicateMap := make(map[int]bool)
-	validSkillCount := 0
-
-	for i := range routine {
-		data.Skills[i].TrampolineSkill = routine[i] // Already has correct twist length and name from caller
-		landing := data.Skills[i].LandingPosition()
-		data.Skills[i].LandingPosStr = landing.String()
-
-		data.RawTariff += data.Skills[i].Tariff
-		data.Skills[i].FIGNotation = data.Skills[i].TrampolineSkill.FIGNotation() // Calculate and store
-
-		var messages []string
-		isCurrentSkillDuplicate := false
-		for j := 0; j < i; j++ {
-			// Use the Equal method which compares based on rules
-			if data.Skills[i].Equal(&data.Skills[j].TrampolineSkill) {
-				isCurrentSkillDuplicate = true
-				data.HasDuplicates = true
-
-				if _, marked := duplicateMap[j]; !marked {
-					data.Skills[j].IsDuplicate = true
-					duplicateMap[j] = true
-					if data.Messages[j] == "" {
-						data.Messages[j] = "Duplicate (Counts Once)"
-					} else {
-						data.Messages[j] += " / Duplicate (Counts Once)"
-					}
-				}
-				data.Skills[i].IsDuplicate = true
-				messages = append(messages, "Duplicate")
-				break
-			}
+	for i, sv := range rv.Skills {
+		data.Skills[i] = ValidatedSkill{
+			TrampolineSkill:   sv.Skill,
+			InvalidTransition: sv.InvalidTransition,
+			InvalidLanding:    sv.InvalidLanding,
+			IsDuplicate:       sv.IsDuplicate,
+			LandingPosStr:     sv.Landing.String(),
+			FIGNotation:       sv.FIGNotation,
 		}
-
-		if !isCurrentSkillDuplicate && validSkillCount < 10 {
-			data.TotalTariff += data.Skills[i].Tariff
-			validSkillCount++
-		}
-
-		if i > 0 {
-			prevLanding := data.Skills[i-1].LandingPosition()
-			currentTakeoff := data.Skills[i].TakeoffPosition
-			if prevLanding != skills.Invalid && prevLanding != currentTakeoff {
-				data.Skills[i].InvalidTransition = true
-				data.HasInvalidTransitions = true
-				if i < 10 || !data.RoutineTooLong {
-					messages = append(messages, fmt.Sprintf("Bad Transition: %s -> %s", prevLanding.String(), currentTakeoff.String()))
-				}
-			}
-		}
-
-		if landing == skills.Invalid {
-			data.Skills[i].InvalidLanding = true
-			data.HasInvalidLandings = true
-			if i < 10 || !data.RoutineTooLong {
-				messages = append(messages, "Invalid Landing")
-			}
-		}
-
-		if i == 9 {
-			if landing != skills.Feet {
-				data.TenthSkillWarning = true
-				messages = append(messages, "10th Must Land Feet")
-			}
-		}
-
-		if i >= 10 {
-			messages = append(messages, "Skill >10 (No Tariff)")
-		}
-
-		data.Messages[i] = strings.Join(messages, " / ")
 	}
-
 	return data
 }
