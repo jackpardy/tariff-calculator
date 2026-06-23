@@ -319,6 +319,7 @@
                         console.log('--> Main form fragment swapped.');
                         const rotationInput = document.getElementById('rotation');
                         if (rotationInput) { this.updateTwistInputs(rotationInput.value); }
+                        this.updateShapeControl(); // Sync shape control visibility/straddle
                         this.updatePositionDropdown(); // Always update position dropdown
 
                         // Apply persisted selections AFTER swap
@@ -535,6 +536,7 @@
                             if (formWrapper) { formWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
                             const rotationInput = document.getElementById('rotation');
                             if (rotationInput) { this.updateTwistInputs(rotationInput.value); }
+                            this.updateShapeControl();
                             // applyPersistedSortPreference will run via htmx:afterSwap and set the dropdown
                         });
                     })
@@ -575,6 +577,7 @@
                     .then(() => {
                         console.log("cancelEdit: HTMX swap finished, applying persisted selections.");
                         this.updatePositionDropdown();
+                        this.updateShapeControl();
                         this.applyPersistedSortPreference(); // Ensure sort dropdown is correct
                     })
                     .catch(err => {
@@ -624,6 +627,42 @@
                     input.disabled = !shouldBeEnabled;
                     input.style.opacity = shouldBeEnabled ? '1' : '0.5';
                 });
+            },
+            // Mirrors skills.ShapeIsRelevant (Go) for live form updates between server renders.
+            shapeIsRelevant(rotation, totalTwist, takeoff, seatLanding) {
+                rotation = Math.abs(parseInt(rotation) || 0);
+                if (rotation === 0) {
+                    if (totalTwist === 0) { return takeoff !== 'seat' && !seatLanding; } // basic jump
+                    return false; // twisting jump
+                }
+                if (rotation < 3) return false;           // drops / partial rotations
+                if (rotation < 6) return totalTwist < 2;  // single somersaults under a full twist
+                return true;                              // 1.5 somersaults and up
+            },
+            // Shows/hides the shape control and the straddle option based on the current
+            // form values, so manual rotation/twist edits stay consistent with the server.
+            updateShapeControl() {
+                const form = document.getElementById('main-form');
+                if (!form) return;
+                const rotation = Math.abs(parseInt(document.getElementById('rotation')?.value) || 0);
+                const totalTwist = Array.from(form.querySelectorAll('input[name="twist_distribution[]"]:not(:disabled)'))
+                    .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
+                const takeoff = document.getElementById('takeoff_position')?.value || 'feet';
+                const seatLanding = document.getElementById('seat_landing')?.checked || false;
+                const isBasicJump = rotation === 0 && totalTwist === 0 && takeoff !== 'seat' && !seatLanding;
+                const relevant = this.shapeIsRelevant(rotation, totalTwist, takeoff, seatLanding);
+
+                const shapeFieldInner = document.getElementById('shape-field-inner');
+                if (shapeFieldInner) shapeFieldInner.style.display = relevant ? '' : 'none';
+
+                // Straddle only applies to basic jumps; revert to straight if it becomes invalid.
+                const shapeSelect = document.getElementById('shape');
+                const straddleOption = shapeSelect?.querySelector('option[value="straddle"]');
+                if (straddleOption) {
+                    straddleOption.hidden = !isBasicJump;
+                    straddleOption.disabled = !isBasicJump;
+                    if (!isBasicJump && shapeSelect.value === 'straddle') { shapeSelect.value = 'straight'; }
+                }
             },
 
             // --- Backend Interaction ---

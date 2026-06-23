@@ -379,6 +379,41 @@ func (skill *TrampolineSkill) Validate() error {
 	}
 	return nil
 }
+
+// ShapeIsRelevant reports whether the body shape (tuck/pike/straight, plus
+// straddle for jumps) is part of the skill's identity. It is the single source
+// of truth for "does shape matter here" used by naming and FIG notation.
+//
+// Shape is relevant for:
+//   - basic jumps (no somersault, no twist): tuck/pike/straddle/straight are distinct skills;
+//   - single somersaults performed with less than a full twist (the straight/pike
+//     bonus of CoP §17.1.4 applies and tuck/pike/straight read as different skills);
+//   - 1½ somersaults and above (CoP §17.1.5 / §14.5.3).
+//
+// Shape is NOT relevant for twisting jumps, sub-3/4 rotations (drops), and single
+// somersaults carrying a full twist or more (e.g. Rudi, Full Back) — these are
+// effectively straight and the shape is not distinguished.
+func (skill *TrampolineSkill) ShapeIsRelevant() bool {
+	totalTwist := skill.TotalTwist()
+	switch {
+	case skill.Rotation == 0 && totalTwist == 0:
+		// Basic jumps, but not seat drops / seat take-offs.
+		return skill.LandingPosition() != Seat && skill.TakeoffPosition != Seat
+	case skill.Rotation == 0:
+		// Twisting jumps (half twist, full twist, ...): straight only.
+		return false
+	case skill.Rotation < 3:
+		// Drops and other sub-3/4 rotations: no shape distinction.
+		return false
+	case skill.Rotation < 6:
+		// Single somersaults below 1½: shape matters under a full twist.
+		return totalTwist < 2
+	default:
+		// 1½ somersaults and above.
+		return true
+	}
+}
+
 func (skill *TrampolineSkill) FIGNotation() string {
 	// Shape mapping
 	var shapeSymbol string
@@ -438,19 +473,8 @@ func (skill *TrampolineSkill) FIGNotation() string {
 	}
 	twistString := strings.Join(twistParts, " ")
 
-	// Determine if shape should be included based on FIG rules
-	includeShape := true // Default to include
-	totalTwist := skill.TotalTwist()
-
-	if skill.Rotation == 0 && totalTwist > 0 { // Twisting jumps (e.g., Full Twist)
-		includeShape = false
-	} else if skill.Rotation < 3 { // Less than 3/4 somersault (e.g., Front Drop)
-		includeShape = false
-	} else if skill.Rotation < 6 && totalTwist >= 2 { // Single somersaults with full twist or more
-		includeShape = false
-	}
-	// Note: For Rotation >= 6 (doubles+), includeShape remains true (shape always matters)
-	// Note: For Rotation 3-5 with twist < 2, includeShape remains true (shape matters)
+	// Determine if shape should be included based on FIG rules (single source of truth).
+	includeShape := skill.ShapeIsRelevant()
 
 	// Combine into final notation string
 	rotationStr := strconv.Itoa(skill.Rotation)

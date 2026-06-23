@@ -23,7 +23,7 @@
         <div class="control">
             <input class="input" type="number" id="rotation" name="rotation"
                    min="0" max="16" step="1" value="{{.Skill.Rotation | abs}}" required
-                   @input="updateTwistInputs($event.target.value)"> {{/* Alpine trigger remains for manual changes */}}
+                   @input="updateTwistInputs($event.target.value); updateShapeControl()"> {{/* Alpine trigger remains for manual changes */}}
         </div>
     </div>
 </div>
@@ -43,6 +43,7 @@
                 {{$twistValue := index $currentTwists $i | default 0}}
                 <input class="input twist-rotation" type="number" name="twist_distribution[]"
                        min="0" value="{{$twistValue}}" data-rotation="{{$phaseNum}}"
+                       @input="updateShapeControl()"
                        {{if not $isEnabled}}disabled style="opacity: 0.5;"{{end}}>
             </div>
         </div>
@@ -55,7 +56,7 @@
     <div class="field">
         <label class="label">Takeoff</label>
         <div class="select is-fullwidth">
-            <select name="takeoff_position" id="takeoff_position">
+            <select name="takeoff_position" id="takeoff_position" @change="updateShapeControl()">
                 <option value="feet" {{if eq .Skill.TakeoffPosition.String "Feet"}}selected{{end}}>Feet</option>
                 <option value="front" {{if eq .Skill.TakeoffPosition.String "Front"}}selected{{end}}>Front</option>
                 <option value="back" {{if eq .Skill.TakeoffPosition.String "Back"}}selected{{end}}>Back</option>
@@ -65,16 +66,19 @@
     </div>
 </div>
 
-{{/* Shape Select */}}
-<div class="column is-2">
-    <div class="field">
+{{/* Shape Select - the column always reserves its is-2 slot so the action buttons
+     stay aligned; only the inner field is hidden when shape is not relevant
+     (e.g. Rudi, twisting jumps). */}}
+<div class="column is-2" id="shape-field">
+    <div class="field" id="shape-field-inner"{{if not .ShapeRelevant}} style="display: none;"{{end}}>
         <label class="label">Shape</label>
         <div class="select is-fullwidth">
             <select name="shape" id="shape">
                 <option value="straight" {{if eq .Skill.Shape.String "Straight"}}selected{{end}}>Straight</option>
                 <option value="tuck" {{if eq .Skill.Shape.String "Tuck"}}selected{{end}}>Tuck</option>
                 <option value="pike" {{if eq .Skill.Shape.String "Pike"}}selected{{end}}>Pike</option>
-                <option value="straddle" {{if eq .Skill.Shape.String "Straddle"}}selected{{end}}>Straddle</option>
+                {{/* Straddle only applies to basic jumps */}}
+                <option value="straddle" {{if not .IsBasicJump}}hidden disabled{{end}} {{if eq .Skill.Shape.String "Straddle"}}selected{{end}}>Straddle</option>
             </select>
         </div>
     </div>
@@ -85,7 +89,7 @@
     <div class="field is-grouped is-grouped-multiline">
         <div class="control">
             <label class="checkbox">
-                <input type="checkbox" name="seat_landing" id="seat_landing" {{if .Skill.SeatLanding}}checked{{end}}>
+                <input type="checkbox" name="seat_landing" id="seat_landing" @change="updateShapeControl()" {{if .Skill.SeatLanding}}checked{{end}}>
                 Seat Ldg
             </label>
         </div>

@@ -60,6 +60,8 @@ type SkillFormData struct {
 	EnabledPhases int
 	CurrentTwists []int  // Note: This is for FORM display, might still be 4 elements
 	SortBy        string // Add SortBy for initial form load state
+	ShapeRelevant bool   // Whether the shape control should be shown for this skill
+	IsBasicJump   bool   // Whether the straddle shape option applies (basic jumps only)
 }
 
 // Added struct for the options template
@@ -276,6 +278,9 @@ func prepareSkillFormData(skillData skills.TrampolineSkill, index int, sortBy st
 		copy(currentTwists, skillData.TwistDistribution[:copyCount])
 	}
 
+	isBasicJump := skillData.Rotation == 0 && skillData.TotalTwist() == 0 &&
+		skillData.LandingPosition() != skills.Seat && skillData.TakeoffPosition != skills.Seat
+
 	return SkillFormData{
 		Skill:         skillData,
 		CommonSkills:  nil, // Will be populated later if needed
@@ -283,6 +288,8 @@ func prepareSkillFormData(skillData skills.TrampolineSkill, index int, sortBy st
 		EnabledPhases: enabledPhases,
 		CurrentTwists: currentTwists,
 		SortBy:        sortBy, // Store current sort order
+		ShapeRelevant: skillData.ShapeIsRelevant(),
+		IsBasicJump:   isBasicJump,
 	}
 }
 
@@ -718,39 +725,26 @@ func findCommonSkillName(parsedSkill skills.TrampolineSkill) string {
 			compareSkill.SeatLanding == tempCommon.SeatLanding &&
 			slices.Equal(compareSkill.TwistDistribution, tempCommon.TwistDistribution) {
 
-			// Found a match based on core parameters! Now check shape.
+			// Found a match based on core parameters! Now decide the display name.
 			baseName := tempCommon.Name
 			inputShape := compareSkill.Shape
-			defaultShape := tempCommon.Shape // Shape stored in the CommonSkills map entry
 
-			// Determine if shape matters for uniqueness based on FIG rules
-			shapeMatters := false
-			rotation := compareSkill.Rotation
-			totalTwist := compareSkill.TotalTwist() // Use the method from skills.go
-
-			if rotation == 0 && totalTwist == 0 && compareSkill.LandingPosition() != skills.Seat && compareSkill.TakeoffPosition != skills.Seat { // Basic Jumps
-				// Shape always matters for non-straight basic jumps
+			// Basic jumps: the shape *is* the skill (Tuck/Pike/Straddle Jump, or Straight Jump).
+			if compareSkill.Rotation == 0 && compareSkill.TotalTwist() == 0 &&
+				compareSkill.LandingPosition() != skills.Seat && compareSkill.TakeoffPosition != skills.Seat {
 				if baseName == "Shape Jump" && (inputShape == skills.Tuck || inputShape == skills.Pike || inputShape == skills.Straddle) {
 					return fmt.Sprintf("%s Jump", inputShape.String())
-				} else {
-					return "Straight Jump"
 				}
-				// For straight jump, shape doesn't result in appending name
-			} else if rotation >= 6 { // Doubles+
-				shapeMatters = true
-			} else if rotation >= 3 && totalTwist < 2 { // Singles/Crash/Lazy with < Full twist
-				shapeMatters = true
+				return "Straight Jump"
 			}
-			// Note: For Rotation < 3 (Front/Back drops) or Rotation 3-5 with >= Full twist, shapeMatters remains false.
 
-			// Append shape name ONLY if it matters AND it's different from the default
-			if shapeMatters && (defaultShape != skills.Straight || defaultShape != inputShape) {
-				// Append the actual shape name
+			// For every other element, append the shape whenever shape is relevant
+			// (e.g. "Front Tuck", "Triple Back Straight") and omit it when it isn't
+			// (e.g. "Rudi", "Full Back", twisting jumps, drops).
+			if compareSkill.ShapeIsRelevant() {
 				return fmt.Sprintf("%s %s", baseName, inputShape.String())
-			} else {
-				// Return the base name (shape didn't matter, or it matched the default)
-				return baseName
 			}
+			return baseName
 		}
 	}
 
