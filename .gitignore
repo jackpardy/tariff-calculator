@@ -1,0 +1,5 @@
+# JetBrains IDE files
+.idea/
+
+# Compiled binary
+/tariff-calculator
