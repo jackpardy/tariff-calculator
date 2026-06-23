@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="container" x-data="tariffCalculatorStore()" x-init="init()">
+<div class="container" x-data="tariffCalculatorStore()">
 
     {{/* Hidden input to potentially pass routine data if needed, managed by Alpine */}}
     <input type="hidden" name="routineData" :value="JSON.stringify(routine)">
