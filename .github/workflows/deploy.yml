@@ -27,6 +27,8 @@ jobs:
           }
       - run: go vet ./...
       - run: go test ./...
+      - name: Build the Docker image
+        run: docker build -t tariff-calculator:ci .
 
   deploy:
     needs: test
