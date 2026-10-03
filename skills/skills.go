@@ -3,7 +3,6 @@ package skills
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"slices"
 	"strconv"
 	"strings"
@@ -362,22 +361,55 @@ func CalculatePhases(rotation int) int {
 		return 4
 	}
 }
+
+// ShapeFromString parses a shape name case-insensitively, returning InvalidShape
+// for anything unrecognised so that Validate rejects it.
 func ShapeFromString(s string) Shape {
 	for shapeEnum, name := range ShapeName {
 		if strings.EqualFold(s, name) {
 			return shapeEnum
 		}
 	}
-	log.Printf("Warning: Invalid shape string '%s' received, using default.", s)
-	return Straight // Or InvalidShape, depending on desired default
+	return InvalidShape
 }
+
+// MaxRotation is a quadruple somersault (1440°), the most the Code of Points
+// scores (§17.1.1.5).
+const MaxRotation = 16
+
+// Validate reports whether the skill is one the engine can score: rotation within
+// 0..MaxRotation quarters, one non-negative twist count per phase, and a known
+// take-off position and shape.
 func (skill *TrampolineSkill) Validate() error {
+	if skill.Rotation < 0 || skill.Rotation > MaxRotation {
+		return fmt.Errorf("rotation must be between 0 and %d quarter somersaults, got %d",
+			MaxRotation, skill.Rotation)
+	}
 	requiredPhases := CalculatePhases(skill.Rotation)
 	if len(skill.TwistDistribution) != requiredPhases {
 		return fmt.Errorf("requires %d twist phases for %d/4 rotation",
 			requiredPhases, skill.Rotation)
 	}
+	for i, twist := range skill.TwistDistribution {
+		if twist < 0 {
+			return fmt.Errorf("twist in phase %d must not be negative, got %d", i+1, twist)
+		}
+	}
+	if skill.TakeoffPosition < Feet || skill.TakeoffPosition >= Invalid {
+		return fmt.Errorf("invalid take-off position")
+	}
+	if skill.Shape < Straight || skill.Shape >= InvalidShape {
+		return fmt.Errorf("invalid shape")
+	}
 	return nil
+}
+
+// IsStraightJump reports whether the skill is a plain straight jump: no rotation,
+// no twist, straight shape, feet to feet. Inside a routine this is an intermediate
+// jump that interrupts the exercise (CoP §15.1.3).
+func (skill *TrampolineSkill) IsStraightJump() bool {
+	return skill.Rotation == 0 && skill.TotalTwist() == 0 && skill.Shape == Straight &&
+		skill.TakeoffPosition == Feet && !skill.SeatLanding
 }
 
 // ShapeIsRelevant reports whether the body shape (tuck/pike/straight, plus
@@ -550,6 +582,7 @@ type SkillValidation struct {
 	InvalidTransition bool
 	InvalidLanding    bool
 	IsDuplicate       bool
+	IntermediateJump  bool
 }
 
 // RoutineValidation is the pure-domain result of validating a routine: per-skill
@@ -563,23 +596,28 @@ type RoutineValidation struct {
 	HasDuplicates         bool
 	HasInvalidTransitions bool
 	HasInvalidLandings    bool
+	HasIntermediateJumps  bool
 	TenthSkillWarning     bool
 	RoutineTooLong        bool
 }
 
-// ValidateRoutine evaluates a routine: duplicate detection (a repeat counts once),
-// landing/take-off transition legality, invalid landings, the 10-skill tariff cap,
-// and the "10th skill must land on feet" rule. Tariffs are (re)computed defensively,
-// so the routine need not be pre-priced.
+// RoutineLength is the number of elements in an exercise (CoP §4.1).
+const RoutineLength = 10
+
+// ValidateRoutine evaluates a routine: duplicate detection (a repeat's difficulty
+// is not counted, §14.1), take-off from feet for the first skill (§12.3) and
+// landing/take-off transition legality thereafter, invalid landings, intermediate
+// straight jumps (§15.1.3), the "10th skill must land on feet" rule (§16.1), and
+// only the first RoutineLength skills counting toward the total (§4.1, §16.5).
+// Tariffs are (re)computed defensively, so the routine need not be pre-priced.
 func ValidateRoutine(routine []TrampolineSkill) RoutineValidation {
 	res := RoutineValidation{
 		Skills:         make([]SkillValidation, len(routine)),
 		Messages:       make([]string, len(routine)),
-		RoutineTooLong: len(routine) > 10,
+		RoutineTooLong: len(routine) > RoutineLength,
 	}
 
 	duplicateMap := make(map[int]bool)
-	validSkillCount := 0
 
 	for i := range routine {
 		s := routine[i]
@@ -612,39 +650,51 @@ func ValidateRoutine(routine []TrampolineSkill) RoutineValidation {
 			}
 		}
 
-		if !isCurrentSkillDuplicate && validSkillCount < 10 {
+		if !isCurrentSkillDuplicate && i < RoutineLength {
 			res.TotalTariff += s.Tariff
-			validSkillCount++
 		}
 
-		if i > 0 {
+		if i == 0 {
+			// The exercise starts from preparation straight jumps, i.e. on feet.
+			if s.TakeoffPosition != Feet {
+				res.Skills[i].InvalidTransition = true
+				res.HasInvalidTransitions = true
+				msgs = append(msgs, "Must Start From Feet")
+			}
+		} else {
 			prevLanding := res.Skills[i-1].Landing
 			currentTakeoff := s.TakeoffPosition
 			if prevLanding != Invalid && prevLanding != currentTakeoff {
 				res.Skills[i].InvalidTransition = true
 				res.HasInvalidTransitions = true
-				if i < 10 || !res.RoutineTooLong {
+				if i < RoutineLength || !res.RoutineTooLong {
 					msgs = append(msgs, fmt.Sprintf("Bad Transition: %s -> %s", prevLanding.String(), currentTakeoff.String()))
 				}
 			}
 		}
 
+		if s.IsStraightJump() {
+			res.Skills[i].IntermediateJump = true
+			res.HasIntermediateJumps = true
+			msgs = append(msgs, "Straight Jump Interrupts Routine")
+		}
+
 		if landing == Invalid {
 			res.Skills[i].InvalidLanding = true
 			res.HasInvalidLandings = true
-			if i < 10 || !res.RoutineTooLong {
+			if i < RoutineLength || !res.RoutineTooLong {
 				msgs = append(msgs, "Invalid Landing")
 			}
 		}
 
-		if i == 9 {
+		if i == RoutineLength-1 {
 			if landing != Feet {
 				res.TenthSkillWarning = true
 				msgs = append(msgs, "10th Must Land Feet")
 			}
 		}
 
-		if i >= 10 {
+		if i >= RoutineLength {
 			msgs = append(msgs, "Skill >10 (No Tariff)")
 		}
 

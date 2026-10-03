@@ -386,10 +386,10 @@
     display: table;
 }
 
-routine-skills .box {
+#routine-skills .routine-skill {
     margin-bottom: 0; border-radius: 0; border-left: 4px solid #ddd;
     cursor: grab; transition: border-left-color 0.3s ease, opacity 0.2s ease;
-    -webkit-user-select: none; user-select: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
 }
 .routine-skill.invalid-transition { border-left-color: #ff3860 !important; }
 .routine-skill.invalid-landing { border-left-color: #ff69b4 !important; }

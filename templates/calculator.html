@@ -68,7 +68,7 @@
                     <div class="routine-skill-container" :class="{ 'editing': editingIndex === index }">
                         {{/* The actual skill item box, draggable, with collapsable state */}}
                         <div class="routine-skill box mb-2" :class="{
-                                    'invalid-transition': validationResults?.skills?.[index]?.InvalidTransition,
+                                    'invalid-transition': validationResults?.skills?.[index]?.InvalidTransition || validationResults?.skills?.[index]?.IntermediateJump,
                                     'invalid-landing': validationResults?.skills?.[index]?.InvalidLanding,
                                     'duplicate-skill': validationResults?.skills?.[index]?.IsDuplicate,
                                     'is-dragging': draggedIndex === index
@@ -212,11 +212,13 @@
                             x-text="validationResults?.rawTariff?.toFixed(2)"></span>)</p>
                     <div class="validation-messages mt-3">
                         <p x-show="validationResults?.routineTooLong" class="has-text-warning mb-2">⚠️ Routine has more
-                            than 10 skills (only first 10 non-duplicates count toward Tariff).</p>
+                            than 10 skills (skills after the 10th don't count toward Tariff).</p>
                         <p x-show="validationResults?.HasDuplicates" class="has-text-warning mb-2">⚠️ Duplicate skills
                             only count once toward total!</p>
                         <p x-show="validationResults?.HasInvalidTransitions" class="has-text-danger">❌ Invalid
                             transitions detected.</p>
+                        <p x-show="validationResults?.HasIntermediateJumps" class="has-text-danger">❌ Straight jumps
+                            interrupt the routine.</p>
                         <p x-show="validationResults?.HasInvalidLandings" class="has-text-landing-warning">🚫 Invalid
                             landing positions detected.</p>
                         <p x-show="validationResults?.tenthSkillWarning" class="has-text-tenth-warning">🎯 10th skill
@@ -243,7 +245,7 @@
             editingIndex: null,
             validationResults: {
                 skills: [], totalTariff: 0.0, rawTariff: 0.0, HasDuplicates: false,
-                HasInvalidTransitions: false, HasInvalidLandings: false,
+                HasInvalidTransitions: false, HasInvalidLandings: false, HasIntermediateJumps: false,
                 tenthSkillWarning: false, routineTooLong: false, messages: []
             },
             toast: { show: false, message: '', type: 'info' },
@@ -363,6 +365,7 @@
                                     rawTariff: results.rawTariff || 0.0, HasDuplicates: results.hasDuplicates || false,
                                     HasInvalidTransitions: results.hasInvalidTransitions || false,
                                     HasInvalidLandings: results.hasInvalidLandings || false,
+                                    HasIntermediateJumps: results.hasIntermediateJumps || false,
                                     tenthSkillWarning: results.tenthSkillWarning || false,
                                     routineTooLong: results.routineTooLong || false, messages: results.messages || []
                                 };

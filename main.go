@@ -26,9 +26,10 @@ var tmpl *template.Template
 
 type ValidatedSkill struct {
 	skills.TrampolineSkill
-	InvalidTransition bool   `json:"-"`
-	InvalidLanding    bool   `json:"-"`
-	IsDuplicate       bool   `json:"-"`
+	InvalidTransition bool   `json:"InvalidTransition"`
+	InvalidLanding    bool   `json:"InvalidLanding"`
+	IsDuplicate       bool   `json:"IsDuplicate"`
+	IntermediateJump  bool   `json:"IntermediateJump"`
 	LandingPosStr     string `json:"landing_position"`
 	SkillDataJSON     string `json:"-"`
 	FIGNotation       string `json:"FIGNotation"`
@@ -41,6 +42,7 @@ type RoutineValidationData struct {
 	HasDuplicates         bool             `json:"hasDuplicates"`
 	HasInvalidTransitions bool             `json:"hasInvalidTransitions"`
 	HasInvalidLandings    bool             `json:"hasInvalidLandings"`
+	HasIntermediateJumps  bool             `json:"hasIntermediateJumps"`
 	TenthSkillWarning     bool             `json:"tenthSkillWarning"`
 	RoutineTooLong        bool             `json:"routineTooLong"`
 	Messages              []string         `json:"messages"`
@@ -452,7 +454,10 @@ func parseSkillFromForm(r *http.Request) (skills.TrampolineSkill, error) {
 	skill := skills.TrampolineSkill{}
 	skill.Name = r.FormValue("name")
 	rotationVal := r.FormValue("rotation")
-	rotation, _ := strconv.Atoi(rotationVal)
+	rotation, err := strconv.Atoi(rotationVal)
+	if err != nil {
+		return skill, fmt.Errorf("invalid rotation %q", rotationVal)
+	}
 	skill.Rotation = rotation
 	skill.TakeoffPosition = skills.BodyPositionFromString(r.FormValue("takeoff_position"))
 	skill.Shape = skills.ShapeFromString(r.FormValue("shape")) // Use function from skills package
@@ -478,7 +483,7 @@ func parseSkillFromForm(r *http.Request) (skills.TrampolineSkill, error) {
 		skill.TwistDistribution = append(skill.TwistDistribution, twist)
 	}
 
-	return skill, nil
+	return skill, skill.Validate()
 }
 
 // handleCalculateSingleSkill parses JSON, calculates, finds name, returns JSON.
@@ -523,6 +528,10 @@ func handleCalculateSingleSkill(w http.ResponseWriter, r *http.Request) {
 		for len(skill.TwistDistribution) < expectedPhases {
 			skill.TwistDistribution = append(skill.TwistDistribution, 0)
 		}
+	}
+	if err := skill.Validate(); err != nil {
+		http.Error(w, "Bad Request: "+err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	skill.Name = skills.FindCommonSkillName(skill)
@@ -755,6 +764,9 @@ func parseRoutineFromRequest(r *http.Request) ([]skills.TrampolineSkill, error) 
 				routine[i].TwistDistribution = append(routine[i].TwistDistribution, 0)
 			}
 		}
+		if err := routine[i].Validate(); err != nil {
+			return nil, fmt.Errorf("skill %d: %w", i+1, err)
+		}
 		// Don't update name here, let validation handle it if needed
 	}
 	return routine, nil
@@ -772,6 +784,7 @@ func toValidationView(rv skills.RoutineValidation) RoutineValidationData {
 		HasDuplicates:         rv.HasDuplicates,
 		HasInvalidTransitions: rv.HasInvalidTransitions,
 		HasInvalidLandings:    rv.HasInvalidLandings,
+		HasIntermediateJumps:  rv.HasIntermediateJumps,
 		TenthSkillWarning:     rv.TenthSkillWarning,
 		RoutineTooLong:        rv.RoutineTooLong,
 	}
@@ -781,6 +794,7 @@ func toValidationView(rv skills.RoutineValidation) RoutineValidationData {
 			InvalidTransition: sv.InvalidTransition,
 			InvalidLanding:    sv.InvalidLanding,
 			IsDuplicate:       sv.IsDuplicate,
+			IntermediateJump:  sv.IntermediateJump,
 			LandingPosStr:     sv.Landing.String(),
 			FIGNotation:       sv.FIGNotation,
 		}

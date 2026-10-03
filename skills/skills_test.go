@@ -217,4 +217,79 @@ func TestValidateRoutine(t *testing.T) {
 			t.Errorf("expected RoutineTooLong for 11 skills")
 		}
 	})
+
+	t.Run("11th skill never counts, even after a duplicate", func(t *testing.T) {
+		// Twisting jumps of 1, 1 (duplicate), 2, ..., 9 and then 10 half twists as the 11th.
+		twists := []int{1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+		routine := make([]TrampolineSkill, len(twists))
+		for i, tw := range twists {
+			routine[i] = skill(0, []int{tw}, Feet, Straight, false, false)
+		}
+		rv := ValidateRoutine(routine)
+		// 0.1 for the first half twist + 0.2..0.9; the repeat and the 11th are not counted.
+		if math.Abs(rv.TotalTariff-4.5) > 1e-9 {
+			t.Errorf("TotalTariff = %.2f, want 4.50", rv.TotalTariff)
+		}
+		if rv.Messages[10] != "Skill >10 (No Tariff)" {
+			t.Errorf("11th message = %q", rv.Messages[10])
+		}
+	})
+
+	t.Run("first skill must take off from feet", func(t *testing.T) {
+		backToFeet := skill(1, []int{0}, Back, Straight, false, false)
+		rv := ValidateRoutine([]TrampolineSkill{backToFeet})
+		if !rv.HasInvalidTransitions || !rv.Skills[0].InvalidTransition {
+			t.Errorf("expected invalid start for a first skill taking off from back")
+		}
+		if rv.Messages[0] != "Must Start From Feet" {
+			t.Errorf("message = %q", rv.Messages[0])
+		}
+		if rv := ValidateRoutine([]TrampolineSkill{frontTuck}); rv.HasInvalidTransitions {
+			t.Errorf("a first skill from feet should be a valid start")
+		}
+	})
+
+	t.Run("straight jump interrupts the routine", func(t *testing.T) {
+		straightJump := skill(0, []int{0}, Feet, Straight, false, false)
+		tuckJump := skill(0, []int{0}, Feet, Tuck, false, false)
+		rv := ValidateRoutine([]TrampolineSkill{frontTuck, straightJump, tuckJump})
+		if !rv.HasIntermediateJumps || !rv.Skills[1].IntermediateJump {
+			t.Errorf("expected the straight jump to be flagged as an intermediate jump")
+		}
+		if rv.Skills[2].IntermediateJump {
+			t.Errorf("a tuck jump is an element, not an intermediate jump")
+		}
+		if rv.Messages[1] != "Straight Jump Interrupts Routine" {
+			t.Errorf("message = %q", rv.Messages[1])
+		}
+	})
+}
+
+func TestValidate(t *testing.T) {
+	cases := []struct {
+		name    string
+		s       TrampolineSkill
+		wantErr bool
+	}{
+		{"front tuck", skill(4, []int{0}, Feet, Tuck, false, false), false},
+		{"quad back", skill(16, []int{0, 0, 0, 0}, Feet, Tuck, true, false), false},
+		{"negative rotation", skill(-4, []int{0}, Feet, Tuck, false, false), true},
+		{"rotation beyond a quad", skill(17, []int{0, 0, 0, 0}, Feet, Tuck, false, false), true},
+		{"negative twist", skill(4, []int{-3}, Feet, Straight, false, false), true},
+		{"wrong phase count", skill(8, []int{0}, Feet, Tuck, false, false), true},
+		{"invalid take-off", skill(4, []int{0}, Invalid, Tuck, false, false), true},
+		{"invalid shape", skill(4, []int{0}, Feet, InvalidShape, false, false), true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			s := c.s
+			if err := s.Validate(); (err != nil) != c.wantErr {
+				t.Errorf("Validate(%s) error = %v, wantErr %v", c.name, err, c.wantErr)
+			}
+		})
+	}
+
+	if got := ShapeFromString("banana"); got != InvalidShape {
+		t.Errorf("ShapeFromString(unknown) = %v, want InvalidShape", got)
+	}
 }
