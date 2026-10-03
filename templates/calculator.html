@@ -98,7 +98,9 @@
                                         {{/* Name */}}
                                         <p class="skill-name mb-0 mr-2"
                                             style="line-height: 1.2; word-wrap: break-word;">
-                                            <strong x-text="`${index + 1}. ${skill.name || 'Custom Skill'}`"></strong>
+                                            <strong x-text="`${index + 1}. ${skill.custom_name || officialName(index)}`"></strong>
+                                            <span class="has-text-grey" x-show="skill.custom_name"
+                                                x-text="`· ${officialName(index)}`"></span>
                                         </p>
                                         {{/* FIG Notation */}}
                                         <p class="is-size-7 has-text-grey mb-0"
@@ -485,7 +487,7 @@
 
             // --- Actions ---
             addSkill(skillData, position = null) {
-                const newSkill = { name: skillData.name || 'Custom Skill', rotation: skillData.rotation, twist_distribution: skillData.twist_distribution || [], takeoff_position: skillData.takeoff_position, shape: skillData.shape, backward: skillData.backward, seat_landing: skillData.seat_landing, tariff: skillData.tariff, landing_position: skillData.landing_position };
+                const newSkill = { name: skillData.name || 'Custom Skill', custom_name: skillData.custom_name || '', rotation: skillData.rotation, twist_distribution: skillData.twist_distribution || [], takeoff_position: skillData.takeoff_position, shape: skillData.shape, backward: skillData.backward, seat_landing: skillData.seat_landing, tariff: skillData.tariff, landing_position: skillData.landing_position };
                 const targetPosition = parseInt(position);
                 const currentLength = this.routine.length;
                 let actualInsertPosition = currentLength + 1; // Default to end
@@ -502,6 +504,8 @@
                     this.showToast('Skill added to end.', 'info');
                 }
                 this.showEvaluation = false;
+                const customNameInput = document.getElementById('custom-name');
+                if (customNameInput) { customNameInput.value = ''; } // A label belongs to one skill
 
                 // Update lastInsertPosition AFTER modifying the routine
                 this.lastInsertPosition = actualInsertPosition;
@@ -685,7 +689,7 @@
                 if (!skillData || Object.keys(skillData).length === 0) { console.error("Payload is empty/invalid before fetch!"); this.showToast("Cannot calculate empty skill.", "error"); callbackOnSuccess(null); return; }
                 if (this._processingCalculation) { console.warn("Calculation already in progress."); return; }
                 this._processingCalculation = true;
-                const payload = { name: skillData.name || "Custom Skill", rotation: skillData.rotation, twist_distribution: skillData.twist_distribution || [], takeoff_position: String(skillData.takeoff_position), shape: String(skillData.shape), backward: skillData.backward, seat_landing: skillData.seat_landing };
+                const payload = { custom_name: skillData.custom_name || '', rotation: skillData.rotation, twist_distribution: skillData.twist_distribution || [], takeoff_position: String(skillData.takeoff_position), shape: String(skillData.shape), backward: skillData.backward, seat_landing: skillData.seat_landing };
                 console.log("Sending payload to /calculate-skill:", payload);
                 fetch('/calculate-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                     .then(response => { if (!response.ok) { throw new Error(`HTTP error ${response.status}`); } return response.json(); })
@@ -724,6 +728,8 @@
 
             // --- Utilities ---
             calculateLanding(skill) { const BP = { F: 0, Fr: 1, B: 3, S: 4, I: -1 }; const PA = { 'Feet': 0, 'Front': 1, 'Back': 3, 'Seat': 0, 'feet': 0, 'front': 1, 'back': 3, 'seat': 0 }; const PN = ["Feet", "Front", "Back", "Seat", "Invalid"]; let tr = 0; const ta = PA[skill.takeoff_position]; if (ta === undefined) return PN[BP.I]; if (skill.backward) { tr = ta - skill.rotation; } else { tr = ta + skill.rotation; } let tt = (skill.twist_distribution || []).reduce((s, t) => s + t, 0); let fp = BP.I; let ak = (tr % 4); if (ak < 0) ak += 4; if (tt % 2 !== 0) { if (ak === 1) ak = 3; else if (ak === 3) ak = 1; } if (ak === 0) fp = BP.F; else if (ak === 1) fp = BP.Fr; else if (ak === 3) fp = BP.B; if (skill.seat_landing) { return (fp === BP.F) ? PN[BP.S] : PN[BP.I]; } return PN[fp] ?? PN[BP.I]; },
+            // The server derives official names; fall back to the stored one until validation returns.
+            officialName(index) { return this.validationResults?.skills?.[index]?.name || this.routine[index]?.name || 'Custom Skill'; },
             showToast(message, type = 'info') { this.toast.message = message; this.toast.type = type; this.toast.show = true; setTimeout(() => this.toast.show = false, 3000); },
             isFirstOccurrence(index) { if (index < 0 || index >= this.routine.length) return false; const cs = this.routine[index]; for (let i = 0; i < index; i++) { if (this.skillsAreEqual(cs, this.routine[i])) return false; } return true; },
             skillsAreEqual(sA, sB) { const tA = (sA.twist_distribution || []).reduce((s, t) => s + t, 0); const tB = (sB.twist_distribution || []).reduce((s, t) => s + t, 0); if (tA !== tB || sA.rotation !== sB.rotation || sA.backward !== sB.backward || sA.seat_landing !== sB.seat_landing || sA.takeoff_position !== sB.takeoff_position) return false; if (sA.rotation === 0 && tA === 0) return sA.shape === sB.shape; if (sA.rotation < 3) return true; if (sA.rotation >= 3 && sA.rotation < 6) { if (tA < 2) return sA.shape === sB.shape; return true; } if (sA.shape !== sB.shape) return false; if (sA.rotation >= 7) { const dA = JSON.stringify(sA.twist_distribution || []); const dB = JSON.stringify(sB.twist_distribution || []); if (dA !== dB) return false; } return true; },
@@ -795,7 +801,7 @@
             getFormData(formSelector) {
                 const form = document.querySelector(formSelector); if (!form) { console.error("getFormData: Form not found!"); return {}; }
                 try {
-                    const fd = new FormData(form); const data = {}; data.name = fd.get('name') || 'Custom Skill'; data.rotation = parseInt(fd.get('rotation')) || 0; data.takeoff_position = fd.get('takeoff_position') || 'Feet'; data.shape = fd.get('shape') || 'Straight'; data.backward = fd.has('backward'); data.seat_landing = fd.has('seat_landing'); const twistInputs = form.querySelectorAll('input[name="twist_distribution[]"]:not(:disabled)'); const numPhases = this.calculatePhases(Math.abs(data.rotation)); data.twist_distribution = []; for (let i = 0; i < numPhases; i++) { const inputForPhase = Array.from(twistInputs).find(input => input.dataset.rotation == (i + 1)); data.twist_distribution.push(inputForPhase ? (parseInt(inputForPhase.value) || 0) : 0); } console.log('Returning data from getFormData:', data); return data;
+                    const fd = new FormData(form); const data = {}; data.custom_name = (fd.get('custom_name') || '').trim(); data.rotation = parseInt(fd.get('rotation')) || 0; data.takeoff_position = fd.get('takeoff_position') || 'Feet'; data.shape = fd.get('shape') || 'Straight'; data.backward = fd.has('backward'); data.seat_landing = fd.has('seat_landing'); const twistInputs = form.querySelectorAll('input[name="twist_distribution[]"]:not(:disabled)'); const numPhases = this.calculatePhases(Math.abs(data.rotation)); data.twist_distribution = []; for (let i = 0; i < numPhases; i++) { const inputForPhase = Array.from(twistInputs).find(input => input.dataset.rotation == (i + 1)); data.twist_distribution.push(inputForPhase ? (parseInt(inputForPhase.value) || 0) : 0); } console.log('Returning data from getFormData:', data); return data;
                 } catch (error) { console.error("Error in getFormData:", error); this.showToast('Error reading form data.', 'error'); return {}; }
             }
         }

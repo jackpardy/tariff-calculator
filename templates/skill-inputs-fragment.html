@@ -4,18 +4,6 @@
 {{/* Hidden index field - needed if updating an existing skill */}}
 <input type="hidden" name="skillIndex" value="{{.Index}}">
 
-{{/* Skill Name - Updated based on common skill or custom */}}
-<div class="column is-4">
-    <div class="field">
-        <label class="label">Skill Name (Auto-filled or Custom)</label>
-        <div class="control">
-            <input class="input" type="text" id="skill-name-display" name="name"
-                   value="{{default "Custom Skill" .Skill.Name}}"
-            placeholder="Custom Skill">
-        </div>
-    </div>
-</div>
-
 {{/* Rotation Input */}}
 <div class="column is-2">
     <div class="field">

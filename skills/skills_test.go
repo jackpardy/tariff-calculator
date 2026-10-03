@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"math"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -16,6 +17,11 @@ func skill(rotation int, twists []int, takeoff BodyPosition, shape Shape, backwa
 		Backward:          backward,
 		SeatLanding:       seat,
 	}
+}
+
+func withCustomName(s TrampolineSkill, name string) TrampolineSkill {
+	s.CustomName = name
+	return s
 }
 
 // TestSetTariff pins the difficulty values against the FIG TRA Code of Points
@@ -437,6 +443,8 @@ func TestValidate(t *testing.T) {
 		{"wrong phase count", skill(8, []int{0}, Feet, Tuck, false, false), true},
 		{"invalid take-off", skill(4, []int{0}, Invalid, Tuck, false, false), true},
 		{"invalid shape", skill(4, []int{0}, Feet, InvalidShape, false, false), true},
+		{"custom name at the limit", withCustomName(skill(4, []int{0}, Feet, Tuck, false, false), strings.Repeat("é", MaxCustomNameLength)), false},
+		{"custom name over the limit", withCustomName(skill(4, []int{0}, Feet, Tuck, false, false), strings.Repeat("x", MaxCustomNameLength+1)), true},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

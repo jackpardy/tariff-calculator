@@ -1,9 +1,9 @@
 {{/* templates/evaluation-fragment.html */}}
 {{/* Use data passed from handleEvaluateSkillFragment: .Skill, .LandingPosStr, .LandingIsValid, .SkillDataJSON */}}
 <div id="evaluation-preview-content"
-     data-skill-data="{{ .SkillDataJSON | safeHTMLAttr }}"> {{/* Store data for Alpine */}}
+     data-skill-data="{{ .SkillDataJSON }}"> {{/* Store data for Alpine (html/template escapes it) */}}
 
-    <h4 class="title is-6 mb-4">Skill Evaluation - {{ .Skill.Name | default "Evaluated Skill" }}    {{ .FIGNotation }}</h4>
+    <h4 class="title is-6 mb-4">Skill Evaluation - {{ with .Skill.CustomName }}{{ . }} · {{ end }}{{ .Skill.Name }}    {{ .FIGNotation }}</h4>
 
     {{/* Use Bulma columns for the three info blocks */}}
     <div class="columns">

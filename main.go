@@ -61,6 +61,8 @@ type SkillFormData struct {
 	SortBy        string // Add SortBy for initial form load state
 	ShapeRelevant bool   // Whether the shape control should be shown for this skill
 	IsBasicJump   bool   // Whether the straddle shape option applies (basic jumps only)
+
+	MaxCustomNameLength int
 }
 
 // Added struct for the options template
@@ -120,7 +122,6 @@ var funcMap = template.FuncMap{
 		}
 		return val
 	},
-	"safeHTMLAttr": func(s string) template.HTMLAttr { return template.HTMLAttr(s) },
 	"skillKey": func(s skills.TrampolineSkill) string {
 		// Ensure TwistDistribution is not nil before joining
 		twists := []int{0} // Default if nil
@@ -280,6 +281,8 @@ func prepareSkillFormData(skillData skills.TrampolineSkill, index int, sortBy st
 		SortBy:        sortBy, // Store current sort order
 		ShapeRelevant: skillData.ShapeIsRelevant(),
 		IsBasicJump:   isBasicJump,
+
+		MaxCustomNameLength: skills.MaxCustomNameLength,
 	}
 }
 
@@ -441,7 +444,7 @@ func handleEditSkillFormData(w http.ResponseWriter, r *http.Request) {
 // parseSkillFromForm parses skill data from a submitted form.
 func parseSkillFromForm(r *http.Request) (skills.TrampolineSkill, error) {
 	skill := skills.TrampolineSkill{}
-	skill.Name = r.FormValue("name")
+	skill.CustomName = strings.TrimSpace(r.FormValue("custom_name"))
 	rotationVal := r.FormValue("rotation")
 	rotation, err := strconv.Atoi(rotationVal)
 	if err != nil {
@@ -482,7 +485,8 @@ func handleCalculateSingleSkill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var requestPayload struct {
-		Name              string `json:"name"`
+		Name              string `json:"name"` // ignored: the official name is derived; accepted for older clients
+		CustomName        string `json:"custom_name"`
 		Rotation          int    `json:"rotation"`
 		TwistDistribution []int  `json:"twist_distribution"`
 		TakeoffPosition   string `json:"takeoff_position"`
@@ -500,7 +504,7 @@ func handleCalculateSingleSkill(w http.ResponseWriter, r *http.Request) {
 	}
 
 	skill := skills.TrampolineSkill{
-		Name:              requestPayload.Name, // Start with name from request
+		CustomName:        strings.TrimSpace(requestPayload.CustomName),
 		Rotation:          requestPayload.Rotation,
 		TwistDistribution: requestPayload.TwistDistribution,
 		TakeoffPosition:   skills.BodyPositionFromString(requestPayload.TakeoffPosition),
@@ -523,6 +527,7 @@ func handleCalculateSingleSkill(w http.ResponseWriter, r *http.Request) {
 	// Prepare response
 	response := struct {
 		Name              string  `json:"name"`
+		CustomName        string  `json:"custom_name,omitempty"`
 		Rotation          int     `json:"rotation"`
 		TwistDistribution []int   `json:"twist_distribution"`
 		TakeoffPosition   string  `json:"takeoff_position"`
@@ -533,6 +538,7 @@ func handleCalculateSingleSkill(w http.ResponseWriter, r *http.Request) {
 		LandingPosition   string  `json:"landing_position"`
 	}{
 		Name:              skill.Name, // Use the final name (either found common name or "Custom Skill")
+		CustomName:        skill.CustomName,
 		Rotation:          skill.Rotation,
 		TwistDistribution: skill.TwistDistribution, // Use the adjusted slice
 		TakeoffPosition:   skill.TakeoffPosition.String(),

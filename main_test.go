@@ -128,3 +128,72 @@ func TestRoutesRejectUnknownPathsAndOversizeBodies(t *testing.T) {
 		t.Errorf("oversize body status = %d, want 400", rec.Code)
 	}
 }
+
+func TestCustomNames(t *testing.T) {
+	t.Run("calculate keeps the custom name and derives the official one", func(t *testing.T) {
+		body := `{"name":"Typed Over","custom_name":"  Opener  ","rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}`
+		req := httptest.NewRequest(http.MethodPost, "/calculate-skill", strings.NewReader(body))
+		rec := httptest.NewRecorder()
+		handleCalculateSingleSkill(rec, req)
+		var got struct {
+			Name       string `json:"name"`
+			CustomName string `json:"custom_name"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+			t.Fatalf("status %d, decoding %q: %v", rec.Code, rec.Body, err)
+		}
+		if got.Name != "Back Tuck" || got.CustomName != "Opener" {
+			t.Errorf("got name %q, custom name %q; want Back Tuck, Opener", got.Name, got.CustomName)
+		}
+	})
+
+	t.Run("calculate rejects an over-long custom name", func(t *testing.T) {
+		body := `{"custom_name":"` + strings.Repeat("x", 61) + `","rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}`
+		rec := httptest.NewRecorder()
+		handleCalculateSingleSkill(rec, httptest.NewRequest(http.MethodPost, "/calculate-skill", strings.NewReader(body)))
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("status = %d, want 400", rec.Code)
+		}
+	})
+
+	t.Run("validation passes custom names through and refreshes official names", func(t *testing.T) {
+		rec := postRoutine(t, `[{"name":"Back","custom_name":"Opener","rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}]`)
+		var got struct {
+			Skills []struct {
+				Name       string `json:"name"`
+				CustomName string `json:"custom_name"`
+			} `json:"skills"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+			t.Fatalf("status %d, decoding: %v", rec.Code, err)
+		}
+		if got.Skills[0].Name != "Back Tuck" || got.Skills[0].CustomName != "Opener" {
+			t.Errorf("got %+v, want stale name refreshed and custom name kept", got.Skills[0])
+		}
+	})
+
+	t.Run("evaluation preview escapes the custom name", func(t *testing.T) {
+		loadTemplates()
+		form := url.Values{
+			"custom_name":          {`"><img src=x onerror=alert(1)>`},
+			"rotation":             {"4"},
+			"takeoff_position":     {"feet"},
+			"shape":                {"tuck"},
+			"twist_distribution[]": {"0"},
+		}
+		req := httptest.NewRequest(http.MethodPost, "/evaluate-skill-fragment", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+		handleEvaluateSkillFragment(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, body %s", rec.Code, rec.Body)
+		}
+		html := rec.Body.String()
+		if strings.Contains(html, "<img") {
+			t.Errorf("custom name was rendered unescaped:\n%s", html)
+		}
+		if !strings.Contains(html, "Front Tuck") {
+			t.Errorf("preview should show the official name")
+		}
+	})
+}

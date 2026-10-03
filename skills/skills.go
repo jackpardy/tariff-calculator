@@ -6,12 +6,14 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 type TrampolineSkill struct {
-	Name              string       `json:"name"`
-	Rotation          int          `json:"rotation"`           // 1/4 of a rotation/90 degrees
-	TwistDistribution []int        `json:"twist_distribution"` // 1/2 of a twist/180 degrees per rotation
+	Name              string       `json:"name"`                  // official name, derived by FindCommonSkillName
+	CustomName        string       `json:"custom_name,omitempty"` // optional user label, shown alongside Name
+	Rotation          int          `json:"rotation"`              // 1/4 of a rotation/90 degrees
+	TwistDistribution []int        `json:"twist_distribution"`    // 1/2 of a twist/180 degrees per rotation
 	TakeoffPosition   BodyPosition `json:"takeoff_position"`
 	Shape             Shape        `json:"shape"`
 	Tariff            float64      `json:"tariff,omitempty"`
@@ -384,10 +386,17 @@ func ShapeFromString(s string) Shape {
 // scores (§17.1.1.5).
 const MaxRotation = 16
 
+// MaxCustomNameLength is the longest custom name allowed, in characters.
+const MaxCustomNameLength = 60
+
 // Validate reports whether the skill is one the engine can score: rotation within
-// 0..MaxRotation quarters, one non-negative twist count per phase, and a known
-// take-off position and shape.
+// 0..MaxRotation quarters, one non-negative twist count per phase, a known
+// take-off position and shape, and a custom name of at most MaxCustomNameLength
+// characters.
 func (skill *TrampolineSkill) Validate() error {
+	if n := utf8.RuneCountInString(skill.CustomName); n > MaxCustomNameLength {
+		return fmt.Errorf("custom name must be at most %d characters, got %d", MaxCustomNameLength, n)
+	}
 	if skill.Rotation < 0 || skill.Rotation > MaxRotation {
 		return fmt.Errorf("rotation must be between 0 and %d quarter somersaults, got %d",
 			MaxRotation, skill.Rotation)
