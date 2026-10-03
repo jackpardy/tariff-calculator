@@ -3,6 +3,7 @@ package skills
 import (
 	"encoding/json"
 	"math"
+	"slices"
 	"testing"
 )
 
@@ -149,6 +150,40 @@ func TestLandingPosition(t *testing.T) {
 				t.Errorf("LandingPosition(%s) = %v, want %v", c.name, got, c.want)
 			}
 		})
+	}
+}
+
+func TestNormalizePhases(t *testing.T) {
+	cases := []struct {
+		name string
+		s    TrampolineSkill
+		want []int
+	}{
+		{"pads a double", skill(8, []int{2}, Feet, Tuck, true, false), []int{2, 0}},
+		{"trims a single", skill(4, []int{1, 3}, Feet, Tuck, false, false), []int{1}},
+		{"fills nil", skill(12, nil, Feet, Tuck, true, false), []int{0, 0, 0}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			s := c.s
+			s.NormalizePhases()
+			if !slices.Equal(s.TwistDistribution, c.want) {
+				t.Errorf("TwistDistribution = %v, want %v", s.TwistDistribution, c.want)
+			}
+		})
+	}
+
+	// It must not write through to a shared backing array.
+	shared := make([]int, 1, 4)
+	original := TrampolineSkill{Rotation: 8, TwistDistribution: shared}
+	copied := original
+	copied.NormalizePhases()
+	if got := shared[:2]; got[1] != 0 || len(original.TwistDistribution) != 1 {
+		t.Errorf("NormalizePhases modified the original's slice: %v", got)
+	}
+	copied.TwistDistribution[1] = 5
+	if shared[:2][1] != 0 {
+		t.Errorf("normalised slice still shares the original's backing array")
 	}
 }
 

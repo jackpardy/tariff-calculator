@@ -109,3 +109,22 @@ func TestEvaluateSkillRejectsInvalidForm(t *testing.T) {
 		t.Errorf("status = %d, want 400 for a negative rotation", rec.Code)
 	}
 }
+
+func TestRoutesRejectUnknownPathsAndOversizeBodies(t *testing.T) {
+	h := routes()
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/no-such-page", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("GET /no-such-page status = %d, want 404", rec.Code)
+	}
+
+	form := url.Values{"routineData": {strings.Repeat(" ", maxRequestBytes)}}
+	req := httptest.NewRequest(http.MethodPost, "/validate-routine-client-state", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("oversize body status = %d, want 400", rec.Code)
+	}
+}

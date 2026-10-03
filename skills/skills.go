@@ -17,8 +17,6 @@ type TrampolineSkill struct {
 	Tariff            float64      `json:"tariff,omitempty"`
 	Backward          bool         `json:"backward"`
 	SeatLanding       bool         `json:"seat_landing"`
-	LandingPosStr     string       `json:"landing_position"` // Add this field
-	SkillDataJSON     string       `json:"-"`                // Add this field
 }
 
 func (skill *TrampolineSkill) TotalTwist() int {
@@ -362,6 +360,15 @@ func CalculatePhases(rotation int) int {
 	}
 }
 
+// NormalizePhases trims or zero-pads TwistDistribution to exactly one entry per
+// twist phase for the skill's rotation. It always allocates a new slice, so it is
+// safe on copies that share a backing array (e.g. values from CommonSkills).
+func (skill *TrampolineSkill) NormalizePhases() {
+	twists := make([]int, CalculatePhases(skill.Rotation))
+	copy(twists, skill.TwistDistribution)
+	skill.TwistDistribution = twists
+}
+
 // ShapeFromString parses a shape name case-insensitively, returning InvalidShape
 // for anything unrecognised so that Validate rejects it.
 func ShapeFromString(s string) Shape {
@@ -522,27 +529,11 @@ func (skill *TrampolineSkill) FIGNotation() string {
 // basic-jump name (e.g. "Tuck Jump"), or "Custom Skill" when nothing matches.
 func FindCommonSkillName(parsedSkill TrampolineSkill) string {
 	compareSkill := parsedSkill
-
-	expectedPhases := CalculatePhases(compareSkill.Rotation)
-	if len(compareSkill.TwistDistribution) > expectedPhases {
-		compareSkill.TwistDistribution = compareSkill.TwistDistribution[:expectedPhases]
-	} else {
-		for len(compareSkill.TwistDistribution) < expectedPhases {
-			compareSkill.TwistDistribution = append(compareSkill.TwistDistribution, 0)
-		}
-	}
+	compareSkill.NormalizePhases()
 
 	for _, commonSkill := range CommonSkills {
 		tempCommon := commonSkill
-
-		commonExpectedPhases := CalculatePhases(tempCommon.Rotation)
-		if len(tempCommon.TwistDistribution) > commonExpectedPhases {
-			tempCommon.TwistDistribution = tempCommon.TwistDistribution[:commonExpectedPhases]
-		} else {
-			for len(tempCommon.TwistDistribution) < commonExpectedPhases {
-				tempCommon.TwistDistribution = append(tempCommon.TwistDistribution, 0)
-			}
-		}
+		tempCommon.NormalizePhases()
 
 		// Match on core parameters; shape is handled separately below.
 		if compareSkill.Rotation == tempCommon.Rotation &&
