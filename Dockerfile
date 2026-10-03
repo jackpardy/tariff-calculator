@@ -11,9 +11,6 @@ FROM alpine:3.20
 RUN adduser -D -u 1000 app
 WORKDIR /app
 COPY --from=build /out/tariffCalculator /app/tariffCalculator
-# The server loads these via relative paths; drop these two lines once embed.FS lands.
-COPY templates/ /app/templates/
-COPY static/ /app/static/
 ENV PORT=8080
 EXPOSE 8080
 USER app

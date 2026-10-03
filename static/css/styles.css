@@ -485,3 +485,6 @@ body.htmx-dragging-touch { overflow: hidden; -webkit-user-select: none; user-sel
     .skill-details-columns .column { padding-top: 0.25rem; padding-bottom: 0.25rem; }
     .routine-skill p { line-height: .7; } /* Adjust line height */
 }
+
+/* Page header */
+.hero.is-primary { background-color: #485fc7; }

@@ -1,0 +1,86 @@
+package views
+
+import "tariffCalculator/static"
+
+// Page is the calculator page. The form and routine are empty placeholders that
+// the page's Alpine component (static/js/app.js) fills from the server on load.
+templ Page() {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>Trampoline Tariff Calculator</title>
+			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
+			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
+			<script src={ static.URL("js/htmx.min.js") }></script>
+			// app.js defines the Alpine component, so it must run before Alpine (both deferred, in order).
+			<script defer src={ static.URL("js/app.js") }></script>
+			<script defer src={ static.URL("js/alpine.min.js") }></script>
+		</head>
+		<body>
+			<section class="hero is-primary">
+				<div class="hero-body">
+					<div class="container">
+						<h1 class="title">Trampoline Tariff Calculator</h1>
+						<h2 class="subtitle">Calculate difficulty scores for skills and routines</h2>
+					</div>
+				</div>
+			</section>
+			<section class="section">
+				<div class="container">
+					@calculator()
+				</div>
+			</section>
+			<footer class="footer">
+				<div class="content has-text-centered">
+					<p>2025 Trampoline Tariff Calculator</p>
+				</div>
+			</footer>
+		</body>
+	</html>
+}
+
+templ calculator() {
+	<div class="container" x-data="tariffCalculatorStore()">
+		// Skill form: SkillFormView, loaded by the component.
+		<div class="box">
+			<h3 class="title is-4">Skill Calculator</h3>
+			<div id="skill-form-wrapper" style="scroll-margin-top: 20px;" hx-sync="this:replace">
+				<p>Loading form...</p>
+			</div>
+		</div>
+		// Evaluation preview: EvaluationView, swapped in by the form's Evaluate button.
+		<div id="evaluation-preview" class="box" x-show="showEvaluation" x-transition style="display: none;"></div>
+		// Routine builder.
+		<div class="box">
+			<div class="level mb-4">
+				<div class="level-left">
+					<h3 class="title is-4 mb-0">Routine Builder</h3>
+				</div>
+				<div class="level-right">
+					<div class="buttons mb-0">
+						<button class="button is-info is-light is-small" type="button" x-on:click="expandAll()">Expand All</button>
+						<button class="button is-info is-light is-small" type="button" x-on:click="collapseAll()">Collapse All</button>
+						<button class="button is-danger is-outlined is-small" type="button" x-on:click="clearRoutine()" x-show="routine.length > 0">
+							Clear Routine
+						</button>
+					</div>
+				</div>
+			</div>
+			// Cards and totals: Routine, re-rendered whenever the routine changes.
+			<div id="routine-view" hx-sync="this:replace">
+				<p class="has-text-grey">Loading routine...</p>
+			</div>
+		</div>
+		<div
+			x-show="toast.show"
+			x-transition
+			class="notification is-fixed-bottom-right"
+			x-bind:class="toast.type === 'error' ? 'is-danger' : 'is-info'"
+		>
+			<button class="delete" type="button" aria-label="Dismiss" x-on:click="toast.show = false"></button>
+			<span x-text="toast.message"></span>
+		</div>
+	</div>
+}

@@ -381,17 +381,32 @@ func TestCustomNames(t *testing.T) {
 	})
 }
 
-func TestIndexRendersThePageShell(t *testing.T) {
-	loadTemplates()
+func TestIndexRendersThePage(t *testing.T) {
 	rec := httptest.NewRecorder()
 	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	html := rec.Body.String()
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d, body %s", rec.Code, html)
 	}
-	for _, want := range []string{`id="skill-form-wrapper"`, `id="routine-view"`, "/static/js/htmx.min.js", "/static/js/alpine.min.js"} {
-		if !strings.Contains(html, want) {
+	for _, want := range []string{`<!doctype html>`, `id="skill-form-wrapper"`, `id="routine-view"`, `x-data="tariffCalculatorStore()"`} {
+		if !strings.Contains(strings.ToLower(html), strings.ToLower(want)) {
 			t.Errorf("page is missing %q", want)
+		}
+	}
+	// Every asset is linked by a versioned URL that the server actually serves.
+	links := regexp.MustCompile(`(?:href|src)="(/static/[^"]+)"`).FindAllStringSubmatch(html, -1)
+	if len(links) != 5 {
+		t.Errorf("found %d asset links, want 5 (2 CSS, 3 JS)", len(links))
+	}
+	for _, l := range links {
+		u := strings.ReplaceAll(l[1], "&amp;", "&")
+		if !strings.Contains(u, "?v=") {
+			t.Errorf("asset %s is not versioned", u)
+		}
+		rec := httptest.NewRecorder()
+		routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, u, nil))
+		if rec.Code != http.StatusOK || !strings.Contains(rec.Header().Get("Cache-Control"), "immutable") {
+			t.Errorf("GET %s: status %d, Cache-Control %q", u, rec.Code, rec.Header().Get("Cache-Control"))
 		}
 	}
 }

@@ -4,11 +4,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
-	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -18,24 +15,15 @@ import (
 	"github.com/a-h/templ"
 
 	"tariffCalculator/skills"
+	"tariffCalculator/static"
 	"tariffCalculator/views"
 )
-
-// tmpl holds the page shell (base.html, calculator.html); everything rendered
-// into it is a templ component from the views package.
-var tmpl *template.Template
-
-func loadTemplates() {
-	tmpl = template.Must(template.ParseGlob("templates/*.html"))
-}
 
 // maxRequestBytes bounds request bodies and headers; a full routine is a few kilobytes.
 const maxRequestBytes = 64 << 10
 
 // --- Main Function ---
 func main() {
-	loadTemplates()
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -56,7 +44,7 @@ func main() {
 // routes builds the application's handler, with every request body size-limited.
 func routes() http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle("/static/", http.StripPrefix("/static/", staticFileServer("static")))
+	mux.Handle("GET "+static.Prefix, static.Handler())
 
 	mux.HandleFunc("GET /{$}", handleIndex)
 	mux.HandleFunc("POST /skill-form", handleSkillForm)
@@ -69,24 +57,6 @@ func routes() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBytes)
 		mux.ServeHTTP(w, r)
-	})
-}
-
-// --- Static File Server ---
-func staticFileServer(dir string) http.Handler {
-	fs := http.FileServer(http.Dir(dir))
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		// Asset URLs are not versioned, so browsers must revalidate (cheap: the file
-		// server answers 304 from Last-Modified) or they keep stale CSS/JS after a deploy.
-		w.Header().Set("Cache-Control", "no-cache")
-		if strings.HasSuffix(r.URL.Path, ".js") {
-			w.Header().Set("Content-Type", "application/javascript")
-		}
-		if strings.HasSuffix(r.URL.Path, ".css") {
-			w.Header().Set("Content-Type", "text/css")
-		}
-		fs.ServeHTTP(w, r)
 	})
 }
 
@@ -160,12 +130,9 @@ func defaultSkill() skills.TrampolineSkill {
 	return skills.TrampolineSkill{Rotation: 4, TakeoffPosition: skills.Feet, Shape: skills.Straight, TwistDistribution: []int{0}}
 }
 
-// handleIndex serves the page shell; the form and routine load into it.
+// handleIndex serves the calculator page; the form and routine load into it.
 func handleIndex(w http.ResponseWriter, r *http.Request) {
-	if err := tmpl.ExecuteTemplate(w, "base.html", nil); err != nil {
-		log.Printf("Error executing base template: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	render(w, r, views.Page())
 }
 
 // handleSkillForm renders the skill form: a fresh one, or (when the page posts
@@ -322,43 +289,19 @@ func handleRoutineView(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.Routine(skills.ValidateRoutine(routine)))
 }
 
-// --- Helper Functions ---
-
-// parseRoutineFromRequest parses JSON routine data from the routineData form or
-// query value, falling back to a raw request body. Each skill is normalised to
-// its phase count, validated and priced.
+// parseRoutineFromRequest parses the routine the page posts as JSON in the
+// routineData form value. Each skill is normalised to its phase count,
+// validated and priced.
 func parseRoutineFromRequest(r *http.Request) ([]skills.TrampolineSkill, error) {
 	if err := r.ParseForm(); err != nil {
 		return nil, fmt.Errorf("parsing form: %w", err)
 	}
-	rawData := []byte(r.FormValue("routineData")) // includes the query string
-
-	// Fallback to request body
-	if len(rawData) == 0 && r.Body != nil && r.ContentLength > 0 && (r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodPatch) {
-		bodyBytes, err := io.ReadAll(r.Body)
-		if err != nil {
-			return nil, fmt.Errorf("reading request body: %w", err)
-		}
-		rawData = bodyBytes
-	}
-
-	if len(rawData) == 0 {
-		return []skills.TrampolineSkill{}, nil // No data found
-	}
-
-	var routine []skills.TrampolineSkill
-	err := json.Unmarshal(rawData, &routine)
-	if err != nil {
-		decodedStr, decErr := url.QueryUnescape(string(rawData))
-		if decErr == nil {
-			err = json.Unmarshal([]byte(decodedStr), &routine)
-		}
-		if err != nil {
-			log.Printf("ERROR: Failed to decode routine JSON: %v", err)
-			return nil, fmt.Errorf("failed to decode routine JSON: %w", err)
+	routine := []skills.TrampolineSkill{}
+	if raw := r.FormValue("routineData"); raw != "" {
+		if err := json.Unmarshal([]byte(raw), &routine); err != nil {
+			return nil, fmt.Errorf("decoding routine JSON: %w", err)
 		}
 	}
-
 	for i := range routine {
 		routine[i].NormalizePhases()
 		if err := routine[i].Validate(); err != nil {
