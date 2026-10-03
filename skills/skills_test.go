@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"encoding/json"
 	"math"
 	"testing"
 )
@@ -114,11 +115,32 @@ func TestLandingPosition(t *testing.T) {
 		s    TrampolineSkill
 		want BodyPosition
 	}{
+		// From feet, no twist.
 		{"front tuck lands feet", skill(4, []int{0}, Feet, Tuck, false, false), Feet},
-		{"crash dive lands back", skill(3, []int{0}, Feet, Straight, false, false), Back},
-		{"barani lands feet", skill(4, []int{1}, Feet, Tuck, false, false), Feet},
 		{"front drop lands front", skill(1, []int{0}, Feet, Straight, false, false), Front},
+		{"back drop lands back", skill(1, []int{0}, Feet, Straight, true, false), Back},
+		{"crash dive lands back", skill(3, []int{0}, Feet, Straight, false, false), Back},
+		{"lazy back lands front", skill(3, []int{0}, Feet, Straight, true, false), Front},
+		{"2 3/4 front lands back", skill(11, []int{0, 0, 0}, Feet, Tuck, false, false), Back},
+		{"half rotation lands invalid", skill(2, []int{0}, Feet, Straight, false, false), Invalid},
+		// An odd number of half twists swaps front and back.
+		{"half twist jump lands feet", skill(0, []int{1}, Feet, Straight, false, false), Feet},
+		{"barani lands feet", skill(4, []int{1}, Feet, Tuck, false, false), Feet},
+		{"1/2 twist to back", skill(1, []int{1}, Feet, Straight, false, false), Back},
+		{"1/2 twist to front", skill(1, []int{1}, Feet, Straight, true, false), Front},
+		{"barani to front", skill(3, []int{1}, Feet, Tuck, false, false), Front},
+		{"full twist to front", skill(1, []int{2}, Feet, Straight, false, false), Front},
+		{"half-out lands feet", skill(8, []int{0, 1}, Feet, Tuck, false, false), Feet},
+		// From front, back and seat.
+		{"front to feet", skill(1, []int{0}, Front, Straight, true, false), Feet},
+		{"back to feet", skill(1, []int{0}, Back, Straight, false, false), Feet},
+		{"ball-out lands feet", skill(5, []int{0}, Back, Tuck, false, false), Feet},
+		{"cody lands feet", skill(5, []int{0}, Front, Tuck, true, false), Feet},
+		{"seat half twist to front", skill(1, []int{1}, Seat, Straight, true, false), Front},
+		// Seat landings are only possible from an upright finish.
 		{"seat drop lands seat", skill(0, []int{0}, Feet, Straight, false, true), Seat},
+		{"front to seat lands seat", skill(4, []int{0}, Feet, Tuck, false, true), Seat},
+		{"front drop to seat is invalid", skill(1, []int{0}, Feet, Straight, false, true), Invalid},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -127,6 +149,107 @@ func TestLandingPosition(t *testing.T) {
 				t.Errorf("LandingPosition(%s) = %v, want %v", c.name, got, c.want)
 			}
 		})
+	}
+}
+
+// TestEqual pins repetition detection (CoP §14): which pairs of elements count as
+// the same element. Each case is checked in both directions.
+func TestEqual(t *testing.T) {
+	cases := []struct {
+		name string
+		a, b TrampolineSkill
+		want bool
+	}{
+		// §14.2: basic jumps in different shapes are different elements; twisting jumps have no shape.
+		{"tuck jump vs tuck jump", skill(0, []int{0}, Feet, Tuck, false, false), skill(0, []int{0}, Feet, Tuck, false, false), true},
+		{"tuck jump vs pike jump", skill(0, []int{0}, Feet, Tuck, false, false), skill(0, []int{0}, Feet, Pike, false, false), false},
+		{"full twist jump in any shape", skill(0, []int{2}, Feet, Straight, false, false), skill(0, []int{2}, Feet, Tuck, false, false), true},
+
+		// §14.5.1: up to a half twist, three shapes need 270° or more of somersault.
+		{"front drop in any shape", skill(1, []int{0}, Feet, Tuck, false, false), skill(1, []int{0}, Feet, Pike, false, false), true},
+		{"1/2 twist to feet in any shape", skill(1, []int{1}, Back, Tuck, false, false), skill(1, []int{1}, Back, Straight, false, false), true},
+		{"3/4 back tuck vs pike", skill(3, []int{0}, Feet, Tuck, true, false), skill(3, []int{0}, Feet, Pike, true, false), false},
+		{"front tuck vs front pike", skill(4, []int{0}, Feet, Tuck, false, false), skill(4, []int{0}, Feet, Pike, false, false), false},
+		{"barani tuck vs pike", skill(4, []int{1}, Feet, Tuck, false, false), skill(4, []int{1}, Feet, Pike, false, false), false},
+		{"barani ball-out tuck vs pike", skill(5, []int{1}, Back, Tuck, false, false), skill(5, []int{1}, Back, Pike, false, false), false},
+
+		// §14.5.2: from a full twist, three shapes need more than 450° of somersault.
+		{"full back in any shape", skill(4, []int{2}, Feet, Tuck, true, false), skill(4, []int{2}, Feet, Straight, true, false), true},
+		{"rudy ball-out in any shape", skill(5, []int{3}, Back, Tuck, false, false), skill(5, []int{3}, Back, Straight, false, false), true},
+		{"1 1/2 with full twist tuck vs straight", skill(6, []int{2}, Feet, Tuck, false, false), skill(6, []int{2}, Feet, Straight, false, false), false},
+		{"full-in full-out tuck vs straight", skill(8, []int{2, 2}, Feet, Tuck, true, false), skill(8, []int{2, 2}, Feet, Straight, true, false), false},
+
+		// §14.3, §14.5.4: in multiple somersaults the same twist in different phases is a different element.
+		{"double back vs double back", skill(8, []int{0, 0}, Feet, Tuck, true, false), skill(8, []int{0, 0}, Feet, Tuck, true, false), true},
+		{"full-in back vs half-in half-out", skill(8, []int{2, 0}, Feet, Straight, true, false), skill(8, []int{1, 1}, Feet, Straight, true, false), false},
+		{"half-in rudy-out vs rudy-in half-out", skill(8, []int{1, 3}, Feet, Pike, true, false), skill(8, []int{3, 1}, Feet, Pike, true, false), false},
+		{"triple twist phases differ", skill(12, []int{1, 1, 1}, Feet, Straight, false, false), skill(12, []int{2, 1, 0}, Feet, Straight, false, false), false},
+
+		// Different direction, take-off, landing, rotation or twist are different elements.
+		{"front tuck vs back tuck", skill(4, []int{0}, Feet, Tuck, false, false), skill(4, []int{0}, Feet, Tuck, true, false), false},
+		{"half twist from feet vs from seat", skill(0, []int{1}, Feet, Straight, false, false), skill(0, []int{1}, Seat, Straight, false, false), false},
+		{"half twist vs half twist to seat", skill(0, []int{1}, Feet, Straight, false, false), skill(0, []int{1}, Feet, Straight, false, true), false},
+		{"front vs 1 3/4 front", skill(4, []int{0}, Feet, Tuck, false, false), skill(7, []int{0, 0}, Feet, Tuck, false, false), false},
+		{"front tuck vs barani tuck", skill(4, []int{0}, Feet, Tuck, false, false), skill(4, []int{1}, Feet, Tuck, false, false), false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			a, b := c.a, c.b
+			if got := a.Equal(&b); got != c.want {
+				t.Errorf("a.Equal(b) = %v, want %v", got, c.want)
+			}
+			if got := b.Equal(&a); got != c.want {
+				t.Errorf("b.Equal(a) = %v, want %v", got, c.want)
+			}
+		})
+	}
+}
+
+// TestEnumJSONRoundTrip pins the enum wire format used by the API and by routines
+// saved in the browser.
+func TestEnumJSONRoundTrip(t *testing.T) {
+	for _, pos := range []BodyPosition{Feet, Front, Back, Seat} {
+		b, err := json.Marshal(pos)
+		if err != nil {
+			t.Fatalf("Marshal(%v): %v", pos, err)
+		}
+		var got BodyPosition
+		if err := json.Unmarshal(b, &got); err != nil || got != pos {
+			t.Errorf("BodyPosition round trip %s -> %v (err %v)", b, got, err)
+		}
+	}
+	for _, shape := range []Shape{Straight, Tuck, Pike, Straddle} {
+		b, err := json.Marshal(shape)
+		if err != nil {
+			t.Fatalf("Marshal(%v): %v", shape, err)
+		}
+		var got Shape
+		if err := json.Unmarshal(b, &got); err != nil || got != shape {
+			t.Errorf("Shape round trip %s -> %v (err %v)", b, got, err)
+		}
+	}
+
+	// Names are matched case-insensitively; unknown names decode to the invalid value.
+	var pos BodyPosition
+	if err := json.Unmarshal([]byte(`"feet"`), &pos); err != nil || pos != Feet {
+		t.Errorf(`"feet" -> %v (err %v), want Feet`, pos, err)
+	}
+	if err := json.Unmarshal([]byte(`"Head"`), &pos); err != nil || pos != Invalid {
+		t.Errorf(`"Head" -> %v (err %v), want Invalid`, pos, err)
+	}
+	var shape Shape
+	if err := json.Unmarshal([]byte(`"PIKE"`), &shape); err != nil || shape != Pike {
+		t.Errorf(`"PIKE" -> %v (err %v), want Pike`, shape, err)
+	}
+	if err := json.Unmarshal([]byte(`"Banana"`), &shape); err != nil || shape != InvalidShape {
+		t.Errorf(`"Banana" -> %v (err %v), want InvalidShape`, shape, err)
+	}
+
+	// Malformed JSON is an error, not a silent default.
+	if err := json.Unmarshal([]byte(`{"takeoff_position": 3}`), &struct {
+		P BodyPosition `json:"takeoff_position"`
+	}{}); err == nil {
+		t.Errorf("a non-string position should fail to decode")
 	}
 }
 
