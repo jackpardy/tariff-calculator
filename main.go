@@ -15,36 +15,14 @@ import (
 	"strings"
 	"time"
 
-	"tariffCalculator/skills" // Ensure this path is correct
+	"tariffCalculator/skills"
+	"tariffCalculator/views"
 )
 
 // --- Global Variables & Types ---
 var tmpl *template.Template
 
 // --- Structs for Validation & Template Data ---
-
-type ValidatedSkill struct {
-	skills.TrampolineSkill
-	InvalidTransition bool   `json:"InvalidTransition"`
-	InvalidLanding    bool   `json:"InvalidLanding"`
-	IsDuplicate       bool   `json:"IsDuplicate"`
-	IntermediateJump  bool   `json:"IntermediateJump"`
-	LandingPosStr     string `json:"landing_position"`
-	FIGNotation       string `json:"FIGNotation"`
-}
-
-type RoutineValidationData struct {
-	Skills                []ValidatedSkill `json:"skills"`
-	TotalTariff           float64          `json:"totalTariff"`
-	RawTariff             float64          `json:"rawTariff"`
-	HasDuplicates         bool             `json:"hasDuplicates"`
-	HasInvalidTransitions bool             `json:"hasInvalidTransitions"`
-	HasInvalidLandings    bool             `json:"hasInvalidLandings"`
-	HasIntermediateJumps  bool             `json:"hasIntermediateJumps"`
-	TenthSkillWarning     bool             `json:"tenthSkillWarning"`
-	RoutineTooLong        bool             `json:"routineTooLong"`
-	Messages              []string         `json:"messages"`
-}
 
 type CommonSkillEntry struct {
 	Key    string
@@ -174,7 +152,7 @@ func routes() http.Handler {
 	mux.HandleFunc("/edit-skill-form-data/", handleEditSkillFormData)
 	mux.HandleFunc("/calculate-skill", handleCalculateSingleSkill)
 	mux.HandleFunc("/evaluate-skill-fragment", handleEvaluateSkillFragment)
-	mux.HandleFunc("/validate-routine-client-state", handleValidateRoutineClientState)
+	mux.HandleFunc("POST /routine", handleRoutineView)
 	mux.HandleFunc("/common-skills-options", handleCommonSkillsOptions)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -607,29 +585,22 @@ func handleEvaluateSkillFragment(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleValidateRoutineClientState receives routine JSON and returns validation JSON.
-func handleValidateRoutineClientState(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", 405)
-		return
-	}
+// handleRoutineView renders the routine builder (cards, validation, totals) for
+// the routine the browser posts. Official names are always re-derived, so names
+// stored by older versions are corrected.
+func handleRoutineView(w http.ResponseWriter, r *http.Request) {
 	routine, err := parseRoutineFromRequest(r)
 	if err != nil {
-		log.Printf("Error parsing routine for validation: %v", err)
-		http.Error(w, "Bad Request: "+err.Error(), 400)
+		log.Printf("Error parsing routine for view: %v", err)
+		http.Error(w, "Bad Request: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	// Names are derived from the skill's parameters (stored names may be out of date).
 	for i := range routine {
 		routine[i].Name = skills.FindCommonSkillName(routine[i])
 	}
 
-	validationData := toValidationView(skills.ValidateRoutine(routine))
-	w.Header().Set("Content-Type", "application/json")
-	encodeErr := json.NewEncoder(w).Encode(validationData)
-	if encodeErr != nil {
-		log.Printf("Error encoding validation JSON: %v", encodeErr)
+	if err := views.Routine(skills.ValidateRoutine(routine)).Render(r.Context(), w); err != nil {
+		log.Printf("Error rendering routine view: %v", err)
 	}
 }
 
@@ -705,34 +676,4 @@ func parseRoutineFromRequest(r *http.Request) ([]skills.TrampolineSkill, error) 
 		routine[i].SetTariff()
 	}
 	return routine, nil
-}
-
-// toValidationView adapts the pure-domain skills.RoutineValidation into the JSON
-// view model the client expects (RoutineValidationData). This is the only place
-// the domain result and the wire format meet.
-func toValidationView(rv skills.RoutineValidation) RoutineValidationData {
-	data := RoutineValidationData{
-		Skills:                make([]ValidatedSkill, len(rv.Skills)),
-		Messages:              rv.Messages,
-		TotalTariff:           rv.TotalTariff,
-		RawTariff:             rv.RawTariff,
-		HasDuplicates:         rv.HasDuplicates,
-		HasInvalidTransitions: rv.HasInvalidTransitions,
-		HasInvalidLandings:    rv.HasInvalidLandings,
-		HasIntermediateJumps:  rv.HasIntermediateJumps,
-		TenthSkillWarning:     rv.TenthSkillWarning,
-		RoutineTooLong:        rv.RoutineTooLong,
-	}
-	for i, sv := range rv.Skills {
-		data.Skills[i] = ValidatedSkill{
-			TrampolineSkill:   sv.Skill,
-			InvalidTransition: sv.InvalidTransition,
-			InvalidLanding:    sv.InvalidLanding,
-			IsDuplicate:       sv.IsDuplicate,
-			IntermediateJump:  sv.IntermediateJump,
-			LandingPosStr:     sv.Landing.String(),
-			FIGNotation:       sv.FIGNotation,
-		}
-	}
-	return data
 }

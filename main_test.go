@@ -12,59 +12,91 @@ import (
 func postRoutine(t *testing.T, routineJSON string) *httptest.ResponseRecorder {
 	t.Helper()
 	form := url.Values{"routineData": {routineJSON}}
-	req := httptest.NewRequest(http.MethodPost, "/validate-routine-client-state", strings.NewReader(form.Encode()))
+	req := httptest.NewRequest(http.MethodPost, "/routine", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rec := httptest.NewRecorder()
-	handleValidateRoutineClientState(rec, req)
+	routes().ServeHTTP(rec, req)
 	return rec
 }
 
-// TestValidateRoutineJSONContract pins the per-skill and routine-level fields the
-// client reads; the per-skill flags drive the coloured card borders.
-func TestValidateRoutineJSONContract(t *testing.T) {
+// routineCards splits a rendered routine view into one chunk of HTML per card.
+func routineCards(html string) []string {
+	parts := strings.Split(html, `class="routine-skill-container"`)
+	return parts[1:]
+}
+
+// TestRoutineViewFlagsSkills checks that validation results reach the rendered
+// cards (the coloured borders and messages) and the routine-level warnings.
+func TestRoutineViewFlagsSkills(t *testing.T) {
 	rec := postRoutine(t, `[
 		{"rotation":1,"twist_distribution":[0],"takeoff_position":"Back","shape":"Straight"},
 		{"rotation":0,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Straight"},
 		{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},
-		{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}
+		{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},
+		{"rotation":3,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Straight"}
 	]`)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body)
 	}
+	html := rec.Body.String()
+	cards := routineCards(html)
+	if len(cards) != 5 {
+		t.Fatalf("rendered %d cards, want 5", len(cards))
+	}
 
-	var got struct {
-		Skills []struct {
-			InvalidTransition bool
-			InvalidLanding    bool
-			IsDuplicate       bool
-			IntermediateJump  bool
-		} `json:"skills"`
-		HasIntermediateJumps bool `json:"hasIntermediateJumps"`
+	want := []struct{ class, message string }{
+		{"invalid-transition", "Must Start From Feet"},
+		{"invalid-transition", "Straight Jump Interrupts Routine"},
+		{"duplicate-skill", "Duplicate (Counts Once)"},
+		{"duplicate-skill", "Duplicate"},
+		{"", ""},
 	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
-		t.Fatalf("decoding response: %v", err)
-	}
-	raw := rec.Body.String()
-	for _, field := range []string{`"InvalidTransition"`, `"InvalidLanding"`, `"IsDuplicate"`, `"IntermediateJump"`} {
-		if !strings.Contains(raw, field) {
-			t.Errorf("response is missing per-skill field %s", field)
+	for i, w := range want {
+		if w.class != "" && !strings.Contains(cards[i], w.class) {
+			t.Errorf("card %d is missing class %q", i+1, w.class)
+		}
+		if w.message != "" && !strings.Contains(cards[i], w.message) {
+			t.Errorf("card %d is missing message %q", i+1, w.message)
 		}
 	}
-	if !got.Skills[0].InvalidTransition {
-		t.Errorf("skill 1 (starts from back) should be an invalid transition")
+	for _, flag := range []string{"invalid-transition", "duplicate-skill", "invalid-landing"} {
+		if strings.Contains(cards[4], flag) {
+			t.Errorf("card 5 (crash dive) should not be flagged %q", flag)
+		}
 	}
-	if !got.Skills[1].IntermediateJump || !got.HasIntermediateJumps {
-		t.Errorf("skill 2 (straight jump) should be an intermediate jump")
-	}
-	if !got.Skills[2].IsDuplicate || !got.Skills[3].IsDuplicate {
-		t.Errorf("skills 3 and 4 should be flagged duplicate")
+
+	for _, s := range []string{
+		"Total Tariff: 0.90",
+		"5 of 10 skills",
+		"Duplicate skills only count once",
+		"Invalid transitions detected",
+		"Straight jumps interrupt the routine",
+		"2. Straight Jump",
+		"3. Back Tuck",
+		"(4 - o)",
+		"Feet → Back", // crash dive landing
+	} {
+		if !strings.Contains(html, s) {
+			t.Errorf("view is missing %q", s)
+		}
 	}
 }
 
-func TestValidateRoutineRejectsInvalidSkill(t *testing.T) {
-	rec := postRoutine(t, `[{"rotation":-4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}]`)
+func TestRoutineViewEmptyAndInvalid(t *testing.T) {
+	rec := postRoutine(t, `[]`)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Add skills using the form above.") {
+		t.Errorf("empty routine: status %d, body %s", rec.Code, rec.Body)
+	}
+
+	rec = postRoutine(t, `[{"rotation":-4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}]`)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want 400 for a negative rotation", rec.Code)
+	}
+
+	rec = httptest.NewRecorder()
+	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/routine", nil))
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Errorf("GET /routine status = %d, want 405", rec.Code)
 	}
 }
 
@@ -120,7 +152,7 @@ func TestRoutesRejectUnknownPathsAndOversizeBodies(t *testing.T) {
 	}
 
 	form := url.Values{"routineData": {strings.Repeat(" ", maxRequestBytes)}}
-	req := httptest.NewRequest(http.MethodPost, "/validate-routine-client-state", strings.NewReader(form.Encode()))
+	req := httptest.NewRequest(http.MethodPost, "/routine", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -156,19 +188,20 @@ func TestCustomNames(t *testing.T) {
 		}
 	})
 
-	t.Run("validation passes custom names through and refreshes official names", func(t *testing.T) {
-		rec := postRoutine(t, `[{"name":"Back","custom_name":"Opener","rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}]`)
-		var got struct {
-			Skills []struct {
-				Name       string `json:"name"`
-				CustomName string `json:"custom_name"`
-			} `json:"skills"`
+	t.Run("routine view shows custom and refreshed official names, escaped", func(t *testing.T) {
+		rec := postRoutine(t, `[
+			{"name":"Back","custom_name":"Opener","rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},
+			{"custom_name":"<img src=x onerror=alert(1)>","rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Pike","backward":true}
+		]`)
+		html := rec.Body.String()
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status %d, body %s", rec.Code, html)
 		}
-		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
-			t.Fatalf("status %d, decoding: %v", rec.Code, err)
+		if !strings.Contains(html, "1. Opener") || !strings.Contains(html, "· Back Tuck") {
+			t.Errorf("want the custom name with the refreshed official name, got:\n%s", html)
 		}
-		if got.Skills[0].Name != "Back Tuck" || got.Skills[0].CustomName != "Opener" {
-			t.Errorf("got %+v, want stale name refreshed and custom name kept", got.Skills[0])
+		if strings.Contains(html, "<img") {
+			t.Errorf("custom name was rendered unescaped")
 		}
 	})
 

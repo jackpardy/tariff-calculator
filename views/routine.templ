@@ -1,0 +1,190 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"tariffCalculator/skills"
+)
+
+// Routine renders the routine builder's skill cards and totals for a validated
+// routine. The page's Alpine component owns the routine (in localStorage) and
+// re-requests this view whenever it changes; card controls call its methods.
+templ Routine(rv skills.RoutineValidation) {
+	<div id="routine-skills" class="routine-skills">
+		if len(rv.Skills) == 0 {
+			<p class="has-text-grey">Add skills using the form above.</p>
+		} else {
+			@insertionPoint(0)
+			for i, sv := range rv.Skills {
+				@skillCard(i, sv, rv.Messages[i], i == len(rv.Skills)-1)
+				@insertionPoint(i + 1)
+			}
+		}
+	</div>
+	@results(rv)
+}
+
+// insertionPoint is a drop target shown between cards while dragging.
+templ insertionPoint(index int) {
+	<div
+		class="insertion-point"
+		x-show="isDragging"
+		x-bind:class={ alpine("{ 'active': dropIndex === %d }", index) }
+		x-on:dragover.prevent={ alpine("handleDragOver($event, %d)", index) }
+		x-on:dragleave="handleDragLeave($event)"
+		x-on:drop={ alpine("handleDrop($event, %d)", index) }
+	></div>
+}
+
+templ skillCard(i int, sv skills.SkillValidation, message string, last bool) {
+	<div class="routine-skill-container" x-bind:class={ alpine("{ 'editing': editingIndex === %d }", i) }>
+		<div
+			class={ "routine-skill", "box", "mb-2",
+				templ.KV("invalid-transition", sv.InvalidTransition || sv.IntermediateJump),
+				templ.KV("invalid-landing", sv.InvalidLanding),
+				templ.KV("duplicate-skill", sv.IsDuplicate) }
+			x-bind:class={ alpine("{ 'is-dragging': draggedIndex === %d }", i) }
+			x-bind:draggable="!isTouchDevice"
+			x-on:dragstart={ alpine("handleDragStart($event, %d)", i) }
+			x-on:dragover.prevent
+			x-on:dragleave="handleDragLeave($event)"
+			x-on:drop={ alpine("handleDrop($event, %d)", i) }
+			x-on:dragend="handleDragEnd($event)"
+		>
+			// Clickable header toggles the details.
+			<div
+				class="is-flex is-justify-content-space-between is-align-items-center"
+				style="cursor: pointer; padding: 4px 0;"
+				x-on:click={ alpine("toggleExpanded(%d)", i) }
+			>
+				<div class="skill-name-block is-flex is-align-items-center mb-0 mr-2" style="flex: 1; min-width: 0;">
+					<span
+						class="icon mr-1 has-text-grey"
+						style="font-size: 1.1rem; transition: transform 0.2s ease-in-out; display: flex; align-items: center;"
+						x-bind:style={ alpine("expanded[%d] ? 'transform: rotate(90deg);' : 'transform: rotate(0deg);'", i) }
+					>▶</span>
+					// Stacks on mobile, inline on tablet and up.
+					<div class="is-flex-tablet is-align-items-baseline" style="flex: 1; min-width: 0;">
+						<p class="skill-name mb-0 mr-2" style="line-height: 1.2; word-wrap: break-word;">
+							<strong>{ cardTitle(i, sv.Skill) }</strong>
+							if sv.Skill.CustomName != "" {
+								<span class="has-text-grey">· { sv.Skill.Name }</span>
+							}
+						</p>
+						<p class="is-size-7 has-text-grey mb-0" style="white-space: nowrap; line-height: 1.2;">{ sv.FIGNotation }</p>
+					</div>
+				</div>
+				// Compact button grid; clicks here must not toggle the card.
+				<div style="display: grid; grid-template-columns: 40px 45px; gap: 3px; flex-shrink: 0;" x-on:click.stop>
+					<button class="button is-info is-small is-fullwidth px-0" style="height: 24px; font-size: 0.75rem;" title="Edit" x-on:click={ alpine("editSkill(%d)", i) }>Edit</button>
+					<button class="button is-small is-fullwidth px-0" style="height: 24px;" title="Move Up" x-on:click={ alpine("moveSkillUp(%d)", i) } disabled?={ i == 0 }>↑</button>
+					<button class="button is-danger is-small is-fullwidth px-0" style="height: 24px; font-size: 0.75rem;" title="Remove" x-on:click={ alpine("removeSkill(%d)", i) }>Del</button>
+					<button class="button is-small is-fullwidth px-0" style="height: 24px;" title="Move Down" x-on:click={ alpine("moveSkillDown(%d)", i) } disabled?={ last }>↓</button>
+				</div>
+			</div>
+			// Collapsible details.
+			<div x-show={ alpine("expanded[%d]", i) } x-cloak>
+				<hr class="mt-2 mb-2"/>
+				<div class="skill-details-columns columns is-mobile is-multiline is-variable is-2 mb-0">
+					@detail("Rotation", rotationText(sv.Skill))
+					@detail("Twists", twistText(sv.Skill))
+					@detail("Landing", sv.Skill.TakeoffPosition.String()+" → "+sv.Landing.String())
+					@detail("Shape", sv.Skill.Shape.String())
+					<div class="column is-full-mobile is-narrow-tablet py-1-mobile">
+						<p class="is-size-7-mobile">
+							<span class="has-text-grey mr-1">Tariff:</span>
+							<strong class="has-text-primary">{ fmt.Sprintf("%.2f", sv.Skill.Tariff) }</strong>
+						</p>
+					</div>
+				</div>
+				if message != "" {
+					<div class="skill-validation-row mt-1">
+						<p class="transition-status is-size-7 has-text-danger">{ message }</p>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ detail(label, value string) {
+	<div class="column is-full-mobile is-narrow-tablet py-1-mobile">
+		<p class="is-size-7-mobile">
+			<span class="has-text-grey mr-1">{ label }:</span>
+			<strong>{ value }</strong>
+		</p>
+	</div>
+}
+
+templ results(rv skills.RoutineValidation) {
+	<div id="routine-results" class="mt-4">
+		<div class="card">
+			<div class="card-content">
+				<p class="title">Total Tariff: { fmt.Sprintf("%.2f", rv.TotalTariff) }</p>
+				<p class="subtitle">{ strconv.Itoa(len(rv.Skills)) } of { strconv.Itoa(skills.RoutineLength) } skills</p>
+				if rv.RawTariff > rv.TotalTariff+1e-9 {
+					<p class="subtitle tariff-difference">(Raw Total: { fmt.Sprintf("%.2f", rv.RawTariff) })</p>
+				}
+				<div class="validation-messages mt-3">
+					if rv.RoutineTooLong {
+						<p class="has-text-warning mb-2">⚠️ Routine has more than 10 skills (skills after the 10th don't count toward Tariff).</p>
+					}
+					if rv.HasDuplicates {
+						<p class="has-text-warning mb-2">⚠️ Duplicate skills only count once toward total!</p>
+					}
+					if rv.HasInvalidTransitions {
+						<p class="has-text-danger">❌ Invalid transitions detected.</p>
+					}
+					if rv.HasIntermediateJumps {
+						<p class="has-text-danger">❌ Straight jumps interrupt the routine.</p>
+					}
+					if rv.HasInvalidLandings {
+						<p class="has-text-landing-warning">🚫 Invalid landing positions detected.</p>
+					}
+					if rv.TenthSkillWarning {
+						<p class="has-text-tenth-warning">🎯 10th skill must land on feet!</p>
+					}
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+// alpine formats an Alpine expression; arguments are only ever ints.
+func alpine(format string, args ...int) string {
+	vals := make([]any, len(args))
+	for i, a := range args {
+		vals[i] = a
+	}
+	return fmt.Sprintf(format, vals...)
+}
+
+// cardTitle is "N. name", preferring the user's custom name.
+func cardTitle(i int, s skills.TrampolineSkill) string {
+	name := s.Name
+	if s.CustomName != "" {
+		name = s.CustomName
+	}
+	return fmt.Sprintf("%d. %s", i+1, name)
+}
+
+func rotationText(s skills.TrampolineSkill) string {
+	direction := "F"
+	if s.Backward {
+		direction = "B"
+	}
+	return fmt.Sprintf("%d %s", s.Rotation, direction)
+}
+
+func twistText(s skills.TrampolineSkill) string {
+	if len(s.TwistDistribution) == 0 {
+		return "0"
+	}
+	parts := make([]string, len(s.TwistDistribution))
+	for i, t := range s.TwistDistribution {
+		parts[i] = strconv.Itoa(t)
+	}
+	return strings.Join(parts, " | ")
+}

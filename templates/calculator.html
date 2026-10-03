@@ -37,9 +37,9 @@
             </div>
             <div class="level-right">
                 <div class="buttons mb-0">
-                    <button class="button is-info is-light is-small" @click="$dispatch('expand-all')">Expand
+                    <button class="button is-info is-light is-small" @click="expandAll()">Expand
                         All</button>
-                    <button class="button is-info is-light is-small" @click="$dispatch('collapse-all')">Collapse
+                    <button class="button is-info is-light is-small" @click="collapseAll()">Collapse
                         All</button>
                     {{/* Button to clear the entire routine */}}
                     <button class="button is-danger is-outlined is-small" @click="clearRoutine()"
@@ -50,184 +50,9 @@
             </div>
         </div>
 
-        {{/* Container for the list of skills in the routine */}}
-        {{/* x-ref allows referencing this element in Alpine JS */}}
-        <div id="routine-skills" class="routine-skills" x-ref="routineSkillsContainer">
-            {{/* Insertion point shown when dragging, placed at the very top */}}
-            <div class="insertion-point" x-show="isDragging && routine.length > 0"
-                :class="{ 'active': dropIndex === 0 }" @dragover.prevent="handleDragOver($event, 0)"
-                @dragleave="handleDragLeave($event)" @drop="handleDrop($event, 0)"
-                @touchend="handleTouchEnd($event, 0)">
-            </div>
-
-            {{/* Alpine template loop to render each skill in the routine */}}
-            <template x-for="(skill, index) in routine" :key="index">
-                {{/* Unique ID for each skill's container */}}
-                <div x-id="['skill']" :id="$id('skill')">
-                    {{/* Container to manage editing state style */}}
-                    <div class="routine-skill-container" :class="{ 'editing': editingIndex === index }">
-                        {{/* The actual skill item box, draggable, with collapsable state */}}
-                        <div class="routine-skill box mb-2" :class="{
-                                    'invalid-transition': validationResults?.skills?.[index]?.InvalidTransition || validationResults?.skills?.[index]?.IntermediateJump,
-                                    'invalid-landing': validationResults?.skills?.[index]?.InvalidLanding,
-                                    'duplicate-skill': validationResults?.skills?.[index]?.IsDuplicate,
-                                    'is-dragging': draggedIndex === index
-                                 }" :draggable="!isTouchDevice" @dragstart="handleDragStart($event, index)"
-                            @dragover.prevent @dragleave="handleDragLeave($event)" @drop="handleDrop($event, index)"
-                            @dragend="handleDragEnd($event)" @touchstart="handleTouchStart($event, index)"
-                            @touchmove="handleTouchMove($event)" @touchend="handleTouchEnd($event)"
-                            @touchcancel="handleTouchCancel($event)" x-data="{ expanded: false }"
-                            @expand-all.window="expanded = true" @collapse-all.window="expanded = false">
-
-                            {{/* Clickable Header for Toggling */}}
-                            <div class="is-flex is-justify-content-space-between is-align-items-center"
-                                style="cursor: pointer; padding: 4px 0;" @click="expanded = !expanded">
-
-                                <div class="skill-name-block is-flex is-align-items-center mb-0 mr-2"
-                                    style="flex: 1; min-width: 0;">
-
-                                    {{/* 1. The Arrow: Stays to the left of the entire text block */}}
-                                    <span class="icon mr-1 has-text-grey"
-                                        style="font-size: 1.1rem; transition: transform 0.2s ease-in-out; display: flex; align-items: center;"
-                                        :style="expanded ? 'transform: rotate(90deg);' : 'transform: rotate(0deg);'">
-                                        ▶
-                                    </span>
-
-                                    {{/* 2. Text Wrapper: Stacks children on mobile, inline on tablet+ */}}
-                                    <div class="is-flex-tablet is-align-items-baseline" style="flex: 1; min-width: 0;">
-                                        {{/* Name */}}
-                                        <p class="skill-name mb-0 mr-2"
-                                            style="line-height: 1.2; word-wrap: break-word;">
-                                            <strong x-text="`${index + 1}. ${skill.custom_name || officialName(index)}`"></strong>
-                                            <span class="has-text-grey" x-show="skill.custom_name"
-                                                x-text="`· ${officialName(index)}`"></span>
-                                        </p>
-                                        {{/* FIG Notation */}}
-                                        <p class="is-size-7 has-text-grey mb-0"
-                                            style="white-space: nowrap; line-height: 1.2;"
-                                            x-text="validationResults?.skills?.[index]?.FIGNotation ?? '?'">
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {{/* Compact Button Grid */}}
-                                <div style="display: grid; grid-template-columns: 40px 45px; gap: 3px; flex-shrink: 0;"
-                                    @click.stop>
-                                    <button class="button is-info is-small is-fullwidth px-0"
-                                        style="height: 24px; font-size: 0.75rem;" title="Edit"
-                                        @click="editSkill(index)">Edit</button>
-                                    <button class="button is-small is-fullwidth px-0" style="height: 24px;"
-                                        title="Move Up" @click="moveSkillUp(index)" :disabled="index === 0">↑</button>
-                                    <button class="button is-danger is-small is-fullwidth px-0"
-                                        style="height: 24px; font-size: 0.75rem;" title="Remove"
-                                        @click="removeSkill(index)">Del</button>
-                                    <button class="button is-small is-fullwidth px-0" style="height: 24px;"
-                                        title="Move Down" @click="moveSkillDown(index)"
-                                        :disabled="index === routine.length - 1">↓</button>
-
-                                </div>
-                            </div>
-
-                            {{/* Collapsable Details Content */}}
-                            <div x-show="expanded" x-transition style="display: none;">
-                                <hr class="mt-2 mb-2">
-
-                                <div class="skill-details-columns columns is-mobile is-multiline is-variable is-2 mb-0">
-
-                                    {{/* Rotation Column: Full width on mobile, Narrow on desktop */}}
-                                    <div class="column is-full-mobile is-narrow-tablet py-1-mobile">
-                                        <p class="is-size-7-mobile">
-                                            <span class="has-text-grey mr-1">Rotation:</span>
-                                            <strong x-text="Math.abs(skill.rotation)"></strong> <strong
-                                                x-text="skill.backward ? 'B' : 'F'"></strong>
-                                        </p>
-                                    </div>
-
-                                    {{/* Twists Column */}}
-                                    <div class="column is-full-mobile is-narrow-tablet py-1-mobile">
-                                        <p class="is-size-7-mobile">
-                                            <span class="has-text-grey mr-1">Twists:</span>
-                                            <strong
-                                                x-text="(skill.twist_distribution || []).join(' | ') || '0'"></strong>
-                                        </p>
-                                    </div>
-
-                                    {{/* Landing Column */}}
-                                    <div class="column is-full-mobile is-narrow-tablet py-1-mobile">
-                                        <p class="is-size-7-mobile">
-                                            <span class="has-text-grey mr-1">Landing:</span>
-                                            <strong
-                                                x-text="`${skill.takeoff_position} → ${skill.landing_position || calculateLanding(skill)}`"></strong>
-                                        </p>
-                                    </div>
-
-                                    {{/* Shape Column */}}
-                                    <div class="column is-full-mobile is-narrow-tablet py-1-mobile">
-                                        <p class="is-size-7-mobile">
-                                            <span class="has-text-grey mr-1">Shape:</span>
-                                            <strong x-text="skill.shape"></strong>
-                                        </p>
-                                    </div>
-
-                                    {{/* Tariff Column */}}
-                                    <div class="column is-full-mobile is-narrow-tablet py-1-mobile">
-                                        <p class="is-size-7-mobile">
-                                            <span class="has-text-grey mr-1">Tariff:</span>
-                                            <strong class="has-text-primary" x-text="skill.tariff.toFixed(2)"></strong>
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {{/* Validation Message Display Row */}}
-                                <div x-show="validationResults?.messages?.[index]" class="skill-validation-row mt-1">
-                                    <p class="transition-status is-size-7 has-text-danger"
-                                        x-text="validationResults?.messages?.[index] ?? ''"></p>
-                                </div>
-                            </div>
-
-                        </div> {{/* End routine-skill div */}}
-                    </div> {{/* End routine-skill-container div */}}
-
-                    {{/* Insertion point shown when dragging, placed between items */}}
-                    <div class="insertion-point" x-show="isDragging" :class="{ 'active': dropIndex === index + 1 }"
-                        @dragover.prevent="handleDragOver($event, index + 1)" @dragleave="handleDragLeave($event)"
-                        @drop="handleDrop($event, index + 1)" @touchend="handleTouchEnd($event, index + 1)">
-                    </div>
-                </div>
-            </template>
-
-            {{/* Message shown when routine is empty */}}
-            <template x-if="routine.length === 0">
-                <p class="has-text-grey">Add skills using the form above.</p>
-            </template>
-        </div>
-
-        {{/* Section to display routine totals and validation messages */}}
-        <div id="routine-results" class="mt-4">
-            <div class="card">
-                <div class="card-content">
-                    <p class="title">Total Tariff: <span
-                            x-text="validationResults?.totalTariff?.toFixed(2) ?? '0.00'"></span></p>
-                    <p class="subtitle"><span x-text="routine.length"></span> of 10 skills</p>
-                    <p x-show="validationResults?.rawTariff > validationResults?.totalTariff"
-                        class="subtitle tariff-difference">(Raw Total: <span
-                            x-text="validationResults?.rawTariff?.toFixed(2)"></span>)</p>
-                    <div class="validation-messages mt-3">
-                        <p x-show="validationResults?.routineTooLong" class="has-text-warning mb-2">⚠️ Routine has more
-                            than 10 skills (skills after the 10th don't count toward Tariff).</p>
-                        <p x-show="validationResults?.HasDuplicates" class="has-text-warning mb-2">⚠️ Duplicate skills
-                            only count once toward total!</p>
-                        <p x-show="validationResults?.HasInvalidTransitions" class="has-text-danger">❌ Invalid
-                            transitions detected.</p>
-                        <p x-show="validationResults?.HasIntermediateJumps" class="has-text-danger">❌ Straight jumps
-                            interrupt the routine.</p>
-                        <p x-show="validationResults?.HasInvalidLandings" class="has-text-landing-warning">🚫 Invalid
-                            landing positions detected.</p>
-                        <p x-show="validationResults?.tenthSkillWarning" class="has-text-tenth-warning">🎯 10th skill
-                            must land on feet!</p>
-                    </div>
-                </div>
-            </div>
+        {{/* Cards and totals, rendered by the server (views.Routine) whenever the routine changes */}}
+        <div id="routine-view">
+            <p class="has-text-grey">Loading routine...</p>
         </div>
     </div>
 
@@ -245,14 +70,9 @@
             // --- Alpine Component State ---
             routine: [],
             editingIndex: null,
-            validationResults: {
-                skills: [], totalTariff: 0.0, rawTariff: 0.0, HasDuplicates: false,
-                HasInvalidTransitions: false, HasInvalidLandings: false, HasIntermediateJumps: false,
-                tenthSkillWarning: false, routineTooLong: false, messages: []
-            },
+            expanded: [], // per-card expanded state, parallel to routine
             toast: { show: false, message: '', type: 'info' },
             draggedIndex: null, dropIndex: null, isDragging: false,
-            touchStartY: null, touchCurrentY: null, draggedElement: null,
             _processingCalculation: false, showEvaluation: false,
             lastInsertPosition: null, isInitialLoad: true, isTouchDevice: false,
             //selectedCommonSkillKey: '',
@@ -290,7 +110,7 @@
                         this.updatePositionDropdown(); // Update main form dropdown
                         if (this.showEvaluation) { this.populateEvalPositionDropdown(); } // Update eval dropdown if visible
                     } else { console.log('--> Routine watcher: Length did not change.'); }
-                    this.validateRoutineBackend();
+                    this.renderRoutine();
                     localStorage.setItem('trampolineRoutine', JSON.stringify(newRoutine));
                 });
 
@@ -308,7 +128,7 @@
                 });
 
                 // Initial validation
-                this.validateRoutineBackend();
+                this.renderRoutine();
 
                 // HTMX Listeners
                 document.body.addEventListener('htmx:afterSwap', (event) => {
@@ -358,21 +178,17 @@
                     const requestConfig = event.detail.requestConfig;
                     const requestPath = requestConfig?.path ?? 'N/A';
 
-                    if (requestPath === '/validate-routine-client-state') {
-                        if (xhr.status === 200) {
-                            try {
-                                const results = JSON.parse(xhr.responseText);
-                                this.validationResults = {
-                                    skills: results.skills || [], totalTariff: results.totalTariff || 0.0,
-                                    rawTariff: results.rawTariff || 0.0, HasDuplicates: results.hasDuplicates || false,
-                                    HasInvalidTransitions: results.hasInvalidTransitions || false,
-                                    HasInvalidLandings: results.hasInvalidLandings || false,
-                                    HasIntermediateJumps: results.hasIntermediateJumps || false,
-                                    tenthSkillWarning: results.tenthSkillWarning || false,
-                                    routineTooLong: results.routineTooLong || false, messages: results.messages || []
-                                };
-                            } catch (e) { console.error("Error parsing validation response:", e); this.showToast('Could not update validation.', 'error'); }
-                        } else { console.error(`/validate-routine-client-state request failed: ${xhr.status}`); this.showToast('Validation update failed.', 'error'); }
+                    if (requestPath === '/routine' && event.detail.failed) {
+                        const reason = xhr.status === 400 ? xhr.responseText.trim() : 'the server could not be reached';
+                        this.showToast(`Routine not updated: ${reason}`, 'error');
+                        // If nothing has rendered yet (e.g. a saved routine that no longer validates), say so in place.
+                        const view = document.getElementById('routine-view');
+                        if (view && !view.querySelector('#routine-skills')) {
+                            const p = document.createElement('p');
+                            p.className = 'has-text-danger';
+                            p.textContent = `Couldn't show the saved routine (${reason}). Use Clear Routine to start again.`;
+                            view.replaceChildren(p);
+                        }
                     }
                     else if (requestPath === '/evaluate-skill-fragment' && event.detail.target.id === 'evaluation-preview') {
                         console.log("--> Showing evaluation preview after request.");
@@ -485,6 +301,11 @@
                 });
             },
 
+            // --- Card expand/collapse ---
+            toggleExpanded(index) { this.expanded[index] = !this.expanded[index]; },
+            expandAll() { this.expanded = this.routine.map(() => true); },
+            collapseAll() { this.expanded = this.routine.map(() => false); },
+
             // --- Actions ---
             addSkill(skillData, position = null) {
                 const newSkill = { name: skillData.name || 'Custom Skill', custom_name: skillData.custom_name || '', rotation: skillData.rotation, twist_distribution: skillData.twist_distribution || [], takeoff_position: skillData.takeoff_position, shape: skillData.shape, backward: skillData.backward, seat_landing: skillData.seat_landing, tariff: skillData.tariff, landing_position: skillData.landing_position };
@@ -494,11 +315,13 @@
 
                 if (!isNaN(targetPosition) && targetPosition >= 1 && targetPosition <= currentLength) {
                     const index = targetPosition - 1;
+                    this.expanded.splice(index, 0, false);
                     this.routine.splice(index, 0, newSkill); // Modify routine
                     this.showToast(`Skill added at position ${targetPosition}.`, 'info');
                     actualInsertPosition = targetPosition;
                 } else {
                     if (currentLength >= 10) { this.showToast('Warning: Routines typically have 10 skills.', 'warning'); }
+                    this.expanded.push(false);
                     this.routine.push(newSkill); // Modify routine
                     actualInsertPosition = this.routine.length;
                     this.showToast('Skill added to end.', 'info');
@@ -518,6 +341,7 @@
             },
             removeSkill(index) {
                 if (index >= 0 && index < this.routine.length) {
+                    this.expanded.splice(index, 1);
                     this.routine.splice(index, 1); // Modify routine FIRST
                     // Update lastInsertPosition AFTER modifying the routine
                     this.lastInsertPosition = this.routine.length + 1; // Default to new end
@@ -597,6 +421,7 @@
                     let oldLastInsertPos = this.lastInsertPosition;
                     if (this.lastInsertPosition === index + 1) { this.lastInsertPosition--; } else if (this.lastInsertPosition === index) { this.lastInsertPosition++; }
                     if (oldLastInsertPos !== this.lastInsertPosition) console.log(`moveSkillUp: Adjusted lastInsertPosition to ${this.lastInsertPosition}`);
+                    [this.expanded[index], this.expanded[index - 1]] = [this.expanded[index - 1], this.expanded[index]];
                     [this.routine[index], this.routine[index - 1]] = [this.routine[index - 1], this.routine[index]]; // Modify routine
                     if (this.editingIndex === index) { this.editingIndex--; } else if (this.editingIndex === index - 1) { this.editingIndex++; }
                     // Routine watcher handles updates
@@ -607,6 +432,7 @@
                     let oldLastInsertPos = this.lastInsertPosition;
                     if (this.lastInsertPosition === index + 1) { this.lastInsertPosition++; } else if (this.lastInsertPosition === index + 2) { this.lastInsertPosition--; }
                     if (oldLastInsertPos !== this.lastInsertPosition) console.log(`moveSkillDown: Adjusted lastInsertPosition to ${this.lastInsertPosition}`);
+                    [this.expanded[index], this.expanded[index + 1]] = [this.expanded[index + 1], this.expanded[index]];
                     [this.routine[index], this.routine[index + 1]] = [this.routine[index + 1], this.routine[index]]; // Modify routine
                     if (this.editingIndex === index) { this.editingIndex++; } else if (this.editingIndex === index + 1) { this.editingIndex--; }
                     // Routine watcher handles updates
@@ -615,6 +441,7 @@
             clearRoutine() {
                 if (this.routine.length > 0 && confirm('Are you sure?')) {
                     this.routine = [];
+                    this.expanded = [];
                     this.lastInsertPosition = 1;
                     this.editingIndex = null; this.showEvaluation = false;
                     this.showToast('Routine cleared.', 'info');
@@ -673,14 +500,14 @@
             },
 
             // --- Backend Interaction ---
-            validateRoutineBackend() {
-                console.log("--> Sending routine for backend validation...");
-                htmx.ajax('POST', '/validate-routine-client-state', {
-                    values: { routineData: JSON.stringify(this.routine) },
-                    swap: 'none' // Response handled by htmx:afterRequest listener
+            renderRoutine() {
+                htmx.ajax('POST', '/routine', {
+                    target: '#routine-view',
+                    swap: 'innerHTML',
+                    values: { routineData: JSON.stringify(this.routine) }
                 }).catch(error => {
-                    console.error('Validation AJAX initiation error:', error);
-                    this.showToast('Failed to connect for validation.', 'error');
+                    console.error('Routine render request error:', error);
+                    this.showToast('Failed to connect to update the routine.', 'error');
                 });
             },
             calculateSkill(skillData, callbackOnSuccess) {
@@ -727,21 +554,17 @@
             },
 
             // --- Utilities ---
-            calculateLanding(skill) { const BP = { F: 0, Fr: 1, B: 3, S: 4, I: -1 }; const PA = { 'Feet': 0, 'Front': 1, 'Back': 3, 'Seat': 0, 'feet': 0, 'front': 1, 'back': 3, 'seat': 0 }; const PN = ["Feet", "Front", "Back", "Seat", "Invalid"]; let tr = 0; const ta = PA[skill.takeoff_position]; if (ta === undefined) return PN[BP.I]; if (skill.backward) { tr = ta - skill.rotation; } else { tr = ta + skill.rotation; } let tt = (skill.twist_distribution || []).reduce((s, t) => s + t, 0); let fp = BP.I; let ak = (tr % 4); if (ak < 0) ak += 4; if (tt % 2 !== 0) { if (ak === 1) ak = 3; else if (ak === 3) ak = 1; } if (ak === 0) fp = BP.F; else if (ak === 1) fp = BP.Fr; else if (ak === 3) fp = BP.B; if (skill.seat_landing) { return (fp === BP.F) ? PN[BP.S] : PN[BP.I]; } return PN[fp] ?? PN[BP.I]; },
-            // The server derives official names; fall back to the stored one until validation returns.
-            officialName(index) { return this.validationResults?.skills?.[index]?.name || this.routine[index]?.name || 'Custom Skill'; },
             showToast(message, type = 'info') { this.toast.message = message; this.toast.type = type; this.toast.show = true; setTimeout(() => this.toast.show = false, 3000); },
-            isFirstOccurrence(index) { if (index < 0 || index >= this.routine.length) return false; const cs = this.routine[index]; for (let i = 0; i < index; i++) { if (this.skillsAreEqual(cs, this.routine[i])) return false; } return true; },
-            skillsAreEqual(sA, sB) { const tA = (sA.twist_distribution || []).reduce((s, t) => s + t, 0); const tB = (sB.twist_distribution || []).reduce((s, t) => s + t, 0); if (tA !== tB || sA.rotation !== sB.rotation || sA.backward !== sB.backward || sA.seat_landing !== sB.seat_landing || sA.takeoff_position !== sB.takeoff_position) return false; if (sA.rotation === 0 && tA === 0) return sA.shape === sB.shape; if (sA.rotation < 3) return true; if (sA.rotation >= 3 && sA.rotation < 6) { if (tA < 2) return sA.shape === sB.shape; return true; } if (sA.shape !== sB.shape) return false; if (sA.rotation >= 7) { const dA = JSON.stringify(sA.twist_distribution || []); const dB = JSON.stringify(sB.twist_distribution || []); if (dA !== dB) return false; } return true; },
 
             // --- Drag & Drop ---
-            handleDragStart(event, index) { this.draggedIndex = index; this.isDragging = true; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', index); this.$nextTick(() => { document.getElementById(this.$id('skill'))?.querySelector('.routine-skill')?.classList.add('is-dragging'); }); },
+            handleDragStart(event, index) { this.draggedIndex = index; this.isDragging = true; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', index); },
             handleDragOver(event, index) { event.preventDefault(); if (this.draggedIndex !== null) { this.dropIndex = index; } return false; },
             handleDragLeave(event) { const relatedTarget = event.relatedTarget; const currentTarget = event.currentTarget; if (!currentTarget.contains(relatedTarget)) { this.dropIndex = null; document.querySelectorAll('.insertion-point.active').forEach(el => el.classList.remove('active')); } },
             handleDrop(event, index) {
                 event.preventDefault(); const finalDropIndex = index;
                 if (this.draggedIndex !== null && this.draggedIndex !== finalDropIndex && this.draggedIndex + 1 !== finalDropIndex) {
                     const adjustedTargetIndex = (this.draggedIndex < finalDropIndex) ? finalDropIndex - 1 : finalDropIndex;
+                    this.expanded.splice(adjustedTargetIndex, 0, this.expanded.splice(this.draggedIndex, 1)[0] ?? false);
                     const itemToMove = this.routine.splice(this.draggedIndex, 1)[0]; // Modify routine
                     this.routine.splice(adjustedTargetIndex, 0, itemToMove); // Modify routine again
                     // Update lastInsertPosition AFTER modifying the routine
@@ -752,49 +575,6 @@
                 } this.handleDragEnd();
             },
             handleDragEnd(event) { this.$nextTick(() => { this.draggedIndex = null; this.dropIndex = null; this.isDragging = false; document.querySelectorAll('.routine-skill.is-dragging').forEach(el => el.classList.remove('is-dragging')); document.querySelectorAll('.insertion-point.active').forEach(el => el.classList.remove('active')); }); },
-            handleTouchStart(event, index) {
-                // *** ADDED: Disable on touch devices ***
-                if (this.isTouchDevice) return;
-                if (event.target.closest('button, .delete')) return;
-                this.draggedIndex = index; this.isDragging = true;
-                this.touchStartY = event.touches[0].clientY; this.touchCurrentY = this.touchStartY;
-                this.draggedElement = document.getElementById(this.$id('skill'))?.querySelector('.routine-skill');
-                if (this.draggedElement) { this.draggedElement.style.opacity = '0.4'; this.$refs.routineSkillsContainer.classList.add('is-dragging-touch'); }
-            },
-            handleTouchMove(event) {
-                // *** ADDED: Disable on touch devices ***
-                if (this.isTouchDevice) return;
-                if (this.draggedIndex === null || !this.isDragging) return;
-                event.preventDefault(); const touch = event.touches[0]; this.touchCurrentY = touch.clientY;
-                let potentialDropIndex = null;
-                if (this.draggedElement) this.draggedElement.style.visibility = 'hidden';
-                const elementUnderFinger = document.elementFromPoint(touch.clientX, touch.clientY);
-                if (this.draggedElement) this.draggedElement.style.visibility = 'visible';
-                const insertionPoints = this.$el.querySelectorAll('.insertion-point'); insertionPoints.forEach(point => point.classList.remove('active'));
-                if (elementUnderFinger) { const closestInsertionPoint = elementUnderFinger.closest('.insertion-point'); if (closestInsertionPoint) { potentialDropIndex = Array.from(insertionPoints).indexOf(closestInsertionPoint); } }
-                if (potentialDropIndex !== null && potentialDropIndex !== this.draggedIndex && potentialDropIndex !== this.draggedIndex + 1) { this.dropIndex = potentialDropIndex; if (insertionPoints[this.dropIndex]) { insertionPoints[this.dropIndex].classList.add('active'); } }
-                else { this.dropIndex = null; }
-            },
-            handleTouchEnd(event, indexFromEvent) {
-                // *** ADDED: Disable on touch devices ***
-                if (this.isTouchDevice) return;
-                const targetIsInsertionPoint = event.currentTarget.classList.contains('insertion-point');
-                const finalDropIndex = targetIsInsertionPoint ? indexFromEvent : this.dropIndex;
-                if (this.draggedIndex !== null && finalDropIndex !== null && finalDropIndex !== this.draggedIndex && finalDropIndex !== this.draggedIndex + 1) {
-                    const adjustedTargetIndex = (this.draggedIndex < finalDropIndex) ? finalDropIndex - 1 : finalDropIndex;
-                    const itemToMove = this.routine.splice(this.draggedIndex, 1)[0];
-                    this.routine.splice(adjustedTargetIndex, 0, itemToMove);
-                    this.lastInsertPosition = this.routine.length + 1;
-                    console.log(`handleTouchEnd: Updated lastInsertPosition to ${this.lastInsertPosition}`);
-                    if (this.editingIndex !== null) { /* ... adjust editingIndex ... */ }
-                } this.cleanupTouchDrag();
-            },
-            handleTouchCancel(event) {
-                // *** ADDED: Disable on touch devices (though cleanup is safe) ***
-                if (this.isTouchDevice) return;
-                this.cleanupTouchDrag();
-            },
-            cleanupTouchDrag() { if (this.draggedElement) { this.draggedElement.style.opacity = '1'; } this.$refs.routineSkillsContainer.classList.remove('is-dragging-touch'); document.querySelectorAll('.insertion-point.active').forEach(el => el.classList.remove('active')); this.draggedIndex = null; this.dropIndex = null; this.isDragging = false; this.touchStartY = null; this.touchCurrentY = null; this.draggedElement = null; },
 
             // --- Form Data Handling ---
             calculatePhases(rotation) { rotation = Math.abs(rotation); if (rotation <= 6) return 1; if (rotation <= 10) return 2; if (rotation <= 14) return 3; if (rotation > 0) return 4; return 1; },

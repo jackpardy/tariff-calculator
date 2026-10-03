@@ -18,6 +18,13 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: Check generated templ code is up to date
+        run: |
+          go tool templ generate
+          git diff --exit-code -- '*_templ.go' || {
+            echo "::error::Generated templ code is stale; run 'go tool templ generate' and commit."
+            exit 1
+          }
       - run: go vet ./...
       - run: go test ./...
 
