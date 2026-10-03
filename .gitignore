@@ -3,3 +3,6 @@
 
 # Compiled binary
 /tariffCalculator
+
+# Reference material (FIG Code of Points; not ours to redistribute)
+*.pdf

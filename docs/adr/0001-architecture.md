@@ -1,6 +1,8 @@
 # ADR 0001 — Architecture for growing the tariff tool into a product
 
-- **Status:** Accepted
+- **Status:** Accepted; §1 (browser WASM), §2 (UI as an API client), §8 (frontend)
+  and the MVP's WASM and `embed.FS` items are amended by
+  [ADR 0002](0002-server-rendered-frontend.md)
 - **Date:** 2026-06-23
 - **Deciders:** jackpardy (solo maintainer)
 

@@ -1,6 +1,6 @@
 # ADR 0002 — Server-rendered frontend with templ and HTMX
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-03
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0001 §1 (browser WASM), §2 (UI as an API client), §8 (frontend) and the MVP roadmap
