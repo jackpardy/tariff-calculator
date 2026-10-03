@@ -1,0 +1,12 @@
+.git
+.gitignore
+.github
+.idea
+*.pdf
+*.log
+*.md
+docs
+tariffCalculator
+tariff-calculator
+Dockerfile
+.dockerignore
