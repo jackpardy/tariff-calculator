@@ -1,47 +1,27 @@
 {{define "content"}}
 <div class="container" x-data="tariffCalculatorStore()">
 
-    {{/* Hidden input to potentially pass routine data if needed, managed by Alpine */}}
-    <input type="hidden" name="routineData" :value="JSON.stringify(routine)">
-
-    {{/* Box containing the skill input form */}}
+    {{/* Skill form, rendered by the server (views.SkillFormView) */}}
     <div class="box">
         <h3 class="title is-4">Skill Calculator</h3>
-        {{/* Wrapper for the skill form, targeted by HTMX for reloading */}}
-        <div id="skill-form-wrapper" style="scroll-margin-top: 20px;"> {{/* scroll-margin for better scrollIntoView
-            targeting */}}
-            {{/* This inner div will be replaced by HTMX */}}
-            <div id="skill-form-content" hx-trigger="load" {{/* Load form on initial page load */}}
-                hx-get="/skill-form-fragment" {{/* Endpoint to get the form fragment */}} hx-target="this" {{/* Replace
-                this div with the response */}} hx-swap="outerHTML" {{/* Replace the entire div, not just inner content
-                */}} x-init="console.log('Loading initial skill form content...');" {{/* Watcher setup moved to init()
-                */}}>
-                <p>Loading form...</p> {{/* Placeholder content */}}
-            </div>
+        <div id="skill-form-wrapper" style="scroll-margin-top: 20px;" hx-sync="this:replace">
+            <p>Loading form...</p>
         </div>
     </div>
 
-    {{/* Box for displaying skill evaluation results, loaded via HTMX */}}
-    <div id="evaluation-preview" class="box" x-show="showEvaluation" {{/* Controlled by Alpine state */}} x-transition
-        {{/* Alpine transition for show/hide */}} style="display: none;" {{/* Initially hidden */}} {{/* Dropdown
-        population triggered by listener after swap */}}>
-        {{/* Content for evaluation results will be loaded here by HTMX */}}
-    </div>
+    {{/* Evaluation preview, rendered by the server (views.EvaluationView) */}}
+    <div id="evaluation-preview" class="box" x-show="showEvaluation" x-transition style="display: none;"></div>
 
-    {{/* Box containing the routine builder */}}
+    {{/* Routine builder */}}
     <div class="box">
-        {{/* Header for the routine builder section */}}
         <div class="level mb-4">
             <div class="level-left">
                 <h3 class="title is-4 mb-0">Routine Builder</h3>
             </div>
             <div class="level-right">
                 <div class="buttons mb-0">
-                    <button class="button is-info is-light is-small" @click="expandAll()">Expand
-                        All</button>
-                    <button class="button is-info is-light is-small" @click="collapseAll()">Collapse
-                        All</button>
-                    {{/* Button to clear the entire routine */}}
+                    <button class="button is-info is-light is-small" @click="expandAll()">Expand All</button>
+                    <button class="button is-info is-light is-small" @click="collapseAll()">Collapse All</button>
                     <button class="button is-danger is-outlined is-small" @click="clearRoutine()"
                         x-show="routine.length > 0" type="button">
                         Clear Routine
@@ -51,7 +31,7 @@
         </div>
 
         {{/* Cards and totals, rendered by the server (views.Routine) whenever the routine changes */}}
-        <div id="routine-view">
+        <div id="routine-view" hx-sync="this:replace">
             <p class="has-text-grey">Loading routine...</p>
         </div>
     </div>
@@ -65,240 +45,109 @@
 
 </div>
 <script>
+    // The page's state: the routine (saved in localStorage) and UI state local to
+    // the page. Everything shown is rendered by the server; this component asks for
+    // it whenever the routine or the form changes.
     function tariffCalculatorStore() {
         return {
-            // --- Alpine Component State ---
             routine: [],
-            editingIndex: null,
             expanded: [], // per-card expanded state, parallel to routine
-            toast: { show: false, message: '', type: 'info' },
+            editingIndex: null,
+            showEvaluation: false,
+            lastInsertPosition: 1,
             draggedIndex: null, dropIndex: null, isDragging: false,
-            _processingCalculation: false, showEvaluation: false,
-            lastInsertPosition: null, isInitialLoad: true, isTouchDevice: false,
-            //selectedCommonSkillKey: '',
-            commonSkillSortBy: 'tariff-asc',
+            isTouchDevice: false,
+            busy: false, // an add or update is in flight
+            toast: { show: false, message: '', type: 'info' },
 
-            // --- Initialization ---
             init() {
-                console.log("Alpine init starting...");
-                this.isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
+                this.isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+                try {
+                    this.routine = JSON.parse(localStorage.getItem('trampolineRoutine') || '[]');
+                } catch (e) {
+                    console.error('Failed to parse saved routine:', e);
+                    localStorage.removeItem('trampolineRoutine');
+                }
+                this.lastInsertPosition = this.routine.length + 1;
 
-                // Load routine from localStorage
-                const savedRoutine = localStorage.getItem('trampolineRoutine');
-                if (savedRoutine) {
-                    try { this.routine = JSON.parse(savedRoutine); console.log(`init: Loaded ${this.routine.length} skills.`); }
-                    catch (e) { console.error('Failed to parse saved routine:', e); localStorage.removeItem('trampolineRoutine'); this.routine = []; }
-                } else { this.routine = []; console.log("init: No routine found."); }
-                this.lastInsertPosition = this.routine.length > 0 ? this.routine.length + 1 : 1;
-                console.log(`init: Initial lastInsertPosition set to: ${this.lastInsertPosition}`);
-
-                // Load selected common skill key from localStorage
-                // this.selectedCommonSkillKey = localStorage.getItem('selectedCommonSkillKey') || '';
-                // console.log(`init: Loaded selectedCommonSkillKey: '${this.selectedCommonSkillKey}'`);
-
-                // <-- NEW: Load sort preference from localStorage
-                this.commonSkillSortBy = localStorage.getItem('commonSkillSortBy') || 'tariff-asc';
-                console.log(`init: Loaded commonSkillSortBy: '${this.commonSkillSortBy}'`);
-
-
-                // Watch routine for changes
-                this.$watch('routine', (newRoutine, oldRoutine) => {
-                    const oldLen = oldRoutine?.length ?? 'N/A'; const newLen = newRoutine?.length ?? 'N/A';
-                    console.log(`Routine watcher triggered. Old length: ${oldLen}, New length: ${newLen}`);
-                    if (newLen !== oldLen) {
-                        console.log('--> Routine length changed, calling dropdown updates.');
-                        this.updatePositionDropdown(); // Update main form dropdown
-                        if (this.showEvaluation) { this.populateEvalPositionDropdown(); } // Update eval dropdown if visible
-                    } else { console.log('--> Routine watcher: Length did not change.'); }
+                // Alpine passes the same (mutated) array as old and new, so track the length here.
+                let length = this.routine.length;
+                this.$watch('routine', (routine) => {
+                    if (routine.length !== length) {
+                        length = routine.length;
+                        this.fillPositionSelect('insert-position');
+                        this.fillPositionSelect('evaluation-insert-position');
+                    }
                     this.renderRoutine();
-                    localStorage.setItem('trampolineRoutine', JSON.stringify(newRoutine));
+                    localStorage.setItem('trampolineRoutine', JSON.stringify(routine));
                 });
 
-                // Watch editingIndex
-                this.$watch('editingIndex', (newIndex, oldIndex) => {
-                    console.log(`EditingIndex watcher triggered. Old: ${oldIndex}, New: ${newIndex}`);
-                    if (newIndex === null && oldIndex !== null) {
-                        console.log('--> Exited edit mode. Form reload handled by cancelEdit/handleUpdateSkill.');
-                        // Re-apply persisted selections after exiting edit mode
-                        this.$nextTick(() => {
-
-                            this.applyPersistedSortPreference(); // <-- NEW: Apply sort preference too
-                        });
-                    }
-                });
-
-                // Initial validation
-                this.renderRoutine();
-
-                // HTMX Listeners
                 document.body.addEventListener('htmx:afterSwap', (event) => {
-                    const target = event.detail.target;
-                    const targetId = target?.id ?? 'N/A';
-                    const closestFormContent = target?.closest('#skill-form-content');
-
-                    console.log(`htmx:afterSwap triggered. Target ID: ${targetId}`);
-
-                    // Check if the main form content was swapped
-                    if (targetId === 'skill-form-content' || closestFormContent) {
-                        console.log('--> Main form fragment swapped.');
-                        const rotationInput = document.getElementById('rotation');
-                        if (rotationInput) { this.updateTwistInputs(rotationInput.value); }
-                        this.updateShapeControl(); // Sync shape control visibility/straddle
-                        this.updatePositionDropdown(); // Always update position dropdown
-
-                        // Apply persisted selections AFTER swap
-                        this.applyPersistedSortPreference(); // <-- NEW: Apply sort preference
-
-                        // Add change listeners AFTER elements are loaded
-                        this.$nextTick(() => {
-                            // Listener for common skill selection
-                            // <-- NEW: Listener for sort preference change
-                            const sortSelect = document.getElementById('common-skills-sort');
-                            if (sortSelect) {
-                                sortSelect.removeEventListener('change', this.handleSortChange.bind(this)); // Remove old listener if any
-                                sortSelect.addEventListener('change', this.handleSortChange.bind(this));
-                                console.log("--> Added change listener to #common-skills-sort");
-                            } else {
-                                console.warn("--> Could not find #common-skills-sort to add listener after swap.");
-                            }
-                        });
-
-                        this.isInitialLoad = false; // Clear the flag after first load
-                    }
-                    // Check if the target IS the evaluation preview div
-                    else if (targetId === 'evaluation-preview') {
-                        console.log('--> Eval preview swapped/loaded, calling populateEvalPositionDropdown.');
-                        this.populateEvalPositionDropdown(); // Update options & selection AFTER the swap
-                    } else {
-                        console.log("--> htmx:afterSwap detected, but target doesn't match form or eval preview container.");
+                    if (event.detail.target.id === 'evaluation-preview') {
+                        this.showEvaluation = true;
+                        this.fillPositionSelect('evaluation-insert-position');
                     }
                 });
                 document.body.addEventListener('htmx:afterRequest', (event) => {
-                    const xhr = event.detail.xhr;
-                    const requestConfig = event.detail.requestConfig;
-                    const requestPath = requestConfig?.path ?? 'N/A';
+                    if (event.detail.failed) { this.requestFailed(event.detail.requestConfig?.path, event.detail.xhr); }
+                });
 
-                    if (requestPath === '/routine' && event.detail.failed) {
-                        const reason = xhr.status === 400 ? xhr.responseText.trim() : 'the server could not be reached';
-                        this.showToast(`Routine not updated: ${reason}`, 'error');
-                        // If nothing has rendered yet (e.g. a saved routine that no longer validates), say so in place.
-                        const view = document.getElementById('routine-view');
-                        if (view && !view.querySelector('#routine-skills')) {
-                            const p = document.createElement('p');
-                            p.className = 'has-text-danger';
-                            p.textContent = `Couldn't show the saved routine (${reason}). Use Clear Routine to start again.`;
-                            view.replaceChildren(p);
-                        }
-                    }
-                    else if (requestPath === '/evaluate-skill-fragment' && event.detail.target.id === 'evaluation-preview') {
-                        console.log("--> Showing evaluation preview after request.");
-                        this.showEvaluation = true;
-                    }
-                });
-                console.log("Alpine init finished.");
-            },
-            // applyPersistedCommonSkill() {
-            //     if (this.editingIndex !== null) { console.log("applyPersistedCommonSkill: In edit mode, skipping application."); return; }
-            //     this.$nextTick(() => {
-            //         const commonSkillsSelect = document.getElementById('common-skills');
-            //         if (commonSkillsSelect && this.selectedCommonSkillKey !== '') {
-            //             const optionExists = Array.from(commonSkillsSelect.options).some(opt => opt.value === this.selectedCommonSkillKey);
-            //             if (optionExists) {
-            //                 if (commonSkillsSelect.value !== this.selectedCommonSkillKey) {
-            //                     console.log(`applyPersistedCommonSkill: Applying saved key '${this.selectedCommonSkillKey}' to #common-skills.`);
-            //                     commonSkillsSelect.value = this.selectedCommonSkillKey;
-            //                     commonSkillsSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            //                     console.log("--> Dispatched change event on #common-skills.");
-            //                 } else { console.log("applyPersistedCommonSkill: Dropdown already has the correct value."); }
-            //             } else {
-            //                 console.warn(`applyPersistedCommonSkill: Saved key '${this.selectedCommonSkillKey}' not found in options. Resetting selection.`);
-            //                 commonSkillsSelect.value = ''; this.selectedCommonSkillKey = ''; localStorage.removeItem('selectedCommonSkillKey'); commonSkillsSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            //             }
-            //         } else if (commonSkillsSelect && commonSkillsSelect.value !== '') {
-            //             console.log("applyPersistedCommonSkill: No saved key, ensuring dropdown is reset.");
-            //             commonSkillsSelect.value = ''; commonSkillsSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            //         } else { console.log("applyPersistedCommonSkill: No saved key or element not found."); }
-            //     });
-            // },
-            applyPersistedSortPreference() { // <-- NEW
-                if (this.editingIndex !== null) { console.log("applyPersistedSortPreference: In edit mode, skipping application."); return; }
-                this.$nextTick(() => { // Ensure the element exists in the DOM
-                    const sortSelect = document.getElementById('common-skills-sort');
-                    if (sortSelect) {
-                        if (sortSelect.value !== this.commonSkillSortBy) {
-                            console.log(`applyPersistedSortPreference: Applying saved sort '${this.commonSkillSortBy}' to #common-skills-sort.`);
-                            sortSelect.value = this.commonSkillSortBy;
-                            // No need to dispatch change here unless applying the sort *itself* should trigger an HTMX request
-                            // The sort preference is used when the *options* are requested by HTMX
-                        } else {
-                            console.log("applyPersistedSortPreference: Sort dropdown already has the correct value.");
-                        }
-                    } else {
-                        console.warn("applyPersistedSortPreference: Sort dropdown element not found.");
-                    }
-                });
-            },
-            // handleCommonSkillChange(event) {
-            //     const newValue = event.target.value;
-            //     console.log(`#common-skills changed. New value: '${newValue}'`);
-            //     this.selectedCommonSkillKey = newValue;
-            //     if (newValue === '') { localStorage.removeItem('selectedCommonSkillKey'); console.log("--> Removed common skill key from localStorage."); }
-            //     else { localStorage.setItem('selectedCommonSkillKey', newValue); console.log("--> Saved common skill key to localStorage."); }
-            // },
-            handleSortChange(event) { // <-- NEW
-                const newValue = event.target.value;
-                console.log(`#common-skills-sort changed. New value: '${newValue}'`);
-                this.commonSkillSortBy = newValue; // Update Alpine state
-                localStorage.setItem('commonSkillSortBy', newValue); // Save to localStorage
-                console.log("--> Saved sort preference to localStorage.");
-                // HTMX handles reloading the options via its own attributes on the select
+                this.renderRoutine();
+                this.loadForm();
             },
 
-            // --- Dropdown Update Functions ---
-            updatePositionDropdown() {
-                console.log(`updatePositionDropdown called. Current lastInsertPosition: ${this.lastInsertPosition}, routine.length: ${this.routine.length}`);
-                this.$nextTick(() => {
-                    const selectElement = document.getElementById('insert-position');
-                    if (!selectElement) { console.warn("updatePositionDropdown: #insert-position element not found."); return; }
-                    const currentLength = this.routine.length;
-                    const maxPosition = currentLength + 1;
-                    // Calculate default based on lastInsertPosition + 1 (for incrementing after add)
-                    let defaultSelection = this.lastInsertPosition ? this.lastInsertPosition + 1 : maxPosition;
-                    // Cap at max position
-                    if (defaultSelection > maxPosition || defaultSelection < 1) {
-                        console.log(`--> Capping defaultSelection ${defaultSelection} to ${maxPosition}`);
-                        defaultSelection = maxPosition;
-                    }
-                    console.log(`updatePositionDropdown: MaxPos: ${maxPosition}, Default: ${defaultSelection}`);
-                    selectElement.innerHTML = '';
-                    for (let i = 1; i <= maxPosition; i++) { const option = document.createElement('option'); option.value = i; option.text = `Position ${i}${i === maxPosition ? ' (End)' : ''}`; selectElement.appendChild(option); }
-                    // Use String() when setting value for robustness
-                    selectElement.value = String(defaultSelection);
-                    console.log(`updatePositionDropdown: Set #insert-position value to ${selectElement.value}`);
-                });
+            // --- Server-rendered views ---
+            renderRoutine() {
+                // Each view is its own request source, so its requests don't queue behind
+                // the other's; a newer render replaces one still in flight (hx-sync).
+                htmx.ajax('POST', '/routine', {
+                    source: '#routine-view', target: '#routine-view', swap: 'innerHTML',
+                    values: { routineData: JSON.stringify(this.routine) }
+                }).catch(error => console.error('Routine render request error:', error));
             },
-            populateEvalPositionDropdown() {
-                console.log(`populateEvalPositionDropdown called. Current lastInsertPosition: ${this.lastInsertPosition}, routine.length: ${this.routine.length}`);
-                this.$nextTick(() => {
-                    const selectElement = document.getElementById('evaluation-insert-position');
-                    if (!selectElement) { console.warn("populateEvalPositionDropdown: #evaluation-insert-position element not found."); return; }
-                    console.log("--> Populating evaluation position dropdown.");
-                    const currentLength = this.routine.length;
-                    const maxPosition = currentLength + 1;
-                    // Calculate default based on lastInsertPosition + 1 (for incrementing after add)
-                    let defaultSelection = this.lastInsertPosition ? this.lastInsertPosition + 1 : maxPosition;
-                    // Cap at max position
-                    if (defaultSelection > maxPosition || defaultSelection < 1) {
-                        console.log(`--> Capping eval defaultSelection ${defaultSelection} to ${maxPosition}`);
-                        defaultSelection = maxPosition;
+            // loadForm shows a fresh form, or the form for the routine skill at editIndex.
+            loadForm(editIndex = null) {
+                const values = { sortBy: localStorage.getItem('commonSkillSortBy') || '' };
+                if (editIndex !== null) {
+                    values.skill = JSON.stringify(this.routine[editIndex]);
+                    values.editIndex = editIndex;
+                }
+                return htmx.ajax('POST', '/skill-form', { source: '#skill-form-wrapper', target: '#skill-form-wrapper', swap: 'innerHTML', values })
+                    .then(() => this.fillPositionSelect('insert-position'));
+            },
+            requestFailed(path, xhr) {
+                const reason = xhr.status === 400 ? xhr.responseText.trim() : 'the server could not be reached';
+                if (path === '/routine') {
+                    this.showToast(`Routine not updated: ${reason}`, 'error');
+                    // If nothing has rendered yet (e.g. a saved routine that no longer validates), say so in place.
+                    const view = document.getElementById('routine-view');
+                    if (view && !view.querySelector('#routine-skills')) {
+                        const p = document.createElement('p');
+                        p.className = 'has-text-danger';
+                        p.textContent = `Couldn't show the saved routine (${reason}). Use Clear Routine to start again.`;
+                        view.replaceChildren(p);
                     }
-                    console.log(`populateEvalPositionDropdown: MaxPos: ${maxPosition}, Default: ${defaultSelection}`);
-                    selectElement.innerHTML = '';
-                    for (let i = 1; i <= maxPosition; i++) { const option = document.createElement('option'); option.value = i; option.text = `Position ${i}${i === maxPosition ? ' (End)' : ''}`; selectElement.appendChild(option); }
-                    // Use String() when setting value for robustness
-                    selectElement.value = String(defaultSelection);
-                    console.log(`populateEvalPositionDropdown: Set #evaluation-insert-position value to ${selectElement.value}`);
-                });
+                } else if (path === '/skill-evaluation') {
+                    this.showToast(`Can't evaluate: ${reason}`, 'error');
+                } else {
+                    this.showToast(`Request failed: ${reason}`, 'error');
+                }
+            },
+            rememberSort(sortBy) { localStorage.setItem('commonSkillSortBy', sortBy); },
+
+            // --- Insert-position dropdowns (they depend on the routine's length) ---
+            // Called after the routine changes or the dropdown is swapped in; deliberately not
+            // deferred with $nextTick, whose callbacks Alpine can hold back while it
+            // initialises swapped-in content.
+            fillPositionSelect(id) {
+                const select = document.getElementById(id);
+                if (!select) { return; }
+                const maxPosition = this.routine.length + 1;
+                let selected = (this.lastInsertPosition || maxPosition) + 1;
+                if (selected > maxPosition || selected < 1) { selected = maxPosition; }
+                select.replaceChildren(...Array.from({ length: maxPosition }, (_, i) =>
+                    new Option(`Position ${i + 1}${i + 1 === maxPosition ? ' (End)' : ''}`, i + 1)));
+                select.value = String(selected);
             },
 
             // --- Card expand/collapse ---
@@ -306,288 +155,136 @@
             expandAll() { this.expanded = this.routine.map(() => true); },
             collapseAll() { this.expanded = this.routine.map(() => false); },
 
-            // --- Actions ---
-            addSkill(skillData, position = null) {
-                const newSkill = { name: skillData.name || 'Custom Skill', custom_name: skillData.custom_name || '', rotation: skillData.rotation, twist_distribution: skillData.twist_distribution || [], takeoff_position: skillData.takeoff_position, shape: skillData.shape, backward: skillData.backward, seat_landing: skillData.seat_landing, tariff: skillData.tariff, landing_position: skillData.landing_position };
-                const targetPosition = parseInt(position);
-                const currentLength = this.routine.length;
-                let actualInsertPosition = currentLength + 1; // Default to end
-
-                if (!isNaN(targetPosition) && targetPosition >= 1 && targetPosition <= currentLength) {
-                    const index = targetPosition - 1;
-                    this.expanded.splice(index, 0, false);
-                    this.routine.splice(index, 0, newSkill); // Modify routine
-                    this.showToast(`Skill added at position ${targetPosition}.`, 'info');
-                    actualInsertPosition = targetPosition;
+            // --- Adding and editing skills ---
+            // calculateFormSkill posts the form and returns the skill as the routine stores it.
+            async calculateFormSkill() {
+                const form = document.getElementById('main-form');
+                const response = await fetch('/calculate-skill', { method: 'POST', body: new URLSearchParams(new FormData(form)) });
+                if (!response.ok) { throw new Error((await response.text()).trim() || `HTTP ${response.status}`); }
+                return response.json();
+            },
+            async addFromForm() {
+                if (this.busy) { return; }
+                this.busy = true;
+                try {
+                    const skill = await this.calculateFormSkill();
+                    this.addSkill(skill, document.getElementById('insert-position')?.value);
+                } catch (error) {
+                    this.showToast(`Can't add skill: ${error.message}`, 'error');
+                } finally {
+                    this.busy = false;
+                }
+            },
+            async updateFromForm() {
+                const index = this.editingIndex;
+                if (this.busy || index === null || index >= this.routine.length) { return; }
+                this.busy = true;
+                try {
+                    const skill = await this.calculateFormSkill();
+                    this.routine.splice(index, 1, skill);
+                    this.cancelEdit();
+                } catch (error) {
+                    this.showToast(`Can't update skill: ${error.message}`, 'error');
+                } finally {
+                    this.busy = false;
+                }
+            },
+            addSkill(skill, position = null) {
+                const target = parseInt(position);
+                if (!isNaN(target) && target >= 1 && target <= this.routine.length) {
+                    this.expanded.splice(target - 1, 0, false);
+                    this.routine.splice(target - 1, 0, skill);
+                    this.lastInsertPosition = target;
+                    this.showToast(`Skill added at position ${target}.`, 'info');
                 } else {
-                    if (currentLength >= 10) { this.showToast('Warning: Routines typically have 10 skills.', 'warning'); }
+                    if (this.routine.length >= 10) { this.showToast('Warning: Routines typically have 10 skills.', 'warning'); }
                     this.expanded.push(false);
-                    this.routine.push(newSkill); // Modify routine
-                    actualInsertPosition = this.routine.length;
+                    this.routine.push(skill);
+                    this.lastInsertPosition = this.routine.length;
                     this.showToast('Skill added to end.', 'info');
                 }
                 this.showEvaluation = false;
-                const customNameInput = document.getElementById('custom-name');
-                if (customNameInput) { customNameInput.value = ''; } // A label belongs to one skill
-
-                // Update lastInsertPosition AFTER modifying the routine
-                this.lastInsertPosition = actualInsertPosition;
-                console.log(`addSkill: Updated lastInsertPosition to ${this.lastInsertPosition}`);
-
-                // Explicitly call dropdown update here
-                console.log("addSkill: Explicitly calling updatePositionDropdown().");
-                this.updatePositionDropdown();
-                // Routine watcher will still handle validation and saving.
-            },
-            removeSkill(index) {
-                if (index >= 0 && index < this.routine.length) {
-                    this.expanded.splice(index, 1);
-                    this.routine.splice(index, 1); // Modify routine FIRST
-                    // Update lastInsertPosition AFTER modifying the routine
-                    this.lastInsertPosition = this.routine.length + 1; // Default to new end
-                    console.log(`removeSkill: Updated lastInsertPosition to ${this.lastInsertPosition}`);
-                    if (this.editingIndex === index) { this.editingIndex = null; }
-                    else if (this.editingIndex > index) { this.editingIndex--; }
-                    // Routine watcher handles validation, saving, and dropdown update.
-                }
-            },
-            editSkill(index) {
-                this.editingIndex = index; this.showEvaluation = false;
-                // Pass the current (persisted) sort preference when loading the edit form
-                const currentSort = this.commonSkillSortBy;
-                htmx.ajax('GET', `/edit-skill-form-data/${index}`, {
-                    target: '#skill-form-wrapper',
-                    swap: 'innerHTML',
-                    values: { routineData: JSON.stringify(this.routine), sortBy: currentSort }, // Pass sortBy
-                    indicator: '#skill-form-wrapper'
-                })
-                    .then(() => {
-                        this.$nextTick(() => {
-                            const formWrapper = document.getElementById('skill-form-wrapper');
-                            if (formWrapper) { formWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-                            const rotationInput = document.getElementById('rotation');
-                            if (rotationInput) { this.updateTwistInputs(rotationInput.value); }
-                            this.updateShapeControl();
-                            // applyPersistedSortPreference will run via htmx:afterSwap and set the dropdown
-                        });
-                    })
-                    .catch(err => { console.error("Failed to load edit form", err); this.showToast("Failed to load edit form.", "error"); this.editingIndex = null; });
-            },
-            handleUpdateSkill(index, formDataObject) {
-                // *** Reverted: Call cancelEdit(true) to reset state and reload ***
-                if (index === null || index < 0 || index >= this.routine.length) { this.showToast('Error: Invalid skill index for update.', 'error'); return; }
-                this.calculateSkill(formDataObject, (calculatedSkill) => {
-                    if (calculatedSkill) {
-                        if (index >= this.routine.length) { this.showToast('Error updating: index mismatch.', 'error'); return; }
-                        this.editingIndex = null; // Exit edit mode BEFORE modifying routine/state
-                        this.routine.splice(index, 1, calculatedSkill); // Modify routine
-                        // Call cancelEdit(true) to reset state and reload form
-                        console.log(`handleUpdateSkill: Calling cancelEdit(true) to reset form.`);
-                        this.cancelEdit(true);
-                        // cancelEdit(true) handles resetting lastInsertPosition and reloading the form.
-                        // The htmx:afterSwap listener should NOT update the dropdown here, cancelEdit will handle it post-reload.
-                    } else { this.showToast('Failed to recalculate skill during update.', 'error'); }
-                });
-            },
-            cancelEdit(resetState = true) {
-                console.log(`cancelEdit called with resetState: ${resetState}`);
-                if (resetState) {
-                    this.editingIndex = null;
-                    this.lastInsertPosition = this.routine.length + 1;
-                    console.log(`cancelEdit: Reset lastInsertPosition to ${this.lastInsertPosition}`);
-                }
-                this.showEvaluation = false;
-                // Pass the current (persisted) sort preference when reloading the empty form
-                const currentSort = this.commonSkillSortBy;
-                htmx.ajax('GET', '/skill-form-fragment', {
-                    target: '#skill-form-wrapper',
-                    swap: 'innerHTML',
-                    values: { sortBy: currentSort }, // Pass sortBy
-                    indicator: '#skill-form-wrapper'
-                })
-                    .then(() => {
-                        console.log("cancelEdit: HTMX swap finished, applying persisted selections.");
-                        this.updatePositionDropdown();
-                        this.updateShapeControl();
-                        this.applyPersistedSortPreference(); // Ensure sort dropdown is correct
-                    })
-                    .catch(err => {
-                        console.error("Failed to load empty form via HTMX in cancelEdit", err);
-                        this.showToast("Failed to load empty form.", "error");
-                    });
-            },
-            moveSkillUp(index) {
-                if (index > 0) {
-                    let oldLastInsertPos = this.lastInsertPosition;
-                    if (this.lastInsertPosition === index + 1) { this.lastInsertPosition--; } else if (this.lastInsertPosition === index) { this.lastInsertPosition++; }
-                    if (oldLastInsertPos !== this.lastInsertPosition) console.log(`moveSkillUp: Adjusted lastInsertPosition to ${this.lastInsertPosition}`);
-                    [this.expanded[index], this.expanded[index - 1]] = [this.expanded[index - 1], this.expanded[index]];
-                    [this.routine[index], this.routine[index - 1]] = [this.routine[index - 1], this.routine[index]]; // Modify routine
-                    if (this.editingIndex === index) { this.editingIndex--; } else if (this.editingIndex === index - 1) { this.editingIndex++; }
-                    // Routine watcher handles updates
-                }
-            },
-            moveSkillDown(index) {
-                if (index < this.routine.length - 1) {
-                    let oldLastInsertPos = this.lastInsertPosition;
-                    if (this.lastInsertPosition === index + 1) { this.lastInsertPosition++; } else if (this.lastInsertPosition === index + 2) { this.lastInsertPosition--; }
-                    if (oldLastInsertPos !== this.lastInsertPosition) console.log(`moveSkillDown: Adjusted lastInsertPosition to ${this.lastInsertPosition}`);
-                    [this.expanded[index], this.expanded[index + 1]] = [this.expanded[index + 1], this.expanded[index]];
-                    [this.routine[index], this.routine[index + 1]] = [this.routine[index + 1], this.routine[index]]; // Modify routine
-                    if (this.editingIndex === index) { this.editingIndex++; } else if (this.editingIndex === index + 1) { this.editingIndex--; }
-                    // Routine watcher handles updates
-                }
-            },
-            clearRoutine() {
-                if (this.routine.length > 0 && confirm('Are you sure?')) {
-                    this.routine = [];
-                    this.expanded = [];
-                    this.lastInsertPosition = 1;
-                    this.editingIndex = null; this.showEvaluation = false;
-                    this.showToast('Routine cleared.', 'info');
-                    // Trigger form reload to reflect cleared state
-                    this.cancelEdit(false); // Don't reset editingIndex again
-                }
-            },
-
-            // --- Client Side Calculation / Update ---
-            updateTwistInputs(rotationValue) {
-                const rotation = Math.abs(parseInt(rotationValue) || 0);
-                const phases = this.calculatePhases(rotation);
-                const twistInputs = document.querySelectorAll('#main-form .twist-rotation');
-                twistInputs.forEach((input, i) => {
-                    const phaseNum = i + 1;
-                    const shouldBeEnabled = (phaseNum <= phases);
-                    input.disabled = !shouldBeEnabled;
-                    input.style.opacity = shouldBeEnabled ? '1' : '0.5';
-                });
-            },
-            // Mirrors skills.ShapeIsRelevant (Go) for live form updates between server renders.
-            shapeIsRelevant(rotation, totalTwist, takeoff, seatLanding) {
-                rotation = Math.abs(parseInt(rotation) || 0);
-                if (rotation === 0) {
-                    if (totalTwist === 0) { return takeoff !== 'seat' && !seatLanding; } // basic jump
-                    return false; // twisting jump
-                }
-                if (rotation < 3) return false;           // drops / partial rotations
-                if (rotation < 6) return totalTwist < 2;  // single somersaults under a full twist
-                return true;                              // 1.5 somersaults and up
-            },
-            // Shows/hides the shape control and the straddle option based on the current
-            // form values, so manual rotation/twist edits stay consistent with the server.
-            updateShapeControl() {
-                const form = document.getElementById('main-form');
-                if (!form) return;
-                const rotation = Math.abs(parseInt(document.getElementById('rotation')?.value) || 0);
-                const totalTwist = Array.from(form.querySelectorAll('input[name="twist_distribution[]"]:not(:disabled)'))
-                    .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
-                const takeoff = document.getElementById('takeoff_position')?.value || 'feet';
-                const seatLanding = document.getElementById('seat_landing')?.checked || false;
-                const isBasicJump = rotation === 0 && totalTwist === 0 && takeoff !== 'seat' && !seatLanding;
-                const relevant = this.shapeIsRelevant(rotation, totalTwist, takeoff, seatLanding);
-
-                const shapeFieldInner = document.getElementById('shape-field-inner');
-                if (shapeFieldInner) shapeFieldInner.style.display = relevant ? '' : 'none';
-
-                // Straddle only applies to basic jumps; revert to straight if it becomes invalid.
-                const shapeSelect = document.getElementById('shape');
-                const straddleOption = shapeSelect?.querySelector('option[value="straddle"]');
-                if (straddleOption) {
-                    straddleOption.hidden = !isBasicJump;
-                    straddleOption.disabled = !isBasicJump;
-                    if (!isBasicJump && shapeSelect.value === 'straddle') { shapeSelect.value = 'straight'; }
-                }
-            },
-
-            // --- Backend Interaction ---
-            renderRoutine() {
-                htmx.ajax('POST', '/routine', {
-                    target: '#routine-view',
-                    swap: 'innerHTML',
-                    values: { routineData: JSON.stringify(this.routine) }
-                }).catch(error => {
-                    console.error('Routine render request error:', error);
-                    this.showToast('Failed to connect to update the routine.', 'error');
-                });
-            },
-            calculateSkill(skillData, callbackOnSuccess) {
-                console.log("calculateSkill called with data:", skillData);
-                if (typeof callbackOnSuccess !== 'function') { console.error("calculateSkill callback missing!"); return; }
-                if (!skillData || Object.keys(skillData).length === 0) { console.error("Payload is empty/invalid before fetch!"); this.showToast("Cannot calculate empty skill.", "error"); callbackOnSuccess(null); return; }
-                if (this._processingCalculation) { console.warn("Calculation already in progress."); return; }
-                this._processingCalculation = true;
-                const payload = { custom_name: skillData.custom_name || '', rotation: skillData.rotation, twist_distribution: skillData.twist_distribution || [], takeoff_position: String(skillData.takeoff_position), shape: String(skillData.shape), backward: skillData.backward, seat_landing: skillData.seat_landing };
-                console.log("Sending payload to /calculate-skill:", payload);
-                fetch('/calculate-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-                    .then(response => { if (!response.ok) { throw new Error(`HTTP error ${response.status}`); } return response.json(); })
-                    .then(calculatedData => { console.log("Successfully calculated data:", calculatedData); callbackOnSuccess(calculatedData); })
-                    .catch(error => { console.error('calculateSkill Fetch error:', error); this.showToast(`Calculation Request Failed: ${error.message}`, 'error'); callbackOnSuccess(null); })
-                    .finally(() => { this._processingCalculation = false; });
-            },
-            handleAddSkillClick(event) {
-                console.log("handleAddSkillClick called.");
-                if (event) { event.stopPropagation(); }
-                const skillData = this.getFormData('#main-form');
-                if (!skillData || Object.keys(skillData).length === 0) { this.showToast('Could not read form data.', 'error'); return; }
-                const positionSelect = document.getElementById('insert-position');
-                const position = positionSelect ? positionSelect.value : null;
-                console.log("Insert position selected:", position);
-                this.calculateSkill(skillData, (calculatedSkill) => {
-                    if (calculatedSkill) { this.addSkill(calculatedSkill, position); } // addSkill now calls updatePositionDropdown
-                });
+                const customName = document.getElementById('custom-name');
+                if (customName) { customName.value = ''; } // A label belongs to one skill
+                this.fillPositionSelect('insert-position');
             },
             addEvaluatedSkillToRoutine() {
-                const previewDiv = document.getElementById('evaluation-preview');
-                const dataHolder = previewDiv?.querySelector('[data-skill-data]');
-                const skillJson = dataHolder?.dataset.skillData;
-                if (skillJson) {
-                    try {
-                        const skill = JSON.parse(skillJson);
-                        const positionSelect = document.getElementById('evaluation-insert-position');
-                        const position = positionSelect ? positionSelect.value : null;
-                        console.log("Adding evaluated skill at position:", position, skill);
-                        this.addSkill(skill, position); // addSkill now calls updatePositionDropdown
-                        previewDiv.innerHTML = '';
-                        this.showEvaluation = false;
-                    } catch (e) { console.error("Error parsing evaluated skill data:", e); this.showToast('Could not add evaluated skill.', 'error'); }
-                } else { this.showToast('No evaluated skill data found to add.', 'warning'); }
+                const json = document.querySelector('#evaluation-preview [data-skill-data]')?.dataset.skillData;
+                if (!json) { this.showToast('No evaluated skill data found to add.', 'warning'); return; }
+                this.addSkill(JSON.parse(json), document.getElementById('evaluation-insert-position')?.value);
+                this.closeEvaluation();
+            },
+            closeEvaluation() {
+                this.showEvaluation = false;
+                document.getElementById('evaluation-preview').replaceChildren();
+            },
+            editSkill(index) {
+                this.editingIndex = index;
+                this.showEvaluation = false;
+                this.loadForm(index)
+                    .then(() => document.getElementById('skill-form-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+                    .catch(() => { this.showToast('Failed to load edit form.', 'error'); this.editingIndex = null; });
+            },
+            cancelEdit() {
+                this.editingIndex = null;
+                this.lastInsertPosition = this.routine.length + 1;
+                this.showEvaluation = false;
+                this.loadForm().catch(() => this.showToast('Failed to load the form.', 'error'));
             },
 
-            // --- Utilities ---
-            showToast(message, type = 'info') { this.toast.message = message; this.toast.type = type; this.toast.show = true; setTimeout(() => this.toast.show = false, 3000); },
+            // --- Changing the routine ---
+            removeSkill(index) {
+                if (index < 0 || index >= this.routine.length) { return; }
+                this.expanded.splice(index, 1);
+                this.routine.splice(index, 1);
+                this.lastInsertPosition = this.routine.length + 1;
+                if (this.editingIndex === index) { this.cancelEdit(); }
+                else if (this.editingIndex > index) { this.editingIndex--; }
+            },
+            moveSkillUp(index) { if (index > 0) { this.moveSkill(index, index - 1); } },
+            moveSkillDown(index) { if (index < this.routine.length - 1) { this.moveSkill(index, index + 1); } },
+            // moveSkill moves the skill at from to index to, keeping its expanded and editing state with it.
+            moveSkill(from, to) {
+                this.expanded.splice(to, 0, this.expanded.splice(from, 1)[0] ?? false);
+                this.routine.splice(to, 0, this.routine.splice(from, 1)[0]);
+                if (this.editingIndex === from) { this.editingIndex = to; }
+                else if (this.editingIndex !== null && from < this.editingIndex && to >= this.editingIndex) { this.editingIndex--; }
+                else if (this.editingIndex !== null && from > this.editingIndex && to <= this.editingIndex) { this.editingIndex++; }
+            },
+            clearRoutine() {
+                if (this.routine.length === 0 || !confirm('Are you sure?')) { return; }
+                this.routine = [];
+                this.expanded = [];
+                this.showToast('Routine cleared.', 'info');
+                this.cancelEdit();
+            },
 
-            // --- Drag & Drop ---
-            handleDragStart(event, index) { this.draggedIndex = index; this.isDragging = true; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', index); },
-            handleDragOver(event, index) { event.preventDefault(); if (this.draggedIndex !== null) { this.dropIndex = index; } return false; },
-            handleDragLeave(event) { const relatedTarget = event.relatedTarget; const currentTarget = event.currentTarget; if (!currentTarget.contains(relatedTarget)) { this.dropIndex = null; document.querySelectorAll('.insertion-point.active').forEach(el => el.classList.remove('active')); } },
+            // --- Drag and drop (desktop) ---
+            handleDragStart(event, index) {
+                this.draggedIndex = index; this.isDragging = true;
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', index);
+            },
+            handleDragOver(event, index) { event.preventDefault(); if (this.draggedIndex !== null) { this.dropIndex = index; } },
+            handleDragLeave(event) { if (!event.currentTarget.contains(event.relatedTarget)) { this.dropIndex = null; } },
+            // handleDrop drops the dragged skill at insertion point index (0 = before the first card).
             handleDrop(event, index) {
-                event.preventDefault(); const finalDropIndex = index;
-                if (this.draggedIndex !== null && this.draggedIndex !== finalDropIndex && this.draggedIndex + 1 !== finalDropIndex) {
-                    const adjustedTargetIndex = (this.draggedIndex < finalDropIndex) ? finalDropIndex - 1 : finalDropIndex;
-                    this.expanded.splice(adjustedTargetIndex, 0, this.expanded.splice(this.draggedIndex, 1)[0] ?? false);
-                    const itemToMove = this.routine.splice(this.draggedIndex, 1)[0]; // Modify routine
-                    this.routine.splice(adjustedTargetIndex, 0, itemToMove); // Modify routine again
-                    // Update lastInsertPosition AFTER modifying the routine
-                    this.lastInsertPosition = this.routine.length + 1; // Default to end after reorder
-                    console.log(`handleDrop: Updated lastInsertPosition to ${this.lastInsertPosition}`);
-                    if (this.editingIndex !== null) { let oldEditIndex = this.editingIndex; if (oldEditIndex === this.draggedIndex) { this.editingIndex = adjustedTargetIndex; } else if (this.draggedIndex < oldEditIndex && adjustedTargetIndex >= oldEditIndex) { this.editingIndex--; } else if (this.draggedIndex > oldEditIndex && adjustedTargetIndex <= oldEditIndex) { this.editingIndex++; } }
-                    // Routine watcher handles updates
-                } this.handleDragEnd();
+                event.preventDefault();
+                const from = this.draggedIndex;
+                if (from !== null && index !== from && index !== from + 1) {
+                    this.moveSkill(from, from < index ? index - 1 : index);
+                    this.lastInsertPosition = this.routine.length + 1;
+                }
+                this.handleDragEnd();
             },
-            handleDragEnd(event) { this.$nextTick(() => { this.draggedIndex = null; this.dropIndex = null; this.isDragging = false; document.querySelectorAll('.routine-skill.is-dragging').forEach(el => el.classList.remove('is-dragging')); document.querySelectorAll('.insertion-point.active').forEach(el => el.classList.remove('active')); }); },
+            handleDragEnd() { this.$nextTick(() => { this.draggedIndex = null; this.dropIndex = null; this.isDragging = false; }); },
 
-            // --- Form Data Handling ---
-            calculatePhases(rotation) { rotation = Math.abs(rotation); if (rotation <= 6) return 1; if (rotation <= 10) return 2; if (rotation <= 14) return 3; if (rotation > 0) return 4; return 1; },
-            getFormData(formSelector) {
-                const form = document.querySelector(formSelector); if (!form) { console.error("getFormData: Form not found!"); return {}; }
-                try {
-                    const fd = new FormData(form); const data = {}; data.custom_name = (fd.get('custom_name') || '').trim(); data.rotation = parseInt(fd.get('rotation')) || 0; data.takeoff_position = fd.get('takeoff_position') || 'Feet'; data.shape = fd.get('shape') || 'Straight'; data.backward = fd.has('backward'); data.seat_landing = fd.has('seat_landing'); const twistInputs = form.querySelectorAll('input[name="twist_distribution[]"]:not(:disabled)'); const numPhases = this.calculatePhases(Math.abs(data.rotation)); data.twist_distribution = []; for (let i = 0; i < numPhases; i++) { const inputForPhase = Array.from(twistInputs).find(input => input.dataset.rotation == (i + 1)); data.twist_distribution.push(inputForPhase ? (parseInt(inputForPhase.value) || 0) : 0); } console.log('Returning data from getFormData:', data); return data;
-                } catch (error) { console.error("Error in getFormData:", error); this.showToast('Error reading form data.', 'error'); return {}; }
-            }
+            showToast(message, type = 'info') {
+                this.toast = { show: true, message, type };
+                clearTimeout(this._toastTimer);
+                this._toastTimer = setTimeout(() => this.toast.show = false, 3000);
+            },
         }
     }
 </script>
-
-{{/* Styles removed - assumed to be in styles.css */}}
-
 {{end}}

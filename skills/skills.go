@@ -276,7 +276,7 @@ func BodyPositionFromString(s string) BodyPosition {
 func (skill *TrampolineSkill) Equal(b *TrampolineSkill) bool {
 	if skill.TotalTwist() == b.TotalTwist() && skill.Rotation == b.Rotation && skill.Backward == b.Backward && skill.SeatLanding == b.SeatLanding && skill.TakeoffPosition == b.TakeoffPosition {
 
-		if skill.Rotation == 0 && skill.TotalTwist() == 0 && skill.LandingPosition() != Seat && skill.TakeoffPosition != Seat {
+		if skill.IsBasicJump() {
 			return skill.Shape == b.Shape
 		}
 		if skill.Rotation < 3 {
@@ -420,6 +420,14 @@ func (skill *TrampolineSkill) Validate() error {
 	return nil
 }
 
+// IsBasicJump reports whether the skill is a basic jump: no rotation, no twist, and
+// no seat take-off or landing. Its shape (straight, tuck, pike, straddle) is the
+// skill; straddle is only possible here.
+func (skill *TrampolineSkill) IsBasicJump() bool {
+	return skill.Rotation == 0 && skill.TotalTwist() == 0 &&
+		skill.LandingPosition() != Seat && skill.TakeoffPosition != Seat
+}
+
 // IsStraightJump reports whether the skill is a plain straight jump: no rotation,
 // no twist, straight shape, feet to feet. Inside a routine this is an intermediate
 // jump that interrupts the exercise (CoP §15.1.3).
@@ -446,7 +454,7 @@ func (skill *TrampolineSkill) ShapeIsRelevant() bool {
 	switch {
 	case skill.Rotation == 0 && totalTwist == 0:
 		// Basic jumps, but not seat drops / seat take-offs.
-		return skill.LandingPosition() != Seat && skill.TakeoffPosition != Seat
+		return skill.IsBasicJump()
 	case skill.Rotation == 0:
 		// Twisting jumps (half twist, full twist, ...): straight only.
 		return false
@@ -481,7 +489,7 @@ func (skill *TrampolineSkill) FIGNotation() string {
 	// Special case for zero rotation and zero twist (basic jumps)
 	if skill.Rotation == 0 && skill.TotalTwist() == 0 {
 		// Only return shape for non-straight basic jumps
-		if (skill.Shape == Tuck || skill.Shape == Pike || skill.Shape == Straddle) && skill.LandingPosition() != Seat && skill.TakeoffPosition != Seat {
+		if (skill.Shape == Tuck || skill.Shape == Pike || skill.Shape == Straddle) && skill.IsBasicJump() {
 			return fmt.Sprintf("(%s)", shapeSymbol)
 		}
 		return "" // Return empty for straight jump (no rotation, no twist, straight shape)
@@ -555,8 +563,7 @@ func FindCommonSkillName(parsedSkill TrampolineSkill) string {
 			inputShape := compareSkill.Shape
 
 			// Basic jumps: the shape *is* the skill (Tuck/Pike/Straddle Jump, or Straight Jump).
-			if compareSkill.Rotation == 0 && compareSkill.TotalTwist() == 0 &&
-				compareSkill.LandingPosition() != Seat && compareSkill.TakeoffPosition != Seat {
+			if compareSkill.IsBasicJump() {
 				if baseName == "Shape Jump" && (inputShape == Tuck || inputShape == Pike || inputShape == Straddle) {
 					return fmt.Sprintf("%s Jump", inputShape.String())
 				}
