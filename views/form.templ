@@ -84,6 +84,29 @@ templ picker(cats []catalog.Category) {
 		</div>
 		for _, c := range cats {
 			<div class="picker-list" role="tabpanel" aria-label={ c.Label } x-show={ fmt.Sprintf("query.trim() === '' && pickerTab === '%s'", c.Key) } x-cloak>
+				// Related skills (e.g. those from seat) together in one box.
+				for _, g := range c.Groups {
+					<div class="picker-group" role="group" aria-label={ g.Title }>
+						<p class="picker-group-title">{ g.Title }</p>
+						<div class="picker-group-options">
+							for _, e := range g.Options {
+								<button
+									type="button"
+									class="picker-option"
+									x-bind:class={ fmt.Sprintf("{ 'is-picked': picked === '%s' }", e.ID()) }
+									x-on:click={ fmt.Sprintf("picked = '%s'; pickedShape = '%s'", e.ID(), e.Skill.Shape) }
+									hx-post="/skill-inputs"
+									hx-target="#skill-editor"
+									hx-include="#main-form"
+									hx-vals={ loadCommon(e.Key, e.Skill.Shape) }
+								>
+									<span class="picker-skill-name">{ e.Label }</span>
+									<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</span>
+								</button>
+							}
+						</div>
+					</div>
+				}
 				for _, e := range c.Entries {
 					<div class="picker-skill" x-bind:class={ fmt.Sprintf("{ 'is-picked': picked === '%s' }", e.ID()) }>
 						// The skill in its usual shape...

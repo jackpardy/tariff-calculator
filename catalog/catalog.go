@@ -17,6 +17,7 @@ import (
 type Entry struct {
 	Key   string // key in skills.CommonSkills
 	Skill skills.TrampolineSkill
+	Label string // its name within a Group, e.g. "½ Twist To Feet" under "From seat"
 }
 
 // ID tells entries apart in the picker: the key, plus the shape for a jump.
@@ -53,11 +54,31 @@ func sortName(s skills.TrampolineSkill) string {
 	return "1 " + s.Name
 }
 
-// Category is a group of entries shown under one picker tab.
+// Category is the entries shown under one picker tab: its groups first, then
+// the skills that aren't in one.
 type Category struct {
 	Key     string
 	Label   string
+	Groups  []Group
 	Entries []Entry
+}
+
+// Group is a set of related skills shown together in the picker, e.g. those
+// from seat, so a tab of similar drops isn't a wall of boxes.
+type Group struct {
+	Title   string
+	Options []Entry
+}
+
+// groups are the picker's groups, in order, with each option's label.
+var groups = []struct {
+	category, title string
+	options         [][2]string // CommonSkills key, label
+}{
+	{"drops", "To seat", [][2]string{{"seatDrop", "Seat Drop"}, {"halfToSeat", "½ Twist To Seat"}}},
+	{"drops", "From seat", [][2]string{{"seatToFeet", "To Feet"}, {"seatHalfToFeet", "½ Twist To Feet"}, {"seatHalfToSeat", "½ Twist To Seat"}, {"seatHalfToFront", "½ Twist To Front"}}},
+	{"drops", "To back or front", [][2]string{{"backDrop", "Back Drop"}, {"frontDrop", "Front Drop"}, {"halfToFront", "½ Twist To Front"}}},
+	{"drops", "From back or front", [][2]string{{"backToFeet", "Back To Feet"}, {"backHalfToFeet", "Back ½ Twist To Feet"}, {"frontToFeet", "Front To Feet"}}},
 }
 
 // categoryOrder is the picker's tab order, from the simplest skills up.
@@ -116,6 +137,20 @@ func PickerName(s skills.TrampolineSkill) string {
 // Categories lists the common skills by category, in picker order, each
 // category sorted by tariff and then name. Empty categories are left out.
 func Categories() []Category {
+	grouped := map[string]bool{}
+	byCategory := map[string][]Group{}
+	for _, g := range groups {
+		group := Group{Title: g.title}
+		for _, o := range g.options {
+			s := skills.CommonSkills[o[0]]
+			s.Name = skills.FindCommonSkillName(s)
+			s.SetTariff()
+			group.Options = append(group.Options, Entry{Key: o[0], Skill: s, Label: o[1]})
+			grouped[o[0]] = true
+		}
+		byCategory[g.category] = append(byCategory[g.category], group)
+	}
+
 	byKey := map[string][]Entry{}
 	add := func(key string, s skills.TrampolineSkill) {
 		s.Name = skills.FindCommonSkillName(s)
@@ -123,6 +158,9 @@ func Categories() []Category {
 		byKey[categoryOf(s)] = append(byKey[categoryOf(s)], Entry{Key: key, Skill: s})
 	}
 	for key, s := range skills.CommonSkills {
+		if grouped[key] {
+			continue
+		}
 		if s.IsBasicJump() {
 			for _, shape := range jumpShapes {
 				s.Shape = shape
@@ -136,7 +174,7 @@ func Categories() []Category {
 	var cats []Category
 	for _, c := range categoryOrder {
 		entries := byKey[c.Key]
-		if len(entries) == 0 {
+		if len(entries) == 0 && len(byCategory[c.Key]) == 0 {
 			continue
 		}
 		sort.Slice(entries, func(i, j int) bool {
@@ -146,7 +184,7 @@ func Categories() []Category {
 			}
 			return sortName(a) < sortName(b)
 		})
-		cats = append(cats, Category{Key: c.Key, Label: c.Label, Entries: entries})
+		cats = append(cats, Category{Key: c.Key, Label: c.Label, Groups: byCategory[c.Key], Entries: entries})
 	}
 	return cats
 }

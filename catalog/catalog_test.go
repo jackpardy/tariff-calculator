@@ -10,6 +10,15 @@ import (
 func TestCategoriesCoverEveryCommonSkillOnce(t *testing.T) {
 	seen := map[string]string{}
 	for _, c := range Categories() {
+		for _, g := range c.Groups {
+			for _, e := range g.Options {
+				if prev, dup := seen[e.ID()]; dup {
+					t.Errorf("%s is in both %s and %s", e.ID(), prev, c.Key)
+				}
+				seen[e.ID()] = c.Key
+				seen[e.Key] = c.Key
+			}
+		}
 		for _, e := range c.Entries {
 			if prev, dup := seen[e.ID()]; dup {
 				t.Errorf("%s is in both %s and %s", e.ID(), prev, c.Key)
@@ -101,5 +110,30 @@ func TestPickerShapes(t *testing.T) {
 		if shapes[key] != want {
 			t.Errorf("%s offers %d shapes, want %d", key, shapes[key], want)
 		}
+	}
+}
+
+func TestPickerGroups(t *testing.T) {
+	var got []string
+	for _, c := range Categories() {
+		for _, g := range c.Groups {
+			var labels []string
+			for _, e := range g.Options {
+				labels = append(labels, e.Label)
+			}
+			got = append(got, c.Key+" "+g.Title+": "+strings.Join(labels, ", "))
+		}
+		if c.Key == "drops" && len(c.Entries) != 0 {
+			t.Errorf("every drop should be in a group, but these aren't: %v", c.Entries)
+		}
+	}
+	want := []string{
+		"drops To seat: Seat Drop, ½ Twist To Seat",
+		"drops From seat: To Feet, ½ Twist To Feet, ½ Twist To Seat, ½ Twist To Front",
+		"drops To back or front: Back Drop, Front Drop, ½ Twist To Front",
+		"drops From back or front: Back To Feet, Back ½ Twist To Feet, Front To Feet",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("groups:\n%s", strings.Join(got, "\n"))
 	}
 }
