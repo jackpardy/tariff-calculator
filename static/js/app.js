@@ -19,6 +19,7 @@ function tariffCalculatorStore() {
         routineB: [],    // its skills (the same array as in routines)
         expandedB: [],   // per-card expanded state, parallel to routineB
         addTo: 'a',      // which column the skill adder adds to while comparing
+        mobileTab: 'a',  // the column shown on a phone while comparing
         editingIndex: null,
         editingSide: 'a', // the column of the skill being edited
         busy: false, // an add or update is in flight
@@ -135,11 +136,41 @@ function tariffCalculatorStore() {
         skillsOf(side) { return side === 'b' ? this.routineB : this.routine; },
         expandedOf(side) { return side === 'b' ? this.expandedB : this.expanded; },
         persist() { RoutineStore.save({ current: this.currentId, routines: this.routines }); },
-        // setRequirements chooses the requirement set a column's routine is checked against.
+        // setRequirements chooses the requirement set a column's routine is checked
+        // against. A set (compulsory) routine is loaded into the builder.
         setRequirements(ref, side = 'a') {
             this.routineFor(side).requirements = ref || undefined;
             this.persist();
             this.renderRoutine(side);
+            if (ref) { this.loadSetRoutine(side); }
+        },
+        // loadSetRoutine replaces a column's skills with its requirement set's set
+        // routine, asking first if there are skills to replace. Sets without a set
+        // routine are left alone, quietly unless the user asked (fromButton).
+        async loadSetRoutine(side = 'a', fromButton = false) {
+            const routine = this.routineFor(side);
+            if (!routine?.requirements) { return; }
+            const body = new URLSearchParams({ requirementSet: SetStore.payload(routine.requirements), routineData: JSON.stringify(this.skillsOf(side)) });
+            let loaded;
+            try {
+                const response = await fetch('/set-routine', { method: 'POST', body });
+                if (!response.ok) {
+                    if (fromButton) { this.showToast(`Couldn't load the set routine: ${(await response.text()).trim()}`, 'error'); }
+                    return;
+                }
+                loaded = await response.json();
+            } catch (error) {
+                if (fromButton) { this.showToast("Couldn't load the set routine.", 'error'); }
+                return;
+            }
+            if (loaded.matches) { return; }
+            const skills = this.skillsOf(side);
+            if (skills.length > 0 && !confirm(`Replace the ${skills.length} skills in ${routine.name} with this set routine?`)) { return; }
+            if (this.editingSide === side && this.editingIndex !== null) { this.cancelEdit(); }
+            const expanded = this.expandedOf(side);
+            expanded.splice(0, expanded.length, ...loaded.skills.map(() => false));
+            skills.splice(0, skills.length, ...loaded.skills); // re-renders and saves via the watcher
+            this.showToast(`Loaded the set routine into ${routine.name}.`, 'info');
         },
         // switchRoutine makes the routine with id current, leaving any edit. Choosing
         // the routine shown beside it swaps the columns.
@@ -186,6 +217,7 @@ function tariffCalculatorStore() {
             this.routineB = [];
             this.expandedB = [];
             this.addTo = 'a';
+            this.mobileTab = 'a';
             this.renderRoutine('a');
         },
         // swapColumns makes the routine beside the current one current, and vice versa.
@@ -196,6 +228,7 @@ function tariffCalculatorStore() {
             const flip = (side) => (side === 'a' ? 'b' : 'a');
             this.editingSide = flip(this.editingSide);
             this.addTo = flip(this.addTo);
+            this.mobileTab = flip(this.mobileTab); // keep showing the same routine
             this.routine = this.currentRoutine().skills;
             this.routineB = this.compareRoutine().skills;
         },
@@ -240,6 +273,7 @@ function tariffCalculatorStore() {
                 const skill = await this.calculateFormSkill();
                 this.expandedOf(side).push(false);
                 this.skillsOf(side).push(skill);
+                this.mobileTab = side; // show where it went
                 const where = this.compareId ? ` to ${this.routineFor(side).name}` : '';
                 this.showToast(`Added ${skill.custom_name || skill.name} (${skill.tariff.toFixed(1)})${where}.`, 'info');
                 if (this.skillsOf(side).length > 10) { this.showToast('Note: an exercise has 10 skills.', 'warning'); }

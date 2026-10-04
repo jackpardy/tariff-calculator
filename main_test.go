@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"tariffCalculator/skills"
 )
 
 func postRoutine(t *testing.T, routineJSON string) *httptest.ResponseRecorder {
@@ -227,8 +229,8 @@ func TestSkillForm(t *testing.T) {
 			t.Errorf("picker tabs = %s", got)
 		}
 		barani := regexp.MustCompile(`(?s)<button[^>]*hx-vals="([^"]*barani&#34;[^"]*)"[^>]*>.*?</button>`).FindStringSubmatch(html)
-		if barani == nil || !strings.Contains(barani[0], "Barani Tuck") || !strings.Contains(barani[0], "0.6") || !strings.Contains(barani[1], "&#34;load&#34;:&#34;common&#34;") {
-			t.Errorf("the picker should have a Barani Tuck (0.6) button that loads it: %v", barani)
+		if barani == nil || !strings.Contains(barani[0], ">Barani<") || !strings.Contains(barani[0], "0.6") || !strings.Contains(barani[1], "&#34;load&#34;:&#34;common&#34;") {
+			t.Errorf("the picker should have a Barani (0.6) button that loads it: %v", barani)
 		}
 		if tag := tagWithID(t, html, "skill-builder"); strings.Contains(tag, " open") {
 			t.Errorf("the builder should start closed when adding: %s", tag)
@@ -793,5 +795,48 @@ func TestPageOffersSideBySide(t *testing.T) {
 	// The skill adder asks which routine to add to while comparing.
 	if form := postForm(t, "/skill-form", url.Values{}).Body.String(); !strings.Contains(form, `class="add-to"`) {
 		t.Errorf("the skill form should offer a choice of routine to add to")
+	}
+}
+
+func TestSetRoutineEndpoint(t *testing.T) {
+	type response struct {
+		Skills  []skills.TrampolineSkill `json:"skills"`
+		Matches bool                     `json:"matches"`
+	}
+	post := func(values url.Values) (int, response) {
+		t.Helper()
+		rec := postForm(t, "/set-routine", values)
+		var got response
+		if rec.Code == http.StatusOK {
+			if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return rec.Code, got
+	}
+
+	code, got := post(url.Values{"requirementSet": {"builtin:bg-regional-l1-first"}})
+	if code != http.StatusOK || len(got.Skills) != 10 || got.Matches || got.Skills[0].Name != "Back Tuck" || got.Skills[9].Name != "Front Pike" {
+		t.Fatalf("BG Regional L1: status %d, %+v", code, got)
+	}
+	routine, _ := json.Marshal(got.Skills)
+	if _, again := post(url.Values{"requirementSet": {"builtin:bg-regional-l1-first"}, "routineData": {string(routine)}}); !again.Matches {
+		t.Errorf("the loaded routine should match its set routine")
+	}
+
+	// The routine view offers to load a set routine that isn't met.
+	html := postForm(t, "/routine", url.Values{"routineData": {"[]"}, "requirementSet": {"builtin:bg-regional-l1-first"}, "side": {"b"}}).Body.String()
+	if !strings.Contains(html, "Load this set routine") || !strings.Contains(html, "loadSetRoutine(&#39;b&#39;, true)") {
+		t.Errorf("an unmet set routine should offer to load it")
+	}
+	html = postForm(t, "/routine", url.Values{"routineData": {string(routine)}, "requirementSet": {"builtin:bg-regional-l1-first"}}).Body.String()
+	if strings.Contains(html, "Load this set routine") {
+		t.Errorf("a met set routine has nothing to load")
+	}
+
+	for name, set := range map[string]string{"not a set routine": "builtin:fig-ag1-first", "unknown set": "builtin:gone", "nothing": ""} {
+		if code, _ := post(url.Values{"requirementSet": {set}}); code != http.StatusBadRequest {
+			t.Errorf("%s: status %d, want 400", name, code)
+		}
 	}
 }

@@ -56,7 +56,7 @@ templ Routine(rv skills.RoutineValidation, check *RequirementCheck, side Routine
 	</div>
 	@results(rv, side.Other)
 	if check != nil {
-		@requirementsPanel(*check)
+		@requirementsPanel(*check, side.Side)
 	}
 }
 
@@ -176,9 +176,10 @@ templ results(rv skills.RoutineValidation, other *CompareSide) {
 
 // RequirementCheck is a routine checked against a requirement set (ADR 0003).
 type RequirementCheck struct {
-	SetName string
-	Results []requirements.Result
-	Err     string // why the set couldn't be used, if it couldn't
+	SetName    string
+	Results    []requirements.Result
+	Err        string // why the set couldn't be used, if it couldn't
+	SetRoutine bool   // the set is a set (compulsory) routine, which can be loaded
 }
 
 // Met counts the requirements the routine meets.
@@ -193,7 +194,7 @@ func (c RequirementCheck) Met() int {
 }
 
 // requirementsPanel lists each requirement with whether the routine meets it.
-templ requirementsPanel(c RequirementCheck) {
+templ requirementsPanel(c RequirementCheck, side string) {
 	<div id="requirements-results" class="card mt-4">
 		<div class="card-content">
 			<p class="requirements-title">
@@ -222,6 +223,9 @@ templ requirementsPanel(c RequirementCheck) {
 						</li>
 					}
 				</ul>
+				if c.SetRoutine && c.Met() < len(c.Results) {
+					<button class="button is-small is-link is-light mt-3" type="button" x-on:click={ fmt.Sprintf("loadSetRoutine('%s', true)", side) }>Load this set routine</button>
+				}
 			}
 		</div>
 	</div>

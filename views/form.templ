@@ -95,7 +95,7 @@ templ picker(cats []catalog.Category) {
 						hx-include="#main-form"
 						hx-vals={ loadCommon(e.Key) }
 					>
-						<span class="picker-skill-name">{ e.Skill.Name }</span>
+						<span class="picker-skill-name">{ catalog.PickerName(e.Skill) }</span>
 						<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</span>
 					</button>
 				}
@@ -123,8 +123,12 @@ templ SearchResults(query string, results []catalog.Result) {
 					hx-vals={ loadSkill(r.Skill) }
 				>
 					<span>
-						<span class="picker-skill-name">{ r.Skill.Name }</span>
+						<span class="picker-skill-name">{ catalog.PickerName(r.Skill) }</span>
 						<span class="picker-skill-meta">
+							// The name leaves the shape out; say it here, as one skill can come up in several.
+							if !r.Skill.IsBasicJump() && r.Skill.ShapeIsRelevant() {
+								{ r.Skill.Shape.String() } ·
+							}
 							{ r.Skill.FIGNotation() }
 							if r.FromNotation {
 								· { directionText(r.Skill) }
@@ -198,8 +202,8 @@ templ editorCard(e SkillEditor) {
 			<div class="add-to" x-show="compareId" x-cloak>
 				<span class="add-to-label">Add to</span>
 				<div class="buttons has-addons mb-0">
-					<button type="button" class="button is-small" x-bind:class="addTo === 'a' && 'is-link is-selected'" x-on:click="addTo = 'a'" x-text="routineFor('a')?.name"></button>
-					<button type="button" class="button is-small" x-bind:class="addTo === 'b' && 'is-link is-selected'" x-on:click="addTo = 'b'" x-text="routineFor('b')?.name"></button>
+					<button type="button" class="button is-small" x-bind:class="addTo === 'a' && 'is-link is-selected'" x-on:click="addTo = 'a'; mobileTab = 'a'" x-text="routineFor('a')?.name"></button>
+					<button type="button" class="button is-small" x-bind:class="addTo === 'b' && 'is-link is-selected'" x-on:click="addTo = 'b'; mobileTab = 'b'" x-text="routineFor('b')?.name"></button>
 				</div>
 			</div>
 			<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled="busy" x-text="compareId ? `Add to ${routineFor(addTo)?.name}` : 'Add to routine'">

@@ -179,7 +179,7 @@ func calculator(groups []requirements.BuiltinGroup) templ.Component {
 			templ_7745c5c3_Var10 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"container\" x-data=\"tariffCalculatorStore()\"><div class=\"box\"><h3 class=\"title is-4\" x-text=\"editingIndex === null ? 'Add a skill' : `Edit skill ${editingIndex + 1}` + (compareId ? ` of ${routineFor(editingSide)?.name}` : '')\">Add a skill</h3><div id=\"skill-form-wrapper\" style=\"scroll-margin-top: 20px;\" hx-sync=\"this:replace\"><p>Loading form...</p></div></div><div class=\"box\"><div class=\"level mb-3\"><div class=\"level-left\"><h3 class=\"title is-4 mb-0\">Routine Builder</h3></div><div class=\"level-right\"><div class=\"buttons mb-0\"><a class=\"button is-primary is-small\" href=\"/tariff-sheet\" target=\"_blank\" rel=\"noopener\">Tariff Sheet</a> <a class=\"button is-link is-light is-small\" href=\"/compare\" target=\"_blank\" rel=\"noopener\" x-show=\"routines.length > 1\">Compare</a></div></div></div><div class=\"routine-switcher\"><div class=\"select is-small\"><select aria-label=\"Routine\" x-on:change=\"switchRoutine($event.target.value)\"><template x-for=\"r in routines\" x-bind:key=\"r.id\"><option x-bind:value=\"r.id\" x-bind:selected=\"r.id === currentId\" x-text=\"`${r.name} (${r.skills.length})`\"></option></template></select></div><button class=\"button is-small\" type=\"button\" x-on:click=\"newRoutine()\">+ New</button> <details class=\"routine-menu\"><summary class=\"button is-small\">More</summary><div class=\"routine-menu-panel\" x-on:click=\"$el.closest('details').removeAttribute('open')\"><button class=\"button is-small is-white\" type=\"button\" x-on:click=\"renameRoutine()\">Rename</button> <button class=\"button is-small is-white\" type=\"button\" x-on:click=\"duplicateRoutine()\">Duplicate</button> <button class=\"button is-small is-white\" type=\"button\" x-on:click=\"expandAll()\">Expand all</button> <button class=\"button is-small is-white\" type=\"button\" x-on:click=\"collapseAll()\">Collapse all</button> <button class=\"button is-small is-white has-text-danger\" type=\"button\" x-on:click=\"clearRoutine()\" x-bind:disabled=\"routine.length === 0\">Clear skills</button> <button class=\"button is-small is-white has-text-danger\" type=\"button\" x-on:click=\"deleteRoutine()\">Delete routine</button></div></details></div><div class=\"compare-with\" x-show=\"routines.length > 1\" x-cloak><label class=\"label is-small mb-0\" for=\"compare-with\">Side by side with</label><div class=\"select is-small\"><select id=\"compare-with\" x-on:change=\"compareWith($event.target.value)\"><option value=\"\" x-bind:selected=\"!compareId\">None</option><template x-for=\"r in routines.filter((r) => r.id !== currentId)\" x-bind:key=\"r.id\"><option x-bind:value=\"r.id\" x-bind:selected=\"r.id === compareId\" x-text=\"`${r.name} (${r.skills.length})`\"></option></template></select></div></div><div class=\"builder-columns\" x-bind:class=\"{ 'is-comparing': compareId }\"><div class=\"builder-column\"><div class=\"column-head\" x-show=\"compareId\" x-cloak><strong x-text=\"currentRoutine()?.name\"></strong></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"container\" x-data=\"tariffCalculatorStore()\"><div class=\"box\"><h3 class=\"title is-4\" x-text=\"editingIndex === null ? 'Add a skill' : `Edit skill ${editingIndex + 1}` + (compareId ? ` of ${routineFor(editingSide)?.name}` : '')\">Add a skill</h3><div id=\"skill-form-wrapper\" style=\"scroll-margin-top: 20px;\" hx-sync=\"this:replace\"><p>Loading form...</p></div></div><div class=\"box\"><div class=\"level mb-3\"><div class=\"level-left\"><h3 class=\"title is-4 mb-0\">Routine Builder</h3></div><div class=\"level-right\"><div class=\"buttons mb-0\"><a class=\"button is-primary is-small\" href=\"/tariff-sheet\" target=\"_blank\" rel=\"noopener\">Tariff Sheet</a> <a class=\"button is-link is-light is-small\" href=\"/compare\" target=\"_blank\" rel=\"noopener\" x-show=\"routines.length > 1\">Compare</a></div></div></div><div class=\"routine-switcher\"><div class=\"select is-small\"><select aria-label=\"Routine\" x-on:change=\"switchRoutine($event.target.value)\"><template x-for=\"r in routines\" x-bind:key=\"r.id\"><option x-bind:value=\"r.id\" x-bind:selected=\"r.id === currentId\" x-text=\"`${r.name} (${r.skills.length})`\"></option></template></select></div><button class=\"button is-small\" type=\"button\" x-on:click=\"newRoutine()\">+ New</button> <details class=\"routine-menu\"><summary class=\"button is-small\">More</summary><div class=\"routine-menu-panel\" x-on:click=\"$el.closest('details').removeAttribute('open')\"><button class=\"button is-small is-white\" type=\"button\" x-on:click=\"renameRoutine()\">Rename</button> <button class=\"button is-small is-white\" type=\"button\" x-on:click=\"duplicateRoutine()\">Duplicate</button> <button class=\"button is-small is-white\" type=\"button\" x-on:click=\"expandAll()\">Expand all</button> <button class=\"button is-small is-white\" type=\"button\" x-on:click=\"collapseAll()\">Collapse all</button> <button class=\"button is-small is-white has-text-danger\" type=\"button\" x-on:click=\"clearRoutine()\" x-bind:disabled=\"routine.length === 0\">Clear skills</button> <button class=\"button is-small is-white has-text-danger\" type=\"button\" x-on:click=\"deleteRoutine()\">Delete routine</button></div></details></div><div class=\"compare-with\" x-show=\"routines.length > 1\" x-cloak><label class=\"label is-small mb-0\" for=\"compare-with\">Side by side with</label><div class=\"select is-small\"><select id=\"compare-with\" x-on:change=\"compareWith($event.target.value)\"><option value=\"\" x-bind:selected=\"!compareId\">None</option><template x-for=\"r in routines.filter((r) => r.id !== currentId)\" x-bind:key=\"r.id\"><option x-bind:value=\"r.id\" x-bind:selected=\"r.id === compareId\" x-text=\"`${r.name} (${r.skills.length})`\"></option></template></select></div></div><div class=\"tabs is-toggle is-small is-fullwidth compare-tabs\" x-show=\"compareId\" x-cloak><ul><li x-bind:class=\"mobileTab === 'a' && 'is-active'\"><a x-on:click=\"mobileTab = 'a'\" x-text=\"`${currentRoutine()?.name} (${routine.length})`\"></a></li><li x-bind:class=\"mobileTab === 'b' && 'is-active'\"><a x-on:click=\"mobileTab = 'b'\" x-text=\"`${compareRoutine()?.name} (${routineB.length})`\"></a></li></ul></div><div class=\"builder-columns\" x-bind:class=\"{ 'is-comparing': compareId, 'shows-b': mobileTab === 'b' }\"><div class=\"builder-column\"><div class=\"column-head\" x-show=\"compareId\" x-cloak><strong x-text=\"currentRoutine()?.name\"></strong></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -234,7 +234,7 @@ func requirementPicker(groups []requirements.BuiltinGroup, side string) templ.Co
 		var templ_7745c5c3_Var12 string
 		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 151, Col: 45}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 158, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 		if templ_7745c5c3_Err != nil {
@@ -247,7 +247,7 @@ func requirementPicker(groups []requirements.BuiltinGroup, side string) templ.Co
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 154, Col: 19}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 161, Col: 19}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 		if templ_7745c5c3_Err != nil {
@@ -260,7 +260,7 @@ func requirementPicker(groups []requirements.BuiltinGroup, side string) templ.Co
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("setRequirements($event.target.value, '%s')", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 154, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 161, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 		if templ_7745c5c3_Err != nil {
@@ -273,7 +273,7 @@ func requirementPicker(groups []requirements.BuiltinGroup, side string) templ.Co
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("!routineFor('%s')?.requirements", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 155, Col: 92}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 162, Col: 92}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 		if templ_7745c5c3_Err != nil {
@@ -291,7 +291,7 @@ func requirementPicker(groups []requirements.BuiltinGroup, side string) templ.Co
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(g.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 157, Col: 30}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 164, Col: 30}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 			if templ_7745c5c3_Err != nil {
@@ -309,7 +309,7 @@ func requirementPicker(groups []requirements.BuiltinGroup, side string) templ.Co
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(requirements.BuiltinPrefix + b.ID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 159, Col: 57}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 166, Col: 57}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 				if templ_7745c5c3_Err != nil {
@@ -322,7 +322,7 @@ func requirementPicker(groups []requirements.BuiltinGroup, side string) templ.Co
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("routineFor('%s')?.requirements === '%s%s'", side, requirements.BuiltinPrefix, b.ID))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 159, Col: 174}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 166, Col: 174}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
 				if templ_7745c5c3_Err != nil {
@@ -335,7 +335,7 @@ func requirementPicker(groups []requirements.BuiltinGroup, side string) templ.Co
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(b.Set.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 159, Col: 189}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 166, Col: 189}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {
@@ -358,7 +358,7 @@ func requirementPicker(groups []requirements.BuiltinGroup, side string) templ.Co
 		var templ_7745c5c3_Var20 string
 		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("routineFor('%s')?.requirements === s.id", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 166, Col: 114}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 173, Col: 114}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var20)
 		if templ_7745c5c3_Err != nil {

@@ -4,6 +4,7 @@ package catalog
 
 import (
 	"sort"
+	"strings"
 
 	"tariffCalculator/skills"
 )
@@ -48,6 +49,29 @@ func categoryOf(s skills.TrampolineSkill) string {
 	default:
 		return "drops"
 	}
+}
+
+// somersaultNames spell out base names that don't say they're somersaults once
+// the shape is dropped ("Back Tuck" becomes "Back Somersault", not "Back").
+var somersaultNames = map[string]string{
+	"Back":          "Back Somersault",
+	"Front":         "Front Somersault",
+	"Back To Seat":  "Back Somersault To Seat",
+	"Front To Seat": "Front Somersault To Seat",
+}
+
+// PickerName is a skill's name in the picker: without its shape, which is
+// chosen on the skill card, except for shaped jumps, where the shape is the
+// skill ("Tuck Jump").
+func PickerName(s skills.TrampolineSkill) string {
+	name := skills.FindCommonSkillName(s)
+	if !s.IsBasicJump() && s.ShapeIsRelevant() {
+		name = strings.TrimSuffix(name, " "+s.Shape.String())
+	}
+	if full, ok := somersaultNames[name]; ok {
+		return full
+	}
+	return name
 }
 
 // Categories lists the common skills by category, in picker order, each

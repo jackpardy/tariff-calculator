@@ -190,22 +190,19 @@
 .add-to { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
 .add-to-label { font-size: 0.85rem; font-weight: 600; }
 .add-to .button { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; display: inline-block; }
+.compare-tabs { display: none; }
 @media screen and (max-width: 768px) {
-  .builder-columns.is-comparing { gap: 0.4rem; }
-  /* Half a phone is narrow: the card buttons go on a row under the name. */
-  .is-comparing .card-head { flex-wrap: wrap; }
-  /* The name takes the whole first row (overriding its inline flex: 1). */
-  .is-comparing .skill-name-block { flex: 1 1 100% !important; margin-right: 0 !important; }
-  .is-comparing .card-buttons { grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; margin-top: 4px; }
-  .is-comparing .routine-skills { padding: 0.2rem; }
-  .is-comparing .routine-skills .routine-skill { padding: 0.5rem 0.4rem; }
-  /* Names take exactly two lines, so cards are the same height and element N
-     sits level in both columns. */
-  .is-comparing .skill-name { font-size: 0.85rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 2.4em; }
-  .is-comparing .routine-results .card-content { padding: 0.75rem; }
-  .is-comparing .routine-results .title { font-size: 1.1rem; }
-  .is-comparing .routine-results .subtitle { font-size: 0.85rem; }
-  .is-comparing .compare-difference { margin-top: -0.5rem; font-size: 0.8rem; }
+  /* Phones show one routine at a time, chosen with the tabs, at full width. */
+  .compare-tabs { display: block; margin-bottom: 0.75rem; }
+  .compare-tabs a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+  .builder-columns.is-comparing { display: block; }
+  .is-comparing.shows-b > .builder-column:first-child,
+  .is-comparing:not(.shows-b) > .builder-column:last-child { display: none; }
+  /* The tabs name the routines; the second column's heading keeps ⇄ and ✕. */
+  .is-comparing .column-head strong { display: none; }
+  .is-comparing > .builder-column:first-child .column-head { display: none; }
+  .is-comparing .column-head { justify-content: flex-end; }
+  .is-comparing .requirement-picker .is-text { display: inline-flex; }
 }
 
 .subtitle.tariff-difference { font-size: 0.9rem; color: #666; }

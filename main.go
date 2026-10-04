@@ -3,6 +3,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -53,6 +54,7 @@ func routes() http.Handler {
 	mux.HandleFunc("GET /skill-search", handleSkillSearch)
 	mux.HandleFunc("POST /calculate-skill", handleCalculateSkill)
 	mux.HandleFunc("POST /routine", handleRoutineView)
+	mux.HandleFunc("POST /set-routine", handleSetRoutine)
 	mux.HandleFunc("GET /compare", handleComparePage)
 	mux.HandleFunc("POST /compare", handleCompare)
 	mux.HandleFunc("GET /requirements", handleRequirementsPage)
@@ -303,26 +305,70 @@ func requirementCheck(r *http.Request, rv skills.RoutineValidation) (*views.Requ
 	if raw == "" {
 		return nil, nil
 	}
-	var set requirements.Set
+	set, err := postedSet(raw)
+	if err != nil {
+		name := set.Name
+		if name == "" {
+			name = "Requirements"
+		}
+		return &views.RequirementCheck{SetName: name, Err: err.Error()}, nil
+	}
+	results := requirements.Evaluate(set, rv)
+	_, isSetRoutine := requirements.SetRoutine(set)
+	check := &views.RequirementCheck{SetName: set.Name, Results: results, SetRoutine: isSetRoutine}
+	return check, requirements.RequiredElements(set, results)
+}
+
+// postedSet is the requirement set the page posts: a built-in reference
+// ("builtin:<id>") or a custom set as JSON. A set that doesn't parse comes back
+// with whatever name it has.
+func postedSet(raw string) (requirements.Set, error) {
 	if strings.HasPrefix(raw, requirements.BuiltinPrefix) {
 		builtin, ok := requirements.LookupBuiltin(raw)
 		if !ok {
-			return &views.RequirementCheck{SetName: "Requirements", Err: "this built-in set no longer exists"}, nil
+			return requirements.Set{}, errors.New("this built-in set no longer exists")
 		}
-		set = builtin
-	} else {
-		parsed, err := requirements.Parse([]byte(raw))
-		if err != nil {
-			name := parsed.Name
-			if name == "" {
-				name = "Requirements"
-			}
-			return &views.RequirementCheck{SetName: name, Err: err.Error()}, nil
-		}
-		set = parsed
+		return builtin, nil
 	}
-	results := requirements.Evaluate(set, rv)
-	return &views.RequirementCheck{SetName: set.Name, Results: results}, requirements.RequiredElements(set, results)
+	return requirements.Parse([]byte(raw))
+}
+
+// handleSetRoutine returns the routine a set's set routine describes, as the
+// skills the page stores, so it can be loaded into the builder. It also says
+// whether the posted routine (routineData) already is that routine.
+func handleSetRoutine(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		badRequest(w, err)
+		return
+	}
+	set, err := postedSet(strings.TrimSpace(r.FormValue("requirementSet")))
+	if err != nil {
+		badRequest(w, err)
+		return
+	}
+	routine, ok := requirements.SetRoutine(set)
+	if !ok {
+		badRequest(w, errors.New("this set has no set routine to load"))
+		return
+	}
+	matches := false
+	if raw := r.FormValue("routineData"); raw != "" {
+		if current, err := parseRoutineJSON(raw); err == nil {
+			matches = len(current) == len(routine)
+			for i := range current {
+				if matches && !(current[i].Equal(&routine[i]) && current[i].Shape == routine[i].Shape) {
+					matches = false
+				}
+			}
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(struct {
+		Skills  []skills.TrampolineSkill `json:"skills"`
+		Matches bool                     `json:"matches"`
+	}{routine, matches}); err != nil {
+		log.Printf("Error writing set routine: %v", err)
+	}
 }
 
 // handleComparePage serves the compare page; it fills its routine choices from

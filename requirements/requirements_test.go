@@ -491,3 +491,42 @@ func TestBUCSBodyLandings(t *testing.T) {
 		t.Errorf("three body landings: got %+v", r)
 	}
 }
+
+// Every built-in set routine loads as a real routine that meets its own set,
+// with every element a named skill.
+func TestSetRoutineLoads(t *testing.T) {
+	loaded := 0
+	for _, b := range Builtins() {
+		routine, ok := SetRoutine(b.Set)
+		if !ok {
+			if b.Set.Rules[0].Type == Sequence {
+				t.Errorf("%s: its set routine didn't load", b.ID)
+			}
+			continue
+		}
+		loaded++
+		rv := skills.ValidateRoutine(routine)
+		if rv.HasInvalidTransitions || rv.InterruptedAt >= 0 {
+			t.Errorf("%s: the loaded routine isn't valid: %v", b.ID, rv.Messages)
+		}
+		for _, r := range Evaluate(b.Set, rv) {
+			if !r.Passed {
+				t.Errorf("%s: the loaded routine fails %s: %s", b.ID, r.Description, r.Detail)
+			}
+		}
+		for i, s := range routine {
+			if s.Name == "Custom Skill" {
+				t.Errorf("%s: element %d has no name: %+v", b.ID, i+1, s)
+			}
+		}
+	}
+	if loaded != 20 {
+		t.Errorf("loaded %d set routines, want 20", loaded)
+	}
+	if _, ok := SetRoutine(Set{Rules: []Rule{{Type: Different}}}); ok {
+		t.Errorf("a set without a set routine has nothing to load")
+	}
+	if _, ok := (Matcher{Rotation: &Range{Min: ptr(20)}}).Example(); ok {
+		t.Errorf("a matcher no skill can meet has no example")
+	}
+}

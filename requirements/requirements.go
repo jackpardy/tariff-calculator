@@ -526,3 +526,78 @@ func elementList(elements []int) string {
 	}
 	return strings.Join(parts, ", ")
 }
+
+// SetRoutine is the routine a set's set-routine (sequence) rule describes, built
+// as real skills, so a coach can load a compulsory routine instead of entering
+// it. It reports false if the set has no set routine, or an element can't be
+// built.
+func SetRoutine(set Set) ([]skills.TrampolineSkill, bool) {
+	for _, rule := range set.Rules {
+		if rule.Type != Sequence {
+			continue
+		}
+		routine := make([]skills.TrampolineSkill, len(rule.Sequence))
+		for i, m := range rule.Sequence {
+			s, ok := m.Example()
+			if !ok {
+				return nil, false
+			}
+			routine[i] = s
+		}
+		return routine, true
+	}
+	return nil, false
+}
+
+var shapesByName = map[string]skills.Shape{"straight": skills.Straight, "tuck": skills.Tuck, "pike": skills.Pike, "straddle": skills.Straddle}
+
+// Example is the simplest skill the matcher matches: the least rotation and
+// twist it allows, in its first shape and positions, in whichever direction
+// and landing make it a real skill. It reports false if no skill matches.
+func (m Matcher) Example() (skills.TrampolineSkill, bool) {
+	bounds := func(r *Range, lo, hi int) (int, int) {
+		if r != nil && r.Min != nil {
+			lo = *r.Min
+		}
+		if r != nil && r.Max != nil {
+			hi = min(hi, *r.Max)
+		}
+		return lo, hi
+	}
+	rotLo, rotHi := bounds(m.Rotation, 0, skills.MaxRotation)
+	twLo, twHi := bounds(m.Twist, 0, 8)
+	shapes := []skills.Shape{skills.Straight, skills.Tuck, skills.Pike, skills.Straddle}
+	if len(m.Shapes) > 0 {
+		shapes = shapes[:0]
+		for _, name := range m.Shapes {
+			shapes = append(shapes, shapesByName[name])
+		}
+	}
+	takeoff := skills.Feet
+	if len(m.Takeoff) > 0 {
+		takeoff = positionsByName[m.Takeoff[0]]
+	}
+	for rot := rotLo; rot <= rotHi; rot++ {
+		for tw := twLo; tw <= twHi; tw++ {
+			for _, shape := range shapes {
+				for _, backward := range []bool{false, true} {
+					for _, seat := range []bool{false, true} {
+						s := skills.TrampolineSkill{Rotation: rot, TakeoffPosition: takeoff, Shape: shape, Backward: backward, SeatLanding: seat}
+						// The twist goes in the last phase (singles have only one).
+						s.TwistDistribution = make([]int, skills.CalculatePhases(rot))
+						s.TwistDistribution[len(s.TwistDistribution)-1] = tw
+						if s.LandingPosition() == skills.Invalid || !m.Matches(s) {
+							continue
+						}
+						s.Name = skills.FindCommonSkillName(s)
+						s.SetTariff()
+						return s, true
+					}
+				}
+			}
+		}
+	}
+	return skills.TrampolineSkill{}, false
+}
+
+var positionsByName = map[string]skills.BodyPosition{"feet": skills.Feet, "front": skills.Front, "back": skills.Back, "seat": skills.Seat}

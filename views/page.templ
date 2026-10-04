@@ -106,7 +106,14 @@ templ calculator(groups []requirements.BuiltinGroup) {
 					</select>
 				</div>
 			</div>
-			<div class="builder-columns" x-bind:class="{ 'is-comparing': compareId }">
+			// On phones the two routines are tabs, one shown at a time.
+			<div class="tabs is-toggle is-small is-fullwidth compare-tabs" x-show="compareId" x-cloak>
+				<ul>
+					<li x-bind:class="mobileTab === 'a' && 'is-active'"><a x-on:click="mobileTab = 'a'" x-text="`${currentRoutine()?.name} (${routine.length})`"></a></li>
+					<li x-bind:class="mobileTab === 'b' && 'is-active'"><a x-on:click="mobileTab = 'b'" x-text="`${compareRoutine()?.name} (${routineB.length})`"></a></li>
+				</ul>
+			</div>
+			<div class="builder-columns" x-bind:class="{ 'is-comparing': compareId, 'shows-b': mobileTab === 'b' }">
 				<div class="builder-column">
 					<div class="column-head" x-show="compareId" x-cloak>
 						<strong x-text="currentRoutine()?.name"></strong>

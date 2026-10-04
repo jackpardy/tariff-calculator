@@ -1,6 +1,10 @@
 package catalog
 
-import "testing"
+import (
+	"testing"
+
+	"tariffCalculator/skills"
+)
 
 func TestCategoriesCoverEveryCommonSkillOnce(t *testing.T) {
 	seen := map[string]string{}
@@ -45,5 +49,34 @@ func TestEntriesAreNamedAndPriced(t *testing.T) {
 				t.Errorf("the shape jump should read as Tuck Jump, got %q", e.Skill.Name)
 			}
 		}
+	}
+}
+
+func TestPickerName(t *testing.T) {
+	want := map[string]string{
+		"backSomersault": "Back Somersault",
+		"front":          "Front Somersault",
+		"backToSeat":     "Back Somersault To Seat",
+		"frontToSeat":    "Front Somersault To Seat",
+		"crashDive":      "Crash Dive",
+		"lazyBack":       "Lazy Back",
+		"ballOut":        "Ball-Out",
+		"cody":           "Cody",
+		"barani":         "Barani",
+		"doubleBack":     "Double Back",
+		"shapeJump":      "Tuck Jump", // the shape is the skill
+		"rudi":           "Rudi",
+		"seatDrop":       "Seat Drop",
+	}
+	for key, name := range want {
+		if got := PickerName(skills.CommonSkills[key]); got != name {
+			t.Errorf("%s: PickerName = %q, want %q", key, got, name)
+		}
+	}
+	// Any shape gives the same name.
+	pike := skills.CommonSkills["backSomersault"]
+	pike.Shape = skills.Pike
+	if got := PickerName(pike); got != "Back Somersault" {
+		t.Errorf("back pike: %q", got)
 	}
 }
