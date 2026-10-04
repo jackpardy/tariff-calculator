@@ -10,6 +10,8 @@ import (
 	"encoding/hex"
 	"io/fs"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -77,3 +79,20 @@ func Handler() http.Handler {
 		http.ServeContent(w, r, path, time.Time{}, bytes.NewReader(a.data))
 	})
 }
+
+// VersionHeader carries Version on every response, so a page left open
+// across a deploy can tell it is out of date (static/js/version.js).
+const VersionHeader = "X-App-Version"
+
+// Version identifies this build: the first 12 hex digits of the SHA-256 of
+// the running program, so any change to code, templates or assets changes it.
+// If the program can't be read, the time it started stands in.
+var Version = func() string {
+	if exe, err := os.Executable(); err == nil {
+		if data, err := os.ReadFile(exe); err == nil {
+			sum := sha256.Sum256(data)
+			return hex.EncodeToString(sum[:])[:12]
+		}
+	}
+	return strconv.FormatInt(time.Now().UnixNano(), 36)
+}()

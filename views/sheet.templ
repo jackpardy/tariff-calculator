@@ -18,6 +18,8 @@ templ TariffSheetPage() {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<title>Tariff Sheet</title>
+			<meta name="app-version" content={ static.Version }/>
+			<script defer src={ static.URL("js/version.js") }></script>
 			<link rel="stylesheet" href={ static.URL("css/sheet.css") }/>
 			<script src={ static.URL("js/htmx.min.js") }></script>
 			<script defer src={ static.URL("js/routines.js") }></script>

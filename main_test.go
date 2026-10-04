@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"tariffCalculator/skills"
+	"tariffCalculator/static"
 )
 
 func postRoutine(t *testing.T, routineJSON string) *httptest.ResponseRecorder {
@@ -453,8 +454,8 @@ func TestIndexRendersThePage(t *testing.T) {
 	}
 	// Every asset is linked by a versioned URL that the server actually serves.
 	links := regexp.MustCompile(`(?:href|src)="(/static/[^"]+)"`).FindAllStringSubmatch(html, -1)
-	if len(links) != 9 {
-		t.Errorf("found %d asset links, want 9 (2 CSS, 7 JS)", len(links))
+	if len(links) != 10 {
+		t.Errorf("found %d asset links, want 10 (2 CSS, 8 JS)", len(links))
 	}
 	for _, l := range links {
 		u := strings.ReplaceAll(l[1], "&amp;", "&")
@@ -802,6 +803,7 @@ func TestPageOffersSideBySide(t *testing.T) {
 
 func TestSetRoutineEndpoint(t *testing.T) {
 	type response struct {
+		Name    string                   `json:"name"`
 		Skills  []skills.TrampolineSkill `json:"skills"`
 		Matches bool                     `json:"matches"`
 	}
@@ -818,7 +820,7 @@ func TestSetRoutineEndpoint(t *testing.T) {
 	}
 
 	code, got := post(url.Values{"requirementSet": {"builtin:bg-regional-l1-first"}})
-	if code != http.StatusOK || len(got.Skills) != 10 || got.Matches || got.Skills[0].Name != "Back Tuck" || got.Skills[9].Name != "Front Pike" {
+	if code != http.StatusOK || got.Name != "BG Regional L1 · first exercise" || len(got.Skills) != 10 || got.Matches || got.Skills[0].Name != "Back Tuck" || got.Skills[9].Name != "Front Pike" {
 		t.Fatalf("BG Regional L1: status %d, %+v", code, got)
 	}
 	routine, _ := json.Marshal(got.Skills)
@@ -905,5 +907,23 @@ func TestTariffSheetElementHeading(t *testing.T) {
 		if !strings.Contains(head, want) {
 			t.Errorf("heading is missing %s", want)
 		}
+	}
+}
+
+// Every response says which version of the app sent it, and every page carries
+// the version it was served with, so an out-of-date page can tell.
+func TestAppVersion(t *testing.T) {
+	for _, path := range []string{"/", "/tariff-sheet", "/compare", "/requirements"} {
+		rec := httptest.NewRecorder()
+		routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if got := rec.Header().Get(static.VersionHeader); got != static.Version || got == "" {
+			t.Errorf("%s: %s = %q, want %q", path, static.VersionHeader, got, static.Version)
+		}
+		if body := rec.Body.String(); !strings.Contains(body, `<meta name="app-version" content="`+static.Version+`">`) || !strings.Contains(body, "js/version.js") {
+			t.Errorf("%s: the page should carry its version and load version.js", path)
+		}
+	}
+	if rec := postForm(t, "/routine", url.Values{"routineData": {"[]"}}); rec.Header().Get(static.VersionHeader) != static.Version {
+		t.Errorf("fragments should carry the version too")
 	}
 }

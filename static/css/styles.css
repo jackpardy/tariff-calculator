@@ -436,3 +436,9 @@ details > * { box-sizing: border-box; }
     .skill-card { position: sticky; bottom: 0.5rem; z-index: 5; box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12); }
     .builder-label { min-width: 100%; }
 }
+
+/* --- Loading a set routine: new routine or replace --- */
+.set-routine-dialog { width: calc(100% - 2rem); max-width: 26rem; margin: 0 auto; border-radius: 10px; }
+.set-routine-dialog .modal-card-body { border-radius: 10px; }
+.set-routine-choices { display: flex; flex-direction: column; gap: 0.5rem; }
+.set-routine-choices .button { white-space: normal; height: auto; min-height: 2.5em; }

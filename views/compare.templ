@@ -24,6 +24,8 @@ templ ComparePage() {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<title>Compare Routines</title>
+			<meta name="app-version" content={ static.Version }/>
+			<script defer src={ static.URL("js/version.js") }></script>
 			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
 			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
 			<script src={ static.URL("js/htmx.min.js") }></script>

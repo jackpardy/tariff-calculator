@@ -64,6 +64,7 @@ func routes() http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBytes)
+		w.Header().Set(static.VersionHeader, static.Version)
 		mux.ServeHTTP(w, r)
 	})
 }
@@ -368,9 +369,10 @@ func handleSetRoutine(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(struct {
+		Name    string                   `json:"name"`
 		Skills  []skills.TrampolineSkill `json:"skills"`
 		Matches bool                     `json:"matches"`
-	}{routine, matches}); err != nil {
+	}{set.Name, routine, matches}); err != nil {
 		log.Printf("Error writing set routine: %v", err)
 	}
 }

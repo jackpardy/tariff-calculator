@@ -16,6 +16,8 @@ templ Page(groups []requirements.BuiltinGroup) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<title>Trampoline Tariff Calculator</title>
+			<meta name="app-version" content={ static.Version }/>
+			<script defer src={ static.URL("js/version.js") }></script>
 			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
 			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
 			<script src={ static.URL("js/htmx.min.js") }></script>
@@ -138,6 +140,26 @@ templ calculator(groups []requirements.BuiltinGroup) {
 				</div>
 			</div>
 			<p class="compare-legend" x-show="compareId" x-cloak>Shaded skills differ from the other routine's skill at the same number.</p>
+		</div>
+		// Loading a set routine into a routine that has skills: a new routine, or replace them.
+		<div class="modal" x-bind:class="setRoutineOffer && 'is-active'" x-on:keydown.escape.window="cancelSetRoutine()">
+			<div class="modal-background" x-on:click="cancelSetRoutine()"></div>
+			<template x-if="setRoutineOffer">
+				<div class="modal-card set-routine-dialog" role="dialog" aria-modal="true" aria-labelledby="set-routine-title">
+					<section class="modal-card-body">
+						<p class="title is-5 mb-2" id="set-routine-title">Load the set routine</p>
+						<p class="mb-4">
+							<strong x-text="setRoutineOffer.name"></strong>
+							<span x-text="` has ${setRoutineOffer.skills.length} skills. ${routineFor(setRoutineOffer.side).name} already has ${skillsOf(setRoutineOffer.side).length}.`"></span>
+						</p>
+						<div class="set-routine-choices">
+							<button class="button is-primary is-fullwidth" type="button" x-on:click="newRoutineFromSetRoutine()">Add as a new routine</button>
+							<button class="button is-fullwidth" type="button" x-on:click="replaceWithSetRoutine()" x-text="`Replace the skills in ${routineFor(setRoutineOffer.side).name}`"></button>
+							<button class="button is-text is-fullwidth" type="button" x-on:click="cancelSetRoutine()">Cancel</button>
+						</div>
+					</section>
+				</div>
+			</template>
 		</div>
 		<div
 			x-show="toast.show"
