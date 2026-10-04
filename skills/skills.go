@@ -20,6 +20,9 @@ type TrampolineSkill struct {
 	Tariff            float64      `json:"tariff,omitempty"`
 	Backward          bool         `json:"backward"`
 	SeatLanding       bool         `json:"seat_landing"`
+	// Scores marks an element the coach chose to score difficulty when only some
+	// elements do (ValidateOptions.ScoredElements).
+	Scores bool `json:"scores,omitempty"`
 }
 
 func (skill *TrampolineSkill) TotalTwist() int {
@@ -613,8 +616,10 @@ type RoutineValidation struct {
 	HasInvalidLandings    bool
 	TenthSkillWarning     bool
 	RoutineTooLong        bool
-	InterruptedAt         int // index of the skill that interrupts the routine, or -1
-	ScoredElements        int // how many elements score difficulty, if limited (ValidateOptions.ScoredElements)
+	InterruptedAt         int  // index of the skill that interrupts the routine, or -1
+	ScoredElements        int  // how many elements score difficulty, if limited (ValidateOptions.ScoredElements)
+	ScoringChosen         bool // the coach chose which elements score (Scores), rather than the highest
+	ScoringOverChosen     int  // how many more elements are marked to score than may
 }
 
 // RoutineLength is the number of elements in an exercise (CoP §4.1).
@@ -763,19 +768,35 @@ func ValidateRoutineWith(routine []TrampolineSkill, opts ValidateOptions) Routin
 	return res
 }
 
-// scoreOnly keeps the n highest-tariff counted elements (the earlier on a
-// tie) as the ones that score difficulty; the rest are unscored.
+// scoreOnly keeps n counted elements as the ones that score difficulty: those
+// the coach marked (Scores), the first n of them in order, or if none are
+// marked, the highest-tariff ones (the earlier on a tie). The rest are unscored.
 func scoreOnly(res *RoutineValidation, n int) {
 	res.ScoredElements = n
-	var counted []int
+	var counted, chosen []int
 	for i, sv := range res.Skills {
 		if sv.Counted {
 			counted = append(counted, i)
+			if sv.Skill.Scores {
+				chosen = append(chosen, i)
+			}
 		}
 	}
-	slices.SortStableFunc(counted, func(a, b int) int {
-		return cmp.Compare(res.Skills[b].Skill.Tariff, res.Skills[a].Skill.Tariff)
-	})
+	if len(chosen) > 0 {
+		res.ScoringChosen = true
+		res.ScoringOverChosen = max(len(chosen)-n, 0)
+		// The chosen ones first, in order; the others never score.
+		rest := slices.DeleteFunc(slices.Clone(counted), func(i int) bool { return slices.Contains(chosen, i) })
+		for _, i := range rest {
+			res.Skills[i].Counted = false
+			res.Skills[i].Unscored = true
+		}
+		counted = chosen
+	} else {
+		slices.SortStableFunc(counted, func(a, b int) int {
+			return cmp.Compare(res.Skills[b].Skill.Tariff, res.Skills[a].Skill.Tariff)
+		})
+	}
 	res.TotalTariff = 0
 	for rank, i := range counted {
 		if rank < n {

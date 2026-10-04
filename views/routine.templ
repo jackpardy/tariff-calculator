@@ -55,12 +55,12 @@ func (s RoutineSide) expanded(i int) string {
 // call its methods with the column's side, and it makes the card list
 // drag-sortable (SortableJS).
 templ Routine(rv skills.RoutineValidation, check *RequirementCheck, side RoutineSide) {
-	<div id={ side.list() } class="routine-skills">
+	<div id={ side.list() } class="routine-skills" data-scoring={ templ.JSONString(scoringElements(rv)) }>
 		if len(rv.Skills) == 0 {
 			<p class="has-text-grey">Add skills using the form above.</p>
 		} else {
 			for i, sv := range rv.Skills {
-				@skillCard(i, sv, rv.Messages[i], i == len(rv.Skills)-1, side, side.Other != nil && differs(CompareSide{Validation: rv}, *side.Other, i), rv.ScoredElements > 0 && sv.Counted)
+				@skillCard(i, sv, rv.Messages[i], i == len(rv.Skills)-1, side, side.Other != nil && differs(CompareSide{Validation: rv}, *side.Other, i), rv.ScoredElements > 0 && (sv.Counted || sv.Unscored), ticked(rv, sv))
 			}
 		}
 	</div>
@@ -70,7 +70,7 @@ templ Routine(rv skills.RoutineValidation, check *RequirementCheck, side Routine
 	}
 }
 
-templ skillCard(i int, sv skills.SkillValidation, message string, last bool, side RoutineSide, different bool, scores bool) {
+templ skillCard(i int, sv skills.SkillValidation, message string, last bool, side RoutineSide, different bool, canScore, scoresTicked bool) {
 	<div class="routine-skill-container" x-bind:class={ fmt.Sprintf("{ 'editing': editingIndex === %d && editingSide === '%s' }", i, side.Side) }>
 		<div
 			class={ "routine-skill", "box", "mb-2",
@@ -98,8 +98,12 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 						</p>
 						<p class="is-size-7 has-text-grey mb-0" style="white-space: nowrap; line-height: 1.2;">
 							{ sv.FIGNotation }
-							if scores {
-								<span class="tag is-link is-light scores-tag">Scores</span>
+							// When only some elements score, the coach can choose which.
+							if canScore {
+								<label class={ "scores-toggle", templ.KV("is-scoring", sv.Counted) } x-on:click.stop>
+									<input type="checkbox" checked?={ scoresTicked } x-on:change={ fmt.Sprintf("toggleScores(%d, '%s', $event.target.checked)", i, side.Side) }/>
+									Scores
+								</label>
 							}
 							// Flags a problem while the card is collapsed; the message is in the details.
 							if message != "" {
@@ -157,7 +161,17 @@ templ results(rv skills.RoutineValidation, side RoutineSide) {
 				if side.Checks.ScoreDifficulty {
 					<p class="title">Total Tariff: { fmt.Sprintf("%.2f", rv.TotalTariff) }</p>
 					if rv.ScoredElements > 0 {
-						<p class="compare-difference">From the { strconv.Itoa(rv.ScoredElements) } highest-scoring elements, marked "Scores"</p>
+						<p class="compare-difference">
+							if rv.ScoringChosen {
+								From the elements you ticked "Scores" ·
+								<a x-on:click.prevent={ fmt.Sprintf("clearScores('%s')", side.Side) } href="#">Choose automatically</a>
+							} else {
+								From the { strconv.Itoa(rv.ScoredElements) } highest-scoring elements, ticked "Scores". Tick others to choose.
+							}
+						</p>
+						if rv.ScoringOverChosen > 0 {
+							<p class="has-text-danger is-size-7">Only { strconv.Itoa(rv.ScoredElements) } elements score: untick { strconv.Itoa(rv.ScoringOverChosen) }.</p>
+						}
 					}
 					if side.Other != nil {
 						<p class="compare-difference">{ differenceFrom(rv, *side.Other) }</p>
@@ -310,6 +324,31 @@ func resultDetail(r requirements.Result) string {
 		parts = append(parts, word+strings.Join(nums, ", "))
 	}
 	return strings.Join(parts, " · ")
+}
+
+// ticked is whether an element's Scores box is ticked: the coach's choice if
+// they've made one, otherwise whether it's one of the highest that score.
+// (The box's highlight says whether it actually scores.)
+func ticked(rv skills.RoutineValidation, sv skills.SkillValidation) bool {
+	if rv.ScoringChosen {
+		return sv.Skill.Scores
+	}
+	return sv.Counted
+}
+
+// scoringElements are the elements (0-based) that score when only some do,
+// so the page can start the coach's choice from them.
+func scoringElements(rv skills.RoutineValidation) []int {
+	out := []int{}
+	if rv.ScoredElements == 0 {
+		return out
+	}
+	for i, sv := range rv.Skills {
+		if sv.Counted {
+			out = append(out, i)
+		}
+	}
+	return out
 }
 
 // differenceFrom compares this routine's difficulty with the other column's.

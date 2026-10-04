@@ -462,7 +462,10 @@ details > * { box-sizing: border-box; }
 .set-scoring { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 1rem; }
 .set-scoring .matcher-hint { flex-basis: 100%; margin: 0; }
 .scored-elements { display: inline-flex; align-items: center; gap: 0.35rem; }
-.scores-tag { margin-left: 0.35rem; font-size: 0.7rem !important; height: 1.5em !important; vertical-align: middle; }
+/* Whether an element scores, when only some do; the coach can tick to choose. */
+.scores-toggle { display: inline-flex; align-items: center; gap: 0.25rem; margin-left: 0.4rem; padding: 0.05rem 0.45rem; border: 1px solid #dbdbdb; border-radius: 999px; font-size: 0.72rem; color: #666; background: #fff; cursor: pointer; vertical-align: middle; }
+.scores-toggle.is-scoring { border-color: #485fc7; background: #eef1fb; color: #3850b7; font-weight: 600; }
+.scores-toggle input { margin: 0; }
 .scored-input { width: 4.5rem; }
 
 /* --- Share links (static/js/share.js) --- */

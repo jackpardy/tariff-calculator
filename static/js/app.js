@@ -381,6 +381,21 @@ function tariffCalculatorStore() {
             this.loadForm().catch(() => this.showToast('Failed to load the form.', 'error'));
         },
 
+        // --- Choosing which elements score (when only some do) ---
+        // toggleScores ticks or unticks an element to score. The first choice starts
+        // from the elements scoring now (the highest), as the list records them.
+        toggleScores(index, side, on) {
+            const skills = this.skillsOf(side);
+            if (!skills[index]) { return; }
+            if (!skills.some((s) => s.scores)) {
+                const list = document.getElementById(side === 'b' ? 'routine-skills-b' : 'routine-skills');
+                JSON.parse(list?.dataset.scoring || '[]').forEach((k) => { if (skills[k]) { skills[k].scores = true; } });
+            }
+            if (on) { skills[index].scores = true; } else { delete skills[index].scores; }
+        },
+        // clearScores goes back to the highest elements scoring.
+        clearScores(side) { this.skillsOf(side).forEach((s) => { delete s.scores; }); },
+
         // --- Changing the routine ---
         removeSkill(index, side = 'a') {
             const skills = this.skillsOf(side);

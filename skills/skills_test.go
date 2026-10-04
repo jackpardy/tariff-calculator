@@ -557,3 +557,46 @@ func TestValidateRoutineScoringOnlySomeElements(t *testing.T) {
 		t.Errorf("by default every element scores: total %.1f", rv.TotalTariff)
 	}
 }
+
+func TestValidateRoutineChosenScoringElements(t *testing.T) {
+	s := func(twist int, backward, scores bool) TrampolineSkill {
+		return TrampolineSkill{Rotation: 4, TwistDistribution: []int{twist}, TakeoffPosition: Feet, Shape: Tuck, Backward: backward, Scores: scores}
+	}
+	scoring := func(rv RoutineValidation) []int {
+		var out []int
+		for i, sv := range rv.Skills {
+			if sv.Counted {
+				out = append(out, i+1)
+			}
+		}
+		return out
+	}
+	// Back (0.5), Barani (0.6), Full back (0.7, straight), front (0.5).
+	full := s(2, true, false)
+	full.Shape = Straight
+	routine := []TrampolineSkill{s(0, true, false), s(1, false, false), full, s(0, false, false)}
+
+	// Chosen: the back and the front, though the Barani and full back are higher.
+	routine[0].Scores, routine[3].Scores = true, true
+	rv := ValidateRoutineWith(routine, ValidateOptions{ScoredElements: 2})
+	if !slices.Equal(scoring(rv), []int{1, 4}) || !rv.ScoringChosen || rv.ScoringOverChosen != 0 || math.Abs(rv.TotalTariff-1.0) > 1e-9 {
+		t.Errorf("the chosen two score: %v, total %.1f", scoring(rv), rv.TotalTariff)
+	}
+
+	// One chosen: only it scores, nothing is filled in.
+	routine[3].Scores = false
+	if rv := ValidateRoutineWith(routine, ValidateOptions{ScoredElements: 2}); !slices.Equal(scoring(rv), []int{1}) || math.Abs(rv.TotalTariff-0.5) > 1e-9 {
+		t.Errorf("one chosen: %v", scoring(rv))
+	}
+
+	// Three chosen of two: the first two in order, and the excess reported.
+	routine[1].Scores, routine[2].Scores = true, true
+	if rv := ValidateRoutineWith(routine, ValidateOptions{ScoredElements: 2}); !slices.Equal(scoring(rv), []int{1, 2}) || rv.ScoringOverChosen != 1 {
+		t.Errorf("three chosen: %v, over by %d", scoring(rv), rv.ScoringOverChosen)
+	}
+
+	// Without a limit, the marks change nothing.
+	if rv := ValidateRoutine(routine); len(scoring(rv)) != 4 || rv.ScoringChosen {
+		t.Errorf("no limit: %v", scoring(rv))
+	}
+}

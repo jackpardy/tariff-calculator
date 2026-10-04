@@ -992,11 +992,19 @@ func TestScoredElements(t *testing.T) {
 		return url.Values{"routineData": {routine}, "requirementSet": {"builtin:fig-ag3-first"}, "checks": {checks}}
 	}
 	html := postForm(t, "/routine", values("")).Body.String()
-	if !strings.Contains(html, "Total Tariff: 1.50") || strings.Count(html, ">Scores</span>") != 2 || !strings.Contains(html, `<option value="2" selected>`) {
-		t.Errorf("AG3 first exercise: the full back and Rudi (1.5) score, marked")
+	if !strings.Contains(html, "Total Tariff: 1.50") || strings.Count(html, `class="scores-toggle is-scoring"`) != 2 || strings.Count(html, `class="scores-toggle`) != 4 ||
+		!strings.Contains(html, `<option value="2" selected>`) || !strings.Contains(html, `data-scoring="[2,3]"`) {
+		t.Errorf("AG3 first exercise: the full back and Rudi (1.5) score, ticked; every element can be ticked")
 	}
-	if html := postForm(t, "/routine", values(`{"scored":0}`)).Body.String(); !strings.Contains(html, "Total Tariff: 2.60") || strings.Contains(html, ">Scores</span>") {
-		t.Errorf("scoring every element: 2.6, nothing marked")
+	if html := postForm(t, "/routine", values(`{"scored":0}`)).Body.String(); !strings.Contains(html, "Total Tariff: 2.60") || strings.Contains(html, "scores-toggle") {
+		t.Errorf("scoring every element: 2.6, no Scores boxes")
+	}
+
+	// The coach chose the back tuck and Barani instead.
+	chosen := strings.Replace(strings.Replace(routine, `"backward":true}`, `"backward":true,"scores":true}`, 1), `"shape":"Tuck"}`, `"shape":"Tuck","scores":true}`, 1)
+	html = postForm(t, "/routine", url.Values{"routineData": {chosen}, "requirementSet": {"builtin:fig-ag3-first"}}).Body.String()
+	if !strings.Contains(html, "Total Tariff: 1.10") || !strings.Contains(html, "From the elements you ticked") || !strings.Contains(html, "clearScores(&#39;a&#39;)") {
+		t.Errorf("the chosen back tuck and Barani (1.1) score")
 	}
 
 	sheet := postForm(t, "/tariff-sheet", values("")).Body.String()
