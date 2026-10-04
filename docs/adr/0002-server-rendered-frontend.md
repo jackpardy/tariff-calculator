@@ -122,3 +122,5 @@ Each step leaves the app working and deployable:
 
 The `skills` package, its tests and the saved-routine format are unchanged
 throughout.
+
+All four steps were completed in October 2026.

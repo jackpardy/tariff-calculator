@@ -60,6 +60,12 @@ func TestRoutineViewFlagsSkills(t *testing.T) {
 			t.Errorf("card %d is missing message %q", i+1, w.message)
 		}
 	}
+	// Reordering is SortableJS on #routine-skills; the old per-card drag markup is gone.
+	for _, old := range []string{"insertion-point", "draggable", "dragstart"} {
+		if strings.Contains(html, old) {
+			t.Errorf("routine view still contains %q", old)
+		}
+	}
 	for _, flag := range []string{"invalid-transition", "duplicate-skill", "invalid-landing"} {
 		if strings.Contains(cards[4], flag) {
 			t.Errorf("card 5 (crash dive) should not be flagged %q", flag)
@@ -395,8 +401,8 @@ func TestIndexRendersThePage(t *testing.T) {
 	}
 	// Every asset is linked by a versioned URL that the server actually serves.
 	links := regexp.MustCompile(`(?:href|src)="(/static/[^"]+)"`).FindAllStringSubmatch(html, -1)
-	if len(links) != 5 {
-		t.Errorf("found %d asset links, want 5 (2 CSS, 3 JS)", len(links))
+	if len(links) != 6 {
+		t.Errorf("found %d asset links, want 6 (2 CSS, 4 JS)", len(links))
 	}
 	for _, l := range links {
 		u := strings.ReplaceAll(l[1], "&amp;", "&")

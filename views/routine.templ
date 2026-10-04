@@ -10,32 +10,19 @@ import (
 
 // Routine renders the routine builder's skill cards and totals for a validated
 // routine. The page's Alpine component owns the routine (in localStorage) and
-// re-requests this view whenever it changes; card controls call its methods.
+// re-requests this view whenever it changes; card controls call its methods, and
+// it makes the cards in #routine-skills drag-sortable (SortableJS).
 templ Routine(rv skills.RoutineValidation) {
 	<div id="routine-skills" class="routine-skills">
 		if len(rv.Skills) == 0 {
 			<p class="has-text-grey">Add skills using the form above.</p>
 		} else {
-			@insertionPoint(0)
 			for i, sv := range rv.Skills {
 				@skillCard(i, sv, rv.Messages[i], i == len(rv.Skills)-1)
-				@insertionPoint(i + 1)
 			}
 		}
 	</div>
 	@results(rv)
-}
-
-// insertionPoint is a drop target shown between cards while dragging.
-templ insertionPoint(index int) {
-	<div
-		class="insertion-point"
-		x-show="isDragging"
-		x-bind:class={ alpine("{ 'active': dropIndex === %d }", index) }
-		x-on:dragover.prevent={ alpine("handleDragOver($event, %d)", index) }
-		x-on:dragleave="handleDragLeave($event)"
-		x-on:drop={ alpine("handleDrop($event, %d)", index) }
-	></div>
 }
 
 templ skillCard(i int, sv skills.SkillValidation, message string, last bool) {
@@ -45,13 +32,6 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool) {
 				templ.KV("invalid-transition", sv.InvalidTransition || sv.IntermediateJump),
 				templ.KV("invalid-landing", sv.InvalidLanding),
 				templ.KV("duplicate-skill", sv.IsDuplicate) }
-			x-bind:class={ alpine("{ 'is-dragging': draggedIndex === %d }", i) }
-			x-bind:draggable="!isTouchDevice"
-			x-on:dragstart={ alpine("handleDragStart($event, %d)", i) }
-			x-on:dragover.prevent
-			x-on:dragleave="handleDragLeave($event)"
-			x-on:drop={ alpine("handleDrop($event, %d)", i) }
-			x-on:dragend="handleDragEnd($event)"
 		>
 			// Clickable header toggles the details.
 			<div

@@ -77,9 +77,9 @@ func Page() templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var5 string
-		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(static.URL("js/app.js"))
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(static.URL("js/sortable.min.js"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 18, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 17, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 		if templ_7745c5c3_Err != nil {
@@ -90,15 +90,28 @@ func Page() templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var6 string
-		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(static.URL("js/alpine.min.js"))
+		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(static.URL("js/app.js"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 19, Col: 53}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 19, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"></script></head><body><section class=\"hero is-primary\"><div class=\"hero-body\"><div class=\"container\"><h1 class=\"title\">Trampoline Tariff Calculator</h1><h2 class=\"subtitle\">Calculate difficulty scores for skills and routines</h2></div></div></section><section class=\"section\"><div class=\"container\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"></script><script defer src=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var7 string
+		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(static.URL("js/alpine.min.js"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 20, Col: 53}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\"></script></head><body><section class=\"hero is-primary\"><div class=\"hero-body\"><div class=\"container\"><h1 class=\"title\">Trampoline Tariff Calculator</h1><h2 class=\"subtitle\">Calculate difficulty scores for skills and routines</h2></div></div></section><section class=\"section\"><div class=\"container\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -106,7 +119,7 @@ func Page() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></section><footer class=\"footer\"><div class=\"content has-text-centered\"><p>2025 Trampoline Tariff Calculator</p></div></footer></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></section><footer class=\"footer\"><div class=\"content has-text-centered\"><p>2025 Trampoline Tariff Calculator</p></div></footer></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -130,12 +143,12 @@ func calculator() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var7 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var7 == nil {
-			templ_7745c5c3_Var7 = templ.NopComponent
+		templ_7745c5c3_Var8 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var8 == nil {
+			templ_7745c5c3_Var8 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"container\" x-data=\"tariffCalculatorStore()\"><div class=\"box\"><h3 class=\"title is-4\">Skill Calculator</h3><div id=\"skill-form-wrapper\" style=\"scroll-margin-top: 20px;\" hx-sync=\"this:replace\"><p>Loading form...</p></div></div><div id=\"evaluation-preview\" class=\"box\" x-show=\"showEvaluation\" x-transition style=\"display: none;\"></div><div class=\"box\"><div class=\"level mb-4\"><div class=\"level-left\"><h3 class=\"title is-4 mb-0\">Routine Builder</h3></div><div class=\"level-right\"><div class=\"buttons mb-0\"><button class=\"button is-info is-light is-small\" type=\"button\" x-on:click=\"expandAll()\">Expand All</button> <button class=\"button is-info is-light is-small\" type=\"button\" x-on:click=\"collapseAll()\">Collapse All</button> <button class=\"button is-danger is-outlined is-small\" type=\"button\" x-on:click=\"clearRoutine()\" x-show=\"routine.length > 0\">Clear Routine</button></div></div></div><div id=\"routine-view\" hx-sync=\"this:replace\"><p class=\"has-text-grey\">Loading routine...</p></div></div><div x-show=\"toast.show\" x-transition class=\"notification is-fixed-bottom-right\" x-bind:class=\"toast.type === 'error' ? 'is-danger' : 'is-info'\"><button class=\"delete\" type=\"button\" aria-label=\"Dismiss\" x-on:click=\"toast.show = false\"></button> <span x-text=\"toast.message\"></span></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div class=\"container\" x-data=\"tariffCalculatorStore()\"><div class=\"box\"><h3 class=\"title is-4\">Skill Calculator</h3><div id=\"skill-form-wrapper\" style=\"scroll-margin-top: 20px;\" hx-sync=\"this:replace\"><p>Loading form...</p></div></div><div id=\"evaluation-preview\" class=\"box\" x-show=\"showEvaluation\" x-transition style=\"display: none;\"></div><div class=\"box\"><div class=\"level mb-4\"><div class=\"level-left\"><h3 class=\"title is-4 mb-0\">Routine Builder</h3></div><div class=\"level-right\"><div class=\"buttons mb-0\"><button class=\"button is-info is-light is-small\" type=\"button\" x-on:click=\"expandAll()\">Expand All</button> <button class=\"button is-info is-light is-small\" type=\"button\" x-on:click=\"collapseAll()\">Collapse All</button> <button class=\"button is-danger is-outlined is-small\" type=\"button\" x-on:click=\"clearRoutine()\" x-show=\"routine.length > 0\">Clear Routine</button></div></div></div><div id=\"routine-view\" hx-sync=\"this:replace\"><p class=\"has-text-grey\">Loading routine...</p></div></div><div x-show=\"toast.show\" x-transition class=\"notification is-fixed-bottom-right\" x-bind:class=\"toast.type === 'error' ? 'is-danger' : 'is-info'\"><button class=\"delete\" type=\"button\" aria-label=\"Dismiss\" x-on:click=\"toast.show = false\"></button> <span x-text=\"toast.message\"></span></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

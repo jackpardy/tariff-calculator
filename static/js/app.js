@@ -10,19 +10,18 @@ function tariffCalculatorStore() {
         editingIndex: null,
         showEvaluation: false,
         lastInsertPosition: 1,
-        draggedIndex: null, dropIndex: null, isDragging: false,
-        isTouchDevice: false,
         busy: false, // an add or update is in flight
         toast: { show: false, message: '', type: 'info' },
 
         init() {
-            this.isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
             try {
                 this.routine = JSON.parse(localStorage.getItem('trampolineRoutine') || '[]');
             } catch (e) {
                 console.error('Failed to parse saved routine:', e);
                 localStorage.removeItem('trampolineRoutine');
             }
+            // One flag per card from the start, so moves can splice it in step with the routine.
+            this.expanded = this.routine.map(() => false);
             this.lastInsertPosition = this.routine.length + 1;
 
             // Alpine passes the same (mutated) array as old and new, so track the length here.
@@ -38,7 +37,9 @@ function tariffCalculatorStore() {
             });
 
             document.body.addEventListener('htmx:afterSwap', (event) => {
-                if (event.detail.target.id === 'evaluation-preview') {
+                if (event.detail.target.id === 'routine-view') {
+                    this.makeSortable();
+                } else if (event.detail.target.id === 'evaluation-preview') {
                     this.showEvaluation = true;
                     this.fillPositionSelect('evaluation-insert-position');
                 }
@@ -214,25 +215,25 @@ function tariffCalculatorStore() {
             this.cancelEdit();
         },
 
-        // --- Drag and drop (desktop) ---
-        handleDragStart(event, index) {
-            this.draggedIndex = index; this.isDragging = true;
-            event.dataTransfer.effectAllowed = 'move';
-            event.dataTransfer.setData('text/plain', index);
+        // --- Drag to reorder ---
+        // makeSortable lets the cards be dragged into a new order (SortableJS). The view
+        // is re-rendered after every change, so this runs for each new #routine-skills.
+        makeSortable() {
+            const list = document.getElementById('routine-skills');
+            if (!list || !window.Sortable) { return; }
+            Sortable.create(list, {
+                draggable: '.routine-skill-container',
+                filter: 'button', preventOnFilter: false, // the card's buttons stay clickable
+                delay: 200, delayOnTouchOnly: true,       // on touch, press and hold so the page still scrolls
+                animation: 150,
+                onEnd: (event) => {
+                    const from = event.oldDraggableIndex, to = event.newDraggableIndex;
+                    if (from === undefined || from === to) { return; }
+                    this.moveSkill(from, to);
+                    this.lastInsertPosition = this.routine.length + 1;
+                },
+            });
         },
-        handleDragOver(event, index) { event.preventDefault(); if (this.draggedIndex !== null) { this.dropIndex = index; } },
-        handleDragLeave(event) { if (!event.currentTarget.contains(event.relatedTarget)) { this.dropIndex = null; } },
-        // handleDrop drops the dragged skill at insertion point index (0 = before the first card).
-        handleDrop(event, index) {
-            event.preventDefault();
-            const from = this.draggedIndex;
-            if (from !== null && index !== from && index !== from + 1) {
-                this.moveSkill(from, from < index ? index - 1 : index);
-                this.lastInsertPosition = this.routine.length + 1;
-            }
-            this.handleDragEnd();
-        },
-        handleDragEnd() { this.$nextTick(() => { this.draggedIndex = null; this.dropIndex = null; this.isDragging = false; }); },
 
         showToast(message, type = 'info') {
             this.toast = { show: true, message, type };
