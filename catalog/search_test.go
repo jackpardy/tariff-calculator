@@ -18,14 +18,14 @@ func TestSearchByName(t *testing.T) {
 		query string
 		want  []string // must all appear in the results
 	}{
-		{"barani", []string{"Barani Tuck", "Barani Pike", "Barani Straight"}},
-		{"barani pike", []string{"Barani Pike"}},
+		{"barani", []string{"Tuck Barani", "Pike Barani", "Straight Barani"}},
+		{"barani pike", []string{"Pike Barani"}},
 		{"BALL out", []string{"Ball-Out Tuck", "Barani Ball-Out Tuck"}},
 		{"rudy", []string{"Rudi"}},
 		{"randolph", []string{"Randi"}},
 		{"half in half out", []string{"Half Half Tuck", "Half Half Pike", "Half Half Straight"}},
 		{"full in full out", []string{"Full Full Straight"}},
-		{"back somersault", []string{"Back Tuck", "Back Pike", "Back Straight"}},
+		{"back somersault", []string{"Tuck Back", "Pike Back", "Straight Back"}},
 		{"jump", []string{"Tuck Jump", "Pike Jump", "Straddle Jump"}},
 		{"seat", []string{"Seat Drop", "Seat To Feet"}},
 	}
@@ -40,7 +40,7 @@ func TestSearchByName(t *testing.T) {
 		})
 	}
 
-	if got := names(Search("barani pike")); len(got) == 0 || got[0] != "Barani Pike" {
+	if got := names(Search("barani pike")); len(got) == 0 || got[0] != "Pike Barani" {
 		t.Errorf("an exact name should come first, got %v", got)
 	}
 	if got := Search("straight jump"); len(got) != 0 {
@@ -60,7 +60,7 @@ func TestSearchRanksClosestNamesFirst(t *testing.T) {
 		t.Errorf("names starting with the query should come first, got %v", names(rs))
 	}
 	got := names(Search("barani"))
-	if len(got) < 3 || !strings.HasPrefix(got[0], "Barani ") || strings.Contains(strings.Join(got[:3], ","), " To ") {
+	if len(got) < 3 || !strings.HasSuffix(got[0], " Barani") || strings.Contains(strings.Join(got[:3], ","), " To ") {
 		t.Errorf("the Barani itself should come before longer names, got %v", got)
 	}
 }
@@ -76,7 +76,7 @@ func TestSearchByNotation(t *testing.T) {
 		{"8 11 <", "Half Half Pike"}, // CoP style: twists run together
 		{"4 3", "Rudi"},
 		{"43", "Rudi"},
-		{"4 1 o", "Barani Tuck"},
+		{"4 1 o", "Tuck Barani"},
 		{"8 - 1 o", "Half-Out Tuck"},
 		{"12 - - 1 o", "Trif Half-Out Tuck"},
 		{"1200o", "Triple Back Tuck"},
@@ -101,13 +101,13 @@ func TestSearchByNotation(t *testing.T) {
 func TestNotationOffersBothDirections(t *testing.T) {
 	rs := Search("4 - o")
 	got := strings.Join(names(rs), ", ")
-	if !strings.Contains(got, "Front Tuck") || !strings.Contains(got, "Back Tuck") {
+	if !strings.Contains(got, "Tuck Front") || !strings.Contains(got, "Tuck Back") {
 		t.Errorf("4 - o is both a front and a back tuck, got [%s]", got)
 	}
 
 	// Without a shape mark, a skill whose shape matters comes in each shape.
 	got = strings.Join(names(Search("4 0")), ", ")
-	for _, w := range []string{"Front Tuck", "Front Pike", "Front Straight"} {
+	for _, w := range []string{"Tuck Front", "Pike Front", "Straight Front"} {
 		if !strings.Contains(got, w) {
 			t.Errorf("4 0 should offer %s, got [%s]", w, got)
 		}
@@ -123,7 +123,7 @@ func TestNotationOffersBothDirections(t *testing.T) {
 
 // The picker names somersaults "Back s/s" and so on, so searching that way finds them.
 func TestSearchSlashS(t *testing.T) {
-	for query, want := range map[string]string{"back s/s": "Back Tuck", "front s/s": "Front Tuck", "back s/s to seat": "Back To Seat Tuck"} {
+	for query, want := range map[string]string{"back s/s": "Tuck Back", "front s/s": "Tuck Front", "back s/s to seat": "Back To Seat Tuck"} {
 		results := Search(query)
 		if len(results) == 0 || results[0].Skill.Name != want {
 			t.Errorf("%q: first result %v, want %s", query, results, want)

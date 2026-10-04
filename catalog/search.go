@@ -139,7 +139,7 @@ func byName(query string) []Result {
 			if !anyContainsAll(texts, words) {
 				continue
 			}
-			matches = append(matches, match{skill: s, prefix: strings.HasPrefix(normalize(s.Name), whole)})
+			matches = append(matches, match{skill: s, prefix: strings.HasPrefix(normalize(s.Name), whole) || strings.HasPrefix(normalize(shapeLast(s)), whole)})
 		}
 	}
 	sort.Slice(matches, func(i, j int) bool {
@@ -161,6 +161,16 @@ func byName(query string) []Result {
 		out[i] = Result{Skill: m.skill}
 	}
 	return out
+}
+
+// shapeLast is a skill's name with any leading shape moved to the end, so
+// "barani pike" is as close a match for "Pike Barani" as "barani" is.
+func shapeLast(s skills.TrampolineSkill) string {
+	shape := s.Shape.String() + " "
+	if strings.HasPrefix(s.Name, shape) {
+		return strings.TrimPrefix(s.Name, shape) + " " + s.Shape.String()
+	}
+	return s.Name
 }
 
 // anyContainsAll reports whether one of texts contains every word.

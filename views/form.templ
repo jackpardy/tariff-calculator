@@ -253,15 +253,19 @@ templ editorCard(e SkillEditor) {
 					<button type="button" id="cancel-btn" class="button is-light" x-on:click="cancelEdit()">Cancel</button>
 				</div>
 			} else {
-				// When two routines are side by side, choose which one the skill goes to.
-				<div class="add-to" x-show="compareId" x-cloak>
-					<span class="add-to-label">Add to</span>
-					<div class="buttons has-addons mb-0">
-						<button type="button" class="button is-small" x-bind:class="addTo === 'a' && 'is-link is-selected'" x-on:click="addTo = 'a'; mobileTab = 'a'" x-text="routineFor('a')?.name"></button>
-						<button type="button" class="button is-small" x-bind:class="addTo === 'b' && 'is-link is-selected'" x-on:click="addTo = 'b'; mobileTab = 'b'" x-text="routineFor('b')?.name"></button>
+				// Which saved routine the skill goes to: the one on screen unless another
+				// is chosen (a level routine by tab).
+				<div class="add-to" x-show="routines.length > 1" x-cloak>
+					<label class="add-to-label" for="add-to">Add to</label>
+					<div class="select is-small">
+						<select id="add-to" x-on:change="addTo = $event.target.value">
+							<template x-for="t in addTargets()" x-bind:key="t.value">
+								<option x-bind:value="t.value" x-bind:selected="t.value === addToValue()" x-text="t.label"></option>
+							</template>
+						</select>
 					</div>
 				</div>
-				<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled="busy" x-text="compareId ? `Add to ${routineFor(addTo)?.name}` : 'Add to routine'">
+				<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled="busy">
 					Add to routine
 				</button>
 			}

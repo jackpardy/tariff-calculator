@@ -189,7 +189,7 @@
 .compare-legend { font-size: 0.8rem; color: #777; margin-top: 0.5rem; }
 .add-to { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
 .add-to-label { font-size: 0.85rem; font-weight: 600; }
-.add-to .button { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; display: inline-block; }
+.add-to .select, .add-to .select select { max-width: 16rem; }
 .compare-tabs { display: none; }
 @media screen and (max-width: 768px) {
   /* Phones show one routine at a time, chosen with the tabs, at full width. */

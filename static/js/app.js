@@ -19,7 +19,7 @@ function tariffCalculatorStore() {
         compareId: null, // the routine shown beside the current one, if any
         routineB: [],    // its skills (the same array as in routines)
         expandedB: [],   // per-card expanded state, parallel to routineB
-        addTo: 'a',      // which column the skill adder adds to while comparing
+        addTo: '',       // where Add puts a skill (an addTargets value); '' for the routine on screen
         mobileTab: 'a',  // the column shown on a phone while comparing
         setRoutineOffer: null, // a set routine to load, waiting for "new routine" or "replace": {side, name, skills, ref, previous}
         editingIndex: null,
@@ -403,6 +403,7 @@ function tariffCalculatorStore() {
             if (!this.routines.some((r) => r.id === id)) { return; }
             if (id === this.compareId) { this.swapColumns(); return; }
             if (this.editingIndex !== null) { this.cancelEdit(); }
+            this.addTo = ''; // Add follows the routine on screen
             this.currentId = id;
             this.expanded = this.currentRoutine().skills.map(() => false);
             this.routine = this.currentRoutine().skills; // re-renders and saves via the watcher
@@ -441,7 +442,6 @@ function tariffCalculatorStore() {
             this.compareId = null;
             this.routineB = [];
             this.expandedB = [];
-            this.addTo = 'a';
             this.mobileTab = 'a';
             this.renderRoutine('a');
         },
@@ -452,7 +452,6 @@ function tariffCalculatorStore() {
             [this.expanded, this.expandedB] = [this.expandedB, this.expanded];
             const flip = (side) => (side === 'a' ? 'b' : 'a');
             this.editingSide = flip(this.editingSide);
-            this.addTo = flip(this.addTo);
             this.mobileTab = flip(this.mobileTab); // keep showing the same routine
             this.routine = this.currentRoutine().skills;
             this.routineB = this.compareRoutine().skills;
@@ -488,20 +487,78 @@ function tariffCalculatorStore() {
             if (!response.ok) { throw new Error((await response.text()).trim() || `HTTP ${response.status}`); }
             return response.json();
         },
-        // addFromForm adds the skill shown on the card to the end of the routine (while
-        // comparing, the one chosen under "Add to").
+        // addTargets are the routines Add can put a skill in, for the "Add to"
+        // list: every saved routine, and for a level routine, each voluntary tab
+        // (and its open tab). A value is a routine id, or "<id>|<exercise>|<ref>"
+        // for a level routine's tab.
+        addTargets() {
+            const out = [];
+            for (const r of this.routines) {
+                const tabs = Exercises.tabs(this.findLevel(r.level));
+                if (tabs.length === 0) {
+                    out.push({ value: r.id, label: `${r.name} (${r.skills.length})` });
+                    continue;
+                }
+                for (const t of tabs) {
+                    const open = (r.exercise === 2 ? 2 : 1) === t.exercise && r.requirements === t.ref;
+                    if (t.set && !open) { continue; }
+                    const count = (Exercises.slot(r, t.exercise, t.ref)?.skills || []).length;
+                    out.push({ value: `${r.id}|${t.exercise}|${t.ref}`, label: `${r.name} · ${t.label} (${count})` });
+                }
+            }
+            return out;
+        },
+        // addToValue is where Add will put a skill: the one chosen, or the open
+        // tab of the routine on screen.
+        addToValue() {
+            if (this.addTo && this.addTargets().some((t) => t.value === this.addTo)) { return this.addTo; }
+            const r = this.currentRoutine();
+            return r?.level ? `${r.id}|${r.exercise === 2 ? 2 : 1}|${r.requirements}` : r?.id;
+        },
+        // addTarget resolves addToValue: the routine, its label, and the column
+        // it's shown in ('a' or 'b'), if it's on screen as it is.
+        addTarget() {
+            const value = this.addToValue();
+            const [id, exercise, ref] = (value || '').split('|');
+            const routine = this.routines.find((r) => r.id === id);
+            if (!routine) { return undefined; }
+            const n = Number(exercise) || undefined;
+            const open = !ref || ((routine.exercise === 2 ? 2 : 1) === n && routine.requirements === ref);
+            const side = !open ? undefined : id === this.currentId ? 'a' : id === this.compareId ? 'b' : undefined;
+            const label = this.addTargets().find((t) => t.value === value)?.label.replace(/ \(\d+\)$/, '') || routine.name;
+            return { routine, exercise: n, ref, open, side, label };
+        },
+        // addFromForm adds the skill shown on the card to the end of the routine
+        // chosen under "Add to" (the one on screen unless another is chosen).
         async addFromForm() {
             if (this.busy) { return; }
             this.busy = true;
-            const side = this.compareId ? this.addTo : 'a';
             try {
                 const skill = await this.calculateFormSkill();
-                this.expandedOf(side).push(false);
-                this.skillsOf(side).push(skill);
-                this.mobileTab = side; // show where it went
-                const where = this.compareId ? ` to ${this.routineFor(side).name}` : '';
+                const target = this.addTarget();
+                if (!target) { throw new Error('choose a routine to add to'); }
+                let skills;
+                if (target.side) {
+                    skills = this.skillsOf(target.side);
+                    this.expandedOf(target.side).push(false);
+                    skills.push(skill);
+                    this.mobileTab = target.side; // show where it went
+                } else if (target.open) {
+                    skills = target.routine.skills;
+                    skills.push(skill);
+                    this.persist();
+                } else {
+                    const exercise = this.exerciseState(target.routine, target.exercise);
+                    exercise.slots = exercise.slots || {};
+                    exercise.slots[target.ref] = exercise.slots[target.ref] || { skills: [] };
+                    skills = exercise.slots[target.ref].skills;
+                    skills.push(skill);
+                    this.persist();
+                    this.renderRoutines(); // the level panel counts the other exercise
+                }
+                const where = target.side === 'a' && !this.compareId ? '' : ` to ${target.label}`;
                 this.showToast(`Added ${skill.custom_name || skill.name} (${skill.tariff.toFixed(1)})${where}.`, 'info');
-                if (this.skillsOf(side).length > 10) { this.showToast('Note: an exercise has 10 skills.', 'warning'); }
+                if (skills.length > 10) { this.showToast('Note: an exercise has 10 skills.', 'warning'); }
                 this.clearLabel(); // a label belongs to one skill
                 this.query = '';   // back to the picker for the next skill
             } catch (error) {

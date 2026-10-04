@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-04
+* **Update**: "Add to" lists every saved routine (a level routine by
+  voluntary tab), not just the ones on screen. Single fronts, backs and baranis
+  are named shape first ("Tuck Back", "Pike Barani").
 * **Update**: A [level](requirements/levels.md) routine holds both exercises
   as tabs (e.g. Set 1, Set 2, Voluntary) instead of two paired routines:
   set routines show as prescribed without loading, and a set can be copied into

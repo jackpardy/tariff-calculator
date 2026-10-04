@@ -303,9 +303,9 @@ func TestFindCommonSkillName(t *testing.T) {
 		want string
 	}{
 		// Shape relevant -> always clarified, including straight.
-		{"front tuck", skill(4, []int{0}, Feet, Tuck, false, false), "Front Tuck"},
-		{"front straight", skill(4, []int{0}, Feet, Straight, false, false), "Front Straight"},
-		{"barani tuck", skill(4, []int{1}, Feet, Tuck, false, false), "Barani Tuck"},
+		{"front tuck", skill(4, []int{0}, Feet, Tuck, false, false), "Tuck Front"},
+		{"front straight", skill(4, []int{0}, Feet, Straight, false, false), "Straight Front"},
+		{"barani tuck", skill(4, []int{1}, Feet, Tuck, false, false), "Tuck Barani"},
 		{"miller straight", skill(8, []int{3, 3}, Feet, Straight, true, false), "Miller Straight"},
 		{"double back tuck", skill(8, []int{0, 0}, Feet, Tuck, true, false), "Double Back Tuck"},
 		{"triple back tuck", skill(12, []int{0, 0, 0}, Feet, Tuck, true, false), "Triple Back Tuck"},

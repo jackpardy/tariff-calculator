@@ -167,7 +167,7 @@ var somersaultNames = map[string]string{
 func PickerName(s skills.TrampolineSkill) string {
 	name := skills.FindCommonSkillName(s)
 	if !s.IsBasicJump() && s.ShapeIsRelevant() {
-		name = strings.TrimSuffix(name, " "+s.Shape.String())
+		name = strings.TrimPrefix(strings.TrimSuffix(name, " "+s.Shape.String()), s.Shape.String()+" ")
 	}
 	if full, ok := somersaultNames[name]; ok {
 		return full

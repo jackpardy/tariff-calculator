@@ -42,7 +42,7 @@ Computed by the engine:
 | Half Twist | `(0 1)` | 0.1 |
 | Front Tuck | `(4 - o)` | 0.5 |
 | Front Pike | `(4 - <)` | 0.6 |
-| Barani Tuck | `(4 1 o)` | 0.6 |
+| Tuck Barani | `(4 1 o)` | 0.6 |
 | Full Back | `(4 2)` | 0.7 |
 | Rudi | `(4 3)` | 0.8 |
 | Double Back Tuck | `(8 - - o)` | 1.1 |

@@ -577,8 +577,13 @@ func FindCommonSkillName(parsedSkill TrampolineSkill) string {
 				return "Straight Jump"
 			}
 
-			// Otherwise append the shape when it is relevant, omit it when it is not.
+			// Otherwise name the shape when it is relevant, omit it when it is not:
+			// first for single fronts, backs and baranis ("Tuck Back"), as coaches
+			// say them, after the name for everything else ("Ball-Out Pike").
 			if compareSkill.ShapeIsRelevant() {
+				if shapeLeads[baseName] {
+					return fmt.Sprintf("%s %s", inputShape.String(), baseName)
+				}
 				return fmt.Sprintf("%s %s", baseName, inputShape.String())
 			}
 			return baseName
@@ -587,6 +592,9 @@ func FindCommonSkillName(parsedSkill TrampolineSkill) string {
 
 	return "Custom Skill"
 }
+
+// shapeLeads are the common skills named shape first: the single somersaults.
+var shapeLeads = map[string]bool{"Front": true, "Back": true, "Barani": true}
 
 // SkillValidation is the per-skill outcome of validating a routine.
 type SkillValidation struct {

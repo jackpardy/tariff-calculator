@@ -96,7 +96,7 @@ func TestRoutineViewFlagsSkills(t *testing.T) {
 		"Invalid transitions detected",
 		"Routine interrupted at skill 2",
 		"2. Straight Jump",
-		"3. Back Tuck",
+		"3. Tuck Back",
 		"(4 - o)",
 		"Feet → Back", // crash dive landing
 	} {
@@ -216,7 +216,7 @@ func TestSkillForm(t *testing.T) {
 			t.Errorf("rotation = %s, want the default front (4)", tag)
 		}
 		// The card summarises the skill: name, notation, landing and tariff.
-		for _, want := range []string{`<p class="skill-card-name">Front Straight</p>`, "(4 - /)", "Feet → Feet", ">0.6</p>"} {
+		for _, want := range []string{`<p class="skill-card-name">Straight Front</p>`, "(4 - /)", "Feet → Feet", ">0.6</p>"} {
 			if !strings.Contains(html, want) {
 				t.Errorf("card is missing %q", want)
 			}
@@ -241,7 +241,7 @@ func TestSkillForm(t *testing.T) {
 
 	t.Run("an edit panel is loaded with the skill being edited", func(t *testing.T) {
 		rec := postForm(t, "/skill-form", url.Values{
-			"skill":     {`{"name":"Barani Tuck","custom_name":"Opener","rotation":4,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Tuck"}`},
+			"skill":     {`{"name":"Tuck Barani","custom_name":"Opener","rotation":4,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Tuck"}`},
 			"editIndex": {"2"},
 		})
 		html := rec.Body.String()
@@ -420,7 +420,7 @@ func TestCustomNames(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("status %d, body %s", rec.Code, html)
 		}
-		if !strings.Contains(html, "1. Opener") || !strings.Contains(html, "· Back Tuck") {
+		if !strings.Contains(html, "1. Opener") || !strings.Contains(html, "· Tuck Back") {
 			t.Errorf("want the custom name with the refreshed official name, got:\n%s", html)
 		}
 		if strings.Contains(html, "<img") {
@@ -494,7 +494,7 @@ func TestTariffSheet(t *testing.T) {
 	if len(trs) != 10 {
 		t.Errorf("rendered %d rows, want a full exercise of 10", len(trs))
 	}
-	for i, want := range []string{"Front Tuck", "Barani Pike", "Front Tuck"} {
+	for i, want := range []string{"Tuck Front", "Pike Barani", "Tuck Front"} {
 		if !strings.Contains(trs[i], want) {
 			t.Errorf("row %d is missing %q", i+1, want)
 		}
@@ -592,7 +592,7 @@ func TestSkillSearch(t *testing.T) {
 	}
 
 	html := get("barani pike").Body.String()
-	if !strings.Contains(html, "Barani Pike") || !strings.Contains(html, "(4 1 &lt;)") || !strings.Contains(html, "&#34;load&#34;:&#34;skill&#34;") {
+	if !strings.Contains(html, "Pike Barani") || !strings.Contains(html, "(4 1 &lt;)") || !strings.Contains(html, "&#34;load&#34;:&#34;skill&#34;") {
 		t.Errorf("a name search should list loadable skills, got:\n%s", html)
 	}
 	if strings.Contains(html, "forward") {
@@ -820,7 +820,7 @@ func TestSetRoutineEndpoint(t *testing.T) {
 	}
 
 	code, got := post(url.Values{"requirementSet": {"builtin:bg-regional-l1-first"}})
-	if code != http.StatusOK || got.Name != "BG Regional L1" || len(got.Skills) != 10 || got.Matches || got.Skills[0].Name != "Back Tuck" || got.Skills[9].Name != "Front Pike" {
+	if code != http.StatusOK || got.Name != "BG Regional L1" || len(got.Skills) != 10 || got.Matches || got.Skills[0].Name != "Tuck Back" || got.Skills[9].Name != "Pike Front" {
 		t.Fatalf("BG Regional L1: status %d, %+v", code, got)
 	}
 	routine, _ := json.Marshal(got.Skills)
@@ -849,12 +849,12 @@ func TestSetRoutineEndpoint(t *testing.T) {
 // the jump.
 func TestPickerLoadsAShape(t *testing.T) {
 	for _, c := range []struct{ key, shape, want string }{
-		{"backSomersault", "Pike", "Back Pike"},
-		{"backSomersault", "Straight", "Back Straight"},
+		{"backSomersault", "Pike", "Pike Back"},
+		{"backSomersault", "Straight", "Straight Back"},
 		{"shapeJump", "Straddle", "Straddle Jump"},
 		{"shapeJump", "Pike", "Pike Jump"},
-		{"backSomersault", "", "Back Tuck"},         // its usual shape
-		{"backSomersault", "sideways", "Back Tuck"}, // not a shape
+		{"backSomersault", "", "Tuck Back"},         // its usual shape
+		{"backSomersault", "sideways", "Tuck Back"}, // not a shape
 	} {
 		html := postForm(t, "/skill-inputs", url.Values{"load": {"common"}, "commonSkillKey": {c.key}, "shape": {c.shape}}).Body.String()
 		if !strings.Contains(html, `<p class="skill-card-name">`+c.want+`</p>`) {

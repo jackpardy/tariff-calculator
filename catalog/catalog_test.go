@@ -54,8 +54,8 @@ func TestCategoriesCoverEveryCommonSkillOnce(t *testing.T) {
 func TestEntriesAreNamedAndPriced(t *testing.T) {
 	for _, c := range Categories() {
 		for _, e := range c.Entries {
-			if e.Key == "barani" && (e.Skill.Name != "Barani Tuck" || e.Skill.Tariff != 0.6) {
-				t.Errorf("barani = %q %.1f, want Barani Tuck 0.6", e.Skill.Name, e.Skill.Tariff)
+			if e.Key == "barani" && (e.Skill.Name != "Tuck Barani" || e.Skill.Tariff != 0.6) {
+				t.Errorf("barani = %q %.1f, want Tuck Barani 0.6", e.Skill.Name, e.Skill.Tariff)
 			}
 			if e.ID() == "shapeJump-tuck" && e.Skill.Name != "Tuck Jump" {
 				t.Errorf("the tuck shape jump should read as Tuck Jump, got %q", e.Skill.Name)

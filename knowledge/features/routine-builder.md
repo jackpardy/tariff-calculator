@@ -25,6 +25,14 @@ characters). It is shown alongside the official name, which is always derived
 by the server. A routine card's **Edit** button loads that skill back into the
 card for editing.
 
+**Add to** chooses where Add puts the skill, from every saved routine; it
+starts on the routine on screen and goes back to it when the routine on screen
+changes. A [level](../requirements/levels.md) routine is listed once per
+voluntary tab ("Routine 3 · Voluntary"), so a coach can look at a set routine
+and add to the voluntary. Adding to a routine that isn't on screen saves it
+there and says so. On wider screens the shapes, Add to and a fixed-width Add
+button share one row.
+
 # Saved routines
 
 Routines are kept in the browser, in `localStorage['trampolineRoutines']` as

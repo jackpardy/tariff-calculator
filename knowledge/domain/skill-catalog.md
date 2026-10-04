@@ -15,6 +15,11 @@ and Triple Back. These are the source of official names: a skill is named by
 matching it against this list ([skill model](skill-model.md#derived-rules)). To
 add a named skill, add an entry here.
 
+Where the shape matters it's part of the name: first for the single somersaults
+(Front, Back, Barani), as coaches say them ("Tuck Back", "Pike Barani"), and
+after the name for everything else ("Ball-Out Pike", "Double Back Tuck"). The
+picker shows names without the shape, which is chosen on the skill card.
+
 # The picker
 
 `catalog.Categories()` turns the common skills into the picker's tabs:
