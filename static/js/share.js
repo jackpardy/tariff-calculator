@@ -52,8 +52,8 @@ const Share = (() => {
 
     // pack is the share for the chosen routines, sets and levels: each custom
     // set a routine or level uses travels with it ("set:<n>" into sets), as does
-    // a routine's custom level ("level:<n>" into levels). A routine's partner,
-    // if shared too, is its index in routines.
+    // a routine's custom level ("level:<n>" into levels). A level routine's
+    // other tabs travel in its exercises.
     function pack(routineIds, setIds, levelIds = []) {
         const savedSets = SetStore.load(), savedLevels = LevelStore.load();
         const sets = [], setIndex = new Map();
@@ -81,18 +81,21 @@ const Share = (() => {
             return `level:${levelIndex.get(id)}`;
         };
         levelIds.forEach(addLevel);
-        const all = RoutineStore.load().routines;
-        const chosen = all.filter((r) => routineIds.includes(r.id));
-        const routines = chosen.map((r) => {
+        const routines = RoutineStore.load().routines.filter((r) => routineIds.includes(r.id)).map((r) => {
             const out = { name: r.name, skills: r.skills.map(portableSkill) };
             if (r.requirements?.startsWith('builtin:')) { out.requirements = r.requirements; }
             else if (r.requirements) { out.requirements = addSet(r.requirements); }
             if (r.checks) { out.checks = r.checks; }
             if (r.level) {
+                const portableRef = (ref) => (!ref || ref.startsWith('builtin:') ? ref : addSet(ref) || ref);
                 out.level = r.level.startsWith('builtin-level:') ? r.level : addLevel(r.level);
                 out.exercise = r.exercise === 2 ? 2 : 1;
-                const partner = chosen.indexOf(Pairs.partnerOf(r, all));
-                if (partner >= 0) { out.partner = partner; }
+                out.exercises = (r.exercises || []).map((e) => {
+                    const exercise = { option: portableRef(e?.option) };
+                    const slots = Object.entries(e?.slots || {}).map(([ref, slot]) => [portableRef(ref), { ...slot, skills: (slot.skills || []).map(portableSkill) }]);
+                    if (slots.length > 0) { exercise.slots = Object.fromEntries(slots); }
+                    return exercise;
+                });
             }
             return out;
         });
@@ -238,8 +241,7 @@ const Share = (() => {
 
     // adopt saves the chosen routines (by index), sets and levels, with the sets
     // and levels the routines are checked against and the sets the levels use.
-    // A set or level already saved, identically, is reused. Routines shared as
-    // a pair stay paired.
+    // A set or level already saved, identically, is reused.
     function adopt(share, routineIndexes, setIndexes, levelIndexes = []) {
         const sets = SetStore.load();
         const setIds = new Map(); // share index -> saved id
@@ -279,7 +281,6 @@ const Share = (() => {
         const state = RoutineStore.load();
         const names = new Set(state.routines.map((r) => r.name));
         let first = null;
-        const added = new Map(); // share index -> routine
         for (const i of routineIndexes) {
             const shared = share.routines[i];
             if (!shared || !Array.isArray(shared.skills)) { continue; }
@@ -290,15 +291,17 @@ const Share = (() => {
             if (shared.checks) { routine.checks = shared.checks; }
             if (shared.level?.startsWith('builtin-level:')) { routine.level = shared.level; }
             else if (shared.level?.startsWith('level:')) { routine.level = saveLevel(+shared.level.slice(6)); }
-            if (routine.level) { routine.exercise = shared.exercise === 2 ? 2 : 1; }
+            if (routine.level) {
+                const localRef = (ref) => (ref?.startsWith('set:') ? saveSet(+ref.slice(4)) || ref : ref);
+                routine.exercise = shared.exercise === 2 ? 2 : 1;
+                routine.exercises = (Array.isArray(shared.exercises) ? shared.exercises : [{}, {}]).map((e) => {
+                    const exercise = { option: localRef(e?.option) };
+                    if (e?.slots) { exercise.slots = Object.fromEntries(Object.entries(e.slots).map(([ref, slot]) => [localRef(ref), slot])); }
+                    return exercise;
+                });
+            }
             state.routines.push(routine);
-            added.set(i, routine);
             first ??= routine.id;
-        }
-        // Pairs shared together stay paired.
-        for (const [i, routine] of added) {
-            const partner = added.get(share.routines[i].partner);
-            if (routine.level && partner && partner.level === routine.level) { routine.partner = partner.id; }
         }
         SetStore.save(sets);
         LevelStore.save(levels);

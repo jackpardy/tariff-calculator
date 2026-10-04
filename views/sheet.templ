@@ -1,6 +1,7 @@
 package views
 
 import (
+	"tariffCalculator/requirements"
 	"fmt"
 	"strconv"
 
@@ -26,6 +27,7 @@ templ TariffSheetPage() {
 			<script defer src={ static.URL("js/sets.js") }></script>
 			<script defer src={ static.URL("js/sheet.js") }></script>
 			<script defer src={ static.URL("js/menus.js") }></script>
+			@templ.JSONScript("level-data", levelData(requirements.BuiltinGroups()))
 		</head>
 		<body>
 			<div class="toolbar screen-only">
@@ -58,7 +60,7 @@ templ TariffSheetPage() {
 				id="tariff-sheet"
 				hx-post="/tariff-sheet"
 				hx-trigger="load"
-				hx-vals="js:(() => { const state = RoutineStore.load(); return Pairs.values(RoutineStore.current(state), state.routines); })()"
+				hx-vals="js:Exercises.values(RoutineStore.current(RoutineStore.load()))"
 				hx-on:htmx:response-error="this.querySelector('.loading').textContent = 'Could not build the sheet: ' + event.detail.xhr.responseText"
 			>
 				<p class="loading screen-only">Loading the current routine saved in this browser...</p>

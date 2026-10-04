@@ -190,20 +190,24 @@ func builtinSets(groups []requirements.BuiltinGroup) map[string]requirements.Set
 
 // LevelData is what a page needs to offer levels: each built-in level by
 // reference ("builtin-level:<id>"), and the names of built-in requirements by
-// reference ("builtin:<id>"), for naming a level's options.
+// reference ("builtin:<id>") and which are set routines, for a level's tabs.
 type LevelData struct {
-	Levels map[string]requirements.Level `json:"levels"`
-	Names  map[string]string             `json:"names"`
+	Levels      map[string]requirements.Level `json:"levels"`
+	Names       map[string]string             `json:"names"`
+	SetRoutines []string                      `json:"set_routines"`
 }
 
 func levelData(groups []requirements.BuiltinGroup) LevelData {
-	data := LevelData{Levels: map[string]requirements.Level{}, Names: map[string]string{}}
+	data := LevelData{Levels: map[string]requirements.Level{}, Names: map[string]string{}, SetRoutines: []string{}}
 	for _, g := range groups {
 		for _, l := range g.Levels {
 			data.Levels[requirements.BuiltinLevelPrefix+l.ID] = l.Level
 		}
 		for _, b := range g.Sets {
 			data.Names[requirements.BuiltinPrefix+b.ID] = b.Set.Name
+			if b.IsSetRoutine() {
+				data.SetRoutines = append(data.SetRoutines, requirements.BuiltinPrefix+b.ID)
+			}
 		}
 	}
 	return data

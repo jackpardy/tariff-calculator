@@ -1,7 +1,7 @@
 ---
 type: Feature
 title: Levels
-description: A level pairs requirements for a competition's two exercises (e.g. a choice of set routines, then a voluntary), so a coach checks a gymnast's two routines together; built-in levels cover every built-in requirement, and coaches can write their own.
+description: A level pairs requirements for a competition's two exercises (e.g. a choice of set routines, then a voluntary); a routine checked against one holds both exercises as tabs. Built-in levels cover every built-in requirement, and coaches can write their own.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/requirements/level.go
 tags: [requirements, level, set-routine, voluntary]
 generated: { by: claude-code/cli, at: 2026-10-04T22:00:00Z }
@@ -58,37 +58,44 @@ and a test checks every built-in set belongs to a level.
 
 # In the routine builder
 
-Levels come first under "Check against". Choosing one makes the routine the
-level's **first exercise**, checked against its first option (a set routine
-loads in as usual). Under the picker:
+Levels come first under "Check against". A routine checked against a level
+holds **both of its exercises**, with a tab for each option above its cards:
+BUCS L7 is **Set 1, Set 2, Voluntary**; FIG AG1 is **1st voluntary, 2nd
+voluntary**; BG Club L1 (the same set routine twice) has just the set routine.
+A set routine's tab is the set routine as prescribed, so switching between Set
+1 and Set 2 loads nothing and asks nothing. Opening an option makes it the
+exercise's choice (the set the gymnast performs), marked ● when there's more
+than one. A set routine's tab has **Copy into the voluntary**, to start the
+voluntary from it.
 
-- **First / Second exercise** chooses which one this routine is.
-- A second select chooses between the exercise's options when there's more than
-  one, e.g. set routine option 1 or 2.
-- **Second (or First) exercise** pairs the routine with another one, or starts
-  a new routine for the other exercise ("+ New routine") and shows the two side
-  by side.
+Choosing a level for a routine that already has skills makes them the
+voluntary. A level with no voluntary (BG Club) starts a new routine instead,
+leaving the old one alone. Choosing requirements on their own keeps the open
+tab's skills, and asks first if another tab has skills of the coach's own.
 
-A routine doing an exercise stores `level`, `exercise` (1 or 2),
-`requirements` (the chosen option, so everything else that reads requirements
-works unchanged) and `partner`, the id of the routine doing the other exercise.
-The two point at each other. `Pairs` in `static/js/sets.js` finds a routine's
-partner and builds the values the server needs. Choosing a different level, or
-requirements on their own, separates the pair. Deleting a routine unpairs its
-partner. Side by side, a pair's columns aren't shaded for differences.
+The routine stores `level`, `exercise` (the open tab's exercise, 1 or 2) and
+`requirements` (the open tab's option), and `skills` and `checks` are the open
+tab's, so everything that reads a routine works unchanged. The other tabs'
+skills and checks are kept in `exercises: [{option, slots: {<ref>: {skills,
+checks}}}, ...]`, where `option` is each exercise's choice. `Exercises` in
+`static/js/sets.js` works out the tabs and builds the values the server needs.
+Routines paired the earlier way (one routine per exercise, with a `partner`)
+become level routines holding the exercise they did.
 
-# Checking a pair
+# Checking both exercises
 
-`/routine` and `/tariff-sheet` take the level (`level`: a built-in reference or
-a custom level's JSON), `exercise`, and the partner's routine (`pairData`,
-`pairSet`, `pairChecks`, `pairName`). The server checks both
+`/routine`, `/tariff-sheet` and `/view` take the level (`level`: a built-in
+reference or a custom level's JSON), `exercise`, and the other exercise's
+chosen option (`pairData`, `pairSet`, `pairChecks`, `pairName`). If that
+option is a set routine whose tab hasn't been opened, `pairData` is empty and
+the server uses the set routine. The server checks both
 (`checkRoutine` in `main.go`). When difficulty carries over, the first
 exercise's scoring elements are passed to the second's validation as
 `ValidateOptions.ScoredEarlier`. A repeat of one is flagged "Can't Repeat:
 Scored In 1st Exercise" and isn't counted
 ([routine validation](../domain/routine-validation.md)). The routine view shows
-the level, which exercise this is, and how many of its requirements the other
-routine meets. When difficulty carries over, both routines also show the
+the level, which exercise is open, and how many of its requirements the other
+exercise meets. When difficulty carries over, both exercises also show the
 requirement "The second exercise doesn't repeat an element whose difficulty
 carries over from the first", naming the carried elements and any repeats.
 

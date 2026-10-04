@@ -15,15 +15,13 @@ function tariffCalculatorStore() {
         routine: [],    // the current routine's skills (the same array as in routines)
         customSets: [], // requirement sets saved in this browser (SetStore)
         customLevels: [], // levels saved in this browser (LevelStore)
-        builtinLevels: {}, // built-in levels by reference
-        requirementNames: {}, // built-in requirements' names by reference
         expanded: [], // per-card expanded state, parallel to routine
         compareId: null, // the routine shown beside the current one, if any
         routineB: [],    // its skills (the same array as in routines)
         expandedB: [],   // per-card expanded state, parallel to routineB
         addTo: 'a',      // which column the skill adder adds to while comparing
         mobileTab: 'a',  // the column shown on a phone while comparing
-        setRoutineOffer: null, // a set routine to load, waiting for "new routine" or "replace": {side, name, skills, ref, level, exercise, previous}
+        setRoutineOffer: null, // a set routine to load, waiting for "new routine" or "replace": {side, name, skills, ref, previous}
         editingIndex: null,
         editingSide: 'a', // the column of the skill being edited
         busy: false, // an add or update is in flight
@@ -41,11 +39,6 @@ function tariffCalculatorStore() {
             this.persist(); // settles a routine carried over from an older version
             this.customSets = SetStore.load();
             this.customLevels = LevelStore.load();
-            try {
-                const data = JSON.parse(document.getElementById('level-data').textContent);
-                this.builtinLevels = data.levels || {};
-                this.requirementNames = data.names || {};
-            } catch (e) { /* no built-in levels */ }
             // Sets and levels edited in another tab (the requirements page) are picked up here.
             window.addEventListener('storage', (event) => {
                 if (event.key === 'trampolineRequirementSets' || event.key === LevelStore.key) {
@@ -83,12 +76,11 @@ function tariffCalculatorStore() {
 
         // --- Server-rendered views ---
         // renderRoutine shows a column's routine; while comparing, the other column's
-        // routine goes with it so the view can mark where they differ (unless the
-        // two are a level's exercises, which are meant to differ).
+        // routine goes with it so the view can mark where they differ.
         renderRoutine(side = 'a') {
             const view = side === 'b' ? '#routine-view-b' : '#routine-view';
-            const values = { side, ...Pairs.values(this.routineFor(side), this.routines) };
-            if (this.compareId && this.partnerOf('a')?.id !== this.compareId) {
+            const values = { side, ...Exercises.values(this.routineFor(side)) };
+            if (this.compareId) {
                 const other = side === 'b' ? 'a' : 'b';
                 values.compareData = JSON.stringify(this.skillsOf(other));
                 values.compareName = this.routineFor(other).name;
@@ -189,7 +181,7 @@ function tariffCalculatorStore() {
             this.renderRoutines();
         },
         // snapshot is what a routine is checked against, so it can go back to it.
-        snapshot(routine) { return { ref: routine.requirements, checks: routine.checks, level: routine.level, exercise: routine.exercise }; },
+        snapshot(routine) { return { ref: routine.requirements, checks: routine.checks }; },
         // loadSetRoutine loads a column's requirement set's set routine: straight in
         // if the routine is empty, otherwise offering a new routine or replacing
         // this one's skills (setRoutineOffer). Sets without a set routine are left
@@ -199,6 +191,11 @@ function tariffCalculatorStore() {
         async loadSetRoutine(side = 'a', fromButton = false, previous = undefined) {
             const routine = this.routineFor(side);
             if (!routine?.requirements) { return; }
+            if (routine.level) {
+                const skills = await this.fetchSetRoutine(routine.requirements);
+                if (skills) { this.setSkills(side, skills); }
+                return;
+            }
             const body = new URLSearchParams({ requirementSet: SetStore.payload(routine.requirements), routineData: JSON.stringify(this.skillsOf(side)) });
             let loaded;
             try {
@@ -213,7 +210,7 @@ function tariffCalculatorStore() {
                 return;
             }
             if (loaded.matches) { return; }
-            const offer = { side, name: loaded.name, skills: loaded.skills, ref: routine.requirements, level: routine.level, exercise: routine.exercise, previous: fromButton ? this.snapshot(routine) : previous };
+            const offer = { side, name: loaded.name, skills: loaded.skills, ref: routine.requirements, previous: fromButton ? this.snapshot(routine) : previous };
             if (this.skillsOf(side).length === 0) { this.replaceWithSetRoutine(offer); return; }
             this.setRoutineOffer = offer;
         },
@@ -228,17 +225,14 @@ function tariffCalculatorStore() {
             this.showToast(`Loaded the set routine into ${this.routineFor(side).name}.`, 'info');
         },
         // newRoutineFromSetRoutine puts an offered set routine in a new routine, named
-        // after the set and checked against it (as the same exercise of the same
-        // level, if it's one), shown in the same column. The routine the set was
-        // chosen for goes back to what it was checked against.
+        // after the set and checked against it, shown in the same column. The routine
+        // the set was chosen for goes back to what it was checked against.
         newRoutineFromSetRoutine(offer = this.setRoutineOffer) {
             this.setRoutineOffer = null;
             const from = this.routineFor(offer.side), previous = offer.previous || {};
             from.requirements = previous.ref || undefined;
             if (previous.checks) { from.checks = previous.checks; } else { delete from.checks; }
-            if (previous.level) { from.level = previous.level; from.exercise = previous.exercise; } else { this.leaveLevel(from); }
             const routine = { id: RoutineStore.newId(), name: (offer.name || RoutineStore.nextName(this.routines)).slice(0, 60), skills: JSON.parse(JSON.stringify(offer.skills)), requirements: offer.ref };
-            if (offer.level) { routine.level = offer.level; routine.exercise = offer.exercise; }
             this.routines.splice(this.routines.indexOf(from) + 1, 0, routine);
             this.persist();
             if (offer.side === 'b') {
@@ -252,123 +246,156 @@ function tariffCalculatorStore() {
         // against the set, so the panel still offers to load it.
         cancelSetRoutine() { this.setRoutineOffer = null; },
 
-        // --- Levels: a pair of routines, one per exercise (Pairs, in sets.js) ---
+        // --- Levels: one routine, a tab per exercise option (Exercises, in sets.js) ---
         // chooseCheck is the "Check against" choice: a level ("level:<ref>") or
-        // requirements on their own, which take the routine out of any level.
-        chooseCheck(value, side = 'a') {
+        // requirements on their own, which take the routine out of any level
+        // (select is put back if the coach keeps the level).
+        chooseCheck(value, side = 'a', select = undefined) {
             if (value.startsWith('level:')) { this.setLevel(value.slice('level:'.length), side); return; }
-            this.leaveLevel(this.routineFor(side));
+            const routine = this.routineFor(side);
+            if (!this.leaveLevel(routine)) {
+                if (select) { select.value = `level:${routine.level}`; }
+                return;
+            }
             this.setRequirements(value, side);
         },
-        findLevel(ref) {
-            if (!ref) { return undefined; }
-            return ref.startsWith('builtin-level:') ? this.builtinLevels[ref] : this.customLevels.find((l) => l.id === ref)?.level;
-        },
+        findLevel(ref) { return Exercises.findLevel(ref); },
         levelOf(side) { return this.findLevel(this.routineFor(side)?.level); },
         exerciseOf(side) { return this.routineFor(side)?.exercise === 2 ? 2 : 1; },
-        // optionsOf is the requirements exercise n of a level chooses between;
-        // without a second exercise, the second uses the first's.
-        optionsOf(level, n) { return ((n === 2 && level?.second) || level?.first)?.options || []; },
-        optionsFor(side) { return this.optionsOf(this.levelOf(side), this.exerciseOf(side)); },
-        requirementName(ref) {
-            if (ref?.startsWith('builtin:')) { return this.requirementNames[ref] || ref; }
-            return this.customSets.find((s) => s.id === ref)?.set.name || 'Requirements no longer saved';
+        tabsFor(side) {
+            this.customSets; this.customLevels; // re-evaluate when these change
+            return Exercises.tabs(this.levelOf(side));
         },
-        partnerOf(side) { return Pairs.partnerOf(this.routineFor(side), this.routines); },
-        isShown(id) { return id === this.currentId || id === this.compareId; },
-        // unpair separates a routine from the routine doing its level's other exercise.
-        unpair(routine) {
-            const partner = Pairs.partnerOf(routine, this.routines);
-            if (partner) { delete partner.partner; }
-            delete routine.partner;
+        isOpenTab(side, tab) { return this.exerciseOf(side) === tab.exercise && this.routineFor(side)?.requirements === tab.ref; },
+        // isChosenTab marks the option chosen for its exercise (the set routine
+        // performed), when the exercise offers more than one.
+        isChosenTab(side, tab) {
+            const routine = this.routineFor(side);
+            if (Exercises.options(this.levelOf(side), tab.exercise).length < 2) { return false; }
+            const chosen = tab.exercise === this.exerciseOf(side) ? routine.requirements : routine.exercises?.[tab.exercise - 1]?.option;
+            return chosen === tab.ref;
         },
+        openTabOf(side) { return this.tabsFor(side).find((t) => this.isOpenTab(side, t)); },
+        exerciseState(routine, n) {
+            routine.exercises = Array.isArray(routine.exercises) ? routine.exercises : [];
+            while (routine.exercises.length < 2) { routine.exercises.push({}); }
+            return routine.exercises[n - 1];
+        },
+        // setSkills puts skills in a column's routine (and on screen).
+        setSkills(side, skills) {
+            if (this.editingSide === side && this.editingIndex !== null) { this.cancelEdit(); }
+            this.routineFor(side).skills = skills;
+            if (side === 'b') {
+                this.expandedB = skills.map(() => false);
+                this.routineB = skills;
+            } else {
+                this.expanded = skills.map(() => false);
+                this.routine = skills;
+            }
+            this.persist();
+            this.renderRoutines();
+        },
+        // fetchSetRoutine is the skills of a set routine's requirements, or undefined.
+        async fetchSetRoutine(ref) {
+            try {
+                const response = await fetch('/set-routine', { method: 'POST', body: new URLSearchParams({ requirementSet: SetStore.payload(ref) }) });
+                return response.ok ? (await response.json()).skills : undefined;
+            } catch (e) {
+                return undefined;
+            }
+        },
+        // stashTab keeps the open tab's skills and checks while another is open.
+        stashTab(routine) {
+            const exercise = this.exerciseState(routine, routine.exercise === 2 ? 2 : 1);
+            exercise.option = routine.requirements;
+            exercise.slots = exercise.slots || {};
+            exercise.slots[routine.requirements] = { skills: routine.skills, ...(routine.checks ? { checks: routine.checks } : {}) };
+        },
+        // openTab opens one of a level routine's tabs: its skills as left, or a set
+        // routine as prescribed. Opening an option makes it the exercise's choice.
+        async openTab(side, tab) {
+            const routine = this.routineFor(side);
+            if (!tab || this.isOpenTab(side, tab)) { return; }
+            this.stashTab(routine);
+            const exercise = this.exerciseState(routine, tab.exercise);
+            const saved = exercise.slots?.[tab.ref];
+            if (saved) { delete exercise.slots[tab.ref]; }
+            exercise.option = tab.ref;
+            routine.exercise = tab.exercise;
+            routine.requirements = tab.ref;
+            if (saved?.checks) { routine.checks = saved.checks; } else { delete routine.checks; }
+            let skills = saved?.skills;
+            if (!skills && tab.set) { skills = await this.fetchSetRoutine(tab.ref); }
+            this.setSkills(side, skills || []);
+        },
+        // setLevel checks a column's routine against a level. Skills already in it
+        // become the level's voluntary; otherwise it opens on the first tab. A
+        // routine with skills isn't made into a level of set routines only: a new
+        // routine is started for that.
+        async setLevel(ref, side = 'a') {
+            const routine = this.routineFor(side);
+            const tabs = Exercises.tabs(this.findLevel(ref));
+            if (routine.level === ref || tabs.length === 0) { return; }
+            const voluntary = tabs.find((t) => !t.set && t.exercise === 2) || tabs.find((t) => !t.set);
+            if (routine.skills.length > 0 && !voluntary) {
+                const fresh = { id: RoutineStore.newId(), name: this.findLevel(ref).name.slice(0, 60), skills: [] };
+                this.routines.splice(this.routines.indexOf(routine) + 1, 0, fresh);
+                if (side === 'b') { this.compareWith(fresh.id); } else { this.switchRoutine(fresh.id); }
+                this.showToast(`Started ${fresh.name}; ${routine.name} is unchanged.`, 'info');
+                await this.setLevel(ref, side);
+                return;
+            }
+            const start = routine.skills.length > 0 ? voluntary : tabs[0];
+            routine.level = ref;
+            routine.exercises = [{}, {}];
+            for (const n of [1, 2]) { routine.exercises[n - 1].option = Exercises.options(this.findLevel(ref), n)[0]; }
+            routine.exercises[start.exercise - 1].option = start.ref;
+            routine.exercise = start.exercise;
+            routine.requirements = start.ref;
+            delete routine.checks;
+            if (routine.skills.length === 0 && start.set) {
+                this.setSkills(side, (await this.fetchSetRoutine(start.ref)) || []);
+            } else {
+                this.persist();
+                this.renderRoutines();
+            }
+        },
+        // leaveLevel takes a routine out of its level, keeping the open tab's
+        // skills. It asks first if other tabs have skills of the coach's own, and
+        // reports whether it went ahead.
         leaveLevel(routine) {
-            this.unpair(routine);
+            if (!routine.level) { return true; }
+            const lost = Exercises.tabs(this.findLevel(routine.level)).filter((t) => !t.set && !(t.exercise === (routine.exercise === 2 ? 2 : 1) && t.ref === routine.requirements))
+                .filter((t) => Exercises.slot(routine, t.exercise, t.ref)?.skills?.length > 0);
+            if (lost.length > 0 && !confirm(`Stop checking against the level? ${lost.map((t) => t.label).join(' and ')} will be removed; the skills shown now stay.`)) { return false; }
             delete routine.level;
             delete routine.exercise;
+            delete routine.exercises;
+            return true;
         },
-        // setLevel makes a column's routine the first exercise of a level, checked
-        // against its first option (loading it if it's a set routine). Choosing a
-        // different level separates it from its partner.
-        setLevel(ref, side = 'a') {
+        // copyTarget is the voluntary a set routine tab can be copied into: the
+        // other exercise's (its chosen one), or any voluntary.
+        copyTarget(side) {
+            const open = this.openTabOf(side);
+            if (!open?.set) { return undefined; }
+            const voluntaries = this.tabsFor(side).filter((t) => !t.set);
+            const pool = voluntaries.filter((t) => t.exercise !== open.exercise);
+            const from = pool.length > 0 ? pool : voluntaries;
             const routine = this.routineFor(side);
-            if (routine.level === ref) { return; }
-            const previous = this.snapshot(routine);
-            this.unpair(routine);
-            routine.level = ref;
-            routine.exercise = 1;
-            this.useOption(side, this.optionsOf(this.findLevel(ref), 1)[0], previous);
+            return from.find((t) => routine.exercises?.[t.exercise - 1]?.option === t.ref) || from[0];
         },
-        // useOption checks a column's routine against one of its exercise's
-        // options. previous is what it was checked against before (a snapshot).
-        useOption(side, ref, previous) {
+        // copyToVoluntary starts the voluntary from the set routine on screen, and opens it.
+        async copyToVoluntary(side) {
+            const target = this.copyTarget(side);
+            if (!target) { return; }
             const routine = this.routineFor(side);
-            routine.requirements = ref || undefined;
-            delete routine.checks; // the option's checks apply
-            this.persist();
-            this.renderRoutines();
-            if (ref) { this.loadSetRoutine(side, false, previous); }
-        },
-        setOption(side, ref) { this.useOption(side, ref, this.snapshot(this.routineFor(side))); },
-        // setExercise makes a column's routine do exercise n; its partner does the other.
-        setExercise(side, n) {
-            const routine = this.routineFor(side);
-            if (this.exerciseOf(side) === n) { return; }
-            const previous = this.snapshot(routine);
-            const partner = Pairs.partnerOf(routine, this.routines);
-            routine.exercise = n;
-            if (partner) { this.assignExercise(partner, 3 - n); }
-            this.useOption(side, this.optionsOf(this.levelOf(side), n)[0], previous);
-        },
-        // assignExercise makes a routine do exercise n of its level, keeping its
-        // requirements if they're one of that exercise's options.
-        assignExercise(routine, n) {
-            routine.exercise = n;
-            const options = this.optionsOf(this.findLevel(routine.level), n);
-            if (!options.includes(routine.requirements)) {
-                routine.requirements = options[0];
-                delete routine.checks;
-            }
-        },
-        // pairWith makes the routine with id do the other exercise of a column's
-        // routine's level ('' for none, 'new' for a new routine).
-        pairWith(side, id) {
-            if (id === 'new') { this.newPartner(side); return; }
-            const routine = this.routineFor(side);
-            this.unpair(routine);
-            const other = this.routines.find((r) => r.id === id);
-            if (other) {
-                this.unpair(other);
-                other.level = routine.level;
-                other.partner = routine.id;
-                routine.partner = other.id;
-                this.assignExercise(other, 3 - this.exerciseOf(side));
-                this.showToast(`${other.name} is now the ${this.exerciseOf(side) === 1 ? 'second' : 'first'} exercise.`, 'info');
-            }
-            this.persist();
-            this.renderRoutines();
-        },
-        // newPartner starts a routine for the other exercise and shows the two side
-        // by side. If the exercise is a set routine, it's loaded in.
-        newPartner(side) {
-            const routine = this.routineFor(side), n = 3 - this.exerciseOf(side);
-            this.unpair(routine);
-            const name = `${this.levelOf(side)?.name || routine.name} · ${n === 2 ? 'second' : 'first'} exercise`.slice(0, 60);
-            const partner = { id: RoutineStore.newId(), name, skills: [], level: routine.level, partner: routine.id };
-            this.assignExercise(partner, n);
-            routine.partner = partner.id;
-            this.routines.splice(this.routines.indexOf(routine) + 1, 0, partner);
-            this.persist();
-            this.showPartner(side);
-            this.loadSetRoutine('b');
-            this.showToast(`Started ${partner.name}.`, 'info');
-        },
-        // showPartner shows a column's routine and its partner side by side.
-        showPartner(side) {
-            const routine = this.routineFor(side), partner = this.partnerOf(side);
-            if (!partner) { return; }
-            if (side === 'b') { this.switchRoutine(routine.id); } // swaps it into the first column
-            this.compareWith(partner.id);
+            const existing = Exercises.slot(routine, target.exercise, target.ref)?.skills || [];
+            if (existing.length > 0 && !confirm(`Replace the ${existing.length} skills in ${target.label} with this set routine?`)) { return; }
+            const exercise = this.exerciseState(routine, target.exercise);
+            exercise.slots = exercise.slots || {};
+            exercise.slots[target.ref] = { skills: JSON.parse(JSON.stringify(routine.skills)) };
+            await this.openTab(side, target);
+            this.showToast(`Copied into ${target.label}; change it from here.`, 'info');
         },
         // switchRoutine makes the routine with id current, leaving any edit. Choosing
         // the routine shown beside it swaps the columns.
@@ -388,7 +415,7 @@ function tariffCalculatorStore() {
         },
         duplicateRoutine() {
             const source = this.currentRoutine();
-            const copy = { id: RoutineStore.newId(), name: `${source.name} (copy)`, skills: JSON.parse(JSON.stringify(source.skills)) };
+            const copy = { ...JSON.parse(JSON.stringify(source)), id: RoutineStore.newId(), name: `${source.name} (copy)`.slice(0, 60) };
             this.routines.splice(this.routines.indexOf(source) + 1, 0, copy);
             this.switchRoutine(copy.id);
             this.showToast(`Duplicated as ${copy.name}.`, 'info');
@@ -435,7 +462,6 @@ function tariffCalculatorStore() {
             const routine = this.currentRoutine(), name = routine.name;
             if (!confirm(`Delete ${name}? This can't be undone.`)) { return; }
             this.stopComparing();
-            this.unpair(routine);
             if (this.routines.length === 1) {
                 // Always keep one routine: emptying the last one is the same as clearing it.
                 routine.name = 'Routine 1';

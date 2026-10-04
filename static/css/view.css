@@ -127,7 +127,7 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.display-level { margin: 0.1rem 0 0; color: var(--muted); font-size: clamp(0.75rem, 1.8vmin, 1.1rem); }
+.display-level { margin: 0.1rem 0 0; color: var(--muted); font-size: clamp(0.75rem, 1.8vmin, 1.1rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .display-met {
   flex: none;
   align-self: center;

@@ -87,7 +87,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 					</select>
 				</div>
 				<button class="button is-small" type="button" x-on:click="newRoutine()">+ New</button>
-				<button class="button is-small" type="button" x-on:click="Share.open('routines', [currentId, partnerOf('a')?.id].filter(Boolean))">Share</button>
+				<button class="button is-small" type="button" x-on:click="Share.open('routines', [currentId])">Share</button>
 				<details class="routine-menu" data-menu>
 					<summary class="button is-small">More</summary>
 					// Close the menu after any choice.
@@ -143,7 +143,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 					<div id="routine-view-b" hx-sync="this:replace"></div>
 				</div>
 			</div>
-			<p class="compare-legend" x-show="compareId && partnerOf('a')?.id !== compareId" x-cloak>Shaded skills differ from the other routine's skill at the same number.</p>
+			<p class="compare-legend" x-show="compareId" x-cloak>Shaded skills differ from the other routine's skill at the same number.</p>
 		</div>
 		// Loading a set routine into a routine that has skills: a new routine, or replace them.
 		<div class="modal" x-bind:class="setRoutineOffer && 'is-active'" x-on:keydown.escape.window="cancelSetRoutine()">
@@ -179,16 +179,14 @@ templ calculator(groups []requirements.BuiltinGroup) {
 
 // requirementPicker chooses what a builder column's routine is checked against
 // (side is "a" or "b"): a level, built-in requirements or a set routine, or the
-// user's own. With a level, it also chooses which exercise the routine is, which
-// of that exercise's options (e.g. set routine option 1 or 2), and the routine
-// doing the other exercise.
+// user's own. With a level, the routine has a tab for each exercise option.
 templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 	{{ id := map[string]string{"a": "requirement-set", "b": "requirement-set-b"}[side] }}
 	<div class="requirement-picker">
 		<label class="label is-small mb-1" for={ id }>Check against</label>
 		<div class="requirement-picker-row">
 			<div class="select is-small">
-				<select id={ id } x-on:change={ fmt.Sprintf("chooseCheck($event.target.value, '%s')", side) }>
+				<select id={ id } x-on:change={ fmt.Sprintf("chooseCheck($event.target.value, '%s', $event.target)", side) }>
 					<option value="" x-bind:selected={ fmt.Sprintf("!routineFor('%s')?.requirements && !routineFor('%s')?.level", side, side) }>No requirements</option>
 					// Levels first: both exercises, paired.
 					for _, g := range groups {
@@ -250,49 +248,35 @@ templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 	</div>
 }
 
-// levelControls are shown for a routine doing one of a level's exercises.
+// levelControls are a level routine's tabs, one per exercise option (e.g. Set
+// 1, Set 2, Voluntary), above its cards. The set routine chosen for an
+// exercise is marked when the exercise offers more than one; a set routine's
+// tab can be copied into the voluntary as a starting point.
 templ levelControls(side string) {
 	<template x-if={ fmt.Sprintf("routineFor('%s')?.level", side) }>
-		<div class="level-controls">
-			<div class="buttons has-addons mb-0" role="group" aria-label="Exercise">
-				for n, label := range []string{"First exercise", "Second exercise"} {
-					<button
-						class="button is-small"
-						type="button"
-						x-bind:class={ fmt.Sprintf("exerciseOf('%s') === %d && 'is-link is-selected'", side, n+1) }
-						x-bind:aria-pressed={ fmt.Sprintf("exerciseOf('%s') === %d", side, n+1) }
-						x-on:click={ fmt.Sprintf("setExercise('%s', %d)", side, n+1) }
-					>{ label }</button>
-				}
+		<div class="level-tabs">
+			<div class="tabs is-boxed mb-0">
+				<ul>
+					<template x-for={ fmt.Sprintf("tab in tabsFor('%s')", side) } x-bind:key="tab.exercise + ':' + tab.ref">
+						<li x-bind:class={ fmt.Sprintf("isOpenTab('%s', tab) && 'is-active'", side) }>
+							<a
+								x-on:click={ fmt.Sprintf("openTab('%s', tab)", side) }
+								x-bind:title="(tab.exercise === 1 ? 'First' : 'Second') + ' exercise'"
+							>
+								<span x-text="tab.label"></span>
+								<span class="tab-chosen" x-show={ fmt.Sprintf("isChosenTab('%s', tab)", side) } title="The set routine chosen for this exercise" aria-label="chosen">●</span>
+							</a>
+						</li>
+					</template>
+				</ul>
 			</div>
-			// The exercise's options, when there's a choice (e.g. set routine option 1 or 2).
-			<template x-if={ fmt.Sprintf("optionsFor('%s').length > 1", side) }>
-				<div class="select is-small">
-					<select aria-label="Which requirements" x-on:change={ fmt.Sprintf("setOption('%s', $event.target.value)", side) }>
-						<template x-for={ fmt.Sprintf("ref in optionsFor('%s')", side) } x-bind:key="ref">
-							<option x-bind:value="ref" x-bind:selected={ fmt.Sprintf("ref === routineFor('%s').requirements", side) } x-text="requirementName(ref)"></option>
-						</template>
-					</select>
-				</div>
-			</template>
-			<div class="level-partner">
-				<span class="level-partner-label" x-text={ fmt.Sprintf("exerciseOf('%s') === 1 ? 'Second exercise' : 'First exercise'", side) }></span>
-				<div class="select is-small">
-					<select aria-label="The routine doing the other exercise" x-on:change={ fmt.Sprintf("pairWith('%s', $event.target.value)", side) }>
-						<option value="" x-bind:selected={ fmt.Sprintf("!partnerOf('%s')", side) }>None yet</option>
-						<template x-for={ fmt.Sprintf("r in routines.filter((r) => r.id !== routineFor('%s').id)", side) } x-bind:key="r.id">
-							<option x-bind:value="r.id" x-bind:selected={ fmt.Sprintf("r.id === partnerOf('%s')?.id", side) } x-text="`${r.name} (${r.skills.length})`"></option>
-						</template>
-						<option value="new">+ New routine</option>
-					</select>
-				</div>
-				<button
-					class="button is-small"
-					type="button"
-					x-show={ fmt.Sprintf("partnerOf('%s') && !isShown(partnerOf('%s').id)", side, side) }
-					x-on:click={ fmt.Sprintf("showPartner('%s')", side) }
-				>Side by side</button>
-			</div>
+			<button
+				class="button is-small is-light level-copy"
+				type="button"
+				x-show={ fmt.Sprintf("copyTarget('%s')", side) }
+				x-on:click={ fmt.Sprintf("copyToVoluntary('%s')", side) }
+				x-text={ fmt.Sprintf("`Copy into the ${copyTarget('%s')?.label.toLowerCase()}`", side) }
+			></button>
 		</div>
 	</template>
 }

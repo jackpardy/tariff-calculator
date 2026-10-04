@@ -1,7 +1,7 @@
 // view.js: the view screen (views.ViewPage). Shows a routine saved in this
-// browser (?routine=<id>, else the current one), the routine doing its level's
-// other exercise and the level's other set routine options, rendered by the
-// server to fill the screen. It
+// browser (?routine=<id>, else the current one): for a level routine, both its
+// exercises and the level's other set routine options, rendered by the server
+// to fill the screen. It
 // re-renders when the routines change in another tab (the builder). The Show
 // menu's boxes (data-hides) toggle classes on #view, remembered in this
 // browser, and the full screen button uses the Fullscreen API where there is one.
@@ -26,23 +26,25 @@
         const routine = chosen(state);
         const select = document.getElementById('view-routine');
         select.replaceChildren(...state.routines.map((r) => {
-            const partner = Pairs.partnerOf(r, state.routines);
-            const option = new Option(partner ? `${r.name} + ${partner.name}` : r.name, r.id, false, r.id === routine.id);
-            return option;
+            const level = Exercises.findLevel(r.level);
+            return new Option(level ? `${r.name} · ${level.name}` : r.name, r.id, false, r.id === routine.id);
         }));
         document.title = routine.name;
         htmx.ajax('POST', '/view', {
             source: '#display', target: '#display', swap: 'innerHTML',
-            values: { ...Pairs.values(routine, state.routines), routineName: routine.name, ...optionValues(routine, state.routines) },
+            values: { ...Exercises.values(routine), routineName: Exercises.tabFor(routine)?.label || routine.name, ...optionValues(routine) },
         });
     }
 
-    // optionValues say which of its level's options a routine and its partner
-    // do, and carry the custom requirements a custom level uses, so the server
-    // can show the set routine options no routine is doing.
-    function optionValues(routine, routines) {
+    // optionValues say which of its level's options the routine's two
+    // exercises are on, what each tab is called, and carry the custom
+    // requirements a custom level uses, so the server can show the set routine
+    // options not chosen as well.
+    function optionValues(routine) {
         if (!routine.level) { return {}; }
-        const values = { optionRef: routine.requirements || '', pairOptionRef: Pairs.partnerOf(routine, routines)?.requirements || '' };
+        const tabNames = {};
+        for (const tab of Exercises.tabs(Exercises.findLevel(routine.level))) { tabNames[tab.ref] = tab.label; }
+        const values = { optionRef: routine.requirements || '', pairOptionRef: Exercises.other(routine)?.ref || '', tabNames: JSON.stringify(tabNames) };
         const level = LevelStore.load().find((l) => l.id === routine.level)?.level;
         if (level) {
             const sets = {};

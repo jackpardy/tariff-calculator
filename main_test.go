@@ -550,7 +550,7 @@ func TestTariffSheetPage(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d", rec.Code)
 	}
-	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "Pairs.values(RoutineStore.current(state), state.routines)", "/static/js/routines.js?v=", "/static/js/sets.js?v=", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v=",
+	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "Exercises.values(RoutineStore.current(RoutineStore.load()))", `id="level-data"`, "/static/js/routines.js?v=", "/static/js/sets.js?v=", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v=",
 		// Optional parts of the sheet.
 		`id="show-names" data-hides="hide-names" checked`, "/static/js/sheet.js?v=",
 		`id="show-req" data-hides="hide-req" checked`, `id="show-judge" data-hides="hide-judge" checked`,
@@ -1035,7 +1035,7 @@ func TestQRCode(t *testing.T) {
 // Both pages can share: the builder its routines, the requirements page its sets.
 func TestSharing(t *testing.T) {
 	for path, want := range map[string]string{
-		"/":             `Share.open('routines', [currentId, partnerOf('a')?.id].filter(Boolean))`,
+		"/":             `Share.open('routines', [currentId])`,
 		"/requirements": `Share.open('sets', [s.id])`,
 	} {
 		rec := httptest.NewRecorder()
@@ -1233,5 +1233,23 @@ func TestViewShowsSetRoutineOptions(t *testing.T) {
 
 	if !strings.Contains(getPage(t, "/view"), `data-hides="hide-options" checked`) {
 		t.Errorf("the Show menu can hide the options")
+	}
+}
+
+// A level routine's other exercise may be a set routine whose tab hasn't been
+// opened: it's checked as the set routine its requirements describe.
+func TestUnopenedSetRoutineTab(t *testing.T) {
+	voluntary := `[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}]`
+	html := postForm(t, "/routine", url.Values{
+		"routineData": {voluntary}, "requirementSet": {"builtin:bucs-l7-second"},
+		"level": {"builtin-level:bucs-l7"}, "exercise": {"2"},
+		"pairData": {""}, "pairSet": {"builtin:bucs-l7-option-2"}, "pairName": {"Set 2"},
+	}).Body.String()
+	if !strings.Contains(html, "First exercise: Set 2") || !regexp.MustCompile(`(\d+) of (\d+) met`).MatchString(html) {
+		t.Fatalf("the level panel should report the set routine")
+	}
+	panel := html[strings.Index(html, "First exercise: Set 2"):]
+	if m := regexp.MustCompile(`(\d+) of (\d+) met`).FindStringSubmatch(panel); m == nil || m[1] != m[2] {
+		t.Errorf("Set 2 as prescribed meets all of its requirements: %v", m)
 	}
 }

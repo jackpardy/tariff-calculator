@@ -248,20 +248,24 @@ func builtinSets(groups []requirements.BuiltinGroup) map[string]requirements.Set
 
 // LevelData is what a page needs to offer levels: each built-in level by
 // reference ("builtin-level:<id>"), and the names of built-in requirements by
-// reference ("builtin:<id>"), for naming a level's options.
+// reference ("builtin:<id>") and which are set routines, for a level's tabs.
 type LevelData struct {
-	Levels map[string]requirements.Level `json:"levels"`
-	Names  map[string]string             `json:"names"`
+	Levels      map[string]requirements.Level `json:"levels"`
+	Names       map[string]string             `json:"names"`
+	SetRoutines []string                      `json:"set_routines"`
 }
 
 func levelData(groups []requirements.BuiltinGroup) LevelData {
-	data := LevelData{Levels: map[string]requirements.Level{}, Names: map[string]string{}}
+	data := LevelData{Levels: map[string]requirements.Level{}, Names: map[string]string{}, SetRoutines: []string{}}
 	for _, g := range groups {
 		for _, l := range g.Levels {
 			data.Levels[requirements.BuiltinLevelPrefix+l.ID] = l.Level
 		}
 		for _, b := range g.Sets {
 			data.Names[requirements.BuiltinPrefix+b.ID] = b.Set.Name
+			if b.IsSetRoutine() {
+				data.SetRoutines = append(data.SetRoutines, requirements.BuiltinPrefix+b.ID)
+			}
 		}
 	}
 	return data
@@ -318,7 +322,7 @@ func SetEditor(e SetEditorData) templ.Component {
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(e.JSON)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 244, Col: 24}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 248, Col: 24}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 		if templ_7745c5c3_Err != nil {
@@ -331,7 +335,7 @@ func SetEditor(e SetEditorData) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(len(e.Problems)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 245, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 249, Col: 47}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 		if templ_7745c5c3_Err != nil {
@@ -344,7 +348,7 @@ func SetEditor(e SetEditorData) templ.Component {
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.JSONString(describedRules(e.Set)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 246, Col: 58}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 250, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 		if templ_7745c5c3_Err != nil {
@@ -357,7 +361,7 @@ func SetEditor(e SetEditorData) templ.Component {
 		var templ_7745c5c3_Var16 string
 		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(e.Set.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 251, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 255, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 		if templ_7745c5c3_Err != nil {
@@ -370,7 +374,7 @@ func SetEditor(e SetEditorData) templ.Component {
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(e.Set.Description)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 255, Col: 98}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 259, Col: 98}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 		if templ_7745c5c3_Err != nil {
@@ -383,7 +387,7 @@ func SetEditor(e SetEditorData) templ.Component {
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue(e.Set.Source)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 259, Col: 83}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 263, Col: 83}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
 		if templ_7745c5c3_Err != nil {
@@ -416,7 +420,7 @@ func SetEditor(e SetEditorData) templ.Component {
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.ResolveAttributeValue(scoredText(e.Set.ScoredElements))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 273, Col: 161}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 277, Col: 161}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var19)
 		if templ_7745c5c3_Err != nil {
@@ -429,7 +433,7 @@ func SetEditor(e SetEditorData) templ.Component {
 		var templ_7745c5c3_Var20 string
 		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(len(e.Set.Rules)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 278, Col: 74}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 282, Col: 74}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var20)
 		if templ_7745c5c3_Err != nil {
@@ -457,7 +461,7 @@ func SetEditor(e SetEditorData) templ.Component {
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.ResolveAttributeValue(t)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 288, Col: 23}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 292, Col: 23}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var21)
 			if templ_7745c5c3_Err != nil {
@@ -470,7 +474,7 @@ func SetEditor(e SetEditorData) templ.Component {
 			var templ_7745c5c3_Var22 string
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(ruleTypeLabels[t])
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 288, Col: 45}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 292, Col: 45}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {
@@ -498,7 +502,7 @@ func SetEditor(e SetEditorData) templ.Component {
 				var templ_7745c5c3_Var23 string
 				templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(p)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 298, Col: 13}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 302, Col: 13}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 				if templ_7745c5c3_Err != nil {
@@ -551,7 +555,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 		var templ_7745c5c3_Var25 string
 		templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d. ", i+1))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 310, Col: 56}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 314, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 		if templ_7745c5c3_Err != nil {
@@ -560,7 +564,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 		var templ_7745c5c3_Var26 string
 		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(describeSafely(rule))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 310, Col: 80}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 314, Col: 80}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 		if templ_7745c5c3_Err != nil {
@@ -589,7 +593,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 		var templ_7745c5c3_Var27 string
 		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.ResolveAttributeValue(p + "was")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 317, Col: 39}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 321, Col: 39}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
 		if templ_7745c5c3_Err != nil {
@@ -602,7 +606,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 		var templ_7745c5c3_Var28 string
 		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.ResolveAttributeValue(rule.Type)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 317, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 321, Col: 59}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var28)
 		if templ_7745c5c3_Err != nil {
@@ -615,7 +619,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 		var templ_7745c5c3_Var29 string
 		templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.ResolveAttributeValue(p + "type")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 320, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 324, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var29)
 		if templ_7745c5c3_Err != nil {
@@ -628,7 +632,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 		var templ_7745c5c3_Var30 string
 		templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.ResolveAttributeValue(p + "type")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 322, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 326, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var30)
 		if templ_7745c5c3_Err != nil {
@@ -641,7 +645,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 		var templ_7745c5c3_Var31 string
 		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.ResolveAttributeValue(p + "type")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 322, Col: 48}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 326, Col: 48}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var31)
 		if templ_7745c5c3_Err != nil {
@@ -659,7 +663,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 			var templ_7745c5c3_Var32 string
 			templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.ResolveAttributeValue(t)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 324, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 328, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var32)
 			if templ_7745c5c3_Err != nil {
@@ -682,7 +686,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 			var templ_7745c5c3_Var33 string
 			templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(ruleTypeLabels[t])
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 324, Col: 75}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 328, Col: 75}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 			if templ_7745c5c3_Err != nil {
@@ -700,7 +704,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 		var templ_7745c5c3_Var34 string
 		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.ResolveAttributeValue(p + "label")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 330, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 334, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var34)
 		if templ_7745c5c3_Err != nil {
@@ -713,7 +717,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 		var templ_7745c5c3_Var35 string
 		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.ResolveAttributeValue(p + "label")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 331, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 335, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var35)
 		if templ_7745c5c3_Err != nil {
@@ -726,7 +730,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 		var templ_7745c5c3_Var36 string
 		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.ResolveAttributeValue(p + "label")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 331, Col: 71}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 335, Col: 71}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var36)
 		if templ_7745c5c3_Err != nil {
@@ -739,7 +743,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 		var templ_7745c5c3_Var37 string
 		templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.ResolveAttributeValue(rule.Label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 331, Col: 92}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 335, Col: 92}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var37)
 		if templ_7745c5c3_Err != nil {
@@ -839,7 +843,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 			var templ_7745c5c3_Var38 string
 			templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.ResolveAttributeValue(p + "seq")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 360, Col: 41}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 364, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var38)
 			if templ_7745c5c3_Err != nil {
@@ -852,7 +856,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 			var templ_7745c5c3_Var39 string
 			templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(len(rule.Sequence)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 360, Col: 84}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 364, Col: 84}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var39)
 			if templ_7745c5c3_Err != nil {
@@ -900,7 +904,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 			var templ_7745c5c3_Var40 string
 			templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.ResolveAttributeValue(p + "seq")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 372, Col: 41}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 376, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var40)
 			if templ_7745c5c3_Err != nil {
@@ -913,7 +917,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 			var templ_7745c5c3_Var41 string
 			templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(len(rule.Each)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 372, Col: 80}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 376, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var41)
 			if templ_7745c5c3_Err != nil {
@@ -961,7 +965,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 			var templ_7745c5c3_Var42 string
 			templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.ResolveAttributeValue(p + "opts")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 384, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 388, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var42)
 			if templ_7745c5c3_Err != nil {
@@ -974,7 +978,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 			var templ_7745c5c3_Var43 string
 			templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(len(rule.Options)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 384, Col: 84}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 388, Col: 84}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var43)
 			if templ_7745c5c3_Err != nil {
@@ -993,7 +997,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 				var templ_7745c5c3_Var44 string
 				templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(k + 1))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 388, Col: 42}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 392, Col: 42}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 				if templ_7745c5c3_Err != nil {
@@ -1006,7 +1010,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 				var templ_7745c5c3_Var45 string
 				templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.ResolveAttributeValue(op + "seq")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 389, Col: 44}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 393, Col: 44}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var45)
 				if templ_7745c5c3_Err != nil {
@@ -1019,7 +1023,7 @@ func ruleCard(i int, rule requirements.Rule, total int) templ.Component {
 				var templ_7745c5c3_Var46 string
 				templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(len(option)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 389, Col: 80}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 393, Col: 80}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var46)
 				if templ_7745c5c3_Err != nil {
@@ -1129,7 +1133,7 @@ func editorAction(label, action string, disabled bool) templ.Component {
 		var templ_7745c5c3_Var48 string
 		templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.ResolveAttributeValue(editorActionVals(action))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 421, Col: 36}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 425, Col: 36}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var48)
 		if templ_7745c5c3_Err != nil {
@@ -1142,7 +1146,7 @@ func editorAction(label, action string, disabled bool) templ.Component {
 		var templ_7745c5c3_Var49 string
 		templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 422, Col: 9}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 426, Col: 9}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 		if templ_7745c5c3_Err != nil {
@@ -1184,7 +1188,7 @@ func numberField(name, label, value, step string) templ.Component {
 		var templ_7745c5c3_Var51 string
 		templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 427, Col: 42}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 431, Col: 42}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var51)
 		if templ_7745c5c3_Err != nil {
@@ -1197,7 +1201,7 @@ func numberField(name, label, value, step string) templ.Component {
 		var templ_7745c5c3_Var52 string
 		templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 427, Col: 52}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 431, Col: 52}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 		if templ_7745c5c3_Err != nil {
@@ -1210,7 +1214,7 @@ func numberField(name, label, value, step string) templ.Component {
 		var templ_7745c5c3_Var53 string
 		templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.ResolveAttributeValue(step)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 428, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 432, Col: 85}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var53)
 		if templ_7745c5c3_Err != nil {
@@ -1223,7 +1227,7 @@ func numberField(name, label, value, step string) templ.Component {
 		var templ_7745c5c3_Var54 string
 		templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 428, Col: 97}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 432, Col: 97}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var54)
 		if templ_7745c5c3_Err != nil {
@@ -1236,7 +1240,7 @@ func numberField(name, label, value, step string) templ.Component {
 		var templ_7745c5c3_Var55 string
 		templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 428, Col: 111}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 432, Col: 111}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var55)
 		if templ_7745c5c3_Err != nil {
@@ -1249,7 +1253,7 @@ func numberField(name, label, value, step string) templ.Component {
 		var templ_7745c5c3_Var56 string
 		templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.ResolveAttributeValue(value)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 428, Col: 127}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 432, Col: 127}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var56)
 		if templ_7745c5c3_Err != nil {
@@ -1293,7 +1297,7 @@ func itemFields(prefix string, m *requirements.Matcher, title, placeholder strin
 		var templ_7745c5c3_Var58 string
 		templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.ResolveAttributeValue(prefix + "label")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 436, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 440, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var58)
 		if templ_7745c5c3_Err != nil {
@@ -1306,7 +1310,7 @@ func itemFields(prefix string, m *requirements.Matcher, title, placeholder strin
 		var templ_7745c5c3_Var59 string
 		templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 436, Col: 64}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 440, Col: 64}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
 		if templ_7745c5c3_Err != nil {
@@ -1319,7 +1323,7 @@ func itemFields(prefix string, m *requirements.Matcher, title, placeholder strin
 		var templ_7745c5c3_Var60 string
 		templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.ResolveAttributeValue(prefix + "label")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 437, Col: 53}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 441, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var60)
 		if templ_7745c5c3_Err != nil {
@@ -1332,7 +1336,7 @@ func itemFields(prefix string, m *requirements.Matcher, title, placeholder strin
 		var templ_7745c5c3_Var61 string
 		templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.ResolveAttributeValue(prefix + "label")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 437, Col: 79}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 441, Col: 79}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var61)
 		if templ_7745c5c3_Err != nil {
@@ -1345,7 +1349,7 @@ func itemFields(prefix string, m *requirements.Matcher, title, placeholder strin
 		var templ_7745c5c3_Var62 string
 		templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.ResolveAttributeValue(m.Label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 437, Col: 97}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 441, Col: 97}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var62)
 		if templ_7745c5c3_Err != nil {
@@ -1358,7 +1362,7 @@ func itemFields(prefix string, m *requirements.Matcher, title, placeholder strin
 		var templ_7745c5c3_Var63 string
 		templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.ResolveAttributeValue(placeholder)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 437, Col: 125}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 441, Col: 125}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var63)
 		if templ_7745c5c3_Err != nil {
@@ -1408,7 +1412,7 @@ func matcherFields(prefix string, m *requirements.Matcher, title string) templ.C
 		var templ_7745c5c3_Var65 string
 		templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 450, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 454, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var65))
 		if templ_7745c5c3_Err != nil {
@@ -1421,7 +1425,7 @@ func matcherFields(prefix string, m *requirements.Matcher, title string) templ.C
 		var templ_7745c5c3_Var66 string
 		templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinStringErrs(requirements.DescribeMatcher(*m))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 450, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 454, Col: 85}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 		if templ_7745c5c3_Err != nil {
@@ -1454,7 +1458,7 @@ func matcherFields(prefix string, m *requirements.Matcher, title string) templ.C
 		var templ_7745c5c3_Var67 string
 		templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.ResolveAttributeValue(prefix + "dir")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 457, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 461, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var67)
 		if templ_7745c5c3_Err != nil {
@@ -1467,7 +1471,7 @@ func matcherFields(prefix string, m *requirements.Matcher, title string) templ.C
 		var templ_7745c5c3_Var68 string
 		templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.ResolveAttributeValue(prefix + "dir")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 459, Col: 32}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 463, Col: 32}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var68)
 		if templ_7745c5c3_Err != nil {
@@ -1480,7 +1484,7 @@ func matcherFields(prefix string, m *requirements.Matcher, title string) templ.C
 		var templ_7745c5c3_Var69 string
 		templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.ResolveAttributeValue(prefix + "dir")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 459, Col: 56}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 463, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var69)
 		if templ_7745c5c3_Err != nil {
@@ -1553,7 +1557,7 @@ func matcherFields(prefix string, m *requirements.Matcher, title string) templ.C
 		var templ_7745c5c3_Var70 string
 		templ_7745c5c3_Var70, templ_7745c5c3_Err = templ.ResolveAttributeValue(prefix + "fig")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 475, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 479, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var70)
 		if templ_7745c5c3_Err != nil {
@@ -1566,7 +1570,7 @@ func matcherFields(prefix string, m *requirements.Matcher, title string) templ.C
 		var templ_7745c5c3_Var71 string
 		templ_7745c5c3_Var71, templ_7745c5c3_Err = templ.ResolveAttributeValue(prefix + "fig")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 476, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 480, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var71)
 		if templ_7745c5c3_Err != nil {
@@ -1579,7 +1583,7 @@ func matcherFields(prefix string, m *requirements.Matcher, title string) templ.C
 		var templ_7745c5c3_Var72 string
 		templ_7745c5c3_Var72, templ_7745c5c3_Err = templ.ResolveAttributeValue(prefix + "fig")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 476, Col: 78}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 480, Col: 78}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var72)
 		if templ_7745c5c3_Err != nil {
@@ -1592,7 +1596,7 @@ func matcherFields(prefix string, m *requirements.Matcher, title string) templ.C
 		var templ_7745c5c3_Var73 string
 		templ_7745c5c3_Var73, templ_7745c5c3_Err = templ.ResolveAttributeValue(m.FIG)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 476, Col: 94}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 480, Col: 94}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var73)
 		if templ_7745c5c3_Err != nil {
@@ -1646,7 +1650,7 @@ func checkboxes(name, label string, options, chosen []string) templ.Component {
 		var templ_7745c5c3_Var75 string
 		templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 488, Col: 38}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 492, Col: 38}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var75))
 		if templ_7745c5c3_Err != nil {
@@ -1664,7 +1668,7 @@ func checkboxes(name, label string, options, chosen []string) templ.Component {
 			var templ_7745c5c3_Var76 string
 			templ_7745c5c3_Var76, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 491, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 495, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var76)
 			if templ_7745c5c3_Err != nil {
@@ -1677,7 +1681,7 @@ func checkboxes(name, label string, options, chosen []string) templ.Component {
 			var templ_7745c5c3_Var77 string
 			templ_7745c5c3_Var77, templ_7745c5c3_Err = templ.ResolveAttributeValue(o)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 491, Col: 50}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 495, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var77)
 			if templ_7745c5c3_Err != nil {
@@ -1700,7 +1704,7 @@ func checkboxes(name, label string, options, chosen []string) templ.Component {
 			var templ_7745c5c3_Var78 string
 			templ_7745c5c3_Var78, templ_7745c5c3_Err = templ.JoinStringErrs(o)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 492, Col: 7}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 496, Col: 7}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var78))
 			if templ_7745c5c3_Err != nil {
@@ -1824,7 +1828,7 @@ func builtinGroup(name string, sets []requirements.Builtin) templ.Component {
 		var templ_7745c5c3_Var80 string
 		templ_7745c5c3_Var80, templ_7745c5c3_Err = templ.JoinStringErrs(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 577, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 581, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var80))
 		if templ_7745c5c3_Err != nil {
@@ -1837,7 +1841,7 @@ func builtinGroup(name string, sets []requirements.Builtin) templ.Component {
 		var templ_7745c5c3_Var81 string
 		templ_7745c5c3_Var81, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(sets)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 577, Col: 71}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 581, Col: 71}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var81))
 		if templ_7745c5c3_Err != nil {
@@ -1855,7 +1859,7 @@ func builtinGroup(name string, sets []requirements.Builtin) templ.Component {
 			var templ_7745c5c3_Var82 string
 			templ_7745c5c3_Var82, templ_7745c5c3_Err = templ.JoinStringErrs(b.Set.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 582, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 586, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var82))
 			if templ_7745c5c3_Err != nil {
@@ -1873,7 +1877,7 @@ func builtinGroup(name string, sets []requirements.Builtin) templ.Component {
 				var templ_7745c5c3_Var83 string
 				templ_7745c5c3_Var83, templ_7745c5c3_Err = templ.JoinStringErrs(b.Set.Description)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 584, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 588, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var83))
 				if templ_7745c5c3_Err != nil {
@@ -1892,7 +1896,7 @@ func builtinGroup(name string, sets []requirements.Builtin) templ.Component {
 				var templ_7745c5c3_Var84 string
 				templ_7745c5c3_Var84, templ_7745c5c3_Err = templ.JoinStringErrs(b.Set.Source)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 587, Col: 41}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 591, Col: 41}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var84))
 				if templ_7745c5c3_Err != nil {
@@ -1911,7 +1915,7 @@ func builtinGroup(name string, sets []requirements.Builtin) templ.Component {
 				var templ_7745c5c3_Var85 string
 				templ_7745c5c3_Var85, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(routine)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 591, Col: 45}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 595, Col: 45}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var85))
 				if templ_7745c5c3_Err != nil {
@@ -1929,7 +1933,7 @@ func builtinGroup(name string, sets []requirements.Builtin) templ.Component {
 					var templ_7745c5c3_Var86 string
 					templ_7745c5c3_Var86, templ_7745c5c3_Err = templ.JoinStringErrs(m)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 594, Col: 17}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 598, Col: 17}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var86))
 					if templ_7745c5c3_Err != nil {
@@ -1952,7 +1956,7 @@ func builtinGroup(name string, sets []requirements.Builtin) templ.Component {
 				var templ_7745c5c3_Var87 string
 				templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinStringErrs(rulesCount(len(b.Set.Rules)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 600, Col: 47}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 604, Col: 47}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
 				if templ_7745c5c3_Err != nil {
@@ -1970,7 +1974,7 @@ func builtinGroup(name string, sets []requirements.Builtin) templ.Component {
 					var templ_7745c5c3_Var88 string
 					templ_7745c5c3_Var88, templ_7745c5c3_Err = templ.JoinStringErrs(requirements.Describe(rule))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 603, Col: 43}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 607, Col: 43}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var88))
 					if templ_7745c5c3_Err != nil {
@@ -1993,7 +1997,7 @@ func builtinGroup(name string, sets []requirements.Builtin) templ.Component {
 			var templ_7745c5c3_Var89 string
 			templ_7745c5c3_Var89, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("duplicateBuiltin('%s')", b.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 610, Col: 108}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sets.templ`, Line: 614, Col: 108}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var89)
 			if templ_7745c5c3_Err != nil {

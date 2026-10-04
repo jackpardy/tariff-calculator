@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"tariffCalculator/requirements"
 	"tariffCalculator/skills"
 	"tariffCalculator/static"
 )
@@ -60,6 +61,7 @@ templ ViewPage() {
 			<script defer src={ static.URL("js/sets.js") }></script>
 			<script defer src={ static.URL("js/menus.js") }></script>
 			<script defer src={ static.URL("js/view.js") }></script>
+			@templ.JSONScript("level-data", levelData(requirements.BuiltinGroups()))
 		</head>
 		<body>
 			<nav class="view-bar">
@@ -173,7 +175,7 @@ func levelLine(c DisplayColumn) string {
 	if !strings.Contains(name, exercise) {
 		parts = append(parts, exercise)
 	}
-	if c.Option {
+	if c.Option && !strings.Contains(name, "set") {
 		parts = append(parts, "set routine")
 	}
 	if len(parts) > 0 {

@@ -47,10 +47,10 @@ routine, and the elements involved are highlighted. Choosing requirements that
 are a [set routine](../requirements/set-routines.md) offers to load it as a new
 routine or to replace the current one.
 
-Choosing a [level](../requirements/levels.md) instead makes the routine one of
-its two exercises, with controls to pick the exercise, choose between its
-options (e.g. set routine option 1 or 2), and pair it with the routine doing the
-other exercise, or start one and show the two side by side.
+Choosing a [level](../requirements/levels.md) instead gives the routine a tab
+for each of the level's options, e.g. Set 1, Set 2 and Voluntary: the set
+routines as prescribed, and the voluntary as the coach's own skills, with
+**Copy into the voluntary** to start it from a set.
 
 ## Checks
 

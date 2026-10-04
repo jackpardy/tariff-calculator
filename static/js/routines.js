@@ -1,8 +1,9 @@
 // routines.js: the routines saved in this browser, shared by the calculator, the
-// tariff sheet and the compare page. Each routine is {id, name, skills}; one is
-// current. They are stored as {current, routines} under 'trampolineRoutines'.
-// The single routine older versions saved (under 'trampolineRoutine') becomes
-// "Routine 1".
+// tariff sheet, the view screen and the compare page. Each routine is {id, name,
+// skills}, with what it's checked against (see Exercises in sets.js for one
+// checked against a level); one is current. They are stored as {current,
+// routines} under 'trampolineRoutines'. The single routine older versions saved
+// (under 'trampolineRoutine') becomes "Routine 1".
 const RoutineStore = (() => {
     const key = 'trampolineRoutines';
     const legacyKey = 'trampolineRoutine';
@@ -32,6 +33,15 @@ const RoutineStore = (() => {
             }
         }
         state.routines = state.routines.filter((r) => r && Array.isArray(r.skills));
+        // Routines paired by level (one per exercise, with a partner) each become
+        // a level routine with tabs, holding the exercise they did.
+        for (const r of state.routines) {
+            if (r.level && !Array.isArray(r.exercises)) {
+                r.exercises = [{}, {}];
+                r.exercises[r.exercise === 2 ? 1 : 0].option = r.requirements;
+            }
+            delete r.partner;
+        }
         if (state.routines.length === 0) {
             state.routines.push({ id: newId(), name: 'Routine 1', skills: [] });
         }

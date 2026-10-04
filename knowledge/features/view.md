@@ -17,16 +17,15 @@ without scrolling, and nothing is shown that the coach hasn't asked for.
 
 The **View** button in the [routine builder](routine-builder.md) opens
 `/view?routine=<id>` for the current routine in a new tab. If the routine is
-one exercise of a [level](../requirements/levels.md), the view shows the
-level: the routine, its partner doing the other exercise, and the level's
-**set routine options that no routine is doing**, in exercise and option
-order. Viewing a BUCS L3 voluntary on its own shows option 1, option 2 and the
-voluntary. With a routine doing option 1, it shows that routine, option 2 and
-the voluntary. The page posts which option each routine does (`optionRef`,
-`pairOptionRef`) and, for a custom level, its custom requirements
-(`optionSets`). The server builds each option with `requirements.SetRoutine`.
-Options for a voluntary are requirements, not routines, so they don't show. A select in the bar switches to another
-saved routine (pairs are listed as "Q1 + Q2"), and the choice is kept in the
+checked against a [level](../requirements/levels.md), the view shows the
+level: both exercises' chosen tabs, and the level's **other set routine
+options**, in exercise and option order, named as the tabs are. A BUCS L7
+routine shows Set 1, Set 2 and the Voluntary. The page posts which option each
+exercise is on (`optionRef`, `pairOptionRef`), the tab names (`tabNames`) and,
+for a custom level, its custom requirements (`optionSets`). The server builds
+each option with `requirements.SetRoutine`. Options for a voluntary that
+aren't chosen are requirements, not skills, so they don't show. A select in the bar switches to another
+saved routine (level routines show their level), and the choice is kept in the
 URL. The view re-renders when the routines change in another tab, so it can
 stay open beside the builder.
 

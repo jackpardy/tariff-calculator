@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-04
+* **Update**: A [level](requirements/levels.md) routine holds both exercises
+  as tabs (e.g. Set 1, Set 2, Voluntary) instead of two paired routines:
+  set routines show as prescribed without loading, and a set can be copied into
+  the voluntary. On wider screens the skill card's Add button sits at the end of
+  its row instead of stretching across the card.
 * **Update**: The [view screen](features/view.md) shows a routine, or a
   level's pair, full screen without scrolling, with a Show menu to turn each
   kind of information on or off. Linked from the routine builder's View button.

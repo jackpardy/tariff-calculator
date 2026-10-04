@@ -336,6 +336,16 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 	var pair *postedRoutine
 	if r.Form.Has("pairData") {
 		pair = &postedRoutine{r.FormValue("pairData"), r.FormValue("pairSet"), r.FormValue("pairChecks")}
+		// A set routine not yet opened is the set routine its requirements describe.
+		if strings.TrimSpace(pair.data) == "" {
+			if set, err := postedSet(strings.TrimSpace(pair.set)); err == nil {
+				if routine, ok := requirements.SetRoutine(set); ok {
+					if data, err := json.Marshal(routine); err == nil {
+						pair.data = string(data)
+					}
+				}
+			}
+		}
 	}
 	// carried are a first exercise's elements whose difficulty carries over:
 	// those that score, when only some do.
@@ -637,8 +647,9 @@ func handleViewPage(w http.ResponseWriter, r *http.Request) {
 // routineName). For a level's exercise, it adds the routine doing the other
 // exercise, and the level's set routine options that no routine is doing (so
 // both options show beside the voluntary), all in exercise and option order.
-// The page posts which options the two routines use (optionRef, pairOptionRef)
-// and the JSON of any custom requirements the level uses (optionSets, by id).
+// The page posts which options the two routines use (optionRef, pairOptionRef),
+// the JSON of any custom requirements the level uses (optionSets, by id), and
+// what it calls each option (tabNames, by reference).
 func handleView(w http.ResponseWriter, r *http.Request) {
 	checked, err := checkRoutine(r)
 	if err != nil {
@@ -680,6 +691,8 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 
 	var custom map[string]json.RawMessage
 	_ = json.Unmarshal([]byte(r.FormValue("optionSets")), &custom) // none: built-in options only
+	var tabNames map[string]string
+	_ = json.Unmarshal([]byte(r.FormValue("tabNames")), &tabNames) // none: options go by their requirements' names
 	for exercise := 1; exercise <= 2; exercise++ {
 		for i, ref := range level.Exercise(exercise).Options {
 			if performed[ref] {
@@ -705,8 +718,12 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 			}
 			rv := skills.ValidateRoutineWith(routine, opts)
 			results := requirements.Evaluate(set, rv)
+			name := set.Name
+			if tabNames[ref] != "" {
+				name = tabNames[ref]
+			}
 			col := views.DisplayColumn{
-				Name: set.Name, Level: lc.Name, Exercise: exercise, Option: true,
+				Name: name, Level: lc.Name, Exercise: exercise, Option: true,
 				Validation: rv, Checks: checks, Required: requirements.RequiredElements(set, results),
 				Check: &views.RequirementCheck{SetName: set.Name, Results: results, SetRoutine: true},
 			}

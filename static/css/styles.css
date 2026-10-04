@@ -270,18 +270,22 @@
 .is-met .requirement-mark { color: #257953; }
 .is-unmet .requirement-mark { color: #cc0f35; }
 .requirement-detail { display: block; color: #777; font-size: 0.8rem; }
-.level-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
-.level-controls .buttons { flex-wrap: nowrap; }
-.level-controls .select select { max-width: 18rem; }
-.level-partner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-.level-partner-label { font-size: 0.85rem; font-weight: 600; }
+/* A level routine's tabs sit on its cards, with Copy beside them. */
+.requirement-picker:has(.level-tabs) { margin-bottom: 0; }
+.level-tabs { display: flex; align-items: flex-end; gap: 0.5rem; margin-top: 0.75rem; border-bottom: 1px solid #dbdbdb; }
+.level-tabs .tabs { flex: 1; min-width: 0; }
+.level-tabs .tabs ul { flex-wrap: wrap; border-bottom: none; }
+.level-tabs .tabs a { gap: 0.3rem; font-weight: 600; }
+.level-tabs .tabs li.is-active a { color: #485fc7; }
+.level-copy { margin-bottom: 0.35rem; flex: none; }
+.tab-chosen { font-size: 0.55rem; color: #485fc7; }
+.requirement-picker:has(.level-tabs) + .routine-view-wrap, .requirement-picker:has(.level-tabs) ~ [id^="routine-view"] { margin-top: 0.5rem; }
+.level-check { padding: 0.5rem 0.75rem; border-left: 3px solid #485fc7; background: #f5f7ff; }
+.level-check p + p { margin-top: 0.15rem; }
 .level-option { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .level-option .select { min-width: 0; }
 .level-option .select select { max-width: 26rem; }
 .level-exercises { font-size: 0.85rem; color: #555; margin: 0.15rem 0; }
-.level-check { padding: 0.5rem 0.75rem; border-left: 3px solid #485fc7; background: #f5f7ff; }
-.level-check p + p { margin-top: 0.15rem; }
-.is-comparing .level-controls .select, .is-comparing .level-controls .select select { width: 100%; max-width: 100%; }
 
 /* --- Add a skill (views.SkillFormView) --- */
 /* The editor's own box would limit how far the sticky skill card can follow the
@@ -359,6 +363,14 @@
 .skill-card-actions .add-to { flex-basis: 100%; margin-bottom: 0; }
 .skill-card-actions #add-btn { flex: 1 1 6.5rem; min-width: 0; width: auto; height: auto; min-height: 2.5rem; padding: 0.3rem 0.5rem; white-space: normal; line-height: 1.15; }
 .skill-card-actions .segment { padding: 0.35rem 0.6rem; }
+/* On wider screens everything stays on one row, and Add is a button-sized
+   button on the right rather than a bar across the card. */
+@media screen and (min-width: 769px) {
+    .skill-card-actions { flex-wrap: nowrap; align-items: center; }
+    .skill-card-actions .add-to { flex-basis: auto; flex-wrap: nowrap; }
+    .skill-card-actions #add-btn { flex: 0 1 16rem; margin-left: auto; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .skill-card-buttons { flex: 0 0 auto; margin-left: auto; }
+}
 .skill-card-buttons { flex: 1 1 auto; justify-content: flex-end; margin-bottom: 0 !important; }
 .skill-card-buttons .button { margin-bottom: 0 !important; }
 /* A shape's difference from the chosen one sits under its name. */
