@@ -119,7 +119,7 @@ func Page() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></section><footer class=\"footer\"><div class=\"content has-text-centered\"><p>2025 Trampoline Tariff Calculator</p></div></footer></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></section><footer class=\"footer\"><div class=\"content has-text-centered\"><p>Trampoline Tariff Calculator · difficulty per the FIG Trampoline Code of Points 2025–2028</p></div></footer></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
