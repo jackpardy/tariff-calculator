@@ -76,7 +76,11 @@ accounts: routines live in the browser.
 6. **Where sets live.** Built-in sets ship embedded in the binary as JSON, each naming its
    source document and season. Custom sets live in the browser alongside saved routines,
    and can be created from scratch, duplicated from a built-in or another set, edited,
-   exported and imported. When accounts arrive, the same JSON moves into the database.
+   exported and imported. They are shared, with routines, by link: the link carries the
+   compressed JSON after "#share=", so nothing is stored on the server, and opening it
+   offers to add what it carries (a routine brings the custom set it's checked
+   against). A QR code of the link suits sharing in person. When accounts arrive, the
+   same JSON moves into the database.
 
 7. **The editor follows the skill editor's pattern**: the browser posts the set being
    edited, the server parses and validates it into the model and re-renders the editor,

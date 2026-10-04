@@ -24,6 +24,7 @@ templ Page(groups []requirements.BuiltinGroup) {
 			<script defer src={ static.URL("js/sortable.min.js") }></script>
 			<script defer src={ static.URL("js/routines.js") }></script>
 			<script defer src={ static.URL("js/sets.js") }></script>
+			<script defer src={ static.URL("js/share.js") }></script>
 			<script defer src={ static.URL("js/menus.js") }></script>
 			// app.js defines the Alpine component, so it must run before Alpine (all deferred, in order).
 			<script defer src={ static.URL("js/app.js") }></script>
@@ -84,6 +85,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 					</select>
 				</div>
 				<button class="button is-small" type="button" x-on:click="newRoutine()">+ New</button>
+				<button class="button is-small" type="button" x-on:click="Share.open('routines', [currentId])">Share</button>
 				<details class="routine-menu" data-menu>
 					<summary class="button is-small">More</summary>
 					// Close the menu after any choice.

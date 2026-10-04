@@ -246,8 +246,11 @@
 .routine-skill.not-counted { opacity: 0.55; }
 
 /* Saved routines: the switcher above the routine. */
-.routine-switcher { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
-.routine-switcher .select select { max-width: 14rem; }
+.routine-switcher { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.4rem; margin-bottom: 1rem; }
+/* The routine's name gives way so New, Share and More stay on the row. */
+.routine-switcher > .select { flex: 0 1 auto; min-width: 0; }
+.routine-switcher .select select { max-width: 14rem; width: 100%; text-overflow: ellipsis; }
+.routine-switcher > .button, .routine-switcher > details { flex-shrink: 0; }
 .routine-menu { position: relative; }
 .routine-menu > summary { list-style: none; display: inline-flex; box-sizing: border-box; margin-bottom: 0; }
 .routine-menu > summary::-webkit-details-marker { display: none; }
@@ -460,3 +463,21 @@ details > * { box-sizing: border-box; }
 .scored-elements { display: inline-flex; align-items: center; gap: 0.35rem; }
 .scores-tag { margin-left: 0.35rem; font-size: 0.7rem !important; height: 1.5em !important; vertical-align: middle; }
 .scored-input { width: 4.5rem; }
+
+/* --- Share links (static/js/share.js) --- */
+.share-modal .modal-card { width: calc(100% - 2rem); max-width: 28rem; margin: 0 auto; border-radius: 10px; }
+.share-modal .modal-card-body { border-radius: 10px; max-height: calc(100vh - 3rem); overflow-y: auto; }
+.share-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.share-intro { font-size: 0.9rem; color: #555; margin-bottom: 0.6rem; }
+.share-choices { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.75rem; max-height: 14rem; overflow-y: auto; }
+.share-choice { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.45rem 0.6rem; border: 1px solid #e3e3e3; border-radius: 6px; }
+.share-choice:has(input:checked) { border-color: #485fc7; background: #eef1fb; }
+.share-choice input { margin-top: 0.25rem; }
+.share-choice-name { display: block; font-weight: 600; }
+.share-choice-detail { display: block; font-size: 0.8rem; color: #666; }
+.share-buttons { margin-bottom: 0.5rem !important; }
+.share-link { font-size: 0.75rem; color: #555; }
+.share-status { font-size: 0.8rem; color: #666; margin-top: 0.35rem; }
+.share-qr { display: flex; justify-content: center; margin-top: 0.75rem; }
+.share-qr svg { width: min(14rem, 70vw); height: auto; }
+.share-note { text-align: center; font-size: 0.8rem; color: #777; margin-top: 0.25rem; }

@@ -25,7 +25,9 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
 			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
 			<script src={ static.URL("js/htmx.min.js") }></script>
+			<script defer src={ static.URL("js/routines.js") }></script>
 			<script defer src={ static.URL("js/sets.js") }></script>
+			<script defer src={ static.URL("js/share.js") }></script>
 			<script defer src={ static.URL("js/requirements.js") }></script>
 			<script defer src={ static.URL("js/alpine.min.js") }></script>
 			@templ.JSONScript("builtin-sets", builtinSets(groups))
@@ -90,6 +92,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 									<div class="buttons are-small mb-0">
 										<button class="button is-small" type="button" x-on:click="edit(s.id)">Edit</button>
 										<button class="button is-small" type="button" x-on:click="duplicate(s.set)">Duplicate</button>
+										<button class="button is-small" type="button" x-on:click="Share.open('sets', [s.id])">Share</button>
 										<button class="button is-small" type="button" x-on:click="exportSet(s.set)">Export</button>
 										<button class="button is-small is-danger is-outlined" type="button" x-on:click="remove(s.id)">Delete</button>
 									</div>

@@ -454,8 +454,8 @@ func TestIndexRendersThePage(t *testing.T) {
 	}
 	// Every asset is linked by a versioned URL that the server actually serves.
 	links := regexp.MustCompile(`(?:href|src)="(/static/[^"]+)"`).FindAllStringSubmatch(html, -1)
-	if len(links) != 10 {
-		t.Errorf("found %d asset links, want 10 (2 CSS, 8 JS)", len(links))
+	if len(links) != 11 {
+		t.Errorf("found %d asset links, want 11 (2 CSS, 9 JS)", len(links))
 	}
 	for _, l := range links {
 		u := strings.ReplaceAll(l[1], "&amp;", "&")
@@ -1007,5 +1007,33 @@ func TestScoredElements(t *testing.T) {
 	}
 	if strings.Join(got, ",") != ",,0.7,0.8,1.5" || strings.Contains(sheet, "not-counted") {
 		t.Errorf("the sheet shows values for the scoring elements only: %v", got)
+	}
+}
+
+func TestQRCode(t *testing.T) {
+	rec := postForm(t, "/qr", url.Values{"text": {"https://example.test/#share=abc"}})
+	svg := rec.Body.String()
+	if rec.Code != http.StatusOK || rec.Header().Get("Content-Type") != "image/svg+xml" || !strings.HasPrefix(svg, "<svg") || !strings.Contains(svg, `<path d="M4 4h7v1h-7z`) {
+		t.Errorf("a QR code SVG with its finder pattern 4 modules in: %d %.120s", rec.Code, svg)
+	}
+	if rec := postForm(t, "/qr", url.Values{"text": {""}}); rec.Code != http.StatusBadRequest {
+		t.Errorf("nothing to encode: status %d", rec.Code)
+	}
+	if rec := postForm(t, "/qr", url.Values{"text": {strings.Repeat("x", 5000)}}); rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "too much for one QR code") {
+		t.Errorf("too long: status %d %s", rec.Code, rec.Body)
+	}
+}
+
+// Both pages can share: the builder its routines, the requirements page its sets.
+func TestSharing(t *testing.T) {
+	for path, want := range map[string]string{
+		"/":             `Share.open('routines', [currentId])`,
+		"/requirements": `Share.open('sets', [s.id])`,
+	} {
+		rec := httptest.NewRecorder()
+		routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if body := rec.Body.String(); !strings.Contains(body, "js/share.js") || !strings.Contains(body, want) {
+			t.Errorf("%s should load share.js and offer to share", path)
+		}
 	}
 }

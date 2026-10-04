@@ -7,6 +7,7 @@ tool github.com/a-h/templ/cmd/templ
 require (
 	github.com/a-h/templ v0.3.1020
 	golang.org/x/net v0.51.0
+	rsc.io/qr v0.2.0
 )
 
 require (

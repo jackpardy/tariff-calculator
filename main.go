@@ -55,6 +55,7 @@ func routes() http.Handler {
 	mux.HandleFunc("POST /calculate-skill", handleCalculateSkill)
 	mux.HandleFunc("POST /routine", handleRoutineView)
 	mux.HandleFunc("POST /set-routine", handleSetRoutine)
+	mux.HandleFunc("POST /qr", handleQR)
 	mux.HandleFunc("GET /compare", handleComparePage)
 	mux.HandleFunc("POST /compare", handleCompare)
 	mux.HandleFunc("GET /requirements", handleRequirementsPage)
