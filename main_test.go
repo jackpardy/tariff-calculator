@@ -65,6 +65,9 @@ func TestRoutineViewFlagsSkills(t *testing.T) {
 			t.Errorf("card %d should be shown as not counted", i+1)
 		}
 	}
+	if !strings.Contains(cards[0], `aria-label="Issue: Must Start From Feet"`) {
+		t.Errorf("a card with a problem should show the ⚠️ marker in its header")
+	}
 	if strings.Contains(cards[0], "not-counted") {
 		t.Errorf("card 1 comes before the interruption and should count")
 	}

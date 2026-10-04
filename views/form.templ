@@ -40,10 +40,10 @@ const maxTwistInputs = 4
 // whether shape (and straddle) apply. Add/Update post the form to the server and
 // hand the calculated skill to the page's Alpine component.
 templ SkillFormView(f SkillForm) {
-	<form id="main-form" class="columns is-multiline is-align-items-flex-end" x-on:submit.prevent>
+	<form id="main-form" class="columns is-mobile is-multiline is-align-items-flex-end" x-on:submit.prevent>
 		<input type="hidden" name="editIndex" value={ strconv.Itoa(f.EditIndex) }/>
 		// Common skills, with their sort order.
-		<div class="column is-6 is-8-tablet">
+		<div class="column is-12-mobile is-8-tablet">
 			<div class="field is-clearfix">
 				<div class="is-pulled-right" style="margin-left: 1em;">
 					<div class="select is-small">
@@ -81,9 +81,10 @@ templ SkillFormView(f SkillForm) {
 				</div>
 			</div>
 		</div>
+		// Column sizes: phones get their own (-mobile) layout; tablet and up keep the desktop grid.
 		// Custom name sits outside the re-rendered inputs so choosing a common skill keeps it.
 		// The official name is always derived from the skill's parameters.
-		<div class="column is-4">
+		<div class="column is-12-mobile is-4-tablet">
 			<div class="field">
 				<label class="label" for="custom-name">Custom Name (Optional)</label>
 				<div class="control">
@@ -112,9 +113,9 @@ templ SkillFormView(f SkillForm) {
 			@SkillInputs(f.Skill)
 		</div>
 		// Actions.
-		<div class="column is-2">
+		<div class="column is-6-mobile is-2-tablet">
 			<div class="field">
-				<label class="label">&nbsp;</label>
+				<label class="label is-hidden-mobile">&nbsp;</label>
 				if f.EditIndex < 0 {
 					<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled="busy">
 						Add to Routine
@@ -126,9 +127,9 @@ templ SkillFormView(f SkillForm) {
 				}
 			</div>
 		</div>
-		<div class="column is-2">
+		<div class="column is-6-mobile is-2-tablet">
 			<div class="field">
-				<label class="label">&nbsp;</label>
+				<label class="label is-hidden-mobile">&nbsp;</label>
 				<button
 					type="button"
 					class="button is-info is-fullwidth"
@@ -140,9 +141,9 @@ templ SkillFormView(f SkillForm) {
 				</button>
 			</div>
 		</div>
-		<div class="column is-3">
+		<div class="column is-12-mobile is-3-tablet">
 			<div class="field">
-				<label class="label">&nbsp;</label>
+				<label class="label is-hidden-mobile">&nbsp;</label>
 				if f.EditIndex >= 0 {
 					<div class="control">
 						<button type="button" id="cancel-btn" class="button is-light is-fullwidth" x-on:click="cancelEdit()">
@@ -170,7 +171,7 @@ templ CommonSkillOptions(options []CommonSkillOption, selected string) {
 // hidden when shape is not part of the skill's identity, and straddle is only
 // offered for basic jumps.
 templ SkillInputs(s skills.TrampolineSkill) {
-	<div class="column is-2">
+	<div class="column is-4-mobile is-2-tablet">
 		<div class="field">
 			<label class="label" for="rotation">Rotation (1/4s)</label>
 			<div class="control">
@@ -188,7 +189,7 @@ templ SkillInputs(s skills.TrampolineSkill) {
 			</div>
 		</div>
 	</div>
-	<div class="column is-4">
+	<div class="column is-8-mobile is-4-tablet">
 		<label class="label">Twist (1/2s per S/S)</label>
 		<div class="columns is-mobile is-multiline is-gapless">
 			for i, twist := range twistSlots(s) {
@@ -212,7 +213,7 @@ templ SkillInputs(s skills.TrampolineSkill) {
 			}
 		</div>
 	</div>
-	<div class="column is-2">
+	<div class="column is-6-mobile is-2-tablet">
 		<div class="field">
 			<label class="label" for="takeoff_position">Takeoff</label>
 			<div class="select is-fullwidth">
@@ -225,7 +226,7 @@ templ SkillInputs(s skills.TrampolineSkill) {
 		</div>
 	</div>
 	// The column keeps its slot so the action buttons stay aligned; only the field hides.
-	<div class="column is-2">
+	<div class="column is-6-mobile is-2-tablet">
 		<div class={ "field", templ.KV("is-hidden", !s.ShapeIsRelevant()) }>
 			<label class="label" for="shape">Shape</label>
 			<div class="select is-fullwidth">
@@ -239,7 +240,7 @@ templ SkillInputs(s skills.TrampolineSkill) {
 			</div>
 		</div>
 	</div>
-	<div class="column is-2">
+	<div class="column is-12-mobile is-2-tablet">
 		<div class="field is-grouped is-grouped-multiline">
 			<div class="control">
 				<label class="checkbox">

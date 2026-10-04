@@ -68,7 +68,7 @@ func SkillFormView(f SkillForm) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<form id=\"main-form\" class=\"columns is-multiline is-align-items-flex-end\" x-on:submit.prevent><input type=\"hidden\" name=\"editIndex\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<form id=\"main-form\" class=\"columns is-mobile is-multiline is-align-items-flex-end\" x-on:submit.prevent><input type=\"hidden\" name=\"editIndex\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -81,7 +81,7 @@ func SkillFormView(f SkillForm) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><div class=\"column is-6 is-8-tablet\"><div class=\"field is-clearfix\"><div class=\"is-pulled-right\" style=\"margin-left: 1em;\"><div class=\"select is-small\"><select id=\"common-skills-sort\" name=\"sortBy\" aria-label=\"Sort common skills\" hx-get=\"/common-skills-options\" hx-trigger=\"change\" hx-target=\"#common-skills\" hx-include=\"#common-skills\" x-on:change=\"rememberSort($event.target.value)\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><div class=\"column is-12-mobile is-8-tablet\"><div class=\"field is-clearfix\"><div class=\"is-pulled-right\" style=\"margin-left: 1em;\"><div class=\"select is-small\"><select id=\"common-skills-sort\" name=\"sortBy\" aria-label=\"Sort common skills\" hx-get=\"/common-skills-options\" hx-trigger=\"change\" hx-target=\"#common-skills\" hx-include=\"#common-skills\" x-on:change=\"rememberSort($event.target.value)\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -135,14 +135,14 @@ func SkillFormView(f SkillForm) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</select></div></div></div></div><div class=\"column is-4\"><div class=\"field\"><label class=\"label\" for=\"custom-name\">Custom Name (Optional)</label><div class=\"control\"><input class=\"input\" type=\"text\" id=\"custom-name\" name=\"custom_name\" maxlength=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</select></div></div></div></div><div class=\"column is-12-mobile is-4-tablet\"><div class=\"field\"><label class=\"label\" for=\"custom-name\">Custom Name (Optional)</label><div class=\"control\"><input class=\"input\" type=\"text\" id=\"custom-name\" name=\"custom_name\" maxlength=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(skills.MaxCustomNameLength))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 95, Col: 58}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 96, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 		if templ_7745c5c3_Err != nil {
@@ -155,7 +155,7 @@ func SkillFormView(f SkillForm) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(f.Skill.CustomName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 96, Col: 32}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 97, Col: 32}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 		if templ_7745c5c3_Err != nil {
@@ -169,7 +169,7 @@ func SkillFormView(f SkillForm) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div><div class=\"column is-2\"><div class=\"field\"><label class=\"label\">&nbsp;</label> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div><div class=\"column is-6-mobile is-2-tablet\"><div class=\"field\"><label class=\"label is-hidden-mobile\">&nbsp;</label> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -184,7 +184,7 @@ func SkillFormView(f SkillForm) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div></div><div class=\"column is-2\"><div class=\"field\"><label class=\"label\">&nbsp;</label> <button type=\"button\" class=\"button is-info is-fullwidth\" hx-post=\"/skill-evaluation\" hx-target=\"#evaluation-preview\" hx-include=\"#main-form\">Evaluate Skill</button></div></div><div class=\"column is-3\"><div class=\"field\"><label class=\"label\">&nbsp;</label> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div></div><div class=\"column is-6-mobile is-2-tablet\"><div class=\"field\"><label class=\"label is-hidden-mobile\">&nbsp;</label> <button type=\"button\" class=\"button is-info is-fullwidth\" hx-post=\"/skill-evaluation\" hx-target=\"#evaluation-preview\" hx-include=\"#main-form\">Evaluate Skill</button></div></div><div class=\"column is-12-mobile is-3-tablet\"><div class=\"field\"><label class=\"label is-hidden-mobile\">&nbsp;</label> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -241,7 +241,7 @@ func CommonSkillOptions(options []CommonSkillOption, selected string) templ.Comp
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(o.Key)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 164, Col: 23}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 165, Col: 23}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 			if templ_7745c5c3_Err != nil {
@@ -264,7 +264,7 @@ func CommonSkillOptions(options []CommonSkillOption, selected string) templ.Comp
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s (%.1f)", o.Name, o.Tariff))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 164, Col: 102}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 165, Col: 102}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -304,14 +304,14 @@ func SkillInputs(s skills.TrampolineSkill) templ.Component {
 			templ_7745c5c3_Var10 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<div class=\"column is-2\"><div class=\"field\"><label class=\"label\" for=\"rotation\">Rotation (1/4s)</label><div class=\"control\"><input class=\"input\" type=\"number\" id=\"rotation\" name=\"rotation\" min=\"0\" max=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<div class=\"column is-4-mobile is-2-tablet\"><div class=\"field\"><label class=\"label\" for=\"rotation\">Rotation (1/4s)</label><div class=\"control\"><input class=\"input\" type=\"number\" id=\"rotation\" name=\"rotation\" min=\"0\" max=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(skills.MaxRotation))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 183, Col: 43}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 184, Col: 43}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 		if templ_7745c5c3_Err != nil {
@@ -324,13 +324,13 @@ func SkillInputs(s skills.TrampolineSkill) templ.Component {
 		var templ_7745c5c3_Var12 string
 		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(s.Rotation))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 185, Col: 37}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 186, Col: 37}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\" required></div></div></div><div class=\"column is-4\"><label class=\"label\">Twist (1/2s per S/S)</label><div class=\"columns is-mobile is-multiline is-gapless\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\" required></div></div></div><div class=\"column is-8-mobile is-4-tablet\"><label class=\"label\">Twist (1/2s per S/S)</label><div class=\"columns is-mobile is-multiline is-gapless\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -342,7 +342,7 @@ func SkillInputs(s skills.TrampolineSkill) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("twist-%d", i+1))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 200, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 201, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 			if templ_7745c5c3_Err != nil {
@@ -355,7 +355,7 @@ func SkillInputs(s skills.TrampolineSkill) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("Half twists in phase %d", i+1))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 202, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 203, Col: 63}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 			if templ_7745c5c3_Err != nil {
@@ -368,7 +368,7 @@ func SkillInputs(s skills.TrampolineSkill) templ.Component {
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(twist))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 204, Col: 34}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 205, Col: 34}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 			if templ_7745c5c3_Err != nil {
@@ -395,7 +395,7 @@ func SkillInputs(s skills.TrampolineSkill) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div></div><div class=\"column is-2\"><div class=\"field\"><label class=\"label\" for=\"takeoff_position\">Takeoff</label><div class=\"select is-fullwidth\"><select name=\"takeoff_position\" id=\"takeoff_position\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div></div><div class=\"column is-6-mobile is-2-tablet\"><div class=\"field\"><label class=\"label\" for=\"takeoff_position\">Takeoff</label><div class=\"select is-fullwidth\"><select name=\"takeoff_position\" id=\"takeoff_position\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -407,7 +407,7 @@ func SkillInputs(s skills.TrampolineSkill) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(strings.ToLower(p.String()))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 221, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 222, Col: 49}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 			if templ_7745c5c3_Err != nil {
@@ -430,7 +430,7 @@ func SkillInputs(s skills.TrampolineSkill) templ.Component {
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(p.String())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 221, Col: 101}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 222, Col: 101}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -441,7 +441,7 @@ func SkillInputs(s skills.TrampolineSkill) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</select></div></div></div><div class=\"column is-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</select></div></div></div><div class=\"column is-6-mobile is-2-tablet\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -476,7 +476,7 @@ func SkillInputs(s skills.TrampolineSkill) templ.Component {
 				var templ_7745c5c3_Var20 string
 				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.ResolveAttributeValue(strings.ToLower(shape.String()))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 235, Col: 54}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 236, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var20)
 				if templ_7745c5c3_Err != nil {
@@ -499,7 +499,7 @@ func SkillInputs(s skills.TrampolineSkill) templ.Component {
 				var templ_7745c5c3_Var21 string
 				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(shape.String())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 235, Col: 104}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 236, Col: 104}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 				if templ_7745c5c3_Err != nil {
@@ -511,7 +511,7 @@ func SkillInputs(s skills.TrampolineSkill) templ.Component {
 				}
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "</select></div></div></div><div class=\"column is-2\"><div class=\"field is-grouped is-grouped-multiline\"><div class=\"control\"><label class=\"checkbox\"><input type=\"checkbox\" name=\"seat_landing\" id=\"seat_landing\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "</select></div></div></div><div class=\"column is-12-mobile is-2-tablet\"><div class=\"field is-grouped is-grouped-multiline\"><div class=\"control\"><label class=\"checkbox\"><input type=\"checkbox\" name=\"seat_landing\" id=\"seat_landing\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -576,7 +576,7 @@ func EvaluationView(e Evaluation) templ.Component {
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.ResolveAttributeValue(e.SkillJSON)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 270, Col: 67}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 271, Col: 67}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var23)
 		if templ_7745c5c3_Err != nil {
@@ -590,7 +590,7 @@ func EvaluationView(e Evaluation) templ.Component {
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(e.Skill.CustomName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 274, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 275, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 			if templ_7745c5c3_Err != nil {
@@ -604,7 +604,7 @@ func EvaluationView(e Evaluation) templ.Component {
 		var templ_7745c5c3_Var25 string
 		templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(e.Skill.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 276, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 277, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 		if templ_7745c5c3_Err != nil {
@@ -617,7 +617,7 @@ func EvaluationView(e Evaluation) templ.Component {
 		var templ_7745c5c3_Var26 string
 		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(e.FIGNotation)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 276, Col: 35}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 277, Col: 35}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 		if templ_7745c5c3_Err != nil {
@@ -630,7 +630,7 @@ func EvaluationView(e Evaluation) templ.Component {
 		var templ_7745c5c3_Var27 string
 		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(rotationText(e.Skill))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 281, Col: 71}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 282, Col: 71}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 		if templ_7745c5c3_Err != nil {
@@ -643,7 +643,7 @@ func EvaluationView(e Evaluation) templ.Component {
 		var templ_7745c5c3_Var28 string
 		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ReplaceAll(twistText(e.Skill), " | ", " / "))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 282, Col: 87}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 283, Col: 87}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 		if templ_7745c5c3_Err != nil {
@@ -656,7 +656,7 @@ func EvaluationView(e Evaluation) templ.Component {
 		var templ_7745c5c3_Var29 string
 		templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(e.Skill.TakeoffPosition.String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 287, Col: 81}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 288, Col: 81}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 		if templ_7745c5c3_Err != nil {
@@ -691,7 +691,7 @@ func EvaluationView(e Evaluation) templ.Component {
 		var templ_7745c5c3_Var32 string
 		templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(e.Landing.String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 290, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 291, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 		if templ_7745c5c3_Err != nil {
@@ -704,7 +704,7 @@ func EvaluationView(e Evaluation) templ.Component {
 		var templ_7745c5c3_Var33 string
 		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(e.Skill.Shape.String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 296, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 297, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 		if templ_7745c5c3_Err != nil {
@@ -717,7 +717,7 @@ func EvaluationView(e Evaluation) templ.Component {
 		var templ_7745c5c3_Var34 string
 		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2f", e.Skill.Tariff))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 297, Col: 70}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 298, Col: 70}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 		if templ_7745c5c3_Err != nil {
@@ -769,7 +769,7 @@ func positionSelect(id, name, label string) templ.Component {
 		var templ_7745c5c3_Var36 string
 		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 327, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 328, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 		if templ_7745c5c3_Err != nil {
@@ -782,7 +782,7 @@ func positionSelect(id, name, label string) templ.Component {
 		var templ_7745c5c3_Var37 string
 		templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 331, Col: 23}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 332, Col: 23}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var37)
 		if templ_7745c5c3_Err != nil {
@@ -795,7 +795,7 @@ func positionSelect(id, name, label string) templ.Component {
 		var templ_7745c5c3_Var38 string
 		templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 331, Col: 33}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/form.templ`, Line: 332, Col: 33}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var38)
 		if templ_7745c5c3_Err != nil {

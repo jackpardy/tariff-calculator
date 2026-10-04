@@ -54,7 +54,13 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool) {
 								<span class="has-text-grey">· { sv.Skill.Name }</span>
 							}
 						</p>
-						<p class="is-size-7 has-text-grey mb-0" style="white-space: nowrap; line-height: 1.2;">{ sv.FIGNotation }</p>
+						<p class="is-size-7 has-text-grey mb-0" style="white-space: nowrap; line-height: 1.2;">
+							{ sv.FIGNotation }
+							// Flags a problem while the card is collapsed; the message is in the details.
+							if message != "" {
+								<span class="has-text-danger ml-1" title={ message } aria-label={ "Issue: " + message }>⚠️</span>
+							}
+						</p>
 					</div>
 				</div>
 				// Compact button grid; clicks here must not toggle the card.
@@ -73,7 +79,7 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool) {
 					@detail("Twists", twistText(sv.Skill))
 					@detail("Landing", sv.Skill.TakeoffPosition.String()+" → "+sv.Landing.String())
 					@detail("Shape", sv.Skill.Shape.String())
-					<div class="column is-full-mobile is-narrow-tablet py-1-mobile">
+					<div class="column is-half-mobile is-narrow-tablet">
 						<p class="is-size-7-mobile">
 							<span class="has-text-grey mr-1">Tariff:</span>
 							<strong class="has-text-primary">{ fmt.Sprintf("%.2f", sv.Skill.Tariff) }</strong>
@@ -91,7 +97,7 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool) {
 }
 
 templ detail(label, value string) {
-	<div class="column is-full-mobile is-narrow-tablet py-1-mobile">
+	<div class="column is-half-mobile is-narrow-tablet">
 		<p class="is-size-7-mobile">
 			<span class="has-text-grey mr-1">{ label }:</span>
 			<strong>{ value }</strong>

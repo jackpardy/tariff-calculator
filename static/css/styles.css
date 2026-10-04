@@ -110,52 +110,6 @@
     margin-left: 0.25rem; /* Reduced margin */
 }
 
-/* Mobile Responsiveness for Routine Items */
-@media screen and (max-width: 768px) {
-    .routine-skill .columns.is-mobile {
-        flex-wrap: wrap; /* Allow wrapping */
-        margin-bottom: 0; /* Remove negative margin if needed */
-    }
-
-    /* Skill details columns: Full width, allow wrapping, reset alignment */
-    .routine-skill .columns.is-mobile > .column:not(:last-child) {
-        flex-basis: 100%;
-        width: 100%;
-        margin-bottom: 0.5rem; /* Add space between details and buttons */
-        white-space: normal; /* Allow text wrapping */
-        overflow: visible;
-        justify-content: flex-start; /* Align text left */
-        padding: 0.25rem 0.5rem; /* Ensure consistent padding */
-    }
-
-    /* Button column: Full width below details, align buttons right */
-    .routine-skill .columns.is-mobile > .column:last-child {
-        flex-basis: 100%;
-        width: 100%;
-        margin-left: 0; /* Reset margin */
-        justify-content: flex-end; /* Align the buttons div itself right */
-        padding: 0.25rem 0.5rem; /* Ensure consistent padding */
-    }
-
-    /* Explicitly align buttons right within their container on mobile */
-    /* Ensure nowrap is still applied if needed, though justify-end might be enough */
-    .routine-skill .buttons.are-small {
-        justify-content: flex-end;
-        flex-wrap: nowrap; /* Explicitly prevent wrap on mobile too */
-        width: auto; /* Allow buttons group to size naturally */
-        display: inline-flex; /* Or flex, ensure it's not block */
-    }
-
-    /* Adjust text size on mobile */
-    .routine-skill p {
-        font-size: 0.9rem;
-        line-height: 1.2;
-    }
-
-    .routine-skill .has-text-primary {
-        font-size: 1rem;
-    }
-}
 /* --- End Routine Button Fixes --- */
 
 
@@ -379,47 +333,26 @@
 .routine-skill-container.sortable-ghost .routine-skill { opacity: 0.4; }
 .routine-skill-container.sortable-chosen .routine-skill { cursor: grabbing; }
 
-/* --- Mobile Layout Styles --- */
-@media screen and (max-width: 768px) {
-    .skill-name-block { margin-bottom: .5rem; padding-bottom: .6rem /* Space below this block */ }
-    .skill-details-columns {
-        flex-direction: column; /* Stack columns vertically */
-        align-items: flex-start; /* Align items left */
-    }
-    .skill-details-columns .column {
-        width: 100% !important; /* Make each column take full width */
-        flex-basis: auto !important;
-        padding-left: 0; /* Align left */
-        padding-right: 0;
-        white-space: normal; /* Allow wrapping */
-        margin-bottom: 0.25rem; /* Space between stacked items */
-        margin-left: 0 !important; /* Override ml-auto-tablet */
-    }
-    .skill-details-columns .column.is-hidden-mobile {
-        display: none !important; /* Hide the desktop spacer */
-    }
-    .skill-details-columns .column:last-child {
-        margin-bottom: 0; /* No margin on last item (buttons) */
-        width: 100% !important; /* Ensure buttons take full width */
-    }
-    .skill-details-columns .detail-label {
-        display: inline; /* Show labels */
-        font-weight: 600;
-        margin-right: 0.25em;
-    }
-    .skill-details-columns .buttons.are-small {
-        display: block; /* Let buttons flow naturally (left) */
-        margin-top: 0.2rem; /* Add space above buttons */
-    }
-    .skill-details-columns .buttons.are-small .button {
-        margin-bottom: 0.2rem; /* Space below buttons if they wrap */
-    }
-    .skill-details-columns .column { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-    .routine-skill p { line-height: .7; } /* Adjust line height */
-}
-
 /* Page header */
 .hero.is-primary { background-color: #485fc7; }
 
 /* Skills after an interruption (CoP §15.3) still show, but don't count. */
 .routine-skill.not-counted { opacity: 0.55; }
+
+/* --- Phones --- */
+@media screen and (max-width: 768px) {
+    /* Reclaim width from the nested boxes and a shorter header. */
+    .section { padding: 1.25rem 0.75rem; }
+    .hero-body { padding: 1.25rem 1rem; }
+    .hero .title { font-size: 1.5rem; }
+    .hero .subtitle { font-size: 1rem; }
+    .box { padding: 1rem; }
+    #routine-skills { padding: 0.25rem; }
+    #routine-skills .routine-skill { padding: 0.75rem; }
+
+    /* Card details sit two per row (see views.skillCard). */
+    .skill-details-columns .column { padding: 0.15rem 0.5rem; }
+    .skill-details-columns p { white-space: normal; }
+
+    .is-fixed-bottom-right { left: 1rem; }
+}
