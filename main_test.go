@@ -570,7 +570,8 @@ func TestTariffSheetPage(t *testing.T) {
 func TestTariffSheetEdgeCases(t *testing.T) {
 	elevenFronts := "[" + strings.TrimSuffix(strings.Repeat(`{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"},`, 11), ",") + "]"
 	html := postSheet(t, elevenFronts).Body.String()
-	if n := strings.Count(html, "<tr") - 2; n != 11 { // minus header and footer rows
+	body := regexp.MustCompile(`(?s)<tbody>(.*)</tbody>`).FindStringSubmatch(html)[1]
+	if n := strings.Count(body, "<tr"); n != 11 {
 		t.Errorf("11 skills should give 11 rows, got %d", n)
 	}
 	if !strings.Contains(html, "not counted (after the 10th)") {
@@ -885,6 +886,24 @@ func TestSkillCardShapeDifferences(t *testing.T) {
 	} {
 		if got := segments(shape); fmt.Sprint(got) != fmt.Sprint(want) {
 			t.Errorf("Back %s: %v, want %v", shape, got, want)
+		}
+	}
+}
+
+// The sheet's Element heading spans its Name and FIG sub-columns, and stays
+// (over FIG alone) when names are hidden.
+func TestTariffSheetElementHeading(t *testing.T) {
+	html := postSheet(t, `[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}]`).Body.String()
+	head := regexp.MustCompile(`(?s)<thead>(.*)</thead>`).FindStringSubmatch(html)[1]
+	for _, want := range []string{
+		`<th class="element element-with-names" colspan="2">Element</th>`,
+		`<th class="element element-without-names">Element</th>`,
+		`<th class="col-name">Name</th>`,
+		`<th class="fig">FIG</th>`,
+		`<th class="num" rowspan="2">No.</th>`,
+	} {
+		if !strings.Contains(head, want) {
+			t.Errorf("heading is missing %s", want)
 		}
 	}
 }
