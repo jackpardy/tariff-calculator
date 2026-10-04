@@ -4,6 +4,7 @@ package catalog
 
 import (
 	"fmt"
+	"math"
 	"slices"
 	"sort"
 	"strings"
@@ -42,6 +43,36 @@ func (e Entry) Shapes() []skills.Shape {
 	return pickerShapes
 }
 
+// ShapeOption is a shape the picker offers for an entry, with what it adds to
+// the base (tuck) tariff, e.g. +0.1 for a single somersault piked (CoP §17.1.4).
+type ShapeOption struct {
+	Shape    skills.Shape
+	Modifier float64
+}
+
+// BaseTariff is the entry's tariff in its base shape: tuck where the shape
+// makes a different skill, otherwise its own.
+func (e Entry) BaseTariff() float64 {
+	if len(e.Shapes()) == 0 {
+		return e.Skill.Tariff
+	}
+	return tariffIn(e.Skill, skills.Tuck)
+}
+
+// ShapeOptions are the entry's shapes with what each adds to the base tariff.
+func (e Entry) ShapeOptions() []ShapeOption {
+	var options []ShapeOption
+	for _, shape := range e.Shapes() {
+		options = append(options, ShapeOption{shape, math.Round((tariffIn(e.Skill, shape)-e.BaseTariff())*10) / 10})
+	}
+	return options
+}
+
+func tariffIn(s skills.TrampolineSkill, shape skills.Shape) float64 {
+	s.Shape = shape
+	return s.SetTariff()
+}
+
 // jumpShapes are the shaped jumps, each its own entry.
 var jumpShapes = []skills.Shape{skills.Tuck, skills.Pike, skills.Straddle}
 
@@ -77,7 +108,7 @@ var groups = []struct {
 }{
 	{"drops", "To seat", [][2]string{{"seatDrop", "Seat Drop"}, {"halfToSeat", "½ Twist To Seat"}}},
 	{"drops", "From seat", [][2]string{{"seatToFeet", "To Feet"}, {"seatHalfToFeet", "½ Twist To Feet"}, {"seatHalfToSeat", "½ Twist To Seat"}, {"seatHalfToFront", "½ Twist To Front"}}},
-	{"drops", "To back or front", [][2]string{{"backDrop", "Back Drop"}, {"frontDrop", "Front Drop"}, {"halfToFront", "½ Twist To Front"}}},
+	{"drops", "To back or front", [][2]string{{"backDrop", "Back Drop"}, {"halfToBack", "½ Twist To Back"}, {"frontDrop", "Front Drop"}, {"halfToFront", "½ Twist To Front"}}},
 	{"drops", "From back or front", [][2]string{{"backToFeet", "Back To Feet"}, {"backHalfToFeet", "Back ½ Twist To Feet"}, {"frontToFeet", "Front To Feet"}}},
 }
 

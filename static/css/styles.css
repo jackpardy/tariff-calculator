@@ -288,7 +288,10 @@
 .picker-shape { border: 0; border-left: 1px solid #e5e5e5; background: #fff; padding: 0.4rem 0.1rem; font: inherit; font-size: 0.8rem; color: #444; cursor: pointer; min-height: 2.25rem; }
 .picker-shape:first-child { border-left: 0; }
 .picker-shape:hover { background: #eef1fb; }
+.picker-shape { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; }
+.picker-shape-modifier { font-size: 0.7rem; color: #485fc7; font-weight: 700; }
 .picker-shape.is-selected { background: #485fc7; color: #fff; font-weight: 600; }
+.picker-shape.is-selected .picker-shape-modifier { color: #fff; }
 /* A group of related skills takes a whole row, its options in a grid. */
 .picker-group { grid-column: 1 / -1; border: 1px solid #dbdbdb; border-radius: 8px; background: #fafafa; padding: 0.5rem; }
 .picker-group-title { font-size: 0.8rem; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.03em; margin: 0 0.25rem 0.4rem; }

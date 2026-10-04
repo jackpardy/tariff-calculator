@@ -120,22 +120,28 @@ templ picker(cats []catalog.Category) {
 							hx-vals={ loadCommon(e.Key, e.Skill.Shape) }
 						>
 							<span class="picker-skill-name">{ catalog.PickerName(e.Skill) }</span>
-							<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</span>
+							// The base (tuck) tariff; the shape buttons say what other shapes add.
+							<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", e.BaseTariff()) }</span>
 						</button>
 						// ...or straight away in another shape.
-						if shapes := e.Shapes(); len(shapes) > 0 {
+						if options := e.ShapeOptions(); len(options) > 0 {
 							<div class="picker-shapes" role="group" aria-label={ "Shape for " + catalog.PickerName(e.Skill) }>
-								for _, shape := range shapes {
+								for _, o := range options {
 									<button
 										type="button"
 										class="picker-shape"
-										x-bind:class={ fmt.Sprintf("{ 'is-selected': picked === '%s' && pickedShape === '%s' }", e.ID(), shape) }
-										x-on:click={ fmt.Sprintf("picked = '%s'; pickedShape = '%s'", e.ID(), shape) }
+										x-bind:class={ fmt.Sprintf("{ 'is-selected': picked === '%s' && pickedShape === '%s' }", e.ID(), o.Shape) }
+										x-on:click={ fmt.Sprintf("picked = '%s'; pickedShape = '%s'", e.ID(), o.Shape) }
 										hx-post="/skill-inputs"
 										hx-target="#skill-editor"
 										hx-include="#main-form"
-										hx-vals={ loadCommon(e.Key, shape) }
-									>{ shape.String() }</button>
+										hx-vals={ loadCommon(e.Key, o.Shape) }
+									>
+										<span class="picker-shape-name">{ o.Shape.String() }</span>
+										if o.Modifier > 0 {
+											<span class="picker-shape-modifier">{ fmt.Sprintf("+%.1f", o.Modifier) }</span>
+										}
+									</button>
 								}
 							</div>
 						}

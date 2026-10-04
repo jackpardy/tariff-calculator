@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -130,10 +131,36 @@ func TestPickerGroups(t *testing.T) {
 	want := []string{
 		"drops To seat: Seat Drop, ½ Twist To Seat",
 		"drops From seat: To Feet, ½ Twist To Feet, ½ Twist To Seat, ½ Twist To Front",
-		"drops To back or front: Back Drop, Front Drop, ½ Twist To Front",
+		"drops To back or front: Back Drop, ½ Twist To Back, Front Drop, ½ Twist To Front",
 		"drops From back or front: Back To Feet, Back ½ Twist To Feet, Front To Feet",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("groups:\n%s", strings.Join(got, "\n"))
+	}
+}
+
+// Picker boxes show the tuck tariff, and what pike and straight add.
+func TestShapeModifiers(t *testing.T) {
+	want := map[string]string{
+		"backSomersault": "0.5: Tuck +0.0, Pike +0.1, Straight +0.1",
+		"doubleBack":     "1.1: Tuck +0.0, Pike +0.2, Straight +0.2",
+		"barani":         "0.6: Tuck +0.0, Pike +0.0, Straight +0.0", // no bonus with a twist
+		"crashDive":      "0.3: Tuck +0.0, Pike +0.0, Straight +0.0", // or under 360°
+		"rudi":           "0.8: ",                                    // shape doesn't matter
+	}
+	for _, c := range Categories() {
+		for _, e := range c.Entries {
+			w, ok := want[e.Key]
+			if !ok {
+				continue
+			}
+			var parts []string
+			for _, o := range e.ShapeOptions() {
+				parts = append(parts, fmt.Sprintf("%s +%.1f", o.Shape, o.Modifier))
+			}
+			if got := fmt.Sprintf("%.1f: %s", e.BaseTariff(), strings.Join(parts, ", ")); got != w {
+				t.Errorf("%s: %s, want %s", e.Key, got, w)
+			}
+		}
 	}
 }
