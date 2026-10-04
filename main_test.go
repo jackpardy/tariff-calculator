@@ -201,47 +201,60 @@ func TestCalculateSkillReturnsTheStoredSkill(t *testing.T) {
 	}
 }
 
-func TestSkillEvaluationRejectsInvalidForm(t *testing.T) {
-	if rec := postForm(t, "/skill-evaluation", skillFormValues("-4", "feet", "tuck", "0")); rec.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400 for a negative rotation", rec.Code)
-	}
-}
-
 func TestSkillForm(t *testing.T) {
-	t.Run("a new form adds the default skill", func(t *testing.T) {
+	t.Run("a new panel shows the default skill, ready to add", func(t *testing.T) {
 		rec := postForm(t, "/skill-form", url.Values{})
 		html := rec.Body.String()
-		if rec.Code != http.StatusOK || !strings.Contains(html, "Add to Routine") || strings.Contains(html, "Cancel Edit") {
+		if rec.Code != http.StatusOK || !strings.Contains(html, "Add to routine") || strings.Contains(html, "Update skill") {
 			t.Fatalf("status %d, body:\n%s", rec.Code, html)
 		}
 		if tag := tagWithID(t, html, "rotation"); !strings.Contains(tag, `value="4"`) {
 			t.Errorf("rotation = %s, want the default front (4)", tag)
 		}
-		if !strings.Contains(html, `<option value="tariff-asc" selected>`) {
-			t.Errorf("the default sort order should be selected")
+		// The card summarises the skill: name, notation, landing and tariff.
+		for _, want := range []string{`<p class="skill-card-name">Front Straight</p>`, "(4 - /)", "Feet → Feet", ">0.6</p>"} {
+			if !strings.Contains(html, want) {
+				t.Errorf("card is missing %q", want)
+			}
+		}
+		// Common skills are named in their usual shape and listed A-Z.
+		first := regexp.MustCompile(`<option value="([a-zA-Z]+)"`).FindStringSubmatch(html)
+		if first == nil || first[1] != "backDrop" {
+			t.Errorf("first common skill = %v, want backDrop (Back Drop)", first)
+		}
+		if !strings.Contains(html, ">Barani Tuck (0.6)</option>") {
+			t.Errorf("common skills should be named with their shape")
+		}
+		if tag := tagWithID(t, html, "skill-builder"); strings.Contains(tag, " open") {
+			t.Errorf("the builder should start closed when adding: %s", tag)
 		}
 	})
 
-	t.Run("an edit form is loaded with the skill being edited", func(t *testing.T) {
+	t.Run("an edit panel is loaded with the skill being edited", func(t *testing.T) {
 		rec := postForm(t, "/skill-form", url.Values{
 			"skill":     {`{"name":"Barani Tuck","custom_name":"Opener","rotation":4,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Tuck"}`},
 			"editIndex": {"2"},
-			"sortBy":    {"alpha-desc"},
 		})
 		html := rec.Body.String()
 		if rec.Code != http.StatusOK {
 			t.Fatalf("status %d, body %s", rec.Code, html)
 		}
-		for _, want := range []string{"Update Skill", "Cancel Edit", `name="editIndex" value="2"`, `<option value="alpha-desc" selected>`} {
+		for _, want := range []string{"Update skill", "Cancel", `name="editIndex" value="2"`, `name="builder_open" value="1"`} {
 			if !strings.Contains(html, want) {
-				t.Errorf("edit form is missing %q", want)
+				t.Errorf("edit panel is missing %q", want)
 			}
+		}
+		if strings.Contains(html, "Add to routine") {
+			t.Errorf("an edit panel should not offer Add")
 		}
 		if tag := tagWithID(t, html, "custom-name"); !strings.Contains(tag, `value="Opener"`) {
 			t.Errorf("custom name = %s", tag)
 		}
 		if tag := tagWithID(t, html, "twist-1"); !strings.Contains(tag, `value="1"`) {
 			t.Errorf("twist-1 = %s, want 1", tag)
+		}
+		if tag := tagWithID(t, html, "skill-builder"); !strings.Contains(tag, " open") {
+			t.Errorf("the builder should be open when editing: %s", tag)
 		}
 	})
 
@@ -259,8 +272,9 @@ func TestSkillForm(t *testing.T) {
 	})
 }
 
-// TestSkillInputsFollowTheSkill covers the form behaviour the server now owns:
-// twist boxes per phase, when shape is shown, and when straddle is offered.
+// TestSkillInputsFollowTheSkill covers the editor the server re-renders as the
+// skill changes: twist boxes per phase, when shape is offered, straddle, the
+// live summary, and what carries over from the form.
 func TestSkillInputsFollowTheSkill(t *testing.T) {
 	inputs := func(t *testing.T, form url.Values) string {
 		t.Helper()
@@ -270,45 +284,71 @@ func TestSkillInputsFollowTheSkill(t *testing.T) {
 		}
 		return rec.Body.String()
 	}
-	disabled := func(tag string) bool { return strings.Contains(tag, " disabled") }
 
-	t.Run("a double enables two twist boxes", func(t *testing.T) {
+	t.Run("one twist box per somersault phase", func(t *testing.T) {
 		html := inputs(t, skillFormValues("8", "feet", "tuck", "0"))
-		if disabled(tagWithID(t, html, "twist-2")) || !disabled(tagWithID(t, html, "twist-3")) {
-			t.Errorf("want twist-1..2 enabled and twist-3..4 disabled")
+		tagWithID(t, html, "twist-2")
+		if strings.Contains(html, `id="twist-3"`) {
+			t.Errorf("a double has two phases, so two twist boxes")
+		}
+		for _, want := range []string{"2 somersaults", "1st somersault: half twists", "2nd somersault: half twists"} {
+			if !strings.Contains(html, want) {
+				t.Errorf("builder is missing %q", want)
+			}
 		}
 	})
 
-	t.Run("shape is hidden for a full back", func(t *testing.T) {
+	t.Run("shape is only offered when it matters", func(t *testing.T) {
 		html := inputs(t, withValue(skillFormValues("4", "feet", "straight", "2"), "backward", "on"))
-		if !strings.Contains(html, `class="field is-hidden"`) {
-			t.Errorf("shape field should be hidden when shape does not matter")
+		if !strings.Contains(html, "Shape doesn't change this skill.") || !strings.Contains(html, `<input type="hidden" name="shape" value="straight">`) {
+			t.Errorf("a full back should keep its shape hidden and say why")
 		}
-		html = inputs(t, skillFormValues("4", "feet", "tuck", "0"))
-		if strings.Contains(html, "is-hidden") {
-			t.Errorf("shape field should show for a front")
+		html = inputs(t, skillFormValues("4", "feet", "pike", "0"))
+		if !strings.Contains(html, `value="pike" checked`) || strings.Contains(html, "Shape doesn't change") {
+			t.Errorf("a front should offer shapes with pike chosen")
 		}
 	})
 
 	t.Run("straddle is only offered for basic jumps", func(t *testing.T) {
-		if html := inputs(t, skillFormValues("0", "feet", "straddle", "0")); !strings.Contains(html, `<option value="straddle" selected>`) {
-			t.Errorf("a straddle jump should keep straddle selected")
+		if html := inputs(t, skillFormValues("0", "feet", "straddle", "0")); !strings.Contains(html, `value="straddle" checked`) {
+			t.Errorf("a straddle jump should keep straddle chosen")
 		}
 		html := inputs(t, skillFormValues("4", "feet", "straddle", "0"))
 		if strings.Contains(html, `value="straddle"`) {
 			t.Errorf("straddle should not be offered for a somersault")
 		}
-		if !strings.Contains(html, `<option value="straight" selected>`) {
+		if !strings.Contains(html, `value="straight" checked`) {
 			t.Errorf("a straddle somersault should fall back to straight")
 		}
 	})
 
-	t.Run("choosing a common skill loads it", func(t *testing.T) {
+	t.Run("the card summarises the skill as it changes", func(t *testing.T) {
+		html := inputs(t, withValue(skillFormValues("8", "feet", "pike", "1", "1"), "backward", "on"))
+		for _, want := range []string{`<p class="skill-card-name">Half Half Pike</p>`, "(8 1 1 &lt;)", ">1.5</p>"} {
+			if !strings.Contains(html, want) {
+				t.Errorf("card is missing %q", want)
+			}
+		}
+		html = inputs(t, withValue(skillFormValues("1", "feet", "straight", "0"), "seat_landing", "on"))
+		if !strings.Contains(html, "can't land") || !strings.Contains(html, "This skill can't land like that.") {
+			t.Errorf("an impossible landing should be called out on the card")
+		}
+	})
+
+	t.Run("choosing a common skill keeps the label and edit state", func(t *testing.T) {
 		form := withValue(skillFormValues("0", "feet", "straight", "0"), "load", "common")
 		form.Set("commonSkillKey", "halfOut")
+		form.Set("custom_name", "Opener")
+		form.Set("editIndex", "3")
+		form.Set("builder_open", "1")
 		html := inputs(t, form)
 		if !strings.Contains(tagWithID(t, html, "rotation"), `value="8"`) || !strings.Contains(tagWithID(t, html, "twist-2"), `value="1"`) {
 			t.Errorf("want the half-out (8, [0 1]) loaded")
+		}
+		for _, want := range []string{`value="Opener"`, `name="editIndex" value="3"`, "Update skill", `name="builder_open" value="1"`} {
+			if !strings.Contains(html, want) {
+				t.Errorf("editor is missing %q", want)
+			}
 		}
 	})
 
@@ -325,16 +365,13 @@ func TestSkillInputsFollowTheSkill(t *testing.T) {
 	})
 }
 
-func TestCommonSkillsOptions(t *testing.T) {
-	rec := httptest.NewRecorder()
-	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/common-skills-options?sortBy=alpha-asc&commonSkillKey=rudi", nil))
-	html := rec.Body.String()
-	first := regexp.MustCompile(`<option value="([a-zA-Z]+)"`).FindStringSubmatch(html)
-	if first == nil || first[1] != "backSomersault" {
-		t.Errorf("first option = %v, want backSomersault (\"Back\") for A-Z", first)
-	}
-	if !strings.Contains(html, `<option value="rudi" selected>`) {
-		t.Errorf("the current selection should be kept")
+func TestEditorReadouts(t *testing.T) {
+	// The builder reads quarter somersaults and half twists back in plain terms.
+	html := postForm(t, "/skill-inputs", skillFormValues("7", "feet", "tuck", "3", "0")).Body.String()
+	for _, want := range []string{"1¾ somersaults", "1½ twists", "No twist"} {
+		if !strings.Contains(html, want) {
+			t.Errorf("builder is missing %q", want)
+		}
 	}
 }
 
@@ -382,20 +419,14 @@ func TestCustomNames(t *testing.T) {
 		}
 	})
 
-	t.Run("evaluation preview shows and escapes the custom name", func(t *testing.T) {
+	t.Run("the editor escapes the label", func(t *testing.T) {
 		form := withValue(skillFormValues("4", "feet", "tuck", "0"), "custom_name", `"><img src=x onerror=alert(1)>`)
-		rec := postForm(t, "/skill-evaluation", form)
+		rec := postForm(t, "/skill-inputs", form)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("status = %d, body %s", rec.Code, rec.Body)
 		}
-		html := rec.Body.String()
-		if strings.Contains(html, "<img") {
-			t.Errorf("custom name was rendered unescaped:\n%s", html)
-		}
-		for _, want := range []string{"Front Tuck", "(4 - o)", "0.50", "addFromForm('evaluation-insert-position')"} {
-			if !strings.Contains(html, want) {
-				t.Errorf("preview is missing %q", want)
-			}
+		if strings.Contains(rec.Body.String(), "<img") {
+			t.Errorf("custom name was rendered unescaped:\n%s", rec.Body)
 		}
 	})
 }

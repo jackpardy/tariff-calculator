@@ -49,8 +49,6 @@ func routes() http.Handler {
 	mux.HandleFunc("GET /{$}", handleIndex)
 	mux.HandleFunc("POST /skill-form", handleSkillForm)
 	mux.HandleFunc("POST /skill-inputs", handleSkillInputs)
-	mux.HandleFunc("GET /common-skills-options", handleCommonSkillsOptions)
-	mux.HandleFunc("POST /skill-evaluation", handleSkillEvaluation)
 	mux.HandleFunc("POST /calculate-skill", handleCalculateSkill)
 	mux.HandleFunc("POST /routine", handleRoutineView)
 	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
@@ -77,52 +75,18 @@ func badRequest(w http.ResponseWriter, err error) {
 	http.Error(w, "Bad Request: "+err.Error(), http.StatusBadRequest)
 }
 
-// defaultSortBy is the common-skill order used until the user picks one.
-const defaultSortBy = "tariff-asc"
-
-// sortByFrom returns the requested common-skill sort order, or the default if
-// it is missing or unknown.
-func sortByFrom(r *http.Request) string {
-	sortBy := r.FormValue("sortBy")
-	for _, o := range views.SortOptions {
-		if o.Value == sortBy {
-			return sortBy
-		}
-	}
-	return defaultSortBy
-}
-
-// sortedCommonSkills lists the common skills, priced, in the given order; ties
-// fall back to name (or tariff for name orders) so the order is stable.
-func sortedCommonSkills(sortBy string) []views.CommonSkillOption {
+// sortedCommonSkills lists the common skills by name, each named and priced in
+// its usual shape (e.g. "Barani Tuck").
+func sortedCommonSkills() []views.CommonSkillOption {
 	list := make([]views.CommonSkillOption, 0, len(skills.CommonSkills))
 	for key, s := range skills.CommonSkills {
-		list = append(list, views.CommonSkillOption{Key: key, Name: s.Name, Tariff: s.SetTariff()})
+		list = append(list, views.CommonSkillOption{Key: key, Name: skills.FindCommonSkillName(s), Tariff: s.SetTariff()})
 	}
 	sort.Slice(list, func(i, j int) bool {
-		a, b := list[i], list[j]
-		switch sortBy {
-		case "tariff-desc":
-			if a.Tariff != b.Tariff {
-				return a.Tariff > b.Tariff
-			}
-			return a.Name < b.Name
-		case "alpha-asc":
-			if a.Name != b.Name {
-				return a.Name < b.Name
-			}
-			return a.Tariff > b.Tariff
-		case "alpha-desc":
-			if a.Name != b.Name {
-				return a.Name > b.Name
-			}
-			return a.Tariff > b.Tariff
-		default: // tariff-asc
-			if a.Tariff != b.Tariff {
-				return a.Tariff < b.Tariff
-			}
-			return a.Name < b.Name
+		if list[i].Name != list[j].Name {
+			return list[i].Name < list[j].Name
 		}
+		return list[i].Tariff < list[j].Tariff
 	})
 	return list
 }
@@ -137,10 +101,32 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.Page())
 }
 
-// handleSkillForm renders the skill form: a fresh one, or (when the page posts
-// the routine skill being edited as JSON with its index) one loaded with it.
+// prepared readies a skill for the editor: one twist per phase, straddle only for
+// basic jumps, and its official name and tariff set.
+func prepared(s skills.TrampolineSkill) skills.TrampolineSkill {
+	s.NormalizePhases()
+	if s.Shape == skills.Straddle && !s.IsBasicJump() {
+		s.Shape = skills.Straight // straddle only applies to basic jumps
+	}
+	s.Name = skills.FindCommonSkillName(s)
+	s.SetTariff()
+	return s
+}
+
+// editIndexFrom is the routine index the form is editing, or -1 when adding.
+func editIndexFrom(r *http.Request) int {
+	index, err := strconv.Atoi(r.FormValue("editIndex"))
+	if err != nil || index < 0 {
+		return -1
+	}
+	return index
+}
+
+// handleSkillForm renders the "Add a skill" panel: for the default skill, or
+// (when the page posts the routine skill being edited as JSON with its index)
+// loaded with that skill and its builder open.
 func handleSkillForm(w http.ResponseWriter, r *http.Request) {
-	form := views.SkillForm{Skill: defaultSkill(), EditIndex: -1, SortBy: sortByFrom(r)}
+	editor := views.SkillEditor{Skill: defaultSkill(), EditIndex: -1}
 
 	if raw := r.FormValue("skill"); raw != "" {
 		var s skills.TrampolineSkill
@@ -153,31 +139,34 @@ func handleSkillForm(w http.ResponseWriter, r *http.Request) {
 			badRequest(w, err)
 			return
 		}
-		index, err := strconv.Atoi(r.FormValue("editIndex"))
-		if err != nil || index < 0 {
+		if editor.EditIndex = editIndexFrom(r); editor.EditIndex < 0 {
 			badRequest(w, fmt.Errorf("invalid edit index %q", r.FormValue("editIndex")))
 			return
 		}
-		form.Skill, form.EditIndex = s, index
+		editor.Skill, editor.BuilderOpen = s, true
 	}
 
-	form.CommonSkills = sortedCommonSkills(form.SortBy)
-	render(w, r, views.SkillFormView(form))
+	editor.Skill = prepared(editor.Skill)
+	render(w, r, views.SkillFormView(views.SkillForm{Editor: editor, CommonSkills: sortedCommonSkills()}))
 }
 
-// handleSkillInputs re-renders the skill inputs, either for a common skill the
-// user just chose or for the values currently in the form. While the form holds
-// something unscorable (e.g. a rotation being typed), it answers 204 so htmx
-// leaves the user's input alone; Add and Evaluate report the problem.
+// handleSkillInputs re-renders the editor (skill card and builder), either for a
+// common skill the user just chose or for the values currently in the form; the
+// label, edit index and builder state carry over from the form. While the form
+// holds something unscorable (e.g. a rotation being typed), it answers 204 so
+// htmx leaves the user's input alone; Add reports the problem.
 func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
+	editor := views.SkillEditor{EditIndex: editIndexFrom(r), BuilderOpen: r.FormValue("builder_open") == "1"}
+
 	var s skills.TrampolineSkill
 	if r.FormValue("load") == "common" {
 		common, ok := skills.CommonSkills[r.FormValue("commonSkillKey")]
 		if !ok {
-			w.WriteHeader(http.StatusNoContent) // the "Select..." placeholder
+			w.WriteHeader(http.StatusNoContent) // the "Choose a skill..." placeholder
 			return
 		}
 		s = common
+		s.CustomName = strings.TrimSpace(r.FormValue("custom_name"))
 	} else {
 		parsed, err := parseSkillFromForm(r)
 		if err != nil {
@@ -186,21 +175,14 @@ func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
 		}
 		s = parsed
 	}
-	if s.Shape == skills.Straddle && !s.IsBasicJump() {
-		s.Shape = skills.Straight // straddle only applies to basic jumps
-	}
-	render(w, r, views.SkillInputs(s))
+
+	editor.Skill = prepared(s)
+	render(w, r, views.SkillEditorView(editor))
 }
 
-// handleCommonSkillsOptions re-renders the common skills dropdown in a new order,
-// keeping the current selection.
-func handleCommonSkillsOptions(w http.ResponseWriter, r *http.Request) {
-	render(w, r, views.CommonSkillOptions(sortedCommonSkills(sortByFrom(r)), r.FormValue("commonSkillKey")))
-}
-
-// parseSkillFromForm reads and validates the skill in the calculator form.
-// Twist boxes for phases the rotation does not have are disabled in the form and
-// so not submitted; missing phases count as no twist.
+// parseSkillFromForm reads and validates the skill in the "Add a skill" form. The
+// form shows one twist box per phase; if the rotation has just changed, extra
+// values are ignored and missing phases count as no twist.
 func parseSkillFromForm(r *http.Request) (skills.TrampolineSkill, error) {
 	skill := skills.TrampolineSkill{
 		CustomName:      strings.TrimSpace(r.FormValue("custom_name")),
@@ -253,20 +235,6 @@ func handleCalculateSkill(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(skill); err != nil {
 		log.Printf("Error encoding calculated skill: %v", err)
 	}
-}
-
-// handleSkillEvaluation renders the evaluation preview of the form's skill.
-func handleSkillEvaluation(w http.ResponseWriter, r *http.Request) {
-	skill, err := calculatedSkill(r)
-	if err != nil {
-		badRequest(w, err)
-		return
-	}
-	render(w, r, views.EvaluationView(views.Evaluation{
-		Skill:       skill,
-		Landing:     skill.LandingPosition(),
-		FIGNotation: skill.FIGNotation(),
-	}))
 }
 
 // validatedRoutine parses and validates the routine the browser posts. Official

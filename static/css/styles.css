@@ -339,6 +339,44 @@
 /* Skills after an interruption (CoP §15.3) still show, but don't count. */
 .routine-skill.not-counted { opacity: 0.55; }
 
+/* --- Add a skill (views.SkillFormView) --- */
+.skill-adder > .field { margin-bottom: 1rem; }
+
+/* Button-style choices (shape, direction, takeoff): radios styled as a segmented control. */
+.segmented { display: inline-flex; flex-wrap: wrap; border: 1px solid #dbdbdb; border-radius: 6px; overflow: hidden; }
+.segment { position: relative; padding: 0.4rem 0.8rem; cursor: pointer; font-size: 0.9rem; background: #fff; border-left: 1px solid #dbdbdb; user-select: none; }
+.segment:first-child { border-left: 0; }
+.segment input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.segment.is-selected, .segment:has(input:checked) { background: #485fc7; color: #fff; }
+.segment:has(input:focus-visible) { outline: 2px solid #485fc7; outline-offset: 2px; }
+
+/* Number with − and + buttons. */
+.stepper { display: inline-flex; align-items: center; gap: 0.25rem; }
+.stepper .input, .stepper .button { height: 2.25rem; }
+.stepper .input { width: 3.25rem; padding: 0 0.25rem; text-align: center; }
+.stepper .button { width: 2.5rem; padding: 0; font-size: 1.1rem; }
+
+.skill-builder { border: 1px solid #eee; border-radius: 6px; padding: 0.5rem 0.75rem; margin-bottom: 1rem; }
+.skill-builder > summary { cursor: pointer; font-weight: 600; }
+.builder-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-top: 0.75rem; }
+.builder-label { min-width: 8.5rem; font-weight: 600; font-size: 0.9rem; }
+.builder-readout { color: #555; font-size: 0.9rem; }
+
+/* The skill card: what Add will add. */
+.skill-card { border: 2px solid #485fc7; border-radius: 8px; padding: 0.75rem 1rem; background: #fff; }
+.skill-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.skill-card-name { font-size: 1.2rem; font-weight: 700; line-height: 1.2; }
+.skill-card-meta { color: #555; font-size: 0.9rem; margin-top: 0.15rem; }
+.skill-card-fig { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.skill-card-tariff { font-size: 1.6rem; font-weight: 700; color: #485fc7; line-height: 1; }
+.skill-card-problem { color: #cc0f35; font-size: 0.85rem; margin-top: 0.5rem; }
+.skill-card-note { color: #777; font-size: 0.85rem; margin-top: 0.5rem; }
+.skill-card .segmented { margin-top: 0.6rem; }
+.skill-card-label { margin: 0.6rem 0; font-size: 0.9rem; }
+.skill-card-label > summary { cursor: pointer; color: #485fc7; }
+.skill-card-label .input { margin-top: 0.4rem; }
+.skill-card-actions { margin-top: 0.25rem; margin-bottom: 0; }
+
 /* --- Phones --- */
 @media screen and (max-width: 768px) {
     /* Reclaim width from the nested boxes and a shorter header. */
@@ -355,4 +393,8 @@
     .skill-details-columns p { white-space: normal; }
 
     .is-fixed-bottom-right { left: 1rem; }
+
+    /* Keep the skill card (and its Add button) on screen while choosing and adjusting. */
+    .skill-card { position: sticky; bottom: 0.5rem; z-index: 5; box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12); }
+    .builder-label { min-width: 100%; }
 }

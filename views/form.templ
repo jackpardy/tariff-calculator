@@ -8,340 +8,278 @@ import (
 	"tariffCalculator/skills"
 )
 
-// SkillForm is the data for the skill calculator form.
+// SkillForm is the data for the "Add a skill" panel.
 type SkillForm struct {
-	Skill          skills.TrampolineSkill
-	EditIndex      int // index of the routine skill being edited, or -1 when adding
-	SortBy         string
-	CommonSkills   []CommonSkillOption
-	SelectedCommon string // key of the common skill the form was loaded from, if any
+	Editor       SkillEditor
+	CommonSkills []CommonSkillOption
 }
 
-// CommonSkillOption is one entry in the common skills dropdown.
+// CommonSkillOption is one common skill the user can start from.
 type CommonSkillOption struct {
 	Key    string
 	Name   string
 	Tariff float64
 }
 
-// SortOptions are the common-skill sort orders, in display order.
-var SortOptions = []struct{ Value, Label string }{
-	{"tariff-asc", "Tariff (Low-High)"},
-	{"tariff-desc", "Tariff (High-Low)"},
-	{"alpha-asc", "Name (A-Z)"},
-	{"alpha-desc", "Name (Z-A)"},
+// SkillEditor is the part of the panel the server re-renders as the skill
+// changes: the skill card (live summary, shape, label, Add/Update) and the
+// builder that adjusts the skill's parameters.
+type SkillEditor struct {
+	Skill       skills.TrampolineSkill // named and priced
+	EditIndex   int                    // index of the routine skill being edited, or -1 when adding
+	BuilderOpen bool                   // whether "Build or adjust this skill" is expanded
 }
 
-// maxTwistInputs is the number of twist boxes: one per phase of a quadruple somersault.
-const maxTwistInputs = 4
+// Editing reports whether the editor is changing a routine skill rather than adding one.
+func (e SkillEditor) Editing() bool { return e.EditIndex >= 0 }
 
-// SkillFormView renders the whole skill form. Changing any skill input re-renders
-// SkillInputs from the server, which decides which twist boxes are enabled and
-// whether shape (and straddle) apply. Add/Update post the form to the server and
-// hand the calculated skill to the page's Alpine component.
+// SkillFormView renders the "Add a skill" panel. Every change inside
+// #skill-editor posts the whole form to /skill-inputs, which re-renders the
+// editor from it, so the card always shows the skill that Add will add.
 templ SkillFormView(f SkillForm) {
-	<form id="main-form" class="columns is-mobile is-multiline is-align-items-flex-end" x-on:submit.prevent>
-		<input type="hidden" name="editIndex" value={ strconv.Itoa(f.EditIndex) }/>
-		// Common skills, with their sort order.
-		<div class="column is-12-mobile is-8-tablet">
-			<div class="field is-clearfix">
-				<div class="is-pulled-right" style="margin-left: 1em;">
-					<div class="select is-small">
-						<select
-							id="common-skills-sort"
-							name="sortBy"
-							aria-label="Sort common skills"
-							hx-get="/common-skills-options"
-							hx-trigger="change"
-							hx-target="#common-skills"
-							hx-include="#common-skills"
-							x-on:change="rememberSort($event.target.value)"
-						>
-							for _, o := range SortOptions {
-								<option value={ o.Value } selected?={ o.Value == f.SortBy }>{ o.Label }</option>
-							}
-						</select>
-					</div>
-				</div>
-				<label class="label" for="common-skills">Common Skills (Optional)</label>
-				<div class="control">
-					<div class="select is-fullwidth">
-						<select
-							id="common-skills"
-							name="commonSkillKey"
-							hx-post="/skill-inputs"
-							hx-trigger="change"
-							hx-target="#skill-inputs"
-							hx-include="#main-form"
-							hx-vals='{"load": "common"}'
-						>
-							@CommonSkillOptions(f.CommonSkills, f.SelectedCommon)
-						</select>
-					</div>
-				</div>
+	<form id="main-form" class="skill-adder" x-on:submit.prevent>
+		<div class="field">
+			<label class="label" for="common-skills">Start from a common skill</label>
+			<div class="select is-fullwidth">
+				<select
+					id="common-skills"
+					name="commonSkillKey"
+					hx-post="/skill-inputs"
+					hx-trigger="change"
+					hx-target="#skill-editor"
+					hx-include="#main-form"
+					hx-vals='{"load": "common"}'
+				>
+					<option value="">Choose a skill...</option>
+					for _, o := range f.CommonSkills {
+						<option value={ o.Key }>{ fmt.Sprintf("%s (%.1f)", o.Name, o.Tariff) }</option>
+					}
+				</select>
 			</div>
 		</div>
-		// Column sizes: phones get their own (-mobile) layout; tablet and up keep the desktop grid.
-		// Custom name sits outside the re-rendered inputs so choosing a common skill keeps it.
-		// The official name is always derived from the skill's parameters.
-		<div class="column is-12-mobile is-4-tablet">
-			<div class="field">
-				<label class="label" for="custom-name">Custom Name (Optional)</label>
-				<div class="control">
-					<input
-						class="input"
-						type="text"
-						id="custom-name"
-						name="custom_name"
-						maxlength={ strconv.Itoa(skills.MaxCustomNameLength) }
-						value={ f.Skill.CustomName }
-						placeholder="Your own label for this skill"
-						x-on:input.debounce.300ms="refreshEvaluation()"
-					/>
-				</div>
-			</div>
-		</div>
-		// display: contents keeps these inputs as columns of the form.
 		<div
-			id="skill-inputs"
-			style="display: contents;"
+			id="skill-editor"
 			hx-post="/skill-inputs"
 			hx-trigger="change"
 			hx-include="#main-form"
 			hx-target="this"
 			hx-sync="this:replace"
 		>
-			@SkillInputs(f.Skill)
-		</div>
-		// Actions.
-		<div class="column is-6-mobile is-2-tablet">
-			<div class="field">
-				<label class="label is-hidden-mobile">&nbsp;</label>
-				if f.EditIndex < 0 {
-					<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled="busy">
-						Add to Routine
-					</button>
-				} else {
-					<button type="button" id="update-btn" class="button is-success is-fullwidth" x-on:click="updateFromForm()" x-bind:disabled="busy">
-						Update Skill
-					</button>
-				}
-			</div>
-		</div>
-		<div class="column is-6-mobile is-2-tablet">
-			<div class="field">
-				<label class="label is-hidden-mobile">&nbsp;</label>
-				<button
-					type="button"
-					class="button is-info is-fullwidth"
-					hx-post="/skill-evaluation"
-					hx-target="#evaluation-preview"
-					hx-include="#main-form"
-				>
-					Evaluate Skill
-				</button>
-			</div>
-		</div>
-		<div class="column is-12-mobile is-3-tablet">
-			<div class="field">
-				<label class="label is-hidden-mobile">&nbsp;</label>
-				if f.EditIndex >= 0 {
-					<div class="control">
-						<button type="button" id="cancel-btn" class="button is-light is-fullwidth" x-on:click="cancelEdit()">
-							Cancel Edit
-						</button>
-					</div>
-				} else {
-					@positionSelect("insert-position", "insert_position", "Position:")
-				}
-			</div>
+			@SkillEditorView(f.Editor)
 		</div>
 	</form>
 }
 
-// CommonSkillOptions renders the options of the common skills dropdown.
-templ CommonSkillOptions(options []CommonSkillOption, selected string) {
-	<option value="">Select to load skill data...</option>
-	for _, o := range options {
-		<option value={ o.Key } selected?={ o.Key == selected }>{ fmt.Sprintf("%s (%.1f)", o.Name, o.Tariff) }</option>
+// SkillEditorView renders the builder and the skill card for the editor's skill.
+templ SkillEditorView(e SkillEditor) {
+	<input type="hidden" name="editIndex" value={ strconv.Itoa(e.EditIndex) }/>
+	<input type="hidden" name="builder_open" value={ boolValue(e.BuilderOpen) }/>
+	<details
+		id="skill-builder"
+		class="skill-builder"
+		open?={ e.BuilderOpen }
+		x-on:toggle="$el.closest('form').elements.builder_open.value = $el.open ? '1' : ''"
+	>
+		<summary>Build or adjust this skill</summary>
+		@builderFields(e.Skill)
+	</details>
+	@editorCard(e)
+}
+
+// editorCard is the live summary of the skill, its shape, an optional label and
+// the one button that adds (or updates) it. On phones it sticks to the bottom of
+// the screen while the panel is in view.
+templ editorCard(e SkillEditor) {
+	<div class="skill-card">
+		<div class="skill-card-head">
+			<div>
+				<p class="skill-card-name">{ e.Skill.Name }</p>
+				<p class="skill-card-meta">
+					if e.Skill.FIGNotation() != "" {
+						<span class="skill-card-fig">{ e.Skill.FIGNotation() }</span> ·
+					}
+					{ e.Skill.TakeoffPosition.String() } → { landingText(e.Skill) }
+				</p>
+			</div>
+			<p class="skill-card-tariff" title="Tariff (difficulty)">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</p>
+		</div>
+		if e.Skill.LandingPosition() == skills.Invalid {
+			<p class="skill-card-problem">This skill can't land like that. Check the direction, somersault and twist.</p>
+		}
+		@shapeChoice(e.Skill)
+		<details class="skill-card-label" open?={ e.Skill.CustomName != "" }>
+			<summary>Add a label</summary>
+			<input
+				class="input is-small"
+				type="text"
+				id="custom-name"
+				name="custom_name"
+				maxlength={ strconv.Itoa(skills.MaxCustomNameLength) }
+				value={ e.Skill.CustomName }
+				placeholder="Your own name for this skill (optional)"
+				aria-label="Label"
+			/>
+		</details>
+		if e.Editing() {
+			<div class="buttons skill-card-actions">
+				<button type="button" id="update-btn" class="button is-success" x-on:click="updateFromForm()" x-bind:disabled="busy">Update skill</button>
+				<button type="button" id="cancel-btn" class="button is-light" x-on:click="cancelEdit()">Cancel</button>
+			</div>
+		} else {
+			<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled="busy">
+				Add to routine
+			</button>
+		}
+	</div>
+}
+
+// shapeChoice offers the shapes that make a different skill. When shape doesn't
+// matter (twisting jumps, drops, single somersaults with a full twist or more)
+// it says so and keeps the current shape in a hidden field.
+templ shapeChoice(s skills.TrampolineSkill) {
+	if s.ShapeIsRelevant() {
+		<div class="segmented" role="radiogroup" aria-label="Shape">
+			for _, shape := range shapesFor(s) {
+				<label class={ "segment", templ.KV("is-selected", s.Shape == shape) }>
+					<input type="radio" name="shape" value={ strings.ToLower(shape.String()) } checked?={ s.Shape == shape }/>
+					{ shape.String() }
+				</label>
+			}
+		</div>
+	} else {
+		<input type="hidden" name="shape" value={ strings.ToLower(s.Shape.String()) }/>
+		<p class="skill-card-note">Shape doesn't change this skill.</p>
 	}
 }
 
-// SkillInputs renders the skill's parameter inputs. Twist boxes beyond the
-// rotation's phase count are disabled (and so not submitted); the shape field is
-// hidden when shape is not part of the skill's identity, and straddle is only
-// offered for basic jumps.
-templ SkillInputs(s skills.TrampolineSkill) {
-	<div class="column is-4-mobile is-2-tablet">
-		<div class="field">
-			<label class="label" for="rotation">Rotation (1/4s)</label>
-			<div class="control">
-				<input
-					class="input"
-					type="number"
-					id="rotation"
-					name="rotation"
-					min="0"
-					max={ strconv.Itoa(skills.MaxRotation) }
-					step="1"
-					value={ strconv.Itoa(s.Rotation) }
-					required
-				/>
-			</div>
+// builderFields are the skill's parameters in plain language.
+templ builderFields(s skills.TrampolineSkill) {
+	<div class="builder-row">
+		<label class="builder-label" for="rotation">Somersault</label>
+		@stepper("rotation", "rotation", s.Rotation, 0, skills.MaxRotation, "Quarter somersaults")
+		<span class="builder-readout">{ somersaultText(s.Rotation) }</span>
+	</div>
+	<div class="builder-row">
+		<span class="builder-label">Direction</span>
+		<div class="segmented" role="radiogroup" aria-label="Direction">
+			<label class={ "segment", templ.KV("is-selected", !s.Backward) }>
+				<input type="radio" name="backward" value="" checked?={ !s.Backward }/>
+				Forward
+			</label>
+			<label class={ "segment", templ.KV("is-selected", s.Backward) }>
+				<input type="radio" name="backward" value="on" checked?={ s.Backward }/>
+				Backward
+			</label>
 		</div>
 	</div>
-	<div class="column is-8-mobile is-4-tablet">
-		<label class="label">Twist (1/2s per S/S)</label>
-		<div class="columns is-mobile is-multiline is-gapless">
-			for i, twist := range twistSlots(s) {
-				<div class="column is-3">
-					<div class="field">
-						<input
-							class="input twist-rotation"
-							type="number"
-							id={ fmt.Sprintf("twist-%d", i+1) }
-							name="twist_distribution[]"
-							aria-label={ fmt.Sprintf("Half twists in phase %d", i+1) }
-							min="0"
-							value={ strconv.Itoa(twist) }
-							disabled?={ i >= skills.CalculatePhases(s.Rotation) }
-							if i >= skills.CalculatePhases(s.Rotation) {
-								style="opacity: 0.5;"
-							}
-						/>
-					</div>
-				</div>
+	for i, twist := range s.TwistDistribution {
+		<div class="builder-row">
+			<label class="builder-label" for={ fmt.Sprintf("twist-%d", i+1) }>{ twistLabel(i, len(s.TwistDistribution)) }</label>
+			@stepper(fmt.Sprintf("twist-%d", i+1), "twist_distribution[]", twist, 0, 20, fmt.Sprintf("Half twists in phase %d", i+1))
+			<span class="builder-readout">{ twistAmountText(twist) }</span>
+		</div>
+	}
+	<div class="builder-row">
+		<span class="builder-label">Takes off from</span>
+		<div class="segmented" role="radiogroup" aria-label="Takes off from">
+			for _, p := range []skills.BodyPosition{skills.Feet, skills.Front, skills.Back, skills.Seat} {
+				<label class={ "segment", templ.KV("is-selected", s.TakeoffPosition == p) }>
+					<input type="radio" name="takeoff_position" value={ strings.ToLower(p.String()) } checked?={ s.TakeoffPosition == p }/>
+					{ p.String() }
+				</label>
 			}
 		</div>
 	</div>
-	<div class="column is-6-mobile is-2-tablet">
-		<div class="field">
-			<label class="label" for="takeoff_position">Takeoff</label>
-			<div class="select is-fullwidth">
-				<select name="takeoff_position" id="takeoff_position">
-					for _, p := range []skills.BodyPosition{skills.Feet, skills.Front, skills.Back, skills.Seat} {
-						<option value={ strings.ToLower(p.String()) } selected?={ s.TakeoffPosition == p }>{ p.String() }</option>
-					}
-				</select>
-			</div>
-		</div>
-	</div>
-	// The column keeps its slot so the action buttons stay aligned; only the field hides.
-	<div class="column is-6-mobile is-2-tablet">
-		<div class={ "field", templ.KV("is-hidden", !s.ShapeIsRelevant()) }>
-			<label class="label" for="shape">Shape</label>
-			<div class="select is-fullwidth">
-				<select name="shape" id="shape">
-					for _, shape := range []skills.Shape{skills.Straight, skills.Tuck, skills.Pike, skills.Straddle} {
-						if shape != skills.Straddle || s.IsBasicJump() {
-							<option value={ strings.ToLower(shape.String()) } selected?={ s.Shape == shape }>{ shape.String() }</option>
-						}
-					}
-				</select>
-			</div>
-		</div>
-	</div>
-	<div class="column is-12-mobile is-2-tablet">
-		<div class="field is-grouped is-grouped-multiline">
-			<div class="control">
-				<label class="checkbox">
-					<input type="checkbox" name="seat_landing" id="seat_landing" checked?={ s.SeatLanding }/>
-					Seat Ldg
-				</label>
-			</div>
-			<div class="control">
-				<label class="checkbox">
-					<input type="checkbox" id="backward-flag" name="backward" checked?={ s.Backward }/>
-					Back S/S
-				</label>
-			</div>
-		</div>
+	<div class="builder-row">
+		<label class="checkbox">
+			<input type="checkbox" name="seat_landing" id="seat_landing" checked?={ s.SeatLanding }/>
+			Lands on seat
+		</label>
 	</div>
 }
 
-// Evaluation is the data for the evaluation preview.
-type Evaluation struct {
-	Skill       skills.TrampolineSkill // priced and named
-	Landing     skills.BodyPosition
-	FIGNotation string
-}
-
-// EvaluationView renders the evaluation preview of the skill in the form. The page
-// refreshes it whenever the form changes, and its Add button adds the form's
-// current skill, so what it shows is what gets added.
-templ EvaluationView(e Evaluation) {
-	<div id="evaluation-preview-content">
-		<h4 class="title is-6 mb-4">
-			Skill Evaluation -
-			if e.Skill.CustomName != "" {
-				{ e.Skill.CustomName } ·
-			}
-			{ e.Skill.Name } { e.FIGNotation }
-		</h4>
-		<div class="columns">
-			<div class="column is-one-third">
-				<div class="content is-small">
-					<p class="mb-1"><strong>Rotation:</strong> { rotationText(e.Skill) }</p>
-					<p><strong>Twists:</strong> { strings.ReplaceAll(twistText(e.Skill), " | ", " / ") }</p>
-				</div>
-			</div>
-			<div class="column is-one-third">
-				<div class="content is-small">
-					<p class="mb-1"><strong>Takeoff:</strong> { e.Skill.TakeoffPosition.String() }</p>
-					<p>
-						<strong>Landing:</strong>
-						<span class={ templ.KV("has-text-danger", e.Landing == skills.Invalid) }>{ e.Landing.String() }</span>
-					</p>
-				</div>
-			</div>
-			<div class="column is-one-third">
-				<div class="content is-small">
-					<p class="mb-1"><strong>Shape:</strong> { e.Skill.Shape.String() }</p>
-					<p><strong>Tariff:</strong> { fmt.Sprintf("%.2f", e.Skill.Tariff) }</p>
-				</div>
-			</div>
-		</div>
-		<div class="columns mt-3">
-			<div class="column">
-				<div class="field is-grouped is-grouped-multiline">
-					<div class="control">
-						<div class="buttons has-addons">
-							<button class="button is-info" x-on:click.prevent="addFromForm('evaluation-insert-position')" x-bind:disabled="busy">
-								Add to Routine
-							</button>
-							<button class="button" x-on:click="closeEvaluation()">Close</button>
-						</div>
-					</div>
-					<div class="control" style="width: 1rem;"></div>
-					<div class="control">
-						@positionSelect("evaluation-insert-position", "evaluation_insert_position", "Add at:")
-					</div>
-				</div>
-			</div>
-		</div>
+// stepper is a number input with − and + buttons, for quarter somersaults and half twists.
+templ stepper(id, name string, value, min, max int, label string) {
+	<div class="stepper">
+		<button type="button" class="button is-small" aria-label={ "Less: " + label } x-on:click={ fmt.Sprintf("step('%s', -1)", id) }>−</button>
+		<input
+			class="input is-small"
+			type="number"
+			inputmode="numeric"
+			id={ id }
+			name={ name }
+			min={ strconv.Itoa(min) }
+			max={ strconv.Itoa(max) }
+			step="1"
+			value={ strconv.Itoa(value) }
+			aria-label={ label }
+			required
+		/>
+		<button type="button" class="button is-small" aria-label={ "More: " + label } x-on:click={ fmt.Sprintf("step('%s', 1)", id) }>+</button>
 	</div>
 }
 
-// positionSelect is a labelled "insert at" dropdown; the page fills its options,
-// since only the browser knows the routine's length.
-templ positionSelect(id, name, label string) {
-	<div class="field has-addons">
-		<div class="control">
-			<span class="button is-static is-small">{ label }</span>
-		</div>
-		<div class="control is-expanded">
-			<div class="select is-small is-fullwidth">
-				<select name={ name } id={ id } aria-label="Insert position">
-					<option value="1">1 (End)</option>
-				</select>
-			</div>
-		</div>
-	</div>
+// shapesFor lists the shapes the skill can be done in; straddle only applies to basic jumps.
+func shapesFor(s skills.TrampolineSkill) []skills.Shape {
+	if s.IsBasicJump() {
+		return []skills.Shape{skills.Tuck, skills.Pike, skills.Straddle, skills.Straight}
+	}
+	return []skills.Shape{skills.Tuck, skills.Pike, skills.Straight}
 }
 
-// twistSlots is the skill's twist per phase, padded to one value per twist box.
-func twistSlots(s skills.TrampolineSkill) []int {
-	slots := make([]int, maxTwistInputs)
-	copy(slots, s.TwistDistribution)
-	return slots
+func boolValue(b bool) string {
+	if b {
+		return "1"
+	}
+	return ""
+}
+
+// landingText is where the skill lands, flagging an impossible landing.
+func landingText(s skills.TrampolineSkill) string {
+	if l := s.LandingPosition(); l != skills.Invalid {
+		return l.String()
+	}
+	return "can't land"
+}
+
+// quarters writes a count of quarters as a whole number and a fraction, e.g. 7 -> "1¾".
+func quarters(n int) string {
+	whole, frac := n/4, []string{"", "¼", "½", "¾"}[n%4]
+	if whole == 0 {
+		return frac
+	}
+	return strconv.Itoa(whole) + frac
+}
+
+// somersaultText reads a rotation in quarters as somersaults, e.g. 5 -> "1¼ somersaults".
+func somersaultText(rotation int) string {
+	switch {
+	case rotation <= 0:
+		return "No somersault"
+	case rotation <= 4:
+		return quarters(rotation) + " somersault"
+	default:
+		return quarters(rotation) + " somersaults"
+	}
+}
+
+// twistAmountText reads half twists as twists, e.g. 3 -> "1½ twists".
+func twistAmountText(halfTwists int) string {
+	switch {
+	case halfTwists <= 0:
+		return "No twist"
+	case halfTwists <= 2:
+		return quarters(halfTwists*2) + " twist"
+	default:
+		return quarters(halfTwists*2) + " twists"
+	}
+}
+
+// twistLabel names the twist box for phase i of n: "Half twists" for a single
+// phase, otherwise which somersault the twist is in.
+func twistLabel(i, n int) string {
+	if n == 1 {
+		return "Half twists"
+	}
+	return []string{"1st", "2nd", "3rd", "4th"}[i] + " somersault: half twists"
 }

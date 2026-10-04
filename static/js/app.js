@@ -8,9 +8,6 @@ function tariffCalculatorStore() {
         routine: [],
         expanded: [], // per-card expanded state, parallel to routine
         editingIndex: null,
-        showEvaluation: false,
-        evalPosition: null, // the preview's chosen "Add at" position, kept across refreshes
-        lastInsertPosition: 1,
         busy: false, // an add or update is in flight
         toast: { show: false, message: '', type: 'info' },
 
@@ -23,31 +20,14 @@ function tariffCalculatorStore() {
             }
             // One flag per card from the start, so moves can splice it in step with the routine.
             this.expanded = this.routine.map(() => false);
-            this.lastInsertPosition = this.routine.length + 1;
 
-            // Alpine passes the same (mutated) array as old and new, so track the length here.
-            let length = this.routine.length;
             this.$watch('routine', (routine) => {
-                if (routine.length !== length) {
-                    length = routine.length;
-                    this.fillPositionSelect('insert-position');
-                    this.fillPositionSelect('evaluation-insert-position');
-                }
                 this.renderRoutine();
                 localStorage.setItem('trampolineRoutine', JSON.stringify(routine));
             });
 
             document.body.addEventListener('htmx:afterSwap', (event) => {
-                const id = event.detail.target.id;
-                if (id === 'routine-view') {
-                    this.makeSortable();
-                } else if (id === 'skill-inputs') {
-                    this.refreshEvaluation();
-                } else if (id === 'evaluation-preview') {
-                    this.showEvaluation = true;
-                    this.fillPositionSelect('evaluation-insert-position', this.evalPosition);
-                    this.evalPosition = null;
-                }
+                if (event.detail.target.id === 'routine-view') { this.makeSortable(); }
             });
             document.body.addEventListener('htmx:afterRequest', (event) => {
                 if (event.detail.failed) { this.requestFailed(event.detail.requestConfig?.path, event.detail.xhr); }
@@ -66,15 +46,14 @@ function tariffCalculatorStore() {
                 values: { routineData: JSON.stringify(this.routine) }
             }).catch(error => console.error('Routine render request error:', error));
         },
-        // loadForm shows a fresh form, or the form for the routine skill at editIndex.
+        // loadForm shows a fresh "Add a skill" panel, or one loaded with the routine skill at editIndex.
         loadForm(editIndex = null) {
-            const values = { sortBy: localStorage.getItem('commonSkillSortBy') || '' };
+            const values = {};
             if (editIndex !== null) {
                 values.skill = JSON.stringify(this.routine[editIndex]);
                 values.editIndex = editIndex;
             }
-            return htmx.ajax('POST', '/skill-form', { source: '#skill-form-wrapper', target: '#skill-form-wrapper', swap: 'innerHTML', values })
-                .then(() => this.fillPositionSelect('insert-position'));
+            return htmx.ajax('POST', '/skill-form', { source: '#skill-form-wrapper', target: '#skill-form-wrapper', swap: 'innerHTML', values });
         },
         requestFailed(path, xhr) {
             const reason = xhr.status === 400 ? xhr.responseText.trim() : 'the server could not be reached';
@@ -88,28 +67,22 @@ function tariffCalculatorStore() {
                     p.textContent = `Couldn't show the saved routine (${reason}). Use Clear Routine to start again.`;
                     view.replaceChildren(p);
                 }
-            } else if (path === '/skill-evaluation') {
-                this.showToast(`Can't evaluate: ${reason}`, 'error');
             } else {
                 this.showToast(`Request failed: ${reason}`, 'error');
             }
         },
-        rememberSort(sortBy) { localStorage.setItem('commonSkillSortBy', sortBy); },
 
-        // --- Insert-position dropdowns (they depend on the routine's length) ---
-        // Called after the routine changes or the dropdown is swapped in; deliberately not
-        // deferred with $nextTick, whose callbacks Alpine can hold back while it
-        // initialises swapped-in content.
-        // preferred, when given and still in range, is selected instead of the default.
-        fillPositionSelect(id, preferred = null) {
-            const select = document.getElementById(id);
-            if (!select) { return; }
-            const maxPosition = this.routine.length + 1;
-            let selected = parseInt(preferred) || (this.lastInsertPosition || maxPosition) + 1;
-            if (selected > maxPosition || selected < 1) { selected = maxPosition; }
-            select.replaceChildren(...Array.from({ length: maxPosition }, (_, i) =>
-                new Option(`Position ${i + 1}${i + 1 === maxPosition ? ' (End)' : ''}`, i + 1)));
-            select.value = String(selected);
+        // step nudges a number input (the − and + buttons) and lets the form re-render.
+        step(id, delta) {
+            const input = document.getElementById(id);
+            if (!input) { return; }
+            const min = parseInt(input.min), max = parseInt(input.max);
+            let value = (parseInt(input.value) || 0) + delta;
+            if (!isNaN(min)) { value = Math.max(min, value); }
+            if (!isNaN(max)) { value = Math.min(max, value); }
+            if (String(value) === input.value) { return; }
+            input.value = value;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
         },
 
         // --- Card expand/collapse ---
@@ -125,14 +98,17 @@ function tariffCalculatorStore() {
             if (!response.ok) { throw new Error((await response.text()).trim() || `HTTP ${response.status}`); }
             return response.json();
         },
-        // addFromForm adds the form's current skill at the position chosen in the given
-        // dropdown: the form's own, or the evaluation preview's.
-        async addFromForm(positionSelectId = 'insert-position') {
+        // addFromForm adds the skill shown on the card to the end of the routine.
+        async addFromForm() {
             if (this.busy) { return; }
             this.busy = true;
             try {
                 const skill = await this.calculateFormSkill();
-                this.addSkill(skill, document.getElementById(positionSelectId)?.value);
+                this.expanded.push(false);
+                this.routine.push(skill);
+                this.showToast(`Added ${skill.custom_name || skill.name} (${skill.tariff.toFixed(1)}).`, 'info');
+                if (this.routine.length > 10) { this.showToast('Note: an exercise has 10 skills.', 'warning'); }
+                this.clearLabel(); // a label belongs to one skill
             } catch (error) {
                 this.showToast(`Can't add skill: ${error.message}`, 'error');
             } finally {
@@ -153,47 +129,20 @@ function tariffCalculatorStore() {
                 this.busy = false;
             }
         },
-        addSkill(skill, position = null) {
-            const target = parseInt(position);
-            if (!isNaN(target) && target >= 1 && target <= this.routine.length) {
-                this.expanded.splice(target - 1, 0, false);
-                this.routine.splice(target - 1, 0, skill);
-                this.lastInsertPosition = target;
-                this.showToast(`Skill added at position ${target}.`, 'info');
-            } else {
-                if (this.routine.length >= 10) { this.showToast('Warning: Routines typically have 10 skills.', 'warning'); }
-                this.expanded.push(false);
-                this.routine.push(skill);
-                this.lastInsertPosition = this.routine.length;
-                this.showToast('Skill added to end.', 'info');
-            }
-            this.showEvaluation = false;
-            const customName = document.getElementById('custom-name');
-            if (customName) { customName.value = ''; } // A label belongs to one skill
-            this.fillPositionSelect('insert-position');
-        },
-        // refreshEvaluation re-evaluates the form while the preview is open, so the
-        // preview always shows the skill its Add button will add.
-        refreshEvaluation() {
-            if (!this.showEvaluation) { return; }
-            this.evalPosition = document.getElementById('evaluation-insert-position')?.value ?? null;
-            htmx.trigger(document.querySelector('#main-form [hx-post="/skill-evaluation"]'), 'click');
-        },
-        closeEvaluation() {
-            this.showEvaluation = false;
-            document.getElementById('evaluation-preview').replaceChildren();
+        clearLabel() {
+            const input = document.getElementById('custom-name');
+            if (!input) { return; }
+            input.value = '';
+            input.closest('details')?.removeAttribute('open');
         },
         editSkill(index) {
             this.editingIndex = index;
-            this.showEvaluation = false;
             this.loadForm(index)
                 .then(() => document.getElementById('skill-form-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
                 .catch(() => { this.showToast('Failed to load edit form.', 'error'); this.editingIndex = null; });
         },
         cancelEdit() {
             this.editingIndex = null;
-            this.lastInsertPosition = this.routine.length + 1;
-            this.showEvaluation = false;
             this.loadForm().catch(() => this.showToast('Failed to load the form.', 'error'));
         },
 
@@ -202,7 +151,6 @@ function tariffCalculatorStore() {
             if (index < 0 || index >= this.routine.length) { return; }
             this.expanded.splice(index, 1);
             this.routine.splice(index, 1);
-            this.lastInsertPosition = this.routine.length + 1;
             if (this.editingIndex === index) { this.cancelEdit(); }
             else if (this.editingIndex > index) { this.editingIndex--; }
         },
@@ -239,7 +187,6 @@ function tariffCalculatorStore() {
                     const from = event.oldDraggableIndex, to = event.newDraggableIndex;
                     if (from === undefined || from === to) { return; }
                     this.moveSkill(from, to);
-                    this.lastInsertPosition = this.routine.length + 1;
                 },
             });
         },

@@ -44,15 +44,13 @@ templ Page() {
 
 templ calculator() {
 	<div class="container" x-data="tariffCalculatorStore()">
-		// Skill form: SkillFormView, loaded by the component.
+		// "Add a skill" panel: SkillFormView, loaded by the component.
 		<div class="box">
-			<h3 class="title is-4">Skill Calculator</h3>
+			<h3 class="title is-4" x-text="editingIndex === null ? 'Add a skill' : `Edit skill ${editingIndex + 1}`">Add a skill</h3>
 			<div id="skill-form-wrapper" style="scroll-margin-top: 20px;" hx-sync="this:replace">
 				<p>Loading form...</p>
 			</div>
 		</div>
-		// Evaluation preview: EvaluationView, swapped in by the form's Evaluate button.
-		<div id="evaluation-preview" class="box" x-show="showEvaluation" x-transition style="display: none;"></div>
 		// Routine builder.
 		<div class="box">
 			<div class="level mb-4">
