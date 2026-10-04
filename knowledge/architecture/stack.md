@@ -28,9 +28,9 @@ generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 | `skills` | The engine: [skill model](../domain/skill-model.md), [tariff](../domain/tariff.md), [routine validation](../domain/routine-validation.md). Framework-free. |
 | `catalog` | [Picker and search](../domain/skill-catalog.md) over the common skills. |
 | `requirements` | [Requirements framework](../requirements/framework.md) and built-ins. Framework-free. |
-| `views` | templ components: page, form, routine, sheet, compare, requirements page. |
+| `views` | templ components: page, form, routine, sheet, compare, view screen, requirements page and the level editor. |
 | `static` | Embedded CSS/JS with content-hashed URLs ([static assets](static-assets.md)). |
-| `main` | Handlers (`main.go`), the requirements editor's form parsing (`setform.go`) and QR codes (`qrcode.go`). |
+| `main` | Handlers (`main.go`), the requirements and level editors' form parsing (`setform.go`, `levelform.go`) and QR codes (`qrcode.go`). |
 
 Domain packages import nothing HTTP or template-related, so the engine can
 later be published as a module or put behind a JSON API (ADR 0002 §6) without

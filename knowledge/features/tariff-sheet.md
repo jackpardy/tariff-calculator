@@ -17,7 +17,9 @@ requirements and checks, to `POST /tariff-sheet`, which renders the card (CoP
 - One row per element, padded to at least ten. Each row has No., Element (Name
   and FIG), Difficulty, **Req. \*** and Judge.
 - Only elements that score have a difficulty value. Other rows say why they
-  add nothing (repeat, interrupted, past the tenth, not scored).
+  add nothing (repeat, interrupted, past the tenth, not scored, or repeating
+  an element whose difficulty carried over from the first exercise of a
+  [level](../requirements/levels.md#carry-over)).
 - **Req. \*** is ticked for elements that satisfy a requirement
   (`requirements.RequiredElements`). These are the special requirements a
   first exercise must star.

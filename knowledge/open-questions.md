@@ -32,5 +32,6 @@ From the [British Gymnastics requirements](requirements/bg-national.md):
 # Not yet tested on a real phone
 
 Drag to reorder, printing the [tariff sheet](features/tariff-sheet.md), the
-share sheet and QR scanning ([sharing](features/sharing.md)), and the keyboard
-appearing with the skill card open.
+share sheet and QR scanning ([sharing](features/sharing.md)), the keyboard
+appearing with the skill card open, Levels mode's tabs on a narrow screen, and
+the [view screen](features/view.md) filling a phone or tablet held either way.

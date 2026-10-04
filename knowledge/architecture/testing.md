@@ -27,10 +27,11 @@ approved by the maintainer first.
 | `skills/cop_examples_test.go` | Every worked example in the Code of Points (139), so the [tariff](../domain/tariff.md) can't drift |
 | `skills/skills_test.go` | Landing, notation, naming, equality (repeats), validation, interruptions, scored elements, JSON round-trip |
 | `requirements/requirements_test.go` | Each rule type, matching, assignment, the built-ins loading and parsing, set routines |
+| `requirements/level_test.go` | Parsing levels, and every built-in level referring to real requirements (and every built-in set belonging to a level) |
 | `catalog/*_test.go` | Picker categories, shape options, search by name, alias and notation |
 | `static/static_test.go` | Hashed URLs and caching headers |
 | `main_test.go` | Handlers end to end, asserting on rendered HTML: flags, custom names, checks, sheet, compare, requirements, side by side, QR, sharing, oversize bodies |
-| `setform_test.go` | Reading the requirements editor's form back into JSON |
+| `setform_test.go`, `levelform_test.go` | Reading the requirements and level editors' forms back into JSON; the requirements page listing levels |
 
 The Docker build runs `go test ./...` too, so an image can't be built from
 failing code.

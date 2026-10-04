@@ -68,8 +68,10 @@ Earlier versions had JavaScript copies of them, which were removed.
   jump, and empty for a straight jump.
 - **Name** (`FindCommonSkillName`). Matches the skill against the
   [common skills](skill-catalog.md) on rotation, take-off, direction, seat
-  landing and twist per phase, then appends the shape where it is relevant
-  (e.g. "Front Tuck"). Unknown combinations are "Custom Skill".
+  landing and twist per phase, then adds the shape where it is relevant:
+  first for single fronts, backs and baranis ("Tuck Back", "Pike Barani"), as
+  coaches say them, and after the name for everything else ("Ball-Out Pike",
+  "Double Back Tuck"). Unknown combinations are "Custom Skill".
 - **Repetition** (`Equal`). Two skills are the same element under CoP §14 if
   rotation, total twist, direction, take-off and seat landing match. Shape then
   distinguishes basic jumps, singles of ¾–1¼ with less than a full twist, and

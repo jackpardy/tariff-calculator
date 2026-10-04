@@ -40,8 +40,8 @@ Computed by the engine:
 | Skill | FIG | Tariff |
 |---|---|---|
 | Half Twist | `(0 1)` | 0.1 |
-| Front Tuck | `(4 - o)` | 0.5 |
-| Front Pike | `(4 - <)` | 0.6 |
+| Tuck Front | `(4 - o)` | 0.5 |
+| Pike Front | `(4 - <)` | 0.6 |
 | Tuck Barani | `(4 1 o)` | 0.6 |
 | Full Back | `(4 2)` | 0.7 |
 | Rudi | `(4 3)` | 0.8 |

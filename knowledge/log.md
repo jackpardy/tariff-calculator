@@ -1,6 +1,13 @@
 # Update log
 
 ## 2026-10-05
+* **Creation**: A [guide](guide/) for gymnasts and coaches:
+  [features](guide/features.md) and a step-by-step
+  [user guide](guide/user-guide.md).
+* **Update**: Brought the bundle up to date with levels: skill names lead with
+  the shape for single somersaults, the [view screen](features/view.md) opens a
+  level entry from Levels mode, and the tariff sheet, stack, tests and overview
+  pages mention levels.
 * **Update**: View with two routines side by side shows both (each column also
   has its own View), and a level being worked on can be shared by link with
   its routines.

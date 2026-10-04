@@ -14,6 +14,13 @@ A web app for building trampoline routines and working out their difficulty
 sees each one's FIG notation and tariff, and gets the routine checked: repeats,
 bad transitions, interruptions, the tenth skill landing on feet, and, if a
 competition is chosen, that competition's [requirements](requirements/framework.md).
+A [level](requirements/levels.md) pairs a competition's two exercises (for
+example a choice of set routines, then a voluntary), so both are checked
+together. Routines can be shared by link or QR code, shown full screen, and
+printed as a competition card.
+
+For users, start with the [features](guide/features.md) and the
+[user guide](guide/user-guide.md).
 
 Live at <https://trampoline-tariff-calculator.onrender.com>. It will move to
 the self-hosted server once a domain is registered (see [deploy](operations/deploy.md)).
@@ -33,8 +40,8 @@ Wording in the app is plain and avoids jargon where it can (see the
 | Skill model and tariff | `skills/` | [Skill model](domain/skill-model.md), [Tariff](domain/tariff.md) |
 | Routine rules | `skills/` (`ValidateRoutine`) | [Routine validation](domain/routine-validation.md) |
 | Choosing skills | `catalog/` | [Skill catalog](domain/skill-catalog.md) |
-| Competition rules | `requirements/` | [Requirements framework](requirements/framework.md) |
-| Pages and fragments | `views/` (templ), `main.go` | [Rendering](architecture/rendering.md), [HTTP routes](architecture/http-routes.md) |
+| Competition rules | `requirements/` | [Requirements framework](requirements/framework.md), [Levels](requirements/levels.md) |
+| Pages and fragments | `views/` (templ), `main.go` | [Rendering](architecture/rendering.md), [HTTP routes](architecture/http-routes.md), [View screen](features/view.md) |
 | Browser glue | `static/js/` | [Stack](architecture/stack.md) |
 
 All domain rules live in Go. The server renders every page and fragment as
