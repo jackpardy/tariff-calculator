@@ -51,6 +51,9 @@ accounts: routines live in the browser.
      element"). Elements are assigned by maximum matching, so an element that could meet
      two requirements is used where it's needed; the assigned elements are the ones
      starred on a competition card, and the tariff sheet ticks them.
+   - `includes` — at least one of several `options` appears, each option one or more
+     elements performed one straight after another (e.g. BUCS Level 1: "a ¾ somersault
+     to front or back followed by a 1¼, or a full somersault with a full twist").
    - `different` — no element is repeated, using the Code of Points' definition of a
      repetition (§14: shape, and twist phase in multiple somersaults, distinguish
      elements only where it says they do).
@@ -83,9 +86,12 @@ accounts: routines live in the browser.
    competition document) and say which season they reflect; the app states that users
    should check them against the current rules. They live in `requirements/sets/<group>/`,
    and `sets/groups.json` names and orders the groups (one per organisation and
-   pathway). The first drafts cover the FIG Junior and WAGC rules (2025–2028) and the
-   British Gymnastics national pathway (2026) and club & regional pathway (2027) technical
-   requirements.
+   pathway). The first drafts cover the BUCS Championships competition structure (2026),
+   the FIG Junior and WAGC rules (2025–2028) and the British Gymnastics national pathway
+   (2026) and club & regional pathway (2027) technical requirements. Where a level lets
+   the gymnast choose between set routines, each option is its own set. The Irish
+   Student Trampoline Open's levels aren't online (its site has lapsed), so they wait
+   for its documents.
    Gymnastics Ireland's levels are not published (its development plan is sent to club
    secretaries on request), so they wait for that document.
 

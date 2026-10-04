@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "name": "BUCS Disability L2 · second exercise",
+  "description": "Second exercise and final. Below the minimum difficulty: 2.0 penalty and no final; above the maximum: disqualification.",
+  "source": "BUCS Trampoline and DMT Championships 2026: Competition Structure (version 1)",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "difficulty",
+      "min": 1.0,
+      "max": 1.9
+    }
+  ]
+}

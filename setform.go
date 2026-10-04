@@ -12,12 +12,13 @@ import (
 )
 
 // The editor names its fields by rule: r<i>.type, r<i>.label, r<i>.min,
-// r<i>.max, r<i>.cap, r<i>.position, r<i>.m.<field> for a rule's matcher, and
+// r<i>.max, r<i>.cap, r<i>.position, r<i>.m.<field> for a rule's matcher,
 // r<i>.s<j>.<field> for element j of a set routine or requirement j of a
-// separate rule (with r<i>.s<j>.label its wording). "rules" and r<i>.seq give
-// the counts, and r<i>.was is the rule's kind when the form was drawn. Matcher
-// fields: rotmin, rotmax, dir, twmin, twmax, shape, takeoff, landing
-// (repeatable checkboxes), tarmin, tarmax, fig.
+// separate rule (with r<i>.s<j>.label its wording), and r<i>.o<k>.s<j>.<field>
+// for element j of option k of an includes rule. "rules", r<i>.seq, r<i>.opts
+// and r<i>.o<k>.seq give the counts, and r<i>.was is the rule's kind when the
+// form was drawn. Matcher fields: rotmin, rotmax, dir, twmin, twmax, shape,
+// takeoff, landing (repeatable checkboxes), tarmin, tarmax, fig.
 
 // parseSetForm reads the editor's form into a set, collecting any number that
 // couldn't be read; validation of the set itself happens afterwards.
@@ -101,6 +102,18 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 			} else {
 				rule.Each = items
 			}
+		case requirements.Includes:
+			rule.Options = [][]requirements.Matcher{}
+			for k := range count(p + "opts") {
+				var steps []requirements.Matcher
+				for j := range count(fmt.Sprintf("%so%d.seq", p, k)) {
+					prefix := fmt.Sprintf("%so%d.s%d.", p, k, j)
+					m := matcher(prefix)
+					m.Label = strings.TrimSpace(r.FormValue(prefix + "label"))
+					steps = append(steps, m)
+				}
+				rule.Options = append(rule.Options, steps)
+			}
 		}
 		if rule.Type == requirements.Count || rule.Type == requirements.Elements || rule.Type == requirements.Difficulty {
 			rule.Min, rule.Max = floatField(p+"min"), floatField(p+"max")
@@ -146,12 +159,15 @@ func newRule(ruleType string) requirements.Rule {
 		return requirements.Rule{Type: ruleType, Sequence: []requirements.Matcher{{}}}
 	case requirements.Separate:
 		return requirements.Rule{Type: ruleType, Each: []requirements.Matcher{{}}}
+	case requirements.Includes:
+		return requirements.Rule{Type: ruleType, Options: [][]requirements.Matcher{{{}}}}
 	}
 	return requirements.Rule{Type: ruleType}
 }
 
 // applySetAction applies an editor button ("delete:2", "up:1", "down:0",
-// "add-element:3", "delete-element:3:1") or the "Add a rule" choice to a set.
+// "add-element:3", "delete-element:3:1", "add-option:3", "delete-option:3:0",
+// "add-step:3:0", "delete-step:3:0:1") or the "Add a rule" choice to a set.
 func applySetAction(set *requirements.Set, action, add string) {
 	if slices.Contains(requirements.RuleTypes, add) {
 		set.Rules = append(set.Rules, newRule(add))
@@ -192,6 +208,24 @@ func applySetAction(set *requirements.Set, action, add string) {
 			*items = append(*items, requirements.Matcher{})
 		} else if j := index(2); j >= 0 && j < len(*items) {
 			*items = slices.Delete(*items, j, j+1)
+		}
+	case "add-option":
+		set.Rules[i].Options = append(set.Rules[i].Options, []requirements.Matcher{{}})
+	case "delete-option", "add-step", "delete-step":
+		options := set.Rules[i].Options
+		k := index(2)
+		if k < 0 || k >= len(options) {
+			return
+		}
+		switch parts[0] {
+		case "delete-option":
+			set.Rules[i].Options = slices.Delete(options, k, k+1)
+		case "add-step":
+			options[k] = append(options[k], requirements.Matcher{})
+		case "delete-step":
+			if j := index(3); j >= 0 && j < len(options[k]) {
+				options[k] = slices.Delete(options[k], j, j+1)
+			}
 		}
 	}
 }

@@ -333,6 +333,16 @@
 }
 .matcher { border: 1px dashed #ddd; border-radius: 6px; padding: 0.5rem 0.75rem; margin: 0.25rem 0 0.5rem; }
 .matcher legend { font-size: 0.85rem; font-weight: 600; padding: 0 0.25rem; }
+.option-group { border: 1px solid #dbe0f5; border-radius: 8px; padding: 0.5rem 0.75rem; margin-bottom: 0.75rem; background: #f8f9fe; }
+.option-group > legend { font-weight: 600; font-size: 0.9rem; padding: 0 0.25rem; }
+/* Content inside <details> sits in a slot that resets box-sizing to content-box,
+   making Bulma inputs wider than their column; restore Bulma's border-box. */
+details > * { box-sizing: border-box; }
+/* Fieldsets default to min-width: min-content, which lets nested grids overflow. */
+.matcher, .option-group { min-width: 0; }
+@media screen and (max-width: 768px) {
+  .option-group, .option-group .matcher { padding-left: 0.5rem; padding-right: 0.5rem; }
+}
 .matcher-summary { font-weight: 400; color: #555; }
 .matcher-choices { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
 .matcher-choices .label { flex-basis: 100%; margin: 0; }

@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "name": "BUCS FIG Level · any exercise",
+  "description": "Two voluntary exercises (the same one may be repeated); the higher counts. The final is one more.",
+  "source": "BUCS Trampoline and DMT Championships 2026: Competition Structure (version 1)",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "count",
+      "label": "At most two body landings (more is an interruption)",
+      "match": {
+        "landing": [
+          "front",
+          "back",
+          "seat"
+        ]
+      },
+      "max": 2
+    },
+    {
+      "type": "difficulty",
+      "min": 8.1
+    }
+  ]
+}

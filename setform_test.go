@@ -24,7 +24,8 @@ const everyKindOfRule = `{"format":1,"name":"Everything","description":"All of i
 	{"type":"sequence","sequence":[{"fig":"4 - o"},{"rotation":{"max":0},"landing":["back"]}]},
 	{"type":"separate","each":[{"label":"Landing on the front","landing":["front"]},{"twist":{"min":3},"rotation":{"max":5}}]},
 	{"type":"different"},
-	{"type":"difficulty","cap":1.7}
+	{"type":"difficulty","cap":1.7},
+	{"type":"includes","options":[[{"label":"¾ to front or back","rotation":{"min":3,"max":3},"landing":["front","back"]},{"rotation":{"min":5,"max":5}}],[{"rotation":{"min":4,"max":4},"twist":{"min":2}}]]}
 ]}`
 
 // editorFor renders the editor for a set given as JSON.
@@ -198,13 +199,13 @@ func TestSetEditorActions(t *testing.T) {
 		changes map[string]string
 		want    string
 	}{
-		{"add a rule", map[string]string{"add": "difficulty"}, "count count every elements difficulty position sequence separate different difficulty difficulty"},
-		{"remove a rule", map[string]string{"action": "delete:0"}, "count every elements difficulty position sequence separate different difficulty"},
-		{"move a rule up", map[string]string{"action": "up:2"}, "count every count elements difficulty position sequence separate different difficulty"},
-		{"move a rule down", map[string]string{"action": "down:5"}, "count count every elements difficulty sequence position separate different difficulty"},
-		{"the first rule can't move up", map[string]string{"action": "up:0"}, "count count every elements difficulty position sequence separate different difficulty"},
-		{"an unknown action does nothing", map[string]string{"action": "explode:1"}, "count count every elements difficulty position sequence separate different difficulty"},
-		{"an out of range rule does nothing", map[string]string{"action": "delete:99"}, "count count every elements difficulty position sequence separate different difficulty"},
+		{"add a rule", map[string]string{"add": "difficulty"}, "count count every elements difficulty position sequence separate different difficulty includes difficulty"},
+		{"remove a rule", map[string]string{"action": "delete:0"}, "count every elements difficulty position sequence separate different difficulty includes"},
+		{"move a rule up", map[string]string{"action": "up:2"}, "count every count elements difficulty position sequence separate different difficulty includes"},
+		{"move a rule down", map[string]string{"action": "down:5"}, "count count every elements difficulty sequence position separate different difficulty includes"},
+		{"the first rule can't move up", map[string]string{"action": "up:0"}, "count count every elements difficulty position sequence separate different difficulty includes"},
+		{"an unknown action does nothing", map[string]string{"action": "explode:1"}, "count count every elements difficulty position sequence separate different difficulty includes"},
+		{"an out of range rule does nothing", map[string]string{"action": "delete:99"}, "count count every elements difficulty position sequence separate different difficulty includes"},
 	}
 	for _, c := range cases {
 		if got := types(edit(c.changes)); got != c.want {
@@ -217,6 +218,25 @@ func TestSetEditorActions(t *testing.T) {
 	}
 	if got := edit(map[string]string{"action": "delete-element:7:0"}).Rules[7].Each; len(got) != 1 || got[0].Twist == nil {
 		t.Errorf("removing the first requirement left %+v", got)
+	}
+	includes := func(action string) [][]requirements.Matcher {
+		t.Helper()
+		return edit(map[string]string{"action": action}).Rules[10].Options
+	}
+	if got := includes("add-option:10"); len(got) != 3 || len(got[2]) != 1 {
+		t.Errorf("adding an option: %d options", len(got))
+	}
+	if got := includes("delete-option:10:0"); len(got) != 1 || got[0][0].Twist == nil {
+		t.Errorf("removing the first option left %+v", got)
+	}
+	if got := includes("add-step:10:1"); len(got[1]) != 2 {
+		t.Errorf("adding a step: option 2 has %d elements, want 2", len(got[1]))
+	}
+	if got := includes("delete-step:10:0:0"); len(got[0]) != 1 || got[0][0].Rotation == nil || *got[0][0].Rotation.Min != 5 {
+		t.Errorf("removing the first step of option 1 left %+v", got[0])
+	}
+	if got := includes("delete-step:10:9:0"); len(got) != 2 {
+		t.Errorf("an out of range option does nothing: %d options", len(got))
 	}
 	if got := edit(map[string]string{"action": "add-element:6"}).Rules[6].Sequence; len(got) != 3 {
 		t.Errorf("adding an element: %d elements, want 3", len(got))

@@ -1,0 +1,28 @@
+{
+  "format": 1,
+  "name": "BUCS L1 · second exercise",
+  "description": "Second exercise and final. Below the minimum difficulty: 2.0 penalty and no final; above the maximum: disqualification.",
+  "source": "BUCS Trampoline and DMT Championships 2026: Competition Structure (version 1)",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "difficulty",
+      "min": 5.9,
+      "max": 8.0
+    },
+    {
+      "type": "count",
+      "label": "No triple or quadruple somersaults (disqualification)",
+      "match": {
+        "rotation": {
+          "min": 12
+        }
+      },
+      "max": 0
+    }
+  ]
+}

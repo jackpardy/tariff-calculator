@@ -1,0 +1,212 @@
+{
+  "format": 1,
+  "name": "BUCS L3 · first exercise, option 1",
+  "description": "Compulsory first exercise, option 1 of 2. Any deviation is an interruption.",
+  "source": "BUCS Trampoline and DMT Championships 2026: Competition Structure (version 1)",
+  "rules": [
+    {
+      "type": "sequence",
+      "sequence": [
+        {
+          "label": "¾ back somersault to front (S)",
+          "rotation": {
+            "min": 3,
+            "max": 3
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "front"
+          ],
+          "shapes": [
+            "straight"
+          ],
+          "direction": "backward"
+        },
+        {
+          "label": "To feet (from front)",
+          "rotation": {
+            "min": 1,
+            "max": 1
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "front"
+          ],
+          "landing": [
+            "feet"
+          ]
+        },
+        {
+          "label": "Straddle jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "shapes": [
+            "straddle"
+          ]
+        },
+        {
+          "label": "Back somersault (P)",
+          "rotation": {
+            "min": 4,
+            "max": 4
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "shapes": [
+            "pike"
+          ],
+          "direction": "backward"
+        },
+        {
+          "label": "Barani (P)",
+          "rotation": {
+            "min": 4,
+            "max": 4
+          },
+          "twist": {
+            "min": 1,
+            "max": 1
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "shapes": [
+            "pike"
+          ],
+          "direction": "forward"
+        },
+        {
+          "label": "Tuck jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "shapes": [
+            "tuck"
+          ]
+        },
+        {
+          "label": "Barani (T)",
+          "rotation": {
+            "min": 4,
+            "max": 4
+          },
+          "twist": {
+            "min": 1,
+            "max": 1
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "shapes": [
+            "tuck"
+          ],
+          "direction": "forward"
+        },
+        {
+          "label": "Back somersault (T)",
+          "rotation": {
+            "min": 4,
+            "max": 4
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "shapes": [
+            "tuck"
+          ],
+          "direction": "backward"
+        },
+        {
+          "label": "Pike jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "shapes": [
+            "pike"
+          ]
+        },
+        {
+          "label": "Full twist jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 2,
+            "max": 2
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ]
+        }
+      ]
+    }
+  ]
+}

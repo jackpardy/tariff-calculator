@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 
 	"tariffCalculator/requirements"
 	"tariffCalculator/static"
@@ -167,6 +168,7 @@ type SetEditorData struct {
 var ruleTypeLabels = map[string]string{
 	requirements.Separate:   "Special requirements",
 	requirements.Different:  "No repeated elements",
+	requirements.Includes:   "Includes one of…",
 	requirements.Count:      "Elements that must (or mustn't) appear",
 	requirements.Every:      "Every element must…",
 	requirements.Elements:   "Number of elements",
@@ -308,6 +310,29 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 				<div class="buttons are-small">
 					@editorAction("+ Add requirement", fmt.Sprintf("add-element:%d", i), false)
 				</div>
+			case requirements.Includes:
+				<p class="matcher-hint mb-2">Met if any one option appears in the routine. An option with several elements means they're performed one straight after another.</p>
+				<input type="hidden" name={ p + "opts" } value={ strconv.Itoa(len(rule.Options)) }/>
+				for k, option := range rule.Options {
+					{{ op := fmt.Sprintf("%so%d.", p, k) }}
+					<fieldset class="option-group">
+						<legend>Option { strconv.Itoa(k + 1) }</legend>
+						<input type="hidden" name={ op + "seq" } value={ strconv.Itoa(len(option)) }/>
+						for j, m := range option {
+							@itemFields(fmt.Sprintf("%ss%d.", op, j), &m, stepTitle(j), "e.g. ¾ somersault to front or back")
+							<div class="buttons are-small">
+								@editorAction(fmt.Sprintf("Remove %s", strings.ToLower(stepTitle(j))), fmt.Sprintf("delete-step:%d:%d:%d", i, k, j), len(option) == 1)
+							</div>
+						}
+						<div class="buttons are-small">
+							@editorAction("+ Then another element", fmt.Sprintf("add-step:%d:%d", i, k), false)
+							@editorAction(fmt.Sprintf("Remove option %d", k+1), fmt.Sprintf("delete-option:%d:%d", i, k), len(rule.Options) == 1)
+						</div>
+					</fieldset>
+				}
+				<div class="buttons are-small">
+					@editorAction("+ Add option", fmt.Sprintf("add-option:%d", i), false)
+				</div>
 			case requirements.Different:
 				<p class="matcher-hint">No element may be repeated. Shapes count as different elements only where the Code of Points says they do (§14).</p>
 		}
@@ -399,6 +424,14 @@ templ checkboxes(name, label string, options, chosen []string) {
 			</label>
 		}
 	</div>
+}
+
+// stepTitle names element j of an includes option: the first, then the next.
+func stepTitle(j int) string {
+	if j == 0 {
+		return "Element"
+	}
+	return fmt.Sprintf("Then element %d", j+1)
 }
 
 // describedRules is each rule in plain English, saved with the set for its listing.

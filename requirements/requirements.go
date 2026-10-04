@@ -38,10 +38,11 @@ const (
 	Sequence   = "sequence"   // a set routine: element i matches Sequence[i], and no more
 	Separate   = "separate"   // special requirements: each of Each is met by a different element
 	Different  = "different"  // no element is repeated (CoP §14)
+	Includes   = "includes"   // at least one of Options appears: its elements, consecutively
 )
 
 // RuleTypes lists the rule types in the order the editor offers them.
-var RuleTypes = []string{Separate, Count, Every, Different, Elements, Difficulty, Position, Sequence}
+var RuleTypes = []string{Separate, Includes, Count, Every, Different, Elements, Difficulty, Position, Sequence}
 
 // Rule is one requirement. Which fields apply depends on Type.
 type Rule struct {
@@ -53,6 +54,9 @@ type Rule struct {
 	Position int       `json:"position,omitempty"`
 	Sequence []Matcher `json:"sequence,omitempty"`
 	Each     []Matcher `json:"each,omitempty"` // separate: the requirements, one element each
+	// Options are the alternatives of an includes rule, each one or more
+	// elements performed one after another, e.g. "¾ to front, then 1¼".
+	Options [][]Matcher `json:"options,omitempty"`
 	// Cap limits how much one element's difficulty counts towards a difficulty
 	// rule, as in age-group competition: a harder element may be performed but
 	// counts as the cap (CoP §17.1).
@@ -178,6 +182,20 @@ func (r Rule) validate() error {
 		for i, m := range r.Each {
 			if err := m.validate(); err != nil {
 				errs = append(errs, fmt.Errorf("requirement %d: %w", i+1, err))
+			}
+		}
+	case Includes:
+		if len(r.Options) == 0 {
+			errs = append(errs, errors.New("needs at least one option"))
+		}
+		for i, option := range r.Options {
+			if len(option) == 0 {
+				errs = append(errs, fmt.Errorf("option %d needs at least one element", i+1))
+			}
+			for j, m := range option {
+				if err := m.validate(); err != nil {
+					errs = append(errs, fmt.Errorf("option %d, element %d: %w", i+1, j+1, err))
+				}
 			}
 		}
 	case Different:
@@ -367,6 +385,21 @@ func Evaluate(set Set, rv skills.RoutineValidation) []Result {
 			} else {
 				res.Detail = "missing: " + strings.Join(missing, "; ")
 			}
+		case Includes:
+			for _, option := range rule.Options {
+				if at := find(option, routine); at > 0 {
+					for k := range option {
+						res.Elements = append(res.Elements, at+k)
+					}
+					break
+				}
+			}
+			res.Passed = len(res.Elements) > 0
+			if res.Passed {
+				res.Detail = "by " + plural(len(res.Elements), "element", "elements") + " " + elementList(res.Elements)
+			} else {
+				res.Detail = "not found"
+			}
 		case Different:
 			var repeats []string
 			for j := range routine {
@@ -389,8 +422,9 @@ func Evaluate(set Set, rv skills.RoutineValidation) []Result {
 }
 
 // RequiredElements is the set of elements (1-based) that satisfy a requirement:
-// those meeting a separate rule's requirements, and those matching a rule
-// requiring at least one such element. The tariff sheet stars them.
+// those meeting a separate rule's requirements, those making up an includes
+// rule's option, and those matching a rule requiring at least one such
+// element. The tariff sheet ticks them.
 func RequiredElements(set Set, results []Result) map[int]bool {
 	required := map[int]bool{}
 	for _, res := range results {
@@ -402,6 +436,11 @@ func RequiredElements(set Set, results []Result) map[int]bool {
 		}
 		for _, e := range res.Assigned {
 			if e > 0 {
+				required[e] = true
+			}
+		}
+		if rule.Type == Includes {
+			for _, e := range res.Elements {
 				required[e] = true
 			}
 		}
@@ -419,6 +458,26 @@ func cappedDifficulty(rv skills.RoutineValidation, limit float64) float64 {
 		}
 	}
 	return math.Round(total*10) / 10
+}
+
+// find is where (1-based) the elements of an option first appear one after
+// another in the routine, or 0.
+func find(option []Matcher, routine []skills.TrampolineSkill) int {
+	for start := 0; start+len(option) <= len(routine); start++ {
+		if matchesAt(option, routine, start) {
+			return start + 1
+		}
+	}
+	return 0
+}
+
+func matchesAt(option []Matcher, routine []skills.TrampolineSkill, start int) bool {
+	for k, m := range option {
+		if !m.Matches(routine[start+k]) {
+			return false
+		}
+	}
+	return true
 }
 
 // assign finds a different element for each requirement, as many as possible

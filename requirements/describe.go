@@ -46,6 +46,19 @@ func Describe(r Rule) string {
 		return "Each by a different element: " + strings.Join(parts, "; ")
 	case Different:
 		return "No element repeated"
+	case Includes:
+		options := make([]string, len(r.Options))
+		for i, option := range r.Options {
+			steps := make([]string, len(option))
+			for j, m := range option {
+				steps[j] = DescribeMatcher(m)
+			}
+			options[i] = strings.Join(steps, ", then ")
+		}
+		if len(options) == 1 {
+			return "Includes " + options[0]
+		}
+		return "Includes one of: " + strings.Join(options, "; or ")
 	}
 	return r.Type
 }

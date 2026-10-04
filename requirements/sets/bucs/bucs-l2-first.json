@@ -1,0 +1,74 @@
+{
+  "format": 1,
+  "name": "BUCS L2 · first exercise",
+  "description": "Voluntary first exercise. A missing requirement is a 2.0 penalty each; exceeding the level is disqualification.",
+  "source": "BUCS Trampoline and DMT Championships 2026: Competition Structure (version 1)",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "different",
+      "label": "10 different elements: none repeated"
+    },
+    {
+      "type": "count",
+      "label": "At least 7 somersaults of 270° or more",
+      "match": {
+        "rotation": {
+          "min": 3
+        }
+      },
+      "min": 7
+    },
+    {
+      "type": "includes",
+      "options": [
+        [
+          {
+            "label": "¾ somersault (270°) landing on front or back",
+            "rotation": {
+              "min": 3,
+              "max": 3
+            },
+            "landing": [
+              "front",
+              "back"
+            ]
+          },
+          {
+            "label": "1¼ somersault (450°)",
+            "rotation": {
+              "min": 5,
+              "max": 5
+            }
+          }
+        ],
+        [
+          {
+            "label": "Full somersault (360°) with at least a full twist (360°)",
+            "rotation": {
+              "min": 4,
+              "max": 4
+            },
+            "twist": {
+              "min": 2
+            }
+          }
+        ]
+      ]
+    },
+    {
+      "type": "count",
+      "label": "No somersault over 630° (disqualification)",
+      "match": {
+        "rotation": {
+          "min": 8
+        }
+      },
+      "max": 0
+    }
+  ]
+}

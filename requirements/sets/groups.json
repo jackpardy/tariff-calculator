@@ -1,5 +1,37 @@
 [
   {
+    "dir": "bucs",
+    "name": "BUCS student championships (2026)",
+    "sets": [
+      "bucs-fig",
+      "bucs-l1-first",
+      "bucs-l1-second",
+      "bucs-l2-first",
+      "bucs-l2-second",
+      "bucs-l3-option-1",
+      "bucs-l3-option-2",
+      "bucs-l3-second",
+      "bucs-l4-option-1",
+      "bucs-l4-option-2",
+      "bucs-l4-second",
+      "bucs-l5-option-1",
+      "bucs-l5-option-2",
+      "bucs-l5-second",
+      "bucs-l6-option-1",
+      "bucs-l6-option-2",
+      "bucs-l6-second",
+      "bucs-l7-option-1",
+      "bucs-l7-option-2",
+      "bucs-l7-second",
+      "bucs-disability-l1-option-1",
+      "bucs-disability-l1-option-2",
+      "bucs-disability-l1-second",
+      "bucs-disability-l2-option-1",
+      "bucs-disability-l2-option-2",
+      "bucs-disability-l2-second"
+    ]
+  },
+  {
     "dir": "fig",
     "name": "FIG age groups (2025–2028)",
     "sets": [

@@ -277,9 +277,40 @@ func TestBuiltinSetRoutines(t *testing.T) {
 			jump(skills.Tuck), c("backToSeat"), c("seatHalfToFeet"), jump(skills.Pike), front(skills.Pike)},
 		"bg-regional-l3-first": {back(skills.Straight), barani(skills.Straight), jump(skills.Straddle), back(skills.Pike), barani(skills.Pike),
 			jump(skills.Tuck), barani(skills.Tuck), back(skills.Tuck), jump(skills.Pike), front(skills.Pike)},
+		"bucs-l3-option-1": {c("lazyBack"), c("frontToFeet"), jump(skills.Straddle), back(skills.Pike), barani(skills.Pike),
+			jump(skills.Tuck), barani(skills.Tuck), back(skills.Tuck), jump(skills.Pike), c("fullTwist")},
+		"bucs-l3-option-2": {back(skills.Straight), barani(skills.Straight), jump(skills.Straddle), back(skills.Tuck), barani(skills.Tuck),
+			jump(skills.Pike), c("halfTwist"), jump(skills.Tuck), c("crashDive"), c("backHalfToFeet")},
+		"bucs-l4-option-1": {back(skills.Straight), jump(skills.Straddle), barani(skills.Tuck), jump(skills.Tuck), c("halfTwist"),
+			jump(skills.Pike), c("backDrop"), c("backHalfToFeet"), jump(skills.Tuck), front(skills.Tuck)},
+		"bucs-l4-option-2": {back(skills.Pike), jump(skills.Straddle), back(skills.Tuck), jump(skills.Pike), c("halfTwist"),
+			jump(skills.Tuck), halfToFront, c("frontToFeet"), jump(skills.Tuck), barani(skills.Pike)},
+		"bucs-l5-option-1": {back(skills.Tuck), jump(skills.Straddle), c("seatDrop"), c("seatHalfToSeat"), c("seatHalfToFeet"),
+			jump(skills.Pike), c("backDrop"), c("backHalfToFeet"), jump(skills.Tuck), front(skills.Pike)},
+		"bucs-l5-option-2": {back(skills.Pike), jump(skills.Straddle), c("halfToSeat"), c("seatHalfToFeet"), c("halfTwist"),
+			jump(skills.Tuck), c("frontDrop"), c("frontToFeet"), jump(skills.Pike), front(skills.Tuck)},
+		"bucs-l6-option-1": {c("fullTwist"), jump(skills.Straddle), c("seatDrop"), c("seatHalfToSeat"), c("seatHalfToFeet"),
+			jump(skills.Pike), c("backDrop"), c("backHalfToFeet"), jump(skills.Tuck), front(skills.Tuck)},
+		"bucs-l6-option-2": {back(skills.Tuck), jump(skills.Straddle), c("seatDrop"), c("seatHalfToSeat"), c("seatHalfToFeet"),
+			jump(skills.Tuck), halfToFront, c("frontToFeet"), jump(skills.Pike), c("fullTwist")},
+		"bucs-l7-option-1": {c("halfTwist"), jump(skills.Straddle), c("seatDrop"), c("seatToFeet"), c("halfTwist"),
+			jump(skills.Pike), c("halfToSeat"), c("seatHalfToFeet"), jump(skills.Tuck), c("fullTwist")},
+		"bucs-l7-option-2": {c("fullTwist"), jump(skills.Straddle), c("seatDrop"), c("seatHalfToFeet"), jump(skills.Pike),
+			c("seatDrop"), c("seatToFeet"), jump(skills.Tuck), c("frontDrop"), c("frontToFeet")},
 	}
+	// The disability routines repeat others.
+	routines["bucs-disability-l1-option-1"] = routines["bg-regional-l1-first"]
+	routines["bucs-disability-l1-option-2"] = routines["bg-regional-l2-first"]
+	routines["bucs-disability-l2-option-1"] = routines["bucs-l7-option-1"]
+	routines["bucs-disability-l2-option-2"] = routines["bg-club-l3"]
 	for id, routine := range routines {
 		checkBuiltin(t, id, routine)
+	}
+	// Every built-in set routine is covered.
+	for _, b := range Builtins() {
+		if b.Set.Rules[0].Type == Sequence && routines[b.ID] == nil {
+			t.Errorf("%s: no test routine", b.ID)
+		}
 	}
 
 	// The wrong shape somewhere is caught.
@@ -311,9 +342,25 @@ func TestBuiltinSpecialRequirements(t *testing.T) {
 		back(skills.Pike), front(skills.Pike), back(skills.Straight), barani(skills.Straight), c("fullBack")}
 	checkBuiltin(t, "fig-ag2-junior-first", ag2)
 
+	// BUCS Level 1: at least nine somersaults of ¾ or more, including a crash
+	// dive (¾ to back) straight into a ball-out (1¼), or a full twisting
+	// somersault.
+	l1 := []skills.TrampolineSkill{barani(skills.Tuck), back(skills.Pike), c("crashDive"), c("ballOut"),
+		back(skills.Tuck), front(skills.Pike), back(skills.Straight), barani(skills.Pike), front(skills.Tuck), barani(skills.Straight)}
+	checkBuiltin(t, "bucs-l1-first", l1)
+	l1[2], l1[3] = c("fullBack"), front(skills.Straight) // the alternative: a full back
+	checkBuiltin(t, "bucs-l1-first", l1)
+	l1[2], l1[3] = c("lazyBack"), c("frontToFeet") // neither: ¾ to front, but then only a quarter
+	set, _ := LookupBuiltin("bucs-l1-first")
+	for _, r := range Evaluate(set, skills.ValidateRoutine(l1)) {
+		if set.Rules[r.Rule].Type == Includes && (r.Passed || r.Detail != "not found") {
+			t.Errorf("neither option: got %+v", r)
+		}
+	}
+
 	// Missing the double: reported, and the other requirements still met.
 	ag2[3] = back(skills.Tuck)
-	set, _ := LookupBuiltin("fig-ag2-junior-first")
+	set, _ = LookupBuiltin("fig-ag2-junior-first")
 	for _, r := range Evaluate(set, skills.ValidateRoutine(ag2)) {
 		if set.Rules[r.Rule].Type == Separate && (r.Passed || r.Detail != "missing: A double front or back somersault, with or without twist") {
 			t.Errorf("without a double: got %+v", r)
@@ -375,6 +422,44 @@ func TestDifficultyCap(t *testing.T) {
 	for name, data := range map[string]string{
 		"negative cap":           `{"format":1,"name":"x","rules":[{"type":"difficulty","cap":-1}]}`,
 		"separate without items": `{"format":1,"name":"x","rules":[{"type":"separate","each":[]}]}`,
+	} {
+		if _, err := Parse([]byte(data)); err == nil {
+			t.Errorf("%s: expected an error", name)
+		}
+	}
+}
+
+func TestIncludes(t *testing.T) {
+	baraniThenFront := []Matcher{{FIG: "4 1 o"}, {FIG: "4 - o"}} // both present, but not in this order
+	results := evaluate(t,
+		Rule{Type: Includes, Options: [][]Matcher{{{Landing: []string{"seat"}}, {Takeoff: []string{"seat"}}}}},
+		Rule{Type: Includes, Options: [][]Matcher{baraniThenFront}},
+		Rule{Type: Includes, Options: [][]Matcher{baraniThenFront, {{FIG: "4 3"}}}},
+	)
+	want := []struct {
+		passed   bool
+		elements []int
+		detail   string
+	}{
+		{true, []int{5, 6}, "by elements 5, 6"},
+		{false, nil, "not found"},
+		{true, []int{4}, "by element 4"},
+	}
+	for i, w := range want {
+		if r := results[i]; r.Passed != w.passed || !equalInts(r.Elements, w.elements) || r.Detail != w.detail {
+			t.Errorf("rule %d: got passed=%v elements=%v detail=%q", i+1, r.Passed, r.Elements, r.Detail)
+		}
+	}
+
+	if got := Describe(Rule{Type: Includes, Options: [][]Matcher{
+		{{Label: "¾ to front or back"}, {Label: "1¼ somersault"}},
+		{{Label: "A full somersault with a full twist"}},
+	}}); got != "Includes one of: ¾ to front or back, then 1¼ somersault; or A full somersault with a full twist" {
+		t.Errorf("Describe = %q", got)
+	}
+	for name, data := range map[string]string{
+		"no options":   `{"format":1,"name":"x","rules":[{"type":"includes","options":[]}]}`,
+		"empty option": `{"format":1,"name":"x","rules":[{"type":"includes","options":[[]]}]}`,
 	} {
 		if _, err := Parse([]byte(data)); err == nil {
 			t.Errorf("%s: expected an error", name)
