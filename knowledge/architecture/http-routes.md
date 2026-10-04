@@ -20,13 +20,15 @@ All routes are defined in `routes()` in `main.go`. Forms are
 | `POST /skill-inputs` | the form's fields, or `load=common` + `commonSkillKey` (+ `shape`), or `load=skill` + `skill` | The re-rendered editor; 204 while the form holds something unscorable |
 | `GET /skill-search` | `q` | Search results ([skill catalog](../domain/skill-catalog.md)) |
 | `POST /calculate-skill` | the form's fields | The skill as JSON, named and priced, for the page to store |
-| `POST /routine` | `routineData`, `requirementSet`, `checks`, `side` (`a`/`b`), optional `compareData` + `compareName` | The routine view: cards, flags, totals, requirement results |
+| `POST /routine` | `routineData`, `requirementSet`, `checks`, `side` (`a`/`b`), optional `compareData` + `compareName`; for a [level](../requirements/levels.md)'s exercise, `level`, `exercise` and the partner's `pairData`, `pairSet`, `pairChecks`, `pairName` | The routine view: cards, flags, totals, requirement results, and the level panel |
 | `POST /set-routine` | `requirementSet`, optional `routineData` | JSON `{name, skills, matches}` ([set routines](../requirements/set-routines.md)) |
 | `POST /qr` | `text` | An SVG QR code ([sharing](../features/sharing.md)) |
 | `GET /compare`, `POST /compare` | `aData`, `aName`, `bData`, `bName` | The [compare page](../features/compare.md) and its comparison |
 | `GET /requirements` | — | The requirements page |
 | `POST /requirements/editor` | `set` (JSON), or the editor's form fields + `action`/`add` | The re-rendered editor with problems listed |
+| `POST /requirements/level-editor` | `level` (JSON) and `custom`, or the editor's own fields and `action` | The [level](../requirements/levels.md) editor |
 | `GET /tariff-sheet`, `POST /tariff-sheet` | as `/routine` | The [tariff sheet](../features/tariff-sheet.md) page and card |
+| `GET /view`, `POST /view` | as `/routine`, plus `routineName` | The [view screen](../features/view.md) page, and a routine or level pair to fill it |
 | `GET /static/...` | — | [Static assets](static-assets.md) |
 
 `requirementSet` is either `builtin:<id>` or the custom requirements as JSON.

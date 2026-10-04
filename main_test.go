@@ -1141,3 +1141,42 @@ func TestLevelPairs(t *testing.T) {
 		t.Errorf("the sheet says why the Rudi adds nothing")
 	}
 }
+
+func TestViewScreen(t *testing.T) {
+	page := getPage(t, "/view")
+	for _, want := range []string{"/static/js/view.js?v=", "/static/css/view.css?v=", `id="view-routine"`, `data-hides="hide-fig" checked`, `data-hides="hide-req">`, `id="display"`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the view page is missing %q", want)
+		}
+	}
+	if !strings.Contains(getPage(t, "/"), "`/view?routine=${currentId}`") {
+		t.Error("the builder should link to the view of the current routine")
+	}
+
+	first := `[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},
+		{"rotation":4,"twist_distribution":[3],"takeoff_position":"Feet","shape":"Straight"}]`
+	second := `[{"rotation":4,"twist_distribution":[3],"takeoff_position":"Feet","shape":"Straight","custom_name":"My Rudi"}]`
+
+	// Viewing the second exercise shows the first beside it, first.
+	html := postForm(t, "/view", url.Values{
+		"routineData": {second}, "requirementSet": {"builtin:fig-ag3-second"}, "routineName": {"Q2"},
+		"level": {"builtin-level:fig-ag3"}, "exercise": {"2"},
+		"pairData": {first}, "pairSet": {"builtin:fig-ag3-first"}, "pairName": {"Q1"},
+	}).Body.String()
+	q1, q2 := strings.Index(html, "<h2>Q1</h2>"), strings.Index(html, "<h2>Q2</h2>")
+	if q1 < 0 || q2 < 0 || q1 > q2 || !strings.Contains(html, `class="display-column is-other"`) || !strings.Contains(html, "is-pair") {
+		t.Errorf("the pair shows in exercise order, the other one marked: Q1 at %d, Q2 at %d", q1, q2)
+	}
+	if !strings.Contains(html, "FIG AG3 (17–21) · second exercise") || !strings.Contains(html, "My Rudi") || !strings.Contains(html, `class="display-row not-counted"`) {
+		t.Errorf("the second exercise names its level, shows the coach's label, and strikes the carried-over Rudi")
+	}
+	if strings.Count(html, `class="display-row is-blank"`) != 17 || !strings.Contains(html, "--rows: 10") {
+		t.Errorf("each column has a full exercise of rows")
+	}
+
+	// One routine on its own, difficulty not scored.
+	html = postForm(t, "/view", url.Values{"routineData": {first}, "routineName": {"Solo"}, "checks": {`{"difficulty":false}`}}).Body.String()
+	if strings.Contains(html, "is-pair") || !strings.Contains(html, "no difficulty") {
+		t.Errorf("a single routine without difficulty")
+	}
+}

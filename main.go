@@ -61,6 +61,8 @@ func routes() http.Handler {
 	mux.HandleFunc("GET /requirements", handleRequirementsPage)
 	mux.HandleFunc("POST /requirements/editor", handleSetEditor)
 	mux.HandleFunc("POST /requirements/level-editor", handleLevelEditor)
+	mux.HandleFunc("GET /view", handleViewPage)
+	mux.HandleFunc("POST /view", handleView)
 	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
 	mux.HandleFunc("POST /tariff-sheet", handleTariffSheet)
 
@@ -288,6 +290,7 @@ type checkedRoutine struct {
 	required map[int]bool            // elements meeting a requirement, for the sheet
 	checks   views.Checks
 	level    *views.LevelCheck // nil without a level
+	pair     *checkedRoutine   // the routine doing the level's other exercise, if posted and valid
 }
 
 // postedRoutine is a routine as the page posts it: its skills, its requirement
@@ -370,6 +373,7 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 			lc.OtherMet, lc.OtherRules = other.check.Met(), len(other.check.Results)
 		}
 		if otherErr == nil && err == nil {
+			out.pair = &other
 			first, second := out, other
 			if exercise == 2 {
 				first, second = other, out
@@ -619,6 +623,49 @@ func handleSetEditor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render(w, r, views.SetEditor(views.SetEditorData{Set: set, JSON: string(data), Problems: problems}))
+}
+
+// handleViewPage serves the view screen, which loads a routine saved in the
+// browser (and the routine doing its level's other exercise) to show full screen.
+func handleViewPage(w http.ResponseWriter, r *http.Request) {
+	render(w, r, views.ViewPage())
+}
+
+// handleView renders the view screen for the posted routine (named
+// routineName), with the routine doing its level's other exercise beside it,
+// in exercise order.
+func handleView(w http.ResponseWriter, r *http.Request) {
+	checked, err := checkRoutine(r)
+	if err != nil {
+		badRequest(w, err)
+		return
+	}
+	column := func(c checkedRoutine, name string, exercise int) views.DisplayColumn {
+		col := views.DisplayColumn{Name: name, Validation: c.rv, Check: c.check, Required: c.required, Checks: c.checks}
+		if checked.level != nil && checked.level.Err == "" {
+			col.Level, col.Exercise = checked.level.Name, exercise
+		}
+		return col
+	}
+	name := strings.TrimSpace(r.FormValue("routineName"))
+	if name == "" {
+		name = "Routine"
+	}
+	exercise := 1
+	if checked.level != nil {
+		exercise = checked.level.Exercise
+	}
+	columns := []views.DisplayColumn{column(checked, name, exercise)}
+	if checked.pair != nil {
+		other := column(*checked.pair, checked.level.OtherName, 3-exercise)
+		other.Other = true
+		if exercise == 2 {
+			columns = []views.DisplayColumn{other, columns[0]}
+		} else {
+			columns = append(columns, other)
+		}
+	}
+	render(w, r, views.RoutineDisplay(columns))
 }
 
 // handleTariffSheetPage serves the tariff sheet page, which loads the sheet for

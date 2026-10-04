@@ -1,0 +1,194 @@
+/* view.css: the view screen (views.ViewPage). A routine, or a level's pair of
+   routines, fills the screen without scrolling: each column's element rows
+   share its height, and their text scales with the row (container query units).
+   The Show menu hides parts by toggling hide-<key> classes on #view. */
+
+:root {
+  --ink: #1b1f2a;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --accent: #485fc7;
+  --warn: #d97706;
+  --met: #257953;
+  --unmet: #cc0f35;
+  --bg: #fff;
+  --bar: #f6f7f9;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #eef0f4;
+    --muted: #9aa3b2;
+    --line: #2a2f3a;
+    --accent: #8ea0ff;
+    --warn: #f0a33a;
+    --met: #4fbf86;
+    --unmet: #ff6b81;
+    --bg: #111318;
+    --bar: #1a1d24;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* The bar: back, routine, Show menu, full screen. */
+.view-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem max(0.75rem, env(safe-area-inset-right)) 0.35rem max(0.75rem, env(safe-area-inset-left));
+  padding-top: max(0.35rem, env(safe-area-inset-top));
+  background: var(--bar);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+.view-back { color: var(--ink); text-decoration: none; font-size: 1.15rem; padding: 0 0.25rem; }
+.view-bar select, .view-bar button, .view-menu summary {
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+}
+#view-routine { min-width: 0; flex: 0 1 20rem; }
+.view-bar button { cursor: pointer; white-space: nowrap; }
+.view-menu { position: relative; margin-left: auto; }
+.view-menu summary { cursor: pointer; list-style: none; user-select: none; }
+.view-menu summary::-webkit-details-marker { display: none; }
+.view-menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.3rem);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.65rem 0.8rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+.view-menu-panel label { display: flex; gap: 0.5rem; align-items: center; cursor: pointer; }
+
+/* The screen. */
+#view {
+  flex: 1;
+  min-height: 0;
+  padding: 0.75rem max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+}
+#display { height: 100%; }
+.view-loading { color: var(--muted); margin: 0; }
+
+.display {
+  height: 100%;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+/* A pair stacks on a portrait screen, one exercise above the other. */
+@media (orientation: portrait) {
+  .display.is-pair { grid-auto-flow: row; grid-auto-rows: minmax(0, 1fr); gap: 1rem; }
+}
+.hide-other .display-column.is-other { display: none; }
+
+.display-column { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.display-head {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid var(--ink);
+}
+.display-title { flex: 1; min-width: 0; }
+.display-title h2 {
+  margin: 0;
+  font-size: clamp(1rem, 3.2vmin, 2rem);
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.display-level { margin: 0.1rem 0 0; color: var(--muted); font-size: clamp(0.75rem, 1.8vmin, 1.1rem); }
+.display-met {
+  flex: none;
+  align-self: center;
+  font-size: clamp(0.7rem, 1.7vmin, 1rem);
+  font-weight: 600;
+  color: var(--unmet);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.1em 0.6em;
+}
+.display-met.is-met { color: var(--met); }
+.display-total {
+  flex: none;
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.25rem, 5vmin, 3rem);
+  line-height: 1;
+}
+.display-none { font-size: 0.45em; font-weight: 400; color: var(--muted); }
+
+/* Element rows share the column's height; text scales with a row. */
+.display-rows {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
+  container-type: size;
+}
+.display-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: 0;
+  padding: 0 0.2em;
+  border-bottom: 1px solid var(--line);
+  font-size: min(calc(100cqh / var(--rows) * 0.5), 6.5cqw);
+  line-height: 1.1;
+}
+.display-row.is-blank { border-bottom-style: dashed; }
+.d-num { flex: none; width: 1.5em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.d-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.d-fig {
+  flex: none;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+.d-req { flex: none; width: 0.7em; color: var(--accent); font-weight: 700; }
+.d-diff { flex: none; width: 2.3em; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.d-warn { flex: none; width: 1.1em; text-align: center; color: var(--warn); font-size: 0.85em; }
+.not-counted .d-name, .not-counted .d-diff { color: var(--muted); text-decoration: line-through; }
+.unscored .d-diff { color: var(--muted); font-weight: 400; }
+
+/* What the Show menu hides. */
+.hide-names .d-name { display: none; }
+.hide-names .d-fig { flex: 1; }
+.hide-fig .d-fig,
+.hide-diff .d-diff,
+.hide-total .display-total,
+.hide-level .display-level,
+.hide-req .d-req,
+.hide-req .display-met,
+.hide-warnings .d-warn { display: none; }

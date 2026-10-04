@@ -71,9 +71,9 @@ the same.
 
 # Other pages
 
-From the builder: the [tariff sheet](tariff-sheet.md), the
-[compare page](compare.md), the requirements page and
-[sharing](sharing.md).
+From the builder: the [view screen](view.md), the
+[tariff sheet](tariff-sheet.md), the [compare page](compare.md), the
+requirements page and [sharing](sharing.md).
 
 When a deploy happens while the page is open, a bar offers to refresh
 ([static assets](../architecture/static-assets.md)).

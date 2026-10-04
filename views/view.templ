@@ -1,0 +1,179 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+
+	"tariffCalculator/skills"
+	"tariffCalculator/static"
+)
+
+// DisplayColumn is one routine on the view screen.
+type DisplayColumn struct {
+	Name       string
+	Level      string // the level it's an exercise of, if any
+	Exercise   int    // 1 or 2, with a level
+	Validation skills.RoutineValidation
+	Check      *RequirementCheck // nil without requirements
+	Required   map[int]bool      // elements meeting a requirement
+	Checks     Checks
+	Other      bool // the routine doing the other exercise, which can be hidden
+}
+
+// viewOptions are what the view screen can show, each toggled in its Show menu
+// and remembered in the browser. Key names the CSS classes (hide-<key> on
+// #view), and On is the default: a clean screen of names and difficulty.
+var viewOptions = []struct {
+	Key, Label string
+	On         bool
+}{
+	{"names", "Skill names", true},
+	{"fig", "FIG notation", true},
+	{"diff", "Difficulty of each skill", true},
+	{"total", "Total difficulty", true},
+	{"level", "Level and exercise", true},
+	{"other", "The other exercise", true},
+	{"req", "Requirements met", false},
+	{"warnings", "Warnings", false},
+}
+
+// ViewPage is the view screen: a routine, and the routine doing its level's
+// other exercise, filling the screen without scrolling. Its script
+// (static/js/view.js) loads the routine from the browser, and the Show menu
+// chooses what's on screen.
+templ ViewPage() {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+			<title>View routine</title>
+			<meta name="app-version" content={ static.Version }/>
+			<script defer src={ static.URL("js/version.js") }></script>
+			<link rel="stylesheet" href={ static.URL("css/view.css") }/>
+			<script src={ static.URL("js/htmx.min.js") }></script>
+			<script defer src={ static.URL("js/routines.js") }></script>
+			<script defer src={ static.URL("js/sets.js") }></script>
+			<script defer src={ static.URL("js/menus.js") }></script>
+			<script defer src={ static.URL("js/view.js") }></script>
+		</head>
+		<body>
+			<nav class="view-bar">
+				<a class="view-back" href="/" aria-label="Back to the Routine Builder">←</a>
+				<select id="view-routine" aria-label="Routine"></select>
+				<details class="view-menu" data-menu>
+					<summary>Show</summary>
+					<div class="view-menu-panel">
+						for _, o := range viewOptions {
+							<label>
+								<input type="checkbox" data-hides={ "hide-" + o.Key } checked?={ o.On }/>
+								{ o.Label }
+							</label>
+						}
+					</div>
+				</details>
+				<button type="button" id="view-fullscreen" hidden>Full screen</button>
+			</nav>
+			<main id="view">
+				<div id="display" hx-on:htmx:response-error="this.textContent = 'Could not show the routine: ' + event.detail.xhr.responseText">
+					<p class="view-loading">Loading the routine saved in this browser...</p>
+				</div>
+			</main>
+		</body>
+	</html>
+}
+
+// RoutineDisplay is the routines on the view screen, in columns of equal rows
+// sized to fill the screen.
+templ RoutineDisplay(columns []DisplayColumn) {
+	{{ rows := displayRows(columns) }}
+	<div class={ "display", templ.KV("is-pair", len(columns) > 1) } style={ fmt.Sprintf("--rows: %d", rows) }>
+		for _, c := range columns {
+			@displayColumn(c, rows)
+		}
+	</div>
+}
+
+templ displayColumn(c DisplayColumn, rows int) {
+	<section class={ "display-column", templ.KV("is-other", c.Other) }>
+		<header class="display-head">
+			<div class="display-title">
+				<h2>{ c.Name }</h2>
+				if c.Level != "" {
+					<p class="display-level">{ c.Level } · { exerciseName(c.Exercise) } exercise</p>
+				}
+			</div>
+			if c.Check != nil && c.Check.Err == "" && len(c.Check.Results) > 0 {
+				<span class={ "display-met", templ.KV("is-met", c.Check.Met() == len(c.Check.Results)) }>
+					{ fmt.Sprintf("%d of %d met", c.Check.Met(), len(c.Check.Results)) }
+				</span>
+			}
+			<p class="display-total">
+				if c.Checks.ScoreDifficulty {
+					{ fmt.Sprintf("%.1f", c.Validation.TotalTariff) }
+				} else {
+					<span class="display-none">no difficulty</span>
+				}
+			</p>
+		</header>
+		<ol class="display-rows">
+			for i := range rows {
+				if i < len(c.Validation.Skills) {
+					@displayRow(i, c.Validation.Skills[i], c.Validation.Messages[i], c.Required[i+1], c.Checks.ScoreDifficulty)
+				} else {
+					<li class="display-row is-blank"><span class="d-num">{ strconv.Itoa(i + 1) }</span></li>
+				}
+			}
+		</ol>
+	</section>
+}
+
+// displayRow is one element: its number, name, FIG notation, whether it meets
+// a requirement (*), its difficulty, and a mark if something's wrong.
+templ displayRow(i int, sv skills.SkillValidation, message string, required, scored bool) {
+	<li class={ "display-row", templ.KV("not-counted", !sv.Counted && !sv.Unscored), templ.KV("unscored", sv.Unscored) }>
+		<span class="d-num">{ strconv.Itoa(i + 1) }</span>
+		<span class="d-name">{ displayName(sv.Skill) }</span>
+		<span class="d-fig">{ sv.FIGNotation }</span>
+		<span class="d-req" aria-label={ requiredLabel(required) }>
+			if required {
+				*
+			}
+		</span>
+		<span class="d-diff">
+			if scored {
+				{ fmt.Sprintf("%.1f", sv.Skill.Tariff) }
+			}
+		</span>
+		<span class="d-warn" title={ message }>
+			if message != "" {
+				⚠
+			}
+		</span>
+	</li>
+}
+
+// displayRows is how many rows each column has: a full exercise, or more if a
+// routine is longer, the same in every column so they line up.
+func displayRows(columns []DisplayColumn) int {
+	n := skills.RoutineLength
+	for _, c := range columns {
+		n = max(n, len(c.Validation.Skills))
+	}
+	return n
+}
+
+// displayName is the coach's label for a skill if it has one, else its name.
+func displayName(s skills.TrampolineSkill) string {
+	if s.CustomName != "" {
+		return s.CustomName
+	}
+	return s.Name
+}
+
+func requiredLabel(required bool) string {
+	if required {
+		return "Meets a requirement"
+	}
+	return ""
+}

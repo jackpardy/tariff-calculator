@@ -71,6 +71,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 				</div>
 				<div class="level-right">
 					<div class="buttons mb-0">
+						<a class="button is-link is-small" href="/view" x-bind:href="`/view?routine=${currentId}`" target="_blank" rel="noopener" title="Show this routine full screen, with its level's other exercise">View</a>
 						<a class="button is-primary is-small" href="/tariff-sheet" target="_blank" rel="noopener">Tariff Sheet</a>
 						<a class="button is-link is-light is-small" href="/compare" target="_blank" rel="noopener" x-show="routines.length > 1">Compare</a>
 					</div>
