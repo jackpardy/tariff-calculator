@@ -1,0 +1,424 @@
+package views
+
+import (
+	"fmt"
+	"slices"
+	"strconv"
+
+	"tariffCalculator/requirements"
+	"tariffCalculator/static"
+)
+
+// RequirementsPage lists the built-in requirement sets and the ones saved in
+// this browser, and holds the set editor. Its script (static/js/requirements.js)
+// manages the saved sets and opens them in the editor.
+templ RequirementsPage(builtins []requirements.Builtin) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>Requirement Sets</title>
+			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
+			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
+			<script src={ static.URL("js/htmx.min.js") }></script>
+			<script defer src={ static.URL("js/sets.js") }></script>
+			<script defer src={ static.URL("js/requirements.js") }></script>
+			<script defer src={ static.URL("js/alpine.min.js") }></script>
+			@templ.JSONScript("builtin-sets", builtinSets(builtins))
+		</head>
+		<body>
+			<section class="section">
+				<div class="container" x-data="requirementsPage()">
+					<a class="is-size-7" href="/">← Routine Builder</a>
+					<h1 class="title is-4 mt-1">Requirement sets</h1>
+					<p class="mb-4">
+						A requirement set is the rules a routine is checked against: required or banned elements,
+						how many elements, difficulty limits or a set routine. Choose one for a routine under
+						"Check against" in the Routine Builder.
+					</p>
+					// The editor, when a set is open.
+					<div class="box" x-show="editing !== null" x-cloak>
+						<div class="box-head editor-head">
+							<h2 class="title is-5 mb-0" x-text="editing?.title"></h2>
+							<div class="buttons mb-0">
+								<button class="button is-primary is-small" type="button" x-on:click="saveEditing()">Save</button>
+								<button class="button is-light is-small" type="button" x-on:click="closeEditor()">Close</button>
+							</div>
+						</div>
+						<div id="editor-area" hx-sync="this:replace"></div>
+					</div>
+					<div class="box">
+						<div class="box-head">
+							<h2 class="title is-5 mb-0">Your sets</h2>
+							<div class="buttons mb-0">
+								<button class="button is-primary is-small" type="button" x-on:click="newSet()">+ New set</button>
+								<button class="button is-small" type="button" x-on:click="importing = !importing">Import</button>
+							</div>
+						</div>
+						<div class="import-panel" x-show="importing" x-cloak>
+							<p class="is-size-7 mb-2">Paste a set someone shared, or choose a .json file.</p>
+							<textarea class="textarea is-small" rows="4" x-model="importText" placeholder="Paste a requirement set here"></textarea>
+							<div class="buttons mt-2">
+								<button class="button is-small is-primary" type="button" x-on:click="importPasted()">Open pasted set</button>
+								<label class="button is-small">
+									Choose file
+									<input type="file" accept=".json,application/json" class="is-hidden" x-on:change="importFile($event)"/>
+								</label>
+							</div>
+						</div>
+						<p class="has-text-grey" x-show="sets.length === 0">No sets yet. Start a new one, duplicate a built-in set, or import one.</p>
+						<ul class="set-list">
+							<template x-for="s in sets" x-bind:key="s.id">
+								<li class="set-item">
+									<div>
+										<p class="set-name" x-text="s.set.name"></p>
+										<p class="set-meta" x-show="s.set.source" x-text="s.set.source"></p>
+										<details class="set-rules" x-show="s.described?.length">
+											<summary x-text="rulesCount(s.set)"></summary>
+											<ul>
+												<template x-for="(text, i) in s.described" x-bind:key="i">
+													<li x-text="text"></li>
+												</template>
+											</ul>
+										</details>
+										<p class="set-meta" x-show="!s.described?.length" x-text="rulesCount(s.set)"></p>
+									</div>
+									<div class="buttons are-small mb-0">
+										<button class="button is-small" type="button" x-on:click="edit(s.id)">Edit</button>
+										<button class="button is-small" type="button" x-on:click="duplicate(s.set)">Duplicate</button>
+										<button class="button is-small" type="button" x-on:click="exportSet(s.set)">Export</button>
+										<button class="button is-small is-danger is-outlined" type="button" x-on:click="remove(s.id)">Delete</button>
+									</div>
+								</li>
+							</template>
+						</ul>
+					</div>
+					<div class="box">
+						<h2 class="title is-5">Built-in sets</h2>
+						<p class="is-size-7 has-text-grey mb-3">Built-in sets name their source. Rules change, so check them against the current rules; duplicate one to adjust it.</p>
+						<ul class="set-list">
+							for _, b := range builtins {
+								<li class="set-item">
+									<div>
+										<p class="set-name">{ b.Set.Name }</p>
+										if b.Set.Source != "" {
+											<p class="set-meta">{ b.Set.Source }</p>
+										}
+										<details class="set-rules">
+											<summary>{ rulesCount(len(b.Set.Rules)) }</summary>
+											<ul>
+												for _, rule := range b.Set.Rules {
+													<li>{ requirements.Describe(rule) }</li>
+												}
+											</ul>
+										</details>
+									</div>
+									<div class="buttons are-small mb-0">
+										<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("duplicateBuiltin('%s')", b.ID) }>Duplicate</button>
+									</div>
+								</li>
+							}
+						</ul>
+					</div>
+					<div x-show="toast" x-transition class="notification is-info is-fixed-bottom-right" x-cloak>
+						<span x-text="toast"></span>
+					</div>
+				</div>
+			</section>
+		</body>
+	</html>
+}
+
+func rulesCount(n int) string {
+	if n == 1 {
+		return "1 rule"
+	}
+	return strconv.Itoa(n) + " rules"
+}
+
+// builtinSets maps built-in set IDs to their sets, for duplicating one in the browser.
+func builtinSets(builtins []requirements.Builtin) map[string]requirements.Set {
+	out := map[string]requirements.Set{}
+	for _, b := range builtins {
+		out[b.ID] = b.Set
+	}
+	return out
+}
+
+// SetEditorData is the requirement set being edited.
+type SetEditorData struct {
+	Set      requirements.Set
+	JSON     string   // the set as it would be saved
+	Problems []string // what's wrong with it, if anything
+}
+
+// ruleTypeLabels are the editor's names for rule types.
+var ruleTypeLabels = map[string]string{
+	requirements.Count:      "Elements that must (or mustn't) appear",
+	requirements.Every:      "Every element must…",
+	requirements.Elements:   "Number of elements",
+	requirements.Difficulty: "Total difficulty",
+	requirements.Position:   "Element at a position",
+	requirements.Sequence:   "Set routine",
+}
+
+// SetEditor is the editor form for one requirement set. Every change posts the
+// form to /requirements/editor, which re-renders it; data-set-json carries the
+// set as it would be saved.
+templ SetEditor(e SetEditorData) {
+	<form
+		id="set-editor"
+		class="set-editor"
+		hx-post="/requirements/editor"
+		hx-trigger="change"
+		hx-target="this"
+		hx-swap="outerHTML"
+		hx-sync="this:replace"
+		data-set-json={ e.JSON }
+		data-problems={ strconv.Itoa(len(e.Problems)) }
+		data-described={ templ.JSONString(describedRules(e.Set)) }
+		x-on:submit.prevent
+	>
+		<div class="field">
+			<label class="label is-small" for="set-name">Name</label>
+			<input class="input" id="set-name" name="name" value={ e.Set.Name } placeholder="e.g. Student novice 2026–27"/>
+		</div>
+		<div class="field">
+			<label class="label is-small" for="set-description">Description (optional)</label>
+			<input class="input is-small" id="set-description" name="description" value={ e.Set.Description }/>
+		</div>
+		<div class="field">
+			<label class="label is-small" for="set-source">Source (optional)</label>
+			<input class="input is-small" id="set-source" name="source" value={ e.Set.Source } placeholder="e.g. Competition handbook, September 2026"/>
+		</div>
+		<input type="hidden" name="rules" value={ strconv.Itoa(len(e.Set.Rules)) }/>
+		for i, rule := range e.Set.Rules {
+			@ruleCard(i, rule, len(e.Set.Rules))
+		}
+		<div class="field">
+			<label class="label is-small" for="add-rule">Add a rule</label>
+			<div class="select is-small">
+				<select id="add-rule" name="add">
+					<option value="">Choose a kind of rule...</option>
+					for _, t := range requirements.RuleTypes {
+						<option value={ t }>{ ruleTypeLabels[t] }</option>
+					}
+				</select>
+			</div>
+		</div>
+		if len(e.Problems) > 0 {
+			<div class="notification is-warning is-light set-problems">
+				<p class="has-text-weight-semibold">Fix before saving:</p>
+				<ul>
+					for _, p := range e.Problems {
+						<li>{ p }</li>
+					}
+				</ul>
+			</div>
+		}
+	</form>
+}
+
+templ ruleCard(i int, rule requirements.Rule, total int) {
+	{{ p := fmt.Sprintf("r%d.", i) }}
+	<div class="rule-card">
+		<div class="rule-card-head">
+			<p class="rule-card-title">{ fmt.Sprintf("%d. ", i+1) }{ describeSafely(rule) }</p>
+			<div class="buttons are-small mb-0">
+				@editorAction("↑", fmt.Sprintf("up:%d", i), i == 0)
+				@editorAction("↓", fmt.Sprintf("down:%d", i), i == total-1)
+				@editorAction("Remove", fmt.Sprintf("delete:%d", i), false)
+			</div>
+		</div>
+		<input type="hidden" name={ p + "was" } value={ rule.Type }/>
+		<div class="rule-grid rule-kind">
+			<div class="field">
+				<label class="label is-small" for={ p + "type" }>Kind of rule</label>
+				<div class="select is-small is-fullwidth">
+					<select id={ p + "type" } name={ p + "type" }>
+						for _, t := range requirements.RuleTypes {
+							<option value={ t } selected?={ t == rule.Type }>{ ruleTypeLabels[t] }</option>
+						}
+					</select>
+				</div>
+			</div>
+			<div class="field">
+				<label class="label is-small" for={ p + "label" }>Wording (optional)</label>
+				<input class="input is-small" id={ p + "label" } name={ p + "label" } value={ rule.Label } placeholder="e.g. A back somersault"/>
+			</div>
+		</div>
+		switch rule.Type {
+			case requirements.Count:
+				<div class="rule-grid">
+					@numberField(p+"min", "At least", floatText(rule.Min), "1")
+					@numberField(p+"max", "At most (0 = not allowed)", floatText(rule.Max), "1")
+				</div>
+				@matcherFields(p+"m.", rule.Match, "Elements that count")
+			case requirements.Every:
+				@matcherFields(p+"m.", rule.Match, "Every element must be")
+			case requirements.Elements:
+				<div class="rule-grid">
+					@numberField(p+"min", "At least", floatText(rule.Min), "1")
+					@numberField(p+"max", "At most", floatText(rule.Max), "1")
+				</div>
+			case requirements.Difficulty:
+				<div class="rule-grid">
+					@numberField(p+"min", "At least", floatText(rule.Min), "0.1")
+					@numberField(p+"max", "At most", floatText(rule.Max), "0.1")
+				</div>
+			case requirements.Position:
+				<div class="rule-grid">
+					@numberField(p+"position", "Element number", strconv.Itoa(rule.Position), "1")
+				</div>
+				@matcherFields(p+"m.", rule.Match, "That element must be")
+			case requirements.Sequence:
+				<input type="hidden" name={ p + "seq" } value={ strconv.Itoa(len(rule.Sequence)) }/>
+				for j, m := range rule.Sequence {
+					@matcherFields(fmt.Sprintf("%ss%d.", p, j), &m, fmt.Sprintf("Element %d", j+1))
+					<div class="buttons are-small">
+						@editorAction(fmt.Sprintf("Remove element %d", j+1), fmt.Sprintf("delete-element:%d:%d", i, j), len(rule.Sequence) == 1)
+					</div>
+				}
+				<div class="buttons are-small">
+					@editorAction("+ Add element", fmt.Sprintf("add-element:%d", i), false)
+				</div>
+		}
+	</div>
+}
+
+// editorAction is a button that posts the editor with an action ("delete:2").
+templ editorAction(label, action string, disabled bool) {
+	<button
+		type="button"
+		class="button is-small"
+		disabled?={ disabled }
+		hx-post="/requirements/editor"
+		hx-include="#set-editor"
+		hx-target="#set-editor"
+		hx-swap="outerHTML"
+		hx-vals={ editorActionVals(action) }
+	>{ label }</button>
+}
+
+templ numberField(name, label, value, step string) {
+	<div class="field">
+		<label class="label is-small" for={ name }>{ label }</label>
+		<input class="input is-small" type="number" inputmode="decimal" min="0" step={ step } id={ name } name={ name } value={ value }/>
+	</div>
+}
+
+// matcherFields describes which elements a rule is about; empty fields don't restrict.
+templ matcherFields(prefix string, m *requirements.Matcher, title string) {
+	{{
+		if m == nil {
+			m = &requirements.Matcher{}
+		}
+	}}
+	<fieldset class="matcher">
+		<legend>{ title }: <span class="matcher-summary">{ requirements.DescribeMatcher(*m) }</span></legend>
+		<div class="rule-grid">
+			@numberField(prefix+"rotmin", "Somersault at least (quarters)", rangeMin(m.Rotation), "1")
+			@numberField(prefix+"rotmax", "Somersault at most (quarters)", rangeMax(m.Rotation), "1")
+			@numberField(prefix+"twmin", "Twist at least (half twists)", rangeMin(m.Twist), "1")
+			@numberField(prefix+"twmax", "Twist at most (half twists)", rangeMax(m.Twist), "1")
+			<div class="field">
+				<label class="label is-small" for={ prefix + "dir" }>Direction</label>
+				<div class="select is-small is-fullwidth">
+					<select id={ prefix + "dir" } name={ prefix + "dir" }>
+						<option value="" selected?={ m.Direction == "" }>Either</option>
+						<option value="forward" selected?={ m.Direction == "forward" }>Forward</option>
+						<option value="backward" selected?={ m.Direction == "backward" }>Backward</option>
+					</select>
+				</div>
+			</div>
+		</div>
+		@checkboxes(prefix+"shape", "Shape", []string{"tuck", "pike", "straight", "straddle"}, m.Shapes)
+		// Less common conditions, shown when one is set.
+		<details class="matcher-more" open?={ m.Tariff != nil || m.FIG != "" || len(m.Takeoff) > 0 || len(m.Landing) > 0 }>
+			<summary>More conditions: tariff, FIG, take-off and landing</summary>
+			<div class="rule-grid">
+				@numberField(prefix+"tarmin", "Tariff at least", tariffMin(m.Tariff), "0.1")
+				@numberField(prefix+"tarmax", "Tariff at most", tariffMax(m.Tariff), "0.1")
+				<div class="field">
+					<label class="label is-small" for={ prefix + "fig" }>FIG notation (exact)</label>
+					<input class="input is-small" id={ prefix + "fig" } name={ prefix + "fig" } value={ m.FIG } placeholder="e.g. 4 1 o"/>
+				</div>
+			</div>
+			@checkboxes(prefix+"takeoff", "Takes off from", []string{"feet", "front", "back", "seat"}, m.Takeoff)
+			@checkboxes(prefix+"landing", "Lands on", []string{"feet", "front", "back", "seat"}, m.Landing)
+		</details>
+		<p class="matcher-hint">4 quarters = 1 somersault; 2 half twists = 1 twist. Leave a field empty to allow anything.</p>
+	</fieldset>
+}
+
+templ checkboxes(name, label string, options, chosen []string) {
+	<div class="field matcher-choices">
+		<span class="label is-small">{ label }</span>
+		for _, o := range options {
+			<label class="checkbox">
+				<input type="checkbox" name={ name } value={ o } checked?={ slices.Contains(chosen, o) }/>
+				{ o }
+			</label>
+		}
+	</div>
+}
+
+// describedRules is each rule in plain English, saved with the set for its listing.
+func describedRules(set requirements.Set) []string {
+	out := make([]string, len(set.Rules))
+	for i, r := range set.Rules {
+		out[i] = describeSafely(r)
+	}
+	return out
+}
+
+// describeSafely describes a rule that may still be incomplete in the editor.
+func describeSafely(r requirements.Rule) string {
+	if (r.Type == requirements.Count || r.Type == requirements.Every || r.Type == requirements.Position) && r.Match == nil {
+		r.Match = &requirements.Matcher{}
+	}
+	if r.Type == requirements.Count && r.Min == nil && r.Max == nil {
+		return "Elements that must (or mustn't) appear: give a minimum or maximum"
+	}
+	return requirements.Describe(r)
+}
+
+func editorActionVals(action string) string {
+	return fmt.Sprintf(`{"action": %q}`, action)
+}
+
+func floatText(v *float64) string {
+	if v == nil {
+		return ""
+	}
+	return strconv.FormatFloat(*v, 'f', -1, 64)
+}
+
+func rangeMin(r *requirements.Range) string {
+	if r == nil || r.Min == nil {
+		return ""
+	}
+	return strconv.Itoa(*r.Min)
+}
+
+func rangeMax(r *requirements.Range) string {
+	if r == nil || r.Max == nil {
+		return ""
+	}
+	return strconv.Itoa(*r.Max)
+}
+
+func tariffMin(r *requirements.TariffRange) string {
+	if r == nil {
+		return ""
+	}
+	return floatText(r.Min)
+}
+
+func tariffMax(r *requirements.TariffRange) string {
+	if r == nil {
+		return ""
+	}
+	return floatText(r.Max)
+}

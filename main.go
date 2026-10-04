@@ -55,6 +55,8 @@ func routes() http.Handler {
 	mux.HandleFunc("POST /routine", handleRoutineView)
 	mux.HandleFunc("GET /compare", handleComparePage)
 	mux.HandleFunc("POST /compare", handleCompare)
+	mux.HandleFunc("GET /requirements", handleRequirementsPage)
+	mux.HandleFunc("POST /requirements/editor", handleSetEditor)
 	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
 	mux.HandleFunc("POST /tariff-sheet", handleTariffSheet)
 
@@ -339,6 +341,49 @@ func handleCompare(w http.ResponseWriter, r *http.Request) {
 		sides[i] = views.CompareSide{Name: name, Validation: rv}
 	}
 	render(w, r, views.Comparison(sides[0], sides[1]))
+}
+
+// handleRequirementsPage serves the requirement sets page: built-in sets, the
+// sets saved in the browser, and the set editor.
+func handleRequirementsPage(w http.ResponseWriter, r *http.Request) {
+	render(w, r, views.RequirementsPage(requirements.Builtins()))
+}
+
+// handleSetEditor renders the requirement set editor, either for a set posted
+// as JSON in "set" (opening, duplicating or importing one) or for the editor's
+// own form after applying any button action or "Add a rule" choice. The set is
+// validated each time and its problems listed.
+func handleSetEditor(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		badRequest(w, err)
+		return
+	}
+	var set requirements.Set
+	var problems []string
+	if raw := r.FormValue("set"); raw != "" {
+		if err := json.Unmarshal([]byte(raw), &set); err != nil {
+			badRequest(w, fmt.Errorf("that isn't a requirement set: %w", err))
+			return
+		}
+		if set.Format == 0 {
+			set.Format = requirements.Format
+		}
+	} else {
+		set, problems = parseSetForm(r)
+		applySetAction(&set, r.FormValue("action"), r.FormValue("add"))
+	}
+	if set.Rules == nil {
+		set.Rules = []requirements.Rule{}
+	}
+	if err := set.Validate(); err != nil {
+		problems = append(problems, strings.Split(err.Error(), "\n")...)
+	}
+	data, err := json.Marshal(set)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	render(w, r, views.SetEditor(views.SetEditorData{Set: set, JSON: string(data), Problems: problems}))
 }
 
 // handleTariffSheetPage serves the tariff sheet page, which loads the sheet for

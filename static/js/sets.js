@@ -1,6 +1,7 @@
 // sets.js: the requirement sets saved in this browser (ADR 0003), shared by the
 // calculator, the tariff sheet and the requirements page. Stored as a list of
-// {id, set} under 'trampolineRequirementSets', where set is the set's JSON.
+// {id, set, described} under 'trampolineRequirementSets', where set is the
+// set's JSON and described its rules in plain English, for listing.
 const SetStore = (() => {
     const key = 'trampolineRequirementSets';
 
