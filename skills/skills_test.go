@@ -417,14 +417,65 @@ func TestValidateRoutine(t *testing.T) {
 		straightJump := skill(0, []int{0}, Feet, Straight, false, false)
 		tuckJump := skill(0, []int{0}, Feet, Tuck, false, false)
 		rv := ValidateRoutine([]TrampolineSkill{frontTuck, straightJump, tuckJump})
-		if !rv.HasIntermediateJumps || !rv.Skills[1].IntermediateJump {
-			t.Errorf("expected the straight jump to be flagged as an intermediate jump")
+		if !rv.Skills[1].IntermediateJump || !rv.Skills[1].Interrupts || rv.InterruptedAt != 1 {
+			t.Errorf("expected the straight jump to interrupt the routine at skill 2 (InterruptedAt %d)", rv.InterruptedAt)
 		}
 		if rv.Skills[2].IntermediateJump {
 			t.Errorf("a tuck jump is an element, not an intermediate jump")
 		}
 		if rv.Messages[1] != "Straight Jump Interrupts Routine" {
 			t.Errorf("message = %q", rv.Messages[1])
+		}
+	})
+
+	// §15.2-15.3: the interrupting skill gets no credit and later skills are not counted.
+	t.Run("skills after an interruption do not count", func(t *testing.T) {
+		barani := skill(4, []int{1}, Feet, Tuck, false, false)             // 0.6
+		frontDropToSeat := skill(1, []int{0}, Feet, Straight, false, true) // invalid landing, 0.1
+		backTuck := skill(4, []int{0}, Feet, Tuck, true, false)            // 0.5
+
+		cases := []struct {
+			name          string
+			routine       []TrampolineSkill
+			interruptedAt int
+			total         float64
+		}{
+			{"no interruption", []TrampolineSkill{frontTuck, barani, backTuck}, -1, 1.6},
+			{"straight jump", []TrampolineSkill{frontTuck, skill(0, []int{0}, Feet, Straight, false, false), barani, backTuck}, 1, 0.5},
+			{"invalid landing gets no credit", []TrampolineSkill{frontTuck, frontDropToSeat, barani}, 1, 0.5},
+			{"interrupted on the first skill", []TrampolineSkill{frontDropToSeat, frontTuck}, 0, 0},
+		}
+		for _, c := range cases {
+			t.Run(c.name, func(t *testing.T) {
+				rv := ValidateRoutine(c.routine)
+				if rv.InterruptedAt != c.interruptedAt {
+					t.Errorf("InterruptedAt = %d, want %d", rv.InterruptedAt, c.interruptedAt)
+				}
+				if math.Abs(rv.TotalTariff-c.total) > 1e-9 {
+					t.Errorf("TotalTariff = %.2f, want %.2f", rv.TotalTariff, c.total)
+				}
+				for i, sv := range rv.Skills {
+					after := c.interruptedAt >= 0 && i > c.interruptedAt
+					if sv.AfterInterruption != after {
+						t.Errorf("skill %d AfterInterruption = %v, want %v", i+1, sv.AfterInterruption, after)
+					}
+					if after && !strings.Contains(rv.Messages[i], "After Interruption (No Tariff)") {
+						t.Errorf("skill %d message = %q", i+1, rv.Messages[i])
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("only the first interruption interrupts", func(t *testing.T) {
+		frontDropToSeat := skill(1, []int{0}, Feet, Straight, false, true)
+		backDropToSeat := skill(1, []int{0}, Feet, Straight, true, true)
+		rv := ValidateRoutine([]TrampolineSkill{frontTuck, frontDropToSeat, backDropToSeat})
+		if rv.Messages[1] != "Invalid Landing Interrupts Routine" {
+			t.Errorf("first message = %q", rv.Messages[1])
+		}
+		if rv.Skills[2].Interrupts || !strings.Contains(rv.Messages[2], "After Interruption") {
+			t.Errorf("a later invalid landing should only be marked as after the interruption, got %q", rv.Messages[2])
 		}
 	})
 }

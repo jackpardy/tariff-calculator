@@ -60,6 +60,15 @@ func TestRoutineViewFlagsSkills(t *testing.T) {
 			t.Errorf("card %d is missing message %q", i+1, w.message)
 		}
 	}
+	for i := 2; i < 5; i++ {
+		if !strings.Contains(cards[i], "not-counted") || !strings.Contains(cards[i], "After Interruption (No Tariff)") {
+			t.Errorf("card %d should be shown as not counted", i+1)
+		}
+	}
+	if strings.Contains(cards[0], "not-counted") {
+		t.Errorf("card 1 comes before the interruption and should count")
+	}
+
 	// Reordering is SortableJS on #routine-skills; the old per-card drag markup is gone.
 	for _, old := range []string{"insertion-point", "draggable", "dragstart"} {
 		if strings.Contains(html, old) {
@@ -73,11 +82,12 @@ func TestRoutineViewFlagsSkills(t *testing.T) {
 	}
 
 	for _, s := range []string{
-		"Total Tariff: 0.90",
+		"Total Tariff: 0.10", // the straight jump (skill 2) interrupts; only skill 1 counts
+		"(Raw Total: 1.40)",
 		"5 of 10 skills",
 		"Duplicate skills only count once",
 		"Invalid transitions detected",
-		"Straight jumps interrupt the routine",
+		"Routine interrupted at skill 2",
 		"2. Straight Jump",
 		"3. Back Tuck",
 		"(4 - o)",

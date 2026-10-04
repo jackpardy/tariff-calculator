@@ -31,7 +31,8 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool) {
 			class={ "routine-skill", "box", "mb-2",
 				templ.KV("invalid-transition", sv.InvalidTransition || sv.IntermediateJump),
 				templ.KV("invalid-landing", sv.InvalidLanding),
-				templ.KV("duplicate-skill", sv.IsDuplicate) }
+				templ.KV("duplicate-skill", sv.IsDuplicate),
+				templ.KV("not-counted", sv.AfterInterruption) }
 		>
 			// Clickable header toggles the details.
 			<div
@@ -117,8 +118,8 @@ templ results(rv skills.RoutineValidation) {
 					if rv.HasInvalidTransitions {
 						<p class="has-text-danger">❌ Invalid transitions detected.</p>
 					}
-					if rv.HasIntermediateJumps {
-						<p class="has-text-danger">❌ Straight jumps interrupt the routine.</p>
+					if rv.InterruptedAt >= 0 {
+						<p class="has-text-danger">❌ { interruptionText(rv.InterruptedAt) }</p>
 					}
 					if rv.HasInvalidLandings {
 						<p class="has-text-landing-warning">🚫 Invalid landing positions detected.</p>
@@ -139,6 +140,11 @@ func alpine(format string, args ...int) string {
 		vals[i] = a
 	}
 	return fmt.Sprintf(format, vals...)
+}
+
+// interruptionText explains what an interruption at skill index i costs (CoP §15.2-15.3).
+func interruptionText(i int) string {
+	return fmt.Sprintf("Routine interrupted at skill %d: it and the skills after it don't count toward Tariff.", i+1)
 }
 
 // cardTitle is "N. name", preferring the user's custom name.

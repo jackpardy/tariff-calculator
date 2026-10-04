@@ -590,6 +590,8 @@ type SkillValidation struct {
 	InvalidLanding    bool
 	IsDuplicate       bool
 	IntermediateJump  bool
+	Interrupts        bool // this skill interrupts the routine (CoP §15.1); it gets no credit
+	AfterInterruption bool // performed after the routine was interrupted; not counted (§15.3)
 }
 
 // RoutineValidation is the pure-domain result of validating a routine: per-skill
@@ -603,9 +605,9 @@ type RoutineValidation struct {
 	HasDuplicates         bool
 	HasInvalidTransitions bool
 	HasInvalidLandings    bool
-	HasIntermediateJumps  bool
 	TenthSkillWarning     bool
 	RoutineTooLong        bool
+	InterruptedAt         int // index of the skill that interrupts the routine, or -1
 }
 
 // RoutineLength is the number of elements in an exercise (CoP §4.1).
@@ -616,12 +618,19 @@ const RoutineLength = 10
 // landing/take-off transition legality thereafter, invalid landings, intermediate
 // straight jumps (§15.1.3), the "10th skill must land on feet" rule (§16.1), and
 // only the first RoutineLength skills counting toward the total (§4.1, §16.5).
+//
+// The first straight jump or invalid landing interrupts the routine (§15.1.3,
+// §15.1.4): that skill gets no credit (§15.2) and later skills are not counted
+// (§15.3). Bad transitions are flagged but do not interrupt: they describe a
+// routine that cannot be performed as written rather than an interruption.
+//
 // Tariffs are (re)computed defensively, so the routine need not be pre-priced.
 func ValidateRoutine(routine []TrampolineSkill) RoutineValidation {
 	res := RoutineValidation{
 		Skills:         make([]SkillValidation, len(routine)),
 		Messages:       make([]string, len(routine)),
 		RoutineTooLong: len(routine) > RoutineLength,
+		InterruptedAt:  -1,
 	}
 
 	duplicateMap := make(map[int]bool)
@@ -657,7 +666,14 @@ func ValidateRoutine(routine []TrampolineSkill) RoutineValidation {
 			}
 		}
 
-		if !isCurrentSkillDuplicate && i < RoutineLength {
+		interrupted := res.InterruptedAt >= 0
+		if !interrupted && (s.IsStraightJump() || landing == Invalid) {
+			res.InterruptedAt = i
+			res.Skills[i].Interrupts = true
+		}
+		res.Skills[i].AfterInterruption = interrupted
+
+		if !isCurrentSkillDuplicate && i < RoutineLength && res.InterruptedAt < 0 {
 			res.TotalTariff += s.Tariff
 		}
 
@@ -682,16 +698,25 @@ func ValidateRoutine(routine []TrampolineSkill) RoutineValidation {
 
 		if s.IsStraightJump() {
 			res.Skills[i].IntermediateJump = true
-			res.HasIntermediateJumps = true
-			msgs = append(msgs, "Straight Jump Interrupts Routine")
+			if res.Skills[i].Interrupts {
+				msgs = append(msgs, "Straight Jump Interrupts Routine")
+			} else {
+				msgs = append(msgs, "Straight Jump")
+			}
 		}
 
 		if landing == Invalid {
 			res.Skills[i].InvalidLanding = true
 			res.HasInvalidLandings = true
-			if i < RoutineLength || !res.RoutineTooLong {
+			if res.Skills[i].Interrupts {
+				msgs = append(msgs, "Invalid Landing Interrupts Routine")
+			} else if i < RoutineLength || !res.RoutineTooLong {
 				msgs = append(msgs, "Invalid Landing")
 			}
+		}
+
+		if interrupted {
+			msgs = append(msgs, "After Interruption (No Tariff)")
 		}
 
 		if i == RoutineLength-1 {

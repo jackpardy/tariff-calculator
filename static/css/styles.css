@@ -420,3 +420,6 @@
 
 /* Page header */
 .hero.is-primary { background-color: #485fc7; }
+
+/* Skills after an interruption (CoP §15.3) still show, but don't count. */
+.routine-skill.not-counted { opacity: 0.55; }
