@@ -952,14 +952,14 @@ func requirementsPanel(c RequirementCheck, side string) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if c.Err != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 85, "<p class=\"has-text-danger is-size-7\">Couldn't use this set: ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 85, "<p class=\"has-text-danger is-size-7\">Couldn't use these requirements: ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var43 string
 			templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(c.Err)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/routine.templ`, Line: 256, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/routine.templ`, Line: 256, Col: 81}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 			if templ_7745c5c3_Err != nil {
@@ -970,7 +970,7 @@ func requirementsPanel(c RequirementCheck, side string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else if len(c.Results) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "<p class=\"has-text-grey is-size-7\">This set has no rules yet.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "<p class=\"has-text-grey is-size-7\">There are no rules here yet.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

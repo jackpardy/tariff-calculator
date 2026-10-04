@@ -28,7 +28,7 @@ function requirementsPage() {
                 values: { set: JSON.stringify(set) },
             }).then(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
         },
-        newSet() { this.open({ format: 1, name: '', rules: [] }, 'New set'); },
+        newSet() { this.open({ format: 1, name: '', rules: [] }, 'New requirements'); },
         edit(id) {
             const saved = this.sets.find((s) => s.id === id);
             if (saved) { this.open(saved.set, `Edit ${saved.set.name}`, id); }
@@ -36,7 +36,7 @@ function requirementsPage() {
         duplicate(set) {
             const copy = JSON.parse(JSON.stringify(set));
             copy.name = `${set.name} (copy)`;
-            this.open(copy, 'New set (copy)');
+            this.open(copy, 'New requirements (copy)');
         },
         duplicateBuiltin(id) { if (this.builtins[id]) { this.duplicate(this.builtins[id]); } },
 
@@ -52,8 +52,8 @@ function requirementsPage() {
             const fresh = new DOMParser().parseFromString(html, 'text/html').getElementById('set-editor');
             const set = JSON.parse(fresh.dataset.setJson);
             const described = JSON.parse(fresh.dataset.described);
-            if (!set.name) { this.flash('Give the set a name first.'); return; }
-            if (fresh.dataset.problems !== '0' && !confirm('This set has problems (listed in the editor). Save it anyway?')) { return; }
+            if (!set.name) { this.flash('Give the requirements a name first.'); return; }
+            if (fresh.dataset.problems !== '0' && !confirm('These requirements have problems (listed in the editor). Save them anyway?')) { return; }
 
             const existing = this.sets.find((s) => s.id === this.editing.id);
             if (existing) {
@@ -91,10 +91,10 @@ function requirementsPage() {
         },
         importPasted() {
             let set;
-            try { set = JSON.parse(this.importText); } catch (e) { this.flash("That isn't a requirement set (it isn't valid JSON)."); return; }
+            try { set = JSON.parse(this.importText); } catch (e) { this.flash("Those aren't requirements (it isn't valid JSON)."); return; }
             this.importing = false;
             this.importText = '';
-            this.open(set, 'Imported set');
+            this.open(set, 'Imported requirements');
         },
         importFile(event) {
             const file = event.target.files?.[0];

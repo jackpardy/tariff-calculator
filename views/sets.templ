@@ -19,7 +19,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>Requirement Sets</title>
+			<title>Requirements</title>
 			<meta name="app-version" content={ static.Version }/>
 			<script defer src={ static.URL("js/version.js") }></script>
 			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
@@ -36,10 +36,10 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 			<section class="section">
 				<div class="container" x-data="requirementsPage()">
 					<a class="is-size-7" href="/">← Routine Builder</a>
-					<h1 class="title is-4 mt-1">Requirement sets</h1>
+					<h1 class="title is-4 mt-1">Requirements</h1>
 					<p class="mb-4">
-						A requirement set is the rules a routine is checked against: required or banned elements,
-						how many elements, difficulty limits or a set routine. Choose one for a routine under
+						Requirements are the rules a routine is checked against: required or banned elements,
+						how many elements, difficulty limits or a set routine. Choose them for a routine under
 						"Check against" in the Routine Builder.
 					</p>
 					// The editor, when a set is open.
@@ -55,24 +55,24 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 					</div>
 					<div class="box">
 						<div class="box-head">
-							<h2 class="title is-5 mb-0">Your sets</h2>
+							<h2 class="title is-5 mb-0">Your requirements</h2>
 							<div class="buttons mb-0">
-								<button class="button is-primary is-small" type="button" x-on:click="newSet()">+ New set</button>
+								<button class="button is-primary is-small" type="button" x-on:click="newSet()">+ New</button>
 								<button class="button is-small" type="button" x-on:click="importing = !importing">Import</button>
 							</div>
 						</div>
 						<div class="import-panel" x-show="importing" x-cloak>
-							<p class="is-size-7 mb-2">Paste a set someone shared, or choose a .json file.</p>
-							<textarea class="textarea is-small" rows="4" x-model="importText" placeholder="Paste a requirement set here"></textarea>
+							<p class="is-size-7 mb-2">Paste requirements someone shared, or choose a .json file.</p>
+							<textarea class="textarea is-small" rows="4" x-model="importText" placeholder="Paste requirements here"></textarea>
 							<div class="buttons mt-2">
-								<button class="button is-small is-primary" type="button" x-on:click="importPasted()">Open pasted set</button>
+								<button class="button is-small is-primary" type="button" x-on:click="importPasted()">Open pasted requirements</button>
 								<label class="button is-small">
 									Choose file
 									<input type="file" accept=".json,application/json" class="is-hidden" x-on:change="importFile($event)"/>
 								</label>
 							</div>
 						</div>
-						<p class="has-text-grey" x-show="sets.length === 0">No sets yet. Start a new one, duplicate a built-in set, or import one.</p>
+						<p class="has-text-grey" x-show="sets.length === 0">None yet. Start new ones, duplicate built-in ones, or import some.</p>
 						<ul class="set-list">
 							<template x-for="s in sets" x-bind:key="s.id">
 								<li class="set-item">
@@ -101,11 +101,11 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 						</ul>
 					</div>
 					<div class="box">
-						<h2 class="title is-5">Built-in sets</h2>
+						<h2 class="title is-5">Built-in requirements</h2>
 						<p class="is-size-7 has-text-grey mb-3">Drafted from each organisation's published rules, which name their source. Rules change, so check them against the current rules; duplicate one to adjust it.</p>
 						for _, g := range groups {
 							<details class="builtin-group">
-								<summary>{ g.Name } <span class="set-meta">· { strconv.Itoa(len(g.Sets)) } sets</span></summary>
+								<summary>{ g.Name } <span class="set-meta">· { strconv.Itoa(len(g.Sets)) }</span></summary>
 								<ul class="set-list">
 									for _, b := range g.Sets {
 										<li class="set-item">

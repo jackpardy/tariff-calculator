@@ -193,7 +193,7 @@ templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 						</optgroup>
 					}
 					<template x-if="customSets.length > 0">
-						<optgroup label="Your sets">
+						<optgroup label="Your requirements">
 							<template x-for="s in customSets" x-bind:key="s.id">
 								<option x-bind:value="s.id" x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === s.id", side) } x-text="s.set.name"></option>
 							</template>
@@ -202,7 +202,7 @@ templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 				</select>
 			</div>
 			if side == "a" {
-				<a class="button is-small is-text" href="/requirements" target="_blank" rel="noopener">Manage sets</a>
+				<a class="button is-small is-text" href="/requirements" target="_blank" rel="noopener">Manage requirements</a>
 			}
 		</div>
 	</div>

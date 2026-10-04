@@ -31,7 +31,9 @@ accounts: routines live in the browser.
 
 2. **A requirement set is plain JSON** — `{format, name, description, source, rules}` —
    so it can be stored, exported, imported and shared as a file or pasted text. `format`
-   is versioned so later changes can migrate old sets.
+   is versioned so later changes can migrate old sets. In the app's wording a requirement set is
+   just "requirements": in trampolining "set" means a set (compulsory) routine, so the
+   word is kept for that.
 
 3. **A small set of general rule types**, each a JSON object with a `type`:
    - `count` — at least `min` and/or at most `max` elements match a *matcher*. Covers

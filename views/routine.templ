@@ -253,9 +253,9 @@ templ requirementsPanel(c RequirementCheck, side string) {
 				}
 			</p>
 			if c.Err != "" {
-				<p class="has-text-danger is-size-7">Couldn't use this set: { c.Err }</p>
+				<p class="has-text-danger is-size-7">Couldn't use these requirements: { c.Err }</p>
 			} else if len(c.Results) == 0 {
-				<p class="has-text-grey is-size-7">This set has no rules yet.</p>
+				<p class="has-text-grey is-size-7">There are no rules here yet.</p>
 			} else {
 				<ul class="requirements-list">
 					for _, r := range c.Results {

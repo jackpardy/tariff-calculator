@@ -105,7 +105,7 @@ const Share = (() => {
                 const items = routines
             ? RoutineStore.load().routines.map((r) => ({ id: r.id, label: r.name, detail: count(r.skills.length, 'skill', 'skills') }))
             : savedSets.map((s) => ({ id: s.id, label: s.set.name, detail: count(s.set.rules.length, 'rule', 'rules') }));
-        if (items.length === 0) { alert(routines ? 'There are no routines to share yet.' : 'Save a set first, then share it.'); return; }
+        if (items.length === 0) { alert(routines ? 'There are no routines to share yet.' : 'Save some requirements first, then share them.'); return; }
 
         const link = el('input', { class: 'input is-small share-link', readonly: '', 'aria-label': 'Share link' });
         const status = el('p', { class: 'share-status' });
@@ -119,14 +119,14 @@ const Share = (() => {
             const ids = ticked(list), mine = ++version;
             const empty = ids.length === 0;
             shareButton.disabled = copyButton.disabled = empty;
-            if (empty) { link.value = ''; qr.replaceChildren(); status.textContent = routines ? 'Tick the routines to share.' : 'Tick the sets to share.'; return; }
+            if (empty) { link.value = ''; qr.replaceChildren(); status.textContent = routines ? 'Tick the routines to share.' : 'Tick the requirements to share.'; return; }
             const share = routines ? pack(ids, []) : pack([], ids);
             const url = `${location.origin}${routines ? '/' : '/requirements'}${prefix}${await encode(share)}`;
             if (mine !== version) { return; }
             current = url;
             link.value = url;
             const travelling = routines ? share.sets.length : 0;
-            status.textContent = travelling ? `The ${travelling === 1 ? 'set' : `${travelling} sets`} they're checked against ${travelling === 1 ? 'goes' : 'go'} with them.` : '';
+            status.textContent = travelling ? "The requirements they're checked against go with them." : '';
             try {
                 const response = await fetch('/qr', { method: 'POST', body: new URLSearchParams({ text: url }) });
                 if (mine !== version) { return; }
@@ -145,8 +145,8 @@ const Share = (() => {
             setTimeout(() => { copyButton.textContent = 'Copy link'; }, 2000);
         }
 
-        modal(routines ? 'Share routines' : 'Share requirement sets',
-            el('p', { class: 'share-intro' }, routines ? 'Tick the routines to share. Anyone who opens the link can add them to their own routines.' : 'Tick the sets to share. Anyone who opens the link can add them to their own sets.'),
+        modal(routines ? 'Share routines' : 'Share requirements',
+            el('p', { class: 'share-intro' }, routines ? 'Tick the routines to share. Anyone who opens the link can add them to their own routines.' : 'Tick the requirements to share. Anyone who opens the link can add them to their own.'),
             list,
             el('div', { class: 'buttons share-buttons' }, shareButton, copyButton),
             link, status, qr,
@@ -171,12 +171,12 @@ const Share = (() => {
         if (share.routines.length > 0 && location.pathname !== '/') { location.replace('/' + location.hash); return; }
 
         const routineItems = share.routines.map((r, i) => ({ id: `r${i}`, label: r.name || `Routine ${i + 1}`, detail: count((r.skills || []).length, 'skill', 'skills') }));
-        const setItems = share.sets.map((s, i) => ({ id: `s${i}`, label: s.name || `Set ${i + 1}`, detail: 'requirement set' }));
+        const setItems = share.sets.map((s, i) => ({ id: `s${i}`, label: s.name || `Requirements ${i + 1}`, detail: 'requirements' }));
         const items = [...routineItems, ...setItems];
         const list = choices(items, items.map((i) => i.id), () => {});
         const add = el('button', { class: 'button is-primary', type: 'button' }, 'Add');
         const cancel = el('button', { class: 'button', type: 'button' }, 'Cancel');
-        const what = [routineItems.length && count(routineItems.length, 'routine', 'routines'), setItems.length && count(setItems.length, 'requirement set', 'requirement sets')].filter(Boolean).join(' and ');
+        const what = [routineItems.length && count(routineItems.length, 'routine', 'routines'), setItems.length && count(setItems.length, 'list of requirements', 'lists of requirements')].filter(Boolean).join(' and ');
         const dialog = modal('Shared with you',
             el('p', { class: 'share-intro' }, `This link has ${what}. Tick what to add.`),
             list,
@@ -210,7 +210,7 @@ const Share = (() => {
             const json = JSON.stringify(share.sets[i]);
             let saved = sets.find((s) => JSON.stringify(s.set) === json);
             if (!saved) {
-                const set = { ...share.sets[i], name: uniqueName(share.sets[i].name || 'Shared set', new Set(sets.map((s) => s.set.name))) };
+                const set = { ...share.sets[i], name: uniqueName(share.sets[i].name || 'Shared requirements', new Set(sets.map((s) => s.set.name))) };
                 saved = { id: SetStore.newId(), set };
                 sets.push(saved);
             }
@@ -236,7 +236,7 @@ const Share = (() => {
         SetStore.save(sets);
         if (first) { state.current = first; }
         RoutineStore.save(state);
-        return [routineIndexes.length && count(routineIndexes.length, 'routine', 'routines'), setIds.size && count(setIds.size, 'requirement set', 'requirement sets')].filter(Boolean).join(' and ');
+        return [routineIndexes.length && count(routineIndexes.length, 'routine', 'routines'), setIds.size && count(setIds.size, 'list of requirements', 'lists of requirements')].filter(Boolean).join(' and ');
     }
 
     // After adding from a link, the page reloads; say what was added.

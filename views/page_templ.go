@@ -403,7 +403,7 @@ func requirementPicker(groups []requirements.BuiltinGroup, side string) templ.Co
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<template x-if=\"customSets.length > 0\"><optgroup label=\"Your sets\"><template x-for=\"s in customSets\" x-bind:key=\"s.id\"><option x-bind:value=\"s.id\" x-bind:selected=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<template x-if=\"customSets.length > 0\"><optgroup label=\"Your requirements\"><template x-for=\"s in customSets\" x-bind:key=\"s.id\"><option x-bind:value=\"s.id\" x-bind:selected=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -421,7 +421,7 @@ func requirementPicker(groups []requirements.BuiltinGroup, side string) templ.Co
 			return templ_7745c5c3_Err
 		}
 		if side == "a" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<a class=\"button is-small is-text\" href=\"/requirements\" target=\"_blank\" rel=\"noopener\">Manage sets</a>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<a class=\"button is-small is-text\" href=\"/requirements\" target=\"_blank\" rel=\"noopener\">Manage requirements</a>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

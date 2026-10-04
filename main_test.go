@@ -722,10 +722,10 @@ func TestRequirementsInTheRoutineView(t *testing.T) {
 	}
 
 	html = post(`{"format":1,"name":"Broken","rules":[{"type":"vibes"}]}`)
-	if !strings.Contains(html, "Couldn't use this set") || !strings.Contains(html, "unknown rule type") {
-		t.Errorf("a broken set should be reported, not fail the routine:\n%s", html)
+	if !strings.Contains(html, "Couldn't use these requirements") || !strings.Contains(html, "unknown rule type") {
+		t.Errorf("broken requirements should be reported, not fail the routine:\n%s", html)
 	}
-	if html := post("builtin:gone"); !strings.Contains(html, "no longer exists") {
+	if html := post("builtin:gone"); !strings.Contains(html, "no longer exist") {
 		t.Errorf("a missing built-in should be reported")
 	}
 }

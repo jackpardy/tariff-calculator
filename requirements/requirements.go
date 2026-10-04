@@ -107,7 +107,7 @@ func Parse(data []byte) (Set, error) {
 	dec.DisallowUnknownFields()
 	var s Set
 	if err := dec.Decode(&s); err != nil {
-		return Set{}, fmt.Errorf("reading requirement set: %w", err)
+		return Set{}, fmt.Errorf("reading requirements: %w", err)
 	}
 	return s, s.Validate()
 }
@@ -119,7 +119,7 @@ func (s Set) Validate() error {
 		errs = append(errs, fmt.Errorf("format must be %d, got %d", Format, s.Format))
 	}
 	if strings.TrimSpace(s.Name) == "" {
-		errs = append(errs, errors.New("the set needs a name"))
+		errs = append(errs, errors.New("the requirements need a name"))
 	}
 	if s.ScoredElements < 0 || s.ScoredElements > skills.RoutineLength {
 		errs = append(errs, fmt.Errorf("the number of elements that score must be 0 (all) to %d", skills.RoutineLength))

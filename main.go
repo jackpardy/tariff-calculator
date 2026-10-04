@@ -387,7 +387,7 @@ func postedSet(raw string) (requirements.Set, error) {
 	if strings.HasPrefix(raw, requirements.BuiltinPrefix) {
 		builtin, ok := requirements.LookupBuiltin(raw)
 		if !ok {
-			return requirements.Set{}, errors.New("this built-in set no longer exists")
+			return requirements.Set{}, errors.New("these built-in requirements no longer exist")
 		}
 		return builtin, nil
 	}
@@ -409,7 +409,7 @@ func handleSetRoutine(w http.ResponseWriter, r *http.Request) {
 	}
 	routine, ok := requirements.SetRoutine(set)
 	if !ok {
-		badRequest(w, errors.New("this set has no set routine to load"))
+		badRequest(w, errors.New("these requirements have no set routine to load"))
 		return
 	}
 	matches := false
@@ -480,7 +480,7 @@ func handleSetEditor(w http.ResponseWriter, r *http.Request) {
 	var problems []string
 	if raw := r.FormValue("set"); raw != "" {
 		if err := json.Unmarshal([]byte(raw), &set); err != nil {
-			badRequest(w, fmt.Errorf("that isn't a requirement set: %w", err))
+			badRequest(w, fmt.Errorf("those aren't requirements: %w", err))
 			return
 		}
 		if set.Format == 0 {
