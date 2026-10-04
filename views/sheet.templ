@@ -25,9 +25,26 @@ templ TariffSheetPage() {
 		<body>
 			<div class="toolbar screen-only">
 				<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
-				// Display options (static/js/sheet.js): they change what prints and are remembered in this browser.
-				<label class="option"><input type="checkbox" id="show-names" checked/> Skill names</label>
-				<label class="option"><input type="checkbox" id="show-fields" checked/> Details fields</label>
+				// Display options (static/js/sheet.js): each box hides part of the sheet, on
+				// screen and in print, by toggling its data-hides class on #tariff-sheet.
+				<details class="options">
+					<summary>Show on sheet</summary>
+					<div class="options-panel">
+						<fieldset>
+							<legend>Table</legend>
+							<label class="option"><input type="checkbox" id="show-names" data-hides="hide-names" checked/> Skill names</label>
+						</fieldset>
+						<fieldset>
+							<legend>Details</legend>
+							for _, f := range sheetFields {
+								<label class="option">
+									<input type="checkbox" id={ "show-field-" + f.Key } data-hides={ "hide-field-" + f.Key } checked/>
+									{ f.Label }
+								</label>
+							}
+						</fieldset>
+					</div>
+				</details>
 				<span>Fill in the details, then print. What you type isn't saved.</span>
 			</div>
 			<div
@@ -61,10 +78,10 @@ templ TariffSheet(rv skills.RoutineValidation) {
 	<main class="sheet">
 		<h1>Tariff Sheet</h1>
 		<div class="fields">
-			for _, f := range []string{"Gymnast", "Club / Nation", "Category", "Competition", "Round / Exercise", "Coach"} {
-				<label>
-					{ f }
-					<input type="text" aria-label={ f }/>
+			for _, f := range sheetFields {
+				<label class={ "field-" + f.Key }>
+					{ f.Label }
+					<input type="text" aria-label={ f.Label }/>
 				</label>
 			}
 		</div>
@@ -132,6 +149,17 @@ templ sheetRow(i int, sv skills.SkillValidation) {
 		<td class="req"><input type="checkbox" aria-label={ fmt.Sprintf("Element %d is a required element", i+1) }/></td>
 		<td class="judge"></td>
 	</tr>
+}
+
+// sheetFields are the fill-in details at the top of the sheet, each of which can
+// be hidden. Key names the CSS classes (field-<key>, hide-field-<key>).
+var sheetFields = []struct{ Key, Label string }{
+	{"gymnast", "Gymnast"},
+	{"club", "Club / Nation"},
+	{"category", "Category"},
+	{"competition", "Competition"},
+	{"round", "Round / Exercise"},
+	{"coach", "Coach"},
 }
 
 // sheetRows is the number of rows on the sheet: the routine, and at least a full

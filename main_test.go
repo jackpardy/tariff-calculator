@@ -467,6 +467,12 @@ func TestTariffSheet(t *testing.T) {
 			t.Errorf("row 2 is missing %q", want)
 		}
 	}
+	// Each details field can be hidden on its own.
+	for _, key := range []string{"gymnast", "club", "category", "competition", "round", "coach"} {
+		if !strings.Contains(html, `<label class="field-`+key+`">`) {
+			t.Errorf("details field %q is missing its class", key)
+		}
+	}
 	// The name column can be hidden: every row tags it, and the footer has a label for each mode.
 	for i, tr := range trs {
 		if !strings.Contains(tr, `class="col-name"`) {
@@ -500,7 +506,8 @@ func TestTariffSheetPage(t *testing.T) {
 	}
 	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "localStorage.getItem('trampolineRoutine')", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v=",
 		// Optional parts of the sheet.
-		`id="show-names" checked`, `id="show-fields" checked`, "/static/js/sheet.js?v="} {
+		`id="show-names" data-hides="hide-names" checked`, "/static/js/sheet.js?v=",
+		`id="show-field-gymnast" data-hides="hide-field-gymnast" checked`, `id="show-field-coach" data-hides="hide-field-coach" checked`} {
 		if !strings.Contains(html, want) {
 			t.Errorf("sheet page is missing %q", want)
 		}

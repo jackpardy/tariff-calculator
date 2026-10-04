@@ -36,7 +36,18 @@ tfoot td { font-weight: 700; }
 .total-without-names { display: none; }
 .hide-names .col-name, .hide-names .total-with-names { display: none; }
 .hide-names .total-without-names { display: table-cell; }
-.hide-fields .fields { display: none; }
+.hide-field-gymnast .field-gymnast, .hide-field-club .field-club, .hide-field-category .field-category,
+.hide-field-competition .field-competition, .hide-field-round .field-round, .hide-field-coach .field-coach { display: none; }
+.hide-fields .fields { display: none; } /* every field hidden: drop the block and its spacing */
+
+.options { position: relative; }
+.options summary { cursor: pointer; font-weight: 600; color: #222; white-space: nowrap; }
+.options-panel {
+    position: absolute; top: calc(100% + 0.4rem); left: 0; z-index: 10; display: flex; gap: 1.5rem;
+    background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 0.6rem 0.8rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.options fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.options legend { font-size: 0.75rem; font-weight: 600; color: #666; text-transform: uppercase; padding: 0 0 0.2rem; }
 
 .loading { max-width: 186mm; margin: 2rem auto; padding: 0 12mm; color: #444; }
 
