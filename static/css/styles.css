@@ -20,11 +20,6 @@
     margin-top: 0.5rem;
 }
 
-/* Style for seat landing indicator */
-.has-seat-landing {
-    border-left: 4px solid #ff3860 !important;
-}
-
 /* Style for indicating an item is being edited */
 .routine-skill.editing {
     box-shadow: 0 0 0 2px #485fc7;
@@ -34,29 +29,6 @@
 #routine-skills {
     min-height: 100px;
     transition: background-color 0.2s;
-}
-
-/* Minimum height for the routine total display */
-#routine-total {
-    min-height: 120px;
-}
-
-/* Style for loading indicator in routine total */
-.loading-total::after {
-    content: "Calculating...";
-    display: block;
-    padding: 1rem;
-    color: #666;
-}
-
-/* Styling for the skill evaluation preview box */
-#evaluation-preview {
-    margin: 1rem 0;
-    background-color: #f8f9fa;
-}
-
-#evaluation-results p {
-    margin-bottom: 0.5rem;
 }
 
 /* General column padding within a routine skill */
@@ -78,40 +50,8 @@
 /* --- Start Routine Button Fixes --- */
 
 /* Button column: Push right, don't shrink, give slightly more width on tablet+ */
-/* Increased tablet width to is-4 */
-.routine-skill .column.is-4-mobile.is-4-tablet { /* Changed is-3-tablet to is-4-tablet */
-    flex-shrink: 0; /* Prevent shrinking */
-    margin-left: auto; /* Push column to the right */
-    padding: 0.25rem 0.5rem; /* Ensure padding is consistent */
-    justify-content: flex-end; /* Align content (the buttons div) to the right */
-}
-
-/* Buttons container: Align buttons to the end, force no wrapping */
-.routine-skill .buttons.are-small {
-    justify-content: flex-end; /* Align buttons right */
-    flex-wrap: nowrap; /* IMPORTANT: Prevent wrapping within the button group */
-    margin-bottom: 0; /* Remove default bottom margin from buttons group */
-}
-
-/* Specific button styling */
-.buttons.are-small .button {
-    height: 1.5em;
-    font-size: 0.75rem;
-    padding: 0 0.5rem;
-}
-
-/* Reduce spacing between buttons */
-.routine-skill .buttons.are-small .button:not(:last-child) {
-    margin-right: 0.25rem; /* Reduced from Bulma default */
-}
-
-/* Adjust delete button margin */
-.routine-skill .buttons.are-small .delete {
-    margin-left: 0.25rem; /* Reduced margin */
-}
 
 /* --- End Routine Button Fixes --- */
-
 
 /* Toast notification styling */
 .notification {
@@ -128,19 +68,6 @@
     to { transform: translateY(0); }
 }
 
-/* Style for disabled twist inputs */
-.twist-rotation:disabled {
-    background-color: #f5f5f5;
-    border-color: #dbdbdb;
-    color: #7a7a7a;
-}
-
-/* Fade effect for inactive twist fields */
-#twist-fields .column {
-    transition: opacity 0.3s ease;
-}
-
-
 /* Consistent height for form fields */
 .field .control, .field .checkbox {
     min-height: 1.25rem;
@@ -149,12 +76,6 @@
 }
 .field .checkbox {
     margin-top: 0.5rem;
-}
-
-/* Padding for gapless columns (twist inputs) */
-.columns.is-gapless > .column {
-    padding-left: 0.25rem;
-    padding-right: 0.25rem;
 }
 
 /* Label margin */
@@ -167,29 +88,9 @@
     height: 2.25em;
 }
 
-/* Negative margins for gapless columns */
-.is-gapless {
-    margin-left: -0.25rem;
-    margin-right: -0.25rem;
-}
-
-/* Styling for grouped, multiline fields */
-.field.is-grouped.is-grouped-multiline {
-    flex-wrap: wrap;
-    align-items: center;
-    min-height: 2.5rem;
-}
-
 /* Checkbox margin */
 .checkbox {
     margin-right: 1.5rem;
-}
-
-/* Style for the auto-filled skill name display */
-#skill-name-display {
-    background-color: #f5f5f5;
-    cursor: not-allowed;
-    font-style: italic;
 }
 
 /* Styling for validation message area */
@@ -235,23 +136,6 @@
     margin-right: 0.5rem;
 }
 
-/* Styling for multiple warnings indicator */
-.routine-skill.has-multiple-warnings {
-    position: relative;
-    overflow: hidden;
-}
-
-.routine-skill.has-multiple-warnings::after {
-    content: "";
-    position: absolute;
-    right: -10px;
-    top: -10px;
-    width: 20px;
-    height: 20px;
-    background: #ff69b4;
-    transform: rotate(45deg);
-}
-
 /* Dragging indicator text */
 .routine-skill::after {
     content: "Drag to reorder";
@@ -271,13 +155,6 @@
     pointer-events: auto !important;
 }
 
-/* Bulma clearfix helper */
-.is-clearfix::after {
-    clear: both;
-    content: " ";
-    display: table;
-}
-
 #routine-skills .routine-skill {
     margin-bottom: 0; border-radius: 0; border-left: 4px solid #ddd;
     cursor: grab; transition: border-left-color 0.3s ease, opacity 0.2s ease;
@@ -293,10 +170,7 @@
 .routine-skill button, .routine-skill .delete { pointer-events: auto; }
 .transition-status { font-size: 0.8rem; margin-top: 0.25rem; }
 #routine-skills { min-height: 100px; transition: background-color 0.2s; border: 1px solid #dbdbdb; border-radius: 4px; padding: 0.5rem; }
-#routine-total { min-height: 120px; }
-.loading-total::after { content: "Calculating..."; display: block; padding: 1rem; color: #666; }
-#evaluation-preview { margin: 1rem 0; background-color: #f8f9fa; }
-#evaluation-results p { margin-bottom: 0.5rem; }
+
 .subtitle.tariff-difference { font-size: 0.9rem; color: #666; }
 .has-text-danger { color: #ff3860 !important; }
 .has-text-landing-warning { color: #ff69b4 !important; }
@@ -312,11 +186,10 @@
 .skill-details-columns { align-items: center; /* Vertical alignment */ }
 .skill-details-columns .column { padding-top: 0.25rem; padding-bottom: 0.25rem; }
 .skill-details-columns p { font-size: 0.85rem; white-space: nowrap; }
-.skill-details-columns .detail-label { display: none; } /* Hide labels by default */
 .skill-details-columns .buttons { margin-bottom: 0; } /* Remove button group margin */
 /* Define the margin utility for tablet and up */
 @media screen and (min-width: 769px) {
-    .ml-auto-tablet { margin-left: auto !important; }
+
     /* Ensure detail columns take up space */
     .skill-details-columns .column:not(.is-narrow) {
         flex-basis: 0; /* Allow columns to grow */
@@ -324,7 +197,6 @@
         min-width: 50px; /* Adjust as needed */
     }
 }
-
 
 .skill-validation-row { width: 100%; border-top: 1px solid #eee; margin-top: 0.5rem; padding-top: 0.5rem; }
 
