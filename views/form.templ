@@ -3,6 +3,7 @@ package views
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -125,7 +126,7 @@ templ picker(cats []catalog.Category) {
 						</button>
 						// ...or straight away in another shape.
 						if options := e.ShapeOptions(); len(options) > 0 {
-							<div class="picker-shapes" role="group" aria-label={ "Shape for " + catalog.PickerName(e.Skill) }>
+							<div class="picker-shapes" role="group" aria-label={ "Shape for " + catalog.PickerName(e.Skill) } data-tariffs={ templ.JSONString(e.ShapeTariffs()) }>
 								for _, o := range options {
 									<button
 										type="button"
@@ -138,9 +139,12 @@ templ picker(cats []catalog.Category) {
 										hx-vals={ loadCommon(e.Key, o.Shape) }
 									>
 										<span class="picker-shape-name">{ o.Shape.String() }</span>
-										if o.Modifier > 0 {
-											<span class="picker-shape-modifier">{ fmt.Sprintf("+%.1f", o.Modifier) }</span>
-										}
+										// Against tuck, or against the shape chosen once this box is picked.
+										<span class="picker-shape-modifier" x-text={ fmt.Sprintf("shapeModifier($el.closest('.picker-shapes').dataset.tariffs, '%s', '%s')", o.Shape, e.ID()) }>
+											if o.Modifier > 0 {
+												{ fmt.Sprintf("+%.1f", o.Modifier) }
+											}
+										</span>
 									</button>
 								}
 							</div>
@@ -268,9 +272,14 @@ templ shapeChoice(s skills.TrampolineSkill) {
 	if s.ShapeIsRelevant() {
 		<div class="segmented" role="radiogroup" aria-label="Shape">
 			for _, shape := range shapesFor(s) {
-				<label class={ "segment", templ.KV("is-selected", s.Shape == shape) }>
-					<input type="radio" name="shape" value={ strings.ToLower(shape.String()) } checked?={ s.Shape == shape }/>
+				<label class={ "segment", "shape-segment", templ.KV("is-selected", s.Shape == shape) }>
+					// Keeps the picker box this skill came from in step.
+					<input type="radio" name="shape" value={ strings.ToLower(shape.String()) } checked?={ s.Shape == shape } x-on:change={ fmt.Sprintf("pickedShape = '%s'", shape) }/>
 					{ shape.String() }
+					// How this shape's tariff differs from the shape chosen now.
+					if diff := shapeDifference(s, shape); diff != "" {
+						<span class="segment-modifier">{ diff }</span>
+					}
 				</label>
 			}
 		</div>
@@ -278,6 +287,21 @@ templ shapeChoice(s skills.TrampolineSkill) {
 		<input type="hidden" name="shape" value={ strings.ToLower(s.Shape.String()) }/>
 		<p class="skill-card-note">Shape doesn't change this skill.</p>
 	}
+}
+
+// shapeDifference is how much more or less the skill would score in shape
+// than in its current shape, e.g. "+0.1" or "−0.1"; "" when the same.
+func shapeDifference(s skills.TrampolineSkill, shape skills.Shape) string {
+	current := s.SetTariff()
+	s.Shape = shape
+	diff := math.Round((s.SetTariff()-current)*10) / 10
+	switch {
+	case diff > 0:
+		return fmt.Sprintf("+%.1f", diff)
+	case diff < 0:
+		return fmt.Sprintf("−%.1f", -diff)
+	}
+	return ""
 }
 
 // builderFields are the skill's parameters in plain language.

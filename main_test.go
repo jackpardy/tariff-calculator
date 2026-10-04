@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -862,6 +863,28 @@ func TestPickerLoadsAShape(t *testing.T) {
 	for _, want := range []string{">Pike Jump<", ">Straddle Jump<", `class="picker-shapes"`, "&#34;shape&#34;:&#34;Pike&#34;"} {
 		if !strings.Contains(form, want) {
 			t.Errorf("the picker is missing %q", want)
+		}
+	}
+}
+
+// The skill card's shape buttons say how each shape differs from the one chosen.
+func TestSkillCardShapeDifferences(t *testing.T) {
+	segments := func(shape string) map[string]string {
+		t.Helper()
+		html := postForm(t, "/skill-inputs", url.Values{"load": {"common"}, "commonSkillKey": {"backSomersault"}, "shape": {shape}}).Body.String()
+		got := map[string]string{}
+		for _, m := range regexp.MustCompile(`(?s)<label class="segment shape-segment[^"]*"><input[^>]*value="(\w+)"[^>]*>\s*\w+\s*(?:<span class="segment-modifier">([^<]*)</span>)?`).FindAllStringSubmatch(html, -1) {
+			got[m[1]] = m[2]
+		}
+		return got
+	}
+	for shape, want := range map[string]map[string]string{
+		"Tuck":     {"tuck": "", "pike": "+0.1", "straight": "+0.1"},
+		"Pike":     {"tuck": "−0.1", "pike": "", "straight": ""},
+		"Straight": {"tuck": "−0.1", "pike": "", "straight": ""},
+	} {
+		if got := segments(shape); fmt.Sprint(got) != fmt.Sprint(want) {
+			t.Errorf("Back %s: %v, want %v", shape, got, want)
 		}
 	}
 }

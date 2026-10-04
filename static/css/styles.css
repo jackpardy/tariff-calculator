@@ -290,6 +290,7 @@
 .picker-shape:hover { background: #eef1fb; }
 .picker-shape { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; }
 .picker-shape-modifier { font-size: 0.7rem; color: #485fc7; font-weight: 700; }
+.picker-shape-modifier:empty { display: none; }
 .picker-shape.is-selected { background: #485fc7; color: #fff; font-weight: 600; }
 .picker-shape.is-selected .picker-shape-modifier { color: #fff; }
 /* A group of related skills takes a whole row, its options in a grid. */
@@ -339,6 +340,9 @@
 .skill-card-problem { color: #cc0f35; font-size: 0.85rem; margin-top: 0.5rem; }
 .skill-card-note { color: #777; font-size: 0.85rem; margin-top: 0.5rem; }
 .skill-card .segmented { margin-top: 0.6rem; }
+/* A shape's difference from the chosen one sits under its name. */
+.shape-segment { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; }
+.segment-modifier { font-size: 0.7rem; font-weight: 700; color: #485fc7; }
 .skill-card-label { margin: 0.6rem 0; font-size: 0.9rem; }
 .skill-card-label > summary { cursor: pointer; color: #485fc7; }
 .skill-card-label .input { margin-top: 0.4rem; }

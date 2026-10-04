@@ -117,6 +117,17 @@ function tariffCalculatorStore() {
             }
         },
 
+        // shapeModifier is how a picker box's shape differs in tariff from tuck, or,
+        // once that box is picked, from the shape chosen: "+0.1", "−0.1" or "".
+        shapeModifier(tariffsJSON, shape, id) {
+            const tariffs = JSON.parse(tariffsJSON);
+            const from = this.picked === id && tariffs[this.pickedShape] !== undefined ? tariffs[this.pickedShape] : tariffs.Tuck;
+            const diff = Math.round((tariffs[shape] - from) * 10) / 10;
+            if (diff > 0) { return `+${diff.toFixed(1)}`; }
+            if (diff < 0) { return `−${(-diff).toFixed(1)}`; }
+            return '';
+        },
+
         // step nudges a number input (the − and + buttons) and lets the form re-render.
         step(id, delta) {
             const input = document.getElementById(id);

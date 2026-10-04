@@ -68,6 +68,16 @@ func (e Entry) ShapeOptions() []ShapeOption {
 	return options
 }
 
+// ShapeTariffs is the entry's tariff in each shape the picker offers, by shape
+// name, for the page to show differences from whichever shape is chosen.
+func (e Entry) ShapeTariffs() map[string]float64 {
+	tariffs := map[string]float64{}
+	for _, shape := range e.Shapes() {
+		tariffs[shape.String()] = tariffIn(e.Skill, shape)
+	}
+	return tariffs
+}
+
 func tariffIn(s skills.TrampolineSkill, shape skills.Shape) float64 {
 	s.Shape = shape
 	return s.SetTariff()
