@@ -1,0 +1,167 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+
+	"tariffCalculator/skills"
+	"tariffCalculator/static"
+)
+
+// TariffSheetPage is the printable tariff sheet page. It is a plain link from the
+// calculator (so reloading works and nothing is blocked as a popup): on load it
+// posts the routine saved in this browser and swaps in TariffSheet.
+templ TariffSheetPage() {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>Tariff Sheet</title>
+			<link rel="stylesheet" href={ static.URL("css/sheet.css") }/>
+			<script src={ static.URL("js/htmx.min.js") }></script>
+		</head>
+		<body>
+			<div class="toolbar screen-only">
+				<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
+				<span>Fill in the details, then print. Nothing on this page is saved.</span>
+			</div>
+			<div
+				id="tariff-sheet"
+				hx-post="/tariff-sheet"
+				hx-trigger="load"
+				hx-vals="js:{routineData: localStorage.getItem('trampolineRoutine') || '[]'}"
+				hx-on:htmx:response-error="this.querySelector('.loading').textContent = 'Could not build the sheet: ' + event.detail.xhr.responseText"
+			>
+				<p class="loading screen-only">Loading the routine saved in this browser...</p>
+			</div>
+		</body>
+	</html>
+}
+
+// TariffSheet is a printable tariff sheet (competition card) for a routine: the
+// elements in performance order with their FIG notation and difficulty (CoP
+// §6.1-6.2). The details fields are filled in on the page before printing and
+// are not stored. Warnings show on screen only.
+templ TariffSheet(rv skills.RoutineValidation) {
+	if issues := sheetIssues(rv); len(issues) > 0 {
+		<div class="warnings screen-only">
+			<strong>Check before printing:</strong>
+			<ul>
+				for _, issue := range issues {
+					<li>{ issue }</li>
+				}
+			</ul>
+		</div>
+	}
+	<main class="sheet">
+		<h1>Tariff Sheet</h1>
+		<div class="fields">
+			for _, f := range []string{"Gymnast", "Club / Nation", "Category", "Competition", "Round / Exercise", "Coach"} {
+				<label>
+					{ f }
+					<input type="text" aria-label={ f }/>
+				</label>
+			}
+		</div>
+		// Scrolls sideways on narrow screens; on paper it fits the page.
+		<div class="table-wrap">
+			<table>
+				<thead>
+					<tr>
+						<th class="num">No.</th>
+						<th>Element</th>
+						<th class="fig">FIG notation</th>
+						<th class="diff">Difficulty</th>
+						<th class="req" title="Required element (CoP §6.1.1)">Req. *</th>
+						<th class="judge">Judge</th>
+					</tr>
+				</thead>
+				<tbody>
+					for i := range sheetRows(len(rv.Skills)) {
+						if i < len(rv.Skills) {
+							@sheetRow(i, rv.Skills[i])
+						} else {
+							<tr class="blank">
+								<td class="num">{ strconv.Itoa(i + 1) }</td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td class="req"></td>
+								<td></td>
+							</tr>
+						}
+					}
+				</tbody>
+				<tfoot>
+					<tr>
+						<td colspan="3">Total difficulty</td>
+						<td class="diff">{ fmt.Sprintf("%.1f", rv.TotalTariff) }</td>
+						<td colspan="2"></td>
+					</tr>
+				</tfoot>
+			</table>
+		</div>
+		<p class="footnote">Difficulty per FIG TRA Code of Points 2025-2028 §17. Elements marked "not counted" do not add to the total.</p>
+	</main>
+}
+
+templ sheetRow(i int, sv skills.SkillValidation) {
+	<tr class={ templ.KV("not-counted", !sv.Counted) }>
+		<td class="num">{ strconv.Itoa(i + 1) }</td>
+		<td>
+			{ sv.Skill.Name }
+			if sv.Skill.CustomName != "" {
+				<span class="custom">{ sv.Skill.CustomName }</span>
+			}
+		</td>
+		<td class="fig">{ sv.FIGNotation }</td>
+		<td class="diff">
+			{ fmt.Sprintf("%.1f", sv.Skill.Tariff) }
+			if reason := notCountedReason(i, sv); reason != "" {
+				<span class="note">not counted ({ reason })</span>
+			}
+		</td>
+		<td class="req"><input type="checkbox" aria-label={ fmt.Sprintf("Element %d is a required element", i+1) }/></td>
+		<td class="judge"></td>
+	</tr>
+}
+
+// sheetRows is the number of rows on the sheet: the routine, and at least a full
+// exercise of RoutineLength elements.
+func sheetRows(n int) int {
+	return max(n, skills.RoutineLength)
+}
+
+// notCountedReason says why skill i adds nothing to the total, or "" if it counts.
+func notCountedReason(i int, sv skills.SkillValidation) string {
+	switch {
+	case sv.Counted:
+		return ""
+	case i >= skills.RoutineLength:
+		return "after the 10th"
+	case sv.Interrupts || sv.AfterInterruption:
+		return "interruption"
+	case sv.IsDuplicate:
+		return "repeat"
+	default:
+		return "see warnings"
+	}
+}
+
+// sheetIssues lists the routine's problems, for the on-screen check before printing.
+func sheetIssues(rv skills.RoutineValidation) []string {
+	var issues []string
+	if rv.InterruptedAt >= 0 {
+		issues = append(issues, interruptionText(rv.InterruptedAt))
+	}
+	for i, m := range rv.Messages {
+		if m != "" {
+			issues = append(issues, fmt.Sprintf("Element %d: %s", i+1, m))
+		}
+	}
+	if n := len(rv.Skills); n != skills.RoutineLength {
+		issues = append(issues, fmt.Sprintf("The routine has %d elements; an exercise has %d.", n, skills.RoutineLength))
+	}
+	return issues
+}

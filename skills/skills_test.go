@@ -343,6 +343,9 @@ func TestValidateRoutine(t *testing.T) {
 		if rv.TotalTariff != 0.5 {
 			t.Errorf("TotalTariff = %.2f, want 0.50 (counts once)", rv.TotalTariff)
 		}
+		if !rv.Skills[0].Counted || rv.Skills[1].Counted {
+			t.Errorf("the first occurrence should count and the repeat should not")
+		}
 		if rv.RawTariff != 1.0 {
 			t.Errorf("RawTariff = %.2f, want 1.00 (counts both)", rv.RawTariff)
 		}
@@ -457,6 +460,10 @@ func TestValidateRoutine(t *testing.T) {
 					t.Errorf("TotalTariff = %.2f, want %.2f", rv.TotalTariff, c.total)
 				}
 				for i, sv := range rv.Skills {
+					counted := c.interruptedAt < 0 || i < c.interruptedAt
+					if sv.Counted != counted {
+						t.Errorf("skill %d Counted = %v, want %v", i+1, sv.Counted, counted)
+					}
 					after := c.interruptedAt >= 0 && i > c.interruptedAt
 					if sv.AfterInterruption != after {
 						t.Errorf("skill %d AfterInterruption = %v, want %v", i+1, sv.AfterInterruption, after)

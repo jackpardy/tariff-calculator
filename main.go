@@ -53,6 +53,8 @@ func routes() http.Handler {
 	mux.HandleFunc("POST /skill-evaluation", handleSkillEvaluation)
 	mux.HandleFunc("POST /calculate-skill", handleCalculateSkill)
 	mux.HandleFunc("POST /routine", handleRoutineView)
+	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
+	mux.HandleFunc("POST /tariff-sheet", handleTariffSheet)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBytes)
@@ -267,20 +269,44 @@ func handleSkillEvaluation(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// handleRoutineView renders the routine builder (cards, validation, totals) for
-// the routine the browser posts. Official names are always re-derived, so names
-// stored by older versions are corrected.
-func handleRoutineView(w http.ResponseWriter, r *http.Request) {
+// validatedRoutine parses and validates the routine the browser posts. Official
+// names are always re-derived, so names stored by older versions are corrected.
+func validatedRoutine(r *http.Request) (skills.RoutineValidation, error) {
 	routine, err := parseRoutineFromRequest(r)
+	if err != nil {
+		return skills.RoutineValidation{}, err
+	}
+	for i := range routine {
+		routine[i].Name = skills.FindCommonSkillName(routine[i])
+	}
+	return skills.ValidateRoutine(routine), nil
+}
+
+// handleRoutineView renders the routine builder (cards, validation, totals).
+func handleRoutineView(w http.ResponseWriter, r *http.Request) {
+	rv, err := validatedRoutine(r)
 	if err != nil {
 		log.Printf("Error parsing routine for view: %v", err)
 		badRequest(w, err)
 		return
 	}
-	for i := range routine {
-		routine[i].Name = skills.FindCommonSkillName(routine[i])
+	render(w, r, views.Routine(rv))
+}
+
+// handleTariffSheetPage serves the tariff sheet page, which loads the sheet for
+// the routine saved in the browser.
+func handleTariffSheetPage(w http.ResponseWriter, r *http.Request) {
+	render(w, r, views.TariffSheetPage())
+}
+
+// handleTariffSheet renders the sheet itself for the posted routine.
+func handleTariffSheet(w http.ResponseWriter, r *http.Request) {
+	rv, err := validatedRoutine(r)
+	if err != nil {
+		badRequest(w, err)
+		return
 	}
-	render(w, r, views.Routine(skills.ValidateRoutine(routine)))
+	render(w, r, views.TariffSheet(rv))
 }
 
 // parseRoutineFromRequest parses the routine the page posts as JSON in the

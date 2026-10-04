@@ -593,6 +593,7 @@ type SkillValidation struct {
 	IntermediateJump  bool
 	Interrupts        bool // this skill interrupts the routine (CoP §15.1); it gets no credit
 	AfterInterruption bool // performed after the routine was interrupted; not counted (§15.3)
+	Counted           bool // its tariff is part of TotalTariff
 }
 
 // RoutineValidation is the pure-domain result of validating a routine: per-skill
@@ -676,6 +677,7 @@ func ValidateRoutine(routine []TrampolineSkill) RoutineValidation {
 
 		if !isCurrentSkillDuplicate && i < RoutineLength && res.InterruptedAt < 0 {
 			res.TotalTariff += s.Tariff
+			res.Skills[i].Counted = true
 		}
 
 		if i == 0 {

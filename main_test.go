@@ -429,3 +429,91 @@ func TestIndexRendersThePage(t *testing.T) {
 		}
 	}
 }
+
+func postSheet(t *testing.T, routineJSON string) *httptest.ResponseRecorder {
+	t.Helper()
+	return postForm(t, "/tariff-sheet", url.Values{"routineData": {routineJSON}})
+}
+
+func TestTariffSheet(t *testing.T) {
+	rec := postSheet(t, `[
+		{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"},
+		{"custom_name":"Opener <b>","rotation":4,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Pike"},
+		{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}
+	]`)
+	html := rec.Body.String()
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d, body %s", rec.Code, html)
+	}
+
+	rows := regexp.MustCompile(`(?s)<tbody>(.*)</tbody>`).FindStringSubmatch(html)
+	if rows == nil {
+		t.Fatalf("no table body in:\n%s", html)
+	}
+	trs := strings.Split(rows[1], "<tr")[1:]
+	if len(trs) != 10 {
+		t.Errorf("rendered %d rows, want a full exercise of 10", len(trs))
+	}
+	for i, want := range []string{"Front Tuck", "Barani Pike", "Front Tuck"} {
+		if !strings.Contains(trs[i], want) {
+			t.Errorf("row %d is missing %q", i+1, want)
+		}
+	}
+	if !strings.Contains(trs[1], "Opener &lt;b&gt;") {
+		t.Errorf("the custom name should be shown, escaped")
+	}
+	for _, want := range []string{"(4 1 &lt;)", "0.6"} {
+		if !strings.Contains(trs[1], want) {
+			t.Errorf("row 2 is missing %q", want)
+		}
+	}
+	if !strings.Contains(trs[2], "not counted (repeat)") || strings.Contains(trs[0], "not counted") {
+		t.Errorf("only the repeat (row 3) should be marked not counted")
+	}
+	for _, want := range []string{
+		`<td class="diff">1.1</td>`, // total: 0.5 + 0.6; the repeat is not counted
+		"Check before printing:",
+		"Element 3: Duplicate",
+		"The routine has 3 elements; an exercise has 10.",
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("sheet is missing %q", want)
+		}
+	}
+}
+
+func TestTariffSheetPage(t *testing.T) {
+	rec := httptest.NewRecorder()
+	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/tariff-sheet", nil))
+	html := rec.Body.String()
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d", rec.Code)
+	}
+	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "localStorage.getItem('trampolineRoutine')", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v="} {
+		if !strings.Contains(html, want) {
+			t.Errorf("sheet page is missing %q", want)
+		}
+	}
+
+	// The calculator links to it.
+	rec = httptest.NewRecorder()
+	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if !strings.Contains(rec.Body.String(), `href="/tariff-sheet" target="_blank"`) {
+		t.Errorf("the calculator should link to the tariff sheet")
+	}
+}
+
+func TestTariffSheetEdgeCases(t *testing.T) {
+	elevenFronts := "[" + strings.TrimSuffix(strings.Repeat(`{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"},`, 11), ",") + "]"
+	html := postSheet(t, elevenFronts).Body.String()
+	if n := strings.Count(html, "<tr") - 2; n != 11 { // minus header and footer rows
+		t.Errorf("11 skills should give 11 rows, got %d", n)
+	}
+	if !strings.Contains(html, "not counted (after the 10th)") {
+		t.Errorf("the 11th skill should be marked as after the 10th")
+	}
+
+	if rec := postSheet(t, `[{"rotation":-1,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}]`); rec.Code != http.StatusBadRequest {
+		t.Errorf("an invalid routine should be rejected, got %d", rec.Code)
+	}
+}
