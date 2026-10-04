@@ -104,35 +104,19 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 						<h2 class="title is-5">Built-in requirements</h2>
 						<p class="is-size-7 has-text-grey mb-3">Drafted from each organisation's published rules, which name their source. Rules change, so check them against the current rules; duplicate one to adjust it.</p>
 						for _, g := range groups {
-							<details class="builtin-group">
-								<summary>{ g.Name } <span class="set-meta">· { strconv.Itoa(len(g.Sets)) }</span></summary>
-								<ul class="set-list">
-									for _, b := range g.Sets {
-										<li class="set-item">
-											<div>
-												<p class="set-name">{ b.Set.Name }</p>
-												if b.Set.Description != "" {
-													<p class="set-description">{ b.Set.Description }</p>
-												}
-												if b.Set.Source != "" {
-													<p class="set-meta">{ b.Set.Source }</p>
-												}
-												<details class="set-rules">
-													<summary>{ rulesCount(len(b.Set.Rules)) }</summary>
-													<ul>
-														for _, rule := range b.Set.Rules {
-															<li>{ requirements.Describe(rule) }</li>
-														}
-													</ul>
-												</details>
-											</div>
-											<div class="buttons are-small mb-0">
-												<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("duplicateBuiltin('%s')", b.ID) }>Duplicate</button>
-											</div>
-										</li>
-									}
-								</ul>
-							</details>
+							if sets := g.Requirements(); len(sets) > 0 {
+								@builtinGroup(g.Name, sets)
+							}
+						}
+					</div>
+					// Set (prescribed) routines, by source.
+					<div class="box">
+						<h2 class="title is-5">Set routines</h2>
+						<p class="is-size-7 has-text-grey mb-3">Prescribed routines. Choose one under "Check against" in the Routine Builder to load it.</p>
+						for _, g := range groups {
+							if routines := g.SetRoutines(); len(routines) > 0 {
+								@builtinGroup(g.Name, routines)
+							}
 						}
 					</div>
 					<div x-show="toast" x-transition class="notification is-info is-fixed-bottom-right" x-cloak>
@@ -521,4 +505,63 @@ func scoredText(n int) string {
 		return ""
 	}
 	return strconv.Itoa(n)
+}
+
+// builtinGroup lists one source's built-in sets, folded away. A set routine
+// lists its elements in order; other requirements, their rules.
+templ builtinGroup(name string, sets []requirements.Builtin) {
+	<details class="builtin-group">
+		<summary>{ name } <span class="set-meta">· { strconv.Itoa(len(sets)) }</span></summary>
+		<ul class="set-list">
+			for _, b := range sets {
+				<li class="set-item">
+					<div>
+						<p class="set-name">{ b.Set.Name }</p>
+						if b.Set.Description != "" {
+							<p class="set-description">{ b.Set.Description }</p>
+						}
+						if b.Set.Source != "" {
+							<p class="set-meta">{ b.Set.Source }</p>
+						}
+						if routine, ok := requirements.SetRoutine(b.Set); ok {
+							<details class="set-rules">
+								<summary>{ strconv.Itoa(len(routine)) } elements</summary>
+								<ol>
+									for _, m := range setRoutineSteps(b.Set) {
+										<li>{ m }</li>
+									}
+								</ol>
+							</details>
+						} else {
+							<details class="set-rules">
+								<summary>{ rulesCount(len(b.Set.Rules)) }</summary>
+								<ul>
+									for _, rule := range b.Set.Rules {
+										<li>{ requirements.Describe(rule) }</li>
+									}
+								</ul>
+							</details>
+						}
+					</div>
+					<div class="buttons are-small mb-0">
+						<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("duplicateBuiltin('%s')", b.ID) }>Duplicate</button>
+					</div>
+				</li>
+			}
+		</ul>
+	</details>
+}
+
+// setRoutineSteps are a set routine's elements in words, in order.
+func setRoutineSteps(set requirements.Set) []string {
+	for _, rule := range set.Rules {
+		if rule.Type == requirements.Sequence {
+			steps := make([]string, len(rule.Sequence))
+			for i, m := range rule.Sequence {
+				steps[i] = requirements.DescribeMatcher(m)
+			}
+			return steps
+		}
+	}
+	return nil
 }

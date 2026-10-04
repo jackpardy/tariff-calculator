@@ -820,7 +820,7 @@ func TestSetRoutineEndpoint(t *testing.T) {
 	}
 
 	code, got := post(url.Values{"requirementSet": {"builtin:bg-regional-l1-first"}})
-	if code != http.StatusOK || got.Name != "BG Regional L1 · first exercise" || len(got.Skills) != 10 || got.Matches || got.Skills[0].Name != "Back Tuck" || got.Skills[9].Name != "Front Pike" {
+	if code != http.StatusOK || got.Name != "BG Regional L1" || len(got.Skills) != 10 || got.Matches || got.Skills[0].Name != "Back Tuck" || got.Skills[9].Name != "Front Pike" {
 		t.Fatalf("BG Regional L1: status %d, %+v", code, got)
 	}
 	routine, _ := json.Marshal(got.Skills)
@@ -1035,5 +1035,33 @@ func TestSharing(t *testing.T) {
 		if body := rec.Body.String(); !strings.Contains(body, "js/share.js") || !strings.Contains(body, want) {
 			t.Errorf("%s should load share.js and offer to share", path)
 		}
+	}
+}
+
+// Set (prescribed) routines are listed apart from requirements, by source.
+func TestSetRoutinesListedApart(t *testing.T) {
+	rec := httptest.NewRecorder()
+	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	page := rec.Body.String()
+	groups := map[string]string{}
+	for _, m := range regexp.MustCompile(`(?s)<optgroup label="([^"]+)">(.*?)</optgroup>`).FindAllStringSubmatch(page, -1) {
+		groups[m[1]] += m[2]
+	}
+	if !strings.Contains(groups["Set routines · BUCS student championships (2026)"], `value="builtin:bucs-l3-option-1"`) ||
+		strings.Contains(groups["BUCS student championships (2026)"], `value="builtin:bucs-l3-option-1"`) ||
+		!strings.Contains(groups["BUCS student championships (2026)"], `value="builtin:bucs-l3-second"`) {
+		t.Errorf("BUCS L3 option 1 belongs with the set routines, its second exercise with the requirements")
+	}
+	if !strings.Contains(groups["Set routines · British Gymnastics club &amp; regional pathway (2027)"], ">BG Club L1<") {
+		t.Errorf("BG club routines are set routines")
+	}
+	if _, ok := groups["Set routines · FIG age groups (2025–2028)"]; ok {
+		t.Errorf("FIG has no set routines, so no group")
+	}
+
+	rec = httptest.NewRecorder()
+	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/requirements", nil))
+	if body := rec.Body.String(); !strings.Contains(body, `<h2 class="title is-5">Set routines</h2>`) || !strings.Contains(body, "<li>Back somersault (T)</li>") {
+		t.Errorf("the requirements page should list set routines on their own, element by element")
 	}
 }

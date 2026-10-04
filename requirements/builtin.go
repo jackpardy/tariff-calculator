@@ -28,6 +28,35 @@ type BuiltinGroup struct {
 	Sets []Builtin
 }
 
+// Requirements are the group's sets that aren't set routines.
+func (g BuiltinGroup) Requirements() []Builtin {
+	var out []Builtin
+	for _, b := range g.Sets {
+		if !b.IsSetRoutine() {
+			out = append(out, b)
+		}
+	}
+	return out
+}
+
+// SetRoutines are the group's set (prescribed) routines.
+func (g BuiltinGroup) SetRoutines() []Builtin {
+	var out []Builtin
+	for _, b := range g.Sets {
+		if b.IsSetRoutine() {
+			out = append(out, b)
+		}
+	}
+	return out
+}
+
+// IsSetRoutine reports whether the set is a set (prescribed) routine, which
+// the app shows apart from other requirements.
+func (b Builtin) IsSetRoutine() bool {
+	_, ok := SetRoutine(b.Set)
+	return ok
+}
+
 // BuiltinPrefix marks a reference to a built-in set, e.g. "builtin:fig-ag1-first".
 const BuiltinPrefix = "builtin:"
 

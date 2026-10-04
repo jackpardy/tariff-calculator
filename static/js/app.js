@@ -153,6 +153,8 @@ function tariffCalculatorStore() {
         currentRoutine() { return this.routines.find((r) => r.id === this.currentId); },
         compareRoutine() { return this.routines.find((r) => r.id === this.compareId); },
         routineFor(side) { return side === 'b' ? this.compareRoutine() : this.currentRoutine(); },
+        // isSetRoutine reports whether a requirement set is a set (prescribed) routine.
+        isSetRoutine(set) { return (set?.rules || []).some((r) => r.type === 'sequence'); },
         skillsOf(side) { return side === 'b' ? this.routineB : this.routine; },
         expandedOf(side) { return side === 'b' ? this.expandedB : this.expanded; },
         persist() { RoutineStore.save({ current: this.currentId, routines: this.routines }); },

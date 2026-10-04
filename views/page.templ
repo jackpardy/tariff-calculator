@@ -186,15 +186,34 @@ templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 				<select id={ id } x-on:change={ fmt.Sprintf("setRequirements($event.target.value, '%s')", side) }>
 					<option value="" x-bind:selected={ fmt.Sprintf("!routineFor('%s')?.requirements", side) }>No requirements</option>
 					for _, g := range groups {
-						<optgroup label={ g.Name }>
-							for _, b := range g.Sets {
-								<option value={ requirements.BuiltinPrefix + b.ID } x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === '%s%s'", side, requirements.BuiltinPrefix, b.ID) }>{ b.Set.Name }</option>
-							}
-						</optgroup>
+						if sets := g.Requirements(); len(sets) > 0 {
+							<optgroup label={ g.Name }>
+								for _, b := range sets {
+									@builtinOption(b, side)
+								}
+							</optgroup>
+						}
 					}
-					<template x-if="customSets.length > 0">
+					// Set (prescribed) routines apart, by source.
+					for _, g := range groups {
+						if routines := g.SetRoutines(); len(routines) > 0 {
+							<optgroup label={ "Set routines · " + g.Name }>
+								for _, b := range routines {
+									@builtinOption(b, side)
+								}
+							</optgroup>
+						}
+					}
+					<template x-if="customSets.some((s) => !isSetRoutine(s.set))">
 						<optgroup label="Your requirements">
-							<template x-for="s in customSets" x-bind:key="s.id">
+							<template x-for="s in customSets.filter((s) => !isSetRoutine(s.set))" x-bind:key="s.id">
+								<option x-bind:value="s.id" x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === s.id", side) } x-text="s.set.name"></option>
+							</template>
+						</optgroup>
+					</template>
+					<template x-if="customSets.some((s) => isSetRoutine(s.set))">
+						<optgroup label="Your set routines">
+							<template x-for="s in customSets.filter((s) => isSetRoutine(s.set))" x-bind:key="s.id">
 								<option x-bind:value="s.id" x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === s.id", side) } x-text="s.set.name"></option>
 							</template>
 						</optgroup>
@@ -206,4 +225,9 @@ templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 			}
 		</div>
 	</div>
+}
+
+// builtinOption is a built-in set in a requirement picker.
+templ builtinOption(b requirements.Builtin, side string) {
+	<option value={ requirements.BuiltinPrefix + b.ID } x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === '%s%s'", side, requirements.BuiltinPrefix, b.ID) }>{ b.Set.Name }</option>
 }
