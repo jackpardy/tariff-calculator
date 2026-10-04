@@ -1,0 +1,152 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+
+	"tariffCalculator/skills"
+	"tariffCalculator/static"
+)
+
+// CompareSide is one routine on the compare page.
+type CompareSide struct {
+	Name       string
+	Validation skills.RoutineValidation
+}
+
+// ComparePage shows two of the routines saved in this browser side by side. The
+// page's script (static/js/compare.js) fills the two routine choices and posts
+// the chosen routines to POST /compare, which renders Comparison.
+templ ComparePage() {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>Compare Routines</title>
+			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
+			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
+			<script src={ static.URL("js/htmx.min.js") }></script>
+			<script defer src={ static.URL("js/routines.js") }></script>
+			<script defer src={ static.URL("js/compare.js") }></script>
+		</head>
+		<body>
+			<section class="section">
+				<div class="container">
+					<h1 class="title is-4">Compare routines</h1>
+					<div class="compare-choices">
+						<div class="field">
+							<label class="label is-small" for="compare-a">Routine A</label>
+							<div class="select is-fullwidth"><select id="compare-a"></select></div>
+						</div>
+						<div class="field">
+							<label class="label is-small" for="compare-b">Routine B</label>
+							<div class="select is-fullwidth"><select id="compare-b"></select></div>
+						</div>
+					</div>
+					<div id="comparison" hx-sync="this:replace">
+						<p class="has-text-grey">Loading the routines saved in this browser...</p>
+					</div>
+				</div>
+			</section>
+		</body>
+	</html>
+}
+
+// Comparison renders two routines element by element, highlighting where they
+// differ, with their totals and problems.
+templ Comparison(a, b CompareSide) {
+	if len(a.Validation.Skills) == 0 && len(b.Validation.Skills) == 0 {
+		<p class="has-text-grey">Both routines are empty.</p>
+	} else {
+		<div class="table-container">
+			<table class="table is-fullwidth compare-table">
+				<thead>
+					<tr>
+						<th class="compare-num">#</th>
+						<th>{ a.Name }</th>
+						<th>{ b.Name }</th>
+					</tr>
+				</thead>
+				<tbody>
+					for i := range max(len(a.Validation.Skills), len(b.Validation.Skills)) {
+						<tr class={ templ.KV("differs", differs(a, b, i)) }>
+							<td class="compare-num">{ strconv.Itoa(i + 1) }</td>
+							@compareCell(a, i)
+							@compareCell(b, i)
+						</tr>
+					}
+				</tbody>
+				<tfoot>
+					<tr>
+						<td class="compare-num"></td>
+						<td class="compare-total">{ fmt.Sprintf("%.1f", a.Validation.TotalTariff) }</td>
+						<td class="compare-total">{ fmt.Sprintf("%.1f", b.Validation.TotalTariff) }</td>
+					</tr>
+				</tfoot>
+			</table>
+		</div>
+		<p class="compare-summary">{ totalDifference(a, b) }</p>
+		<div class="columns is-mobile is-multiline mt-3">
+			@compareIssues(a)
+			@compareIssues(b)
+		</div>
+	}
+}
+
+templ compareCell(side CompareSide, i int) {
+	if i >= len(side.Validation.Skills) {
+		<td class="compare-empty">—</td>
+	} else {
+		<td class={ templ.KV("not-counted", !side.Validation.Skills[i].Counted) }>
+			<span class="compare-name">{ side.Validation.Skills[i].Skill.Name }</span>
+			if side.Validation.Skills[i].Skill.CustomName != "" {
+				<span class="compare-label">{ side.Validation.Skills[i].Skill.CustomName }</span>
+			}
+			<span class="compare-meta">
+				{ side.Validation.Skills[i].FIGNotation } · { fmt.Sprintf("%.1f", side.Validation.Skills[i].Skill.Tariff) }
+			</span>
+			if reason := notCountedReason(i, side.Validation.Skills[i]); reason != "" {
+				<span class="compare-note">not counted ({ reason })</span>
+			}
+		</td>
+	}
+}
+
+templ compareIssues(side CompareSide) {
+	<div class="column is-half-tablet is-full-mobile">
+		<p class="has-text-weight-semibold">{ side.Name }</p>
+		if issues := sheetIssues(side.Validation); len(issues) == 0 {
+			<p class="is-size-7 has-text-success">No problems found.</p>
+		} else {
+			<ul class="compare-issues">
+				for _, issue := range issues {
+					<li>{ issue }</li>
+				}
+			</ul>
+		}
+	</div>
+}
+
+// differs reports whether the two routines have different skills at position i
+// (including one routine being shorter).
+func differs(a, b CompareSide, i int) bool {
+	sa, sb := a.Validation.Skills, b.Validation.Skills
+	if i >= len(sa) || i >= len(sb) {
+		return true
+	}
+	return !sa[i].Skill.Equal(&sb[i].Skill) || sa[i].Skill.Shape != sb[i].Skill.Shape
+}
+
+// totalDifference says which routine scores more difficulty, and by how much.
+func totalDifference(a, b CompareSide) string {
+	diff := b.Validation.TotalTariff - a.Validation.TotalTariff
+	switch {
+	case diff > 0.05:
+		return fmt.Sprintf("%s scores %.1f more difficulty than %s.", b.Name, diff, a.Name)
+	case diff < -0.05:
+		return fmt.Sprintf("%s scores %.1f more difficulty than %s.", a.Name, -diff, b.Name)
+	default:
+		return "Both routines score the same difficulty."
+	}
+}

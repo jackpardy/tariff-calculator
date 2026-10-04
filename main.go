@@ -52,6 +52,8 @@ func routes() http.Handler {
 	mux.HandleFunc("GET /skill-search", handleSkillSearch)
 	mux.HandleFunc("POST /calculate-skill", handleCalculateSkill)
 	mux.HandleFunc("POST /routine", handleRoutineView)
+	mux.HandleFunc("GET /compare", handleComparePage)
+	mux.HandleFunc("POST /compare", handleCompare)
 	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
 	mux.HandleFunc("POST /tariff-sheet", handleTariffSheet)
 
@@ -244,10 +246,19 @@ func handleCalculateSkill(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// validatedRoutine parses and validates the routine the browser posts. Official
-// names are always re-derived, so names stored by older versions are corrected.
+// validatedRoutine parses and validates the routine the browser posts in the
+// routineData form value.
 func validatedRoutine(r *http.Request) (skills.RoutineValidation, error) {
-	routine, err := parseRoutineFromRequest(r)
+	if err := r.ParseForm(); err != nil {
+		return skills.RoutineValidation{}, fmt.Errorf("parsing form: %w", err)
+	}
+	return validateRoutineJSON(r.FormValue("routineData"))
+}
+
+// validateRoutineJSON parses a routine posted as JSON and validates it. Official
+// names are always re-derived, so names stored by older versions are corrected.
+func validateRoutineJSON(raw string) (skills.RoutineValidation, error) {
+	routine, err := parseRoutineJSON(raw)
 	if err != nil {
 		return skills.RoutineValidation{}, err
 	}
@@ -268,6 +279,34 @@ func handleRoutineView(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.Routine(rv))
 }
 
+// handleComparePage serves the compare page; it fills its routine choices from
+// the routines saved in the browser and loads the comparison.
+func handleComparePage(w http.ResponseWriter, r *http.Request) {
+	render(w, r, views.ComparePage())
+}
+
+// handleCompare renders two posted routines side by side.
+func handleCompare(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		badRequest(w, err)
+		return
+	}
+	var sides [2]views.CompareSide
+	for i, key := range []string{"a", "b"} {
+		rv, err := validateRoutineJSON(r.FormValue(key + "Data"))
+		if err != nil {
+			badRequest(w, fmt.Errorf("routine %s: %w", strings.ToUpper(key), err))
+			return
+		}
+		name := strings.TrimSpace(r.FormValue(key + "Name"))
+		if name == "" {
+			name = "Routine " + strings.ToUpper(key)
+		}
+		sides[i] = views.CompareSide{Name: name, Validation: rv}
+	}
+	render(w, r, views.Comparison(sides[0], sides[1]))
+}
+
 // handleTariffSheetPage serves the tariff sheet page, which loads the sheet for
 // the routine saved in the browser.
 func handleTariffSheetPage(w http.ResponseWriter, r *http.Request) {
@@ -284,15 +323,11 @@ func handleTariffSheet(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.TariffSheet(rv))
 }
 
-// parseRoutineFromRequest parses the routine the page posts as JSON in the
-// routineData form value. Each skill is normalised to its phase count,
-// validated and priced.
-func parseRoutineFromRequest(r *http.Request) ([]skills.TrampolineSkill, error) {
-	if err := r.ParseForm(); err != nil {
-		return nil, fmt.Errorf("parsing form: %w", err)
-	}
+// parseRoutineJSON parses a routine posted as JSON ("" is an empty routine).
+// Each skill is normalised to its phase count, validated and priced.
+func parseRoutineJSON(raw string) ([]skills.TrampolineSkill, error) {
 	routine := []skills.TrampolineSkill{}
-	if raw := r.FormValue("routineData"); raw != "" {
+	if raw != "" {
 		if err := json.Unmarshal([]byte(raw), &routine); err != nil {
 			return nil, fmt.Errorf("decoding routine JSON: %w", err)
 		}

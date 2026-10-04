@@ -211,6 +211,18 @@
 /* Skills after an interruption (CoP §15.3) still show, but don't count. */
 .routine-skill.not-counted { opacity: 0.55; }
 
+/* Saved routines: the switcher above the routine. */
+.routine-switcher { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+.routine-switcher .select select { max-width: 14rem; }
+.routine-menu { position: relative; }
+.routine-menu > summary { list-style: none; display: inline-flex; box-sizing: border-box; margin-bottom: 0; }
+.routine-menu > summary::-webkit-details-marker { display: none; }
+.routine-menu-panel {
+    position: absolute; top: calc(100% + 0.3rem); right: 0; z-index: 20; display: flex; flex-direction: column; align-items: stretch;
+    min-width: 10rem; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 0.3rem; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+.routine-menu-panel .button { justify-content: flex-start; }
+
 /* --- Add a skill (views.SkillFormView) --- */
 /* The editor's own box would limit how far the sticky skill card can follow the
    page, so let its children lay out in the form instead. */
@@ -267,6 +279,21 @@
 .skill-card-label > summary { cursor: pointer; color: #485fc7; }
 .skill-card-label .input { margin-top: 0.4rem; }
 .skill-card-actions { margin-top: 0.25rem; margin-bottom: 0; }
+
+/* --- Compare page (views.ComparePage) --- */
+.compare-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+.compare-table td { vertical-align: top; }
+.compare-num { width: 2rem; color: #777; }
+.compare-table tr.differs td:not(.compare-num) { background: #fff8e1; }
+.compare-name, .compare-label, .compare-meta, .compare-note { display: block; }
+.compare-name { font-weight: 600; }
+.compare-label, .compare-note { color: #777; font-size: 0.8rem; }
+.compare-meta { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; color: #555; }
+.compare-table td.not-counted .compare-name, .compare-table td.not-counted .compare-meta { color: #999; }
+.compare-empty { color: #bbb; }
+.compare-total { font-weight: 700; font-size: 1.2rem; color: #485fc7; }
+.compare-summary { font-weight: 600; }
+.compare-issues { font-size: 0.85rem; color: #8a2a00; padding-left: 1.1rem; list-style: disc; }
 
 /* --- Phones --- */
 @media screen and (max-width: 768px) {

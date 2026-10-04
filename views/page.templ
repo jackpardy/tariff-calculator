@@ -15,6 +15,7 @@ templ Page() {
 			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
 			<script src={ static.URL("js/htmx.min.js") }></script>
 			<script defer src={ static.URL("js/sortable.min.js") }></script>
+			<script defer src={ static.URL("js/routines.js") }></script>
 			// app.js defines the Alpine component, so it must run before Alpine (all deferred, in order).
 			<script defer src={ static.URL("js/app.js") }></script>
 			<script defer src={ static.URL("js/alpine.min.js") }></script>
@@ -53,20 +54,39 @@ templ calculator() {
 		</div>
 		// Routine builder.
 		<div class="box">
-			<div class="level mb-4">
+			<div class="level mb-3">
 				<div class="level-left">
 					<h3 class="title is-4 mb-0">Routine Builder</h3>
 				</div>
 				<div class="level-right">
 					<div class="buttons mb-0">
 						<a class="button is-primary is-small" href="/tariff-sheet" target="_blank" rel="noopener">Tariff Sheet</a>
-						<button class="button is-info is-light is-small" type="button" x-on:click="expandAll()">Expand All</button>
-						<button class="button is-info is-light is-small" type="button" x-on:click="collapseAll()">Collapse All</button>
-						<button class="button is-danger is-outlined is-small" type="button" x-on:click="clearRoutine()" x-show="routine.length > 0">
-							Clear Routine
-						</button>
+						<a class="button is-link is-light is-small" href="/compare" target="_blank" rel="noopener" x-show="routines.length > 1">Compare</a>
 					</div>
 				</div>
+			</div>
+			// Saved routines: switch between them or start a new one; the rest is under More.
+			<div class="routine-switcher">
+				<div class="select is-small">
+					<select aria-label="Routine" x-on:change="switchRoutine($event.target.value)">
+						<template x-for="r in routines" x-bind:key="r.id">
+							<option x-bind:value="r.id" x-bind:selected="r.id === currentId" x-text="`${r.name} (${r.skills.length})`"></option>
+						</template>
+					</select>
+				</div>
+				<button class="button is-small" type="button" x-on:click="newRoutine()">+ New</button>
+				<details class="routine-menu">
+					<summary class="button is-small">More</summary>
+					// Close the menu after any choice.
+					<div class="routine-menu-panel" x-on:click="$el.closest('details').removeAttribute('open')">
+						<button class="button is-small is-white" type="button" x-on:click="renameRoutine()">Rename</button>
+						<button class="button is-small is-white" type="button" x-on:click="duplicateRoutine()">Duplicate</button>
+						<button class="button is-small is-white" type="button" x-on:click="expandAll()">Expand all</button>
+						<button class="button is-small is-white" type="button" x-on:click="collapseAll()">Collapse all</button>
+						<button class="button is-small is-white has-text-danger" type="button" x-on:click="clearRoutine()" x-bind:disabled="routine.length === 0">Clear skills</button>
+						<button class="button is-small is-white has-text-danger" type="button" x-on:click="deleteRoutine()">Delete routine</button>
+					</div>
+				</details>
 			</div>
 			// Cards and totals: Routine, re-rendered whenever the routine changes.
 			<div id="routine-view" hx-sync="this:replace">

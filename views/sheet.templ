@@ -20,6 +20,7 @@ templ TariffSheetPage() {
 			<title>Tariff Sheet</title>
 			<link rel="stylesheet" href={ static.URL("css/sheet.css") }/>
 			<script src={ static.URL("js/htmx.min.js") }></script>
+			<script defer src={ static.URL("js/routines.js") }></script>
 			<script defer src={ static.URL("js/sheet.js") }></script>
 		</head>
 		<body>
@@ -53,10 +54,10 @@ templ TariffSheetPage() {
 				id="tariff-sheet"
 				hx-post="/tariff-sheet"
 				hx-trigger="load"
-				hx-vals="js:{routineData: localStorage.getItem('trampolineRoutine') || '[]'}"
+				hx-vals="js:{routineData: JSON.stringify(RoutineStore.current(RoutineStore.load()).skills)}"
 				hx-on:htmx:response-error="this.querySelector('.loading').textContent = 'Could not build the sheet: ' + event.detail.xhr.responseText"
 			>
-				<p class="loading screen-only">Loading the routine saved in this browser...</p>
+				<p class="loading screen-only">Loading the current routine saved in this browser...</p>
 			</div>
 		</body>
 	</html>

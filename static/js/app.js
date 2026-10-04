@@ -1,11 +1,14 @@
 // app.js: the calculator page's Alpine component (x-data="tariffCalculatorStore()").
 // Loaded with defer before Alpine, so the function exists when Alpine starts.
-// The page's state: the routine (saved in localStorage) and UI state local to
-// the page. Everything shown is rendered by the server; this component asks for
-// it whenever the routine or the form changes.
+// The page's state: the routines saved in this browser (RoutineStore, from
+// routines.js), the current one's skills, and UI state local to the page.
+// Everything shown is rendered by the server; this component asks for it
+// whenever the routine or the form changes.
 function tariffCalculatorStore() {
     return {
-        routine: [],
+        routines: [],   // all saved routines: {id, name, skills}
+        currentId: null,
+        routine: [],    // the current routine's skills (the same array as in routines)
         expanded: [], // per-card expanded state, parallel to routine
         editingIndex: null,
         busy: false, // an add or update is in flight
@@ -15,18 +18,18 @@ function tariffCalculatorStore() {
         toast: { show: false, message: '', type: 'info' },
 
         init() {
-            try {
-                this.routine = JSON.parse(localStorage.getItem('trampolineRoutine') || '[]');
-            } catch (e) {
-                console.error('Failed to parse saved routine:', e);
-                localStorage.removeItem('trampolineRoutine');
-            }
+            const state = RoutineStore.load();
+            this.routines = state.routines;
+            this.currentId = state.current;
+            this.routine = this.currentRoutine().skills;
+            this.persist(); // settles a routine carried over from an older version
             // One flag per card from the start, so moves can splice it in step with the routine.
             this.expanded = this.routine.map(() => false);
 
             this.$watch('routine', (routine) => {
+                this.currentRoutine().skills = routine; // the routine may have been replaced (e.g. cleared)
                 this.renderRoutine();
-                localStorage.setItem('trampolineRoutine', JSON.stringify(routine));
+                this.persist();
             });
 
             document.body.addEventListener('htmx:afterSwap', (event) => {
@@ -86,6 +89,53 @@ function tariffCalculatorStore() {
             if (String(value) === input.value) { return; }
             input.value = value;
             input.dispatchEvent(new Event('change', { bubbles: true }));
+        },
+
+        // --- Saved routines ---
+        currentRoutine() { return this.routines.find((r) => r.id === this.currentId); },
+        persist() { RoutineStore.save({ current: this.currentId, routines: this.routines }); },
+        // switchRoutine makes the routine with id current, leaving any edit.
+        switchRoutine(id) {
+            if (!this.routines.some((r) => r.id === id)) { return; }
+            if (this.editingIndex !== null) { this.cancelEdit(); }
+            this.currentId = id;
+            this.expanded = this.currentRoutine().skills.map(() => false);
+            this.routine = this.currentRoutine().skills; // re-renders and saves via the watcher
+        },
+        newRoutine() {
+            const routine = { id: RoutineStore.newId(), name: RoutineStore.nextName(this.routines), skills: [] };
+            this.routines.push(routine);
+            this.switchRoutine(routine.id);
+            this.showToast(`Started ${routine.name}.`, 'info');
+        },
+        duplicateRoutine() {
+            const source = this.currentRoutine();
+            const copy = { id: RoutineStore.newId(), name: `${source.name} (copy)`, skills: JSON.parse(JSON.stringify(source.skills)) };
+            this.routines.splice(this.routines.indexOf(source) + 1, 0, copy);
+            this.switchRoutine(copy.id);
+            this.showToast(`Duplicated as ${copy.name}.`, 'info');
+        },
+        renameRoutine() {
+            const routine = this.currentRoutine();
+            const name = prompt('Name this routine', routine.name);
+            if (name === null || name.trim() === '') { return; }
+            routine.name = name.trim().slice(0, 60);
+            this.persist();
+        },
+        deleteRoutine() {
+            const routine = this.currentRoutine(), name = routine.name;
+            if (!confirm(`Delete ${name}? This can't be undone.`)) { return; }
+            if (this.routines.length === 1) {
+                // Always keep one routine: emptying the last one is the same as clearing it.
+                routine.name = 'Routine 1';
+                this.routine = [];
+                this.expanded = [];
+            } else {
+                const index = this.routines.indexOf(routine);
+                this.routines.splice(index, 1);
+                this.switchRoutine(this.routines[Math.max(0, index - 1)].id);
+            }
+            this.showToast(`Deleted ${name}.`, 'info');
         },
 
         // --- Card expand/collapse ---
@@ -169,7 +219,7 @@ function tariffCalculatorStore() {
             else if (this.editingIndex !== null && from > this.editingIndex && to <= this.editingIndex) { this.editingIndex++; }
         },
         clearRoutine() {
-            if (this.routine.length === 0 || !confirm('Are you sure?')) { return; }
+            if (this.routine.length === 0 || !confirm(`Remove every skill from ${this.currentRoutine().name}?`)) { return; }
             this.routine = [];
             this.expanded = [];
             this.showToast('Routine cleared.', 'info');

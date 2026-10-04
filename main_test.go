@@ -450,8 +450,8 @@ func TestIndexRendersThePage(t *testing.T) {
 	}
 	// Every asset is linked by a versioned URL that the server actually serves.
 	links := regexp.MustCompile(`(?:href|src)="(/static/[^"]+)"`).FindAllStringSubmatch(html, -1)
-	if len(links) != 6 {
-		t.Errorf("found %d asset links, want 6 (2 CSS, 4 JS)", len(links))
+	if len(links) != 7 {
+		t.Errorf("found %d asset links, want 7 (2 CSS, 5 JS)", len(links))
 	}
 	for _, l := range links {
 		u := strings.ReplaceAll(l[1], "&amp;", "&")
@@ -546,7 +546,7 @@ func TestTariffSheetPage(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d", rec.Code)
 	}
-	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "localStorage.getItem('trampolineRoutine')", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v=",
+	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "RoutineStore.current(RoutineStore.load()).skills", "/static/js/routines.js?v=", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v=",
 		// Optional parts of the sheet.
 		`id="show-names" data-hides="hide-names" checked`, "/static/js/sheet.js?v=",
 		`id="show-req" data-hides="hide-req" checked`, `id="show-judge" data-hides="hide-judge" checked`,
@@ -621,5 +621,60 @@ func TestLoadingASearchResult(t *testing.T) {
 	form.Set("skill", `{"rotation":-4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}`)
 	if rec := postForm(t, "/skill-inputs", form); rec.Code != http.StatusBadRequest {
 		t.Errorf("an invalid posted skill should be rejected, got %d", rec.Code)
+	}
+}
+
+func TestCompare(t *testing.T) {
+	front := `{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}`
+	barani := `{"rotation":4,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Tuck"}`
+	rudi := `{"rotation":4,"twist_distribution":[3],"takeoff_position":"Feet","shape":"Straight"}`
+	rec := postForm(t, "/compare", url.Values{
+		"aName": {"Spring <b>"}, "aData": {"[" + front + "," + barani + "]"},
+		"bName": {"Summer"}, "bData": {"[" + front + "," + rudi + "," + barani + "]"},
+	})
+	html := rec.Body.String()
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d, body %s", rec.Code, html)
+	}
+
+	rows := strings.Split(regexp.MustCompile(`(?s)<tbody>(.*)</tbody>`).FindStringSubmatch(html)[1], "<tr")[1:]
+	if len(rows) != 3 {
+		t.Fatalf("got %d rows, want 3 (the longer routine)", len(rows))
+	}
+	if strings.Contains(rows[0], "differs") || !strings.Contains(rows[1], "differs") || !strings.Contains(rows[2], "differs") {
+		t.Errorf("only rows 2 and 3 differ (barani vs rudi, and a missing skill)")
+	}
+	if !strings.Contains(rows[2], "compare-empty") {
+		t.Errorf("the shorter routine should show an empty cell")
+	}
+	for _, want := range []string{
+		"Spring &lt;b&gt;", "Summer",
+		`<td class="compare-total">1.1</td>`, `<td class="compare-total">1.9</td>`,
+		"Summer scores 0.8 more difficulty than Spring &lt;b&gt;.",
+		"The routine has 2 elements; an exercise has 10.",
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("comparison is missing %q", want)
+		}
+	}
+
+	if rec := postForm(t, "/compare", url.Values{"aData": {`[{"rotation":-1}]`}, "bData": {"[]"}}); rec.Code != http.StatusBadRequest {
+		t.Errorf("an invalid routine should be rejected, got %d", rec.Code)
+	}
+}
+
+func TestComparePage(t *testing.T) {
+	rec := httptest.NewRecorder()
+	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/compare", nil))
+	html := rec.Body.String()
+	for _, want := range []string{`id="compare-a"`, `id="compare-b"`, `id="comparison"`, "/static/js/compare.js?v=", "/static/js/routines.js?v="} {
+		if !strings.Contains(html, want) {
+			t.Errorf("compare page is missing %q", want)
+		}
+	}
+	rec = httptest.NewRecorder()
+	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if !strings.Contains(rec.Body.String(), `href="/compare"`) {
+		t.Errorf("the calculator should link to the compare page")
 	}
 }
