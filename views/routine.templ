@@ -24,6 +24,7 @@ type RoutineSide struct {
 type Checks struct {
 	ScoreDifficulty bool
 	FlagRepeats     bool
+	ScoredElements  int // only this many elements score difficulty (0: all)
 }
 
 // list is the id of the column's card list, which the page makes sortable.
@@ -59,7 +60,7 @@ templ Routine(rv skills.RoutineValidation, check *RequirementCheck, side Routine
 			<p class="has-text-grey">Add skills using the form above.</p>
 		} else {
 			for i, sv := range rv.Skills {
-				@skillCard(i, sv, rv.Messages[i], i == len(rv.Skills)-1, side, side.Other != nil && differs(CompareSide{Validation: rv}, *side.Other, i))
+				@skillCard(i, sv, rv.Messages[i], i == len(rv.Skills)-1, side, side.Other != nil && differs(CompareSide{Validation: rv}, *side.Other, i), rv.ScoredElements > 0 && sv.Counted)
 			}
 		}
 	</div>
@@ -69,7 +70,7 @@ templ Routine(rv skills.RoutineValidation, check *RequirementCheck, side Routine
 	}
 }
 
-templ skillCard(i int, sv skills.SkillValidation, message string, last bool, side RoutineSide, different bool) {
+templ skillCard(i int, sv skills.SkillValidation, message string, last bool, side RoutineSide, different bool, scores bool) {
 	<div class="routine-skill-container" x-bind:class={ fmt.Sprintf("{ 'editing': editingIndex === %d && editingSide === '%s' }", i, side.Side) }>
 		<div
 			class={ "routine-skill", "box", "mb-2",
@@ -97,6 +98,9 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 						</p>
 						<p class="is-size-7 has-text-grey mb-0" style="white-space: nowrap; line-height: 1.2;">
 							{ sv.FIGNotation }
+							if scores {
+								<span class="tag is-link is-light scores-tag">Scores</span>
+							}
 							// Flags a problem while the card is collapsed; the message is in the details.
 							if message != "" {
 								<span class="has-text-danger ml-1" title={ message } aria-label={ "Issue: " + message }>⚠️</span>
@@ -152,6 +156,9 @@ templ results(rv skills.RoutineValidation, side RoutineSide) {
 			<div class="card-content">
 				if side.Checks.ScoreDifficulty {
 					<p class="title">Total Tariff: { fmt.Sprintf("%.2f", rv.TotalTariff) }</p>
+					if rv.ScoredElements > 0 {
+						<p class="compare-difference">From the { strconv.Itoa(rv.ScoredElements) } highest-scoring elements, marked "Scores"</p>
+					}
 					if side.Other != nil {
 						<p class="compare-difference">{ differenceFrom(rv, *side.Other) }</p>
 					}
@@ -160,7 +167,7 @@ templ results(rv skills.RoutineValidation, side RoutineSide) {
 					<p class="compare-difference">The elements add up to { fmt.Sprintf("%.2f", rv.TotalTariff) }</p>
 				}
 				<p class="subtitle">{ strconv.Itoa(len(rv.Skills)) } of { strconv.Itoa(skills.RoutineLength) } skills</p>
-				if side.Checks.ScoreDifficulty && rv.RawTariff > rv.TotalTariff+1e-9 {
+				if side.Checks.ScoreDifficulty && rv.ScoredElements == 0 && rv.RawTariff > rv.TotalTariff+1e-9 {
 					<p class="subtitle tariff-difference">(Raw Total: { fmt.Sprintf("%.2f", rv.RawTariff) })</p>
 				}
 				<div class="validation-messages mt-3">
@@ -194,6 +201,20 @@ templ results(rv skills.RoutineValidation, side RoutineSide) {
 						<input type="checkbox" checked?={ side.Checks.FlagRepeats } x-on:change={ fmt.Sprintf("setCheck('%s', 'repeats', $event.target.checked)", side.Side) }/>
 						Flag repeated elements
 					</label>
+					if side.Checks.ScoreDifficulty {
+						<label class="scored-elements">
+							Score
+							<span class="select is-small">
+								<select x-on:change={ fmt.Sprintf("setCheck('%s', 'scored', Number($event.target.value))", side.Side) }>
+									<option value="0" selected?={ side.Checks.ScoredElements == 0 }>all</option>
+									for n := 1; n < skills.RoutineLength; n++ {
+										<option value={ strconv.Itoa(n) } selected?={ side.Checks.ScoredElements == n }>{ strconv.Itoa(n) }</option>
+									}
+								</select>
+							</span>
+							elements
+						</label>
+					}
 				</div>
 			</div>
 		</div>

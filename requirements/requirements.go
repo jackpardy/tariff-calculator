@@ -30,6 +30,7 @@ type Set struct {
 	// routines usually have neither difficulty nor a rule against repeats.
 	NoDifficulty   bool `json:"no_difficulty,omitempty"`   // difficulty isn't scored
 	RepeatsAllowed bool `json:"repeats_allowed,omitempty"` // elements may be repeated
+	ScoredElements int  `json:"scored_elements,omitempty"` // only this many elements score difficulty (0: all)
 }
 
 // Rule types.
@@ -119,6 +120,9 @@ func (s Set) Validate() error {
 	}
 	if strings.TrimSpace(s.Name) == "" {
 		errs = append(errs, errors.New("the set needs a name"))
+	}
+	if s.ScoredElements < 0 || s.ScoredElements > skills.RoutineLength {
+		errs = append(errs, fmt.Errorf("the number of elements that score must be 0 (all) to %d", skills.RoutineLength))
 	}
 	for i, r := range s.Rules {
 		if err := r.validate(); err != nil {

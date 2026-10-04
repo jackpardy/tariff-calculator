@@ -81,6 +81,9 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 		RepeatsAllowed: r.FormValue("repeats_allowed") != "",
 		Rules:          []requirements.Rule{},
 	}
+	if n := intField("scored_elements"); n != nil {
+		set.ScoredElements = *n
+	}
 	for i := range count("rules") {
 		p := fmt.Sprintf("r%d.", i)
 		rule := requirements.Rule{

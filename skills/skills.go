@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -596,6 +597,7 @@ type SkillValidation struct {
 	Interrupts        bool // this skill interrupts the routine (CoP §15.1); it gets no credit
 	AfterInterruption bool // performed after the routine was interrupted; not counted (§15.3)
 	Counted           bool // its tariff is part of TotalTariff
+	Unscored          bool // it would count, but isn't one of the elements that score (ValidateOptions.ScoredElements)
 }
 
 // RoutineValidation is the pure-domain result of validating a routine: per-skill
@@ -612,6 +614,7 @@ type RoutineValidation struct {
 	TenthSkillWarning     bool
 	RoutineTooLong        bool
 	InterruptedAt         int // index of the skill that interrupts the routine, or -1
+	ScoredElements        int // how many elements score difficulty, if limited (ValidateOptions.ScoredElements)
 }
 
 // RoutineLength is the number of elements in an exercise (CoP §4.1).
@@ -639,6 +642,9 @@ type ValidateOptions struct {
 	// AllowRepeats treats a repeated element as any other: not flagged, and
 	// its tariff counted. Set routines may repeat elements.
 	AllowRepeats bool
+	// ScoredElements, if more than 0, is how many elements score difficulty,
+	// e.g. 2 in an AG3 first exercise: the highest-tariff ones that count.
+	ScoredElements int
 }
 
 // ValidateRoutineWith is ValidateRoutine with options.
@@ -751,5 +757,32 @@ func ValidateRoutineWith(routine []TrampolineSkill, opts ValidateOptions) Routin
 		res.Messages[i] = strings.Join(msgs, " / ")
 	}
 
+	if opts.ScoredElements > 0 {
+		scoreOnly(&res, opts.ScoredElements)
+	}
 	return res
+}
+
+// scoreOnly keeps the n highest-tariff counted elements (the earlier on a
+// tie) as the ones that score difficulty; the rest are unscored.
+func scoreOnly(res *RoutineValidation, n int) {
+	res.ScoredElements = n
+	var counted []int
+	for i, sv := range res.Skills {
+		if sv.Counted {
+			counted = append(counted, i)
+		}
+	}
+	slices.SortStableFunc(counted, func(a, b int) int {
+		return cmp.Compare(res.Skills[b].Skill.Tariff, res.Skills[a].Skill.Tariff)
+	})
+	res.TotalTariff = 0
+	for rank, i := range counted {
+		if rank < n {
+			res.TotalTariff += res.Skills[i].Skill.Tariff
+		} else {
+			res.Skills[i].Counted = false
+			res.Skills[i].Unscored = true
+		}
+	}
 }

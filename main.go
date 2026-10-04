@@ -314,7 +314,11 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 		}
 	}
 	out.checks = routineChecks(set, r.FormValue("checks"))
-	out.rv = skills.ValidateRoutineWith(routine, skills.ValidateOptions{AllowRepeats: !out.checks.FlagRepeats})
+	opts := skills.ValidateOptions{AllowRepeats: !out.checks.FlagRepeats}
+	if out.checks.ScoreDifficulty {
+		opts.ScoredElements = out.checks.ScoredElements
+	}
+	out.rv = skills.ValidateRoutineWith(routine, opts)
 	if set != nil {
 		results := requirements.Evaluate(*set, out.rv)
 		_, isSetRoutine := requirements.SetRoutine(*set)
@@ -325,16 +329,19 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 }
 
 // routineChecks are the checks that apply to a routine: its requirement set's
-// (a set routine has no difficulty and may repeat elements), unless the
-// routine says otherwise in checks, e.g. {"difficulty":true}.
+// (a set routine has no difficulty and may repeat elements; an AG3 first
+// exercise scores only 2 elements), unless the routine says otherwise in
+// checks, e.g. {"difficulty":true,"scored":0}.
 func routineChecks(set *requirements.Set, raw string) views.Checks {
 	checks := views.Checks{ScoreDifficulty: true, FlagRepeats: true}
 	if set != nil {
 		checks.ScoreDifficulty, checks.FlagRepeats = !set.NoDifficulty, !set.RepeatsAllowed
+		checks.ScoredElements = set.ScoredElements
 	}
 	var own struct {
 		Difficulty *bool `json:"difficulty"`
 		Repeats    *bool `json:"repeats"`
+		Scored     *int  `json:"scored"`
 	}
 	if raw != "" && json.Unmarshal([]byte(raw), &own) == nil {
 		if own.Difficulty != nil {
@@ -342,6 +349,9 @@ func routineChecks(set *requirements.Set, raw string) views.Checks {
 		}
 		if own.Repeats != nil {
 			checks.FlagRepeats = *own.Repeats
+		}
+		if own.Scored != nil && *own.Scored >= 0 && *own.Scored <= skills.RoutineLength {
+			checks.ScoredElements = *own.Scored
 		}
 	}
 	return checks

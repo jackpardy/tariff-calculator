@@ -248,7 +248,7 @@ func TestSkillForm(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("status %d, body %s", rec.Code, html)
 		}
-		for _, want := range []string{"Update skill", "Cancel", `name="editIndex" value="2"`, `name="builder_open" value="1"`} {
+		for _, want := range []string{`id="update-btn"`, "Cancel", `name="editIndex" value="2"`, `name="builder_open" value="1"`} {
 			if !strings.Contains(html, want) {
 				t.Errorf("edit panel is missing %q", want)
 			}
@@ -309,11 +309,11 @@ func TestSkillInputsFollowTheSkill(t *testing.T) {
 
 	t.Run("shape is only offered when it matters", func(t *testing.T) {
 		html := inputs(t, withValue(skillFormValues("4", "feet", "straight", "2"), "backward", "on"))
-		if !strings.Contains(html, "Shape doesn't change this skill.") || !strings.Contains(html, `<input type="hidden" name="shape" value="straight">`) {
-			t.Errorf("a full back should keep its shape hidden and say why")
+		if strings.Contains(html, `name="shape" value="pike"`) || !strings.Contains(html, `<input type="hidden" name="shape" value="straight">`) {
+			t.Errorf("a full back should keep its shape hidden, with no shape buttons")
 		}
 		html = inputs(t, skillFormValues("4", "feet", "pike", "0"))
-		if !strings.Contains(html, `value="pike" checked`) || strings.Contains(html, "Shape doesn't change") {
+		if !strings.Contains(html, `value="pike" checked`) || strings.Contains(html, `<input type="hidden" name="shape"`) {
 			t.Errorf("a front should offer shapes with pike chosen")
 		}
 	})
@@ -354,7 +354,7 @@ func TestSkillInputsFollowTheSkill(t *testing.T) {
 		if !strings.Contains(tagWithID(t, html, "rotation"), `value="8"`) || !strings.Contains(tagWithID(t, html, "twist-2"), `value="1"`) {
 			t.Errorf("want the half-out (8, [0 1]) loaded")
 		}
-		for _, want := range []string{`value="Opener"`, `name="editIndex" value="3"`, "Update skill", `name="builder_open" value="1"`} {
+		for _, want := range []string{`value="Opener"`, `name="editIndex" value="3"`, `id="update-btn"`, `name="builder_open" value="1"`} {
 			if !strings.Contains(html, want) {
 				t.Errorf("editor is missing %q", want)
 			}
@@ -977,5 +977,35 @@ func TestRoutineChecks(t *testing.T) {
 	sheet := postForm(t, "/tariff-sheet", url.Values{"routineData": {string(routine)}, "requirementSet": {"builtin:bucs-l4-option-1"}}).Body.String()
 	if !strings.Contains(sheet, "Difficulty isn't scored for this routine.") || !regexp.MustCompile(`<td class="diff">\s*—\s*</td>`).MatchString(sheet) {
 		t.Errorf("the sheet should leave out the total when difficulty isn't scored")
+	}
+}
+
+// An AG3 first exercise scores only its 2 highest elements; the routine can
+// score them all instead.
+func TestScoredElements(t *testing.T) {
+	// Back tuck 0.5, Barani 0.6, full back 0.7, Rudi 0.8.
+	routine := `[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},
+		{"rotation":4,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Tuck"},
+		{"rotation":4,"twist_distribution":[2],"takeoff_position":"Feet","shape":"Straight","backward":true},
+		{"rotation":4,"twist_distribution":[3],"takeoff_position":"Feet","shape":"Straight"}]`
+	values := func(checks string) url.Values {
+		return url.Values{"routineData": {routine}, "requirementSet": {"builtin:fig-ag3-first"}, "checks": {checks}}
+	}
+	html := postForm(t, "/routine", values("")).Body.String()
+	if !strings.Contains(html, "Total Tariff: 1.50") || strings.Count(html, ">Scores</span>") != 2 || !strings.Contains(html, `<option value="2" selected>`) {
+		t.Errorf("AG3 first exercise: the full back and Rudi (1.5) score, marked")
+	}
+	if html := postForm(t, "/routine", values(`{"scored":0}`)).Body.String(); !strings.Contains(html, "Total Tariff: 2.60") || strings.Contains(html, ">Scores</span>") {
+		t.Errorf("scoring every element: 2.6, nothing marked")
+	}
+
+	sheet := postForm(t, "/tariff-sheet", values("")).Body.String()
+	cells := regexp.MustCompile(`(?s)<td class="diff">\s*([0-9.]*)\s*</td>`).FindAllStringSubmatch(sheet, -1)
+	var got []string
+	for _, c := range cells {
+		got = append(got, c[1])
+	}
+	if strings.Join(got, ",") != ",,0.7,0.8,1.5" || strings.Contains(sheet, "not-counted") {
+		t.Errorf("the sheet shows values for the scoring elements only: %v", got)
 	}
 }

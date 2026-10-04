@@ -531,3 +531,29 @@ func TestValidateRoutineAllowingRepeats(t *testing.T) {
 		t.Errorf("with repeats allowed, both count and nothing is flagged: %+v", rv)
 	}
 }
+
+func TestValidateRoutineScoringOnlySomeElements(t *testing.T) {
+	s := func(rotation int, twist int, backward bool) TrampolineSkill {
+		return TrampolineSkill{Rotation: rotation, TwistDistribution: []int{twist}, TakeoffPosition: Feet, Shape: Tuck, Backward: backward}
+	}
+	// Back (0.5), Barani (0.6), Full back (0.7), Rudi (0.8, straight), front (0.5).
+	rudi := s(4, 3, false)
+	rudi.Shape = Straight
+	routine := []TrampolineSkill{s(4, 0, true), s(4, 1, false), s(4, 2, true), rudi, s(4, 0, false)}
+	rv := ValidateRoutineWith(routine, ValidateOptions{ScoredElements: 2})
+	var scored, unscored []int
+	for i, sv := range rv.Skills {
+		if sv.Counted {
+			scored = append(scored, i+1)
+		}
+		if sv.Unscored {
+			unscored = append(unscored, i+1)
+		}
+	}
+	if !slices.Equal(scored, []int{3, 4}) || !slices.Equal(unscored, []int{1, 2, 5}) || math.Abs(rv.TotalTariff-1.5) > 1e-9 || rv.ScoredElements != 2 {
+		t.Errorf("the full back and Rudi score: scored %v, unscored %v, total %.1f", scored, unscored, rv.TotalTariff)
+	}
+	if rv := ValidateRoutine(routine); rv.ScoredElements != 0 || rv.Skills[0].Unscored || math.Abs(rv.TotalTariff-3.1) > 1e-9 {
+		t.Errorf("by default every element scores: total %.1f", rv.TotalTariff)
+	}
+}

@@ -331,22 +331,28 @@
 .builder-readout { color: #555; font-size: 0.9rem; }
 
 /* The skill card: what Add will add. */
-.skill-card { border: 2px solid #485fc7; border-radius: 8px; padding: 0.75rem 1rem; background: #fff; }
+.skill-card { border: 2px solid #485fc7; border-radius: 8px; padding: 0.5rem 0.75rem; background: #fff; }
 .skill-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
-.skill-card-name { font-size: 1.2rem; font-weight: 700; line-height: 1.2; }
-.skill-card-meta { color: #555; font-size: 0.9rem; margin-top: 0.15rem; }
+.skill-card-name { font-size: 1.05rem; font-weight: 700; line-height: 1.2; }
+.skill-card-meta { color: #555; font-size: 0.85rem; margin-top: 0.1rem; }
 .skill-card-fig { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.skill-card-tariff { font-size: 1.6rem; font-weight: 700; color: #485fc7; line-height: 1; }
+.skill-card-tariff { font-size: 1.35rem; font-weight: 700; color: #485fc7; line-height: 1; }
 .skill-card-problem { color: #cc0f35; font-size: 0.85rem; margin-top: 0.5rem; }
 .skill-card-note { color: #777; font-size: 0.85rem; margin-top: 0.5rem; }
-.skill-card .segmented { margin-top: 0.6rem; }
+/* Shape buttons and Add (or Update / Cancel) share a row; Add takes what's left. */
+.skill-card-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.5rem; margin-top: 0.5rem; }
+.skill-card-actions .add-to { flex-basis: 100%; margin-bottom: 0; }
+.skill-card-actions #add-btn { flex: 1 1 6.5rem; min-width: 0; width: auto; height: auto; min-height: 2.5rem; padding: 0.3rem 0.5rem; white-space: normal; line-height: 1.15; }
+.skill-card-actions .segment { padding: 0.35rem 0.6rem; }
+.skill-card-buttons { flex: 1 1 auto; justify-content: flex-end; margin-bottom: 0 !important; }
+.skill-card-buttons .button { margin-bottom: 0 !important; }
 /* A shape's difference from the chosen one sits under its name. */
 .shape-segment { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; }
 .segment-modifier { font-size: 0.7rem; font-weight: 700; color: #485fc7; }
-.skill-card-label { margin: 0.6rem 0; font-size: 0.9rem; }
+.skill-card-label { margin: 0.35rem 0 0; font-size: 0.85rem; }
 .skill-card-label > summary { cursor: pointer; color: #485fc7; }
 .skill-card-label .input { margin-top: 0.4rem; }
-.skill-card-actions { margin-top: 0.25rem; margin-bottom: 0; }
+
 
 /* --- Compare page (views.ComparePage) --- */
 .compare-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
@@ -432,8 +438,10 @@ details > * { box-sizing: border-box; }
 
     .is-fixed-bottom-right { left: 1rem; }
 
-    /* Keep the skill card (and its Add button) on screen while choosing and adjusting. */
+    /* Keep the skill card (and its Add button) on screen while choosing and adjusting,
+       but not while typing elsewhere: with the keyboard up it would cover the field. */
     .skill-card { position: sticky; bottom: 0.5rem; z-index: 5; box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12); }
+    #main-form:has(input:focus:not(#custom-name)) .skill-card { position: static; box-shadow: none; }
     .builder-label { min-width: 100%; }
 }
 
@@ -449,3 +457,6 @@ details > * { box-sizing: border-box; }
 .routine-checks .checkbox { display: inline-flex; align-items: center; gap: 0.35rem; }
 .set-scoring { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 1rem; }
 .set-scoring .matcher-hint { flex-basis: 100%; margin: 0; }
+.scored-elements { display: inline-flex; align-items: center; gap: 0.35rem; }
+.scores-tag { margin-left: 0.35rem; font-size: 0.7rem !important; height: 1.5em !important; vertical-align: middle; }
+.scored-input { width: 4.5rem; }

@@ -148,7 +148,9 @@ templ TariffSheet(rv skills.RoutineValidation, required map[int]bool, checks Che
 		</div>
 		<p class="footnote">
 			Difficulty per FIG TRA Code of Points 2025-2028 §17.
-			if checks.ScoreDifficulty {
+			if checks.ScoreDifficulty && rv.ScoredElements > 0 {
+				Only the { strconv.Itoa(rv.ScoredElements) } highest-scoring elements score difficulty; they have values.
+			} else if checks.ScoreDifficulty {
 				Elements marked "not counted" do not add to the total.
 			} else {
 				Difficulty isn't scored for this routine.
@@ -159,7 +161,7 @@ templ TariffSheet(rv skills.RoutineValidation, required map[int]bool, checks Che
 
 // sheetRow is one element; required ticks its Req. box (it meets a required-element rule).
 templ sheetRow(i int, sv skills.SkillValidation, required bool) {
-	<tr class={ templ.KV("not-counted", !sv.Counted) }>
+	<tr class={ templ.KV("not-counted", !sv.Counted && !sv.Unscored) }>
 		<td class="num">{ strconv.Itoa(i + 1) }</td>
 		<td class="col-name">
 			{ sv.Skill.Name }
@@ -169,7 +171,10 @@ templ sheetRow(i int, sv skills.SkillValidation, required bool) {
 		</td>
 		<td class="fig">{ sv.FIGNotation }</td>
 		<td class="diff">
-			{ fmt.Sprintf("%.1f", sv.Skill.Tariff) }
+			// Only the elements that score have a difficulty value on the card.
+			if !sv.Unscored {
+				{ fmt.Sprintf("%.1f", sv.Skill.Tariff) }
+			}
 			if reason := notCountedReason(i, sv); reason != "" {
 				<span class="note">not counted ({ reason })</span>
 			}
@@ -199,7 +204,7 @@ func sheetRows(n int) int {
 // notCountedReason says why skill i adds nothing to the total, or "" if it counts.
 func notCountedReason(i int, sv skills.SkillValidation) string {
 	switch {
-	case sv.Counted:
+	case sv.Counted, sv.Unscored:
 		return ""
 	case i >= skills.RoutineLength:
 		return "after the 10th"

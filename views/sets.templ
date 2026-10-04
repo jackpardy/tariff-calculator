@@ -218,7 +218,12 @@ templ SetEditor(e SetEditorData) {
 				<input type="checkbox" name="repeats_allowed" value="1" checked?={ e.Set.RepeatsAllowed }/>
 				Elements may be repeated
 			</label>
-			<p class="matcher-hint">Usual for set (compulsory) routines.</p>
+			<label class="scored-elements">
+				Only
+				<input class="input is-small scored-input" type="number" inputmode="numeric" min="0" max="10" name="scored_elements" value={ scoredText(e.Set.ScoredElements) } placeholder="all"/>
+				elements score difficulty
+			</label>
+			<p class="matcher-hint">The first two are usual for set (compulsory) routines; AG3 first exercises score 2 elements.</p>
 		</div>
 		<input type="hidden" name="rules" value={ strconv.Itoa(len(e.Set.Rules)) }/>
 		for i, rule := range e.Set.Rules {
@@ -505,4 +510,12 @@ func tariffMax(r *requirements.TariffRange) string {
 		return ""
 	}
 	return floatText(r.Max)
+}
+
+// scoredText is a set's number of scoring elements for the editor; blank for all.
+func scoredText(n int) string {
+	if n == 0 {
+		return ""
+	}
+	return strconv.Itoa(n)
 }
