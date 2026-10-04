@@ -120,3 +120,13 @@ func TestNotationOffersBothDirections(t *testing.T) {
 		}
 	}
 }
+
+// The picker names somersaults "Back s/s" and so on, so searching that way finds them.
+func TestSearchSlashS(t *testing.T) {
+	for query, want := range map[string]string{"back s/s": "Back Tuck", "front s/s": "Front Tuck", "back s/s to seat": "Back To Seat Tuck"} {
+		results := Search(query)
+		if len(results) == 0 || results[0].Skill.Name != want {
+			t.Errorf("%q: first result %v, want %s", query, results, want)
+		}
+	}
+}

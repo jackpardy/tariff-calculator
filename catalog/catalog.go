@@ -51,13 +51,14 @@ func categoryOf(s skills.TrampolineSkill) string {
 	}
 }
 
-// somersaultNames spell out base names that don't say they're somersaults once
-// the shape is dropped ("Back Tuck" becomes "Back Somersault", not "Back").
+// somersaultNames name base names that don't say they're somersaults once the
+// shape is dropped, as rule books write them ("Back Tuck" becomes "Back s/s",
+// not "Back").
 var somersaultNames = map[string]string{
-	"Back":          "Back Somersault",
-	"Front":         "Front Somersault",
-	"Back To Seat":  "Back Somersault To Seat",
-	"Front To Seat": "Front Somersault To Seat",
+	"Back":          "Back s/s",
+	"Front":         "Front s/s",
+	"Back To Seat":  "Back s/s To Seat",
+	"Front To Seat": "Front s/s To Seat",
 }
 
 // PickerName is a skill's name in the picker: without its shape, which is

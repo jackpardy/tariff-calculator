@@ -20,8 +20,10 @@ const maxResults = 12
 
 // aliases are other names people use for common skills (by CommonSkills key).
 var aliases = map[string][]string{
-	"backSomersault": {"back somersault", "back salto"},
-	"front":          {"front somersault", "front salto"},
+	"backSomersault": {"back somersault", "back salto", "back s/s"},
+	"front":          {"front somersault", "front salto", "front s/s"},
+	"backToSeat":     {"back s/s to seat", "back somersault to seat"},
+	"frontToSeat":    {"front s/s to seat", "front somersault to seat"},
 	"crashDive":      {"3/4 front"},
 	"lazyBack":       {"3/4 back"},
 	"halfOut":        {"barani out", "half in"},
