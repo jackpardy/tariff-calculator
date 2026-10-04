@@ -453,8 +453,7 @@ func checkPosted(p postedRoutine, scoredEarlier []skills.TrampolineSkill) (check
 	out.rv = skills.ValidateRoutineWith(routine, opts)
 	if set != nil {
 		results := requirements.Evaluate(*set, out.rv)
-		_, isSetRoutine := requirements.SetRoutine(*set)
-		out.check = &views.RequirementCheck{SetName: set.Name, Results: results, SetRoutine: isSetRoutine}
+		out.check = &views.RequirementCheck{SetName: set.Name, Results: results}
 		out.required = requirements.RequiredElements(*set, results)
 	}
 	return out, nil
@@ -743,7 +742,7 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 			col := views.DisplayColumn{
 				Name: name, Key: columnKey(exercise, ref), Level: lc.Name, Exercise: exercise, Option: true,
 				Validation: rv, Checks: checks, Required: requirements.RequiredElements(set, results),
-				Check: &views.RequirementCheck{SetName: set.Name, Results: results, SetRoutine: true},
+				Check: &views.RequirementCheck{SetName: set.Name, Results: results},
 			}
 			columns = append(columns, placed{col, exercise, i})
 		}

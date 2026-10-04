@@ -27,7 +27,6 @@ function tariffCalculatorStore() {
         expandedB: [],   // per-card expanded state, parallel to routineB
         addTo: '',       // the routine Add puts a skill in (its id); '' for the one on screen
         mobileTab: 'a',  // the column shown on a phone while comparing
-        setRoutineOffer: null, // a set routine to load, waiting for "new routine" or "replace": {side, name, skills, ref, previous}
         editingIndex: null,
         editingSide: 'a', // the column of the skill being edited
         busy: false, // an add or update is in flight
@@ -40,6 +39,13 @@ function tariffCalculatorStore() {
         init() {
             const state = RoutineStore.load();
             LevelEntries.migrate(state); // routines that held a level's tabs become level entries
+            // A set routine is a starting point now, not requirements to check against.
+            for (const r of state.routines) {
+                if (r.requirements && Exercises.isSetRoutine(r.requirements)) {
+                    delete r.requirements;
+                    delete r.checks;
+                }
+            }
             this.routines = state.routines;
             this.currentId = state.current;
             this.routine = this.currentRoutine().skills;
@@ -193,16 +199,13 @@ function tariffCalculatorStore() {
         skillsOf(side) { return side === 'b' ? this.routineB : this.routine; },
         expandedOf(side) { return side === 'b' ? this.expandedB : this.expanded; },
         persist() { RoutineStore.save({ current: this.currentId, routines: this.routines }); },
-        // setRequirements chooses the requirement set a column's routine is checked
-        // against. A set (compulsory) routine is loaded into the builder.
+        // setRequirements chooses the requirements a column's routine is checked against.
         setRequirements(ref, side = 'a') {
             const routine = this.routineFor(side);
-            const previous = this.snapshot(routine);
             routine.requirements = ref || undefined;
-            delete routine.checks; // the new set's checks apply
+            delete routine.checks; // the new requirements' checks apply
             this.persist();
             this.renderRoutine(side);
-            if (ref) { this.loadSetRoutine(side, false, previous); }
         },
         // setCheck turns one of a column's checks ('difficulty' or 'repeats') on or
         // off for its routine, overriding its requirement set's choice.
@@ -212,66 +215,27 @@ function tariffCalculatorStore() {
             this.persist();
             this.renderRoutines();
         },
-        // snapshot is what a routine is checked against, so it can go back to it.
-        snapshot(routine) { return { ref: routine.requirements, checks: routine.checks }; },
-        // loadSetRoutine loads a column's requirement set's set routine: straight in
-        // if the routine is empty, otherwise offering a new routine or replacing
-        // this one's skills (setRoutineOffer). Sets without a set routine are left
-        // alone, quietly unless the user asked (fromButton). previous is what the
-        // routine was checked against before (a snapshot), which it gets back if
-        // the set routine goes into a new routine instead.
-        async loadSetRoutine(side = 'a', fromButton = false, previous = undefined) {
-            const routine = this.routineFor(side);
-            if (!routine?.requirements) { return; }
-            const body = new URLSearchParams({ requirementSet: SetStore.payload(routine.requirements), routineData: JSON.stringify(this.skillsOf(side)) });
-            let loaded;
-            try {
-                const response = await fetch('/set-routine', { method: 'POST', body });
-                if (!response.ok) {
-                    if (fromButton) { this.showToast(`Couldn't load the set routine: ${(await response.text()).trim()}`, 'error'); }
-                    return;
-                }
-                loaded = await response.json();
-            } catch (error) {
-                if (fromButton) { this.showToast("Couldn't load the set routine.", 'error'); }
+        // startFromSetRoutine starts a routine from a set routine: the routine on
+        // screen if it's empty, otherwise a new one named after the set. Its
+        // requirements are left alone: the set is a starting point.
+        async startFromSetRoutine(ref) {
+            if (!ref) { return; }
+            const skills = await this.fetchSetRoutine(ref);
+            if (!skills) { this.showToast("Couldn't load that set routine.", 'error'); return; }
+            const name = Exercises.requirementName(ref) !== ref ? Exercises.requirementName(ref) : (this.customSets.find((s) => s.id === ref)?.set.name || 'Set routine');
+            if (this.routine.length === 0) {
+                if (this.editingIndex !== null) { this.cancelEdit(); }
+                this.expanded = skills.map(() => false);
+                this.routine = skills; // re-renders and saves via the watcher
+                this.showToast(`${this.currentRoutine().name} starts from ${name}.`, 'info');
                 return;
             }
-            if (loaded.matches) { return; }
-            const offer = { side, name: loaded.name, skills: loaded.skills, ref: routine.requirements, previous: fromButton ? this.snapshot(routine) : previous };
-            if (this.skillsOf(side).length === 0) { this.replaceWithSetRoutine(offer); return; }
-            this.setRoutineOffer = offer;
-        },
-        // replaceWithSetRoutine puts an offered set routine in place of a column's skills.
-        replaceWithSetRoutine(offer = this.setRoutineOffer) {
-            this.setRoutineOffer = null;
-            const { side } = offer;
-            if (this.editingSide === side && this.editingIndex !== null) { this.cancelEdit(); }
-            const expanded = this.expandedOf(side), skills = this.skillsOf(side);
-            expanded.splice(0, expanded.length, ...offer.skills.map(() => false));
-            skills.splice(0, skills.length, ...JSON.parse(JSON.stringify(offer.skills))); // re-renders and saves via the watcher
-            this.showToast(`Loaded the set routine into ${this.routineFor(side).name}.`, 'info');
-        },
-        // newRoutineFromSetRoutine puts an offered set routine in a new routine, named
-        // after the set and checked against it, shown in the same column. The routine
-        // the set was chosen for goes back to what it was checked against.
-        newRoutineFromSetRoutine(offer = this.setRoutineOffer) {
-            this.setRoutineOffer = null;
-            const from = this.routineFor(offer.side), previous = offer.previous || {};
-            from.requirements = previous.ref || undefined;
-            if (previous.checks) { from.checks = previous.checks; } else { delete from.checks; }
-            const routine = { id: RoutineStore.newId(), name: (offer.name || RoutineStore.nextName(this.routines)).slice(0, 60), skills: JSON.parse(JSON.stringify(offer.skills)), requirements: offer.ref };
-            this.routines.splice(this.routines.indexOf(from) + 1, 0, routine);
+            const routine = { id: RoutineStore.newId(), name: name.slice(0, 60), skills };
+            this.routines.splice(this.routines.indexOf(this.currentRoutine()) + 1, 0, routine);
             this.persist();
-            if (offer.side === 'b') {
-                this.compareWith(routine.id);
-            } else {
-                this.switchRoutine(routine.id);
-            }
-            this.showToast(`Started ${routine.name}.`, 'info');
+            this.switchRoutine(routine.id);
+            this.showToast(`Started ${routine.name} from the set routine.`, 'info');
         },
-        // cancelSetRoutine leaves the routine's skills alone; it stays checked
-        // against the set, so the panel still offers to load it.
-        cancelSetRoutine() { this.setRoutineOffer = null; },
 
         // --- Levels mode: a level's tabs, with its voluntaries as linked routines ---
         setMode(mode) {

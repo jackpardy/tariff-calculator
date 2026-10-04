@@ -347,7 +347,6 @@ type RequirementCheck struct {
 	SetName    string
 	Results    []requirements.Result
 	Err        string // why the set couldn't be used, if it couldn't
-	SetRoutine bool   // the set is a set (compulsory) routine, which can be loaded
 }
 
 // Met counts the requirements the routine meets.
@@ -391,9 +390,6 @@ templ requirementsPanel(c RequirementCheck, side RoutineSide) {
 						</li>
 					}
 				</ul>
-				if c.SetRoutine && c.Met() < len(c.Results) && !side.ReadOnly {
-					<button class="button is-small is-link is-light mt-3" type="button" x-on:click={ fmt.Sprintf("loadSetRoutine('%s', true)", side.Side) }>Load this set routine</button>
-				}
 			}
 		</div>
 	</div>

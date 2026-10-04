@@ -40,9 +40,10 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 					<h1 class="title is-4 mt-1">Requirements</h1>
 					<p class="mb-4">
 						Requirements are the rules a routine is checked against: required or banned elements,
-						how many elements, difficulty limits or a set routine. A level pairs them for a
-						competition's two exercises, e.g. a choice of set routines and then a voluntary. Choose
-						either for a routine under "Check against" in the Routine Builder.
+						how many elements and difficulty limits. Choose them for a routine under "Check against"
+						in the Routine Builder. A level pairs requirements and set routines for a competition's
+						two exercises, e.g. a choice of set routines and then a voluntary: open it in the
+						Routine Builder's Levels mode.
 					</p>
 					// The editor, when a set is open.
 					<div class="box" x-show="editing !== null" x-cloak>
@@ -154,7 +155,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 					// Set (prescribed) routines, by source.
 					<div class="box">
 						<h2 class="title is-5">Set routines</h2>
-						<p class="is-size-7 has-text-grey mb-3">Prescribed routines. Choose one under "Check against" in the Routine Builder to load it.</p>
+						<p class="is-size-7 has-text-grey mb-3">Prescribed routines. Start a routine from one with "Start from a set..." in the Routine Builder, or see them in a level.</p>
 						for _, g := range groups {
 							if routines := g.SetRoutines(); len(routines) > 0 {
 								@builtinGroup(g.Name, routines)
@@ -183,6 +184,56 @@ func builtinSets(groups []requirements.BuiltinGroup) map[string]requirements.Set
 	for _, g := range groups {
 		for _, b := range g.Sets {
 			out[b.ID] = b.Set
+		}
+	}
+	return out
+}
+
+// CheckOption is a voluntary's requirements, as "Check against" offers them.
+type CheckOption struct {
+	Ref   string // "builtin:<id>"
+	Label string
+}
+
+// CheckOptions are the requirements a group's voluntaries are checked
+// against, level by level: named after the level when its voluntaries share
+// requirements ("BUCS L7"), and by exercise when the two differ ("BUCS L1 ·
+// first exercise"). Set routines aren't requirements to check against, and
+// requirements shared by several levels are listed once, under the first.
+func CheckOptions(g requirements.BuiltinGroup) []CheckOption {
+	var out []CheckOption
+	seen := map[string]bool{}
+	for _, l := range g.Levels {
+		type voluntary struct {
+			ref      string
+			exercise int
+		}
+		var vols []voluntary
+		for n := 1; n <= 2; n++ {
+			for _, ref := range l.Level.Exercise(n).Options {
+				set, ok := requirements.LookupBuiltin(ref)
+				if _, isSetRoutine := requirements.SetRoutine(set); !ok || isSetRoutine || slices.ContainsFunc(vols, func(v voluntary) bool { return v.ref == ref }) {
+					continue
+				}
+				vols = append(vols, voluntary{ref, n})
+			}
+		}
+		for _, v := range vols {
+			if seen[v.ref] {
+				continue
+			}
+			seen[v.ref] = true
+			label := l.Level.Name
+			if len(vols) > 1 {
+				label += " · " + exerciseName(v.exercise) + " exercise"
+			}
+			out = append(out, CheckOption{Ref: v.ref, Label: label})
+		}
+	}
+	// Requirements no level uses, by their own names.
+	for _, b := range g.Requirements() {
+		if !seen[requirements.BuiltinPrefix+b.ID] {
+			out = append(out, CheckOption{Ref: requirements.BuiltinPrefix + b.ID, Label: b.Set.Name})
 		}
 	}
 	return out

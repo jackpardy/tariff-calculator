@@ -50,9 +50,14 @@ messages and total.
 
 A routine can be checked against built-in or custom
 [requirements](../requirements/framework.md). The results show under the
-routine, and the elements involved are highlighted. Choosing requirements that
-are a [set routine](../requirements/set-routines.md) offers to load it as a new
-routine or to replace the current one.
+routine, and the elements involved are highlighted. "Check against" lists each
+level's voluntary requirements by group, named after the level ("BUCS L7"), or
+by exercise when its two voluntaries differ ("BUCS L1 · first exercise",
+"BUCS L1 · second exercise"); requirements shared by levels are listed once.
+Set routines aren't requirements to check against: **Start from a set...**
+beside "+ New" uses one as a starting point
+([set routines](../requirements/set-routines.md)). Routines checked against a
+set routine by an earlier version stop being checked.
 
 [Levels](../requirements/levels.md) have their own mode (Routines | Levels at
 the top of the builder): pick a level to see its set routines as prescribed,

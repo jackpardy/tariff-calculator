@@ -59,8 +59,9 @@ and a test checks every built-in set belongs to a level.
 # In the routine builder
 
 Levels and routines are kept apart. A routine is checked against
-**requirements** only ("Check against" lists each level's own requirements and
-set routines among the rest). A level is worked on in the builder's **Levels**
+**requirements** only: "Check against" lists each level's voluntary
+requirements, named after the level, or by exercise when its two voluntaries
+differ ([routine builder](../features/routine-builder.md)). A level is worked on in the builder's **Levels**
 mode (Routines | Levels at the top of the Routine Builder):
 
 - **+ New level** starts a level entry; a coach can keep several for the same

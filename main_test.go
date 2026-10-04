@@ -828,14 +828,10 @@ func TestSetRoutineEndpoint(t *testing.T) {
 		t.Errorf("the loaded routine should match its set routine")
 	}
 
-	// The routine view offers to load a set routine that isn't met.
-	html := postForm(t, "/routine", url.Values{"routineData": {"[]"}, "requirementSet": {"builtin:bg-regional-l1-first"}, "side": {"b"}}).Body.String()
-	if !strings.Contains(html, "Load this set routine") || !strings.Contains(html, "loadSetRoutine(&#39;b&#39;, true)") {
-		t.Errorf("an unmet set routine should offer to load it")
-	}
-	html = postForm(t, "/routine", url.Values{"routineData": {string(routine)}, "requirementSet": {"builtin:bg-regional-l1-first"}}).Body.String()
-	if strings.Contains(html, "Load this set routine") {
-		t.Errorf("a met set routine has nothing to load")
+	// The builder starts a routine from a set routine, rather than offering
+	// to load one it's checked against.
+	if page := getPage(t, "/"); !strings.Contains(page, `startFromSetRoutine($event.target.value)`) || strings.Contains(page, "Load this set routine") {
+		t.Errorf("the builder should offer set routines as a starting point")
 	}
 
 	for name, set := range map[string]string{"not a set routine": "builtin:fig-ag1-first", "unknown set": "builtin:gone", "nothing": ""} {
@@ -1046,25 +1042,33 @@ func TestSharing(t *testing.T) {
 	}
 }
 
-// Set (prescribed) routines are listed apart from requirements, by source.
+// "Check against" offers each level's voluntary requirements, named after the
+// level, and set routines only as a starting point.
 func TestSetRoutinesListedApart(t *testing.T) {
 	rec := httptest.NewRecorder()
 	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	page := rec.Body.String()
-	groups := map[string]string{}
-	for _, m := range regexp.MustCompile(`(?s)<optgroup label="([^"]+)">(.*?)</optgroup>`).FindAllStringSubmatch(page, -1) {
-		groups[m[1]] += m[2]
+	check := page[strings.Index(page, `id="requirement-set"`):]
+	check = check[:strings.Index(check, "</select>")]
+	starter := page[strings.Index(page, `aria-label="Start from a set routine"`):]
+	starter = starter[:strings.Index(starter, "</select>")]
+	for _, want := range []string{
+		`<option value="builtin:bucs-l7-second"`, `>BUCS L7</option>`, // one voluntary: the level's name
+		`>BUCS L1 · first exercise</option>`, `>BUCS L1 · second exercise</option>`, // two different voluntaries
+		`>FIG AG3 (17–21) · second exercise</option>`,
+	} {
+		if !strings.Contains(check, want) {
+			t.Errorf("Check against is missing %q", want)
+		}
 	}
-	if !strings.Contains(groups["Set routines · BUCS student championships (2026)"], `value="builtin:bucs-l3-option-1"`) ||
-		strings.Contains(groups["BUCS student championships (2026)"], `value="builtin:bucs-l3-option-1"`) ||
-		!strings.Contains(groups["BUCS student championships (2026)"], `value="builtin:bucs-l3-second"`) {
-		t.Errorf("BUCS L3 option 1 belongs with the set routines, its second exercise with the requirements")
+	if strings.Contains(check, "bucs-l3-option-1") || strings.Contains(check, "bg-club-l1") || strings.Contains(check, "Set routines") {
+		t.Errorf("set routines aren't requirements to check against")
 	}
-	if !strings.Contains(groups["Set routines · British Gymnastics club &amp; regional pathway (2027)"], ">BG Club L1<") {
-		t.Errorf("BG club routines are set routines")
+	if strings.Count(check, `"builtin:bg-regional-l4-13-first"`) != 1 {
+		t.Errorf("requirements shared by levels are listed once")
 	}
-	if _, ok := groups["Set routines · FIG age groups (2025–2028)"]; ok {
-		t.Errorf("FIG has no set routines, so no group")
+	if !strings.Contains(starter, `value="builtin:bucs-l3-option-1"`) || !strings.Contains(starter, ">BG Club L1<") {
+		t.Errorf("set routines are offered as a starting point")
 	}
 
 	rec = httptest.NewRecorder()

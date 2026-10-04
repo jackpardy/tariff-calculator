@@ -94,6 +94,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 						</select>
 					</div>
 					<button class="button is-small" type="button" x-on:click="newRoutine()">+ New</button>
+					@setRoutineStarter(groups)
 					<button class="button is-small" type="button" x-on:click="Share.open('routines', [currentId])">Share</button>
 					<details class="routine-menu" data-menu>
 						<summary class="button is-small">More</summary>
@@ -160,26 +161,6 @@ templ calculator(groups []requirements.BuiltinGroup) {
 			</div>
 			<p class="compare-legend" x-show="mode === 'routines' && compareId" x-cloak>Shaded skills differ from the other routine's skill at the same number.</p>
 		</div>
-		// Loading a set routine into a routine that has skills: a new routine, or replace them.
-		<div class="modal" x-bind:class="setRoutineOffer && 'is-active'" x-on:keydown.escape.window="cancelSetRoutine()">
-			<div class="modal-background" x-on:click="cancelSetRoutine()"></div>
-			<template x-if="setRoutineOffer">
-				<div class="modal-card set-routine-dialog" role="dialog" aria-modal="true" aria-labelledby="set-routine-title">
-					<section class="modal-card-body">
-						<p class="title is-5 mb-2" id="set-routine-title">Load the set routine</p>
-						<p class="mb-4">
-							<strong x-text="setRoutineOffer.name"></strong>
-							<span x-text="` has ${setRoutineOffer.skills.length} skills. ${routineFor(setRoutineOffer.side).name} already has ${skillsOf(setRoutineOffer.side).length}.`"></span>
-						</p>
-						<div class="set-routine-choices">
-							<button class="button is-primary is-fullwidth" type="button" x-on:click="newRoutineFromSetRoutine()">Add as a new routine</button>
-							<button class="button is-fullwidth" type="button" x-on:click="replaceWithSetRoutine()" x-text="`Replace the skills in ${routineFor(setRoutineOffer.side).name}`"></button>
-							<button class="button is-text is-fullwidth" type="button" x-on:click="cancelSetRoutine()">Cancel</button>
-						</div>
-					</section>
-				</div>
-			</template>
-		</div>
 		<div
 			x-show="toast.show"
 			x-transition
@@ -193,8 +174,9 @@ templ calculator(groups []requirements.BuiltinGroup) {
 }
 
 // requirementPicker chooses the requirements a builder column's routine is
-// checked against (side is "a" or "b"): built-in requirements or a set routine
-// (each level's own among them), or the user's own.
+// checked against (side is "a" or "b"): a level's voluntary requirements, or
+// the user's own. Set routines aren't among them: a routine can start from one
+// instead (setRoutineStarter).
 templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 	{{ id := map[string]string{"a": "requirement-set", "b": "requirement-set-b"}[side] }}
 	<div class="requirement-picker">
@@ -203,21 +185,12 @@ templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 			<div class="select is-small">
 				<select id={ id } x-on:change={ fmt.Sprintf("setRequirements($event.target.value, '%s')", side) }>
 					<option value="" x-bind:selected={ fmt.Sprintf("!routineFor('%s')?.requirements", side) }>No requirements</option>
+					// Each level's voluntary requirements.
 					for _, g := range groups {
-						if sets := g.Requirements(); len(sets) > 0 {
+						if options := CheckOptions(g); len(options) > 0 {
 							<optgroup label={ g.Name }>
-								for _, b := range sets {
-									@builtinOption(b, side)
-								}
-							</optgroup>
-						}
-					}
-					// Set (prescribed) routines apart, by source.
-					for _, g := range groups {
-						if routines := g.SetRoutines(); len(routines) > 0 {
-							<optgroup label={ "Set routines · " + g.Name }>
-								for _, b := range routines {
-									@builtinOption(b, side)
+								for _, o := range options {
+									<option value={ o.Ref } x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === '%s'", side, o.Ref) }>{ o.Label }</option>
 								}
 							</optgroup>
 						}
@@ -225,13 +198,6 @@ templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 					<template x-if="customSets.some((s) => !isSetRoutine(s.set))">
 						<optgroup label="Your requirements">
 							<template x-for="s in customSets.filter((s) => !isSetRoutine(s.set))" x-bind:key="s.id">
-								<option x-bind:value="s.id" x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === s.id", side) } x-text="s.set.name"></option>
-							</template>
-						</optgroup>
-					</template>
-					<template x-if="customSets.some((s) => isSetRoutine(s.set))">
-						<optgroup label="Your set routines">
-							<template x-for="s in customSets.filter((s) => isSetRoutine(s.set))" x-bind:key="s.id">
 								<option x-bind:value="s.id" x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === s.id", side) } x-text="s.set.name"></option>
 							</template>
 						</optgroup>
@@ -358,7 +324,30 @@ templ levelColumnHead(side string) {
 	</template>
 }
 
-// builtinOption is a built-in set in a requirement picker.
-templ builtinOption(b requirements.Builtin, side string) {
-	<option value={ requirements.BuiltinPrefix + b.ID } x-bind:selected={ fmt.Sprintf("!routineFor('%s')?.level && routineFor('%s')?.requirements === '%s%s'", side, side, requirements.BuiltinPrefix, b.ID) }>{ b.Set.Name }</option>
+
+// setRoutineStarter starts a routine from a set routine: into the routine on
+// screen if it's empty, otherwise a new one. The set is a starting point, not
+// requirements to check against.
+templ setRoutineStarter(groups []requirements.BuiltinGroup) {
+	<div class="select is-small">
+		<select aria-label="Start from a set routine" x-on:change="startFromSetRoutine($event.target.value); $event.target.value = ''">
+			<option value="" selected>Start from a set...</option>
+			for _, g := range groups {
+				if routines := g.SetRoutines(); len(routines) > 0 {
+					<optgroup label={ g.Name }>
+						for _, b := range routines {
+							<option value={ requirements.BuiltinPrefix + b.ID }>{ b.Set.Name }</option>
+						}
+					</optgroup>
+				}
+			}
+			<template x-if="customSets.some((s) => isSetRoutine(s.set))">
+				<optgroup label="Your set routines">
+					<template x-for="s in customSets.filter((s) => isSetRoutine(s.set))" x-bind:key="s.id">
+						<option x-bind:value="s.id" x-text="s.set.name"></option>
+					</template>
+				</optgroup>
+			</template>
+		</select>
+	</div>
 }

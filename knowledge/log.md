@@ -1,5 +1,10 @@
 # Update log
 
+## 2026-10-05
+* **Update**: "Check against" lists each level's voluntary requirements, named
+  after the level (or by exercise when its two differ); set routines are a
+  starting point ("Start from a set...") rather than requirements.
+
 ## 2026-10-04
 * **Update**: Levels and routines are kept apart. "Check against" lists
   requirements only; the builder's new Levels mode shows a level's tabs (set
