@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-04
+* **Update**: The [view screen](features/view.md)'s Show menu lists the
+  routines on screen by name (Set 1, Set 2, Voluntary) to show or hide, in
+  place of "The other exercise" and "Other set routine options".
 * **Update**: "Add to" lists every saved routine (a level routine by
   voluntary tab), not just the ones on screen. Single fronts, backs and baranis
   are named shape first ("Tuck Back", "Pike Barani").

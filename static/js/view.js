@@ -3,8 +3,9 @@
 // exercises and the level's other set routine options, rendered by the server
 // to fill the screen. It
 // re-renders when the routines change in another tab (the builder). The Show
-// menu's boxes (data-hides) toggle classes on #view, remembered in this
-// browser, and the full screen button uses the Fullscreen API where there is one.
+// menu lists the routines on screen to show or hide, and its other boxes
+// (data-hides) toggle classes on #view, all remembered in this browser. The
+// full screen button uses the Fullscreen API where there is one.
 (function () {
     const storageKey = (box) => 'viewShow:' + box.dataset.hides;
 
@@ -59,8 +60,47 @@
         return values;
     }
 
+    // showColumns lists the routines on screen in the Show menu, ticked unless
+    // hidden. What's hidden is remembered per routine ('viewHidden:<id>'), by
+    // column key (exercise and option).
+    function showColumns() {
+        const routine = chosen(RoutineStore.load());
+        const key = 'viewHidden:' + routine.id;
+        let hidden = [];
+        try { hidden = JSON.parse(remembered(key) || '[]'); } catch (e) { hidden = []; }
+        const columns = [...document.querySelectorAll('.display-column[data-column]')];
+        const list = document.getElementById('view-columns');
+        const apply = () => {
+            for (const c of columns) { c.hidden = hidden.includes(c.dataset.column); }
+            // Difficulty options only mean something when a routine shown scores
+            // difficulty (set routines usually don't).
+            const scored = columns.some((c) => !c.hidden && c.dataset.scored === 'true');
+            for (const key of ['diff', 'total']) {
+                const option = document.querySelector(`.view-menu-panel [data-option="${key}"]`);
+                if (option) { option.hidden = !scored; }
+            }
+        };
+        list.replaceChildren(...columns.map((c) => {
+            const box = Object.assign(document.createElement('input'), { type: 'checkbox', checked: !hidden.includes(c.dataset.column) });
+            box.addEventListener('change', () => {
+                hidden = hidden.filter((k) => k !== c.dataset.column);
+                if (!box.checked) { hidden.push(c.dataset.column); }
+                remember(key, JSON.stringify(hidden));
+                apply();
+            });
+            const label = document.createElement('label');
+            label.append(box, ` ${c.dataset.name}`);
+            return label;
+        }));
+        list.hidden = columns.length < 2;
+        apply();
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const view = document.getElementById('view');
+        document.body.addEventListener('htmx:afterSwap', (event) => {
+            if (event.detail.target.id === 'display') { showColumns(); }
+        });
 
         // The Show menu.
         const boxes = [...document.querySelectorAll('input[data-hides]')];

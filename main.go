@@ -680,11 +680,13 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 		return max(slices.Index(level.Exercise(exercise).Options, ref), 0)
 	}
 	ownRef, pairRef := r.FormValue("optionRef"), r.FormValue("pairOptionRef")
-	columns := []placed{{displayColumn(checked, name, lc, lc.Exercise), lc.Exercise, optionIndex(lc.Exercise, ownRef)}}
+	own := displayColumn(checked, name, lc, lc.Exercise)
+	own.Key = columnKey(lc.Exercise, ownRef)
+	columns := []placed{{own, lc.Exercise, optionIndex(lc.Exercise, ownRef)}}
 	performed := map[string]bool{ownRef: true}
 	if checked.pair != nil {
 		other := displayColumn(*checked.pair, lc.OtherName, lc, 3-lc.Exercise)
-		other.Other = true
+		other.Key = columnKey(3-lc.Exercise, pairRef)
 		columns = append(columns, placed{other, 3 - lc.Exercise, optionIndex(3-lc.Exercise, pairRef)})
 		performed[pairRef] = true
 	}
@@ -723,7 +725,7 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 				name = tabNames[ref]
 			}
 			col := views.DisplayColumn{
-				Name: name, Level: lc.Name, Exercise: exercise, Option: true,
+				Name: name, Key: columnKey(exercise, ref), Level: lc.Name, Exercise: exercise, Option: true,
 				Validation: rv, Checks: checks, Required: requirements.RequiredElements(set, results),
 				Check: &views.RequirementCheck{SetName: set.Name, Results: results, SetRoutine: true},
 			}
@@ -740,10 +742,17 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.RoutineDisplay(out))
 }
 
+// columnKey names a level's column on the view screen, so the page can
+// remember which ones the coach hides: its exercise and option, e.g.
+// "1:builtin:bucs-l7-option-2".
+func columnKey(exercise int, ref string) string {
+	return fmt.Sprintf("%d:%s", exercise, ref)
+}
+
 // displayColumn is a checked routine as a view screen column; with a level,
 // as its exercise.
 func displayColumn(c checkedRoutine, name string, level *views.LevelCheck, exercise int) views.DisplayColumn {
-	col := views.DisplayColumn{Name: name, Validation: c.rv, Check: c.check, Required: c.required, Checks: c.checks}
+	col := views.DisplayColumn{Name: name, Key: "routine", Validation: c.rv, Check: c.check, Required: c.required, Checks: c.checks}
 	if level != nil {
 		col.Level, col.Exercise = level.Name, exercise
 	}

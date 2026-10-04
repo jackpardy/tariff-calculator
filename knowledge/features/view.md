@@ -52,9 +52,16 @@ don't score when only some do are greyed.
 
 # The Show menu
 
-Each part can be turned off. The choices are kept in the browser
-(`localStorage['viewShow:hide-<key>']`, `static/js/view.js`). They toggle
-`hide-<key>` classes on `#view`, so they apply instantly.
+When more than one routine is on screen, the menu starts with them by name
+(Set 1, Set 2, Voluntary), ticked when shown. What's hidden is remembered for
+each routine (`localStorage['viewHidden:<routine id>']`), by column key: its
+exercise and option, e.g. `1:builtin:bucs-l7-option-2`.
+
+Below them, each part of a routine can be turned off. The choices are kept in
+the browser (`localStorage['viewShow:hide-<key>']`, `static/js/view.js`). They
+toggle `hide-<key>` classes on `#view`, so they apply instantly. The difficulty
+options are only offered when a routine shown scores difficulty (set routines
+usually don't).
 
 | Option | Default |
 |---|---|
@@ -63,8 +70,6 @@ Each part can be turned off. The choices are kept in the browser
 | Difficulty of each skill | on |
 | Total difficulty | on |
 | Level and exercise | on |
-| The other exercise | on |
-| Other set routine options | on |
 | Requirements met (and the stars) | off |
 | Warnings | off |
 

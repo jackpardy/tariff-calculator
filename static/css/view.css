@@ -29,6 +29,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
 body {
   display: flex;
@@ -82,6 +83,8 @@ body {
   white-space: nowrap;
 }
 .view-menu-panel label { display: flex; gap: 0.5rem; align-items: center; cursor: pointer; }
+.view-menu-columns { display: flex; flex-direction: column; gap: 0.45rem; padding-bottom: 0.55rem; margin-bottom: 0.1rem; border-bottom: 1px solid var(--line); }
+.view-menu-columns label { font-weight: 600; }
 
 /* The screen. */
 #view {
@@ -103,8 +106,6 @@ body {
 @media (orientation: portrait) {
   .display.is-several { grid-auto-flow: row; grid-auto-rows: minmax(0, 1fr); gap: 1rem; }
 }
-.hide-other .display-column.is-other,
-.hide-options .display-column.is-option { display: none; }
 
 .display-column { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 /* Every header is the same height, so the columns' rows line up. */

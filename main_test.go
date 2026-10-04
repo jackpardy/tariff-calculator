@@ -1162,10 +1162,11 @@ func TestViewScreen(t *testing.T) {
 		"routineData": {second}, "requirementSet": {"builtin:fig-ag3-second"}, "routineName": {"Q2"},
 		"level": {"builtin-level:fig-ag3"}, "exercise": {"2"},
 		"pairData": {first}, "pairSet": {"builtin:fig-ag3-first"}, "pairName": {"Q1"},
+		"optionRef": {"builtin:fig-ag3-second"}, "pairOptionRef": {"builtin:fig-ag3-first"},
 	}).Body.String()
 	q1, q2 := strings.Index(html, "<h2>Q1</h2>"), strings.Index(html, "<h2>Q2</h2>")
-	if q1 < 0 || q2 < 0 || q1 > q2 || !strings.Contains(html, `class="display-column is-other"`) || !strings.Contains(html, "is-several") {
-		t.Errorf("the pair shows in exercise order, the other one marked: Q1 at %d, Q2 at %d", q1, q2)
+	if q1 < 0 || q2 < 0 || q1 > q2 || !strings.Contains(html, `data-column="1:builtin:fig-ag3-first" data-name="Q1"`) || !strings.Contains(html, `data-column="2:builtin:fig-ag3-second"`) || !strings.Contains(html, "is-several") {
+		t.Errorf("both exercises show in exercise order, each named and keyed by exercise and option: Q1 at %d, Q2 at %d", q1, q2)
 	}
 	if !strings.Contains(html, "FIG AG3 (17–21) · second exercise") || !strings.Contains(html, "My Rudi") || !strings.Contains(html, `class="display-row not-counted"`) {
 		t.Errorf("the second exercise names its level, shows the coach's label, and strikes the carried-over Rudi")
@@ -1231,8 +1232,9 @@ func TestViewShowsSetRoutineOptions(t *testing.T) {
 		t.Errorf("custom level: %s", got)
 	}
 
-	if !strings.Contains(getPage(t, "/view"), `data-hides="hide-options" checked`) {
-		t.Errorf("the Show menu can hide the options")
+	page := getPage(t, "/view")
+	if !strings.Contains(page, `id="view-columns"`) || strings.Contains(page, "hide-options") || strings.Contains(page, "hide-other") {
+		t.Errorf("the Show menu lists the routines on screen, instead of other-exercise and option toggles")
 	}
 }
 

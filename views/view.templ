@@ -13,18 +13,19 @@ import (
 // DisplayColumn is one routine on the view screen.
 type DisplayColumn struct {
 	Name       string
+	Key        string // tells the columns apart, for showing and hiding them
 	Level      string // the level it's an exercise of, if any
 	Exercise   int    // 1 or 2, with a level
 	Validation skills.RoutineValidation
 	Check      *RequirementCheck // nil without requirements
 	Required   map[int]bool      // elements meeting a requirement
 	Checks     Checks
-	Other      bool // the routine doing the other exercise, which can be hidden
-	Option     bool // one of the level's set routine options, which can be hidden
+	Option     bool // one of the level's set routine options not chosen
 }
 
-// viewOptions are what the view screen can show, each toggled in its Show menu
-// and remembered in the browser. Key names the CSS classes (hide-<key> on
+// viewOptions are what the view screen can show for each routine, each toggled
+// in its Show menu and remembered in the browser. The menu also lists the
+// routines on screen (e.g. Set 1, Set 2, Voluntary), each of which can be hidden. Key names the CSS classes (hide-<key> on
 // #view), and On is the default: a clean screen of names and difficulty.
 var viewOptions = []struct {
 	Key, Label string
@@ -35,8 +36,6 @@ var viewOptions = []struct {
 	{"diff", "Difficulty of each skill", true},
 	{"total", "Total difficulty", true},
 	{"level", "Level and exercise", true},
-	{"other", "The other exercise", true},
-	{"options", "Other set routine options", true},
 	{"req", "Requirements met", false},
 	{"warnings", "Warnings", false},
 }
@@ -70,8 +69,10 @@ templ ViewPage() {
 				<details class="view-menu" data-menu>
 					<summary>Show</summary>
 					<div class="view-menu-panel">
+						// The routines on screen, ticked when shown (static/js/view.js fills it).
+						<div id="view-columns" class="view-menu-columns" hidden></div>
 						for _, o := range viewOptions {
-							<label>
+							<label data-option={ o.Key }>
 								<input type="checkbox" data-hides={ "hide-" + o.Key } checked?={ o.On }/>
 								{ o.Label }
 							</label>
@@ -101,7 +102,7 @@ templ RoutineDisplay(columns []DisplayColumn) {
 }
 
 templ displayColumn(c DisplayColumn, rows int) {
-	<section class={ "display-column", templ.KV("is-other", c.Other), templ.KV("is-option", c.Option) }>
+	<section class={ "display-column", templ.KV("is-option", c.Option) } data-column={ c.Key } data-name={ c.Name } data-scored={ strconv.FormatBool(c.Checks.ScoreDifficulty) }>
 		<header class="display-head">
 			<div class="display-title">
 				<h2>{ c.Name }</h2>
