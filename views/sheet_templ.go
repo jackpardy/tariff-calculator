@@ -79,7 +79,7 @@ func TariffSheetPage() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"></script></head><body><div class=\"toolbar screen-only\"><button type=\"button\" class=\"print\" onclick=\"window.print()\">Print / Save as PDF</button><details class=\"options\"><summary>Show on sheet</summary><div class=\"options-panel\"><fieldset><legend>Table</legend> <label class=\"option\"><input type=\"checkbox\" id=\"show-names\" data-hides=\"hide-names\" checked> Skill names</label></fieldset><fieldset><legend>Details</legend> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"></script></head><body><div class=\"toolbar screen-only\"><button type=\"button\" class=\"print\" onclick=\"window.print()\">Print / Save as PDF</button><details class=\"options\"><summary>Show on sheet</summary><div class=\"options-panel\"><fieldset><legend>Table</legend> <label class=\"option\"><input type=\"checkbox\" id=\"show-names\" data-hides=\"hide-names\" checked> Skill names</label> <label class=\"option\"><input type=\"checkbox\" id=\"show-req\" data-hides=\"hide-req\" checked> Req. * column</label> <label class=\"option\"><input type=\"checkbox\" id=\"show-judge\" data-hides=\"hide-judge\" checked> Judge column</label></fieldset><fieldset><legend>Details</legend> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -91,7 +91,7 @@ func TariffSheetPage() templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue("show-field-" + f.Key)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 41, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 43, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 			if templ_7745c5c3_Err != nil {
@@ -104,7 +104,7 @@ func TariffSheetPage() templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue("hide-field-" + f.Key)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 41, Col: 95}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 43, Col: 95}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 			if templ_7745c5c3_Err != nil {
@@ -117,7 +117,7 @@ func TariffSheetPage() templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(f.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 42, Col: 18}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 44, Col: 18}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -174,7 +174,7 @@ func TariffSheet(rv skills.RoutineValidation) templ.Component {
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(issue)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 73, Col: 16}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 75, Col: 16}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -220,7 +220,7 @@ func TariffSheet(rv skills.RoutineValidation) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(f.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 83, Col: 14}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 85, Col: 14}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -233,7 +233,7 @@ func TariffSheet(rv skills.RoutineValidation) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(f.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 84, Col: 44}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 86, Col: 44}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 			if templ_7745c5c3_Err != nil {
@@ -262,13 +262,13 @@ func TariffSheet(rv skills.RoutineValidation) templ.Component {
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(i + 1))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 107, Col: 45}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 109, Col: 45}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</td><td class=\"col-name\"></td><td></td><td></td><td class=\"req\"></td><td></td></tr>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</td><td class=\"col-name\"></td><td></td><td></td><td class=\"req\"></td><td class=\"judge\"></td></tr>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -281,13 +281,13 @@ func TariffSheet(rv skills.RoutineValidation) templ.Component {
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f", rv.TotalTariff))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 123, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 125, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</td><td colspan=\"2\"></td></tr></tfoot></table></div><p class=\"footnote\">Difficulty per FIG TRA Code of Points 2025-2028 §17. Elements marked \"not counted\" do not add to the total.</p></main>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</td><td class=\"req\"></td><td class=\"judge\"></td></tr></tfoot></table></div><p class=\"footnote\">Difficulty per FIG TRA Code of Points 2025-2028 §17. Elements marked \"not counted\" do not add to the total.</p></main>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -341,7 +341,7 @@ func sheetRow(i int, sv skills.SkillValidation) templ.Component {
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(i + 1))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 135, Col: 39}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 138, Col: 39}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
@@ -354,7 +354,7 @@ func sheetRow(i int, sv skills.SkillValidation) templ.Component {
 		var templ_7745c5c3_Var20 string
 		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(sv.Skill.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 137, Col: 18}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 140, Col: 18}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 		if templ_7745c5c3_Err != nil {
@@ -372,7 +372,7 @@ func sheetRow(i int, sv skills.SkillValidation) templ.Component {
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(sv.Skill.CustomName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 139, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 142, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -390,7 +390,7 @@ func sheetRow(i int, sv skills.SkillValidation) templ.Component {
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(sv.FIGNotation)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 142, Col: 34}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 145, Col: 34}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
@@ -403,7 +403,7 @@ func sheetRow(i int, sv skills.SkillValidation) templ.Component {
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f", sv.Skill.Tariff))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 144, Col: 41}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 147, Col: 41}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
@@ -421,7 +421,7 @@ func sheetRow(i int, sv skills.SkillValidation) templ.Component {
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(reason)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 146, Col: 44}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 149, Col: 44}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 			if templ_7745c5c3_Err != nil {
@@ -439,7 +439,7 @@ func sheetRow(i int, sv skills.SkillValidation) templ.Component {
 		var templ_7745c5c3_Var25 string
 		templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("Element %d is a required element", i+1))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 149, Col: 106}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sheet.templ`, Line: 152, Col: 106}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var25)
 		if templ_7745c5c3_Err != nil {

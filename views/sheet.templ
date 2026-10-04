@@ -33,6 +33,8 @@ templ TariffSheetPage() {
 						<fieldset>
 							<legend>Table</legend>
 							<label class="option"><input type="checkbox" id="show-names" data-hides="hide-names" checked/> Skill names</label>
+							<label class="option"><input type="checkbox" id="show-req" data-hides="hide-req" checked/> Req. * column</label>
+							<label class="option"><input type="checkbox" id="show-judge" data-hides="hide-judge" checked/> Judge column</label>
 						</fieldset>
 						<fieldset>
 							<legend>Details</legend>
@@ -109,7 +111,7 @@ templ TariffSheet(rv skills.RoutineValidation) {
 								<td></td>
 								<td></td>
 								<td class="req"></td>
-								<td></td>
+								<td class="judge"></td>
 							</tr>
 						}
 					}
@@ -121,7 +123,8 @@ templ TariffSheet(rv skills.RoutineValidation) {
 						<td colspan="3" class="total-with-names">Total difficulty</td>
 						<td colspan="2" class="total-without-names">Total difficulty</td>
 						<td class="diff">{ fmt.Sprintf("%.1f", rv.TotalTariff) }</td>
-						<td colspan="2"></td>
+						<td class="req"></td>
+						<td class="judge"></td>
 					</tr>
 				</tfoot>
 			</table>

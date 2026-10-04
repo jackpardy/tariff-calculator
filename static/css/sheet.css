@@ -36,6 +36,7 @@ tfoot td { font-weight: 700; }
 .total-without-names { display: none; }
 .hide-names .col-name, .hide-names .total-with-names { display: none; }
 .hide-names .total-without-names { display: table-cell; }
+.hide-req .req, .hide-judge .judge { display: none; }
 .hide-field-gymnast .field-gymnast, .hide-field-club .field-club, .hide-field-category .field-category,
 .hide-field-competition .field-competition, .hide-field-round .field-round, .hide-field-coach .field-coach { display: none; }
 .hide-fields .fields { display: none; } /* every field hidden: drop the block and its spacing */
