@@ -322,6 +322,7 @@ var CommonSkills = map[string]TrampolineSkill{
 	"lazyBack":        {Name: "Lazy Back", Rotation: 3, TwistDistribution: []int{0}, TakeoffPosition: Feet, Backward: true, Shape: Straight, SeatLanding: false},
 	"seatHalfToFeet":  {Name: "Seat Half Twist To Feet", Rotation: 0, TakeoffPosition: Seat, Shape: Straight, Backward: false, SeatLanding: false, TwistDistribution: []int{1}},
 	"seatHalfToSeat":  {Name: "Seat Half Twist To Seat", Rotation: 0, TakeoffPosition: Seat, Shape: Straight, Backward: false, SeatLanding: true, TwistDistribution: []int{1}},
+	"halfToSeat":      {Name: "Half Twist To Seat", Rotation: 0, TakeoffPosition: Feet, Shape: Straight, Backward: false, SeatLanding: true, TwistDistribution: []int{1}},
 	"seatHalfToFront": {Name: "Seat Half Twist To Front", TakeoffPosition: Seat, Shape: Straight, SeatLanding: false, TwistDistribution: []int{1}, Backward: true, Rotation: 1},
 	"barani":          {Name: "Barani", Rotation: 4, TwistDistribution: []int{1}, TakeoffPosition: Feet, Backward: false, Shape: Tuck, SeatLanding: false},
 	"rudi":            {Name: "Rudi", Rotation: 4, TwistDistribution: []int{3}, TakeoffPosition: Feet, Backward: false, Shape: Straight, SeatLanding: false},

@@ -315,6 +315,8 @@ func TestFindCommonSkillName(t *testing.T) {
 		// Basic jumps: the shape is the skill name itself.
 		{"straight jump", skill(0, []int{0}, Feet, Straight, false, false), "Straight Jump"},
 		{"tuck jump", skill(0, []int{0}, Feet, Tuck, false, false), "Tuck Jump"},
+		{"half twist to seat", skill(0, []int{1}, Feet, Straight, false, true), "Half Twist To Seat"},
+		{"seat half twist to seat", skill(0, []int{1}, Seat, Straight, false, true), "Seat Half Twist To Seat"},
 		// No match.
 		{"custom", skill(9, []int{0, 0}, Feet, Tuck, false, false), "Custom Skill"},
 	}
