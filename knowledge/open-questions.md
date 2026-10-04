@@ -23,12 +23,6 @@ From the [British Gymnastics requirements](requirements/bg-national.md):
 - Are the national qualifying scores (difficulty and total) in the set
   descriptions current?
 
-From the [tariff engine](domain/tariff.md):
-
-- The engine gives shaped jumps (tuck, pike, straddle), seat drops and seat
-  take-offs 0.1. None of the 139 CoP worked examples cover these, so the value
-  should be checked against CoP §17.
-
 # Decisions pending
 
 - Whether to mark [ADR 0003](../docs/adr/0003-requirements-framework.md)

@@ -1,6 +1,8 @@
 # Update log
 
 ## 2026-10-04
+* **Update**: The 0.1 for shaped jumps and seat changes is confirmed correct
+  ([tariff](domain/tariff.md)); removed from the open questions.
 * **Initialization**: Created this bundle (OKF v0.2) covering the domain,
   requirements, features, architecture and operations, linked to the
   [server bundle](https://github.com/jackpardy/server/blob/main/knowledge/index.md).

@@ -59,8 +59,9 @@ shape. Each must produce the Code's value exactly. Any change to the formula
 that breaks the Code fails the build (see [testing](../architecture/testing.md)).
 
 The worked examples don't cover jumps without rotation or seat landings. The
-0.1 given to shaped jumps and seat changes is tested in `skills_test.go` but is
-still an [open question](../open-questions.md).
+0.1 for a shaped jump (tuck, pike, straddle) and for a change between seat and
+feet (seat drop, seat to feet) is correct under the Code; the maintainer
+confirmed it. `skills_test.go` pins it.
 
 # Where it is used
 
