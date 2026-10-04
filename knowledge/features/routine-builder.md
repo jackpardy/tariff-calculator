@@ -53,7 +53,8 @@ A routine can be checked against built-in or custom
 routine, and the elements involved are highlighted. "Check against" lists each
 level's voluntary requirements by group, named after the level ("BUCS L7"), or
 by exercise when its two voluntaries differ ("BUCS L1 · first exercise",
-"BUCS L1 · second exercise"); requirements shared by levels are listed once.
+"BUCS L1 · second exercise"); requirements shared by levels are listed
+once, by their own name ("BG Regional L4 13+ · first exercise").
 Set routines aren't requirements to check against: **Start from a set...**
 beside "+ New" uses one as a starting point
 ([set routines](../requirements/set-routines.md)). Routines checked against a

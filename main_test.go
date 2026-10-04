@@ -1064,8 +1064,8 @@ func TestSetRoutinesListedApart(t *testing.T) {
 	if strings.Contains(check, "bucs-l3-option-1") || strings.Contains(check, "bg-club-l1") || strings.Contains(check, "Set routines") {
 		t.Errorf("set routines aren't requirements to check against")
 	}
-	if strings.Count(check, `"builtin:bg-regional-l4-13-first"`) != 1 {
-		t.Errorf("requirements shared by levels are listed once")
+	if strings.Count(check, `"builtin:bg-regional-l4-13-first"`) != 1 || !strings.Contains(check, `>BG Regional L4 13+ · first exercise</option>`) {
+		t.Errorf("requirements shared by levels are listed once, by their own name")
 	}
 	if !strings.Contains(starter, `value="builtin:bucs-l3-option-1"`) || !strings.Contains(starter, ">BG Club L1<") {
 		t.Errorf("set routines are offered as a starting point")

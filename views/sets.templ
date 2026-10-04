@@ -198,11 +198,24 @@ type CheckOption struct {
 // CheckOptions are the requirements a group's voluntaries are checked
 // against, level by level: named after the level when its voluntaries share
 // requirements ("BUCS L7"), and by exercise when the two differ ("BUCS L1 ·
-// first exercise"). Set routines aren't requirements to check against, and
-// requirements shared by several levels are listed once, under the first.
+// first exercise"). Set routines aren't requirements to check against.
+// Requirements shared by several levels are listed once, by their own name,
+// which covers them all ("BG Regional L4 13+ · first exercise").
 func CheckOptions(g requirements.BuiltinGroup) []CheckOption {
 	var out []CheckOption
 	seen := map[string]bool{}
+	levelsUsing := map[string]int{}
+	for _, l := range g.Levels {
+		used := map[string]bool{}
+		for n := 1; n <= 2; n++ {
+			for _, ref := range l.Level.Exercise(n).Options {
+				used[ref] = true
+			}
+		}
+		for ref := range used {
+			levelsUsing[ref]++
+		}
+	}
 	for _, l := range g.Levels {
 		type voluntary struct {
 			ref      string
@@ -226,6 +239,10 @@ func CheckOptions(g requirements.BuiltinGroup) []CheckOption {
 			label := l.Level.Name
 			if len(vols) > 1 {
 				label += " · " + exerciseName(v.exercise) + " exercise"
+			}
+			if levelsUsing[v.ref] > 1 {
+				set, _ := requirements.LookupBuiltin(v.ref)
+				label = set.Name
 			}
 			out = append(out, CheckOption{Ref: v.ref, Label: label})
 		}
