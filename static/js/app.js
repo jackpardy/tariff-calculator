@@ -9,6 +9,7 @@ function tariffCalculatorStore() {
         routines: [],   // all saved routines: {id, name, skills}
         currentId: null,
         routine: [],    // the current routine's skills (the same array as in routines)
+        customSets: [], // requirement sets saved in this browser (SetStore)
         expanded: [], // per-card expanded state, parallel to routine
         editingIndex: null,
         busy: false, // an add or update is in flight
@@ -23,6 +24,14 @@ function tariffCalculatorStore() {
             this.currentId = state.current;
             this.routine = this.currentRoutine().skills;
             this.persist(); // settles a routine carried over from an older version
+            this.customSets = SetStore.load();
+            // Sets edited in another tab (the requirements page) are picked up here.
+            window.addEventListener('storage', (event) => {
+                if (event.key === 'trampolineRequirementSets') {
+                    this.customSets = SetStore.load();
+                    this.renderRoutine();
+                }
+            });
             // One flag per card from the start, so moves can splice it in step with the routine.
             this.expanded = this.routine.map(() => false);
 
@@ -49,7 +58,7 @@ function tariffCalculatorStore() {
             // the other's; a newer render replaces one still in flight (hx-sync).
             htmx.ajax('POST', '/routine', {
                 source: '#routine-view', target: '#routine-view', swap: 'innerHTML',
-                values: { routineData: JSON.stringify(this.routine) }
+                values: { routineData: JSON.stringify(this.routine), requirementSet: SetStore.payload(this.currentRoutine()?.requirements) }
             }).catch(error => console.error('Routine render request error:', error));
         },
         // loadForm shows a fresh "Add a skill" panel, or one loaded with the routine skill at editIndex.
@@ -94,6 +103,12 @@ function tariffCalculatorStore() {
         // --- Saved routines ---
         currentRoutine() { return this.routines.find((r) => r.id === this.currentId); },
         persist() { RoutineStore.save({ current: this.currentId, routines: this.routines }); },
+        // setRequirements chooses the requirement set the current routine is checked against.
+        setRequirements(ref) {
+            this.currentRoutine().requirements = ref || undefined;
+            this.persist();
+            this.renderRoutine();
+        },
         // switchRoutine makes the routine with id current, leaving any edit.
         switchRoutine(id) {
             if (!this.routines.some((r) => r.id === id)) { return; }

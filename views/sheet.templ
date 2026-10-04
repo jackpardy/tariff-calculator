@@ -21,6 +21,7 @@ templ TariffSheetPage() {
 			<link rel="stylesheet" href={ static.URL("css/sheet.css") }/>
 			<script src={ static.URL("js/htmx.min.js") }></script>
 			<script defer src={ static.URL("js/routines.js") }></script>
+			<script defer src={ static.URL("js/sets.js") }></script>
 			<script defer src={ static.URL("js/sheet.js") }></script>
 		</head>
 		<body>
@@ -54,7 +55,7 @@ templ TariffSheetPage() {
 				id="tariff-sheet"
 				hx-post="/tariff-sheet"
 				hx-trigger="load"
-				hx-vals="js:{routineData: JSON.stringify(RoutineStore.current(RoutineStore.load()).skills)}"
+				hx-vals="js:{routineData: JSON.stringify(RoutineStore.current(RoutineStore.load()).skills), requirementSet: SetStore.payload(RoutineStore.current(RoutineStore.load()).requirements)}"
 				hx-on:htmx:response-error="this.querySelector('.loading').textContent = 'Could not build the sheet: ' + event.detail.xhr.responseText"
 			>
 				<p class="loading screen-only">Loading the current routine saved in this browser...</p>
@@ -67,7 +68,7 @@ templ TariffSheetPage() {
 // elements in performance order with their FIG notation and difficulty (CoP
 // §6.1-6.2). The details fields are filled in on the page before printing and
 // are not stored. Warnings show on screen only.
-templ TariffSheet(rv skills.RoutineValidation) {
+templ TariffSheet(rv skills.RoutineValidation, required map[int]bool) {
 	if issues := sheetIssues(rv); len(issues) > 0 {
 		<div class="warnings screen-only">
 			<strong>Check before printing:</strong>
@@ -104,7 +105,7 @@ templ TariffSheet(rv skills.RoutineValidation) {
 				<tbody>
 					for i := range sheetRows(len(rv.Skills)) {
 						if i < len(rv.Skills) {
-							@sheetRow(i, rv.Skills[i])
+							@sheetRow(i, rv.Skills[i], required[i+1])
 						} else {
 							<tr class="blank">
 								<td class="num">{ strconv.Itoa(i + 1) }</td>
@@ -134,7 +135,8 @@ templ TariffSheet(rv skills.RoutineValidation) {
 	</main>
 }
 
-templ sheetRow(i int, sv skills.SkillValidation) {
+// sheetRow is one element; required ticks its Req. box (it meets a required-element rule).
+templ sheetRow(i int, sv skills.SkillValidation, required bool) {
 	<tr class={ templ.KV("not-counted", !sv.Counted) }>
 		<td class="num">{ strconv.Itoa(i + 1) }</td>
 		<td class="col-name">
@@ -150,7 +152,7 @@ templ sheetRow(i int, sv skills.SkillValidation) {
 				<span class="note">not counted ({ reason })</span>
 			}
 		</td>
-		<td class="req"><input type="checkbox" aria-label={ fmt.Sprintf("Element %d is a required element", i+1) }/></td>
+		<td class="req"><input type="checkbox" checked?={ required } aria-label={ fmt.Sprintf("Element %d is a required element", i+1) }/></td>
 		<td class="judge"></td>
 	</tr>
 }

@@ -223,6 +223,17 @@
 }
 .routine-menu-panel .button { justify-content: flex-start; }
 
+/* Requirements: choosing a set, and the checklist under the totals. */
+.requirement-picker { margin-bottom: 1rem; }
+.requirement-picker-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.requirement-picker .select select { max-width: 18rem; }
+.requirements-title { font-weight: 700; margin-bottom: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.requirements-list li { display: flex; gap: 0.5rem; padding: 0.3rem 0; border-top: 1px solid #f0f0f0; }
+.requirement-mark { font-weight: 700; width: 1.2rem; flex-shrink: 0; }
+.is-met .requirement-mark { color: #257953; }
+.is-unmet .requirement-mark { color: #cc0f35; }
+.requirement-detail { display: block; color: #777; font-size: 0.8rem; }
+
 /* --- Add a skill (views.SkillFormView) --- */
 /* The editor's own box would limit how far the sticky skill card can follow the
    page, so let its children lay out in the form instead. */

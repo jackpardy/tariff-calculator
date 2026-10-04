@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"tariffCalculator/requirements"
 	"tariffCalculator/skills"
 )
 
@@ -12,7 +13,7 @@ import (
 // routine. The page's Alpine component owns the routine (in localStorage) and
 // re-requests this view whenever it changes; card controls call its methods, and
 // it makes the cards in #routine-skills drag-sortable (SortableJS).
-templ Routine(rv skills.RoutineValidation) {
+templ Routine(rv skills.RoutineValidation, check *RequirementCheck) {
 	<div id="routine-skills" class="routine-skills">
 		if len(rv.Skills) == 0 {
 			<p class="has-text-grey">Add skills using the form above.</p>
@@ -23,6 +24,9 @@ templ Routine(rv skills.RoutineValidation) {
 		}
 	</div>
 	@results(rv)
+	if check != nil {
+		@requirementsPanel(*check)
+	}
 }
 
 templ skillCard(i int, sv skills.SkillValidation, message string, last bool) {
@@ -137,6 +141,93 @@ templ results(rv skills.RoutineValidation) {
 			</div>
 		</div>
 	</div>
+}
+
+// RequirementCheck is a routine checked against a requirement set (ADR 0003).
+type RequirementCheck struct {
+	SetName string
+	Results []requirements.Result
+	Err     string // why the set couldn't be used, if it couldn't
+}
+
+// Met counts the requirements the routine meets.
+func (c RequirementCheck) Met() int {
+	n := 0
+	for _, r := range c.Results {
+		if r.Passed {
+			n++
+		}
+	}
+	return n
+}
+
+// requirementsPanel lists each requirement with whether the routine meets it.
+templ requirementsPanel(c RequirementCheck) {
+	<div id="requirements-results" class="card mt-4">
+		<div class="card-content">
+			<p class="requirements-title">
+				{ c.SetName }
+				if c.Err == "" && len(c.Results) > 0 {
+					<span class={ "tag", templ.KV("is-success", c.Met() == len(c.Results)), templ.KV("is-danger", c.Met() < len(c.Results)) }>
+						{ fmt.Sprintf("%d of %d met", c.Met(), len(c.Results)) }
+					</span>
+				}
+			</p>
+			if c.Err != "" {
+				<p class="has-text-danger is-size-7">Couldn't use this set: { c.Err }</p>
+			} else if len(c.Results) == 0 {
+				<p class="has-text-grey is-size-7">This set has no rules yet.</p>
+			} else {
+				<ul class="requirements-list">
+					for _, r := range c.Results {
+						<li class={ templ.KV("is-met", r.Passed), templ.KV("is-unmet", !r.Passed) }>
+							<span class="requirement-mark" aria-label={ metText(r.Passed) }>{ markFor(r.Passed) }</span>
+							<span>
+								{ r.Description }
+								if text := resultDetail(r); text != "" {
+									<span class="requirement-detail">{ text }</span>
+								}
+							</span>
+						</li>
+					}
+				</ul>
+			}
+		</div>
+	</div>
+}
+
+func markFor(passed bool) string {
+	if passed {
+		return "✓"
+	}
+	return "✗"
+}
+
+func metText(passed bool) string {
+	if passed {
+		return "Met"
+	}
+	return "Not met"
+}
+
+// resultDetail is what the check found, and which elements it involves.
+func resultDetail(r requirements.Result) string {
+	parts := []string{}
+	if r.Detail != "" {
+		parts = append(parts, r.Detail)
+	}
+	if len(r.Elements) > 0 && !strings.Contains(r.Detail, "element") && !strings.HasPrefix(r.Detail, "differs") {
+		nums := make([]string, len(r.Elements))
+		for i, e := range r.Elements {
+			nums[i] = strconv.Itoa(e)
+		}
+		word := "element "
+		if len(nums) > 1 {
+			word = "elements "
+		}
+		parts = append(parts, word+strings.Join(nums, ", "))
+	}
+	return strings.Join(parts, " · ")
 }
 
 // alpine formats an Alpine expression; arguments are only ever ints.

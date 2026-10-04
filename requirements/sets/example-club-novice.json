@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "name": "Example: club novice (not an official set)",
+  "description": "An example showing what a requirement set can check. Duplicate it to make your own; it is not any organisation's rules.",
+  "source": "Written for this app as an example",
+  "rules": [
+    { "type": "elements", "min": 10, "max": 10 },
+    { "type": "every", "match": { "rotation": { "max": 5 } }, "label": "No more than 1¼ somersaults in any element" },
+    { "type": "count", "match": { "direction": "forward", "rotation": { "min": 3 } }, "min": 1, "label": "A forward somersault (¾ or more)" },
+    { "type": "count", "match": { "direction": "backward", "rotation": { "min": 3 } }, "min": 1, "label": "A backward somersault (¾ or more)" },
+    { "type": "count", "match": { "landing": ["seat"] }, "min": 1, "label": "A seat landing" },
+    { "type": "count", "match": { "twist": { "min": 2 } }, "min": 1, "label": "A full twist or more" },
+    { "type": "position", "position": 10, "match": { "landing": ["feet"] }, "label": "Finish on feet" }
+  ]
+}

@@ -14,6 +14,7 @@ import (
 	"github.com/a-h/templ"
 
 	"tariffCalculator/catalog"
+	"tariffCalculator/requirements"
 	"tariffCalculator/skills"
 	"tariffCalculator/static"
 	"tariffCalculator/views"
@@ -85,7 +86,7 @@ func defaultSkill() skills.TrampolineSkill {
 
 // handleIndex serves the calculator page; the form and routine load into it.
 func handleIndex(w http.ResponseWriter, r *http.Request) {
-	render(w, r, views.Page())
+	render(w, r, views.Page(requirements.Builtins()))
 }
 
 // prepared readies a skill for the editor: one twist per phase, straddle only for
@@ -276,7 +277,40 @@ func handleRoutineView(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
-	render(w, r, views.Routine(rv))
+	check, _ := requirementCheck(r, rv)
+	render(w, r, views.Routine(rv, check))
+}
+
+// requirementCheck checks the routine against the requirement set the page
+// posts in requirementSet: a built-in reference ("builtin:<id>"), a custom set
+// as JSON, or nothing. A set that can't be used is reported in the check rather
+// than failing the request. It also returns the elements that meet a
+// required-element rule.
+func requirementCheck(r *http.Request, rv skills.RoutineValidation) (*views.RequirementCheck, map[int]bool) {
+	raw := strings.TrimSpace(r.FormValue("requirementSet"))
+	if raw == "" {
+		return nil, nil
+	}
+	var set requirements.Set
+	if strings.HasPrefix(raw, requirements.BuiltinPrefix) {
+		builtin, ok := requirements.LookupBuiltin(raw)
+		if !ok {
+			return &views.RequirementCheck{SetName: "Requirements", Err: "this built-in set no longer exists"}, nil
+		}
+		set = builtin
+	} else {
+		parsed, err := requirements.Parse([]byte(raw))
+		if err != nil {
+			name := parsed.Name
+			if name == "" {
+				name = "Requirements"
+			}
+			return &views.RequirementCheck{SetName: name, Err: err.Error()}, nil
+		}
+		set = parsed
+	}
+	results := requirements.Evaluate(set, rv)
+	return &views.RequirementCheck{SetName: set.Name, Results: results}, requirements.RequiredElements(set, results)
 }
 
 // handleComparePage serves the compare page; it fills its routine choices from
@@ -320,7 +354,8 @@ func handleTariffSheet(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
-	render(w, r, views.TariffSheet(rv))
+	_, required := requirementCheck(r, rv)
+	render(w, r, views.TariffSheet(rv, required))
 }
 
 // parseRoutineJSON parses a routine posted as JSON ("" is an empty routine).

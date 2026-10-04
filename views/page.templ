@@ -1,10 +1,15 @@
 package views
 
-import "tariffCalculator/static"
+import (
+	"fmt"
+
+	"tariffCalculator/requirements"
+	"tariffCalculator/static"
+)
 
 // Page is the calculator page. The form and routine are empty placeholders that
 // the page's Alpine component (static/js/app.js) fills from the server on load.
-templ Page() {
+templ Page(builtins []requirements.Builtin) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -16,6 +21,7 @@ templ Page() {
 			<script src={ static.URL("js/htmx.min.js") }></script>
 			<script defer src={ static.URL("js/sortable.min.js") }></script>
 			<script defer src={ static.URL("js/routines.js") }></script>
+			<script defer src={ static.URL("js/sets.js") }></script>
 			// app.js defines the Alpine component, so it must run before Alpine (all deferred, in order).
 			<script defer src={ static.URL("js/app.js") }></script>
 			<script defer src={ static.URL("js/alpine.min.js") }></script>
@@ -31,7 +37,7 @@ templ Page() {
 			</section>
 			<section class="section">
 				<div class="container">
-					@calculator()
+					@calculator(builtins)
 				</div>
 			</section>
 			<footer class="footer">
@@ -43,7 +49,7 @@ templ Page() {
 	</html>
 }
 
-templ calculator() {
+templ calculator(builtins []requirements.Builtin) {
 	<div class="container" x-data="tariffCalculatorStore()">
 		// "Add a skill" panel: SkillFormView, loaded by the component.
 		<div class="box">
@@ -87,6 +93,30 @@ templ calculator() {
 						<button class="button is-small is-white has-text-danger" type="button" x-on:click="deleteRoutine()">Delete routine</button>
 					</div>
 				</details>
+			</div>
+			// The requirement set this routine is checked against (built-in or the user's own).
+			<div class="requirement-picker">
+				<label class="label is-small mb-1" for="requirement-set">Check against</label>
+				<div class="requirement-picker-row">
+					<div class="select is-small">
+						<select id="requirement-set" x-on:change="setRequirements($event.target.value)">
+							<option value="" x-bind:selected="!currentRoutine()?.requirements">No requirements</option>
+							<optgroup label="Built-in">
+								for _, b := range builtins {
+									<option value={ requirements.BuiltinPrefix + b.ID } x-bind:selected={ fmt.Sprintf("currentRoutine()?.requirements === '%s%s'", requirements.BuiltinPrefix, b.ID) }>{ b.Set.Name }</option>
+								}
+							</optgroup>
+							<template x-if="customSets.length > 0">
+								<optgroup label="Your sets">
+									<template x-for="s in customSets" x-bind:key="s.id">
+										<option x-bind:value="s.id" x-bind:selected="currentRoutine()?.requirements === s.id" x-text="s.set.name"></option>
+									</template>
+								</optgroup>
+							</template>
+						</select>
+					</div>
+					<a class="button is-small is-text" href="/requirements" target="_blank" rel="noopener">Manage sets</a>
+				</div>
 			</div>
 			// Cards and totals: Routine, re-rendered whenever the routine changes.
 			<div id="routine-view" hx-sync="this:replace">

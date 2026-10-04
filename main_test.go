@@ -450,8 +450,8 @@ func TestIndexRendersThePage(t *testing.T) {
 	}
 	// Every asset is linked by a versioned URL that the server actually serves.
 	links := regexp.MustCompile(`(?:href|src)="(/static/[^"]+)"`).FindAllStringSubmatch(html, -1)
-	if len(links) != 7 {
-		t.Errorf("found %d asset links, want 7 (2 CSS, 5 JS)", len(links))
+	if len(links) != 8 {
+		t.Errorf("found %d asset links, want 8 (2 CSS, 6 JS)", len(links))
 	}
 	for _, l := range links {
 		u := strings.ReplaceAll(l[1], "&amp;", "&")
@@ -676,5 +676,70 @@ func TestComparePage(t *testing.T) {
 	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	if !strings.Contains(rec.Body.String(), `href="/compare"`) {
 		t.Errorf("the calculator should link to the compare page")
+	}
+}
+
+func TestRequirementsInTheRoutineView(t *testing.T) {
+	routine := `[
+		{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},
+		{"rotation":0,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Straight","seat_landing":true},
+		{"rotation":0,"twist_distribution":[0],"takeoff_position":"Seat","shape":"Straight"}
+	]`
+	post := func(set string) string {
+		t.Helper()
+		rec := postForm(t, "/routine", url.Values{"routineData": {routine}, "requirementSet": {set}})
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status %d, body %s", rec.Code, rec.Body)
+		}
+		return rec.Body.String()
+	}
+
+	if html := post(""); strings.Contains(html, "requirements-results") {
+		t.Errorf("no set chosen: no requirements panel")
+	}
+
+	html := post("builtin:example-club-novice")
+	for _, want := range []string{"Example: club novice (not an official set)", "3 of 7 met", "A backward somersault (¾ or more)", "A seat landing", "has 3"} {
+		if !strings.Contains(html, want) {
+			t.Errorf("built-in check is missing %q", want)
+		}
+	}
+
+	custom := `{"format":1,"name":"Our gala","rules":[{"type":"count","match":{"landing":["seat"]},"min":1},{"type":"count","match":{"direction":"forward","rotation":{"min":4}},"min":1}]}`
+	html = post(custom)
+	for _, want := range []string{"Our gala", "1 of 2 met", "At least 1 element: landing on seat", "element 2", "found 0"} {
+		if !strings.Contains(html, want) {
+			t.Errorf("custom check is missing %q", want)
+		}
+	}
+
+	html = post(`{"format":1,"name":"Broken","rules":[{"type":"vibes"}]}`)
+	if !strings.Contains(html, "Couldn't use this set") || !strings.Contains(html, "unknown rule type") {
+		t.Errorf("a broken set should be reported, not fail the routine:\n%s", html)
+	}
+	if html := post("builtin:gone"); !strings.Contains(html, "no longer exists") {
+		t.Errorf("a missing built-in should be reported")
+	}
+}
+
+func TestTariffSheetTicksRequiredElements(t *testing.T) {
+	routine := `[
+		{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"},
+		{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}
+	]`
+	set := `{"format":1,"name":"x","rules":[{"type":"count","match":{"direction":"backward"},"min":1}]}`
+	html := postForm(t, "/tariff-sheet", url.Values{"routineData": {routine}, "requirementSet": {set}}).Body.String()
+	boxes := regexp.MustCompile(`<td class="req"><input type="checkbox"( checked)?`).FindAllStringSubmatch(html, -1)
+	if len(boxes) != 2 || boxes[0][1] != "" || boxes[1][1] != " checked" {
+		t.Errorf("only element 2 (the back somersault) should be ticked, got %v", boxes)
+	}
+}
+
+func TestPageOffersBuiltinSets(t *testing.T) {
+	rec := httptest.NewRecorder()
+	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	html := rec.Body.String()
+	if !strings.Contains(html, `<option value="builtin:example-club-novice"`) || !strings.Contains(html, `href="/requirements"`) {
+		t.Errorf("the calculator should offer built-in sets and link to the requirements page")
 	}
 }

@@ -1,0 +1,89 @@
+# ADR 0003 — A flexible framework for routine requirements
+
+- **Status:** Proposed
+- **Date:** 2026-10-04
+- **Deciders:** jackpardy (solo maintainer)
+- **Amends:** ADR 0001 §5 (requirements engine) and its roadmap items for standard and
+  customisable requirement sets
+
+## Context
+
+Coaches need to check a routine against the rules of the competition it's for: which
+elements are required, which are not allowed, how many elements, difficulty limits, or a
+whole set (compulsory) routine. The users are mostly newer gymnasts and coaches in
+**student trampoline**, whose rules change from season to season and between
+competitions, and who also compete under **Gymnastics Ireland (GI)**, **British
+Gymnastics (BG)** and **FIG age-group** rules.
+
+So the important property is flexibility: a coach must be able to write or adjust a rule
+set in the app, without code changes, and share it with others. Built-in sets are a
+convenience, not the main path.
+
+ADR 0001 §5 sketched typed rules with a registry, nestable rule sets, standard sets as
+embedded JSON, custom sets stored per user, and a `cel-go` expression rule as an escape
+hatch. Since then ADR 0002 moved the UI to server rendering, and there are still no
+accounts: routines live in the browser.
+
+## Decision
+
+1. **A framework-free `requirements` package** holds the model and the evaluation, like
+   `skills`. HTTP handlers and templ views are thin adapters over it.
+
+2. **A requirement set is plain JSON** — `{format, name, description, source, rules}` —
+   so it can be stored, exported, imported and shared as a file or pasted text. `format`
+   is versioned so later changes can migrate old sets.
+
+3. **A small set of general rule types**, each a JSON object with a `type`:
+   - `count` — at least `min` and/or at most `max` elements match a *matcher*. Covers
+     required elements (`min: 1`), forbidden ones (`max: 0`) and limits ("no more than
+     2 doubles").
+   - `every` — every element matches (e.g. "no element over 1¼ somersaults").
+   - `elements` — the number of elements is within `min`/`max`.
+   - `difficulty` — the routine's counted difficulty (tariff) is within `min`/`max`.
+   - `position` — the element at a given position matches (e.g. "finish with a back
+     somersault").
+   - `sequence` — a set routine: each element in turn matches the given matchers, and
+     there are exactly that many.
+
+   Each rule may carry a `label` written by the set's author ("A back somersault");
+   otherwise a plain-English description is generated.
+
+4. **A matcher** describes elements with optional conditions, all of which must hold:
+   rotation (quarter somersaults, min/max), direction, total twist (half twists,
+   min/max), shapes, take-off and landing positions, tariff (min/max), and an exact FIG
+   notation. This expresses nearly every element requirement in the rule books we know
+   of without a general expression language, so the `cel-go` escape hatch is dropped
+   until a real rule needs it.
+
+5. **Evaluation collects every result** (never stops at the first failure): for each
+   rule, pass/fail, a description, and the element numbers involved (the matching ones,
+   or the offending ones). Rules look at the routine as written.
+
+6. **Where sets live.** Built-in sets ship embedded in the binary as JSON, each naming its
+   source document and season. Custom sets live in the browser alongside saved routines,
+   and can be created from scratch, duplicated from a built-in or another set, edited,
+   exported and imported. When accounts arrive, the same JSON moves into the database.
+
+7. **The editor follows the skill editor's pattern**: the browser posts the set being
+   edited, the server parses and validates it into the model and re-renders the editor,
+   and the browser saves the result. Validation of sets is in Go, once.
+
+8. **Built-in sets are only added from a cited source** (rule book, handbook or
+   competition document) and say which season they reflect; the app states that users
+   should check them against the current rules.
+
+## Consequences
+
+**Positive**
+- Coaches can keep up with changing student rules themselves, and share sets.
+- One model and one evaluator serve built-in and custom sets, the routine view and the
+  tariff sheet (e.g. marking required elements).
+- No expression language to secure or explain.
+
+**Negative / risks**
+- Some rule might not fit the matcher. *Mitigation:* the format is versioned; add a rule
+  type when a real rule needs it.
+- Custom sets live only in that browser until accounts exist. *Mitigation:* export and
+  import.
+- Built-in sets go out of date. *Mitigation:* each names its source and season, and the
+  app tells users to check them.
