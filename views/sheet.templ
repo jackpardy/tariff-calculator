@@ -20,11 +20,15 @@ templ TariffSheetPage() {
 			<title>Tariff Sheet</title>
 			<link rel="stylesheet" href={ static.URL("css/sheet.css") }/>
 			<script src={ static.URL("js/htmx.min.js") }></script>
+			<script defer src={ static.URL("js/sheet.js") }></script>
 		</head>
 		<body>
 			<div class="toolbar screen-only">
 				<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
-				<span>Fill in the details, then print. Nothing on this page is saved.</span>
+				// Display options (static/js/sheet.js): they change what prints and are remembered in this browser.
+				<label class="option"><input type="checkbox" id="show-names" checked/> Skill names</label>
+				<label class="option"><input type="checkbox" id="show-fields" checked/> Details fields</label>
+				<span>Fill in the details, then print. What you type isn't saved.</span>
 			</div>
 			<div
 				id="tariff-sheet"
@@ -70,7 +74,7 @@ templ TariffSheet(rv skills.RoutineValidation) {
 				<thead>
 					<tr>
 						<th class="num">No.</th>
-						<th>Element</th>
+						<th class="col-name">Element</th>
 						<th class="fig">FIG notation</th>
 						<th class="diff">Difficulty</th>
 						<th class="req" title="Required element (CoP §6.1.1)">Req. *</th>
@@ -84,7 +88,7 @@ templ TariffSheet(rv skills.RoutineValidation) {
 						} else {
 							<tr class="blank">
 								<td class="num">{ strconv.Itoa(i + 1) }</td>
-								<td></td>
+								<td class="col-name"></td>
 								<td></td>
 								<td></td>
 								<td class="req"></td>
@@ -95,7 +99,10 @@ templ TariffSheet(rv skills.RoutineValidation) {
 				</tbody>
 				<tfoot>
 					<tr>
-						<td colspan="3">Total difficulty</td>
+						// Two label cells, one shown per mode, so the total stays under Difficulty
+						// whether or not the name column is shown.
+						<td colspan="3" class="total-with-names">Total difficulty</td>
+						<td colspan="2" class="total-without-names">Total difficulty</td>
 						<td class="diff">{ fmt.Sprintf("%.1f", rv.TotalTariff) }</td>
 						<td colspan="2"></td>
 					</tr>
@@ -109,7 +116,7 @@ templ TariffSheet(rv skills.RoutineValidation) {
 templ sheetRow(i int, sv skills.SkillValidation) {
 	<tr class={ templ.KV("not-counted", !sv.Counted) }>
 		<td class="num">{ strconv.Itoa(i + 1) }</td>
-		<td>
+		<td class="col-name">
 			{ sv.Skill.Name }
 			if sv.Skill.CustomName != "" {
 				<span class="custom">{ sv.Skill.CustomName }</span>

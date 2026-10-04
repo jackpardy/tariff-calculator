@@ -27,9 +27,17 @@ tfoot td { font-weight: 700; }
 
 .toolbar, .warnings { max-width: 186mm; margin: 1rem auto; padding: 0 12mm; box-sizing: border-box; }
 .toolbar { display: flex; gap: 1rem; align-items: center; font-size: 0.9rem; color: #444; }
-.print { font: inherit; font-weight: 600; padding: 0.5rem 1rem; border: 0; border-radius: 4px; background: #485fc7; color: #fff; cursor: pointer; }
+.print { flex-shrink: 0; white-space: nowrap; font: inherit; font-weight: 600; padding: 0.5rem 1rem; border: 0; border-radius: 4px; background: #485fc7; color: #fff; cursor: pointer; }
 .warnings { font-size: 0.85rem; color: #8a2a00; }
 .warnings ul { margin: 0.25rem 0 0; padding-left: 1.25rem; }
+.option { display: inline-flex; gap: 0.3rem; align-items: center; white-space: nowrap; cursor: pointer; }
+
+/* Display options, toggled on #tariff-sheet by static/js/sheet.js. */
+.total-without-names { display: none; }
+.hide-names .col-name, .hide-names .total-with-names { display: none; }
+.hide-names .total-without-names { display: table-cell; }
+.hide-fields .fields { display: none; }
+
 .loading { max-width: 186mm; margin: 2rem auto; padding: 0 12mm; color: #444; }
 
 @media print {
@@ -43,7 +51,7 @@ tfoot td { font-weight: 700; }
 @media (max-width: 640px) {
     .sheet { padding: 1rem; }
     .fields { grid-template-columns: 1fr; }
-    .toolbar { flex-direction: column; align-items: flex-start; padding: 0 1rem; }
+    .toolbar { flex-wrap: wrap; padding: 0 1rem; }
     .warnings { padding: 0 1rem; }
     .fig { width: auto; }
 }

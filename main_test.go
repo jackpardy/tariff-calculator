@@ -467,6 +467,15 @@ func TestTariffSheet(t *testing.T) {
 			t.Errorf("row 2 is missing %q", want)
 		}
 	}
+	// The name column can be hidden: every row tags it, and the footer has a label for each mode.
+	for i, tr := range trs {
+		if !strings.Contains(tr, `class="col-name"`) {
+			t.Errorf("row %d has no name cell to hide", i+1)
+		}
+	}
+	if !strings.Contains(html, `colspan="3" class="total-with-names"`) || !strings.Contains(html, `colspan="2" class="total-without-names"`) {
+		t.Errorf("the footer needs a total label for both layouts")
+	}
 	if !strings.Contains(trs[2], "not counted (repeat)") || strings.Contains(trs[0], "not counted") {
 		t.Errorf("only the repeat (row 3) should be marked not counted")
 	}
@@ -489,7 +498,9 @@ func TestTariffSheetPage(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d", rec.Code)
 	}
-	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "localStorage.getItem('trampolineRoutine')", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v="} {
+	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "localStorage.getItem('trampolineRoutine')", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v=",
+		// Optional parts of the sheet.
+		`id="show-names" checked`, `id="show-fields" checked`, "/static/js/sheet.js?v="} {
 		if !strings.Contains(html, want) {
 			t.Errorf("sheet page is missing %q", want)
 		}
