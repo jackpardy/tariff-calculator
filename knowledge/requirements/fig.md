@@ -31,8 +31,8 @@ Six files in `requirements/sets/fig/`.[^fig-wagc]
   capped total ([rule types](rule-types.md)).
 - AG3's two scoring elements come from `scored_elements`
   ([routine validation](../domain/routine-validation.md#scoring-only-some-elements)).
-  The coach can mark which two score. Repeating one of them in the second
-  exercise loses its difficulty there, which the app notes but does not check
-  across exercises.
+  The coach can mark which two score. Their difficulty carries over, so they
+  can't be repeated in the second exercise; the [level](levels.md#carry-over)
+  checks this when the two routines are paired.
 
 [^fig-wagc]: FIG Rules for Junior and World Age Group Competition 2025–2028

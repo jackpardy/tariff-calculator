@@ -186,8 +186,7 @@
         "second": [
           "fig-ag3-second"
         ],
-        "description": "An element that scores difficulty in the first exercise scores none if it's repeated in the second.",
-        "scored_once": true
+        "description": "Two elements of the first exercise score difficulty, which carries over; they can't be repeated in the second exercise."
       }
     ]
   },
@@ -243,7 +242,8 @@
         ],
         "second": [
           "bg-national-17-21-second"
-        ]
+        ],
+        "description": "Two elements of the first exercise score difficulty, which carries over; they can't be repeated in the second exercise."
       }
     ]
   },

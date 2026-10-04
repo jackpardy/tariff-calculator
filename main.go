@@ -302,8 +302,8 @@ type postedRoutine struct {
 // posts the level (level: a built-in reference or a custom level as JSON),
 // which exercise it is (exercise: 1 or 2), and the routine doing the other
 // exercise, if there is one (pairData, pairSet, pairChecks, pairName). The two
-// are checked together: at some levels an element that scored in the first
-// exercise scores nothing if repeated in the second.
+// are checked together: when the first exercise scores only some elements,
+// their difficulty carries over, and they can't be repeated in the second.
 func checkRoutine(r *http.Request) (checkedRoutine, error) {
 	if err := r.ParseForm(); err != nil {
 		return checkedRoutine{}, fmt.Errorf("parsing form: %w", err)
@@ -332,9 +332,10 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 	if r.Form.Has("pairData") {
 		pair = &postedRoutine{r.FormValue("pairData"), r.FormValue("pairSet"), r.FormValue("pairChecks")}
 	}
-	// scored are a first exercise's elements that score once only.
-	scored := func(first checkedRoutine) []skills.TrampolineSkill {
-		if !level.ScoredOnce || !first.checks.ScoreDifficulty {
+	// carried are a first exercise's elements whose difficulty carries over:
+	// those that score, when only some do.
+	carried := func(first checkedRoutine) []skills.TrampolineSkill {
+		if !first.checks.ScoreDifficulty || first.checks.ScoredElements == 0 {
 			return nil
 		}
 		var out []skills.TrampolineSkill
@@ -353,11 +354,11 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 		out, err = checkPosted(own, nil)
 	case exercise == 2:
 		other, otherErr = checkPosted(*pair, nil)
-		out, err = checkPosted(own, scored(other))
+		out, err = checkPosted(own, carried(other))
 	default:
 		out, err = checkPosted(own, nil)
 		if err == nil {
-			other, otherErr = checkPosted(*pair, scored(out))
+			other, otherErr = checkPosted(*pair, carried(out))
 		}
 	}
 	if pair != nil {
@@ -367,6 +368,22 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 			lc.OtherErr = otherErr.Error()
 		case other.check != nil && other.check.Err == "":
 			lc.OtherMet, lc.OtherRules = other.check.Met(), len(other.check.Results)
+		}
+		if otherErr == nil && err == nil {
+			first, second := out, other
+			if exercise == 2 {
+				first, second = other, out
+			}
+			for i, sv := range first.rv.Skills {
+				if len(carried(first)) > 0 && sv.Counted {
+					lc.Carried = append(lc.Carried, i+1)
+				}
+			}
+			for i, sv := range second.rv.Skills {
+				if sv.ScoredEarlier {
+					lc.Repeated = append(lc.Repeated, i+1)
+				}
+			}
 		}
 	}
 	out.level = lc

@@ -32,11 +32,15 @@ each one is checked against:
   requirements saved in the browser. Editing those requirements changes the
   level. `Level.Validate` checks built-in references exist; the level editor
   checks saved ones.
-- `scored_once`: an element that scores difficulty in the first exercise
-  scores none if it's repeated in the second. Only FIG AG3 sets it, because its
-  rules say so. BG National 17–21 has the same two scoring elements, but its
-  document doesn't state the rule, so it isn't set
-  ([open questions](../open-questions.md)).
+
+## Carry-over
+
+When the first exercise scores only some elements (its requirements'
+`scored_elements`, e.g. 2 in FIG AG3 and BG National 17–21), their difficulty
+carries over, and **those elements can't be repeated in the second exercise**.
+This is the general rule (confirmed by the maintainer), so it isn't a setting on
+the level: it follows from the first exercise's checks, including a coach's own
+change to how many elements score.
 
 # Built-in levels
 
@@ -48,8 +52,8 @@ and a test checks every built-in set belongs to a level.
 | Group | Levels |
 |---|---|
 | [BUCS](bucs.md) | FIG Level (both exercises the same), L1–L2 (voluntary, voluntary), L3–L7 and Disability L1–L2 (set routine option 1 or 2, then a voluntary) |
-| [FIG age groups](fig.md) | AG1, AG2 & Junior, AG3 (`scored_once`) |
-| [BG national](bg-national.md) | 10, 11–12, 13–14 & 15–16, 17–21 |
+| [FIG age groups](fig.md) | AG1, AG2 & Junior, AG3 (two elements carry over) |
+| [BG national](bg-national.md) | 10, 11–12, 13–14 & 15–16, 17–21 (two elements carry over) |
 | [BG club & regional](bg-regional.md) | Club L1–L3 (the set routine twice), Regional L1–L2 and L3 9–12 / 13+ (set routine, then a voluntary), Regional L4 10, 11–12, 13–14, 15–16, 17+ |
 
 # In the routine builder
@@ -78,13 +82,15 @@ partner. Side by side, a pair's columns aren't shaded for differences.
 `/routine` and `/tariff-sheet` take the level (`level`: a built-in reference or
 a custom level's JSON), `exercise`, and the partner's routine (`pairData`,
 `pairSet`, `pairChecks`, `pairName`). The server checks both
-(`checkRoutine` in `main.go`). With `scored_once`, the first exercise's scoring
-elements are passed to the second's validation as
-`ValidateOptions.ScoredEarlier`. A repeat of one is flagged "Scored In 1st
-Exercise (No Tariff)" and isn't counted
+(`checkRoutine` in `main.go`). When difficulty carries over, the first
+exercise's scoring elements are passed to the second's validation as
+`ValidateOptions.ScoredEarlier`. A repeat of one is flagged "Can't Repeat:
+Scored In 1st Exercise" and isn't counted
 ([routine validation](../domain/routine-validation.md)). The routine view shows
 the level, which exercise this is, and how many of its requirements the other
-routine meets.
+routine meets. When difficulty carries over, both routines also show the
+requirement "The second exercise doesn't repeat an element whose difficulty
+carries over from the first", naming the carried elements and any repeats.
 
 # Writing your own
 

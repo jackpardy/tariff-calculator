@@ -86,7 +86,6 @@ type groupFile []struct {
 		Description string   `json:"description"`
 		First       []string `json:"first"`
 		Second      []string `json:"second"` // none: the same as the first
-		ScoredOnce  bool     `json:"scored_once"`
 	} `json:"levels"`
 }
 
@@ -144,7 +143,7 @@ func mustLoadBuiltins() []BuiltinGroup {
 				panic(fmt.Sprintf("built-in level %q is listed twice or has no id", l.ID))
 			}
 			levelIDs[l.ID] = true
-			level := Level{Format: Format, Name: l.Name, Description: l.Description, First: Exercise{Options: refs(l.First)}, ScoredOnce: l.ScoredOnce}
+			level := Level{Format: Format, Name: l.Name, Description: l.Description, First: Exercise{Options: refs(l.First)}}
 			if len(l.Second) > 0 {
 				level.Second = &Exercise{Options: refs(l.Second)}
 			}

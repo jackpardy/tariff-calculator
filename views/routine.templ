@@ -30,6 +30,10 @@ type LevelCheck struct {
 	OtherErr   string // why the other routine couldn't be checked
 	OtherMet   int
 	OtherRules int
+	// When the first exercise scores only some elements, their difficulty
+	// carries over and they can't be repeated in the second exercise.
+	Carried  []int // the first exercise's elements that carry over (1-based)
+	Repeated []int // the second exercise's elements repeating one of them
 }
 
 // exerciseName is "first" or "second".
@@ -117,8 +121,47 @@ templ levelPanel(l LevelCheck) {
 					</span>
 				}
 			</p>
+			if len(l.Carried) > 0 {
+				<ul class="requirements-list">
+					<li class={ templ.KV("is-met", len(l.Repeated) == 0), templ.KV("is-unmet", len(l.Repeated) > 0) }>
+						<span class="requirement-mark" aria-label={ metText(len(l.Repeated) == 0) }>{ markFor(len(l.Repeated) == 0) }</span>
+						<span>
+							The second exercise doesn't repeat an element whose difficulty carries over from the first
+							<span class="requirement-detail">{ carryDetail(l) }</span>
+						</span>
+					</li>
+				</ul>
+			}
 		}
 	</div>
+}
+
+// carryDetail names the elements that carry over and any repeats, from this
+// routine's side of the pair.
+func carryDetail(l LevelCheck) string {
+	elements := func(ns []int) string {
+		parts := make([]string, len(ns))
+		for i, n := range ns {
+			parts[i] = strconv.Itoa(n)
+		}
+		word := "element "
+		if len(ns) > 1 {
+			word = "elements "
+		}
+		return word + strings.Join(parts, ", ")
+	}
+	text := "carried over: " + elements(l.Carried) + " of the first exercise"
+	if l.Exercise == 1 {
+		text = "carried over: " + elements(l.Carried)
+	}
+	if len(l.Repeated) > 0 {
+		if l.Exercise == 2 {
+			text += " · repeated at " + elements(l.Repeated)
+		} else {
+			text += " · the second exercise repeats them at " + elements(l.Repeated)
+		}
+	}
+	return text
 }
 
 func titleCase(s string) string {
@@ -134,8 +177,8 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 			class={ "routine-skill", "box", "mb-2",
 				templ.KV("invalid-transition", sv.InvalidTransition || sv.IntermediateJump),
 				templ.KV("invalid-landing", sv.InvalidLanding),
-				templ.KV("duplicate-skill", sv.IsDuplicate),
-				templ.KV("not-counted", sv.AfterInterruption || sv.ScoredEarlier),
+				templ.KV("duplicate-skill", sv.IsDuplicate || sv.ScoredEarlier),
+				templ.KV("not-counted", sv.AfterInterruption),
 				templ.KV("differs", different) }
 		>
 			// Clickable header toggles the details.

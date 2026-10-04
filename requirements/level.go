@@ -18,6 +18,11 @@ import (
 // Options are references to requirements, not copies: "builtin:<id>" for a
 // built-in, or the id of requirements saved in the browser. Editing those
 // requirements changes the level.
+//
+// When the first exercise scores only some elements (its requirements'
+// scored_elements, e.g. 2 in AG3), their difficulty carries over, and they
+// can't be repeated in the second exercise. That follows from the first
+// exercise's requirements, so a level doesn't say it.
 type Level struct {
 	Format      int       `json:"format"`
 	Name        string    `json:"name"`
@@ -25,9 +30,6 @@ type Level struct {
 	Source      string    `json:"source,omitempty"`
 	First       Exercise  `json:"first"`
 	Second      *Exercise `json:"second,omitempty"` // nil: the same as the first
-	// ScoredOnce: an element that scores difficulty in the first exercise
-	// scores none if it's repeated in the second (FIG AG3).
-	ScoredOnce bool `json:"scored_once,omitempty"`
 }
 
 // Exercise is the requirements for one of a level's exercises.

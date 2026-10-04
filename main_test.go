@@ -1093,8 +1093,11 @@ func TestLevelPairs(t *testing.T) {
 	}
 
 	html := postForm(t, "/routine", values("builtin-level:fig-ag3", "2", second, "builtin:fig-ag3-second", first, "builtin:fig-ag3-first")).Body.String()
-	if !strings.Contains(html, "Total Tariff: 0.50") || !strings.Contains(html, "Scored In 1st Exercise") {
-		t.Errorf("AG3 second exercise: the repeated Rudi scored in the first, so only the back tuck (0.5) counts")
+	if !strings.Contains(html, "Total Tariff: 0.50") || !strings.Contains(html, "Can&#39;t Repeat: Scored In 1st Exercise") {
+		t.Errorf("AG3 second exercise: the Rudi's difficulty carried over from the first, so it can't be repeated and only the back tuck (0.5) counts")
+	}
+	if !strings.Contains(html, `class="is-unmet"`) || !strings.Contains(html, "carried over: elements 3, 4 of the first exercise · repeated at element 1") {
+		t.Errorf("AG3 second exercise: the repeat breaks the carry-over requirement")
 	}
 	if !strings.Contains(html, "FIG AG3 (17–21)</strong> · second exercise") || !strings.Contains(html, "First exercise: Partner") || !strings.Contains(html, "of 5 met") {
 		t.Errorf("the level panel names the level, the exercise and the first exercise's routine")
@@ -1104,13 +1107,23 @@ func TestLevelPairs(t *testing.T) {
 	if html := postForm(t, "/routine", values("builtin-level:fig-ag3", "2", second, "builtin:fig-ag3-second", "", "")).Body.String(); !strings.Contains(html, "Total Tariff: 1.30") || !strings.Contains(html, "No routine for the first exercise yet") {
 		t.Errorf("no first exercise: 1.3, and the panel says so")
 	}
-	if html := postForm(t, "/routine", values("builtin-level:fig-ag2-junior", "2", second, "builtin:fig-ag2-junior-second", first, "builtin:fig-ag2-junior-first")).Body.String(); !strings.Contains(html, "Total Tariff: 1.30") {
-		t.Errorf("AG2: elements may score in both exercises")
+	if html := postForm(t, "/routine", values("builtin-level:fig-ag2-junior", "2", second, "builtin:fig-ag2-junior-second", first, "builtin:fig-ag2-junior-first")).Body.String(); !strings.Contains(html, "Total Tariff: 1.30") || strings.Contains(html, "carried over") {
+		t.Errorf("AG2: no difficulty carries over from the first exercise, so elements may be repeated")
+	}
+	// It follows from the first exercise scoring only some elements, at any level.
+	if html := postForm(t, "/routine", values("builtin-level:bg-national-17-21", "2", second, "builtin:bg-national-17-21-second", first, "builtin:bg-national-17-21-first")).Body.String(); !strings.Contains(html, "Total Tariff: 0.50") {
+		t.Errorf("BG 17–21: two elements carry over, as in AG3")
+	}
+	ownChecks := values("builtin-level:fig-ag3", "2", second, "builtin:fig-ag3-second", first, "builtin:fig-ag3-first")
+	ownChecks.Set("pairChecks", `{"scored":0}`)
+	if html := postForm(t, "/routine", ownChecks).Body.String(); !strings.Contains(html, "Total Tariff: 1.30") {
+		t.Errorf("when the coach scores every element of the first exercise, nothing carries over")
 	}
 
 	// The first exercise is unaffected by the second.
-	if html := postForm(t, "/routine", values("builtin-level:fig-ag3", "1", first, "builtin:fig-ag3-first", second, "builtin:fig-ag3-second")).Body.String(); !strings.Contains(html, "Total Tariff: 1.50") || !strings.Contains(html, "Second exercise: Partner") {
-		t.Errorf("AG3 first exercise: the full back and Rudi score (1.5)")
+	if html := postForm(t, "/routine", values("builtin-level:fig-ag3", "1", first, "builtin:fig-ag3-first", second, "builtin:fig-ag3-second")).Body.String(); !strings.Contains(html, "Total Tariff: 1.50") || !strings.Contains(html, "Second exercise: Partner") ||
+		!strings.Contains(html, "carried over: elements 3, 4 · the second exercise repeats them at element 1") {
+		t.Errorf("AG3 first exercise: the full back and Rudi score (1.5) and carry over; the second exercise repeats the Rudi")
 	}
 
 	// A custom level, posted as JSON.
@@ -1124,7 +1137,7 @@ func TestLevelPairs(t *testing.T) {
 
 	// The sheet leaves the repeat's difficulty out.
 	sheet := postForm(t, "/tariff-sheet", values("builtin-level:fig-ag3", "2", second, "builtin:fig-ag3-second", first, "builtin:fig-ag3-first")).Body.String()
-	if !strings.Contains(sheet, "scored in 1st exercise") {
+	if !strings.Contains(sheet, "repeats a 1st-exercise element") {
 		t.Errorf("the sheet says why the Rudi adds nothing")
 	}
 }

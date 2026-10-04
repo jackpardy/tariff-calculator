@@ -13,7 +13,7 @@ import (
 	"tariffCalculator/views"
 )
 
-// The level editor names its fields: name, description, source, scored_once,
+// The level editor names its fields: name, description, source,
 // first.n and first.<i> (the first exercise's options, by reference),
 // second_same (ticked when both exercises use the first's requirements), and
 // second.n and second.<i>. custom carries the requirements saved in the browser
@@ -102,7 +102,6 @@ func parseLevelForm(r *http.Request) requirements.Level {
 		Description: strings.TrimSpace(r.FormValue("description")),
 		Source:      strings.TrimSpace(r.FormValue("source")),
 		First:       requirements.Exercise{Options: options("first")},
-		ScoredOnce:  r.FormValue("scored_once") != "",
 	}
 	if r.FormValue("second_same") == "" {
 		second := options("second")

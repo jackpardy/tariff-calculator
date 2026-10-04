@@ -601,7 +601,7 @@ type SkillValidation struct {
 	AfterInterruption bool // performed after the routine was interrupted; not counted (§15.3)
 	Counted           bool // its tariff is part of TotalTariff
 	Unscored          bool // it would count, but isn't one of the elements that score (ValidateOptions.ScoredElements)
-	ScoredEarlier     bool // it repeats an element that scored in the first exercise, so it scores nothing (ValidateOptions.ScoredEarlier)
+	ScoredEarlier     bool // it repeats an element whose difficulty carried over from the first exercise: not allowed, and it scores nothing (ValidateOptions.ScoredEarlier)
 }
 
 // RoutineValidation is the pure-domain result of validating a routine: per-skill
@@ -651,9 +651,9 @@ type ValidateOptions struct {
 	// ScoredElements, if more than 0, is how many elements score difficulty,
 	// e.g. 2 in an AG3 first exercise: the highest-tariff ones that count.
 	ScoredElements int
-	// ScoredEarlier are the elements that scored difficulty in the first
-	// exercise, where a repeat of one scores none in the second (FIG age-group
-	// rules, AG3). Such a repeat isn't counted.
+	// ScoredEarlier are the elements whose difficulty carries over from the
+	// first exercise (when only some elements score there, as in AG3). They
+	// can't be repeated in the second: a repeat is flagged and not counted.
 	ScoredEarlier []TrampolineSkill
 }
 
@@ -711,7 +711,7 @@ func ValidateRoutineWith(routine []TrampolineSkill, opts ValidateOptions) Routin
 			if s.Equal(&opts.ScoredEarlier[j]) {
 				scoredEarlier = true
 				res.Skills[i].ScoredEarlier = true
-				msgs = append(msgs, "Scored In 1st Exercise (No Tariff)")
+				msgs = append(msgs, "Can't Repeat: Scored In 1st Exercise")
 				break
 			}
 		}

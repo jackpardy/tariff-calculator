@@ -600,7 +600,7 @@ func notCountedReason(i int, sv skills.SkillValidation) string {
 	case sv.IsDuplicate:
 		return "repeat"
 	case sv.ScoredEarlier:
-		return "scored in 1st exercise"
+		return "repeats a 1st-exercise element"
 	default:
 		return "see warnings"
 	}

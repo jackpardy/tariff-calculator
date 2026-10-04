@@ -110,12 +110,13 @@ accounts: routines live in the browser.
 10. **Levels pair the requirements for a competition's two exercises.** A gymnast
     competes at a level with two routines, e.g. one of two set routines and then a
     voluntary, or two voluntaries. A level is plain JSON like a set:
-    `{format, name, description, source, first, second, scored_once}`, where each
+    `{format, name, description, source, first, second}`, where each
     exercise lists `options`, the requirements the gymnast chooses between, by
     reference (`builtin:<id>` or a saved set's id). With no `second`, both
-    exercises use the first's requirements. `scored_once` says an element that
-    scores difficulty in the first exercise scores none if repeated in the second
-    (FIG AG3). Built-in levels are listed in `sets/groups.json` and cover every
+    exercises use the first's requirements. When the first exercise scores only
+    some elements (`scored_elements`), their difficulty carries over and they
+    can't be repeated in the second; this follows from the first exercise's
+    requirements, so a level doesn't restate it. Built-in levels are listed in `sets/groups.json` and cover every
     built-in set; coaches write their own in a level editor that follows decision
     7, and share them like sets. In the routine builder a routine can do one of a
     level's exercises and be paired with the routine doing the other; the page

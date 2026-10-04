@@ -70,13 +70,7 @@ templ LevelEditor(e LevelEditorData) {
 				@exerciseOptions(e, "second", *e.Level.Second)
 			}
 		</div>
-		<div class="field set-scoring">
-			<label class="checkbox">
-				<input type="checkbox" name="scored_once" value="1" checked?={ e.Level.ScoredOnce }/>
-				An element that scores difficulty in the first exercise scores none if it's repeated in the second
-			</label>
-			<p class="matcher-hint">As in FIG AG3, where two elements score in the first exercise.</p>
-		</div>
+		<p class="matcher-hint mb-3">When the first exercise's requirements score only some elements (e.g. 2 in AG3), their difficulty carries over, and those elements can't be repeated in the second exercise.</p>
 		if len(e.Problems) > 0 {
 			<div class="notification is-warning is-light set-problems">
 				<p class="has-text-weight-semibold">Fix before saving:</p>

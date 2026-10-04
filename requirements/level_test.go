@@ -72,10 +72,6 @@ func TestBuiltinLevels(t *testing.T) {
 		t.Errorf("BG Club L1 is the set routine twice: %+v", club)
 	}
 
-	if ag3, _ := LookupBuiltinLevel("fig-ag3"); !ag3.ScoredOnce {
-		t.Error("FIG AG3's first-exercise scoring elements score once")
-	}
-
 	// Every built-in set belongs to a level.
 	used := map[string]bool{}
 	for _, b := range BuiltinLevels() {
