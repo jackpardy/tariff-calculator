@@ -260,16 +260,10 @@ func handleSkillEvaluation(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
-	skillJSON, err := json.Marshal(skill)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
 	render(w, r, views.EvaluationView(views.Evaluation{
 		Skill:       skill,
 		Landing:     skill.LandingPosition(),
 		FIGNotation: skill.FIGNotation(),
-		SkillJSON:   string(skillJSON),
 	}))
 }
 

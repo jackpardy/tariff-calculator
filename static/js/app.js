@@ -9,6 +9,7 @@ function tariffCalculatorStore() {
         expanded: [], // per-card expanded state, parallel to routine
         editingIndex: null,
         showEvaluation: false,
+        evalPosition: null, // the preview's chosen "Add at" position, kept across refreshes
         lastInsertPosition: 1,
         busy: false, // an add or update is in flight
         toast: { show: false, message: '', type: 'info' },
@@ -37,11 +38,15 @@ function tariffCalculatorStore() {
             });
 
             document.body.addEventListener('htmx:afterSwap', (event) => {
-                if (event.detail.target.id === 'routine-view') {
+                const id = event.detail.target.id;
+                if (id === 'routine-view') {
                     this.makeSortable();
-                } else if (event.detail.target.id === 'evaluation-preview') {
+                } else if (id === 'skill-inputs') {
+                    this.refreshEvaluation();
+                } else if (id === 'evaluation-preview') {
                     this.showEvaluation = true;
-                    this.fillPositionSelect('evaluation-insert-position');
+                    this.fillPositionSelect('evaluation-insert-position', this.evalPosition);
+                    this.evalPosition = null;
                 }
             });
             document.body.addEventListener('htmx:afterRequest', (event) => {
@@ -95,11 +100,12 @@ function tariffCalculatorStore() {
         // Called after the routine changes or the dropdown is swapped in; deliberately not
         // deferred with $nextTick, whose callbacks Alpine can hold back while it
         // initialises swapped-in content.
-        fillPositionSelect(id) {
+        // preferred, when given and still in range, is selected instead of the default.
+        fillPositionSelect(id, preferred = null) {
             const select = document.getElementById(id);
             if (!select) { return; }
             const maxPosition = this.routine.length + 1;
-            let selected = (this.lastInsertPosition || maxPosition) + 1;
+            let selected = parseInt(preferred) || (this.lastInsertPosition || maxPosition) + 1;
             if (selected > maxPosition || selected < 1) { selected = maxPosition; }
             select.replaceChildren(...Array.from({ length: maxPosition }, (_, i) =>
                 new Option(`Position ${i + 1}${i + 1 === maxPosition ? ' (End)' : ''}`, i + 1)));
@@ -119,12 +125,14 @@ function tariffCalculatorStore() {
             if (!response.ok) { throw new Error((await response.text()).trim() || `HTTP ${response.status}`); }
             return response.json();
         },
-        async addFromForm() {
+        // addFromForm adds the form's current skill at the position chosen in the given
+        // dropdown: the form's own, or the evaluation preview's.
+        async addFromForm(positionSelectId = 'insert-position') {
             if (this.busy) { return; }
             this.busy = true;
             try {
                 const skill = await this.calculateFormSkill();
-                this.addSkill(skill, document.getElementById('insert-position')?.value);
+                this.addSkill(skill, document.getElementById(positionSelectId)?.value);
             } catch (error) {
                 this.showToast(`Can't add skill: ${error.message}`, 'error');
             } finally {
@@ -164,11 +172,12 @@ function tariffCalculatorStore() {
             if (customName) { customName.value = ''; } // A label belongs to one skill
             this.fillPositionSelect('insert-position');
         },
-        addEvaluatedSkillToRoutine() {
-            const json = document.querySelector('#evaluation-preview [data-skill-data]')?.dataset.skillData;
-            if (!json) { this.showToast('No evaluated skill data found to add.', 'warning'); return; }
-            this.addSkill(JSON.parse(json), document.getElementById('evaluation-insert-position')?.value);
-            this.closeEvaluation();
+        // refreshEvaluation re-evaluates the form while the preview is open, so the
+        // preview always shows the skill its Add button will add.
+        refreshEvaluation() {
+            if (!this.showEvaluation) { return; }
+            this.evalPosition = document.getElementById('evaluation-insert-position')?.value ?? null;
+            htmx.trigger(document.querySelector('#main-form [hx-post="/skill-evaluation"]'), 'click');
         },
         closeEvaluation() {
             this.showEvaluation = false;

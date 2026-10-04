@@ -96,6 +96,7 @@ templ SkillFormView(f SkillForm) {
 						maxlength={ strconv.Itoa(skills.MaxCustomNameLength) }
 						value={ f.Skill.CustomName }
 						placeholder="Your own label for this skill"
+						x-on:input.debounce.300ms="refreshEvaluation()"
 					/>
 				</div>
 			</div>
@@ -263,12 +264,13 @@ type Evaluation struct {
 	Skill       skills.TrampolineSkill // priced and named
 	Landing     skills.BodyPosition
 	FIGNotation string
-	SkillJSON   string // the skill as the routine stores it, for "Add to Routine"
 }
 
-// EvaluationView renders the evaluation preview of the skill in the form.
+// EvaluationView renders the evaluation preview of the skill in the form. The page
+// refreshes it whenever the form changes, and its Add button adds the form's
+// current skill, so what it shows is what gets added.
 templ EvaluationView(e Evaluation) {
-	<div id="evaluation-preview-content" data-skill-data={ e.SkillJSON }>
+	<div id="evaluation-preview-content">
 		<h4 class="title is-6 mb-4">
 			Skill Evaluation -
 			if e.Skill.CustomName != "" {
@@ -304,7 +306,7 @@ templ EvaluationView(e Evaluation) {
 				<div class="field is-grouped is-grouped-multiline">
 					<div class="control">
 						<div class="buttons has-addons">
-							<button class="button is-info" x-on:click.prevent="addEvaluatedSkillToRoutine()">
+							<button class="button is-info" x-on:click.prevent="addFromForm('evaluation-insert-position')" x-bind:disabled="busy">
 								Add to Routine
 							</button>
 							<button class="button" x-on:click="closeEvaluation()">Close</button>

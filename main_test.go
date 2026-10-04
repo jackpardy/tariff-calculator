@@ -392,7 +392,7 @@ func TestCustomNames(t *testing.T) {
 		if strings.Contains(html, "<img") {
 			t.Errorf("custom name was rendered unescaped:\n%s", html)
 		}
-		for _, want := range []string{"Front Tuck", "(4 - o)", "0.50", "data-skill-data="} {
+		for _, want := range []string{"Front Tuck", "(4 - o)", "0.50", "addFromForm('evaluation-insert-position')"} {
 			if !strings.Contains(html, want) {
 				t.Errorf("preview is missing %q", want)
 			}
