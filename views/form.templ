@@ -109,7 +109,7 @@ templ picker(cats []catalog.Category) {
 					</div>
 				}
 				for _, e := range c.Entries {
-					<div class="picker-skill" x-bind:class={ fmt.Sprintf("{ 'is-picked': picked === '%s' }", e.ID()) }>
+					<div class="picker-skill" x-bind:class={ fmt.Sprintf("{ 'is-picked': picked === '%s' }", e.ID()) } data-tariffs={ templ.JSONString(e.ShapeTariffs()) }>
 						// The skill in its usual shape...
 						<button
 							type="button"
@@ -121,12 +121,13 @@ templ picker(cats []catalog.Category) {
 							hx-vals={ loadCommon(e.Key, e.Skill.Shape) }
 						>
 							<span class="picker-skill-name">{ catalog.PickerName(e.Skill) }</span>
-							// The base (tuck) tariff; the shape buttons say what other shapes add.
-							<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", e.BaseTariff()) }</span>
+							// The base (tuck) tariff, or once picked, the chosen shape's; the shape
+							// buttons say how the others differ from it.
+							<span class="picker-skill-tariff" x-text={ fmt.Sprintf("boxTariff($el.closest('.picker-skill').dataset.tariffs, '%s', %.1f)", e.ID(), e.BaseTariff()) }>{ fmt.Sprintf("%.1f", e.BaseTariff()) }</span>
 						</button>
 						// ...or straight away in another shape.
 						if options := e.ShapeOptions(); len(options) > 0 {
-							<div class="picker-shapes" role="group" aria-label={ "Shape for " + catalog.PickerName(e.Skill) } data-tariffs={ templ.JSONString(e.ShapeTariffs()) }>
+							<div class="picker-shapes" role="group" aria-label={ "Shape for " + catalog.PickerName(e.Skill) }>
 								for _, o := range options {
 									<button
 										type="button"
@@ -140,7 +141,7 @@ templ picker(cats []catalog.Category) {
 									>
 										<span class="picker-shape-name">{ o.Shape.String() }</span>
 										// Against tuck, or against the shape chosen once this box is picked.
-										<span class="picker-shape-modifier" x-text={ fmt.Sprintf("shapeModifier($el.closest('.picker-shapes').dataset.tariffs, '%s', '%s')", o.Shape, e.ID()) }>
+										<span class="picker-shape-modifier" x-text={ fmt.Sprintf("shapeModifier($el.closest('.picker-skill').dataset.tariffs, '%s', '%s')", o.Shape, e.ID()) }>
 											if o.Modifier > 0 {
 												{ fmt.Sprintf("+%.1f", o.Modifier) }
 											}

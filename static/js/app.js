@@ -117,6 +117,13 @@ function tariffCalculatorStore() {
             }
         },
 
+        // boxTariff is a picker box's tariff: the base (tuck) one, or once the box is
+        // picked, the chosen shape's, which its shape buttons are compared with.
+        boxTariff(tariffsJSON, id, base) {
+            const tariffs = JSON.parse(tariffsJSON);
+            const picked = this.picked === id ? tariffs[this.pickedShape] : undefined;
+            return (picked ?? base).toFixed(1);
+        },
         // shapeModifier is how a picker box's shape differs in tariff from tuck, or,
         // once that box is picked, from the shape chosen: "+0.1", "−0.1" or "".
         shapeModifier(tariffsJSON, shape, id) {
