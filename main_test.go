@@ -550,7 +550,7 @@ func TestTariffSheetPage(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d", rec.Code)
 	}
-	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "RoutineStore.current(RoutineStore.load()).skills", "/static/js/routines.js?v=", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v=",
+	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "Pairs.values(RoutineStore.current(state), state.routines)", "/static/js/routines.js?v=", "/static/js/sets.js?v=", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v=",
 		// Optional parts of the sheet.
 		`id="show-names" data-hides="hide-names" checked`, "/static/js/sheet.js?v=",
 		`id="show-req" data-hides="hide-req" checked`, `id="show-judge" data-hides="hide-judge" checked`,
@@ -1035,7 +1035,7 @@ func TestQRCode(t *testing.T) {
 // Both pages can share: the builder its routines, the requirements page its sets.
 func TestSharing(t *testing.T) {
 	for path, want := range map[string]string{
-		"/":             `Share.open('routines', [currentId])`,
+		"/":             `Share.open('routines', [currentId, partnerOf('a')?.id].filter(Boolean))`,
 		"/requirements": `Share.open('sets', [s.id])`,
 	} {
 		rec := httptest.NewRecorder()
@@ -1071,5 +1071,60 @@ func TestSetRoutinesListedApart(t *testing.T) {
 	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/requirements", nil))
 	if body := rec.Body.String(); !strings.Contains(body, `<h2 class="title is-5">Set routines</h2>`) || !strings.Contains(body, "<li>Back somersault (T)</li>") {
 		t.Errorf("the requirements page should list set routines on their own, element by element")
+	}
+}
+
+func TestLevelPairs(t *testing.T) {
+	// First exercise: back tuck 0.5, Barani 0.6, full back 0.7, Rudi 0.8; the full back and Rudi score.
+	first := `[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},
+		{"rotation":4,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Tuck"},
+		{"rotation":4,"twist_distribution":[2],"takeoff_position":"Feet","shape":"Straight","backward":true},
+		{"rotation":4,"twist_distribution":[3],"takeoff_position":"Feet","shape":"Straight"}]`
+	// Second exercise: the Rudi again (scored in the first), and a back tuck (didn't score).
+	second := `[{"rotation":4,"twist_distribution":[3],"takeoff_position":"Feet","shape":"Straight"},
+		{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}]`
+	values := func(level, exercise, own, ownSet, pair, pairSet string) url.Values {
+		v := url.Values{"routineData": {own}, "requirementSet": {ownSet}, "level": {level}, "exercise": {exercise}, "pairName": {"Partner"}}
+		if pair != "" {
+			v.Set("pairData", pair)
+			v.Set("pairSet", pairSet)
+		}
+		return v
+	}
+
+	html := postForm(t, "/routine", values("builtin-level:fig-ag3", "2", second, "builtin:fig-ag3-second", first, "builtin:fig-ag3-first")).Body.String()
+	if !strings.Contains(html, "Total Tariff: 0.50") || !strings.Contains(html, "Scored In 1st Exercise") {
+		t.Errorf("AG3 second exercise: the repeated Rudi scored in the first, so only the back tuck (0.5) counts")
+	}
+	if !strings.Contains(html, "FIG AG3 (17–21)</strong> · second exercise") || !strings.Contains(html, "First exercise: Partner") || !strings.Contains(html, "of 5 met") {
+		t.Errorf("the level panel names the level, the exercise and the first exercise's routine")
+	}
+
+	// Without the first exercise, or at a level without the rule, everything counts.
+	if html := postForm(t, "/routine", values("builtin-level:fig-ag3", "2", second, "builtin:fig-ag3-second", "", "")).Body.String(); !strings.Contains(html, "Total Tariff: 1.30") || !strings.Contains(html, "No routine for the first exercise yet") {
+		t.Errorf("no first exercise: 1.3, and the panel says so")
+	}
+	if html := postForm(t, "/routine", values("builtin-level:fig-ag2-junior", "2", second, "builtin:fig-ag2-junior-second", first, "builtin:fig-ag2-junior-first")).Body.String(); !strings.Contains(html, "Total Tariff: 1.30") {
+		t.Errorf("AG2: elements may score in both exercises")
+	}
+
+	// The first exercise is unaffected by the second.
+	if html := postForm(t, "/routine", values("builtin-level:fig-ag3", "1", first, "builtin:fig-ag3-first", second, "builtin:fig-ag3-second")).Body.String(); !strings.Contains(html, "Total Tariff: 1.50") || !strings.Contains(html, "Second exercise: Partner") {
+		t.Errorf("AG3 first exercise: the full back and Rudi score (1.5)")
+	}
+
+	// A custom level, posted as JSON.
+	custom := `{"format":1,"name":"Club voluntaries","first":{"options":["builtin:bucs-l1-first"]}}`
+	if html := postForm(t, "/routine", values(custom, "1", first, "builtin:bucs-l1-first", "", "")).Body.String(); !strings.Contains(html, "Club voluntaries</strong> · first exercise") {
+		t.Errorf("a custom level is named in the panel")
+	}
+	if html := postForm(t, "/routine", values(`{"format":1,"name":"Broken","first":{"options":[]}}`, "1", first, "", "", "")).Body.String(); !strings.Contains(html, "Couldn't use this level") {
+		t.Errorf("a level that doesn't validate is reported")
+	}
+
+	// The sheet leaves the repeat's difficulty out.
+	sheet := postForm(t, "/tariff-sheet", values("builtin-level:fig-ag3", "2", second, "builtin:fig-ag3-second", first, "builtin:fig-ag3-first")).Body.String()
+	if !strings.Contains(sheet, "scored in 1st exercise") {
+		t.Errorf("the sheet says why the Rudi adds nothing")
 	}
 }

@@ -22,10 +22,19 @@ type Builtin struct {
 	Set   Set
 }
 
-// BuiltinGroup is a group of built-in sets, e.g. one organisation's rules.
+// BuiltinGroup is a group of built-in sets, e.g. one organisation's rules,
+// and the levels they make up.
 type BuiltinGroup struct {
-	Name string
-	Sets []Builtin
+	Name   string
+	Sets   []Builtin
+	Levels []BuiltinLevel
+}
+
+// BuiltinLevel is a level that ships with the app, pairing built-in sets.
+type BuiltinLevel struct {
+	ID    string // referenced as "builtin-level:<ID>"
+	Group string
+	Level Level
 }
 
 // Requirements are the group's sets that aren't set routines.
@@ -60,13 +69,25 @@ func (b Builtin) IsSetRoutine() bool {
 // BuiltinPrefix marks a reference to a built-in set, e.g. "builtin:fig-ag1-first".
 const BuiltinPrefix = "builtin:"
 
+// BuiltinLevelPrefix marks a reference to a built-in level, e.g. "builtin-level:bucs-l3".
+const BuiltinLevelPrefix = "builtin-level:"
+
 var builtinGroups = mustLoadBuiltins()
 
-// groupFile is sets/groups.json: each group's folder, name and sets in order.
+// groupFile is sets/groups.json: each group's folder, name and sets in order,
+// and its levels. A level names its sets by ID; its source is its first set's.
 type groupFile []struct {
-	Dir  string   `json:"dir"`
-	Name string   `json:"name"`
-	Sets []string `json:"sets"`
+	Dir    string   `json:"dir"`
+	Name   string   `json:"name"`
+	Sets   []string `json:"sets"`
+	Levels []struct {
+		ID          string   `json:"id"`
+		Name        string   `json:"name"`
+		Description string   `json:"description"`
+		First       []string `json:"first"`
+		Second      []string `json:"second"` // none: the same as the first
+		ScoredOnce  bool     `json:"scored_once"`
+	} `json:"levels"`
 }
 
 func mustLoadBuiltins() []BuiltinGroup {
@@ -106,7 +127,48 @@ func mustLoadBuiltins() []BuiltinGroup {
 		}
 		out = append(out, group)
 	}
+
+	// Levels pair sets from any group, so they're read once every set is.
+	exists := func(ref string) bool { return ids[strings.TrimPrefix(ref, BuiltinPrefix)] }
+	refs := func(sets []string) []string {
+		out := make([]string, len(sets))
+		for i, id := range sets {
+			out[i] = BuiltinPrefix + id
+		}
+		return out
+	}
+	levelIDs := map[string]bool{}
+	for gi, g := range groups {
+		for _, l := range g.Levels {
+			if levelIDs[l.ID] || l.ID == "" {
+				panic(fmt.Sprintf("built-in level %q is listed twice or has no id", l.ID))
+			}
+			levelIDs[l.ID] = true
+			level := Level{Format: Format, Name: l.Name, Description: l.Description, First: Exercise{Options: refs(l.First)}, ScoredOnce: l.ScoredOnce}
+			if len(l.Second) > 0 {
+				level.Second = &Exercise{Options: refs(l.Second)}
+			}
+			if err := level.validate(exists); err != nil {
+				panic(fmt.Sprintf("built-in level %s: %v", l.ID, err))
+			}
+			if len(l.First) > 0 {
+				level.Source = findBuiltin(out, l.First[0]).Source
+			}
+			out[gi].Levels = append(out[gi].Levels, BuiltinLevel{ID: l.ID, Group: g.Name, Level: level})
+		}
+	}
 	return out
+}
+
+func findBuiltin(groups []BuiltinGroup, id string) Set {
+	for _, g := range groups {
+		for _, b := range g.Sets {
+			if b.ID == id {
+				return b.Set
+			}
+		}
+	}
+	return Set{}
 }
 
 // BuiltinGroups lists the built-in sets by group, in order.
@@ -130,4 +192,25 @@ func LookupBuiltin(ref string) (Set, bool) {
 		}
 	}
 	return Set{}, false
+}
+
+// BuiltinLevels lists every built-in level, group by group.
+func BuiltinLevels() []BuiltinLevel {
+	var all []BuiltinLevel
+	for _, g := range builtinGroups {
+		all = append(all, g.Levels...)
+	}
+	return all
+}
+
+// LookupBuiltinLevel finds a built-in level by its reference
+// ("builtin-level:<ID>") or ID.
+func LookupBuiltinLevel(ref string) (Level, bool) {
+	id := strings.TrimPrefix(ref, BuiltinLevelPrefix)
+	for _, l := range BuiltinLevels() {
+		if l.ID == id {
+			return l.Level, true
+		}
+	}
+	return Level{}, false
 }

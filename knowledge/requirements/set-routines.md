@@ -21,7 +21,8 @@ pickers list set routines **apart from** other requirements, grouped by source,
 with shorter names.
 
 Where a level lets the gymnast choose between set routines (e.g. BUCS L3–L7
-"option 1" and "option 2"), each option is its own entry.
+"option 1" and "option 2"), each option is its own entry, and the
+[level](levels.md) offers both for its first exercise.
 
 # Loading one
 

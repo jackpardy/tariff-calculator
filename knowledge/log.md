@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-04
+* **Update**: [Levels](requirements/levels.md) pair requirements for a
+  competition's two exercises: built in for every BUCS, FIG and BG level, and
+  written by coaches in a level editor. Routines doing a level's exercises are
+  paired in the builder and checked together (FIG AG3's first-exercise scoring
+  elements score once), and pairs and levels travel in share links.
 * **Update**: The 0.1 for shaped jumps and seat changes is confirmed correct
   ([tariff](domain/tariff.md)); removed from the open questions.
 * **Initialization**: Created this bundle (OKF v0.2) covering the domain,

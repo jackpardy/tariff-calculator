@@ -102,7 +102,9 @@ same way. The app tells users to check built-ins against the current rules.
 
 ISTO and Gymnastics Ireland levels are waiting for documents (see
 [open questions](../open-questions.md)). Requirements that are a single fixed
-routine are listed apart as [set routines](set-routines.md).
+routine are listed apart as [set routines](set-routines.md). Each group's
+requirements are also paired into [levels](levels.md), one per competition
+level, so a gymnast's two exercises are checked together.
 
 # The editor
 

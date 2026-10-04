@@ -107,6 +107,20 @@ accounts: routines live in the browser.
    Gymnastics Ireland's levels are not published (its development plan is sent to club
    secretaries on request), so they wait for that document.
 
+10. **Levels pair the requirements for a competition's two exercises.** A gymnast
+    competes at a level with two routines, e.g. one of two set routines and then a
+    voluntary, or two voluntaries. A level is plain JSON like a set:
+    `{format, name, description, source, first, second, scored_once}`, where each
+    exercise lists `options`, the requirements the gymnast chooses between, by
+    reference (`builtin:<id>` or a saved set's id). With no `second`, both
+    exercises use the first's requirements. `scored_once` says an element that
+    scores difficulty in the first exercise scores none if repeated in the second
+    (FIG AG3). Built-in levels are listed in `sets/groups.json` and cover every
+    built-in set; coaches write their own in a level editor that follows decision
+    7, and share them like sets. In the routine builder a routine can do one of a
+    level's exercises and be paired with the routine doing the other; the page
+    posts both, and the server checks them together.
+
 ## Consequences
 
 **Positive**
@@ -114,11 +128,16 @@ accounts: routines live in the browser.
 - One model and one evaluator serve built-in and custom sets, the routine view and the
   tariff sheet (e.g. marking required elements).
 - No expression language to secure or explain.
+- A gymnast's two routines are checked as the pair they are, and a level's set
+  routine options are offered together instead of as unrelated lists.
 
 **Negative / risks**
 - Some rule might not fit the matcher. *Mitigation:* the format is versioned; add a rule
   type when a real rule needs it.
 - Custom sets live only in that browser until accounts exist. *Mitigation:* export and
   import.
+- A level refers to sets rather than copying them, so deleting a set leaves a
+  level with a missing choice. *Mitigation:* the level editor lists it as a problem;
+  sharing a level carries the sets it uses.
 - Built-in sets go out of date. *Mitigation:* each names its source and season, and the
   app tells users to check them.

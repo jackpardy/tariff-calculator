@@ -29,6 +29,7 @@ templ Page(groups []requirements.BuiltinGroup) {
 			// app.js defines the Alpine component, so it must run before Alpine (all deferred, in order).
 			<script defer src={ static.URL("js/app.js") }></script>
 			<script defer src={ static.URL("js/alpine.min.js") }></script>
+			@templ.JSONScript("level-data", levelData(groups))
 		</head>
 		<body>
 			<section class="hero is-primary">
@@ -85,7 +86,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 					</select>
 				</div>
 				<button class="button is-small" type="button" x-on:click="newRoutine()">+ New</button>
-				<button class="button is-small" type="button" x-on:click="Share.open('routines', [currentId])">Share</button>
+				<button class="button is-small" type="button" x-on:click="Share.open('routines', [currentId, partnerOf('a')?.id].filter(Boolean))">Share</button>
 				<details class="routine-menu" data-menu>
 					<summary class="button is-small">More</summary>
 					// Close the menu after any choice.
@@ -141,7 +142,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 					<div id="routine-view-b" hx-sync="this:replace"></div>
 				</div>
 			</div>
-			<p class="compare-legend" x-show="compareId" x-cloak>Shaded skills differ from the other routine's skill at the same number.</p>
+			<p class="compare-legend" x-show="compareId && partnerOf('a')?.id !== compareId" x-cloak>Shaded skills differ from the other routine's skill at the same number.</p>
 		</div>
 		// Loading a set routine into a routine that has skills: a new routine, or replace them.
 		<div class="modal" x-bind:class="setRoutineOffer && 'is-active'" x-on:keydown.escape.window="cancelSetRoutine()">
@@ -175,16 +176,36 @@ templ calculator(groups []requirements.BuiltinGroup) {
 	</div>
 }
 
-// requirementPicker chooses the requirement set a builder column's routine is
-// checked against (built-in or the user's own); side is "a" or "b".
+// requirementPicker chooses what a builder column's routine is checked against
+// (side is "a" or "b"): a level, built-in requirements or a set routine, or the
+// user's own. With a level, it also chooses which exercise the routine is, which
+// of that exercise's options (e.g. set routine option 1 or 2), and the routine
+// doing the other exercise.
 templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 	{{ id := map[string]string{"a": "requirement-set", "b": "requirement-set-b"}[side] }}
 	<div class="requirement-picker">
 		<label class="label is-small mb-1" for={ id }>Check against</label>
 		<div class="requirement-picker-row">
 			<div class="select is-small">
-				<select id={ id } x-on:change={ fmt.Sprintf("setRequirements($event.target.value, '%s')", side) }>
-					<option value="" x-bind:selected={ fmt.Sprintf("!routineFor('%s')?.requirements", side) }>No requirements</option>
+				<select id={ id } x-on:change={ fmt.Sprintf("chooseCheck($event.target.value, '%s')", side) }>
+					<option value="" x-bind:selected={ fmt.Sprintf("!routineFor('%s')?.requirements && !routineFor('%s')?.level", side, side) }>No requirements</option>
+					// Levels first: both exercises, paired.
+					for _, g := range groups {
+						if len(g.Levels) > 0 {
+							<optgroup label={ "Levels · " + g.Name }>
+								for _, l := range g.Levels {
+									<option value={ "level:" + requirements.BuiltinLevelPrefix + l.ID } x-bind:selected={ fmt.Sprintf("routineFor('%s')?.level === '%s%s'", side, requirements.BuiltinLevelPrefix, l.ID) }>{ l.Level.Name }</option>
+								}
+							</optgroup>
+						}
+					}
+					<template x-if="customLevels.length > 0">
+						<optgroup label="Your levels">
+							<template x-for="l in customLevels" x-bind:key="l.id">
+								<option x-bind:value="'level:' + l.id" x-bind:selected={ fmt.Sprintf("routineFor('%s')?.level === l.id", side) } x-text="l.level.name"></option>
+							</template>
+						</optgroup>
+					</template>
 					for _, g := range groups {
 						if sets := g.Requirements(); len(sets) > 0 {
 							<optgroup label={ g.Name }>
@@ -207,14 +228,14 @@ templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 					<template x-if="customSets.some((s) => !isSetRoutine(s.set))">
 						<optgroup label="Your requirements">
 							<template x-for="s in customSets.filter((s) => !isSetRoutine(s.set))" x-bind:key="s.id">
-								<option x-bind:value="s.id" x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === s.id", side) } x-text="s.set.name"></option>
+								<option x-bind:value="s.id" x-bind:selected={ fmt.Sprintf("!routineFor('%s')?.level && routineFor('%s')?.requirements === s.id", side, side) } x-text="s.set.name"></option>
 							</template>
 						</optgroup>
 					</template>
 					<template x-if="customSets.some((s) => isSetRoutine(s.set))">
 						<optgroup label="Your set routines">
 							<template x-for="s in customSets.filter((s) => isSetRoutine(s.set))" x-bind:key="s.id">
-								<option x-bind:value="s.id" x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === s.id", side) } x-text="s.set.name"></option>
+								<option x-bind:value="s.id" x-bind:selected={ fmt.Sprintf("!routineFor('%s')?.level && routineFor('%s')?.requirements === s.id", side, side) } x-text="s.set.name"></option>
 							</template>
 						</optgroup>
 					</template>
@@ -224,10 +245,58 @@ templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 				<a class="button is-small is-text" href="/requirements" target="_blank" rel="noopener">Manage requirements</a>
 			}
 		</div>
+		@levelControls(side)
 	</div>
+}
+
+// levelControls are shown for a routine doing one of a level's exercises.
+templ levelControls(side string) {
+	<template x-if={ fmt.Sprintf("routineFor('%s')?.level", side) }>
+		<div class="level-controls">
+			<div class="buttons has-addons mb-0" role="group" aria-label="Exercise">
+				for n, label := range []string{"First exercise", "Second exercise"} {
+					<button
+						class="button is-small"
+						type="button"
+						x-bind:class={ fmt.Sprintf("exerciseOf('%s') === %d && 'is-link is-selected'", side, n+1) }
+						x-bind:aria-pressed={ fmt.Sprintf("exerciseOf('%s') === %d", side, n+1) }
+						x-on:click={ fmt.Sprintf("setExercise('%s', %d)", side, n+1) }
+					>{ label }</button>
+				}
+			</div>
+			// The exercise's options, when there's a choice (e.g. set routine option 1 or 2).
+			<template x-if={ fmt.Sprintf("optionsFor('%s').length > 1", side) }>
+				<div class="select is-small">
+					<select aria-label="Which requirements" x-on:change={ fmt.Sprintf("setOption('%s', $event.target.value)", side) }>
+						<template x-for={ fmt.Sprintf("ref in optionsFor('%s')", side) } x-bind:key="ref">
+							<option x-bind:value="ref" x-bind:selected={ fmt.Sprintf("ref === routineFor('%s').requirements", side) } x-text="requirementName(ref)"></option>
+						</template>
+					</select>
+				</div>
+			</template>
+			<div class="level-partner">
+				<span class="level-partner-label" x-text={ fmt.Sprintf("exerciseOf('%s') === 1 ? 'Second exercise' : 'First exercise'", side) }></span>
+				<div class="select is-small">
+					<select aria-label="The routine doing the other exercise" x-on:change={ fmt.Sprintf("pairWith('%s', $event.target.value)", side) }>
+						<option value="" x-bind:selected={ fmt.Sprintf("!partnerOf('%s')", side) }>None yet</option>
+						<template x-for={ fmt.Sprintf("r in routines.filter((r) => r.id !== routineFor('%s').id)", side) } x-bind:key="r.id">
+							<option x-bind:value="r.id" x-bind:selected={ fmt.Sprintf("r.id === partnerOf('%s')?.id", side) } x-text="`${r.name} (${r.skills.length})`"></option>
+						</template>
+						<option value="new">+ New routine</option>
+					</select>
+				</div>
+				<button
+					class="button is-small"
+					type="button"
+					x-show={ fmt.Sprintf("partnerOf('%s') && !isShown(partnerOf('%s').id)", side, side) }
+					x-on:click={ fmt.Sprintf("showPartner('%s')", side) }
+				>Side by side</button>
+			</div>
+		</div>
+	</template>
 }
 
 // builtinOption is a built-in set in a requirement picker.
 templ builtinOption(b requirements.Builtin, side string) {
-	<option value={ requirements.BuiltinPrefix + b.ID } x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === '%s%s'", side, requirements.BuiltinPrefix, b.ID) }>{ b.Set.Name }</option>
+	<option value={ requirements.BuiltinPrefix + b.ID } x-bind:selected={ fmt.Sprintf("!routineFor('%s')?.level && routineFor('%s')?.requirements === '%s%s'", side, side, requirements.BuiltinPrefix, b.ID) }>{ b.Set.Name }</option>
 }

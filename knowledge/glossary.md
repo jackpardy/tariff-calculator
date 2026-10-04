@@ -31,6 +31,7 @@ see. See [requirements framework](requirements/framework.md).
 | **Interruption** | A straight jump or impossible landing mid-routine; the routine stops counting there (CoP §15). |
 | **Set routine** | A compulsory routine: a fixed sequence of elements. See [set routines](requirements/set-routines.md). |
 | **Requirements** | A competition level's rules for a routine (required elements, limits, difficulty bounds), or a set routine. See [requirements framework](requirements/framework.md). |
+| **Level** | A competition level's two exercises, paired: what each is checked against (e.g. set routine option 1 or 2, then a voluntary). See [levels](requirements/levels.md). |
 | **Special requirements** | Elements a first exercise must include, each met by a different element and starred (*) on the competition card. |
 | **Checks** | The routine's own choice of what is scored: difficulty on or off, repeats flagged or not, how many elements score. |
 | **Tariff sheet** / **competition card** | The printed card handed to judges. See [tariff sheet](features/tariff-sheet.md). |

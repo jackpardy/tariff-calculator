@@ -1,12 +1,19 @@
-// share.js: share links for routines and requirement sets. A link carries what
-// it shares after "#share=", compressed: the fragment never reaches the server,
-// and nothing is stored there. Opening a link offers to add what it carries.
-// Used by the calculator (routines, with the custom sets they're checked
-// against) and the requirements page (sets). Needs routines.js and sets.js.
+// share.js: share links for routines, requirement sets and levels. A link
+// carries what it shares after "#share=", compressed: the fragment never
+// reaches the server, and nothing is stored there. Opening a link offers to add
+// what it carries. Used by the calculator (routines, with the custom sets and
+// levels they're checked against, and paired by level) and the requirements
+// page (sets and levels; a level brings the custom sets it uses). Needs
+// routines.js and sets.js.
 const Share = (() => {
     const prefix = '#share=';
 
     const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    // listing joins "a", "b and c", or "a, b and c", skipping empty parts.
+    const listing = (parts) => {
+        const items = parts.filter(Boolean);
+        return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+    };
 
     // --- Packing ---
     // A routine's skills without what the server works out again (names, tariffs).
@@ -39,13 +46,16 @@ const Share = (() => {
         if (text[0] === 'z') { bytes = await pipe(bytes, new DecompressionStream('deflate-raw')); }
         const share = JSON.parse(new TextDecoder().decode(bytes));
         if (!share || share.v !== 1) { throw new Error('not a share link this app understands'); }
-        return { routines: Array.isArray(share.routines) ? share.routines : [], sets: Array.isArray(share.sets) ? share.sets : [] };
+        const list = (v) => (Array.isArray(v) ? v : []);
+        return { routines: list(share.routines), sets: list(share.sets), levels: list(share.levels) };
     }
 
-    // pack is the share for the chosen routines and sets: each custom set a
-    // routine is checked against travels with it ("set:<n>" into sets).
-    function pack(routineIds, setIds) {
-        const savedSets = SetStore.load();
+    // pack is the share for the chosen routines, sets and levels: each custom
+    // set a routine or level uses travels with it ("set:<n>" into sets), as does
+    // a routine's custom level ("level:<n>" into levels). A routine's partner,
+    // if shared too, is its index in routines.
+    function pack(routineIds, setIds, levelIds = []) {
+        const savedSets = SetStore.load(), savedLevels = LevelStore.load();
         const sets = [], setIndex = new Map();
         const addSet = (id) => {
             if (!setIndex.has(id)) {
@@ -57,14 +67,36 @@ const Share = (() => {
             return `set:${setIndex.get(id)}`;
         };
         setIds.forEach(addSet);
-        const routines = RoutineStore.load().routines.filter((r) => routineIds.includes(r.id)).map((r) => {
+        const levels = [], levelIndex = new Map();
+        const addLevel = (id) => {
+            if (!levelIndex.has(id)) {
+                const saved = savedLevels.find((l) => l.id === id);
+                if (!saved) { return undefined; }
+                const portable = (exercise) => ({ ...exercise, options: (exercise.options || []).map((ref) => (ref.startsWith('builtin:') ? ref : addSet(ref) || ref)) });
+                const level = { ...saved.level, first: portable(saved.level.first || {}) };
+                if (saved.level.second) { level.second = portable(saved.level.second); }
+                levelIndex.set(id, levels.length);
+                levels.push(level);
+            }
+            return `level:${levelIndex.get(id)}`;
+        };
+        levelIds.forEach(addLevel);
+        const all = RoutineStore.load().routines;
+        const chosen = all.filter((r) => routineIds.includes(r.id));
+        const routines = chosen.map((r) => {
             const out = { name: r.name, skills: r.skills.map(portableSkill) };
             if (r.requirements?.startsWith('builtin:')) { out.requirements = r.requirements; }
             else if (r.requirements) { out.requirements = addSet(r.requirements); }
             if (r.checks) { out.checks = r.checks; }
+            if (r.level) {
+                out.level = r.level.startsWith('builtin-level:') ? r.level : addLevel(r.level);
+                out.exercise = r.exercise === 2 ? 2 : 1;
+                const partner = chosen.indexOf(Pairs.partnerOf(r, all));
+                if (partner >= 0) { out.partner = partner; }
+            }
             return out;
         });
-        return { v: 1, routines, sets };
+        return { v: 1, routines, sets, levels };
     }
 
     // --- The share dialog ---
@@ -102,9 +134,10 @@ const Share = (() => {
     function open(kind, chosen = []) {
         const routines = kind === 'routines';
         const savedSets = SetStore.load();
-                const items = routines
+        const items = routines
             ? RoutineStore.load().routines.map((r) => ({ id: r.id, label: r.name, detail: count(r.skills.length, 'skill', 'skills') }))
-            : savedSets.map((s) => ({ id: s.id, label: s.set.name, detail: count(s.set.rules.length, 'rule', 'rules') }));
+            : [...LevelStore.load().map((l) => ({ id: l.id, label: l.level.name, detail: 'level' })),
+                ...savedSets.map((s) => ({ id: s.id, label: s.set.name, detail: count(s.set.rules.length, 'rule', 'rules') }))];
         if (items.length === 0) { alert(routines ? 'There are no routines to share yet.' : 'Save some requirements first, then share them.'); return; }
 
         const link = el('input', { class: 'input is-small share-link', readonly: '', 'aria-label': 'Share link' });
@@ -120,13 +153,14 @@ const Share = (() => {
             const empty = ids.length === 0;
             shareButton.disabled = copyButton.disabled = empty;
             if (empty) { link.value = ''; qr.replaceChildren(); status.textContent = routines ? 'Tick the routines to share.' : 'Tick the requirements to share.'; return; }
-            const share = routines ? pack(ids, []) : pack([], ids);
+            const isLevel = (id) => id.startsWith('level-');
+            const share = routines ? pack(ids, []) : pack([], ids.filter((id) => !isLevel(id)), ids.filter(isLevel));
             const url = `${location.origin}${routines ? '/' : '/requirements'}${prefix}${await encode(share)}`;
             if (mine !== version) { return; }
             current = url;
             link.value = url;
-            const travelling = routines ? share.sets.length : 0;
-            status.textContent = travelling ? "The requirements they're checked against go with them." : '';
+            const travelling = routines ? share.sets.length + share.levels.length : share.sets.length > ids.filter((id) => !id.startsWith('level-')).length;
+            status.textContent = !travelling ? '' : routines ? "The requirements they're checked against go with them." : 'The requirements the levels use go with them.';
             try {
                 const response = await fetch('/qr', { method: 'POST', body: new URLSearchParams({ text: url }) });
                 if (mine !== version) { return; }
@@ -172,11 +206,12 @@ const Share = (() => {
 
         const routineItems = share.routines.map((r, i) => ({ id: `r${i}`, label: r.name || `Routine ${i + 1}`, detail: count((r.skills || []).length, 'skill', 'skills') }));
         const setItems = share.sets.map((s, i) => ({ id: `s${i}`, label: s.name || `Requirements ${i + 1}`, detail: 'requirements' }));
-        const items = [...routineItems, ...setItems];
+        const levelItems = share.levels.map((l, i) => ({ id: `l${i}`, label: l.name || `Level ${i + 1}`, detail: 'level' }));
+        const items = [...routineItems, ...levelItems, ...setItems];
         const list = choices(items, items.map((i) => i.id), () => {});
         const add = el('button', { class: 'button is-primary', type: 'button' }, 'Add');
         const cancel = el('button', { class: 'button', type: 'button' }, 'Cancel');
-        const what = [routineItems.length && count(routineItems.length, 'routine', 'routines'), setItems.length && count(setItems.length, 'list of requirements', 'lists of requirements')].filter(Boolean).join(' and ');
+        const what = listing([routineItems.length && count(routineItems.length, 'routine', 'routines'), levelItems.length && count(levelItems.length, 'level', 'levels'), setItems.length && count(setItems.length, 'list of requirements', 'lists of requirements')]);
         const dialog = modal('Shared with you',
             el('p', { class: 'share-intro' }, `This link has ${what}. Tick what to add.`),
             list,
@@ -185,7 +220,8 @@ const Share = (() => {
         dialog.root.querySelector('.modal-background').addEventListener('click', clearHash);
         add.addEventListener('click', () => {
             const ids = ticked(list);
-            const added = adopt(share, ids.filter((id) => id[0] === 'r').map((id) => +id.slice(1)), ids.filter((id) => id[0] === 's').map((id) => +id.slice(1)));
+            const indexes = (kind) => ids.filter((id) => id[0] === kind).map((id) => +id.slice(1));
+            const added = adopt(share, indexes('r'), indexes('s'), indexes('l'));
             clearHash();
             sessionStorage.setItem('shareAdded', added);
             location.reload();
@@ -200,9 +236,11 @@ const Share = (() => {
         }
     }
 
-    // adopt saves the chosen routines (by index) and sets, with the sets the
-    // routines are checked against. A set already saved, identically, is reused.
-    function adopt(share, routineIndexes, setIndexes) {
+    // adopt saves the chosen routines (by index), sets and levels, with the sets
+    // and levels the routines are checked against and the sets the levels use.
+    // A set or level already saved, identically, is reused. Routines shared as
+    // a pair stay paired.
+    function adopt(share, routineIndexes, setIndexes, levelIndexes = []) {
         const sets = SetStore.load();
         const setIds = new Map(); // share index -> saved id
         const saveSet = (i) => {
@@ -219,9 +257,29 @@ const Share = (() => {
         };
         setIndexes.forEach(saveSet);
 
+        const levels = LevelStore.load();
+        const levelIds = new Map(); // share index -> saved id
+        const saveLevel = (i) => {
+            if (levelIds.has(i) || !share.levels[i]) { return levelIds.get(i); }
+            const local = (exercise) => ({ ...exercise, options: (exercise?.options || []).map((ref) => (ref.startsWith('set:') ? saveSet(+ref.slice(4)) || ref : ref)) });
+            const level = { ...share.levels[i], first: local(share.levels[i].first) };
+            if (share.levels[i].second) { level.second = local(share.levels[i].second); }
+            const json = JSON.stringify(level);
+            let saved = levels.find((l) => JSON.stringify(l.level) === json);
+            if (!saved) {
+                level.name = uniqueName(level.name || 'Shared level', new Set(levels.map((l) => l.level.name)));
+                saved = { id: LevelStore.newId(), level };
+                levels.push(saved);
+            }
+            levelIds.set(i, saved.id);
+            return saved.id;
+        };
+        levelIndexes.forEach(saveLevel);
+
         const state = RoutineStore.load();
         const names = new Set(state.routines.map((r) => r.name));
         let first = null;
+        const added = new Map(); // share index -> routine
         for (const i of routineIndexes) {
             const shared = share.routines[i];
             if (!shared || !Array.isArray(shared.skills)) { continue; }
@@ -230,13 +288,23 @@ const Share = (() => {
             if (shared.requirements?.startsWith('builtin:')) { routine.requirements = shared.requirements; }
             else if (shared.requirements?.startsWith('set:')) { routine.requirements = saveSet(+shared.requirements.slice(4)); }
             if (shared.checks) { routine.checks = shared.checks; }
+            if (shared.level?.startsWith('builtin-level:')) { routine.level = shared.level; }
+            else if (shared.level?.startsWith('level:')) { routine.level = saveLevel(+shared.level.slice(6)); }
+            if (routine.level) { routine.exercise = shared.exercise === 2 ? 2 : 1; }
             state.routines.push(routine);
+            added.set(i, routine);
             first ??= routine.id;
         }
+        // Pairs shared together stay paired.
+        for (const [i, routine] of added) {
+            const partner = added.get(share.routines[i].partner);
+            if (routine.level && partner && partner.level === routine.level) { routine.partner = partner.id; }
+        }
         SetStore.save(sets);
+        LevelStore.save(levels);
         if (first) { state.current = first; }
         RoutineStore.save(state);
-        return [routineIndexes.length && count(routineIndexes.length, 'routine', 'routines'), setIds.size && count(setIds.size, 'list of requirements', 'lists of requirements')].filter(Boolean).join(' and ');
+        return listing([routineIndexes.length && count(routineIndexes.length, 'routine', 'routines'), levelIds.size && count(levelIds.size, 'level', 'levels'), setIds.size && count(setIds.size, 'list of requirements', 'lists of requirements')]);
     }
 
     // After adding from a link, the page reloads; say what was added.

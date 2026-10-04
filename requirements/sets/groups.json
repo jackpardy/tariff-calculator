@@ -29,6 +29,120 @@
       "bucs-disability-l2-option-1",
       "bucs-disability-l2-option-2",
       "bucs-disability-l2-second"
+    ],
+    "levels": [
+      {
+        "id": "bucs-fig",
+        "name": "BUCS FIG Level",
+        "first": [
+          "bucs-fig"
+        ],
+        "description": "Two voluntary exercises under the same rules; the same one may be repeated."
+      },
+      {
+        "id": "bucs-l1",
+        "name": "BUCS L1",
+        "first": [
+          "bucs-l1-first"
+        ],
+        "second": [
+          "bucs-l1-second"
+        ]
+      },
+      {
+        "id": "bucs-l2",
+        "name": "BUCS L2",
+        "first": [
+          "bucs-l2-first"
+        ],
+        "second": [
+          "bucs-l2-second"
+        ]
+      },
+      {
+        "id": "bucs-l3",
+        "name": "BUCS L3",
+        "first": [
+          "bucs-l3-option-1",
+          "bucs-l3-option-2"
+        ],
+        "second": [
+          "bucs-l3-second"
+        ],
+        "description": "First exercise: one of the two set routines. Second exercise: a voluntary."
+      },
+      {
+        "id": "bucs-l4",
+        "name": "BUCS L4",
+        "first": [
+          "bucs-l4-option-1",
+          "bucs-l4-option-2"
+        ],
+        "second": [
+          "bucs-l4-second"
+        ],
+        "description": "First exercise: one of the two set routines. Second exercise: a voluntary."
+      },
+      {
+        "id": "bucs-l5",
+        "name": "BUCS L5",
+        "first": [
+          "bucs-l5-option-1",
+          "bucs-l5-option-2"
+        ],
+        "second": [
+          "bucs-l5-second"
+        ],
+        "description": "First exercise: one of the two set routines. Second exercise: a voluntary."
+      },
+      {
+        "id": "bucs-l6",
+        "name": "BUCS L6",
+        "first": [
+          "bucs-l6-option-1",
+          "bucs-l6-option-2"
+        ],
+        "second": [
+          "bucs-l6-second"
+        ],
+        "description": "First exercise: one of the two set routines. Second exercise: a voluntary."
+      },
+      {
+        "id": "bucs-l7",
+        "name": "BUCS L7",
+        "first": [
+          "bucs-l7-option-1",
+          "bucs-l7-option-2"
+        ],
+        "second": [
+          "bucs-l7-second"
+        ],
+        "description": "First exercise: one of the two set routines. Second exercise: a voluntary."
+      },
+      {
+        "id": "bucs-disability-l1",
+        "name": "BUCS Disability L1",
+        "first": [
+          "bucs-disability-l1-option-1",
+          "bucs-disability-l1-option-2"
+        ],
+        "second": [
+          "bucs-disability-l1-second"
+        ],
+        "description": "First exercise: one of the two set routines. Second exercise: a voluntary."
+      },
+      {
+        "id": "bucs-disability-l2",
+        "name": "BUCS Disability L2",
+        "first": [
+          "bucs-disability-l2-option-1",
+          "bucs-disability-l2-option-2"
+        ],
+        "second": [
+          "bucs-disability-l2-second"
+        ],
+        "description": "First exercise: one of the two set routines. Second exercise: a voluntary."
+      }
     ]
   },
   {
@@ -41,6 +155,40 @@
       "fig-ag2-junior-second",
       "fig-ag3-first",
       "fig-ag3-second"
+    ],
+    "levels": [
+      {
+        "id": "fig-ag1",
+        "name": "FIG AG1 (11–12)",
+        "first": [
+          "fig-ag1-first"
+        ],
+        "second": [
+          "fig-ag1-second"
+        ]
+      },
+      {
+        "id": "fig-ag2-junior",
+        "name": "FIG AG2 (13–14) & Junior (15–16)",
+        "first": [
+          "fig-ag2-junior-first"
+        ],
+        "second": [
+          "fig-ag2-junior-second"
+        ]
+      },
+      {
+        "id": "fig-ag3",
+        "name": "FIG AG3 (17–21)",
+        "first": [
+          "fig-ag3-first"
+        ],
+        "second": [
+          "fig-ag3-second"
+        ],
+        "description": "An element that scores difficulty in the first exercise scores none if it's repeated in the second.",
+        "scored_once": true
+      }
     ]
   },
   {
@@ -55,6 +203,48 @@
       "bg-national-13-16-second",
       "bg-national-17-21-first",
       "bg-national-17-21-second"
+    ],
+    "levels": [
+      {
+        "id": "bg-national-10",
+        "name": "BG National 10 yrs",
+        "first": [
+          "bg-national-10-first"
+        ],
+        "second": [
+          "bg-national-10-second"
+        ]
+      },
+      {
+        "id": "bg-national-11-12",
+        "name": "BG National 11–12",
+        "first": [
+          "bg-national-11-12-first"
+        ],
+        "second": [
+          "bg-national-11-12-second"
+        ]
+      },
+      {
+        "id": "bg-national-13-16",
+        "name": "BG National 13–14 & 15–16",
+        "first": [
+          "bg-national-13-16-first"
+        ],
+        "second": [
+          "bg-national-13-16-second"
+        ]
+      },
+      {
+        "id": "bg-national-17-21",
+        "name": "BG National 17–21",
+        "first": [
+          "bg-national-17-21-first"
+        ],
+        "second": [
+          "bg-national-17-21-second"
+        ]
+      }
     ]
   },
   {
@@ -79,6 +269,126 @@
       "bg-regional-l4-13-14-second",
       "bg-regional-l4-15-16-second",
       "bg-regional-l4-17-second"
+    ],
+    "levels": [
+      {
+        "id": "bg-club-l1",
+        "name": "BG Club L1",
+        "first": [
+          "bg-club-l1"
+        ],
+        "description": "Both exercises are the set routine."
+      },
+      {
+        "id": "bg-club-l2",
+        "name": "BG Club L2",
+        "first": [
+          "bg-club-l2"
+        ],
+        "description": "Both exercises are the set routine."
+      },
+      {
+        "id": "bg-club-l3",
+        "name": "BG Club L3",
+        "first": [
+          "bg-club-l3"
+        ],
+        "description": "Both exercises are the set routine."
+      },
+      {
+        "id": "bg-regional-l1",
+        "name": "BG Regional L1",
+        "first": [
+          "bg-regional-l1-first"
+        ],
+        "second": [
+          "bg-regional-l1-second"
+        ],
+        "description": "First exercise: the set routine. Second exercise: a voluntary."
+      },
+      {
+        "id": "bg-regional-l2",
+        "name": "BG Regional L2",
+        "first": [
+          "bg-regional-l2-first"
+        ],
+        "second": [
+          "bg-regional-l2-second"
+        ],
+        "description": "First exercise: the set routine. Second exercise: a voluntary."
+      },
+      {
+        "id": "bg-regional-l3-9-12",
+        "name": "BG Regional L3 9–12",
+        "first": [
+          "bg-regional-l3-first"
+        ],
+        "second": [
+          "bg-regional-l3-9-12-second"
+        ],
+        "description": "First exercise: the set routine. Second exercise: a voluntary."
+      },
+      {
+        "id": "bg-regional-l3-13",
+        "name": "BG Regional L3 13+",
+        "first": [
+          "bg-regional-l3-first"
+        ],
+        "second": [
+          "bg-regional-l3-13-second"
+        ],
+        "description": "First exercise: the set routine. Second exercise: a voluntary."
+      },
+      {
+        "id": "bg-regional-l4-10",
+        "name": "BG Regional L4 10 yrs",
+        "first": [
+          "bg-regional-l4-10-first"
+        ],
+        "second": [
+          "bg-regional-l4-10-second"
+        ]
+      },
+      {
+        "id": "bg-regional-l4-11-12",
+        "name": "BG Regional L4 11–12",
+        "first": [
+          "bg-regional-l4-11-12-first"
+        ],
+        "second": [
+          "bg-regional-l4-11-12-second"
+        ]
+      },
+      {
+        "id": "bg-regional-l4-13-14",
+        "name": "BG Regional L4 13–14",
+        "first": [
+          "bg-regional-l4-13-first"
+        ],
+        "second": [
+          "bg-regional-l4-13-14-second"
+        ]
+      },
+      {
+        "id": "bg-regional-l4-15-16",
+        "name": "BG Regional L4 15–16",
+        "first": [
+          "bg-regional-l4-13-first"
+        ],
+        "second": [
+          "bg-regional-l4-15-16-second"
+        ]
+      },
+      {
+        "id": "bg-regional-l4-17",
+        "name": "BG Regional L4 17+",
+        "first": [
+          "bg-regional-l4-13-first"
+        ],
+        "second": [
+          "bg-regional-l4-17-second"
+        ]
+      }
     ]
   }
 ]

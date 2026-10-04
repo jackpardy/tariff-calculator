@@ -47,6 +47,11 @@ routine, and the elements involved are highlighted. Choosing requirements that
 are a [set routine](../requirements/set-routines.md) offers to load it as a new
 routine or to replace the current one.
 
+Choosing a [level](../requirements/levels.md) instead makes the routine one of
+its two exercises, with controls to pick the exercise, choose between its
+options (e.g. set routine option 1 or 2), and pair it with the routine doing the
+other exercise, or start one and show the two side by side.
+
 ## Checks
 
 Each routine has **checks**: whether difficulty is scored, whether repeats are

@@ -46,6 +46,10 @@ from what its [requirements](../requirements/framework.md#scoring) say:
 - `AllowRepeats`: repeats are neither flagged nor discounted. Used for
   [set routines](../requirements/set-routines.md).
 - `ScoredElements`: only *n* elements score difficulty.
+- `ScoredEarlier`: elements that scored in the first exercise. A repeat of
+  one (by the §14 definition) is marked `ScoredEarlier`, flagged "Scored In 1st
+  Exercise (No Tariff)" and not counted. Set for a second exercise at a
+  [level](../requirements/levels.md) with `scored_once` (FIG AG3).
 
 ## Scoring only some elements
 

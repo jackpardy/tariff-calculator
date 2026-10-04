@@ -601,6 +601,7 @@ type SkillValidation struct {
 	AfterInterruption bool // performed after the routine was interrupted; not counted (§15.3)
 	Counted           bool // its tariff is part of TotalTariff
 	Unscored          bool // it would count, but isn't one of the elements that score (ValidateOptions.ScoredElements)
+	ScoredEarlier     bool // it repeats an element that scored in the first exercise, so it scores nothing (ValidateOptions.ScoredEarlier)
 }
 
 // RoutineValidation is the pure-domain result of validating a routine: per-skill
@@ -650,6 +651,10 @@ type ValidateOptions struct {
 	// ScoredElements, if more than 0, is how many elements score difficulty,
 	// e.g. 2 in an AG3 first exercise: the highest-tariff ones that count.
 	ScoredElements int
+	// ScoredEarlier are the elements that scored difficulty in the first
+	// exercise, where a repeat of one scores none in the second (FIG age-group
+	// rules, AG3). Such a repeat isn't counted.
+	ScoredEarlier []TrampolineSkill
 }
 
 // ValidateRoutineWith is ValidateRoutine with options.
@@ -701,7 +706,17 @@ func ValidateRoutineWith(routine []TrampolineSkill, opts ValidateOptions) Routin
 		}
 		res.Skills[i].AfterInterruption = interrupted
 
-		if !isCurrentSkillDuplicate && i < RoutineLength && res.InterruptedAt < 0 {
+		scoredEarlier := false
+		for j := range opts.ScoredEarlier {
+			if s.Equal(&opts.ScoredEarlier[j]) {
+				scoredEarlier = true
+				res.Skills[i].ScoredEarlier = true
+				msgs = append(msgs, "Scored In 1st Exercise (No Tariff)")
+				break
+			}
+		}
+
+		if !isCurrentSkillDuplicate && !scoredEarlier && i < RoutineLength && res.InterruptedAt < 0 {
 			res.TotalTariff += s.Tariff
 			res.Skills[i].Counted = true
 		}

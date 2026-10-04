@@ -16,6 +16,28 @@ type RoutineSide struct {
 	Side   string
 	Other  *CompareSide
 	Checks Checks
+	Level  *LevelCheck // the level the routine is one exercise of, if any
+}
+
+// LevelCheck is a routine doing one exercise of a level, and how the routine
+// doing the other exercise (if there is one) meets its requirements.
+type LevelCheck struct {
+	Name       string
+	Err        string // why the level couldn't be used, if it couldn't
+	Exercise   int    // 1 or 2
+	HasOther   bool   // a routine does the other exercise
+	OtherName  string
+	OtherErr   string // why the other routine couldn't be checked
+	OtherMet   int
+	OtherRules int
+}
+
+// exerciseName is "first" or "second".
+func exerciseName(n int) string {
+	if n == 2 {
+		return "second"
+	}
+	return "first"
 }
 
 // Checks are which of the Code of Points' checks apply to a routine. Set
@@ -65,9 +87,45 @@ templ Routine(rv skills.RoutineValidation, check *RequirementCheck, side Routine
 		}
 	</div>
 	@results(rv, side)
+	if side.Level != nil {
+		@levelPanel(*side.Level)
+	}
 	if check != nil {
 		@requirementsPanel(*check, side.Side)
 	}
+}
+
+// levelPanel says which exercise of a level the routine is, and how the
+// routine doing the other exercise is getting on.
+templ levelPanel(l LevelCheck) {
+	<div class="level-check mt-4">
+		<p>
+			<strong>{ l.Name }</strong> · { exerciseName(l.Exercise) } exercise
+		</p>
+		if l.Err != "" {
+			<p class="has-text-danger is-size-7">Couldn't use this level: { l.Err }</p>
+		} else if !l.HasOther {
+			<p class="has-text-grey is-size-7">No routine for the { exerciseName(3 - l.Exercise) } exercise yet.</p>
+		} else {
+			<p class="is-size-7">
+				{ titleCase(exerciseName(3 - l.Exercise)) } exercise: { l.OtherName }
+				if l.OtherErr != "" {
+					<span class="has-text-danger">· couldn't check it: { l.OtherErr }</span>
+				} else if l.OtherRules > 0 {
+					<span class={ "tag", "is-small", templ.KV("is-success", l.OtherMet == l.OtherRules), templ.KV("is-danger", l.OtherMet < l.OtherRules) }>
+						{ fmt.Sprintf("%d of %d met", l.OtherMet, l.OtherRules) }
+					</span>
+				}
+			</p>
+		}
+	</div>
+}
+
+func titleCase(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 templ skillCard(i int, sv skills.SkillValidation, message string, last bool, side RoutineSide, different bool, canScore, scoresTicked bool) {
@@ -77,7 +135,7 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 				templ.KV("invalid-transition", sv.InvalidTransition || sv.IntermediateJump),
 				templ.KV("invalid-landing", sv.InvalidLanding),
 				templ.KV("duplicate-skill", sv.IsDuplicate),
-				templ.KV("not-counted", sv.AfterInterruption),
+				templ.KV("not-counted", sv.AfterInterruption || sv.ScoredEarlier),
 				templ.KV("differs", different) }
 		>
 			// Clickable header toggles the details.

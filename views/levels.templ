@@ -1,0 +1,211 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"tariffCalculator/requirements"
+)
+
+// CustomRequirements are requirements saved in the browser, as the level
+// editor offers them.
+type CustomRequirements struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	SetRoutine bool   `json:"set_routine"`
+}
+
+// LevelEditorData is the level being edited.
+type LevelEditorData struct {
+	Level      requirements.Level
+	JSON       string   // the level as it would be saved
+	Problems   []string // what's wrong with it, if anything
+	Groups     []requirements.BuiltinGroup
+	Custom     []CustomRequirements
+	CustomJSON string // Custom, carried through each re-render
+}
+
+// LevelEditor is the editor form for one level. Every change posts the form to
+// /requirements/level-editor, which re-renders it; data-level-json carries the
+// level as it would be saved.
+templ LevelEditor(e LevelEditorData) {
+	<form
+		id="level-editor"
+		class="set-editor"
+		hx-post="/requirements/level-editor"
+		hx-trigger="change"
+		hx-target="this"
+		hx-swap="outerHTML"
+		hx-sync="this:replace"
+		data-level-json={ e.JSON }
+		data-problems={ strconv.Itoa(len(e.Problems)) }
+		x-on:submit.prevent
+	>
+		<input type="hidden" name="custom" value={ e.CustomJSON }/>
+		<div class="field">
+			<label class="label is-small" for="level-name">Name</label>
+			<input class="input" id="level-name" name="name" value={ e.Level.Name } placeholder="e.g. Student novice 2026–27"/>
+		</div>
+		<div class="field">
+			<label class="label is-small" for="level-description">Description (optional)</label>
+			<input class="input is-small" id="level-description" name="description" value={ e.Level.Description }/>
+		</div>
+		<div class="field">
+			<label class="label is-small" for="level-source">Source (optional)</label>
+			<input class="input is-small" id="level-source" name="source" value={ e.Level.Source } placeholder="e.g. Competition handbook, September 2026"/>
+		</div>
+		<div class="rule-card">
+			<p class="rule-card-title">First exercise</p>
+			@exerciseOptions(e, "first", e.Level.First)
+		</div>
+		<div class="rule-card">
+			<p class="rule-card-title">Second exercise</p>
+			<label class="checkbox">
+				<input type="checkbox" name="second_same" value="1" checked?={ e.Level.Second == nil }/>
+				The same requirements as the first exercise
+			</label>
+			<p class="matcher-hint">For two voluntaries under the same rules, or the same set routine twice.</p>
+			if e.Level.Second != nil {
+				@exerciseOptions(e, "second", *e.Level.Second)
+			}
+		</div>
+		<div class="field set-scoring">
+			<label class="checkbox">
+				<input type="checkbox" name="scored_once" value="1" checked?={ e.Level.ScoredOnce }/>
+				An element that scores difficulty in the first exercise scores none if it's repeated in the second
+			</label>
+			<p class="matcher-hint">As in FIG AG3, where two elements score in the first exercise.</p>
+		</div>
+		if len(e.Problems) > 0 {
+			<div class="notification is-warning is-light set-problems">
+				<p class="has-text-weight-semibold">Fix before saving:</p>
+				<ul>
+					for _, p := range e.Problems {
+						<li>{ p }</li>
+					}
+				</ul>
+			</div>
+		}
+	</form>
+}
+
+// exerciseOptions are the requirements an exercise chooses between, e.g. a
+// level's two set routines, each a choice of built-in or saved requirements.
+templ exerciseOptions(e LevelEditorData, key string, ex requirements.Exercise) {
+	<p class="matcher-hint mb-2">The gymnast performs to one of these: a set routine, or requirements for a voluntary. Add more than one when there's a choice, e.g. set routine option 1 or option 2.</p>
+	<input type="hidden" name={ key + ".n" } value={ strconv.Itoa(len(ex.Options)) }/>
+	for i, ref := range ex.Options {
+		<div class="level-option">
+			<div class="select is-small">
+				<select name={ fmt.Sprintf("%s.%d", key, i) } aria-label={ fmt.Sprintf("%s exercise, choice %d", titleCase(key), i+1) }>
+					<option value="" selected?={ ref == "" }>Choose requirements...</option>
+					@requirementChoices(e, ref)
+				</select>
+			</div>
+			@levelAction("Remove", fmt.Sprintf("delete:%s:%d", key, i), len(ex.Options) == 1)
+		</div>
+	}
+	<div class="buttons are-small">
+		@levelAction("+ Add a choice", "add:"+key, false)
+	</div>
+}
+
+// requirementChoices are every built-in set routine and set of requirements,
+// and the user's own, with selected chosen.
+templ requirementChoices(e LevelEditorData, selected string) {
+	if len(e.Custom) > 0 {
+		<optgroup label="Your set routines and requirements">
+			for _, c := range e.Custom {
+				<option value={ c.ID } selected?={ c.ID == selected }>{ c.Name }{ setRoutineMark(c.SetRoutine) }</option>
+			}
+		</optgroup>
+	}
+	for _, g := range e.Groups {
+		if routines := g.SetRoutines(); len(routines) > 0 {
+			<optgroup label={ "Set routines · " + g.Name }>
+				for _, b := range routines {
+					<option value={ requirements.BuiltinPrefix + b.ID } selected?={ requirements.BuiltinPrefix+b.ID == selected }>{ b.Set.Name }</option>
+				}
+			</optgroup>
+		}
+		if sets := g.Requirements(); len(sets) > 0 {
+			<optgroup label={ g.Name }>
+				for _, b := range sets {
+					<option value={ requirements.BuiltinPrefix + b.ID } selected?={ requirements.BuiltinPrefix+b.ID == selected }>{ b.Set.Name }</option>
+				}
+			</optgroup>
+		}
+	}
+}
+
+func setRoutineMark(isSetRoutine bool) string {
+	if isSetRoutine {
+		return " (set routine)"
+	}
+	return ""
+}
+
+// levelAction is a button that posts the level editor with an action ("add:first").
+templ levelAction(label, action string, disabled bool) {
+	<button
+		type="button"
+		class="button is-small"
+		disabled?={ disabled }
+		hx-post="/requirements/level-editor"
+		hx-include="#level-editor"
+		hx-target="#level-editor"
+		hx-swap="outerHTML"
+		hx-vals={ editorActionVals(action) }
+	>{ label }</button>
+}
+
+// builtinLevelGroup lists one source's built-in levels, folded away, each with
+// what its exercises are.
+templ builtinLevelGroup(g requirements.BuiltinGroup) {
+	<details class="builtin-group">
+		<summary>{ g.Name } <span class="set-meta">· { strconv.Itoa(len(g.Levels)) }</span></summary>
+		<ul class="set-list">
+			for _, l := range g.Levels {
+				<li class="set-item">
+					<div>
+						<p class="set-name">{ l.Level.Name }</p>
+						if l.Level.Description != "" {
+							<p class="set-description">{ l.Level.Description }</p>
+						}
+						<ul class="level-exercises">
+							for _, line := range exerciseLines(l.Level) {
+								<li>{ line }</li>
+							}
+						</ul>
+						if l.Level.Source != "" {
+							<p class="set-meta">{ l.Level.Source }</p>
+						}
+					</div>
+					<div class="buttons are-small mb-0">
+						<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("duplicateBuiltinLevel('%s%s')", requirements.BuiltinLevelPrefix, l.ID) }>Duplicate</button>
+					</div>
+				</li>
+			}
+		</ul>
+	</details>
+}
+
+// exerciseLines say what a built-in level's exercises are, e.g. "First
+// exercise: BUCS L3 · option 1 or BUCS L3 · option 2".
+func exerciseLines(l requirements.Level) []string {
+	names := func(e requirements.Exercise) string {
+		out := make([]string, len(e.Options))
+		for i, ref := range e.Options {
+			out[i] = ref
+			if set, ok := requirements.LookupBuiltin(ref); ok {
+				out[i] = set.Name
+			}
+		}
+		return strings.Join(out, " or ")
+	}
+	if l.Second == nil {
+		return []string{"Both exercises: " + names(l.First)}
+	}
+	return []string{"First exercise: " + names(l.First), "Second exercise: " + names(*l.Second)}
+}

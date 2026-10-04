@@ -270,6 +270,18 @@
 .is-met .requirement-mark { color: #257953; }
 .is-unmet .requirement-mark { color: #cc0f35; }
 .requirement-detail { display: block; color: #777; font-size: 0.8rem; }
+.level-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
+.level-controls .buttons { flex-wrap: nowrap; }
+.level-controls .select select { max-width: 18rem; }
+.level-partner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.level-partner-label { font-size: 0.85rem; font-weight: 600; }
+.level-option { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.level-option .select { min-width: 0; }
+.level-option .select select { max-width: 26rem; }
+.level-exercises { font-size: 0.85rem; color: #555; margin: 0.15rem 0; }
+.level-check { padding: 0.5rem 0.75rem; border-left: 3px solid #485fc7; background: #f5f7ff; }
+.level-check p + p { margin-top: 0.15rem; }
+.is-comparing .level-controls .select, .is-comparing .level-controls .select select { width: 100%; max-width: 100%; }
 
 /* --- Add a skill (views.SkillFormView) --- */
 /* The editor's own box would limit how far the sticky skill card can follow the

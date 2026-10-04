@@ -18,13 +18,19 @@ https://<host>/#share=z<base64url(deflate-raw(JSON))>
 https://<host>/requirements#share=j<base64url(JSON)>   (browsers without CompressionStream)
 ```
 
-The payload is `{v: 1, routines: [...], sets: [...]}`:
+The payload is `{v: 1, routines: [...], sets: [...], levels: [...]}`:
 
 - Routines carry `name`, skills **without** names or tariffs (the server works
   those out again), and `checks`.
 - A routine checked against built-in requirements keeps its `builtin:<id>`
   reference. If it uses custom requirements, those travel with it in `sets`, and
   the routine refers to them as `set:<n>`.
+- A routine doing a [level](../requirements/levels.md)'s exercise carries
+  `level` (`builtin-level:<id>`, or `level:<n>` into `levels` for a custom one),
+  `exercise`, and `partner`, the index of the routine doing the other exercise
+  if it's shared too. Sharing from the builder ticks the partner as well.
+- A custom level's options that are custom requirements become `set:<n>`, so
+  sharing a level brings the requirements it uses.
 
 Because the data is in the URL fragment, **nothing is sent to or stored on the
 server**, and there are no accounts. The only server call is `POST /qr`,
@@ -35,8 +41,8 @@ described below.
 Opening a link shows "Shared with you" with everything ticked. The user chooses
 what to add. Routines are always added on the calculator page, so a requirements
 link carrying routines redirects there. Added items get unique names (" (2)"),
-and custom requirements identical to ones already saved are reused, not
-duplicated. The fragment is then cleared and the page reloads with a
+and custom requirements and levels identical to ones already saved are reused,
+not duplicated. Routines shared as a pair stay paired. The fragment is then cleared and the page reloads with a
 confirmation.
 
 # QR code

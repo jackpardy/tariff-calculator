@@ -22,6 +22,9 @@ From the [British Gymnastics requirements](requirements/bg-national.md):
 - What counts as a "double" in each rule?
 - Are the national qualifying scores (difficulty and total) in the set
   descriptions current?
+- In 17–21, does an element that scores in the first exercise lose its
+  difficulty if repeated in the second, as in FIG AG3? The document doesn't
+  say, so the [level](requirements/levels.md) doesn't apply it.
 
 # Decisions pending
 

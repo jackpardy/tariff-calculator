@@ -31,6 +31,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 			<script defer src={ static.URL("js/requirements.js") }></script>
 			<script defer src={ static.URL("js/alpine.min.js") }></script>
 			@templ.JSONScript("builtin-sets", builtinSets(groups))
+			@templ.JSONScript("level-data", levelData(groups))
 		</head>
 		<body>
 			<section class="section">
@@ -39,8 +40,9 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 					<h1 class="title is-4 mt-1">Requirements</h1>
 					<p class="mb-4">
 						Requirements are the rules a routine is checked against: required or banned elements,
-						how many elements, difficulty limits or a set routine. Choose them for a routine under
-						"Check against" in the Routine Builder.
+						how many elements, difficulty limits or a set routine. A level pairs them for a
+						competition's two exercises, e.g. a choice of set routines and then a voluntary. Choose
+						either for a routine under "Check against" in the Routine Builder.
 					</p>
 					// The editor, when a set is open.
 					<div class="box" x-show="editing !== null" x-cloak>
@@ -52,6 +54,37 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 							</div>
 						</div>
 						<div id="editor-area" hx-sync="this:replace"></div>
+					</div>
+					<div class="box">
+						<div class="box-head">
+							<h2 class="title is-5 mb-0">Your levels</h2>
+							<div class="buttons mb-0">
+								<button class="button is-primary is-small" type="button" x-on:click="newLevel()">+ New</button>
+							</div>
+						</div>
+						<p class="has-text-grey" x-show="levels.length === 0">None yet. Start a new one, or duplicate a built-in one.</p>
+						<ul class="set-list">
+							<template x-for="l in levels" x-bind:key="l.id">
+								<li class="set-item">
+									<div>
+										<p class="set-name" x-text="l.level.name"></p>
+										<p class="set-description" x-show="l.level.description" x-text="l.level.description"></p>
+										<ul class="level-exercises">
+											<template x-for="(line, i) in exerciseLines(l.level)" x-bind:key="i">
+												<li x-text="line"></li>
+											</template>
+										</ul>
+										<p class="set-meta" x-show="l.level.source" x-text="l.level.source"></p>
+									</div>
+									<div class="buttons are-small mb-0">
+										<button class="button is-small" type="button" x-on:click="editLevel(l.id)">Edit</button>
+										<button class="button is-small" type="button" x-on:click="duplicateLevel(l.level)">Duplicate</button>
+										<button class="button is-small" type="button" x-on:click="Share.open('sets', [l.id])">Share</button>
+										<button class="button is-small is-danger is-outlined" type="button" x-on:click="removeLevel(l.id)">Delete</button>
+									</div>
+								</li>
+							</template>
+						</ul>
 					</div>
 					<div class="box">
 						<div class="box-head">
@@ -101,6 +134,15 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 						</ul>
 					</div>
 					<div class="box">
+						<h2 class="title is-5">Built-in levels</h2>
+						<p class="is-size-7 has-text-grey mb-3">Each pairs a level's built-in requirements for its two exercises. Duplicate one to adjust it.</p>
+						for _, g := range groups {
+							if len(g.Levels) > 0 {
+								@builtinLevelGroup(g)
+							}
+						}
+					</div>
+					<div class="box">
 						<h2 class="title is-5">Built-in requirements</h2>
 						<p class="is-size-7 has-text-grey mb-3">Drafted from each organisation's published rules, which name their source. Rules change, so check them against the current rules; duplicate one to adjust it.</p>
 						for _, g := range groups {
@@ -144,6 +186,27 @@ func builtinSets(groups []requirements.BuiltinGroup) map[string]requirements.Set
 		}
 	}
 	return out
+}
+
+// LevelData is what a page needs to offer levels: each built-in level by
+// reference ("builtin-level:<id>"), and the names of built-in requirements by
+// reference ("builtin:<id>"), for naming a level's options.
+type LevelData struct {
+	Levels map[string]requirements.Level `json:"levels"`
+	Names  map[string]string             `json:"names"`
+}
+
+func levelData(groups []requirements.BuiltinGroup) LevelData {
+	data := LevelData{Levels: map[string]requirements.Level{}, Names: map[string]string{}}
+	for _, g := range groups {
+		for _, l := range g.Levels {
+			data.Levels[requirements.BuiltinLevelPrefix+l.ID] = l.Level
+		}
+		for _, b := range g.Sets {
+			data.Names[requirements.BuiltinPrefix+b.ID] = b.Set.Name
+		}
+	}
+	return data
 }
 
 // SetEditorData is the requirement set being edited.

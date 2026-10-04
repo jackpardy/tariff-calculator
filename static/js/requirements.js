@@ -1,18 +1,28 @@
 // requirements.js: the requirement sets page (views.RequirementsPage). Lists
-// the sets saved in this browser (SetStore), opens one in the server-rendered
-// editor, and saves, duplicates, deletes, exports and imports sets.
+// the sets and levels saved in this browser (SetStore, LevelStore), opens one
+// in its server-rendered editor, and saves, duplicates and deletes them;
+// sets can also be exported and imported.
 function requirementsPage() {
     return {
         sets: [],
+        levels: [],
         builtins: {}, // built-in sets by id, for duplicating
-        editing: null, // {id, title}: the set open in the editor (id null until first saved)
+        builtinLevels: {}, // built-in levels by reference, for duplicating
+        requirementNames: {}, // built-in requirements' names by reference
+        editing: null, // {id, title, kind}: the set or level ('set' or 'level') open in the editor (id null until first saved)
         importing: false,
         importText: '',
         toast: '',
 
         init() {
             this.sets = SetStore.load();
+            this.levels = LevelStore.load();
             try { this.builtins = JSON.parse(document.getElementById('builtin-sets').textContent); } catch (e) { this.builtins = {}; }
+            try {
+                const data = JSON.parse(document.getElementById('level-data').textContent);
+                this.builtinLevels = data.levels || {};
+                this.requirementNames = data.names || {};
+            } catch (e) { /* no built-in levels */ }
             document.body.addEventListener('htmx:responseError', (event) => {
                 if (event.detail.target.closest('#editor-area')) {
                     this.flash(`Couldn't open that: ${event.detail.xhr.responseText.trim()}`);
@@ -22,7 +32,7 @@ function requirementsPage() {
 
         // open shows a set in the editor; id is the saved set it came from, if any.
         open(set, title, id = null) {
-            this.editing = { id, title };
+            this.editing = { id, title, kind: 'set' };
             htmx.ajax('POST', '/requirements/editor', {
                 source: '#editor-area', target: '#editor-area', swap: 'innerHTML',
                 values: { set: JSON.stringify(set) },
@@ -40,9 +50,51 @@ function requirementsPage() {
         },
         duplicateBuiltin(id) { if (this.builtins[id]) { this.duplicate(this.builtins[id]); } },
 
+        // --- Levels ---
+        // openLevel shows a level in the level editor, which offers the sets
+        // saved here as its options; id is the saved level it came from, if any.
+        openLevel(level, title, id = null) {
+            this.editing = { id, title, kind: 'level' };
+            const custom = this.sets.map((s) => ({ id: s.id, name: s.set.name, set_routine: (s.set.rules || []).some((r) => r.type === 'sequence') }));
+            htmx.ajax('POST', '/requirements/level-editor', {
+                source: '#editor-area', target: '#editor-area', swap: 'innerHTML',
+                values: { level: JSON.stringify(level), custom: JSON.stringify(custom) },
+            }).then(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+        },
+        newLevel() { this.openLevel({ format: 1, name: '', first: { options: [''] }, second: { options: [''] } }, 'New level'); },
+        editLevel(id) {
+            const saved = this.levels.find((l) => l.id === id);
+            if (saved) { this.openLevel(saved.level, `Edit ${saved.level.name}`, id); }
+        },
+        duplicateLevel(level) {
+            const copy = JSON.parse(JSON.stringify(level));
+            copy.name = `${level.name} (copy)`;
+            this.openLevel(copy, 'New level (copy)');
+        },
+        duplicateBuiltinLevel(ref) { if (this.builtinLevels[ref]) { this.duplicateLevel(this.builtinLevels[ref]); } },
+        removeLevel(id) {
+            const saved = this.levels.find((l) => l.id === id);
+            if (!saved || !confirm(`Delete ${saved.level.name}? Routines doing its exercises will stop being paired by it.`)) { return; }
+            this.levels = this.levels.filter((l) => l.id !== id);
+            LevelStore.save(this.levels);
+            if (this.editing?.id === id) { this.closeEditor(); }
+            this.flash(`Deleted ${saved.level.name}.`);
+        },
+        requirementName(ref) {
+            if (ref?.startsWith('builtin:')) { return this.requirementNames[ref] || ref; }
+            return this.sets.find((s) => s.id === ref)?.set.name || 'requirements no longer saved';
+        },
+        // exerciseLines say what a level's exercises are, for its listing.
+        exerciseLines(level) {
+            const names = (exercise) => (exercise?.options || []).map((ref) => this.requirementName(ref)).join(' or ');
+            if (!level.second) { return [`Both exercises: ${names(level.first)}`]; }
+            return [`First exercise: ${names(level.first)}`, `Second exercise: ${names(level.second)}`];
+        },
+
         // saveEditing posts the editor once more (so a field still being typed in is
-        // included) and saves the set exactly as the server read it.
+        // included) and saves the set or level exactly as the server read it.
         async saveEditing() {
+            if (this.editing?.kind === 'level') { return this.saveLevel(); }
             const form = document.getElementById('set-editor');
             if (!form || !this.editing) { return; }
             const response = await fetch('/requirements/editor', { method: 'POST', body: new URLSearchParams(new FormData(form)) });
@@ -65,6 +117,29 @@ function requirementsPage() {
             SetStore.save(this.sets);
             this.editing.title = `Edit ${set.name}`;
             this.flash(`Saved ${set.name}.`);
+        },
+        async saveLevel() {
+            const form = document.getElementById('level-editor');
+            if (!form || !this.editing) { return; }
+            const response = await fetch('/requirements/level-editor', { method: 'POST', body: new URLSearchParams(new FormData(form)) });
+            if (!response.ok) { this.flash(`Couldn't save: ${(await response.text()).trim()}`); return; }
+            const html = await response.text();
+            form.outerHTML = html;
+            const fresh = new DOMParser().parseFromString(html, 'text/html').getElementById('level-editor');
+            const level = JSON.parse(fresh.dataset.levelJson);
+            if (!level.name) { this.flash('Give the level a name first.'); return; }
+            if (fresh.dataset.problems !== '0' && !confirm('This level has problems (listed in the editor). Save it anyway?')) { return; }
+
+            const existing = this.levels.find((l) => l.id === this.editing.id);
+            if (existing) {
+                existing.level = level;
+            } else {
+                this.editing.id = LevelStore.newId();
+                this.levels.push({ id: this.editing.id, level });
+            }
+            LevelStore.save(this.levels);
+            this.editing.title = `Edit ${level.name}`;
+            this.flash(`Saved ${level.name}.`);
         },
         closeEditor() {
             this.editing = null;

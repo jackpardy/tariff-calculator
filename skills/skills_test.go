@@ -558,6 +558,24 @@ func TestValidateRoutineScoringOnlySomeElements(t *testing.T) {
 	}
 }
 
+func TestValidateRoutineScoredEarlier(t *testing.T) {
+	back := TrampolineSkill{Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: Feet, Shape: Tuck, Backward: true}
+	barani := TrampolineSkill{Rotation: 4, TwistDistribution: []int{1}, TakeoffPosition: Feet, Shape: Tuck}
+	pikedBack := back
+	pikedBack.Shape = Pike // a single somersault's shape distinguishes it (§14)
+	routine := []TrampolineSkill{barani, back, pikedBack}
+	rv := ValidateRoutineWith(routine, ValidateOptions{ScoredEarlier: []TrampolineSkill{back}})
+	if !rv.Skills[1].ScoredEarlier || rv.Skills[1].Counted || rv.Messages[1] == "" {
+		t.Errorf("the tucked back scored in the first exercise, so it scores nothing: %+v", rv.Skills[1])
+	}
+	if rv.Skills[0].ScoredEarlier || !rv.Skills[0].Counted || rv.Skills[2].ScoredEarlier || !rv.Skills[2].Counted {
+		t.Errorf("the Barani and the piked back are different elements, and count")
+	}
+	if math.Abs(rv.TotalTariff-1.2) > 1e-9 {
+		t.Errorf("total %.1f, want 1.2 (Barani 0.6, piked back 0.6)", rv.TotalTariff)
+	}
+}
+
 func TestValidateRoutineChosenScoringElements(t *testing.T) {
 	s := func(twist int, backward, scores bool) TrampolineSkill {
 		return TrampolineSkill{Rotation: 4, TwistDistribution: []int{twist}, TakeoffPosition: Feet, Shape: Tuck, Backward: backward, Scores: scores}

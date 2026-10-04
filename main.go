@@ -60,6 +60,7 @@ func routes() http.Handler {
 	mux.HandleFunc("POST /compare", handleCompare)
 	mux.HandleFunc("GET /requirements", handleRequirementsPage)
 	mux.HandleFunc("POST /requirements/editor", handleSetEditor)
+	mux.HandleFunc("POST /requirements/level-editor", handleLevelEditor)
 	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
 	mux.HandleFunc("POST /tariff-sheet", handleTariffSheet)
 
@@ -280,29 +281,110 @@ func namedRoutine(raw string) ([]skills.TrampolineSkill, error) {
 }
 
 // checkedRoutine is a posted routine, validated with the checks that apply to
-// it and checked against its requirement set.
+// it and checked against its requirement set, and against its level if it has one.
 type checkedRoutine struct {
 	rv       skills.RoutineValidation
 	check    *views.RequirementCheck // nil without a set
 	required map[int]bool            // elements meeting a requirement, for the sheet
 	checks   views.Checks
+	level    *views.LevelCheck // nil without a level
 }
 
-// checkRoutine reads the posted routine (routineData), its requirement set
-// (requirementSet: a built-in reference, a custom set as JSON, or nothing) and
-// its own choice of checks (checks), and validates and checks it. A set that
-// can't be used is reported in the check rather than failing the request.
+// postedRoutine is a routine as the page posts it: its skills, its requirement
+// set (a built-in reference, a custom set as JSON, or nothing) and its own
+// choice of checks, all as posted.
+type postedRoutine struct {
+	data, set, checks string
+}
+
+// checkRoutine reads the posted routine (routineData, requirementSet, checks)
+// and validates and checks it. A routine doing one of a level's exercises also
+// posts the level (level: a built-in reference or a custom level as JSON),
+// which exercise it is (exercise: 1 or 2), and the routine doing the other
+// exercise, if there is one (pairData, pairSet, pairChecks, pairName). The two
+// are checked together: at some levels an element that scored in the first
+// exercise scores nothing if repeated in the second.
 func checkRoutine(r *http.Request) (checkedRoutine, error) {
 	if err := r.ParseForm(); err != nil {
 		return checkedRoutine{}, fmt.Errorf("parsing form: %w", err)
 	}
-	routine, err := namedRoutine(r.FormValue("routineData"))
+	own := postedRoutine{r.FormValue("routineData"), r.FormValue("requirementSet"), r.FormValue("checks")}
+	raw := strings.TrimSpace(r.FormValue("level"))
+	if raw == "" {
+		return checkPosted(own, nil)
+	}
+
+	exercise := 1
+	if r.FormValue("exercise") == "2" {
+		exercise = 2
+	}
+	lc := &views.LevelCheck{Exercise: exercise, OtherName: strings.TrimSpace(r.FormValue("pairName"))}
+	level, err := postedLevel(raw)
+	if err != nil {
+		lc.Name, lc.Err = level.Name, err.Error()
+		out, err := checkPosted(own, nil)
+		out.level = lc
+		return out, err
+	}
+	lc.Name = level.Name
+
+	var pair *postedRoutine
+	if r.Form.Has("pairData") {
+		pair = &postedRoutine{r.FormValue("pairData"), r.FormValue("pairSet"), r.FormValue("pairChecks")}
+	}
+	// scored are a first exercise's elements that score once only.
+	scored := func(first checkedRoutine) []skills.TrampolineSkill {
+		if !level.ScoredOnce || !first.checks.ScoreDifficulty {
+			return nil
+		}
+		var out []skills.TrampolineSkill
+		for _, sv := range first.rv.Skills {
+			if sv.Counted {
+				out = append(out, sv.Skill)
+			}
+		}
+		return out
+	}
+
+	var out, other checkedRoutine
+	var otherErr error
+	switch {
+	case pair == nil:
+		out, err = checkPosted(own, nil)
+	case exercise == 2:
+		other, otherErr = checkPosted(*pair, nil)
+		out, err = checkPosted(own, scored(other))
+	default:
+		out, err = checkPosted(own, nil)
+		if err == nil {
+			other, otherErr = checkPosted(*pair, scored(out))
+		}
+	}
+	if pair != nil {
+		lc.HasOther = true
+		switch {
+		case otherErr != nil:
+			lc.OtherErr = otherErr.Error()
+		case other.check != nil && other.check.Err == "":
+			lc.OtherMet, lc.OtherRules = other.check.Met(), len(other.check.Results)
+		}
+	}
+	out.level = lc
+	return out, err
+}
+
+// checkPosted validates one posted routine and checks it against its
+// requirement set. scoredEarlier are elements that scored in the first
+// exercise and score nothing if repeated (nil for none). A set that can't be
+// used is reported in the check rather than failing the request.
+func checkPosted(p postedRoutine, scoredEarlier []skills.TrampolineSkill) (checkedRoutine, error) {
+	routine, err := namedRoutine(p.data)
 	if err != nil {
 		return checkedRoutine{}, err
 	}
 	var out checkedRoutine
 	var set *requirements.Set
-	if raw := strings.TrimSpace(r.FormValue("requirementSet")); raw != "" {
+	if raw := strings.TrimSpace(p.set); raw != "" {
 		parsed, err := postedSet(raw)
 		if err != nil {
 			name := parsed.Name
@@ -314,8 +396,8 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 			set = &parsed
 		}
 	}
-	out.checks = routineChecks(set, r.FormValue("checks"))
-	opts := skills.ValidateOptions{AllowRepeats: !out.checks.FlagRepeats}
+	out.checks = routineChecks(set, p.checks)
+	opts := skills.ValidateOptions{AllowRepeats: !out.checks.FlagRepeats, ScoredEarlier: scoredEarlier}
 	if out.checks.ScoreDifficulty {
 		opts.ScoredElements = out.checks.ScoredElements
 	}
@@ -327,6 +409,24 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 		out.required = requirements.RequiredElements(*set, results)
 	}
 	return out, nil
+}
+
+// postedLevel is the level the page posts: a built-in reference
+// ("builtin-level:<id>") or a custom level as JSON. A level that doesn't parse
+// comes back with whatever name it has.
+func postedLevel(raw string) (requirements.Level, error) {
+	if strings.HasPrefix(raw, requirements.BuiltinLevelPrefix) {
+		level, ok := requirements.LookupBuiltinLevel(raw)
+		if !ok {
+			return requirements.Level{Name: "Level"}, errors.New("this built-in level no longer exists")
+		}
+		return level, nil
+	}
+	level, err := requirements.ParseLevel([]byte(raw))
+	if level.Name == "" {
+		level.Name = "Level"
+	}
+	return level, err
 }
 
 // routineChecks are the checks that apply to a routine: its requirement set's
@@ -367,7 +467,7 @@ func handleRoutineView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rv, check := checked.rv, checked.check
-	side := views.RoutineSide{Side: "a", Checks: checked.checks}
+	side := views.RoutineSide{Side: "a", Checks: checked.checks, Level: checked.level}
 	if r.FormValue("side") == "b" {
 		side.Side = "b"
 	}

@@ -193,7 +193,7 @@ func TariffSheetPage() templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</fieldset></div></details> <span>Fill in the details, then print. What you type isn't saved.</span></div><div id=\"tariff-sheet\" hx-post=\"/tariff-sheet\" hx-trigger=\"load\" hx-vals=\"js:{routineData: JSON.stringify(RoutineStore.current(RoutineStore.load()).skills), requirementSet: SetStore.payload(RoutineStore.current(RoutineStore.load()).requirements), checks: JSON.stringify(RoutineStore.current(RoutineStore.load()).checks || {})}\" hx-on:htmx:response-error=\"this.querySelector('.loading').textContent = 'Could not build the sheet: ' + event.detail.xhr.responseText\"><p class=\"loading screen-only\">Loading the current routine saved in this browser...</p></div></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</fieldset></div></details> <span>Fill in the details, then print. What you type isn't saved.</span></div><div id=\"tariff-sheet\" hx-post=\"/tariff-sheet\" hx-trigger=\"load\" hx-vals=\"js:(() => { const state = RoutineStore.load(); return Pairs.values(RoutineStore.current(state), state.routines); })()\" hx-on:htmx:response-error=\"this.querySelector('.loading').textContent = 'Could not build the sheet: ' + event.detail.xhr.responseText\"><p class=\"loading screen-only\">Loading the current routine saved in this browser...</p></div></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -599,6 +599,8 @@ func notCountedReason(i int, sv skills.SkillValidation) string {
 		return "interruption"
 	case sv.IsDuplicate:
 		return "repeat"
+	case sv.ScoredEarlier:
+		return "scored in 1st exercise"
 	default:
 		return "see warnings"
 	}
