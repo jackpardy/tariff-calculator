@@ -4,6 +4,10 @@
 // routines.js), the current one's skills, and UI state local to the page.
 // Everything shown is rendered by the server; this component asks for it
 // whenever the routine or the form changes.
+//
+// A second routine can be shown beside the current one (compareId), and both
+// can be edited. Methods that act on a routine's skills take the column's side:
+// 'a' for the current routine (the default), 'b' for the one beside it.
 function tariffCalculatorStore() {
     return {
         routines: [],   // all saved routines: {id, name, skills}
@@ -11,7 +15,12 @@ function tariffCalculatorStore() {
         routine: [],    // the current routine's skills (the same array as in routines)
         customSets: [], // requirement sets saved in this browser (SetStore)
         expanded: [], // per-card expanded state, parallel to routine
+        compareId: null, // the routine shown beside the current one, if any
+        routineB: [],    // its skills (the same array as in routines)
+        expandedB: [],   // per-card expanded state, parallel to routineB
+        addTo: 'a',      // which column the skill adder adds to while comparing
         editingIndex: null,
+        editingSide: 'a', // the column of the skill being edited
         busy: false, // an add or update is in flight
         pickerTab: 'jumps', // the skill picker's open category
         picked: null,       // the common skill last chosen in the picker
@@ -29,7 +38,7 @@ function tariffCalculatorStore() {
             window.addEventListener('storage', (event) => {
                 if (event.key === 'trampolineRequirementSets') {
                     this.customSets = SetStore.load();
-                    this.renderRoutine();
+                    this.renderRoutines();
                 }
             });
             // One flag per card from the start, so moves can splice it in step with the routine.
@@ -37,35 +46,54 @@ function tariffCalculatorStore() {
 
             this.$watch('routine', (routine) => {
                 this.currentRoutine().skills = routine; // the routine may have been replaced (e.g. cleared)
-                this.renderRoutine();
+                this.renderRoutines();
+                this.persist();
+            });
+            this.$watch('routineB', (routine) => {
+                if (!this.compareId) { return; }
+                this.compareRoutine().skills = routine;
+                this.renderRoutines();
                 this.persist();
             });
 
             document.body.addEventListener('htmx:afterSwap', (event) => {
-                if (event.detail.target.id === 'routine-view') { this.makeSortable(); }
+                if (event.detail.target.id === 'routine-view') { this.makeSortable('a'); }
+                if (event.detail.target.id === 'routine-view-b') { this.makeSortable('b'); }
             });
             document.body.addEventListener('htmx:afterRequest', (event) => {
                 if (event.detail.failed) { this.requestFailed(event.detail.requestConfig?.path, event.detail.xhr); }
             });
 
-            this.renderRoutine();
+            this.renderRoutines();
             this.loadForm();
         },
 
         // --- Server-rendered views ---
-        renderRoutine() {
+        // renderRoutine shows a column's routine; while comparing, the other column's
+        // routine goes with it so the view can mark where they differ.
+        renderRoutine(side = 'a') {
+            const view = side === 'b' ? '#routine-view-b' : '#routine-view';
+            const values = { side, routineData: JSON.stringify(this.skillsOf(side)), requirementSet: SetStore.payload(this.routineFor(side)?.requirements) };
+            if (this.compareId) {
+                const other = side === 'b' ? 'a' : 'b';
+                values.compareData = JSON.stringify(this.skillsOf(other));
+                values.compareName = this.routineFor(other).name;
+            }
             // Each view is its own request source, so its requests don't queue behind
             // the other's; a newer render replaces one still in flight (hx-sync).
-            htmx.ajax('POST', '/routine', {
-                source: '#routine-view', target: '#routine-view', swap: 'innerHTML',
-                values: { routineData: JSON.stringify(this.routine), requirementSet: SetStore.payload(this.currentRoutine()?.requirements) }
-            }).catch(error => console.error('Routine render request error:', error));
+            htmx.ajax('POST', '/routine', { source: view, target: view, swap: 'innerHTML', values })
+                .catch(error => console.error('Routine render request error:', error));
         },
-        // loadForm shows a fresh "Add a skill" panel, or one loaded with the routine skill at editIndex.
-        loadForm(editIndex = null) {
+        // renderRoutines shows both columns: a change to either changes what differs.
+        renderRoutines() {
+            this.renderRoutine('a');
+            if (this.compareId) { this.renderRoutine('b'); }
+        },
+        // loadForm shows a fresh "Add a skill" panel, or one loaded with the skill at editIndex in a column.
+        loadForm(editIndex = null, side = 'a') {
             const values = {};
             if (editIndex !== null) {
-                values.skill = JSON.stringify(this.routine[editIndex]);
+                values.skill = JSON.stringify(this.skillsOf(side)[editIndex]);
                 values.editIndex = editIndex;
             }
             return htmx.ajax('POST', '/skill-form', { source: '#skill-form-wrapper', target: '#skill-form-wrapper', swap: 'innerHTML', values });
@@ -75,11 +103,11 @@ function tariffCalculatorStore() {
             if (path === '/routine') {
                 this.showToast(`Routine not updated: ${reason}`, 'error');
                 // If nothing has rendered yet (e.g. a saved routine that no longer validates), say so in place.
-                const view = document.getElementById('routine-view');
-                if (view && !view.querySelector('#routine-skills')) {
+                for (const view of document.querySelectorAll('#routine-view, #routine-view-b')) {
+                    if (view.querySelector('.routine-skills') || view.closest('[x-show]')?.style.display === 'none') { continue; }
                     const p = document.createElement('p');
                     p.className = 'has-text-danger';
-                    p.textContent = `Couldn't show the saved routine (${reason}). Use Clear Routine to start again.`;
+                    p.textContent = `Couldn't show the saved routine (${reason}). Use Clear skills to start again.`;
                     view.replaceChildren(p);
                 }
             } else {
@@ -102,16 +130,22 @@ function tariffCalculatorStore() {
 
         // --- Saved routines ---
         currentRoutine() { return this.routines.find((r) => r.id === this.currentId); },
+        compareRoutine() { return this.routines.find((r) => r.id === this.compareId); },
+        routineFor(side) { return side === 'b' ? this.compareRoutine() : this.currentRoutine(); },
+        skillsOf(side) { return side === 'b' ? this.routineB : this.routine; },
+        expandedOf(side) { return side === 'b' ? this.expandedB : this.expanded; },
         persist() { RoutineStore.save({ current: this.currentId, routines: this.routines }); },
-        // setRequirements chooses the requirement set the current routine is checked against.
-        setRequirements(ref) {
-            this.currentRoutine().requirements = ref || undefined;
+        // setRequirements chooses the requirement set a column's routine is checked against.
+        setRequirements(ref, side = 'a') {
+            this.routineFor(side).requirements = ref || undefined;
             this.persist();
-            this.renderRoutine();
+            this.renderRoutine(side);
         },
-        // switchRoutine makes the routine with id current, leaving any edit.
+        // switchRoutine makes the routine with id current, leaving any edit. Choosing
+        // the routine shown beside it swaps the columns.
         switchRoutine(id) {
             if (!this.routines.some((r) => r.id === id)) { return; }
+            if (id === this.compareId) { this.swapColumns(); return; }
             if (this.editingIndex !== null) { this.cancelEdit(); }
             this.currentId = id;
             this.expanded = this.currentRoutine().skills.map(() => false);
@@ -137,9 +171,39 @@ function tariffCalculatorStore() {
             routine.name = name.trim().slice(0, 60);
             this.persist();
         },
+        // --- Side by side ---
+        // compareWith shows the routine with id beside the current one ('' stops).
+        compareWith(id) {
+            if (!id || id === this.currentId || !this.routines.some((r) => r.id === id)) { this.stopComparing(); return; }
+            if (this.editingSide === 'b' && this.editingIndex !== null) { this.cancelEdit(); }
+            this.compareId = id;
+            this.expandedB = this.compareRoutine().skills.map(() => false);
+            this.routineB = this.compareRoutine().skills; // renders both columns via the watcher
+        },
+        stopComparing() {
+            if (this.editingSide === 'b' && this.editingIndex !== null) { this.cancelEdit(); }
+            this.compareId = null;
+            this.routineB = [];
+            this.expandedB = [];
+            this.addTo = 'a';
+            this.renderRoutine('a');
+        },
+        // swapColumns makes the routine beside the current one current, and vice versa.
+        swapColumns() {
+            if (!this.compareId) { return; }
+            [this.currentId, this.compareId] = [this.compareId, this.currentId];
+            [this.expanded, this.expandedB] = [this.expandedB, this.expanded];
+            const flip = (side) => (side === 'a' ? 'b' : 'a');
+            this.editingSide = flip(this.editingSide);
+            this.addTo = flip(this.addTo);
+            this.routine = this.currentRoutine().skills;
+            this.routineB = this.compareRoutine().skills;
+        },
+
         deleteRoutine() {
             const routine = this.currentRoutine(), name = routine.name;
             if (!confirm(`Delete ${name}? This can't be undone.`)) { return; }
+            this.stopComparing();
             if (this.routines.length === 1) {
                 // Always keep one routine: emptying the last one is the same as clearing it.
                 routine.name = 'Routine 1';
@@ -154,7 +218,7 @@ function tariffCalculatorStore() {
         },
 
         // --- Card expand/collapse ---
-        toggleExpanded(index) { this.expanded[index] = !this.expanded[index]; },
+        toggleExpanded(index, side = 'a') { const e = this.expandedOf(side); e[index] = !e[index]; },
         expandAll() { this.expanded = this.routine.map(() => true); },
         collapseAll() { this.expanded = this.routine.map(() => false); },
 
@@ -166,16 +230,19 @@ function tariffCalculatorStore() {
             if (!response.ok) { throw new Error((await response.text()).trim() || `HTTP ${response.status}`); }
             return response.json();
         },
-        // addFromForm adds the skill shown on the card to the end of the routine.
+        // addFromForm adds the skill shown on the card to the end of the routine (while
+        // comparing, the one chosen under "Add to").
         async addFromForm() {
             if (this.busy) { return; }
             this.busy = true;
+            const side = this.compareId ? this.addTo : 'a';
             try {
                 const skill = await this.calculateFormSkill();
-                this.expanded.push(false);
-                this.routine.push(skill);
-                this.showToast(`Added ${skill.custom_name || skill.name} (${skill.tariff.toFixed(1)}).`, 'info');
-                if (this.routine.length > 10) { this.showToast('Note: an exercise has 10 skills.', 'warning'); }
+                this.expandedOf(side).push(false);
+                this.skillsOf(side).push(skill);
+                const where = this.compareId ? ` to ${this.routineFor(side).name}` : '';
+                this.showToast(`Added ${skill.custom_name || skill.name} (${skill.tariff.toFixed(1)})${where}.`, 'info');
+                if (this.skillsOf(side).length > 10) { this.showToast('Note: an exercise has 10 skills.', 'warning'); }
                 this.clearLabel(); // a label belongs to one skill
                 this.query = '';   // back to the picker for the next skill
             } catch (error) {
@@ -185,12 +252,12 @@ function tariffCalculatorStore() {
             }
         },
         async updateFromForm() {
-            const index = this.editingIndex;
-            if (this.busy || index === null || index >= this.routine.length) { return; }
+            const index = this.editingIndex, skills = this.skillsOf(this.editingSide);
+            if (this.busy || index === null || index >= skills.length) { return; }
             this.busy = true;
             try {
                 const skill = await this.calculateFormSkill();
-                this.routine.splice(index, 1, skill);
+                skills.splice(index, 1, skill);
                 this.cancelEdit();
             } catch (error) {
                 this.showToast(`Can't update skill: ${error.message}`, 'error');
@@ -204,48 +271,54 @@ function tariffCalculatorStore() {
             input.value = '';
             input.closest('details')?.removeAttribute('open');
         },
-        editSkill(index) {
+        editSkill(index, side = 'a') {
             this.editingIndex = index;
-            this.loadForm(index)
+            this.editingSide = side;
+            this.loadForm(index, side)
                 .then(() => document.getElementById('skill-form-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
                 .catch(() => { this.showToast('Failed to load edit form.', 'error'); this.editingIndex = null; });
         },
         cancelEdit() {
             this.editingIndex = null;
+            this.editingSide = 'a';
             this.loadForm().catch(() => this.showToast('Failed to load the form.', 'error'));
         },
 
         // --- Changing the routine ---
-        removeSkill(index) {
-            if (index < 0 || index >= this.routine.length) { return; }
-            this.expanded.splice(index, 1);
-            this.routine.splice(index, 1);
+        removeSkill(index, side = 'a') {
+            const skills = this.skillsOf(side);
+            if (index < 0 || index >= skills.length) { return; }
+            this.expandedOf(side).splice(index, 1);
+            skills.splice(index, 1);
+            if (this.editingSide !== side) { return; }
             if (this.editingIndex === index) { this.cancelEdit(); }
             else if (this.editingIndex > index) { this.editingIndex--; }
         },
-        moveSkillUp(index) { if (index > 0) { this.moveSkill(index, index - 1); } },
-        moveSkillDown(index) { if (index < this.routine.length - 1) { this.moveSkill(index, index + 1); } },
+        moveSkillUp(index, side = 'a') { if (index > 0) { this.moveSkill(index, index - 1, side); } },
+        moveSkillDown(index, side = 'a') { if (index < this.skillsOf(side).length - 1) { this.moveSkill(index, index + 1, side); } },
         // moveSkill moves the skill at from to index to, keeping its expanded and editing state with it.
-        moveSkill(from, to) {
-            this.expanded.splice(to, 0, this.expanded.splice(from, 1)[0] ?? false);
-            this.routine.splice(to, 0, this.routine.splice(from, 1)[0]);
+        moveSkill(from, to, side = 'a') {
+            const expanded = this.expandedOf(side), skills = this.skillsOf(side);
+            expanded.splice(to, 0, expanded.splice(from, 1)[0] ?? false);
+            skills.splice(to, 0, skills.splice(from, 1)[0]);
+            if (this.editingSide !== side || this.editingIndex === null) { return; }
             if (this.editingIndex === from) { this.editingIndex = to; }
-            else if (this.editingIndex !== null && from < this.editingIndex && to >= this.editingIndex) { this.editingIndex--; }
-            else if (this.editingIndex !== null && from > this.editingIndex && to <= this.editingIndex) { this.editingIndex++; }
+            else if (from < this.editingIndex && to >= this.editingIndex) { this.editingIndex--; }
+            else if (from > this.editingIndex && to <= this.editingIndex) { this.editingIndex++; }
         },
         clearRoutine() {
             if (this.routine.length === 0 || !confirm(`Remove every skill from ${this.currentRoutine().name}?`)) { return; }
             this.routine = [];
             this.expanded = [];
             this.showToast('Routine cleared.', 'info');
-            this.cancelEdit();
+            if (this.editingSide === 'a') { this.cancelEdit(); }
         },
 
         // --- Drag to reorder ---
-        // makeSortable lets the cards be dragged into a new order (SortableJS). The view
-        // is re-rendered after every change, so this runs for each new #routine-skills.
-        makeSortable() {
-            const list = document.getElementById('routine-skills');
+        // makeSortable lets a column's cards be dragged into a new order (SortableJS).
+        // The view is re-rendered after every change, so this runs for each new list.
+        makeSortable(side = 'a') {
+            const list = document.getElementById(side === 'b' ? 'routine-skills-b' : 'routine-skills');
             if (!list || !window.Sortable) { return; }
             Sortable.create(list, {
                 draggable: '.routine-skill-container',
@@ -255,7 +328,7 @@ function tariffCalculatorStore() {
                 onEnd: (event) => {
                     const from = event.oldDraggableIndex, to = event.newDraggableIndex;
                     if (from === undefined || from === to) { return; }
-                    this.moveSkill(from, to);
+                    this.moveSkill(from, to, side);
                 },
             });
         },

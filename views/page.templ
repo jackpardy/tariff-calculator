@@ -53,7 +53,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 	<div class="container" x-data="tariffCalculatorStore()">
 		// "Add a skill" panel: SkillFormView, loaded by the component.
 		<div class="box">
-			<h3 class="title is-4" x-text="editingIndex === null ? 'Add a skill' : `Edit skill ${editingIndex + 1}`">Add a skill</h3>
+			<h3 class="title is-4" x-text="editingIndex === null ? 'Add a skill' : `Edit skill ${editingIndex + 1}` + (compareId ? ` of ${routineFor(editingSide)?.name}` : '')">Add a skill</h3>
 			<div id="skill-form-wrapper" style="scroll-margin-top: 20px;" hx-sync="this:replace">
 				<p>Loading form...</p>
 			</div>
@@ -94,36 +94,42 @@ templ calculator(groups []requirements.BuiltinGroup) {
 					</div>
 				</details>
 			</div>
-			// The requirement set this routine is checked against (built-in or the user's own).
-			<div class="requirement-picker">
-				<label class="label is-small mb-1" for="requirement-set">Check against</label>
-				<div class="requirement-picker-row">
-					<div class="select is-small">
-						<select id="requirement-set" x-on:change="setRequirements($event.target.value)">
-							<option value="" x-bind:selected="!currentRoutine()?.requirements">No requirements</option>
-							for _, g := range groups {
-								<optgroup label={ g.Name }>
-									for _, b := range g.Sets {
-										<option value={ requirements.BuiltinPrefix + b.ID } x-bind:selected={ fmt.Sprintf("currentRoutine()?.requirements === '%s%s'", requirements.BuiltinPrefix, b.ID) }>{ b.Set.Name }</option>
-									}
-								</optgroup>
-							}
-							<template x-if="customSets.length > 0">
-								<optgroup label="Your sets">
-									<template x-for="s in customSets" x-bind:key="s.id">
-										<option x-bind:value="s.id" x-bind:selected="currentRoutine()?.requirements === s.id" x-text="s.set.name"></option>
-									</template>
-								</optgroup>
-							</template>
-						</select>
-					</div>
-					<a class="button is-small is-text" href="/requirements" target="_blank" rel="noopener">Manage sets</a>
+			// A second routine to show beside this one; both columns can be edited.
+			<div class="compare-with" x-show="routines.length > 1" x-cloak>
+				<label class="label is-small mb-0" for="compare-with">Side by side with</label>
+				<div class="select is-small">
+					<select id="compare-with" x-on:change="compareWith($event.target.value)">
+						<option value="" x-bind:selected="!compareId">None</option>
+						<template x-for="r in routines.filter((r) => r.id !== currentId)" x-bind:key="r.id">
+							<option x-bind:value="r.id" x-bind:selected="r.id === compareId" x-text="`${r.name} (${r.skills.length})`"></option>
+						</template>
+					</select>
 				</div>
 			</div>
-			// Cards and totals: Routine, re-rendered whenever the routine changes.
-			<div id="routine-view" hx-sync="this:replace">
-				<p class="has-text-grey">Loading routine...</p>
+			<div class="builder-columns" x-bind:class="{ 'is-comparing': compareId }">
+				<div class="builder-column">
+					<div class="column-head" x-show="compareId" x-cloak>
+						<strong x-text="currentRoutine()?.name"></strong>
+					</div>
+					@requirementPicker(groups, "a")
+					// Cards and totals: Routine, re-rendered whenever the routine changes.
+					<div id="routine-view" hx-sync="this:replace">
+						<p class="has-text-grey">Loading routine...</p>
+					</div>
+				</div>
+				<div class="builder-column" x-show="compareId" x-cloak>
+					<div class="column-head">
+						<strong x-text="compareRoutine()?.name"></strong>
+						<div class="buttons are-small mb-0">
+							<button class="button is-small" type="button" title="Swap the columns" aria-label="Swap the columns" x-on:click="swapColumns()">⇄</button>
+							<button class="button is-small" type="button" title="Stop comparing" aria-label="Stop comparing" x-on:click="stopComparing()">✕</button>
+						</div>
+					</div>
+					@requirementPicker(groups, "b")
+					<div id="routine-view-b" hx-sync="this:replace"></div>
+				</div>
 			</div>
+			<p class="compare-legend" x-show="compareId" x-cloak>Shaded skills differ from the other routine's skill at the same number.</p>
 		</div>
 		<div
 			x-show="toast.show"
@@ -133,6 +139,39 @@ templ calculator(groups []requirements.BuiltinGroup) {
 		>
 			<button class="delete" type="button" aria-label="Dismiss" x-on:click="toast.show = false"></button>
 			<span x-text="toast.message"></span>
+		</div>
+	</div>
+}
+
+// requirementPicker chooses the requirement set a builder column's routine is
+// checked against (built-in or the user's own); side is "a" or "b".
+templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
+	{{ id := map[string]string{"a": "requirement-set", "b": "requirement-set-b"}[side] }}
+	<div class="requirement-picker">
+		<label class="label is-small mb-1" for={ id }>Check against</label>
+		<div class="requirement-picker-row">
+			<div class="select is-small">
+				<select id={ id } x-on:change={ fmt.Sprintf("setRequirements($event.target.value, '%s')", side) }>
+					<option value="" x-bind:selected={ fmt.Sprintf("!routineFor('%s')?.requirements", side) }>No requirements</option>
+					for _, g := range groups {
+						<optgroup label={ g.Name }>
+							for _, b := range g.Sets {
+								<option value={ requirements.BuiltinPrefix + b.ID } x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === '%s%s'", side, requirements.BuiltinPrefix, b.ID) }>{ b.Set.Name }</option>
+							}
+						</optgroup>
+					}
+					<template x-if="customSets.length > 0">
+						<optgroup label="Your sets">
+							<template x-for="s in customSets" x-bind:key="s.id">
+								<option x-bind:value="s.id" x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === s.id", side) } x-text="s.set.name"></option>
+							</template>
+						</optgroup>
+					</template>
+				</select>
+			</div>
+			if side == "a" {
+				<a class="button is-small is-text" href="/requirements" target="_blank" rel="noopener">Manage sets</a>
+			}
 		</div>
 	</div>
 }

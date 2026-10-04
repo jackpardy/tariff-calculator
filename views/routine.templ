@@ -9,46 +9,74 @@ import (
 	"tariffCalculator/skills"
 )
 
-// Routine renders the routine builder's skill cards and totals for a validated
-// routine. The page's Alpine component owns the routine (in localStorage) and
-// re-requests this view whenever it changes; card controls call its methods, and
-// it makes the cards in #routine-skills drag-sortable (SortableJS).
-templ Routine(rv skills.RoutineValidation, check *RequirementCheck) {
-	<div id="routine-skills" class="routine-skills">
+// RoutineSide says which builder column a routine is shown in: "a", the routine
+// being edited, or "b", the one shown beside it when comparing. Other is the
+// routine in the other column, if there is one, to mark where they differ.
+type RoutineSide struct {
+	Side  string
+	Other *CompareSide
+}
+
+// list is the id of the column's card list, which the page makes sortable.
+func (s RoutineSide) list() string {
+	if s.Side == "b" {
+		return "routine-skills-b"
+	}
+	return "routine-skills"
+}
+
+// call is an Alpine call to a card method for skill i in this column, e.g.
+// "editSkill(2, 'b')". Side is only ever "a" or "b".
+func (s RoutineSide) call(method string, i int) string {
+	return fmt.Sprintf("%s(%d, '%s')", method, i, s.Side)
+}
+
+// expanded is the Alpine expression for whether card i is expanded.
+func (s RoutineSide) expanded(i int) string {
+	if s.Side == "b" {
+		return fmt.Sprintf("expandedB[%d]", i)
+	}
+	return fmt.Sprintf("expanded[%d]", i)
+}
+
+// Routine renders a routine builder column's skill cards and totals for a
+// validated routine. The page's Alpine component owns the routines (in
+// localStorage) and re-requests this view whenever one changes; card controls
+// call its methods with the column's side, and it makes the card list
+// drag-sortable (SortableJS).
+templ Routine(rv skills.RoutineValidation, check *RequirementCheck, side RoutineSide) {
+	<div id={ side.list() } class="routine-skills">
 		if len(rv.Skills) == 0 {
 			<p class="has-text-grey">Add skills using the form above.</p>
 		} else {
 			for i, sv := range rv.Skills {
-				@skillCard(i, sv, rv.Messages[i], i == len(rv.Skills)-1)
+				@skillCard(i, sv, rv.Messages[i], i == len(rv.Skills)-1, side, side.Other != nil && differs(CompareSide{Validation: rv}, *side.Other, i))
 			}
 		}
 	</div>
-	@results(rv)
+	@results(rv, side.Other)
 	if check != nil {
 		@requirementsPanel(*check)
 	}
 }
 
-templ skillCard(i int, sv skills.SkillValidation, message string, last bool) {
-	<div class="routine-skill-container" x-bind:class={ alpine("{ 'editing': editingIndex === %d }", i) }>
+templ skillCard(i int, sv skills.SkillValidation, message string, last bool, side RoutineSide, different bool) {
+	<div class="routine-skill-container" x-bind:class={ fmt.Sprintf("{ 'editing': editingIndex === %d && editingSide === '%s' }", i, side.Side) }>
 		<div
 			class={ "routine-skill", "box", "mb-2",
 				templ.KV("invalid-transition", sv.InvalidTransition || sv.IntermediateJump),
 				templ.KV("invalid-landing", sv.InvalidLanding),
 				templ.KV("duplicate-skill", sv.IsDuplicate),
-				templ.KV("not-counted", sv.AfterInterruption) }
+				templ.KV("not-counted", sv.AfterInterruption),
+				templ.KV("differs", different) }
 		>
 			// Clickable header toggles the details.
-			<div
-				class="is-flex is-justify-content-space-between is-align-items-center"
-				style="cursor: pointer; padding: 4px 0;"
-				x-on:click={ alpine("toggleExpanded(%d)", i) }
-			>
+			<div class="card-head" x-on:click={ side.call("toggleExpanded", i) }>
 				<div class="skill-name-block is-flex is-align-items-center mb-0 mr-2" style="flex: 1; min-width: 0;">
 					<span
 						class="icon mr-1 has-text-grey"
 						style="font-size: 1.1rem; transition: transform 0.2s ease-in-out; display: flex; align-items: center;"
-						x-bind:style={ alpine("expanded[%d] ? 'transform: rotate(90deg);' : 'transform: rotate(0deg);'", i) }
+						x-bind:style={ side.expanded(i) + " ? 'transform: rotate(90deg);' : 'transform: rotate(0deg);'" }
 					>▶</span>
 					// Stacks on mobile, inline on tablet and up.
 					<div class="is-flex-tablet is-align-items-baseline" style="flex: 1; min-width: 0;">
@@ -68,15 +96,15 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool) {
 					</div>
 				</div>
 				// Compact button grid; clicks here must not toggle the card.
-				<div style="display: grid; grid-template-columns: 40px 45px; gap: 3px; flex-shrink: 0;" x-on:click.stop>
-					<button class="button is-info is-small is-fullwidth px-0" style="height: 24px; font-size: 0.75rem;" title="Edit" x-on:click={ alpine("editSkill(%d)", i) }>Edit</button>
-					<button class="button is-small is-fullwidth px-0" style="height: 24px;" title="Move Up" x-on:click={ alpine("moveSkillUp(%d)", i) } disabled?={ i == 0 }>↑</button>
-					<button class="button is-danger is-small is-fullwidth px-0" style="height: 24px; font-size: 0.75rem;" title="Remove" x-on:click={ alpine("removeSkill(%d)", i) }>Del</button>
-					<button class="button is-small is-fullwidth px-0" style="height: 24px;" title="Move Down" x-on:click={ alpine("moveSkillDown(%d)", i) } disabled?={ last }>↓</button>
+				<div class="card-buttons" x-on:click.stop>
+					<button class="button is-info is-small is-fullwidth px-0 card-text-button" title="Edit" x-on:click={ side.call("editSkill", i) }>Edit</button>
+					<button class="button is-small is-fullwidth px-0" title="Move Up" x-on:click={ side.call("moveSkillUp", i) } disabled?={ i == 0 }>↑</button>
+					<button class="button is-danger is-small is-fullwidth px-0 card-text-button" title="Remove" x-on:click={ side.call("removeSkill", i) }>Del</button>
+					<button class="button is-small is-fullwidth px-0" title="Move Down" x-on:click={ side.call("moveSkillDown", i) } disabled?={ last }>↓</button>
 				</div>
 			</div>
 			// Collapsible details.
-			<div x-show={ alpine("expanded[%d]", i) } x-cloak>
+			<div x-show={ side.expanded(i) } x-cloak>
 				<hr class="mt-2 mb-2"/>
 				<div class="skill-details-columns columns is-mobile is-multiline is-variable is-2 mb-0">
 					@detail("Rotation", rotationText(sv.Skill))
@@ -109,11 +137,14 @@ templ detail(label, value string) {
 	</div>
 }
 
-templ results(rv skills.RoutineValidation) {
-	<div id="routine-results" class="mt-4">
+templ results(rv skills.RoutineValidation, other *CompareSide) {
+	<div class="routine-results mt-4">
 		<div class="card">
 			<div class="card-content">
 				<p class="title">Total Tariff: { fmt.Sprintf("%.2f", rv.TotalTariff) }</p>
+				if other != nil {
+					<p class="compare-difference">{ differenceFrom(rv, *other) }</p>
+				}
 				<p class="subtitle">{ strconv.Itoa(len(rv.Skills)) } of { strconv.Itoa(skills.RoutineLength) } skills</p>
 				if rv.RawTariff > rv.TotalTariff+1e-9 {
 					<p class="subtitle tariff-difference">(Raw Total: { fmt.Sprintf("%.2f", rv.RawTariff) })</p>
@@ -228,6 +259,18 @@ func resultDetail(r requirements.Result) string {
 		parts = append(parts, word+strings.Join(nums, ", "))
 	}
 	return strings.Join(parts, " · ")
+}
+
+// differenceFrom compares this routine's difficulty with the other column's.
+func differenceFrom(rv skills.RoutineValidation, other CompareSide) string {
+	diff := rv.TotalTariff - other.Validation.TotalTariff
+	switch {
+	case diff > 0.005:
+		return fmt.Sprintf("%.1f more than %s", diff, other.Name)
+	case diff < -0.005:
+		return fmt.Sprintf("%.1f less than %s", -diff, other.Name)
+	}
+	return "Same as " + other.Name
 }
 
 // alpine formats an Alpine expression; arguments are only ever ints.

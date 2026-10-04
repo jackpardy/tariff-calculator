@@ -194,7 +194,15 @@ templ editorCard(e SkillEditor) {
 				<button type="button" id="cancel-btn" class="button is-light" x-on:click="cancelEdit()">Cancel</button>
 			</div>
 		} else {
-			<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled="busy">
+			// When two routines are side by side, choose which one the skill goes to.
+			<div class="add-to" x-show="compareId" x-cloak>
+				<span class="add-to-label">Add to</span>
+				<div class="buttons has-addons mb-0">
+					<button type="button" class="button is-small" x-bind:class="addTo === 'a' && 'is-link is-selected'" x-on:click="addTo = 'a'" x-text="routineFor('a')?.name"></button>
+					<button type="button" class="button is-small" x-bind:class="addTo === 'b' && 'is-link is-selected'" x-on:click="addTo = 'b'" x-text="routineFor('b')?.name"></button>
+				</div>
+			</div>
+			<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled="busy" x-text="compareId ? `Add to ${routineFor(addTo)?.name}` : 'Add to routine'">
 				Add to routine
 			</button>
 		}

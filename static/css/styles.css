@@ -26,7 +26,7 @@
 }
 
 /* Minimum height for the routine builder container */
-#routine-skills {
+.routine-skills {
     min-height: 100px;
     transition: background-color 0.2s;
 }
@@ -151,7 +151,7 @@
     pointer-events: auto !important;
 }
 
-#routine-skills .routine-skill {
+.routine-skills .routine-skill {
     margin-bottom: 0; border-radius: 0; border-left: 4px solid #ddd;
     cursor: grab; transition: border-left-color 0.3s ease, opacity 0.2s ease;
     -webkit-user-select: none; user-select: none;
@@ -165,7 +165,48 @@
 
 .routine-skill button, .routine-skill .delete { pointer-events: auto; }
 .transition-status { font-size: 0.8rem; margin-top: 0.25rem; }
-#routine-skills { min-height: 100px; transition: background-color 0.2s; border: 1px solid #dbdbdb; border-radius: 4px; padding: 0.5rem; }
+.routine-skills { min-height: 100px; transition: background-color 0.2s; border: 1px solid #dbdbdb; border-radius: 4px; padding: 0.5rem; }
+/* A card's header: the name and FIG notation, then the button grid. */
+.card-head { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 4px 0; }
+.card-buttons { display: grid; grid-template-columns: 40px 45px; gap: 3px; flex-shrink: 0; }
+.card-buttons .button { height: 24px; }
+.card-buttons .card-text-button { font-size: 0.75rem; }
+
+/* --- Side by side: a second routine beside the current one (both editable) --- */
+.compare-with { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0 0.75rem; }
+.builder-columns.is-comparing { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.75rem; }
+.builder-column { min-width: 0; }
+.column-head { display: flex; justify-content: space-between; align-items: center; gap: 0.25rem; min-height: 2rem; margin-bottom: 0.25rem; }
+.column-head strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.column-head .buttons { flex-wrap: nowrap; flex-shrink: 0; }
+.column-head .buttons .button { margin-bottom: 0; padding-left: 0.6em; padding-right: 0.6em; }
+/* Keep both columns' cards level: the link only the first column has is hidden. */
+.is-comparing .requirement-picker .is-text { display: none; }
+.is-comparing .requirement-picker .select, .is-comparing .requirement-picker .select select { width: 100%; max-width: 100%; }
+.is-comparing .requirement-picker-row { flex-wrap: wrap; }
+.routine-skill.differs { background-color: #fff6d9; }
+.compare-difference { font-size: 0.9rem; color: #555; margin-top: -0.75rem; margin-bottom: 0.75rem; }
+.compare-legend { font-size: 0.8rem; color: #777; margin-top: 0.5rem; }
+.add-to { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.add-to-label { font-size: 0.85rem; font-weight: 600; }
+.add-to .button { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; display: inline-block; }
+@media screen and (max-width: 768px) {
+  .builder-columns.is-comparing { gap: 0.4rem; }
+  /* Half a phone is narrow: the card buttons go on a row under the name. */
+  .is-comparing .card-head { flex-wrap: wrap; }
+  /* The name takes the whole first row (overriding its inline flex: 1). */
+  .is-comparing .skill-name-block { flex: 1 1 100% !important; margin-right: 0 !important; }
+  .is-comparing .card-buttons { grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; margin-top: 4px; }
+  .is-comparing .routine-skills { padding: 0.2rem; }
+  .is-comparing .routine-skills .routine-skill { padding: 0.5rem 0.4rem; }
+  /* Names take exactly two lines, so cards are the same height and element N
+     sits level in both columns. */
+  .is-comparing .skill-name { font-size: 0.85rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 2.4em; }
+  .is-comparing .routine-results .card-content { padding: 0.75rem; }
+  .is-comparing .routine-results .title { font-size: 1.1rem; }
+  .is-comparing .routine-results .subtitle { font-size: 0.85rem; }
+  .is-comparing .compare-difference { margin-top: -0.5rem; font-size: 0.8rem; }
+}
 
 .subtitle.tariff-difference { font-size: 0.9rem; color: #666; }
 .has-text-danger { color: #ff3860 !important; }
@@ -362,8 +403,8 @@ details > * { box-sizing: border-box; }
     .hero .title { font-size: 1.5rem; }
     .hero .subtitle { font-size: 1rem; }
     .box { padding: 1rem; }
-    #routine-skills { padding: 0.25rem; }
-    #routine-skills .routine-skill { padding: 0.75rem; }
+    .routine-skills { padding: 0.25rem; }
+    .routine-skills .routine-skill { padding: 0.75rem; }
 
     /* Card details sit two per row (see views.skillCard). */
     .skill-details-columns .column { padding: 0.15rem 0.5rem; }

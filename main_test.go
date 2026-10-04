@@ -746,3 +746,52 @@ func TestPageOffersBuiltinSets(t *testing.T) {
 		t.Errorf("the calculator should offer built-in sets and link to the requirements page")
 	}
 }
+
+// The second builder column's cards call the page with their side, and when a
+// routine is compared with another, the skills that differ are marked and the
+// totals compared.
+func TestRoutineViewSideBySide(t *testing.T) {
+	a := `[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},
+		{"rotation":4,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Tuck"}]`
+	b := `[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},
+		{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Pike","backward":true},
+		{"rotation":0,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Straight"}]`
+
+	html := postForm(t, "/routine", url.Values{"routineData": {a}}).Body.String()
+	if !strings.Contains(html, `id="routine-skills"`) || !strings.Contains(html, `editSkill(0, &#39;a&#39;)`) || strings.Contains(html, "differs") {
+		t.Errorf("a single routine: the first column's cards, nothing compared:\n%s", html)
+	}
+
+	html = postForm(t, "/routine", url.Values{"routineData": {b}, "side": {"b"}, "compareData": {a}, "compareName": {"Routine 1"}}).Body.String()
+	for _, want := range []string{`id="routine-skills-b"`, `editSkill(2, &#39;b&#39;)`, `expandedB[1]`, `editingSide === &#39;b&#39;`, "0.1 more than Routine 1"} {
+		if !strings.Contains(html, want) {
+			t.Errorf("second column is missing %q", want)
+		}
+	}
+	// Skill 1 is the same in both; skill 2 differs; skill 3 has no partner.
+	cards := regexp.MustCompile(`class="routine-skill box mb-2[^"]*"`).FindAllString(html, -1)
+	if len(cards) != 3 || strings.Contains(cards[0], "differs") || !strings.Contains(cards[1], "differs") || !strings.Contains(cards[2], "differs") {
+		t.Errorf("differing cards: %v", cards)
+	}
+
+	// Only "a" and "b" are sides; anything else is the first column.
+	html = postForm(t, "/routine", url.Values{"routineData": {a}, "side": {"x');alert(1);//"}}).Body.String()
+	if strings.Contains(html, "alert") || !strings.Contains(html, `editSkill(0, &#39;a&#39;)`) {
+		t.Errorf("an unknown side should be the first column")
+	}
+}
+
+func TestPageOffersSideBySide(t *testing.T) {
+	rec := httptest.NewRecorder()
+	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	html := rec.Body.String()
+	for _, want := range []string{`id="compare-with"`, `id="routine-view-b"`, `id="requirement-set-b"`, `href="/compare"`} {
+		if !strings.Contains(html, want) {
+			t.Errorf("the page is missing %q", want)
+		}
+	}
+	// The skill adder asks which routine to add to while comparing.
+	if form := postForm(t, "/skill-form", url.Values{}).Body.String(); !strings.Contains(form, `class="add-to"`) {
+		t.Errorf("the skill form should offer a choice of routine to add to")
+	}
+}

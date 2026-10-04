@@ -280,7 +280,17 @@ func handleRoutineView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	check, _ := requirementCheck(r, rv)
-	render(w, r, views.Routine(rv, check))
+	side := views.RoutineSide{Side: "a"}
+	if r.FormValue("side") == "b" {
+		side.Side = "b"
+	}
+	// When comparing, the other column's routine marks where the two differ.
+	if raw := r.FormValue("compareData"); raw != "" {
+		if other, err := validateRoutineJSON(raw); err == nil {
+			side.Other = &views.CompareSide{Name: r.FormValue("compareName"), Validation: other}
+		}
+	}
+	render(w, r, views.Routine(rv, check, side))
 }
 
 // requirementCheck checks the routine against the requirement set the page
