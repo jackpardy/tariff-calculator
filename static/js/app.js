@@ -11,6 +11,7 @@ function tariffCalculatorStore() {
         busy: false, // an add or update is in flight
         pickerTab: 'jumps', // the skill picker's open category
         picked: null,       // the common skill last chosen in the picker
+        query: '',          // the picker's search text; results replace the tabs while it's set
         toast: { show: false, message: '', type: 'info' },
 
         init() {
@@ -111,6 +112,7 @@ function tariffCalculatorStore() {
                 this.showToast(`Added ${skill.custom_name || skill.name} (${skill.tariff.toFixed(1)}).`, 'info');
                 if (this.routine.length > 10) { this.showToast('Note: an exercise has 10 skills.', 'warning'); }
                 this.clearLabel(); // a label belongs to one skill
+                this.query = '';   // back to the picker for the next skill
             } catch (error) {
                 this.showToast(`Can't add skill: ${error.message}`, 'error');
             } finally {

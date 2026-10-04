@@ -340,7 +340,9 @@
 .routine-skill.not-counted { opacity: 0.55; }
 
 /* --- Add a skill (views.SkillFormView) --- */
-.skill-adder > .field { margin-bottom: 1rem; }
+/* The editor's own box would limit how far the sticky skill card can follow the
+   page, so let its children lay out in the form instead. */
+#skill-editor { display: contents; }
 
 /* Skill picker: category tabs and big skill buttons. */
 .picker { margin-bottom: 1rem; }
@@ -354,6 +356,9 @@
 .picker-skill.is-picked { border: 2px solid #485fc7; background: #eef1fb; }
 .picker-skill-name { font-weight: 600; line-height: 1.2; }
 .picker-skill-tariff { color: #485fc7; font-weight: 700; }
+.picker-skill-name, .picker-skill-meta { display: block; }
+.picker-skill-meta { color: #666; font-size: 0.8rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.picker .input[type="search"] { margin-bottom: 0.6rem; }
 .picker-hint { color: #777; font-size: 0.85rem; margin-top: 0.5rem; }
 
 /* Button-style choices (shape, direction, takeoff): radios styled as a segmented control. */

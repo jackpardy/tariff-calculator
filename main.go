@@ -49,6 +49,7 @@ func routes() http.Handler {
 	mux.HandleFunc("GET /{$}", handleIndex)
 	mux.HandleFunc("POST /skill-form", handleSkillForm)
 	mux.HandleFunc("POST /skill-inputs", handleSkillInputs)
+	mux.HandleFunc("GET /skill-search", handleSkillSearch)
 	mux.HandleFunc("POST /calculate-skill", handleCalculateSkill)
 	mux.HandleFunc("POST /routine", handleRoutineView)
 	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
@@ -143,7 +144,8 @@ func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
 	editor := views.SkillEditor{EditIndex: editIndexFrom(r), BuilderOpen: r.FormValue("builder_open") == "1"}
 
 	var s skills.TrampolineSkill
-	if r.FormValue("load") == "common" {
+	switch r.FormValue("load") {
+	case "common": // a skill chosen in the picker
 		common, ok := skills.CommonSkills[r.FormValue("commonSkillKey")]
 		if !ok {
 			w.WriteHeader(http.StatusNoContent) // not a common skill
@@ -151,7 +153,18 @@ func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
 		}
 		s = common
 		s.CustomName = strings.TrimSpace(r.FormValue("custom_name"))
-	} else {
+	case "skill": // a search result
+		if err := json.Unmarshal([]byte(r.FormValue("skill")), &s); err != nil {
+			badRequest(w, fmt.Errorf("decoding skill: %w", err))
+			return
+		}
+		s.NormalizePhases()
+		if err := s.Validate(); err != nil {
+			badRequest(w, err)
+			return
+		}
+		s.CustomName = strings.TrimSpace(r.FormValue("custom_name"))
+	default:
 		parsed, err := parseSkillFromForm(r)
 		if err != nil {
 			w.WriteHeader(http.StatusNoContent)
@@ -162,6 +175,16 @@ func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
 
 	editor.Skill = prepared(s)
 	render(w, r, views.SkillEditorView(editor))
+}
+
+// handleSkillSearch lists the skills matching the picker's search box, by name or
+// FIG notation (an empty query lists nothing).
+func handleSkillSearch(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.FormValue("q"))
+	if q == "" {
+		return
+	}
+	render(w, r, views.SearchResults(q, catalog.Search(q)))
 }
 
 // parseSkillFromForm reads and validates the skill in the "Add a skill" form. The

@@ -53,8 +53,24 @@ templ SkillFormView(f SkillForm) {
 // the last pick are kept in the page's Alpine component (pickerTab, picked).
 templ picker(cats []catalog.Category) {
 	<div class="picker">
-		<p class="label">Choose a skill</p>
-		<div class="picker-tabs" role="tablist" aria-label="Skill categories">
+		<label class="label" for="skill-search">Choose a skill</label>
+		// Search by name or FIG notation; while there's a query, its results replace the tabs.
+		<input
+			class="input"
+			type="search"
+			id="skill-search"
+			name="q"
+			autocomplete="off"
+			placeholder="Search, e.g. barani or 8 1 1 <"
+			x-model="query"
+			hx-get="/skill-search"
+			hx-trigger="input changed delay:200ms, search"
+			hx-target="#search-results"
+			hx-sync="this:replace"
+			x-on:keydown.enter.prevent="document.querySelector('#search-results .picker-skill')?.click()"
+		/>
+		<div id="search-results" class="picker-results" x-show="query.trim() !== ''" x-cloak></div>
+		<div class="picker-tabs" role="tablist" aria-label="Skill categories" x-show="query.trim() === ''">
 			for _, c := range cats {
 				<button
 					type="button"
@@ -67,7 +83,7 @@ templ picker(cats []catalog.Category) {
 			}
 		</div>
 		for _, c := range cats {
-			<div class="picker-list" role="tabpanel" aria-label={ c.Label } x-show={ fmt.Sprintf("pickerTab === '%s'", c.Key) } x-cloak>
+			<div class="picker-list" role="tabpanel" aria-label={ c.Label } x-show={ fmt.Sprintf("query.trim() === '' && pickerTab === '%s'", c.Key) } x-cloak>
 				for _, e := range c.Entries {
 					<button
 						type="button"
@@ -87,6 +103,39 @@ templ picker(cats []catalog.Category) {
 		}
 		<p class="picker-hint">Not listed? Use "Build or adjust this skill" below.</p>
 	</div>
+}
+
+// SearchResults lists the matches for a picker search. Each loads its skill into
+// the editor; notation results say which direction they are, since notation
+// doesn't record it.
+templ SearchResults(query string, results []catalog.Result) {
+	if len(results) == 0 {
+		<p class="picker-hint">No skills match "{ query }". Try another name, or build it below.</p>
+	} else {
+		<div class="picker-list">
+			for _, r := range results {
+				<button
+					type="button"
+					class="picker-skill"
+					hx-post="/skill-inputs"
+					hx-target="#skill-editor"
+					hx-include="#main-form"
+					hx-vals={ loadSkill(r.Skill) }
+				>
+					<span>
+						<span class="picker-skill-name">{ r.Skill.Name }</span>
+						<span class="picker-skill-meta">
+							{ r.Skill.FIGNotation() }
+							if r.FromNotation {
+								· { directionText(r.Skill) }
+							}
+						</span>
+					</span>
+					<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", r.Skill.Tariff) }</span>
+				</button>
+			}
+		</div>
+	}
 }
 
 // SkillEditorView renders the builder and the skill card for the editor's skill.
@@ -244,6 +293,20 @@ func shapesFor(s skills.TrampolineSkill) []skills.Shape {
 		return []skills.Shape{skills.Tuck, skills.Pike, skills.Straddle, skills.Straight}
 	}
 	return []skills.Shape{skills.Tuck, skills.Pike, skills.Straight}
+}
+
+// loadSkill is the hx-vals that loads a skill (e.g. a search result) into the editor.
+func loadSkill(s skills.TrampolineSkill) string {
+	skill, _ := json.Marshal(s)
+	b, _ := json.Marshal(map[string]string{"load": "skill", "skill": string(skill)})
+	return string(b)
+}
+
+func directionText(s skills.TrampolineSkill) string {
+	if s.Backward {
+		return "backward"
+	}
+	return "forward"
 }
 
 // loadCommon is the hx-vals that loads a common skill into the editor.

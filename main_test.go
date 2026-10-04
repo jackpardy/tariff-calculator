@@ -571,3 +571,48 @@ func TestTariffSheetEdgeCases(t *testing.T) {
 		t.Errorf("an invalid routine should be rejected, got %d", rec.Code)
 	}
 }
+
+func TestSkillSearch(t *testing.T) {
+	get := func(q string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/skill-search?q="+url.QueryEscape(q), nil))
+		return rec
+	}
+
+	html := get("barani pike").Body.String()
+	if !strings.Contains(html, "Barani Pike") || !strings.Contains(html, "(4 1 &lt;)") || !strings.Contains(html, "&#34;load&#34;:&#34;skill&#34;") {
+		t.Errorf("a name search should list loadable skills, got:\n%s", html)
+	}
+	if strings.Contains(html, "forward") {
+		t.Errorf("name results don't need a direction label")
+	}
+
+	html = get("4 - o").Body.String()
+	if !strings.Contains(html, "· forward") || !strings.Contains(html, "· backward") {
+		t.Errorf("notation results should say which direction they are")
+	}
+
+	if html := get("zzz").Body.String(); !strings.Contains(html, `No skills match "zzz"`) {
+		t.Errorf("no matches should say so, got %q", html)
+	}
+	if rec := get("  "); rec.Code != http.StatusOK || rec.Body.Len() != 0 {
+		t.Errorf("an empty search should render nothing")
+	}
+}
+
+func TestLoadingASearchResult(t *testing.T) {
+	form := url.Values{
+		"load":        {"skill"},
+		"skill":       {`{"rotation":8,"twist_distribution":[1,1],"takeoff_position":"Feet","shape":"Pike","backward":true}`},
+		"custom_name": {"Opener"},
+	}
+	html := postForm(t, "/skill-inputs", form).Body.String()
+	if !strings.Contains(html, `<p class="skill-card-name">Half Half Pike</p>`) || !strings.Contains(html, `value="Opener"`) {
+		t.Errorf("a search result should load into the card, keeping the label:\n%s", html)
+	}
+
+	form.Set("skill", `{"rotation":-4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}`)
+	if rec := postForm(t, "/skill-inputs", form); rec.Code != http.StatusBadRequest {
+		t.Errorf("an invalid posted skill should be rejected, got %d", rec.Code)
+	}
+}
