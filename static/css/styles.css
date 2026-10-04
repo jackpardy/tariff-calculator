@@ -342,6 +342,20 @@
 /* --- Add a skill (views.SkillFormView) --- */
 .skill-adder > .field { margin-bottom: 1rem; }
 
+/* Skill picker: category tabs and big skill buttons. */
+.picker { margin-bottom: 1rem; }
+.picker-tabs { display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.4rem; scrollbar-width: thin; }
+.picker-tab { flex-shrink: 0; padding: 0.35rem 0.85rem; border: 1px solid #dbdbdb; border-radius: 999px; background: #fff; font: inherit; font-size: 0.9rem; cursor: pointer; white-space: nowrap; }
+.picker-tab.is-active { background: #485fc7; border-color: #485fc7; color: #fff; }
+.picker-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
+@media screen and (min-width: 769px) { .picker-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.picker-skill { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; min-height: 3rem; padding: 0.5rem 0.75rem; border: 1px solid #dbdbdb; border-radius: 8px; background: #fafafa; font: inherit; text-align: left; cursor: pointer; }
+.picker-skill:hover { border-color: #485fc7; }
+.picker-skill.is-picked { border: 2px solid #485fc7; background: #eef1fb; }
+.picker-skill-name { font-weight: 600; line-height: 1.2; }
+.picker-skill-tariff { color: #485fc7; font-weight: 700; }
+.picker-hint { color: #777; font-size: 0.85rem; margin-top: 0.5rem; }
+
 /* Button-style choices (shape, direction, takeoff): radios styled as a segmented control. */
 .segmented { display: inline-flex; flex-wrap: wrap; border: 1px solid #dbdbdb; border-radius: 6px; overflow: hidden; }
 .segment { position: relative; padding: 0.4rem 0.8rem; cursor: pointer; font-size: 0.9rem; background: #fff; border-left: 1px solid #dbdbdb; user-select: none; }

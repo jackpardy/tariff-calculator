@@ -217,13 +217,18 @@ func TestSkillForm(t *testing.T) {
 				t.Errorf("card is missing %q", want)
 			}
 		}
-		// Common skills are named in their usual shape and listed A-Z.
-		first := regexp.MustCompile(`<option value="([a-zA-Z]+)"`).FindStringSubmatch(html)
-		if first == nil || first[1] != "backDrop" {
-			t.Errorf("first common skill = %v, want backDrop (Back Drop)", first)
+		// The picker offers the common skills by category, named in their usual shape.
+		tabs := regexp.MustCompile(`role="tab"[^>]*>([^<]+)</button>`).FindAllStringSubmatch(html, -1)
+		var labels []string
+		for _, m := range tabs {
+			labels = append(labels, m[1])
 		}
-		if !strings.Contains(html, ">Barani Tuck (0.6)</option>") {
-			t.Errorf("common skills should be named with their shape")
+		if got := strings.Join(labels, ", "); got != "Jumps, Drops &amp; seat, Somersaults, Twists, Doubles, Triples" {
+			t.Errorf("picker tabs = %s", got)
+		}
+		barani := regexp.MustCompile(`(?s)<button[^>]*hx-vals="([^"]*barani&#34;[^"]*)"[^>]*>.*?</button>`).FindStringSubmatch(html)
+		if barani == nil || !strings.Contains(barani[0], "Barani Tuck") || !strings.Contains(barani[0], "0.6") || !strings.Contains(barani[1], "&#34;load&#34;:&#34;common&#34;") {
+			t.Errorf("the picker should have a Barani Tuck (0.6) button that loads it: %v", barani)
 		}
 		if tag := tagWithID(t, html, "skill-builder"); strings.Contains(tag, " open") {
 			t.Errorf("the builder should start closed when adding: %s", tag)

@@ -9,6 +9,8 @@ function tariffCalculatorStore() {
         expanded: [], // per-card expanded state, parallel to routine
         editingIndex: null,
         busy: false, // an add or update is in flight
+        pickerTab: 'jumps', // the skill picker's open category
+        picked: null,       // the common skill last chosen in the picker
         toast: { show: false, message: '', type: 'info' },
 
         init() {

@@ -1,24 +1,19 @@
 package views
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
+	"tariffCalculator/catalog"
 	"tariffCalculator/skills"
 )
 
 // SkillForm is the data for the "Add a skill" panel.
 type SkillForm struct {
-	Editor       SkillEditor
-	CommonSkills []CommonSkillOption
-}
-
-// CommonSkillOption is one common skill the user can start from.
-type CommonSkillOption struct {
-	Key    string
-	Name   string
-	Tariff float64
+	Editor     SkillEditor
+	Categories []catalog.Category // the skill picker's tabs
 }
 
 // SkillEditor is the part of the panel the server re-renders as the skill
@@ -38,25 +33,7 @@ func (e SkillEditor) Editing() bool { return e.EditIndex >= 0 }
 // editor from it, so the card always shows the skill that Add will add.
 templ SkillFormView(f SkillForm) {
 	<form id="main-form" class="skill-adder" x-on:submit.prevent>
-		<div class="field">
-			<label class="label" for="common-skills">Start from a common skill</label>
-			<div class="select is-fullwidth">
-				<select
-					id="common-skills"
-					name="commonSkillKey"
-					hx-post="/skill-inputs"
-					hx-trigger="change"
-					hx-target="#skill-editor"
-					hx-include="#main-form"
-					hx-vals='{"load": "common"}'
-				>
-					<option value="">Choose a skill...</option>
-					for _, o := range f.CommonSkills {
-						<option value={ o.Key }>{ fmt.Sprintf("%s (%.1f)", o.Name, o.Tariff) }</option>
-					}
-				</select>
-			</div>
-		</div>
+		@picker(f.Categories)
 		<div
 			id="skill-editor"
 			hx-post="/skill-inputs"
@@ -68,6 +45,48 @@ templ SkillFormView(f SkillForm) {
 			@SkillEditorView(f.Editor)
 		</div>
 	</form>
+}
+
+// picker lets the user choose a common skill by category: big buttons, one tab
+// per category. Choosing one loads it into the editor (keeping the label and
+// edit state), where the card shows it and its shape can be changed. The tab and
+// the last pick are kept in the page's Alpine component (pickerTab, picked).
+templ picker(cats []catalog.Category) {
+	<div class="picker">
+		<p class="label">Choose a skill</p>
+		<div class="picker-tabs" role="tablist" aria-label="Skill categories">
+			for _, c := range cats {
+				<button
+					type="button"
+					role="tab"
+					class="picker-tab"
+					x-bind:class={ fmt.Sprintf("{ 'is-active': pickerTab === '%s' }", c.Key) }
+					x-bind:aria-selected={ fmt.Sprintf("pickerTab === '%s'", c.Key) }
+					x-on:click={ fmt.Sprintf("pickerTab = '%s'", c.Key) }
+				>{ c.Label }</button>
+			}
+		</div>
+		for _, c := range cats {
+			<div class="picker-list" role="tabpanel" aria-label={ c.Label } x-show={ fmt.Sprintf("pickerTab === '%s'", c.Key) } x-cloak>
+				for _, e := range c.Entries {
+					<button
+						type="button"
+						class="picker-skill"
+						x-bind:class={ fmt.Sprintf("{ 'is-picked': picked === '%s' }", e.Key) }
+						x-on:click={ fmt.Sprintf("picked = '%s'", e.Key) }
+						hx-post="/skill-inputs"
+						hx-target="#skill-editor"
+						hx-include="#main-form"
+						hx-vals={ loadCommon(e.Key) }
+					>
+						<span class="picker-skill-name">{ e.Skill.Name }</span>
+						<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</span>
+					</button>
+				}
+			</div>
+		}
+		<p class="picker-hint">Not listed? Use "Build or adjust this skill" below.</p>
+	</div>
 }
 
 // SkillEditorView renders the builder and the skill card for the editor's skill.
@@ -225,6 +244,12 @@ func shapesFor(s skills.TrampolineSkill) []skills.Shape {
 		return []skills.Shape{skills.Tuck, skills.Pike, skills.Straddle, skills.Straight}
 	}
 	return []skills.Shape{skills.Tuck, skills.Pike, skills.Straight}
+}
+
+// loadCommon is the hx-vals that loads a common skill into the editor.
+func loadCommon(key string) string {
+	b, _ := json.Marshal(map[string]string{"load": "common", "commonSkillKey": key})
+	return string(b)
 }
 
 func boolValue(b bool) string {

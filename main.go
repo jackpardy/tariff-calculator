@@ -7,13 +7,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/a-h/templ"
 
+	"tariffCalculator/catalog"
 	"tariffCalculator/skills"
 	"tariffCalculator/static"
 	"tariffCalculator/views"
@@ -75,22 +75,6 @@ func badRequest(w http.ResponseWriter, err error) {
 	http.Error(w, "Bad Request: "+err.Error(), http.StatusBadRequest)
 }
 
-// sortedCommonSkills lists the common skills by name, each named and priced in
-// its usual shape (e.g. "Barani Tuck").
-func sortedCommonSkills() []views.CommonSkillOption {
-	list := make([]views.CommonSkillOption, 0, len(skills.CommonSkills))
-	for key, s := range skills.CommonSkills {
-		list = append(list, views.CommonSkillOption{Key: key, Name: skills.FindCommonSkillName(s), Tariff: s.SetTariff()})
-	}
-	sort.Slice(list, func(i, j int) bool {
-		if list[i].Name != list[j].Name {
-			return list[i].Name < list[j].Name
-		}
-		return list[i].Tariff < list[j].Tariff
-	})
-	return list
-}
-
 // defaultSkill is the skill the form starts with: a front somersault in the straight position.
 func defaultSkill() skills.TrampolineSkill {
 	return skills.TrampolineSkill{Rotation: 4, TakeoffPosition: skills.Feet, Shape: skills.Straight, TwistDistribution: []int{0}}
@@ -147,7 +131,7 @@ func handleSkillForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	editor.Skill = prepared(editor.Skill)
-	render(w, r, views.SkillFormView(views.SkillForm{Editor: editor, CommonSkills: sortedCommonSkills()}))
+	render(w, r, views.SkillFormView(views.SkillForm{Editor: editor, Categories: catalog.Categories()}))
 }
 
 // handleSkillInputs re-renders the editor (skill card and builder), either for a
@@ -162,7 +146,7 @@ func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("load") == "common" {
 		common, ok := skills.CommonSkills[r.FormValue("commonSkillKey")]
 		if !ok {
-			w.WriteHeader(http.StatusNoContent) // the "Choose a skill..." placeholder
+			w.WriteHeader(http.StatusNoContent) // not a common skill
 			return
 		}
 		s = common
