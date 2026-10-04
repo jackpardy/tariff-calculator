@@ -1,0 +1,55 @@
+{
+  "format": 1,
+  "name": "BG National 17–21 · first exercise",
+  "description": "First exercise: special requirements (mark them * on the competition card). Two elements score difficulty: write their values on the card.",
+  "source": "British Gymnastics 2026 Technical Requirements, Trampoline National Pathway (v1, August 2025)",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "different",
+      "label": "10 different elements: none repeated"
+    },
+    {
+      "type": "every",
+      "label": "Every element has at least ¾ somersault (270°)",
+      "match": {
+        "rotation": {
+          "min": 3
+        }
+      }
+    },
+    {
+      "type": "separate",
+      "each": [
+        {
+          "label": "To front or back",
+          "landing": [
+            "front",
+            "back"
+          ]
+        },
+        {
+          "label": "From front or back (straight after the element to front or back)",
+          "takeoff": [
+            "front",
+            "back"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "count",
+      "label": "No quadruple somersaults (disqualification)",
+      "match": {
+        "rotation": {
+          "min": 16
+        }
+      },
+      "max": 0
+    }
+  ]
+}

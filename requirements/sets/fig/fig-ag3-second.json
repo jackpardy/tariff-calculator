@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "name": "FIG AG3 (17–21) · second exercise",
+  "description": "Voluntary exercise. Elements over 2.2 may be performed but count as 2.2.",
+  "source": "FIG Rules for Junior and World Age Group Competition 2025–2028 (V1.0, May 2024), sections 3–5",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "difficulty",
+      "cap": 2.2
+    },
+    {
+      "type": "count",
+      "label": "No quadruple somersaults (disqualification)",
+      "match": {
+        "rotation": {
+          "min": 16
+        }
+      },
+      "max": 0
+    }
+  ]
+}

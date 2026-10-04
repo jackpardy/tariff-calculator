@@ -88,7 +88,7 @@ func defaultSkill() skills.TrampolineSkill {
 
 // handleIndex serves the calculator page; the form and routine load into it.
 func handleIndex(w http.ResponseWriter, r *http.Request) {
-	render(w, r, views.Page(requirements.Builtins()))
+	render(w, r, views.Page(requirements.BuiltinGroups()))
 }
 
 // prepared readies a skill for the editor: one twist per phase, straddle only for
@@ -346,7 +346,7 @@ func handleCompare(w http.ResponseWriter, r *http.Request) {
 // handleRequirementsPage serves the requirement sets page: built-in sets, the
 // sets saved in the browser, and the set editor.
 func handleRequirementsPage(w http.ResponseWriter, r *http.Request) {
-	render(w, r, views.RequirementsPage(requirements.Builtins()))
+	render(w, r, views.RequirementsPage(requirements.BuiltinGroups()))
 }
 
 // handleSetEditor renders the requirement set editor, either for a set posted

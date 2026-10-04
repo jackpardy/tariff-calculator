@@ -9,7 +9,7 @@ import (
 
 // Page is the calculator page. The form and routine are empty placeholders that
 // the page's Alpine component (static/js/app.js) fills from the server on load.
-templ Page(builtins []requirements.Builtin) {
+templ Page(groups []requirements.BuiltinGroup) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -37,7 +37,7 @@ templ Page(builtins []requirements.Builtin) {
 			</section>
 			<section class="section">
 				<div class="container">
-					@calculator(builtins)
+					@calculator(groups)
 				</div>
 			</section>
 			<footer class="footer">
@@ -49,7 +49,7 @@ templ Page(builtins []requirements.Builtin) {
 	</html>
 }
 
-templ calculator(builtins []requirements.Builtin) {
+templ calculator(groups []requirements.BuiltinGroup) {
 	<div class="container" x-data="tariffCalculatorStore()">
 		// "Add a skill" panel: SkillFormView, loaded by the component.
 		<div class="box">
@@ -101,11 +101,13 @@ templ calculator(builtins []requirements.Builtin) {
 					<div class="select is-small">
 						<select id="requirement-set" x-on:change="setRequirements($event.target.value)">
 							<option value="" x-bind:selected="!currentRoutine()?.requirements">No requirements</option>
-							<optgroup label="Built-in">
-								for _, b := range builtins {
-									<option value={ requirements.BuiltinPrefix + b.ID } x-bind:selected={ fmt.Sprintf("currentRoutine()?.requirements === '%s%s'", requirements.BuiltinPrefix, b.ID) }>{ b.Set.Name }</option>
-								}
-							</optgroup>
+							for _, g := range groups {
+								<optgroup label={ g.Name }>
+									for _, b := range g.Sets {
+										<option value={ requirements.BuiltinPrefix + b.ID } x-bind:selected={ fmt.Sprintf("currentRoutine()?.requirements === '%s%s'", requirements.BuiltinPrefix, b.ID) }>{ b.Set.Name }</option>
+									}
+								</optgroup>
+							}
 							<template x-if="customSets.length > 0">
 								<optgroup label="Your sets">
 									<template x-for="s in customSets" x-bind:key="s.id">

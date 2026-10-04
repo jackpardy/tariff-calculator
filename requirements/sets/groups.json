@@ -1,0 +1,52 @@
+[
+  {
+    "dir": "fig",
+    "name": "FIG age groups (2025–2028)",
+    "sets": [
+      "fig-ag1-first",
+      "fig-ag1-second",
+      "fig-ag2-junior-first",
+      "fig-ag2-junior-second",
+      "fig-ag3-first",
+      "fig-ag3-second"
+    ]
+  },
+  {
+    "dir": "bg-national",
+    "name": "British Gymnastics national pathway (2026)",
+    "sets": [
+      "bg-national-10-first",
+      "bg-national-10-second",
+      "bg-national-11-12-first",
+      "bg-national-11-12-second",
+      "bg-national-13-16-first",
+      "bg-national-13-16-second",
+      "bg-national-17-21-first",
+      "bg-national-17-21-second"
+    ]
+  },
+  {
+    "dir": "bg-regional",
+    "name": "British Gymnastics club & regional pathway (2027)",
+    "sets": [
+      "bg-club-l1",
+      "bg-club-l2",
+      "bg-club-l3",
+      "bg-regional-l1-first",
+      "bg-regional-l2-first",
+      "bg-regional-l3-first",
+      "bg-regional-l1-second",
+      "bg-regional-l2-second",
+      "bg-regional-l3-9-12-second",
+      "bg-regional-l3-13-second",
+      "bg-regional-l4-10-first",
+      "bg-regional-l4-11-12-first",
+      "bg-regional-l4-13-first",
+      "bg-regional-l4-10-second",
+      "bg-regional-l4-11-12-second",
+      "bg-regional-l4-13-14-second",
+      "bg-regional-l4-15-16-second",
+      "bg-regional-l4-17-second"
+    ]
+  }
+]

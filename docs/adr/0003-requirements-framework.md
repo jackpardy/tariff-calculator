@@ -39,11 +39,21 @@ accounts: routines live in the browser.
      2 doubles").
    - `every` — every element matches (e.g. "no element over 1¼ somersaults").
    - `elements` — the number of elements is within `min`/`max`.
-   - `difficulty` — the routine's counted difficulty (tariff) is within `min`/`max`.
+   - `difficulty` — the routine's counted difficulty (tariff) is within `min`/`max`. An
+     optional `cap` limits what one element counts for, as in age-group competition,
+     where a harder element may be performed but counts as the cap (CoP §17.1).
    - `position` — the element at a given position matches (e.g. "finish with a back
      somersault").
    - `sequence` — a set routine: each element in turn matches the given matchers, and
      there are exactly that many.
+   - `separate` — special requirements: each matcher in `each` is met by a *different*
+     element ("these requirements cannot be fulfilled by combining them into one
+     element"). Elements are assigned by maximum matching, so an element that could meet
+     two requirements is used where it's needed; the assigned elements are the ones
+     starred on a competition card, and the tariff sheet ticks them.
+   - `different` — no element is repeated, using the Code of Points' definition of a
+     repetition (§14: shape, and twist phase in multiple somersaults, distinguish
+     elements only where it says they do).
 
    Each rule may carry a `label` written by the set's author ("A back somersault");
    otherwise a plain-English description is generated.
@@ -51,7 +61,8 @@ accounts: routines live in the browser.
 4. **A matcher** describes elements with optional conditions, all of which must hold:
    rotation (quarter somersaults, min/max), direction, total twist (half twists,
    min/max), shapes, take-off and landing positions, tariff (min/max), and an exact FIG
-   notation. This expresses nearly every element requirement in the rule books we know
+   notation. A matcher may carry its own `label`, used for set-routine elements ("Back
+   somersault (T)") and special requirements ("Landing on the front"). This expresses nearly every element requirement in the rule books we know
    of without a general expression language, so the `cel-go` escape hatch is dropped
    until a real rule needs it.
 
@@ -70,7 +81,13 @@ accounts: routines live in the browser.
 
 8. **Built-in sets are only added from a cited source** (rule book, handbook or
    competition document) and say which season they reflect; the app states that users
-   should check them against the current rules.
+   should check them against the current rules. They live in `requirements/sets/<group>/`,
+   and `sets/groups.json` names and orders the groups (one per organisation and
+   pathway). The first drafts cover the FIG Junior and WAGC rules (2025–2028) and the
+   British Gymnastics national pathway (2026) and club & regional pathway (2027) technical
+   requirements.
+   Gymnastics Ireland's levels are not published (its development plan is sent to club
+   secretaries on request), so they wait for that document.
 
 ## Consequences
 

@@ -12,8 +12,9 @@ import (
 )
 
 // The editor names its fields by rule: r<i>.type, r<i>.label, r<i>.min,
-// r<i>.max, r<i>.position, r<i>.m.<field> for a rule's matcher, and
-// r<i>.s<j>.<field> for element j of a set routine. "rules" and r<i>.seq give
+// r<i>.max, r<i>.cap, r<i>.position, r<i>.m.<field> for a rule's matcher, and
+// r<i>.s<j>.<field> for element j of a set routine or requirement j of a
+// separate rule (with r<i>.s<j>.label its wording). "rules" and r<i>.seq give
 // the counts, and r<i>.was is the rule's kind when the form was drawn. Matcher
 // fields: rotmin, rotmax, dir, twmin, twmax, shape, takeoff, landing
 // (repeatable checkboxes), tarmin, tarmax, fig.
@@ -87,13 +88,25 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 		case requirements.Count, requirements.Every, requirements.Position:
 			m := matcher(p + "m.")
 			rule.Match = &m
-		case requirements.Sequence:
+		case requirements.Sequence, requirements.Separate:
+			var items []requirements.Matcher
 			for j := range count(p + "seq") {
-				rule.Sequence = append(rule.Sequence, matcher(fmt.Sprintf("%ss%d.", p, j)))
+				prefix := fmt.Sprintf("%ss%d.", p, j)
+				m := matcher(prefix)
+				m.Label = strings.TrimSpace(r.FormValue(prefix + "label"))
+				items = append(items, m)
+			}
+			if rule.Type == requirements.Sequence {
+				rule.Sequence = items
+			} else {
+				rule.Each = items
 			}
 		}
 		if rule.Type == requirements.Count || rule.Type == requirements.Elements || rule.Type == requirements.Difficulty {
 			rule.Min, rule.Max = floatField(p+"min"), floatField(p+"max")
+		}
+		if rule.Type == requirements.Difficulty {
+			rule.Cap = floatField(p + "cap")
 		}
 		if rule.Type == requirements.Position {
 			if n := intField(p + "position"); n != nil {
@@ -131,6 +144,8 @@ func newRule(ruleType string) requirements.Rule {
 		return requirements.Rule{Type: ruleType, Position: 10, Match: &requirements.Matcher{}}
 	case requirements.Sequence:
 		return requirements.Rule{Type: ruleType, Sequence: []requirements.Matcher{{}}}
+	case requirements.Separate:
+		return requirements.Rule{Type: ruleType, Each: []requirements.Matcher{{}}}
 	}
 	return requirements.Rule{Type: ruleType}
 }
@@ -167,11 +182,16 @@ func applySetAction(set *requirements.Set, action, add string) {
 		if i < len(set.Rules)-1 {
 			set.Rules[i+1], set.Rules[i] = set.Rules[i], set.Rules[i+1]
 		}
-	case "add-element":
-		set.Rules[i].Sequence = append(set.Rules[i].Sequence, requirements.Matcher{})
-	case "delete-element":
-		if j := index(2); j >= 0 && j < len(set.Rules[i].Sequence) {
-			set.Rules[i].Sequence = slices.Delete(set.Rules[i].Sequence, j, j+1)
+	case "add-element", "delete-element":
+		// The elements of a set routine, or the requirements of a separate rule.
+		items := &set.Rules[i].Sequence
+		if set.Rules[i].Type == requirements.Separate {
+			items = &set.Rules[i].Each
+		}
+		if parts[0] == "add-element" {
+			*items = append(*items, requirements.Matcher{})
+		} else if j := index(2); j >= 0 && j < len(*items) {
+			*items = slices.Delete(*items, j, j+1)
 		}
 	}
 }

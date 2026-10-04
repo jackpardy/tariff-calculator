@@ -1,0 +1,72 @@
+{
+  "format": 1,
+  "name": "FIG AG2 (13–14) & Junior (15–16) · first exercise",
+  "description": "Q1 first exercise: special requirements (mark them * on the competition card). No difficulty score in AG2 or Junior.",
+  "source": "FIG Rules for Junior and World Age Group Competition 2025–2028 (V1.0, May 2024), sections 3–5",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "different",
+      "label": "10 different elements: none repeated"
+    },
+    {
+      "type": "count",
+      "label": "At most 1 element with less than ¾ somersault (270°)",
+      "match": {
+        "rotation": {
+          "max": 2
+        }
+      },
+      "max": 1
+    },
+    {
+      "type": "separate",
+      "each": [
+        {
+          "label": "To front or back",
+          "landing": [
+            "front",
+            "back"
+          ]
+        },
+        {
+          "label": "From front or back (straight after the element to front or back)",
+          "takeoff": [
+            "front",
+            "back"
+          ]
+        },
+        {
+          "label": "A double front or back somersault, with or without twist",
+          "rotation": {
+            "min": 8,
+            "max": 11
+          }
+        },
+        {
+          "label": "At least 1½ twists (540°) with at most 1¼ somersaults (450°)",
+          "twist": {
+            "min": 3
+          },
+          "rotation": {
+            "max": 5
+          }
+        }
+      ]
+    },
+    {
+      "type": "count",
+      "label": "No quadruple somersaults (disqualification)",
+      "match": {
+        "rotation": {
+          "min": 16
+        }
+      },
+      "max": 0
+    }
+  ]
+}

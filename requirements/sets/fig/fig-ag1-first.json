@@ -1,0 +1,63 @@
+{
+  "format": 1,
+  "name": "FIG AG1 (11–12) · first exercise",
+  "description": "Q1 first exercise: special requirements (mark them * on the competition card). No difficulty score in AG1.",
+  "source": "FIG Rules for Junior and World Age Group Competition 2025–2028 (V1.0, May 2024), sections 3–5",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "different",
+      "label": "10 different elements: none repeated"
+    },
+    {
+      "type": "count",
+      "label": "At most 2 elements with less than ¾ somersault (270°)",
+      "match": {
+        "rotation": {
+          "max": 2
+        }
+      },
+      "max": 2
+    },
+    {
+      "type": "separate",
+      "each": [
+        {
+          "label": "Landing on the front",
+          "landing": [
+            "front"
+          ]
+        },
+        {
+          "label": "Landing on the back",
+          "landing": [
+            "back"
+          ]
+        },
+        {
+          "label": "At least a full twist (360°) and at least a full somersault (360°)",
+          "rotation": {
+            "min": 4
+          },
+          "twist": {
+            "min": 2
+          }
+        }
+      ]
+    },
+    {
+      "type": "count",
+      "label": "No triple or quadruple somersaults (disqualification)",
+      "match": {
+        "rotation": {
+          "min": 12
+        }
+      },
+      "max": 0
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "format": 1,
+  "name": "FIG AG3 (17–21) · first exercise",
+  "description": "Q1 first exercise: special requirements (mark them * on the competition card). Two elements score difficulty: write their values on the card; repeating either in the second exercise loses its difficulty there.",
+  "source": "FIG Rules for Junior and World Age Group Competition 2025–2028 (V1.0, May 2024), sections 3–5",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "different",
+      "label": "10 different elements: none repeated"
+    },
+    {
+      "type": "every",
+      "label": "Every element has at least ¾ somersault (270°)",
+      "match": {
+        "rotation": {
+          "min": 3
+        }
+      }
+    },
+    {
+      "type": "separate",
+      "each": [
+        {
+          "label": "To front or back",
+          "landing": [
+            "front",
+            "back"
+          ]
+        },
+        {
+          "label": "From front or back (straight after the element to front or back)",
+          "takeoff": [
+            "front",
+            "back"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "count",
+      "label": "No quadruple somersaults (disqualification)",
+      "match": {
+        "rotation": {
+          "min": 16
+        }
+      },
+      "max": 0
+    }
+  ]
+}

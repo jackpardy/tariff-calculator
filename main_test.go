@@ -698,8 +698,11 @@ func TestRequirementsInTheRoutineView(t *testing.T) {
 		t.Errorf("no set chosen: no requirements panel")
 	}
 
-	html := post("builtin:example-club-novice")
-	for _, want := range []string{"Example: club novice (not an official set)", "3 of 7 met", "A backward somersault (¾ or more)", "A seat landing", "has 3"} {
+	// A back tuck, seat drop and seat to feet against FIG AG1's first exercise:
+	// too short, and none of the special requirements met.
+	html := post("builtin:fig-ag1-first")
+	for _, want := range []string{"FIG AG1 (11–12) · first exercise", "3 of 5 met", "has 3",
+		"missing: Landing on the front; Landing on the back; At least a full twist"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("built-in check is missing %q", want)
 		}
@@ -739,7 +742,7 @@ func TestPageOffersBuiltinSets(t *testing.T) {
 	rec := httptest.NewRecorder()
 	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	html := rec.Body.String()
-	if !strings.Contains(html, `<option value="builtin:example-club-novice"`) || !strings.Contains(html, `href="/requirements"`) {
+	if !strings.Contains(html, `<option value="builtin:fig-ag1-first"`) || !strings.Contains(html, `<optgroup label="British Gymnastics national pathway (2026)"`) || !strings.Contains(html, `href="/requirements"`) {
 		t.Errorf("the calculator should offer built-in sets and link to the requirements page")
 	}
 }

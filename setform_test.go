@@ -21,7 +21,10 @@ const everyKindOfRule = `{"format":1,"name":"Everything","description":"All of i
 	{"type":"elements","min":10,"max":10},
 	{"type":"difficulty","min":1.5,"max":3.5},
 	{"type":"position","position":10,"match":{"tariff":{"min":0.5,"max":1.2}}},
-	{"type":"sequence","sequence":[{"fig":"4 - o"},{"rotation":{"max":0},"landing":["back"]}]}
+	{"type":"sequence","sequence":[{"fig":"4 - o"},{"rotation":{"max":0},"landing":["back"]}]},
+	{"type":"separate","each":[{"label":"Landing on the front","landing":["front"]},{"twist":{"min":3},"rotation":{"max":5}}]},
+	{"type":"different"},
+	{"type":"difficulty","cap":1.7}
 ]}`
 
 // editorFor renders the editor for a set given as JSON.
@@ -143,6 +146,25 @@ func TestSetEditorRoundTrip(t *testing.T) {
 	}
 }
 
+// Every built-in set comes back unchanged from the editor, so duplicating one
+// and saving it keeps it exactly.
+func TestSetEditorKeepsBuiltins(t *testing.T) {
+	for _, b := range requirements.Builtins() {
+		data, err := json.Marshal(b.Set)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rec := postForm(t, "/requirements/editor", submitted(editorFor(t, string(data))))
+		doc, err := html.Parse(rec.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, problems := editorSet(t, doc); canonical(t, got) != canonical(t, b.Set) || problems != "0" {
+			t.Errorf("%s: after the editor: %s (%s problems), want %s", b.ID, canonical(t, got), problems, canonical(t, b.Set))
+		}
+	}
+}
+
 func TestSetEditorActions(t *testing.T) {
 	form := submitted(editorFor(t, everyKindOfRule))
 	edit := func(changes map[string]string) requirements.Set {
@@ -176,13 +198,13 @@ func TestSetEditorActions(t *testing.T) {
 		changes map[string]string
 		want    string
 	}{
-		{"add a rule", map[string]string{"add": "difficulty"}, "count count every elements difficulty position sequence difficulty"},
-		{"remove a rule", map[string]string{"action": "delete:0"}, "count every elements difficulty position sequence"},
-		{"move a rule up", map[string]string{"action": "up:2"}, "count every count elements difficulty position sequence"},
-		{"move a rule down", map[string]string{"action": "down:5"}, "count count every elements difficulty sequence position"},
-		{"the first rule can't move up", map[string]string{"action": "up:0"}, "count count every elements difficulty position sequence"},
-		{"an unknown action does nothing", map[string]string{"action": "explode:1"}, "count count every elements difficulty position sequence"},
-		{"an out of range rule does nothing", map[string]string{"action": "delete:99"}, "count count every elements difficulty position sequence"},
+		{"add a rule", map[string]string{"add": "difficulty"}, "count count every elements difficulty position sequence separate different difficulty difficulty"},
+		{"remove a rule", map[string]string{"action": "delete:0"}, "count every elements difficulty position sequence separate different difficulty"},
+		{"move a rule up", map[string]string{"action": "up:2"}, "count every count elements difficulty position sequence separate different difficulty"},
+		{"move a rule down", map[string]string{"action": "down:5"}, "count count every elements difficulty sequence position separate different difficulty"},
+		{"the first rule can't move up", map[string]string{"action": "up:0"}, "count count every elements difficulty position sequence separate different difficulty"},
+		{"an unknown action does nothing", map[string]string{"action": "explode:1"}, "count count every elements difficulty position sequence separate different difficulty"},
+		{"an out of range rule does nothing", map[string]string{"action": "delete:99"}, "count count every elements difficulty position sequence separate different difficulty"},
 	}
 	for _, c := range cases {
 		if got := types(edit(c.changes)); got != c.want {
@@ -190,6 +212,12 @@ func TestSetEditorActions(t *testing.T) {
 		}
 	}
 
+	if got := edit(map[string]string{"action": "add-element:7"}).Rules[7].Each; len(got) != 3 {
+		t.Errorf("adding a requirement: %d requirements, want 3", len(got))
+	}
+	if got := edit(map[string]string{"action": "delete-element:7:0"}).Rules[7].Each; len(got) != 1 || got[0].Twist == nil {
+		t.Errorf("removing the first requirement left %+v", got)
+	}
 	if got := edit(map[string]string{"action": "add-element:6"}).Rules[6].Sequence; len(got) != 3 {
 		t.Errorf("adding an element: %d elements, want 3", len(got))
 	}
@@ -246,7 +274,7 @@ func TestRequirementsPage(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d", rec.Code)
 	}
-	for _, want := range []string{`id="builtin-sets"`, "requirementsPage()", "requirements.js", "example-club-novice"} {
+	for _, want := range []string{`id="builtin-sets"`, "requirementsPage()", "requirements.js", "fig-ag1-first", "FIG age groups"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("page is missing %q", want)
 		}

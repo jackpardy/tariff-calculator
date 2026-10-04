@@ -1,6 +1,7 @@
 package requirements
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -180,6 +181,11 @@ func TestDescribe(t *testing.T) {
 		{Rule{Type: Position, Position: 10, Match: &Matcher{Landing: []string{"feet"}}}, "Element 10: landing on feet"},
 		{Rule{Type: Count, Match: &Matcher{Landing: []string{"seat", "front", "back"}}, Min: ptr(1.0)}, "At least 1 element: landing on seat, front or back"},
 		{Rule{Type: Sequence, Sequence: []Matcher{{}, {}}}, "Set routine of 2 elements"},
+		{Rule{Type: Sequence, Sequence: []Matcher{{Label: "Tuck jump"}, {Label: "Seat landing"}}}, "Set routine: Tuck jump, Seat landing"},
+		{Rule{Type: Separate, Each: []Matcher{{Label: "To front or back"}, {Twist: &Range{Min: ptr(3)}, Rotation: &Range{Max: ptr(5)}}}}, "Each by a different element: To front or back; at most 1¼ somersaults, at least 1½ twists"},
+		{Rule{Type: Different}, "No element repeated"},
+		{Rule{Type: Difficulty, Cap: ptr(1.7)}, "Each element's difficulty counts at most 1.7"},
+		{Rule{Type: Difficulty, Min: ptr(3.3), Cap: ptr(0.7)}, "Difficulty at least 3.3, each element counting at most 0.7"},
 	}
 	for _, c := range cases {
 		if got := Describe(c.rule); got != c.want {
@@ -201,13 +207,177 @@ func equalInts(a, b []int) bool {
 }
 
 func TestBuiltinsLoad(t *testing.T) {
-	if len(Builtins()) == 0 {
+	if len(BuiltinGroups()) == 0 || len(Builtins()) == 0 {
 		t.Fatal("no built-in sets")
 	}
-	if _, ok := LookupBuiltin("builtin:example-club-novice"); !ok {
-		t.Errorf("the example set should be found by reference")
+	for _, g := range BuiltinGroups() {
+		for _, b := range g.Sets {
+			if b.Set.Source == "" {
+				t.Errorf("%s: a built-in set must name its source", b.ID)
+			}
+		}
+	}
+	if _, ok := LookupBuiltin("builtin:fig-ag1-first"); !ok {
+		t.Errorf("a built-in set should be found by reference")
 	}
 	if _, ok := LookupBuiltin("builtin:nope"); ok {
 		t.Errorf("an unknown reference should not be found")
+	}
+}
+
+// common is a common skill in the given shape.
+func common(t *testing.T, key string, shape skills.Shape) skills.TrampolineSkill {
+	t.Helper()
+	s, ok := skills.CommonSkills[key]
+	if !ok {
+		t.Fatalf("no common skill %q", key)
+	}
+	s.Shape = shape
+	return s
+}
+
+// checkBuiltin evaluates a built-in set against a routine and reports any rule
+// that fails, and any transition the routine gets wrong.
+func checkBuiltin(t *testing.T, id string, routine []skills.TrampolineSkill) {
+	t.Helper()
+	set, ok := LookupBuiltin(id)
+	if !ok {
+		t.Fatalf("no built-in set %s", id)
+	}
+	rv := skills.ValidateRoutine(routine)
+	if rv.HasInvalidTransitions || rv.InterruptedAt >= 0 {
+		t.Errorf("%s: the routine itself is wrong: %v", id, rv.Messages)
+	}
+	for _, r := range Evaluate(set, rv) {
+		if !r.Passed {
+			t.Errorf("%s: %s: %s", id, r.Description, r.Detail)
+		}
+	}
+}
+
+// The BG set routines, built from the app's own skills, meet their sets.
+func TestBuiltinSetRoutines(t *testing.T) {
+	c := func(key string) skills.TrampolineSkill { return common(t, key, skills.CommonSkills[key].Shape) }
+	jump := func(shape skills.Shape) skills.TrampolineSkill { return common(t, "shapeJump", shape) }
+	back := func(shape skills.Shape) skills.TrampolineSkill { return common(t, "backSomersault", shape) }
+	front := func(shape skills.Shape) skills.TrampolineSkill { return common(t, "front", shape) }
+	barani := func(shape skills.Shape) skills.TrampolineSkill { return common(t, "barani", shape) }
+	halfToFront := skills.TrampolineSkill{Rotation: 1, TwistDistribution: []int{1}, TakeoffPosition: skills.Feet, Backward: true}
+
+	routines := map[string][]skills.TrampolineSkill{
+		"bg-club-l1": {c("frontDrop"), c("frontToFeet"), jump(skills.Straddle), c("seatDrop"), c("seatToFeet"),
+			c("halfTwist"), jump(skills.Tuck), jump(skills.Pike), c("backDrop"), c("backToFeet")},
+		"bg-club-l2": {halfToFront, c("frontToFeet"), jump(skills.Straddle), c("seatDrop"), c("seatHalfToSeat"),
+			c("seatHalfToFeet"), jump(skills.Tuck), jump(skills.Pike), c("backDrop"), c("backHalfToFeet")},
+		"bg-club-l3": {c("fullTwist"), jump(skills.Straddle), c("seatDrop"), c("seatHalfToSeat"), c("seatHalfToFeet"),
+			jump(skills.Pike), c("backDrop"), c("backHalfToFeet"), jump(skills.Tuck), front(skills.Tuck)},
+		"bg-regional-l1-first": {back(skills.Tuck), jump(skills.Straddle), c("seatDrop"), c("seatHalfToFeet"), c("halfTwist"),
+			jump(skills.Pike), c("backDrop"), c("backHalfToFeet"), jump(skills.Tuck), front(skills.Pike)},
+		"bg-regional-l2-first": {back(skills.Straight), jump(skills.Straddle), back(skills.Tuck), barani(skills.Tuck), c("halfTwist"),
+			jump(skills.Tuck), c("backToSeat"), c("seatHalfToFeet"), jump(skills.Pike), front(skills.Pike)},
+		"bg-regional-l3-first": {back(skills.Straight), barani(skills.Straight), jump(skills.Straddle), back(skills.Pike), barani(skills.Pike),
+			jump(skills.Tuck), barani(skills.Tuck), back(skills.Tuck), jump(skills.Pike), front(skills.Pike)},
+	}
+	for id, routine := range routines {
+		checkBuiltin(t, id, routine)
+	}
+
+	// The wrong shape somewhere is caught.
+	wrong := slices.Clone(routines["bg-regional-l3-first"])
+	wrong[3] = back(skills.Tuck)
+	set, _ := LookupBuiltin("bg-regional-l3-first")
+	if r := Evaluate(set, skills.ValidateRoutine(wrong))[0]; r.Passed || !equalInts(r.Elements, []int{4}) || r.Detail != "differs at 4 (Back somersault (P))" {
+		t.Errorf("a back tuck instead of a back pike: got %+v", r)
+	}
+}
+
+// Routines meeting the FIG special requirements pass them.
+func TestBuiltinSpecialRequirements(t *testing.T) {
+	c := func(key string) skills.TrampolineSkill { return common(t, key, skills.CommonSkills[key].Shape) }
+	back := func(shape skills.Shape) skills.TrampolineSkill { return common(t, "backSomersault", shape) }
+	front := func(shape skills.Shape) skills.TrampolineSkill { return common(t, "front", shape) }
+	barani := func(shape skills.Shape) skills.TrampolineSkill { return common(t, "barani", shape) }
+
+	// Every element at least ¾ somersault; a back landing (crash dive), a
+	// front landing (lazy back) and a full back meet the requirements.
+	ag1 := []skills.TrampolineSkill{barani(skills.Tuck), back(skills.Pike), c("crashDive"), c("ballOut"),
+		c("lazyBack"), c("cody"), c("fullBack"), front(skills.Pike), back(skills.Straight), barani(skills.Pike)}
+	checkBuiltin(t, "fig-ag1-first", ag1)
+
+	// One element under ¾ somersault (the back drop, which is also "to back"),
+	// a ball-out "from back", a double back and a Rudi.
+	doubleBack := skill(8, []int{0, 0}, skills.Tuck, true)
+	ag2 := []skills.TrampolineSkill{barani(skills.Tuck), c("backDrop"), c("ballOut"), doubleBack, c("rudi"),
+		back(skills.Pike), front(skills.Pike), back(skills.Straight), barani(skills.Straight), c("fullBack")}
+	checkBuiltin(t, "fig-ag2-junior-first", ag2)
+
+	// Missing the double: reported, and the other requirements still met.
+	ag2[3] = back(skills.Tuck)
+	set, _ := LookupBuiltin("fig-ag2-junior-first")
+	for _, r := range Evaluate(set, skills.ValidateRoutine(ag2)) {
+		if set.Rules[r.Rule].Type == Separate && (r.Passed || r.Detail != "missing: A double front or back somersault, with or without twist") {
+			t.Errorf("without a double: got %+v", r)
+		}
+	}
+}
+
+func TestSeparateRequirements(t *testing.T) {
+	// Twisting elements are 3 (Barani) and 4 (Rudi), but only the Barani
+	// matches "4 1 o": the first requirement must give way and take the Rudi.
+	results := evaluate(t, Rule{Type: Separate, Each: []Matcher{
+		{Twist: &Range{Min: ptr(1)}},
+		{FIG: "4 1 o"},
+	}})
+	if r := results[0]; !r.Passed || !equalInts(r.Assigned, []int{4, 3}) || r.Detail != "by elements 4, 3" {
+		t.Errorf("got passed=%v assigned=%v detail=%q", r.Passed, r.Assigned, r.Detail)
+	}
+
+	// The seat drop (element 5) is the only element for either requirement,
+	// and one element can't meet both.
+	results = evaluate(t, Rule{Type: Separate, Each: []Matcher{
+		{Takeoff: []string{"feet"}, Rotation: &Range{Max: ptr(0)}},
+		{Label: "Landing on the seat", Landing: []string{"seat"}},
+	}})
+	if r := results[0]; r.Passed || !equalInts(r.Assigned, []int{5, 0}) || r.Detail != "missing: Landing on the seat" {
+		t.Errorf("got passed=%v assigned=%v detail=%q", r.Passed, r.Assigned, r.Detail)
+	}
+
+	set := Set{Format: Format, Name: "x", Rules: []Rule{{Type: Separate, Each: []Matcher{{FIG: "4 1 o"}, {Landing: []string{"seat"}}}}}}
+	if got := RequiredElements(set, Evaluate(set, skills.ValidateRoutine(sampleRoutine))); len(got) != 2 || !got[3] || !got[5] {
+		t.Errorf("RequiredElements = %v, want elements 3 and 5", got)
+	}
+}
+
+func TestDifferentElements(t *testing.T) {
+	set := Set{Format: Format, Name: "x", Rules: []Rule{{Type: Different}}}
+	if r := Evaluate(set, skills.ValidateRoutine(sampleRoutine))[0]; !r.Passed {
+		t.Errorf("no repeats: got %+v", r)
+	}
+	repeated := append(slices.Clone(sampleRoutine), skill(4, []int{0}, skills.Pike, false), frontTuck)
+	if r := Evaluate(set, skills.ValidateRoutine(repeated))[0]; r.Passed || !equalInts(r.Elements, []int{8}) || r.Detail != "8 repeats 1" {
+		t.Errorf("a front pike is a different element, a second front tuck isn't: got %+v", r)
+	}
+}
+
+func TestDifficultyCap(t *testing.T) {
+	// Tariffs 0.5, 0.6, 0.6, 0.8, 0.1, 0.1: capped at 0.5, 0.5 + 0.5×3 + 0.2 = 2.2.
+	results := evaluate(t,
+		Rule{Type: Difficulty, Min: ptr(2.5), Cap: ptr(0.5)},
+		Rule{Type: Difficulty, Cap: ptr(1.7)},
+	)
+	if r := results[0]; r.Passed || r.Detail != "is 2.2 with the cap (2.7 without)" {
+		t.Errorf("capped minimum: got passed=%v detail=%q", r.Passed, r.Detail)
+	}
+	if r := results[1]; !r.Passed || r.Detail != "is 2.7" {
+		t.Errorf("cap alone: got passed=%v detail=%q", r.Passed, r.Detail)
+	}
+
+	for name, data := range map[string]string{
+		"negative cap":           `{"format":1,"name":"x","rules":[{"type":"difficulty","cap":-1}]}`,
+		"separate without items": `{"format":1,"name":"x","rules":[{"type":"separate","each":[]}]}`,
+	} {
+		if _, err := Parse([]byte(data)); err == nil {
+			t.Errorf("%s: expected an error", name)
+		}
 	}
 }

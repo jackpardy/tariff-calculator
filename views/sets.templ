@@ -12,7 +12,7 @@ import (
 // RequirementsPage lists the built-in requirement sets and the ones saved in
 // this browser, and holds the set editor. Its script (static/js/requirements.js)
 // manages the saved sets and opens them in the editor.
-templ RequirementsPage(builtins []requirements.Builtin) {
+templ RequirementsPage(groups []requirements.BuiltinGroup) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -25,7 +25,7 @@ templ RequirementsPage(builtins []requirements.Builtin) {
 			<script defer src={ static.URL("js/sets.js") }></script>
 			<script defer src={ static.URL("js/requirements.js") }></script>
 			<script defer src={ static.URL("js/alpine.min.js") }></script>
-			@templ.JSONScript("builtin-sets", builtinSets(builtins))
+			@templ.JSONScript("builtin-sets", builtinSets(groups))
 		</head>
 		<body>
 			<section class="section">
@@ -96,30 +96,38 @@ templ RequirementsPage(builtins []requirements.Builtin) {
 					</div>
 					<div class="box">
 						<h2 class="title is-5">Built-in sets</h2>
-						<p class="is-size-7 has-text-grey mb-3">Built-in sets name their source. Rules change, so check them against the current rules; duplicate one to adjust it.</p>
-						<ul class="set-list">
-							for _, b := range builtins {
-								<li class="set-item">
-									<div>
-										<p class="set-name">{ b.Set.Name }</p>
-										if b.Set.Source != "" {
-											<p class="set-meta">{ b.Set.Source }</p>
-										}
-										<details class="set-rules">
-											<summary>{ rulesCount(len(b.Set.Rules)) }</summary>
-											<ul>
-												for _, rule := range b.Set.Rules {
-													<li>{ requirements.Describe(rule) }</li>
+						<p class="is-size-7 has-text-grey mb-3">Drafted from each organisation's published rules, which name their source. Rules change, so check them against the current rules; duplicate one to adjust it.</p>
+						for _, g := range groups {
+							<details class="builtin-group">
+								<summary>{ g.Name } <span class="set-meta">· { strconv.Itoa(len(g.Sets)) } sets</span></summary>
+								<ul class="set-list">
+									for _, b := range g.Sets {
+										<li class="set-item">
+											<div>
+												<p class="set-name">{ b.Set.Name }</p>
+												if b.Set.Description != "" {
+													<p class="set-description">{ b.Set.Description }</p>
 												}
-											</ul>
-										</details>
-									</div>
-									<div class="buttons are-small mb-0">
-										<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("duplicateBuiltin('%s')", b.ID) }>Duplicate</button>
-									</div>
-								</li>
-							}
-						</ul>
+												if b.Set.Source != "" {
+													<p class="set-meta">{ b.Set.Source }</p>
+												}
+												<details class="set-rules">
+													<summary>{ rulesCount(len(b.Set.Rules)) }</summary>
+													<ul>
+														for _, rule := range b.Set.Rules {
+															<li>{ requirements.Describe(rule) }</li>
+														}
+													</ul>
+												</details>
+											</div>
+											<div class="buttons are-small mb-0">
+												<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("duplicateBuiltin('%s')", b.ID) }>Duplicate</button>
+											</div>
+										</li>
+									}
+								</ul>
+							</details>
+						}
 					</div>
 					<div x-show="toast" x-transition class="notification is-info is-fixed-bottom-right" x-cloak>
 						<span x-text="toast"></span>
@@ -138,10 +146,12 @@ func rulesCount(n int) string {
 }
 
 // builtinSets maps built-in set IDs to their sets, for duplicating one in the browser.
-func builtinSets(builtins []requirements.Builtin) map[string]requirements.Set {
+func builtinSets(groups []requirements.BuiltinGroup) map[string]requirements.Set {
 	out := map[string]requirements.Set{}
-	for _, b := range builtins {
-		out[b.ID] = b.Set
+	for _, g := range groups {
+		for _, b := range g.Sets {
+			out[b.ID] = b.Set
+		}
 	}
 	return out
 }
@@ -155,6 +165,8 @@ type SetEditorData struct {
 
 // ruleTypeLabels are the editor's names for rule types.
 var ruleTypeLabels = map[string]string{
+	requirements.Separate:   "Special requirements",
+	requirements.Different:  "No repeated elements",
 	requirements.Count:      "Elements that must (or mustn't) appear",
 	requirements.Every:      "Every element must…",
 	requirements.Elements:   "Number of elements",
@@ -266,6 +278,7 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 				<div class="rule-grid">
 					@numberField(p+"min", "At least", floatText(rule.Min), "0.1")
 					@numberField(p+"max", "At most", floatText(rule.Max), "0.1")
+					@numberField(p+"cap", "Each element counts at most", floatText(rule.Cap), "0.1")
 				</div>
 			case requirements.Position:
 				<div class="rule-grid">
@@ -275,7 +288,7 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 			case requirements.Sequence:
 				<input type="hidden" name={ p + "seq" } value={ strconv.Itoa(len(rule.Sequence)) }/>
 				for j, m := range rule.Sequence {
-					@matcherFields(fmt.Sprintf("%ss%d.", p, j), &m, fmt.Sprintf("Element %d", j+1))
+					@itemFields(fmt.Sprintf("%ss%d.", p, j), &m, fmt.Sprintf("Element %d", j+1), "e.g. Back somersault (T)")
 					<div class="buttons are-small">
 						@editorAction(fmt.Sprintf("Remove element %d", j+1), fmt.Sprintf("delete-element:%d:%d", i, j), len(rule.Sequence) == 1)
 					</div>
@@ -283,6 +296,20 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 				<div class="buttons are-small">
 					@editorAction("+ Add element", fmt.Sprintf("add-element:%d", i), false)
 				</div>
+			case requirements.Separate:
+				<p class="matcher-hint mb-2">Each requirement must be met by a different element, as with the starred (*) elements on a competition card.</p>
+				<input type="hidden" name={ p + "seq" } value={ strconv.Itoa(len(rule.Each)) }/>
+				for j, m := range rule.Each {
+					@itemFields(fmt.Sprintf("%ss%d.", p, j), &m, fmt.Sprintf("Requirement %d", j+1), "e.g. Landing on the front")
+					<div class="buttons are-small">
+						@editorAction(fmt.Sprintf("Remove requirement %d", j+1), fmt.Sprintf("delete-element:%d:%d", i, j), len(rule.Each) == 1)
+					</div>
+				}
+				<div class="buttons are-small">
+					@editorAction("+ Add requirement", fmt.Sprintf("add-element:%d", i), false)
+				</div>
+			case requirements.Different:
+				<p class="matcher-hint">No element may be repeated. Shapes count as different elements only where the Code of Points says they do (§14).</p>
 		}
 	</div>
 }
@@ -306,6 +333,16 @@ templ numberField(name, label, value, step string) {
 		<label class="label is-small" for={ name }>{ label }</label>
 		<input class="input is-small" type="number" inputmode="decimal" min="0" step={ step } id={ name } name={ name } value={ value }/>
 	</div>
+}
+
+// itemFields is one element of a set routine or one special requirement: its
+// wording and which elements meet it.
+templ itemFields(prefix string, m *requirements.Matcher, title, placeholder string) {
+	<div class="field mb-1">
+		<label class="label is-small" for={ prefix + "label" }>{ title }: wording (optional)</label>
+		<input class="input is-small" id={ prefix + "label" } name={ prefix + "label" } value={ m.Label } placeholder={ placeholder }/>
+	</div>
+	@matcherFields(prefix, m, title)
 }
 
 // matcherFields describes which elements a rule is about; empty fields don't restrict.

@@ -1,0 +1,28 @@
+{
+  "format": 1,
+  "name": "BG Regional L2 · second exercise",
+  "description": "Voluntary exercise. Below the minimum difficulty a gymnast can't qualify for the Regional or Inter-Regional Final.",
+  "source": "British Gymnastics 2027 Technical Requirements, Trampoline Club & Regional Pathway (v1.0, July 2026); unchanged from 2026",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "difficulty",
+      "min": 3.3,
+      "cap": 0.7
+    },
+    {
+      "type": "count",
+      "label": "No double, triple or quadruple somersaults (disqualification)",
+      "match": {
+        "rotation": {
+          "min": 8
+        }
+      },
+      "max": 0
+    }
+  ]
+}

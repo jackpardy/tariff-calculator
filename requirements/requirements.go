@@ -36,10 +36,12 @@ const (
 	Difficulty = "difficulty" // the counted difficulty is within Min/Max
 	Position   = "position"   // the element at Position (1-based) matches Match
 	Sequence   = "sequence"   // a set routine: element i matches Sequence[i], and no more
+	Separate   = "separate"   // special requirements: each of Each is met by a different element
+	Different  = "different"  // no element is repeated (CoP §14)
 )
 
 // RuleTypes lists the rule types in the order the editor offers them.
-var RuleTypes = []string{Count, Every, Elements, Difficulty, Position, Sequence}
+var RuleTypes = []string{Separate, Count, Every, Different, Elements, Difficulty, Position, Sequence}
 
 // Rule is one requirement. Which fields apply depends on Type.
 type Rule struct {
@@ -50,6 +52,11 @@ type Rule struct {
 	Max      *float64  `json:"max,omitempty"`
 	Position int       `json:"position,omitempty"`
 	Sequence []Matcher `json:"sequence,omitempty"`
+	Each     []Matcher `json:"each,omitempty"` // separate: the requirements, one element each
+	// Cap limits how much one element's difficulty counts towards a difficulty
+	// rule, as in age-group competition: a harder element may be performed but
+	// counts as the cap (CoP §17.1).
+	Cap *float64 `json:"cap,omitempty"`
 }
 
 // Range bounds a whole number; either end may be open.
@@ -68,6 +75,7 @@ type TariffRange struct {
 // distinguish skills whose shape matters: other skills (twisting jumps, drops,
 // singles with a full twist or more) count as straight.
 type Matcher struct {
+	Label     string       `json:"label,omitempty"`     // the author's wording, e.g. "Landing on the front"
 	Rotation  *Range       `json:"rotation,omitempty"`  // quarter somersaults
 	Direction string       `json:"direction,omitempty"` // "forward" or "backward"
 	Twist     *Range       `json:"twist,omitempty"`     // total half twists
@@ -144,7 +152,11 @@ func (r Rule) validate() error {
 	case Elements:
 		needBounds(true)
 	case Difficulty:
-		needBounds(false)
+		if r.Cap == nil || r.Min != nil || r.Max != nil {
+			needBounds(false)
+		} else if *r.Cap < 0 {
+			errs = append(errs, errors.New("the cap can't be negative"))
+		}
 	case Position:
 		needMatch()
 		if r.Position < 1 {
@@ -159,6 +171,16 @@ func (r Rule) validate() error {
 				errs = append(errs, fmt.Errorf("element %d: %w", i+1, err))
 			}
 		}
+	case Separate:
+		if len(r.Each) == 0 {
+			errs = append(errs, errors.New("needs at least one requirement"))
+		}
+		for i, m := range r.Each {
+			if err := m.validate(); err != nil {
+				errs = append(errs, fmt.Errorf("requirement %d: %w", i+1, err))
+			}
+		}
+	case Different:
 	default:
 		errs = append(errs, fmt.Errorf("unknown rule type %q", r.Type))
 	}
@@ -255,6 +277,9 @@ type Result struct {
 	Passed      bool
 	Detail      string // what was found, e.g. "found 0"
 	Elements    []int  // 1-based: the matching elements (count), or the offending ones
+	// Assigned is, for a separate rule, the element (1-based) meeting each
+	// requirement, 0 where none can; these are the starred elements on a card.
+	Assigned []int
 }
 
 // Evaluate checks every rule of the set against a validated routine and reports
@@ -292,8 +317,15 @@ func Evaluate(set Set, rv skills.RoutineValidation) []Result {
 			res.Passed = within(rule.Min, rule.Max, float64(len(routine)))
 			res.Detail = fmt.Sprintf("has %d", len(routine))
 		case Difficulty:
-			res.Passed = within(rule.Min, rule.Max, rv.TotalTariff)
-			res.Detail = fmt.Sprintf("is %.1f", rv.TotalTariff)
+			total := rv.TotalTariff
+			if rule.Cap != nil {
+				total = cappedDifficulty(rv, *rule.Cap)
+			}
+			res.Passed = within(rule.Min, rule.Max, total)
+			res.Detail = fmt.Sprintf("is %.1f", total)
+			if rule.Cap != nil && total < rv.TotalTariff-1e-9 {
+				res.Detail += fmt.Sprintf(" with the cap (%.1f without)", rv.TotalTariff)
+			}
 		case Position:
 			p := rule.Position
 			res.Passed = p <= len(routine) && rule.Match.Matches(routine[p-1])
@@ -311,7 +343,44 @@ func Evaluate(set Set, rv skills.RoutineValidation) []Result {
 			}
 			res.Passed = len(res.Elements) == 0
 			if !res.Passed {
-				res.Detail = "differs at " + elementList(res.Elements)
+				// Name what was expected where the author labelled it.
+				parts := make([]string, len(res.Elements))
+				for k, e := range res.Elements {
+					parts[k] = fmt.Sprint(e)
+					if e <= len(rule.Sequence) && rule.Sequence[e-1].Label != "" {
+						parts[k] += " (" + rule.Sequence[e-1].Label + ")"
+					}
+				}
+				res.Detail = "differs at " + strings.Join(parts, ", ")
+			}
+		case Separate:
+			res.Assigned = assign(rule.Each, routine)
+			var missing []string
+			for k, e := range res.Assigned {
+				if e == 0 {
+					missing = append(missing, DescribeMatcher(rule.Each[k]))
+				}
+			}
+			res.Passed = len(missing) == 0
+			if res.Passed {
+				res.Detail = "by " + plural(len(res.Assigned), "element", "elements") + " " + elementList(res.Assigned)
+			} else {
+				res.Detail = "missing: " + strings.Join(missing, "; ")
+			}
+		case Different:
+			var repeats []string
+			for j := range routine {
+				for k := range j {
+					if routine[j].Equal(&routine[k]) {
+						res.Elements = append(res.Elements, j+1)
+						repeats = append(repeats, fmt.Sprintf("%d repeats %d", j+1, k+1))
+						break
+					}
+				}
+			}
+			res.Passed = len(res.Elements) == 0
+			if !res.Passed {
+				res.Detail = strings.Join(repeats, ", ")
 			}
 		}
 		results[i] = res
@@ -319,8 +388,9 @@ func Evaluate(set Set, rv skills.RoutineValidation) []Result {
 	return results
 }
 
-// RequiredElements is the set of elements (1-based) that satisfy a rule requiring
-// at least one matching element, e.g. to mark them on the tariff sheet.
+// RequiredElements is the set of elements (1-based) that satisfy a requirement:
+// those meeting a separate rule's requirements, and those matching a rule
+// requiring at least one such element. The tariff sheet stars them.
 func RequiredElements(set Set, results []Result) map[int]bool {
 	required := map[int]bool{}
 	for _, res := range results {
@@ -330,8 +400,57 @@ func RequiredElements(set Set, results []Result) map[int]bool {
 				required[e] = true
 			}
 		}
+		for _, e := range res.Assigned {
+			if e > 0 {
+				required[e] = true
+			}
+		}
 	}
 	return required
+}
+
+// cappedDifficulty is the counted difficulty with each element counting at
+// most limit.
+func cappedDifficulty(rv skills.RoutineValidation, limit float64) float64 {
+	total := 0.0
+	for _, sv := range rv.Skills {
+		if sv.Counted {
+			total += min(sv.Skill.Tariff, limit)
+		}
+	}
+	return math.Round(total*10) / 10
+}
+
+// assign finds a different element for each requirement, as many as possible
+// (a maximum bipartite matching, so an element that could meet two
+// requirements is used where it's needed most). It returns, per requirement,
+// the element (1-based) meeting it, or 0.
+func assign(reqs []Matcher, routine []skills.TrampolineSkill) []int {
+	owner := make([]int, len(routine)) // requirement index + 1 using each element, 0 if free
+	var try func(req int, seen []bool) bool
+	try = func(req int, seen []bool) bool {
+		for e, s := range routine {
+			if seen[e] || !reqs[req].Matches(s) {
+				continue
+			}
+			seen[e] = true
+			if owner[e] == 0 || try(owner[e]-1, seen) {
+				owner[e] = req + 1
+				return true
+			}
+		}
+		return false
+	}
+	for req := range reqs {
+		try(req, make([]bool, len(routine)))
+	}
+	assigned := make([]int, len(reqs))
+	for e, o := range owner {
+		if o > 0 {
+			assigned[o-1] = e + 1
+		}
+	}
+	return assigned
 }
 
 func plural(n int, one, many string) string {

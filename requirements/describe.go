@@ -21,17 +21,41 @@ func Describe(r Rule) string {
 	case Elements:
 		return capitalise(bounds(r.Min, r.Max, wholeNumber, "elements"))
 	case Difficulty:
-		return "Difficulty " + bounds(r.Min, r.Max, tenths, "")
+		switch {
+		case r.Cap == nil:
+			return "Difficulty " + bounds(r.Min, r.Max, tenths, "")
+		case r.Min == nil && r.Max == nil:
+			return "Each element's difficulty counts at most " + tenths(*r.Cap)
+		}
+		return "Difficulty " + bounds(r.Min, r.Max, tenths, "") + ", each element counting at most " + tenths(*r.Cap)
 	case Position:
 		return fmt.Sprintf("Element %d: %s", r.Position, DescribeMatcher(*r.Match))
 	case Sequence:
-		return fmt.Sprintf("Set routine of %d elements", len(r.Sequence))
+		labels := make([]string, len(r.Sequence))
+		for i, m := range r.Sequence {
+			if labels[i] = strings.TrimSpace(m.Label); labels[i] == "" {
+				return fmt.Sprintf("Set routine of %d elements", len(r.Sequence))
+			}
+		}
+		return "Set routine: " + strings.Join(labels, ", ")
+	case Separate:
+		parts := make([]string, len(r.Each))
+		for i, m := range r.Each {
+			parts[i] = DescribeMatcher(m)
+		}
+		return "Each by a different element: " + strings.Join(parts, "; ")
+	case Different:
+		return "No element repeated"
 	}
 	return r.Type
 }
 
-// DescribeMatcher lists a matcher's conditions, e.g. "backward, in tuck or pike".
+// DescribeMatcher is the matcher's label if it has one, otherwise its
+// conditions, e.g. "backward, in tuck or pike".
 func DescribeMatcher(m Matcher) string {
+	if strings.TrimSpace(m.Label) != "" {
+		return m.Label
+	}
 	var parts []string
 	if m.FIG != "" {
 		parts = append(parts, "FIG "+m.FIG)

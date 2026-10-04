@@ -311,12 +311,17 @@
 .set-name { font-weight: 600; }
 .set-meta { color: #777; font-size: 0.8rem; }
 .set-rules { font-size: 0.85rem; margin-top: 0.3rem; }
+.set-description { font-size: 0.85rem; color: #555; }
+.builtin-group { border-top: 1px solid #f0f0f0; }
+.builtin-group > summary { cursor: pointer; font-weight: 600; padding: 0.6rem 0; }
+.builtin-group[open] > summary { color: #485fc7; }
 .set-rules summary { cursor: pointer; color: #485fc7; }
 .set-rules ul { list-style: disc; padding-left: 1.2rem; margin-top: 0.3rem; }
 .import-panel { margin-bottom: 1rem; }
 .rule-card { border: 1px solid #e3e3e3; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; background: #fcfcfc; }
-.rule-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; }
-.rule-card-title { font-weight: 600; }
+.rule-card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; }
+/* A long title takes the whole row and the buttons wrap below it. */
+.rule-card-title { font-weight: 600; flex: 1 1 14rem; }
 .rule-card-head .buttons { flex-wrap: nowrap; flex-shrink: 0; }
 .rule-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 0.75rem; }
 .rule-grid.rule-kind { grid-template-columns: minmax(0, 1fr); }

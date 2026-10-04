@@ -1,0 +1,64 @@
+{
+  "format": 1,
+  "name": "BG Regional L4 13+ · first exercise",
+  "description": "First exercise: special requirements (mark them * on the competition card).",
+  "source": "British Gymnastics 2027 Technical Requirements, Trampoline Club & Regional Pathway (v1.0, July 2026); unchanged from 2026",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "different",
+      "label": "10 different elements: none repeated"
+    },
+    {
+      "type": "count",
+      "label": "At most 2 elements with less than ¾ somersault (270°)",
+      "match": {
+        "rotation": {
+          "max": 2
+        }
+      },
+      "max": 2
+    },
+    {
+      "type": "separate",
+      "each": [
+        {
+          "label": "Landing on the front",
+          "landing": [
+            "front"
+          ]
+        },
+        {
+          "label": "Landing on the back",
+          "landing": [
+            "back"
+          ]
+        },
+        {
+          "label": "A full somersault (360°) with at least a full twist (360°)",
+          "rotation": {
+            "min": 4,
+            "max": 4
+          },
+          "twist": {
+            "min": 2
+          }
+        }
+      ]
+    },
+    {
+      "type": "count",
+      "label": "No triple or quadruple somersaults (disqualification)",
+      "match": {
+        "rotation": {
+          "min": 12
+        }
+      },
+      "max": 0
+    }
+  ]
+}
