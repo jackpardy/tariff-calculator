@@ -58,7 +58,7 @@ templ TariffSheetPage() {
 				id="tariff-sheet"
 				hx-post="/tariff-sheet"
 				hx-trigger="load"
-				hx-vals="js:{routineData: JSON.stringify(RoutineStore.current(RoutineStore.load()).skills), requirementSet: SetStore.payload(RoutineStore.current(RoutineStore.load()).requirements)}"
+				hx-vals="js:{routineData: JSON.stringify(RoutineStore.current(RoutineStore.load()).skills), requirementSet: SetStore.payload(RoutineStore.current(RoutineStore.load()).requirements), checks: JSON.stringify(RoutineStore.current(RoutineStore.load()).checks || {})}"
 				hx-on:htmx:response-error="this.querySelector('.loading').textContent = 'Could not build the sheet: ' + event.detail.xhr.responseText"
 			>
 				<p class="loading screen-only">Loading the current routine saved in this browser...</p>
@@ -71,7 +71,7 @@ templ TariffSheetPage() {
 // elements in performance order with their FIG notation and difficulty (CoP
 // §6.1-6.2). The details fields are filled in on the page before printing and
 // are not stored. Warnings show on screen only.
-templ TariffSheet(rv skills.RoutineValidation, required map[int]bool) {
+templ TariffSheet(rv skills.RoutineValidation, required map[int]bool, checks Checks) {
 	if issues := sheetIssues(rv); len(issues) > 0 {
 		<div class="warnings screen-only">
 			<strong>Check before printing:</strong>
@@ -133,14 +133,27 @@ templ TariffSheet(rv skills.RoutineValidation, required map[int]bool) {
 						// whether or not the name column is shown.
 						<td colspan="3" class="total-with-names">Total difficulty</td>
 						<td colspan="2" class="total-without-names">Total difficulty</td>
-						<td class="diff">{ fmt.Sprintf("%.1f", rv.TotalTariff) }</td>
+						<td class="diff">
+							if checks.ScoreDifficulty {
+								{ fmt.Sprintf("%.1f", rv.TotalTariff) }
+							} else {
+								—
+							}
+						</td>
 						<td class="req"></td>
 						<td class="judge"></td>
 					</tr>
 				</tfoot>
 			</table>
 		</div>
-		<p class="footnote">Difficulty per FIG TRA Code of Points 2025-2028 §17. Elements marked "not counted" do not add to the total.</p>
+		<p class="footnote">
+			Difficulty per FIG TRA Code of Points 2025-2028 §17.
+			if checks.ScoreDifficulty {
+				Elements marked "not counted" do not add to the total.
+			} else {
+				Difficulty isn't scored for this routine.
+			}
+		</p>
 	</main>
 }
 

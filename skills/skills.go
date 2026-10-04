@@ -630,6 +630,19 @@ const RoutineLength = 10
 //
 // Tariffs are (re)computed defensively, so the routine need not be pre-priced.
 func ValidateRoutine(routine []TrampolineSkill) RoutineValidation {
+	return ValidateRoutineWith(routine, ValidateOptions{})
+}
+
+// ValidateOptions relax the Code of Points for routines that aren't judged
+// by it in full, such as set (compulsory) routines.
+type ValidateOptions struct {
+	// AllowRepeats treats a repeated element as any other: not flagged, and
+	// its tariff counted. Set routines may repeat elements.
+	AllowRepeats bool
+}
+
+// ValidateRoutineWith is ValidateRoutine with options.
+func ValidateRoutineWith(routine []TrampolineSkill, opts ValidateOptions) RoutineValidation {
 	res := RoutineValidation{
 		Skills:         make([]SkillValidation, len(routine)),
 		Messages:       make([]string, len(routine)),
@@ -651,7 +664,7 @@ func ValidateRoutine(routine []TrampolineSkill) RoutineValidation {
 
 		var msgs []string
 		isCurrentSkillDuplicate := false
-		for j := 0; j < i; j++ {
+		for j := 0; j < i && !opts.AllowRepeats; j++ {
 			if res.Skills[i].Skill.Equal(&res.Skills[j].Skill) {
 				isCurrentSkillDuplicate = true
 				res.HasDuplicates = true

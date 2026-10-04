@@ -256,38 +256,107 @@ func handleCalculateSkill(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// validatedRoutine parses and validates the routine the browser posts in the
-// routineData form value.
-func validatedRoutine(r *http.Request) (skills.RoutineValidation, error) {
-	if err := r.ParseForm(); err != nil {
-		return skills.RoutineValidation{}, fmt.Errorf("parsing form: %w", err)
-	}
-	return validateRoutineJSON(r.FormValue("routineData"))
-}
-
-// validateRoutineJSON parses a routine posted as JSON and validates it. Official
-// names are always re-derived, so names stored by older versions are corrected.
+// validateRoutineJSON parses a routine posted as JSON and validates it.
 func validateRoutineJSON(raw string) (skills.RoutineValidation, error) {
-	routine, err := parseRoutineJSON(raw)
+	routine, err := namedRoutine(raw)
 	if err != nil {
 		return skills.RoutineValidation{}, err
-	}
-	for i := range routine {
-		routine[i].Name = skills.FindCommonSkillName(routine[i])
 	}
 	return skills.ValidateRoutine(routine), nil
 }
 
+// namedRoutine parses a routine posted as JSON. Official names are always
+// re-derived, so names stored by older versions are corrected.
+func namedRoutine(raw string) ([]skills.TrampolineSkill, error) {
+	routine, err := parseRoutineJSON(raw)
+	if err != nil {
+		return nil, err
+	}
+	for i := range routine {
+		routine[i].Name = skills.FindCommonSkillName(routine[i])
+	}
+	return routine, nil
+}
+
+// checkedRoutine is a posted routine, validated with the checks that apply to
+// it and checked against its requirement set.
+type checkedRoutine struct {
+	rv       skills.RoutineValidation
+	check    *views.RequirementCheck // nil without a set
+	required map[int]bool            // elements meeting a requirement, for the sheet
+	checks   views.Checks
+}
+
+// checkRoutine reads the posted routine (routineData), its requirement set
+// (requirementSet: a built-in reference, a custom set as JSON, or nothing) and
+// its own choice of checks (checks), and validates and checks it. A set that
+// can't be used is reported in the check rather than failing the request.
+func checkRoutine(r *http.Request) (checkedRoutine, error) {
+	if err := r.ParseForm(); err != nil {
+		return checkedRoutine{}, fmt.Errorf("parsing form: %w", err)
+	}
+	routine, err := namedRoutine(r.FormValue("routineData"))
+	if err != nil {
+		return checkedRoutine{}, err
+	}
+	var out checkedRoutine
+	var set *requirements.Set
+	if raw := strings.TrimSpace(r.FormValue("requirementSet")); raw != "" {
+		parsed, err := postedSet(raw)
+		if err != nil {
+			name := parsed.Name
+			if name == "" {
+				name = "Requirements"
+			}
+			out.check = &views.RequirementCheck{SetName: name, Err: err.Error()}
+		} else {
+			set = &parsed
+		}
+	}
+	out.checks = routineChecks(set, r.FormValue("checks"))
+	out.rv = skills.ValidateRoutineWith(routine, skills.ValidateOptions{AllowRepeats: !out.checks.FlagRepeats})
+	if set != nil {
+		results := requirements.Evaluate(*set, out.rv)
+		_, isSetRoutine := requirements.SetRoutine(*set)
+		out.check = &views.RequirementCheck{SetName: set.Name, Results: results, SetRoutine: isSetRoutine}
+		out.required = requirements.RequiredElements(*set, results)
+	}
+	return out, nil
+}
+
+// routineChecks are the checks that apply to a routine: its requirement set's
+// (a set routine has no difficulty and may repeat elements), unless the
+// routine says otherwise in checks, e.g. {"difficulty":true}.
+func routineChecks(set *requirements.Set, raw string) views.Checks {
+	checks := views.Checks{ScoreDifficulty: true, FlagRepeats: true}
+	if set != nil {
+		checks.ScoreDifficulty, checks.FlagRepeats = !set.NoDifficulty, !set.RepeatsAllowed
+	}
+	var own struct {
+		Difficulty *bool `json:"difficulty"`
+		Repeats    *bool `json:"repeats"`
+	}
+	if raw != "" && json.Unmarshal([]byte(raw), &own) == nil {
+		if own.Difficulty != nil {
+			checks.ScoreDifficulty = *own.Difficulty
+		}
+		if own.Repeats != nil {
+			checks.FlagRepeats = *own.Repeats
+		}
+	}
+	return checks
+}
+
 // handleRoutineView renders the routine builder (cards, validation, totals).
 func handleRoutineView(w http.ResponseWriter, r *http.Request) {
-	rv, err := validatedRoutine(r)
+	checked, err := checkRoutine(r)
 	if err != nil {
 		log.Printf("Error parsing routine for view: %v", err)
 		badRequest(w, err)
 		return
 	}
-	check, _ := requirementCheck(r, rv)
-	side := views.RoutineSide{Side: "a"}
+	rv, check := checked.rv, checked.check
+	side := views.RoutineSide{Side: "a", Checks: checked.checks}
 	if r.FormValue("side") == "b" {
 		side.Side = "b"
 	}
@@ -298,30 +367,6 @@ func handleRoutineView(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	render(w, r, views.Routine(rv, check, side))
-}
-
-// requirementCheck checks the routine against the requirement set the page
-// posts in requirementSet: a built-in reference ("builtin:<id>"), a custom set
-// as JSON, or nothing. A set that can't be used is reported in the check rather
-// than failing the request. It also returns the elements that meet a
-// required-element rule.
-func requirementCheck(r *http.Request, rv skills.RoutineValidation) (*views.RequirementCheck, map[int]bool) {
-	raw := strings.TrimSpace(r.FormValue("requirementSet"))
-	if raw == "" {
-		return nil, nil
-	}
-	set, err := postedSet(raw)
-	if err != nil {
-		name := set.Name
-		if name == "" {
-			name = "Requirements"
-		}
-		return &views.RequirementCheck{SetName: name, Err: err.Error()}, nil
-	}
-	results := requirements.Evaluate(set, rv)
-	_, isSetRoutine := requirements.SetRoutine(set)
-	check := &views.RequirementCheck{SetName: set.Name, Results: results, SetRoutine: isSetRoutine}
-	return check, requirements.RequiredElements(set, results)
 }
 
 // postedSet is the requirement set the page posts: a built-in reference
@@ -456,13 +501,12 @@ func handleTariffSheetPage(w http.ResponseWriter, r *http.Request) {
 
 // handleTariffSheet renders the sheet itself for the posted routine.
 func handleTariffSheet(w http.ResponseWriter, r *http.Request) {
-	rv, err := validatedRoutine(r)
+	checked, err := checkRoutine(r)
 	if err != nil {
 		badRequest(w, err)
 		return
 	}
-	_, required := requirementCheck(r, rv)
-	render(w, r, views.TariffSheet(rv, required))
+	render(w, r, views.TariffSheet(checked.rv, checked.required, checked.checks))
 }
 
 // parseRoutineJSON parses a routine posted as JSON ("" is an empty routine).

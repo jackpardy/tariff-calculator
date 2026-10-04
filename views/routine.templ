@@ -13,8 +13,17 @@ import (
 // being edited, or "b", the one shown beside it when comparing. Other is the
 // routine in the other column, if there is one, to mark where they differ.
 type RoutineSide struct {
-	Side  string
-	Other *CompareSide
+	Side   string
+	Other  *CompareSide
+	Checks Checks
+}
+
+// Checks are which of the Code of Points' checks apply to a routine. Set
+// (compulsory) routines usually score no difficulty and may repeat elements;
+// the routine's requirement set says, and the coach can change it.
+type Checks struct {
+	ScoreDifficulty bool
+	FlagRepeats     bool
 }
 
 // list is the id of the column's card list, which the page makes sortable.
@@ -54,7 +63,7 @@ templ Routine(rv skills.RoutineValidation, check *RequirementCheck, side Routine
 			}
 		}
 	</div>
-	@results(rv, side.Other)
+	@results(rv, side)
 	if check != nil {
 		@requirementsPanel(*check, side.Side)
 	}
@@ -137,16 +146,21 @@ templ detail(label, value string) {
 	</div>
 }
 
-templ results(rv skills.RoutineValidation, other *CompareSide) {
+templ results(rv skills.RoutineValidation, side RoutineSide) {
 	<div class="routine-results mt-4">
 		<div class="card">
 			<div class="card-content">
-				<p class="title">Total Tariff: { fmt.Sprintf("%.2f", rv.TotalTariff) }</p>
-				if other != nil {
-					<p class="compare-difference">{ differenceFrom(rv, *other) }</p>
+				if side.Checks.ScoreDifficulty {
+					<p class="title">Total Tariff: { fmt.Sprintf("%.2f", rv.TotalTariff) }</p>
+					if side.Other != nil {
+						<p class="compare-difference">{ differenceFrom(rv, *side.Other) }</p>
+					}
+				} else {
+					<p class="title is-4">Difficulty not scored</p>
+					<p class="compare-difference">The elements add up to { fmt.Sprintf("%.2f", rv.TotalTariff) }</p>
 				}
 				<p class="subtitle">{ strconv.Itoa(len(rv.Skills)) } of { strconv.Itoa(skills.RoutineLength) } skills</p>
-				if rv.RawTariff > rv.TotalTariff+1e-9 {
+				if side.Checks.ScoreDifficulty && rv.RawTariff > rv.TotalTariff+1e-9 {
 					<p class="subtitle tariff-difference">(Raw Total: { fmt.Sprintf("%.2f", rv.RawTariff) })</p>
 				}
 				<div class="validation-messages mt-3">
@@ -168,6 +182,18 @@ templ results(rv skills.RoutineValidation, other *CompareSide) {
 					if rv.TenthSkillWarning {
 						<p class="has-text-tenth-warning">🎯 10th skill must land on feet!</p>
 					}
+				</div>
+				// Which checks apply; the routine's requirement set chooses them, and the coach can change them.
+				<div class="routine-checks">
+					<span class="routine-checks-label">Checks</span>
+					<label class="checkbox">
+						<input type="checkbox" checked?={ side.Checks.ScoreDifficulty } x-on:change={ fmt.Sprintf("setCheck('%s', 'difficulty', $event.target.checked)", side.Side) }/>
+						Score difficulty
+					</label>
+					<label class="checkbox">
+						<input type="checkbox" checked?={ side.Checks.FlagRepeats } x-on:change={ fmt.Sprintf("setCheck('%s', 'repeats', $event.target.checked)", side.Side) }/>
+						Flag repeated elements
+					</label>
 				</div>
 			</div>
 		</div>

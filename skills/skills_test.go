@@ -519,3 +519,15 @@ func TestValidate(t *testing.T) {
 		t.Errorf("ShapeFromString(unknown) = %v, want InvalidShape", got)
 	}
 }
+
+func TestValidateRoutineAllowingRepeats(t *testing.T) {
+	tuck := TrampolineSkill{Rotation: 0, TwistDistribution: []int{0}, TakeoffPosition: Feet, Shape: Tuck}
+	routine := []TrampolineSkill{tuck, tuck}
+	if rv := ValidateRoutine(routine); !rv.HasDuplicates || rv.Skills[1].Counted || rv.TotalTariff != 0.1 {
+		t.Errorf("by default a repeat is flagged and counts once: %+v", rv)
+	}
+	rv := ValidateRoutineWith(routine, ValidateOptions{AllowRepeats: true})
+	if rv.HasDuplicates || rv.Skills[0].IsDuplicate || rv.Skills[1].IsDuplicate || !rv.Skills[1].Counted || rv.Messages[1] != "" || math.Abs(rv.TotalTariff-0.2) > 1e-9 {
+		t.Errorf("with repeats allowed, both count and nothing is flagged: %+v", rv)
+	}
+}

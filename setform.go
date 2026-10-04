@@ -73,11 +73,13 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 	}
 
 	set := requirements.Set{
-		Format:      requirements.Format,
-		Name:        strings.TrimSpace(r.FormValue("name")),
-		Description: strings.TrimSpace(r.FormValue("description")),
-		Source:      strings.TrimSpace(r.FormValue("source")),
-		Rules:       []requirements.Rule{},
+		Format:         requirements.Format,
+		Name:           strings.TrimSpace(r.FormValue("name")),
+		Description:    strings.TrimSpace(r.FormValue("description")),
+		Source:         strings.TrimSpace(r.FormValue("source")),
+		NoDifficulty:   r.FormValue("no_difficulty") != "",
+		RepeatsAllowed: r.FormValue("repeats_allowed") != "",
+		Rules:          []requirements.Rule{},
 	}
 	for i := range count("rules") {
 		p := fmt.Sprintf("r%d.", i)

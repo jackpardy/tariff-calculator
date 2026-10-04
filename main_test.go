@@ -927,3 +927,55 @@ func TestAppVersion(t *testing.T) {
 		t.Errorf("fragments should carry the version too")
 	}
 }
+
+// A set routine scores no difficulty and may repeat elements; the routine can
+// turn either check back on.
+func TestRoutineChecks(t *testing.T) {
+	var got struct {
+		Skills []skills.TrampolineSkill `json:"skills"`
+	}
+	rec := postForm(t, "/set-routine", url.Values{"requirementSet": {"builtin:bucs-l4-option-1"}})
+	if rec.Code != http.StatusOK || json.Unmarshal(rec.Body.Bytes(), &got) != nil {
+		t.Fatalf("loading BUCS L4 option 1: %d", rec.Code)
+	}
+	routine, _ := json.Marshal(got.Skills) // it repeats the tuck jump
+	view := func(checks string) string {
+		t.Helper()
+		return postForm(t, "/routine", url.Values{"routineData": {string(routine)}, "requirementSet": {"builtin:bucs-l4-option-1"}, "checks": {checks}}).Body.String()
+	}
+	checkbox := regexp.MustCompile(`<input type="checkbox"( checked)? x-on:change="setCheck\(&#39;a&#39;, &#39;(\w+)&#39;`)
+	boxes := func(html string) string {
+		var out []string
+		for _, m := range checkbox.FindAllStringSubmatch(html, -1) {
+			out = append(out, m[2]+map[bool]string{true: " on", false: " off"}[m[1] != ""])
+		}
+		return strings.Join(out, ", ")
+	}
+
+	html := view("")
+	if strings.Contains(html, "Duplicate") || strings.Contains(html, "duplicate-skill") || !strings.Contains(html, "Difficulty not scored") || strings.Contains(html, "Total Tariff") {
+		t.Errorf("a set routine: no repeat warnings, difficulty not scored")
+	}
+	if got := boxes(html); got != "difficulty off, repeats off" {
+		t.Errorf("a set routine's checks: %s", got)
+	}
+
+	html = view(`{"difficulty":true,"repeats":true}`)
+	if !strings.Contains(html, "Duplicate (Counts Once)") || !strings.Contains(html, "Total Tariff") {
+		t.Errorf("with both checks turned back on, repeats are flagged and difficulty scored")
+	}
+	if got := boxes(html); got != "difficulty on, repeats on" {
+		t.Errorf("the routine's own checks: %s", got)
+	}
+
+	// Without a set, everything is checked.
+	if got := boxes(postForm(t, "/routine", url.Values{"routineData": {string(routine)}}).Body.String()); got != "difficulty on, repeats on" {
+		t.Errorf("without a set: %s", got)
+	}
+
+	// The sheet follows: no total when difficulty isn't scored.
+	sheet := postForm(t, "/tariff-sheet", url.Values{"routineData": {string(routine)}, "requirementSet": {"builtin:bucs-l4-option-1"}}).Body.String()
+	if !strings.Contains(sheet, "Difficulty isn't scored for this routine.") || !regexp.MustCompile(`<td class="diff">\s*—\s*</td>`).MatchString(sheet) {
+		t.Errorf("the sheet should leave out the total when difficulty isn't scored")
+	}
+}

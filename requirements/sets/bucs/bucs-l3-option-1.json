@@ -208,5 +208,7 @@
         }
       ]
     }
-  ]
+  ],
+  "no_difficulty": true,
+  "repeats_allowed": true
 }

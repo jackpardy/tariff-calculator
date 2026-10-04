@@ -82,7 +82,12 @@ accounts: routines live in the browser.
    edited, the server parses and validates it into the model and re-renders the editor,
    and the browser saves the result. Validation of sets is in Go, once.
 
-8. **Built-in sets are only added from a cited source** (rule book, handbook or
+8. **A set says how routines checked against it are scored**: `no_difficulty` (difficulty
+   isn't scored) and `repeats_allowed` (elements may be repeated), as for set
+   (compulsory) routines and some first exercises. The routine builder's "Checks" start
+   from these, and a coach can change them for one routine.
+
+9. **Built-in sets are only added from a cited source** (rule book, handbook or
    competition document) and say which season they reflect; the app states that users
    should check them against the current rules. They live in `requirements/sets/<group>/`,
    and `sets/groups.json` names and orders the groups (one per organisation and

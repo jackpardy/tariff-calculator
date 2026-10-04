@@ -26,6 +26,10 @@ type Set struct {
 	Description string `json:"description,omitempty"`
 	Source      string `json:"source,omitempty"` // where the rules come from, and which season
 	Rules       []Rule `json:"rules"`
+	// How routines checked against the set are scored. Set (compulsory)
+	// routines usually have neither difficulty nor a rule against repeats.
+	NoDifficulty   bool `json:"no_difficulty,omitempty"`   // difficulty isn't scored
+	RepeatsAllowed bool `json:"repeats_allowed,omitempty"` // elements may be repeated
 }
 
 // Rule types.

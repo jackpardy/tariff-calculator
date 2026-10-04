@@ -208,6 +208,18 @@ templ SetEditor(e SetEditorData) {
 			<label class="label is-small" for="set-source">Source (optional)</label>
 			<input class="input is-small" id="set-source" name="source" value={ e.Set.Source } placeholder="e.g. Competition handbook, September 2026"/>
 		</div>
+		// How routines checked against the set are scored; routines can still change it.
+		<div class="field set-scoring">
+			<label class="checkbox">
+				<input type="checkbox" name="no_difficulty" value="1" checked?={ e.Set.NoDifficulty }/>
+				Difficulty isn't scored
+			</label>
+			<label class="checkbox">
+				<input type="checkbox" name="repeats_allowed" value="1" checked?={ e.Set.RepeatsAllowed }/>
+				Elements may be repeated
+			</label>
+			<p class="matcher-hint">Usual for set (compulsory) routines.</p>
+		</div>
 		<input type="hidden" name="rules" value={ strconv.Itoa(len(e.Set.Rules)) }/>
 		for i, rule := range e.Set.Rules {
 			@ruleCard(i, rule, len(e.Set.Rules))

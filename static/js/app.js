@@ -20,7 +20,7 @@ function tariffCalculatorStore() {
         expandedB: [],   // per-card expanded state, parallel to routineB
         addTo: 'a',      // which column the skill adder adds to while comparing
         mobileTab: 'a',  // the column shown on a phone while comparing
-        setRoutineOffer: null, // a set routine to load, waiting for "new routine" or "replace": {side, name, skills, ref, previousRef}
+        setRoutineOffer: null, // a set routine to load, waiting for "new routine" or "replace": {side, name, skills, ref, previous}
         editingIndex: null,
         editingSide: 'a', // the column of the skill being edited
         busy: false, // an add or update is in flight
@@ -76,7 +76,7 @@ function tariffCalculatorStore() {
         // routine goes with it so the view can mark where they differ.
         renderRoutine(side = 'a') {
             const view = side === 'b' ? '#routine-view-b' : '#routine-view';
-            const values = { side, routineData: JSON.stringify(this.skillsOf(side)), requirementSet: SetStore.payload(this.routineFor(side)?.requirements) };
+            const values = { side, routineData: JSON.stringify(this.skillsOf(side)), requirementSet: SetStore.payload(this.routineFor(side)?.requirements), checks: JSON.stringify(this.routineFor(side)?.checks || {}) };
             if (this.compareId) {
                 const other = side === 'b' ? 'a' : 'b';
                 values.compareData = JSON.stringify(this.skillsOf(other));
@@ -159,19 +159,29 @@ function tariffCalculatorStore() {
         // setRequirements chooses the requirement set a column's routine is checked
         // against. A set (compulsory) routine is loaded into the builder.
         setRequirements(ref, side = 'a') {
-            const previousRef = this.routineFor(side).requirements;
-            this.routineFor(side).requirements = ref || undefined;
+            const routine = this.routineFor(side);
+            const previous = { ref: routine.requirements, checks: routine.checks };
+            routine.requirements = ref || undefined;
+            delete routine.checks; // the new set's checks apply
             this.persist();
             this.renderRoutine(side);
-            if (ref) { this.loadSetRoutine(side, false, previousRef); }
+            if (ref) { this.loadSetRoutine(side, false, previous); }
+        },
+        // setCheck turns one of a column's checks ('difficulty' or 'repeats') on or
+        // off for its routine, overriding its requirement set's choice.
+        setCheck(side, check, on) {
+            const routine = this.routineFor(side);
+            routine.checks = { ...routine.checks, [check]: on };
+            this.persist();
+            this.renderRoutines();
         },
         // loadSetRoutine loads a column's requirement set's set routine: straight in
         // if the routine is empty, otherwise offering a new routine or replacing
         // this one's skills (setRoutineOffer). Sets without a set routine are left
-        // alone, quietly unless the user asked (fromButton). previousRef is the set
-        // the routine had before, which it gets back if the set routine goes into a
-        // new routine instead.
-        async loadSetRoutine(side = 'a', fromButton = false, previousRef = undefined) {
+        // alone, quietly unless the user asked (fromButton). previous is the set and
+        // checks the routine had before ({ref, checks}), which it gets back if the
+        // set routine goes into a new routine instead.
+        async loadSetRoutine(side = 'a', fromButton = false, previous = undefined) {
             const routine = this.routineFor(side);
             if (!routine?.requirements) { return; }
             const body = new URLSearchParams({ requirementSet: SetStore.payload(routine.requirements), routineData: JSON.stringify(this.skillsOf(side)) });
@@ -188,7 +198,7 @@ function tariffCalculatorStore() {
                 return;
             }
             if (loaded.matches) { return; }
-            const offer = { side, name: loaded.name, skills: loaded.skills, ref: routine.requirements, previousRef: fromButton ? routine.requirements : previousRef };
+            const offer = { side, name: loaded.name, skills: loaded.skills, ref: routine.requirements, previous: fromButton ? { ref: routine.requirements, checks: routine.checks } : previous };
             if (this.skillsOf(side).length === 0) { this.replaceWithSetRoutine(offer); return; }
             this.setRoutineOffer = offer;
         },
@@ -208,7 +218,8 @@ function tariffCalculatorStore() {
         newRoutineFromSetRoutine(offer = this.setRoutineOffer) {
             this.setRoutineOffer = null;
             const from = this.routineFor(offer.side);
-            from.requirements = offer.previousRef || undefined;
+            from.requirements = offer.previous?.ref || undefined;
+            if (offer.previous?.checks) { from.checks = offer.previous.checks; } else { delete from.checks; }
             const routine = { id: RoutineStore.newId(), name: (offer.name || RoutineStore.nextName(this.routines)).slice(0, 60), skills: JSON.parse(JSON.stringify(offer.skills)), requirements: offer.ref };
             this.routines.splice(this.routines.indexOf(from) + 1, 0, routine);
             this.persist();
