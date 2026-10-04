@@ -466,3 +466,28 @@ func TestIncludes(t *testing.T) {
 		}
 	}
 }
+
+// BUCS FIG Level allows two body landings; seat landings don't count.
+func TestBUCSBodyLandings(t *testing.T) {
+	c := func(key string) skills.TrampolineSkill { return common(t, key, skills.CommonSkills[key].Shape) }
+	set, _ := LookupBuiltin("bucs-fig")
+	limit := func(routine []skills.TrampolineSkill) Result {
+		t.Helper()
+		for _, r := range Evaluate(set, skills.ValidateRoutine(routine)) {
+			if strings.Contains(r.Description, "front or back landings") {
+				return r
+			}
+		}
+		t.Fatal("no body landing rule")
+		return Result{}
+	}
+	twoAndSeats := []skills.TrampolineSkill{c("crashDive"), c("ballOut"), c("lazyBack"), c("cody"),
+		c("seatDrop"), c("seatToFeet"), c("seatDrop"), c("seatToFeet")}
+	if r := limit(twoAndSeats); !r.Passed {
+		t.Errorf("two body landings and two seat landings: got %+v", r)
+	}
+	three := append(twoAndSeats, c("backDrop"), c("backToFeet"))
+	if r := limit(three); r.Passed || !equalInts(r.Elements, []int{1, 3, 9}) {
+		t.Errorf("three body landings: got %+v", r)
+	}
+}

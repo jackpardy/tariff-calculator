@@ -11,12 +11,11 @@
     },
     {
       "type": "count",
-      "label": "At most two body landings (more is an interruption)",
+      "label": "At most two front or back landings (more is an interruption)",
       "match": {
         "landing": [
           "front",
-          "back",
-          "seat"
+          "back"
         ]
       },
       "max": 2
