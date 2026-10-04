@@ -314,6 +314,10 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 		return checkedRoutine{}, fmt.Errorf("parsing form: %w", err)
 	}
 	own := postedRoutine{r.FormValue("routineData"), r.FormValue("requirementSet"), r.FormValue("checks")}
+	// A set routine shown as prescribed (prescribed=1) is the routine its requirements describe.
+	if r.FormValue("prescribed") == "1" {
+		own.data = prescribedRoutine(own.set)
+	}
 	raw := strings.TrimSpace(r.FormValue("level"))
 	if raw == "" {
 		return checkPosted(own, nil)
@@ -336,15 +340,9 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 	var pair *postedRoutine
 	if r.Form.Has("pairData") {
 		pair = &postedRoutine{r.FormValue("pairData"), r.FormValue("pairSet"), r.FormValue("pairChecks")}
-		// A set routine not yet opened is the set routine its requirements describe.
+		// A set routine is posted without skills: it's the routine its requirements describe.
 		if strings.TrimSpace(pair.data) == "" {
-			if set, err := postedSet(strings.TrimSpace(pair.set)); err == nil {
-				if routine, ok := requirements.SetRoutine(set); ok {
-					if data, err := json.Marshal(routine); err == nil {
-						pair.data = string(data)
-					}
-				}
-			}
+			pair.data = prescribedRoutine(pair.set)
 		}
 	}
 	// carried are a first exercise's elements whose difficulty carries over:
@@ -404,6 +402,24 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 	}
 	out.level = lc
 	return out, err
+}
+
+// prescribedRoutine is the routine a posted requirement set's set routine
+// describes, as JSON, or "" (an empty routine) if it isn't a set routine.
+func prescribedRoutine(rawSet string) string {
+	set, err := postedSet(strings.TrimSpace(rawSet))
+	if err != nil {
+		return ""
+	}
+	routine, ok := requirements.SetRoutine(set)
+	if !ok {
+		return ""
+	}
+	data, err := json.Marshal(routine)
+	if err != nil {
+		return ""
+	}
+	return string(data)
 }
 
 // checkPosted validates one posted routine and checks it against its
@@ -500,7 +516,7 @@ func handleRoutineView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rv, check := checked.rv, checked.check
-	side := views.RoutineSide{Side: "a", Checks: checked.checks, Level: checked.level}
+	side := views.RoutineSide{Side: "a", Checks: checked.checks, Level: checked.level, ReadOnly: r.FormValue("prescribed") == "1"}
 	if r.FormValue("side") == "b" {
 		side.Side = "b"
 	}

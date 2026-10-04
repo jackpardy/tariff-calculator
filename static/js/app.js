@@ -8,6 +8,10 @@
 // A second routine can be shown beside the current one (compareId), and both
 // can be edited. Methods that act on a routine's skills take the column's side:
 // 'a' for the current routine (the default), 'b' for the one beside it.
+//
+// In Levels mode the columns are a level's tabs (LevelEntries, in sets.js): a
+// set routine, shown as prescribed, or a voluntary, which is an ordinary routine
+// linked to the level and shown as the current (or compared) routine.
 function tariffCalculatorStore() {
     return {
         routines: [],   // all saved routines: {id, name, skills}
@@ -15,11 +19,13 @@ function tariffCalculatorStore() {
         routine: [],    // the current routine's skills (the same array as in routines)
         customSets: [], // requirement sets saved in this browser (SetStore)
         customLevels: [], // levels saved in this browser (LevelStore)
+        mode: 'routines', // 'routines', or 'levels' to work on a level's exercises
+        levelState: { current: null, entries: [] }, // the levels being worked on (LevelEntries)
         expanded: [], // per-card expanded state, parallel to routine
         compareId: null, // the routine shown beside the current one, if any
         routineB: [],    // its skills (the same array as in routines)
         expandedB: [],   // per-card expanded state, parallel to routineB
-        addTo: '',       // where Add puts a skill (an addTargets value); '' for the routine on screen
+        addTo: '',       // the routine Add puts a skill in (its id); '' for the one on screen
         mobileTab: 'a',  // the column shown on a phone while comparing
         setRoutineOffer: null, // a set routine to load, waiting for "new routine" or "replace": {side, name, skills, ref, previous}
         editingIndex: null,
@@ -33,12 +39,15 @@ function tariffCalculatorStore() {
 
         init() {
             const state = RoutineStore.load();
+            LevelEntries.migrate(state); // routines that held a level's tabs become level entries
             this.routines = state.routines;
             this.currentId = state.current;
             this.routine = this.currentRoutine().skills;
             this.persist(); // settles a routine carried over from an older version
             this.customSets = SetStore.load();
             this.customLevels = LevelStore.load();
+            this.levelState = LevelEntries.load();
+            try { this.mode = localStorage.getItem('builderMode') === 'levels' ? 'levels' : 'routines'; } catch (e) { /* routines */ }
             // Sets and levels edited in another tab (the requirements page) are picked up here.
             window.addEventListener('storage', (event) => {
                 if (event.key === 'trampolineRequirementSets' || event.key === LevelStore.key) {
@@ -70,7 +79,7 @@ function tariffCalculatorStore() {
                 if (event.detail.failed) { this.requestFailed(event.detail.requestConfig?.path, event.detail.xhr); }
             });
 
-            this.renderRoutines();
+            if (this.mode === 'levels') { this.syncColumns(); } else { this.renderRoutines(); }
             this.loadForm();
         },
 
@@ -79,8 +88,24 @@ function tariffCalculatorStore() {
         // routine goes with it so the view can mark where they differ.
         renderRoutine(side = 'a') {
             const view = side === 'b' ? '#routine-view-b' : '#routine-view';
-            const values = { side, ...Exercises.values(this.routineFor(side)) };
-            if (this.compareId) {
+            const tab = this.columnTab(side);
+            let values;
+            if (tab) {
+                // A level's tab: its set routine as prescribed, or the routine doing its voluntary.
+                const routine = tab.set ? undefined : this.columnRoutine(side);
+                if (!tab.set && !routine) {
+                    const p = document.querySelector(view);
+                    if (p) { p.innerHTML = '<p class="has-text-grey level-empty">No routine for this voluntary yet. Choose one above: a new routine, one you\'ve built, or start from a set.</p>'; }
+                    return;
+                }
+                const entryValues = LevelEntries.values(this.entry(), tab.exercise, this.routines);
+                values = tab.set
+                    ? { side, prescribed: '1', requirementSet: SetStore.payload(tab.ref), ...entryValues }
+                    : { side, ...Exercises.values(routine), ...entryValues };
+            } else {
+                values = { side, ...Exercises.values(this.routineFor(side)) };
+            }
+            if (this.mode === 'routines' && this.compareId) {
                 const other = side === 'b' ? 'a' : 'b';
                 values.compareData = JSON.stringify(this.skillsOf(other));
                 values.compareName = this.routineFor(other).name;
@@ -88,12 +113,19 @@ function tariffCalculatorStore() {
             // Each view is its own request source, so its requests don't queue behind
             // the other's; a newer render replaces one still in flight (hx-sync).
             htmx.ajax('POST', '/routine', { source: view, target: view, swap: 'innerHTML', values })
-                .catch(error => console.error('Routine render request error:', error));
+                .catch((error) => { if (error) { console.error('Routine render request error:', error); } }); // undefined: replaced by a newer render
         },
         // renderRoutines shows both columns: a change to either changes what differs.
+        // Calls made together (e.g. switching tabs, then the watchers that follows)
+        // render once.
         renderRoutines() {
-            this.renderRoutine('a');
-            if (this.compareId) { this.renderRoutine('b'); }
+            if (this._renderQueued) { return; }
+            this._renderQueued = true;
+            setTimeout(() => {
+                this._renderQueued = false;
+                this.renderRoutine('a');
+                if (this.twoColumns()) { this.renderRoutine('b'); }
+            });
         },
         // loadForm shows a fresh "Add a skill" panel, or one loaded with the skill at editIndex in a column.
         loadForm(editIndex = null, side = 'a') {
@@ -191,11 +223,6 @@ function tariffCalculatorStore() {
         async loadSetRoutine(side = 'a', fromButton = false, previous = undefined) {
             const routine = this.routineFor(side);
             if (!routine?.requirements) { return; }
-            if (routine.level) {
-                const skills = await this.fetchSetRoutine(routine.requirements);
-                if (skills) { this.setSkills(side, skills); }
-                return;
-            }
             const body = new URLSearchParams({ requirementSet: SetStore.payload(routine.requirements), routineData: JSON.stringify(this.skillsOf(side)) });
             let loaded;
             try {
@@ -246,54 +273,207 @@ function tariffCalculatorStore() {
         // against the set, so the panel still offers to load it.
         cancelSetRoutine() { this.setRoutineOffer = null; },
 
-        // --- Levels: one routine, a tab per exercise option (Exercises, in sets.js) ---
-        // chooseCheck is the "Check against" choice: a level ("level:<ref>") or
-        // requirements on their own, which take the routine out of any level
-        // (select is put back if the coach keeps the level).
-        chooseCheck(value, side = 'a', select = undefined) {
-            if (value.startsWith('level:')) { this.setLevel(value.slice('level:'.length), side); return; }
-            const routine = this.routineFor(side);
-            if (!this.leaveLevel(routine)) {
-                if (select) { select.value = `level:${routine.level}`; }
-                return;
-            }
-            this.setRequirements(value, side);
+        // --- Levels mode: a level's tabs, with its voluntaries as linked routines ---
+        setMode(mode) {
+            if (this.editingIndex !== null) { this.cancelEdit(); }
+            this.mode = mode;
+            try { localStorage.setItem('builderMode', mode); } catch (e) { /* remembered for this visit only */ }
+            this.compareId = null;
+            this.routineB = [];
+            this.expandedB = [];
+            this.mobileTab = 'a';
+            this.addTo = '';
+            if (mode === 'levels') { this.syncColumns(); } else { this.renderRoutines(); }
         },
         findLevel(ref) { return Exercises.findLevel(ref); },
-        levelOf(side) { return this.findLevel(this.routineFor(side)?.level); },
-        exerciseOf(side) { return this.routineFor(side)?.exercise === 2 ? 2 : 1; },
-        tabsFor(side) {
+        requirementName(ref) { return Exercises.requirementName(ref); },
+        entry() { return this.levelState.entries.find((e) => e.id === this.levelState.current); },
+        entryTabs() {
             this.customSets; this.customLevels; // re-evaluate when these change
-            return Exercises.tabs(this.levelOf(side));
+            return this.entry() ? Exercises.tabs(this.findLevel(this.entry().level)) : [];
         },
-        isOpenTab(side, tab) { return this.exerciseOf(side) === tab.exercise && this.routineFor(side)?.requirements === tab.ref; },
-        // isChosenTab marks the option chosen for its exercise (the set routine
-        // performed), when the exercise offers more than one.
-        isChosenTab(side, tab) {
+        saveEntries() { LevelEntries.save(this.levelState); },
+        // columnTab is the level tab a column shows in Levels mode: the open one,
+        // or the one beside it.
+        columnTab(side) {
+            if (this.mode !== 'levels' || !this.entry()) { return undefined; }
+            const key = side === 'b' ? this.entry().beside : this.entry().open;
+            return key ? this.entryTabs().find((t) => t.key === key) : undefined;
+        },
+        // columnRoutine is the routine a column shows in Levels mode: the one
+        // linked to its voluntary.
+        columnRoutine(side) {
+            const tab = this.columnTab(side);
+            return tab && !tab.set ? LevelEntries.routineFor(this.entry(), tab.exercise, this.routines) : undefined;
+        },
+        twoColumns() { return this.mode === 'levels' ? !!this.columnTab('b') : !!this.compareId; },
+        columnTitle(side) {
+            const tab = this.columnTab(side);
+            if (tab) { return tab.label; }
             const routine = this.routineFor(side);
-            if (Exercises.options(this.levelOf(side), tab.exercise).length < 2) { return false; }
-            const chosen = tab.exercise === this.exerciseOf(side) ? routine.requirements : routine.exercises?.[tab.exercise - 1]?.option;
-            return chosen === tab.ref;
+            return routine ? `${routine.name} (${routine.skills.length})` : '';
         },
-        openTabOf(side) { return this.tabsFor(side).find((t) => this.isOpenTab(side, t)); },
-        exerciseState(routine, n) {
-            routine.exercises = Array.isArray(routine.exercises) ? routine.exercises : [];
-            while (routine.exercises.length < 2) { routine.exercises.push({}); }
-            return routine.exercises[n - 1];
+        isChosenTab(tab) {
+            const entry = this.entry();
+            return Exercises.options(this.findLevel(entry.level), tab.exercise).length > 1 && LevelEntries.chosen(entry, tab.exercise) === tab.ref;
         },
-        // setSkills puts skills in a column's routine (and on screen).
-        setSkills(side, skills) {
-            if (this.editingSide === side && this.editingIndex !== null) { this.cancelEdit(); }
-            this.routineFor(side).skills = skills;
-            if (side === 'b') {
-                this.expandedB = skills.map(() => false);
-                this.routineB = skills;
-            } else {
-                this.expanded = skills.map(() => false);
-                this.routine = skills;
+        // syncColumns shows the open and beside tabs' voluntary routines as the
+        // current and compared routines, so they're edited like any other.
+        syncColumns() {
+            if (this.mode !== 'levels') { return; }
+            const a = this.columnRoutine('a'), b = this.columnRoutine('b');
+            if (a && a.id !== this.currentId) {
+                if (this.editingIndex !== null) { this.cancelEdit(); }
+                this.currentId = a.id;
+                this.expanded = a.skills.map(() => false);
+                this.routine = a.skills;
             }
+            if (b) {
+                if (this.editingSide === 'b' && this.editingIndex !== null) { this.cancelEdit(); }
+                this.compareId = b.id;
+                this.expandedB = b.skills.map(() => false);
+                this.routineB = b.skills;
+            } else {
+                this.compareId = null;
+                this.routineB = [];
+                this.expandedB = [];
+            }
+            this.mobileTab = 'a'; // on a phone, the open tab
             this.persist();
             this.renderRoutines();
+        },
+        // newEntry starts working on a level, opening its first tab beside the
+        // other exercise's (e.g. Set 1 beside the Voluntary).
+        newEntry(ref) {
+            const level = this.findLevel(ref);
+            if (!level) { return; }
+            const names = new Set(this.levelState.entries.map((e) => e.name));
+            let name = level.name;
+            for (let n = 2; names.has(name); n++) { name = `${level.name} (${n})`; }
+            const entry = { id: LevelEntries.newId(), name, level: ref, exercises: [{}, {}] };
+            const tabs = Exercises.tabs(level);
+            entry.open = tabs[0]?.key;
+            entry.beside = tabs.find((t) => t.exercise !== tabs[0]?.exercise)?.key || null;
+            this.levelState.entries.push(entry);
+            this.levelState.current = entry.id;
+            this.saveEntries();
+            this.syncColumns();
+        },
+        switchEntry(id) {
+            this.levelState.current = id;
+            this.saveEntries();
+            this.syncColumns();
+        },
+        renameEntry() {
+            const entry = this.entry();
+            const name = entry && prompt('Name this level (e.g. the gymnast)', entry.name);
+            if (!name || !name.trim()) { return; }
+            entry.name = name.trim().slice(0, 60);
+            this.saveEntries();
+        },
+        deleteEntry() {
+            const entry = this.entry();
+            if (!entry || !confirm(`Delete ${entry.name}? Its voluntary routines are kept under Routines.`)) { return; }
+            this.levelState.entries = this.levelState.entries.filter((e) => e !== entry);
+            this.levelState.current = this.levelState.entries[0]?.id || null;
+            this.saveEntries();
+            this.syncColumns();
+        },
+        // chooseOption makes a tab its exercise's choice (the set performed, or
+        // the voluntary's requirements, which its routine is then checked against).
+        chooseOption(tab) {
+            const entry = this.entry();
+            entry.exercises[tab.exercise - 1].option = tab.ref;
+            if (!tab.set) {
+                const routine = LevelEntries.routineFor(entry, tab.exercise, this.routines);
+                if (routine && routine.requirements !== tab.ref) {
+                    routine.requirements = tab.ref;
+                    delete routine.checks;
+                }
+            }
+        },
+        openTab(tab) {
+            const entry = this.entry();
+            if (entry.open === tab.key) { return; }
+            if (entry.beside === tab.key) { entry.beside = entry.open; }
+            entry.open = tab.key;
+            this.chooseOption(tab);
+            this.saveEntries();
+            this.syncColumns();
+        },
+        setBeside(key) {
+            const entry = this.entry();
+            entry.beside = key || null;
+            const tab = this.entryTabs().find((t) => t.key === key);
+            if (tab) { this.chooseOption(tab); }
+            this.saveEntries();
+            this.syncColumns();
+        },
+        // linkVoluntary sets the routine doing a column's voluntary: one already
+        // built (checked against the voluntary's requirements from then on), a new
+        // one ('new'), or none ('').
+        linkVoluntary(side, id) {
+            const tab = this.columnTab(side), entry = this.entry();
+            if (!tab || tab.set) { return; }
+            if (id === 'new') { this.newVoluntary(tab, []); return; }
+            const routine = this.routines.find((r) => r.id === id);
+            entry.exercises[tab.exercise - 1].routine = routine?.id;
+            if (routine && routine.requirements !== tab.ref) {
+                routine.requirements = tab.ref;
+                delete routine.checks;
+            }
+            this.saveEntries();
+            this.syncColumns();
+        },
+        // newVoluntary starts a routine for a voluntary tab, with skills (e.g. a
+        // set's), and links it.
+        newVoluntary(tab, skills) {
+            const entry = this.entry();
+            const routine = { id: RoutineStore.newId(), name: `${entry.name} · ${tab.label}`.slice(0, 60), skills, requirements: tab.ref };
+            this.routines.push(routine);
+            entry.exercises[tab.exercise - 1].routine = routine.id;
+            this.saveEntries();
+            this.syncColumns();
+            this.showToast(`Started ${routine.name}.`, 'info');
+        },
+        // voluntaryFor is the voluntary tab a set routine column can start: the
+        // other exercise's chosen one, or any voluntary.
+        voluntaryFor(side) {
+            const tab = this.columnTab(side);
+            if (!tab?.set) { return undefined; }
+            const voluntaries = this.entryTabs().filter((t) => !t.set);
+            const other = voluntaries.filter((t) => t.exercise !== tab.exercise);
+            const from = other.length > 0 ? other : voluntaries;
+            return from.find((t) => LevelEntries.chosen(this.entry(), t.exercise) === t.ref) || from[0];
+        },
+        // startVoluntaryFrom starts a voluntary from a set routine: the set in a
+        // column (into the voluntary it can start), or a given set (into the
+        // voluntary in this column). Skills already there are replaced, if the
+        // coach agrees, and the voluntary is shown.
+        async startVoluntaryFrom(side, set = undefined) {
+            const from = set || this.columnTab(side);
+            const target = set ? this.columnTab(side) : this.voluntaryFor(side);
+            if (!from?.set || !target || target.set) { return; }
+            const skills = await this.fetchSetRoutine(from.ref);
+            if (!skills) { this.showToast(`Couldn't load ${from.label}.`, 'error'); return; }
+            const entry = this.entry();
+            const routine = LevelEntries.routineFor(entry, target.exercise, this.routines);
+            if (!routine) {
+                this.newVoluntary(target, skills);
+            } else {
+                if (routine.skills.length > 0 && !confirm(`Replace the ${routine.skills.length} skills in ${routine.name} with ${from.label}?`)) { return; }
+                routine.skills.splice(0, routine.skills.length, ...skills);
+                this.persist();
+                this.showToast(`${routine.name} starts from ${from.label}; change it from here.`, 'info');
+            }
+            if (entry.open !== target.key && entry.beside !== target.key) { entry.beside = target.key; }
+            this.chooseOption(target);
+            this.saveEntries();
+            this.syncColumns();
+        },
+        viewHref() {
+            if (this.mode === 'levels' && this.entry()) { return `/view?entry=${this.entry().id}`; }
+            return `/view?routine=${this.currentId}`;
         },
         // fetchSetRoutine is the skills of a set routine's requirements, or undefined.
         async fetchSetRoutine(ref) {
@@ -303,99 +483,6 @@ function tariffCalculatorStore() {
             } catch (e) {
                 return undefined;
             }
-        },
-        // stashTab keeps the open tab's skills and checks while another is open.
-        stashTab(routine) {
-            const exercise = this.exerciseState(routine, routine.exercise === 2 ? 2 : 1);
-            exercise.option = routine.requirements;
-            exercise.slots = exercise.slots || {};
-            exercise.slots[routine.requirements] = { skills: routine.skills, ...(routine.checks ? { checks: routine.checks } : {}) };
-        },
-        // openTab opens one of a level routine's tabs: its skills as left, or a set
-        // routine as prescribed. Opening an option makes it the exercise's choice.
-        async openTab(side, tab) {
-            const routine = this.routineFor(side);
-            if (!tab || this.isOpenTab(side, tab)) { return; }
-            this.stashTab(routine);
-            const exercise = this.exerciseState(routine, tab.exercise);
-            const saved = exercise.slots?.[tab.ref];
-            if (saved) { delete exercise.slots[tab.ref]; }
-            exercise.option = tab.ref;
-            routine.exercise = tab.exercise;
-            routine.requirements = tab.ref;
-            if (saved?.checks) { routine.checks = saved.checks; } else { delete routine.checks; }
-            let skills = saved?.skills;
-            if (!skills && tab.set) { skills = await this.fetchSetRoutine(tab.ref); }
-            this.setSkills(side, skills || []);
-        },
-        // setLevel checks a column's routine against a level. Skills already in it
-        // become the level's voluntary; otherwise it opens on the first tab. A
-        // routine with skills isn't made into a level of set routines only: a new
-        // routine is started for that.
-        async setLevel(ref, side = 'a') {
-            const routine = this.routineFor(side);
-            const tabs = Exercises.tabs(this.findLevel(ref));
-            if (routine.level === ref || tabs.length === 0) { return; }
-            const voluntary = tabs.find((t) => !t.set && t.exercise === 2) || tabs.find((t) => !t.set);
-            if (routine.skills.length > 0 && !voluntary) {
-                const fresh = { id: RoutineStore.newId(), name: this.findLevel(ref).name.slice(0, 60), skills: [] };
-                this.routines.splice(this.routines.indexOf(routine) + 1, 0, fresh);
-                if (side === 'b') { this.compareWith(fresh.id); } else { this.switchRoutine(fresh.id); }
-                this.showToast(`Started ${fresh.name}; ${routine.name} is unchanged.`, 'info');
-                await this.setLevel(ref, side);
-                return;
-            }
-            const start = routine.skills.length > 0 ? voluntary : tabs[0];
-            routine.level = ref;
-            routine.exercises = [{}, {}];
-            for (const n of [1, 2]) { routine.exercises[n - 1].option = Exercises.options(this.findLevel(ref), n)[0]; }
-            routine.exercises[start.exercise - 1].option = start.ref;
-            routine.exercise = start.exercise;
-            routine.requirements = start.ref;
-            delete routine.checks;
-            if (routine.skills.length === 0 && start.set) {
-                this.setSkills(side, (await this.fetchSetRoutine(start.ref)) || []);
-            } else {
-                this.persist();
-                this.renderRoutines();
-            }
-        },
-        // leaveLevel takes a routine out of its level, keeping the open tab's
-        // skills. It asks first if other tabs have skills of the coach's own, and
-        // reports whether it went ahead.
-        leaveLevel(routine) {
-            if (!routine.level) { return true; }
-            const lost = Exercises.tabs(this.findLevel(routine.level)).filter((t) => !t.set && !(t.exercise === (routine.exercise === 2 ? 2 : 1) && t.ref === routine.requirements))
-                .filter((t) => Exercises.slot(routine, t.exercise, t.ref)?.skills?.length > 0);
-            if (lost.length > 0 && !confirm(`Stop checking against the level? ${lost.map((t) => t.label).join(' and ')} will be removed; the skills shown now stay.`)) { return false; }
-            delete routine.level;
-            delete routine.exercise;
-            delete routine.exercises;
-            return true;
-        },
-        // copyTarget is the voluntary a set routine tab can be copied into: the
-        // other exercise's (its chosen one), or any voluntary.
-        copyTarget(side) {
-            const open = this.openTabOf(side);
-            if (!open?.set) { return undefined; }
-            const voluntaries = this.tabsFor(side).filter((t) => !t.set);
-            const pool = voluntaries.filter((t) => t.exercise !== open.exercise);
-            const from = pool.length > 0 ? pool : voluntaries;
-            const routine = this.routineFor(side);
-            return from.find((t) => routine.exercises?.[t.exercise - 1]?.option === t.ref) || from[0];
-        },
-        // copyToVoluntary starts the voluntary from the set routine on screen, and opens it.
-        async copyToVoluntary(side) {
-            const target = this.copyTarget(side);
-            if (!target) { return; }
-            const routine = this.routineFor(side);
-            const existing = Exercises.slot(routine, target.exercise, target.ref)?.skills || [];
-            if (existing.length > 0 && !confirm(`Replace the ${existing.length} skills in ${target.label} with this set routine?`)) { return; }
-            const exercise = this.exerciseState(routine, target.exercise);
-            exercise.slots = exercise.slots || {};
-            exercise.slots[target.ref] = { skills: JSON.parse(JSON.stringify(routine.skills)) };
-            await this.openTab(side, target);
-            this.showToast(`Copied into ${target.label}; change it from here.`, 'info');
         },
         // switchRoutine makes the routine with id current, leaving any edit. Choosing
         // the routine shown beside it swaps the columns.
@@ -487,46 +574,31 @@ function tariffCalculatorStore() {
             if (!response.ok) { throw new Error((await response.text()).trim() || `HTTP ${response.status}`); }
             return response.json();
         },
-        // addTargets are the routines Add can put a skill in, for the "Add to"
-        // list: every saved routine, and for a level routine, each voluntary tab
-        // (and its open tab). A value is a routine id, or "<id>|<exercise>|<ref>"
-        // for a level routine's tab.
-        addTargets() {
-            const out = [];
-            for (const r of this.routines) {
-                const tabs = Exercises.tabs(this.findLevel(r.level));
-                if (tabs.length === 0) {
-                    out.push({ value: r.id, label: `${r.name} (${r.skills.length})` });
-                    continue;
-                }
-                for (const t of tabs) {
-                    const open = (r.exercise === 2 ? 2 : 1) === t.exercise && r.requirements === t.ref;
-                    if (t.set && !open) { continue; }
-                    const count = (Exercises.slot(r, t.exercise, t.ref)?.skills || []).length;
-                    out.push({ value: `${r.id}|${t.exercise}|${t.ref}`, label: `${r.name} · ${t.label} (${count})` });
-                }
-            }
-            return out;
-        },
-        // addToValue is where Add will put a skill: the one chosen, or the open
-        // tab of the routine on screen.
+        // addTargets are the routines Add can put a skill in, for the "Add to" list.
+        addTargets() { return this.routines.map((r) => ({ value: r.id, label: `${r.name} (${r.skills.length})` })); },
+        // addToValue is the routine Add will put a skill in: the one chosen, or the
+        // one on screen (in Levels mode, a voluntary shown or the level's first).
         addToValue() {
-            if (this.addTo && this.addTargets().some((t) => t.value === this.addTo)) { return this.addTo; }
-            const r = this.currentRoutine();
-            return r?.level ? `${r.id}|${r.exercise === 2 ? 2 : 1}|${r.requirements}` : r?.id;
+            if (this.addTo && this.routines.some((r) => r.id === this.addTo)) { return this.addTo; }
+            if (this.mode === 'levels' && this.entry()) {
+                const shown = this.columnRoutine('a') || this.columnRoutine('b');
+                const linked = [1, 2].map((n) => LevelEntries.routineFor(this.entry(), n, this.routines)).find(Boolean);
+                return (shown || linked)?.id || '';
+            }
+            return this.currentId;
         },
-        // addTarget resolves addToValue: the routine, its label, and the column
-        // it's shown in ('a' or 'b'), if it's on screen as it is.
+        // addTarget is the routine Add will put a skill in, and the column it's
+        // shown in ('a' or 'b'), if it's on screen.
         addTarget() {
-            const value = this.addToValue();
-            const [id, exercise, ref] = (value || '').split('|');
-            const routine = this.routines.find((r) => r.id === id);
+            const routine = this.routines.find((r) => r.id === this.addToValue());
             if (!routine) { return undefined; }
-            const n = Number(exercise) || undefined;
-            const open = !ref || ((routine.exercise === 2 ? 2 : 1) === n && routine.requirements === ref);
-            const side = !open ? undefined : id === this.currentId ? 'a' : id === this.compareId ? 'b' : undefined;
-            const label = this.addTargets().find((t) => t.value === value)?.label.replace(/ \(\d+\)$/, '') || routine.name;
-            return { routine, exercise: n, ref, open, side, label };
+            let side;
+            if (this.mode === 'levels') {
+                side = this.columnRoutine('a')?.id === routine.id ? 'a' : this.columnRoutine('b')?.id === routine.id ? 'b' : undefined;
+            } else {
+                side = routine.id === this.currentId ? 'a' : routine.id === this.compareId ? 'b' : undefined;
+            }
+            return { routine, side, label: routine.name };
         },
         // addFromForm adds the skill shown on the card to the end of the routine
         // chosen under "Add to" (the one on screen unless another is chosen).
@@ -536,27 +608,20 @@ function tariffCalculatorStore() {
             try {
                 const skill = await this.calculateFormSkill();
                 const target = this.addTarget();
-                if (!target) { throw new Error('choose a routine to add to'); }
+                if (!target) { throw new Error('choose a routine to add to (in a level, a voluntary routine)'); }
                 let skills;
                 if (target.side) {
                     skills = this.skillsOf(target.side);
                     this.expandedOf(target.side).push(false);
                     skills.push(skill);
                     this.mobileTab = target.side; // show where it went
-                } else if (target.open) {
+                } else {
                     skills = target.routine.skills;
                     skills.push(skill);
                     this.persist();
-                } else {
-                    const exercise = this.exerciseState(target.routine, target.exercise);
-                    exercise.slots = exercise.slots || {};
-                    exercise.slots[target.ref] = exercise.slots[target.ref] || { skills: [] };
-                    skills = exercise.slots[target.ref].skills;
-                    skills.push(skill);
-                    this.persist();
-                    this.renderRoutines(); // the level panel counts the other exercise
+                    this.renderRoutines(); // a level panel counts the other exercise
                 }
-                const where = target.side === 'a' && !this.compareId ? '' : ` to ${target.label}`;
+                const where = target.side === 'a' && !this.twoColumns() ? '' : ` to ${target.label}`;
                 this.showToast(`Added ${skill.custom_name || skill.name} (${skill.tariff.toFixed(1)})${where}.`, 'info');
                 if (skills.length > 10) { this.showToast('Note: an exercise has 10 skills.', 'warning'); }
                 this.clearLabel(); // a label belongs to one skill
@@ -650,7 +715,7 @@ function tariffCalculatorStore() {
         // The view is re-rendered after every change, so this runs for each new list.
         makeSortable(side = 'a') {
             const list = document.getElementById(side === 'b' ? 'routine-skills-b' : 'routine-skills');
-            if (!list || !window.Sortable) { return; }
+            if (!list || !window.Sortable || 'readOnly' in list.dataset) { return; } // a prescribed set routine stays as it is
             Sortable.create(list, {
                 draggable: '.routine-skill-container',
                 filter: 'button', preventOnFilter: false, // the card's buttons stay clickable

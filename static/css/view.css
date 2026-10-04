@@ -159,9 +159,11 @@ body {
   list-style: none;
   display: grid;
   grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr); /* rows fit the column, so long names shorten instead of pushing difficulty off screen */
   container-type: size;
 }
 .display-row {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 0.6em;

@@ -25,7 +25,7 @@ exercise is on (`optionRef`, `pairOptionRef`), the tab names (`tabNames`) and,
 for a custom level, its custom requirements (`optionSets`). The server builds
 each option with `requirements.SetRoutine`. Options for a voluntary that
 aren't chosen are requirements, not skills, so they don't show. A select in the bar switches to another
-saved routine (level routines show their level), and the choice is kept in the
+saved routine or level, and the choice is kept in the
 URL. The view re-renders when the routines change in another tab, so it can
 stay open beside the builder.
 

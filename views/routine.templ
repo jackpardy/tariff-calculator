@@ -17,6 +17,8 @@ type RoutineSide struct {
 	Other  *CompareSide
 	Checks Checks
 	Level  *LevelCheck // the level the routine is one exercise of, if any
+	// ReadOnly shows a set routine as prescribed: no editing, reordering or checks.
+	ReadOnly bool
 }
 
 // LevelCheck is a routine doing one exercise of a level, and how the routine
@@ -81,12 +83,12 @@ func (s RoutineSide) expanded(i int) string {
 // call its methods with the column's side, and it makes the card list
 // drag-sortable (SortableJS).
 templ Routine(rv skills.RoutineValidation, check *RequirementCheck, side RoutineSide) {
-	<div id={ side.list() } class="routine-skills" data-scoring={ templ.JSONString(scoringElements(rv)) }>
+	<div id={ side.list() } class={ "routine-skills", templ.KV("is-read-only", side.ReadOnly) } data-scoring={ templ.JSONString(scoringElements(rv)) } data-read-only?={ side.ReadOnly }>
 		if len(rv.Skills) == 0 {
 			<p class="has-text-grey">Add skills using the form above.</p>
 		} else {
 			for i, sv := range rv.Skills {
-				@skillCard(i, sv, rv.Messages[i], i == len(rv.Skills)-1, side, side.Other != nil && differs(CompareSide{Validation: rv}, *side.Other, i), rv.ScoredElements > 0 && (sv.Counted || sv.Unscored), ticked(rv, sv))
+				@skillCard(i, sv, rv.Messages[i], i == len(rv.Skills)-1, side, side.Other != nil && differs(CompareSide{Validation: rv}, *side.Other, i), !side.ReadOnly && rv.ScoredElements > 0 && (sv.Counted || sv.Unscored), ticked(rv, sv))
 			}
 		}
 	</div>
@@ -95,7 +97,7 @@ templ Routine(rv skills.RoutineValidation, check *RequirementCheck, side Routine
 		@levelPanel(*side.Level)
 	}
 	if check != nil {
-		@requirementsPanel(*check, side.Side)
+		@requirementsPanel(*check, side)
 	}
 }
 
@@ -214,12 +216,14 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 					</div>
 				</div>
 				// Compact button grid; clicks here must not toggle the card.
-				<div class="card-buttons" x-on:click.stop>
-					<button class="button is-info is-small is-fullwidth px-0 card-text-button" title="Edit" x-on:click={ side.call("editSkill", i) }>Edit</button>
-					<button class="button is-small is-fullwidth px-0" title="Move Up" x-on:click={ side.call("moveSkillUp", i) } disabled?={ i == 0 }>↑</button>
-					<button class="button is-danger is-small is-fullwidth px-0 card-text-button" title="Remove" x-on:click={ side.call("removeSkill", i) }>Del</button>
-					<button class="button is-small is-fullwidth px-0" title="Move Down" x-on:click={ side.call("moveSkillDown", i) } disabled?={ last }>↓</button>
-				</div>
+				if !side.ReadOnly {
+					<div class="card-buttons" x-on:click.stop>
+						<button class="button is-info is-small is-fullwidth px-0 card-text-button" title="Edit" x-on:click={ side.call("editSkill", i) }>Edit</button>
+						<button class="button is-small is-fullwidth px-0" title="Move Up" x-on:click={ side.call("moveSkillUp", i) } disabled?={ i == 0 }>↑</button>
+						<button class="button is-danger is-small is-fullwidth px-0 card-text-button" title="Remove" x-on:click={ side.call("removeSkill", i) }>Del</button>
+						<button class="button is-small is-fullwidth px-0" title="Move Down" x-on:click={ side.call("moveSkillDown", i) } disabled?={ last }>↓</button>
+					</div>
+				}
 			</div>
 			// Collapsible details.
 			<div x-show={ side.expanded(i) } x-cloak>
@@ -306,31 +310,33 @@ templ results(rv skills.RoutineValidation, side RoutineSide) {
 					}
 				</div>
 				// Which checks apply; the routine's requirement set chooses them, and the coach can change them.
-				<div class="routine-checks">
-					<span class="routine-checks-label">Checks</span>
-					<label class="checkbox">
-						<input type="checkbox" checked?={ side.Checks.ScoreDifficulty } x-on:change={ fmt.Sprintf("setCheck('%s', 'difficulty', $event.target.checked)", side.Side) }/>
-						Score difficulty
-					</label>
-					<label class="checkbox">
-						<input type="checkbox" checked?={ side.Checks.FlagRepeats } x-on:change={ fmt.Sprintf("setCheck('%s', 'repeats', $event.target.checked)", side.Side) }/>
-						Flag repeated elements
-					</label>
-					if side.Checks.ScoreDifficulty {
-						<label class="scored-elements">
-							Score
-							<span class="select is-small">
-								<select x-on:change={ fmt.Sprintf("setCheck('%s', 'scored', Number($event.target.value))", side.Side) }>
-									<option value="0" selected?={ side.Checks.ScoredElements == 0 }>all</option>
-									for n := 1; n < skills.RoutineLength; n++ {
-										<option value={ strconv.Itoa(n) } selected?={ side.Checks.ScoredElements == n }>{ strconv.Itoa(n) }</option>
-									}
-								</select>
-							</span>
-							elements
+				if !side.ReadOnly {
+					<div class="routine-checks">
+						<span class="routine-checks-label">Checks</span>
+						<label class="checkbox">
+							<input type="checkbox" checked?={ side.Checks.ScoreDifficulty } x-on:change={ fmt.Sprintf("setCheck('%s', 'difficulty', $event.target.checked)", side.Side) }/>
+							Score difficulty
 						</label>
-					}
-				</div>
+						<label class="checkbox">
+							<input type="checkbox" checked?={ side.Checks.FlagRepeats } x-on:change={ fmt.Sprintf("setCheck('%s', 'repeats', $event.target.checked)", side.Side) }/>
+							Flag repeated elements
+						</label>
+						if side.Checks.ScoreDifficulty {
+							<label class="scored-elements">
+								Score
+								<span class="select is-small">
+									<select x-on:change={ fmt.Sprintf("setCheck('%s', 'scored', Number($event.target.value))", side.Side) }>
+										<option value="0" selected?={ side.Checks.ScoredElements == 0 }>all</option>
+										for n := 1; n < skills.RoutineLength; n++ {
+											<option value={ strconv.Itoa(n) } selected?={ side.Checks.ScoredElements == n }>{ strconv.Itoa(n) }</option>
+										}
+									</select>
+								</span>
+								elements
+							</label>
+						}
+					</div>
+				}
 			</div>
 		</div>
 	</div>
@@ -356,7 +362,7 @@ func (c RequirementCheck) Met() int {
 }
 
 // requirementsPanel lists each requirement with whether the routine meets it.
-templ requirementsPanel(c RequirementCheck, side string) {
+templ requirementsPanel(c RequirementCheck, side RoutineSide) {
 	<div id="requirements-results" class="card mt-4">
 		<div class="card-content">
 			<p class="requirements-title">
@@ -385,8 +391,8 @@ templ requirementsPanel(c RequirementCheck, side string) {
 						</li>
 					}
 				</ul>
-				if c.SetRoutine && c.Met() < len(c.Results) {
-					<button class="button is-small is-link is-light mt-3" type="button" x-on:click={ fmt.Sprintf("loadSetRoutine('%s', true)", side) }>Load this set routine</button>
+				if c.SetRoutine && c.Met() < len(c.Results) && !side.ReadOnly {
+					<button class="button is-small is-link is-light mt-3" type="button" x-on:click={ fmt.Sprintf("loadSetRoutine('%s', true)", side.Side) }>Load this set routine</button>
 				}
 			}
 		</div>

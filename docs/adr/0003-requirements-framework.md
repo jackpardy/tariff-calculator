@@ -118,11 +118,12 @@ accounts: routines live in the browser.
     can't be repeated in the second; this follows from the first exercise's
     requirements, so a level doesn't restate it. Built-in levels are listed in
     `sets/groups.json` and cover every built-in set; coaches write their own in a
-    level editor that follows decision 7, and share them like sets. In the routine
-    builder, a routine checked against a level holds both exercises, one tab per
-    option (e.g. Set 1, Set 2, Voluntary); set routines show as prescribed, and
-    the page posts the open tab and the other exercise's choice so the server
-    checks them together.
+    level editor that follows decision 7, and share them like sets. Levels and
+    routines are kept apart: a routine is checked against requirements, and the
+    builder's Levels mode shows a level as tabs (e.g. Set 1, Set 2, Voluntary),
+    the set routines as prescribed and each voluntary an ordinary routine linked
+    to it. The page posts a voluntary with the other exercise's choice so the
+    server checks them together.
 
 ## Consequences
 

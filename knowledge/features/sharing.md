@@ -25,10 +25,6 @@ The payload is `{v: 1, routines: [...], sets: [...], levels: [...]}`:
 - A routine checked against built-in requirements keeps its `builtin:<id>`
   reference. If it uses custom requirements, those travel with it in `sets`, and
   the routine refers to them as `set:<n>`.
-- A [level](../requirements/levels.md) routine carries `level`
-  (`builtin-level:<id>`, or `level:<n>` into `levels` for a custom one),
-  `exercise`, and `exercises`, its other tabs' skills and choices, with custom
-  requirements as `set:<n>`.
 - A custom level's options that are custom requirements become `set:<n>`, so
   sharing a level brings the requirements it uses.
 

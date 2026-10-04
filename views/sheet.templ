@@ -1,7 +1,6 @@
 package views
 
 import (
-	"tariffCalculator/requirements"
 	"fmt"
 	"strconv"
 
@@ -27,7 +26,6 @@ templ TariffSheetPage() {
 			<script defer src={ static.URL("js/sets.js") }></script>
 			<script defer src={ static.URL("js/sheet.js") }></script>
 			<script defer src={ static.URL("js/menus.js") }></script>
-			@templ.JSONScript("level-data", levelData(requirements.BuiltinGroups()))
 		</head>
 		<body>
 			<div class="toolbar screen-only">

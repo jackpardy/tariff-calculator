@@ -550,7 +550,7 @@ func TestTariffSheetPage(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d", rec.Code)
 	}
-	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "Exercises.values(RoutineStore.current(RoutineStore.load()))", `id="level-data"`, "/static/js/routines.js?v=", "/static/js/sets.js?v=", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v=",
+	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "Exercises.values(RoutineStore.current(RoutineStore.load()))", "/static/js/routines.js?v=", "/static/js/sets.js?v=", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v=",
 		// Optional parts of the sheet.
 		`id="show-names" data-hides="hide-names" checked`, "/static/js/sheet.js?v=",
 		`id="show-req" data-hides="hide-req" checked`, `id="show-judge" data-hides="hide-judge" checked`,
@@ -1149,8 +1149,8 @@ func TestViewScreen(t *testing.T) {
 			t.Errorf("the view page is missing %q", want)
 		}
 	}
-	if !strings.Contains(getPage(t, "/"), "`/view?routine=${currentId}`") {
-		t.Error("the builder should link to the view of the current routine")
+	if !strings.Contains(getPage(t, "/"), `x-bind:href="viewHref()"`) {
+		t.Error("the builder should link to the view of what's on screen")
 	}
 
 	first := `[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},
@@ -1253,5 +1253,20 @@ func TestUnopenedSetRoutineTab(t *testing.T) {
 	panel := html[strings.Index(html, "First exercise: Set 2"):]
 	if m := regexp.MustCompile(`(\d+) of (\d+) met`).FindStringSubmatch(panel); m == nil || m[1] != m[2] {
 		t.Errorf("Set 2 as prescribed meets all of its requirements: %v", m)
+	}
+}
+
+// In Levels mode a set routine tab is shown as prescribed: its skills built
+// from its requirements, read-only.
+func TestPrescribedSetRoutine(t *testing.T) {
+	html := postForm(t, "/routine", url.Values{"prescribed": {"1"}, "requirementSet": {"builtin:bucs-l7-option-1"}, "routineData": {""}}).Body.String()
+	if got := len(routineCards(html)); got != 10 {
+		t.Errorf("BUCS L7 option 1 has 10 elements, got %d cards", got)
+	}
+	if strings.Contains(html, `class="card-buttons"`) || strings.Contains(html, `class="routine-checks"`) || strings.Contains(html, "Load this set routine") || !strings.Contains(html, "data-read-only") {
+		t.Errorf("a prescribed set routine can't be edited, reordered or have its checks changed")
+	}
+	if !regexp.MustCompile(`(\d+) of (\d+) met`).MatchString(html) {
+		t.Errorf("it's checked against its own requirements")
 	}
 }

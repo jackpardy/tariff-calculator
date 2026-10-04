@@ -27,9 +27,8 @@ card for editing.
 
 **Add to** chooses where Add puts the skill, from every saved routine; it
 starts on the routine on screen and goes back to it when the routine on screen
-changes. A [level](../requirements/levels.md) routine is listed once per
-voluntary tab ("Routine 3 · Voluntary"), so a coach can look at a set routine
-and add to the voluntary. Adding to a routine that isn't on screen saves it
+changes (in Levels mode, the voluntary's routine, so a coach can look at a set
+and add to the voluntary). Adding to a routine that isn't on screen saves it
 there and says so. On wider screens the shapes, Add to and a fixed-width Add
 button share one row.
 
@@ -55,10 +54,10 @@ routine, and the elements involved are highlighted. Choosing requirements that
 are a [set routine](../requirements/set-routines.md) offers to load it as a new
 routine or to replace the current one.
 
-Choosing a [level](../requirements/levels.md) instead gives the routine a tab
-for each of the level's options, e.g. Set 1, Set 2 and Voluntary: the set
-routines as prescribed, and the voluntary as the coach's own skills, with
-**Copy into the voluntary** to start it from a set.
+[Levels](../requirements/levels.md) have their own mode (Routines | Levels at
+the top of the builder): pick a level to see its set routines as prescribed,
+and link a routine to its voluntary (new, already built, or started from a
+set). Side by side works for a level's tabs too.
 
 ## Checks
 

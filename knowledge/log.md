@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-04
+* **Update**: Levels and routines are kept apart. "Check against" lists
+  requirements only; the builder's new Levels mode shows a level's tabs (set
+  routines as prescribed, side by side if wanted) and links ordinary routines
+  to its voluntaries. Level routines from earlier became level entries. On the
+  view screen, rows now fit their column, so difficulty no longer runs off the
+  edge.
 * **Update**: The [view screen](features/view.md)'s Show menu lists the
   routines on screen by name (Set 1, Set 2, Voluntary) to show or hide, in
   place of "The other exercise" and "Other set routine options".

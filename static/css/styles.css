@@ -203,6 +203,9 @@
   .is-comparing > .builder-column:first-child .column-head { display: none; }
   .is-comparing .column-head { justify-content: flex-end; }
   .is-comparing .requirement-picker .is-text { display: inline-flex; }
+  /* In Levels mode a phone shows the open tab only: the level's tabs switch. */
+  .is-levels .level-beside, .is-levels .compare-tabs { display: none !important; }
+  .is-levels .level-tabs .tabs li.is-beside a { background: none; color: inherit; }
 }
 
 .subtitle.tariff-difference { font-size: 0.9rem; color: #666; }
@@ -270,16 +273,24 @@
 .is-met .requirement-mark { color: #257953; }
 .is-unmet .requirement-mark { color: #cc0f35; }
 .requirement-detail { display: block; color: #777; font-size: 0.8rem; }
-/* A level routine's tabs sit on its cards, with Copy beside them. */
-.requirement-picker:has(.level-tabs) { margin-bottom: 0; }
-.level-tabs { display: flex; align-items: flex-end; gap: 0.5rem; margin-top: 0.75rem; border-bottom: 1px solid #dbdbdb; }
-.level-tabs .tabs { flex: 1; min-width: 0; }
+/* Routines | Levels, and the Levels mode: the level's tabs sit on its columns. */
+.builder-mode { margin-bottom: 0.75rem !important; }
+.levels-bar .routine-switcher { flex-wrap: wrap; }
+.level-tabs { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.5rem; margin-top: 0.75rem; margin-bottom: 0.75rem; border-bottom: 1px solid #dbdbdb; }
+.level-tabs .tabs { flex: 1 1 auto; min-width: 0; }
 .level-tabs .tabs ul { flex-wrap: wrap; border-bottom: none; }
 .level-tabs .tabs a { gap: 0.3rem; font-weight: 600; }
 .level-tabs .tabs li.is-active a { color: #485fc7; }
-.level-copy { margin-bottom: 0.35rem; flex: none; }
+.level-tabs .tabs li.is-beside a { color: #485fc7; background: #f5f7ff; }
+.level-beside { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
 .tab-chosen { font-size: 0.55rem; color: #485fc7; }
-.requirement-picker:has(.level-tabs) + .routine-view-wrap, .requirement-picker:has(.level-tabs) ~ [id^="routine-view"] { margin-top: 0.5rem; }
+.level-column-head { margin-bottom: 0.6rem; }
+.level-column-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; margin-bottom: 0.35rem; }
+.level-column-requirements { font-size: 0.8rem; color: #777; }
+.level-column-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.level-column-note { font-size: 0.85rem; color: #777; }
+.level-empty { padding: 1rem 0; }
+.routine-skills.is-read-only .routine-skill { background: #fafafa; }
 .level-check { padding: 0.5rem 0.75rem; border-left: 3px solid #485fc7; background: #f5f7ff; }
 .level-check p + p { margin-top: 0.15rem; }
 .level-option { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }

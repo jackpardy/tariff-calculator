@@ -2,8 +2,9 @@
 // shared by the calculator, the tariff sheet and the requirements page. Sets
 // are stored as a list of {id, set, described} under
 // 'trampolineRequirementSets', where set is the set's JSON and described its
-// rules in plain English, for listing. Levels (LevelStore) and a level
-// routine's exercises (Exercises) follow.
+// rules in plain English, for listing. Levels (LevelStore), their exercises
+// and tabs (Exercises), and the levels a coach is working on (LevelEntries)
+// follow.
 const SetStore = (() => {
     const key = 'trampolineRequirementSets';
 
@@ -68,13 +69,9 @@ const LevelStore = (() => {
     return { key, load, save, newId, payload };
 })();
 
-// Exercises: a routine checked against a level holds both of its exercises, one
-// tab per option (e.g. BUCS L7: Set 1, Set 2, Voluntary). Its level is the
-// level's reference, exercise (1 or 2) the open tab's exercise, and
-// requirements the open tab's option. skills and checks are the open tab's;
-// the others' are kept in exercises: [{option, slots: {<ref>: {skills,
-// checks}}}, ...], where option is the option chosen for that exercise (the
-// set routine performed, say). A set routine's tab starts as the set routine.
+// Exercises: a level's exercises and their tabs, one per option (e.g. BUCS
+// L7: Set 1, Set 2, Voluntary), shared by the builder's Levels mode and the
+// view screen.
 const Exercises = {
     // data is the page's built-in levels and requirements (views.LevelData in
     // #level-data): {levels, names, set_routines}, read once.
@@ -105,7 +102,7 @@ const Exercises = {
         if (!level) { return 0; }
         return level.second || !this.options(level, 1).every((ref) => this.isSetRoutine(ref)) ? 2 : 1;
     },
-    // tabs are a level's tabs, in order: {exercise, ref, set, label}. Set
+    // tabs are a level's tabs, in order: {exercise, ref, set, label, key}. Set
     // routines are "Set 1", "Set 2" (or "Set routine" alone); a voluntary is
     // "Voluntary", or "1st voluntary" and "2nd voluntary" when both are, or
     // named after its requirements when an exercise offers several.
@@ -125,55 +122,119 @@ const Exercises = {
                 } else {
                     label = 'Voluntary';
                 }
-                out.push({ exercise: n, ref, set, label });
+                out.push({ exercise: n, ref, set, label, key: `${n}:${ref}` });
             }
         }
         const voluntaryTabs = out.filter((t) => t.label === 'Voluntary');
         if (voluntaryTabs.length > 1) { voluntaryTabs.forEach((t) => { t.label = t.exercise === 1 ? '1st voluntary' : '2nd voluntary'; }); }
         return out;
     },
-    tabFor(routine, n = routine?.exercise === 2 ? 2 : 1) {
-        const level = this.findLevel(routine?.level);
-        const ref = n === (routine?.exercise === 2 ? 2 : 1) ? routine?.requirements : routine?.exercises?.[n - 1]?.option;
-        return this.tabs(level).find((t) => t.exercise === n && t.ref === ref);
-    },
-    // slot is a tab's skills and checks: the routine's own for the open tab,
-    // otherwise what's kept in exercises (undefined if never opened).
-    slot(routine, n, ref) {
-        if ((routine.exercise === 2 ? 2 : 1) === n && routine.requirements === ref) { return { skills: routine.skills, checks: routine.checks }; }
-        return routine.exercises?.[n - 1]?.slots?.[ref];
-    },
-    // other is the other exercise of a level routine: {exercise, ref, skills,
-    // checks}, or undefined when the level has one exercise.
-    other(routine) {
-        const level = this.findLevel(routine?.level);
-        if (!level || this.count(level) < 2) { return undefined; }
-        const n = routine.exercise === 2 ? 1 : 2;
-        const ref = routine.exercises?.[n - 1]?.option || this.options(level, n)[0];
-        return { exercise: n, ref, ...(this.slot(routine, n, ref) || {}) };
-    },
 
-    // values are what /routine, /tariff-sheet and /view need to check a routine:
-    // its skills, requirements and checks, and with a level, the level, the
-    // open tab's exercise and the other exercise (whose skills, if a set
-    // routine never opened, the server builds from its requirements).
+    // values are what /routine, /tariff-sheet and /view need to check a routine
+    // against its requirements.
     values(routine) {
-        const values = {
+        return {
             routineData: JSON.stringify(routine?.skills || []),
             requirementSet: SetStore.payload(routine?.requirements),
             checks: JSON.stringify(routine?.checks || {}),
         };
-        if (!routine?.level) { return values; }
-        values.level = LevelStore.payload(routine.level);
-        values.exercise = String(routine.exercise === 2 ? 2 : 1);
-        const other = this.other(routine);
-        if (other) {
-            values.pairData = other.skills ? JSON.stringify(other.skills) : '';
-            values.pairSet = SetStore.payload(other.ref);
-            values.pairChecks = JSON.stringify(other.checks || {});
-            const tab = this.tabFor(routine, other.exercise);
-            values.pairName = tab?.label || '';
+    },
+};
+
+// LevelEntries: the levels a coach is working on, saved in this browser as
+// {current, entries} under 'trampolineLevelEntries'. An entry is {id, name,
+// level, exercises: [{option, routine}, {option, routine}], open, beside}:
+// option is the requirements chosen for each exercise (the set routine
+// performed, or the voluntary's), routine the id of the routine doing that
+// exercise's voluntary, and open and beside the keys of the tabs shown
+// ("<exercise>:<ref>"). Set routines aren't stored: they're shown as
+// prescribed. Several entries can be for the same level, e.g. one per gymnast.
+const LevelEntries = {
+    key: 'trampolineLevelEntries',
+    load() {
+        let state;
+        try { state = JSON.parse(localStorage.getItem(this.key) || 'null'); } catch (e) { state = null; }
+        const entries = Array.isArray(state?.entries) ? state.entries.filter((e) => e && e.id && e.level) : [];
+        for (const e of entries) {
+            e.exercises = Array.isArray(e.exercises) ? e.exercises : [];
+            while (e.exercises.length < 2) { e.exercises.push({}); }
         }
+        return { current: entries.some((e) => e.id === state?.current) ? state.current : entries[0]?.id || null, entries };
+    },
+    save(state) {
+        try { localStorage.setItem(this.key, JSON.stringify(state)); } catch (e) { console.error('Could not save levels:', e); }
+    },
+    newId() { return 'entry-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); },
+
+    // chosen is the option an entry's exercise n is on: the one chosen, or the
+    // exercise's first.
+    chosen(entry, n) {
+        const options = Exercises.options(Exercises.findLevel(entry.level), n);
+        const option = entry.exercises?.[n - 1]?.option;
+        return options.includes(option) ? option : options[0];
+    },
+    // routineFor is the routine doing exercise n's voluntary, if there is one.
+    routineFor(entry, n, routines) {
+        const id = entry.exercises?.[n - 1]?.routine;
+        return id ? routines.find((r) => r.id === id) : undefined;
+    },
+
+    // values are what the server needs to check exercise n of an entry with
+    // the other one: the level, the exercise, and the other exercise's chosen
+    // option and skills (empty for a set routine, which the server builds).
+    values(entry, n, routines) {
+        const level = Exercises.findLevel(entry.level);
+        const values = { level: LevelStore.payload(entry.level), exercise: String(n) };
+        if (Exercises.count(level) < 2) { return values; }
+        const m = n === 2 ? 1 : 2;
+        const ref = this.chosen(entry, m);
+        const routine = Exercises.isSetRoutine(ref) ? undefined : this.routineFor(entry, m, routines);
+        values.pairData = routine ? JSON.stringify(routine.skills) : '';
+        values.pairSet = SetStore.payload(ref);
+        values.pairChecks = JSON.stringify(routine?.checks || {});
+        values.pairName = Exercises.tabs(level).find((t) => t.exercise === m && t.ref === ref)?.label || '';
         return values;
+    },
+
+    // migrate turns routines that held a level's exercises as tabs (an earlier
+    // version) into level entries: each voluntary with skills becomes (or stays)
+    // a routine of its own, linked to the entry. It needs the page's level data.
+    migrate(routineState) {
+        const old = routineState.routines.filter((r) => r.level);
+        if (old.length === 0) { return false; }
+        const state = this.load();
+        for (const r of old) {
+            const level = Exercises.findLevel(r.level);
+            const entry = { id: this.newId(), name: level ? r.name : `${r.name} (level no longer saved)`, level: r.level, exercises: [{}, {}] };
+            const openN = r.exercise === 2 ? 2 : 1;
+            let reused = false;
+            for (const tab of Exercises.tabs(level)) {
+                const open = tab.exercise === openN && tab.ref === r.requirements;
+                const slot = open ? { skills: r.skills, checks: r.checks } : r.exercises?.[tab.exercise - 1]?.slots?.[tab.ref];
+                if (r.exercises?.[tab.exercise - 1]?.option === tab.ref || open) { entry.exercises[tab.exercise - 1].option = tab.ref; }
+                if (tab.set || !slot?.skills?.length) { continue; }
+                let routine = r;
+                if (reused) {
+                    routine = { id: RoutineStore.newId(), name: `${r.name} · ${tab.label}`.slice(0, 60), skills: slot.skills };
+                    routineState.routines.splice(routineState.routines.indexOf(r) + 1, 0, routine);
+                } else {
+                    r.skills = slot.skills;
+                    reused = true;
+                }
+                routine.requirements = tab.ref;
+                if (slot.checks) { routine.checks = slot.checks; } else { delete routine.checks; }
+                entry.exercises[tab.exercise - 1].routine = routine.id;
+            }
+            // A routine that only held set routines stays, checked against the one on screen.
+            delete r.level;
+            delete r.exercise;
+            delete r.exercises;
+            entry.open = Exercises.tabs(level).find((t) => t.exercise === openN && t.ref === entry.exercises[openN - 1].option)?.key;
+            state.entries.push(entry);
+        }
+        state.current = state.current || state.entries[0]?.id || null;
+        this.save(state);
+        RoutineStore.save(routineState);
+        return true;
     },
 };

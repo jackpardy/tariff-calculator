@@ -98,7 +98,7 @@ func TestRequirementsPageListsLevels(t *testing.T) {
 		}
 	}
 	body = getPage(t, "/")
-	for _, want := range []string{`<optgroup label="Levels · BUCS student championships (2026)">`, `value="level:builtin-level:bucs-l3"`, `id="level-data"`, "openTab(&#39;a&#39;, tab)", "copyToVoluntary(&#39;a&#39;)"} {
+	for _, want := range []string{`<optgroup label="BUCS student championships (2026)">`, `<option value="builtin-level:bucs-l3">BUCS L3</option>`, `id="level-data"`, "setMode('levels')", "startVoluntaryFrom(&#39;a&#39;)", "linkVoluntary(&#39;b&#39;, $event.target.value)"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the calculator is missing %q", want)
 		}

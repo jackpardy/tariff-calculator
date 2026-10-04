@@ -1,11 +1,11 @@
 // view.js: the view screen (views.ViewPage). Shows a routine saved in this
-// browser (?routine=<id>, else the current one): for a level routine, both its
-// exercises and the level's other set routine options, rendered by the server
-// to fill the screen. It
-// re-renders when the routines change in another tab (the builder). The Show
-// menu lists the routines on screen to show or hide, and its other boxes
-// (data-hides) toggle classes on #view, all remembered in this browser. The
-// full screen button uses the Fullscreen API where there is one.
+// browser (?routine=<id>, else the current one), or a level being worked on
+// (?entry=<id>): its set routines and voluntaries, rendered by the server to
+// fill the screen. It re-renders when the routines or levels change in another
+// tab (the builder). The Show menu lists the routines on screen to show or
+// hide, and its other boxes (data-hides) toggle classes on #view, all
+// remembered in this browser. The full screen button uses the Fullscreen API
+// where there is one.
 (function () {
     const storageKey = (box) => 'viewShow:' + box.dataset.hides;
 
@@ -16,43 +16,57 @@
         try { localStorage.setItem(key, value); } catch (e) { /* storage unavailable: still works for this visit */ }
     }
 
-    // chosen is the routine to show: the one asked for, or the current one.
-    function chosen(state) {
-        const id = new URLSearchParams(location.search).get('routine');
-        return state.routines.find((r) => r.id === id) || RoutineStore.current(state);
+    // chosen is what to show: {entry} for a level asked for, else {routine}:
+    // the one asked for, or the current one.
+    function chosen(state, levels) {
+        const params = new URLSearchParams(location.search);
+        const entry = levels.entries.find((e) => e.id === params.get('entry'));
+        if (entry) { return { entry, id: entry.id, name: entry.name }; }
+        const routine = state.routines.find((r) => r.id === params.get('routine')) || RoutineStore.current(state);
+        return { routine, id: routine.id, name: routine.name };
     }
 
     function render() {
-        const state = RoutineStore.load();
-        const routine = chosen(state);
+        const state = RoutineStore.load(), levels = LevelEntries.load();
+        const shown = chosen(state, levels);
         const select = document.getElementById('view-routine');
-        select.replaceChildren(...state.routines.map((r) => {
-            const level = Exercises.findLevel(r.level);
-            return new Option(level ? `${r.name} · ${level.name}` : r.name, r.id, false, r.id === routine.id);
-        }));
-        document.title = routine.name;
-        htmx.ajax('POST', '/view', {
-            source: '#display', target: '#display', swap: 'innerHTML',
-            values: { ...Exercises.values(routine), routineName: Exercises.tabFor(routine)?.label || routine.name, ...optionValues(routine) },
-        });
+        select.replaceChildren(
+            ...levels.entries.map((e) => new Option(`${e.name} (level)`, `entry:${e.id}`, false, e.id === shown.id)),
+            ...state.routines.map((r) => new Option(r.name, `routine:${r.id}`, false, r.id === shown.id)),
+        );
+        document.title = shown.name;
+        const values = shown.entry ? entryValues(shown.entry, state.routines) : { ...Exercises.values(shown.routine), routineName: shown.routine.name };
+        htmx.ajax('POST', '/view', { source: '#display', target: '#display', swap: 'innerHTML', values });
     }
 
-    // optionValues say which of its level's options the routine's two
-    // exercises are on, what each tab is called, and carry the custom
-    // requirements a custom level uses, so the server can show the set routine
-    // options not chosen as well.
-    function optionValues(routine) {
-        if (!routine.level) { return {}; }
+    // entryValues show a level: its first exercise's choice (a set routine as
+    // prescribed, or the voluntary's routine) with the second's, and the other
+    // set routine options. They say which option each exercise is on, what
+    // each tab is called, and carry the custom requirements a custom level uses.
+    function entryValues(entry, routines) {
+        const level = Exercises.findLevel(entry.level);
+        const tabs = Exercises.tabs(level);
+        const ref = LevelEntries.chosen(entry, 1);
+        const tab = tabs.find((t) => t.exercise === 1 && t.ref === ref);
+        const routine = tab?.set ? undefined : LevelEntries.routineFor(entry, 1, routines);
+        const own = tab?.set
+            ? { prescribed: '1', requirementSet: SetStore.payload(ref), routineData: '', checks: '{}' }
+            : { ...Exercises.values(routine), requirementSet: SetStore.payload(ref) };
         const tabNames = {};
-        for (const tab of Exercises.tabs(Exercises.findLevel(routine.level))) { tabNames[tab.ref] = tab.label; }
-        const values = { optionRef: routine.requirements || '', pairOptionRef: Exercises.other(routine)?.ref || '', tabNames: JSON.stringify(tabNames) };
-        const level = LevelStore.load().find((l) => l.id === routine.level)?.level;
-        if (level) {
+        for (const t of tabs) { tabNames[t.ref] = tabNames[t.ref] || t.label; }
+        const values = {
+            ...own, ...LevelEntries.values(entry, 1, routines),
+            routineName: tab?.label || 'First exercise',
+            optionRef: ref || '', pairOptionRef: Exercises.count(level) > 1 ? LevelEntries.chosen(entry, 2) || '' : '',
+            tabNames: JSON.stringify(tabNames),
+        };
+        const custom = LevelStore.load().find((l) => l.id === entry.level)?.level;
+        if (custom) {
             const sets = {};
-            for (const exercise of [level.first, level.second]) {
-                for (const ref of exercise?.options || []) {
-                    const payload = SetStore.payload(ref);
-                    if (!ref.startsWith('builtin:') && payload) { sets[ref] = JSON.parse(payload); }
+            for (const exercise of [custom.first, custom.second]) {
+                for (const option of exercise?.options || []) {
+                    const payload = SetStore.payload(option);
+                    if (!option.startsWith('builtin:') && payload) { sets[option] = JSON.parse(payload); }
                 }
             }
             values.optionSets = JSON.stringify(sets);
@@ -61,11 +75,11 @@
     }
 
     // showColumns lists the routines on screen in the Show menu, ticked unless
-    // hidden. What's hidden is remembered per routine ('viewHidden:<id>'), by
-    // column key (exercise and option).
+    // hidden. What's hidden is remembered per routine or level
+    // ('viewHidden:<id>'), by column key (exercise and option).
     function showColumns() {
-        const routine = chosen(RoutineStore.load());
-        const key = 'viewHidden:' + routine.id;
+        const shown = chosen(RoutineStore.load(), LevelEntries.load());
+        const key = 'viewHidden:' + shown.id;
         let hidden = [];
         try { hidden = JSON.parse(remembered(key) || '[]'); } catch (e) { hidden = []; }
         const columns = [...document.querySelectorAll('.display-column[data-column]')];
@@ -114,13 +128,14 @@
 
         // Choosing a routine.
         document.getElementById('view-routine').addEventListener('change', (event) => {
-            const params = new URLSearchParams(location.search);
-            params.set('routine', event.target.value);
+            const [kind, id] = event.target.value.split(':');
+            const params = new URLSearchParams();
+            params.set(kind, id);
             history.replaceState(null, '', `${location.pathname}?${params}`);
             render();
         });
         window.addEventListener('storage', (event) => {
-            if (event.key === 'trampolineRoutines' || event.key === 'trampolineRequirementSets' || event.key === LevelStore.key) { render(); }
+            if (['trampolineRoutines', 'trampolineRequirementSets', LevelStore.key, LevelEntries.key].includes(event.key)) { render(); }
         });
 
         // Full screen, where the browser allows it (not on iPhone).
@@ -135,6 +150,7 @@
             });
         }
 
+        LevelEntries.migrate(RoutineStore.load()); // routines that held a level's tabs become level entries
         render();
     });
 })();

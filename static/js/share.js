@@ -1,10 +1,9 @@
 // share.js: share links for routines, requirement sets and levels. A link
 // carries what it shares after "#share=", compressed: the fragment never
 // reaches the server, and nothing is stored there. Opening a link offers to add
-// what it carries. Used by the calculator (routines, with the custom sets and
-// levels they're checked against, and paired by level) and the requirements
-// page (sets and levels; a level brings the custom sets it uses). Needs
-// routines.js and sets.js.
+// what it carries. Used by the calculator (routines, with the custom sets
+// they're checked against) and the requirements page (sets and levels; a level
+// brings the custom sets it uses). Needs routines.js and sets.js.
 const Share = (() => {
     const prefix = '#share=';
 
@@ -51,9 +50,7 @@ const Share = (() => {
     }
 
     // pack is the share for the chosen routines, sets and levels: each custom
-    // set a routine or level uses travels with it ("set:<n>" into sets), as does
-    // a routine's custom level ("level:<n>" into levels). A level routine's
-    // other tabs travel in its exercises.
+    // set a routine or level uses travels with it ("set:<n>" into sets).
     function pack(routineIds, setIds, levelIds = []) {
         const savedSets = SetStore.load(), savedLevels = LevelStore.load();
         const sets = [], setIndex = new Map();
@@ -86,17 +83,6 @@ const Share = (() => {
             if (r.requirements?.startsWith('builtin:')) { out.requirements = r.requirements; }
             else if (r.requirements) { out.requirements = addSet(r.requirements); }
             if (r.checks) { out.checks = r.checks; }
-            if (r.level) {
-                const portableRef = (ref) => (!ref || ref.startsWith('builtin:') ? ref : addSet(ref) || ref);
-                out.level = r.level.startsWith('builtin-level:') ? r.level : addLevel(r.level);
-                out.exercise = r.exercise === 2 ? 2 : 1;
-                out.exercises = (r.exercises || []).map((e) => {
-                    const exercise = { option: portableRef(e?.option) };
-                    const slots = Object.entries(e?.slots || {}).map(([ref, slot]) => [portableRef(ref), { ...slot, skills: (slot.skills || []).map(portableSkill) }]);
-                    if (slots.length > 0) { exercise.slots = Object.fromEntries(slots); }
-                    return exercise;
-                });
-            }
             return out;
         });
         return { v: 1, routines, sets, levels };
@@ -289,17 +275,6 @@ const Share = (() => {
             if (shared.requirements?.startsWith('builtin:')) { routine.requirements = shared.requirements; }
             else if (shared.requirements?.startsWith('set:')) { routine.requirements = saveSet(+shared.requirements.slice(4)); }
             if (shared.checks) { routine.checks = shared.checks; }
-            if (shared.level?.startsWith('builtin-level:')) { routine.level = shared.level; }
-            else if (shared.level?.startsWith('level:')) { routine.level = saveLevel(+shared.level.slice(6)); }
-            if (routine.level) {
-                const localRef = (ref) => (ref?.startsWith('set:') ? saveSet(+ref.slice(4)) || ref : ref);
-                routine.exercise = shared.exercise === 2 ? 2 : 1;
-                routine.exercises = (Array.isArray(shared.exercises) ? shared.exercises : [{}, {}]).map((e) => {
-                    const exercise = { option: localRef(e?.option) };
-                    if (e?.slots) { exercise.slots = Object.fromEntries(Object.entries(e.slots).map(([ref, slot]) => [localRef(ref), slot])); }
-                    return exercise;
-                });
-            }
             state.routines.push(routine);
             first ??= routine.id;
         }

@@ -1,7 +1,7 @@
 ---
 type: Feature
 title: Levels
-description: A level pairs requirements for a competition's two exercises (e.g. a choice of set routines, then a voluntary); a routine checked against one holds both exercises as tabs. Built-in levels cover every built-in requirement, and coaches can write their own.
+description: A level pairs requirements for a competition's two exercises (e.g. a choice of set routines, then a voluntary). The builder's Levels mode shows a level's set routines and links routines to its voluntaries; built-in levels cover every built-in requirement, and coaches can write their own.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/requirements/level.go
 tags: [requirements, level, set-routine, voluntary]
 generated: { by: claude-code/cli, at: 2026-10-04T22:00:00Z }
@@ -58,46 +58,53 @@ and a test checks every built-in set belongs to a level.
 
 # In the routine builder
 
-Levels come first under "Check against". A routine checked against a level
-holds **both of its exercises**, with a tab for each option above its cards:
-BUCS L7 is **Set 1, Set 2, Voluntary**; FIG AG1 is **1st voluntary, 2nd
-voluntary**; BG Club L1 (the same set routine twice) has just the set routine.
-A set routine's tab is the set routine as prescribed, so switching between Set
-1 and Set 2 loads nothing and asks nothing. Opening an option makes it the
-exercise's choice (the set the gymnast performs), marked ● when there's more
-than one. A set routine's tab has **Copy into the voluntary**, to start the
-voluntary from it.
+Levels and routines are kept apart. A routine is checked against
+**requirements** only ("Check against" lists each level's own requirements and
+set routines among the rest). A level is worked on in the builder's **Levels**
+mode (Routines | Levels at the top of the Routine Builder):
 
-Choosing a level for a routine that already has skills makes them the
-voluntary. A level with no voluntary (BG Club) starts a new routine instead,
-leaving the old one alone. Choosing requirements on their own keeps the open
-tab's skills, and asks first if another tab has skills of the coach's own.
+- **+ New level** starts a level entry; a coach can keep several for the same
+  level (e.g. one per gymnast), and rename or delete them under More. Deleting
+  one keeps its routines.
+- The level's tabs sit above its columns: BUCS L7 is **Set 1 · Set 2 ·
+  Voluntary**, FIG AG1 **1st voluntary · 2nd voluntary**, BG Club L1 just the
+  set routine. **Side by side with** shows a second tab beside the open one; a
+  new entry opens its first tab beside the other exercise (Set 1 beside the
+  Voluntary). On a phone only the open tab shows.
+- A **set routine** tab is the set as prescribed, read-only (`/routine` with
+  `prescribed=1` builds it from its requirements). Opening one makes it the
+  exercise's choice, marked ●. **Start the voluntary from this set** copies it
+  into the voluntary.
+- A **voluntary** tab shows the ordinary routine linked to it: **+ New
+  routine**, one already built, or **Start from Set 1/2**. Linking a routine
+  checks it against the voluntary's requirements; it's edited like any routine
+  and also listed under Routines, and "Add to" starts on it.
 
-The routine stores `level`, `exercise` (the open tab's exercise, 1 or 2) and
-`requirements` (the open tab's option), and `skills` and `checks` are the open
-tab's, so everything that reads a routine works unchanged. The other tabs'
-skills and checks are kept in `exercises: [{option, slots: {<ref>: {skills,
-checks}}}, ...]`, where `option` is each exercise's choice. `Exercises` in
-`static/js/sets.js` works out the tabs and builds the values the server needs.
-Routines paired the earlier way (one routine per exercise, with a `partner`)
-become level routines holding the exercise they did.
+Entries are kept in the browser as `localStorage['trampolineLevelEntries']`
+(`LevelEntries` in `static/js/sets.js`): `{current, entries: [{id, name,
+level, exercises: [{option, routine}, ...], open, beside}]}`, where `option`
+is each exercise's choice, `routine` the id of the routine doing its voluntary,
+and `open` and `beside` tab keys (`"<exercise>:<ref>"`). Set routines aren't
+stored. In Levels mode the voluntaries shown are the builder's current and
+compared routines, so editing, the skill card and checks work unchanged.
+Routines that held a level's exercises as tabs (an earlier version) become
+entries, their voluntary skills routines of their own.
 
 # Checking both exercises
 
-`/routine`, `/tariff-sheet` and `/view` take the level (`level`: a built-in
-reference or a custom level's JSON), `exercise`, and the other exercise's
-chosen option (`pairData`, `pairSet`, `pairChecks`, `pairName`). If that
-option is a set routine whose tab hasn't been opened, `pairData` is empty and
-the server uses the set routine. The server checks both
-(`checkRoutine` in `main.go`). When difficulty carries over, the first
+A voluntary shown in Levels mode, and the view screen, post the level
+(`level`: a built-in reference or a custom level's JSON), `exercise`, and the
+other exercise's choice (`pairData`, `pairSet`, `pairChecks`, `pairName`). A set
+routine is posted without skills and the server builds it. The server checks
+both (`checkRoutine` in `main.go`). When difficulty carries over, the first
 exercise's scoring elements are passed to the second's validation as
 `ValidateOptions.ScoredEarlier`. A repeat of one is flagged "Can't Repeat:
 Scored In 1st Exercise" and isn't counted
 ([routine validation](../domain/routine-validation.md)). The routine view shows
-the level, which exercise is open, and how many of its requirements the other
-exercise meets. When difficulty carries over, both exercises also show the
-requirement "The second exercise doesn't repeat an element whose difficulty
-carries over from the first", naming the carried elements and any repeats.
+the level, which exercise it is, and how many of its requirements the other
+exercise meets. When difficulty carries over, it also shows the requirement
+"The second exercise doesn't repeat an element whose difficulty carries over
+from the first", naming the carried elements and any repeats.
 
 # Writing your own
 
