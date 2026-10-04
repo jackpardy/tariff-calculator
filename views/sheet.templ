@@ -23,13 +23,14 @@ templ TariffSheetPage() {
 			<script defer src={ static.URL("js/routines.js") }></script>
 			<script defer src={ static.URL("js/sets.js") }></script>
 			<script defer src={ static.URL("js/sheet.js") }></script>
+			<script defer src={ static.URL("js/menus.js") }></script>
 		</head>
 		<body>
 			<div class="toolbar screen-only">
 				<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
 				// Display options (static/js/sheet.js): each box hides part of the sheet, on
 				// screen and in print, by toggling its data-hides class on #tariff-sheet.
-				<details class="options">
+				<details class="options" data-menu>
 					<summary>Show on sheet</summary>
 					<div class="options-panel">
 						<fieldset>
