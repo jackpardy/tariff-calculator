@@ -3,16 +3,54 @@
 package catalog
 
 import (
+	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
 	"tariffCalculator/skills"
 )
 
-// Entry is a common skill, named and priced in its usual shape.
+// Entry is a common skill, named and priced in its usual shape. The shaped
+// jumps are an entry each (Tuck, Pike and Straddle Jump), as the shape is the
+// skill.
 type Entry struct {
 	Key   string // key in skills.CommonSkills
 	Skill skills.TrampolineSkill
+}
+
+// ID tells entries apart in the picker: the key, plus the shape for a jump.
+func (e Entry) ID() string {
+	if e.Skill.IsBasicJump() {
+		return e.Key + "-" + strings.ToLower(e.Skill.Shape.String())
+	}
+	return e.Key
+}
+
+// pickerShapes are the shapes a somersault can be chosen in from the picker.
+var pickerShapes = []skills.Shape{skills.Tuck, skills.Pike, skills.Straight}
+
+// Shapes are the shapes the picker offers for the entry: tuck, pike and
+// straight where the shape makes a different skill, none otherwise (twisting
+// jumps, drops, singles with a full twist or more, and the jumps, whose shape
+// is their name).
+func (e Entry) Shapes() []skills.Shape {
+	if e.Skill.IsBasicJump() || !e.Skill.ShapeIsRelevant() {
+		return nil
+	}
+	return pickerShapes
+}
+
+// jumpShapes are the shaped jumps, each its own entry.
+var jumpShapes = []skills.Shape{skills.Tuck, skills.Pike, skills.Straddle}
+
+// sortName orders entries of the same tariff: the shaped jumps first, in
+// jumpShapes order (the tuck jump is usually learned first), then by name.
+func sortName(s skills.TrampolineSkill) string {
+	if s.IsBasicJump() {
+		return fmt.Sprintf("0 %d", slices.Index(jumpShapes, s.Shape))
+	}
+	return "1 " + s.Name
 }
 
 // Category is a group of entries shown under one picker tab.
@@ -79,10 +117,20 @@ func PickerName(s skills.TrampolineSkill) string {
 // category sorted by tariff and then name. Empty categories are left out.
 func Categories() []Category {
 	byKey := map[string][]Entry{}
-	for key, s := range skills.CommonSkills {
+	add := func(key string, s skills.TrampolineSkill) {
 		s.Name = skills.FindCommonSkillName(s)
 		s.SetTariff()
 		byKey[categoryOf(s)] = append(byKey[categoryOf(s)], Entry{Key: key, Skill: s})
+	}
+	for key, s := range skills.CommonSkills {
+		if s.IsBasicJump() {
+			for _, shape := range jumpShapes {
+				s.Shape = shape
+				add(key, s)
+			}
+			continue
+		}
+		add(key, s)
 	}
 
 	var cats []Category
@@ -96,7 +144,7 @@ func Categories() []Category {
 			if a.Tariff != b.Tariff {
 				return a.Tariff < b.Tariff
 			}
-			return a.Name < b.Name
+			return sortName(a) < sortName(b)
 		})
 		cats = append(cats, Category{Key: c.Key, Label: c.Label, Entries: entries})
 	}

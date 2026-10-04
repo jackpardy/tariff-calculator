@@ -159,6 +159,10 @@ func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s = common
+		// The picker can ask for a shape (a jump's, or a somersault's shape button).
+		if shape := skills.ShapeFromString(r.FormValue("shape")); shape != skills.InvalidShape {
+			s.Shape = shape
+		}
 		s.CustomName = strings.TrimSpace(r.FormValue("custom_name"))
 	case "skill": // a search result
 		if err := json.Unmarshal([]byte(r.FormValue("skill")), &s); err != nil {

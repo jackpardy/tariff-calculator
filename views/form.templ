@@ -85,19 +85,38 @@ templ picker(cats []catalog.Category) {
 		for _, c := range cats {
 			<div class="picker-list" role="tabpanel" aria-label={ c.Label } x-show={ fmt.Sprintf("query.trim() === '' && pickerTab === '%s'", c.Key) } x-cloak>
 				for _, e := range c.Entries {
-					<button
-						type="button"
-						class="picker-skill"
-						x-bind:class={ fmt.Sprintf("{ 'is-picked': picked === '%s' }", e.Key) }
-						x-on:click={ fmt.Sprintf("picked = '%s'", e.Key) }
-						hx-post="/skill-inputs"
-						hx-target="#skill-editor"
-						hx-include="#main-form"
-						hx-vals={ loadCommon(e.Key) }
-					>
-						<span class="picker-skill-name">{ catalog.PickerName(e.Skill) }</span>
-						<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</span>
-					</button>
+					<div class="picker-skill" x-bind:class={ fmt.Sprintf("{ 'is-picked': picked === '%s' }", e.ID()) }>
+						// The skill in its usual shape...
+						<button
+							type="button"
+							class="picker-skill-main"
+							x-on:click={ fmt.Sprintf("picked = '%s'; pickedShape = '%s'", e.ID(), e.Skill.Shape) }
+							hx-post="/skill-inputs"
+							hx-target="#skill-editor"
+							hx-include="#main-form"
+							hx-vals={ loadCommon(e.Key, e.Skill.Shape) }
+						>
+							<span class="picker-skill-name">{ catalog.PickerName(e.Skill) }</span>
+							<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</span>
+						</button>
+						// ...or straight away in another shape.
+						if shapes := e.Shapes(); len(shapes) > 0 {
+							<div class="picker-shapes" role="group" aria-label={ "Shape for " + catalog.PickerName(e.Skill) }>
+								for _, shape := range shapes {
+									<button
+										type="button"
+										class="picker-shape"
+										x-bind:class={ fmt.Sprintf("{ 'is-selected': picked === '%s' && pickedShape === '%s' }", e.ID(), shape) }
+										x-on:click={ fmt.Sprintf("picked = '%s'; pickedShape = '%s'", e.ID(), shape) }
+										hx-post="/skill-inputs"
+										hx-target="#skill-editor"
+										hx-include="#main-form"
+										hx-vals={ loadCommon(e.Key, shape) }
+									>{ shape.String() }</button>
+								}
+							</div>
+						}
+					</div>
 				}
 			</div>
 		}
@@ -322,8 +341,8 @@ func directionText(s skills.TrampolineSkill) string {
 }
 
 // loadCommon is the hx-vals that loads a common skill into the editor.
-func loadCommon(key string) string {
-	b, _ := json.Marshal(map[string]string{"load": "common", "commonSkillKey": key})
+func loadCommon(key string, shape skills.Shape) string {
+	b, _ := json.Marshal(map[string]string{"load": "common", "commonSkillKey": key, "shape": shape.String()})
 	return string(b)
 }
 

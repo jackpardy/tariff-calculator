@@ -840,3 +840,28 @@ func TestSetRoutineEndpoint(t *testing.T) {
 		}
 	}
 }
+
+// The picker's shape buttons load the skill in that shape; a jump's shape is
+// the jump.
+func TestPickerLoadsAShape(t *testing.T) {
+	for _, c := range []struct{ key, shape, want string }{
+		{"backSomersault", "Pike", "Back Pike"},
+		{"backSomersault", "Straight", "Back Straight"},
+		{"shapeJump", "Straddle", "Straddle Jump"},
+		{"shapeJump", "Pike", "Pike Jump"},
+		{"backSomersault", "", "Back Tuck"},         // its usual shape
+		{"backSomersault", "sideways", "Back Tuck"}, // not a shape
+	} {
+		html := postForm(t, "/skill-inputs", url.Values{"load": {"common"}, "commonSkillKey": {c.key}, "shape": {c.shape}}).Body.String()
+		if !strings.Contains(html, `<p class="skill-card-name">`+c.want+`</p>`) {
+			t.Errorf("%s in %q: want %s", c.key, c.shape, c.want)
+		}
+	}
+
+	form := postForm(t, "/skill-form", url.Values{}).Body.String()
+	for _, want := range []string{">Pike Jump<", ">Straddle Jump<", `class="picker-shapes"`, "&#34;shape&#34;:&#34;Pike&#34;"} {
+		if !strings.Contains(form, want) {
+			t.Errorf("the picker is missing %q", want)
+		}
+	}
+}

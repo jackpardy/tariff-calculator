@@ -24,7 +24,8 @@ function tariffCalculatorStore() {
         editingSide: 'a', // the column of the skill being edited
         busy: false, // an add or update is in flight
         pickerTab: 'jumps', // the skill picker's open category
-        picked: null,       // the common skill last chosen in the picker
+        picked: null,       // the picker entry last chosen (catalog.Entry ID)
+        pickedShape: null,  // the shape it was chosen in
         query: '',          // the picker's search text; results replace the tabs while it's set
         toast: { show: false, message: '', type: 'info' },
 
