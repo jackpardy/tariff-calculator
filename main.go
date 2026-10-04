@@ -2,12 +2,14 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -632,40 +634,103 @@ func handleViewPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleView renders the view screen for the posted routine (named
-// routineName), with the routine doing its level's other exercise beside it,
-// in exercise order.
+// routineName). For a level's exercise, it adds the routine doing the other
+// exercise, and the level's set routine options that no routine is doing (so
+// both options show beside the voluntary), all in exercise and option order.
+// The page posts which options the two routines use (optionRef, pairOptionRef)
+// and the JSON of any custom requirements the level uses (optionSets, by id).
 func handleView(w http.ResponseWriter, r *http.Request) {
 	checked, err := checkRoutine(r)
 	if err != nil {
 		badRequest(w, err)
 		return
 	}
-	column := func(c checkedRoutine, name string, exercise int) views.DisplayColumn {
-		col := views.DisplayColumn{Name: name, Validation: c.rv, Check: c.check, Required: c.required, Checks: c.checks}
-		if checked.level != nil && checked.level.Err == "" {
-			col.Level, col.Exercise = checked.level.Name, exercise
-		}
-		return col
-	}
 	name := strings.TrimSpace(r.FormValue("routineName"))
 	if name == "" {
 		name = "Routine"
 	}
-	exercise := 1
-	if checked.level != nil {
-		exercise = checked.level.Exercise
+	lc := checked.level
+	if lc == nil || lc.Err != "" {
+		render(w, r, views.RoutineDisplay([]views.DisplayColumn{displayColumn(checked, name, nil, 0)}))
+		return
 	}
-	columns := []views.DisplayColumn{column(checked, name, exercise)}
+	level, err := postedLevel(strings.TrimSpace(r.FormValue("level")))
+	if err != nil {
+		badRequest(w, err)
+		return
+	}
+
+	// Each column's place: its exercise, then its option's position.
+	type placed struct {
+		column      views.DisplayColumn
+		exercise, n int
+	}
+	optionIndex := func(exercise int, ref string) int {
+		return max(slices.Index(level.Exercise(exercise).Options, ref), 0)
+	}
+	ownRef, pairRef := r.FormValue("optionRef"), r.FormValue("pairOptionRef")
+	columns := []placed{{displayColumn(checked, name, lc, lc.Exercise), lc.Exercise, optionIndex(lc.Exercise, ownRef)}}
+	performed := map[string]bool{ownRef: true}
 	if checked.pair != nil {
-		other := column(*checked.pair, checked.level.OtherName, 3-exercise)
+		other := displayColumn(*checked.pair, lc.OtherName, lc, 3-lc.Exercise)
 		other.Other = true
-		if exercise == 2 {
-			columns = []views.DisplayColumn{other, columns[0]}
-		} else {
-			columns = append(columns, other)
+		columns = append(columns, placed{other, 3 - lc.Exercise, optionIndex(3-lc.Exercise, pairRef)})
+		performed[pairRef] = true
+	}
+
+	var custom map[string]json.RawMessage
+	_ = json.Unmarshal([]byte(r.FormValue("optionSets")), &custom) // none: built-in options only
+	for exercise := 1; exercise <= 2; exercise++ {
+		for i, ref := range level.Exercise(exercise).Options {
+			if performed[ref] {
+				continue
+			}
+			performed[ref] = true // an option both exercises share shows once
+			set, ok := requirements.LookupBuiltin(ref)
+			if !ok {
+				if raw, saved := custom[ref]; !saved {
+					continue
+				} else if set, err = requirements.Parse(raw); err != nil {
+					continue
+				}
+			}
+			routine, ok := requirements.SetRoutine(set)
+			if !ok {
+				continue // requirements for a voluntary: nothing to show
+			}
+			checks := routineChecks(&set, "")
+			opts := skills.ValidateOptions{AllowRepeats: !checks.FlagRepeats}
+			if checks.ScoreDifficulty {
+				opts.ScoredElements = checks.ScoredElements
+			}
+			rv := skills.ValidateRoutineWith(routine, opts)
+			results := requirements.Evaluate(set, rv)
+			col := views.DisplayColumn{
+				Name: set.Name, Level: lc.Name, Exercise: exercise, Option: true,
+				Validation: rv, Checks: checks, Required: requirements.RequiredElements(set, results),
+				Check: &views.RequirementCheck{SetName: set.Name, Results: results, SetRoutine: true},
+			}
+			columns = append(columns, placed{col, exercise, i})
 		}
 	}
-	render(w, r, views.RoutineDisplay(columns))
+	slices.SortStableFunc(columns, func(a, b placed) int {
+		return cmp.Or(cmp.Compare(a.exercise, b.exercise), cmp.Compare(a.n, b.n))
+	})
+	out := make([]views.DisplayColumn, len(columns))
+	for i, c := range columns {
+		out[i] = c.column
+	}
+	render(w, r, views.RoutineDisplay(out))
+}
+
+// displayColumn is a checked routine as a view screen column; with a level,
+// as its exercise.
+func displayColumn(c checkedRoutine, name string, level *views.LevelCheck, exercise int) views.DisplayColumn {
+	col := views.DisplayColumn{Name: name, Validation: c.rv, Check: c.check, Required: c.required, Checks: c.checks}
+	if level != nil {
+		col.Level, col.Exercise = level.Name, exercise
+	}
+	return col
 }
 
 // handleTariffSheetPage serves the tariff sheet page, which loads the sheet for

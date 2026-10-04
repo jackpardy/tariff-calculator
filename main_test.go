@@ -1164,7 +1164,7 @@ func TestViewScreen(t *testing.T) {
 		"pairData": {first}, "pairSet": {"builtin:fig-ag3-first"}, "pairName": {"Q1"},
 	}).Body.String()
 	q1, q2 := strings.Index(html, "<h2>Q1</h2>"), strings.Index(html, "<h2>Q2</h2>")
-	if q1 < 0 || q2 < 0 || q1 > q2 || !strings.Contains(html, `class="display-column is-other"`) || !strings.Contains(html, "is-pair") {
+	if q1 < 0 || q2 < 0 || q1 > q2 || !strings.Contains(html, `class="display-column is-other"`) || !strings.Contains(html, "is-several") {
 		t.Errorf("the pair shows in exercise order, the other one marked: Q1 at %d, Q2 at %d", q1, q2)
 	}
 	if !strings.Contains(html, "FIG AG3 (17–21) · second exercise") || !strings.Contains(html, "My Rudi") || !strings.Contains(html, `class="display-row not-counted"`) {
@@ -1176,7 +1176,62 @@ func TestViewScreen(t *testing.T) {
 
 	// One routine on its own, difficulty not scored.
 	html = postForm(t, "/view", url.Values{"routineData": {first}, "routineName": {"Solo"}, "checks": {`{"difficulty":false}`}}).Body.String()
-	if strings.Contains(html, "is-pair") || !strings.Contains(html, "no difficulty") {
+	if strings.Contains(html, "is-several") || !strings.Contains(html, "no difficulty") {
 		t.Errorf("a single routine without difficulty")
+	}
+}
+
+func TestViewShowsSetRoutineOptions(t *testing.T) {
+	voluntary := `[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}]`
+	titles := func(html string) []string {
+		var out []string
+		for _, m := range regexp.MustCompile(`<h2>([^<]*)</h2>`).FindAllStringSubmatch(html, -1) {
+			out = append(out, m[1])
+		}
+		return out
+	}
+	base := url.Values{
+		"routineData": {voluntary}, "requirementSet": {"builtin:bucs-l3-second"}, "optionRef": {"builtin:bucs-l3-second"},
+		"routineName": {"BUCS L3 · second exercise"}, "level": {"builtin-level:bucs-l3"}, "exercise": {"2"},
+	}
+
+	// The voluntary alone: both set routine options show before it.
+	html := postForm(t, "/view", base).Body.String()
+	if got := strings.Join(titles(html), " | "); got != "BUCS L3 · option 1 | BUCS L3 · option 2 | BUCS L3 · second exercise" {
+		t.Errorf("columns: %s", got)
+	}
+	if strings.Count(html, `class="display-column is-option"`) != 2 || !strings.Contains(html, "First exercise · set routine") {
+		t.Errorf("the options are marked as set routines for the first exercise")
+	}
+	if strings.Count(html, `class="display-level"`) != 2 {
+		t.Errorf("the voluntary's name already says its level and exercise, so it has no level line")
+	}
+
+	// A routine doing option 2: it shows in option 2's place, after option 1.
+	paired := url.Values{}
+	for k, v := range base {
+		paired[k] = v
+	}
+	paired.Set("pairData", voluntary)
+	paired.Set("pairSet", "builtin:bucs-l3-option-2")
+	paired.Set("pairOptionRef", "builtin:bucs-l3-option-2")
+	paired.Set("pairName", "My option 2")
+	if got := strings.Join(titles(postForm(t, "/view", paired).Body.String()), " | "); got != "BUCS L3 · option 1 | My option 2 | BUCS L3 · second exercise" {
+		t.Errorf("with a routine doing option 2: %s", got)
+	}
+
+	// A custom level's own set routine travels in optionSets.
+	custom := url.Values{
+		"routineData": {voluntary}, "routineName": {"Vol"}, "optionRef": {"builtin:bucs-l1-second"},
+		"level":      {`{"format":1,"name":"Club","first":{"options":["set-mine"]},"second":{"options":["builtin:bucs-l1-second"]}}`},
+		"exercise":   {"2"},
+		"optionSets": {`{"set-mine":{"format":1,"name":"Our set","rules":[{"type":"sequence","sequence":[{"fig":"4 - o"},{"rotation":{"max":0},"shapes":["tuck"]}]}],"no_difficulty":true,"repeats_allowed":true}}`},
+	}
+	if got := strings.Join(titles(postForm(t, "/view", custom).Body.String()), " | "); got != "Our set | Vol" {
+		t.Errorf("custom level: %s", got)
+	}
+
+	if !strings.Contains(getPage(t, "/view"), `data-hides="hide-options" checked`) {
+		t.Errorf("the Show menu can hide the options")
 	}
 }

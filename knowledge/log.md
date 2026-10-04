@@ -4,6 +4,8 @@
 * **Update**: The [view screen](features/view.md) shows a routine, or a
   level's pair, full screen without scrolling, with a Show menu to turn each
   kind of information on or off. Linked from the routine builder's View button.
+  A level's set routine options that no routine is doing show too, so both
+  options appear beside the voluntary.
 * **Update**: [Levels](requirements/levels.md) pair requirements for a
   competition's two exercises: built in for every BUCS, FIG and BG level, and
   written by coaches in a level editor. Routines doing a level's exercises are

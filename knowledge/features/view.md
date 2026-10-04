@@ -1,7 +1,7 @@
 ---
 type: Feature
 title: View screen
-description: A full-screen, scroll-free view of a routine, or a level's pair of routines, with a Show menu to turn each kind of information on or off.
+description: A full-screen, scroll-free view of a routine, or a level's pair of routines with its other set routine options, with a Show menu to turn each kind of information on or off.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/views/view.templ
 tags: [feature, view, display, level]
 generated: { by: claude-code/cli, at: 2026-10-04T23:30:00Z }
@@ -17,8 +17,15 @@ without scrolling, and nothing is shown that the coach hasn't asked for.
 
 The **View** button in the [routine builder](routine-builder.md) opens
 `/view?routine=<id>` for the current routine in a new tab. If the routine is
-one exercise of a [level](../requirements/levels.md) and has a partner, both
-routines show, in exercise order. A select in the bar switches to another
+one exercise of a [level](../requirements/levels.md), the view shows the
+level: the routine, its partner doing the other exercise, and the level's
+**set routine options that no routine is doing**, in exercise and option
+order. Viewing a BUCS L3 voluntary on its own shows option 1, option 2 and the
+voluntary. With a routine doing option 1, it shows that routine, option 2 and
+the voluntary. The page posts which option each routine does (`optionRef`,
+`pairOptionRef`) and, for a custom level, its custom requirements
+(`optionSets`). The server builds each option with `requirements.SetRoutine`.
+Options for a voluntary are requirements, not routines, so they don't show. A select in the bar switches to another
 saved routine (pairs are listed as "Q1 + Q2"), and the choice is kept in the
 URL. The view re-renders when the routines change in another tab, so it can
 stay open beside the builder.
@@ -27,13 +34,16 @@ stay open beside the builder.
 
 `POST /view` (`handleView`) takes what `/routine` takes, plus `routineName`,
 and renders `views.RoutineDisplay`: one column per routine. Every column has the
-same number of rows, a full exercise (10) or more, so the pair lines up. The rows
+same number of rows, a full exercise (10) or more, and the same header
+height, so the columns line up. The rows
 share the column's height, and their text is sized with container query units
-(`static/css/view.css`), so 10 or 20 elements fill the screen at any size. A
-pair is side by side on a landscape screen and stacked on a portrait one. It
+(`static/css/view.css`), so 10 or 20 elements fill the screen at any size. Several
+columns are side by side on a landscape screen and stacked on a portrait one. It
 follows the device's light or dark mode.
 
-Each column has the routine's name, its level and exercise, how many
+Each column has the routine's name, its level and exercise (leaving out
+what the name already says, so "BUCS L3 · second exercise" has no second line,
+and marking options "set routine"), how many
 requirements it meets, and its total difficulty ("no difficulty" when it isn't
 scored). Each row has the number, the skill (the coach's label if it has one),
 FIG notation, a star if it meets a requirement, its difficulty and a warning
@@ -55,6 +65,7 @@ Each part can be turned off. The choices are kept in the browser
 | Total difficulty | on |
 | Level and exercise | on |
 | The other exercise | on |
+| Other set routine options | on |
 | Requirements met (and the stars) | off |
 | Warnings | off |
 

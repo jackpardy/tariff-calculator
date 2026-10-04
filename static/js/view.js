@@ -1,6 +1,7 @@
 // view.js: the view screen (views.ViewPage). Shows a routine saved in this
-// browser (?routine=<id>, else the current one) and the routine doing its
-// level's other exercise, rendered by the server to fill the screen. It
+// browser (?routine=<id>, else the current one), the routine doing its level's
+// other exercise and the level's other set routine options, rendered by the
+// server to fill the screen. It
 // re-renders when the routines change in another tab (the builder). The Show
 // menu's boxes (data-hides) toggle classes on #view, remembered in this
 // browser, and the full screen button uses the Fullscreen API where there is one.
@@ -32,8 +33,28 @@
         document.title = routine.name;
         htmx.ajax('POST', '/view', {
             source: '#display', target: '#display', swap: 'innerHTML',
-            values: { ...Pairs.values(routine, state.routines), routineName: routine.name },
+            values: { ...Pairs.values(routine, state.routines), routineName: routine.name, ...optionValues(routine, state.routines) },
         });
+    }
+
+    // optionValues say which of its level's options a routine and its partner
+    // do, and carry the custom requirements a custom level uses, so the server
+    // can show the set routine options no routine is doing.
+    function optionValues(routine, routines) {
+        if (!routine.level) { return {}; }
+        const values = { optionRef: routine.requirements || '', pairOptionRef: Pairs.partnerOf(routine, routines)?.requirements || '' };
+        const level = LevelStore.load().find((l) => l.id === routine.level)?.level;
+        if (level) {
+            const sets = {};
+            for (const exercise of [level.first, level.second]) {
+                for (const ref of exercise?.options || []) {
+                    const payload = SetStore.payload(ref);
+                    if (!ref.startsWith('builtin:') && payload) { sets[ref] = JSON.parse(payload); }
+                }
+            }
+            values.optionSets = JSON.stringify(sets);
+        }
+        return values;
     }
 
     document.addEventListener('DOMContentLoaded', () => {

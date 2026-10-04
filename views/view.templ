@@ -3,6 +3,7 @@ package views
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"tariffCalculator/skills"
 	"tariffCalculator/static"
@@ -18,6 +19,7 @@ type DisplayColumn struct {
 	Required   map[int]bool      // elements meeting a requirement
 	Checks     Checks
 	Other      bool // the routine doing the other exercise, which can be hidden
+	Option     bool // one of the level's set routine options, which can be hidden
 }
 
 // viewOptions are what the view screen can show, each toggled in its Show menu
@@ -33,12 +35,14 @@ var viewOptions = []struct {
 	{"total", "Total difficulty", true},
 	{"level", "Level and exercise", true},
 	{"other", "The other exercise", true},
+	{"options", "Other set routine options", true},
 	{"req", "Requirements met", false},
 	{"warnings", "Warnings", false},
 }
 
 // ViewPage is the view screen: a routine, and the routine doing its level's
-// other exercise, filling the screen without scrolling. Its script
+// other exercise and the level's other set routine options, filling the
+// screen without scrolling. Its script
 // (static/js/view.js) loads the routine from the browser, and the Show menu
 // chooses what's on screen.
 templ ViewPage() {
@@ -87,7 +91,7 @@ templ ViewPage() {
 // sized to fill the screen.
 templ RoutineDisplay(columns []DisplayColumn) {
 	{{ rows := displayRows(columns) }}
-	<div class={ "display", templ.KV("is-pair", len(columns) > 1) } style={ fmt.Sprintf("--rows: %d", rows) }>
+	<div class={ "display", templ.KV("is-several", len(columns) > 1) } style={ fmt.Sprintf("--rows: %d", rows) }>
 		for _, c := range columns {
 			@displayColumn(c, rows)
 		}
@@ -95,12 +99,12 @@ templ RoutineDisplay(columns []DisplayColumn) {
 }
 
 templ displayColumn(c DisplayColumn, rows int) {
-	<section class={ "display-column", templ.KV("is-other", c.Other) }>
+	<section class={ "display-column", templ.KV("is-other", c.Other), templ.KV("is-option", c.Option) }>
 		<header class="display-head">
 			<div class="display-title">
 				<h2>{ c.Name }</h2>
-				if c.Level != "" {
-					<p class="display-level">{ c.Level } · { exerciseName(c.Exercise) } exercise</p>
+				if text := levelLine(c); text != "" {
+					<p class="display-level">{ text }</p>
 				}
 			</div>
 			if c.Check != nil && c.Check.Err == "" && len(c.Check.Results) > 0 {
@@ -151,6 +155,31 @@ templ displayRow(i int, sv skills.SkillValidation, message string, required, sco
 			}
 		</span>
 	</li>
+}
+
+// levelLine is the level and exercise under a column's name, leaving out
+// what the name already says (e.g. a routine named "BUCS L3 · second
+// exercise"). A set routine option says so.
+func levelLine(c DisplayColumn) string {
+	if c.Level == "" {
+		return ""
+	}
+	name := strings.ToLower(c.Name)
+	exercise := exerciseName(c.Exercise) + " exercise"
+	parts := []string{}
+	if !strings.Contains(name, strings.ToLower(c.Level)) {
+		parts = append(parts, c.Level)
+	}
+	if !strings.Contains(name, exercise) {
+		parts = append(parts, exercise)
+	}
+	if c.Option {
+		parts = append(parts, "set routine")
+	}
+	if len(parts) > 0 {
+		parts[0] = titleCase(parts[0])
+	}
+	return strings.Join(parts, " · ")
 }
 
 // displayRows is how many rows each column has: a full exercise, or more if a
