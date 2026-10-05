@@ -6,3 +6,6 @@
 
 # Reference material (FIG Code of Points; not ours to redistribute)
 *.pdf
+
+# Local Claude Code settings
+.claude/settings.local.json
