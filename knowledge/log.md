@@ -1,6 +1,8 @@
 # Update log
 
 ## 2026-10-05
+* **Creation**: A [roadmap](roadmap.md) for competitions and clubs, starting
+  with competition card collection.
 * **Creation**: A [guide](guide/) for gymnasts and coaches:
   [features](guide/features.md) and a step-by-step
   [user guide](guide/user-guide.md).
