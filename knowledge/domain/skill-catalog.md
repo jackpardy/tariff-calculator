@@ -25,7 +25,10 @@ picker shows names without the shape, which is chosen on the skill card.
 `catalog.Categories()` turns the common skills into the picker's tabs:
 **Jumps**, **Body landings**, **Singles**, **Doubles**, **Triples**. Each
 skill is placed by its rotation and positions: Singles holds every single
-somersault, twisting or not, to line up with Doubles and Triples. The
+somersault, twisting or not, to line up with Doubles and Triples. Body
+landings holds only the skills short of a somersault (seat, back and front
+drops and their twists); somersaults landing on the body, such as Crash Dive,
+Back s/s To Seat and Ball-Out, are Singles. The
 drops are further grouped into To seat, From seat, To back or front, and From
 back or front, so the tab isn't a wall of buttons.
 

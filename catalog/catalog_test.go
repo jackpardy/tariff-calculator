@@ -39,6 +39,7 @@ func TestCategoriesCoverEveryCommonSkillOnce(t *testing.T) {
 	want := map[string]string{
 		"shapeJump": "jumps", "halfTwist": "jumps", "fullTwist": "jumps",
 		"seatDrop": "drops", "seatToFeet": "drops", "backDrop": "drops", "halfToSeat": "drops", "seatHalfToFront": "drops",
+		// Somersaults landing on the body are singles, not body landings.
 		"front": "singles", "backSomersault": "singles", "crashDive": "singles", "ballOut": "singles", "frontToSeat": "singles",
 		"barani": "singles", "rudi": "singles", "fullBack": "singles", "baraniToFront": "singles",
 		"doubleBack": "doubles", "halfOut": "doubles", "miller": "doubles",
