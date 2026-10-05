@@ -20,9 +20,10 @@ creating a competition, the organiser's dashboard and each entry, individual
 entry (`comppages.go`), and clubs: creating one, members joining and keeping
 their entries, the comp sec's page, and sending (`clubpages.go`,
 [routes](../architecture/http-routes.md#competition-pages)). `/competitions`
-lists the links this browser has. They're on only where `DATA_DIR` is set, and
-not linked from the calculator. Printing, export, marking checked, deletion
-and video come next.
+lists the links this browser has. Step 5 added marking entries checked with a
+note, printing cards, the CSV, closing or reopening entries, and deleting
+expired data. They're on only where `DATA_DIR` is set, and not linked from
+the calculator. Video proof comes next.
 
 # The organiser (competition admin link)
 
@@ -71,8 +72,9 @@ The club fixes it and sends it again.
   filled in from the entry: gymnast, club, level, competition and exercise.
 - **Print all** for a level, a club, or the entries not checked yet: one card
   per page, ready for the judges' table.
-- **CSV** for the scoring system (name, club, level, tariff per exercise), and
-  a single PDF of all cards.
+- **CSV** for the scoring system (name, club, level, tariff per exercise). A
+  single PDF of all cards is the cards page saved as PDF from the browser's
+  print dialog.
 
 ## Video proof
 

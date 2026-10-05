@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -61,6 +65,10 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("POST /competitions", p.create)
 	handle("GET /competitions/admin/{token}", p.dashboard)
 	handle("GET /competitions/admin/{token}/entries/{id}", p.entry)
+	handle("POST /competitions/admin/{token}/entries/{id}/check", p.check)
+	handle("GET /competitions/admin/{token}/cards", p.cards)
+	handle("GET /competitions/admin/{token}/entries.csv", p.csvExport)
+	handle("POST /competitions/admin/{token}/deadline", p.deadline)
 	handle("POST /competitions/admin/{token}/individuals", p.individuals)
 	handle("POST /competitions/admin/{token}/replace-link", p.replaceLink)
 	handle("POST /competitions/admin/{token}/delete", p.delete)
@@ -227,6 +235,48 @@ func (p *competitionPages) admin(w http.ResponseWriter, r *http.Request) (store.
 	return c, true
 }
 
+// judged is a stored entry checked, with who sent it ("individual" for an
+// individual) and its problems.
+type judged struct {
+	store.Entry
+	club     string
+	card     competitions.Card
+	err      error // the entry couldn't be checked (its level is gone)
+	problems []string
+}
+
+// judge checks every entry.
+func judge(c competitions.Competition, entries []store.Entry) []judged {
+	out := make([]judged, len(entries))
+	for i, e := range entries {
+		j := judged{Entry: e, club: e.ClubName}
+		if e.Individual {
+			j.club = "individual"
+		}
+		if j.card, j.err = c.Check(e.Entry); j.err != nil {
+			j.problems = []string{j.err.Error()}
+		} else {
+			j.problems = j.card.Problems()
+		}
+		out[i] = j
+	}
+	return out
+}
+
+// matches says whether an entry passes the dashboard's filter: club (a
+// club's name, or "individual"), problems=1, unchecked=1, level and entry (an id).
+func (j judged) matches(q url.Values) bool {
+	switch {
+	case q.Get("club") != "" && q.Get("club") != j.club,
+		q.Get("problems") == "1" && len(j.problems) == 0,
+		q.Get("unchecked") == "1" && j.Checked(),
+		q.Get("level") != "" && q.Get("level") != j.Entry.Entry.Level,
+		q.Get("entry") != "" && q.Get("entry") != j.ID:
+		return false
+	}
+	return true
+}
+
 // dashboard lists every entry by level, filtered by club (club: a club's name,
 // or "individual") and to entries with problems (problems=1).
 func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
@@ -244,11 +294,14 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	q := r.URL.Query()
+	deadline := c.Deadline.In(local)
 	d := views.Dashboard{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
 		Links: views.CompetitionLinks{Club: origin(r) + "/competitions/club/" + c.ClubLink, Individual: origin(r) + "/competitions/enter/" + c.IndividualLink},
-		Club:  r.URL.Query().Get("club"), ProblemsOnly: r.URL.Query().Get("problems") == "1",
-		Entries: len(entries), New: r.URL.Query().Get("new"),
+		Club:  q.Get("club"), ProblemsOnly: q.Get("problems") == "1",
+		Entries: len(entries), New: q.Get("new"), Notice: q.Get("notice"),
+		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
 	}
 	if d.New != "" {
 		d.Links.Admin = origin(r) + adminPath(r.PathValue("token"))
@@ -264,38 +317,215 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 			d.Levels = append(d.Levels, views.DashboardLevel{Name: level.Name})
 		}
 	}
-	for _, e := range entries {
-		club := e.ClubName
-		if e.Individual {
-			club = "individual"
-		} else if !seen[club] {
-			d.Clubs, seen[club] = append(d.Clubs, club), true // a club deleted since it sent
+	filter := url.Values{"club": {d.Club}}
+	if d.ProblemsOnly {
+		filter.Set("problems", "1")
+	}
+	for _, j := range judge(c.Competition, entries) {
+		if !j.Individual && !seen[j.club] {
+			d.Clubs, seen[j.club] = append(d.Clubs, j.club), true // a club deleted since it sent
 		}
-		row := views.DashboardRow{ID: e.ID, Gymnast: e.Entry.Gymnast, Club: club, Sent: e.SentAt.In(local).Format("2 Jan, 15:04")}
-		card, err := c.Check(e.Entry)
-		if err != nil {
-			row.Problems = []string{err.Error()}
-		} else {
-			row.Problems = card.Problems()
-			for i, ex := range []requirements.Checked{card.First, card.Second} {
-				row.Met, row.Rules = row.Met+ex.Met(), row.Rules+len(ex.Results)
-				row.Exercises[i] = exerciseSummary(e.Entry.Exercises[i], ex)
-			}
-		}
-		if len(row.Problems) > 0 {
+		if len(j.problems) > 0 {
 			d.WithProblems++
 		}
-		if (d.Club != "" && d.Club != club) || (d.ProblemsOnly && len(row.Problems) == 0) {
+		if !j.Checked() {
+			d.Unchecked++
+		}
+		if !j.matches(filter) {
 			continue
 		}
-		n, ok := byLevel[e.Entry.Level]
+		row := views.DashboardRow{
+			ID: j.ID, Gymnast: j.Entry.Entry.Gymnast, Club: j.club, Problems: j.problems,
+			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note,
+		}
+		if j.err == nil {
+			for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
+				row.Met, row.Rules = row.Met+ex.Met(), row.Rules+len(ex.Results)
+				row.Exercises[i] = exerciseSummary(j.Entry.Entry.Exercises[i], ex)
+			}
+		}
+		n, ok := byLevel[j.Entry.Entry.Level]
 		if !ok {
-			n, byLevel[e.Entry.Level] = len(d.Levels), len(d.Levels)
-			d.Levels = append(d.Levels, views.DashboardLevel{Name: e.Entry.Level})
+			n, byLevel[j.Entry.Entry.Level] = len(d.Levels), len(d.Levels)
+			d.Levels = append(d.Levels, views.DashboardLevel{Name: j.Entry.Entry.Level})
 		}
 		d.Levels[n].Rows = append(d.Levels[n].Rows, row)
 	}
 	render(w, r, views.CompetitionDashboard(d))
+}
+
+// cards prints the competition cards of the entries the dashboard's filter
+// selects (club, problems, unchecked, level, entry), one exercise per page, by
+// level then as listed.
+func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	entries, err := p.st.Entries(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	page := views.CardsPage{Title: "Cards · " + c.Name, Back: adminPath(r.PathValue("token"))}
+	q := r.URL.Query()
+	all := judge(c.Competition, entries)
+	for _, level := range levelOrder(c.Competition, all) {
+		for _, j := range all {
+			if j.Entry.Entry.Level != level || !j.matches(q) || j.err != nil {
+				continue
+			}
+			club := j.ClubName
+			if j.Individual {
+				club = ""
+			}
+			for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
+				page.Cards = append(page.Cards, views.PrintedCard{
+					Validation: ex.Validation, Required: ex.Required, Checks: ex.Checks,
+					Details: views.SheetDetails{
+						"gymnast": j.Entry.Entry.Gymnast, "club": club, "category": j.card.Level.Name,
+						"competition": c.Name, "round": [...]string{"1st exercise", "2nd exercise"}[i] + " · " + ex.SetName,
+					},
+				})
+			}
+		}
+	}
+	render(w, r, views.CompetitionCards(page))
+}
+
+// levelOrder is the competition's levels in order, then any level entries
+// name that it no longer offers.
+func levelOrder(c competitions.Competition, entries []judged) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, l := range c.Levels {
+		if level, err := l.Resolve(); err == nil && !seen[level.Name] {
+			out, seen[level.Name] = append(out, level.Name), true
+		}
+	}
+	for _, j := range entries {
+		if name := j.Entry.Entry.Level; !seen[name] {
+			out, seen[name] = append(out, name), true
+		}
+	}
+	return out
+}
+
+// csvExport is every entry as CSV, for a scoring system or a spreadsheet: one
+// row per gymnast, with each exercise's requirements and difficulty.
+func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	entries, err := p.st.Entries(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", fileName(c.Name)+".csv"))
+	out := csv.NewWriter(w)
+	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent"})
+	all := judge(c.Competition, entries)
+	for _, level := range levelOrder(c.Competition, all) {
+		for _, j := range all {
+			if j.Entry.Entry.Level != level {
+				continue
+			}
+			club := j.ClubName
+			if j.Individual {
+				club = "Individual"
+			}
+			row := []string{j.Entry.Entry.Gymnast, club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04")}
+			if j.err == nil {
+				for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
+					row[3+2*i] = ex.SetName
+					if ex.Checks.ScoreDifficulty {
+						row[4+2*i] = fmt.Sprintf("%.1f", ex.Validation.TotalTariff)
+					}
+				}
+			}
+			if j.Checked() {
+				row[8] = "yes"
+			}
+			for i := range row {
+				row[i] = csvSafe(row[i])
+			}
+			out.Write(row)
+		}
+	}
+	out.Flush()
+}
+
+// csvSafe stops a spreadsheet reading a cell as a formula.
+func csvSafe(v string) string {
+	if v != "" && strings.ContainsRune("=+-@\t\r", rune(v[0])) {
+		return "'" + v
+	}
+	return v
+}
+
+// fileName is a name made safe for a downloaded file.
+func fileName(name string) string {
+	var b strings.Builder
+	for _, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-', r == '_':
+			b.WriteRune(r)
+		case r == ' ':
+			b.WriteRune('-')
+		}
+	}
+	if b.Len() == 0 {
+		return "entries"
+	}
+	return b.String()
+}
+
+// check marks an entry checked (checked=1) or not, with a note for the club
+// or gymnast.
+func (p *competitionPages) check(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	note := strings.TrimSpace(r.FormValue("note"))
+	if len([]rune(note)) > 500 {
+		note = string([]rune(note)[:500])
+	}
+	if err := p.st.MarkChecked(r.Context(), c.ID, r.PathValue("id"), r.FormValue("checked") == "1", note); err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id"), http.StatusSeeOther)
+}
+
+// deadline closes entries now (close=1) or changes when they close
+// (deadlineDate, deadlineTime), up to the end of the competition date.
+func (p *competitionPages) deadline(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	notice := "Entries are closed."
+	deadline := p.now()
+	if r.FormValue("close") != "1" {
+		var err error
+		deadline, err = time.ParseInLocation("2006-01-02 15:04", r.FormValue("deadlineDate")+" "+r.FormValue("deadlineTime"), local)
+		changed := c.Competition
+		changed.Deadline = deadline
+		if err != nil || changed.Validate() != nil {
+			http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Entries must close by the end of the competition date; the closing time wasn't changed."), http.StatusSeeOther)
+			return
+		}
+		notice = "Entries now close " + deadline.Format("Monday 2 January 2006, 15:04") + "."
+	}
+	if err := p.st.SetDeadline(r.Context(), c.ID, deadline); err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
 }
 
 // exerciseSummary is an exercise in a dashboard row: a set routine performed as
@@ -329,7 +559,16 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.CompetitionEntry(views.EntryDetail{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
 		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
+		ID: e.ID, Checked: checkedText(e), Note: e.Note,
 	}))
+}
+
+// checkedText says when an entry was marked checked, "" if it isn't.
+func checkedText(e store.Entry) string {
+	if !e.Checked() {
+		return ""
+	}
+	return e.CheckedAt.In(local).Format("Monday 2 January, 15:04")
 }
 
 // clubOf is who sent a stored entry, as the pages say it.
@@ -555,7 +794,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	path := "/competitions/entry/" + r.PathValue("token")
 	page := views.EntryPage{
 		Competition: summary(c.Competition, p.now()), Link: origin(r) + path, JustSaved: r.URL.Query().Get("saved") == "1",
-		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown,
+		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
 		Form: entryForm(c.Competition, form, path, "Save changes"), Withdraw: path + "/withdraw",
 	}
 	page.Form.Problems = problems
@@ -596,6 +835,21 @@ func (p *competitionPages) withdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	message(w, r, http.StatusOK, "Entry withdrawn", "Your entry for "+c.Name+" has been withdrawn and deleted.")
+}
+
+// deleteExpired deletes competitions 120 days after their date and clubs
+// unused for 120 days (ADR 0004 Decision 6), now and every few hours.
+func deleteExpired(st *store.Store) {
+	for {
+		comps, clubs, err := st.DeleteExpired(context.Background())
+		switch {
+		case err != nil:
+			log.Printf("Deleting expired competitions and clubs: %v", err)
+		case comps+clubs > 0:
+			log.Printf("Deleted %d expired competitions and %d unused clubs", comps, clubs)
+		}
+		time.Sleep(6 * time.Hour)
+	}
 }
 
 // --- Abuse limits ---

@@ -231,3 +231,80 @@ func TestIndividualEntry(t *testing.T) {
 		t.Error("withdrawn")
 	}
 }
+
+func TestOrganiserTools(t *testing.T) {
+	h := competitionServer(t)
+	admin := created(t, h, newCompetition())
+	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	entry := url.Values{
+		"gymnast": {"=SUM(A1)"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"},
+		"ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary},
+	}
+	own := withoutQuery(redirected(t, h, enter, entry))
+
+	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	id := regexp.MustCompile(regexp.QuoteMeta(admin) + `/entries/([A-Za-z0-9_-]+)`).FindStringSubmatch(dash)[1]
+
+	// Printing: two exercises, two cards, filled in.
+	cards := do(t, h, http.MethodGet, admin+"/cards", nil).Body.String()
+	if strings.Count(cards, `class="card-page"`) != 2 || !strings.Contains(cards, `value="=SUM(A1)"`) ||
+		!strings.Contains(cards, `value="1st exercise · BUCS L3 · option 1"`) || !strings.Contains(cards, `value="Student Open"`) {
+		t.Error("each exercise prints on its own card, with the gymnast, level, competition and exercise filled in")
+	}
+	if one := do(t, h, http.MethodGet, admin+"/cards?entry="+id, nil).Body.String(); strings.Count(one, `class="card-page"`) != 2 {
+		t.Error("one entry's cards")
+	}
+	if other := do(t, h, http.MethodGet, admin+"/cards?level=FIG+AG3+%2817%E2%80%9321%29", nil).Body.String(); strings.Contains(other, `class="card-page"`) {
+		t.Error("another level's cards don't include it")
+	}
+
+	// CSV, with formulas made harmless.
+	rec := do(t, h, http.MethodGet, admin+"/entries.csv", nil)
+	csv := rec.Body.String()
+	if rec.Header().Get("Content-Type") != "text/csv; charset=utf-8" || !strings.Contains(rec.Header().Get("Content-Disposition"), `filename="Student-Open.csv"`) {
+		t.Errorf("a CSV download: %v", rec.Header())
+	}
+	if !strings.HasPrefix(csv, "Gymnast,Club,Level,1st exercise,1st difficulty,2nd exercise,2nd difficulty,Problems,Checked,Note,Sent\n") ||
+		!strings.Contains(csv, "'=SUM(A1),Individual,BUCS L3,BUCS L3 · option 1,,BUCS L3 · second exercise,1.1,2,,,") {
+		t.Errorf("CSV:\n%s", csv)
+	}
+
+	// Marking it checked, with a note the gymnast sees.
+	redirected(t, h, admin+"/entries/"+id+"/check", url.Values{"checked": {"1"}, "note": {"Please add 8 elements"}})
+	if page := do(t, h, http.MethodGet, admin+"/entries/"+id, nil).Body.String(); !strings.Contains(page, "✓ Checked") || !strings.Contains(page, "Please add 8 elements") {
+		t.Error("the entry shows it's checked, with the note")
+	}
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, `title="Please add 8 elements"`) {
+		t.Error("the dashboard shows the check and note")
+	}
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Checked by the organiser.") || !strings.Contains(page, "Please add 8 elements") {
+		t.Error("the gymnast sees the check and the note")
+	}
+	if none := do(t, h, http.MethodGet, admin+"/cards?unchecked=1", nil).Body.String(); !strings.Contains(none, "No entries to print.") {
+		t.Error("nothing left unchecked to print")
+	}
+	// Changing the entry means checking it again.
+	entry.Set("ex1Option", "builtin:bucs-l3-option-2")
+	redirected(t, h, own, entry)
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); strings.Contains(page, "Checked by the organiser.") || !strings.Contains(page, "Please add 8 elements") {
+		t.Error("a changed entry is no longer checked; the note stays")
+	}
+
+	// Closing entries, and changing when they close.
+	location := redirected(t, h, admin+"/deadline", url.Values{"close": {"1"}})
+	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Entries are closed.") || !strings.Contains(page, "Entries closed") {
+		t.Error("closed")
+	}
+	if rec := do(t, h, http.MethodPost, own, entry); rec.Code != http.StatusConflict {
+		t.Errorf("no changes once closed: %d", rec.Code)
+	}
+	location = redirected(t, h, admin+"/deadline", url.Values{"deadlineDate": {"2030-03-20"}, "deadlineTime": {"12:00"}})
+	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "the closing time wasn") {
+		t.Error("entries can't close after the competition date")
+	}
+	location = redirected(t, h, admin+"/deadline", url.Values{"deadlineDate": {"2030-03-12"}, "deadlineTime": {"18:00"}})
+	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Entries now close Tuesday 12 March 2030, 18:00.") {
+		t.Error("reopened")
+	}
+	redirected(t, h, own, entry)
+}

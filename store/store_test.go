@@ -403,3 +403,60 @@ func TestDeleteExpired(t *testing.T) {
 		t.Error("its members go too")
 	}
 }
+
+func TestChecking(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	club, _, _ := s.CreateClub(ctx, "UCD")
+	m, _, _ := s.Join(ctx, club.ID, "A")
+	must(t, s.AttachClub(ctx, club.ID, c.ID))
+	must(t, s.SaveMemberEntry(ctx, m.ID, c.ID, entry("A")))
+	_, err := s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	_, token, err := s.AddIndividualEntry(ctx, c.ID, entry("I"))
+	must(t, err)
+	list, _ := s.Entries(ctx, c.ID)
+
+	for _, e := range list {
+		must(t, s.MarkChecked(ctx, c.ID, e.ID, true, "Looks good"))
+	}
+	if err := s.MarkChecked(ctx, "other", list[0].ID, true, ""); !errors.Is(err, ErrNotFound) {
+		t.Error("only the competition's own entries")
+	}
+	list, _ = s.Entries(ctx, c.ID)
+	if !list[0].Checked() || list[0].Note != "Looks good" {
+		t.Errorf("checked with a note: %+v", list[0])
+	}
+	if mine, _ := s.ClubEntries(ctx, club.ID, c.ID); !mine[0].Checked || mine[0].Note != "Looks good" {
+		t.Errorf("the club sees the organiser's check and note: %+v", mine[0])
+	}
+
+	// Sending the same entry again keeps the check; a changed one loses it.
+	now = now.Add(time.Hour)
+	_, err = s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	if mine, _ := s.ClubEntries(ctx, club.ID, c.ID); !mine[0].Checked {
+		t.Error("re-sending an unchanged entry keeps the check")
+	}
+	changed := entry("A")
+	changed.Exercises[0].Option = "builtin:bucs-l3-option-2"
+	must(t, s.SaveMemberEntry(ctx, m.ID, c.ID, changed))
+	_, err = s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	if mine, _ := s.ClubEntries(ctx, club.ID, c.ID); mine[0].Checked || mine[0].Note != "Looks good" {
+		t.Errorf("a changed entry needs checking again; the note stays: %+v", mine[0])
+	}
+	must(t, s.ReplaceIndividualEntry(ctx, token, changed))
+	if e, _ := s.IndividualEntry(ctx, token); e.Checked() {
+		t.Error("a changed individual entry needs checking again")
+	}
+
+	// Closing entries now, then reopening them.
+	must(t, s.SetDeadline(ctx, c.ID, now))
+	if err := s.SaveMemberEntry(ctx, m.ID, c.ID, entry("A")); !errors.Is(err, ErrClosed) {
+		t.Errorf("closed: %v", err)
+	}
+	must(t, s.SetDeadline(ctx, c.ID, now.Add(24*time.Hour)))
+	must(t, s.SaveMemberEntry(ctx, m.ID, c.ID, entry("A")))
+}

@@ -229,6 +229,8 @@ type MemberEntry struct {
 	Entry         competitions.Entry
 	UpdatedAt     time.Time
 	SentAt        time.Time // zero if never sent
+	Checked       bool      // the organiser checked it as sent
+	Note          string    // the organiser's note on it
 }
 
 // Sent says whether the club has sent this entry to the competition.
@@ -280,7 +282,8 @@ func (s *Store) WithdrawMemberEntry(ctx context.Context, memberID, competitionID
 	})
 }
 
-const memberEntrySelect = `SELECT me.member_id, m.name, me.competition_id, me.entry, me.updated_at, COALESCE(e.sent_at, '')
+const memberEntrySelect = `SELECT me.member_id, m.name, me.competition_id, me.entry, me.updated_at, COALESCE(e.sent_at, ''),
+		e.checked_at IS NOT NULL, COALESCE(e.note, '')
 	FROM member_entries me
 	JOIN members m ON m.id = me.member_id
 	LEFT JOIN entries e ON e.member_id = me.member_id AND e.competition_id = me.competition_id`
@@ -296,7 +299,7 @@ func (s *Store) memberEntries(ctx context.Context, where string, args ...any) ([
 	for rows.Next() {
 		var e MemberEntry
 		var entry, updated, sent string
-		if err := rows.Scan(&e.MemberID, &e.MemberName, &e.CompetitionID, &entry, &updated, &sent); err != nil {
+		if err := rows.Scan(&e.MemberID, &e.MemberName, &e.CompetitionID, &entry, &updated, &sent, &e.Checked, &e.Note); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal([]byte(entry), &e.Entry); err != nil {
@@ -387,7 +390,8 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 			if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_id, member_id, club_name, individual, gymnast, entry, sent_at)
 				VALUES ($1, $2, $3, $4, $5, FALSE, $6, $7, $8)
 				ON CONFLICT (competition_id, member_id) DO UPDATE
-				SET entry = excluded.entry, gymnast = excluded.gymnast, club_name = excluded.club_name, sent_at = excluded.sent_at`,
+				SET entry = excluded.entry, gymnast = excluded.gymnast, club_name = excluded.club_name, sent_at = excluded.sent_at,
+					checked_at = CASE WHEN entries.entry = excluded.entry THEN entries.checked_at ELSE NULL END`,
 				newID(), competitionID, clubID, p.member, name, p.name, p.entry, now); err != nil {
 				return err
 			}

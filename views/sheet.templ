@@ -67,11 +67,15 @@ templ TariffSheetPage() {
 	</html>
 }
 
+// SheetDetails fill in a sheet's details, by field key (sheetFields), e.g. a
+// stored competition entry's gymnast and club.
+type SheetDetails map[string]string
+
 // TariffSheet is a printable tariff sheet (competition card) for a routine: the
 // elements in performance order with their FIG notation and difficulty (CoP
-// §6.1-6.2). The details fields are filled in on the page before printing and
-// are not stored. Warnings show on screen only.
-templ TariffSheet(rv skills.RoutineValidation, required map[int]bool, checks Checks) {
+// §6.1-6.2). The details fields start from details and can be filled in on the
+// page before printing; what's typed isn't stored. Warnings show on screen only.
+templ TariffSheet(rv skills.RoutineValidation, required map[int]bool, checks Checks, details SheetDetails) {
 	if issues := sheetIssues(rv); len(issues) > 0 {
 		<div class="warnings screen-only">
 			<strong>Check before printing:</strong>
@@ -88,7 +92,7 @@ templ TariffSheet(rv skills.RoutineValidation, required map[int]bool, checks Che
 			for _, f := range sheetFields {
 				<label class={ "field-" + f.Key }>
 					{ f.Label }
-					<input type="text" aria-label={ f.Label }/>
+					<input type="text" aria-label={ f.Label } value={ details[f.Key] }/>
 				</label>
 			}
 		</div>

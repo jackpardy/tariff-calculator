@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: Step 5 of ADR 0004 for [competition entries](features/competition-entries.md):
+  the organiser marks entries checked with a note (shown to the club and the
+  gymnast; a changed entry needs checking again), prints cards (the tariff
+  sheet filled in, one exercise per page, for everything, a level, the
+  dashboard's filter, the unchecked or one entry), downloads a CSV, and closes
+  or reopens entries. Expired competitions and clubs are deleted every 6 hours.
 * **Update**: Step 4 of ADR 0004, the club pages for
   [competition entries](features/competition-entries.md): a comp sec creates a
   club and enters it through a competition's club link; members join through

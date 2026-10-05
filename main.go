@@ -45,6 +45,7 @@ func main() {
 			log.Printf("Competition storage is off: %v", err)
 		} else {
 			defer st.Close()
+			go deleteExpired(st)
 		}
 	}
 	srv := &http.Server{
@@ -765,7 +766,7 @@ func handleTariffSheet(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
-	render(w, r, views.TariffSheet(checked.rv, checked.required, checked.checks))
+	render(w, r, views.TariffSheet(checked.rv, checked.required, checked.checks, nil))
 }
 
 // parseRoutineJSON parses a routine posted as JSON ("" is an empty routine).
