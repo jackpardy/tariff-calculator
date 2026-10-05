@@ -1,0 +1,625 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+
+	"tariffCalculator/competitions"
+	"tariffCalculator/store"
+	"tariffCalculator/views"
+)
+
+// The club pages (ADR 0004 step 4): a comp sec creates a club, members join
+// it and keep their entries, and the comp sec enters the club in competitions
+// and sends its members' entries.
+
+const (
+	// maxClubsPerHour is how many clubs one address can create in an hour.
+	maxClubsPerHour = 5
+	// maxJoinsPerHour is how many times one address can join clubs in an hour.
+	maxJoinsPerHour = 30
+)
+
+func (p *competitionPages) registerClubs(mux *http.ServeMux) {
+	handle := func(pattern string, h http.HandlerFunc) { mux.Handle(pattern, p.secret(h)) }
+	handle("GET /competitions", p.hub)
+	handle("GET /clubs/new", p.newClub)
+	handle("POST /clubs", p.createClub)
+	handle("GET /clubs/admin/{token}", p.club)
+	handle("POST /clubs/admin/{token}/competitions/{id}/send", p.send)
+	handle("GET /clubs/admin/{token}/members/{member}/competitions/{id}", p.editMemberEntry)
+	handle("POST /clubs/admin/{token}/members/{member}/competitions/{id}", p.saveMemberEntryForMember)
+	handle("POST /clubs/admin/{token}/members/{member}/new-link", p.newMemberLink)
+	handle("POST /clubs/admin/{token}/members/{member}/remove", p.removeMember)
+	handle("POST /clubs/admin/{token}/replace-link", p.replaceClubLink)
+	handle("POST /clubs/admin/{token}/delete", p.deleteClub)
+	handle("GET /clubs/join/{token}", p.joinForm)
+	handle("POST /clubs/join/{token}", p.join)
+	handle("GET /clubs/member/{token}", p.memberHome)
+	handle("POST /clubs/member/{token}/competitions/{id}", p.saveOwnMemberEntry)
+	handle("POST /clubs/member/{token}/competitions/{id}/withdraw", p.withdrawMemberEntry)
+	handle("GET /competitions/club/{token}", p.clubLink)
+	handle("POST /competitions/club/{token}", p.enterClub)
+}
+
+func (p *competitionPages) hub(w http.ResponseWriter, r *http.Request) {
+	render(w, r, views.Hub())
+}
+
+func clubPath(token string) string   { return "/clubs/admin/" + token }
+func memberPath(token string) string { return "/clubs/member/" + token }
+
+// --- The comp sec ---
+
+func (p *competitionPages) newClub(w http.ResponseWriter, r *http.Request) {
+	render(w, r, views.NewClub("", nil))
+}
+
+func (p *competitionPages) createClub(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimSpace(r.FormValue("name"))
+	if err := competitions.CheckName("club", name); err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		render(w, r, views.NewClub(name, sentences(err)))
+		return
+	}
+	if !p.clubLimiter.allow(clientIP(r), p.now()) {
+		message(w, r, http.StatusTooManyRequests, "Too many clubs", "This address has created several clubs in the last hour. Please try again later.")
+		return
+	}
+	_, admin, err := p.st.CreateClub(r.Context(), name)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, clubPath(admin)+"?new=created", http.StatusSeeOther)
+}
+
+// clubAdmin is the club an admin link opens, or a page saying it doesn't.
+func (p *competitionPages) clubAdmin(w http.ResponseWriter, r *http.Request) (store.Club, bool) {
+	c, err := p.st.ClubByAdmin(r.Context(), r.PathValue("token"))
+	if err != nil {
+		failed(w, r, err)
+		return c, false
+	}
+	return c, true
+}
+
+// club is the comp sec's page: the join link, each competition the club is
+// entered in with its members' entries, and the members.
+func (p *competitionPages) club(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	p.renderClub(w, r, club, nil)
+}
+
+// renderClub shows the comp sec's page, with a member's new link if one was
+// just made.
+func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, club store.Club, newLink *views.MemberLink) {
+	ctx := r.Context()
+	base := clubPath(r.PathValue("token"))
+	page := views.ClubPage{
+		Base: base, Name: club.Name, New: r.URL.Query().Get("new"), NewLink: newLink, Notice: r.URL.Query().Get("notice"),
+		JoinLink: origin(r) + "/clubs/join/" + club.JoinLink,
+	}
+	if page.New != "" {
+		page.AdminLink = origin(r) + base
+	}
+	members, err := p.st.Members(ctx, club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	comps, err := p.st.ClubCompetitions(ctx, club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	entered := map[string]int{}
+	for _, c := range comps {
+		mine, err := p.st.ClubEntries(ctx, club.ID, c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		sent, err := p.st.Entries(ctx, c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now())}
+		has := map[string]bool{}
+		for _, e := range mine {
+			has[e.MemberID] = true
+			entered[e.MemberID]++
+			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Level, Status: "Sent"}
+			switch {
+			case !e.Sent():
+				row.Status = "Not sent"
+				cc.ToSend++
+			case e.ChangedSinceSent():
+				row.Status = "Changed since sent"
+				cc.ToSend++
+			}
+			if checked, err := c.Check(e.Entry); err != nil {
+				row.Problems = 1
+			} else {
+				row.Problems = len(checked.Problems())
+			}
+			if cc.Competition.Open {
+				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID
+			}
+			cc.Rows = append(cc.Rows, row)
+		}
+		// Entries the club sent for members who've since withdrawn or left.
+		for _, e := range sent {
+			if e.ClubID == club.ID && !has[e.MemberID] {
+				cc.Rows = append(cc.Rows, views.ClubEntryRow{Member: e.Entry.Gymnast, Level: e.Entry.Level, Status: "Withdrawn (still sent)"})
+			}
+		}
+		page.Competitions = append(page.Competitions, cc)
+	}
+	for _, m := range members {
+		page.Members = append(page.Members, views.ClubMember{ID: m.ID, Name: m.Name, Entries: entered[m.ID]})
+	}
+	render(w, r, views.ClubAdmin(page))
+}
+
+// send sends the club's entries for a competition: which=changed sends those
+// never sent or changed since, which=all sends everyone's again.
+func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	compID := r.PathValue("id")
+	var members []string
+	if r.FormValue("which") != "all" {
+		mine, err := p.st.ClubEntries(r.Context(), club.ID, compID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		members = []string{}
+		for _, e := range mine {
+			if !e.Sent() || e.ChangedSinceSent() {
+				members = append(members, e.MemberID)
+			}
+		}
+	}
+	n, err := p.st.Send(r.Context(), club.ID, compID, members)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	c, err := p.st.Competition(r.Context(), compID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	notice := fmt.Sprintf("Sent %s to %s.", entriesWord(n), c.Name)
+	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+}
+
+// urlQuery escapes a notice for a redirect's query.
+func urlQuery(s string) string { return url.QueryEscape(s) }
+
+func entriesWord(n int) string {
+	if n == 1 {
+		return "1 entry"
+	}
+	return fmt.Sprintf("%d entries", n)
+}
+
+// memberOfClub is the member and competition a comp sec's member entry URL
+// names, checking the member is the club's and the club is entered.
+func (p *competitionPages) memberOfClub(w http.ResponseWriter, r *http.Request, club store.Club) (store.Member, store.Competition, bool) {
+	m, err := p.st.Member(r.Context(), club.ID, r.PathValue("member"))
+	if err != nil {
+		failed(w, r, err)
+		return m, store.Competition{}, false
+	}
+	c, ok := p.enteredCompetition(w, r, club.ID)
+	return m, c, ok
+}
+
+// enteredCompetition is the competition in the URL, if the club is entered in it.
+func (p *competitionPages) enteredCompetition(w http.ResponseWriter, r *http.Request, clubID string) (store.Competition, bool) {
+	id := r.PathValue("id")
+	if in, err := p.st.ClubEntered(r.Context(), clubID, id); err != nil || !in {
+		failed(w, r, cmpErr(err, store.ErrNotFound))
+		return store.Competition{}, false
+	}
+	c, err := p.st.Competition(r.Context(), id)
+	if err != nil {
+		failed(w, r, err)
+		return c, false
+	}
+	return c, true
+}
+
+// cmpErr is err, or fallback when there's none.
+func cmpErr(err, fallback error) error {
+	if err != nil {
+		return err
+	}
+	return fallback
+}
+
+// memberEntry is a member's entry for a competition, if they have one.
+func (p *competitionPages) memberEntry(r *http.Request, memberID, competitionID string) (*store.MemberEntry, error) {
+	entries, err := p.st.MemberEntries(r.Context(), memberID)
+	if err != nil {
+		return nil, err
+	}
+	for _, e := range entries {
+		if e.CompetitionID == competitionID {
+			return &e, nil
+		}
+	}
+	return nil, nil
+}
+
+func (p *competitionPages) editMemberEntry(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	m, c, ok := p.memberOfClub(w, r, club)
+	if !ok {
+		return
+	}
+	existing, err := p.memberEntry(r, m.ID, c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	start := competitions.Entry{Gymnast: m.Name}
+	if existing != nil {
+		start = existing.Entry
+	}
+	p.renderMemberEdit(w, r, club, m, c, existing, start, nil)
+}
+
+func (p *competitionPages) renderMemberEdit(w http.ResponseWriter, r *http.Request, club store.Club, m store.Member, c store.Competition, existing *store.MemberEntry, form competitions.Entry, problems []string) {
+	page := views.ClubEntryEdit{
+		Base: clubPath(r.PathValue("token")), Club: club.Name, Member: m.Name, Competition: summary(c.Competition, p.now()),
+		Form: entryForm(c.Competition, form, r.URL.Path, "Save"),
+	}
+	page.Form.Member, page.Form.Problems = true, problems
+	if existing != nil {
+		shown, err := card(c.Competition, existing.Entry, club.Name)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		page.Card = &shown
+	}
+	if len(problems) > 0 {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+	}
+	render(w, r, views.ClubEntryEditPage(page))
+}
+
+func (p *competitionPages) saveMemberEntryForMember(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	m, c, ok := p.memberOfClub(w, r, club)
+	if !ok {
+		return
+	}
+	e, problems := postedEntry(r, c.Competition, m.Name)
+	if len(problems) > 0 {
+		existing, err := p.memberEntry(r, m.ID, c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		p.renderMemberEdit(w, r, club, m, c, existing, e, problems)
+		return
+	}
+	if err := p.st.SaveMemberEntry(r.Context(), m.ID, c.ID, e); err != nil {
+		failed(w, r, err)
+		return
+	}
+	notice := fmt.Sprintf("Saved %s's entry for %s. Send it when you're ready.", m.Name, c.Name)
+	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+}
+
+func (p *competitionPages) newMemberLink(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	m, err := p.st.Member(r.Context(), club.ID, r.PathValue("member"))
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	token, err := p.st.ReplaceMemberLink(r.Context(), club.ID, m.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	// Shown on this response only: it isn't kept, so it can't go in a redirect's URL.
+	p.renderClub(w, r, club, &views.MemberLink{Name: m.Name, Link: origin(r) + memberPath(token)})
+}
+
+func (p *competitionPages) removeMember(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	m, err := p.st.Member(r.Context(), club.ID, r.PathValue("member"))
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if err := p.st.RemoveMember(r.Context(), club.ID, m.ID); err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery("Removed "+m.Name+"."), http.StatusSeeOther)
+}
+
+func (p *competitionPages) replaceClubLink(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	admin, err := p.st.ReplaceClubAdmin(r.Context(), club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, clubPath(admin)+"?new=replaced", http.StatusSeeOther)
+}
+
+func (p *competitionPages) deleteClub(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	if r.FormValue("confirm") != "1" {
+		http.Redirect(w, r, clubPath(r.PathValue("token")), http.StatusSeeOther)
+		return
+	}
+	if err := p.st.DeleteClub(r.Context(), club.ID); err != nil {
+		failed(w, r, err)
+		return
+	}
+	message(w, r, http.StatusOK, "Club deleted", club.Name+", its members and their entries have been deleted. Entries already sent stay with each competition.")
+}
+
+// --- Entering a club in a competition ---
+
+func (p *competitionPages) clubLinkCompetition(w http.ResponseWriter, r *http.Request) (store.Competition, bool) {
+	c, err := p.st.CompetitionByClubLink(r.Context(), r.PathValue("token"))
+	if err != nil {
+		failed(w, r, err)
+		return c, false
+	}
+	return c, true
+}
+
+func (p *competitionPages) clubLink(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.clubLinkCompetition(w, r)
+	if !ok {
+		return
+	}
+	render(w, r, views.ClubLink(views.ClubLinkPage{Competition: summary(c.Competition, p.now()), Action: r.URL.Path}))
+}
+
+// enterClub enters the club whose admin link is posted (clubAdmin: the link,
+// or just its token) in the competition.
+func (p *competitionPages) enterClub(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.clubLinkCompetition(w, r)
+	if !ok {
+		return
+	}
+	token := strings.TrimSpace(r.FormValue("clubAdmin"))
+	if i := strings.LastIndex(token, "/clubs/admin/"); i >= 0 {
+		token = token[i+len("/clubs/admin/"):]
+	}
+	token, _, _ = strings.Cut(token, "?")
+	club, err := p.st.ClubByAdmin(r.Context(), token)
+	if err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		render(w, r, views.ClubLink(views.ClubLinkPage{
+			Competition: summary(c.Competition, p.now()), Action: r.URL.Path,
+			Problems: []string{"That isn't a club's admin link. Copy it from your club's page, or create the club first."},
+		}))
+		return
+	}
+	if err := p.st.AttachClub(r.Context(), club.ID, c.ID); err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, clubPath(token)+"?notice="+urlQuery(club.Name+" is entered in "+c.Name+". Members can now add their entries."), http.StatusSeeOther)
+}
+
+// --- Members ---
+
+func (p *competitionPages) joinClub(w http.ResponseWriter, r *http.Request) (store.Club, bool) {
+	c, err := p.st.ClubByJoinLink(r.Context(), r.PathValue("token"))
+	if err != nil {
+		failed(w, r, err)
+		return c, false
+	}
+	return c, true
+}
+
+func (p *competitionPages) joinForm(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.joinClub(w, r)
+	if !ok {
+		return
+	}
+	render(w, r, views.ClubJoin(views.JoinPage{Club: club.Name}))
+}
+
+func (p *competitionPages) join(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.joinClub(w, r)
+	if !ok {
+		return
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	if err := competitions.CheckName("member", name); err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		render(w, r, views.ClubJoin(views.JoinPage{Club: club.Name, Name: name, Problems: sentences(err)}))
+		return
+	}
+	if !p.joinLimiter.allow(clientIP(r), p.now()) {
+		message(w, r, http.StatusTooManyRequests, "Too many joins", "This address has joined clubs many times in the last hour. Please try again later.")
+		return
+	}
+	_, token, err := p.st.Join(r.Context(), club.ID, name)
+	if err != nil {
+		if errors.Is(err, store.ErrLimit) {
+			message(w, r, http.StatusConflict, "Club full", club.Name+" has as many members as it can take.")
+			return
+		}
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, memberPath(token)+"?new=joined", http.StatusSeeOther)
+}
+
+// member is the member a personal link belongs to, and their club.
+func (p *competitionPages) member(w http.ResponseWriter, r *http.Request) (store.Member, bool) {
+	m, err := p.st.MemberByLink(r.Context(), r.PathValue("token"))
+	if err != nil {
+		failed(w, r, err)
+		return m, false
+	}
+	return m, true
+}
+
+func (p *competitionPages) memberHome(w http.ResponseWriter, r *http.Request) {
+	m, ok := p.member(w, r)
+	if !ok {
+		return
+	}
+	p.renderMember(w, r, m, "", nil, nil)
+}
+
+// renderMember shows a member their page. A form just posted with problems
+// (for competition failedID) is shown open, as posted.
+func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, m store.Member, failedID string, posted *competitions.Entry, problems []string) {
+	ctx := r.Context()
+	club, err := p.memberClub(r, m)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	comps, err := p.st.ClubCompetitions(ctx, m.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	entries, err := p.st.MemberEntries(ctx, m.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	path := memberPath(r.PathValue("token"))
+	page := views.MemberPage{Club: club, Member: m.Name, Link: origin(r) + path, New: r.URL.Query().Get("new") == "joined", Notice: r.URL.Query().Get("notice")}
+	now := p.now()
+	for _, c := range comps {
+		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now), Status: "Not entered", Withdraw: path + "/competitions/" + c.ID + "/withdraw"}
+		start := competitions.Entry{Gymnast: m.Name}
+		for _, e := range entries {
+			if e.CompetitionID != c.ID {
+				continue
+			}
+			start = e.Entry
+			shown, err := card(c.Competition, e.Entry, club)
+			if err != nil {
+				failed(w, r, err)
+				return
+			}
+			mc.Card = &shown
+			switch {
+			case !e.Sent():
+				mc.Status = "Saved, not sent yet"
+			case e.ChangedSinceSent():
+				mc.Status = "Changed since your club sent it"
+			default:
+				mc.Status = "Sent by your club"
+			}
+		}
+		if c.ID == failedID && posted != nil {
+			start = *posted
+		}
+		mc.Form = entryForm(c.Competition, start, path+"/competitions/"+c.ID, "Save")
+		mc.Form.Member, mc.Form.Key = true, "-"+c.ID
+		if c.ID == failedID {
+			mc.Form.Problems = problems
+		}
+		// Open what needs doing: a competition still open, or one with problems just posted.
+		mc.Open = c.ID == failedID || (mc.Competition.Open && len(comps) == 1)
+		page.Competitions = append(page.Competitions, mc)
+	}
+	if len(problems) > 0 {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+	}
+	render(w, r, views.MemberHome(page))
+}
+
+// memberClub is the name of a member's club.
+func (p *competitionPages) memberClub(r *http.Request, m store.Member) (string, error) {
+	return p.st.ClubName(r.Context(), m.ClubID)
+}
+
+// memberCompetition is the competition in the URL, if the member's club is entered.
+func (p *competitionPages) memberCompetition(w http.ResponseWriter, r *http.Request, m store.Member) (store.Competition, bool) {
+	return p.enteredCompetition(w, r, m.ClubID)
+}
+
+func (p *competitionPages) saveOwnMemberEntry(w http.ResponseWriter, r *http.Request) {
+	m, ok := p.member(w, r)
+	if !ok {
+		return
+	}
+	c, ok := p.memberCompetition(w, r, m)
+	if !ok {
+		return
+	}
+	e, problems := postedEntry(r, c.Competition, m.Name)
+	if len(problems) > 0 {
+		p.renderMember(w, r, m, c.ID, &e, problems)
+		return
+	}
+	if err := p.st.SaveMemberEntry(r.Context(), m.ID, c.ID, e); err != nil {
+		failed(w, r, err)
+		return
+	}
+	notice := "Entry saved for " + c.Name + ". Your club's competition secretary sends it to the competition."
+	http.Redirect(w, r, memberPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+}
+
+func (p *competitionPages) withdrawMemberEntry(w http.ResponseWriter, r *http.Request) {
+	m, ok := p.member(w, r)
+	if !ok {
+		return
+	}
+	c, ok := p.memberCompetition(w, r, m)
+	if !ok {
+		return
+	}
+	if r.FormValue("confirm") != "1" {
+		http.Redirect(w, r, memberPath(r.PathValue("token")), http.StatusSeeOther)
+		return
+	}
+	if err := p.st.WithdrawMemberEntry(r.Context(), m.ID, c.ID); err != nil {
+		failed(w, r, err)
+		return
+	}
+	notice := "Withdrawn from " + c.Name + ". If your club already sent it, it stays with the competition until the club sends again."
+	http.Redirect(w, r, memberPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+}

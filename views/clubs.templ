@@ -1,0 +1,384 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+)
+
+// ClubPage is a club's competition secretary's page.
+type ClubPage struct {
+	Base         string // the admin link's path, which the page's own links extend
+	Name         string
+	New          string // "created" or "replaced" just after the admin link was made
+	AdminLink    string // set only when New is
+	JoinLink     string
+	NewLink      *MemberLink // a member's link just replaced, to send them
+	Notice       string      // what just happened, e.g. "Sent 4 entries to Student Open"
+	Members      []ClubMember
+	Competitions []ClubCompetition
+}
+
+// MemberLink is a member's personal link.
+type MemberLink struct {
+	Name, Link string
+}
+
+// ClubMember is one of the club's members.
+type ClubMember struct {
+	ID, Name string
+	Entries  int
+}
+
+// ClubCompetition is a competition the club is entered in, with its members' entries.
+type ClubCompetition struct {
+	ID          string
+	Competition CompetitionSummary
+	Rows        []ClubEntryRow
+	ToSend      int // entries never sent, or changed since
+}
+
+// ClubEntryRow is one member's entry for a competition.
+type ClubEntryRow struct {
+	Member, Level string
+	Status        string // "Not sent", "Sent", "Changed since sent", "Withdrawn"
+	Problems      int
+	Edit          string // where the comp sec changes it, "" if they can't
+}
+
+// ClubEntryEdit is the comp sec changing a member's entry on their behalf.
+type ClubEntryEdit struct {
+	Base        string
+	Club        string
+	Member      string
+	Competition CompetitionSummary
+	Card        *EntryCard // nil if they haven't entered
+	Form        EntryForm
+}
+
+// JoinPage is where a club's members join it.
+type JoinPage struct {
+	Club     string
+	Name     string
+	Problems []string
+}
+
+// MemberPage is a member's own page: their entries for each competition the
+// club is entered in.
+type MemberPage struct {
+	Club         string
+	Member       string
+	Link         string // their personal link, as a full URL
+	New          bool   // just joined
+	Notice       string
+	Competitions []MemberCompetition
+}
+
+// MemberCompetition is a member's entry for one competition, and the form to
+// make or change it.
+type MemberCompetition struct {
+	ID          string
+	Competition CompetitionSummary
+	Status      string
+	Card        *EntryCard
+	Form        EntryForm
+	Withdraw    string
+	Open        bool // shown open on the page
+}
+
+// ClubLinkPage is a competition's club link: a comp sec enters their club.
+type ClubLinkPage struct {
+	Competition CompetitionSummary
+	Action      string
+	Problems    []string
+}
+
+// Hub lists the competitions, clubs and entries this browser has links to.
+templ Hub() {
+	@competitionLayout("Competitions and clubs") {
+		<h1 class="title is-4">Competitions and clubs</h1>
+		<p class="mb-4">Links to the competitions, clubs and entries you have, saved in this browser.</p>
+		for _, list := range hubLists {
+			<div class="box" data-hub-list={ list.Key } hidden>
+				<h2 class="title is-6">{ list.Title }</h2>
+				<ul></ul>
+			</div>
+		}
+		<p class="has-text-grey mb-4" data-hub-empty hidden>Nothing saved in this browser yet.</p>
+		<div class="buttons">
+			<a class="button is-primary" href="/competitions/new">New competition</a>
+			<a class="button" href="/clubs/new">New club</a>
+		</div>
+	}
+}
+
+// hubLists are the links the hub lists, by their key in the browser.
+var hubLists = []struct{ Key, Title string }{
+	{"trampolineCompetitions", "Competitions you run"},
+	{"trampolineClubs", "Clubs you run"},
+	{"trampolineMemberLinks", "Your clubs"},
+	{"trampolineEntryLinks", "Your own entries"},
+}
+
+// NewClub is the form that creates a club.
+templ NewClub(name string, problems []string) {
+	@competitionLayout("New club") {
+		<h1 class="title is-4">New club</h1>
+		<p class="mb-4">For a club's competition secretary. Members join through a link you share in the club's chat and keep their own entries; you send them to each competition. There are no accounts: you get an admin link to keep.</p>
+		@problemList(problems)
+		<form method="post" action="/clubs">
+			<div class="field">
+				<label class="label" for="club-name">Club</label>
+				<input class="input" id="club-name" name="name" required maxlength="80" value={ name } placeholder="e.g. UCD Trampoline Club"/>
+			</div>
+			<button class="button is-primary is-fullwidth" type="submit">Create club</button>
+		</form>
+		<p class="help mt-4">We keep the club's name and its members' names and entries, nothing else. A club is deleted 120 days after it was last used.</p>
+	}
+}
+
+// ClubAdmin is the comp sec's page.
+templ ClubAdmin(c ClubPage) {
+	@competitionLayout(c.Name) {
+		<h1 class="title is-4">{ c.Name }</h1>
+		if c.New != "" {
+			<div class="notification is-warning is-light">
+				<p class="mb-2">
+					<strong>
+						if c.New == "replaced" {
+							Your new admin link.
+						} else {
+							Club created.
+						}
+					</strong>
+					Save this page's link, the admin link: it's the only way back to the club, and anyone who has it can send its entries.
+				</p>
+				<div data-club-admin={ c.AdminLink } data-club-name={ c.Name }>
+					@linkBox("Admin link (keep it secret)", c.AdminLink, "Saved in this browser too.")
+				</div>
+			</div>
+		}
+		if c.Notice != "" {
+			<div class="notification is-success is-light">{ c.Notice }</div>
+		}
+		if c.NewLink != nil {
+			<div class="notification is-info is-light">
+				@linkBox(c.NewLink.Name+"'s new link", c.NewLink.Link, "Send it to them. Their old link no longer works.")
+			</div>
+		}
+		@linkBox("Join link", c.JoinLink, "Share it in the club's chat: members join with it and keep their own entries.")
+		<h2 class="title is-5 mt-5">Competitions</h2>
+		if len(c.Competitions) == 0 {
+			<p class="has-text-grey">Not entered in any yet. Open the club link a competition's organiser gave you to enter the club.</p>
+		}
+		for _, comp := range c.Competitions {
+			<div class="box">
+				<h3 class="title is-6 mb-1">{ comp.Competition.Name }</h3>
+				@competitionFacts(comp.Competition)
+				if len(comp.Rows) == 0 {
+					<p class="has-text-grey is-size-7">No member has entered yet.</p>
+				} else {
+					<div class="table-container">
+						<table class="table is-fullwidth is-narrow comp-table">
+							<thead>
+								<tr><th>Member</th><th>Level</th><th>Problems</th><th>Status</th><th></th></tr>
+							</thead>
+							<tbody>
+								for _, row := range comp.Rows {
+									<tr>
+										<td>{ row.Member }</td>
+										<td>{ row.Level }</td>
+										<td class={ templ.KV("has-text-danger", row.Problems > 0) }>
+											if row.Problems == 0 {
+												–
+											} else {
+												{ strconv.Itoa(row.Problems) }
+											}
+										</td>
+										<td>{ row.Status }</td>
+										<td>
+											if row.Edit != "" {
+												<a href={ templ.SafeURL(row.Edit) }>Change</a>
+											}
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				}
+				if comp.Competition.Open && len(comp.Rows) > 0 {
+					<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/send") } class="buttons">
+						<button class="button is-primary is-small" type="submit" name="which" value="changed" disabled?={ comp.ToSend == 0 }>
+							{ fmt.Sprintf("Send new and changed (%d)", comp.ToSend) }
+						</button>
+						<button class="button is-small" type="submit" name="which" value="all">Send all again</button>
+					</form>
+					<p class="help">The organiser sees only what you send. "Send all again" also takes back withdrawn entries.</p>
+				}
+			</div>
+		}
+		<h2 class="title is-5 mt-5">Members <span class="has-text-grey is-size-6">({ strconv.Itoa(len(c.Members)) })</span></h2>
+		if len(c.Members) == 0 {
+			<p class="has-text-grey">No members yet. Share the join link.</p>
+		} else {
+			<table class="table is-fullwidth is-narrow">
+				<tbody>
+					for _, m := range c.Members {
+						<tr>
+							<td>{ m.Name }</td>
+							<td class="has-text-grey is-size-7">{ entriesCount(m.Entries) }</td>
+							<td class="has-text-right">
+								<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/new-link") } class="is-inline">
+									<button class="button is-small is-text" type="submit" title="For a member who lost their link: their old one stops working">New link</button>
+								</form>
+								<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/remove") } class="is-inline" onsubmit={ confirmRemove(m.Name) }>
+									<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+								</form>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+		<details class="box mt-5 comp-manage">
+			<summary><strong>Settings</strong></summary>
+			<form method="post" action={ templ.SafeURL(c.Base + "/replace-link") } class="mb-3">
+				<button class="button is-small" type="submit">Replace the admin link</button>
+				<p class="help">If the admin link has been shared too widely. The old one stops working.</p>
+			</form>
+			<form method="post" action={ templ.SafeURL(c.Base + "/delete") }>
+				<label class="checkbox is-size-7">
+					<input type="checkbox" name="confirm" value="1" required/>
+					Delete the club, its members and their entries, now
+				</label>
+				<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
+				<p class="help">Entries already sent stay with each competition.</p>
+			</form>
+		</details>
+	}
+}
+
+func entriesCount(n int) string {
+	if n == 1 {
+		return "1 entry"
+	}
+	return fmt.Sprintf("%d entries", n)
+}
+
+script confirmRemove(name string) {
+	if (!confirm("Remove " + name + " and their entries from the club?")) { event.preventDefault(); }
+}
+
+// ClubEntryEditPage is the comp sec changing a member's entry.
+templ ClubEntryEditPage(e ClubEntryEdit) {
+	@competitionLayout(e.Member + " · " + e.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(e.Base) }>← { e.Club }</a></p>
+		<h1 class="title is-4">{ e.Member }</h1>
+		<p class="subtitle is-6">{ e.Competition.Name }</p>
+		if e.Card != nil {
+			@entryCard(*e.Card)
+		}
+		<h2 class="title is-5 mt-5">
+			if e.Card != nil {
+				Change the entry
+			} else {
+				Enter them
+			}
+		</h2>
+		@entryForm(e.Form)
+	}
+}
+
+// ClubJoin is where a member joins a club.
+templ ClubJoin(p JoinPage) {
+	@competitionLayout("Join " + p.Club) {
+		<h1 class="title is-4">Join { p.Club }</h1>
+		<p class="mb-4">Join to keep your competition entries with the club. Your club's competition secretary sends them to each competition.</p>
+		@problemList(p.Problems)
+		<form method="post">
+			<div class="field">
+				<label class="label" for="member-name">Your name</label>
+				<input class="input" id="member-name" name="name" required maxlength="80" value={ p.Name } placeholder="As on the results"/>
+			</div>
+			<button class="button is-primary is-fullwidth" type="submit">Join</button>
+		</form>
+		<p class="help mt-4">We keep your name and your entries, which your club and the competitions you're sent to see. Nothing else, and no account.</p>
+	}
+}
+
+// MemberHome is a member's own page.
+templ MemberHome(p MemberPage) {
+	@competitionLayout(p.Member + " · " + p.Club) {
+		<p class="has-text-grey mb-1">{ p.Club }</p>
+		<h1 class="title is-4">{ p.Member }</h1>
+		if p.New {
+			<div class="notification is-success is-light">
+				<p><strong>You've joined.</strong> This page is yours: its link is saved in this browser, so on this phone your entries are simply here. Keep the link to open them anywhere else.</p>
+			</div>
+		}
+		if p.Notice != "" {
+			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		<div data-member-link={ p.Link } data-member-name={ p.Member + " · " + p.Club }>
+			@linkBox("Your personal link (keep it to yourself)", p.Link, "")
+		</div>
+		if len(p.Competitions) == 0 {
+			<p class="has-text-grey">Your club isn't entered in any competitions yet. When it is, you'll enter here.</p>
+		}
+		for _, c := range p.Competitions {
+			<details class="box" open?={ c.Open }>
+				<summary>
+					<strong>{ c.Competition.Name }</strong>
+					<span class="has-text-grey is-size-7">· { c.Status }</span>
+				</summary>
+				<div class="mt-3">
+					@competitionFacts(c.Competition)
+					if c.Card != nil {
+						@entryCard(*c.Card)
+					}
+					if c.Competition.Open {
+						<h2 class="title is-6 mt-4">
+							if c.Card != nil {
+								Change your entry
+							} else {
+								Enter
+							}
+						</h2>
+						@entryForm(c.Form)
+						if c.Card != nil {
+							<form method="post" action={ templ.SafeURL(c.Withdraw) } class="mt-4">
+								<label class="checkbox is-size-7">
+									<input type="checkbox" name="confirm" value="1" required/>
+									Withdraw this entry
+								</label>
+								<button class="button is-small is-danger is-outlined ml-2" type="submit">Withdraw</button>
+							</form>
+						}
+					}
+				</div>
+			</details>
+		}
+	}
+}
+
+// ClubLink is a competition's club link: a comp sec enters their club.
+templ ClubLink(p ClubLinkPage) {
+	@competitionLayout("Enter a club in " + p.Competition.Name) {
+		<h1 class="title is-4">Enter your club in { p.Competition.Name }</h1>
+		@competitionFacts(p.Competition)
+		@problemList(p.Problems)
+		<form method="post" action={ templ.SafeURL(p.Action) } class="comp-club-link">
+			// Clubs saved in this browser (static/js/competitions.js).
+			<div class="field" data-saved-clubs hidden>
+				<label class="label" for="saved-club">Your club</label>
+				<div class="select is-fullwidth"><select id="saved-club"></select></div>
+			</div>
+			<div class="field">
+				<label class="label" for="club-admin">Your club's admin link</label>
+				<input class="input" id="club-admin" name="clubAdmin" required placeholder="https://.../clubs/admin/..."/>
+				<p class="help">The link you got when you created the club. No club yet? <a href="/clubs/new">Create one</a>, then open this link again.</p>
+			</div>
+			<button class="button is-primary is-fullwidth" type="submit">Enter the club</button>
+		</form>
+	}
+}

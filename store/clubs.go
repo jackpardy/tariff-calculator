@@ -400,3 +400,27 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 	})
 	return sent, err
 }
+
+// Member is one of a club's members, by id.
+func (s *Store) Member(ctx context.Context, clubID, memberID string) (Member, error) {
+	var m Member
+	var created string
+	err := s.db.QueryRowContext(ctx, `SELECT id, club_id, name, created_at FROM members WHERE id = $1 AND club_id = $2`, memberID, clubID).
+		Scan(&m.ID, &m.ClubID, &m.Name, &created)
+	m.CreatedAt = parseTime(created)
+	return m, notFound(err)
+}
+
+// ClubEntered says whether a club is entered in a competition.
+func (s *Store) ClubEntered(ctx context.Context, clubID, competitionID string) (bool, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM club_competitions WHERE club_id = $1 AND competition_id = $2`, clubID, competitionID).Scan(&n)
+	return n > 0, err
+}
+
+// ClubName is a club's name, by id.
+func (s *Store) ClubName(ctx context.Context, id string) (string, error) {
+	var name string
+	err := s.db.QueryRowContext(ctx, `SELECT name FROM clubs WHERE id = $1`, id).Scan(&name)
+	return name, notFound(err)
+}

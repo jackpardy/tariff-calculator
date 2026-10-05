@@ -212,6 +212,13 @@ func TestClubsAndMembers(t *testing.T) {
 		t.Error("another club's comp sec can't replace a member's link")
 	}
 
+	if got, err := s.Member(ctx, club.ID, m.ID); err != nil || got.Name != "A. Murphy" {
+		t.Errorf("by id: %+v, %v", got, err)
+	}
+	if _, err := s.Member(ctx, other.ID, m.ID); !errors.Is(err, ErrNotFound) {
+		t.Error("not another club's member")
+	}
+
 	members, err := s.Members(ctx, club.ID)
 	must(t, err)
 	if len(members) != 1 || members[0].Name != "A. Murphy" {
@@ -239,8 +246,14 @@ func TestSending(t *testing.T) {
 	if err := s.AttachClub(ctx, club.ID, "nope"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("attaching to a missing competition: %v", err)
 	}
+	if in, _ := s.ClubEntered(ctx, club.ID, c.ID); in {
+		t.Error("not entered yet")
+	}
 	must(t, s.AttachClub(ctx, club.ID, c.ID))
 	must(t, s.AttachClub(ctx, club.ID, c.ID)) // again: nothing happens
+	if in, _ := s.ClubEntered(ctx, club.ID, c.ID); !in {
+		t.Error("entered")
+	}
 	if comps, err := s.ClubCompetitions(ctx, club.ID); err != nil || len(comps) != 1 || comps[0].ID != c.ID {
 		t.Errorf("the club's competitions: %+v, %v", comps, err)
 	}
