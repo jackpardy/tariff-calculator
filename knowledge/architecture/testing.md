@@ -31,6 +31,7 @@ approved by the maintainer first.
 | `catalog/*_test.go` | Picker categories, shape options, search by name, alias and notation |
 | `static/static_test.go` | Hashed URLs and caching headers |
 | `main_test.go` | Handlers end to end, asserting on rendered HTML: flags, custom names, checks, sheet, compare, requirements, side by side, QR, sharing, oversize bodies; every template's `js:` `hx-vals` being an object literal (htmx wraps anything else in braces, which broke the sheet) |
+| `browser_test.go` | Pages loaded in headless Chrome (chromedp), so their JavaScript runs: the tariff sheet loads the routine saved in the browser and shows its elements and total. It needs Chrome or Chromium (CI's Ubuntu runners have it; `CHROME_PATH` points at one) and skips without, as in the Docker build |
 | `setform_test.go`, `levelform_test.go` | Reading the requirements and level editors' forms back into JSON; the requirements page listing levels |
 
 The Docker build runs `go test ./...` too, so an image can't be built from
@@ -38,6 +39,8 @@ failing code.
 
 # Not covered
 
-The browser JavaScript has no automated tests. UI changes were checked by hand
-in a desktop browser, and some phone behaviour is still untested
-([open questions](../open-questions.md)).
+Apart from the tariff sheet loading (`browser_test.go`), the browser JavaScript
+has no automated tests. UI changes were checked by hand in a desktop browser,
+and some phone behaviour is still untested
+([open questions](../open-questions.md)). More pages can be added to
+`browser_test.go` the same way.
