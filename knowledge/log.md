@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-05
+* **Update**: [Deploy](operations/deploy.md): the old Render address now
+  redirects to tariff.pardy.ie, keeping the path and any share link; links to
+  the server repo point at its GUIDE.md and CONTRACT.md.
 * **Update**: [Roadmap](roadmap.md) priorities: card collection first, the
   routine suggester moved to the bottom, and ISTO's levels
   ([open questions](open-questions.md)) not expected for a while. The tariff

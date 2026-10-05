@@ -52,9 +52,12 @@ Compose behind Caddy, built from a clone of this repo at
 (`tariff.pardy.ie`).
 
 The old Render address, <https://trampoline-tariff-calculator.onrender.com>,
-is to be retired, optionally leaving a redirect to the new one.
+is now a Render static site built from
+[tariff-redirect](https://github.com/jackpardy/tariff-redirect). It sends
+visitors to the same path here, keeping any `#share=` link. Routines saved in a
+browser under the old address stay there.
 
 See the server bundle (private repository):
 
-- [tariff-calculator service](https://github.com/jackpardy/server/blob/main/knowledge/services/tariff-calculator.md)
-- [deploy](https://github.com/jackpardy/server/blob/main/knowledge/operations/deploy.md)
+- [GUIDE.md](https://github.com/jackpardy/server/blob/main/GUIDE.md): setup, deploy on push, backups, retiring Render
+- [CONTRACT.md](https://github.com/jackpardy/server/blob/main/CONTRACT.md): paths, services, ports and env vars
