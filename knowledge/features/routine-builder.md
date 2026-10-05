@@ -29,8 +29,9 @@ card for editing.
 starts on the routine on screen and goes back to it when the routine on screen
 changes (in Levels mode, the voluntary's routine, so a coach can look at a set
 and add to the voluntary). Adding to a routine that isn't on screen saves it
-there and says so. On wider screens the shapes, Add to and a fixed-width Add
-button share one row.
+there and says so. On a phone the card is compact (Add to above, then the
+shapes and Add on one row); on wider screens it's laid out in full: the shapes
+under the name, the label, Add to and a full-width Add button.
 
 # Saved routines
 

@@ -254,6 +254,12 @@
 .routine-switcher > .select { flex: 0 1 auto; min-width: 0; }
 .routine-switcher .select select { max-width: 14rem; width: 100%; text-overflow: ellipsis; }
 .routine-switcher > .button, .routine-switcher > details { flex-shrink: 0; }
+/* On a phone the routine (and level) choice gets its own row; the rest wrap below it. */
+@media screen and (max-width: 768px) {
+    .routine-switcher { flex-wrap: wrap; }
+    .routine-switcher > .select:first-child { flex: 1 1 100%; }
+    .routine-switcher > .select:first-child select { max-width: none; }
+}
 .routine-menu { position: relative; }
 .routine-menu > summary { list-style: none; display: inline-flex; box-sizing: border-box; margin-bottom: 0; }
 .routine-menu > summary::-webkit-details-marker { display: none; }
@@ -385,16 +391,24 @@
 .skill-card-note { color: #777; font-size: 0.85rem; margin-top: 0.5rem; }
 /* Shape buttons and Add (or Update / Cancel) share a row; Add takes what's left. */
 .skill-card-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.5rem; margin-top: 0.5rem; }
-.skill-card-actions .add-to { flex-basis: 100%; margin-bottom: 0; }
+.skill-card-actions .add-to { flex-basis: 100%; margin-bottom: 0; order: -1; } /* above the shapes, which share a row with Add */
 .skill-card-actions #add-btn { flex: 1 1 6.5rem; min-width: 0; width: auto; height: auto; min-height: 2.5rem; padding: 0.3rem 0.5rem; white-space: normal; line-height: 1.15; }
 .skill-card-actions .segment { padding: 0.35rem 0.6rem; }
-/* On wider screens everything stays on one row, and Add is a button-sized
-   button on the right rather than a bar across the card. */
+/* On wider screens the card is laid out as it was before it went compact:
+   shapes under the name, then the label, then Add to and a full-width Add.
+   Phones keep the compact card (shapes and Add on one row). */
 @media screen and (min-width: 769px) {
-    .skill-card-actions { flex-wrap: nowrap; align-items: center; }
-    .skill-card-actions .add-to { flex-basis: auto; flex-wrap: nowrap; }
-    .skill-card-actions #add-btn { flex: 0 1 16rem; margin-left: auto; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .skill-card-buttons { flex: 0 0 auto; margin-left: auto; }
+    .skill-card { display: flex; flex-direction: column; padding: 0.75rem 1rem; }
+    .skill-card-name { font-size: 1.2rem; }
+    .skill-card-meta { font-size: 0.9rem; margin-top: 0.15rem; }
+    .skill-card-tariff { font-size: 1.6rem; }
+    .skill-card-actions { display: contents; }
+    .skill-card .segmented { order: 1; align-self: flex-start; margin-top: 0.6rem; }
+    .skill-card-actions .segment { padding: 0.4rem 0.8rem; }
+    .skill-card-label { order: 2; margin: 0.6rem 0; font-size: 0.9rem; }
+    .skill-card-actions .add-to { order: 3; margin-bottom: 0.5rem; }
+    .skill-card-actions #add-btn { order: 4; flex: none; width: 100%; min-height: 2.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .skill-card-buttons { order: 4; justify-content: flex-start; }
 }
 .skill-card-buttons { flex: 1 1 auto; justify-content: flex-end; margin-bottom: 0 !important; }
 .skill-card-buttons .button { margin-bottom: 0 !important; }
