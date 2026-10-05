@@ -23,6 +23,7 @@ function tariffCalculatorStore() {
         levelState: { current: null, entries: [] }, // the levels being worked on (LevelEntries)
         expanded: [], // per-card expanded state, parallel to routine
         compareId: null, // the routine shown beside the current one, if any
+        beside: null,    // in Routines mode, the routine side by side, remembered (so the view's back arrow, a reload or Levels and back keep it)
         routineB: [],    // its skills (the same array as in routines)
         expandedB: [],   // per-card expanded state, parallel to routineB
         addTo: '',       // the routine Add puts a skill in (its id); '' for the one on screen
@@ -48,6 +49,7 @@ function tariffCalculatorStore() {
             }
             this.routines = state.routines;
             this.currentId = state.current;
+            this.beside = state.beside && state.beside !== state.current && state.routines.some((r) => r.id === state.beside) ? state.beside : null;
             this.routine = this.currentRoutine().skills;
             this.persist(); // settles a routine carried over from an older version
             this.customSets = SetStore.load();
@@ -85,7 +87,7 @@ function tariffCalculatorStore() {
                 if (event.detail.failed) { this.requestFailed(event.detail.requestConfig?.path, event.detail.xhr); }
             });
 
-            if (this.mode === 'levels') { this.syncColumns(); } else { this.renderRoutines(); }
+            if (this.mode === 'levels') { this.syncColumns(); } else if (this.beside) { this.compareWith(this.beside); } else { this.renderRoutines(); }
             this.loadForm();
             this.openFromLink();
         },
@@ -219,7 +221,7 @@ function tariffCalculatorStore() {
         isSetRoutine(set) { return (set?.rules || []).some((r) => r.type === 'sequence'); },
         skillsOf(side) { return side === 'b' ? this.routineB : this.routine; },
         expandedOf(side) { return side === 'b' ? this.expandedB : this.expanded; },
-        persist() { RoutineStore.save({ current: this.currentId, routines: this.routines }); },
+        persist() { RoutineStore.save({ current: this.currentId, routines: this.routines, beside: this.beside || undefined }); },
         // setRequirements chooses the requirements a column's routine is checked against.
         setRequirements(ref, side = 'a') {
             const routine = this.routineFor(side);
@@ -296,7 +298,14 @@ function tariffCalculatorStore() {
             this.expandedB = [];
             this.mobileTab = 'a';
             this.addTo = '';
-            if (mode === 'levels') { this.syncColumns(); } else { this.renderRoutines(); }
+            if (mode === 'levels') {
+                this.syncColumns();
+            } else if (this.beside && this.beside !== this.currentId && this.routines.some((r) => r.id === this.beside)) {
+                this.compareWith(this.beside);
+            } else {
+                this.beside = null;
+                this.renderRoutines();
+            }
         },
         findLevel(ref) { return Exercises.findLevel(ref); },
         requirementName(ref) { return Exercises.requirementName(ref); },
@@ -538,21 +547,26 @@ function tariffCalculatorStore() {
             if (!id || id === this.currentId || !this.routines.some((r) => r.id === id)) { this.stopComparing(); return; }
             if (this.editingSide === 'b' && this.editingIndex !== null) { this.cancelEdit(); }
             this.compareId = id;
+            if (this.mode === 'routines') { this.beside = id; }
             this.expandedB = this.compareRoutine().skills.map(() => false);
             this.routineB = this.compareRoutine().skills; // renders both columns via the watcher
+            this.persist();
         },
         stopComparing() {
             if (this.editingSide === 'b' && this.editingIndex !== null) { this.cancelEdit(); }
             this.compareId = null;
+            if (this.mode === 'routines') { this.beside = null; }
             this.routineB = [];
             this.expandedB = [];
             this.mobileTab = 'a';
+            this.persist();
             this.renderRoutine('a');
         },
         // swapColumns makes the routine beside the current one current, and vice versa.
         swapColumns() {
             if (!this.compareId) { return; }
             [this.currentId, this.compareId] = [this.compareId, this.currentId];
+            if (this.mode === 'routines') { this.beside = this.compareId; }
             [this.expanded, this.expandedB] = [this.expandedB, this.expanded];
             const flip = (side) => (side === 'a' ? 'b' : 'a');
             this.editingSide = flip(this.editingSide);

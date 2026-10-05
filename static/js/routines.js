@@ -2,7 +2,8 @@
 // tariff sheet, the view screen and the compare page. Each routine is {id, name,
 // skills}, with the requirements and checks it's checked against; one is
 // current. Levels are kept apart (LevelEntries in sets.js) and link routines.
-// They are stored as {current, routines} under 'trampolineRoutines'. The single
+// They are stored as {current, routines, beside} under 'trampolineRoutines',
+// beside being the routine the builder shows side by side, if any. The single
 // routine older versions saved (under 'trampolineRoutine') becomes "Routine 1".
 const RoutineStore = (() => {
     const key = 'trampolineRoutines';

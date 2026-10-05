@@ -80,8 +80,10 @@ some elements score, the coach can tick which ones.
 
 A second saved routine can be shown beside the current one. Both columns can be
 edited, and the cards mark where the two differ. On a phone the columns become
-tabs. The standalone [compare page](compare.md) does a read-only version of
-the same.
+tabs. The routine side by side is remembered with the routines (`beside` in
+`trampolineRoutines`), so coming back from the view screen, a reload, or
+Levels mode and back keeps it. The standalone [compare page](compare.md) does
+a read-only version of the same.
 
 # Other pages
 
