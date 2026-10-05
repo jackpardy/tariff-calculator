@@ -31,6 +31,27 @@ All routes are defined in `routes()` in `main.go`. Forms are
 | `GET /view`, `POST /view` | as `/routine`, plus `routineName`, `optionRef`, `pairOptionRef`, `tabNames`, `optionSets` | The [view screen](../features/view.md) page, and a routine or level pair to fill it |
 | `GET /static/...` | — | [Static assets](static-assets.md) |
 
+## Competition pages
+
+[Competition entries](../features/competition-entries.md) (`comppages.go`), not
+linked from the calculator yet. `{token}` is a secret link (ADR 0004). These
+pages send `Referrer-Policy: no-referrer`, `Cache-Control: no-store` and
+`X-Robots-Tag: noindex`. A wrong or replaced link gets 404, and without storage
+every page answers 503.
+
+| Method and path | Input | Returns |
+|---|---|---|
+| `GET /competitions/new` | — | The form that creates a competition, and the competitions saved in this browser |
+| `POST /competitions` | `name`, `date`, `deadlineDate`, `deadlineTime` (Irish and UK time), `individuals`, each built-in `level`, each of the browser's own levels as `custom` (`{level, sets}`) | 303 to the dashboard with `?new=created`; 422 with the problems; 429 after 5 an hour from one address |
+| `GET /competitions/admin/{token}` | optional `club` (a club's name or `individual`), `problems=1`, `new` | The organiser's dashboard |
+| `GET /competitions/admin/{token}/entries/{id}` | — | One entry, checked |
+| `POST /competitions/admin/{token}/individuals` | `on` (`1`/`0`) | Turns individual entry on or off |
+| `POST /competitions/admin/{token}/replace-link` | — | 303 to the new admin link, `?new=replaced` |
+| `POST /competitions/admin/{token}/delete` | `confirm=1` | Deletes the competition and its entries |
+| `GET`, `POST /competitions/enter/{token}` | `gymnast`, `level`, `ex1Option`, `ex1Skills`, `ex2Option`, `ex2Skills` | The individual entry form; entering redirects to the personal link |
+| `GET`, `POST /competitions/entry/{token}` | as entering | An individual's own entry, and changing it until the deadline |
+| `POST /competitions/entry/{token}/withdraw` | `confirm=1` | Withdraws and deletes the entry |
+
 `requirementSet` is either `builtin:<id>` or the custom requirements as JSON.
 If the requirements can't be used, the problem is reported in the rendered
 check rather than failing the request.
@@ -45,4 +66,5 @@ check rather than failing the request.
   `400 Bad Request: <message>`, which the page shows to the user.
 - Official names are always re-derived and never taken from input.
 - Every response carries `X-App-Version` ([static assets](static-assets.md#update-notice)).
-- `PORT` sets the port (default 8080).
+- `PORT` sets the port (default 8080). `DATA_DIR` turns on competition
+  storage there (SQLite); unset, it's off.

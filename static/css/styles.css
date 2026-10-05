@@ -547,3 +547,24 @@ details > * { box-sizing: border-box; }
 .share-qr { display: flex; justify-content: center; margin-top: 0.75rem; }
 .share-qr svg { width: min(14rem, 70vw); height: auto; }
 .share-note { text-align: center; font-size: 0.8rem; color: #777; margin-top: 0.25rem; }
+
+/* --- Competition pages (views/competitions.templ) --- */
+.comp-page .container { max-width: 60rem; }
+.comp-page [hidden] { display: none !important; }
+.comp-deadline { display: flex; gap: 0.5rem; }
+.comp-level-group { margin-bottom: 0.4rem; }
+.comp-level-group summary { cursor: pointer; font-weight: 600; padding: 0.2rem 0; }
+.comp-level { display: flex; align-items: center; gap: 0.4rem; padding: 0.15rem 0 0.15rem 1rem; }
+.comp-counts { margin: 1rem 0; }
+.comp-manage summary { cursor: pointer; }
+.comp-manage[open] summary { margin-bottom: 0.75rem; }
+.comp-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin: 1rem 0; }
+.comp-table td, .comp-table th { white-space: nowrap; }
+.comp-table td:nth-child(6) { white-space: normal; min-width: 12rem; }
+.comp-table tr.has-problems td:nth-child(6) { color: #cc0f35; }
+.comp-skills tr.not-counted td { color: #999; text-decoration: line-through; }
+.comp-results { list-style: none; margin: 0; font-size: 0.9rem; }
+.comp-results .is-unmet { color: #cc0f35; }
+.comp-option { display: flex; align-items: center; gap: 0.4rem; margin: 0 0 0.3rem 0 !important; }
+.comp-link { margin-bottom: 1.5rem; }
+.comp-link .input { font-family: monospace; }

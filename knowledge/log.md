@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: Step 3 of ADR 0004, the first [competition entries](features/competition-entries.md)
+  pages: create a competition (built-in levels and the browser's own), the
+  organiser's dashboard by level (filter by club or problems), each entry
+  checked, replacing the admin link, deleting, and individual entry with a
+  personal link to change or withdraw it. Not linked from the calculator, and
+  on only where `DATA_DIR` is set ([routes](architecture/http-routes.md#competition-pages)).
 * **Update**: Step 2 of [ADR 0004](../docs/adr/0004-server-storage-secret-links.md)
   for [competition entries](features/competition-entries.md): a `competitions`
   package (competitions, the levels they offer, entries and their checking)

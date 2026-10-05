@@ -144,6 +144,20 @@ func TestIndividualEntries(t *testing.T) {
 		t.Errorf("replaced: %+v", list)
 	}
 
+	if got, err := s.CompetitionEntry(ctx, c.ID, e.ID); err != nil || got.Entry.Gymnast != "C. Ryan" {
+		t.Errorf("by id: %+v, %v", got, err)
+	}
+	other, _, _ := s.CreateCompetition(ctx, competition())
+	if _, err := s.CompetitionEntry(ctx, other.ID, e.ID); !errors.Is(err, ErrNotFound) {
+		t.Error("another competition's entry isn't found")
+	}
+
+	must(t, s.SetIndividuals(ctx, c.ID, false))
+	if _, err := s.CompetitionByIndividualLink(ctx, c.IndividualLink); !errors.Is(err, ErrNotFound) {
+		t.Error("individual entry turned off")
+	}
+	must(t, s.SetIndividuals(ctx, c.ID, true))
+
 	now = c.Deadline
 	if err := s.ReplaceIndividualEntry(ctx, token, entry("C. Ryan")); !errors.Is(err, ErrClosed) {
 		t.Errorf("no changes after the deadline: %v", err)

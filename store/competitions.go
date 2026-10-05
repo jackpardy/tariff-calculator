@@ -260,3 +260,14 @@ func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err erro
 	})
 	return comps, clubs, err
 }
+
+// SetIndividuals turns a competition's individual entry on or off.
+func (s *Store) SetIndividuals(ctx context.Context, id string, on bool) error {
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET individuals = $1 WHERE id = $2`, on, id))
+}
+
+// CompetitionEntry is one of a competition's entries, by id.
+func (s *Store) CompetitionEntry(ctx context.Context, competitionID, id string) (Entry, error) {
+	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at
+		FROM entries WHERE competition_id = $1 AND id = $2`, competitionID, id))
+}

@@ -3,6 +3,7 @@ package main
 
 import (
 	"cmp"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"tariffCalculator/requirements"
 	"tariffCalculator/skills"
 	"tariffCalculator/static"
+	"tariffCalculator/store"
 	"tariffCalculator/views"
 )
 
@@ -32,9 +34,22 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+	// Competition storage is on only where DATA_DIR is set, a directory that
+	// survives deploys (ADR 0004 Decision 8). Without it, or if it can't be
+	// opened, the calculator works as ever and only the competition pages
+	// say storage isn't available.
+	var st *store.Store
+	if dir := os.Getenv("DATA_DIR"); dir != "" {
+		var err error
+		if st, err = store.Open(context.Background(), dir); err != nil {
+			log.Printf("Competition storage is off: %v", err)
+		} else {
+			defer st.Close()
+		}
+	}
 	srv := &http.Server{
 		Addr:              ":" + port,
-		Handler:           routes(),
+		Handler:           routesWith(st),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
@@ -45,8 +60,14 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-// routes builds the application's handler, with every request body size-limited.
+// routes builds the application's handler without competition storage.
 func routes() http.Handler {
+	return routesWith(nil)
+}
+
+// routesWith builds the application's handler, with every request body
+// size-limited. st is the competition storage, nil when it's off.
+func routesWith(st *store.Store) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET "+static.Prefix, static.Handler())
 
@@ -68,6 +89,7 @@ func routes() http.Handler {
 	mux.HandleFunc("POST /view", handleView)
 	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
 	mux.HandleFunc("POST /tariff-sheet", handleTariffSheet)
+	newCompetitionPages(st).register(mux)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBytes)
