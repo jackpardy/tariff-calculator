@@ -19,6 +19,12 @@ gymnasts, or a club's competition secretary, send their routines before a
 competition, and the organiser and difficulty judges see every card already
 checked against its level. Today judges check cards by hand before the start.
 
+Most entries reach a competition through a **club**. The club's competition
+secretary gathers members' levels and cards, today through group chats and
+spreadsheets, and enters them for the club. A few gymnasts enter on their own.
+Members' plans change as a competition approaches: a different level, or a
+different routine for the same level, and each competition can be different.
+
 Card collection needs data that **several people share**: an organiser, many
 gymnasts, and judges, on different devices. A share link can't do this,
 because the organiser has to receive submissions. So the app needs storage on
@@ -50,31 +56,60 @@ Constraints:
    need it. SQL keeps to what Postgres also accepts, so moving later stays
    cheap.
 
-2. **Secret links instead of accounts.** Each stored thing has an unguessable
+2. **Clubs sit between members and competitions.**
+   - A **club** is created by its competition secretary and lasts a season.
+     Members join it through a link shared in the club's chat.
+   - A **member entry** is one member's entry for one competition: a level,
+     the routine(s) for it and their checks. A member can have entries for
+     several competitions, and can **replace** any of them (a different level,
+     or a different routine for the same level) until the deadline. Each change
+     is checked straight away.
+   - The comp sec **sends** the club's entries to a competition. The
+     competition keeps a copy as sent. A member's later change shows on the club
+     page as "changed since sent", and the comp sec re-sends (all, or just the
+     changed ones) until the competition's deadline. So the organiser only sees
+     what the club has sent.
+   - **Individuals** can enter a competition directly through its individual
+     link, which the organiser can switch off. Their entries are marked
+     "individual" and listed apart from clubs.
+
+3. **Secret links instead of accounts.** Each stored thing has an unguessable
    token for each role, used in its URL:
 
-   | Link | Lets you | Stored as |
-   |---|---|---|
-   | Competition admin | See and manage all entries, print, export, lock, delete | SHA-256 hash |
-   | Competition submit | Add an entry | plain (it's meant to be shared) |
-   | Entry edit | Change or withdraw one entry until the deadline | SHA-256 hash |
+   | Link | Who has it | Lets you | Stored as |
+   |---|---|---|---|
+   | Competition admin | Organiser | See and manage all entries, print, export, lock, delete | SHA-256 hash |
+   | Club entry | Comp secs (from the organiser) | Attach a club to the competition and send its entries | plain (shared) |
+   | Individual entry | Anyone (optional) | Enter as an individual | plain (shared) |
+   | Club admin | Comp sec | See members and their entries, send them, edit on a member's behalf, remove members | SHA-256 hash |
+   | Member join | The club's members | Join the club | plain (shared) |
+   | Member (personal) | One member | Add, replace or withdraw their own entries | SHA-256 hash |
+
+   **Why members need a personal link:** the join link is shared with the
+   whole club, so on its own anyone in the club chat could change anyone's
+   entry. To keep personal links painless:
+   - a member's link is **saved in their browser automatically** (as charades
+     does with device tokens), so on their own phone their entries are simply
+     there. The link only matters on a new phone or after clearing the browser;
+   - the club admin page can **show or copy any member's link** to send again,
+     and the comp sec can edit an entry on a member's behalf;
+   - a member who loses their link can be removed and re-join.
 
    Secret tokens are 128 bits from `crypto/rand`, written as base64url. Only
    their hashes are stored, so a copied database doesn't give anyone access.
    Hashes are compared in constant time. A wrong token gets **404**, exactly as
-   a missing one does. A new link is shown once, with "save this link" and a
-   copy button. The organiser can replace the admin link, which ends the old
-   one.
+   a missing one does. A new admin link is shown once, with "save this link" and
+   a copy button, and its holder can replace it, which ends the old one.
 
-3. **The domain stays framework-free.** A new `competitions` package holds the
-   model (competition, entry), its validation and the checking of an entry. It
-   imports `skills` and `requirements`, and nothing about HTTP, SQL or
+4. **The domain stays framework-free.** A new `competitions` package holds the
+   model (competition, club, member, entry), its validation and the checking
+   of an entry. It imports `skills` and `requirements`, and nothing about HTTP, SQL or
    templates. The level checking in `main.go` (`checkRoutine`, `checkPosted` and
    the carry-over between exercises) moves into a function that both the
    routine view and stored entries call. That way an entry's check can't drift
    from what the gymnast saw in the builder.
 
-4. **Stored data is canonical and checked on read.** An entry stores its
+5. **Stored data is canonical and checked on read.** An entry stores its
    routines as `TrampolineSkill` JSON, as the browser does, plus its checks
    (ADR 0001 §6). Names, tariffs and results are worked out again whenever the
    entry is shown, so engine fixes apply to stored entries too. A competition
@@ -83,24 +118,27 @@ Constraints:
    Built-in requirements are stored by reference (`builtin:<id>`) and resolved
    from the binary.
 
-5. **Minimal personal data, deleted automatically.** An entry holds the
-   gymnast's name, club, level and routines. There are no emails, dates of
+6. **Minimal personal data, deleted automatically.** An entry holds the
+   gymnast's name, club, level and routines; a club holds its name and its
+   members' names. There are no emails, dates of
    birth or contact details. A competition and its entries are deleted **90
    days after the competition date**, and the organiser can delete them sooner.
+   A club and its members' entries are deleted **90 days after the club was last
+   used**; the comp sec can delete the club or remove a member at any time.
    The submit page says what is stored, who can see it and when it's deleted.
 
-6. **Abuse limits**, as in charades: a cap on competitions created per IP per
-   hour, a cap on entries per competition, and the existing 64 KB body limit.
+7. **Abuse limits**, as in charades: a cap on competitions and clubs created per
+   IP per hour, a cap on members per club, a cap on entries per competition, and the existing 64 KB body limit.
    Behind Caddy the client IP is the rightmost `X-Forwarded-For` value.
 
-7. **Storage features ship only on durable storage.** Until the app runs where
+8. **Storage features ship only on durable storage.** Until the app runs where
    `DATA_DIR` survives deploys, the pages that use storage are built and tested
    but not linked from the app. Durable means the self-hosted server, with a
    `/srv/data/tariff` volume in its nightly backup, or a paid Render disk in the
    meantime. If storage can't be opened, the calculator's stateless pages keep
    working and only the storage pages report the problem.
 
-8. **Accounts can come later without undoing this.** If clubs need records that
+9. **Accounts can come later without undoing this.** If clubs need records that
    last several seasons, an account can own the links it created. Nothing here
    rules out the magic-link accounts ADR 0001 planned.
 
@@ -117,6 +155,12 @@ Constraints:
 - **A lost admin link can't be recovered.** *Mitigation:* show it once
   prominently with a copy button, offer a printable summary, and let the holder
   replace it if it leaks.
+- **Members rely on their comp sec** to send (and re-send) their entries.
+  *Mitigation:* each member sees whether their current entry has been sent,
+  and individual entry stays available where the organiser allows it.
+- **A comp sec's lost admin link** strands the club's view. *Mitigation:* as
+  for organisers, it's shown once with a copy button and can be replaced;
+  members' own entries are unaffected.
 - **Links can be forwarded.** Anyone with the admin link is the organiser.
   *Mitigation:* separate links per role; the submit link only adds entries; the
   admin link can be replaced.
@@ -125,13 +169,20 @@ Constraints:
 - **Backups now matter** for this app. *Mitigation:* the data volume goes into
   the server's nightly backup before launch.
 - **Hosting is a precondition.** *Mitigation:* build and test locally first,
-  then ship once storage is durable (Decision 7).
+  then ship once storage is durable (Decision 8).
 
 ## Alternatives considered
 
+- **No club level**: every gymnast enters the competition directly. This is
+  simpler, but it's not how entries are gathered, and the organiser would get
+  each club's entries one by one.
+- **Members' changes flow straight through** to the competition. This is less
+  work for the comp sec, but the club couldn't check a change before the
+  organiser sees it.
+
 - **Accounts now** (magic link). This has a better long-term identity story,
   but more friction for occasional users, more personal data (emails), and email
-  sending to run. It's deferred, not rejected (Decision 8).
+  sending to run. It's deferred, not rejected (Decision 9).
 - **Browser-only, with share links.** There's no server state, but the
   organiser can't receive submissions without someone gathering links by hand,
   which is today's problem in another form.
@@ -144,12 +195,16 @@ Constraints:
 Each step is a separate, shippable branch:
 
 1. This ADR.
-2. A `store` package (open, migrate, competitions, entries, retention) and a
-   `competitions` package (model, validation, checking), with unit tests and
-   no UI. Move the level checking out of `main.go`.
-3. Pages: create a competition, submit an entry, edit an entry, and the
-   organiser's dashboard. These aren't linked from the app yet.
-4. Print a level's cards, CSV export, marking cards checked, the deadline lock,
+2. A `store` package (open, migrate, competitions, clubs, members, entries,
+   retention) and a `competitions` package (model, validation, checking), with
+   unit tests and no UI. Move the level checking out of `main.go`.
+3. Competition pages: create a competition, the organiser's dashboard (by
+   club, individuals apart), and individual entry. These aren't linked from the
+   app yet.
+4. Club pages: create a club, members join and keep their entries (personal
+   links saved in the browser), the comp sec's page, and sending and
+   re-sending to a competition.
+5. Print a level's cards, CSV export, marking cards checked, the deadline lock,
    and automatic deletion.
-5. Hosting: a data volume, backups and the contract in the server repository,
+6. Hosting: a data volume, backups and the contract in the server repository,
    then link the feature from the app.

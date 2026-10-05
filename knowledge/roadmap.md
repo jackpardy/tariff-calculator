@@ -62,7 +62,7 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 
 | # | Area | What it does | Builds on |
 |---|---|---|---|
-| 1 | **Card collection and checking** (first) | Organiser shares a submit link; gymnasts or club competition secretaries send their routines before the deadline; the organiser and difficulty judges see every card already checked against its level, print them, mark them checked, and export CSV | requirements, levels, tariff sheet, sharing |
+| 1 | **Card collection and checking** (first) | Members keep their entries with their club and change them freely; the club's competition secretary sends them to the competition (individuals can enter directly where allowed); the organiser and difficulty judges see every card already checked against its level, print them, mark them checked, and export CSV | requirements, levels, tariff sheet, sharing |
 | 2 | Difficulty judge helper | Tap elements as they're performed, compared live with the submitted card: changes, interruptions, the new tariff | picker, search, validation |
 | 3 | Timetable and flight planner | Entries per category, panels and minutes per competitor give flights, running orders and estimated times; printable marshal and chair-of-judges sheets | — |
 | 4 | Officials rota | Judges, recorders, marshals and spotters per panel and flight, with clashes flagged | 3 |
@@ -76,7 +76,7 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 |---|---|---|---|
 | 1 | Routine suggester | From the skills a gymnast can do and a chosen level, suggests legal routines (landing to take-off, no repeats, requirements, caps), highest tariff first | skills, requirements |
 | 2 | Skill tracking | Coaches tick skills per gymnast (club link); each gymnast sees what's next and which levels they're ready for | catalog, 1 |
-| 3 | Club competition secretary | Collect members' levels and cards for an upcoming competition, grouped by club; export for TrampOnline entry | competitions 1 |
+| 3 | Club competition secretary | Now part of card collection (competitions 1): members' entries gathered by the club and sent to each competition; still to add: export for TrampOnline entry | competitions 1 |
 | 4 | Session planner | Trampolines, gymnasts and session time give a turn rotation with spotters and coach ratio, on a phone | — |
 | 5 | Judge and coach practice | Tariff and FIG-notation quizzes, card-checking practice with planted errors | engine |
 | 6 | Committee handover kit | Safety checks, incident log and policy templates (mostly documents) | — |
