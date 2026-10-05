@@ -88,7 +88,7 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
   link and a share or submit link, like a form. Personal data is kept to names
   and clubs and deleted after the event. Accounts can come later.
 - **Competition card collection is the first thing to build.** Its design goes
-  in ADR 0004 (server storage with secret links), amending ADR 0001's plan for
+  in [ADR 0004](../docs/adr/0004-server-storage-secret-links.md) (server storage with secret links), amending ADR 0001's plan for
   accounts.
 - **Hosting is a blocker for storage.** Render's free web service has no
   persistent disk, so a database there would be wiped on every deploy.

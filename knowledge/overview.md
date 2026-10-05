@@ -51,7 +51,7 @@ it needs.
 
 # Decisions
 
-The architecture is recorded in three ADRs:
+The architecture is recorded in four ADRs:
 
 - [ADR 0001](../docs/adr/0001-architecture.md): Go full stack with the `skills`
   package as the single source of truth (accepted; its frontend parts are
@@ -60,6 +60,9 @@ The architecture is recorded in three ADRs:
   with templ and htmx (accepted, fully implemented).
 - [ADR 0003](../docs/adr/0003-requirements-framework.md): the requirements
   framework (proposed; implemented).
+- [ADR 0004](../docs/adr/0004-server-storage-secret-links.md): server storage
+  with secret links and no accounts, for competition card collection
+  (proposed; not built yet).
 
 # Related
 

@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-05
+* **Creation**: [ADR 0004](../docs/adr/0004-server-storage-secret-links.md)
+  (proposed): SQLite storage with secret links and no accounts, for
+  competition card collection ([roadmap](roadmap.md)).
 * **Creation**: A [roadmap](roadmap.md) for competitions and clubs, starting
   with competition card collection.
 * **Creation**: A [guide](guide/) for gymnasts and coaches:
