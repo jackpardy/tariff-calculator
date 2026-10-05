@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-05
+* **Update**: Competitions can ask for video proof that a gymnast can perform
+  their routine safely: a link per exercise (an unlisted YouTube video, a
+  Drive file), for chosen skills or the whole routine, reviewed by the
+  organiser. Never uploaded or played in the app
+  ([ADR 0004](../docs/adr/0004-server-storage-secret-links.md) Decision 10,
+  [competition entries](features/competition-entries.md)).
 * **Update**: [Roadmap](roadmap.md) priorities: card collection first, the
   routine suggester moved to the bottom, and ISTO's levels
   ([open questions](open-questions.md)) not expected for a while. The tariff
