@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -551,7 +553,7 @@ func TestTariffSheetPage(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d", rec.Code)
 	}
-	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, "Exercises.values(RoutineStore.current(RoutineStore.load()))", "/static/js/routines.js?v=", "/static/js/sets.js?v=", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v=",
+	for _, want := range []string{`hx-post="/tariff-sheet"`, `hx-trigger="load"`, `hx-vals="js:{...Exercises.values(RoutineStore.current(RoutineStore.load()))}"`, "/static/js/routines.js?v=", "/static/js/sets.js?v=", `onclick="window.print()"`, "/static/css/sheet.css?v=", "/static/js/htmx.min.js?v=",
 		// Optional parts of the sheet.
 		`id="show-names" data-hides="hide-names" checked`, "/static/js/sheet.js?v=",
 		`id="show-req" data-hides="hide-req" checked`, `id="show-judge" data-hides="hide-judge" checked`,
@@ -566,6 +568,28 @@ func TestTariffSheetPage(t *testing.T) {
 	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	if !strings.Contains(rec.Body.String(), `href="/tariff-sheet" target="_blank"`) {
 		t.Errorf("the calculator should link to the tariff sheet")
+	}
+}
+
+// TestJSValsAreObjects guards every js: hx-vals in the templates: htmx wraps a
+// value that doesn't start with "{" in braces, so a bare call such as
+// "js:Exercises.values(...)" becomes an invalid object literal and the request
+// never fires (the tariff sheet stayed on "Loading" this way).
+func TestJSValsAreObjects(t *testing.T) {
+	files, err := filepath.Glob("views/*.templ")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no templates found: %v", err)
+	}
+	for _, f := range files {
+		data, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range regexp.MustCompile(`hx-vals="js:([^"]*)"`).FindAllStringSubmatch(string(data), -1) {
+			if !strings.HasPrefix(strings.TrimSpace(m[1]), "{") {
+				t.Errorf("%s: hx-vals %q must be an object literal, e.g. js:{...%s}", f, m[0], m[1])
+			}
+		}
 	}
 }
 

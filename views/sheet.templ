@@ -58,7 +58,7 @@ templ TariffSheetPage() {
 				id="tariff-sheet"
 				hx-post="/tariff-sheet"
 				hx-trigger="load"
-				hx-vals="js:Exercises.values(RoutineStore.current(RoutineStore.load()))"
+				hx-vals="js:{...Exercises.values(RoutineStore.current(RoutineStore.load()))}"
 				hx-on:htmx:response-error="this.querySelector('.loading').textContent = 'Could not build the sheet: ' + event.detail.xhr.responseText"
 			>
 				<p class="loading screen-only">Loading the current routine saved in this browser...</p>
