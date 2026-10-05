@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-05
+* **Creation**: [Competition entries](features/competition-entries.md)
+  (planned): the organiser's dashboard, one-entry view, printing and export,
+  and what comp secs and members see.
 * **Creation**: [ADR 0004](../docs/adr/0004-server-storage-secret-links.md)
   (accepted): SQLite storage with secret links and no accounts, for
   competition card collection ([roadmap](roadmap.md)). Members enter through

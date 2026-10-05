@@ -62,7 +62,7 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 
 | # | Area | What it does | Builds on |
 |---|---|---|---|
-| 1 | **Card collection and checking** (first) | Members keep their entries with their club and change them freely; the club's competition secretary sends them to the competition (individuals can enter directly where allowed); the organiser and difficulty judges see every card already checked against its level, print them, mark them checked, and export CSV | requirements, levels, tariff sheet, sharing |
+| 1 | **Card collection and checking** (first; [what each person sees](features/competition-entries.md)) | Members keep their entries with their club and change them freely; the club's competition secretary sends them to the competition (individuals can enter directly where allowed); the organiser and difficulty judges see every card already checked against its level, print them, mark them checked, and export CSV | requirements, levels, tariff sheet, sharing |
 | 2 | Difficulty judge helper | Tap elements as they're performed, compared live with the submitted card: changes, interruptions, the new tariff | picker, search, validation |
 | 3 | Timetable and flight planner | Entries per category, panels and minutes per competitor give flights, running orders and estimated times; printable marshal and chair-of-judges sheets | — |
 | 4 | Officials rota | Judges, recorders, marshals and spotters per panel and flight, with clashes flagged | 3 |
