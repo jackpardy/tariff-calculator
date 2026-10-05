@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-05
+* **Update**: View with two routines side by side shows both (each column also
+  has its own View), and a level being worked on can be shared by link with
+  its routines.
 * **Update**: Set routines are built in the Routine Builder (More → Save as a
   set routine) or made from a routine already built, and edited there; the
   requirements editor no longer writes them element by element. The level

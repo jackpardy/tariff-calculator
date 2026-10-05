@@ -15,19 +15,27 @@ without scrolling, and nothing is shown that the coach hasn't asked for.
 
 # Opening it
 
-The **View** button in the [routine builder](routine-builder.md) opens
-`/view?routine=<id>` for the current routine in a new tab. If the routine is
-checked against a [level](../requirements/levels.md), the view shows the
-level: both exercises' chosen tabs, and the level's **other set routine
-options**, in exercise and option order, named as the tabs are. A BUCS L7
-routine shows Set 1, Set 2 and the Voluntary. The page posts which option each
-exercise is on (`optionRef`, `pairOptionRef`), the tab names (`tabNames`) and,
-for a custom level, its custom requirements (`optionSets`). The server builds
-each option with `requirements.SetRoutine`. Options for a voluntary that
-aren't chosen are requirements, not skills, so they don't show. A select in the bar switches to another
-saved routine or level, and the choice is kept in the
-URL. The view re-renders when the routines change in another tab, so it can
-stay open beside the builder.
+The **View** button in the [routine builder](routine-builder.md) opens what's
+on screen in a new tab:
+
+- one routine: `/view?routine=<id>`;
+- two routines side by side: `/view?routine=<id>&beside=<id>`, each checked
+  against its own requirements (`besideData`, `besideSet`, `besideChecks`,
+  `besideName`). Each column also has its own **View** for just that routine;
+- in Levels mode, the [level](../requirements/levels.md):
+  `/view?entry=<id>`, with both exercises' choices (set routines as
+  prescribed, voluntaries as their routines) and the level's **other set
+  routine options**, in exercise and option order, named as the tabs are. A
+  BUCS L7 entry shows Set 1, Set 2 and the Voluntary. The page posts which
+  option each exercise is on (`optionRef`, `pairOptionRef`), the tab names
+  (`tabNames`) and, for a custom level, its custom requirements
+  (`optionSets`). The server builds each set routine with
+  `requirements.SetRoutine`; a voluntary that isn't chosen is requirements, not
+  skills, so it doesn't show.
+
+A select in the bar switches to another saved routine or level, and the choice
+is kept in the URL. The view re-renders when the routines or levels change in
+another tab, so it can stay open beside the builder.
 
 # Layout
 

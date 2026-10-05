@@ -66,7 +66,8 @@ mode (Routines | Levels at the top of the Routine Builder):
 
 - **+ New level** starts a level entry; a coach can keep several for the same
   level (e.g. one per gymnast), and rename or delete them under More. Deleting
-  one keeps its routines.
+  one keeps its routines. **Share** shares it by link, with its voluntaries'
+  routines ([sharing](../features/sharing.md)).
 - The level's tabs sit above its columns: BUCS L7 is **Set 1 · Set 2 ·
   Voluntary**, FIG AG1 **1st voluntary · 2nd voluntary**, BG Club L1 just the
   set routine. **Side by side with** shows a second tab beside the open one; a
