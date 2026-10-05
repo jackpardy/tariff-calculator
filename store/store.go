@@ -137,6 +137,10 @@ var migrations = []string{
 		UNIQUE (competition_id, member_id)
 	);
 	CREATE INDEX entries_club ON entries (club_id);`,
+
+	// 2: the organiser marks entries checked, with a note back to the club or gymnast.
+	`ALTER TABLE entries ADD COLUMN checked_at TEXT;
+	ALTER TABLE entries ADD COLUMN note TEXT NOT NULL DEFAULT '';`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 
 	"tariffCalculator/requirements"
@@ -41,6 +42,10 @@ type CompetitionLinks struct {
 type Dashboard struct {
 	Base         string // the admin link's path, which the dashboard's own links extend
 	New          string // "created" or "replaced" just after the admin link was made, to say to save it
+	Notice       string // what just happened
+	DeadlineDate string // the closing time, for changing it
+	DeadlineTime string
+	Unchecked    int // entries not checked yet
 	Competition  CompetitionSummary
 	Links        CompetitionLinks
 	Clubs        []string // the clubs entered, by name
@@ -64,6 +69,8 @@ type DashboardRow struct {
 	Met, Rules        int
 	Problems          []string
 	Sent              string
+	Checked           bool
+	Note              string
 }
 
 // EntryCard is an entry checked exactly as the builder checks a level.
@@ -90,9 +97,12 @@ type ExerciseCard struct {
 // EntryDetail is the organiser's view of one entry.
 type EntryDetail struct {
 	Base        string
+	ID          string
 	Competition CompetitionSummary
 	Card        EntryCard
 	Sent        string
+	Checked     string // when it was marked checked, "" if it isn't
+	Note        string
 }
 
 // EntryForm enters or replaces an individual's entry. Each level's exercises
@@ -136,6 +146,8 @@ type EntryPage struct {
 	Link        string // their personal link, as a full URL
 	JustSaved   bool
 	Sent        string
+	Checked     bool   // the organiser checked it
+	Note        string // the organiser's note
 	Card        EntryCard
 	Form        EntryForm
 	Withdraw    string // where withdrawing posts
@@ -306,10 +318,14 @@ templ CompetitionDashboard(d Dashboard) {
 		if d.New != "" {
 			@newAdminLink(d.Competition, d.Links.Admin, d.New)
 		}
+		if d.Notice != "" {
+			<div class="notification is-success is-light">{ d.Notice }</div>
+		}
 		@competitionFacts(d.Competition)
 		<nav class="level is-mobile comp-counts">
 			@count(d.Entries, "entries")
 			@count(d.WithProblems, "with problems")
+			@count(d.Unchecked, "not checked")
 			@count(len(d.Clubs), "clubs")
 		</nav>
 		<details class="box comp-manage">
@@ -319,6 +335,21 @@ templ CompetitionDashboard(d Dashboard) {
 			}
 			if d.Competition.Individuals {
 				@linkBox("Individual entry link", d.Links.Individual, "Anyone with it can enter on their own.")
+			}
+			<form method="post" action={ templ.SafeURL(d.Base + "/deadline") } class="mb-3">
+				<label class="label is-small">Entries close</label>
+				<div class="comp-deadline mb-2">
+					<input class="input is-small" name="deadlineDate" type="date" required value={ d.DeadlineDate } aria-label="Closing date"/>
+					<input class="input is-small" name="deadlineTime" type="time" required value={ d.DeadlineTime } aria-label="Closing time"/>
+					<button class="button is-small" type="submit">Change</button>
+				</div>
+			</form>
+			if d.Competition.Open {
+				<form method="post" action={ templ.SafeURL(d.Base + "/deadline") } class="mb-3">
+					<input type="hidden" name="close" value="1"/>
+					<button class="button is-small" type="submit">Close entries now</button>
+					<p class="help">Nobody can send or change entries after that, unless you change the closing time again.</p>
+				</form>
 			}
 			<form method="post" action={ templ.SafeURL(d.Base + "/individuals") } class="mb-3">
 				if d.Competition.Individuals {
@@ -359,11 +390,23 @@ templ CompetitionDashboard(d Dashboard) {
 			</label>
 			<noscript><button class="button is-small" type="submit">Filter</button></noscript>
 		</form>
+		if d.Entries > 0 {
+			<div class="buttons">
+				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) }>Print cards</a>
+				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards?unchecked=1") }>Print cards not checked</a>
+				<a class="button is-small" href={ templ.SafeURL(d.Base + "/entries.csv") } download>Download CSV</a>
+			</div>
+		}
 		if d.Entries == 0 {
 			<p class="has-text-grey">No entries yet. Clubs send theirs through the club link; individuals enter through theirs.</p>
 		}
 		for _, l := range d.Levels {
-			<h2 class="title is-5 mt-5">{ l.Name } <span class="has-text-grey is-size-6">({ strconv.Itoa(len(l.Rows)) })</span></h2>
+			<h2 class="title is-5 mt-5">
+				{ l.Name } <span class="has-text-grey is-size-6">({ strconv.Itoa(len(l.Rows)) })</span>
+				if len(l.Rows) > 0 {
+					<a class="is-size-7 has-text-weight-normal ml-2" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) }>Print this level</a>
+				}
+			</h2>
 			if len(l.Rows) == 0 {
 				<p class="has-text-grey is-size-7">None</p>
 			} else {
@@ -378,6 +421,7 @@ templ CompetitionDashboard(d Dashboard) {
 								<th>Requirements</th>
 								<th>Problems</th>
 								<th>Sent</th>
+								<th>Checked</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -403,6 +447,16 @@ templ CompetitionDashboard(d Dashboard) {
 										}
 									</td>
 									<td>{ r.Sent }</td>
+									<td title={ r.Note }>
+										if r.Checked {
+											✓
+										} else {
+											–
+										}
+										if r.Note != "" {
+											<span class="has-text-grey" aria-label="Has a note"> ✎</span>
+										}
+									</td>
 								</tr>
 							}
 						</tbody>
@@ -450,6 +504,28 @@ templ CompetitionEntry(d EntryDetail) {
 		<p class="mb-3"><a href={ templ.SafeURL(d.Base) }>← All entries</a></p>
 		@entryCard(d.Card)
 		<p class="has-text-grey is-size-7 mt-4">Sent { d.Sent }.</p>
+		<div class="box mt-4">
+			<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/check") }>
+				if d.Checked != "" {
+					<p class="mb-2"><strong>✓ Checked</strong> <span class="has-text-grey is-size-7">{ d.Checked }</span></p>
+				}
+				<div class="field">
+					<label class="label is-small" for="check-note">Note for the club or gymnast</label>
+					<textarea class="textarea is-small" id="check-note" name="note" rows="2" maxlength="500" placeholder="e.g. Element 7 repeats element 3: please change it">{ d.Note }</textarea>
+				</div>
+				<div class="buttons">
+					if d.Checked == "" {
+						<button class="button is-primary is-small" type="submit" name="checked" value="1">Mark checked</button>
+						<button class="button is-small" type="submit" name="checked" value="0">Save the note</button>
+					} else {
+						<button class="button is-small" type="submit" name="checked" value="1">Save the note</button>
+						<button class="button is-small" type="submit" name="checked" value="0">Unmark</button>
+					}
+					<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards?entry=" + d.ID) }>Print card</a>
+				</div>
+				<p class="help">If the entry changes after you check it, it needs checking again. The note stays.</p>
+			</form>
+		</div>
 	}
 }
 
@@ -659,6 +735,10 @@ templ CompetitionEntryPage(p EntryPage) {
 		<div data-entry-link={ p.Link } data-entry-name={ p.Card.Gymnast + " · " + p.Competition.Name }>
 			@linkBox("Your personal link (keep it to yourself)", p.Link, "")
 		</div>
+		if p.Checked {
+			<p class="mb-2"><strong>✓ Checked by the organiser.</strong></p>
+		}
+		@organiserNote(p.Note)
 		@entryCard(p.Card)
 		<p class="has-text-grey is-size-7">Entered { p.Sent }.</p>
 		if p.Competition.Open {
@@ -675,5 +755,86 @@ templ CompetitionEntryPage(p EntryPage) {
 			</form>
 			@privacyNote(p.Competition)
 		}
+	}
+}
+
+// filterQuery is the dashboard's filter as a query for the cards page, for one
+// level or ("") all.
+func filterQuery(d Dashboard, level string) string {
+	q := url.Values{}
+	if level != "" {
+		q.Set("level", level)
+	}
+	if d.Club != "" {
+		q.Set("club", d.Club)
+	}
+	if d.ProblemsOnly {
+		q.Set("problems", "1")
+	}
+	if len(q) == 0 {
+		return ""
+	}
+	return "?" + q.Encode()
+}
+
+// CardsPage is a set of competition cards to print, one exercise per page.
+type CardsPage struct {
+	Title string
+	Back  string
+	Cards []PrintedCard
+}
+
+// PrintedCard is one exercise's card, its details filled in.
+type PrintedCard struct {
+	Validation skills.RoutineValidation
+	Required   map[int]bool
+	Checks     Checks
+	Details    SheetDetails
+}
+
+// CompetitionCards prints competition cards, one per page.
+templ CompetitionCards(p CardsPage) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="robots" content="noindex"/>
+			<title>{ p.Title }</title>
+			<meta name="app-version" content={ static.Version }/>
+			<script defer src={ static.URL("js/version.js") }></script>
+			<link rel="stylesheet" href={ static.URL("css/sheet.css") }/>
+		</head>
+		<body>
+			<div class="toolbar screen-only">
+				<a href={ templ.SafeURL(p.Back) }>← Entries</a>
+				<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
+				<span>{ cardCount(len(p.Cards)) }</span>
+			</div>
+			if len(p.Cards) == 0 {
+				<p class="hint">No entries to print.</p>
+			}
+			for _, c := range p.Cards {
+				<section class="card-page">
+					@TariffSheet(c.Validation, c.Required, c.Checks, c.Details)
+				</section>
+			}
+		</body>
+	</html>
+}
+
+func cardCount(n int) string {
+	if n == 1 {
+		return "1 card"
+	}
+	return fmt.Sprintf("%d cards", n)
+}
+
+// organiserNote is the organiser's note on an entry, for the club or gymnast.
+templ organiserNote(note string) {
+	if note != "" {
+		<div class="notification is-info is-light">
+			<p><strong>Note from the organiser:</strong> { note }</p>
+		</div>
 	}
 }

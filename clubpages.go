@@ -136,7 +136,7 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		for _, e := range mine {
 			has[e.MemberID] = true
 			entered[e.MemberID]++
-			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Level, Status: "Sent"}
+			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Level, Status: "Sent", Note: e.Note}
 			switch {
 			case !e.Sent():
 				row.Status = "Not sent"
@@ -144,6 +144,8 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 			case e.ChangedSinceSent():
 				row.Status = "Changed since sent"
 				cc.ToSend++
+			case e.Checked:
+				row.Status = "Sent · checked ✓"
 			}
 			if checked, err := c.Check(e.Entry); err != nil {
 				row.Problems = 1
@@ -544,11 +546,14 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 				return
 			}
 			mc.Card = &shown
+			mc.Note = e.Note
 			switch {
 			case !e.Sent():
 				mc.Status = "Saved, not sent yet"
 			case e.ChangedSinceSent():
 				mc.Status = "Changed since your club sent it"
+			case e.Checked:
+				mc.Status = "Sent by your club · checked by the organiser ✓"
 			default:
 				mc.Status = "Sent by your club"
 			}

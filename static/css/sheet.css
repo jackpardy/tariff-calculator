@@ -77,3 +77,10 @@ th.element { text-align: center; border-bottom: 1px solid #000; }
     .hint, .warnings { padding: 0 1rem; }
     .fig { width: auto; }
 }
+
+/* Competition cards (views.CompetitionCards): one per printed page. */
+.card-page + .card-page { margin-top: 2rem; }
+@media print {
+    .card-page { break-after: page; }
+    .card-page + .card-page { margin-top: 0; }
+}

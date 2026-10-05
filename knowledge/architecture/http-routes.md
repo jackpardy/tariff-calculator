@@ -46,6 +46,10 @@ every page answers 503.
 | `POST /competitions` | `name`, `date`, `deadlineDate`, `deadlineTime` (Irish and UK time), `individuals`, each built-in `level`, each of the browser's own levels as `custom` (`{level, sets}`) | 303 to the dashboard with `?new=created`; 422 with the problems; 429 after 5 an hour from one address |
 | `GET /competitions/admin/{token}` | optional `club` (a club's name or `individual`), `problems=1`, `new` | The organiser's dashboard |
 | `GET /competitions/admin/{token}/entries/{id}` | — | One entry, checked |
+| `POST /competitions/admin/{token}/entries/{id}/check` | `checked` (`1`/`0`), `note` | Marks the entry checked or not, with a note the club or gymnast sees |
+| `GET /competitions/admin/{token}/cards` | optional `club`, `problems=1`, `unchecked=1`, `level`, `entry` | Printable competition cards (the [tariff sheet](../features/tariff-sheet.md), filled in), one exercise per page |
+| `GET /competitions/admin/{token}/entries.csv` | — | Every entry as CSV: gymnast, club, level, each exercise and its difficulty, problems, checked, note, sent |
+| `POST /competitions/admin/{token}/deadline` | `close=1`, or `deadlineDate` and `deadlineTime` | Closes entries now, or changes when they close (by the end of the competition date) |
 | `POST /competitions/admin/{token}/individuals` | `on` (`1`/`0`) | Turns individual entry on or off |
 | `POST /competitions/admin/{token}/replace-link` | — | 303 to the new admin link, `?new=replaced` |
 | `POST /competitions/admin/{token}/delete` | `confirm=1` | Deletes the competition and its entries |
@@ -81,4 +85,6 @@ check rather than failing the request.
 - Official names are always re-derived and never taken from input.
 - Every response carries `X-App-Version` ([static assets](static-assets.md#update-notice)).
 - `PORT` sets the port (default 8080). `DATA_DIR` turns on competition
-  storage there (SQLite); unset, it's off.
+  storage there (SQLite); unset, it's off. With storage on, competitions 120
+  days past their date and clubs unused for 120 days are deleted at start-up
+  and every 6 hours.

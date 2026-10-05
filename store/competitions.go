@@ -112,12 +112,17 @@ type Entry struct {
 	Individual    bool
 	Entry         competitions.Entry
 	SentAt        time.Time
+	CheckedAt     time.Time // when the organiser marked it checked; zero if not, or changed since
+	Note          string    // the organiser's note back to the club or gymnast
 }
+
+// Checked says whether the organiser has checked the entry as it is now.
+func (e Entry) Checked() bool { return !e.CheckedAt.IsZero() }
 
 // Entries are everything entered for a competition: clubs' entries by club,
 // then individuals', each by gymnast.
 func (s *Store) Entries(ctx context.Context, competitionID string) ([]Entry, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at
+	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note
 		FROM entries WHERE competition_id = $1
 		ORDER BY individual, club_name, gymnast, id`, competitionID)
 	if err != nil {
@@ -138,14 +143,14 @@ func (s *Store) Entries(ctx context.Context, competitionID string) ([]Entry, err
 // scanEntry reads a row of entries, as Entries selects it.
 func scanEntry(row interface{ Scan(...any) error }) (Entry, error) {
 	var e Entry
-	var entry, sent string
-	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent); err != nil {
+	var entry, sent, checked string
+	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note); err != nil {
 		return Entry{}, notFound(err)
 	}
 	if err := json.Unmarshal([]byte(entry), &e.Entry); err != nil {
 		return Entry{}, fmt.Errorf("reading entry %s: %w", e.ID, err)
 	}
-	e.SentAt = parseTime(sent)
+	e.SentAt, e.CheckedAt = parseTime(sent), parseTime(checked)
 	return e, nil
 }
 
@@ -202,7 +207,7 @@ func (s *Store) AddIndividualEntry(ctx context.Context, competitionID string, e 
 
 // IndividualEntry is the entry an individual's personal link opens.
 func (s *Store) IndividualEntry(ctx context.Context, token string) (Entry, error) {
-	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at
+	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note
 		FROM entries WHERE token_hash = $1`, hash(token)))
 }
 
@@ -220,7 +225,8 @@ func (s *Store) ReplaceIndividualEntry(ctx context.Context, token string, e comp
 		if err := s.open(ctx, tx, competitionID); err != nil {
 			return err
 		}
-		return affected(tx.ExecContext(ctx, `UPDATE entries SET entry = $1, gymnast = $2, sent_at = $3 WHERE token_hash = $4`, string(data), e.Gymnast, s.stamp(), hash(token)))
+		return affected(tx.ExecContext(ctx, `UPDATE entries SET entry = $1, gymnast = $2, sent_at = $3,
+			checked_at = CASE WHEN entry = $1 THEN checked_at ELSE NULL END WHERE token_hash = $4`, string(data), e.Gymnast, s.stamp(), hash(token)))
 	})
 }
 
@@ -268,6 +274,23 @@ func (s *Store) SetIndividuals(ctx context.Context, id string, on bool) error {
 
 // CompetitionEntry is one of a competition's entries, by id.
 func (s *Store) CompetitionEntry(ctx context.Context, competitionID, id string) (Entry, error) {
-	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at
+	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note
 		FROM entries WHERE competition_id = $1 AND id = $2`, competitionID, id))
+}
+
+// MarkChecked marks an entry checked (or not) with a note for the club or
+// gymnast. Changing the entry afterwards unchecks it; the note stays.
+func (s *Store) MarkChecked(ctx context.Context, competitionID, id string, checked bool, note string) error {
+	var at any
+	if checked {
+		at = s.stamp()
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE entries SET checked_at = $1, note = $2 WHERE competition_id = $3 AND id = $4`,
+		at, note, competitionID, id))
+}
+
+// SetDeadline changes when a competition's entries close: now to close them,
+// later to reopen or extend them.
+func (s *Store) SetDeadline(ctx context.Context, id string, deadline time.Time) error {
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET deadline = $1 WHERE id = $2`, deadline.UTC().Format(timeLayout), id))
 }
