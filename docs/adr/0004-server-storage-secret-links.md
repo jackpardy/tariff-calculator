@@ -1,6 +1,6 @@
 # ADR 0004 — Server storage with secret links, no accounts
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-05
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0001 §3 (persistence) and its roadmap, which tied storage to

@@ -62,7 +62,7 @@ The architecture is recorded in four ADRs:
   framework (proposed; implemented).
 - [ADR 0004](../docs/adr/0004-server-storage-secret-links.md): server storage
   with secret links and no accounts, for competition card collection
-  (proposed; not built yet).
+  (accepted; not built yet).
 
 # Related
 

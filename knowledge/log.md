@@ -2,7 +2,7 @@
 
 ## 2026-10-05
 * **Creation**: [ADR 0004](../docs/adr/0004-server-storage-secret-links.md)
-  (proposed): SQLite storage with secret links and no accounts, for
+  (accepted): SQLite storage with secret links and no accounts, for
   competition card collection ([roadmap](roadmap.md)). Members enter through
   their club, whose competition secretary sends entries to each competition;
   individuals can enter directly where the organiser allows.
