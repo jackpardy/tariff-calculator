@@ -1,10 +1,10 @@
 ---
 type: Feature
 title: Competition entries (planned)
-description: What organisers, club competition secretaries and members will see when entries are collected for a competition. Organisers get an overview of every entry with its problems, a full view of any one entry, printed cards and an export.
+description: What organisers, club competition secretaries and members will see when entries are collected for a competition. Organisers get an overview of every entry with its problems, a full view of any one entry, printed cards, an export, and optional video proof by link.
 tags: [feature, competitions, clubs, planned]
 status: draft
-generated: { by: claude-code/cli, at: 2026-10-05T16:00:00Z }
+generated: { by: claude-code/cli, at: 2026-10-05T16:30:00Z }
 sources:
   - id: adr-0004
     resource: ../../docs/adr/0004-server-storage-secret-links.md
@@ -26,11 +26,11 @@ organiser's first need is an **overview of every entry with its problems**.
 There is one table per level, which can be filtered by club or to "problems
 only":
 
-| Gymnast | Club | 1st exercise | 2nd exercise | Requirements | Problems | Sent | Checked |
-|---|---|---|---|---|---|---|---|
-| A. Murphy | UCD | Set 1 | 4.6 | 5/5 ✓ | – | 3 Mar, 21:04 | ✓ |
-| B. Kelly | DCU | Set 2 | 5.9 | 4/5 ✗ | Repeat (element 7) | 4 Mar (changed since) | – |
-| C. Ryan | individual | 2.1 | 6.2 | 9/10 ✗ | 10th lands on back | 5 Mar | – |
+| Gymnast | Club | 1st exercise | 2nd exercise | Requirements | Problems | Video | Sent | Checked |
+|---|---|---|---|---|---|---|---|---|
+| A. Murphy | UCD | Set 1 | 4.6 | 5/5 ✓ | – | not needed | 3 Mar, 21:04 | ✓ |
+| B. Kelly | DCU | Set 2 | 5.9 | 4/5 ✗ | Repeat (element 7) | missing | 4 Mar (changed since) | – |
+| C. Ryan | individual | 2.1 | 6.2 | 9/10 ✗ | 10th lands on back | provided | 5 Mar | – |
 
 - Counts at the top: entries per level and club, how many have problems, how
   many aren't checked yet, and any late ones.
@@ -50,6 +50,10 @@ carry-over) and each requirement with ✓ or ✗. Two buttons:
   sec and the member.
 - **Print card.**
 
+If the competition asks for video, the entry also lists the skills that need
+it, the member's link for each exercise (opens in a new tab) with its note,
+and **Video OK** or **Need more** (with a note back to the club).
+
 The organiser never edits a routine. A problem goes back to the club as a note.
 The club fixes it and sends it again.
 
@@ -62,18 +66,31 @@ The club fixes it and sends it again.
 - **CSV** for the scoring system (name, club, level, tariff per exercise), and
   a single PDF of all cards.
 
+## Video proof
+
+When creating the competition, the organiser chooses whether video proof is
+needed: **none**, **for some skills** (described like a requirement, e.g. "any
+triple" or "tariff 1.5 or more") or **whole routine**. Videos are links (an
+unlisted YouTube video, a Drive file shared with anyone with the link, Vimeo,
+Dropbox or OneDrive), never uploaded, and never played inside the app (ADR
+0004 Decision 10).[^adr-0004]
+
 # The club's comp sec (club admin link)
 
 The same table, but for the club's members only, by competition. It has
 **Send** and **Re-send changed** buttons, shows the organiser's notes, lists
-the members with their personal links (to send again), and lets the comp sec
-edit an entry on a member's behalf.
+the members with their personal links (to send again), shows which members are
+still missing a required video, and lets the comp sec edit an entry on a
+member's behalf.
 
 # A member (personal link)
 
 Each of their entries per competition: the level, the routine(s), the check
-result, and whether it has been **sent** or **changed since sent**. They can
-replace the level or routine at any time until the deadline.
+result, and whether it has been **sent** or **changed since sent**. Where the
+competition asks for video, the entry says which skills need it ("Video needed
+for: Triple Back") and has a field for a link per exercise, with a reminder to
+make a YouTube video unlisted, not private. They can replace the level or
+routine at any time until the deadline.
 
 # Built from
 

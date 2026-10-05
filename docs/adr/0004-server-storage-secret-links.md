@@ -1,7 +1,7 @@
 # ADR 0004 — Server storage with secret links, no accounts
 
 - **Status:** Accepted
-- **Date:** 2026-10-05
+- **Date:** 2026-10-05 (Decision 10, video proof, added the same day)
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0001 §3 (persistence) and its roadmap, which tied storage to
   accounts ("accounts only when save routines forces it")
@@ -119,8 +119,8 @@ Constraints:
    from the binary.
 
 6. **Minimal personal data, deleted automatically.** An entry holds the
-   gymnast's name, club, level and routines; a club holds its name and its
-   members' names. There are no emails, dates of
+   gymnast's name, club, level and routines, and any video links (Decision
+   10); a club holds its name and its members' names. There are no emails, dates of
    birth or contact details. A competition and its entries are deleted **120
    days after the competition date**, and the organiser can delete them sooner.
    A club and its members' entries are deleted **120 days after the club was last
@@ -141,6 +141,29 @@ Constraints:
 9. **Accounts can come later without undoing this.** If clubs need records that
    last several seasons, an account can own the links it created. Nothing here
    rules out the magic-link accounts ADR 0001 planned.
+
+10. **Video proof is a link, never an upload.** A competition can ask for
+    proof that a gymnast can perform their routine safely:
+    - The organiser chooses **none**, **for some skills** or **whole routine**.
+      "Some skills" is described with the requirements framework's skill
+      matchers (e.g. "any triple", "tariff 1.5 or more"), so each entry shows
+      exactly which of its skills need video ("Video needed for: Triple
+      Back").
+    - The member adds **one link per exercise**, with an optional note of the
+      skills it covers or a timestamp ("Full-in at 0:42").
+    - The server checks only that it is an `https` URL from a known video host
+      (YouTube, Google Drive, Vimeo, Dropbox, OneDrive) and stores the URL with
+      the entry. It never fetches, embeds or plays the video: the organiser
+      opens it in a new tab, so no third-party content or tracking reaches our
+      pages.
+    - Pasting a link explains that a YouTube video must be **unlisted, not
+      private** (a private one plays only for the Google accounts it is shared
+      with), and a Drive file shared with "anyone with the link".
+    - Each video is **missing**, **provided** or **reviewed** (OK, or "need
+      more" with a note back to the club). The comp sec sees missing videos
+      before sending.
+    - Whether a video shows that gymnast performing safely is the organiser's
+      judgement; the app records the link and the review, nothing more.
 
 ## Consequences
 
@@ -168,6 +191,9 @@ Constraints:
   mode and short transactions; the Postgres-compatible SQL keeps a move cheap.
 - **Backups now matter** for this app. *Mitigation:* the data volume goes into
   the server's nightly backup before launch.
+- **Video links can break** (deleted, made private, wrong sharing setting).
+  *Mitigation:* the organiser marks "need more" and the club sends a new link;
+  the paste hint covers the common YouTube and Drive settings.
 - **Hosting is a precondition.** *Mitigation:* build and test locally first,
   then ship once storage is durable (Decision 8).
 
@@ -186,6 +212,10 @@ Constraints:
 - **Browser-only, with share links.** There's no server state, but the
   organiser can't receive submissions without someone gathering links by hand,
   which is today's problem in another form.
+- **Uploading videos to the server.** One place to watch everything, but
+  routine videos are large (disk and nightly backups would fill quickly), and
+  hosting videos of under-18s makes us responsible for them. A link leaves the
+  video under the gymnast's or club's own control.
 - **A hosted database** (Postgres, Firebase). This means more running costs and
   moving parts for no benefit at this scale, and it takes data off the server
   that's already being set up.
@@ -206,5 +236,7 @@ Each step is a separate, shippable branch:
    re-sending to a competition.
 5. Print a level's cards, CSV export, marking cards checked, the deadline lock,
    and automatic deletion.
-6. Hosting: a data volume, backups and the contract in the server repository,
+6. Video proof (Decision 10): the organiser's setting, video links on entries,
+   and the review column.
+7. Hosting: a data volume, backups and the contract in the server repository,
    then link the feature from the app.

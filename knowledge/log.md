@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-05
+* **Update**: Competitions can ask for video proof that a gymnast can perform
+  their routine safely: a link per exercise (an unlisted YouTube video, a
+  Drive file), for chosen skills or the whole routine, reviewed by the
+  organiser. Never uploaded or played in the app
+  ([ADR 0004](../docs/adr/0004-server-storage-secret-links.md) Decision 10,
+  [competition entries](features/competition-entries.md)).
 * **Update**: [Deploy](operations/deploy.md): the old Render address now
   redirects to tariff.pardy.ie, keeping the path and any share link; links to
   the server repo point at its GUIDE.md and CONTRACT.md.
