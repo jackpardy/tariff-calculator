@@ -121,7 +121,9 @@ If you repeat one in the second exercise, it's flagged "Can't Repeat: Scored In
 1st Exercise" and doesn't count.
 
 You can keep several entries for the same level, say one per gymnast. Use
-**More → Rename** to name them. Deleting a level keeps its routines.
+**More → Rename** to name them. Deleting a level keeps its routines. **Share**
+(next to the level) sends the level with its voluntary routines, and it opens
+in Levels mode for whoever receives it.
 
 # 5. Write your own requirements (e.g. ISTO)
 
@@ -186,9 +188,11 @@ someone else can **Import**.
 
 # 6. View, print and share
 
-- **View** (top of the Routine Builder) opens the routine full screen, sized to
-  fit without scrolling. In **Levels** mode it shows the whole level: your set
-  routine, your voluntary and the other set routine option. **Show** chooses what appears: skill names, FIG notation, difficulty,
+- **View** (top of the Routine Builder) opens what's on screen full screen,
+  sized to fit without scrolling: one routine, both routines when you have one
+  side by side (each column also has its own **View** for just that routine),
+  or in **Levels** mode the whole level: your set routine, your voluntary and
+  the other set routine option. **Show** chooses what appears: skill names, FIG notation, difficulty,
   level and exercise, requirements met, warnings. **Full screen** hides the
   browser bars (not on iPhone; add the page to your home screen instead).
 - **Tariff Sheet** opens a printable competition card for the current routine.
