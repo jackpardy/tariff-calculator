@@ -30,26 +30,33 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	}
 	out := Competition{ID: newID(), Competition: c, ClubLink: newToken(), IndividualLink: newToken(), CreatedAt: parseTime(s.stamp())}
 	admin := newToken()
+	video, err := json.Marshal(c.Video)
+	if err != nil {
+		return Competition{}, "", fmt.Errorf("encoding video: %w", err)
+	}
 	_, err = s.db.ExecContext(ctx, `INSERT INTO competitions
-		(id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline, individuals, levels, created_at, delete_after)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+		(id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline, individuals, levels, created_at, delete_after, video)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
 		out.ID, hash(admin), out.ClubLink, hash(out.ClubLink), out.IndividualLink, hash(out.IndividualLink),
 		c.Name, c.Date, c.Deadline.UTC().Format(timeLayout), c.Individuals, string(levels),
-		out.CreatedAt.Format(timeLayout), c.DeleteAfter().Format(timeLayout))
+		out.CreatedAt.Format(timeLayout), c.DeleteAfter().Format(timeLayout), string(video))
 	if err != nil {
 		return Competition{}, "", fmt.Errorf("storing the competition: %w", err)
 	}
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
-	var deadline, levels, created string
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created); err != nil {
+	var deadline, levels, created, video string
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video); err != nil {
 		return Competition{}, notFound(err)
+	}
+	if err := json.Unmarshal([]byte(video), &c.Video); err != nil {
+		return Competition{}, fmt.Errorf("reading competition %s's video: %w", c.ID, err)
 	}
 	if err := json.Unmarshal([]byte(levels), &c.Levels); err != nil {
 		return Competition{}, fmt.Errorf("reading competition %s's levels: %w", c.ID, err)
@@ -114,7 +121,16 @@ type Entry struct {
 	SentAt        time.Time
 	CheckedAt     time.Time // when the organiser marked it checked; zero if not, or changed since
 	Note          string    // the organiser's note back to the club or gymnast
+	VideoReview   string    // the organiser's review of its videos: "", VideoOK or VideoMore
+	VideoNote     string    // what more the organiser needs
 }
+
+const (
+	// VideoOK and VideoMore are the organiser's review of an entry's videos:
+	// they show what's needed, or more is needed (VideoNote says what).
+	VideoOK   = "ok"
+	VideoMore = "more"
+)
 
 // Checked says whether the organiser has checked the entry as it is now.
 func (e Entry) Checked() bool { return !e.CheckedAt.IsZero() }
@@ -122,7 +138,7 @@ func (e Entry) Checked() bool { return !e.CheckedAt.IsZero() }
 // Entries are everything entered for a competition: clubs' entries by club,
 // then individuals', each by gymnast.
 func (s *Store) Entries(ctx context.Context, competitionID string) ([]Entry, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note
+	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note
 		FROM entries WHERE competition_id = $1
 		ORDER BY individual, club_name, gymnast, id`, competitionID)
 	if err != nil {
@@ -144,7 +160,7 @@ func (s *Store) Entries(ctx context.Context, competitionID string) ([]Entry, err
 func scanEntry(row interface{ Scan(...any) error }) (Entry, error) {
 	var e Entry
 	var entry, sent, checked string
-	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note); err != nil {
+	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote); err != nil {
 		return Entry{}, notFound(err)
 	}
 	if err := json.Unmarshal([]byte(entry), &e.Entry); err != nil {
@@ -207,7 +223,7 @@ func (s *Store) AddIndividualEntry(ctx context.Context, competitionID string, e 
 
 // IndividualEntry is the entry an individual's personal link opens.
 func (s *Store) IndividualEntry(ctx context.Context, token string) (Entry, error) {
-	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note
+	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note
 		FROM entries WHERE token_hash = $1`, hash(token)))
 }
 
@@ -226,7 +242,8 @@ func (s *Store) ReplaceIndividualEntry(ctx context.Context, token string, e comp
 			return err
 		}
 		return affected(tx.ExecContext(ctx, `UPDATE entries SET entry = $1, gymnast = $2, sent_at = $3,
-			checked_at = CASE WHEN entry = $1 THEN checked_at ELSE NULL END WHERE token_hash = $4`, string(data), e.Gymnast, s.stamp(), hash(token)))
+			checked_at = CASE WHEN entry = $1 THEN checked_at ELSE NULL END,
+			video_review = CASE WHEN entry = $1 THEN video_review ELSE '' END WHERE token_hash = $4`, string(data), e.Gymnast, s.stamp(), hash(token)))
 	})
 }
 
@@ -274,7 +291,7 @@ func (s *Store) SetIndividuals(ctx context.Context, id string, on bool) error {
 
 // CompetitionEntry is one of a competition's entries, by id.
 func (s *Store) CompetitionEntry(ctx context.Context, competitionID, id string) (Entry, error) {
-	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note
+	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note
 		FROM entries WHERE competition_id = $1 AND id = $2`, competitionID, id))
 }
 
@@ -293,4 +310,24 @@ func (s *Store) MarkChecked(ctx context.Context, competitionID, id string, check
 // later to reopen or extend them.
 func (s *Store) SetDeadline(ctx context.Context, id string, deadline time.Time) error {
 	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET deadline = $1 WHERE id = $2`, deadline.UTC().Format(timeLayout), id))
+}
+
+// ReviewVideo records the organiser's review of an entry's videos: VideoOK,
+// VideoMore with a note of what's needed, or "" to clear it. Changing the
+// entry afterwards clears the review; the note stays.
+func (s *Store) ReviewVideo(ctx context.Context, competitionID, id, review, note string) error {
+	if review != "" && review != VideoOK && review != VideoMore {
+		return fmt.Errorf("unknown video review %q", review)
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE entries SET video_review = $1, video_note = $2 WHERE competition_id = $3 AND id = $4`,
+		review, note, competitionID, id))
+}
+
+// SetVideo changes what video proof a competition asks for.
+func (s *Store) SetVideo(ctx context.Context, id string, v competitions.Video) error {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET video = $1 WHERE id = $2`, string(data), id))
 }

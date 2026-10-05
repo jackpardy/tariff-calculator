@@ -50,10 +50,12 @@ every page answers 503.
 | `GET /competitions/admin/{token}/cards` | optional `club`, `problems=1`, `unchecked=1`, `level`, `entry` | Printable competition cards (the [tariff sheet](../features/tariff-sheet.md), filled in), one exercise per page |
 | `GET /competitions/admin/{token}/entries.csv` | — | Every entry as CSV: gymnast, club, level, each exercise and its difficulty, problems, checked, note, sent |
 | `POST /competitions/admin/{token}/deadline` | `close=1`, or `deadlineDate` and `deadlineTime` | Closes entries now, or changes when they close (by the end of the competition date) |
+| `POST /competitions/admin/{token}/video` | `video` (`""`, `skills`, `routine`), `videoTriples`, `videoDoubles`, `videoTariff` | Changes what video proof the competition asks for (also taken by `POST /competitions`) |
+| `POST /competitions/admin/{token}/entries/{id}/video` | `review` (`ok`, `more`, `""`), `note` | The organiser's review of an entry's videos |
 | `POST /competitions/admin/{token}/individuals` | `on` (`1`/`0`) | Turns individual entry on or off |
 | `POST /competitions/admin/{token}/replace-link` | — | 303 to the new admin link, `?new=replaced` |
 | `POST /competitions/admin/{token}/delete` | `confirm=1` | Deletes the competition and its entries |
-| `GET`, `POST /competitions/enter/{token}` | `gymnast`, `level`, `ex1Option`, `ex1Skills`, `ex2Option`, `ex2Skills` | The individual entry form; entering redirects to the personal link |
+| `GET`, `POST /competitions/enter/{token}` | `gymnast`, `level`, `ex1Option`, `ex1Skills`, `ex2Option`, `ex2Skills`, and where video is asked for `ex1Video`, `ex1VideoNote`, `ex2Video`, `ex2VideoNote` | The individual entry form; entering redirects to the personal link |
 | `GET`, `POST /competitions/entry/{token}` | as entering | An individual's own entry, and changing it until the deadline |
 | `POST /competitions/entry/{token}/withdraw` | `confirm=1` | Withdraws and deletes the entry |
 | `GET /competitions` | — | The competitions, clubs and entries this browser has links to |

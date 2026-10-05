@@ -69,6 +69,8 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("GET /competitions/admin/{token}/cards", p.cards)
 	handle("GET /competitions/admin/{token}/entries.csv", p.csvExport)
 	handle("POST /competitions/admin/{token}/deadline", p.deadline)
+	handle("POST /competitions/admin/{token}/video", p.video)
+	handle("POST /competitions/admin/{token}/entries/{id}/video", p.reviewVideo)
 	handle("POST /competitions/admin/{token}/individuals", p.individuals)
 	handle("POST /competitions/admin/{token}/replace-link", p.replaceLink)
 	handle("POST /competitions/admin/{token}/delete", p.delete)
@@ -140,6 +142,7 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 	}
 	c := competitions.Competition{Name: form.Name, Date: form.Date, Individuals: form.Individuals}
 	var problems []string
+	c.Video, form.Video, problems = postedVideo(r)
 	deadline, err := time.ParseInLocation("2006-01-02 15:04", form.DeadlineDate+" "+form.DeadlineTime, local)
 	switch {
 	case err != nil:
@@ -189,6 +192,132 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, adminPath(admin)+"?new=created", http.StatusSeeOther)
 }
 
+// The video proof choices the form offers (views.videoFields), as matchers.
+var (
+	videoTriples = requirements.Matcher{Label: "any triple somersault", Rotation: &requirements.Range{Min: intPtr(12)}}
+	videoDoubles = requirements.Matcher{Label: "any double somersault or more", Rotation: &requirements.Range{Min: intPtr(8)}}
+)
+
+func intPtr(n int) *int { return &n }
+
+// videoTariff is the matcher for any skill of a tariff or more.
+func videoTariff(min float64) requirements.Matcher {
+	return requirements.Matcher{Label: fmt.Sprintf("any skill of tariff %.1f or more", min), Tariff: &requirements.TariffRange{Min: &min}}
+}
+
+// postedVideo reads the video proof chosen (video: "", "skills" or "routine";
+// for skills, videoTriples, videoDoubles and videoTariff), as the form shows
+// it, with any problems.
+func postedVideo(r *http.Request) (competitions.Video, views.VideoForm, []string) {
+	form := views.VideoForm{
+		Need: r.FormValue("video"), Triples: r.FormValue("videoTriples") == "1", Doubles: r.FormValue("videoDoubles") == "1",
+		Tariff: strings.TrimSpace(r.FormValue("videoTariff")),
+	}
+	// Ticking a skill without choosing "some skills" means some skills.
+	if form.Need == competitions.VideoNone && (form.Triples || form.Doubles || form.Tariff != "") {
+		form.Need = competitions.VideoSkills
+	}
+	v := competitions.Video{Need: form.Need}
+	if form.Need != competitions.VideoSkills {
+		return v, form, nil
+	}
+	var problems []string
+	if form.Triples {
+		v.Skills = append(v.Skills, videoTriples)
+	}
+	if form.Doubles {
+		v.Skills = append(v.Skills, videoDoubles)
+	}
+	if form.Tariff != "" {
+		if min, err := strconv.ParseFloat(form.Tariff, 64); err != nil || min <= 0 || min > 5 {
+			problems = append(problems, "The tariff for video should be a number such as 1.5.")
+		} else {
+			v.Skills = append(v.Skills, videoTariff(min))
+		}
+	}
+	return v, form, problems
+}
+
+// videoForm is a competition's video proof as the form shows it.
+func videoForm(v competitions.Video) views.VideoForm {
+	form := views.VideoForm{Need: v.Need}
+	for _, m := range v.Skills {
+		switch {
+		case m.Label == videoTriples.Label:
+			form.Triples = true
+		case m.Label == videoDoubles.Label:
+			form.Doubles = true
+		case m.Tariff != nil && m.Tariff.Min != nil:
+			form.Tariff = strconv.FormatFloat(*m.Tariff.Min, 'f', -1, 64)
+		}
+	}
+	return form
+}
+
+// videoStatus is an entry's video for the dashboard: "" when none is needed or
+// sent, else missing, provided, OK or need more.
+func videoStatus(c competitions.Competition, j judged) string {
+	if j.err != nil || c.Video.Need == competitions.VideoNone {
+		return ""
+	}
+	needs := c.VideoNeeds(j.card)
+	switch {
+	case competitions.VideoMissing(j.Entry.Entry, needs):
+		return "missing"
+	case j.VideoReview == store.VideoOK:
+		return "OK"
+	case j.VideoReview == store.VideoMore:
+		return "need more"
+	case needs[0].Needed || needs[1].Needed || j.Entry.Entry.Exercises[0].Video != "" || j.Entry.Entry.Exercises[1].Video != "":
+		return "provided"
+	}
+	return ""
+}
+
+// video changes the video proof a competition asks for.
+func (p *competitionPages) video(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	v, _, problems := postedVideo(r)
+	changed := c.Competition
+	changed.Video = v
+	if err := changed.Validate(); err != nil {
+		problems = append(problems, sentences(err)...)
+	}
+	notice := "Video proof changed."
+	if len(problems) > 0 {
+		notice = "Video proof wasn't changed: " + strings.Join(problems, " ")
+	} else if err := p.st.SetVideo(r.Context(), c.ID, v); err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+}
+
+// reviewVideo records the organiser's review of an entry's videos (review:
+// "ok", "more" or "" to clear) with a note of what more is needed.
+func (p *competitionPages) reviewVideo(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	note := strings.TrimSpace(r.FormValue("note"))
+	if len([]rune(note)) > 300 {
+		note = string([]rune(note)[:300])
+	}
+	if err := p.st.ReviewVideo(r.Context(), c.ID, r.PathValue("id"), r.FormValue("review"), note); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			failed(w, r, err)
+		} else {
+			badRequest(w, err)
+		}
+		return
+	}
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id"), http.StatusSeeOther)
+}
+
 // sentences splits a validation error into its problems, each a sentence.
 func sentences(err error) []string {
 	var out []string
@@ -216,6 +345,7 @@ func summary(c competitions.Competition, now time.Time) views.CompetitionSummary
 	out := views.CompetitionSummary{
 		Name: c.Name, Date: c.Date, Deadline: c.Deadline.In(local).Format("Monday 2 January 2006, 15:04"),
 		DeleteAfter: c.DeleteAfter().Format("2 January 2006"), Open: c.Open(now), Individuals: c.Individuals,
+		Video: c.Video.Describe(),
 	}
 	if day, err := c.Day(); err == nil {
 		out.Date = day.Format("Monday 2 January 2006")
@@ -302,6 +432,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		Club:  q.Get("club"), ProblemsOnly: q.Get("problems") == "1",
 		Entries: len(entries), New: q.Get("new"), Notice: q.Get("notice"),
 		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
+		Video: videoForm(c.Video),
 	}
 	if d.New != "" {
 		d.Links.Admin = origin(r) + adminPath(r.PathValue("token"))
@@ -337,6 +468,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		row := views.DashboardRow{
 			ID: j.ID, Gymnast: j.Entry.Entry.Gymnast, Club: j.club, Problems: j.problems,
 			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note,
+			Video: videoStatus(c.Competition, j),
 		}
 		if j.err == nil {
 			for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
@@ -426,7 +558,7 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", fileName(c.Name)+".csv"))
 	out := csv.NewWriter(w)
-	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent"})
+	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent", "Video"})
 	all := judge(c.Competition, entries)
 	for _, level := range levelOrder(c.Competition, all) {
 		for _, j := range all {
@@ -437,7 +569,7 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 			if j.Individual {
 				club = "Individual"
 			}
-			row := []string{j.Entry.Entry.Gymnast, club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04")}
+			row := []string{j.Entry.Entry.Gymnast, club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j)}
 			if j.err == nil {
 				for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
 					row[3+2*i] = ex.SetName
@@ -559,7 +691,7 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.CompetitionEntry(views.EntryDetail{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
 		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
-		ID: e.ID, Checked: checkedText(e), Note: e.Note,
+		ID: e.ID, Checked: checkedText(e), Note: e.Note, VideoReview: e.VideoReview, VideoNote: e.VideoNote,
 	}))
 }
 
@@ -601,6 +733,9 @@ func card(c competitions.Competition, e competitions.Entry, club string) (views.
 		out.Exercises[i] = card
 	}
 	out.Exercises[0].Carried, out.Exercises[1].Repeated = checked.Carried, checked.Repeated
+	for i, need := range c.VideoNeeds(checked) {
+		out.Exercises[i].Video = views.VideoView{Needed: need.Needed, Skills: need.Skills, Link: e.Exercises[i].Video, Note: e.Exercises[i].VideoNote}
+	}
 	return out, nil
 }
 
@@ -649,7 +784,7 @@ func (p *competitionPages) delete(w http.ResponseWriter, r *http.Request) {
 
 // entryForm is the form for entering a competition, starting from e.
 func entryForm(c competitions.Competition, e competitions.Entry, action, submit string) views.EntryForm {
-	f := views.EntryForm{Action: action, Submit: submit, Gymnast: e.Gymnast, Level: e.Level}
+	f := views.EntryForm{Action: action, Submit: submit, Gymnast: e.Gymnast, Level: e.Level, Video: c.Video.Describe()}
 	for _, l := range c.Levels {
 		level, err := l.Resolve()
 		if err != nil {
@@ -668,6 +803,7 @@ func entryForm(c competitions.Competition, e competitions.Entry, action, submit 
 			}
 			if level.Name == e.Level {
 				ex.Chosen = e.Exercises[n].Option
+				ex.Video, ex.Note = e.Exercises[n].Video, e.Exercises[n].VideoNote
 				if len(e.Exercises[n].Skills) > 0 {
 					data, _ := json.Marshal(e.Exercises[n].Skills)
 					ex.Skills, ex.Count = string(data), len(e.Exercises[n].Skills)
@@ -693,6 +829,9 @@ func postedEntry(r *http.Request, c competitions.Competition, gymnast string) (c
 	for i := range e.Exercises {
 		ex := &e.Exercises[i]
 		ex.Option = r.FormValue(fmt.Sprintf("ex%dOption", i+1))
+		if c.Video.Need != competitions.VideoNone {
+			ex.Video, ex.VideoNote = r.FormValue(fmt.Sprintf("ex%dVideo", i+1)), r.FormValue(fmt.Sprintf("ex%dVideoNote", i+1))
+		}
 		if ok {
 			if set, err := l.Set(ex.Option); err == nil {
 				if _, isSet := requirements.SetRoutine(set); isSet {
@@ -795,6 +934,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	page := views.EntryPage{
 		Competition: summary(c.Competition, p.now()), Link: origin(r) + path, JustSaved: r.URL.Query().Get("saved") == "1",
 		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
+		VideoReview: e.VideoReview, VideoNote: e.VideoNote,
 		Form: entryForm(c.Competition, form, path, "Save changes"), Withdraw: path + "/withdraw",
 	}
 	page.Form.Problems = problems

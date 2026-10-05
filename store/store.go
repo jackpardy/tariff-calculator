@@ -141,6 +141,12 @@ var migrations = []string{
 	// 2: the organiser marks entries checked, with a note back to the club or gymnast.
 	`ALTER TABLE entries ADD COLUMN checked_at TEXT;
 	ALTER TABLE entries ADD COLUMN note TEXT NOT NULL DEFAULT '';`,
+
+	// 3: video proof (ADR 0004 Decision 10): what each competition asks for, and
+	// the organiser's review of each entry's videos.
+	`ALTER TABLE competitions ADD COLUMN video TEXT NOT NULL DEFAULT '{}';
+	ALTER TABLE entries ADD COLUMN video_review TEXT NOT NULL DEFAULT '';
+	ALTER TABLE entries ADD COLUMN video_note TEXT NOT NULL DEFAULT '';`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

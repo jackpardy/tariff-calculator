@@ -151,6 +151,12 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 				row.Problems = 1
 			} else {
 				row.Problems = len(checked.Problems())
+				if competitions.VideoMissing(e.Entry, c.VideoNeeds(checked)) {
+					row.Video = "missing"
+				}
+			}
+			if row.Video == "" && e.VideoReview == store.VideoMore && !e.ChangedSinceSent() {
+				row.Video, row.Note = "need more", strings.TrimSpace(row.Note+" "+e.VideoNote)
 			}
 			if cc.Competition.Open {
 				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID
@@ -546,7 +552,7 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 				return
 			}
 			mc.Card = &shown
-			mc.Note = e.Note
+			mc.Note, mc.VideoReview, mc.VideoNote = e.Note, e.VideoReview, e.VideoNote
 			switch {
 			case !e.Sent():
 				mc.Status = "Saved, not sent yet"

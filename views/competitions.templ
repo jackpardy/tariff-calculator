@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"tariffCalculator/requirements"
 	"tariffCalculator/skills"
@@ -19,6 +20,7 @@ type CompetitionSummary struct {
 	DeleteAfter string // when it and its entries are deleted
 	Open        bool   // entries can still be sent or changed
 	Individuals bool   // individuals can enter directly
+	Video       string // what video proof it asks for, "" for none
 }
 
 // CompetitionForm is the form that creates a competition. Levels are the
@@ -29,7 +31,16 @@ type CompetitionForm struct {
 	Individuals                            bool
 	Levels                                 map[string]bool
 	Groups                                 []requirements.BuiltinGroup
+	Video                                  VideoForm
 	Problems                               []string
+}
+
+// VideoForm is the choice of video proof a competition asks for: none, for
+// some skills (triples, doubles, or a tariff or more), or every whole routine.
+type VideoForm struct {
+	Need             string // "", "skills" or "routine"
+	Triples, Doubles bool
+	Tariff           string // e.g. "1.5", "" for none
 }
 
 // CompetitionLinks are a competition's links, as full URLs. Admin is set only
@@ -46,6 +57,7 @@ type Dashboard struct {
 	DeadlineDate string // the closing time, for changing it
 	DeadlineTime string
 	Unchecked    int // entries not checked yet
+	Video        VideoForm
 	Competition  CompetitionSummary
 	Links        CompetitionLinks
 	Clubs        []string // the clubs entered, by name
@@ -71,6 +83,7 @@ type DashboardRow struct {
 	Sent              string
 	Checked           bool
 	Note              string
+	Video             string // "" when not needed, else missing, provided, OK or need more
 }
 
 // EntryCard is an entry checked exactly as the builder checks a level.
@@ -90,6 +103,7 @@ type ExerciseCard struct {
 	Results      []requirements.Result
 	Required     map[int]bool
 	SetErr       string
+	Video        VideoView
 	Carried      []int // elements whose difficulty carries over (first exercise)
 	Repeated     []int // elements repeating one that carried over (second exercise)
 }
@@ -103,6 +117,8 @@ type EntryDetail struct {
 	Sent        string
 	Checked     string // when it was marked checked, "" if it isn't
 	Note        string
+	VideoReview string // "", "ok" or "more"
+	VideoNote   string
 }
 
 // EntryForm enters or replaces an individual's entry. Each level's exercises
@@ -113,7 +129,8 @@ type EntryForm struct {
 	Key      string // tells forms on the same page apart
 	Submit   string // its button
 	Gymnast  string
-	Member   bool // the gymnast is a club's member, under their own name
+	Member   bool   // the gymnast is a club's member, under their own name
+	Video    string // what video the competition asks for, "" for none
 	Level    string
 	Levels   []EntryLevel
 	Problems []string
@@ -132,6 +149,8 @@ type EntryExercise struct {
 	Chosen  string // the option chosen
 	Skills  string // the routine as JSON, if one was chosen or entered already
 	Count   int    // how many skills it has
+	Video   string // its video link and note, if the competition asks for video
+	Note    string
 }
 
 // EntryOption is one of an exercise's options.
@@ -148,6 +167,8 @@ type EntryPage struct {
 	Sent        string
 	Checked     bool   // the organiser checked it
 	Note        string // the organiser's note
+	VideoReview string // the organiser's review of its videos
+	VideoNote   string
 	Card        EntryCard
 	Form        EntryForm
 	Withdraw    string // where withdrawing posts
@@ -278,6 +299,7 @@ templ NewCompetition(f CompetitionForm) {
 					<summary>Your own levels</summary>
 				</details>
 			</fieldset>
+			@videoFields(f.Video)
 			<button class="button is-primary is-fullwidth" type="submit">Create competition</button>
 		</form>
 	}
@@ -343,6 +365,10 @@ templ CompetitionDashboard(d Dashboard) {
 					<input class="input is-small" name="deadlineTime" type="time" required value={ d.DeadlineTime } aria-label="Closing time"/>
 					<button class="button is-small" type="submit">Change</button>
 				</div>
+			</form>
+			<form method="post" action={ templ.SafeURL(d.Base + "/video") } class="mb-3">
+				@videoFields(d.Video)
+				<button class="button is-small" type="submit">Change video proof</button>
 			</form>
 			if d.Competition.Open {
 				<form method="post" action={ templ.SafeURL(d.Base + "/deadline") } class="mb-3">
@@ -421,6 +447,9 @@ templ CompetitionDashboard(d Dashboard) {
 								<th>Requirements</th>
 								<th>Problems</th>
 								<th>Sent</th>
+								if d.Competition.Video != "" {
+									<th>Video</th>
+								}
 								<th>Checked</th>
 							</tr>
 						</thead>
@@ -447,6 +476,15 @@ templ CompetitionDashboard(d Dashboard) {
 										}
 									</td>
 									<td>{ r.Sent }</td>
+									if d.Competition.Video != "" {
+										<td class={ templ.KV("has-text-danger", r.Video == "missing" || r.Video == "need more") }>
+											if r.Video == "" {
+												–
+											} else {
+												{ r.Video }
+											}
+										</td>
+									}
 									<td title={ r.Note }>
 										if r.Checked {
 											✓
@@ -489,13 +527,16 @@ templ count(n int, label string) {
 
 templ competitionFacts(c CompetitionSummary) {
 	<p class="mb-1">{ c.Date }</p>
-	<p class="mb-4">
+	<p class={ templ.KV("mb-4", c.Video == ""), templ.KV("mb-1", c.Video != "") }>
 		if c.Open {
 			Entries close { c.Deadline }.
 		} else {
 			<strong>Entries closed { c.Deadline }.</strong>
 		}
 	</p>
+	if c.Video != "" {
+		<p class="mb-4">{ c.Video }, as a link.</p>
+	}
 }
 
 // CompetitionEntry is the organiser's view of one entry.
@@ -526,6 +567,33 @@ templ CompetitionEntry(d EntryDetail) {
 				<p class="help">If the entry changes after you check it, it needs checking again. The note stays.</p>
 			</form>
 		</div>
+		if d.Competition.Video != "" {
+			<div class="box mt-4">
+				<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/video") }>
+					<p class="mb-2">
+						<strong>Video</strong>
+						switch d.VideoReview {
+							case "ok":
+								<span class="has-text-success">✓ OK</span>
+							case "more":
+								<span class="has-text-danger">needs more</span>
+						}
+					</p>
+					<div class="field">
+						<label class="label is-small" for="video-note">What more is needed (for the club or gymnast)</label>
+						<input class="input is-small" id="video-note" name="note" maxlength="300" value={ d.VideoNote } placeholder="e.g. The full-in isn't in the video"/>
+					</div>
+					<div class="buttons">
+						<button class="button is-small is-success is-light" type="submit" name="review" value="ok">Video OK</button>
+						<button class="button is-small is-warning is-light" type="submit" name="review" value="more">Need more</button>
+						if d.VideoReview != "" {
+							<button class="button is-small" type="submit" name="review" value="">Clear</button>
+						}
+					</div>
+					<p class="help">Whether a video shows the gymnast performing safely is your judgement. A new link clears the review.</p>
+				</form>
+			</div>
+		}
 	}
 }
 
@@ -614,6 +682,7 @@ templ exerciseCard(ex ExerciseCard) {
 		if len(ex.Repeated) > 0 {
 			<p class="is-size-7 mt-2 has-text-danger">{ fmt.Sprintf("Element %s repeats one whose difficulty carried over.", elementNumbers(ex.Repeated)) }</p>
 		}
+		@videoBox(ex.Video)
 		if len(ex.Results) > 0 {
 			<ul class="comp-results mt-3">
 				for _, r := range ex.Results {
@@ -682,7 +751,7 @@ templ entryForm(f EntryForm) {
 		for _, l := range f.Levels {
 			<fieldset class="comp-entry-level" data-level={ l.Name } hidden?={ l.Name != f.Level } disabled?={ l.Name != f.Level }>
 				for n, ex := range l.Exercises {
-					@entryExercise(n+1, ex)
+					@entryExercise(n+1, ex, f.Video)
 				}
 			</fieldset>
 		}
@@ -690,7 +759,7 @@ templ entryForm(f EntryForm) {
 	</form>
 }
 
-templ entryExercise(n int, ex EntryExercise) {
+templ entryExercise(n int, ex EntryExercise, video string) {
 	{{ prefix := fmt.Sprintf("ex%d", n) }}
 	<div class="box comp-entry-exercise" data-exercise={ prefix }>
 		<h2 class="title is-6">{ titleCase(exerciseName(n)) } exercise</h2>
@@ -719,6 +788,14 @@ templ entryExercise(n int, ex EntryExercise) {
 			<p class="help">One of the routines saved in this browser. Build it in the Routine Builder first.</p>
 		</div>
 		<input type="hidden" name={ prefix + "Skills" } value={ ex.Skills }/>
+		if video != "" {
+			<div class="field mt-3">
+				<label class="label is-small">Video link</label>
+				<input class="input is-small" type="url" name={ prefix + "Video" } value={ ex.Video } maxlength="500" placeholder="https://youtu.be/..." aria-label={ "Video link for the " + exerciseName(n) + " exercise" }/>
+				<input class="input is-small mt-1" type="text" name={ prefix + "VideoNote" } value={ ex.Note } maxlength="200" placeholder="What it shows, e.g. Full-in at 0:42" aria-label={ "What the " + exerciseName(n) + " exercise's video shows" }/>
+				<p class="help">{ video }. A YouTube video must be <strong>unlisted, not private</strong> (a private one only plays for people it's shared with); a Google Drive file must be shared with <strong>anyone with the link</strong>.</p>
+			</div>
+		}
 	</div>
 }
 
@@ -739,6 +816,7 @@ templ CompetitionEntryPage(p EntryPage) {
 			<p class="mb-2"><strong>✓ Checked by the organiser.</strong></p>
 		}
 		@organiserNote(p.Note)
+		@videoReviewNote(p.VideoReview, p.VideoNote)
 		@entryCard(p.Card)
 		<p class="has-text-grey is-size-7">Entered { p.Sent }.</p>
 		if p.Competition.Open {
@@ -835,6 +913,72 @@ templ organiserNote(note string) {
 	if note != "" {
 		<div class="notification is-info is-light">
 			<p><strong>Note from the organiser:</strong> { note }</p>
+		</div>
+	}
+}
+
+// videoFields choose what video proof a competition asks for (ADR 0004
+// Decision 10).
+templ videoFields(v VideoForm) {
+	<fieldset class="field comp-video">
+		<legend class="label">Video proof</legend>
+		<p class="help mb-2">Ask for video showing gymnasts can perform their routines safely. Gymnasts send a link (YouTube, Google Drive, Vimeo, Dropbox or OneDrive): nothing is uploaded here, and you open each video in a new tab.</p>
+		<label class="radio comp-option"><input type="radio" name="video" value="" checked?={ v.Need == "" }/> No video</label>
+		<label class="radio comp-option"><input type="radio" name="video" value="skills" checked?={ v.Need == "skills" }/> Video of some skills:</label>
+		<div class="comp-video-skills">
+			<label class="checkbox comp-level"><input type="checkbox" name="videoTriples" value="1" checked?={ v.Triples }/> any triple somersault</label>
+			<label class="checkbox comp-level"><input type="checkbox" name="videoDoubles" value="1" checked?={ v.Doubles }/> any double somersault or more</label>
+			<label class="checkbox comp-level">
+				any skill of tariff
+				<input class="input is-small comp-tariff" type="number" name="videoTariff" min="0.1" max="5" step="0.1" value={ v.Tariff } aria-label="Tariff"/>
+				or more
+			</label>
+		</div>
+		<label class="radio comp-option"><input type="radio" name="video" value="routine" checked?={ v.Need == "routine" }/> Video of each whole routine</label>
+	</fieldset>
+}
+
+// VideoView is an exercise's video: whether it's needed, for which skills,
+// and the gymnast's link.
+type VideoView struct {
+	Needed bool
+	Skills []string // the skills that need it; none for the whole routine
+	Link   string
+	Note   string
+}
+
+// videoBox shows an exercise's video: what needs it, and the link, which
+// opens in a new tab and is never embedded.
+templ videoBox(v VideoView) {
+	if v.Needed || v.Link != "" {
+		<div class="comp-video-box mt-3">
+			if v.Needed && len(v.Skills) > 0 {
+				<p class="is-size-7"><strong>Video needed for:</strong> { strings.Join(v.Skills, ", ") }</p>
+			} else if v.Needed {
+				<p class="is-size-7"><strong>Video needed</strong> of the whole routine</p>
+			}
+			if v.Link != "" {
+				<p class="is-size-7">
+					<a href={ templ.SafeURL(v.Link) } target="_blank" rel="noopener noreferrer nofollow">Open the video ↗</a>
+					if v.Note != "" {
+						<span class="has-text-grey">· { v.Note }</span>
+					}
+				</p>
+			} else if v.Needed {
+				<p class="is-size-7 has-text-danger">No video yet.</p>
+			}
+		</div>
+	}
+}
+
+// videoReviewNote is the organiser's review of an entry's videos, for the
+// club or gymnast.
+templ videoReviewNote(review, note string) {
+	if review == "ok" {
+		<p class="mb-2"><strong>✓ Video accepted by the organiser.</strong></p>
+	} else if review == "more" {
+		<div class="notification is-warning is-light">
+			<p><strong>The organiser needs more video:</strong> { note }</p>
 		</div>
 	}
 }

@@ -37,6 +37,7 @@ approved by the maintainer first.
 | `browser_test.go` | Pages loaded in headless Chrome (chromedp), so their JavaScript runs: the tariff sheet loads the routine saved in the browser and shows its elements and total. It needs Chrome or Chromium (CI's Ubuntu runners have it; `CHROME_PATH` points at one) and skips without, as in the Docker build |
 | `comppages_test.go` | The competition pages on a fresh store: storage off, creating (problems, the admin link, replacing it, deleting), the rate limit, and individual entry from form to dashboard, change and withdrawal |
 | `comppages_test.go` (`TestOrganiserTools`) | Printing cards (filled in, filtered), the CSV (with formulas made harmless), marking checked with a note the gymnast sees, a change unchecking it, and closing and reopening entries |
+| `comppages_test.go` (`TestVideoProof`), `competitions/video_test.go` | Video proof: the organiser's choice, which skills need video, links checked against known hosts, never embedded, missing, provided, "need more" and OK, and changing what's asked |
 | `clubpages_test.go` | The club pages end to end: creating a club, entering it through a competition's club link, a member joining and entering, sending new and changed entries, "changed since sent", changing an entry on a member's behalf, a member's new link, withdrawing and sending all again, removing, deleting, and the rate limit |
 | `setform_test.go`, `levelform_test.go` | Reading the requirements and level editors' forms back into JSON; the requirements page listing levels |
 

@@ -38,6 +38,7 @@ type Competition struct {
 	Deadline    time.Time // entries can be sent and changed until then
 	Individuals bool      // individuals can enter directly, not only through a club
 	Levels      []Level
+	Video       Video // whether gymnasts send video proof
 }
 
 // Level is a level a competition offers. A built-in is kept by reference; a
@@ -132,6 +133,9 @@ func (c Competition) Validate() error {
 	if len(c.Levels) == 0 {
 		errs = append(errs, errors.New("the competition needs at least one level"))
 	}
+	if err := c.Video.validate(); err != nil {
+		errs = append(errs, err)
+	}
 	names := map[string]bool{}
 	for _, l := range c.Levels {
 		level, err := l.validate()
@@ -177,6 +181,12 @@ type Exercise struct {
 	// There are no checks of the gymnast's own: a card is checked with the
 	// checks its requirements set, so it can't turn one off (ADR 0004
 	// Decision 5).
+
+	// Video is a link to video of the exercise, where the competition asks
+	// for it, and VideoNote what it shows, e.g. "Full-in at 0:42" (ADR 0004
+	// Decision 10).
+	Video     string `json:"video,omitempty"`
+	VideoNote string `json:"video_note,omitempty"`
 }
 
 // ValidateEntry reports everything wrong with an entry for this competition,
@@ -204,6 +214,15 @@ func (c Competition) ValidateEntry(e *Entry) error {
 			errs = append(errs, fmt.Errorf("the %s exercise needs one of its options chosen", name))
 		case !slices.Contains(options, ex.Option):
 			errs = append(errs, fmt.Errorf("the %s exercise's option %q isn't one of the level's", name, ex.Option))
+		}
+		ex.Video, ex.VideoNote = strings.TrimSpace(ex.Video), strings.TrimSpace(ex.VideoNote)
+		if ex.Video != "" {
+			if err := CheckVideoLink(ex.Video); err != nil {
+				errs = append(errs, fmt.Errorf("the %s exercise's video: %w", name, err))
+			}
+		}
+		if n := utf8.RuneCountInString(ex.VideoNote); n > MaxVideoNote {
+			errs = append(errs, fmt.Errorf("the %s exercise's video note is %d characters; the most is %d", name, n, MaxVideoNote))
 		}
 		if len(ex.Skills) > MaxSkills {
 			errs = append(errs, fmt.Errorf("the %s exercise has %d skills; the most is %d", name, len(ex.Skills), MaxSkills))

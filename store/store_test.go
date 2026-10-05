@@ -460,3 +460,48 @@ func TestChecking(t *testing.T) {
 	must(t, s.SetDeadline(ctx, c.ID, now.Add(24*time.Hour)))
 	must(t, s.SaveMemberEntry(ctx, m.ID, c.ID, entry("A")))
 }
+
+func TestVideo(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp := competition()
+	comp.Video = competitions.Video{Need: competitions.VideoRoutine}
+	c, admin, err := s.CreateCompetition(ctx, comp)
+	must(t, err)
+	if got, _ := s.CompetitionByAdmin(ctx, admin); got.Video.Need != competitions.VideoRoutine {
+		t.Errorf("the video setting is kept: %+v", got.Video)
+	}
+	must(t, s.SetVideo(ctx, c.ID, competitions.Video{}))
+	if got, _ := s.CompetitionByAdmin(ctx, admin); got.Video.Need != competitions.VideoNone {
+		t.Error("and can be changed")
+	}
+
+	club, _, _ := s.CreateClub(ctx, "UCD")
+	m, _, _ := s.Join(ctx, club.ID, "A")
+	must(t, s.AttachClub(ctx, club.ID, c.ID))
+	withVideo := entry("A")
+	withVideo.Exercises[1].Video = "https://youtu.be/abc"
+	must(t, s.SaveMemberEntry(ctx, m.ID, c.ID, withVideo))
+	_, err = s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	list, _ := s.Entries(ctx, c.ID)
+	if list[0].Entry.Exercises[1].Video != "https://youtu.be/abc" {
+		t.Error("the link goes with the entry")
+	}
+
+	if err := s.ReviewVideo(ctx, c.ID, list[0].ID, "maybe", ""); err == nil {
+		t.Error("an unknown review")
+	}
+	must(t, s.ReviewVideo(ctx, c.ID, list[0].ID, VideoMore, "The full-in isn't in it"))
+	if mine, _ := s.ClubEntries(ctx, club.ID, c.ID); mine[0].VideoReview != VideoMore || mine[0].VideoNote != "The full-in isn't in it" {
+		t.Errorf("the club sees the review: %+v", mine[0])
+	}
+	// A new link clears the review once it's sent; the note stays.
+	withVideo.Exercises[1].Video = "https://youtu.be/def"
+	must(t, s.SaveMemberEntry(ctx, m.ID, c.ID, withVideo))
+	_, err = s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	if list, _ := s.Entries(ctx, c.ID); list[0].VideoReview != "" || list[0].VideoNote != "The full-in isn't in it" {
+		t.Errorf("a changed entry needs reviewing again: %+v", list[0])
+	}
+}

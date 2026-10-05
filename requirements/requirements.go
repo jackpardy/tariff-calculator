@@ -214,6 +214,9 @@ func (r Rule) validate() error {
 	return errors.Join(errs...)
 }
 
+// Validate reports what's wrong with a matcher on its own, e.g. outside a set.
+func (m Matcher) Validate() error { return m.validate() }
+
 func (m Matcher) validate() error {
 	var errs []error
 	checkRange := func(name string, r *Range) {

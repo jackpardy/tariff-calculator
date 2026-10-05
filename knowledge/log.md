@@ -1,6 +1,14 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: Step 6 of ADR 0004, video proof for [competition entries](features/competition-entries.md):
+  the organiser asks for none, some skills (any triple, any double or more,
+  any skill of a tariff or more) or each whole routine, and can change it.
+  Gymnasts add a link per exercise (YouTube, Google Drive, Vimeo, Dropbox or
+  OneDrive, https only) with a note; each entry shows which skills need video.
+  The dashboard and CSV show missing, provided, OK or need more; the organiser
+  opens videos in a new tab (never embedded) and marks them OK or "need more"
+  with a note the club and gymnast see. A new link clears the review.
 * **Update**: Step 5 of ADR 0004 for [competition entries](features/competition-entries.md):
   the organiser marks entries checked with a note (shown to the club and the
   gymnast; a changed entry needs checking again), prints cards (the tariff
