@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-05
+* **Update**: Pop-up menus (the builder's More, the sheet's "Show on sheet",
+  the view's Show) keep themselves on screen; the More menu ran off the left
+  edge when its button wrapped on a phone. The [tariff sheet](features/tariff-sheet.md)'s
+  toolbar stays at the top as the sheet scrolls, and its detail fields no
+  longer push a 320px screen sideways.
 * **Update**: The app is live at <https://tariff.pardy.ie> on the self-hosted
   server, deployed by CI on every push to `master`
   ([deploy](operations/deploy.md)); Render is to be retired. The name stays

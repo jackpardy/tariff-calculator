@@ -4,7 +4,7 @@ title: Tariff sheet
 description: A printable competition card for the current routine, showing elements in order with FIG notation, difficulty, required-element ticks and a judge column, plus optional detail fields.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/views/sheet.templ
 tags: [feature, print, tariff-sheet, competition-card]
-generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
+generated: { by: claude-code/cli, at: 2026-10-05T15:00:00Z }
 ---
 
 # What it shows
@@ -33,6 +33,9 @@ requirements and checks, to `POST /tariff-sheet`, which renders the card (CoP
 each detail field. Each one hides part of the sheet both on screen and in print,
 and the choices are remembered in this browser (`static/js/sheet.js`,
 `localStorage['sheetShow:*']`).
+
+The toolbar with Print and "Show on sheet" stays at the top of the screen as
+the sheet scrolls, so the options are always in reach on a phone.
 
 Printing uses print CSS (`static/css/sheet.css`) and the browser's own print or
 "Save as PDF". Server-generated PDFs (Gotenberg, [ADR 0001](../../docs/adr/0001-architecture.md) §7)
