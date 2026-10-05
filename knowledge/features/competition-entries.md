@@ -14,7 +14,9 @@ sources:
 
 **Not built yet.** This page describes the target for card collection, the
 first item on the [roadmap](../roadmap.md). Storage, links and clubs are
-decided in ADR 0004.[^adr-0004]
+decided in ADR 0004.[^adr-0004] Its storage (`store`) and checking
+(`competitions`) are built and tested (step 2 of the ADR's migration); the
+pages come next.
 
 # The organiser (competition admin link)
 
