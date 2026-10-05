@@ -86,7 +86,8 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 - Complement TrampOnline and TScore first, and keep replacement possible.
 - Anything stored on the server uses **secret links, no accounts**: an admin
   link and a share or submit link, like a form. Personal data is kept to names
-  and clubs and deleted after the event. Accounts can come later.
+  and clubs, and a competition's entries are deleted 120 days after it
+  (sooner if the organiser chooses). Accounts can come later.
 - **Competition card collection is the first thing to build.** Its design goes
   in [ADR 0004](../docs/adr/0004-server-storage-secret-links.md) (server storage with secret links), amending ADR 0001's plan for
   accounts.
