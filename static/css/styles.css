@@ -198,9 +198,8 @@
   .builder-columns.is-comparing { display: block; }
   .is-comparing.shows-b > .builder-column:first-child,
   .is-comparing:not(.shows-b) > .builder-column:last-child { display: none; }
-  /* The tabs name the routines; the second column's heading keeps ⇄ and ✕. */
+  /* The tabs name the routines; the headings keep View (and ⇄ and ✕). */
   .is-comparing .column-head strong { display: none; }
-  .is-comparing > .builder-column:first-child .column-head { display: none; }
   .is-comparing .column-head { justify-content: flex-end; }
   .is-comparing .requirement-picker .is-text { display: inline-flex; }
   /* In Levels mode a phone shows the open tab only: the level's tabs switch. */

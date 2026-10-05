@@ -484,8 +484,11 @@ function tariffCalculatorStore() {
             this.saveEntries();
             this.syncColumns();
         },
+        // viewHref opens the view screen on what's on screen: a level, two
+        // routines side by side, or one routine.
         viewHref() {
             if (this.mode === 'levels' && this.entry()) { return `/view?entry=${this.entry().id}`; }
+            if (this.compareId) { return `/view?routine=${this.currentId}&beside=${this.compareId}`; }
             return `/view?routine=${this.currentId}`;
         },
         // fetchSetRoutine is the skills of a set routine's requirements, or undefined.

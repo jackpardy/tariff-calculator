@@ -18,7 +18,7 @@ https://<host>/#share=z<base64url(deflate-raw(JSON))>
 https://<host>/requirements#share=j<base64url(JSON)>   (browsers without CompressionStream)
 ```
 
-The payload is `{v: 1, routines: [...], sets: [...], levels: [...]}`:
+The payload is `{v: 1, routines: [...], sets: [...], levels: [...], entries: [...]}`:
 
 - Routines carry `name`, skills **without** names or tariffs (the server works
   those out again), and `checks`.
@@ -27,6 +27,11 @@ The payload is `{v: 1, routines: [...], sets: [...], levels: [...]}`:
   the routine refers to them as `set:<n>`.
 - A custom level's options that are custom requirements become `set:<n>`, so
   sharing a level brings the requirements it uses.
+- A level being worked on in the builder's Levels mode (an entry, shared with
+  **Share** there) carries its name, its level (`builtin-level:<id>` or
+  `level:<n>`), each exercise's choice and the index in `routines` of the
+  routine doing its voluntary, and its open and beside tabs. Receiving it adds
+  the level with its routines (not offered separately) and opens Levels mode.
 
 Because the data is in the URL fragment, **nothing is sent to or stored on the
 server**, and there are no accounts. The only server call is `POST /qr`,

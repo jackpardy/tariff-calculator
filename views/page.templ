@@ -135,6 +135,9 @@ templ calculator(groups []requirements.BuiltinGroup) {
 				<div class="builder-column">
 					<div class="column-head" x-show="twoColumns() && mode === 'routines'" x-cloak>
 						<strong x-text="columnTitle('a')"></strong>
+						<div class="buttons are-small mb-0">
+							<a class="button is-small" x-bind:href="`/view?routine=${currentId}`" target="_blank" rel="noopener" title="Show this routine full screen">View</a>
+						</div>
 					</div>
 					<div x-show="mode === 'routines'">
 						@requirementPicker(groups, "a")
@@ -149,6 +152,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 					<div class="column-head" x-show="mode === 'routines'">
 						<strong x-text="columnTitle('b')"></strong>
 						<div class="buttons are-small mb-0">
+							<a class="button is-small" x-bind:href="`/view?routine=${compareId}`" target="_blank" rel="noopener" title="Show this routine full screen">View</a>
 							<button class="button is-small" type="button" title="Swap the columns" aria-label="Swap the columns" x-on:click="swapColumns()">⇄</button>
 							<button class="button is-small" type="button" title="Stop comparing" aria-label="Stop comparing" x-on:click="stopComparing()">✕</button>
 						</div>
@@ -248,6 +252,7 @@ templ levelsBar(groups []requirements.BuiltinGroup) {
 					</template>
 				</select>
 			</div>
+			<button class="button is-small" type="button" x-show="entry()" x-on:click="Share.open('entries', [levelState.current])">Share</button>
 			<details class="routine-menu" data-menu x-show="entry()">
 				<summary class="button is-small">More</summary>
 				<div class="routine-menu-panel" x-on:click="$el.closest('details').removeAttribute('open')">

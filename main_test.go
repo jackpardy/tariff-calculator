@@ -1032,7 +1032,7 @@ func TestQRCode(t *testing.T) {
 // Both pages can share: the builder its routines, the requirements page its sets.
 func TestSharing(t *testing.T) {
 	for path, want := range map[string]string{
-		"/":             `Share.open('routines', [currentId])`,
+		"/":             `Share.open('entries', [levelState.current])`,
 		"/requirements": `Share.open('sets', [s.id])`,
 	} {
 		rec := httptest.NewRecorder()
@@ -1292,5 +1292,23 @@ func TestSaveAsSetRoutine(t *testing.T) {
 	}
 	if rec := postForm(t, "/requirements/set-routine", url.Values{"routineData": {"[]"}}); rec.Code != http.StatusBadRequest {
 		t.Errorf("an empty routine can't be a set routine: status %d", rec.Code)
+	}
+}
+
+// The view shows two routines side by side, as the builder does, each checked
+// against its own requirements.
+func TestViewTwoRoutines(t *testing.T) {
+	a := `[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}]`
+	b := `[{"rotation":4,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Pike"}]`
+	html := postForm(t, "/view", url.Values{
+		"routineData": {a}, "routineName": {"Alex"}, "requirementSet": {"builtin:bucs-l7-second"},
+		"besideData": {b}, "besideName": {"Sam"}, "besideSet": {""},
+	}).Body.String()
+	if !strings.Contains(html, "is-several") || strings.Index(html, "<h2>Alex</h2>") > strings.Index(html, "<h2>Sam</h2>") ||
+		!strings.Contains(html, `data-column="routine" data-name="Alex"`) || !strings.Contains(html, `data-column="beside" data-name="Sam"`) {
+		t.Errorf("both routines show, in order")
+	}
+	if !strings.Contains(html, "0.5") || !strings.Contains(html, "0.6") {
+		t.Errorf("each with its own difficulty")
 	}
 }

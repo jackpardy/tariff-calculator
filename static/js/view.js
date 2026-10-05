@@ -1,7 +1,7 @@
 // view.js: the view screen (views.ViewPage). Shows a routine saved in this
-// browser (?routine=<id>, else the current one), or a level being worked on
-// (?entry=<id>): its set routines and voluntaries, rendered by the server to
-// fill the screen. It re-renders when the routines or levels change in another
+// browser (?routine=<id>, else the current one), with another beside it
+// (&beside=<id>) as in the builder, or a level being worked on (?entry=<id>):
+// its set routines and voluntaries, rendered by the server to fill the screen. It re-renders when the routines or levels change in another
 // tab (the builder). The Show menu lists the routines on screen to show or
 // hide, and its other boxes (data-hides) toggle classes on #view, all
 // remembered in this browser. The full screen button uses the Fullscreen API
@@ -17,12 +17,14 @@
     }
 
     // chosen is what to show: {entry} for a level asked for, else {routine}:
-    // the one asked for, or the current one.
+    // the one asked for, or the current one, and {beside} if one goes beside it.
     function chosen(state, levels) {
         const params = new URLSearchParams(location.search);
         const entry = levels.entries.find((e) => e.id === params.get('entry'));
         if (entry) { return { entry, id: entry.id, name: entry.name }; }
         const routine = state.routines.find((r) => r.id === params.get('routine')) || RoutineStore.current(state);
+        const beside = state.routines.find((r) => r.id === params.get('beside') && r.id !== routine.id);
+        if (beside) { return { routine, beside, id: `${routine.id}+${beside.id}`, name: `${routine.name} + ${beside.name}` }; }
         return { routine, id: routine.id, name: routine.name };
     }
 
@@ -31,11 +33,21 @@
         const shown = chosen(state, levels);
         const select = document.getElementById('view-routine');
         select.replaceChildren(
+            ...(shown.beside ? [new Option(shown.name, `pair:${shown.routine.id}:${shown.beside.id}`, false, true)] : []),
             ...levels.entries.map((e) => new Option(`${e.name} (level)`, `entry:${e.id}`, false, e.id === shown.id)),
             ...state.routines.map((r) => new Option(r.name, `routine:${r.id}`, false, r.id === shown.id)),
         );
         document.title = shown.name;
-        const values = shown.entry ? entryValues(shown.entry, state.routines) : { ...Exercises.values(shown.routine), routineName: shown.routine.name };
+        let values;
+        if (shown.entry) {
+            values = entryValues(shown.entry, state.routines);
+        } else {
+            values = { ...Exercises.values(shown.routine), routineName: shown.routine.name };
+            if (shown.beside) {
+                const beside = Exercises.values(shown.beside);
+                Object.assign(values, { besideData: beside.routineData, besideSet: beside.requirementSet, besideChecks: beside.checks, besideName: shown.beside.name });
+            }
+        }
         htmx.ajax('POST', '/view', { source: '#display', target: '#display', swap: 'innerHTML', values });
     }
 
@@ -128,9 +140,14 @@
 
         // Choosing a routine.
         document.getElementById('view-routine').addEventListener('change', (event) => {
-            const [kind, id] = event.target.value.split(':');
+            const [kind, id, beside] = event.target.value.split(':');
             const params = new URLSearchParams();
-            params.set(kind, id);
+            if (kind === 'pair') {
+                params.set('routine', id);
+                params.set('beside', beside);
+            } else {
+                params.set(kind, id);
+            }
             history.replaceState(null, '', `${location.pathname}?${params}`);
             render();
         });

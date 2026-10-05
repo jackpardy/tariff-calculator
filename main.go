@@ -711,7 +711,20 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 	}
 	lc := checked.level
 	if lc == nil || lc.Err != "" {
-		render(w, r, views.RoutineDisplay([]views.DisplayColumn{displayColumn(checked, name, nil, 0)}))
+		columns := []views.DisplayColumn{displayColumn(checked, name, nil, 0)}
+		// A routine shown beside it (besideData, besideSet, besideChecks,
+		// besideName), as in the builder, each checked against its own requirements.
+		if r.Form.Has("besideData") {
+			beside, err := checkPosted(postedRoutine{r.FormValue("besideData"), r.FormValue("besideSet"), r.FormValue("besideChecks")}, nil)
+			if err != nil {
+				badRequest(w, fmt.Errorf("the routine beside it: %w", err))
+				return
+			}
+			col := displayColumn(beside, strings.TrimSpace(r.FormValue("besideName")), nil, 0)
+			col.Key = "beside"
+			columns = append(columns, col)
+		}
+		render(w, r, views.RoutineDisplay(columns))
 		return
 	}
 	level, err := postedLevel(strings.TrimSpace(r.FormValue("level")))
