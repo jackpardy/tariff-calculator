@@ -167,12 +167,23 @@
         }
     }
 
+    // videoChoices select "Video of some skills" when one of its skills is chosen.
+    function videoChoices() {
+        for (const fieldset of document.querySelectorAll('.comp-video')) {
+            const some = fieldset.querySelector('input[name="video"][value="skills"]');
+            fieldset.querySelectorAll('.comp-video-skills input').forEach((input) => input.addEventListener('input', () => {
+                if (input.type !== 'checkbox' || input.checked) { some.checked = true; }
+            }));
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         copyButtons();
         saveLinks();
         newCompetition();
         hub();
         clubLink();
+        videoChoices();
         entryForms();
     });
 })();

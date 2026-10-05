@@ -264,7 +264,7 @@ func TestOrganiserTools(t *testing.T) {
 	if rec.Header().Get("Content-Type") != "text/csv; charset=utf-8" || !strings.Contains(rec.Header().Get("Content-Disposition"), `filename="Student-Open.csv"`) {
 		t.Errorf("a CSV download: %v", rec.Header())
 	}
-	if !strings.HasPrefix(csv, "Gymnast,Club,Level,1st exercise,1st difficulty,2nd exercise,2nd difficulty,Problems,Checked,Note,Sent\n") ||
+	if !strings.HasPrefix(csv, "Gymnast,Club,Level,1st exercise,1st difficulty,2nd exercise,2nd difficulty,Problems,Checked,Note,Sent,Video\n") ||
 		!strings.Contains(csv, "'=SUM(A1),Individual,BUCS L3,BUCS L3 · option 1,,BUCS L3 · second exercise,1.1,2,,,") {
 		t.Errorf("CSV:\n%s", csv)
 	}
@@ -307,4 +307,79 @@ func TestOrganiserTools(t *testing.T) {
 		t.Error("reopened")
 	}
 	redirected(t, h, own, entry)
+}
+
+func TestVideoProof(t *testing.T) {
+	h := competitionServer(t)
+	form := newCompetition()
+	form.Set("video", "skills")
+	if rec := do(t, h, http.MethodPost, "/competitions", form); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Video for some skills needs to say which.") {
+		t.Errorf("video for some skills needs at least one: %d", rec.Code)
+	}
+	form.Set("video", "") // ticking a skill is enough
+	form.Set("videoDoubles", "1")
+	admin := created(t, h, form)
+	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	if !strings.Contains(dash, "Video of any double somersault or more, as a link.") || !strings.Contains(dash, `name="videoDoubles" value="1" checked`) {
+		t.Error("the dashboard says what video is asked for, and offers to change it")
+	}
+	enter := pathIn(t, dash, "/competitions/enter/")
+	if page := do(t, h, http.MethodGet, enter, nil).Body.String(); !strings.Contains(page, `name="ex1Video"`) || !strings.Contains(page, "unlisted, not private") {
+		t.Error("the entry form asks for video links, with the YouTube hint")
+	}
+
+	doubleBack := `[{"rotation":8,"twist_distribution":[0,0],"takeoff_position":"Feet","shape":"Tuck","backward":true}]`
+	entry := url.Values{"gymnast": {"D"}, "level": {"FIG AG3 (17–21)"}, "ex1Skills": {doubleBack}, "ex2Skills": {voluntary}, "ex1Video": {"https://example.com/v"}}
+	if rec := do(t, h, http.MethodPost, enter, entry); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "should be to YouTube") {
+		t.Errorf("a link that isn't a video host is refused: %d", rec.Code)
+	}
+	entry.Del("ex1Video")
+	own := withoutQuery(redirected(t, h, enter, entry))
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Video needed for:") || !strings.Contains(page, "No video yet.") {
+		t.Error("the gymnast sees which skill needs video")
+	}
+	dash = do(t, h, http.MethodGet, admin, nil).Body.String()
+	if !strings.Contains(dash, "<th>Video</th>") || !strings.Contains(dash, ">missing</td>") {
+		t.Error("the dashboard shows the video missing")
+	}
+
+	entry.Set("ex1Video", "https://youtu.be/abc")
+	entry.Set("ex1VideoNote", "Double back at 0:12")
+	redirected(t, h, own, entry)
+	id := regexp.MustCompile(regexp.QuoteMeta(admin) + `/entries/([A-Za-z0-9_-]+)`).FindStringSubmatch(do(t, h, http.MethodGet, admin, nil).Body.String())[1]
+	detail := do(t, h, http.MethodGet, admin+"/entries/"+id, nil).Body.String()
+	if !strings.Contains(detail, `href="https://youtu.be/abc" target="_blank" rel="noopener noreferrer nofollow"`) || !strings.Contains(detail, "Double back at 0:12") {
+		t.Error("the organiser opens the video in a new tab; it's never embedded")
+	}
+	if strings.Contains(detail, "<iframe") || strings.Contains(detail, "<video") {
+		t.Error("no video is embedded")
+	}
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, ">provided</td>") {
+		t.Error("provided")
+	}
+
+	redirected(t, h, admin+"/entries/"+id+"/video", url.Values{"review": {"more"}, "note": {"The double isn't in it"}})
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "The organiser needs more video:") || !strings.Contains(page, "The double isn&#39;t in it") {
+		t.Error("the gymnast sees what more is needed")
+	}
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, ">need more</td>") {
+		t.Error("need more")
+	}
+	redirected(t, h, admin+"/entries/"+id+"/video", url.Values{"review": {"ok"}})
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Video accepted by the organiser.") {
+		t.Error("accepted")
+	}
+	if rec := do(t, h, http.MethodPost, admin+"/entries/"+id+"/video", url.Values{"review": {"maybe"}}); rec.Code != http.StatusBadRequest {
+		t.Errorf("an unknown review: %d", rec.Code)
+	}
+
+	// The organiser can change what's asked for.
+	location := redirected(t, h, admin+"/video", url.Values{"video": {"routine"}})
+	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Video proof changed.") || !strings.Contains(page, "Video of each whole routine") {
+		t.Error("changed to the whole routine")
+	}
+	location = redirected(t, h, admin+"/video", url.Values{"video": {"skills"}, "videoTariff": {"lots"}})
+	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Video proof wasn") || !strings.Contains(page, "Video of each whole routine") {
+		t.Error("a bad tariff changes nothing")
+	}
 }

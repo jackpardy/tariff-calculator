@@ -568,3 +568,6 @@ details > * { box-sizing: border-box; }
 .comp-option { display: flex; align-items: center; gap: 0.4rem; margin: 0 0 0.3rem 0 !important; }
 .comp-link { margin-bottom: 1.5rem; }
 .comp-link .input { font-family: monospace; }
+.comp-video-skills { padding-left: 1.5rem; margin-bottom: 0.3rem; }
+.comp-tariff { width: 4.5rem; margin: 0 0.3rem; }
+.comp-video-box { border-top: 1px solid #eee; padding-top: 0.5rem; }
