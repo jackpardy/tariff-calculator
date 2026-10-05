@@ -1,7 +1,8 @@
 # ADR 0004 — Server storage with secret links, no accounts
 
 - **Status:** Accepted
-- **Date:** 2026-10-05 (Decision 10, video proof, added the same day)
+- **Date:** 2026-10-05 (Decision 10, video proof, added the same day;
+  Decisions 3 and 5 clarified 2026-10-06)
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0001 §3 (persistence) and its roadmap, which tied storage to
   accounts ("accounts only when save routines forces it")
@@ -91,8 +92,9 @@ Constraints:
    - a member's link is **saved in their browser automatically** (as charades
      does with device tokens), so on their own phone their entries are simply
      there. The link only matters on a new phone or after clearing the browser;
-   - the club admin page can **show or copy any member's link** to send again,
-     and the comp sec can edit an entry on a member's behalf;
+   - the club admin page can **give any member a new link** to send them, which
+     ends their old one (only hashes are kept, so a link can't be shown
+     again), and the comp sec can edit an entry on a member's behalf;
    - a member who loses their link can be removed and re-join.
 
    Secret tokens are 128 bits from `crypto/rand`, written as base64url. Only
@@ -110,9 +112,12 @@ Constraints:
    from what the gymnast saw in the builder.
 
 5. **Stored data is canonical and checked on read.** An entry stores its
-   routines as `TrampolineSkill` JSON, as the browser does, plus its checks
-   (ADR 0001 §6). Names, tariffs and results are worked out again whenever the
-   entry is shown, so engine fixes apply to stored entries too. A competition
+   routines as `TrampolineSkill` JSON, as the browser does (ADR 0001 §6).
+   It doesn't store the gymnast's own choice of checks: a card is checked with
+   the checks its requirements set (difficulty, repeats, scored elements), so
+   a gymnast can't turn one off. Names, tariffs and results are worked out
+   again whenever the entry is shown, so engine fixes apply to stored entries
+   too. A competition
    stores a **copy** of any custom requirements or levels it offers, because
    references to a browser's saved items can't be resolved on the server.
    Built-in requirements are stored by reference (`builtin:<id>`) and resolved

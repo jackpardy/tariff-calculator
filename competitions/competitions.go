@@ -5,7 +5,6 @@
 package competitions
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -175,9 +174,9 @@ type Exercise struct {
 	// Skills are the routine, stored as the browser stores them (ADR 0004
 	// Decision 5). A set routine left empty is performed as prescribed.
 	Skills []skills.TrampolineSkill `json:"skills,omitempty"`
-	// Checks are the routine's own choice of checks, as the browser stores
-	// them, e.g. {"scored":0}; none for its requirements'.
-	Checks json.RawMessage `json:"checks,omitempty"`
+	// There are no checks of the gymnast's own: a card is checked with the
+	// checks its requirements set, so it can't turn one off (ADR 0004
+	// Decision 5).
 }
 
 // ValidateEntry reports everything wrong with an entry for this competition,
@@ -216,9 +215,6 @@ func (c Competition) ValidateEntry(e *Entry) error {
 				errs = append(errs, fmt.Errorf("the %s exercise's skill %d: %w", name, j+1, err))
 			}
 		}
-		if len(ex.Checks) > 0 && !json.Valid(ex.Checks) {
-			errs = append(errs, fmt.Errorf("the %s exercise's checks aren't JSON", name))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -240,7 +236,7 @@ func (c Competition) Check(e Entry) (Card, error) {
 	}
 	var routines [2]requirements.Routine
 	for i, ex := range e.Exercises {
-		r := requirements.Routine{Skills: ex.Skills, Checks: string(ex.Checks)}
+		r := requirements.Routine{Skills: ex.Skills}
 		set, err := l.Set(ex.Option)
 		if err != nil {
 			r.SetName, r.SetErr = set.Name, err
