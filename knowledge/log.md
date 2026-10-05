@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-05
+* **Update**: [Roadmap](roadmap.md) priorities: card collection first, the
+  routine suggester moved to the bottom, and ISTO's levels
+  ([open questions](open-questions.md)) not expected for a while. The tariff
+  sheet and menus checked on an iPhone; the domain question is closed.
 * **Update**: The [user guide](guide/user-guide.md) covers the new picker
   tabs, Expand and Collapse all, and the sheet's toolbar staying on screen. It
   now comes as a [PDF](guide/user-guide.pdf) too, rebuilt with

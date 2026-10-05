@@ -4,7 +4,7 @@ title: Roadmap
 description: Where the project could go beyond the routine builder, covering tools for competition organisers and attendees and for people running or training in a club, with what already exists and what to build first.
 tags: [roadmap, competitions, clubs, planning]
 status: draft
-generated: { by: claude-code/cli, at: 2026-10-05T14:20:00Z }
+generated: { by: claude-code/cli, at: 2026-10-05T16:00:00Z }
 stale_after: 2027-04-01T00:00:00Z
 sources:
   - id: tramponline
@@ -74,12 +74,12 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 
 | # | Area | What it does | Builds on |
 |---|---|---|---|
-| 1 | Routine suggester | From the skills a gymnast can do and a chosen level, suggests legal routines (landing to take-off, no repeats, requirements, caps), highest tariff first | skills, requirements |
-| 2 | Skill tracking | Coaches tick skills per gymnast (club link); each gymnast sees what's next and which levels they're ready for | catalog, 1 |
-| 3 | Club competition secretary | Now part of card collection (competitions 1): members' entries gathered by the club and sent to each competition; still to add: export for TrampOnline entry | competitions 1 |
-| 4 | Session planner | Trampolines, gymnasts and session time give a turn rotation with spotters and coach ratio, on a phone | — |
-| 5 | Judge and coach practice | Tariff and FIG-notation quizzes, card-checking practice with planted errors | engine |
-| 6 | Committee handover kit | Safety checks, incident log and policy templates (mostly documents) | — |
+| 1 | Club competition secretary | Now part of card collection (competitions 1): members' entries gathered by the club and sent to each competition; still to add: export for TrampOnline entry | competitions 1 |
+| 2 | Skill tracking | Coaches tick skills per gymnast (club link); each gymnast sees what's next and which levels they're ready for | catalog |
+| 3 | Session planner | Trampolines, gymnasts and session time give a turn rotation with spotters and coach ratio, on a phone | — |
+| 4 | Judge and coach practice | Tariff and FIG-notation quizzes, card-checking practice with planted errors | engine |
+| 5 | Committee handover kit | Safety checks, incident log and policy templates (mostly documents) | — |
+| 6 | Routine suggester (low priority) | From the skills a gymnast can do and a chosen level, suggests legal routines (landing to take-off, no repeats, requirements, caps), highest tariff first. Hard to do well: a legal, high-tariff routine isn't necessarily one a gymnast should compete | skills, requirements, 2 |
 
 # Decisions so far (2026-10-05)
 
@@ -94,6 +94,10 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
   server at `tariff.pardy.ie`, which has a data volume and nightly backups
   (Render's free service had no persistent disk). Server-stored features
   ship there.
+- **Priorities (2026-10-05):** card collection first. The routine suggester
+  drops to the bottom, as it would be hard to do right. ISTO's levels won't
+  be available for a while, so building them in waits; users can write them
+  as their own requirements meanwhile.
 - **Keep the name for now.** Competition and club tools stay on
   `tariff.pardy.ie` even though they go beyond tariffs; a broader name can
   come later.
