@@ -4,7 +4,7 @@ title: Testing and checks
 description: What the Go tests cover (the 139 CoP examples, the engine, requirements, catalog and rendered HTML) and the checks to run before every commit.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/main_test.go
 tags: [testing, ci, practice]
-generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
+generated: { by: claude-code/cli, at: 2026-10-05T14:20:00Z }
 ---
 
 # Before every commit
@@ -30,7 +30,7 @@ approved by the maintainer first.
 | `requirements/level_test.go` | Parsing levels, and every built-in level referring to real requirements (and every built-in set belonging to a level) |
 | `catalog/*_test.go` | Picker categories, shape options, search by name, alias and notation |
 | `static/static_test.go` | Hashed URLs and caching headers |
-| `main_test.go` | Handlers end to end, asserting on rendered HTML: flags, custom names, checks, sheet, compare, requirements, side by side, QR, sharing, oversize bodies |
+| `main_test.go` | Handlers end to end, asserting on rendered HTML: flags, custom names, checks, sheet, compare, requirements, side by side, QR, sharing, oversize bodies; every template's `js:` `hx-vals` being an object literal (htmx wraps anything else in braces, which broke the sheet) |
 | `setform_test.go`, `levelform_test.go` | Reading the requirements and level editors' forms back into JSON; the requirements page listing levels |
 
 The Docker build runs `go test ./...` too, so an image can't be built from

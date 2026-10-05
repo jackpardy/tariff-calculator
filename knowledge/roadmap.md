@@ -4,7 +4,7 @@ title: Roadmap
 description: Where the project could go beyond the routine builder, covering tools for competition organisers and attendees and for people running or training in a club, with what already exists and what to build first.
 tags: [roadmap, competitions, clubs, planning]
 status: draft
-generated: { by: claude-code/cli, at: 2026-10-05T13:00:00Z }
+generated: { by: claude-code/cli, at: 2026-10-05T14:20:00Z }
 stale_after: 2027-04-01T00:00:00Z
 sources:
   - id: tramponline
@@ -90,10 +90,13 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 - **Competition card collection is the first thing to build.** Its design goes
   in [ADR 0004](../docs/adr/0004-server-storage-secret-links.md) (server storage with secret links), amending ADR 0001's plan for
   accounts.
-- **Hosting is a blocker for storage.** Render's free web service has no
-  persistent disk, so a database there would be wiped on every deploy.
-  Server-stored features ship once the app runs on the self-hosted server
-  (with a data volume and nightly backups), or on a paid Render disk meanwhile.
+- **Hosting for storage is in place.** The app now runs on the self-hosted
+  server at `tariff.pardy.ie`, which has a data volume and nightly backups
+  (Render's free service had no persistent disk). Server-stored features
+  ship there.
+- **Keep the name for now.** Competition and club tools stay on
+  `tariff.pardy.ie` even though they go beyond tariffs; a broader name can
+  come later.
 
 See [open questions](open-questions.md) for what's waiting on documents and
 decisions.

@@ -2,12 +2,12 @@
 type: User Guide
 title: User guide
 description: Step-by-step instructions for gymnasts and coaches, covering how to add skills, build and check a routine, work on a competition level, write your own requirements, and view, print and share routines.
-resource: https://trampoline-tariff-calculator.onrender.com
+resource: https://tariff.pardy.ie
 tags: [guide, how-to, users]
-generated: { by: claude-code/cli, at: 2026-10-05T12:00:00Z }
+generated: { by: claude-code/cli, at: 2026-10-05T14:20:00Z }
 ---
 
-Open <https://trampoline-tariff-calculator.onrender.com> on your phone or
+Open <https://tariff.pardy.ie> on your phone or
 computer. There's nothing to install and no account. Everything you make is
 saved in that browser on that device. For an overview of what the app can do,
 see [features](features.md).

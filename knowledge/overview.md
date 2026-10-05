@@ -4,7 +4,7 @@ title: Trampoline tariff calculator
 description: A phone-first web app that works out trampoline difficulty (tariff), checks routines against the Code of Points and competition requirements, and prints competition cards.
 resource: https://github.com/jackpardy/tariff-calculator
 tags: [overview, trampoline, product]
-generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
+generated: { by: claude-code/cli, at: 2026-10-05T14:20:00Z }
 ---
 
 # What it is
@@ -22,8 +22,8 @@ printed as a competition card.
 For users, start with the [features](guide/features.md) and the
 [user guide](guide/user-guide.md).
 
-Live at <https://trampoline-tariff-calculator.onrender.com>. It will move to
-the self-hosted server once a domain is registered (see [deploy](operations/deploy.md)).
+Live at <https://tariff.pardy.ie>, on the self-hosted server (see
+[deploy](operations/deploy.md)). The name may change later; it stays for now.
 
 # Who uses it
 
@@ -66,6 +66,6 @@ The architecture is recorded in four ADRs:
 
 # Related
 
-- The self-hosting setup that will run this app:
+- The self-hosting setup that runs this app:
   [server knowledge bundle](https://github.com/jackpardy/server/blob/main/knowledge/index.md)
   (private repository).

@@ -1,6 +1,14 @@
 # Update log
 
 ## 2026-10-05
+* **Update**: The app is live at <https://tariff.pardy.ie> on the self-hosted
+  server, deployed by CI on every push to `master`
+  ([deploy](operations/deploy.md)); Render is to be retired. The name stays
+  for now, competition and club tools included ([roadmap](roadmap.md)).
+* **Update**: Fixed the [tariff sheet](features/tariff-sheet.md), which stayed
+  on "Loading the current routine" since 2026-10-04: its `hx-vals` wasn't an
+  object literal, so htmx couldn't send the routine. A test now checks every
+  template's `js:` `hx-vals` ([testing](architecture/testing.md)).
 * **Creation**: [Competition entries](features/competition-entries.md)
   (planned): the organiser's dashboard, one-entry view, printing and export,
   and what comp secs and members see.

@@ -23,4 +23,4 @@ built and how it is deployed. Start with the [overview](overview.md).
 * [Guide](guide/) - For gymnasts and coaches: what the app does and how to use it.
 * [Features](features/) - How each feature works: the routine builder, sharing, the view screen, the tariff sheet, comparing.
 * [Architecture](architecture/) - Go, templ, htmx and Alpine; server rendering; routes, assets and tests.
-* [Operations](operations/) - CI, Render, and the move to the self-hosted server.
+* [Operations](operations/) - CI, and deploying to the self-hosted server at tariff.pardy.ie.

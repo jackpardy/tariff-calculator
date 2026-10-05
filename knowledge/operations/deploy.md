@@ -1,17 +1,18 @@
 ---
 type: Runbook
 title: Build and deploy
-description: How the app is built (a multi-stage Docker image that runs the tests), tested in CI on every push, served from Render today, and moved later to the self-hosted server through an SSH forced command.
+description: How the app is built (a multi-stage Docker image that runs the tests), tested in CI on every push to master, and deployed to the self-hosted server at tariff.pardy.ie through an SSH forced command.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/.github/workflows/deploy.yml
-tags: [operations, deploy, ci, docker, render]
-generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
+tags: [operations, deploy, ci, docker, self-hosted]
+generated: { by: claude-code/cli, at: 2026-10-05T14:20:00Z }
 ---
 
-# Today: Render
+# Live: tariff.pardy.ie
 
-The live app is <https://trampoline-tariff-calculator.onrender.com>. Render
-deploys `master` automatically on every push, so **merging to `master` is
-releasing**. Every merge is approved by the maintainer first.
+The live app is <https://tariff.pardy.ie>, on the self-hosted server. CI
+deploys `master` on every push, so **merging to `master` is releasing**. Every
+merge is approved by the maintainer first. The name stays for now and may
+change later.
 
 # Image
 
@@ -39,18 +40,19 @@ stateless and needs no volumes or secrets.
 
 **deploy** job (after test): SSH to the server with a dedicated key. The server
 forces the command `/srv/infra/scripts/deploy.sh tariff` whatever is asked for.
-While the `DEPLOY_HOST` secret is empty, the job **skips itself** with a notice.
-That is the state today. The other secrets are `DEPLOY_USER`, `DEPLOY_SSH_KEY`
-and `DEPLOY_KNOWN_HOSTS`.
+If the `DEPLOY_HOST` secret is empty, the job **skips itself** with a notice.
+The secrets are set, so every push to `master` deploys. The others are
+`DEPLOY_USER`, `DEPLOY_SSH_KEY` and `DEPLOY_KNOWN_HOSTS`.
 
-# Next: the self-hosted server
+# The self-hosted server
 
-The app will run as the `tariff` service in the shared server setup: Docker
+The app runs as the `tariff` service in the shared server setup: Docker
 Compose behind Caddy, built from a clone of this repo at
-`/srv/apps/tariff-calculator`, and served at `${TARIFF_HOST}`. This waits on
-registering a domain. Then: set the GitHub secrets, run both hosts side by
-side for a few days, switch DNS, and retire Render (optionally leaving a
-redirect at the old `onrender.com` address).
+`/srv/apps/tariff-calculator`, and served at `${TARIFF_HOST}`
+(`tariff.pardy.ie`).
+
+The old Render address, <https://trampoline-tariff-calculator.onrender.com>,
+is to be retired, optionally leaving a redirect to the new one.
 
 See the server bundle (private repository):
 

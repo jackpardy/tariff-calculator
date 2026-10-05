@@ -2,9 +2,9 @@
 type: Feature List
 title: Features
 description: Everything the trampoline tariff calculator can do, in plain language for gymnasts and coaches.
-resource: https://trampoline-tariff-calculator.onrender.com
+resource: https://tariff.pardy.ie
 tags: [guide, features, users]
-generated: { by: claude-code/cli, at: 2026-10-05T12:00:00Z }
+generated: { by: claude-code/cli, at: 2026-10-05T14:20:00Z }
 ---
 
 # Work out difficulty
