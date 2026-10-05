@@ -11,7 +11,7 @@ built and how it is deployed. Start with the [overview](overview.md).
 
 * [Overview](overview.md) - What the app is, who uses it, and how the pieces fit together.
 * [Features](guide/features.md) - Everything the app can do, in plain language, for gymnasts and coaches.
-* [User guide](guide/user-guide.md) - Step by step: build a routine, check it against a competition, work on a level, share, view and print.
+* [User guide](guide/user-guide.md) - Step by step: build a routine, check it against a competition, work on a level, share, view and print. Also as a [PDF](guide/user-guide.pdf).
 * [Glossary](glossary.md) - Trampolining and app terms, including why requirement lists are never called "sets".
 * [Roadmap](roadmap.md) - Where the project could go next: tools for competition organisers and attendees, and for clubs, and what to build first.
 * [Open questions](open-questions.md) - Rules, documents and checks still waiting on someone.

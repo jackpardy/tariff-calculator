@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-05
+* **Update**: The [user guide](guide/user-guide.md) covers the new picker
+  tabs, Expand and Collapse all, and the sheet's toolbar staying on screen. It
+  now comes as a [PDF](guide/user-guide.pdf) too, rebuilt with
+  `scripts/user-guide-pdf.py` whenever the guide changes.
 * **Update**: The picker's Somersaults and Twists tabs are one tab, Singles,
   lining up with Doubles and Triples, and "Drops & seat" is now "Body
   landings" ([skill catalog](domain/skill-catalog.md)).

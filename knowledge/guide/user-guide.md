@@ -10,7 +10,7 @@ generated: { by: claude-code/cli, at: 2026-10-05T15:30:00Z }
 Open <https://tariff.pardy.ie> on your phone or
 computer. There's nothing to install and no account. Everything you make is
 saved in that browser on that device. For an overview of what the app can do,
-see [features](features.md).
+see [features](features.md). This guide is also a [PDF](user-guide.pdf).
 
 # 1. Add a skill
 
@@ -18,7 +18,10 @@ The **Add a skill** box is at the top.
 
 1. **Find the skill**, in one of three ways:
    - **Tap it** in the picker. The tabs are Jumps, Body landings, Singles,
-     Doubles and Triples.
+     Doubles and Triples. **Body landings** are the seat, back and front drops
+     and their twists. **Singles** are every single somersault, twisting or
+     not, including those landing on the body (Crash Dive, Back s/s To Seat,
+     Ball-Out).
    - **Search** in the box above the picker by name ("barani", "back s/s",
      "full in rudy out") or by FIG notation ("4 1 o", "8 2 3 /"). Notation
      doesn't say forward or backward, so the results show both directions to
@@ -62,8 +65,9 @@ Your routine is in the **Routine Builder**, below the skill box. Make sure
 number of skills.
 - **+ New** starts another.
 - **More** lets you **Rename**, **Duplicate** (good for trying out a change),
-  **Clear skills**, **Delete routine** or **Save as a set routine** (see
-  [section 5](#make-your-own-set-routine)).
+  **Save as a set routine** (see [section 5](#make-your-own-set-routine)),
+  **Expand all** or **Collapse all** the skill cards, **Clear skills** or
+  **Delete routine**.
 - **Side by side with** shows a second routine beside this one. You can edit
   both, and skills that differ are shaded. On a phone they become two tabs.
   Use ⇄ to swap the columns and ✕ to stop.
@@ -198,7 +202,8 @@ someone else can **Import**.
 - **Tariff Sheet** opens a printable competition card for the current routine.
   Fill in the details (gymnast, club, category, competition, round, coach). Use
   **Show on sheet** to hide any column or field you don't need, then tap
-  **Print / Save as PDF**. What you type on the sheet isn't saved.
+  **Print / Save as PDF**. Both stay at the top of the screen as you scroll.
+  What you type on the sheet isn't saved.
 - **Compare** shows two of your routines side by side, read-only.
 - **Share** (next to + New) sends routines to someone else. Tick the ones to
   send, then use **Share…** for your phone's share menu, **Copy link**, or let

@@ -6,6 +6,8 @@
 
 # Reference material (FIG Code of Points; not ours to redistribute)
 *.pdf
+# ...except the user guide, built by scripts/user-guide-pdf.py.
+!/knowledge/guide/user-guide.pdf
 
 # Local Claude Code settings
 .claude/settings.local.json
