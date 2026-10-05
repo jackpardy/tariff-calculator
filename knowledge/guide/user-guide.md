@@ -62,7 +62,8 @@ Your routine is in the **Routine Builder**, below the skill box. Make sure
 number of skills.
 - **+ New** starts another.
 - **More** lets you **Rename**, **Duplicate** (good for trying out a change),
-  **Clear skills** or **Delete routine**.
+  **Clear skills**, **Delete routine** or **Save as a set routine** (see
+  [section 5](#make-your-own-set-routine)).
 - **Side by side with** shows a second routine beside this one. You can edit
   both, and skills that differ are shaded. On a phone they become two tabs.
   Use ⇄ to swap the columns and ✕ to stop.
@@ -142,8 +143,7 @@ aren't online yet. You can add them yourself.
    - no repeats;
    - number of skills;
    - difficulty range or cap;
-   - a skill at a given position;
-   - a set routine.
+   - a skill at a given position.
 
    Describe the skills by somersault (in quarters), twist (in half twists),
    direction, shape, take-off and landing, tariff, or exact FIG notation. Leave
@@ -151,10 +151,35 @@ aren't online yet. You can add them yourself.
    the way your handbook says it.
 5. Fix anything listed under **Fix before saving**, then tap **Save**.
 
-Your requirements now appear under **Check against → Your requirements**. To
-pair two exercises, add a level under **Your levels → + New**: choose what each
-exercise is checked against, or tick **The same requirements as the first
-exercise**.
+Your requirements now appear under **Check against → Your requirements**.
+
+## Make your own set routine
+
+A set routine is built like any routine, not written as rules:
+
+1. Build it in the Routine Builder, skill by skill.
+2. Choose **More → Save as a set routine** and give it a name. If the routine
+   was already saved as one, you can update it or save a new one.
+
+It then appears under **Start from a set... → Your set routines**, and on the
+requirements page under **Your set routines** (**+ New set routine** there
+makes one from a routine you've already built). To change it later, use **Edit
+in the Routine Builder**.
+
+## Make your own level
+
+On the requirements page, under **Your levels**, tap **+ New**, or
+**Duplicate** a built-in level. Choose what **The two exercises are**:
+
+- **Set routine, then a voluntary** (e.g. BUCS L3–L7);
+- **One voluntary**, with the same requirements for both exercises (e.g. BUCS
+  FIG Level);
+- **Two voluntaries**, each with its own requirements (e.g. FIG age groups);
+- **Set routine for both exercises** (e.g. BG Club L1–L3).
+
+Then choose the set routine(s) and requirements for each exercise. Add more
+than one set routine when the gymnast chooses between them (option 1 or 2).
+Your level then appears under **+ New level...** in Levels mode.
 
 To pass them on, use **Share** to send a link, or **Export** to save a file that
 someone else can **Import**.

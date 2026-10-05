@@ -47,8 +47,8 @@ generated: { by: claude-code/cli, at: 2026-10-05T12:00:00Z }
   highlighted, and special requirements starred.
 - **Your own requirements**, for any competition the app doesn't know yet
   (including ISTO): required skills, banned skills, skill counts, difficulty
-  limits or caps, and set routines. Start from scratch, or duplicate a built-in
-  one and adjust it.
+  limits or caps. Start from scratch, or duplicate a built-in one and adjust
+  it.
 - **Choose what is scored**: turn difficulty or the repeat rule off, or score
   only some elements (e.g. 2 in an AG3 first exercise) and pick which ones.
 
@@ -63,7 +63,11 @@ generated: { by: claude-code/cli, at: 2026-10-05T12:00:00Z }
   second exercise.
 - **Start from a set routine**: copy any set routine into a routine and change
   it from there.
-- **Your own levels**, built from built-in or your own requirements.
+- **Your own set routines**: build one in the Routine Builder and save it as a
+  set routine.
+- **Your own levels**: choose the structure (a set routine then a voluntary,
+  one or two voluntaries, or a set routine for both), then fill in each
+  exercise from built-in or your own set routines and requirements.
 
 # Show, print and share
 
