@@ -9,6 +9,10 @@
   use them yet. A level's two exercises are now checked by
   `requirements.CheckPair` in both the builder and stored entries
   ([levels](requirements/levels.md), [stack](architecture/stack.md)).
+* **Update**: [ADR 0004](../docs/adr/0004-server-storage-secret-links.md)
+  clarified: a comp sec gives a member who lost their link a new one (links
+  are stored as hashes, so can't be shown again), and a competition entry is
+  checked with its requirements' checks, never the gymnast's own.
 * **Update**: The [roadmap](roadmap.md) says a competition's entries are
   deleted 120 days after it, as ADR 0004 does.
 

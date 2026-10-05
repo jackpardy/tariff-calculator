@@ -1,7 +1,6 @@
 package competitions
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -98,7 +97,6 @@ func TestValidateEntry(t *testing.T) {
 		{Entry{Gymnast: "B", Level: "BUCS L3", Exercises: [2]Exercise{{Option: "builtin:fig-ag3-first"}}}, "isn't one of the level's"},
 		{Entry{Gymnast: "B", Level: "FIG AG3 (17–21)", Exercises: [2]Exercise{{Skills: make([]skills.TrampolineSkill, MaxSkills+1)}}}, "the most is 20"},
 		{Entry{Gymnast: "B", Level: "FIG AG3 (17–21)", Exercises: [2]Exercise{{Skills: []skills.TrampolineSkill{{Rotation: -1}}}}}, "skill 1"},
-		{Entry{Gymnast: "B", Level: "FIG AG3 (17–21)", Exercises: [2]Exercise{{Checks: json.RawMessage(`{`)}}}, "checks aren't JSON"},
 	} {
 		if err := c.ValidateEntry(&tc.entry); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%+v: got %v, want %q", tc.entry, err, tc.want)

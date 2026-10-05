@@ -81,7 +81,8 @@ Dropbox or OneDrive), never uploaded, and never played inside the app (ADR
 
 The same table, but for the club's members only, by competition. It has
 **Send** and **Re-send changed** buttons, shows the organiser's notes, lists
-the members with their personal links (to send again), shows which members are
+the members (with **New link** for one who lost theirs, which ends the old
+one), shows which members are
 still missing a required video, and lets the comp sec edit an entry on a
 member's behalf.
 
