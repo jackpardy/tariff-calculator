@@ -121,9 +121,9 @@ Constraints:
 6. **Minimal personal data, deleted automatically.** An entry holds the
    gymnast's name, club, level and routines; a club holds its name and its
    members' names. There are no emails, dates of
-   birth or contact details. A competition and its entries are deleted **90
+   birth or contact details. A competition and its entries are deleted **120
    days after the competition date**, and the organiser can delete them sooner.
-   A club and its members' entries are deleted **90 days after the club was last
+   A club and its members' entries are deleted **120 days after the club was last
    used**; the comp sec can delete the club or remove a member at any time.
    The submit page says what is stored, who can see it and when it's deleted.
 
