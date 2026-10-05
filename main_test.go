@@ -230,7 +230,7 @@ func TestSkillForm(t *testing.T) {
 		for _, m := range tabs {
 			labels = append(labels, m[1])
 		}
-		if got := strings.Join(labels, ", "); got != "Jumps, Drops &amp; seat, Somersaults, Twists, Doubles, Triples" {
+		if got := strings.Join(labels, ", "); got != "Jumps, Body landings, Singles, Doubles, Triples" {
 			t.Errorf("picker tabs = %s", got)
 		}
 		barani := regexp.MustCompile(`(?s)<button[^>]*hx-vals="([^"]*barani&#34;[^"]*)"[^>]*>.*?</button>`).FindStringSubmatch(html)

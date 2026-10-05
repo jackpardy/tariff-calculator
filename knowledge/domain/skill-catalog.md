@@ -4,7 +4,7 @@ title: Skill catalog and search
 description: The common skills with their official names, how the picker groups them into tabs, and how search finds skills by name, alias or FIG notation.
 resource: https://github.com/jackpardy/tariff-calculator/tree/master/catalog
 tags: [skills, catalog, search, picker]
-generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
+generated: { by: claude-code/cli, at: 2026-10-05T15:30:00Z }
 ---
 
 # Common skills
@@ -23,8 +23,9 @@ picker shows names without the shape, which is chosen on the skill card.
 # The picker
 
 `catalog.Categories()` turns the common skills into the picker's tabs:
-**Jumps**, **Drops & seat**, **Somersaults**, **Twists**, **Doubles**,
-**Triples**. Each skill is placed by its rotation, twist and positions. The
+**Jumps**, **Body landings**, **Singles**, **Doubles**, **Triples**. Each
+skill is placed by its rotation and positions: Singles holds every single
+somersault, twisting or not, to line up with Doubles and Triples. The
 drops are further grouped into To seat, From seat, To back or front, and From
 back or front, so the tab isn't a wall of buttons.
 

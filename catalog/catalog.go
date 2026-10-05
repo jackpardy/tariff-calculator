@@ -125,14 +125,13 @@ var groups = []struct {
 // categoryOrder is the picker's tab order, from the simplest skills up.
 var categoryOrder = []struct{ Key, Label string }{
 	{"jumps", "Jumps"},
-	{"drops", "Drops & seat"},
-	{"somersaults", "Somersaults"},
-	{"twists", "Twists"},
+	{"drops", "Body landings"},
+	{"singles", "Singles"},
 	{"doubles", "Doubles"},
 	{"triples", "Triples"},
 }
 
-// categoryOf places a skill by what it is: its rotation, twist and whether it
+// categoryOf places a skill by what it is: its rotation and whether it
 // involves front, back or seat.
 func categoryOf(s skills.TrampolineSkill) string {
 	switch {
@@ -140,10 +139,8 @@ func categoryOf(s skills.TrampolineSkill) string {
 		return "triples"
 	case s.Rotation >= 8:
 		return "doubles"
-	case s.Rotation >= 3 && s.TotalTwist() > 0:
-		return "twists"
 	case s.Rotation >= 3:
-		return "somersaults"
+		return "singles"
 	case s.Rotation == 0 && s.TakeoffPosition == skills.Feet && !s.SeatLanding:
 		return "jumps"
 	default:

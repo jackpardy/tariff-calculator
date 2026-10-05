@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-05
+* **Update**: The picker's Somersaults and Twists tabs are one tab, Singles,
+  lining up with Doubles and Triples, and "Drops & seat" is now "Body
+  landings" ([skill catalog](domain/skill-catalog.md)).
 * **Update**: Pop-up menus (the builder's More, the sheet's "Show on sheet",
   the view's Show) keep themselves on screen; the More menu ran off the left
   edge when its button wrapped on a phone. The [tariff sheet](features/tariff-sheet.md)'s

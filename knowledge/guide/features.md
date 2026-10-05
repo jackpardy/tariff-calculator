@@ -4,7 +4,7 @@ title: Features
 description: Everything the trampoline tariff calculator can do, in plain language for gymnasts and coaches.
 resource: https://tariff.pardy.ie
 tags: [guide, features, users]
-generated: { by: claude-code/cli, at: 2026-10-05T14:20:00Z }
+generated: { by: claude-code/cli, at: 2026-10-05T15:30:00Z }
 ---
 
 # Work out difficulty
@@ -13,8 +13,8 @@ generated: { by: claude-code/cli, at: 2026-10-05T14:20:00Z }
   jump to a quadruple somersault. Each skill shows its name, its FIG notation
   (e.g. `8 2 3 /`) and its tariff. The maths is checked against every worked
   example in the Code of Points ([tariff](../domain/tariff.md)).
-- **Three ways to add a skill**: tap it in the picker (Jumps, Drops & seat,
-  Somersaults, Twists, Doubles, Triples); search by name ("barani", "back
+- **Three ways to add a skill**: tap it in the picker (Jumps, Body landings,
+  Singles, Doubles, Triples); search by name ("barani", "back
   s/s", "rudy") or by FIG notation ("8 1 1 <"); or build it yourself from
   somersault, twists, direction, take-off and seat landing.
 - **Shape made easy**: tuck, pike and straight are offered only where the shape

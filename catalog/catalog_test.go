@@ -39,8 +39,8 @@ func TestCategoriesCoverEveryCommonSkillOnce(t *testing.T) {
 	want := map[string]string{
 		"shapeJump": "jumps", "halfTwist": "jumps", "fullTwist": "jumps",
 		"seatDrop": "drops", "seatToFeet": "drops", "backDrop": "drops", "halfToSeat": "drops", "seatHalfToFront": "drops",
-		"front": "somersaults", "backSomersault": "somersaults", "crashDive": "somersaults", "ballOut": "somersaults", "frontToSeat": "somersaults",
-		"barani": "twists", "rudi": "twists", "fullBack": "twists", "baraniToFront": "twists",
+		"front": "singles", "backSomersault": "singles", "crashDive": "singles", "ballOut": "singles", "frontToSeat": "singles",
+		"barani": "singles", "rudi": "singles", "fullBack": "singles", "baraniToFront": "singles",
 		"doubleBack": "doubles", "halfOut": "doubles", "miller": "doubles",
 		"tripleBack": "triples", "trifHalfOut": "triples",
 	}

@@ -4,7 +4,7 @@ title: User guide
 description: Step-by-step instructions for gymnasts and coaches, covering how to add skills, build and check a routine, work on a competition level, write your own requirements, and view, print and share routines.
 resource: https://tariff.pardy.ie
 tags: [guide, how-to, users]
-generated: { by: claude-code/cli, at: 2026-10-05T14:20:00Z }
+generated: { by: claude-code/cli, at: 2026-10-05T15:30:00Z }
 ---
 
 Open <https://tariff.pardy.ie> on your phone or
@@ -17,8 +17,8 @@ see [features](features.md).
 The **Add a skill** box is at the top.
 
 1. **Find the skill**, in one of three ways:
-   - **Tap it** in the picker. The tabs are Jumps, Drops & seat, Somersaults,
-     Twists, Doubles and Triples.
+   - **Tap it** in the picker. The tabs are Jumps, Body landings, Singles,
+     Doubles and Triples.
    - **Search** in the box above the picker by name ("barani", "back s/s",
      "full in rudy out") or by FIG notation ("4 1 o", "8 2 3 /"). Notation
      doesn't say forward or backward, so the results show both directions to
