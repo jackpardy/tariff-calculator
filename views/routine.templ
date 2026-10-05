@@ -46,14 +46,8 @@ func exerciseName(n int) string {
 	return "first"
 }
 
-// Checks are which of the Code of Points' checks apply to a routine. Set
-// (compulsory) routines usually score no difficulty and may repeat elements;
-// the routine's requirement set says, and the coach can change it.
-type Checks struct {
-	ScoreDifficulty bool
-	FlagRepeats     bool
-	ScoredElements  int // only this many elements score difficulty (0: all)
-}
+// Checks are which of the Code of Points' checks apply to a routine.
+type Checks = requirements.Checks
 
 // list is the id of the column's card list, which the page makes sortable.
 func (s RoutineSide) list() string {
