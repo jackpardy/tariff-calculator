@@ -116,7 +116,7 @@ func (c Competition) Open(now time.Time) bool {
 // Validate reports everything wrong with a competition, one problem per line.
 func (c Competition) Validate() error {
 	var errs []error
-	if err := checkName("competition", c.Name); err != nil {
+	if err := CheckName("competition", c.Name); err != nil {
 		errs = append(errs, err)
 	}
 	day, err := c.Day()
@@ -186,7 +186,7 @@ type Exercise struct {
 func (c Competition) ValidateEntry(e *Entry) error {
 	var errs []error
 	e.Gymnast = strings.TrimSpace(e.Gymnast)
-	if err := checkName("gymnast", e.Gymnast); err != nil {
+	if err := CheckName("gymnast", e.Gymnast); err != nil {
 		errs = append(errs, err)
 	}
 	_, level, ok := c.Level(e.Level)
@@ -276,8 +276,9 @@ func (c Card) Problems() []string {
 	return out
 }
 
-// checkName reports a missing or too-long name.
-func checkName(what, name string) error {
+// CheckName reports a missing or too-long name of a competition, club or
+// gymnast; what says which.
+func CheckName(what, name string) error {
 	switch n := utf8.RuneCountInString(strings.TrimSpace(name)); {
 	case n == 0:
 		return fmt.Errorf("the %s needs a name", what)

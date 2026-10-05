@@ -39,7 +39,7 @@ const (
 	// MaxEntries is the most entries a competition can hold.
 	MaxEntries = 2000
 	// timeLayout keeps times in UTC with a fixed width, so they sort as text.
-	timeLayout = "2006-01-02T15:04:05Z"
+	timeLayout = "2006-01-02T15:04:05.000000Z"
 )
 
 // Store is the database.

@@ -40,13 +40,19 @@ const maxCompetitionsPerHour = 5
 // competitionPages serves the competition pages from the store, which is nil
 // when storage is off.
 type competitionPages struct {
-	st      *store.Store
-	limiter *limiter
-	now     func() time.Time
+	st                                *store.Store
+	limiter, clubLimiter, joinLimiter *limiter
+	now                               func() time.Time
 }
 
 func newCompetitionPages(st *store.Store) *competitionPages {
-	return &competitionPages{st: st, limiter: newLimiter(maxCompetitionsPerHour, time.Hour), now: time.Now}
+	return &competitionPages{
+		st:          st,
+		limiter:     newLimiter(maxCompetitionsPerHour, time.Hour),
+		clubLimiter: newLimiter(maxClubsPerHour, time.Hour),
+		joinLimiter: newLimiter(maxJoinsPerHour, time.Hour),
+		now:         time.Now,
+	}
 }
 
 func (p *competitionPages) register(mux *http.ServeMux) {
@@ -63,6 +69,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("GET /competitions/entry/{token}", p.ownEntry)
 	handle("POST /competitions/entry/{token}", p.replaceEntry)
 	handle("POST /competitions/entry/{token}/withdraw", p.withdraw)
+	p.registerClubs(mux)
 }
 
 // secret marks the pages as private: links in their URLs mustn't leak through
@@ -239,8 +246,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	d := views.Dashboard{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
-		// The club link joins in step 4, with the club pages.
-		Links: views.CompetitionLinks{Individual: origin(r) + "/competitions/enter/" + c.IndividualLink},
+		Links: views.CompetitionLinks{Club: origin(r) + "/competitions/club/" + c.ClubLink, Individual: origin(r) + "/competitions/enter/" + c.IndividualLink},
 		Club:  r.URL.Query().Get("club"), ProblemsOnly: r.URL.Query().Get("problems") == "1",
 		Entries: len(entries), New: r.URL.Query().Get("new"),
 	}
@@ -315,29 +321,33 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	card, err := p.card(c.Competition, e)
+	shown, err := card(c.Competition, e.Entry, clubOf(e))
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
 	render(w, r, views.CompetitionEntry(views.EntryDetail{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
-		Card: card, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
+		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
 	}))
 }
 
-// card is a stored entry checked, as the pages show it.
-func (p *competitionPages) card(c competitions.Competition, e store.Entry) (views.EntryCard, error) {
-	checked, err := c.Check(e.Entry)
+// clubOf is who sent a stored entry, as the pages say it.
+func clubOf(e store.Entry) string {
+	if e.Individual {
+		return "Individual"
+	}
+	return e.ClubName
+}
+
+// card is an entry checked, as the pages show it.
+func card(c competitions.Competition, e competitions.Entry, club string) (views.EntryCard, error) {
+	checked, err := c.Check(e)
 	if err != nil {
 		return views.EntryCard{}, err
 	}
-	club := e.ClubName
-	if e.Individual {
-		club = "Individual"
-	}
-	out := views.EntryCard{Gymnast: e.Entry.Gymnast, Club: club, Level: checked.Level.Name, Problems: checked.Problems()}
-	l, _, _ := c.Level(e.Entry.Level)
+	out := views.EntryCard{Gymnast: e.Gymnast, Club: club, Level: checked.Level.Name, Problems: checked.Problems()}
+	l, _, _ := c.Level(e.Level)
 	for i, ex := range []requirements.Checked{checked.First, checked.Second} {
 		card := views.ExerciseCard{
 			Title: [...]string{"First exercise", "Second exercise"}[i], Requirements: ex.SetName,
@@ -346,7 +356,7 @@ func (p *competitionPages) card(c competitions.Competition, e store.Entry) (view
 		if ex.SetErr != nil {
 			card.SetErr = ex.SetErr.Error()
 		}
-		if set, err := l.Set(e.Entry.Exercises[i].Option); err == nil && len(e.Entry.Exercises[i].Skills) == 0 {
+		if set, err := l.Set(e.Exercises[i].Option); err == nil && len(e.Exercises[i].Skills) == 0 {
 			_, card.SetRoutine = requirements.SetRoutine(set)
 		}
 		out.Exercises[i] = card
@@ -430,11 +440,15 @@ func entryForm(c competitions.Competition, e competitions.Entry, action, submit 
 	return f
 }
 
-// postedEntry reads an entry from the form: gymnast, level, and for each
-// exercise its option (ex1Option, ex2Option) and routine as JSON (ex1Skills,
-// ex2Skills). A set routine's routine is left out: it's performed as written.
-func postedEntry(r *http.Request, c competitions.Competition) (competitions.Entry, []string) {
-	e := competitions.Entry{Gymnast: r.FormValue("gymnast"), Level: r.FormValue("level")}
+// postedEntry reads an entry from the form: gymnast (unless given, as for a
+// club's member), level, and for each exercise its option (ex1Option,
+// ex2Option) and routine as JSON (ex1Skills, ex2Skills). A set routine's
+// routine is left out: it's performed as written.
+func postedEntry(r *http.Request, c competitions.Competition, gymnast string) (competitions.Entry, []string) {
+	if gymnast == "" {
+		gymnast = r.FormValue("gymnast")
+	}
+	e := competitions.Entry{Gymnast: gymnast, Level: r.FormValue("level")}
 	var problems []string
 	l, _, ok := c.Level(e.Level)
 	for i := range e.Exercises {
@@ -491,7 +505,7 @@ func (p *competitionPages) enter(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	e, problems := postedEntry(r, c.Competition)
+	e, problems := postedEntry(r, c.Competition, "")
 	if len(problems) > 0 {
 		form := entryForm(c.Competition, e, r.URL.Path, "Enter")
 		form.Problems = problems
@@ -533,7 +547,7 @@ func (p *competitionPages) ownEntry(w http.ResponseWriter, r *http.Request) {
 // renderOwn shows an individual their entry, and the form to change it
 // (starting from form, with any problems).
 func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e store.Entry, c store.Competition, form competitions.Entry, problems []string) {
-	card, err := p.card(c.Competition, e)
+	shown, err := card(c.Competition, e.Entry, clubOf(e))
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -541,7 +555,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	path := "/competitions/entry/" + r.PathValue("token")
 	page := views.EntryPage{
 		Competition: summary(c.Competition, p.now()), Link: origin(r) + path, JustSaved: r.URL.Query().Get("saved") == "1",
-		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: card,
+		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown,
 		Form: entryForm(c.Competition, form, path, "Save changes"), Withdraw: path + "/withdraw",
 	}
 	page.Form.Problems = problems
@@ -556,7 +570,7 @@ func (p *competitionPages) replaceEntry(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	changed, problems := postedEntry(r, c.Competition)
+	changed, problems := postedEntry(r, c.Competition, "")
 	if len(problems) > 0 {
 		p.renderOwn(w, r, e, c, changed, problems)
 		return

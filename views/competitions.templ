@@ -100,8 +100,10 @@ type EntryDetail struct {
 // level's and fills each voluntary from the routines saved in this browser.
 type EntryForm struct {
 	Action   string // where the form posts
+	Key      string // tells forms on the same page apart
 	Submit   string // its button
 	Gymnast  string
+	Member   bool // the gymnast is a club's member, under their own name
 	Level    string
 	Levels   []EntryLevel
 	Problems []string
@@ -584,14 +586,16 @@ templ privacyNote(c CompetitionSummary) {
 templ entryForm(f EntryForm) {
 	@problemList(f.Problems)
 	<form method="post" action={ templ.SafeURL(f.Action) } class="comp-entry-form">
+		if !f.Member {
+			<div class="field">
+				<label class="label" for={ "entry-gymnast" + f.Key }>Gymnast</label>
+				<input class="input" id={ "entry-gymnast" + f.Key } name="gymnast" required maxlength="80" value={ f.Gymnast } placeholder="Name, as on the results"/>
+			</div>
+		}
 		<div class="field">
-			<label class="label" for="entry-gymnast">Gymnast</label>
-			<input class="input" id="entry-gymnast" name="gymnast" required maxlength="80" value={ f.Gymnast } placeholder="Name, as on the results"/>
-		</div>
-		<div class="field">
-			<label class="label" for="entry-level">Level</label>
+			<label class="label" for={ "entry-level" + f.Key }>Level</label>
 			<div class="select is-fullwidth">
-				<select id="entry-level" name="level" required>
+				<select id={ "entry-level" + f.Key } name="level" required>
 					<option value="" disabled selected?={ f.Level == "" }>Choose a level</option>
 					for _, l := range f.Levels {
 						<option value={ l.Name } selected?={ f.Level == l.Name }>{ l.Name }</option>

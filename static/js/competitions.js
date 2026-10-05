@@ -1,10 +1,16 @@
-// competitions.js: the competition pages (views/competitions.templ). Copies
-// links, keeps an organiser's admin links and a gymnast's entry links in this
-// browser, offers the levels saved here when creating a competition, and fills
-// each voluntary on the entry form from the routines saved here.
+// competitions.js: the competition and club pages (views/competitions.templ,
+// views/clubs.templ). Copies links; keeps organisers', comp secs', members'
+// and gymnasts' links in this browser and lists them; offers the levels saved
+// here when creating a competition, and the clubs saved here when entering
+// one; and fills each voluntary on an entry form from the routines saved here.
 (function () {
     // Links saved in this browser: {name, url} lists under these keys.
-    const linkKeys = { competitions: 'trampolineCompetitions', entries: 'trampolineEntryLinks' };
+    const linkKeys = {
+        competitions: 'trampolineCompetitions',
+        clubs: 'trampolineClubs',
+        members: 'trampolineMemberLinks',
+        entries: 'trampolineEntryLinks',
+    };
 
     function loadLinks(key) {
         try {
@@ -41,6 +47,49 @@
         if (admin) { keepLink(linkKeys.competitions, admin.dataset.competitionName, admin.dataset.competitionAdmin); }
         const entry = document.querySelector('[data-entry-link]');
         if (entry) { keepLink(linkKeys.entries, entry.dataset.entryName, entry.dataset.entryLink); }
+        const club = document.querySelector('[data-club-admin]');
+        if (club) { keepLink(linkKeys.clubs, club.dataset.clubName, club.dataset.clubAdmin); }
+        const member = document.querySelector('[data-member-link]');
+        if (member) { keepLink(linkKeys.members, member.dataset.memberName, member.dataset.memberLink); }
+    }
+
+    // linkItem is a list item linking to a saved link.
+    function linkItem(link) {
+        const a = Object.assign(document.createElement('a'), { href: link.url, textContent: link.name });
+        const item = document.createElement('li');
+        item.append(a);
+        return item;
+    }
+
+    // hub lists every link saved in this browser.
+    function hub() {
+        let any = false;
+        for (const box of document.querySelectorAll('[data-hub-list]')) {
+            const links = loadLinks(box.dataset.hubList);
+            box.querySelector('ul').append(...links.map(linkItem));
+            box.hidden = links.length === 0;
+            any = any || links.length > 0;
+        }
+        const empty = document.querySelector('[data-hub-empty]');
+        if (empty) { empty.hidden = any; }
+    }
+
+    // clubLink offers the clubs saved in this browser for entering a competition.
+    function clubLink() {
+        const field = document.querySelector('[data-saved-clubs]');
+        const input = document.getElementById('club-admin');
+        const clubs = loadLinks(linkKeys.clubs);
+        if (!field || !input || clubs.length === 0) { return; }
+        const select = field.querySelector('select');
+        for (const c of clubs) { select.append(new Option(c.name, c.url)); }
+        select.append(new Option('Another club (paste its admin link)', ''));
+        const choose = () => {
+            input.value = select.value;
+            input.closest('.field').hidden = select.value !== '';
+        };
+        select.addEventListener('change', choose);
+        field.hidden = false;
+        choose();
     }
 
     // newCompetition lists this browser's competitions and offers its own levels,
@@ -50,15 +99,7 @@
         const saved = document.getElementById('saved-competitions');
         const competitions = loadLinks(linkKeys.competitions);
         if (saved && competitions.length > 0) {
-            const list = saved.querySelector('ul');
-            for (const c of competitions) {
-                const a = document.createElement('a');
-                a.href = c.url;
-                a.textContent = c.name;
-                const item = document.createElement('li');
-                item.append(a);
-                list.append(item);
-            }
+            saved.querySelector('ul').append(...competitions.map(linkItem));
             saved.hidden = false;
         }
 
@@ -130,6 +171,8 @@
         copyButtons();
         saveLinks();
         newCompetition();
+        hub();
+        clubLink();
         entryForms();
     });
 })();

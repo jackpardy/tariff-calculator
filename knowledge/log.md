@@ -1,6 +1,15 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: Step 4 of ADR 0004, the club pages for
+  [competition entries](features/competition-entries.md): a comp sec creates a
+  club and enters it through a competition's club link; members join through
+  the join link and keep their entries on their own page (its link saved in
+  their browser); the comp sec sees each competition's entries (not sent,
+  sent, changed since sent, withdrawn), sends new and changed ones or all
+  again, changes an entry on a member's behalf, gives a member a new link, or
+  removes them. `/competitions` lists every link saved in the browser. Stored
+  times now keep microseconds, so a change straight after a send shows.
 * **Update**: Step 3 of ADR 0004, the first [competition entries](features/competition-entries.md)
   pages: create a competition (built-in levels and the browser's own), the
   organiser's dashboard by level (filter by club or problems), each entry
