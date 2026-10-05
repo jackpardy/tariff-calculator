@@ -308,8 +308,9 @@ type postedRoutine struct {
 // posts the level (level: a built-in reference or a custom level as JSON),
 // which exercise it is (exercise: 1 or 2), and the routine doing the other
 // exercise, if there is one (pairData, pairSet, pairChecks, pairName). The two
-// are checked together: when the first exercise scores only some elements,
-// their difficulty carries over, and they can't be repeated in the second.
+// are checked together (requirements.CheckPair): when the first exercise
+// scores only some elements, their difficulty carries over, and they can't be
+// repeated in the second.
 func checkRoutine(r *http.Request) (checkedRoutine, error) {
 	if err := r.ParseForm(); err != nil {
 		return checkedRoutine{}, fmt.Errorf("parsing form: %w", err)
@@ -321,7 +322,7 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 	}
 	raw := strings.TrimSpace(r.FormValue("level"))
 	if raw == "" {
-		return checkPosted(own, nil)
+		return checkPosted(own)
 	}
 
 	exercise := 1
@@ -329,86 +330,60 @@ func checkRoutine(r *http.Request) (checkedRoutine, error) {
 		exercise = 2
 	}
 	lc := &views.LevelCheck{Exercise: exercise, OtherName: strings.TrimSpace(r.FormValue("pairName"))}
-	level, err := postedLevel(raw)
+	level, err := requirements.ResolveLevel(raw)
+	lc.Name = level.Name
 	if err != nil {
-		lc.Name, lc.Err = level.Name, err.Error()
-		out, err := checkPosted(own, nil)
+		lc.Err = err.Error()
+		out, err := checkPosted(own)
 		out.level = lc
 		return out, err
 	}
-	lc.Name = level.Name
 
-	var pair *postedRoutine
-	if r.Form.Has("pairData") {
-		pair = &postedRoutine{r.FormValue("pairData"), r.FormValue("pairSet"), r.FormValue("pairChecks")}
-		// A set routine is posted without skills: it's the routine its requirements describe.
-		if strings.TrimSpace(pair.data) == "" {
-			pair.data = prescribedRoutine(pair.set)
-		}
+	ownRoutine, err := routineFrom(own)
+	if err != nil {
+		return checkedRoutine{}, err
 	}
-	// carried are a first exercise's elements whose difficulty carries over:
-	// those that score, when only some do.
-	carried := func(first checkedRoutine) []skills.TrampolineSkill {
-		if !first.checks.ScoreDifficulty || first.checks.ScoredElements == 0 {
-			return nil
-		}
-		var out []skills.TrampolineSkill
-		for _, sv := range first.rv.Skills {
-			if sv.Counted {
-				out = append(out, sv.Skill)
-			}
-		}
-		return out
+	alone := func() (checkedRoutine, error) {
+		out := checkedFrom(requirements.Check(ownRoutine, nil))
+		out.level = lc
+		return out, nil
+	}
+	if !r.Form.Has("pairData") {
+		return alone()
+	}
+	pair := postedRoutine{r.FormValue("pairData"), r.FormValue("pairSet"), r.FormValue("pairChecks")}
+	// A set routine is posted without skills: it's the routine its requirements describe.
+	if strings.TrimSpace(pair.data) == "" {
+		pair.data = prescribedRoutine(pair.set)
+	}
+	lc.HasOther = true
+	pairRoutine, err := routineFrom(pair)
+	if err != nil {
+		lc.OtherErr = err.Error()
+		return alone()
 	}
 
-	var out, other checkedRoutine
-	var otherErr error
-	switch {
-	case pair == nil:
-		out, err = checkPosted(own, nil)
-	case exercise == 2:
-		other, otherErr = checkPosted(*pair, nil)
-		out, err = checkPosted(own, carried(other))
-	default:
-		out, err = checkPosted(own, nil)
-		if err == nil {
-			other, otherErr = checkPosted(*pair, carried(out))
-		}
+	first, second := ownRoutine, pairRoutine
+	if exercise == 2 {
+		first, second = pairRoutine, ownRoutine
 	}
-	if pair != nil {
-		lc.HasOther = true
-		switch {
-		case otherErr != nil:
-			lc.OtherErr = otherErr.Error()
-		case other.check != nil && other.check.Err == "":
-			lc.OtherMet, lc.OtherRules = other.check.Met(), len(other.check.Results)
-		}
-		if otherErr == nil && err == nil {
-			out.pair = &other
-			first, second := out, other
-			if exercise == 2 {
-				first, second = other, out
-			}
-			for i, sv := range first.rv.Skills {
-				if len(carried(first)) > 0 && sv.Counted {
-					lc.Carried = append(lc.Carried, i+1)
-				}
-			}
-			for i, sv := range second.rv.Skills {
-				if sv.ScoredEarlier {
-					lc.Repeated = append(lc.Repeated, i+1)
-				}
-			}
-		}
+	checked := requirements.CheckPair(first, second)
+	out, other := checkedFrom(checked.First), checkedFrom(checked.Second)
+	if exercise == 2 {
+		out, other = other, out
 	}
-	out.level = lc
-	return out, err
+	if other.check != nil && other.check.Err == "" {
+		lc.OtherMet, lc.OtherRules = other.check.Met(), len(other.check.Results)
+	}
+	lc.Carried, lc.Repeated = checked.Carried, checked.Repeated
+	out.pair, out.level = &other, lc
+	return out, nil
 }
 
 // prescribedRoutine is the routine a posted requirement set's set routine
 // describes, as JSON, or "" (an empty routine) if it isn't a set routine.
 func prescribedRoutine(rawSet string) string {
-	set, err := postedSet(strings.TrimSpace(rawSet))
+	set, err := requirements.ResolveSet(rawSet)
 	if err != nil {
 		return ""
 	}
@@ -423,88 +398,45 @@ func prescribedRoutine(rawSet string) string {
 	return string(data)
 }
 
-// checkPosted validates one posted routine and checks it against its
-// requirement set. scoredEarlier are elements that scored in the first
-// exercise and score nothing if repeated (nil for none). A set that can't be
+// routineFrom is a posted routine as the engine checks it. A set that can't be
 // used is reported in the check rather than failing the request.
-func checkPosted(p postedRoutine, scoredEarlier []skills.TrampolineSkill) (checkedRoutine, error) {
-	routine, err := namedRoutine(p.data)
+func routineFrom(p postedRoutine) (requirements.Routine, error) {
+	routine, err := parseRoutineJSON(p.data)
 	if err != nil {
-		return checkedRoutine{}, err
+		return requirements.Routine{}, err
 	}
-	var out checkedRoutine
-	var set *requirements.Set
+	out := requirements.Routine{Skills: routine, Checks: p.checks}
 	if raw := strings.TrimSpace(p.set); raw != "" {
-		parsed, err := postedSet(raw)
+		set, err := requirements.ResolveSet(raw)
 		if err != nil {
-			name := parsed.Name
-			if name == "" {
-				name = "Requirements"
-			}
-			out.check = &views.RequirementCheck{SetName: name, Err: err.Error()}
+			out.SetName, out.SetErr = set.Name, err
 		} else {
-			set = &parsed
+			out.Set = &set
 		}
-	}
-	out.checks = routineChecks(set, p.checks)
-	opts := skills.ValidateOptions{AllowRepeats: !out.checks.FlagRepeats, ScoredEarlier: scoredEarlier}
-	if out.checks.ScoreDifficulty {
-		opts.ScoredElements = out.checks.ScoredElements
-	}
-	out.rv = skills.ValidateRoutineWith(routine, opts)
-	if set != nil {
-		results := requirements.Evaluate(*set, out.rv)
-		out.check = &views.RequirementCheck{SetName: set.Name, Results: results}
-		out.required = requirements.RequiredElements(*set, results)
 	}
 	return out, nil
 }
 
-// postedLevel is the level the page posts: a built-in reference
-// ("builtin-level:<id>") or a custom level as JSON. A level that doesn't parse
-// comes back with whatever name it has.
-func postedLevel(raw string) (requirements.Level, error) {
-	if strings.HasPrefix(raw, requirements.BuiltinLevelPrefix) {
-		level, ok := requirements.LookupBuiltinLevel(raw)
-		if !ok {
-			return requirements.Level{Name: "Level"}, errors.New("this built-in level no longer exists")
-		}
-		return level, nil
+// checkPosted validates one posted routine and checks it against its
+// requirement set.
+func checkPosted(p postedRoutine) (checkedRoutine, error) {
+	routine, err := routineFrom(p)
+	if err != nil {
+		return checkedRoutine{}, err
 	}
-	level, err := requirements.ParseLevel([]byte(raw))
-	if level.Name == "" {
-		level.Name = "Level"
-	}
-	return level, err
+	return checkedFrom(requirements.Check(routine, nil)), nil
 }
 
-// routineChecks are the checks that apply to a routine: its requirement set's
-// (a set routine has no difficulty and may repeat elements; an AG3 first
-// exercise scores only 2 elements), unless the routine says otherwise in
-// checks, e.g. {"difficulty":true,"scored":0}.
-func routineChecks(set *requirements.Set, raw string) views.Checks {
-	checks := views.Checks{ScoreDifficulty: true, FlagRepeats: true}
-	if set != nil {
-		checks.ScoreDifficulty, checks.FlagRepeats = !set.NoDifficulty, !set.RepeatsAllowed
-		checks.ScoredElements = set.ScoredElements
-	}
-	var own struct {
-		Difficulty *bool `json:"difficulty"`
-		Repeats    *bool `json:"repeats"`
-		Scored     *int  `json:"scored"`
-	}
-	if raw != "" && json.Unmarshal([]byte(raw), &own) == nil {
-		if own.Difficulty != nil {
-			checks.ScoreDifficulty = *own.Difficulty
-		}
-		if own.Repeats != nil {
-			checks.FlagRepeats = *own.Repeats
-		}
-		if own.Scored != nil && *own.Scored >= 0 && *own.Scored <= skills.RoutineLength {
-			checks.ScoredElements = *own.Scored
+// checkedFrom is a routine the engine checked, as the views show it.
+func checkedFrom(c requirements.Checked) checkedRoutine {
+	out := checkedRoutine{rv: c.Validation, required: c.Required, checks: c.Checks}
+	if c.HasSet {
+		out.check = &views.RequirementCheck{SetName: c.SetName, Results: c.Results}
+		if c.SetErr != nil {
+			out.check.Err = c.SetErr.Error()
 		}
 	}
-	return checks
+	return out
 }
 
 // handleRoutineView renders the routine builder (cards, validation, totals).
@@ -529,20 +461,6 @@ func handleRoutineView(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.Routine(rv, check, side))
 }
 
-// postedSet is the requirement set the page posts: a built-in reference
-// ("builtin:<id>") or a custom set as JSON. A set that doesn't parse comes back
-// with whatever name it has.
-func postedSet(raw string) (requirements.Set, error) {
-	if strings.HasPrefix(raw, requirements.BuiltinPrefix) {
-		builtin, ok := requirements.LookupBuiltin(raw)
-		if !ok {
-			return requirements.Set{}, errors.New("these built-in requirements no longer exist")
-		}
-		return builtin, nil
-	}
-	return requirements.Parse([]byte(raw))
-}
-
 // handleSetRoutine returns the routine a set's set routine describes, as the
 // skills the page stores, so it can be loaded into the builder. It also says
 // whether the posted routine (routineData) already is that routine.
@@ -551,7 +469,7 @@ func handleSetRoutine(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
-	set, err := postedSet(strings.TrimSpace(r.FormValue("requirementSet")))
+	set, err := requirements.ResolveSet(r.FormValue("requirementSet"))
 	if err != nil {
 		badRequest(w, err)
 		return
@@ -715,7 +633,7 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 		// A routine shown beside it (besideData, besideSet, besideChecks,
 		// besideName), as in the builder, each checked against its own requirements.
 		if r.Form.Has("besideData") {
-			beside, err := checkPosted(postedRoutine{r.FormValue("besideData"), r.FormValue("besideSet"), r.FormValue("besideChecks")}, nil)
+			beside, err := checkPosted(postedRoutine{r.FormValue("besideData"), r.FormValue("besideSet"), r.FormValue("besideChecks")})
 			if err != nil {
 				badRequest(w, fmt.Errorf("the routine beside it: %w", err))
 				return
@@ -727,7 +645,7 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 		render(w, r, views.RoutineDisplay(columns))
 		return
 	}
-	level, err := postedLevel(strings.TrimSpace(r.FormValue("level")))
+	level, err := requirements.ResolveLevel(r.FormValue("level"))
 	if err != nil {
 		badRequest(w, err)
 		return
@@ -775,22 +693,13 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				continue // requirements for a voluntary: nothing to show
 			}
-			checks := routineChecks(&set, "")
-			opts := skills.ValidateOptions{AllowRepeats: !checks.FlagRepeats}
-			if checks.ScoreDifficulty {
-				opts.ScoredElements = checks.ScoredElements
-			}
-			rv := skills.ValidateRoutineWith(routine, opts)
-			results := requirements.Evaluate(set, rv)
+			c := checkedFrom(requirements.Check(requirements.Routine{Skills: routine, Set: &set}, nil))
 			name := set.Name
 			if tabNames[ref] != "" {
 				name = tabNames[ref]
 			}
-			col := views.DisplayColumn{
-				Name: name, Key: columnKey(exercise, ref), Level: lc.Name, Exercise: exercise, Option: true,
-				Validation: rv, Checks: checks, Required: requirements.RequiredElements(set, results),
-				Check: &views.RequirementCheck{SetName: set.Name, Results: results},
-			}
+			col := displayColumn(c, name, lc, exercise)
+			col.Key, col.Option = columnKey(exercise, ref), true
 			columns = append(columns, placed{col, exercise, i})
 		}
 	}
