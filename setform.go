@@ -2,6 +2,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -94,7 +95,12 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 		case requirements.Count, requirements.Every, requirements.Position:
 			m := matcher(p + "m.")
 			rule.Match = &m
-		case requirements.Sequence, requirements.Separate:
+		case requirements.Sequence:
+			// A set routine's elements aren't edited here: they come back as they went out.
+			if err := json.Unmarshal([]byte(r.FormValue(p+"seqjson")), &rule.Sequence); err != nil {
+				problems = append(problems, fmt.Sprintf("rule %d: the set routine's elements were lost; open it from Your set routines", i+1))
+			}
+		case requirements.Separate:
 			var items []requirements.Matcher
 			for j := range count(p + "seq") {
 				prefix := fmt.Sprintf("%ss%d.", p, j)
@@ -102,11 +108,7 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 				m.Label = strings.TrimSpace(r.FormValue(prefix + "label"))
 				items = append(items, m)
 			}
-			if rule.Type == requirements.Sequence {
-				rule.Sequence = items
-			} else {
-				rule.Each = items
-			}
+			rule.Each = items
 		case requirements.Includes:
 			rule.Options = [][]requirements.Matcher{}
 			for k := range count(p + "opts") {

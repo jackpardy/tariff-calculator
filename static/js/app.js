@@ -87,6 +87,27 @@ function tariffCalculatorStore() {
 
             if (this.mode === 'levels') { this.syncColumns(); } else { this.renderRoutines(); }
             this.loadForm();
+            this.openFromLink();
+        },
+        // openFromLink opens a set routine the requirements page sent here:
+        // ?setRoutine=<id> to edit one of the coach's (saved back with "Save as
+        // a set routine"), ?fromSet=<ref> to start a routine from a copy.
+        async openFromLink() {
+            const params = new URLSearchParams(location.search);
+            const ref = params.get('setRoutine') || params.get('fromSet');
+            if (!ref) { return; }
+            history.replaceState(null, '', location.pathname);
+            const skills = await this.fetchSetRoutine(ref);
+            if (!skills) { this.showToast("Couldn't open that set routine.", 'error'); return; }
+            const editing = params.has('setRoutine');
+            const name = this.customSets.find((s) => s.id === ref)?.set.name || Exercises.requirementName(ref);
+            const routine = { id: RoutineStore.newId(), name: (editing ? name : `${name} (copy)`).slice(0, 60), skills };
+            if (editing) { routine.setRoutine = ref; }
+            this.routines.push(routine);
+            this.persist();
+            if (this.mode !== 'routines') { this.setMode('routines'); }
+            this.switchRoutine(routine.id);
+            this.showToast(editing ? `Editing ${name}: change it, then More → Save as a set routine.` : `Started ${routine.name}: change it, then More → Save as a set routine.`, 'info');
         },
 
         // --- Server-rendered views ---
@@ -214,6 +235,34 @@ function tariffCalculatorStore() {
             routine.checks = { ...routine.checks, [check]: on };
             this.persist();
             this.renderRoutines();
+        },
+        // saveAsSetRoutine saves the current routine as a set routine (one of the
+        // coach's requirements): exactly its skills, scored like a set routine. A
+        // routine saved before (or opened from a set routine) can update it.
+        async saveAsSetRoutine() {
+            const routine = this.currentRoutine();
+            if (routine.skills.length === 0) { this.showToast('Add the set routine\'s skills first.', 'error'); return; }
+            const sets = SetStore.load();
+            let existing = sets.find((s) => s.id === routine.setRoutine);
+            if (existing && !confirm(`Update the set routine ${existing.set.name} to this routine? Cancel to save a new one.`)) { existing = undefined; }
+            const name = existing ? existing.set.name : prompt('Name the set routine', routine.name)?.trim();
+            if (!name) { return; }
+            const body = new URLSearchParams({ routineData: JSON.stringify(routine.skills), name, source: existing?.set.source || '' });
+            const response = await fetch('/requirements/set-routine', { method: 'POST', body });
+            if (!response.ok) { this.showToast(`Couldn't save it: ${(await response.text()).trim()}`, 'error'); return; }
+            const set = await response.json();
+            if (existing?.set.description) { set.description = existing.set.description; }
+            if (existing) {
+                existing.set = set;
+            } else {
+                existing = { id: SetStore.newId(), set };
+                sets.push(existing);
+            }
+            SetStore.save(sets);
+            this.customSets = sets;
+            routine.setRoutine = existing.id;
+            this.persist();
+            this.showToast(`Saved the set routine ${name}. Use it in a level, or start routines from it.`, 'info');
         },
         // startFromSetRoutine starts a routine from a set routine: the routine on
         // screen if it's empty, otherwise a new one named after the set. Its
@@ -468,6 +517,7 @@ function tariffCalculatorStore() {
         duplicateRoutine() {
             const source = this.currentRoutine();
             const copy = { ...JSON.parse(JSON.stringify(source)), id: RoutineStore.newId(), name: `${source.name} (copy)`.slice(0, 60) };
+            delete copy.setRoutine; // a copy saves as a set routine of its own
             this.routines.splice(this.routines.indexOf(source) + 1, 0, copy);
             this.switchRoutine(copy.id);
             this.showToast(`Duplicated as ${copy.name}.`, 'info');

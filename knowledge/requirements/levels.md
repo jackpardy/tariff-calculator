@@ -112,8 +112,18 @@ from the first", naming the carried elements and any repeats.
 On the requirements page, "Your levels" lists the levels saved in the browser
 (`localStorage['trampolineLevels']`, `LevelStore`). The level editor
 (`POST /requirements/level-editor`, `levelform.go`) follows the requirements
-editor's pattern. Each exercise is a list of choices from the built-in set
-routines and requirements and the user's own. "The same requirements as the
-first exercise" drops the second exercise. Any built-in level can be duplicated
-to start from. Levels are shared by link like requirements, bringing the custom
+editor's pattern. It asks for the **structure** first, then fills its slots:
+
+| Structure | First exercise | Second exercise |
+|---|---|---|
+| Set routine, then a voluntary | set routines (one or more options) | voluntary requirements |
+| One voluntary | voluntary requirements | (the same) |
+| Two voluntaries | voluntary requirements | voluntary requirements |
+| Set routine for both exercises | set routines | (the same) |
+
+A set routine slot offers only set routines and a voluntary slot only
+requirements, built-in or the user's own; changing the structure keeps what
+still fits (`parseLevelForm`). An opened level's structure is worked out from
+it (`levelStructure`). Description and source fold away under "More details".
+Any built-in level can be duplicated to start from. Levels are shared by link like requirements, bringing the custom
 requirements they use ([sharing](../features/sharing.md)).

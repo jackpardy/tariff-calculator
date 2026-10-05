@@ -13,11 +13,11 @@ import (
 	"tariffCalculator/views"
 )
 
-// The level editor names its fields: name, description, source,
-// first.n and first.<i> (the first exercise's options, by reference),
-// second_same (ticked when both exercises use the first's requirements), and
-// second.n and second.<i>. custom carries the requirements saved in the browser
-// ([{id, name, set_routine}]) for the option choices.
+// The level editor names its fields: name, description, source, structure
+// (one of the views.Structure constants), first.n and first.<i> (the first
+// exercise's options, by reference), and second.n and second.<i>. custom
+// carries the requirements saved in the browser ([{id, name, set_routine}])
+// for the choices.
 
 // handleLevelEditor renders the level editor, either for a level posted as JSON
 // in "level" (opening, duplicating or importing one) or for the editor's own
@@ -35,7 +35,17 @@ func handleLevelEditor(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	// isSet reports whether requirements are a set routine (built-in or the user's).
+	isSet := func(ref string) bool {
+		if set, ok := requirements.LookupBuiltin(ref); ok {
+			_, isSetRoutine := requirements.SetRoutine(set)
+			return isSetRoutine
+		}
+		i := slices.IndexFunc(custom, func(c views.CustomRequirements) bool { return c.ID == ref })
+		return i >= 0 && custom[i].SetRoutine
+	}
 	var level requirements.Level
+	var structure string
 	if raw := r.FormValue("level"); raw != "" {
 		if err := json.Unmarshal([]byte(raw), &level); err != nil {
 			badRequest(w, fmt.Errorf("that isn't a level: %w", err))
@@ -44,8 +54,9 @@ func handleLevelEditor(w http.ResponseWriter, r *http.Request) {
 		if level.Format == 0 {
 			level.Format = requirements.Format
 		}
+		structure = levelStructure(level, isSet)
 	} else {
-		level = parseLevelForm(r)
+		level, structure = parseLevelForm(r, isSet)
 		applyLevelAction(&level, r.FormValue("action"))
 	}
 	if level.First.Options == nil {
@@ -81,13 +92,39 @@ func handleLevelEditor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render(w, r, views.LevelEditor(views.LevelEditorData{
-		Level: level, JSON: string(data), Problems: problems,
+		Level: level, Structure: structure, JSON: string(data), Problems: problems,
 		Groups: requirements.BuiltinGroups(), Custom: custom, CustomJSON: string(customJSON),
 	}))
 }
 
-// parseLevelForm reads the editor's form into a level; validation happens afterwards.
-func parseLevelForm(r *http.Request) requirements.Level {
+// levelStructure is the shape of a level being opened: whether its first
+// exercise is set routines, and whether it has a second. A new level (nothing
+// chosen yet) is a set routine then a voluntary.
+func levelStructure(l requirements.Level, isSet func(string) bool) string {
+	firstIsSet := true
+	for _, ref := range l.First.Options {
+		if ref != "" {
+			firstIsSet = isSet(ref)
+			break
+		}
+	}
+	switch {
+	case firstIsSet && l.Second != nil:
+		return views.StructureSetVoluntary
+	case firstIsSet:
+		return views.StructureSet
+	case l.Second != nil:
+		return views.StructureTwoVoluntaries
+	default:
+		return views.StructureVoluntary
+	}
+}
+
+// parseLevelForm reads the editor's form into a level of the structure chosen.
+// Each slot keeps only what fits it (set routines in a set routine slot,
+// requirements in a voluntary one), so changing the structure carries over
+// what still makes sense. Validation happens afterwards.
+func parseLevelForm(r *http.Request, isSet func(string) bool) (requirements.Level, string) {
 	options := func(prefix string) []string {
 		n, _ := strconv.Atoi(r.FormValue(prefix + ".n"))
 		out := make([]string, max(n, 0))
@@ -96,21 +133,53 @@ func parseLevelForm(r *http.Request) requirements.Level {
 		}
 		return out
 	}
+	first, second := options("first"), options("second")
+	// sets are the set routines chosen, at least one slot to choose in.
+	sets := func() []string {
+		var out []string
+		for _, ref := range first {
+			if ref == "" || isSet(ref) {
+				out = append(out, ref)
+			}
+		}
+		if len(out) == 0 {
+			out = []string{""}
+		}
+		return out
+	}
+	// voluntary is the first voluntary's requirements found in these, or "".
+	voluntary := func(lists ...[]string) []string {
+		for _, list := range lists {
+			for _, ref := range list {
+				if ref != "" && !isSet(ref) {
+					return []string{ref}
+				}
+			}
+		}
+		return []string{""}
+	}
+
 	level := requirements.Level{
 		Format:      requirements.Format,
 		Name:        strings.TrimSpace(r.FormValue("name")),
 		Description: strings.TrimSpace(r.FormValue("description")),
 		Source:      strings.TrimSpace(r.FormValue("source")),
-		First:       requirements.Exercise{Options: options("first")},
 	}
-	if r.FormValue("second_same") == "" {
-		second := options("second")
-		if len(second) == 0 {
-			second = []string{""} // just unticked: one to choose
-		}
-		level.Second = &requirements.Exercise{Options: second}
+	structure := r.FormValue("structure")
+	switch structure {
+	case views.StructureVoluntary:
+		level.First = requirements.Exercise{Options: voluntary(first, second)}
+	case views.StructureTwoVoluntaries:
+		level.First = requirements.Exercise{Options: voluntary(first)}
+		level.Second = &requirements.Exercise{Options: voluntary(second)}
+	case views.StructureSet:
+		level.First = requirements.Exercise{Options: sets()}
+	default:
+		structure = views.StructureSetVoluntary
+		level.First = requirements.Exercise{Options: sets()}
+		level.Second = &requirements.Exercise{Options: voluntary(second, first)}
 	}
-	return level
+	return level, structure
 }
 
 // applyLevelAction applies an editor button: "add:first" or "add:second" adds

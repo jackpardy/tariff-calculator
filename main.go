@@ -63,6 +63,7 @@ func routes() http.Handler {
 	mux.HandleFunc("GET /requirements", handleRequirementsPage)
 	mux.HandleFunc("POST /requirements/editor", handleSetEditor)
 	mux.HandleFunc("POST /requirements/level-editor", handleLevelEditor)
+	mux.HandleFunc("POST /requirements/set-routine", handleSetRoutineFrom)
 	mux.HandleFunc("GET /view", handleViewPage)
 	mux.HandleFunc("POST /view", handleView)
 	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
@@ -577,6 +578,39 @@ func handleSetRoutine(w http.ResponseWriter, r *http.Request) {
 		Skills  []skills.TrampolineSkill `json:"skills"`
 		Matches bool                     `json:"matches"`
 	}{set.Name, routine, matches}); err != nil {
+		log.Printf("Error writing set routine: %v", err)
+	}
+}
+
+// handleSetRoutineFrom makes a set routine of a posted routine (routineData),
+// named name: requirements with exactly its skills, for the page to save. This
+// is how coaches write set routines: by building them.
+func handleSetRoutineFrom(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		badRequest(w, err)
+		return
+	}
+	routine, err := namedRoutine(r.FormValue("routineData"))
+	if err != nil {
+		badRequest(w, err)
+		return
+	}
+	if len(routine) == 0 {
+		badRequest(w, errors.New("the routine has no skills"))
+		return
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		name = "Set routine"
+	}
+	set := requirements.SetRoutineFrom(name, routine)
+	set.Source = strings.TrimSpace(r.FormValue("source"))
+	if err := set.Validate(); err != nil {
+		badRequest(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(set); err != nil {
 		log.Printf("Error writing set routine: %v", err)
 	}
 }

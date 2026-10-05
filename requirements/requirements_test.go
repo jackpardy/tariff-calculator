@@ -530,3 +530,55 @@ func TestSetRoutineLoads(t *testing.T) {
 		t.Errorf("a matcher no skill can meet has no example")
 	}
 }
+
+// A set routine made from a built routine loads back as the same skills, and
+// is met by them: drops, seat work, shaped jumps, singles and doubles with
+// the twist in either phase.
+func TestSetRoutineFromSkills(t *testing.T) {
+	var routine []skills.TrampolineSkill
+	for _, key := range []string{"seatDrop", "seatHalfToFeet", "backDrop", "backToFeet", "frontDrop", "frontToFeet", "barani", "backSomersault", "fullBack", "halfOut", "fullFull", "doubleBack", "ballOut", "halfToSeat"} {
+		s := skills.CommonSkills[key]
+		s.Name = skills.FindCommonSkillName(s)
+		routine = append(routine, s)
+	}
+	tuckJump := skills.TrampolineSkill{Rotation: 0, TwistDistribution: []int{0}, TakeoffPosition: skills.Feet, Shape: skills.Tuck}
+	pikedBack := skills.CommonSkills["backSomersault"]
+	pikedBack.Shape = skills.Pike
+	fullIn := skills.TrampolineSkill{Rotation: 8, TwistDistribution: []int{2, 0}, TakeoffPosition: skills.Feet, Shape: skills.Pike, Backward: true}
+	labelled := skills.CommonSkills["barani"]
+	labelled.CustomName = "Our barani"
+	routine = append(routine, tuckJump, pikedBack, fullIn, labelled)
+
+	set := SetRoutineFrom("Club routine", routine)
+	if err := set.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if !set.NoDifficulty || !set.RepeatsAllowed {
+		t.Error("a set routine scores no difficulty and allows repeats")
+	}
+	loaded, ok := SetRoutine(set)
+	if !ok || len(loaded) != len(routine) {
+		t.Fatalf("loads %d skills (ok %v), want %d", len(loaded), ok, len(routine))
+	}
+	for i := range routine {
+		want, got := routine[i], loaded[i]
+		want.NormalizePhases()
+		if !got.Equal(&want) || got.Shape != want.Shape && want.ShapeIsRelevant() || got.SeatLanding != want.SeatLanding || got.TakeoffPosition != want.TakeoffPosition {
+			t.Errorf("element %d: loaded %s %v, want %s %v", i+1, got.Name, got.TwistDistribution, want.Name, want.TwistDistribution)
+		}
+	}
+	if set.Rules[0].Sequence[len(routine)-1].Label != "Our barani" {
+		t.Error("an element keeps the coach's label")
+	}
+	for _, r := range Evaluate(set, skills.ValidateRoutineWith(routine, skills.ValidateOptions{AllowRepeats: true})) {
+		if !r.Passed {
+			t.Errorf("the routine meets its own set routine: %s %s", r.Description, r.Detail)
+		}
+	}
+	// A different direction or landing doesn't.
+	other := append([]skills.TrampolineSkill{}, routine...)
+	other[2] = skills.CommonSkills["frontDrop"]
+	if r := Evaluate(set, skills.ValidateRoutineWith(other, skills.ValidateOptions{AllowRepeats: true})); r[0].Passed {
+		t.Error("a front drop in place of a back drop isn't the set routine")
+	}
+}

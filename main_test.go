@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"tariffCalculator/requirements"
 	"tariffCalculator/skills"
 	"tariffCalculator/static"
 )
@@ -1272,5 +1273,24 @@ func TestPrescribedSetRoutine(t *testing.T) {
 	}
 	if !regexp.MustCompile(`(\d+) of (\d+) met`).MatchString(html) {
 		t.Errorf("it's checked against its own requirements")
+	}
+}
+
+func TestSaveAsSetRoutine(t *testing.T) {
+	routine := `[{"rotation":4,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Pike"},{"rotation":0,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}]`
+	rec := postForm(t, "/requirements/set-routine", url.Values{"routineData": {routine}, "name": {"Club L1"}})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body)
+	}
+	set, err := requirements.Parse(rec.Body.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, ok := requirements.SetRoutine(set)
+	if set.Name != "Club L1" || !ok || len(loaded) != 2 || loaded[0].Name != "Pike Barani" || loaded[1].Name != "Tuck Jump" {
+		t.Errorf("the set routine is the routine's skills: %+v", loaded)
+	}
+	if rec := postForm(t, "/requirements/set-routine", url.Values{"routineData": {"[]"}}); rec.Code != http.StatusBadRequest {
+		t.Errorf("an empty routine can't be a set routine: status %d", rec.Code)
 	}
 }

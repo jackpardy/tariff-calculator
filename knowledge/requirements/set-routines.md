@@ -35,6 +35,22 @@ them in the routine on screen if it's empty, otherwise in a new routine named
 after the set; a level's set tab is rendered from them read-only
 (`/routine` with `prescribed=1`).
 
+# Writing one
+
+A set routine is built, not written: the whole routine is prescribed, so a
+coach builds it like any routine in the Routine Builder and chooses **More →
+Save as a set routine** (or, on the requirements page, **+ New set routine**
+from a routine already built). `POST /requirements/set-routine` turns the
+skills into requirements with `requirements.SetRoutineFrom`: one exact matcher
+per skill (`MatcherFor`: rotation, twist by phase through its FIG notation,
+direction, shape where it matters, take-off and landing, labelled with its
+name), no difficulty and repeats allowed. They load back as the same skills
+(`Matcher.Example` follows the FIG notation's twist phases). The routine
+remembers the set routine it was saved as (`setRoutine`), so saving again can
+update it. "Your set routines" on the requirements page lists them by element,
+with **Edit in the Routine Builder** (`/?setRoutine=<id>`); a built-in one can
+be copied there (`/?fromSet=<ref>`) to make one's own.
+
 # Built-in set routines
 
 | Source | Set routines |

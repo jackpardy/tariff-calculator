@@ -16,9 +16,26 @@ type CustomRequirements struct {
 	SetRoutine bool   `json:"set_routine"`
 }
 
+// The shapes a level can take, which the level editor asks for first.
+const (
+	StructureSetVoluntary   = "set-voluntary"   // a set routine (one of several), then a voluntary
+	StructureVoluntary      = "voluntary"       // one voluntary's requirements, for both exercises
+	StructureTwoVoluntaries = "two-voluntaries" // a first and a second voluntary, with their own requirements
+	StructureSet            = "set"             // a set routine for both exercises
+)
+
+// structures are the level shapes in the order the editor offers them.
+var structures = []struct{ Key, Label, Hint string }{
+	{StructureSetVoluntary, "Set routine, then a voluntary", "e.g. BUCS L3–L7, BG Regional L1–L3"},
+	{StructureVoluntary, "One voluntary", "the same requirements for both exercises, e.g. BUCS FIG Level"},
+	{StructureTwoVoluntaries, "Two voluntaries", "each with its own requirements, e.g. FIG age groups"},
+	{StructureSet, "Set routine for both exercises", "e.g. BG Club L1–L3"},
+}
+
 // LevelEditorData is the level being edited.
 type LevelEditorData struct {
 	Level      requirements.Level
+	Structure  string   // one of the Structure constants
 	JSON       string   // the level as it would be saved
 	Problems   []string // what's wrong with it, if anything
 	Groups     []requirements.BuiltinGroup
@@ -26,7 +43,8 @@ type LevelEditorData struct {
 	CustomJSON string // Custom, carried through each re-render
 }
 
-// LevelEditor is the editor form for one level. Every change posts the form to
+// LevelEditor is the editor form for one level: its name, its structure, then
+// what each exercise is. Every change posts the form to
 // /requirements/level-editor, which re-renders it; data-level-json carries the
 // level as it would be saved.
 templ LevelEditor(e LevelEditorData) {
@@ -47,30 +65,42 @@ templ LevelEditor(e LevelEditorData) {
 			<label class="label is-small" for="level-name">Name</label>
 			<input class="input" id="level-name" name="name" value={ e.Level.Name } placeholder="e.g. Student novice 2026–27"/>
 		</div>
-		<div class="field">
-			<label class="label is-small" for="level-description">Description (optional)</label>
-			<input class="input is-small" id="level-description" name="description" value={ e.Level.Description }/>
-		</div>
-		<div class="field">
-			<label class="label is-small" for="level-source">Source (optional)</label>
-			<input class="input is-small" id="level-source" name="source" value={ e.Level.Source } placeholder="e.g. Competition handbook, September 2026"/>
-		</div>
-		<div class="rule-card">
-			<p class="rule-card-title">First exercise</p>
-			@exerciseOptions(e, "first", e.Level.First)
-		</div>
-		<div class="rule-card">
-			<p class="rule-card-title">Second exercise</p>
-			<label class="checkbox">
-				<input type="checkbox" name="second_same" value="1" checked?={ e.Level.Second == nil }/>
-				The same requirements as the first exercise
-			</label>
-			<p class="matcher-hint">For two voluntaries under the same rules, or the same set routine twice.</p>
-			if e.Level.Second != nil {
-				@exerciseOptions(e, "second", *e.Level.Second)
+		<fieldset class="field level-structure">
+			<legend class="label is-small">The two exercises are</legend>
+			for _, st := range structures {
+				<label class={ "level-structure-choice", templ.KV("is-selected", st.Key == e.Structure) }>
+					<input type="radio" name="structure" value={ st.Key } checked?={ st.Key == e.Structure }/>
+					<span>
+						<strong>{ st.Label }</strong>
+						<span class="matcher-hint">{ st.Hint }</span>
+					</span>
+				</label>
 			}
-		</div>
-		<p class="matcher-hint mb-3">When the first exercise's requirements score only some elements (e.g. 2 in AG3), their difficulty carries over, and those elements can't be repeated in the second exercise.</p>
+		</fieldset>
+		switch e.Structure {
+			case StructureSetVoluntary:
+				@setSlots(e, "first", "First exercise: set routine", e.Level.First)
+				@voluntarySlot(e, "second", "Second exercise: voluntary", exerciseOption(e.Level.Second))
+			case StructureVoluntary:
+				@voluntarySlot(e, "first", "Both exercises: voluntary", exerciseOption(&e.Level.First))
+			case StructureTwoVoluntaries:
+				@voluntarySlot(e, "first", "First exercise: voluntary", exerciseOption(&e.Level.First))
+				@voluntarySlot(e, "second", "Second exercise: voluntary", exerciseOption(e.Level.Second))
+				<p class="matcher-hint mb-3">When the first exercise's requirements score only some elements (e.g. 2 in AG3), their difficulty carries over, and those elements can't be repeated in the second.</p>
+			case StructureSet:
+				@setSlots(e, "first", "Both exercises: set routine", e.Level.First)
+		}
+		<details class="level-details" open?={ e.Level.Description != "" || e.Level.Source != "" }>
+			<summary>More details: description and source</summary>
+			<div class="field">
+				<label class="label is-small" for="level-description">Description (optional)</label>
+				<input class="input is-small" id="level-description" name="description" value={ e.Level.Description }/>
+			</div>
+			<div class="field">
+				<label class="label is-small" for="level-source">Source (optional)</label>
+				<input class="input is-small" id="level-source" name="source" value={ e.Level.Source } placeholder="e.g. Competition handbook, September 2026"/>
+			</div>
+		</details>
 		if len(e.Problems) > 0 {
 			<div class="notification is-warning is-light set-problems">
 				<p class="has-text-weight-semibold">Fix before saving:</p>
@@ -84,45 +114,86 @@ templ LevelEditor(e LevelEditorData) {
 	</form>
 }
 
-// exerciseOptions are the requirements an exercise chooses between, e.g. a
-// level's two set routines, each a choice of built-in or saved requirements.
-templ exerciseOptions(e LevelEditorData, key string, ex requirements.Exercise) {
-	<p class="matcher-hint mb-2">The gymnast performs to one of these: a set routine, or requirements for a voluntary. Add more than one when there's a choice, e.g. set routine option 1 or option 2.</p>
-	<input type="hidden" name={ key + ".n" } value={ strconv.Itoa(len(ex.Options)) }/>
-	for i, ref := range ex.Options {
-		<div class="level-option">
-			<div class="select is-small">
-				<select name={ fmt.Sprintf("%s.%d", key, i) } aria-label={ fmt.Sprintf("%s exercise, choice %d", titleCase(key), i+1) }>
-					<option value="" selected?={ ref == "" }>Choose requirements...</option>
-					@requirementChoices(e, ref)
-				</select>
-			</div>
-			@levelAction("Remove", fmt.Sprintf("delete:%s:%d", key, i), len(ex.Options) == 1)
-		</div>
+// exerciseOption is an exercise's (first) requirements, "" if it has none.
+func exerciseOption(ex *requirements.Exercise) string {
+	if ex == nil || len(ex.Options) == 0 {
+		return ""
 	}
-	<div class="buttons are-small">
-		@levelAction("+ Add a choice", "add:"+key, false)
+	return ex.Options[0]
+}
+
+// setSlots are an exercise's set routines: the gymnast performs one, so a
+// level can offer several (option 1, option 2).
+templ setSlots(e LevelEditorData, key, title string, ex requirements.Exercise) {
+	<div class="rule-card">
+		<p class="rule-card-title">{ title }</p>
+		<p class="matcher-hint mb-2">Add more than one when the gymnast chooses, e.g. option 1 or option 2. New set routines are built in the Routine Builder (More → Save as a set routine), or from a routine under Your set routines.</p>
+		<input type="hidden" name={ key + ".n" } value={ strconv.Itoa(len(ex.Options)) }/>
+		for i, ref := range ex.Options {
+			<div class="level-option">
+				<span class="level-option-label">{ fmt.Sprintf("Option %d", i+1) }</span>
+				<div class="select is-small">
+					<select name={ fmt.Sprintf("%s.%d", key, i) } aria-label={ fmt.Sprintf("%s, option %d", title, i+1) }>
+						<option value="" selected?={ ref == "" }>Choose a set routine...</option>
+						@setRoutineChoices(e, ref)
+					</select>
+				</div>
+				@levelAction("Remove", fmt.Sprintf("delete:%s:%d", key, i), len(ex.Options) == 1)
+			</div>
+		}
+		<div class="buttons are-small">
+			@levelAction("+ Add another set routine", "add:"+key, false)
+		</div>
 	</div>
 }
 
-// requirementChoices are every built-in set routine and set of requirements,
-// and the user's own, with selected chosen.
-templ requirementChoices(e LevelEditorData, selected string) {
-	if len(e.Custom) > 0 {
-		<optgroup label="Your set routines and requirements">
-			for _, c := range e.Custom {
-				<option value={ c.ID } selected?={ c.ID == selected }>{ c.Name }{ setRoutineMark(c.SetRoutine) }</option>
+// voluntarySlot is an exercise's voluntary requirements.
+templ voluntarySlot(e LevelEditorData, key, title, ref string) {
+	<div class="rule-card">
+		<p class="rule-card-title">{ title }</p>
+		<input type="hidden" name={ key + ".n" } value="1"/>
+		<div class="level-option">
+			<div class="select is-small">
+				<select name={ key + ".0" } aria-label={ title }>
+					<option value="" selected?={ ref == "" }>Choose requirements...</option>
+					@voluntaryChoices(e, ref)
+				</select>
+			</div>
+		</div>
+		<p class="matcher-hint">New requirements: "+ New" under Your requirements.</p>
+	</div>
+}
+
+// setRoutineChoices are the built-in set routines and the user's own.
+templ setRoutineChoices(e LevelEditorData, selected string) {
+	if customs := customOf(e.Custom, true); len(customs) > 0 {
+		<optgroup label="Your set routines">
+			for _, c := range customs {
+				<option value={ c.ID } selected?={ c.ID == selected }>{ c.Name }</option>
 			}
 		</optgroup>
 	}
 	for _, g := range e.Groups {
 		if routines := g.SetRoutines(); len(routines) > 0 {
-			<optgroup label={ "Set routines · " + g.Name }>
+			<optgroup label={ g.Name }>
 				for _, b := range routines {
 					<option value={ requirements.BuiltinPrefix + b.ID } selected?={ requirements.BuiltinPrefix+b.ID == selected }>{ b.Set.Name }</option>
 				}
 			</optgroup>
 		}
+	}
+}
+
+// voluntaryChoices are the built-in requirements (not set routines) and the user's own.
+templ voluntaryChoices(e LevelEditorData, selected string) {
+	if customs := customOf(e.Custom, false); len(customs) > 0 {
+		<optgroup label="Your requirements">
+			for _, c := range customs {
+				<option value={ c.ID } selected?={ c.ID == selected }>{ c.Name }</option>
+			}
+		</optgroup>
+	}
+	for _, g := range e.Groups {
 		if sets := g.Requirements(); len(sets) > 0 {
 			<optgroup label={ g.Name }>
 				for _, b := range sets {
@@ -133,11 +204,15 @@ templ requirementChoices(e LevelEditorData, selected string) {
 	}
 }
 
-func setRoutineMark(isSetRoutine bool) string {
-	if isSetRoutine {
-		return " (set routine)"
+// customOf are the user's set routines (setRoutine) or other requirements.
+func customOf(all []CustomRequirements, setRoutine bool) []CustomRequirements {
+	var out []CustomRequirements
+	for _, c := range all {
+		if c.SetRoutine == setRoutine {
+			out = append(out, c)
+		}
 	}
-	return ""
+	return out
 }
 
 // levelAction is a button that posts the level editor with an action ("add:first").

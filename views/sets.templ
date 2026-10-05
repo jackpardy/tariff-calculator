@@ -89,6 +89,60 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 					</div>
 					<div class="box">
 						<div class="box-head">
+							<h2 class="title is-5 mb-0">Your set routines</h2>
+							<div class="buttons mb-0">
+								<button class="button is-primary is-small" type="button" x-on:click="makingSetRoutine = !makingSetRoutine">+ New set routine</button>
+							</div>
+						</div>
+						// A set routine is built, not written: in the Routine Builder, or from a routine already built.
+						<div class="import-panel" x-show="makingSetRoutine" x-cloak>
+							<p class="mb-2">
+								Build it like any routine in the <a href="/">Routine Builder</a>, then choose
+								<strong>More → Save as a set routine</strong>.
+							</p>
+							<template x-if="routines.length > 0">
+								<div class="set-routine-from">
+									<span class="is-size-7">Or use a routine you've built:</span>
+									<div class="select is-small">
+										<select aria-label="Routine to make a set routine of" x-model="fromRoutine">
+											<option value="">Choose a routine...</option>
+											<template x-for="r in routines.filter((r) => r.skills.length > 0)" x-bind:key="r.id">
+												<option x-bind:value="r.id" x-text="`${r.name} (${r.skills.length})`"></option>
+											</template>
+										</select>
+									</div>
+									<input class="input is-small" type="text" maxlength="60" placeholder="Name, e.g. Club L1" x-model="setRoutineName"/>
+									<button class="button is-small is-primary" type="button" x-bind:disabled="!fromRoutine" x-on:click="saveFromRoutine()">Save as a set routine</button>
+								</div>
+							</template>
+						</div>
+						<p class="has-text-grey" x-show="setRoutines().length === 0">None yet. Build one, or copy a built-in one below.</p>
+						<ul class="set-list">
+							<template x-for="s in setRoutines()" x-bind:key="s.id">
+								<li class="set-item">
+									<div>
+										<p class="set-name" x-text="s.set.name"></p>
+										<p class="set-meta" x-show="s.set.source" x-text="s.set.source"></p>
+										<details class="set-rules">
+											<summary x-text="`${elementsOf(s.set).length} elements`"></summary>
+											<ol>
+												<template x-for="(text, i) in elementsOf(s.set)" x-bind:key="i">
+													<li x-text="text"></li>
+												</template>
+											</ol>
+										</details>
+									</div>
+									<div class="buttons are-small mb-0">
+										<a class="button is-small" x-bind:href="`/?setRoutine=${s.id}`">Edit in the Routine Builder</a>
+										<button class="button is-small" type="button" x-on:click="Share.open('sets', [s.id])">Share</button>
+										<button class="button is-small is-danger is-outlined" type="button" x-on:click="remove(s.id)">Delete</button>
+									</div>
+								</li>
+							</template>
+						</ul>
+					</div>
+					<div class="box">
+						<div class="box-head">
 							<h2 class="title is-5 mb-0">Your requirements</h2>
 							<div class="buttons mb-0">
 								<button class="button is-primary is-small" type="button" x-on:click="newSet()">+ New</button>
@@ -106,9 +160,9 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 								</label>
 							</div>
 						</div>
-						<p class="has-text-grey" x-show="sets.length === 0">None yet. Start new ones, duplicate built-in ones, or import some.</p>
+						<p class="has-text-grey" x-show="requirementSets().length === 0">None yet. Start new ones, duplicate built-in ones, or import some.</p>
 						<ul class="set-list">
-							<template x-for="s in sets" x-bind:key="s.id">
+							<template x-for="s in requirementSets()" x-bind:key="s.id">
 								<li class="set-item">
 									<div>
 										<p class="set-name" x-text="s.set.name"></p>
@@ -356,7 +410,7 @@ templ SetEditor(e SetEditorData) {
 			<div class="select is-small">
 				<select id="add-rule" name="add">
 					<option value="">Choose a kind of rule...</option>
-					for _, t := range requirements.RuleTypes {
+					for _, t := range editorRuleTypes("") {
 						<option value={ t }>{ ruleTypeLabels[t] }</option>
 					}
 				</select>
@@ -392,7 +446,7 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 				<label class="label is-small" for={ p + "type" }>Kind of rule</label>
 				<div class="select is-small is-fullwidth">
 					<select id={ p + "type" } name={ p + "type" }>
-						for _, t := range requirements.RuleTypes {
+						for _, t := range editorRuleTypes(rule.Type) {
 							<option value={ t } selected?={ t == rule.Type }>{ ruleTypeLabels[t] }</option>
 						}
 					</select>
@@ -429,16 +483,14 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 				</div>
 				@matcherFields(p+"m.", rule.Match, "That element must be")
 			case requirements.Sequence:
-				<input type="hidden" name={ p + "seq" } value={ strconv.Itoa(len(rule.Sequence)) }/>
-				for j, m := range rule.Sequence {
-					@itemFields(fmt.Sprintf("%ss%d.", p, j), &m, fmt.Sprintf("Element %d", j+1), "e.g. Back somersault (T)")
-					<div class="buttons are-small">
-						@editorAction(fmt.Sprintf("Remove element %d", j+1), fmt.Sprintf("delete-element:%d:%d", i, j), len(rule.Sequence) == 1)
-					</div>
-				}
-				<div class="buttons are-small">
-					@editorAction("+ Add element", fmt.Sprintf("add-element:%d", i), false)
-				</div>
+				// A set routine is built in the Routine Builder, not written here.
+				<p class="matcher-hint mb-2">This is a set routine. Its elements are built in the Routine Builder: save these requirements, then use "Edit in the Routine Builder" under Your set routines.</p>
+				<ol class="set-routine-elements">
+					for _, m := range rule.Sequence {
+						<li>{ requirements.DescribeMatcher(m) }</li>
+					}
+				</ol>
+				<input type="hidden" name={ p + "seqjson" } value={ templ.JSONString(rule.Sequence) }/>
 			case requirements.Separate:
 				<p class="matcher-hint mb-2">Each requirement must be met by a different element, as with the starred (*) elements on a competition card.</p>
 				<input type="hidden" name={ p + "seq" } value={ strconv.Itoa(len(rule.Each)) }/>
@@ -595,6 +647,18 @@ func describeSafely(r requirements.Rule) string {
 	return requirements.Describe(r)
 }
 
+// editorRuleTypes are the kinds of rule the editor offers: every one but a set
+// routine, which is built in the Routine Builder, unless the rule already is one.
+func editorRuleTypes(current string) []string {
+	var out []string
+	for _, t := range requirements.RuleTypes {
+		if t != requirements.Sequence || current == requirements.Sequence {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
 func editorActionVals(action string) string {
 	return fmt.Sprintf(`{"action": %q}`, action)
 }
@@ -679,7 +743,11 @@ templ builtinGroup(name string, sets []requirements.Builtin) {
 						}
 					</div>
 					<div class="buttons are-small mb-0">
-						<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("duplicateBuiltin('%s')", b.ID) }>Duplicate</button>
+						if b.IsSetRoutine() {
+							<a class="button is-small" href={ templ.SafeURL("/?fromSet=" + requirements.BuiltinPrefix + b.ID) }>Copy to the Routine Builder</a>
+						} else {
+							<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("duplicateBuiltin('%s')", b.ID) }>Duplicate</button>
+						}
 					</div>
 				</li>
 			}

@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-05
+* **Update**: Set routines are built in the Routine Builder (More → Save as a
+  set routine) or made from a routine already built, and edited there; the
+  requirements editor no longer writes them element by element. The level
+  editor asks for the structure first (set routine then voluntary, one
+  voluntary, two voluntaries, set routine for both) and offers each slot only
+  what fits.
 * **Update**: "Check against" lists each level's voluntary requirements, named
   after the level (or by exercise when its two differ); set routines are a
   starting point ("Start from a set...") rather than requirements.

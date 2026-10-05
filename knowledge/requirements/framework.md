@@ -116,4 +116,8 @@ browser posts the form to `POST /requirements/editor`, the server parses and
 validates it into the model and re-renders the editor with any problems listed,
 and the browser saves the result. Validation exists only in Go.
 
+Set routines aren't written in the editor: it doesn't offer "Set routine" as a
+kind of rule, and shows an existing one's elements read-only. They're built in
+the Routine Builder ([set routines](set-routines.md#writing-one)).
+
 [^adr-0003]: ADR 0003 — A flexible framework for routine requirements

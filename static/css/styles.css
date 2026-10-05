@@ -293,6 +293,20 @@
 .routine-skills.is-read-only .routine-skill { background: #fafafa; }
 .level-check { padding: 0.5rem 0.75rem; border-left: 3px solid #485fc7; background: #f5f7ff; }
 .level-check p + p { margin-top: 0.15rem; }
+/* Level editor: the structure first, as cards to pick from. */
+.level-structure { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.5rem; border: none; padding: 0; margin-bottom: 1rem; }
+.level-structure legend { grid-column: 1 / -1; margin-bottom: 0.25rem; }
+.level-structure-choice { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.6rem 0.75rem; border: 1px solid #dbdbdb; border-radius: 6px; cursor: pointer; }
+.level-structure-choice.is-selected { border-color: #485fc7; background: #f5f7ff; }
+.level-structure-choice input { margin-top: 0.25rem; }
+.level-structure-choice span { display: flex; flex-direction: column; }
+.level-option-label { font-size: 0.85rem; font-weight: 600; min-width: 4rem; }
+.level-details { margin: 0.5rem 0 1rem; font-size: 0.9rem; }
+.level-details > summary { cursor: pointer; color: #485fc7; margin-bottom: 0.5rem; }
+/* Requirements page: making a set routine from a routine already built. */
+.set-routine-from { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.set-routine-from .input { max-width: 14rem; }
+.set-routine-elements { margin: 0.25rem 0 0 1.5rem; font-size: 0.9rem; }
 .level-option { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .level-option .select { min-width: 0; }
 .level-option .select select { max-width: 26rem; }

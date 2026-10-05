@@ -300,3 +300,18 @@ func TestRequirementsPage(t *testing.T) {
 		}
 	}
 }
+
+// Set routines are built in the Routine Builder: the editor doesn't offer one
+// as a new rule, and shows an existing one's elements read-only.
+func TestEditorLeavesSetRoutinesToTheBuilder(t *testing.T) {
+	rec := postForm(t, "/requirements/editor", url.Values{"set": {`{"format":1,"name":"Voluntary","rules":[]}`}})
+	add := rec.Body.String()
+	add = add[strings.Index(add, `id="add-rule"`):]
+	if strings.Contains(add[:strings.Index(add, "</select>")], `value="sequence"`) {
+		t.Error("Add a rule shouldn't offer a set routine")
+	}
+	body := postForm(t, "/requirements/editor", url.Values{"set": {`{"format":1,"name":"Club","rules":[{"type":"sequence","sequence":[{"label":"Tuck Jump","fig":"(o)"}]}]}`}}).Body.String()
+	if !strings.Contains(body, "Edit in the Routine Builder") || !strings.Contains(body, "seqjson") || strings.Contains(body, `name="r0.s0.rotmin"`) {
+		t.Error("a set routine's elements are shown read-only, not as matcher fields")
+	}
+}

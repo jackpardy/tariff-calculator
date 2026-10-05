@@ -1,7 +1,8 @@
 // requirements.js: the requirement sets page (views.RequirementsPage). Lists
 // the sets and levels saved in this browser (SetStore, LevelStore), opens one
 // in its server-rendered editor, and saves, duplicates and deletes them;
-// sets can also be exported and imported.
+// sets can also be exported and imported. Set routines are built in the
+// Routine Builder (or made here from a routine already built) and edited there.
 function requirementsPage() {
     return {
         sets: [],
@@ -11,12 +12,21 @@ function requirementsPage() {
         requirementNames: {}, // built-in requirements' names by reference
         editing: null, // {id, title, kind}: the set or level ('set' or 'level') open in the editor (id null until first saved)
         importing: false,
+        routines: [], // the routines saved in this browser, to make a set routine of
+        makingSetRoutine: false,
+        fromRoutine: '',
+        setRoutineName: '',
         importText: '',
         toast: '',
 
         init() {
             this.sets = SetStore.load();
             this.levels = LevelStore.load();
+            this.routines = RoutineStore.load().routines;
+            this.$watch('fromRoutine', (id) => {
+                const routine = this.routines.find((r) => r.id === id);
+                if (routine && !this.setRoutineName) { this.setRoutineName = routine.name; }
+            });
             try { this.builtins = JSON.parse(document.getElementById('builtin-sets').textContent); } catch (e) { this.builtins = {}; }
             try {
                 const data = JSON.parse(document.getElementById('level-data').textContent);
@@ -176,6 +186,33 @@ function requirementsPage() {
             if (!file) { return; }
             file.text().then((text) => { this.importText = text; this.importPasted(); });
             event.target.value = '';
+        },
+
+        // --- Set routines: built in the Routine Builder, kept with the requirements ---
+        isSetRoutine(set) { return (set?.rules || []).some((r) => r.type === 'sequence'); },
+        setRoutines() { return this.sets.filter((s) => this.isSetRoutine(s.set)); },
+        requirementSets() { return this.sets.filter((s) => !this.isSetRoutine(s.set)); },
+        // elementsOf is a set routine's elements by name.
+        elementsOf(set) { return (set.rules.find((r) => r.type === 'sequence')?.sequence || []).map((m) => m.label || 'Element'); },
+        // saveFromRoutine saves a routine already built as a set routine.
+        async saveFromRoutine() {
+            const routine = this.routines.find((r) => r.id === this.fromRoutine);
+            if (!routine) { return; }
+            const name = this.setRoutineName.trim() || routine.name;
+            const response = await fetch('/requirements/set-routine', { method: 'POST', body: new URLSearchParams({ routineData: JSON.stringify(routine.skills), name }) });
+            if (!response.ok) { this.flash(`Couldn't save it: ${(await response.text()).trim()}`); return; }
+            const set = await response.json();
+            const id = SetStore.newId();
+            this.sets.push({ id, set });
+            SetStore.save(this.sets);
+            // The routine can update it later (More → Save as a set routine).
+            const state = RoutineStore.load();
+            const saved = state.routines.find((r) => r.id === routine.id);
+            if (saved) { saved.setRoutine = id; RoutineStore.save(state); }
+            this.makingSetRoutine = false;
+            this.fromRoutine = '';
+            this.setRoutineName = '';
+            this.flash(`Saved the set routine ${name}.`);
         },
 
         rulesCount(set) { return set.rules.length === 1 ? '1 rule' : `${set.rules.length} rules`; },

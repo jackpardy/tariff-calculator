@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 
 	"tariffCalculator/skills"
@@ -591,9 +592,14 @@ func (m Matcher) Example() (skills.TrampolineSkill, bool) {
 				for _, backward := range []bool{false, true} {
 					for _, seat := range []bool{false, true} {
 						s := skills.TrampolineSkill{Rotation: rot, TakeoffPosition: takeoff, Shape: shape, Backward: backward, SeatLanding: seat}
-						// The twist goes in the last phase (singles have only one).
+						// The twist goes in the last phase (singles have only one),
+						// unless exact FIG notation says how it's spread.
 						s.TwistDistribution = make([]int, skills.CalculatePhases(rot))
-						s.TwistDistribution[len(s.TwistDistribution)-1] = tw
+						if phases, ok := figTwists(m.FIG); ok && len(phases) == len(s.TwistDistribution) {
+							copy(s.TwistDistribution, phases)
+						} else {
+							s.TwistDistribution[len(s.TwistDistribution)-1] = tw
+						}
 						if s.LandingPosition() == skills.Invalid || !m.Matches(s) {
 							continue
 						}
@@ -609,3 +615,78 @@ func (m Matcher) Example() (skills.TrampolineSkill, bool) {
 }
 
 var positionsByName = map[string]skills.BodyPosition{"feet": skills.Feet, "front": skills.Front, "back": skills.Back, "seat": skills.Seat}
+
+// figTwists reads the twist in each phase from FIG notation, e.g. "(8 2 - /)"
+// is [2 0]. It reports false for notation without twists to read.
+func figTwists(fig string) ([]int, bool) {
+	fields := strings.Fields(strings.NewReplacer("(", " ", ")", " ").Replace(fig))
+	if len(fields) < 2 {
+		return nil, false
+	}
+	var out []int
+	for _, f := range fields[1:] {
+		switch {
+		case f == "-":
+			out = append(out, 0)
+		case strings.ContainsAny(f, "o</v"):
+			// the shape, last
+		default:
+			n, err := strconv.Atoi(f)
+			if err != nil {
+				return nil, false
+			}
+			out = append(out, n)
+		}
+	}
+	return out, len(out) > 0
+}
+
+// MatcherFor is a matcher for exactly one skill, as a set routine element:
+// its rotation, twist (by phase, through its FIG notation), direction, shape
+// where it matters, and take-off and landing. It's labelled with the skill's
+// name (the coach's label if it has one).
+func MatcherFor(s skills.TrampolineSkill) Matcher {
+	s.NormalizePhases()
+	rotation, twist := s.Rotation, s.TotalTwist()
+	m := Matcher{
+		Label:    s.Name,
+		Rotation: &Range{Min: &rotation, Max: &rotation},
+		Twist:    &Range{Min: &twist, Max: &twist},
+		Takeoff:  []string{strings.ToLower(s.TakeoffPosition.String())},
+		Landing:  []string{strings.ToLower(s.LandingPosition().String())},
+		FIG:      s.FIGNotation(),
+	}
+	if s.CustomName != "" {
+		m.Label = s.CustomName
+	}
+	if m.Label == "" {
+		m.Label = skills.FindCommonSkillName(s)
+	}
+	if s.Rotation > 0 {
+		m.Direction = "forward"
+		if s.Backward {
+			m.Direction = "backward"
+		}
+	}
+	if s.IsBasicJump() || s.ShapeIsRelevant() {
+		m.Shapes = []string{shapeOf(s)}
+	}
+	return m
+}
+
+// SetRoutineFrom is a set routine of exactly these skills: requirements with a
+// sequence rule of one matcher per skill (MatcherFor), scored like a set
+// routine (no difficulty, repeats allowed).
+func SetRoutineFrom(name string, routine []skills.TrampolineSkill) Set {
+	sequence := make([]Matcher, len(routine))
+	for i, s := range routine {
+		sequence[i] = MatcherFor(s)
+	}
+	return Set{
+		Format:         Format,
+		Name:           name,
+		Rules:          []Rule{{Type: Sequence, Sequence: sequence}},
+		NoDifficulty:   true,
+		RepeatsAllowed: true,
+	}
+}

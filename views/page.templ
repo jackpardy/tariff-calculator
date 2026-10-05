@@ -102,6 +102,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 						<div class="routine-menu-panel" x-on:click="$el.closest('details').removeAttribute('open')">
 							<button class="button is-small is-white" type="button" x-on:click="renameRoutine()">Rename</button>
 							<button class="button is-small is-white" type="button" x-on:click="duplicateRoutine()">Duplicate</button>
+							<button class="button is-small is-white" type="button" x-on:click="saveAsSetRoutine()" x-bind:disabled="routine.length === 0">Save as a set routine</button>
 							<button class="button is-small is-white" type="button" x-on:click="expandAll()">Expand all</button>
 							<button class="button is-small is-white" type="button" x-on:click="collapseAll()">Collapse all</button>
 							<button class="button is-small is-white has-text-danger" type="button" x-on:click="clearRoutine()" x-bind:disabled="routine.length === 0">Clear skills</button>
