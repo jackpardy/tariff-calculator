@@ -1,5 +1,17 @@
 # Update log
 
+## 2026-10-06
+* **Update**: Step 2 of [ADR 0004](../docs/adr/0004-server-storage-secret-links.md)
+  for [competition entries](features/competition-entries.md): a `competitions`
+  package (competitions, the levels they offer, entries and their checking)
+  and a `store` package (SQLite with secret links, deadlines, limits, and
+  deletion 120 days after the competition or a club's last use). No pages
+  use them yet. A level's two exercises are now checked by
+  `requirements.CheckPair` in both the builder and stored entries
+  ([levels](requirements/levels.md), [stack](architecture/stack.md)).
+* **Update**: The [roadmap](roadmap.md) says a competition's entries are
+  deleted 120 days after it, as ADR 0004 does.
+
 ## 2026-10-05
 * **Update**: Competitions can ask for video proof that a gymnast can perform
   their routine safely: a link per exercise (an unlisted YouTube video, a

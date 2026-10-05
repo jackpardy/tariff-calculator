@@ -98,7 +98,8 @@ A voluntary shown in Levels mode, and the view screen, post the level
 (`level`: a built-in reference or a custom level's JSON), `exercise`, and the
 other exercise's choice (`pairData`, `pairSet`, `pairChecks`, `pairName`). A set
 routine is posted without skills and the server builds it. The server checks
-both (`checkRoutine` in `main.go`). When difficulty carries over, the first
+both together with `requirements.CheckPair`, which stored competition entries
+use too, so the two can't disagree. When difficulty carries over, the first
 exercise's scoring elements are passed to the second's validation as
 `ValidateOptions.ScoredEarlier`. A repeat of one is flagged "Can't Repeat:
 Scored In 1st Exercise" and isn't counted

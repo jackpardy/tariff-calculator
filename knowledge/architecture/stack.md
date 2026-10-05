@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: Technology stack
-description: Go 1.25 standard-library server, templ components, htmx 2, a little Alpine.js, SortableJS and Bulma, all vendored and embedded in one static binary, with no database.
+description: Go 1.25 standard-library server, templ components, htmx 2, a little Alpine.js, SortableJS and Bulma, all vendored and embedded in one static binary, with SQLite on the way for competition entries.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/go.mod
 tags: [architecture, go, templ, htmx, alpine]
 generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
@@ -19,7 +19,7 @@ generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 | Reordering | SortableJS | Vendored. |
 | Styling | Bulma (vendored CSS) plus `styles.css`, `sheet.css` for print. | |
 | QR codes | `rsc.io/qr` | [Sharing](../features/sharing.md). |
-| Storage | Browser `localStorage` only | No database or accounts yet ([ADR 0001](../../docs/adr/0001-architecture.md) plans SQLite when accounts arrive). |
+| Storage | Browser `localStorage`; SQLite (`modernc.org/sqlite`, pure Go) for competition entries | The `store` package is built and tested but not used by any page yet ([ADR 0004](../../docs/adr/0004-server-storage-secret-links.md)). Pinned to v1.59 because later versions need Go 1.26. No accounts. |
 
 # Packages
 
@@ -27,7 +27,9 @@ generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 |---|---|
 | `skills` | The engine: [skill model](../domain/skill-model.md), [tariff](../domain/tariff.md), [routine validation](../domain/routine-validation.md). Framework-free. |
 | `catalog` | [Picker and search](../domain/skill-catalog.md) over the common skills. |
-| `requirements` | [Requirements framework](../requirements/framework.md) and built-ins. Framework-free. |
+| `requirements` | [Requirements framework](../requirements/framework.md) and built-ins, and checking a routine or a level's two exercises (`Check`, `CheckPair`). Framework-free. |
+| `competitions` | [Competition entries](../features/competition-entries.md): competitions, the levels they offer, entries, and checking an entry with `CheckPair`. Framework-free. |
+| `store` | SQLite storage for competitions, clubs, members and entries, reached by secret links (ADR 0004). Plain `database/sql`, numbered migrations. |
 | `views` | templ components: page, form, routine, sheet, compare, view screen, requirements page and the level editor. |
 | `static` | Embedded CSS/JS with content-hashed URLs ([static assets](static-assets.md)). |
 | `main` | Handlers (`main.go`), the requirements and level editors' form parsing (`setform.go`, `levelform.go`) and QR codes (`qrcode.go`). |
@@ -39,5 +41,5 @@ changes.
 # Deferred
 
 From ADR 0001 and 0002: browser WASM (only if the animation player needs it),
-a JSON `/api/v1`, SQLite with `sqlc` and Litestream, accounts with magic links,
+a JSON `/api/v1`, `sqlc` and Litestream, accounts with magic links,
 video in R2, Gotenberg PDFs, and the stick-figure animation.
