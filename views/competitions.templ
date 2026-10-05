@@ -1,0 +1,675 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+
+	"tariffCalculator/requirements"
+	"tariffCalculator/skills"
+	"tariffCalculator/static"
+)
+
+// CompetitionSummary is what every competition page says about it, with dates
+// already written for Ireland and the UK.
+type CompetitionSummary struct {
+	Name        string
+	Date        string // e.g. "Saturday 13 March 2027"
+	Deadline    string // e.g. "Saturday 6 March 2027, 23:59"
+	DeleteAfter string // when it and its entries are deleted
+	Open        bool   // entries can still be sent or changed
+	Individuals bool   // individuals can enter directly
+}
+
+// CompetitionForm is the form that creates a competition. Levels are the
+// built-in levels ticked, by reference; a coach's own levels come from the
+// browser (static/js/competitions.js) and are posted as JSON.
+type CompetitionForm struct {
+	Name, Date, DeadlineDate, DeadlineTime string
+	Individuals                            bool
+	Levels                                 map[string]bool
+	Groups                                 []requirements.BuiltinGroup
+	Problems                               []string
+}
+
+// CompetitionLinks are a competition's links, as full URLs. Admin is set only
+// when it's just been made or replaced: it's shown once.
+type CompetitionLinks struct {
+	Admin, Club, Individual string
+}
+
+// Dashboard is the organiser's overview of every entry.
+type Dashboard struct {
+	Base         string // the admin link's path, which the dashboard's own links extend
+	New          string // "created" or "replaced" just after the admin link was made, to say to save it
+	Competition  CompetitionSummary
+	Links        CompetitionLinks
+	Clubs        []string // the clubs entered, by name
+	Club         string   // the club the table is filtered to ("" for all, "individual" for individuals)
+	ProblemsOnly bool
+	Entries      int // every entry, before filtering
+	WithProblems int
+	Levels       []DashboardLevel
+}
+
+// DashboardLevel is one level's table.
+type DashboardLevel struct {
+	Name string
+	Rows []DashboardRow
+}
+
+// DashboardRow is one entry in a level's table.
+type DashboardRow struct {
+	ID, Gymnast, Club string
+	Exercises         [2]string // a set routine's name, or a voluntary's difficulty
+	Met, Rules        int
+	Problems          []string
+	Sent              string
+}
+
+// EntryCard is an entry checked exactly as the builder checks a level.
+type EntryCard struct {
+	Gymnast, Club, Level string
+	Exercises            [2]ExerciseCard
+	Problems             []string
+}
+
+// ExerciseCard is one exercise of an entry, checked.
+type ExerciseCard struct {
+	Title        string // "First exercise"
+	Requirements string // what it's checked against
+	SetRoutine   bool   // performed as written
+	Validation   skills.RoutineValidation
+	Checks       Checks
+	Results      []requirements.Result
+	Required     map[int]bool
+	SetErr       string
+	Carried      []int // elements whose difficulty carries over (first exercise)
+	Repeated     []int // elements repeating one that carried over (second exercise)
+}
+
+// EntryDetail is the organiser's view of one entry.
+type EntryDetail struct {
+	Base        string
+	Competition CompetitionSummary
+	Card        EntryCard
+	Sent        string
+}
+
+// EntryForm enters or replaces an individual's entry. Each level's exercises
+// are listed, and the page (static/js/competitions.js) shows the chosen
+// level's and fills each voluntary from the routines saved in this browser.
+type EntryForm struct {
+	Action   string // where the form posts
+	Submit   string // its button
+	Gymnast  string
+	Level    string
+	Levels   []EntryLevel
+	Problems []string
+}
+
+// EntryLevel is a level an entry can choose, with its two exercises.
+type EntryLevel struct {
+	Name      string
+	Exercises [2]EntryExercise
+}
+
+// EntryExercise is one exercise's choice: which option, and for a voluntary,
+// which routine.
+type EntryExercise struct {
+	Options []EntryOption
+	Chosen  string // the option chosen
+	Skills  string // the routine as JSON, if one was chosen or entered already
+	Count   int    // how many skills it has
+}
+
+// EntryOption is one of an exercise's options.
+type EntryOption struct {
+	Ref, Label string
+	SetRoutine bool
+}
+
+// EntryPage is an individual's own entry, through their personal link.
+type EntryPage struct {
+	Competition CompetitionSummary
+	Link        string // their personal link, as a full URL
+	JustSaved   bool
+	Sent        string
+	Card        EntryCard
+	Form        EntryForm
+	Withdraw    string // where withdrawing posts
+}
+
+// EnterPage is a competition's individual entry page.
+type EnterPage struct {
+	Competition CompetitionSummary
+	Form        EntryForm
+}
+
+templ competitionLayout(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="robots" content="noindex"/>
+			<title>{ title }</title>
+			<meta name="app-version" content={ static.Version }/>
+			<script defer src={ static.URL("js/version.js") }></script>
+			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
+			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
+			<script defer src={ static.URL("js/routines.js") }></script>
+			<script defer src={ static.URL("js/sets.js") }></script>
+			<script defer src={ static.URL("js/competitions.js") }></script>
+		</head>
+		<body>
+			<section class="section comp-page">
+				<div class="container">
+					{ children... }
+				</div>
+			</section>
+		</body>
+	</html>
+}
+
+// Message is a page that only says something, e.g. a link that leads nowhere.
+templ Message(title, text string) {
+	@competitionLayout(title) {
+		<h1 class="title is-4">{ title }</h1>
+		<p>{ text }</p>
+	}
+}
+
+templ problemList(problems []string) {
+	if len(problems) > 0 {
+		<div class="notification is-danger is-light" role="alert">
+			<ul>
+				for _, p := range problems {
+					<li>{ p }</li>
+				}
+			</ul>
+		</div>
+	}
+}
+
+// linkBox shows a link to copy. A secret one says so.
+templ linkBox(label, url, hint string) {
+	<div class="field comp-link">
+		<label class="label is-small">{ label }</label>
+		<div class="field has-addons">
+			<div class="control is-expanded">
+				<input class="input is-small" type="text" readonly value={ url } aria-label={ label }/>
+			</div>
+			<div class="control">
+				<button type="button" class="button is-small" data-copy={ url }>Copy</button>
+			</div>
+		</div>
+		if hint != "" {
+			<p class="help">{ hint }</p>
+		}
+	</div>
+}
+
+// NewCompetition is the form that creates a competition.
+templ NewCompetition(f CompetitionForm) {
+	@competitionLayout("New competition") {
+		<h1 class="title is-4">New competition</h1>
+		<p class="mb-4">Collect gymnasts' competition cards before the day, each checked against its level. There are no accounts: you get an admin link to keep, and links to give clubs and gymnasts.</p>
+		<div id="saved-competitions" class="box" hidden>
+			<h2 class="title is-6">Your competitions in this browser</h2>
+			<ul></ul>
+		</div>
+		@problemList(f.Problems)
+		<form method="post" action="/competitions" id="new-competition">
+			<div class="field">
+				<label class="label" for="comp-name">Name</label>
+				<input class="input" id="comp-name" name="name" required maxlength="80" value={ f.Name } placeholder="e.g. Student Open 2027"/>
+			</div>
+			<div class="field">
+				<label class="label" for="comp-date">Date</label>
+				<input class="input" id="comp-date" name="date" type="date" required value={ f.Date }/>
+				<p class="help">The (first) day of the competition.</p>
+			</div>
+			<div class="field">
+				<label class="label">Entries close</label>
+				<div class="comp-deadline">
+					<input class="input" name="deadlineDate" type="date" required value={ f.DeadlineDate } aria-label="Closing date"/>
+					<input class="input" name="deadlineTime" type="time" required value={ f.DeadlineTime } aria-label="Closing time"/>
+				</div>
+				<p class="help">Irish and UK time. Clubs and gymnasts can change entries until then.</p>
+			</div>
+			<div class="field">
+				<label class="checkbox">
+					<input type="checkbox" name="individuals" value="1" checked?={ f.Individuals }/>
+					Gymnasts can also enter on their own, not only through a club
+				</label>
+			</div>
+			<fieldset class="field">
+				<legend class="label">Levels</legend>
+				<p class="help mb-2">Tick every level gymnasts can enter.</p>
+				for _, g := range f.Groups {
+					if len(g.Levels) > 0 {
+						<details class="comp-level-group" open?={ groupChosen(g, f.Levels) }>
+							<summary>{ g.Name }</summary>
+							for _, l := range g.Levels {
+								<label class="checkbox comp-level">
+									<input type="checkbox" name="level" value={ requirements.BuiltinLevelPrefix + l.ID } checked?={ f.Levels[requirements.BuiltinLevelPrefix+l.ID] }/>
+									{ l.Level.Name }
+								</label>
+							}
+						</details>
+					}
+				}
+				// The levels saved in this browser, filled by static/js/competitions.js.
+				<details id="own-levels" class="comp-level-group" hidden>
+					<summary>Your own levels</summary>
+				</details>
+			</fieldset>
+			<button class="button is-primary is-fullwidth" type="submit">Create competition</button>
+		</form>
+	}
+}
+
+func groupChosen(g requirements.BuiltinGroup, chosen map[string]bool) bool {
+	for _, l := range g.Levels {
+		if chosen[requirements.BuiltinLevelPrefix+l.ID] {
+			return true
+		}
+	}
+	return false
+}
+
+// newAdminLink tells the organiser to save the admin link they've just been given.
+templ newAdminLink(c CompetitionSummary, link, which string) {
+	<div class="notification is-warning is-light">
+		<p class="mb-2">
+			<strong>
+				if which == "replaced" {
+					Your new admin link.
+				} else {
+					Competition created.
+				}
+			</strong>
+			Save this page's link, the admin link: it's the only way back to the entries, and anyone who has it can manage the competition.
+		</p>
+		<div data-competition-admin={ link } data-competition-name={ c.Name }>
+			@linkBox("Admin link (keep it secret)", link, "Saved in this browser too, under New competition.")
+		</div>
+	</div>
+}
+
+// Dashboard is the organiser's overview: every entry, by level, with its problems.
+templ CompetitionDashboard(d Dashboard) {
+	@competitionLayout(d.Competition.Name) {
+		<h1 class="title is-4">{ d.Competition.Name }</h1>
+		if d.New != "" {
+			@newAdminLink(d.Competition, d.Links.Admin, d.New)
+		}
+		@competitionFacts(d.Competition)
+		<nav class="level is-mobile comp-counts">
+			@count(d.Entries, "entries")
+			@count(d.WithProblems, "with problems")
+			@count(len(d.Clubs), "clubs")
+		</nav>
+		<details class="box comp-manage">
+			<summary><strong>Links and settings</strong></summary>
+			if d.Links.Club != "" {
+				@linkBox("Club link", d.Links.Club, "Give it to clubs' competition secretaries: they enter their club and send its members' entries.")
+			}
+			if d.Competition.Individuals {
+				@linkBox("Individual entry link", d.Links.Individual, "Anyone with it can enter on their own.")
+			}
+			<form method="post" action={ templ.SafeURL(d.Base + "/individuals") } class="mb-3">
+				if d.Competition.Individuals {
+					<input type="hidden" name="on" value="0"/>
+					<button class="button is-small" type="submit">Stop individual entries</button>
+				} else {
+					<input type="hidden" name="on" value="1"/>
+					<button class="button is-small" type="submit">Let gymnasts enter on their own</button>
+				}
+			</form>
+			<form method="post" action={ templ.SafeURL(d.Base + "/replace-link") } class="mb-3">
+				<button class="button is-small" type="submit">Replace the admin link</button>
+				<p class="help">If the admin link has been shared too widely. The old one stops working.</p>
+			</form>
+			<form method="post" action={ templ.SafeURL(d.Base + "/delete") }>
+				<label class="checkbox is-size-7">
+					<input type="checkbox" name="confirm" value="1" required/>
+					Delete the competition and every entry, now
+				</label>
+				<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
+			</form>
+		</details>
+		<form method="get" class="comp-filter">
+			<div class="select is-small">
+				<select name="club" aria-label="Club" onchange="this.form.submit()">
+					<option value="" selected?={ d.Club == "" }>All clubs</option>
+					for _, c := range d.Clubs {
+						<option value={ c } selected?={ d.Club == c }>{ c }</option>
+					}
+					if d.Competition.Individuals || hasIndividuals(d) {
+						<option value="individual" selected?={ d.Club == "individual" }>Individuals</option>
+					}
+				</select>
+			</div>
+			<label class="checkbox is-size-7">
+				<input type="checkbox" name="problems" value="1" checked?={ d.ProblemsOnly } onchange="this.form.submit()"/>
+				Problems only
+			</label>
+			<noscript><button class="button is-small" type="submit">Filter</button></noscript>
+		</form>
+		if d.Entries == 0 {
+			<p class="has-text-grey">No entries yet. Clubs send theirs through the club link; individuals enter through theirs.</p>
+		}
+		for _, l := range d.Levels {
+			<h2 class="title is-5 mt-5">{ l.Name } <span class="has-text-grey is-size-6">({ strconv.Itoa(len(l.Rows)) })</span></h2>
+			if len(l.Rows) == 0 {
+				<p class="has-text-grey is-size-7">None</p>
+			} else {
+				<div class="table-container">
+					<table class="table is-fullwidth is-narrow comp-table">
+						<thead>
+							<tr>
+								<th>Gymnast</th>
+								<th>Club</th>
+								<th>1st exercise</th>
+								<th>2nd exercise</th>
+								<th>Requirements</th>
+								<th>Problems</th>
+								<th>Sent</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, r := range l.Rows {
+								<tr class={ templ.KV("has-problems", len(r.Problems) > 0) }>
+									<td><a href={ templ.SafeURL(d.Base + "/entries/" + r.ID) }>{ r.Gymnast }</a></td>
+									<td>{ r.Club }</td>
+									<td>{ r.Exercises[0] }</td>
+									<td>{ r.Exercises[1] }</td>
+									<td>
+										if r.Rules > 0 {
+											{ fmt.Sprintf("%d/%d %s", r.Met, r.Rules, markFor(r.Met == r.Rules)) }
+										}
+									</td>
+									<td>
+										if len(r.Problems) == 0 {
+											–
+										} else {
+											{ r.Problems[0] }
+											if len(r.Problems) > 1 {
+												<span class="has-text-grey">{ fmt.Sprintf(" +%d more", len(r.Problems)-1) }</span>
+											}
+										}
+									</td>
+									<td>{ r.Sent }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		}
+	}
+}
+
+func hasIndividuals(d Dashboard) bool {
+	for _, l := range d.Levels {
+		for _, r := range l.Rows {
+			if r.Club == "individual" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+templ count(n int, label string) {
+	<div class="level-item has-text-centered">
+		<div>
+			<p class="title is-4">{ strconv.Itoa(n) }</p>
+			<p class="heading">{ label }</p>
+		</div>
+	</div>
+}
+
+templ competitionFacts(c CompetitionSummary) {
+	<p class="mb-1">{ c.Date }</p>
+	<p class="mb-4">
+		if c.Open {
+			Entries close { c.Deadline }.
+		} else {
+			<strong>Entries closed { c.Deadline }.</strong>
+		}
+	</p>
+}
+
+// CompetitionEntry is the organiser's view of one entry.
+templ CompetitionEntry(d EntryDetail) {
+	@competitionLayout(d.Card.Gymnast + " · " + d.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(d.Base) }>← All entries</a></p>
+		@entryCard(d.Card)
+		<p class="has-text-grey is-size-7 mt-4">Sent { d.Sent }.</p>
+	}
+}
+
+// entryCard is an entry checked: both exercises, side by side on wider screens.
+templ entryCard(c EntryCard) {
+	<h1 class="title is-4">{ c.Gymnast }</h1>
+	<p class="subtitle is-6">{ c.Club } · { c.Level }</p>
+	if len(c.Problems) == 0 {
+		<div class="notification is-success is-light">No problems found.</div>
+	} else {
+		<div class="notification is-danger is-light">
+			<p><strong>{ problemCount(len(c.Problems)) }</strong></p>
+			<ul>
+				for _, p := range c.Problems {
+					<li>{ p }</li>
+				}
+			</ul>
+		</div>
+	}
+	<div class="columns">
+		for _, ex := range c.Exercises {
+			<div class="column">
+				@exerciseCard(ex)
+			</div>
+		}
+	</div>
+}
+
+func problemCount(n int) string {
+	if n == 1 {
+		return "1 problem"
+	}
+	return fmt.Sprintf("%d problems", n)
+}
+
+templ exerciseCard(ex ExerciseCard) {
+	<div class="box comp-exercise">
+		<h2 class="title is-6 mb-1">{ ex.Title }</h2>
+		<p class="is-size-7 has-text-grey mb-2">
+			{ ex.Requirements }
+			if ex.SetRoutine {
+				· set routine as written
+			}
+		</p>
+		if ex.SetErr != "" {
+			<p class="has-text-danger">{ ex.SetErr }</p>
+		}
+		if len(ex.Validation.Skills) == 0 {
+			<p class="has-text-grey">No routine.</p>
+		} else {
+			<table class="table is-fullwidth is-narrow comp-skills">
+				<tbody>
+					for i, sv := range ex.Validation.Skills {
+						<tr class={ templ.KV("not-counted", !sv.Counted && !sv.Unscored) }>
+							<td class="has-text-grey">{ strconv.Itoa(i + 1) }</td>
+							<td>
+								{ displayName(sv.Skill) }
+								if ex.Required[i+1] {
+									<span title="Meets a requirement"> *</span>
+								}
+								if ex.Validation.Messages[i] != "" {
+									<br/><span class="is-size-7 has-text-danger">{ ex.Validation.Messages[i] }</span>
+								}
+							</td>
+							<td class="has-text-grey">{ sv.FIGNotation }</td>
+							<td class="has-text-right">
+								if ex.Checks.ScoreDifficulty {
+									{ fmt.Sprintf("%.1f", sv.Skill.Tariff) }
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+			<p class="has-text-right">
+				if ex.Checks.ScoreDifficulty {
+					<strong>Difficulty { fmt.Sprintf("%.1f", ex.Validation.TotalTariff) }</strong>
+				} else {
+					<span class="has-text-grey">No difficulty</span>
+				}
+			</p>
+		}
+		if len(ex.Carried) > 0 {
+			<p class="is-size-7 mt-2">{ fmt.Sprintf("Difficulty carries over from elements %s.", elementNumbers(ex.Carried)) }</p>
+		}
+		if len(ex.Repeated) > 0 {
+			<p class="is-size-7 mt-2 has-text-danger">{ fmt.Sprintf("Element %s repeats one whose difficulty carried over.", elementNumbers(ex.Repeated)) }</p>
+		}
+		if len(ex.Results) > 0 {
+			<ul class="comp-results mt-3">
+				for _, r := range ex.Results {
+					<li class={ templ.KV("is-unmet", !r.Passed) }>
+						{ markFor(r.Passed) } { r.Description }
+						if r.Detail != "" && !r.Passed {
+							<span class="has-text-grey is-size-7">({ r.Detail })</span>
+						}
+					</li>
+				}
+			</ul>
+		}
+	</div>
+}
+
+func elementNumbers(ns []int) string {
+	out := ""
+	for i, n := range ns {
+		if i > 0 {
+			out += ", "
+		}
+		out += strconv.Itoa(n)
+	}
+	return out
+}
+
+// CompetitionEnter is the individual entry page.
+templ CompetitionEnter(p EnterPage) {
+	@competitionLayout("Enter " + p.Competition.Name) {
+		<h1 class="title is-4">Enter { p.Competition.Name }</h1>
+		@competitionFacts(p.Competition)
+		if p.Competition.Open {
+			@entryForm(p.Form)
+			@privacyNote(p.Competition)
+		}
+	}
+}
+
+templ privacyNote(c CompetitionSummary) {
+	<p class="help mt-4">
+		We keep the gymnast's name, level and routines, which the organiser and the difficulty judges see. Nothing else, and no account. They're deleted { c.DeleteAfter }, or sooner if the organiser deletes the competition.
+	</p>
+}
+
+// entryForm chooses a level, each exercise's option and each voluntary's routine.
+templ entryForm(f EntryForm) {
+	@problemList(f.Problems)
+	<form method="post" action={ templ.SafeURL(f.Action) } class="comp-entry-form">
+		<div class="field">
+			<label class="label" for="entry-gymnast">Gymnast</label>
+			<input class="input" id="entry-gymnast" name="gymnast" required maxlength="80" value={ f.Gymnast } placeholder="Name, as on the results"/>
+		</div>
+		<div class="field">
+			<label class="label" for="entry-level">Level</label>
+			<div class="select is-fullwidth">
+				<select id="entry-level" name="level" required>
+					<option value="" disabled selected?={ f.Level == "" }>Choose a level</option>
+					for _, l := range f.Levels {
+						<option value={ l.Name } selected?={ f.Level == l.Name }>{ l.Name }</option>
+					}
+				</select>
+			</div>
+		</div>
+		for _, l := range f.Levels {
+			<fieldset class="comp-entry-level" data-level={ l.Name } hidden?={ l.Name != f.Level } disabled?={ l.Name != f.Level }>
+				for n, ex := range l.Exercises {
+					@entryExercise(n+1, ex)
+				}
+			</fieldset>
+		}
+		<button class="button is-primary is-fullwidth mt-4" type="submit">{ f.Submit }</button>
+	</form>
+}
+
+templ entryExercise(n int, ex EntryExercise) {
+	{{ prefix := fmt.Sprintf("ex%d", n) }}
+	<div class="box comp-entry-exercise" data-exercise={ prefix }>
+		<h2 class="title is-6">{ titleCase(exerciseName(n)) } exercise</h2>
+		if len(ex.Options) > 1 {
+			for _, o := range ex.Options {
+				<label class="radio comp-option">
+					<input type="radio" name={ prefix + "Option" } value={ o.Ref } data-set-routine={ strconv.FormatBool(o.SetRoutine) } checked?={ ex.Chosen == o.Ref } required/>
+					{ o.Label }
+				</label>
+			}
+		} else if len(ex.Options) == 1 {
+			<input type="hidden" name={ prefix + "Option" } value={ ex.Options[0].Ref } data-set-routine={ strconv.FormatBool(ex.Options[0].SetRoutine) }/>
+			<p class="is-size-7 has-text-grey">{ ex.Options[0].Label }</p>
+		}
+		<p class="comp-set-note is-size-7" hidden>The set routine, as written: nothing to choose.</p>
+		<div class="field comp-routine mt-2">
+			<label class="label is-small">Routine</label>
+			<div class="select is-fullwidth">
+				// Filled from the routines saved in this browser (static/js/competitions.js).
+				<select data-routine-for={ prefix } aria-label={ "Routine for the " + exerciseName(n) + " exercise" }>
+					if ex.Skills != "" {
+						<option value="current" selected>{ fmt.Sprintf("Keep the routine entered (%d skills)", ex.Count) }</option>
+					}
+				</select>
+			</div>
+			<p class="help">One of the routines saved in this browser. Build it in the Routine Builder first.</p>
+		</div>
+		<input type="hidden" name={ prefix + "Skills" } value={ ex.Skills }/>
+	</div>
+}
+
+// CompetitionEntryPage is an individual's own entry, through their personal link.
+templ CompetitionEntryPage(p EntryPage) {
+	@competitionLayout(p.Card.Gymnast + " · " + p.Competition.Name) {
+		<p class="has-text-grey mb-1">{ p.Competition.Name }</p>
+		@competitionFacts(p.Competition)
+		if p.JustSaved {
+			<div class="notification is-success is-light">
+				<p><strong>Entry saved.</strong> This is your personal link: keep it to change or withdraw the entry. It's saved in this browser too.</p>
+			</div>
+		}
+		<div data-entry-link={ p.Link } data-entry-name={ p.Card.Gymnast + " · " + p.Competition.Name }>
+			@linkBox("Your personal link (keep it to yourself)", p.Link, "")
+		</div>
+		@entryCard(p.Card)
+		<p class="has-text-grey is-size-7">Entered { p.Sent }.</p>
+		if p.Competition.Open {
+			<details class="box mt-4" open?={ len(p.Form.Problems) > 0 }>
+				<summary><strong>Change the entry</strong></summary>
+				@entryForm(p.Form)
+			</details>
+			<form method="post" action={ templ.SafeURL(p.Withdraw) } class="mt-4">
+				<label class="checkbox is-size-7">
+					<input type="checkbox" name="confirm" value="1" required/>
+					Withdraw this entry
+				</label>
+				<button class="button is-small is-danger is-outlined ml-2" type="submit">Withdraw</button>
+			</form>
+			@privacyNote(p.Competition)
+		}
+	}
+}

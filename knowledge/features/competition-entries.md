@@ -14,9 +14,12 @@ sources:
 
 **Not built yet.** This page describes the target for card collection, the
 first item on the [roadmap](../roadmap.md). Storage, links and clubs are
-decided in ADR 0004.[^adr-0004] Its storage (`store`) and checking
-(`competitions`) are built and tested (step 2 of the ADR's migration); the
-pages come next.
+decided in ADR 0004.[^adr-0004] Built so far (steps 2 and 3 of the ADR's
+migration): storage (`store`), checking (`competitions`), and the pages for
+creating a competition, the organiser's dashboard and each entry, and
+individual entry (`comppages.go`, [routes](../architecture/http-routes.md#competition-pages)).
+They're on only where `DATA_DIR` is set, and not linked from the calculator.
+Clubs, printing, export, marking checked and video come next.
 
 # The organiser (competition admin link)
 
