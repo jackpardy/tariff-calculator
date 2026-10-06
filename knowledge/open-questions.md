@@ -25,10 +25,21 @@ From the [British Gymnastics requirements](requirements/bg-national.md):
 - Are the national qualifying scores (difficulty and total) in the set
   descriptions current?
 
+# For ISTO's timetable (ADR 0005)
+
+- How many officials each discipline's panel needs at ISTO (execution and
+  difficulty judges, chair, recorder), and whether that changes by level.
+- Typical minutes per competitor for tumbling and DMT (two passes each).
+- Whether judging any level needs a judging qualification, or a competitor
+  can judge any level below their own.
+- Whether ISTO runs over one day or two, and its breaks.
+
 # Decisions pending
 
 - Whether to mark [ADR 0003](../docs/adr/0003-requirements-framework.md)
   Accepted.
+- Whether to accept [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md)
+  (multi-discipline timetabling for ISTO).
 
 # Not yet tested on a real phone
 

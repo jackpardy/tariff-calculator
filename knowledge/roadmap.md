@@ -63,8 +63,8 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 | # | Area | What it does | Builds on |
 |---|---|---|---|
 | 1 | **Card collection and checking** (built, live at `/competitions` since 2026-10-06; [what each person sees](features/competition-entries.md)) | Members keep their entries with their club and change them freely; the club's competition secretary sends them to the competition (individuals can enter directly where allowed); the organiser and difficulty judges see every card already checked against its level, print them, mark them checked, and export CSV; optionally asks for video proof by link (an unlisted YouTube video, say) for chosen skills | requirements, levels, tariff sheet, sharing |
-| 3 | Timetable and flight planner (built; [timetable](features/competition-entries.md#timetable-roadmap-competitions-3)) | Entries per category, panels and minutes per competitor give flights, running orders and estimated times; printable marshal and chair-of-judges sheets | — |
-| 4 | Officials rota | Judges, recorders, marshals and spotters per panel and flight, with clashes flagged | 3 |
+| 3 | Timetable and flight planner (first version built: [timetable](features/competition-entries.md#timetable-roadmap-competitions-3); for ISTO, [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md)) | Entries per category, panels and minutes per competitor give flights, running orders and estimated times; printable marshal and chair-of-judges sheets. For ISTO: trampoline, synchro, tumbling and DMT; people who compete in several and judge; the venue's strict end time; simulation of entry numbers | — |
+| 4 | Officials rota (part of ADR 0005) | Judges, recorders, marshals and spotters per panel and flight, drawn from competitors and the organiser's own judges, with clashes flagged and own-club judging balanced | 3 |
 | 5 | "My competition" page | For attendees: flight, panel, time, card status | 1, 3 |
 | 6 | Results history | Import results CSVs (TrampOnline, TScore) for personal bests and progression, and for next year's level planning | — |
 | 7 | Later, if wanted | Entries, scoring with time of flight and displacement, live results: the "replace" path | 1–6 |
@@ -101,6 +101,10 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
   drops to the bottom, as it would be hard to do right. ISTO's levels won't
   be available for a while, so building them in waits; users can write them
   as their own requirements meanwhile.
+- **The aim is ISTO (2026-10-06).** The competition tools work towards running
+  the Irish Student Trampoline Open's day: trampoline, synchro, tumbling and
+  DMT, with competitors judging and a venue that must finish on time
+  ([ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md)).
 - **Priorities (2026-10-06):** card collection is live. Next is the timetable
   and flight planner (competitions 3), then the officials rota (4). The
   difficulty judge helper (2) drops to the bottom: it would be hard to get
