@@ -1,0 +1,237 @@
+package views
+
+import "strconv"
+
+// OfferForm says what a person can do as an official (ADR 0005 Decision 5).
+type OfferForm struct {
+	Action      string
+	Disciplines []OfferDiscipline
+	Recorder    bool
+	Marshal     bool
+	Summary     string // what they offer now, "" for nothing
+	Problems    []string
+}
+
+// OfferDiscipline is judging one discipline: whether, up to which level, and
+// whether they can chair.
+type OfferDiscipline struct {
+	Key    string // the form's name for it
+	Name   string
+	Levels []string
+	Judge  bool
+	UpTo   string
+	Chair  bool
+}
+
+// offerForm asks what someone can judge and help with.
+templ offerForm(f OfferForm) {
+	@problemList(f.Problems)
+	<form method="post" action={ templ.SafeURL(f.Action) } class="comp-offer">
+		for _, d := range f.Disciplines {
+			<div class="field comp-offer-row">
+				<label class="checkbox">
+					<input type="checkbox" name={ "judge-" + d.Key } value="1" checked?={ d.Judge }/>
+					Judge { d.Name }
+				</label>
+				<div class="select is-small">
+					<select name={ "upto-" + d.Key } aria-label={ "Highest " + d.Name + " level to judge" }>
+						<option value="" selected?={ d.UpTo == "" }>any level</option>
+						for _, l := range d.Levels {
+							<option value={ l } selected?={ d.UpTo == l }>up to { l }</option>
+						}
+					</select>
+				</div>
+				<label class="checkbox is-size-7">
+					<input type="checkbox" name={ "chair-" + d.Key } value="1" checked?={ d.Chair }/>
+					can chair
+				</label>
+			</div>
+		}
+		<div class="field">
+			<label class="checkbox mr-4"><input type="checkbox" name="recorder" value="1" checked?={ f.Recorder }/> Recorder</label>
+			<label class="checkbox"><input type="checkbox" name="marshal" value="1" checked?={ f.Marshal }/> Marshal</label>
+		</div>
+		<button class="button is-small is-primary" type="submit">Save</button>
+		<p class="help">The organiser puts officials on panels around their own turns. Untick everything to offer nothing.</p>
+	</form>
+}
+
+// offerBox is what someone offers, with the form to change it, collapsed.
+templ offerBox(f OfferForm) {
+	<details class="box mt-4 comp-change" open?={ len(f.Problems) > 0 }>
+		<summary>
+			<strong>Judging and helping</strong>
+			<span class="has-text-grey is-size-7">
+				if f.Summary == "" {
+					· nothing offered
+				} else {
+					· { f.Summary }
+				}
+			</span>
+		</summary>
+		<div class="mt-3">
+			@offerForm(f)
+		</div>
+	</details>
+}
+
+// OfficialsPage is the organiser's officials: the panels and judging rule,
+// who's available for each discipline, and everyone who has offered.
+type OfficialsPage struct {
+	Base        string
+	Competition CompetitionSummary
+	Notice      string
+	Judge       string // the judging rule
+	Panels      []PanelSetting
+	Cover       []Cover
+	Officials   []OfficialRow
+	Add         OfferForm // for adding a person
+}
+
+// PanelSetting is a discipline's panel, as the form shows it.
+type PanelSetting struct {
+	Key, Name                                     string
+	Chair, Execution, Difficulty, Recorder, Marshal int
+}
+
+// Cover is how many people can do each job in a discipline, against what one
+// panel needs.
+type Cover struct {
+	Name                     string
+	Judges, Chairs           int
+	PanelJudges, PanelChairs int
+}
+
+// OfficialRow is one of the competition's officials.
+type OfficialRow struct {
+	ID, Name, Club, Source, Offer string
+	Qualified, Added              bool
+}
+
+// CompetitionOfficials is the organiser's officials page.
+templ CompetitionOfficials(p OfficialsPage) {
+	@competitionLayout("Officials · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
+		<h1 class="title is-4">Officials</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		if p.Notice != "" {
+			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		<div class="table-container">
+			<table class="table is-narrow">
+				<thead><tr><th>Discipline</th><th>Can judge</th><th>Can chair</th><th>One panel needs</th></tr></thead>
+				<tbody>
+					for _, c := range p.Cover {
+						<tr>
+							<td>{ c.Name }</td>
+							<td>{ strconv.Itoa(c.Judges) }</td>
+							<td>{ strconv.Itoa(c.Chairs) }</td>
+							<td>{ strconv.Itoa(c.PanelJudges) } judges, { strconv.Itoa(c.PanelChairs) } chair</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+		<p class="help mb-4">People who compete judge around their own turns; the timetable puts them on panels.</p>
+		<details class="box comp-manage">
+			<summary><strong>Panels and who may judge</strong></summary>
+			<form method="post" action={ templ.SafeURL(p.Base + "/officials/settings") }>
+				<p class="help mb-2">Each discipline's panel starts as the FIG Code of Points' (a Chair of Judges Panel, 6 execution and 2 difficulty judges), plus a recorder and a marshal. Change any of it.</p>
+				<div class="table-container">
+					<table class="table is-narrow comp-panels">
+						<thead><tr><th></th><th>Chair</th><th>Execution</th><th>Difficulty</th><th>Recorder</th><th>Marshal</th></tr></thead>
+						<tbody>
+							for _, s := range p.Panels {
+								<tr>
+									<td>{ s.Name }</td>
+									@panelInput(s.Key, "chair", s.Chair)
+									@panelInput(s.Key, "execution", s.Execution)
+									@panelInput(s.Key, "difficulty", s.Difficulty)
+									@panelInput(s.Key, "recorder", s.Recorder)
+									@panelInput(s.Key, "marshal", s.Marshal)
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				<fieldset class="field">
+					<legend class="label is-small">Who may judge what</legend>
+					<label class="radio comp-option"><input type="radio" name="judge" value="" checked?={ p.Judge == "" }/> Anyone, up to the level they say</label>
+					<label class="radio comp-option"><input type="radio" name="judge" value="below" checked?={ p.Judge == "below" }/> Only levels below the one they compete at</label>
+					<label class="radio comp-option"><input type="radio" name="judge" value="qualified" checked?={ p.Judge == "qualified" }/> Only people I mark qualified</label>
+				</fieldset>
+				<button class="button is-small" type="submit">Save</button>
+			</form>
+		</details>
+		<h2 class="title is-5 mt-5">People <span class="has-text-grey is-size-6">({ strconv.Itoa(len(p.Officials)) })</span></h2>
+		if len(p.Officials) == 0 {
+			<p class="has-text-grey">Nobody yet. Gymnasts offer when they enter (clubs send members' offers with their entries); add anyone else below.</p>
+		} else {
+			<div class="table-container">
+				<table class="table is-fullwidth is-narrow comp-table">
+					<thead><tr><th>Name</th><th>Club</th><th>Can do</th><th>Qualified</th><th></th></tr></thead>
+					<tbody>
+						for _, o := range p.Officials {
+							<tr>
+								<td>
+									{ o.Name }
+									<span class="has-text-grey is-size-7"> · { o.Source }</span>
+								</td>
+								<td>{ o.Club }</td>
+								<td class="comp-wrap">{ o.Offer }</td>
+								<td>
+									<form method="post" action={ templ.SafeURL(p.Base + "/officials/" + o.ID + "/qualified") }>
+										<input type="hidden" name="on" value={ boolValue(!o.Qualified) }/>
+										<label class="checkbox">
+											<input type="checkbox" checked?={ o.Qualified } onchange="this.form.submit()" aria-label={ o.Name + " qualified" }/>
+										</label>
+										<noscript><button class="button is-small" type="submit">Change</button></noscript>
+									</form>
+								</td>
+								<td>
+									if o.Added {
+										<form method="post" action={ templ.SafeURL(p.Base + "/officials/" + o.ID + "/remove") } class="is-inline">
+											<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+										</form>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+		<details class="box mt-4 comp-change">
+			<summary><strong>Add someone</strong> <span class="has-text-grey is-size-7">· a judge or helper who isn't entering, perhaps with no club</span></summary>
+			<form method="post" action={ templ.SafeURL(p.Base + "/officials/add") } class="mt-3">
+				<div class="field">
+					<input class="input is-small" name="name" required maxlength="80" placeholder="Name" aria-label="Name"/>
+					<input class="input is-small mt-1" name="club" maxlength="80" placeholder="Club (leave blank if none)" aria-label="Club"/>
+				</div>
+				for _, d := range p.Add.Disciplines {
+					<div class="field comp-offer-row">
+						<label class="checkbox"><input type="checkbox" name={ "judge-" + d.Key } value="1"/> Judge { d.Name }</label>
+						<div class="select is-small">
+							<select name={ "upto-" + d.Key } aria-label={ "Highest " + d.Name + " level to judge" }>
+								<option value="">any level</option>
+								for _, l := range d.Levels {
+									<option value={ l }>up to { l }</option>
+								}
+							</select>
+						</div>
+						<label class="checkbox is-size-7"><input type="checkbox" name={ "chair-" + d.Key } value="1"/> can chair</label>
+					</div>
+				}
+				<div class="field">
+					<label class="checkbox mr-4"><input type="checkbox" name="recorder" value="1"/> Recorder</label>
+					<label class="checkbox"><input type="checkbox" name="marshal" value="1"/> Marshal</label>
+				</div>
+				<button class="button is-small is-primary" type="submit">Add</button>
+			</form>
+		</details>
+	}
+}
+
+templ panelInput(key, field string, value int) {
+	<td><input class="input is-small comp-num" type="number" min="0" max="20" name={ "panel-" + key + "-" + field } value={ strconv.Itoa(value) } aria-label={ key + " " + field }/></td>
+}

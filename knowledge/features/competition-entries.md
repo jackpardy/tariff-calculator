@@ -107,6 +107,25 @@ A competition offers **events**: a discipline at a level.
   the timetable can later check their clashes. Naming a different partner
   needs a new confirmation.
 
+# Officials (ADR 0005, step 3)
+
+**Officials** on the dashboard lists everyone who can judge or help, and what
+each discipline's panel needs.
+
+- **Offers.** On their page, a member says what they can do at each
+  competition: judge a discipline (up to a level, perhaps chairing), and help
+  as a recorder or marshal. The comp sec can correct it, and it goes to the
+  competition with every send. An individual offers on their entry.
+- **People the organiser adds:** judges or helpers who aren't entering, with
+  or without a club.
+- **Panels:** each discipline's starts as the FIG Code of Points' (a Chair of
+  Judges Panel, 6 execution and 2 difficulty judges), plus a recorder and a
+  marshal, all changeable.
+- **Who may judge what:** anyone up to the level they say (the default), only
+  levels below the one they compete at, or only people the organiser marks
+  qualified. The page shows how many can judge and chair each discipline.
+- The officials rota (step 5) puts them on panels around their own turns.
+
 # Timetable (roadmap: competitions 3)
 
 From the dashboard, **Timetable** plans the day.

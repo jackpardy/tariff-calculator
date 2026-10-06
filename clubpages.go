@@ -192,6 +192,10 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 				cc.Rows = append(cc.Rows, views.ClubEntryRow{Member: e.Entry.Gymnasts(), Level: e.Entry.Event(), Status: "Withdrawn (still sent)"})
 			}
 		}
+		if cc.Offers, err = p.clubOffers(r, base, club, c, members); err != nil {
+			failed(w, r, err)
+			return
+		}
 		page.Competitions = append(page.Competitions, cc)
 	}
 	coached := map[string]int{}
@@ -651,6 +655,13 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 		default:
 			mc.Status = fmt.Sprintf("%d entries", entered)
 		}
+		offer, err := p.st.MemberOffer(ctx, m.ID, c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		form := offerForm(c.Competition, offer, path+"/competitions/"+c.ID+"/offer")
+		mc.Offer = &form
 		// Open what needs doing: a competition still open, or one with problems just posted.
 		mc.Open = mc.Open || (mc.Competition.Open && len(comps) == 1)
 		page.Competitions = append(page.Competitions, mc)

@@ -88,6 +88,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerClubs(mux)
 	p.registerTimetable(handle)
 	p.registerPartners(handle)
+	p.registerOfficials(handle)
 }
 
 // secret marks the pages as private: links in their URLs mustn't leak through
@@ -1016,6 +1017,10 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	}
 	if e.Entry.Partner != nil {
 		page.Partner = &views.PartnerView{Name: e.Entry.Partner.Name, Link: origin(r) + partnerPath(e.PartnerLink), Confirmed: e.PartnerConfirmed}
+	}
+	if offer, err := p.st.IndividualOffer(r.Context(), e.ID); err == nil {
+		form := offerForm(c.Competition, offer, path+"/offer")
+		page.Offer = &form
 	}
 	page.Form.Problems = problems
 	if len(problems) > 0 {

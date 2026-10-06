@@ -197,6 +197,7 @@ type EntryPage struct {
 	SignoffLink string // the link for their coach to sign it off, where the competition needs it
 	Partner     *PartnerView
 	Placement   *Placement // where they compete, once the timetable is published
+	Offer       *OfferForm // what they offer to judge and help with
 }
 
 // EnterPage is a competition's individual entry page.
@@ -465,9 +466,12 @@ templ CompetitionDashboard(d Dashboard) {
 			</label>
 			<noscript><button class="button is-small" type="submit">Filter</button></noscript>
 		</form>
+		<div class="buttons">
+			<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable") }>Timetable</a>
+			<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/officials") }>Officials</a>
+		</div>
 		if d.Entries > 0 {
 			<div class="buttons">
-				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable") }>Timetable</a>
 				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) }>Print cards</a>
 				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards?unchecked=1") }>Print cards not checked</a>
 				<a class="button is-small" href={ templ.SafeURL(d.Base + "/entries.csv") } download>Download CSV</a>
@@ -948,6 +952,9 @@ templ CompetitionEntryPage(p EntryPage) {
 				<summary><strong>Change the entry</strong></summary>
 				@entryForm(p.Form)
 			</details>
+			if p.Offer != nil {
+				@offerBox(*p.Offer)
+			}
 			<form method="post" action={ templ.SafeURL(p.Withdraw) } class="mt-4">
 				<label class="checkbox is-size-7">
 					<input type="checkbox" name="confirm" value="1" required/>

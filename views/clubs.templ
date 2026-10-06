@@ -46,6 +46,12 @@ type ClubCompetition struct {
 	Competition CompetitionSummary
 	Rows        []ClubEntryRow
 	ToSend      int // entries never sent, or changed since
+	Offers      []ClubOfferRow
+}
+
+// ClubOfferRow is what a member offers to judge and help with.
+type ClubOfferRow struct {
+	Member, Offer, Edit string
 }
 
 // ClubEntryRow is one member's entry for a competition.
@@ -98,6 +104,7 @@ type MemberCompetition struct {
 	Competition CompetitionSummary
 	Status      string        // e.g. "2 entries"
 	Events      []MemberEvent // one per discipline the competition offers
+	Offer       *OfferForm    // what they offer to judge and help with
 	Open        bool          // shown open on the page
 }
 
@@ -257,14 +264,34 @@ templ ClubAdmin(c ClubPage) {
 						</table>
 					</div>
 				}
-				if comp.Competition.Open && len(comp.Rows) > 0 {
+				if comp.Competition.Open && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
 					<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/send") } class="buttons">
 						<button class="button is-primary is-small" type="submit" name="which" value="changed" disabled?={ comp.ToSend == 0 }>
 							{ fmt.Sprintf("Send new and changed (%d)", comp.ToSend) }
 						</button>
 						<button class="button is-small" type="submit" name="which" value="all">Send all again</button>
 					</form>
-					<p class="help">The organiser sees only what you send. "Send all again" also takes back withdrawn entries.</p>
+					<p class="help">The organiser sees only what you send. "Send all again" also takes back withdrawn entries. What members offer to judge and help with goes with every send.</p>
+				}
+				if len(comp.Offers) > 0 {
+					<details class="mt-3">
+						<summary class="is-size-7">Judging and helping ({ strconv.Itoa(len(comp.Offers)) }), sent with the entries</summary>
+						<table class="table is-fullwidth is-narrow mt-2">
+							<tbody>
+								for _, o := range comp.Offers {
+									<tr>
+										<td>{ o.Member }</td>
+										<td class="is-size-7">{ o.Offer }</td>
+										<td>
+											if o.Edit != "" {
+												<a href={ templ.SafeURL(o.Edit) }>Change</a>
+											}
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</details>
 				}
 			</div>
 		}
@@ -450,6 +477,9 @@ templ MemberHome(p MemberPage) {
 					for _, ev := range c.Events {
 						@memberEvent(c.Competition, ev)
 					}
+					if c.Offer != nil && c.Competition.Open {
+						@offerBox(*c.Offer)
+					}
 				</div>
 			</details>
 		}
@@ -525,4 +555,21 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 			}
 		}
 	</div>
+}
+
+// ClubOfferEdit is the comp sec changing what a member offers.
+type ClubOfferEdit struct {
+	Base, Club, Member string
+	Competition        CompetitionSummary
+	Form               OfferForm
+}
+
+// ClubOfferEditPage is the comp sec changing a member's offer.
+templ ClubOfferEditPage(e ClubOfferEdit) {
+	@competitionLayout(e.Member + " · judging and helping") {
+		<p class="mb-3"><a href={ templ.SafeURL(e.Base) }>← { e.Club }</a></p>
+		<h1 class="title is-4">{ e.Member }</h1>
+		<p class="subtitle is-6">Judging and helping at { e.Competition.Name }</p>
+		@offerForm(e.Form)
+	}
 }
