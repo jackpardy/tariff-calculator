@@ -103,7 +103,7 @@ func TestCoachSignoff(t *testing.T) {
 
 	// The comp sec assigns Y to Ann from the club page's members list.
 	clubPage = do(t, h, http.MethodGet, club, nil).Body.String()
-	assign := regexp.MustCompile(`action="(` + regexp.QuoteMeta(club) + `/members/[^"]+/coach)"`).FindAllStringSubmatch(clubPage, -1)
+	assign := regexp.MustCompile(`action="(`+regexp.QuoteMeta(club)+`/members/[^"]+/coach)"`).FindAllStringSubmatch(clubPage, -1)
 	if len(assign) != 2 {
 		t.Fatalf("each member has a coach choice on the club page: %d", len(assign))
 	}
