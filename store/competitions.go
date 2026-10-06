@@ -134,6 +134,18 @@ type Entry struct {
 	// SignoffLink is an individual's link for their coach to sign off the
 	// entry (ADR 0004 Decision 11); "" for a club's entry.
 	SignoffLink string
+	// Coach is the coach the member has chosen or been assigned, now; "" for
+	// none, or an individual.
+	Coach string
+}
+
+// CoachName is who coaches the gymnast, for their card: the coach who signed
+// the entry off, or else the member's coach.
+func (e Entry) CoachName() string {
+	if e.SignedOff() {
+		return e.SignedBy
+	}
+	return e.Coach
 }
 
 // SignedOff says whether a coach has signed off the entry.
@@ -154,7 +166,8 @@ func (e Entry) Checked() bool { return !e.CheckedAt.IsZero() }
 func (s *Store) Entries(ctx context.Context, competitionID string) ([]Entry, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
 		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
-			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token
+			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
+		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), '')
 		FROM entries WHERE competition_id = $1
 		ORDER BY individual, club_name, gymnast, id`, competitionID)
 	if err != nil {
@@ -176,7 +189,7 @@ func (s *Store) Entries(ctx context.Context, competitionID string) ([]Entry, err
 func scanEntry(row interface{ Scan(...any) error }) (Entry, error) {
 	var e Entry
 	var entry, sent, checked, signed string
-	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink); err != nil {
+	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach); err != nil {
 		return Entry{}, notFound(err)
 	}
 	if err := json.Unmarshal([]byte(entry), &e.Entry); err != nil {
@@ -240,7 +253,7 @@ func (s *Store) AddIndividualEntry(ctx context.Context, competitionID string, e 
 
 // IndividualEntry is the entry an individual's personal link opens.
 func (s *Store) IndividualEntry(ctx context.Context, token string) (Entry, error) {
-	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE, COALESCE(signed_at, ''), signed_by, sign_note, signoff_token
+	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE, COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, ''
 		FROM entries WHERE token_hash = $1`, hash(token)))
 }
 
@@ -311,7 +324,8 @@ func (s *Store) SetIndividuals(ctx context.Context, id string, on bool) error {
 func (s *Store) CompetitionEntry(ctx context.Context, competitionID, id string) (Entry, error) {
 	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
 		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
-			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token
+			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
+		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), '')
 		FROM entries WHERE competition_id = $1 AND id = $2`, competitionID, id))
 }
 
@@ -360,7 +374,7 @@ func (s *Store) SetSignoff(ctx context.Context, id string, on bool) error {
 // EntryBySignoffLink is the individual's entry a coach's sign-off link opens.
 func (s *Store) EntryBySignoffLink(ctx context.Context, token string) (Entry, error) {
 	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE,
-		COALESCE(signed_at, ''), signed_by, sign_note, signoff_token
+		COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, ''
 		FROM entries WHERE signoff_hash = $1`, hash(token)))
 }
 
