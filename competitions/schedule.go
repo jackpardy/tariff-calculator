@@ -387,6 +387,7 @@ func PlanSchedule(entries []SchedEntry, eventOrder []string, setup Setup, seed u
 		}
 	}
 	sortFlights(out.Flights)
+	out.OrderForRest(people)
 	return out
 }
 

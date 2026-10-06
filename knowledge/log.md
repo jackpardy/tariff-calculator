@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: The [timetable](features/competition-entries.md#timetable-adr-0005-step-4)
+  puts someone with little rest between two flights (less than twice the rest
+  setting) early in the first running order and late in the second; a redraw
+  keeps it.
 * **Update**: Step 4 of ADR 0005, the [timetable](features/competition-entries.md#timetable-adr-0005-step-4)
   plans over the venue's days and named areas: blocked time, the organiser's
   rules (must or prefer), timings per discipline, rest between a person's

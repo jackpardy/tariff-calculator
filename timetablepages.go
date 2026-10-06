@@ -537,7 +537,8 @@ func (p *competitionPages) editFlight(w http.ResponseWriter, r *http.Request) {
 		for _, e := range schedEntries(entries) {
 			clubs[e.ID] = e.Club
 		}
-		done = s.Redraw(flight, clubs, rand.New(rand.NewPCG(uint64(p.now().UnixNano()), 1)))
+		people, _ := peopleOf(entries)
+		done = s.Redraw(flight, clubs, people, rand.New(rand.NewPCG(uint64(p.now().UnixNano()), 1)))
 	case "move":
 		day, area, _ := strings.Cut(r.FormValue("to"), ":")
 		d, err := strconv.Atoi(day)

@@ -138,8 +138,10 @@ From the dashboard, **Timetable** plans the competition over the venue's days
   per discipline it offers ("Panel 1", "Track 1", "DMT 1").
 - **Timings**, per discipline: minutes per competitor (5 for trampoline, 5 per
   synchro pair, 2 for tumbling and DMT), minutes between flights (10) and the
-  largest flight. **Rest** between a person's turns (20 minutes) is a
-  preference, or a must. **Men and women**: which levels ranked separately
+  largest flight. **Rest** between a person's flights (20 minutes), from the
+  end of one to the start of the next one's warm-up, is a preference, or a
+  must. Both rounds of an event are in one flight, so rest is only between
+  events. **Men and women**: which levels ranked separately
   also fly separately.
 - **Blocked time:** lunch, awards or an ad hoc event, on a day, at a fixed time
   or anywhere in a window, on chosen areas or all of them.
@@ -150,6 +152,9 @@ From the dashboard, **Timetable** plans the competition over the venue's days
   every flight inside its day's hours and around the blocks, keeping the
   musts; then as many preferences as it can (rest, an event's flights on one
   area, the organiser's prefers). It tries many orders and keeps the best.
+  Where a person's next flight that day starts less than twice the rest after
+  their last, they go early in the first flight's running order and late in
+  the second's (also when a flight is redrawn).
   A person is a member (by their member link) or, for individuals entering
   several disciplines, by name; a confirmed synchro partner is the same
   person as their own entries.

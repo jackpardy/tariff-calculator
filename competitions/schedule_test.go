@@ -2,6 +2,7 @@ package competitions
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"strings"
 	"testing"
 )
@@ -348,5 +349,51 @@ func TestBlocksStayInTheirDay(t *testing.T) {
 	s := PlanSchedule(people("L1", Trampoline, 4), []string{"L1"}, setup, 1)
 	if len(s.Blocks) != 0 || len(s.UnplacedBlocks) != 1 {
 		t.Errorf("lunch after the day's end doesn't fit: %+v %v", s.Blocks, s.UnplacedBlocks)
+	}
+}
+
+func TestOrderForRest(t *testing.T) {
+	// One panel, so Dara's two events run back to back: she goes first in the
+	// earlier flight and last in the later one, however they're drawn.
+	setup := venue()
+	setup.Areas = setup.Areas[:1]
+	setup.Rest = 20
+	entries := append(people("BUCS L3", Trampoline, 6, "Dara"), people("BUCS L5", Trampoline, 6, "Dara")...)
+	pp := map[string][]string{}
+	clubs := map[string]string{}
+	for _, e := range entries {
+		pp[e.ID], clubs[e.ID] = e.People, e.Club
+	}
+	for seed := range uint64(8) {
+		s := PlanSchedule(entries, []string{"BUCS L3", "BUCS L5"}, setup, seed)
+		first, second := s.Flights[0], s.Flights[1]
+		if first.Entries[0] != first.Level+"#0" || second.Entries[len(second.Entries)-1] != second.Level+"#0" {
+			t.Fatalf("seed %d: Dara should be first then last: %v, %v", seed, first.Entries, second.Entries)
+		}
+		s.Redraw(1, clubs, pp, rand.New(rand.NewPCG(seed, 2)))
+		if e := s.Flights[1].Entries; e[len(e)-1] != second.Level+"#0" {
+			t.Errorf("seed %d: a redraw keeps Dara last: %v", seed, e)
+		}
+	}
+
+	// A long enough gap (twice the rest or more) leaves the draw alone.
+	s := Schedule{Setup: Setup{Rest: 20}, Flights: []ScheduledFlight{
+		{Flight: Flight{Entries: []string{"a", "x"}}, Start: 540, End: 600},
+		{Flight: Flight{Entries: []string{"x", "b"}}, Start: 640, End: 700},
+	}}
+	if p := s.restPulls(map[string][]string{"x": {"X"}}); len(p) != 0 {
+		t.Errorf("40 minutes apart is enough: %v", p)
+	}
+	s.Flights[1].Start = 630
+	s.OrderForRest(map[string][]string{"x": {"X"}})
+	if fmt.Sprint(s.Flights[0].Entries, s.Flights[1].Entries) != "[x a] [b x]" {
+		t.Errorf("30 minutes apart: %v %v", s.Flights[0].Entries, s.Flights[1].Entries)
+	}
+
+	// The shortest gaps go nearest the edges; someone wanted at both ends of
+	// the same flight stays where drawn.
+	got := orderForRest([]string{"a", "b", "c", "d", "e", "f"}, map[string]int{"e": -30, "c": -5, "b": 10, "a": 2, "f": 0})
+	if fmt.Sprint(got) != "[c e d f b a]" {
+		t.Errorf("order: %v", got)
 	}
 }
