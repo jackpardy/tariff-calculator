@@ -109,6 +109,14 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
   and flight planner (competitions 3), then the officials rota (4). The
   difficulty judge helper (2) drops to the bottom: it would be hard to get
   right enough to be useful on the day, and there's easier value elsewhere.
+- **Next for the timetable (from the demo, 2026-10-06):** a timeline per
+  panel as well as the rota per person. One view (printable, and as a CSV)
+  with the days side by side (Friday, Saturday, Sunday), a column per area
+  (Panels 1–3, Track 1, DMT 1) and time running down, showing what's on
+  when: each flight's event, warm-up to finish, and blocked time (lunch,
+  awards). The grid at the bottom of the timetable page is close, but it's
+  for editing: on screen only, days one under another, and each area a list
+  of flights rather than a time scale, so areas don't line up by time.
 - **Keep the name for now.** Competition and club tools stay on
   `tariff.pardy.ie` even though they go beyond tariffs; a broader name can
   come later.
