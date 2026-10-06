@@ -169,6 +169,10 @@ var migrations = []string{
 	ALTER TABLE entries ADD COLUMN signoff_token TEXT NOT NULL DEFAULT '';
 	ALTER TABLE entries ADD COLUMN signoff_hash TEXT;
 	CREATE UNIQUE INDEX entries_signoff ON entries (signoff_hash);`,
+
+	// 5: the timetable (roadmap: competitions 3), and which levels split men and women.
+	`ALTER TABLE competitions ADD COLUMN split TEXT NOT NULL DEFAULT '{}';
+	ALTER TABLE competitions ADD COLUMN timetable TEXT NOT NULL DEFAULT '';`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

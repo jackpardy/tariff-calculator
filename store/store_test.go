@@ -681,3 +681,27 @@ func TestCoaches(t *testing.T) {
 		t.Error("a changed individual entry needs signing off again")
 	}
 }
+
+func TestTimetableStorage(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp := competition()
+	comp.Split = competitions.Split{Mode: competitions.SplitAll}
+	c, admin, err := s.CreateCompetition(ctx, comp)
+	must(t, err)
+	got, _ := s.CompetitionByAdmin(ctx, admin)
+	if got.Split.Mode != competitions.SplitAll || got.Timetable != nil {
+		t.Errorf("split kept, no timetable yet: %+v", got)
+	}
+	must(t, s.SetSplit(ctx, c.ID, competitions.Split{Mode: competitions.SplitSome, Levels: []string{"BUCS L3"}}))
+	plan := competitions.Timetable{Settings: competitions.DefaultSettings, Panels: [][]competitions.Flight{{{Level: "BUCS L3", Number: 1, Of: 1, Entries: []string{"a", "b"}}}}, Published: true}
+	must(t, s.SetTimetable(ctx, c.ID, &plan))
+	got, _ = s.CompetitionByAdmin(ctx, admin)
+	if !got.Split.Splits("BUCS L3") || got.Timetable == nil || !got.Timetable.Published || got.Timetable.Panels[0][0].Entries[1] != "b" {
+		t.Errorf("split and timetable read back: %+v %+v", got.Split, got.Timetable)
+	}
+	must(t, s.SetTimetable(ctx, c.ID, nil))
+	if got, _ := s.CompetitionByAdmin(ctx, admin); got.Timetable != nil {
+		t.Error("timetable removed")
+	}
+}

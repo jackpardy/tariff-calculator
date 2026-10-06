@@ -34,6 +34,7 @@ type CompetitionForm struct {
 	Groups                                 []requirements.BuiltinGroup
 	Video                                  VideoForm
 	Signoff                                bool
+	SplitAll                               bool // rank men and women separately at every level
 	Problems                               []string
 }
 
@@ -61,6 +62,7 @@ type Dashboard struct {
 	Unchecked    int // entries not checked yet
 	Withdrawn    int // entries withdrawn since their club sent them
 	Video        VideoForm
+	Split        SplitForm
 	Competition  CompetitionSummary
 	Links        CompetitionLinks
 	Clubs        []string // the clubs entered, by name
@@ -88,6 +90,7 @@ type DashboardRow struct {
 	Note              string
 	Video             string // "" when not needed, else missing, provided, OK or need more
 	Withdrawn         bool   // withdrawn since the club sent it
+	Category          string // Men or Women, where the level splits them
 	Signoff           SignoffView
 }
 
@@ -139,6 +142,7 @@ type EntryForm struct {
 	Member   bool   // the gymnast is a club's member, under their own name
 	Video    string // what video the competition asks for, "" for none
 	Level    string
+	Category string // Men or Women, where the level splits them
 	Levels   []EntryLevel
 	Problems []string
 }
@@ -146,6 +150,7 @@ type EntryForm struct {
 // EntryLevel is a level an entry can choose, with its two exercises.
 type EntryLevel struct {
 	Name      string
+	Split     bool // gymnasts say Men or Women
 	Exercises [2]EntryExercise
 }
 
@@ -309,6 +314,13 @@ templ NewCompetition(f CompetitionForm) {
 			</fieldset>
 			@videoFields(f.Video)
 			@signoffField(f.Signoff)
+			<div class="field">
+				<label class="checkbox">
+					<input type="checkbox" name="split" value="all" checked?={ f.SplitAll }/>
+					Rank men and women separately
+				</label>
+				<p class="help">Gymnasts say which when entering. Afterwards, under Links and settings, you can split only some levels; the timetable can still run them in mixed flights.</p>
+			</div>
 			<button class="button is-primary is-fullwidth" type="submit">Create competition</button>
 		</form>
 	}
@@ -378,6 +390,10 @@ templ CompetitionDashboard(d Dashboard) {
 					<button class="button is-small" type="submit">Change</button>
 				</div>
 			</form>
+			<form method="post" action={ templ.SafeURL(d.Base + "/split") } class="mb-3">
+				@splitFields("split", "splitLevel", "Men and women", "Which levels rank men and women separately. Their gymnasts say which when entering.", d.Split)
+				<button class="button is-small" type="submit">Change</button>
+			</form>
 			<form method="post" action={ templ.SafeURL(d.Base + "/signoff") } class="mb-3">
 				if d.Competition.Signoff {
 					<input type="hidden" name="on" value="0"/>
@@ -439,6 +455,7 @@ templ CompetitionDashboard(d Dashboard) {
 		</form>
 		if d.Entries > 0 {
 			<div class="buttons">
+				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable") }>Timetable</a>
 				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) }>Print cards</a>
 				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards?unchecked=1") }>Print cards not checked</a>
 				<a class="button is-small" href={ templ.SafeURL(d.Base + "/entries.csv") } download>Download CSV</a>
@@ -486,7 +503,12 @@ templ CompetitionDashboard(d Dashboard) {
 											<span class="tag is-warning is-light ml-1" title="Withdrawn since the club sent it; it goes when the club sends again">Withdrawn</span>
 										}
 									</td>
-									<td>{ r.Club }</td>
+									<td>
+										{ r.Club }
+										if r.Category != "" {
+											<span class="tag is-light ml-1">{ r.Category }</span>
+										}
+									</td>
 									<td>{ r.Exercises[0] }</td>
 									<td>{ r.Exercises[1] }</td>
 									<td>
@@ -797,6 +819,17 @@ templ entryForm(f EntryForm) {
 		</div>
 		for _, l := range f.Levels {
 			<fieldset class="comp-entry-level" data-level={ l.Name } hidden?={ l.Name != f.Level } disabled?={ l.Name != f.Level }>
+				if l.Split {
+					<div class="field">
+						<p class="label is-small">{ l.Name } ranks men and women separately</p>
+						for _, c := range []string{"Men", "Women"} {
+							<label class="radio comp-option">
+								<input type="radio" name="category" value={ c } checked?={ f.Category == c } required/>
+								{ c }
+							</label>
+						}
+					</div>
+				}
 				for n, ex := range l.Exercises {
 					@entryExercise(n+1, ex, f.Video)
 				}
@@ -1043,4 +1076,28 @@ templ signoffField(on bool) {
 		</label>
 		<p class="help">Clubs' coaches sign off their members' routines; gymnasts entering on their own send their coach a sign-off link. Entries without one can still be sent, flagged as a problem.</p>
 	</div>
+}
+
+// SplitForm chooses which levels split men and women: none, all, or some.
+type SplitForm struct {
+	Mode   string          // "", "all" or "some"
+	Levels []string        // the levels to choose from
+	Chosen map[string]bool // with "some": the levels split
+}
+
+// splitFields chooses levels to split, posting name (the mode) and levelName
+// (each level, with "some").
+templ splitFields(name, levelName, legend, help string, f SplitForm) {
+	<fieldset class="field">
+		<legend class="label is-small">{ legend }</legend>
+		<p class="help mb-2">{ help }</p>
+		<label class="radio comp-option"><input type="radio" name={ name } value="" checked?={ f.Mode == "" }/> Not separately</label>
+		<label class="radio comp-option"><input type="radio" name={ name } value="all" checked?={ f.Mode == "all" }/> Separately at every level</label>
+		<label class="radio comp-option"><input type="radio" name={ name } value="some" checked?={ f.Mode == "some" }/> Separately at these levels:</label>
+		<div class="comp-video-skills">
+			for _, l := range f.Levels {
+				<label class="checkbox comp-level"><input type="checkbox" name={ levelName } value={ l } checked?={ f.Chosen[l] }/> { l }</label>
+			}
+		</div>
+	</fieldset>
 }
