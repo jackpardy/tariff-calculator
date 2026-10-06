@@ -35,6 +35,7 @@ type CompetitionForm struct {
 	Video                                  VideoForm
 	Signoff                                bool
 	SplitAll                               bool // rank men and women separately at every level
+	Events                                 EventsForm
 	Problems                               []string
 }
 
@@ -63,6 +64,7 @@ type Dashboard struct {
 	Withdrawn    int // entries withdrawn since their club sent them
 	Video        VideoForm
 	Split        SplitForm
+	Events       EventsForm
 	Competition  CompetitionSummary
 	Links        CompetitionLinks
 	Clubs        []string // the clubs entered, by name
@@ -100,6 +102,7 @@ type EntryCard struct {
 	Exercises            [2]ExerciseCard
 	Problems             []string
 	Signoff              SignoffView
+	Unchecked            bool // tumbling or DMT: a level only
 }
 
 // ExerciseCard is one exercise of an entry, checked.
@@ -145,6 +148,13 @@ type EntryForm struct {
 	Category string // Men or Women, where the level splits them
 	Levels   []EntryLevel
 	Problems []string
+	// The discipline: "" for individual trampoline, or synchro (with a
+	// partner), tumbling or DMT (a level only: not checked).
+	Discipline  string
+	Synchro     bool
+	Unchecked   bool
+	PartnerName string
+	PartnerClub string
 }
 
 // EntryLevel is a level an entry can choose, with its two exercises.
@@ -185,6 +195,7 @@ type EntryPage struct {
 	Form        EntryForm
 	Withdraw    string // where withdrawing posts
 	SignoffLink string // the link for their coach to sign it off, where the competition needs it
+	Partner     *PartnerView
 	Placement   *Placement // where they compete, once the timetable is published
 }
 
@@ -192,6 +203,13 @@ type EntryPage struct {
 type EnterPage struct {
 	Competition CompetitionSummary
 	Form        EntryForm
+	Disciplines []DisciplineTab // to choose from, when there are several
+}
+
+// DisciplineTab is one of a competition's disciplines to enter.
+type DisciplineTab struct {
+	Name, URL string
+	Current   bool
 }
 
 templ competitionLayout(title string) {
@@ -295,24 +313,13 @@ templ NewCompetition(f CompetitionForm) {
 			<fieldset class="field">
 				<legend class="label">Levels</legend>
 				<p class="help mb-2">Tick every level gymnasts can enter.</p>
-				for _, g := range f.Groups {
-					if len(g.Levels) > 0 {
-						<details class="comp-level-group" open?={ groupChosen(g, f.Levels) }>
-							<summary>{ g.Name }</summary>
-							for _, l := range g.Levels {
-								<label class="checkbox comp-level">
-									<input type="checkbox" name="level" value={ requirements.BuiltinLevelPrefix + l.ID } checked?={ f.Levels[requirements.BuiltinLevelPrefix+l.ID] }/>
-									{ l.Level.Name }
-								</label>
-							}
-						</details>
-					}
-				}
+				@levelGroups(f.Groups, "level", f.Levels)
 				// The levels saved in this browser, filled by static/js/competitions.js.
 				<details id="own-levels" class="comp-level-group" hidden>
 					<summary>Your own levels</summary>
 				</details>
 			</fieldset>
+			@otherEvents(f.Events)
 			@videoFields(f.Video)
 			@signoffField(f.Signoff)
 			<div class="field">
@@ -390,6 +397,10 @@ templ CompetitionDashboard(d Dashboard) {
 					<input class="input is-small" name="deadlineTime" type="time" required value={ d.DeadlineTime } aria-label="Closing time"/>
 					<button class="button is-small" type="submit">Change</button>
 				</div>
+			</form>
+			<form method="post" action={ templ.SafeURL(d.Base + "/events") } class="mb-3">
+				@otherEvents(d.Events)
+				<button class="button is-small" type="submit">Change events</button>
 			</form>
 			<form method="post" action={ templ.SafeURL(d.Base + "/split") } class="mb-3">
 				@splitFields("split", "splitLevel", "Men and women", "Which levels rank men and women separately. Their gymnasts say which when entering.", d.Split)
@@ -671,7 +682,8 @@ templ entryCard(c EntryCard) {
 	<h1 class="title is-4">{ c.Gymnast }</h1>
 	<p class="subtitle is-6">{ c.Club } · { c.Level }</p>
 	@signoffBox(c.Signoff)
-	if len(c.Problems) == 0 {
+	if c.Unchecked && len(c.Problems) == 0 {
+	} else if len(c.Problems) == 0 {
 		<div class="notification is-success is-light">No problems found.</div>
 	} else {
 		<div class="notification is-danger is-light">
@@ -683,13 +695,17 @@ templ entryCard(c EntryCard) {
 			</ul>
 		</div>
 	}
-	<div class="columns">
-		for _, ex := range c.Exercises {
-			<div class="column">
-				@exerciseCard(ex)
-			</div>
-		}
-	</div>
+	if c.Unchecked {
+		<p class="has-text-grey">Entered at { c.Level }. Tumbling and DMT passes aren't checked yet.</p>
+	} else {
+		<div class="columns">
+			for _, ex := range c.Exercises {
+				<div class="column">
+					@exerciseCard(ex)
+				</div>
+			}
+		</div>
+	}
 }
 
 func problemCount(n int) string {
@@ -785,6 +801,16 @@ templ CompetitionEnter(p EnterPage) {
 		<h1 class="title is-4">Enter { p.Competition.Name }</h1>
 		@competitionFacts(p.Competition)
 		if p.Competition.Open {
+			if len(p.Disciplines) > 1 {
+				<div class="tabs is-small">
+					<ul>
+						for _, d := range p.Disciplines {
+							<li class={ templ.KV("is-active", d.Current) }><a href={ templ.SafeURL(d.URL) }>{ d.Name }</a></li>
+						}
+					</ul>
+				</div>
+				<p class="help mb-3">Enter each discipline separately; each entry gets its own link.</p>
+			}
 			@entryForm(p.Form)
 			@privacyNote(p.Competition)
 		}
@@ -801,11 +827,23 @@ templ privacyNote(c CompetitionSummary) {
 templ entryForm(f EntryForm) {
 	@problemList(f.Problems)
 	<form method="post" action={ templ.SafeURL(f.Action) } class="comp-entry-form">
+		<input type="hidden" name="discipline" value={ f.Discipline }/>
 		if !f.Member {
 			<div class="field">
 				<label class="label" for={ "entry-gymnast" + f.Key }>Gymnast</label>
 				<input class="input" id={ "entry-gymnast" + f.Key } name="gymnast" required maxlength="80" value={ f.Gymnast } placeholder="Name, as on the results"/>
 			</div>
+		}
+		if f.Synchro {
+			<div class="field">
+				<label class="label" for={ "entry-partner" + f.Key }>Synchro partner</label>
+				<input class="input" id={ "entry-partner" + f.Key } name="partnerName" required maxlength="80" value={ f.PartnerName } placeholder="Their name"/>
+				<input class="input mt-1" name="partnerClub" maxlength="80" value={ f.PartnerClub } placeholder="Their club (leave blank if none)" aria-label="Synchro partner's club"/>
+				<p class="help">Any gymnast, from any club or none. You'll get a link to send them to confirm the pair.</p>
+			</div>
+		}
+		if f.Unchecked {
+			<p class="help mb-3">Tumbling and DMT entries are a level only: their passes aren't checked yet.</p>
 		}
 		<div class="field">
 			<label class="label" for={ "entry-level" + f.Key }>Level</label>
@@ -893,6 +931,7 @@ templ CompetitionEntryPage(p EntryPage) {
 		<div data-entry-link={ p.Link } data-entry-name={ p.Card.Gymnast + " · " + p.Competition.Name }>
 			@linkBox("Your personal link (keep it to yourself)", p.Link, "")
 		</div>
+		@partnerBox(p.Partner)
 		if p.SignoffLink != "" {
 			@linkBox("Sign-off link for your coach", p.SignoffLink, "This competition needs a coach's sign-off. Send this link to your coach: they see your entry and sign it off.")
 		}
@@ -1100,6 +1139,120 @@ templ splitFields(name, levelName, legend, help string, f SplitForm) {
 			for _, l := range f.Levels {
 				<label class="checkbox comp-level"><input type="checkbox" name={ levelName } value={ l } checked?={ f.Chosen[l] }/> { l }</label>
 			}
+		</div>
+	</fieldset>
+}
+
+// PartnerView is a synchro entry's partner and their link to confirm.
+type PartnerView struct {
+	Name      string
+	Link      string // as a full URL
+	Confirmed bool
+}
+
+// partnerBox shows a synchro pair's partner, and until they confirm, the link
+// to send them.
+templ partnerBox(p *PartnerView) {
+	if p != nil {
+		if p.Confirmed {
+			<p class="mb-3"><strong>✓ { p.Name } has confirmed the pair.</strong></p>
+		} else {
+			<div class="notification is-warning is-light">
+				<p class="mb-2"><strong>{ p.Name } hasn't confirmed the pair yet.</strong> Send them this link.</p>
+				@linkBox("Partner link", p.Link, "")
+			</div>
+		}
+	}
+}
+
+// PartnerPage is a synchro partner confirming the pair.
+type PartnerPage struct {
+	Competition CompetitionSummary
+	Gymnast     string // who entered the pair
+	Club        string
+	Partner     string // the partner's name, as entered
+	Event       string
+	Confirmed   bool
+	Action      string
+	Problems    []string
+}
+
+// PartnerConfirm is the partner link's page.
+templ PartnerConfirm(p PartnerPage) {
+	@competitionLayout("Synchro · " + p.Competition.Name) {
+		<h1 class="title is-4">{ p.Event } with { p.Gymnast }</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		@competitionFacts(p.Competition)
+		if p.Confirmed {
+			<div class="notification is-success is-light">The pair is confirmed. Thank you.</div>
+		} else {
+			<p class="mb-3">{ p.Gymnast }
+				if p.Club != "" {
+					({ p.Club })
+				}
+				has entered { p.Event } with you, { p.Partner }. Confirm so the timetable knows it's you, and never puts you in two places at once.</p>
+			@problemList(p.Problems)
+			<form method="post" action={ templ.SafeURL(p.Action) } class="comp-partner">
+				// Links saved in this browser (static/js/competitions.js).
+				<div class="field" data-saved-people hidden>
+					<label class="label is-small" for="partner-saved">You are</label>
+					<div class="select is-fullwidth"><select id="partner-saved"></select></div>
+				</div>
+				<div class="field">
+					<label class="label is-small" for="partner-link">Your own link: your club member page, or your own entry</label>
+					<input class="input" id="partner-link" name="link" placeholder="https://.../clubs/member/... or .../competitions/entry/..."/>
+					<p class="help">Leave it blank if you have no other entry in this competition.</p>
+				</div>
+				<button class="button is-primary is-fullwidth" type="submit">Confirm the pair</button>
+			</form>
+		}
+	}
+}
+
+// levelGroups ticks built-in levels, group by group, posting each as name.
+templ levelGroups(groups []requirements.BuiltinGroup, name string, chosen map[string]bool) {
+	for _, g := range groups {
+		if len(g.Levels) > 0 {
+			<details class="comp-level-group" open?={ groupChosen(g, chosen) }>
+				<summary>{ g.Name }</summary>
+				for _, l := range g.Levels {
+					<label class="checkbox comp-level">
+						<input type="checkbox" name={ name } value={ requirements.BuiltinLevelPrefix + l.ID } checked?={ chosen[requirements.BuiltinLevelPrefix+l.ID] }/>
+						{ l.Level.Name }
+					</label>
+				}
+			</details>
+		}
+	}
+}
+
+// EventsForm is the competition's events beyond individual trampoline (ADR
+// 0005 Decision 1).
+type EventsForm struct {
+	Groups   []requirements.BuiltinGroup
+	Synchro  map[string]bool // built-in levels ticked for synchro
+	Tumbling string          // one level a line
+	DMT      string
+}
+
+// otherEvents chooses synchro levels and names tumbling and DMT levels.
+templ otherEvents(f EventsForm) {
+	<fieldset class="field">
+		<legend class="label">Synchro, tumbling and DMT</legend>
+		<p class="help mb-2">Optional. Synchro routines are checked like trampoline's; tumbling and DMT entries are a level only, for now.</p>
+		<details class="comp-level-group" open?={ len(f.Synchro) > 0 }>
+			<summary>Synchro levels</summary>
+			<div class="pl-4">
+				@levelGroups(f.Groups, "synchroLevel", f.Synchro)
+			</div>
+		</details>
+		<div class="field mt-2">
+			<label class="label is-small" for="events-tumbling">Tumbling levels, one a line</label>
+			<textarea class="textarea is-small" id="events-tumbling" name="tumbling" rows="2" placeholder="e.g. Novice">{ f.Tumbling }</textarea>
+		</div>
+		<div class="field">
+			<label class="label is-small" for="events-dmt">DMT levels, one a line</label>
+			<textarea class="textarea is-small" id="events-dmt" name="dmt" rows="2" placeholder="e.g. Novice">{ f.DMT }</textarea>
 		</div>
 	</fieldset>
 }

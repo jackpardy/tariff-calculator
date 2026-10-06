@@ -193,7 +193,7 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			row := views.CoachRow{Member: e.MemberName, Level: e.Entry.Event(), Signoff: memberSignoff(c.Competition, e),
-				Open: path + "/members/" + e.MemberID + "/competitions/" + c.ID}
+				Open: path + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline}
 			if checked, err := c.Check(e.Entry); err != nil {
 				row.Problems = 1
 			} else {
@@ -217,7 +217,7 @@ func (p *competitionPages) coachSees(w http.ResponseWriter, r *http.Request, coa
 		return store.MemberEntry{}, store.Competition{}, false
 	}
 	for _, e := range entries {
-		if e.MemberID == r.PathValue("member") && e.CompetitionID == r.PathValue("id") {
+		if e.MemberID == r.PathValue("member") && e.CompetitionID == r.PathValue("id") && e.Discipline == r.FormValue("discipline") {
 			c, err := p.st.Competition(r.Context(), e.CompetitionID)
 			if err != nil {
 				failed(w, r, err)
@@ -248,7 +248,7 @@ func (p *competitionPages) coachEntry(w http.ResponseWriter, r *http.Request) {
 	withSignoff(&shown, memberSignoff(c.Competition, e))
 	render(w, r, views.SignoffEntry(views.SignoffPage{
 		Back: coachPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
-		Card: shown, Signoff: shown.Signoff, Action: r.URL.Path,
+		Card: shown, Signoff: shown.Signoff, Action: r.URL.Path + "?discipline=" + e.Discipline,
 	}))
 }
 
@@ -267,13 +267,13 @@ func (p *competitionPages) signOff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	signed := r.FormValue("signed") == "1"
-	if err := p.st.SignOff(r.Context(), coach, e.MemberID, c.ID, signed, limitNote(r.FormValue("note"))); err != nil {
+	if err := p.st.SignOff(r.Context(), coach, e.MemberID, c.ID, e.Discipline, signed, limitNote(r.FormValue("note"))); err != nil {
 		failed(w, r, err)
 		return
 	}
-	notice := fmt.Sprintf("Signed off %s's entry for %s.", e.MemberName, c.Name)
+	notice := fmt.Sprintf("Signed off %s's %s entry for %s.", e.MemberName, e.Entry.Event(), c.Name)
 	if !signed {
-		notice = fmt.Sprintf("Told %s their entry for %s isn't ready yet.", e.MemberName, c.Name)
+		notice = fmt.Sprintf("Told %s their %s entry for %s isn't ready yet.", e.MemberName, e.Entry.Event(), c.Name)
 	}
 	http.Redirect(w, r, coachPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
 }

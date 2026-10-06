@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: Step 2 of [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md),
+  [events](features/competition-entries.md#events-and-synchro-adr-0005-step-2):
+  synchro, tumbling and DMT alongside trampoline; a member's entry per
+  discipline (migration 6 keeps existing entries as trampoline); synchro pairs
+  of any two gymnasts confirmed by a partner link.
 * **Update**: The user guide is split in two: the
   [routine builder guide](guide/routine-guide.md) (building, checking,
   requirements, levels, view, print, share) and the

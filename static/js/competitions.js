@@ -170,6 +170,25 @@
         }
     }
 
+    // partnerLink offers the member pages and entries saved in this browser for
+    // a synchro partner to say who they are.
+    function partnerLink() {
+        const field = document.querySelector('[data-saved-people]');
+        const input = document.getElementById('partner-link');
+        const people = [...loadLinks(linkKeys.members), ...loadLinks(linkKeys.entries)];
+        if (!field || !input || people.length === 0) { return; }
+        const select = field.querySelector('select');
+        for (const p of people) { select.append(new Option(p.name, p.url)); }
+        select.append(new Option('Someone else, or no other entry', ''));
+        const choose = () => {
+            input.value = select.value;
+            input.closest('.field').hidden = select.value !== '';
+        };
+        select.addEventListener('change', choose);
+        field.hidden = false;
+        choose();
+    }
+
     // videoChoices select "Video of some skills" when one of its skills is chosen.
     function videoChoices() {
         for (const fieldset of document.querySelectorAll('.comp-video')) {
@@ -186,6 +205,7 @@
         newCompetition();
         hub();
         clubLink();
+        partnerLink();
         videoChoices();
         entryForms();
     });

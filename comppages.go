@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -72,6 +73,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("POST /competitions/admin/{token}/video", p.video)
 	handle("POST /competitions/admin/{token}/signoff", p.setSignoff)
 	handle("POST /competitions/admin/{token}/split", p.setSplit)
+	handle("POST /competitions/admin/{token}/events", p.setEvents)
 	handle("GET /competitions/signoff/{token}", p.individualSignoff)
 	handle("POST /competitions/signoff/{token}", p.signOffIndividual)
 	handle("POST /competitions/admin/{token}/entries/{id}/video", p.reviewVideo)
@@ -85,6 +87,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("POST /competitions/entry/{token}/withdraw", p.withdraw)
 	p.registerClubs(mux)
 	p.registerTimetable(handle)
+	p.registerPartners(handle)
 }
 
 // secret marks the pages as private: links in their URLs mustn't leak through
@@ -129,6 +132,7 @@ func failed(w http.ResponseWriter, r *http.Request, err error) {
 func (p *competitionPages) newForm(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.NewCompetition(views.CompetitionForm{
 		DeadlineTime: "23:59", Individuals: true, Levels: map[string]bool{}, Groups: requirements.BuiltinGroups(),
+		Events: views.EventsForm{Groups: requirements.BuiltinGroups(), Synchro: map[string]bool{}},
 	}))
 }
 
@@ -166,6 +170,7 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 		form.Levels[ref] = true
 		c.Levels = append(c.Levels, competitions.Level{Ref: ref})
 	}
+	c.Synchro, c.Tumbling, c.DMT, form.Events = postedEvents(r)
 	for _, raw := range r.Form["custom"] {
 		var own struct {
 			Level requirements.Level          `json:"level"`
@@ -445,7 +450,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		Club:  q.Get("club"), ProblemsOnly: q.Get("problems") == "1",
 		Entries: len(entries), New: q.Get("new"), Notice: q.Get("notice"),
 		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
-		Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()),
+		Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()), Events: eventsForm(c.Competition),
 	}
 	if d.New != "" {
 		d.Links.Admin = origin(r) + adminPath(r.PathValue("token"))
@@ -486,7 +491,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note, Withdrawn: j.Withdrawn,
 			Video: videoStatus(c.Competition, j), Signoff: storedSignoff(c.Competition, j.Entry), Category: j.Entry.Entry.Category,
 		}
-		if j.err == nil {
+		if j.err == nil && !j.card.Unchecked {
 			for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
 				row.Met, row.Rules = row.Met+ex.Met(), row.Rules+len(ex.Results)
 				row.Exercises[i] = exerciseSummary(j.Entry.Entry.Exercises[i], ex)
@@ -520,7 +525,7 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 	all := judge(c.Competition, entries)
 	for _, level := range levelOrder(c.Competition, all) {
 		for _, j := range all {
-			if j.Entry.Entry.Event() != level || !j.matches(q) || j.err != nil || (j.Withdrawn && q.Get("entry") == "") {
+			if j.Entry.Entry.Event() != level || !j.matches(q) || j.err != nil || j.card.Unchecked || (j.Withdrawn && q.Get("entry") == "") {
 				continue
 			}
 			club := j.ClubName
@@ -587,7 +592,7 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 				club = "Individual"
 			}
 			row := []string{j.Entry.Entry.Gymnasts(), club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), "", "", j.Entry.Entry.Category}
-			if j.err == nil {
+			if j.err == nil && !j.card.Unchecked {
 				for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
 					row[3+2*i] = ex.SetName
 					if ex.Checks.ScoreDifficulty {
@@ -742,8 +747,11 @@ func card(c competitions.Competition, e competitions.Entry, club string) (views.
 	if err != nil {
 		return views.EntryCard{}, err
 	}
-	out := views.EntryCard{Gymnast: e.Gymnast, Club: club, Level: checked.Level.Name, Problems: checked.Problems()}
-	l, _, _ := c.Level(e.Level)
+	out := views.EntryCard{Gymnast: e.Gymnasts(), Club: club, Level: e.Event(), Problems: checked.Problems(), Unchecked: checked.Unchecked}
+	if checked.Unchecked {
+		return out, nil
+	}
+	l, _, _ := c.LevelFor(e.Discipline, e.Level)
 	for i, ex := range []requirements.Checked{checked.First, checked.Second} {
 		card := views.ExerciseCard{
 			Title: [...]string{"First exercise", "Second exercise"}[i], Requirements: ex.SetName,
@@ -809,13 +817,27 @@ func (p *competitionPages) delete(w http.ResponseWriter, r *http.Request) {
 
 // entryForm is the form for entering a competition, starting from e.
 func entryForm(c competitions.Competition, e competitions.Entry, action, submit string) views.EntryForm {
-	f := views.EntryForm{Action: action, Submit: submit, Gymnast: e.Gymnast, Level: e.Level, Category: e.Category, Video: c.Video.Describe()}
-	for _, l := range c.Levels {
+	d := e.Discipline
+	f := views.EntryForm{
+		Action: action, Submit: submit, Gymnast: e.Gymnast, Level: e.Level, Category: e.Category, Video: c.Video.Describe(),
+		Discipline: d, Synchro: d == competitions.Synchro, Unchecked: !competitions.Checked(d),
+	}
+	if e.Partner != nil {
+		f.PartnerName, f.PartnerClub = e.Partner.Name, e.Partner.Club
+	}
+	if f.Unchecked {
+		f.Video = "" // no routine to film
+		for _, name := range c.LevelNames(d) {
+			f.Levels = append(f.Levels, views.EntryLevel{Name: name, Split: c.Split.Splits(competitions.EventName(d, name))})
+		}
+		return f
+	}
+	for _, l := range c.LevelsOf(d) {
 		level, err := l.Resolve()
 		if err != nil {
 			continue
 		}
-		el := views.EntryLevel{Name: level.Name, Split: c.Split.Splits(level.Name)}
+		el := views.EntryLevel{Name: level.Name, Split: c.Split.Splits(competitions.EventName(d, level.Name))}
 		for n := range 2 {
 			ex := &el.Exercises[n]
 			for _, ref := range level.Exercise(n + 1).Options {
@@ -848,10 +870,16 @@ func postedEntry(r *http.Request, c competitions.Competition, gymnast string) (c
 	if gymnast == "" {
 		gymnast = r.FormValue("gymnast")
 	}
-	e := competitions.Entry{Gymnast: gymnast, Level: r.FormValue("level"), Category: r.FormValue("category")}
+	e := competitions.Entry{Gymnast: gymnast, Discipline: r.FormValue("discipline"), Level: r.FormValue("level"), Category: r.FormValue("category")}
+	if e.Discipline == competitions.Synchro {
+		e.Partner = &competitions.Partner{Name: r.FormValue("partnerName"), Club: r.FormValue("partnerClub")}
+	}
 	var problems []string
-	l, _, ok := c.Level(e.Level)
+	l, _, ok := c.LevelFor(e.Discipline, e.Level)
 	for i := range e.Exercises {
+		if !competitions.Checked(e.Discipline) {
+			break
+		}
 		ex := &e.Exercises[i]
 		ex.Option = r.FormValue(fmt.Sprintf("ex%dOption", i+1))
 		if c.Video.Need != competitions.VideoNone {
@@ -897,10 +925,29 @@ func (p *competitionPages) enterForm(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	render(w, r, views.CompetitionEnter(views.EnterPage{
-		Competition: summary(c.Competition, p.now()),
-		Form:        entryForm(c.Competition, competitions.Entry{}, r.URL.Path, "Enter"),
-	}))
+	render(w, r, views.CompetitionEnter(enterPage(c, competitions.Entry{Discipline: chosenDiscipline(c.Competition, r.URL.Query().Get("discipline"))}, r.URL.Path, p.now())))
+}
+
+// chosenDiscipline is the discipline asked for, if the competition offers
+// it, else its first.
+func chosenDiscipline(c competitions.Competition, asked string) string {
+	offered := c.Disciplines()
+	if slices.Contains(offered, asked) || len(offered) == 0 {
+		return asked
+	}
+	return offered[0]
+}
+
+// enterPage is the individual entry page, for one discipline, with a tab for
+// each the competition offers.
+func enterPage(c store.Competition, e competitions.Entry, path string, now time.Time) views.EnterPage {
+	page := views.EnterPage{Competition: summary(c.Competition, now), Form: entryForm(c.Competition, e, path, "Enter")}
+	for _, d := range c.Disciplines() {
+		page.Disciplines = append(page.Disciplines, views.DisciplineTab{
+			Name: competitions.DisciplineName(d), URL: path + "?discipline=" + d, Current: d == e.Discipline,
+		})
+	}
+	return page
 }
 
 func (p *competitionPages) enter(w http.ResponseWriter, r *http.Request) {
@@ -910,10 +957,10 @@ func (p *competitionPages) enter(w http.ResponseWriter, r *http.Request) {
 	}
 	e, problems := postedEntry(r, c.Competition, "")
 	if len(problems) > 0 {
-		form := entryForm(c.Competition, e, r.URL.Path, "Enter")
-		form.Problems = problems
+		page := enterPage(c, e, r.URL.Path, p.now())
+		page.Form.Problems = problems
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		render(w, r, views.CompetitionEnter(views.EnterPage{Competition: summary(c.Competition, p.now()), Form: form}))
+		render(w, r, views.CompetitionEnter(page))
 		return
 	}
 	_, token, err := p.st.AddIndividualEntry(r.Context(), c.ID, e)
@@ -966,6 +1013,9 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	}
 	if c.Signoff {
 		page.SignoffLink = origin(r) + signoffPath(e.SignoffLink)
+	}
+	if e.Entry.Partner != nil {
+		page.Partner = &views.PartnerView{Name: e.Entry.Partner.Name, Link: origin(r) + partnerPath(e.PartnerLink), Confirmed: e.PartnerConfirmed}
 	}
 	page.Form.Problems = problems
 	if len(problems) > 0 {
@@ -1020,6 +1070,64 @@ func deleteExpired(st *store.Store) {
 		}
 		time.Sleep(6 * time.Hour)
 	}
+}
+
+// --- Other disciplines (ADR 0005 Decision 1) ---
+
+// postedEvents reads the synchro levels ticked (synchroLevel) and the tumbling
+// and DMT levels, one a line (tumbling, dmt), and the form as posted.
+func postedEvents(r *http.Request) ([]competitions.Level, []string, []string, views.EventsForm) {
+	form := views.EventsForm{Groups: requirements.BuiltinGroups(), Synchro: map[string]bool{}, Tumbling: r.FormValue("tumbling"), DMT: r.FormValue("dmt")}
+	var synchro []competitions.Level
+	for _, ref := range r.Form["synchroLevel"] {
+		form.Synchro[ref] = true
+		synchro = append(synchro, competitions.Level{Ref: ref})
+	}
+	return synchro, lines(form.Tumbling), lines(form.DMT), form
+}
+
+// lines are a text's non-blank lines, trimmed.
+func lines(text string) []string {
+	var out []string
+	for _, l := range strings.Split(text, "\n") {
+		if l = strings.TrimSpace(l); l != "" {
+			out = append(out, l)
+		}
+	}
+	return out
+}
+
+// eventsForm is a competition's other events as the form shows them.
+func eventsForm(c competitions.Competition) views.EventsForm {
+	f := views.EventsForm{Groups: requirements.BuiltinGroups(), Synchro: map[string]bool{},
+		Tumbling: strings.Join(c.Tumbling, "\n"), DMT: strings.Join(c.DMT, "\n")}
+	for _, l := range c.Synchro {
+		f.Synchro[l.Ref] = true
+	}
+	return f
+}
+
+// setEvents changes the synchro, tumbling and DMT levels. Entries already made
+// for a level taken away stay, flagged as a level the competition doesn't offer.
+func (p *competitionPages) setEvents(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		badRequest(w, err)
+		return
+	}
+	changed := c.Competition
+	changed.Synchro, changed.Tumbling, changed.DMT, _ = postedEvents(r)
+	notice := "Events changed."
+	if err := changed.Validate(); err != nil {
+		notice = "Events weren't changed: " + strings.Join(sentences(err), " ")
+	} else if err := p.st.SetEvents(r.Context(), c.ID, changed.Synchro, changed.Tumbling, changed.DMT); err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
 }
 
 // --- Men and women ---

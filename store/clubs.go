@@ -231,16 +231,16 @@ type MemberEntry struct {
 	Discipline       string // "" for individual trampoline
 	PartnerLink      string // a synchro entry's link for the partner to confirm
 	PartnerConfirmed bool
-	Entry         competitions.Entry
-	UpdatedAt     time.Time
-	SentAt        time.Time // zero if never sent
-	Checked       bool      // the organiser checked it as sent
-	Note          string    // the organiser's note on it
-	VideoReview   string    // the organiser's review of its videos, as sent
-	VideoNote     string
-	SignedAt      time.Time // when a coach signed it off; zero if not, or changed since
-	SignedBy      string    // the coach who signed it off, or said not yet
-	SignNote      string    // the coach's note
+	Entry            competitions.Entry
+	UpdatedAt        time.Time
+	SentAt           time.Time // zero if never sent
+	Checked          bool      // the organiser checked it as sent
+	Note             string    // the organiser's note on it
+	VideoReview      string    // the organiser's review of its videos, as sent
+	VideoNote        string
+	SignedAt         time.Time // when a coach signed it off; zero if not, or changed since
+	SignedBy         string    // the coach who signed it off, or said not yet
+	SignNote         string    // the coach's note
 }
 
 // SignedOff says whether a coach has signed off the entry as it is now.

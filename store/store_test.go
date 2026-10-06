@@ -711,8 +711,16 @@ func TestDisciplines(t *testing.T) {
 	s := open(t, &now)
 	comp := competition()
 	comp.Tumbling = []string{"Novice"}
-	c, _, err := s.CreateCompetition(ctx, comp)
+	comp.Synchro = []competitions.Level{{Ref: "builtin-level:bucs-l3"}}
+	c, admin, err := s.CreateCompetition(ctx, comp)
 	must(t, err)
+	if got, _ := s.CompetitionByAdmin(ctx, admin); len(got.Tumbling) != 1 || len(got.Synchro) != 1 || got.Synchro[0].Ref != "builtin-level:bucs-l3" {
+		t.Errorf("the other events are kept: %+v", got)
+	}
+	must(t, s.SetEvents(ctx, c.ID, got0(comp.Synchro), []string{"Novice", "Elite"}, []string{"Open"}))
+	if got, _ := s.CompetitionByAdmin(ctx, admin); len(got.Tumbling) != 2 || len(got.DMT) != 1 {
+		t.Errorf("and can be changed: %+v", got)
+	}
 	club, _, _ := s.CreateClub(ctx, "UCD")
 	a, _, _ := s.Join(ctx, club.ID, "A")
 	b, bLink, _ := s.Join(ctx, club.ID, "B")
@@ -811,7 +819,12 @@ func TestMigrationKeepsEntries(t *testing.T) {
 	}
 	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
 	old.now = func() time.Time { return now }
-	c, _, _ := old.CreateCompetition(ctx, competition())
+	// The competition as the schema then had it (the code now writes more).
+	c := Competition{ID: "c1"}
+	_, err = old.db.Exec(`INSERT INTO competitions (id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline,
+		individuals, levels, created_at, delete_after) VALUES ('c1', 'a', 'ct', 'ch', 'it', 'ih', 'Old', '2027-03-13', '2027-03-06T23:59:00.000000Z',
+		TRUE, '[{"ref":"builtin-level:bucs-l3"}]', '2027-01-01T00:00:00.000000Z', '2027-07-11T00:00:00.000000Z')`)
+	must(t, err)
 	club, _, _ := old.CreateClub(ctx, "UCD")
 	must(t, old.AttachClub(ctx, club.ID, c.ID))
 	var memberID string
@@ -835,3 +848,5 @@ func TestMigrationKeepsEntries(t *testing.T) {
 		t.Errorf("the competition's copy is kept: %+v, %v", list, err)
 	}
 }
+
+func got0[T any](v T) T { return v }

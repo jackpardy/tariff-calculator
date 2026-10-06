@@ -88,6 +88,25 @@ unlisted YouTube video, a Drive file shared with anyone with the link, Vimeo,
 Dropbox or OneDrive), never uploaded, and never played inside the app (ADR
 0004 Decision 10).[^adr-0004]
 
+# Events and synchro (ADR 0005, step 2)
+
+A competition offers **events**: a discipline at a level.
+
+- **Trampoline** levels as before; **synchro** levels, checked like
+  trampoline routines (one routine for the pair); and **tumbling** and **DMT**
+  levels the organiser names, which are a level only, not checked yet. The
+  organiser picks them when creating the competition and can change synchro,
+  tumbling and DMT under Links and settings.
+- A gymnast can enter **several events**: a member's page has a section per
+  discipline (enter, change, withdraw each on its own), the club page and
+  dashboard list each entry under its event ("Synchro BUCS L3", "Tumbling
+  Novice"), and an individual enters each discipline separately.
+- **Synchro pairs** can be any two gymnasts. The entry names the partner and
+  shows a **partner link** to send them; the partner confirms who they are
+  with their own member page or entry link (or as having no other entry), so
+  the timetable can later check their clashes. Naming a different partner
+  needs a new confirmation.
+
 # Timetable (roadmap: competitions 3)
 
 From the dashboard, **Timetable** plans the day.
