@@ -146,6 +146,12 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 			return
 		}
 		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now())}
+		sentID := map[string]string{} // member → the competition's copy of their entry
+		for _, e := range sent {
+			if e.ClubID == club.ID {
+				sentID[e.MemberID] = e.ID
+			}
+		}
 		has := map[string]bool{}
 		for _, e := range mine {
 			has[e.MemberID] = true
@@ -174,6 +180,9 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 			}
 			if cc.Competition.Open {
 				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID
+			}
+			if at := placement(c, sentID[e.MemberID]); at != nil {
+				row.Flight = fmt.Sprintf("%s · panel %s · warm-up %s", at.Flight, at.Panel, at.Time)
 			}
 			cc.Rows = append(cc.Rows, row)
 		}
@@ -578,6 +587,15 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 				continue
 			}
 			start = e.Entry
+			if e.Sent() {
+				if sent, err := p.st.Entries(ctx, c.ID); err == nil {
+					for _, s := range sent {
+						if s.MemberID == m.ID {
+							mc.Placement = placement(c, s.ID)
+						}
+					}
+				}
+			}
 			shown, err := card(c.Competition, e.Entry, club)
 			if err != nil {
 				failed(w, r, err)

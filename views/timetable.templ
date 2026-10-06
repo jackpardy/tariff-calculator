@@ -1,0 +1,350 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+)
+
+// TimetablePage is the organiser's timetable (roadmap: competitions 3):
+// settings to plan with, then each panel's flights with their times and
+// running orders, to adjust, print and publish.
+type TimetablePage struct {
+	Base        string // the admin link's path
+	Competition CompetitionSummary
+	Notice      string
+	Settings    PlanForm
+	Planned     bool // there's a timetable
+	Published   bool
+	Finish      string // when the last panel finishes
+	Needed      int    // panels needed to finish by the settings' time (0: none set, or can't)
+	NeededText  string // what to say about it
+	Panels      []PanelView
+	Unplaced    []TimetableGymnast // entries not in any flight
+	Moves       []FlightOption     // where a gymnast can be moved
+	Entries     int                // live entries
+}
+
+// PlanForm is the planning settings, as the form shows them.
+type PlanForm struct {
+	Panels, Start, PerGymnast, Between, MaxFlight, FinishBy string
+	Separate                                               SplitForm // which split levels fly separately
+	CanSeparate                                            bool      // some level splits men and women
+}
+
+// PanelView is one panel's flights.
+type PanelView struct {
+	Number  int
+	Finish  string
+	Flights []FlightView
+}
+
+// FlightView is one flight, with its times and running order.
+type FlightView struct {
+	Panel, Index int // 0-based, for its controls
+	Name         string
+	Start, End   string
+	Gymnasts     []TimetableGymnast
+	First, Last  bool // on its panel
+}
+
+// TimetableGymnast is a gymnast in a running order.
+type TimetableGymnast struct {
+	ID, Name, Club, Category string
+	Moved                    string // the level they're entered at now, if not the flight's
+}
+
+// FlightOption is a flight a gymnast can be moved to.
+type FlightOption struct {
+	Value, Label string
+}
+
+// CompetitionTimetable is the organiser's timetable page.
+templ CompetitionTimetable(p TimetablePage) {
+	@competitionLayout("Timetable · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
+		<h1 class="title is-4">Timetable</h1>
+		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		if p.Notice != "" {
+			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		<details class="box comp-manage" open?={ !p.Planned }>
+			<summary><strong>Plan</strong></summary>
+			<form method="post" action={ templ.SafeURL(p.Base + "/timetable/plan") } class="comp-plan">
+				<div class="comp-plan-fields">
+					@planField("Panels", "panels", "number", p.Settings.Panels, "Two trampolines and their officials each")
+					@planField("Start", "start", "time", p.Settings.Start, "When the first warm-ups start")
+					@planField("Minutes per gymnast", "perGymnast", "number", p.Settings.PerGymnast, "Both rounds; 4½–6½ is usual")
+					@planField("Minutes between flights", "between", "number", p.Settings.Between, "Each flight's warm-up and changeover")
+					@planField("Largest flight", "maxFlight", "number", p.Settings.MaxFlight, "Gymnasts; bigger levels split evenly")
+					@planField("Finish by (optional)", "finishBy", "time", p.Settings.FinishBy, "Says how many panels that needs")
+				</div>
+				if p.Settings.CanSeparate {
+					@splitFields("separate", "separateLevel", "Men's and women's flights", "Levels that rank men and women separately can still fly together, e.g. a small level.", p.Settings.Separate)
+				}
+				<div class="buttons">
+					<button class="button is-primary is-small" type="submit" name="action" value="plan" onclick={ confirmReplan(p.Planned) }>
+						if p.Planned {
+							Plan again
+						} else {
+							Plan
+						}
+					</button>
+					if p.Planned {
+						<button class="button is-small" type="submit" name="action" value="times">Update times only</button>
+					}
+				</div>
+				<p class="help">
+					Plan draws every entry into flights: each level (or each of its men and women) in even flights, a level's flights together on one panel, and the panels finishing as early as they can. Running orders are drawn at random, keeping a club's gymnasts apart where that's easy.
+					if p.Planned {
+						Plan again starts afresh and loses your changes; Update times only keeps the flights.
+					}
+				</p>
+			</form>
+		</details>
+		if p.NeededText != "" {
+			<div class={ "notification is-light", templ.KV("is-info", p.Needed > 0), templ.KV("is-warning", p.Needed == 0) }>{ p.NeededText }</div>
+		}
+		if p.Planned {
+			<div class="level is-mobile comp-counts">
+				@count(len(p.Panels), "panels")
+				@count(p.Entries, "gymnasts")
+				<div class="level-item has-text-centered">
+					<div>
+						<p class="title is-4">{ p.Finish }</p>
+						<p class="heading">finish</p>
+					</div>
+				</div>
+			</div>
+			<div class="buttons">
+				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/publish") }>
+					if p.Published {
+						<input type="hidden" name="on" value="0"/>
+						<button class="button is-small" type="submit">Unpublish</button>
+					} else {
+						<input type="hidden" name="on" value="1"/>
+						<button class="button is-small is-success" type="submit">Publish</button>
+					}
+				</form>
+				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=marshal") }>Print marshal sheets</a>
+				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=judges") }>Print chair of judges sheets</a>
+			</div>
+			<p class="help mb-4">
+				if p.Published {
+					Published: clubs, members and gymnasts entering on their own see their flight, panel and time.
+				} else {
+					Not published: only you see it. Publish to show clubs, members and gymnasts their flight, panel and time.
+				}
+			</p>
+			if len(p.Unplaced) > 0 {
+				<div class="box">
+					<p class="mb-2"><strong>{ gymnastCount(len(p.Unplaced)) } not in a flight</strong> (entered or sent since you planned, or moved out).</p>
+					for _, g := range p.Unplaced {
+						@moveGymnast(p, g)
+					}
+				</div>
+			}
+			<div class="columns is-multiline">
+				for _, panel := range p.Panels {
+					<div class="column is-half">
+						<h2 class="title is-5">Panel { strconv.Itoa(panel.Number) } <span class="has-text-grey is-size-6">· finishes { panel.Finish }</span></h2>
+						if len(panel.Flights) == 0 {
+							<p class="has-text-grey">No flights.</p>
+						}
+						for _, f := range panel.Flights {
+							@flightBox(p, len(p.Panels), f)
+						}
+					</div>
+				}
+			</div>
+		}
+	}
+}
+
+script confirmReplan(planned bool) {
+	if (planned && !confirm("Plan again from scratch? Your changes to the flights are lost.")) { event.preventDefault(); }
+}
+
+templ planField(label, name, kind, value, help string) {
+	<div class="field">
+		<label class="label is-small" for={ "plan-" + name }>{ label }</label>
+		<input class="input is-small" id={ "plan-" + name } name={ name } type={ kind } value={ value } step={ planStep(kind) } min="0"/>
+		<p class="help">{ help }</p>
+	</div>
+}
+
+func planStep(kind string) string {
+	if kind == "number" {
+		return "0.5"
+	}
+	return "60"
+}
+
+templ flightBox(p TimetablePage, panels int, f FlightView) {
+	<div class="box comp-flight">
+		<p class="mb-1"><strong>{ f.Name }</strong></p>
+		<p class="is-size-7 has-text-grey mb-2">Warm-up { f.Start } · finishes about { f.End } · { gymnastCount(len(f.Gymnasts)) }</p>
+		<ol class="comp-order">
+			for _, g := range f.Gymnasts {
+				<li>
+					{ g.Name }
+					<span class="has-text-grey is-size-7">{ g.Club }</span>
+					if g.Moved != "" {
+						<span class="tag is-warning is-light">now { g.Moved }</span>
+					}
+					<details class="comp-move is-inline-block">
+						<summary class="is-size-7">move</summary>
+						@moveGymnast(p, g)
+					</details>
+				</li>
+			}
+		</ol>
+		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/flight") } class="comp-flight-actions">
+			<input type="hidden" name="panel" value={ strconv.Itoa(f.Panel) }/>
+			<input type="hidden" name="flight" value={ strconv.Itoa(f.Index) }/>
+			<button class="button is-small is-text" type="submit" name="action" value="up" disabled?={ f.First } title="Earlier on this panel">↑</button>
+			<button class="button is-small is-text" type="submit" name="action" value="down" disabled?={ f.Last } title="Later on this panel">↓</button>
+			<button class="button is-small is-text" type="submit" name="action" value="redraw">Redraw order</button>
+			if panels > 1 {
+				<div class="select is-small">
+					<select name="to" aria-label={ "Move " + f.Name + " to another panel" }>
+						for i := range panels {
+							if i != f.Panel {
+								<option value={ strconv.Itoa(i) }>Panel { strconv.Itoa(i + 1) }</option>
+							}
+						}
+					</select>
+				</div>
+				<button class="button is-small" type="submit" name="action" value="move">Move to panel</button>
+			}
+		</form>
+	</div>
+}
+
+// moveGymnast moves a gymnast to another flight, or out of the timetable.
+templ moveGymnast(p TimetablePage, g TimetableGymnast) {
+	<form method="post" action={ templ.SafeURL(p.Base + "/timetable/entry") } class="comp-move-form">
+		<input type="hidden" name="entry" value={ g.ID }/>
+		if !placedIn(p, g.ID) {
+			<span class="is-size-7">{ g.Name } <span class="has-text-grey">{ g.Club }</span></span>
+		}
+		<div class="select is-small">
+			<select name="to" aria-label={ "Flight for " + g.Name }>
+				for _, o := range p.Moves {
+					<option value={ o.Value }>{ o.Label }</option>
+				}
+				<option value="">Take out of the timetable</option>
+			</select>
+		</div>
+		<button class="button is-small" type="submit">Move</button>
+	</form>
+}
+
+func placedIn(p TimetablePage, id string) bool {
+	for _, panel := range p.Panels {
+		for _, f := range panel.Flights {
+			for _, g := range f.Gymnasts {
+				if g.ID == id {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func gymnastCount(n int) string {
+	if n == 1 {
+		return "1 gymnast"
+	}
+	return fmt.Sprintf("%d gymnasts", n)
+}
+
+// TimetableSheets is the printable marshal or chair of judges sheets: one
+// page per panel.
+type TimetableSheets struct {
+	Title       string
+	Back        string
+	Competition CompetitionSummary
+	Judges      bool // the chair of judges' sheet: each gymnast's exercises, not just the order
+	Panels      []PanelView
+	Exercises   map[string][2]string // each gymnast's exercises (set name or difficulty), by entry id
+	Notes       map[string]string    // each gymnast's problems and sign-off, for the chair of judges
+}
+
+// TimetablePrint prints the marshal or chair of judges sheets.
+templ TimetablePrint(s TimetableSheets) {
+	@competitionLayout(s.Title) {
+		<div class="comp-print-bar screen-only">
+			<a href={ templ.SafeURL(s.Back) }>← Timetable</a>
+			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
+		</div>
+		for _, panel := range s.Panels {
+			<section class="comp-sheet">
+				<h1 class="title is-5 mb-1">{ s.Competition.Name } · Panel { strconv.Itoa(panel.Number) }</h1>
+				<p class="mb-3">
+					if s.Judges {
+						Chair of judges
+					} else {
+						Marshal
+					}
+					· { s.Competition.Date }
+				</p>
+				for _, f := range panel.Flights {
+					<h2 class="title is-6 mt-4 mb-1">{ f.Name }</h2>
+					<p class="is-size-7 mb-1">Warm-up { f.Start } · finishes about { f.End }</p>
+					<table class="table is-fullwidth is-narrow is-bordered comp-sheet-table">
+						<thead>
+							<tr>
+								<th>#</th>
+								<th>Gymnast</th>
+								<th>Club</th>
+								if s.Judges {
+									<th>1st exercise</th>
+									<th>2nd exercise</th>
+									<th>Notes</th>
+								} else {
+									<th>Here</th>
+								}
+							</tr>
+						</thead>
+						<tbody>
+							for i, g := range f.Gymnasts {
+								<tr>
+									<td>{ strconv.Itoa(i + 1) }</td>
+									<td>
+										{ g.Name }
+										if g.Category != "" {
+											<span class="is-size-7"> ({ g.Category })</span>
+										}
+									</td>
+									<td>{ g.Club }</td>
+									if s.Judges {
+										<td>{ s.Exercises[g.ID][0] }</td>
+										<td>{ s.Exercises[g.ID][1] }</td>
+										<td class="is-size-7">{ s.Notes[g.ID] }</td>
+									} else {
+										<td></td>
+									}
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+			</section>
+		}
+	}
+}
+
+// Placement is where an attendee is on a published timetable.
+type Placement struct {
+	Flight, Panel, Time string
+}
+
+// placementLine says where a gymnast competes, once the timetable is published.
+templ placementLine(p *Placement) {
+	if p != nil {
+		<div class="notification is-info is-light">
+			<p><strong>{ p.Flight }</strong> · Panel { p.Panel } · warm-up { p.Time }</p>
+		</div>
+	}
+}

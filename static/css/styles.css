@@ -574,3 +574,21 @@ details > * { box-sizing: border-box; }
 .comp-table tr.is-withdrawn td { color: #999; }
 .comp-table tr.is-withdrawn td a { color: #7a7a7a; text-decoration: line-through; }
 .comp-change summary { cursor: pointer; }
+
+/* --- Timetable (views/timetable.templ) --- */
+.comp-plan-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0 1rem; }
+.comp-flight { padding: 0.9rem 1rem; }
+.comp-order { margin: 0 0 0.5rem 1.4rem; }
+.comp-order li { margin: 0.15rem 0; }
+.comp-move summary { cursor: pointer; color: #485fc7; margin-left: 0.4rem; list-style: none; display: inline; }
+.comp-move[open] .comp-move-form { display: flex; margin: 0.3rem 0; }
+.comp-move-form { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
+.comp-flight-actions { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+.comp-print-bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+.comp-sheet-table td, .comp-sheet-table th { font-size: 0.9rem; }
+.comp-sheet-table td:last-child { min-width: 4rem; }
+@media print {
+    .screen-only, .comp-print-bar { display: none !important; }
+    .comp-page.section { padding: 0; }
+    .comp-sheet { break-after: page; }
+}

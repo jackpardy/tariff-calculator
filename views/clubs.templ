@@ -57,6 +57,7 @@ type ClubEntryRow struct {
 	Note          string // the organiser's note
 	Video         string // "missing" or "need more" when the club needs to act
 	Signoff       SignoffView
+	Flight        string // where they compete, once the timetable is published
 }
 
 // ClubEntryEdit is the comp sec changing a member's entry on their behalf.
@@ -99,6 +100,7 @@ type MemberCompetition struct {
 	Note        string // the organiser's note
 	VideoReview string // the organiser's review of its videos
 	VideoNote   string
+	Placement   *Placement // where they compete, once the timetable is published
 	Card        *EntryCard
 	Form        EntryForm
 	Withdraw    string
@@ -223,6 +225,9 @@ templ ClubAdmin(c ClubPage) {
 											{ row.Status }
 											if row.Video != "" {
 												<br/><span class="is-size-7 has-text-danger">Video { row.Video }</span>
+											}
+											if row.Flight != "" {
+												<br/><span class="is-size-7 has-text-info-dark">{ row.Flight }</span>
 											}
 											if s := row.Signoff.Status(); s != "" {
 												<br/><span class={ "is-size-7", templ.KV("has-text-success", row.Signoff.Signed), templ.KV("has-text-warning-dark", !row.Signoff.Signed) } title={ row.Signoff.Note }>{ s }</span>
@@ -432,6 +437,7 @@ templ MemberHome(p MemberPage) {
 				</summary>
 				<div class="mt-3">
 					@competitionFacts(c.Competition)
+					@placementLine(c.Placement)
 					@organiserNote(c.Note)
 					@videoReviewNote(c.VideoReview, c.VideoNote)
 					if c.Card != nil {
