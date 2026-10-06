@@ -19,6 +19,7 @@ type Competition struct {
 	ClubLink       string // comp secs attach their club and send its entries
 	IndividualLink string // individuals enter directly, if Individuals allows
 	CreatedAt      time.Time
+	Timetable      *competitions.Timetable // nil until the organiser plans one
 }
 
 // CreateCompetition stores a validated competition and returns it with its
@@ -34,26 +35,40 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	if err != nil {
 		return Competition{}, "", fmt.Errorf("encoding video: %w", err)
 	}
+	split, err := json.Marshal(c.Split)
+	if err != nil {
+		return Competition{}, "", fmt.Errorf("encoding split: %w", err)
+	}
 	_, err = s.db.ExecContext(ctx, `INSERT INTO competitions
-		(id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline, individuals, levels, created_at, delete_after, video, signoff)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+		(id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline, individuals, levels, created_at, delete_after, video, signoff, split)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
 		out.ID, hash(admin), out.ClubLink, hash(out.ClubLink), out.IndividualLink, hash(out.IndividualLink),
 		c.Name, c.Date, c.Deadline.UTC().Format(timeLayout), c.Individuals, string(levels),
-		out.CreatedAt.Format(timeLayout), c.DeleteAfter().Format(timeLayout), string(video), c.Signoff)
+		out.CreatedAt.Format(timeLayout), c.DeleteAfter().Format(timeLayout), string(video), c.Signoff, string(split))
 	if err != nil {
 		return Competition{}, "", fmt.Errorf("storing the competition: %w", err)
 	}
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
 	var deadline, levels, created, video string
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff); err != nil {
+	var split, timetable string
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable); err != nil {
 		return Competition{}, notFound(err)
+	}
+	if err := json.Unmarshal([]byte(split), &c.Split); err != nil {
+		return Competition{}, fmt.Errorf("reading competition %s's split: %w", c.ID, err)
+	}
+	if timetable != "" {
+		c.Timetable = &competitions.Timetable{}
+		if err := json.Unmarshal([]byte(timetable), c.Timetable); err != nil {
+			return Competition{}, fmt.Errorf("reading competition %s's timetable: %w", c.ID, err)
+		}
 	}
 	if err := json.Unmarshal([]byte(video), &c.Video); err != nil {
 		return Competition{}, fmt.Errorf("reading competition %s's video: %w", c.ID, err)
@@ -388,4 +403,26 @@ func (s *Store) SignOffIndividual(ctx context.Context, token, coach string, sign
 	}
 	return affected(s.db.ExecContext(ctx, `UPDATE entries SET signed_at = $1, signed_by = $2, sign_note = $3 WHERE signoff_hash = $4`,
 		at, coach, note, hash(token)))
+}
+
+// SetSplit changes which levels split men and women.
+func (s *Store) SetSplit(ctx context.Context, id string, split competitions.Split) error {
+	data, err := json.Marshal(split)
+	if err != nil {
+		return err
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET split = $1 WHERE id = $2`, string(data), id))
+}
+
+// SetTimetable saves a competition's timetable (nil to remove it).
+func (s *Store) SetTimetable(ctx context.Context, id string, t *competitions.Timetable) error {
+	data := ""
+	if t != nil {
+		b, err := json.Marshal(t)
+		if err != nil {
+			return err
+		}
+		data = string(b)
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET timetable = $1 WHERE id = $2`, data, id))
 }

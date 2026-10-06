@@ -71,6 +71,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("POST /competitions/admin/{token}/deadline", p.deadline)
 	handle("POST /competitions/admin/{token}/video", p.video)
 	handle("POST /competitions/admin/{token}/signoff", p.setSignoff)
+	handle("POST /competitions/admin/{token}/split", p.setSplit)
 	handle("GET /competitions/signoff/{token}", p.individualSignoff)
 	handle("POST /competitions/signoff/{token}", p.signOffIndividual)
 	handle("POST /competitions/admin/{token}/entries/{id}/video", p.reviewVideo)
@@ -148,6 +149,9 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 	c.Video, form.Video, problems = postedVideo(r)
 	c.Signoff = r.FormValue("signoff") == "1"
 	form.Signoff = c.Signoff
+	if r.FormValue("split") == competitions.SplitAll {
+		c.Split, form.SplitAll = competitions.Split{Mode: competitions.SplitAll}, true
+	}
 	deadline, err := time.ParseInLocation("2006-01-02 15:04", form.DeadlineDate+" "+form.DeadlineTime, local)
 	switch {
 	case err != nil:
@@ -440,7 +444,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		Club:  q.Get("club"), ProblemsOnly: q.Get("problems") == "1",
 		Entries: len(entries), New: q.Get("new"), Notice: q.Get("notice"),
 		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
-		Video: videoForm(c.Video),
+		Video: videoForm(c.Video), Split: splitForm(c.Split, c.LevelNames()),
 	}
 	if d.New != "" {
 		d.Links.Admin = origin(r) + adminPath(r.PathValue("token"))
@@ -481,7 +485,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		row := views.DashboardRow{
 			ID: j.ID, Gymnast: j.Entry.Entry.Gymnast, Club: j.club, Problems: j.problems,
 			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note, Withdrawn: j.Withdrawn,
-			Video: videoStatus(c.Competition, j), Signoff: storedSignoff(c.Competition, j.Entry),
+			Video: videoStatus(c.Competition, j), Signoff: storedSignoff(c.Competition, j.Entry), Category: j.Entry.Entry.Category,
 		}
 		if j.err == nil {
 			for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
@@ -528,7 +532,7 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 				page.Cards = append(page.Cards, views.PrintedCard{
 					Validation: ex.Validation, Required: ex.Required, Checks: ex.Checks,
 					Details: views.SheetDetails{
-						"gymnast": j.Entry.Entry.Gymnast, "club": club, "category": j.card.Level.Name,
+						"gymnast": j.Entry.Entry.Gymnast, "club": club, "category": strings.TrimSpace(j.card.Level.Name + " " + j.Entry.Entry.Category),
 						"competition": c.Name, "round": [...]string{"1st exercise", "2nd exercise"}[i] + " · " + ex.SetName,
 						"coach": j.CoachName(),
 					},
@@ -572,7 +576,7 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", fileName(c.Name)+".csv"))
 	out := csv.NewWriter(w)
-	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent", "Video", "Withdrawn", "Signed off by"})
+	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent", "Video", "Withdrawn", "Signed off by", "Category"})
 	all := judge(c.Competition, entries)
 	for _, level := range levelOrder(c.Competition, all) {
 		for _, j := range all {
@@ -583,7 +587,7 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 			if j.Individual {
 				club = "Individual"
 			}
-			row := []string{j.Entry.Entry.Gymnast, club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), "", ""}
+			row := []string{j.Entry.Entry.Gymnast, club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), "", "", j.Entry.Entry.Category}
 			if j.err == nil {
 				for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
 					row[3+2*i] = ex.SetName
@@ -806,13 +810,13 @@ func (p *competitionPages) delete(w http.ResponseWriter, r *http.Request) {
 
 // entryForm is the form for entering a competition, starting from e.
 func entryForm(c competitions.Competition, e competitions.Entry, action, submit string) views.EntryForm {
-	f := views.EntryForm{Action: action, Submit: submit, Gymnast: e.Gymnast, Level: e.Level, Video: c.Video.Describe()}
+	f := views.EntryForm{Action: action, Submit: submit, Gymnast: e.Gymnast, Level: e.Level, Category: e.Category, Video: c.Video.Describe()}
 	for _, l := range c.Levels {
 		level, err := l.Resolve()
 		if err != nil {
 			continue
 		}
-		el := views.EntryLevel{Name: level.Name}
+		el := views.EntryLevel{Name: level.Name, Split: c.Split.Splits(level.Name)}
 		for n := range 2 {
 			ex := &el.Exercises[n]
 			for _, ref := range level.Exercise(n + 1).Options {
@@ -845,7 +849,7 @@ func postedEntry(r *http.Request, c competitions.Competition, gymnast string) (c
 	if gymnast == "" {
 		gymnast = r.FormValue("gymnast")
 	}
-	e := competitions.Entry{Gymnast: gymnast, Level: r.FormValue("level")}
+	e := competitions.Entry{Gymnast: gymnast, Level: r.FormValue("level"), Category: r.FormValue("category")}
 	var problems []string
 	l, _, ok := c.Level(e.Level)
 	for i := range e.Exercises {
@@ -1016,6 +1020,51 @@ func deleteExpired(st *store.Store) {
 		}
 		time.Sleep(6 * time.Hour)
 	}
+}
+
+// --- Men and women ---
+
+// postedSplit reads a choice of levels to split: name ("", "all" or "some")
+// and, with "some", each level ticked (levelName).
+func postedSplit(r *http.Request, name, levelName string) competitions.Split {
+	s := competitions.Split{Mode: r.FormValue(name)}
+	if s.Mode == competitions.SplitSome {
+		s.Levels = r.Form[levelName]
+	}
+	return s
+}
+
+// splitForm is a split as the form shows it.
+func splitForm(s competitions.Split, levels []string) views.SplitForm {
+	f := views.SplitForm{Mode: s.Mode, Levels: levels, Chosen: map[string]bool{}}
+	for _, l := range s.Levels {
+		f.Chosen[l] = true
+	}
+	return f
+}
+
+// setSplit changes which levels rank men and women separately. Entries made
+// before keep their category; entries for a newly split level need one.
+func (p *competitionPages) setSplit(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		badRequest(w, err)
+		return
+	}
+	split := postedSplit(r, "split", "splitLevel")
+	changed := c.Competition
+	changed.Split = split
+	notice := "Men and women changed."
+	if err := changed.Validate(); err != nil {
+		notice = "Men and women weren't changed: " + strings.Join(sentences(err), " ")
+	} else if err := p.st.SetSplit(r.Context(), c.ID, split); err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
 }
 
 // --- Coach sign-off (ADR 0004 Decision 11) ---
