@@ -36,7 +36,8 @@ func TestMyCompetition(t *testing.T) {
 
 	page := do(t, h, http.MethodGet, day, nil).Body.String()
 	if !strings.Contains(page, "2 problems to sort out") || !strings.Contains(page, "Second exercise: Exactly 10 elements") || !strings.Contains(page, "The timetable isn't published yet") {
-		i := strings.Index(page, "<h1"); t.Errorf("sent, not yet published: %s", page[i:min(len(page), i+1500)])
+		i := strings.Index(page, "<h1")
+		t.Errorf("sent, not yet published: %s", page[i:min(len(page), i+1500)])
 	}
 	tt := admin + "/timetable"
 	redirected(t, h, tt+"/setup/days", url.Values{"day-0-name": {"Saturday"}, "day-0-start": {"09:00"}, "day-0-end": {"18:00"}})
@@ -59,4 +60,3 @@ func TestMyCompetition(t *testing.T) {
 		t.Error("the individual's competition")
 	}
 }
-
