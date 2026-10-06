@@ -5,7 +5,9 @@
   [events](features/competition-entries.md#events-and-synchro-adr-0005-step-2):
   synchro, tumbling and DMT alongside trampoline; a member's entry per
   discipline (migration 6 keeps existing entries as trampoline); synchro pairs
-  of any two gymnasts confirmed by a partner link.
+  of any two gymnasts confirmed by a partner link. The
+  [competitions guide](guide/competition-guide.md) covers them and the
+  timetable, and its PDF is rebuilt.
 * **Update**: The user guide is split in two: the
   [routine builder guide](guide/routine-guide.md) (building, checking,
   requirements, levels, view, print, share) and the
