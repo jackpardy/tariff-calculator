@@ -111,4 +111,5 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
   current rules.
 - The app tells you when it has been updated, with a Refresh button.
 
-See the [user guide](user-guide.md) for how to do each of these.
+See the [routine builder guide](routine-guide.md) and the
+[competitions guide](competition-guide.md) for how to do each of these.

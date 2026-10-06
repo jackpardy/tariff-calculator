@@ -19,8 +19,9 @@ example a choice of set routines, then a voluntary), so both are checked
 together. Routines can be shared by link or QR code, shown full screen, and
 printed as a competition card.
 
-For users, start with the [features](guide/features.md) and the
-[user guide](guide/user-guide.md).
+For users, start with the [features](guide/features.md), the
+[routine builder guide](guide/routine-guide.md) and the
+[competitions guide](guide/competition-guide.md).
 
 Live at <https://tariff.pardy.ie>, on the self-hosted server (see
 [deploy](operations/deploy.md)). The name may change later; it stays for now.
