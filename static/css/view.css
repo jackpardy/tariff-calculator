@@ -52,6 +52,7 @@ body {
   background: var(--bar);
   border-bottom: 1px solid var(--line);
   font-size: 0.9rem;
+  flex-wrap: wrap; /* the buttons drop to a second line on the narrowest phones */
 }
 .view-back { color: var(--ink); text-decoration: none; font-size: 1.15rem; padding: 0 0.25rem; }
 .view-bar select, .view-bar button, .view-menu summary {
@@ -62,7 +63,7 @@ body {
   border-radius: 6px;
   padding: 0.2rem 0.6rem;
 }
-#view-routine { min-width: 0; flex: 0 1 20rem; }
+#view-routine { min-width: 7rem; flex: 1 1 7rem; max-width: 20rem; }
 .view-bar button { cursor: pointer; white-space: nowrap; }
 .view-menu { position: relative; margin-left: auto; }
 .view-menu summary { cursor: pointer; list-style: none; user-select: none; }
@@ -199,3 +200,36 @@ body {
 .hide-req .d-req,
 .hide-req .display-met,
 .hide-warnings .d-warn { display: none; }
+
+/* The share dialog (static/js/share.js), which elsewhere uses Bulma's modal. */
+.share-modal { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; }
+.share-modal .modal-background { position: absolute; inset: 0; background: rgba(10, 10, 10, 0.6); }
+.share-modal .modal-card {
+  position: relative; width: calc(100% - 2rem); max-width: 28rem; max-height: calc(100dvh - 3rem); overflow-y: auto;
+  background: var(--bg); color: var(--ink); border-radius: 10px; padding: 1rem 1.1rem; font-size: 0.95rem;
+}
+.share-modal p { margin: 0; }
+.share-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.share-modal .title { font-size: 1.15rem; font-weight: 600; }
+.share-modal .delete {
+  width: 1.6rem; height: 1.6rem; border: 0; border-radius: 50%; background: var(--line); color: var(--ink); cursor: pointer; font-size: 0;
+}
+.share-modal .delete::before { content: "✕"; font-size: 0.85rem; }
+.share-intro { font-size: 0.9rem; color: var(--muted); margin-bottom: 0.6rem !important; }
+.share-choices { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.75rem; max-height: 14rem; overflow-y: auto; }
+.share-choice { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.45rem 0.6rem; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+.share-choice:has(input:checked) { border-color: var(--accent); }
+.share-choice input { margin-top: 0.25rem; }
+.share-choice-name { display: block; font-weight: 600; }
+.share-choice-detail { display: block; font-size: 0.8rem; color: var(--muted); }
+.share-buttons { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+.share-buttons .button {
+  font: inherit; padding: 0.4rem 0.9rem; border-radius: 6px; border: 1px solid var(--line); background: var(--bar); color: var(--ink); cursor: pointer;
+}
+.share-buttons .button.is-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.share-buttons .button:disabled { opacity: 0.5; cursor: default; }
+.share-link { width: 100%; font: inherit; font-size: 0.75rem; padding: 0.35rem 0.5rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bar); color: var(--muted); }
+.share-status { font-size: 0.8rem; color: var(--muted); margin-top: 0.35rem !important; }
+.share-qr { display: flex; justify-content: center; margin-top: 0.75rem; }
+.share-qr svg { width: min(14rem, 70vw); height: auto; background: #fff; padding: 0.4rem; border-radius: 6px; }
+.share-note { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem !important; }

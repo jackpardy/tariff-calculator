@@ -485,7 +485,7 @@ details > * { box-sizing: border-box; }
 .matcher-more { margin: 0.25rem 0 0.5rem; }
 .matcher-more > summary { cursor: pointer; color: #485fc7; font-size: 0.85rem; padding: 0.35rem 0; }
 .matcher-hint { color: #888; font-size: 0.75rem; }
-.set-problems ul { list-style: disc; padding-left: 1.2rem; }
+.set-problems ul, .set-conflicts ul { list-style: disc; padding-left: 1.2rem; }
 
 /* --- Phones --- */
 @media screen and (max-width: 768px) {

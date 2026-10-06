@@ -4,7 +4,7 @@ title: Requirements framework
 description: How a routine is checked against a competition's rules, using requirements written as plain JSON that are either built in from cited rule books or written, shared and edited by coaches in the app.
 resource: https://github.com/jackpardy/tariff-calculator/tree/master/requirements
 tags: [requirements, domain-model, adr-0003]
-generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
+generated: { by: claude-code/cli, at: 2026-10-06T14:00:00Z }
 sources:
   - id: adr-0003
     resource: ../../docs/adr/0003-requirements-framework.md
@@ -115,6 +115,29 @@ the skill editor's pattern ([rendering](../architecture/rendering.md)): the
 browser posts the form to `POST /requirements/editor`, the server parses and
 validates it into the model and re-renders the editor with any problems listed,
 and the browser saves the result. Validation exists only in Go.
+
+A valid set is also checked for rules that can't be met
+(`requirements.Conflicts`, `requirements/conflicts.go`), shown as **These can't
+all be met** without blocking the save. It tests each skill description
+against a broad sample of real skills (every rotation, twists up to 4, each
+take-off, shape and direction), and flags:
+
+- a description no skill fits, where an element is needed;
+- more elements, a later position, or more special requirements than the
+  routine's length allows (number-of-elements rules, a set routine, or 10);
+- number-of-elements or difficulty minimums above their maximums;
+- a needed element that "every element must…" rules out, or two such rules
+  with nothing in common;
+- more needed of a kind than a count rule allows (a required double back where
+  doubles are banned);
+- more needed of a skill than exist without repeating, when repeats aren't
+  allowed;
+- two rules for the same position that no skill meets both of;
+- a difficulty minimum above what the longest routine of the hardest allowed
+  (or capped) elements reaches.
+
+It catches the obvious cases, not all: a set with nothing flagged may still be
+impossible. Every built-in set is tested to have no conflicts.
 
 Set routines aren't written in the editor: it doesn't offer "Set routine" as a
 kind of rule, and shows an existing one's elements read-only. They're built in

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Build knowledge/guide/user-guide.pdf from knowledge/guide/user-guide.md.
+"""Build the guides' PDFs: knowledge/guide/<name>.pdf from <name>.md, for the
+routine builder guide and the competitions guide.
 
 Renders the Markdown to HTML (front matter dropped, links to other bundle pages
 pointed at GitHub) and prints it to A4 with headless Chrome or Chromium.
 
     pip install markdown
-    CHROME=/path/to/chrome python3 scripts/user-guide-pdf.py
+    CHROME=/path/to/chrome python3 scripts/guide-pdfs.py
 
-Run it again whenever the user guide changes, and commit the PDF with it.
+Run it again whenever a guide changes, and commit the PDFs with it.
 """
 
 import os
@@ -21,8 +22,8 @@ from pathlib import Path
 import markdown
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE = ROOT / "knowledge/guide/user-guide.md"
-OUTPUT = ROOT / "knowledge/guide/user-guide.pdf"
+GUIDE = ROOT / "knowledge/guide"
+GUIDES = ["routine-guide", "competition-guide"]
 BLOB = "https://github.com/jackpardy/tariff-calculator/blob/master/knowledge/guide/"
 
 STYLE = """
@@ -62,8 +63,9 @@ def four_space_lists(body):
     return "\n".join(lines)
 
 
-def main():
-    text = SOURCE.read_text()
+def build(name):
+    source, output = GUIDE / f"{name}.md", GUIDE / f"{name}.pdf"
+    text = source.read_text()
     front, body = re.match(r"^---\n(.*?)\n---\n(.*)$", text, re.S).groups()
     title = re.search(r"^title: (.*)$", front, re.M).group(1)
     # Other bundle pages ("features.md", "../domain/tariff.md") open on GitHub.
@@ -77,8 +79,13 @@ def main():
         src = Path(tmp) / "guide.html"
         src.write_text(page)
         subprocess.run([chrome(), "--headless", "--no-sandbox", "--disable-gpu", "--no-pdf-header-footer",
-                        f"--print-to-pdf={OUTPUT}", src.as_uri()], check=True, capture_output=True)
-    print(f"wrote {OUTPUT.relative_to(ROOT)}")
+                        f"--print-to-pdf={output}", src.as_uri()], check=True, capture_output=True)
+    print(f"wrote {output.relative_to(ROOT)}")
+
+
+def main():
+    for name in GUIDES:
+        build(name)
 
 
 if __name__ == "__main__":

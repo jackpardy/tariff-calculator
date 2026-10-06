@@ -1,6 +1,16 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: The user guide is split in two: the
+  [routine builder guide](guide/routine-guide.md) (building, checking,
+  requirements, levels, view, print, share) and the
+  [competitions guide](guide/competition-guide.md) (organisers, comp secs,
+  members, coaches, individual entrants), each with a PDF built by
+  `scripts/guide-pdfs.py`.
+* **Update**: The requirements editor flags rules that contradict each other
+  or can't be met ([framework](requirements/framework.md)), without blocking
+  the save. The [view screen](features/view.md) has a **Share** button, as in
+  the builder. [User guide](guide/routine-guide.md) and its PDF updated.
 * **Creation**: [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md)
   (accepted): timetabling for ISTO, across trampoline, synchro, tumbling and
   DMT, with people who compete and judge, the venue's strict end time, rest
@@ -21,11 +31,11 @@
   before merging; only pushes to `master` deploy ([deploy](operations/deploy.md#ci)).
   `master` now requires the test check before a PR merges, and auto-merge is
   allowed.
-* **Update**: The [user guide](guide/user-guide.md) has a section 7,
+* **Update**: The [user guide](guide/routine-guide.md) has a section 7,
   "Competitions and clubs": private links, running a competition, running a
   club, entering through a club, signing off as a coach, entering on your own,
   and what's kept. [Features](guide/features.md) lists competitions and clubs,
-  and the [PDF](guide/user-guide.pdf) is rebuilt.
+  and the [PDF](guide/routine-guide.pdf) is rebuilt.
 * **Update**: Competition storage is live on tariff.pardy.ie: the server has
   the `/srv/data/tariff` volume and `DATA_DIR`, the pages work at
   `/competitions` (not linked from the calculator), and the nightly backup
@@ -106,9 +116,9 @@
   routine suggester moved to the bottom, and ISTO's levels
   ([open questions](open-questions.md)) not expected for a while. The tariff
   sheet and menus checked on an iPhone; the domain question is closed.
-* **Update**: The [user guide](guide/user-guide.md) covers the new picker
+* **Update**: The [user guide](guide/routine-guide.md) covers the new picker
   tabs, Expand and Collapse all, and the sheet's toolbar staying on screen. It
-  now comes as a [PDF](guide/user-guide.pdf) too, rebuilt with
+  now comes as a [PDF](guide/routine-guide.pdf) too, rebuilt with
   `scripts/user-guide-pdf.py` whenever the guide changes.
 * **Update**: The picker's Somersaults and Twists tabs are one tab, Singles,
   lining up with Doubles and Triples, and "Drops & seat" is now "Body
@@ -138,7 +148,7 @@
   with competition card collection.
 * **Creation**: A [guide](guide/) for gymnasts and coaches:
   [features](guide/features.md) and a step-by-step
-  [user guide](guide/user-guide.md).
+  [user guide](guide/routine-guide.md).
 * **Update**: Brought the bundle up to date with levels: skill names lead with
   the shape for single somersaults, the [view screen](features/view.md) opens a
   level entry from Levels mode, and the tariff sheet, stack, tests and overview

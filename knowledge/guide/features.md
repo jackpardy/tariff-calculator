@@ -4,7 +4,7 @@ title: Features
 description: Everything the trampoline tariff calculator can do, in plain language for gymnasts, coaches, clubs and competition organisers.
 resource: https://tariff.pardy.ie
 tags: [guide, features, users]
-generated: { by: claude-code/cli, at: 2026-10-06T11:30:00Z }
+generated: { by: claude-code/cli, at: 2026-10-06T14:00:00Z }
 ---
 
 # Work out difficulty
@@ -48,7 +48,7 @@ generated: { by: claude-code/cli, at: 2026-10-06T11:30:00Z }
 - **Your own requirements**, for any competition the app doesn't know yet
   (including ISTO): required skills, banned skills, skill counts, difficulty
   limits or caps. Start from scratch, or duplicate a built-in one and adjust
-  it.
+  it. The editor flags rules that contradict each other or can't be met.
 - **Choose what is scored**: turn difficulty or the repeat rule off, or score
   only some elements (e.g. 2 in an AG3 first exercise) and pick which ones.
 
@@ -79,7 +79,7 @@ generated: { by: claude-code/cli, at: 2026-10-06T11:30:00Z }
   PDF ([tariff sheet](../features/tariff-sheet.md)).
 - **Compare page**: two routines side by side, read-only.
 - **Share by link or QR code**: send routines, requirements or levels to
-  someone else's phone. Nothing is uploaded; everything travels inside the link
+  someone else's phone, from the Routine Builder or the view screen. Nothing is uploaded; everything travels inside the link
   ([sharing](../features/sharing.md)).
 
 # Competitions and clubs
@@ -111,4 +111,5 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
   current rules.
 - The app tells you when it has been updated, with a Refresh button.
 
-See the [user guide](user-guide.md) for how to do each of these.
+See the [routine builder guide](routine-guide.md) and the
+[competitions guide](competition-guide.md) for how to do each of these.

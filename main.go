@@ -593,7 +593,8 @@ func handleRequirementsPage(w http.ResponseWriter, r *http.Request) {
 // handleSetEditor renders the requirement set editor, either for a set posted
 // as JSON in "set" (opening, duplicating or importing one) or for the editor's
 // own form after applying any button action or "Add a rule" choice. The set is
-// validated each time and its problems listed.
+// validated each time and its problems listed; a valid set is also checked for
+// rules that can't be met (which doesn't stop it being saved).
 func handleSetEditor(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		badRequest(w, err)
@@ -616,15 +617,18 @@ func handleSetEditor(w http.ResponseWriter, r *http.Request) {
 	if set.Rules == nil {
 		set.Rules = []requirements.Rule{}
 	}
+	var conflicts []string
 	if err := set.Validate(); err != nil {
 		problems = append(problems, strings.Split(err.Error(), "\n")...)
+	} else {
+		conflicts = requirements.Conflicts(set)
 	}
 	data, err := json.Marshal(set)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	render(w, r, views.SetEditor(views.SetEditorData{Set: set, JSON: string(data), Problems: problems}))
+	render(w, r, views.SetEditor(views.SetEditorData{Set: set, JSON: string(data), Problems: problems, Conflicts: conflicts}))
 }
 
 // handleViewPage serves the view screen, which loads a routine saved in the
