@@ -3,6 +3,8 @@
 ## 2026-10-06
 * **Update**: CI runs the tests on every pull request, so checks show on a PR
   before merging; only pushes to `master` deploy ([deploy](operations/deploy.md#ci)).
+  `master` now requires the test check before a PR merges, and auto-merge is
+  allowed.
 * **Update**: The [user guide](guide/user-guide.md) has a section 7,
   "Competitions and clubs": private links, running a competition, running a
   club, entering through a club, signing off as a coach, entering on your own,

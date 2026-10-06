@@ -35,6 +35,11 @@ request, and on demand. A pull request runs the **test** job only, so its
 checks show on the PR before merging; nothing deploys from it. A newer push to
 a PR cancels its older run.
 
+`master` requires the **test** check to pass before a pull request merges
+(branch protection; admins are exempt, so a docs-only commit can still go
+straight to `master`). Auto-merge is allowed, so a PR can be set to merge
+itself once its check passes.
+
 **test** job:
 - checks the generated templ code is current (`go tool templ generate` then
   `git diff --exit-code`),
