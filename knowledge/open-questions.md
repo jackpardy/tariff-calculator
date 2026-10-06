@@ -27,12 +27,11 @@ From the [British Gymnastics requirements](requirements/bg-national.md):
 
 # For ISTO's timetable (ADR 0005)
 
-- How many officials each discipline's panel needs at ISTO (execution and
-  difficulty judges, chair, recorder), and whether that changes by level.
-- Typical minutes per competitor for tumbling and DMT (two passes each).
-- Whether judging any level needs a judging qualification, or a competitor
-  can judge any level below their own.
-- Whether ISTO runs over one day or two, and its breaks.
+Answered 2026-10-07: ISTO runs over 2½–3 days; panels default to the Code of
+Points' and can be changed; minutes per competitor and who may judge what are
+settings (ADR 0005 Decisions 6 and 13). Still to learn:
+
+- Better default minutes per competitor for tumbling and DMT (2 is a guess).
 
 # Decisions pending
 

@@ -1,7 +1,8 @@
 # ADR 0005 — Timetabling multi-discipline competitions (ISTO)
 
 - **Status:** Accepted
-- **Date:** 2026-10-06
+- **Date:** 2026-10-06; settings and defaults (Decisions 5, 6 and 13) added
+  2026-10-07
 - **Deciders:** jackpardy (solo maintainer)
 - **Builds on:** ADR 0004 (competition entries, clubs, coaches) and the
   timetable (roadmap: competitions 3)
@@ -20,6 +21,7 @@ trampoline:
   disciplines, or help as marshals and recorders, when they aren't competing.
   Some judges come only to judge and belong to no club.
 - **The venue has a strict end time.** That's the biggest constraint.
+- **It runs over 2½–3 days**, each with its own hours.
 - **People compete more than once:** in several disciplines, and in synchro
   as well as individually.
 - **Not everything is a flight.** Lunch, awards, and ad hoc events that take
@@ -72,15 +74,23 @@ Constraints, in order of weight:
    each discipline, up to which level) and whether they can **help** (marshal,
    recorder). The comp sec can correct it for their members. The organiser
    can **add people directly**, such as judges with no club, with what they
-   can do. Each discipline sets its **panel of officials** (e.g. a trampoline
-   panel: execution judges, a difficulty judge, a chair, a recorder), which
-   the organiser can change. **Spotters aren't a panel position** and aren't
-   scheduled.
+   can do. Each discipline has a **panel of officials**, which the organiser
+   can change. The default is the FIG Code of Points 2025–2028's: a Chair of
+   Judges Panel, 6 execution judges and 2 difficulty judges, 9 in all, for
+   trampoline and synchro (§18.1; in synchro, execution judges 1, 3 and 5 watch
+   trampoline 1 and 2, 4 and 6 trampoline 2), tumbling and DMT (§17.1 in
+   their sections). The CJP covers time of flight, horizontal displacement and
+   synchronisation. Helpers (a recorder, a marshal) aren't in the Code; they
+   default to one each per panel, also changeable. **Spotters aren't a panel
+   position** and aren't scheduled.
 
-6. **The venue.** The organiser describes the **areas**, each named, and as
-   many of each discipline as the venue has: e.g. "Panel 1", "Panel 2" and
-   "Panel 3" for trampoline (which also run synchro), "Track A" for tumbling,
-   "DMT 1" and "DMT 2". Plus the day's **start** and **strict end** time.
+6. **The venue, over several days.** The organiser describes the **areas**,
+   each named, and as many of each discipline as the venue has: e.g. "Panel
+   1", "Panel 2" and "Panel 3" for trampoline (which also run synchro), "Track
+   A" for tumbling, "DMT 1" and "DMT 2". The competition runs over one or more
+   **days** (ISTO: 2½–3), each with its own **start** and **strict end** time,
+   and its own areas if they differ (a half day may use fewer). No person's
+   turn spans the end of a day.
 
 7. **Blocked time.** The organiser can block off time for anything that isn't
    a planned flight: **lunch**, **awards**, warm-up periods, or an **ad hoc
@@ -136,6 +146,19 @@ Constraints, in order of weight:
 12. **The officials rota (competitions 4) is part of this.** Judges and
     helpers are assigned to flights by the scheduler, and printed on the
     marshal and chair of judges sheets.
+
+13. **Every number is a setting, with a default.** Nothing about ISTO is
+    built in; the organiser can change each of these, per discipline:
+    - the **panel of officials** (Decision 5; default: the Code of Points);
+    - **minutes per competitor**: default 5 for trampoline (both rounds, from
+      British Gymnastics' 4½–6½), 5 per pair for synchro, and 2 for tumbling
+      and DMT (two passes) until better figures are known;
+    - **minutes between flights** (warm-up and changeover), default 10;
+    - **who can judge what**: anyone up to the level they say (the default),
+      only levels below the one they compete at, or only people the organiser
+      marks as qualified;
+    - the **rest** wanted between a person's turns, and whether it's a must or
+      a prefer (Decision 8).
 
 ## Consequences
 

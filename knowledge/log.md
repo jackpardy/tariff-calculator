@@ -1,5 +1,13 @@
 # Update log
 
+## 2026-10-07
+* **Update**: [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md):
+  ISTO runs over 2½–3 days, so the venue has days, each with its own hours;
+  panels default to the Code of Points' (a CJP, 6 execution and 2 difficulty
+  judges for every discipline) and every number is a setting: panels, minutes
+  per competitor, minutes between flights, who can judge what, and rest
+  ([open questions](open-questions.md)).
+
 ## 2026-10-06
 * **Update**: Step 2 of [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md),
   [events](features/competition-entries.md#events-and-synchro-adr-0005-step-2):
