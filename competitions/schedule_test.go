@@ -289,3 +289,64 @@ func TestReportAndFixes(t *testing.T) {
 		t.Error("half a minute less isn't enough")
 	}
 }
+
+func TestScheduleEdits(t *testing.T) {
+	setup := venue()
+	setup.Blocks = []Block{{Name: "Lunch", Minutes: 60, Day: 0, At: "12:00"}}
+	entries := append(people("L1", Trampoline, 10, "Ann"), people("L2", Trampoline, 10)...)
+	entries = append(entries, people("Tumbling Novice", Tumbling, 4, "Ann")...)
+	s := PlanSchedule(entries, []string{"L1", "L2", "Tumbling Novice"}, setup, 1)
+	peopleOf := map[string][]string{}
+	for _, e := range entries {
+		peopleOf[e.ID] = e.People
+	}
+	names := map[string]string{"Ann": "Ann"}
+	if p := s.Problems(peopleOf, names); len(p) != 0 {
+		t.Fatalf("a fresh plan has no problems: %v", p)
+	}
+	l1, _ := s.Find("L1#0")
+	l2, _ := s.Find("L2#0")
+	// Moving L2's gymnast into L1 makes L1 longer; times are worked out again.
+	before := s.Flights[l1].End
+	if !s.MoveEntry("L2#0", l1) {
+		t.Fatal("moved")
+	}
+	l1, _ = s.Find("L1#0")
+	if s.Flights[l1].End != before+5 {
+		t.Errorf("L1 is five minutes longer: %s → %s", Clock(before), Clock(s.Flights[l1].End))
+	}
+	// Moving L2 onto L1's panel puts it after L1, clear of lunch.
+	l2, _ = s.Find("L2#1")
+	if !s.MoveFlight(l2, 0, s.Flights[l1].Area) {
+		t.Fatal("moved the flight")
+	}
+	l2, _ = s.Find("L2#1")
+	l1, _ = s.Find("L1#0")
+	if s.Flights[l2].Start < s.Flights[l1].End {
+		t.Errorf("L2 after L1: %+v %+v", s.Flights[l1], s.Flights[l2])
+	}
+	if s.MoveFlight(l2, 0, "Track") {
+		t.Error("trampoline can't go on the track")
+	}
+	// Putting Ann's tumbling flight on top of L1 is flagged, not refused.
+	tum, _ := s.Find("Tumbling Novice#0")
+	s.Flights[tum].Start = s.Flights[l1].Start
+	s.Retime()
+	if p := s.Problems(peopleOf, names); len(p) == 0 || !strings.Contains(p[0], "Ann is in") {
+		t.Errorf("Ann in two places at once is flagged: %v", p)
+	}
+	s.Setup.Days[0].End = "09:30"
+	if p := s.Problems(peopleOf, names); !strings.Contains(strings.Join(p, " "), "runs past the end") {
+		t.Errorf("a flight past the day's end is flagged: %v", p)
+	}
+}
+
+func TestBlocksStayInTheirDay(t *testing.T) {
+	setup := venue()
+	setup.Days[0].End = "10:00"
+	setup.Blocks = []Block{{Name: "Lunch", Minutes: 45, From: "12:00", To: "14:00"}}
+	s := PlanSchedule(people("L1", Trampoline, 4), []string{"L1"}, setup, 1)
+	if len(s.Blocks) != 0 || len(s.UnplacedBlocks) != 1 {
+		t.Errorf("lunch after the day's end doesn't fit: %+v %v", s.Blocks, s.UnplacedBlocks)
+	}
+}

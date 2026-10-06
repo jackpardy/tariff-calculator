@@ -103,26 +103,38 @@ and anyone you add.
 
 ## Plan the timetable
 
-Tap **Timetable** on the entries page.
+Tap **Timetable** on the entries page. Set up the venue first; every number
+has a starting value you can change.
 
-1. Under **Plan**, set the number of **panels**, the **start** time, **minutes
-   per gymnast** (both rounds; 4½–6½ is usual), **minutes between flights**
-   (warm-up and changeover), and the **largest flight**. Add a **finish by**
-   time to see how many panels that needs. Where men and women are ranked
-   separately, choose which levels also get separate flights: a small level
-   can fly mixed.
-2. Tap **Plan**. Each event is split into even flights, a level's flights stay
-   on one panel so the same judges see it, and the panels finish as early as
-   they can. Running orders are drawn at random, keeping a club's gymnasts apart
-   where that's easy.
-3. Adjust by hand: move a flight up, down or to another panel, **Redraw order**,
-   or **move** a gymnast to another flight. Entries made after planning are
-   listed for you to place. **Update times only** keeps the flights; **Plan
-   again** starts afresh.
-4. **Print marshal sheets** and **Print chair of judges sheets** (one panel to a
+1. **Days:** name each day and give its start and **end** time (when the venue
+   must be empty of competition), and which areas are in use. **Add a day**
+   for a competition over a weekend.
+2. **Areas:** name each trampoline panel, tumbling track and DMT bed. Synchro
+   runs on trampoline areas.
+3. **Timings:** for each discipline, minutes per competitor (both rounds;
+   5 is a starting point for trampoline, 2 for tumbling and DMT), minutes
+   between flights (warm-up and changeover), and the largest flight. Set the
+   **rest** a person gets between their turns, and whether it's a must. Where
+   men and women are ranked separately, choose which levels also fly apart:
+   a small level can fly mixed.
+4. **Blocked time:** add lunch, awards or an ad hoc event, at a fixed time or
+   anywhere between two times, on all areas or chosen ones.
+5. **Rules:** put an event on an area or a day, before another event, or apart
+   from another, as a **must** or a **prefer** (e.g. Elite synchro must be on
+   Panel 1).
+6. Tap **Plan**. Each event is split into even flights with running orders
+   drawn at random (keeping a club's gymnasts apart where that's easy), and
+   the flights are placed so no one is in two places at once, each day ends on
+   time and the musts are kept, then as many preferences as fit. The report
+   shows when each day finishes, anything that doesn't fit, anyone with too
+   little rest, and changes that would make it all fit.
+7. Adjust by hand: move a flight to another day or area, **Redraw order**, or
+   **move** a gymnast to another flight. Entries made after planning are
+   listed for you to place. Changing the setup asks you to **Plan** again.
+8. **Print marshal sheets** and **Print chair of judges sheets** (one area to a
    page).
-5. **Publish** to show clubs, members and gymnasts entering on their own their
-   flight, panel and warm-up time.
+9. **Publish** to show clubs, members and gymnasts entering on their own their
+   flight, area and warm-up time.
 
 # 2. Run your club (comp secs)
 

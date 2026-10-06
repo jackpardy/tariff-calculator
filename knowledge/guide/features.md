@@ -96,10 +96,12 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
 - **Trampoline, synchro, tumbling and DMT.** A gymnast can enter several;
   synchro pairs can be any two gymnasts, confirmed by a partner link. Tumbling
   and DMT entries are a level only, for now.
-- **The timetable**: flights on panels from the entries, men and women apart
-  where you choose, a finish time and how many panels it needs, adjusted by
-  hand, printed for marshals and the chair of judges, and published to clubs
-  and gymnasts.
+- **The timetable**: flights from the entries placed over the venue's days
+  and areas, around lunch and other blocked time and the organiser's rules,
+  never a person in two places and with rest between their turns; it says
+  when each day finishes, what doesn't fit and what would. Adjusted by hand,
+  printed for marshals and the chair of judges, and published to clubs and
+  gymnasts.
 - **For the organiser**: one table per level with every problem, each entry in
   full, notes back to the club, printed competition cards, a CSV, and closing
   entries when you choose.

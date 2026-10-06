@@ -31,7 +31,8 @@ Answered 2026-10-07: ISTO runs over 2½–3 days; panels default to the Code of
 Points' and can be changed; minutes per competitor and who may judge what are
 settings (ADR 0005 Decisions 6 and 13). Still to learn:
 
-- Better default minutes per competitor for tumbling and DMT (2 is a guess).
+- Better default minutes per competitor for tumbling and DMT (2 is a guess),
+  and the usual rest between a person's turns (20 minutes is a guess).
 
 # Decisions pending
 

@@ -182,7 +182,7 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline
 			}
 			if at := placement(c, sentID[e.MemberID]); at != nil {
-				row.Flight = fmt.Sprintf("%s · panel %s · warm-up %s", at.Flight, at.Panel, at.Time)
+				row.Flight = fmt.Sprintf("%s · %s · warm-up %s", at.Flight, at.Panel, at.Time)
 			}
 			cc.Rows = append(cc.Rows, row)
 		}
