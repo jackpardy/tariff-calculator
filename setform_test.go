@@ -287,6 +287,29 @@ func TestSetEditorReportsProblems(t *testing.T) {
 	}
 }
 
+// Rules that can't all be met are flagged, but don't count as problems, so the
+// set can still be saved.
+func TestSetEditorFlagsConflicts(t *testing.T) {
+	impossible := `{"format":1,"name":"Impossible","rules":[{"type":"elements","min":8},{"type":"elements","max":6}]}`
+	rec := postForm(t, "/requirements/editor", url.Values{"set": {impossible}})
+	body := rec.Body.String()
+	doc, err := html.Parse(strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, problems := editorSet(t, doc); problems != "0" {
+		t.Errorf("conflicts counted as %s problems; they shouldn't stop saving", problems)
+	}
+	if !strings.Contains(body, `class="notification is-danger is-light set-conflicts"`) || !strings.Contains(body, "can&#39;t both be met") {
+		t.Errorf("conflict not shown:\n%s", body)
+	}
+
+	fine := `{"format":1,"name":"Fine","rules":[{"type":"elements","min":8,"max":10}]}`
+	if body := postForm(t, "/requirements/editor", url.Values{"set": {fine}}).Body.String(); strings.Contains(body, "set-conflicts") {
+		t.Errorf("a set that can be met shows conflicts")
+	}
+}
+
 func TestRequirementsPage(t *testing.T) {
 	rec := httptest.NewRecorder()
 	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/requirements", nil))

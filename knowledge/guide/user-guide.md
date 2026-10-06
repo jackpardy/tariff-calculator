@@ -4,7 +4,7 @@ title: User guide
 description: Step-by-step instructions for gymnasts, coaches, clubs and competition organisers, covering how to add skills, build and check a routine, work on a competition level, write your own requirements, view, print and share routines, and run, enter and sign off competitions.
 resource: https://tariff.pardy.ie
 tags: [guide, how-to, users]
-generated: { by: claude-code/cli, at: 2026-10-06T11:30:00Z }
+generated: { by: claude-code/cli, at: 2026-10-06T14:00:00Z }
 ---
 
 Open <https://tariff.pardy.ie> on your phone or
@@ -157,7 +157,11 @@ aren't online yet. You can add them yourself.
    direction, shape, take-off and landing, tariff, or exact FIG notation. Leave
    a field empty to allow anything. Add your own **Wording** so the rule reads
    the way your handbook says it.
-5. Fix anything listed under **Fix before saving**, then tap **Save**.
+5. Fix anything listed under **Fix before saving**, then tap **Save**. If the
+   editor says **These can't all be met**, some rules contradict each other or
+   ask for something no routine can do (say, at least 12 elements, or a double
+   back that another rule bans). It catches the obvious cases, not every one.
+   You can still save, but no routine will pass until you change them.
 
 Your requirements now appear under **Check against → Your requirements**.
 
@@ -199,7 +203,9 @@ someone else can **Import**.
   side by side (each column also has its own **View** for just that routine),
   or in **Levels** mode the whole level: your set routine, your voluntary and
   the other set routine option. **Show** chooses what appears: skill names, FIG notation, difficulty,
-  level and exercise, requirements met, warnings. **Full screen** hides the
+  level and exercise, requirements met, warnings. **Share** sends what's on
+  screen (the routine, both routines, or the level), as **Share** does in the
+  Routine Builder. **Full screen** hides the
   browser bars (not on iPhone; add the page to your home screen instead).
 - **Tariff Sheet** opens a printable competition card for the current routine.
   Fill in the details (gymnast, club, category, competition, round, coach). Use

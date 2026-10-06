@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: The requirements editor flags rules that contradict each other
+  or can't be met ([framework](requirements/framework.md)), without blocking
+  the save. The [view screen](features/view.md) has a **Share** button, as in
+  the builder. [User guide](guide/user-guide.md) and its PDF updated.
 * **Creation**: [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md)
   (accepted): timetabling for ISTO, across trampoline, synchro, tumbling and
   DMT, with people who compete and judge, the venue's strict end time, rest

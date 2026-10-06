@@ -340,6 +340,9 @@ type SetEditorData struct {
 	Set      requirements.Set
 	JSON     string   // the set as it would be saved
 	Problems []string // what's wrong with it, if anything
+	// Conflicts are rules that can't be met, alone or together
+	// (requirements.Conflicts). They're warnings: the set can still be saved.
+	Conflicts []string
 }
 
 // ruleTypeLabels are the editor's names for rule types.
@@ -416,6 +419,17 @@ templ SetEditor(e SetEditorData) {
 				</select>
 			</div>
 		</div>
+		if len(e.Conflicts) > 0 {
+			<div class="notification is-danger is-light set-conflicts">
+				<p class="has-text-weight-semibold">These can't all be met:</p>
+				<ul>
+					for _, c := range e.Conflicts {
+						<li>{ c }</li>
+					}
+				</ul>
+				<p class="is-size-7 mt-2">No routine could meet these requirements as they stand. You can still save them.</p>
+			</div>
+		}
 		if len(e.Problems) > 0 {
 			<div class="notification is-warning is-light set-problems">
 				<p class="has-text-weight-semibold">Fix before saving:</p>

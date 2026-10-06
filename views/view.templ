@@ -59,6 +59,7 @@ templ ViewPage() {
 			<script defer src={ static.URL("js/routines.js") }></script>
 			<script defer src={ static.URL("js/sets.js") }></script>
 			<script defer src={ static.URL("js/menus.js") }></script>
+			<script defer src={ static.URL("js/share.js") }></script>
 			<script defer src={ static.URL("js/view.js") }></script>
 			@templ.JSONScript("level-data", levelData(requirements.BuiltinGroups()))
 		</head>
@@ -79,6 +80,8 @@ templ ViewPage() {
 						}
 					</div>
 				</details>
+				// Shares what's on screen, as the builder's Share does (static/js/share.js).
+				<button type="button" id="view-share">Share</button>
 				<button type="button" id="view-fullscreen" hidden>Full screen</button>
 			</nav>
 			<main id="view">

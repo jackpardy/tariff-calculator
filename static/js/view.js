@@ -155,6 +155,16 @@
             if (['trampolineRoutines', 'trampolineRequirementSets', LevelStore.key, LevelEntries.key].includes(event.key)) { render(); }
         });
 
+        // Share what's on screen: the level, or the routine (and the one beside it).
+        document.getElementById('view-share').addEventListener('click', () => {
+            const shown = chosen(RoutineStore.load(), LevelEntries.load());
+            if (shown.entry) {
+                Share.open('entries', [shown.entry.id]);
+            } else {
+                Share.open('routines', [shown.routine.id, shown.beside?.id].filter(Boolean));
+            }
+        });
+
         // Full screen, where the browser allows it (not on iPhone).
         const full = document.getElementById('view-fullscreen');
         if (document.fullscreenEnabled) {

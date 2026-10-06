@@ -4,13 +4,14 @@ title: Sharing by link and QR code
 description: Routines and requirements are shared as a compressed link fragment that never reaches the server, with a QR code for sharing in person.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/static/js/share.js
 tags: [feature, sharing, qr, privacy]
-generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
+generated: { by: claude-code/cli, at: 2026-10-06T14:00:00Z }
 ---
 
 # How it works
 
 Sharing happens entirely in the browser (`static/js/share.js`). The user ticks
-routines (on the calculator) or saved requirements (on the requirements page).
+routines (on the calculator, or the view screen, where what's on screen comes
+ticked) or saved requirements (on the requirements page).
 The link carries what is shared after `#share=`:
 
 ```

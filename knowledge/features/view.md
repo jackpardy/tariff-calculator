@@ -4,7 +4,7 @@ title: View screen
 description: A full-screen, scroll-free view of a routine, or a level's pair of routines with its other set routine options, with a Show menu to turn each kind of information on or off.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/views/view.templ
 tags: [feature, view, display, level]
-generated: { by: claude-code/cli, at: 2026-10-04T23:30:00Z }
+generated: { by: claude-code/cli, at: 2026-10-06T14:00:00Z }
 ---
 
 # What it's for
@@ -57,6 +57,14 @@ FIG notation, a star if it meets a requirement, its difficulty and a warning
 mark. Elements that don't count are struck through, including a repeat of an
 element whose difficulty carried over from the first exercise. Elements that
 don't score when only some do are greyed.
+
+# Sharing
+
+**Share** in the bar opens the builder's share dialog ([sharing](sharing.md))
+with what's on screen ticked: the routine, both routines when one is beside it,
+or the level being worked on. The view page loads `share.js` and styles the
+dialog itself in `view.css`, as it doesn't use Bulma. On the narrowest phones
+the bar's buttons wrap to a second line, so the routine menu stays readable.
 
 # The Show menu
 
