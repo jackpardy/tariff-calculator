@@ -154,3 +154,12 @@ func TestMemberDisciplines(t *testing.T) {
 		t.Error("the comp sec edits the synchro entry, partner and all")
 	}
 }
+
+func TestTumblingFormHasNoRoutines(t *testing.T) {
+	h := competitionServer(t)
+	admin := created(t, h, eventsCompetition())
+	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	if page := do(t, h, http.MethodGet, enter+"?discipline=dmt", nil).Body.String(); strings.Contains(page, "First exercise") || strings.Contains(page, "data-routine-for") {
+		t.Error("a DMT entry asks for a level only, no routines")
+	}
+}

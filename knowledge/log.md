@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: Step 4 of ADR 0005, the [timetable](features/competition-entries.md#timetable-adr-0005-step-4)
+  plans over the venue's days and named areas: blocked time, the organiser's
+  rules (must or prefer), timings per discipline, rest between a person's
+  turns, and no one in two places at once. The report says when each day
+  finishes, what doesn't fit and which change would make it fit. The
+  [competitions guide](guide/competition-guide.md) covers it.
 * **Update**: Step 3 of ADR 0005, [officials](features/competition-entries.md#officials-adr-0005-step-3):
   members, comp secs and individuals say what each can judge and help with
   (sent with the club's entries), the organiser adds people with no club and
@@ -40,7 +46,7 @@
   for lunch, awards and ad hoc events taking entries on the day, and set
   their own rules (what happens where, who does what), each must or prefer
   ([roadmap](roadmap.md), [open questions](open-questions.md)).
-* **Update**: The [timetable](features/competition-entries.md#timetable-roadmap-competitions-3)
+* **Update**: The [timetable](features/competition-entries.md#timetable-adr-0005-step-4)
   (roadmap: competitions 3): men and women ranked separately where the
   organiser chooses, flights planned on panels (split separately from
   ranking), adjusted by hand, printed for marshals and the chair of judges,

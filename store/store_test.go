@@ -694,10 +694,11 @@ func TestTimetableStorage(t *testing.T) {
 		t.Errorf("split kept, no timetable yet: %+v", got)
 	}
 	must(t, s.SetSplit(ctx, c.ID, competitions.Split{Mode: competitions.SplitSome, Levels: []string{"BUCS L3"}}))
-	plan := competitions.Timetable{Settings: competitions.DefaultSettings, Panels: [][]competitions.Flight{{{Level: "BUCS L3", Number: 1, Of: 1, Entries: []string{"a", "b"}}}}, Published: true}
+	plan := competitions.Schedule{Setup: competitions.DefaultSetup([]string{""}), Published: true,
+		Flights: []competitions.ScheduledFlight{{Flight: competitions.Flight{Level: "BUCS L3", Number: 1, Of: 1, Entries: []string{"a", "b"}}, Area: "Panel 1", Start: 540, End: 560}}}
 	must(t, s.SetTimetable(ctx, c.ID, &plan))
 	got, _ = s.CompetitionByAdmin(ctx, admin)
-	if !got.Split.Splits("BUCS L3") || got.Timetable == nil || !got.Timetable.Published || got.Timetable.Panels[0][0].Entries[1] != "b" {
+	if !got.Split.Splits("BUCS L3") || got.Timetable == nil || !got.Timetable.Published || got.Timetable.Flights[0].Entries[1] != "b" || got.Timetable.Flights[0].Start != 540 {
 		t.Errorf("split and timetable read back: %+v %+v", got.Split, got.Timetable)
 	}
 	must(t, s.SetTimetable(ctx, c.ID, nil))

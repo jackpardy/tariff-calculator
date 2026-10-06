@@ -126,30 +126,46 @@ each discipline's panel needs.
   qualified. The page shows how many can judge and chair each discipline.
 - The officials rota (step 5) puts them on panels around their own turns.
 
-# Timetable (roadmap: competitions 3)
+# Timetable (ADR 0005, step 4)
 
-From the dashboard, **Timetable** plans the day.
+From the dashboard, **Timetable** plans the competition over the venue's days
+(roadmap: competitions 3).
 
-- **Men and women.** The competition can rank men and women separately at
-  every level, or only chosen ones; gymnasts at a split level say which when
-  entering. The timetable splits flights separately: a level ranked
-  separately can still run as one mixed flight (e.g. a small level).
-- **Plan** takes the number of panels, the start time, minutes per gymnast
-  (both rounds), minutes between flights (warm-up and changeover), the largest
-  flight, and optionally a finish time. It splits each level (or each of its
-  men and women) into even flights, keeps a level's flights together on one
-  panel so the same judges see it, shares levels out so the panels finish
-  soonest, and draws running orders at random, keeping a club's gymnasts
-  apart only where that's easy. With a finish time it says how many panels
-  that needs.
-- **Adjusting:** move a flight up or down its panel or to another panel,
-  redraw its order, move a gymnast to another flight, and place entries
-  made since planning. **Update times only** changes the times without
-  replanning; **Plan again** starts afresh.
+- **Days:** each with a name, start and strict end time, and the areas in use
+  that day. A new competition starts with one day, 09:00–18:00.
+- **Areas:** named panels, tracks and DMT beds, each for one discipline;
+  synchro runs on trampoline areas too. A new competition starts with one area
+  per discipline it offers ("Panel 1", "Track 1", "DMT 1").
+- **Timings**, per discipline: minutes per competitor (5 for trampoline, 5 per
+  synchro pair, 2 for tumbling and DMT), minutes between flights (10) and the
+  largest flight. **Rest** between a person's turns (20 minutes) is a
+  preference, or a must. **Men and women**: which levels ranked separately
+  also fly separately.
+- **Blocked time:** lunch, awards or an ad hoc event, on a day, at a fixed time
+  or anywhere in a window, on chosen areas or all of them.
+- **Rules,** each a **must** or a **prefer**: an event on an area, on a day,
+  before another event, or apart from another (not at the same time).
+- **Plan** splits each event into even flights, draws running orders (clubs
+  spread where easy) and places the flights: never a person in two places,
+  every flight inside its day's hours and around the blocks, keeping the
+  musts; then as many preferences as it can (rest, an event's flights on one
+  area, the organiser's prefers). It tries many orders and keeps the best.
+  A person is a member (by their member link) or, for individuals entering
+  several disciplines, by name; a confirmed synchro partner is the same
+  person as their own entries.
+- **The report:** each day's finish against its end and the time to spare,
+  what didn't fit (flights and blocks), anyone resting less than asked, and
+  rules broken. When something doesn't fit, it tries changes one at a time
+  (another area, a minute less per competitor, fewer minutes between flights,
+  bigger flights, rest only preferred) and says which would fit everything.
+- **Adjusting:** move a flight to another day or area, redraw its order, move
+  a gymnast to another flight or take them out, and place entries made since
+  planning. Changing the setup marks the plan out of date until **Plan**
+  again; moves are rechecked for clashes and listed as problems.
 - **Sheets:** marshal sheets (running orders to tick off) and chair of judges
-  sheets (each gymnast's exercises and problems), one panel to a page.
+  sheets (each gymnast's exercises and problems), one area to a page.
 - **Publish** shows clubs (each member's row), members and gymnasts entering
-  on their own their flight, panel and warm-up time.
+  on their own their flight, area, day and warm-up time.
 
 # Coaches (coach link)
 

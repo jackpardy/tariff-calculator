@@ -873,8 +873,10 @@ templ entryForm(f EntryForm) {
 						}
 					</div>
 				}
-				for n, ex := range l.Exercises {
-					@entryExercise(n+1, ex, f.Video)
+				if !f.Unchecked {
+					for n, ex := range l.Exercises {
+						@entryExercise(n+1, ex, f.Video)
+					}
 				}
 			</fieldset>
 		}

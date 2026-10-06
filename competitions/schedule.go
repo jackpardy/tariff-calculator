@@ -287,6 +287,8 @@ type Schedule struct {
 	Unplaced       []ScheduledFlight `json:"unplaced,omitempty"` // flights that fit nowhere
 	UnplacedBlocks []string          `json:"unplaced_blocks,omitempty"`
 	Published      bool              `json:"published,omitempty"`
+	Planned        bool              `json:"planned,omitempty"` // planned at least once
+	Stale          bool              `json:"stale,omitempty"`   // the setup changed since it was planned
 }
 
 // SchedEntry is an entry as the scheduler needs it: its event, discipline,
@@ -374,7 +376,7 @@ func PlanSchedule(entries []SchedEntry, eventOrder []string, setup Setup, seed u
 			best, bestUnplaced = p, unplaced
 		}
 	}
-	out := Schedule{Setup: setup, Flights: best.placed, Blocks: best.blocks, Unplaced: bestUnplaced}
+	out := Schedule{Setup: setup, Flights: best.placed, Blocks: best.blocks, Unplaced: bestUnplaced, Planned: true}
 	for _, b := range setup.Blocks {
 		found := false
 		for _, sb := range best.blocks {
@@ -442,6 +444,9 @@ func (p *planner) placeBlocks() {
 		}
 		for _, t := range starts {
 			iv := interval{b.Day, t, t + b.Minutes}
+			if t < p.days[b.Day][0] || iv.end > p.days[b.Day][1] {
+				continue // blocked time sits within its day
+			}
 			free := true
 			for _, a := range areas {
 				for _, used := range p.busy[a] {
