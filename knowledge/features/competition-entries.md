@@ -249,6 +249,22 @@ for: Triple Back") and has a field for a link per exercise, with a reminder to
 make a YouTube video unlisted, not private. They can replace the level or
 routine at any time until the deadline.
 
+# My competition (roadmap: competitions 5)
+
+From a member's page (each competition) or an individual's entry, **Your
+competition** opens one page for the day:
+
+- Every event they're in that has reached the competition (a member's sent
+  entries; an individual's entries, matched by name; synchro as either
+  partner), with its card's status: checked, problems to sort out (listed),
+  or not checked yet.
+- Once the timetable is published: each flight, area, day and warm-up, where
+  they are in the running order ("3rd of 12"), and about when each routine
+  is, worked out from the flight's timings (a guide only).
+- What they officiate, and the whole timetable, every day and area, with
+  their name in bold and the flights they're in or on the panel of open and
+  outlined.
+
 # Built from
 
 - `views.TariffSheet` (`views/sheet.templ`) for printed cards.

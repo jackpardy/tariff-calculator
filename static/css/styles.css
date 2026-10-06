@@ -602,3 +602,8 @@ details > * { box-sizing: border-box; }
 .comp-setup-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; margin-bottom: 0.4rem; }
 .comp-setup-row .input:not(.comp-num) { width: auto; max-width: 11rem; }
 .comp-block { padding: 0.6rem 1rem; background: #f5f5f5; box-shadow: none; }
+
+/* --- My competition (views/my.templ) --- */
+.comp-my-flight { border-left: 3px solid #485fc7; padding-left: 0.75rem; }
+.comp-flight > summary { cursor: pointer; }
+.comp-mine { box-shadow: 0 0 0 2px #485fc7; }

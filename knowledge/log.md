@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: [My competition](features/competition-entries.md#my-competition-roadmap-competitions-5)
+  (competitions 5): one page per person per competition with their events
+  and cards, flights, place in the order, rough routine times, duties and
+  the published timetable with them picked out.
 * **Update**: Step 5 of ADR 0005, the [officials rota](features/competition-entries.md#officials-rota-adr-0005-step-5):
   planning fills every flight's panel from the people who offered, never
   while they compete, with own-club judging shared, rules about people (a

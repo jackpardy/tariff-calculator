@@ -89,6 +89,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerTimetable(handle)
 	p.registerPartners(handle)
 	p.registerOfficials(handle)
+	p.registerMine(handle)
 }
 
 // secret marks the pages as private: links in their URLs mustn't leak through
@@ -1010,6 +1011,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
 		Placement:   placement(c, e.ID),
 		Duties:      dutiesOf(c, individualKey(e.Entry.Gymnast)),
+		Day:         path + "/day",
 		VideoReview: e.VideoReview, VideoNote: e.VideoNote,
 		Form: entryForm(c.Competition, form, path, "Save changes"), Withdraw: path + "/withdraw",
 	}
