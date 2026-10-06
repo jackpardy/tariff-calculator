@@ -240,3 +240,46 @@ func TestPlacedWhereJudgesAreFree(t *testing.T) {
 		t.Errorf("staffed, L5 waits for its judges: %+v", staffed.Flights)
 	}
 }
+
+func TestRotaStaffsBlocks(t *testing.T) {
+	// An ad hoc event on the second panel needs a chair and two judges while
+	// L3 runs on the first: five different people, none twice.
+	setup := venue()
+	setup.Areas = setup.Areas[:2]
+	setup.Blocks = []Block{
+		{Name: "Ad hoc synchro", Minutes: 40, Day: 0, At: "09:00", Areas: []string{"Panel 2"}, Officials: Panel{Chair: 1, Execution: 2}},
+		{Name: "Lunch", Minutes: 30, Day: 0, At: "12:00"},
+	}
+	entries := people("L3", Trampoline, 6)
+	s := PlanSchedule(entries, []string{"L3"}, setup, 1)
+	officials := judges("J", 8, "L3")
+	panel := Panel{Chair: 1, Execution: 2}
+	s.Rota(entries, officials, OfficialSettings{Panels: map[string]Panel{Trampoline: panel}}, 1)
+	var adhoc, lunch ScheduledBlock
+	for _, b := range s.Blocks {
+		switch b.Name {
+		case "Ad hoc synchro":
+			adhoc = b
+		case "Lunch":
+			lunch = b
+		}
+	}
+	if len(adhoc.Officials) != 3 || len(lunch.Officials) != 0 {
+		t.Fatalf("seats: ad hoc %v, lunch %v", adhoc.Officials, lunch.Officials)
+	}
+	seen := map[string]bool{}
+	for _, d := range append(adhoc.Officials, s.Flights[0].Officials...) {
+		if d.Person == "" || seen[d.Person] {
+			t.Errorf("seat %s: %q", d.Role, d.Person)
+		}
+		seen[d.Person] = true
+	}
+	if p := s.RotaProblems(peopleOfEntries(entries), officials, nil); len(p) > 0 {
+		t.Errorf("problems: %v", p)
+	}
+	// By hand, a clash with the flight is reported.
+	s.SetBlockDuty(0, 0, s.Flights[0].Officials[0].Person)
+	if p := s.RotaProblems(peopleOfEntries(entries), officials, nil); len(p) != 1 || !strings.Contains(p[0], "officiates") {
+		t.Errorf("problems: %v", p)
+	}
+}

@@ -53,6 +53,9 @@ type Block struct {
 	At      string   `json:"at,omitempty"`    // a fixed start, "12:30"
 	From    string   `json:"from,omitempty"`  // or a window: between From
 	To      string   `json:"to,omitempty"`    // and To it starts and ends
+	// Officials it needs, as a flight's panel does (an ad hoc event's judges,
+	// say); none for lunch.
+	Officials Panel `json:"officials,omitzero"`
 }
 
 // Rule kinds: an event on an area or day, an event before another, or two
@@ -256,6 +259,9 @@ func (s Setup) Check(events []string) error {
 				errs = append(errs, fmt.Errorf("%s takes an area %q that isn't set up", b.Name, a))
 			}
 		}
+		if err := b.Officials.check(); err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", b.Name, err))
+		}
 	}
 	for _, r := range s.Rules {
 		if (r.Event != "" || !personRule(r.Kind)) && !slices.Contains(events, r.Event) {
@@ -326,11 +332,12 @@ type ScheduledFlight struct {
 
 // ScheduledBlock is blocked time placed on its areas.
 type ScheduledBlock struct {
-	Name  string   `json:"name"`
-	Day   int      `json:"day"`
-	Areas []string `json:"areas"`
-	Start int      `json:"start"`
-	End   int      `json:"end"`
+	Name      string   `json:"name"`
+	Day       int      `json:"day"`
+	Areas     []string `json:"areas"`
+	Start     int      `json:"start"`
+	End       int      `json:"end"`
+	Officials []Duty   `json:"officials,omitempty"` // its seats, from the rota, if it needs officials
 }
 
 // Schedule is the timetable: the setup it was planned with, every flight and

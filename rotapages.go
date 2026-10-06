@@ -125,11 +125,16 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 		p.staff(&s, c, entries, people)
 		notice = "Officials assigned again."
 	case "seat":
-		flight, err1 := strconv.Atoi(r.FormValue("flight"))
 		seat, err2 := strconv.Atoi(r.FormValue("seat"))
 		person := r.FormValue("person")
 		known := person == "" || slices.ContainsFunc(people, func(o competitions.RotaPerson) bool { return o.Key == person })
-		if err1 != nil || err2 != nil || !known || !s.SetDuty(flight, seat, person) {
+		set := false
+		if block, err := strconv.Atoi(r.FormValue("block")); err == nil {
+			set = s.SetBlockDuty(block, seat, person)
+		} else if flight, err := strconv.Atoi(r.FormValue("flight")); err == nil {
+			set = s.SetDuty(flight, seat, person)
+		}
+		if err2 != nil || !known || !set {
 			back(w, r, "That seat has changed since; nothing was changed.")
 			return
 		}
@@ -232,20 +237,26 @@ func seatsOf(f competitions.ScheduledFlight, people []competitions.RotaPerson, n
 	return out
 }
 
-// dutiesOf are a person's seats on a published timetable, e.g. "Saturday
-// 10:40–11:50 · Panel 2 · BUCS L5 · Execution judge".
+// dutiesOf are a person's seats on a published timetable, in time order,
+// e.g. "Saturday 10:40–11:50 · Panel 2 · BUCS L5 · Execution judge".
 func dutiesOf(c store.Competition, key string) []string {
 	t := c.Timetable
 	if t == nil || !t.Published || key == "" {
 		return nil
 	}
+	return dutiesIn(*t, key)
+}
+
+// dutiesIn are a person's seats, in time order.
+func dutiesIn(s competitions.Schedule, key string) []string {
+	jobs := s.Staffed()
+	slices.SortStableFunc(jobs, func(a, b competitions.ScheduledFlight) int { return (a.Day*1440 + a.Start) - (b.Day*1440 + b.Start) })
 	var out []string
-	for _, f := range t.Flights { // in day, area and time order
+	for _, f := range jobs {
 		for _, d := range f.Officials {
-			if d.Person != key {
-				continue
+			if d.Person == key {
+				out = append(out, dutyLine(s, f, d.Role))
 			}
-			out = append(out, dutyLine(*t, f, d.Role))
 		}
 	}
 	return out
@@ -264,25 +275,8 @@ func dutyLine(s competitions.Schedule, f competitions.ScheduledFlight, role stri
 func rotaSheet(s competitions.Schedule, people []competitions.RotaPerson) []views.PersonDuties {
 	var out []views.PersonDuties
 	for _, o := range people {
-		pd := views.PersonDuties{Name: o.Name, Club: o.Club}
-		type duty struct {
-			at   int
-			line string
-		}
-		var ds []duty
-		for _, f := range s.Flights {
-			for _, d := range f.Officials {
-				if d.Person == o.Key {
-					ds = append(ds, duty{f.Day*1440 + f.Start, dutyLine(s, f, d.Role)})
-				}
-			}
-		}
-		slices.SortStableFunc(ds, func(a, b duty) int { return a.at - b.at })
-		for _, d := range ds {
-			pd.Duties = append(pd.Duties, d.line)
-		}
-		if len(pd.Duties) > 0 {
-			out = append(out, pd)
+		if duties := dutiesIn(s, o.Key); len(duties) > 0 {
+			out = append(out, views.PersonDuties{Name: o.Name, Club: o.Club, Duties: duties})
 		}
 	}
 	return out

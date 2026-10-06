@@ -158,9 +158,9 @@ offered (roadmap: competitions 4).
   and the **officials rota**, each person's duties in time order.
 - **Published,** members and gymnasts entering on their own see their duties
   on their page.
-- Not yet: blocked time (an ad hoc event) needing officials, and placing
-  flights with officials in mind; the rota works with the flights as placed
-  and reports what it can't fill.
+- **Flights where judges are free:** planning prefers times when enough of
+  an event's judges aren't competing to fill its panel, counting both the
+  flight being placed and those already beside it.
 
 # Timetable (ADR 0005, step 4)
 
@@ -180,7 +180,9 @@ From the dashboard, **Timetable** plans the competition over the venue's days
   events. **Men and women**: which levels ranked separately
   also fly separately.
 - **Blocked time:** lunch, awards or an ad hoc event, on a day, at a fixed time
-  or anywhere in a window, on chosen areas or all of them.
+  or anywhere in a window, on chosen areas or all of them. Blocked time can
+  need officials (a chair, judges, a recorder, a marshal): the rota staffs it
+  from anyone who judges or helps.
 - **Rules,** each a **must** or a **prefer**: an event on an area, on a day,
   before another event, or apart from another (not at the same time).
 - **Plan** splits each event into even flights, draws running orders (clubs
@@ -196,9 +198,12 @@ From the dashboard, **Timetable** plans the competition over the venue's days
   person as their own entries.
 - **The report:** each day's finish against its end and the time to spare,
   what didn't fit (flights and blocks), anyone resting less than asked, and
-  rules broken. When something doesn't fit, it tries changes one at a time
-  (another area, a minute less per competitor, fewer minutes between flights,
-  bigger flights, rest only preferred) and says which would fit everything.
+  rules broken, and names that look like one person entered twice (the same
+  letters ignoring accents and punctuation, or one letter apart in a long
+  name). When something doesn't fit, it tries changes one at a time (another
+  area, half a minute less per competitor, fewer minutes between flights,
+  bigger flights, rest only preferred, or an event capped at the entries
+  that fitted) and says which would fit everything.
 - **Adjusting:** move a flight to another day or area, redraw its order, move
   a gymnast to another flight or take them out, and place entries made since
   planning. Changing the setup marks the plan out of date until **Plan**

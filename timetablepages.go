@@ -199,9 +199,13 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 				}
 				items = append(items, timed{f.Start, it})
 			}
-			for _, b := range s.Blocks {
+			for i, b := range s.Blocks {
 				if b.Day == d && slices.Contains(b.Areas, a.Name) {
-					items = append(items, timed{b.Start, views.ItemView{Name: b.Name, Start: competitions.Clock(b.Start), End: competitions.Clock(b.End)}})
+					it := views.ItemView{Index: i, Name: b.Name, Start: competitions.Clock(b.Start), End: competitions.Clock(b.End)}
+					if len(b.Officials) > 0 {
+						it.Seats = seatsOf(competitions.ScheduledFlight{Officials: b.Officials}, people, names)
+					}
+					items = append(items, timed{b.Start, it})
 				}
 			}
 			slices.SortStableFunc(items, func(x, y timed) int { return x.start - y.start })
@@ -274,7 +278,11 @@ func describeBlock(b competitions.Block, days []competitions.Day) string {
 	if len(b.Areas) > 0 {
 		where = strings.Join(b.Areas, ", ")
 	}
-	return fmt.Sprintf("%s, %d minutes, %s, %s", b.Name, b.Minutes, when, where)
+	out := fmt.Sprintf("%s, %d minutes, %s, %s", b.Name, b.Minutes, when, where)
+	if n := len(b.Officials.Seats()); n > 0 {
+		out += fmt.Sprintf(", needs %d official%s", n, map[bool]string{true: "s"}[n > 1])
+	}
+	return out
 }
 
 func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
@@ -524,6 +532,11 @@ func (p *competitionPages) setupBlocks(w http.ResponseWriter, r *http.Request) {
 	if b.At == "" {
 		b.From, b.To = r.FormValue("from"), r.FormValue("to")
 	}
+	need := func(name string) int {
+		n, _ := strconv.Atoi(r.FormValue(name))
+		return n
+	}
+	b.Officials = competitions.Panel{Chair: need("chair"), Execution: need("judges"), Recorder: need("recorder"), Marshal: need("marshal")}
 	s.Setup.Blocks = append(s.Setup.Blocks, b)
 	p.saveSetup(w, r, c, s, "Blocked time added: "+describeBlock(b, s.Setup.Days)+".")
 }

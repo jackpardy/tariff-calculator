@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: Timetable tidy-ups: names that look like one person entered
+  twice are flagged; capping an event's entries is among the fixes; planning
+  prefers times when an event's judges are free; blocked time (an ad hoc
+  event) can need officials, staffed by the rota.
 * **Update**: [My competition](features/competition-entries.md#my-competition-roadmap-competitions-5)
   (competitions 5): one page per person per competition with their events
   and cards, flights, place in the order, rough routine times, duties and

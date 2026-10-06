@@ -80,7 +80,15 @@ templ MyCompetition(p MyCompetitionPage) {
 								if it.Flight {
 									@myFlight(p, it)
 								} else {
-									<div class="box comp-block"><strong>{ it.Name }</strong> <span class="has-text-grey is-size-7">{ it.Start }–{ it.End }</span></div>
+									<div class={ "box comp-block", templ.KV("comp-mine", seatOf(p, it) != "") }>
+										<strong>{ it.Name }</strong> <span class="has-text-grey is-size-7">{ it.Start }–{ it.End }</span>
+										if seatOf(p, it) != "" {
+											<span class="tag is-info is-light ml-1">{ seatOf(p, it) }</span>
+										}
+										if len(it.Seats) > 0 {
+											<p class="is-size-7 mt-1">{ panelLine(it.Seats) }</p>
+										}
+									</div>
 								}
 							}
 						</div>
