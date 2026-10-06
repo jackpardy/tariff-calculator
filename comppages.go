@@ -70,6 +70,9 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("GET /competitions/admin/{token}/entries.csv", p.csvExport)
 	handle("POST /competitions/admin/{token}/deadline", p.deadline)
 	handle("POST /competitions/admin/{token}/video", p.video)
+	handle("POST /competitions/admin/{token}/signoff", p.setSignoff)
+	handle("GET /competitions/signoff/{token}", p.individualSignoff)
+	handle("POST /competitions/signoff/{token}", p.signOffIndividual)
 	handle("POST /competitions/admin/{token}/entries/{id}/video", p.reviewVideo)
 	handle("POST /competitions/admin/{token}/individuals", p.individuals)
 	handle("POST /competitions/admin/{token}/replace-link", p.replaceLink)
@@ -143,6 +146,8 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 	c := competitions.Competition{Name: form.Name, Date: form.Date, Individuals: form.Individuals}
 	var problems []string
 	c.Video, form.Video, problems = postedVideo(r)
+	c.Signoff = r.FormValue("signoff") == "1"
+	form.Signoff = c.Signoff
 	deadline, err := time.ParseInLocation("2006-01-02 15:04", form.DeadlineDate+" "+form.DeadlineTime, local)
 	switch {
 	case err != nil:
@@ -345,7 +350,7 @@ func summary(c competitions.Competition, now time.Time) views.CompetitionSummary
 	out := views.CompetitionSummary{
 		Name: c.Name, Date: c.Date, Deadline: c.Deadline.In(local).Format("Monday 2 January 2006, 15:04"),
 		DeleteAfter: c.DeleteAfter().Format("2 January 2006"), Open: c.Open(now), Individuals: c.Individuals,
-		Video: c.Video.Describe(),
+		Video: c.Video.Describe(), Signoff: c.Signoff,
 	}
 	if day, err := c.Day(); err == nil {
 		out.Date = day.Format("Monday 2 January 2006")
@@ -387,6 +392,9 @@ func judge(c competitions.Competition, entries []store.Entry) []judged {
 			j.problems = []string{j.err.Error()}
 		} else {
 			j.problems = j.card.Problems()
+			if c.Signoff && !j.SignedOff() && !j.Withdrawn {
+				j.problems = append(j.problems, "Not signed off by a coach")
+			}
 		}
 		out[i] = j
 	}
@@ -473,7 +481,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		row := views.DashboardRow{
 			ID: j.ID, Gymnast: j.Entry.Entry.Gymnast, Club: j.club, Problems: j.problems,
 			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note, Withdrawn: j.Withdrawn,
-			Video: videoStatus(c.Competition, j),
+			Video: videoStatus(c.Competition, j), Signoff: storedSignoff(c.Competition, j.Entry),
 		}
 		if j.err == nil {
 			for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
@@ -563,7 +571,7 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", fileName(c.Name)+".csv"))
 	out := csv.NewWriter(w)
-	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent", "Video", "Withdrawn"})
+	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent", "Video", "Withdrawn", "Signed off by"})
 	all := judge(c.Competition, entries)
 	for _, level := range levelOrder(c.Competition, all) {
 		for _, j := range all {
@@ -574,7 +582,7 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 			if j.Individual {
 				club = "Individual"
 			}
-			row := []string{j.Entry.Entry.Gymnast, club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), ""}
+			row := []string{j.Entry.Entry.Gymnast, club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), "", ""}
 			if j.err == nil {
 				for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
 					row[3+2*i] = ex.SetName
@@ -588,6 +596,9 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 			}
 			if j.Withdrawn {
 				row[12] = "yes"
+			}
+			if j.SignedOff() {
+				row[13] = j.SignedBy
 			}
 			for i := range row {
 				row[i] = csvSafe(row[i])
@@ -696,6 +707,7 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	withSignoff(&shown, storedSignoff(c.Competition, e))
 	render(w, r, views.CompetitionEntry(views.EntryDetail{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
 		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
@@ -939,12 +951,16 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		failed(w, r, err)
 		return
 	}
+	withSignoff(&shown, storedSignoff(c.Competition, e))
 	path := "/competitions/entry/" + r.PathValue("token")
 	page := views.EntryPage{
 		Competition: summary(c.Competition, p.now()), Link: origin(r) + path, JustSaved: r.URL.Query().Get("saved") == "1",
 		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
 		VideoReview: e.VideoReview, VideoNote: e.VideoNote,
 		Form: entryForm(c.Competition, form, path, "Save changes"), Withdraw: path + "/withdraw",
+	}
+	if c.Signoff {
+		page.SignoffLink = origin(r) + signoffPath(e.SignoffLink)
 	}
 	page.Form.Problems = problems
 	if len(problems) > 0 {
@@ -999,6 +1015,106 @@ func deleteExpired(st *store.Store) {
 		}
 		time.Sleep(6 * time.Hour)
 	}
+}
+
+// --- Coach sign-off (ADR 0004 Decision 11) ---
+
+func signoffPath(token string) string { return "/competitions/signoff/" + token }
+
+// storedSignoff is a competition's entry's sign-off, as the pages show it.
+func storedSignoff(c competitions.Competition, e store.Entry) views.SignoffView {
+	return views.SignoffView{Required: c.Signoff, Signed: e.SignedOff(), By: e.SignedBy, Note: e.SignNote}
+}
+
+// setSignoff turns on or off whether entries need a coach's sign-off.
+func (p *competitionPages) setSignoff(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	on := r.FormValue("on") == "1"
+	if err := p.st.SetSignoff(r.Context(), c.ID, on); err != nil {
+		failed(w, r, err)
+		return
+	}
+	notice := "Entries no longer need a coach's sign-off."
+	if on {
+		notice = "Entries now need a coach's sign-off: those without one are flagged."
+	}
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+}
+
+// signoffEntry is the individual's entry a sign-off link opens, with its competition.
+func (p *competitionPages) signoffEntry(w http.ResponseWriter, r *http.Request) (store.Entry, store.Competition, bool) {
+	e, err := p.st.EntryBySignoffLink(r.Context(), r.PathValue("token"))
+	if err != nil {
+		failed(w, r, err)
+		return e, store.Competition{}, false
+	}
+	c, err := p.st.Competition(r.Context(), e.CompetitionID)
+	if err != nil {
+		failed(w, r, err)
+		return e, c, false
+	}
+	return e, c, true
+}
+
+// individualSignoff is the page an individual's coach signs off their entry on.
+func (p *competitionPages) individualSignoff(w http.ResponseWriter, r *http.Request) {
+	e, c, ok := p.signoffEntry(w, r)
+	if !ok {
+		return
+	}
+	p.renderIndividualSignoff(w, r, e, c, e.SignedBy, nil)
+}
+
+func (p *competitionPages) renderIndividualSignoff(w http.ResponseWriter, r *http.Request, e store.Entry, c store.Competition, name string, problems []string) {
+	shown, err := card(c.Competition, e.Entry, clubOf(e))
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	withSignoff(&shown, storedSignoff(c.Competition, e))
+	page := views.SignoffPage{
+		Competition: summary(c.Competition, p.now()), Card: shown, Signoff: shown.Signoff,
+		Action: r.URL.Path, AskName: true, Name: name, Problems: problems,
+	}
+	if len(problems) > 0 {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+	}
+	render(w, r, views.SignoffEntry(page))
+}
+
+// signOffIndividual records the coach's sign-off (signed=1) or not yet, under
+// their name (coach), with a note.
+func (p *competitionPages) signOffIndividual(w http.ResponseWriter, r *http.Request) {
+	e, c, ok := p.signoffEntry(w, r)
+	if !ok {
+		return
+	}
+	if !c.Open(p.now()) {
+		failed(w, r, store.ErrClosed)
+		return
+	}
+	name := strings.TrimSpace(r.FormValue("coach"))
+	if err := competitions.CheckName("coach", name); err != nil {
+		p.renderIndividualSignoff(w, r, e, c, name, sentences(err))
+		return
+	}
+	if err := p.st.SignOffIndividual(r.Context(), r.PathValue("token"), name, r.FormValue("signed") == "1", limitNote(r.FormValue("note"))); err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+}
+
+// limitNote is a note trimmed to at most 300 characters.
+func limitNote(note string) string {
+	note = strings.TrimSpace(note)
+	if r := []rune(note); len(r) > 300 {
+		note = string(r[:300])
+	}
+	return note
 }
 
 // --- Abuse limits ---

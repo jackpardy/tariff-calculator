@@ -14,11 +14,12 @@ import (
 // Club is a stored club. Its join link is shared in the club's chat, so it's
 // kept to show again; its admin link is shown once.
 type Club struct {
-	ID        string
-	Name      string
-	JoinLink  string
-	CreatedAt time.Time
-	LastUsed  time.Time
+	ID            string
+	Name          string
+	JoinLink      string
+	CoachesSeeAll bool // every coach sees every member, not just their own and those without a coach
+	CreatedAt     time.Time
+	LastUsed      time.Time
 }
 
 // CreateClub stores a club and returns it with its admin link. The name must
@@ -40,8 +41,8 @@ func (s *Store) clubBy(ctx context.Context, column, token string) (Club, error) 
 	var c Club
 	var created, used string
 	err := s.db.QueryRowContext(ctx, `UPDATE clubs SET last_used = $1 WHERE `+column+` = $2
-		RETURNING id, name, join_token, created_at, last_used`, s.stamp(), hash(token)).
-		Scan(&c.ID, &c.Name, &c.JoinLink, &created, &used)
+		RETURNING id, name, join_token, coaches_see_all, created_at, last_used`, s.stamp(), hash(token)).
+		Scan(&c.ID, &c.Name, &c.JoinLink, &c.CoachesSeeAll, &created, &used)
 	if err != nil {
 		return Club{}, notFound(err)
 	}
@@ -76,6 +77,7 @@ type Member struct {
 	ID        string
 	ClubID    string
 	Name      string
+	CoachID   string // the coach who signs off their routines; "" for none chosen
 	CreatedAt time.Time
 }
 
@@ -115,8 +117,8 @@ func (s *Store) MemberByLink(ctx context.Context, token string) (Member, error) 
 	var m Member
 	var created string
 	err := s.tx(ctx, func(tx *sql.Tx) error {
-		err := tx.QueryRowContext(ctx, `SELECT id, club_id, name, created_at FROM members WHERE token_hash = $1`, hash(token)).
-			Scan(&m.ID, &m.ClubID, &m.Name, &created)
+		err := tx.QueryRowContext(ctx, `SELECT id, club_id, name, COALESCE(coach_id, ''), created_at FROM members WHERE token_hash = $1`, hash(token)).
+			Scan(&m.ID, &m.ClubID, &m.Name, &m.CoachID, &created)
 		if err != nil {
 			return notFound(err)
 		}
@@ -128,7 +130,7 @@ func (s *Store) MemberByLink(ctx context.Context, token string) (Member, error) 
 
 // Members are a club's members, by name.
 func (s *Store) Members(ctx context.Context, clubID string) ([]Member, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, club_id, name, created_at FROM members WHERE club_id = $1 ORDER BY name, created_at`, clubID)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, club_id, name, COALESCE(coach_id, ''), created_at FROM members WHERE club_id = $1 ORDER BY name, created_at`, clubID)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +139,7 @@ func (s *Store) Members(ctx context.Context, clubID string) ([]Member, error) {
 	for rows.Next() {
 		var m Member
 		var created string
-		if err := rows.Scan(&m.ID, &m.ClubID, &m.Name, &created); err != nil {
+		if err := rows.Scan(&m.ID, &m.ClubID, &m.Name, &m.CoachID, &created); err != nil {
 			return nil, err
 		}
 		m.CreatedAt = parseTime(created)
@@ -233,7 +235,13 @@ type MemberEntry struct {
 	Note          string    // the organiser's note on it
 	VideoReview   string    // the organiser's review of its videos, as sent
 	VideoNote     string
+	SignedAt      time.Time // when a coach signed it off; zero if not, or changed since
+	SignedBy      string    // the coach who signed it off, or said not yet
+	SignNote      string    // the coach's note
 }
+
+// SignedOff says whether a coach has signed off the entry as it is now.
+func (e MemberEntry) SignedOff() bool { return !e.SignedAt.IsZero() }
 
 // Sent says whether the club has sent this entry to the competition.
 func (e MemberEntry) Sent() bool { return !e.SentAt.IsZero() }
@@ -265,7 +273,8 @@ func (s *Store) SaveMemberEntry(ctx context.Context, memberID, competitionID str
 		}
 		now := s.stamp()
 		if _, err := tx.ExecContext(ctx, `INSERT INTO member_entries (member_id, competition_id, entry, updated_at) VALUES ($1, $2, $3, $4)
-			ON CONFLICT (member_id, competition_id) DO UPDATE SET entry = excluded.entry, updated_at = excluded.updated_at`,
+			ON CONFLICT (member_id, competition_id) DO UPDATE SET entry = excluded.entry, updated_at = excluded.updated_at,
+				signed_at = CASE WHEN member_entries.entry = excluded.entry THEN member_entries.signed_at ELSE NULL END`,
 			memberID, competitionID, string(data), now); err != nil {
 			return err
 		}
@@ -285,7 +294,8 @@ func (s *Store) WithdrawMemberEntry(ctx context.Context, memberID, competitionID
 }
 
 const memberEntrySelect = `SELECT me.member_id, m.name, me.competition_id, me.entry, me.updated_at, COALESCE(e.sent_at, ''),
-		e.checked_at IS NOT NULL, COALESCE(e.note, ''), COALESCE(e.video_review, ''), COALESCE(e.video_note, '')
+		e.checked_at IS NOT NULL, COALESCE(e.note, ''), COALESCE(e.video_review, ''), COALESCE(e.video_note, ''),
+		COALESCE(me.signed_at, ''), me.signed_by, me.sign_note
 	FROM member_entries me
 	JOIN members m ON m.id = me.member_id
 	LEFT JOIN entries e ON e.member_id = me.member_id AND e.competition_id = me.competition_id`
@@ -300,14 +310,14 @@ func (s *Store) memberEntries(ctx context.Context, where string, args ...any) ([
 	var out []MemberEntry
 	for rows.Next() {
 		var e MemberEntry
-		var entry, updated, sent string
-		if err := rows.Scan(&e.MemberID, &e.MemberName, &e.CompetitionID, &entry, &updated, &sent, &e.Checked, &e.Note, &e.VideoReview, &e.VideoNote); err != nil {
+		var entry, updated, sent, signed string
+		if err := rows.Scan(&e.MemberID, &e.MemberName, &e.CompetitionID, &entry, &updated, &sent, &e.Checked, &e.Note, &e.VideoReview, &e.VideoNote, &signed, &e.SignedBy, &e.SignNote); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal([]byte(entry), &e.Entry); err != nil {
 			return nil, fmt.Errorf("reading %s's entry: %w", e.MemberName, err)
 		}
-		e.UpdatedAt, e.SentAt = parseTime(updated), parseTime(sent)
+		e.UpdatedAt, e.SentAt, e.SignedAt = parseTime(updated), parseTime(sent), parseTime(signed)
 		out = append(out, e)
 	}
 	return out, rows.Err()
@@ -345,8 +355,12 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 			return err
 		}
 
-		type pending struct{ member, name, entry string }
-		rows, err := tx.QueryContext(ctx, `SELECT me.member_id, m.name, me.entry FROM member_entries me
+		type pending struct {
+			member, name, entry string
+			signedAt            sql.NullString
+			signedBy, signNote  string
+		}
+		rows, err := tx.QueryContext(ctx, `SELECT me.member_id, m.name, me.entry, me.signed_at, me.signed_by, me.sign_note FROM member_entries me
 			JOIN members m ON m.id = me.member_id
 			WHERE m.club_id = $1 AND me.competition_id = $2`, clubID, competitionID)
 		if err != nil {
@@ -355,7 +369,7 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		var all []pending
 		for rows.Next() {
 			var p pending
-			if err := rows.Scan(&p.member, &p.name, &p.entry); err != nil {
+			if err := rows.Scan(&p.member, &p.name, &p.entry, &p.signedAt, &p.signedBy, &p.signNote); err != nil {
 				rows.Close()
 				return err
 			}
@@ -389,13 +403,15 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 
 		now := s.stamp()
 		for _, p := range chosen {
-			if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_id, member_id, club_name, individual, gymnast, entry, sent_at)
-				VALUES ($1, $2, $3, $4, $5, FALSE, $6, $7, $8)
+			if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_id, member_id, club_name, individual, gymnast, entry, sent_at,
+				signed_at, signed_by, sign_note)
+				VALUES ($1, $2, $3, $4, $5, FALSE, $6, $7, $8, $9, $10, $11)
 				ON CONFLICT (competition_id, member_id) DO UPDATE
 				SET entry = excluded.entry, gymnast = excluded.gymnast, club_name = excluded.club_name, sent_at = excluded.sent_at,
+					signed_at = excluded.signed_at, signed_by = excluded.signed_by, sign_note = excluded.sign_note,
 					checked_at = CASE WHEN entries.entry = excluded.entry THEN entries.checked_at ELSE NULL END,
 					video_review = CASE WHEN entries.entry = excluded.entry THEN entries.video_review ELSE '' END`,
-				newID(), competitionID, clubID, p.member, name, p.name, p.entry, now); err != nil {
+				newID(), competitionID, clubID, p.member, name, p.name, p.entry, now, p.signedAt, p.signedBy, p.signNote); err != nil {
 				return err
 			}
 		}
@@ -412,8 +428,8 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 func (s *Store) Member(ctx context.Context, clubID, memberID string) (Member, error) {
 	var m Member
 	var created string
-	err := s.db.QueryRowContext(ctx, `SELECT id, club_id, name, created_at FROM members WHERE id = $1 AND club_id = $2`, memberID, clubID).
-		Scan(&m.ID, &m.ClubID, &m.Name, &created)
+	err := s.db.QueryRowContext(ctx, `SELECT id, club_id, name, COALESCE(coach_id, ''), created_at FROM members WHERE id = $1 AND club_id = $2`, memberID, clubID).
+		Scan(&m.ID, &m.ClubID, &m.Name, &m.CoachID, &created)
 	m.CreatedAt = parseTime(created)
 	return m, notFound(err)
 }

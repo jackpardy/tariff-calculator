@@ -147,6 +147,28 @@ var migrations = []string{
 	`ALTER TABLE competitions ADD COLUMN video TEXT NOT NULL DEFAULT '{}';
 	ALTER TABLE entries ADD COLUMN video_review TEXT NOT NULL DEFAULT '';
 	ALTER TABLE entries ADD COLUMN video_note TEXT NOT NULL DEFAULT '';`,
+
+	// 4: coaches sign off their members' routines (ADR 0004 Decision 11).
+	`CREATE TABLE coaches (
+		id         TEXT PRIMARY KEY,
+		club_id    TEXT NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+		token_hash TEXT NOT NULL UNIQUE,
+		name       TEXT NOT NULL,
+		created_at TEXT NOT NULL
+	);
+	CREATE INDEX coaches_club ON coaches (club_id);
+	ALTER TABLE clubs ADD COLUMN coaches_see_all BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE members ADD COLUMN coach_id TEXT REFERENCES coaches (id) ON DELETE SET NULL;
+	ALTER TABLE member_entries ADD COLUMN signed_at TEXT;
+	ALTER TABLE member_entries ADD COLUMN signed_by TEXT NOT NULL DEFAULT '';
+	ALTER TABLE member_entries ADD COLUMN sign_note TEXT NOT NULL DEFAULT '';
+	ALTER TABLE competitions ADD COLUMN signoff BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE entries ADD COLUMN signed_at TEXT;
+	ALTER TABLE entries ADD COLUMN signed_by TEXT NOT NULL DEFAULT '';
+	ALTER TABLE entries ADD COLUMN sign_note TEXT NOT NULL DEFAULT '';
+	ALTER TABLE entries ADD COLUMN signoff_token TEXT NOT NULL DEFAULT '';
+	ALTER TABLE entries ADD COLUMN signoff_hash TEXT;
+	CREATE UNIQUE INDEX entries_signoff ON entries (signoff_hash);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

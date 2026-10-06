@@ -2,7 +2,8 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-05 (Decision 10, video proof, added the same day;
-  Decisions 3 and 5 clarified 2026-10-06)
+  Decisions 3 and 5 clarified and Decision 11, coach sign-off, added
+  2026-10-06)
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0001 §3 (persistence) and its roadmap, which tied storage to
   accounts ("accounts only when save routines forces it")
@@ -85,6 +86,8 @@ Constraints:
    | Club admin | Comp sec | See members and their entries, send them, edit on a member's behalf, remove members | SHA-256 hash |
    | Member join | The club's members | Join the club | plain (shared) |
    | Member (personal) | One member | Add, replace or withdraw their own entries | SHA-256 hash |
+   | Coach | One of a club's coaches | Sign off the entries of the members they see (Decision 11) | SHA-256 hash |
+   | Sign-off | An individual's coach | Sign off that one individual entry (Decision 11) | plain (shared) |
 
    **Why members need a personal link:** the join link is shared with the
    whole club, so on its own anyone in the club chat could change anyone's
@@ -170,6 +173,25 @@ Constraints:
     - Whether a video shows that gymnast performing safely is the organiser's
       judgement; the app records the link and the review, nothing more.
 
+11. **Coaches sign off routines.** A competition can require a coach's
+    sign-off on each entry.
+    - The comp sec adds the club's **coaches** on the club page; each gets a
+      coach link (hashed, replaceable). Only the comp sec adds coaches.
+    - A member's coach is chosen by the member, or assigned by the comp sec.
+      A coach sees their own members and every member **without** a coach;
+      the club can choose to let **every coach see every member**.
+    - The coach's page lists, competition by competition, every entry they
+      see, checked as the organiser sees it, and whether it's signed off. The
+      coach **signs off** or says **not yet**, with a note the member and comp
+      sec see. A changed entry needs signing off again.
+    - Sign-off is part of what the club sends: the competition's copy carries
+      the sign-off it had when sent. Where the competition requires sign-off,
+      an entry without one **can still be sent**, and the organiser sees it
+      flagged as a problem ("not signed off").
+    - An **individual** entry gets a sign-off link, shown on the gymnast's
+      own entry page, to send to their coach, who signs off under their name
+      without a coach page.
+
 ## Consequences
 
 **Positive**
@@ -243,5 +265,8 @@ Each step is a separate, shippable branch:
    and automatic deletion.
 6. Video proof (Decision 10): the organiser's setting, video links on entries,
    and the review column.
+6b. Coach sign-off (Decision 11): coaches on the club page, the coach's page,
+   sign-off on entries, the organiser's setting and flag, and individuals'
+   sign-off links.
 7. Hosting: a data volume, backups and the contract in the server repository,
    then link the feature from the app.

@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: Coach sign-off for [competition entries](features/competition-entries.md#coaches-coach-link)
+  (ADR 0004 Decision 11): the comp sec adds coaches, members choose theirs
+  (or the comp sec assigns), a coach's page lists the entries they see to
+  sign off or say not yet, and a competition can require sign-off, flagging
+  entries without one. Individuals get a sign-off link for their coach.
 * **Update**: [Competition entries](features/competition-entries.md): an
   entry a club sent for a member who has since withdrawn it (or left the
   club) is marked "Withdrawn" on the organiser's dashboard and entry page,
