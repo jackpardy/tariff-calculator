@@ -41,6 +41,15 @@ func (p *competitionPages) registerClubs(mux *http.ServeMux) {
 	handle("GET /clubs/member/{token}", p.memberHome)
 	handle("POST /clubs/member/{token}/competitions/{id}", p.saveOwnMemberEntry)
 	handle("POST /clubs/member/{token}/competitions/{id}/withdraw", p.withdrawMemberEntry)
+	handle("POST /clubs/member/{token}/coach", p.chooseOwnCoach)
+	handle("POST /clubs/admin/{token}/coaches", p.addCoach)
+	handle("POST /clubs/admin/{token}/coaches/{coach}/new-link", p.newCoachLink)
+	handle("POST /clubs/admin/{token}/coaches/{coach}/remove", p.removeCoach)
+	handle("POST /clubs/admin/{token}/coaches-see-all", p.coachesSeeAll)
+	handle("POST /clubs/admin/{token}/members/{member}/coach", p.assignCoach)
+	handle("GET /clubs/coach/{token}", p.coachHome)
+	handle("GET /clubs/coach/{token}/members/{member}/competitions/{id}", p.coachEntry)
+	handle("POST /clubs/coach/{token}/members/{member}/competitions/{id}", p.signOff)
 	handle("GET /competitions/club/{token}", p.clubLink)
 	handle("POST /competitions/club/{token}", p.enterClub)
 }
@@ -104,10 +113,15 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 	base := clubPath(r.PathValue("token"))
 	page := views.ClubPage{
 		Base: base, Name: club.Name, New: r.URL.Query().Get("new"), NewLink: newLink, Notice: r.URL.Query().Get("notice"),
-		JoinLink: origin(r) + "/clubs/join/" + club.JoinLink,
+		JoinLink: origin(r) + "/clubs/join/" + club.JoinLink, CoachesSeeAll: club.CoachesSeeAll,
 	}
 	if page.New != "" {
 		page.AdminLink = origin(r) + base
+	}
+	coaches, err := p.st.Coaches(ctx, club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
 	}
 	members, err := p.st.Members(ctx, club.ID)
 	if err != nil {
@@ -136,7 +150,7 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		for _, e := range mine {
 			has[e.MemberID] = true
 			entered[e.MemberID]++
-			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Level, Status: "Sent", Note: e.Note}
+			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Level, Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
 			switch {
 			case !e.Sent():
 				row.Status = "Not sent"
@@ -171,8 +185,14 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		}
 		page.Competitions = append(page.Competitions, cc)
 	}
+	coached := map[string]int{}
 	for _, m := range members {
-		page.Members = append(page.Members, views.ClubMember{ID: m.ID, Name: m.Name, Entries: entered[m.ID]})
+		page.Members = append(page.Members, views.ClubMember{ID: m.ID, Name: m.Name, Entries: entered[m.ID], CoachID: m.CoachID})
+		coached[m.CoachID]++
+	}
+	for _, c := range coaches {
+		page.Coaches = append(page.Coaches, views.ClubCoach{ID: c.ID, Name: c.Name, Members: coached[c.ID]})
+		page.CoachOptions = append(page.CoachOptions, views.CoachOption{ID: c.ID, Name: c.Name})
 	}
 	render(w, r, views.ClubAdmin(page))
 }
@@ -301,6 +321,7 @@ func (p *competitionPages) renderMemberEdit(w http.ResponseWriter, r *http.Reque
 	page.Form.Member, page.Form.Problems = true, problems
 	if existing != nil {
 		shown, err := card(c.Competition, existing.Entry, club.Name)
+		withSignoff(&shown, memberSignoff(c.Competition, *existing))
 		if err != nil {
 			failed(w, r, err)
 			return
@@ -536,7 +557,18 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	path := memberPath(r.PathValue("token"))
-	page := views.MemberPage{Club: club, Member: m.Name, Link: origin(r) + path, New: r.URL.Query().Get("new") == "joined", Notice: r.URL.Query().Get("notice")}
+	page := views.MemberPage{
+		Club: club, Member: m.Name, Link: origin(r) + path, New: r.URL.Query().Get("new") == "joined", Notice: r.URL.Query().Get("notice"),
+		CoachID: m.CoachID, CoachAction: path + "/coach",
+	}
+	coaches, err := p.st.Coaches(ctx, m.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	for _, c := range coaches {
+		page.Coaches = append(page.Coaches, views.CoachOption{ID: c.ID, Name: c.Name})
+	}
 	now := p.now()
 	for _, c := range comps {
 		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now), Status: "Not entered", Withdraw: path + "/competitions/" + c.ID + "/withdraw"}
@@ -551,6 +583,7 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 				failed(w, r, err)
 				return
 			}
+			withSignoff(&shown, memberSignoff(c.Competition, e))
 			mc.Card = &shown
 			mc.Note, mc.VideoReview, mc.VideoNote = e.Note, e.VideoReview, e.VideoNote
 			switch {

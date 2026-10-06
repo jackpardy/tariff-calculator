@@ -548,3 +548,136 @@ func TestWithdrawnEntries(t *testing.T) {
 		t.Errorf("sending everyone's takes them back: %v", got)
 	}
 }
+
+func TestCoaches(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp := competition()
+	comp.Signoff = true
+	c, admin, _ := s.CreateCompetition(ctx, comp)
+	if got, _ := s.CompetitionByAdmin(ctx, admin); !got.Signoff {
+		t.Error("the sign-off setting is kept")
+	}
+	club, clubAdmin, _ := s.CreateClub(ctx, "UCD")
+	must(t, s.AttachClub(ctx, club.ID, c.ID))
+	ann, annLink, err := s.CreateCoach(ctx, club.ID, "Ann")
+	must(t, err)
+	bob, _, _ := s.CreateCoach(ctx, club.ID, "Bob")
+	if got, err := s.CoachByLink(ctx, annLink); err != nil || got.ID != ann.ID {
+		t.Errorf("coach link: %+v, %v", got, err)
+	}
+	if coaches, _ := s.Coaches(ctx, club.ID); len(coaches) != 2 || coaches[0].Name != "Ann" {
+		t.Errorf("coaches: %+v", coaches)
+	}
+
+	x, _, _ := s.Join(ctx, club.ID, "X") // Ann's
+	y, _, _ := s.Join(ctx, club.ID, "Y") // Bob's
+	z, _, _ := s.Join(ctx, club.ID, "Z") // no coach
+	must(t, s.SetMemberCoach(ctx, club.ID, x.ID, ann.ID))
+	must(t, s.SetMemberCoach(ctx, club.ID, y.ID, bob.ID))
+	other, _, _ := s.CreateClub(ctx, "DCU")
+	stranger, _, _ := s.CreateCoach(ctx, other.ID, "S")
+	if err := s.SetMemberCoach(ctx, club.ID, z.ID, stranger.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("only the club's own coaches: %v", err)
+	}
+	if m, _ := s.Member(ctx, club.ID, x.ID); m.CoachID != ann.ID {
+		t.Errorf("X's coach: %+v", m)
+	}
+	for _, m := range []Member{x, y, z} {
+		must(t, s.SaveMemberEntry(ctx, m.ID, c.ID, entry(m.Name)))
+	}
+
+	sees := func(coach Coach) string {
+		list, err := s.CoachEntries(ctx, coach)
+		must(t, err)
+		out := ""
+		for _, e := range list {
+			out += e.MemberName
+		}
+		return out
+	}
+	if got := sees(ann); got != "XZ" {
+		t.Errorf("Ann sees her member and the one without a coach: %q", got)
+	}
+	if got := sees(stranger); got != "" {
+		t.Errorf("another club's coach sees nothing: %q", got)
+	}
+	club, _ = s.ClubByAdmin(ctx, clubAdmin)
+	must(t, s.SetCoachesSeeAll(ctx, club.ID, true))
+	if got := sees(ann); got != "XYZ" {
+		t.Errorf("with see-all, every member: %q", got)
+	}
+	must(t, s.SetCoachesSeeAll(ctx, club.ID, false))
+
+	if err := s.SignOff(ctx, ann, y.ID, c.ID, true, ""); !errors.Is(err, ErrNotFound) {
+		t.Error("Ann can't sign off Bob's member")
+	}
+	must(t, s.SignOff(ctx, ann, x.ID, c.ID, true, "Good to go"))
+	mine, _ := s.MemberEntries(ctx, x.ID)
+	if !mine[0].SignedOff() || mine[0].SignedBy != "Ann" || mine[0].SignNote != "Good to go" {
+		t.Errorf("signed off: %+v", mine[0])
+	}
+	must(t, s.SignOff(ctx, ann, z.ID, c.ID, false, "Not the full-in yet"))
+	if zs, _ := s.MemberEntries(ctx, z.ID); zs[0].SignedOff() || zs[0].SignedBy != "Ann" || zs[0].SignNote != "Not the full-in yet" {
+		t.Errorf("not yet: %+v", zs[0])
+	}
+
+	// Sending takes the sign-off with it; a change clears it on the club side,
+	// and sending the change clears it at the competition.
+	_, err = s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	list, _ := s.Entries(ctx, c.ID)
+	if !list[0].SignedOff() || list[0].SignedBy != "Ann" || list[1].SignedOff() {
+		t.Errorf("sent with their sign-offs: %+v", list)
+	}
+	changed := entry("X")
+	changed.Exercises[0].Option = "builtin:bucs-l3-option-2"
+	must(t, s.SaveMemberEntry(ctx, x.ID, c.ID, changed))
+	if mine, _ := s.MemberEntries(ctx, x.ID); mine[0].SignedOff() {
+		t.Error("a changed entry needs signing off again")
+	}
+	must(t, s.SaveMemberEntry(ctx, z.ID, c.ID, entry("Z"))) // unchanged: keeps its note
+	if zs, _ := s.MemberEntries(ctx, z.ID); zs[0].SignNote == "" {
+		t.Error("saving an unchanged entry keeps the coach's word")
+	}
+	_, err = s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	if list, _ := s.Entries(ctx, c.ID); list[0].SignedOff() {
+		t.Error("the competition's copy is no longer signed off")
+	}
+
+	// Removing a coach leaves their members without one.
+	must(t, s.RemoveCoach(ctx, club.ID, ann.ID))
+	if m, _ := s.Member(ctx, club.ID, x.ID); m.CoachID != "" {
+		t.Errorf("no coach now: %+v", m)
+	}
+	if _, err := s.CoachByLink(ctx, annLink); !errors.Is(err, ErrNotFound) {
+		t.Error("a removed coach's link stops working")
+	}
+	fresh, err := s.ReplaceCoachLink(ctx, club.ID, bob.ID)
+	must(t, err)
+	if got, err := s.CoachByLink(ctx, fresh); err != nil || got.ID != bob.ID {
+		t.Error("a replaced link works")
+	}
+
+	// An individual's coach signs off through the entry's sign-off link.
+	ind, token, err := s.AddIndividualEntry(ctx, c.ID, entry("I"))
+	must(t, err)
+	if ind.SignoffLink == "" {
+		t.Fatal("an individual entry has a sign-off link")
+	}
+	if e, err := s.EntryBySignoffLink(ctx, ind.SignoffLink); err != nil || e.Entry.Gymnast != "I" {
+		t.Errorf("by sign-off link: %+v, %v", e, err)
+	}
+	if e, _ := s.IndividualEntry(ctx, token); e.SignoffLink != ind.SignoffLink {
+		t.Error("the individual sees their sign-off link to send")
+	}
+	must(t, s.SignOffIndividual(ctx, ind.SignoffLink, "Coach C", true, ""))
+	if e, _ := s.IndividualEntry(ctx, token); !e.SignedOff() || e.SignedBy != "Coach C" {
+		t.Errorf("signed off: %+v", e)
+	}
+	must(t, s.ReplaceIndividualEntry(ctx, token, changed))
+	if e, _ := s.IndividualEntry(ctx, token); e.SignedOff() {
+		t.Error("a changed individual entry needs signing off again")
+	}
+}

@@ -1,0 +1,208 @@
+package views
+
+import "strconv"
+
+// SignoffView is an entry's coach sign-off (ADR 0004 Decision 11).
+type SignoffView struct {
+	Required bool   // the competition requires it
+	Signed   bool   // a coach has signed off the entry as it is now
+	By       string // the coach who signed it off, or said not yet
+	Note     string // the coach's note
+}
+
+// Status says where the sign-off stands, "" when there's nothing to say.
+func (s SignoffView) Status() string {
+	switch {
+	case s.Signed:
+		return "Signed off by " + s.By
+	case s.By != "":
+		return "Not yet signed off: " + s.By + " needs changes"
+	case s.Required:
+		return "Waiting for a coach's sign-off"
+	}
+	return ""
+}
+
+// signoffBox shows an entry's sign-off and the coach's note.
+templ signoffBox(s SignoffView) {
+	if status := s.Status(); status != "" {
+		<div class={ "notification is-light", templ.KV("is-success", s.Signed), templ.KV("is-warning", !s.Signed) }>
+			<p>
+				<strong>
+					if s.Signed {
+						✓
+					}
+					{ status }.
+				</strong>
+				if s.Note != "" {
+					{ s.Note }
+				}
+			</p>
+		</div>
+	}
+}
+
+// CoachOption is a coach a member can choose.
+type CoachOption struct {
+	ID, Name string
+}
+
+// coachSelect chooses a member's coach, posting coach=<id> ("" for none) as
+// soon as it changes.
+templ coachSelect(action string, coaches []CoachOption, chosen, label string) {
+	<form method="post" action={ templ.SafeURL(action) } class="is-inline">
+		<div class="select is-small">
+			<select name="coach" aria-label={ label } onchange="this.form.submit()">
+				<option value="" selected?={ chosen == "" }>No coach chosen</option>
+				for _, c := range coaches {
+					<option value={ c.ID } selected?={ chosen == c.ID }>{ c.Name }</option>
+				}
+			</select>
+		</div>
+		<noscript><button class="button is-small" type="submit">Save</button></noscript>
+	</form>
+}
+
+// CoachPage is a coach's own page: every entry they see, by competition.
+type CoachPage struct {
+	Club, Coach  string
+	Link         string // their coach link, as a full URL
+	Notice       string
+	SeesAll      bool // they see every member, not just their own and those without a coach
+	Competitions []CoachCompetition
+}
+
+// CoachCompetition is one competition's entries a coach sees.
+type CoachCompetition struct {
+	Competition CompetitionSummary
+	Rows        []CoachRow
+	Waiting     int // entries not signed off
+}
+
+// CoachRow is one member's entry, for their coach.
+type CoachRow struct {
+	Member, Level string
+	Problems      int
+	Signoff       SignoffView
+	Open          string // the entry's page
+}
+
+// CoachHome is a coach's page.
+templ CoachHome(p CoachPage) {
+	@competitionLayout(p.Coach + " · " + p.Club) {
+		<p class="has-text-grey mb-1">{ p.Club } · coach</p>
+		<h1 class="title is-4">{ p.Coach }</h1>
+		if p.Notice != "" {
+			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		<div data-coach-link={ p.Link } data-coach-name={ p.Coach + " · " + p.Club }>
+			@linkBox("Your coach link (keep it to yourself)", p.Link, "Saved in this browser too.")
+		</div>
+		<p class="mb-4 has-text-grey is-size-7">
+			if p.SeesAll {
+				You see every member of the club.
+			} else {
+				You see the members who chose you, and those who haven't chosen a coach.
+			}
+		</p>
+		if len(p.Competitions) == 0 {
+			<p class="has-text-grey">The club isn't entered in any competitions yet.</p>
+		}
+		for _, c := range p.Competitions {
+			<div class="box">
+				<h2 class="title is-6 mb-1">
+					{ c.Competition.Name }
+					if c.Waiting > 0 {
+						<span class="tag is-warning is-light ml-1">{ strconv.Itoa(c.Waiting) } to sign off</span>
+					}
+				</h2>
+				@competitionFacts(c.Competition)
+				if len(c.Rows) == 0 {
+					<p class="has-text-grey is-size-7">None of your members has entered yet.</p>
+				} else {
+					<div class="table-container">
+						<table class="table is-fullwidth is-narrow comp-table">
+							<thead>
+								<tr><th>Member</th><th>Level</th><th>Problems</th><th>Sign-off</th></tr>
+							</thead>
+							<tbody>
+								for _, r := range c.Rows {
+									<tr>
+										<td><a href={ templ.SafeURL(r.Open) }>{ r.Member }</a></td>
+										<td>{ r.Level }</td>
+										<td class={ templ.KV("has-text-danger", r.Problems > 0) }>
+											if r.Problems == 0 {
+												–
+											} else {
+												{ strconv.Itoa(r.Problems) }
+											}
+										</td>
+										<td class={ templ.KV("has-text-success", r.Signoff.Signed) }>
+											if r.Signoff.Signed {
+												✓ { r.Signoff.By }
+											} else if r.Signoff.By != "" {
+												Not yet ({ r.Signoff.By })
+											} else {
+												Waiting
+											}
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				}
+			</div>
+		}
+	}
+}
+
+// SignoffPage is a coach looking at one entry to sign it off: a club's
+// member's (with a coach link) or an individual's (with a sign-off link).
+type SignoffPage struct {
+	Back        string // "" for an individual's coach, who has no coach page
+	Competition CompetitionSummary
+	Card        EntryCard
+	Signoff     SignoffView
+	Action      string
+	AskName     bool   // the coach gives their name (an individual's coach)
+	Name        string // as given before
+	Problems    []string
+}
+
+// SignoffEntry is the page where a coach signs off an entry.
+templ SignoffEntry(p SignoffPage) {
+	@competitionLayout("Sign off · " + p.Card.Gymnast) {
+		if p.Back != "" {
+			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Your members</a></p>
+		}
+		<p class="has-text-grey mb-1">{ p.Competition.Name }</p>
+		@competitionFacts(p.Competition)
+		@entryCard(p.Card)
+		if p.Competition.Open {
+			<div class="box mt-4">
+				@problemList(p.Problems)
+				<form method="post" action={ templ.SafeURL(p.Action) }>
+					<p class="mb-2">Have you seen { p.Card.Gymnast } perform this safely and is it ready to compete?</p>
+					if p.AskName {
+						<div class="field">
+							<label class="label is-small" for="coach-name">Your name (coach)</label>
+							<input class="input is-small" id="coach-name" name="coach" required maxlength="80" value={ p.Name }/>
+						</div>
+					}
+					<div class="field">
+						<label class="label is-small" for="signoff-note">Note for the gymnast (optional)</label>
+						<input class="input is-small" id="signoff-note" name="note" maxlength="300" value={ p.Signoff.Note } placeholder="e.g. Not the full-in until we've done it on the big trampoline"/>
+					</div>
+					<div class="buttons">
+						<button class="button is-success is-small" type="submit" name="signed" value="1">Sign off</button>
+						<button class="button is-warning is-light is-small" type="submit" name="signed" value="0">Not yet</button>
+					</div>
+					<p class="help">If the entry changes after you sign it off, it needs signing off again.</p>
+				</form>
+			</div>
+		} else {
+			<p class="has-text-grey">Entries have closed, so the sign-off can't be changed.</p>
+		}
+	}
+}
