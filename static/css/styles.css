@@ -594,3 +594,8 @@ details > * { box-sizing: border-box; }
 }
 .comp-event { border-top: 1px solid #eee; padding-top: 0.75rem; margin-top: 0.75rem; }
 .comp-event .comp-change summary { color: #485fc7; }
+
+/* --- Officials (views/officials.templ) --- */
+.comp-offer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.8rem; }
+.comp-num { width: 4.5rem; }
+.comp-table td.comp-wrap { white-space: normal; min-width: 14rem; }

@@ -79,6 +79,11 @@ every page answers 503.
 | `GET`, `POST /clubs/coach/{token}/members/{member}/competitions/{id}` | `signed` (`1`/`0`), `note` | One entry, checked, to sign off or say not yet |
 | `POST /competitions/admin/{token}/events` | `synchroLevel`, `tumbling`, `dmt` (one level a line) | Changes the synchro, tumbling and DMT events (also on `POST /competitions`); entries then take `discipline` and, for synchro, `partnerName` and `partnerClub` |
 | `GET`, `POST /competitions/partner/{token}` | `link` (the partner's own member page or entry link, or blank) | A synchro partner confirming the pair |
+| `GET /competitions/admin/{token}/officials` | `notice` | The officials: who can judge and chair each discipline, the panels and judging rule, and everyone offered or added |
+| `POST /competitions/admin/{token}/officials/settings` | `judge` (`""`, `below`, `qualified`), `panel-<discipline>-<role>` | Panels per discipline and who may judge what |
+| `POST /competitions/admin/{token}/officials/add` | `name`, `club`, and an offer | Adds a judge or helper |
+| `POST /competitions/admin/{token}/officials/{id}/qualified`, `/remove` | `on` | Marks someone qualified; removes someone the organiser added |
+| `POST /clubs/member/{token}/competitions/{id}/offer`, `GET`/`POST /clubs/admin/{token}/members/{member}/competitions/{id}/offer`, `POST /competitions/entry/{token}/offer` | `judge-<discipline>`, `upto-<discipline>`, `chair-<discipline>`, `recorder`, `marshal` | What a member, the comp sec for a member, or an individual offers to judge and help with |
 | `POST /competitions/admin/{token}/split` | `split` (`""`, `all`, `some`), `splitLevel` | Which levels rank men and women separately (also `split=all` on `POST /competitions`); entries then take `category` |
 | `GET /competitions/admin/{token}/timetable` | `notice` | The timetable: settings, panels, flights, unplaced entries |
 | `POST /competitions/admin/{token}/timetable/plan` | `action` (`plan` or `times`), `panels`, `start`, `perGymnast`, `between`, `maxFlight`, `finishBy`, `separate`, `separateLevel` | Plans afresh, or updates only the times |

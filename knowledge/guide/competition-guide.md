@@ -85,6 +85,22 @@ An entry marked **Withdrawn** was withdrawn after the club sent it. It isn't
 counted or printed, and goes when the club sends again. A competition and its
 entries are deleted 120 days after the competition date.
 
+## Officials
+
+Tap **Officials** on the entries page. It shows, for each discipline, how many
+people can judge and chair against what one panel needs, and lists everyone:
+gymnasts who offered (clubs send their members' offers with their entries),
+and anyone you add.
+
+- **Add someone** who isn't entering, such as a judge with no club: their name,
+  club (if any), and what they can judge and help with.
+- Tick **Qualified** for people qualified to judge.
+- Under **Panels and who may judge**, each discipline's panel starts as the
+  FIG Code of Points' (a Chair of Judges Panel, 6 execution and 2 difficulty
+  judges) plus a recorder and a marshal; change any of it. Choose who may
+  judge: anyone up to the level they say, only levels below their own, or only
+  people you mark qualified.
+
 ## Plan the timetable
 
 Tap **Timetable** on the entries page.
@@ -153,6 +169,10 @@ sign-off.
 4. Your entry shows checked, with any problems. Your comp sec sends it to the
    competition: the status says whether it's been sent, or changed since.
 
+Under **Judging and helping**, say what you can do at the competition: judge a
+discipline (up to a level, and whether you can chair), or help as a recorder
+or marshal. Your comp sec can correct it, and sends it with the entries.
+
 To change it, open **Change your entry**. To pull out of one discipline, tick
 **Withdraw this entry** under it and tap **Withdraw**. Notes from the organiser
 and your coach show on your entry, and once the organiser publishes the
@@ -190,6 +210,7 @@ sign-off, entries without it are flagged to the organiser.
    Tap **Enter**. Enter each discipline separately: each gets its own link.
 3. You get your own **personal link**, saved in this browser. Keep it: it's how
    you change (**Change the entry**) or withdraw your entry until entries close.
+   Under **Judging and helping**, say what you can judge or help with.
 4. If the competition needs a coach's sign-off, send your coach the **Sign-off
    link** shown on your entry. They open it, check it and sign off with their
    name.

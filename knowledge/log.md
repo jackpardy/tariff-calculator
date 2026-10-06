@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: Step 3 of ADR 0005, [officials](features/competition-entries.md#officials-adr-0005-step-3):
+  members, comp secs and individuals say what each can judge and help with
+  (sent with the club's entries), the organiser adds people with no club and
+  marks people qualified, and each discipline's panel defaults to the Code of
+  Points' and can be changed, with the rule for who may judge what. The
+  [competitions guide](guide/competition-guide.md) covers it.
 * **Update**: [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md):
   ISTO runs over 2½–3 days, so the venue has days, each with its own hours;
   panels default to the Code of Points' (a CJP, 6 execution and 2 difficulty
