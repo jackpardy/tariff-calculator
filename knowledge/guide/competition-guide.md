@@ -1,10 +1,10 @@
 ---
 type: User Guide
 title: Competitions guide
-description: Step-by-step instructions for competition organisers, club competition secretaries, members, coaches and individual entrants, covering how to run a competition, run a club, enter, and sign off routines.
+description: Step-by-step instructions for competition organisers, club competition secretaries, members, coaches and individual entrants, covering how to run a competition and its timetable, run a club, enter trampoline, synchro, tumbling and DMT, and sign off routines.
 resource: https://tariff.pardy.ie/competitions
 tags: [guide, how-to, users, competitions, clubs]
-generated: { by: claude-code/cli, at: 2026-10-06T15:00:00Z }
+generated: { by: claude-code/cli, at: 2026-10-07T10:00:00Z }
 ---
 
 This guide is also a [PDF](competition-guide.pdf). Routines are built and
@@ -30,6 +30,11 @@ Who does what:
 - **Coaches** sign off their members' routines, if the competition asks.
 - A gymnast without a club can **enter on their own**, if the organiser allows.
 
+A competition can offer several **disciplines**: individual trampoline,
+**synchro**, **tumbling** and **DMT**, each at its own levels. A gymnast can
+enter several. Synchro routines are checked like trampoline's; tumbling and DMT
+entries are a level only, for now.
+
 Routines come from the Routine Builder: build each voluntary there first, on
 the same phone, then choose it when entering. A set routine needs nothing: it's
 performed as written.
@@ -40,17 +45,21 @@ performed as written.
 2. Fill in the **Name**, the **Date** and when **Entries close** (Irish and UK
    time). Tick the **Levels** gymnasts can enter; your own levels from the
    Routine Builder are under **Your own levels**.
-3. Choose whether **gymnasts can also enter on their own**, whether to ask for
+3. Under **Synchro, tumbling and DMT**, tick any synchro levels, and type the
+   tumbling and DMT levels, one a line. Leave them empty for trampoline only.
+4. Choose whether **gymnasts can also enter on their own**, whether to ask for
    **video proof** (none, some skills such as any triple, or each whole
-   routine), and whether **entries need a coach's sign-off**.
-4. Tap **Create competition**. You land on the entries page with your **admin
+   routine), whether **entries need a coach's sign-off**, and whether to **rank
+   men and women separately** (you can choose only some levels later).
+5. Tap **Create competition**. You land on the entries page with your **admin
    link**. Save it: it's the only way back, and anyone who has it can manage
    the competition.
-5. Open **Links and settings** for the **club link** (give it to each club's
+6. Open **Links and settings** for the **club link** (give it to each club's
    comp sec) and the **individual entry link** (give it to gymnasts without a
    club).
 
-The entries page shows the counts, then a table for each level: gymnast, club,
+The entries page shows the counts, then a table for each event (a level, or
+"Synchro BUCS L3", "Tumbling Novice"): gymnast (both names for a synchro pair), club,
 each exercise, requirements met, problems, video and coach sign-off where
 asked, when it was sent, and whether you've checked it. Filter by club or to
 **Problems only**. Tap a gymnast to see both exercises in full, checked as the
@@ -67,13 +76,37 @@ Routine Builder checks them.
   file.
 - **Download CSV** gives every entry for a spreadsheet or scoring system.
 - Under **Links and settings** you can change when entries close or **Close
-  entries now**, turn individual entry, video proof or coach sign-off on or
-  off, **Replace the admin link** if it's been shared too widely, or delete the
-  competition.
+  entries now**, change the synchro, tumbling and DMT levels, choose which
+  levels rank men and women separately, turn individual entry, video proof or
+  coach sign-off on or off, **Replace the admin link** if it's been shared too
+  widely, or delete the competition.
 
 An entry marked **Withdrawn** was withdrawn after the club sent it. It isn't
 counted or printed, and goes when the club sends again. A competition and its
 entries are deleted 120 days after the competition date.
+
+## Plan the timetable
+
+Tap **Timetable** on the entries page.
+
+1. Under **Plan**, set the number of **panels**, the **start** time, **minutes
+   per gymnast** (both rounds; 4½–6½ is usual), **minutes between flights**
+   (warm-up and changeover), and the **largest flight**. Add a **finish by**
+   time to see how many panels that needs. Where men and women are ranked
+   separately, choose which levels also get separate flights: a small level
+   can fly mixed.
+2. Tap **Plan**. Each event is split into even flights, a level's flights stay
+   on one panel so the same judges see it, and the panels finish as early as
+   they can. Running orders are drawn at random, keeping a club's gymnasts apart
+   where that's easy.
+3. Adjust by hand: move a flight up, down or to another panel, **Redraw order**,
+   or **move** a gymnast to another flight. Entries made after planning are
+   listed for you to place. **Update times only** keeps the flights; **Plan
+   again** starts afresh.
+4. **Print marshal sheets** and **Print chair of judges sheets** (one panel to a
+   page).
+5. **Publish** to show clubs, members and gymnasts entering on their own their
+   flight, panel and warm-up time.
 
 # 2. Run your club (comp secs)
 
@@ -84,7 +117,8 @@ entries are deleted 120 days after the competition date.
    choose your club (or paste its admin link) and tap **Enter the club**.
    Members can then add their entries.
 
-Your club page lists each competition with every member's entry: its level,
+Your club page lists each competition with every member's entry (one per
+discipline they enter): its event,
 problems and status (**Not sent**, **Sent**, **Changed since sent**, or
 withdrawn), plus any note from the organiser, and missing videos and coach
 sign-off.
@@ -108,17 +142,30 @@ sign-off.
    page opens; it's saved in this browser, so on this phone your entries are
    simply there.
 2. If your club has coaches, choose **Your coach**.
-3. Under each competition, choose your **Level**, which set routine you're
-   doing where there's a choice, and the routine for each voluntary from the
-   routines saved in this browser. Add a **video link** if the competition asks
-   (a YouTube video must be **unlisted, not private**; a Google Drive file
-   shared with **anyone with the link**). Tap **Save**.
+3. Under each competition there's a section for each discipline it offers.
+   Open **Enter Trampoline** (or Synchro, Tumbling, DMT), choose your
+   **Level**, and Men or Women if asked. For trampoline and synchro, choose
+   which set routine you're doing where there's a choice, and the routine for
+   each voluntary from the routines saved in this browser. Add a **video link**
+   if the competition asks (a YouTube video must be **unlisted, not private**;
+   a Google Drive file shared with **anyone with the link**). Tap **Save**.
+   Tumbling and DMT need only the level.
 4. Your entry shows checked, with any problems. Your comp sec sends it to the
    competition: the status says whether it's been sent, or changed since.
 
-To change it, open **Change your entry**. To pull out, tick **Withdraw this
-entry** and tap **Withdraw**. Notes from the organiser and your coach show on
-your entry.
+To change it, open **Change your entry**. To pull out of one discipline, tick
+**Withdraw this entry** under it and tap **Withdraw**. Notes from the organiser
+and your coach show on your entry, and once the organiser publishes the
+timetable, your flight, panel and warm-up time.
+
+## Synchro
+
+Enter synchro like any discipline, and give your **partner's name** (and club,
+if they have one): any gymnast, from your club, another, or none. Your entry
+then shows a **partner link**: send it to your partner. They open it and
+confirm who they are with their own member page or entry link (or that they
+have no other entry), so the timetable never puts either of you in two places
+at once. If you name a different partner, they confirm again.
 
 # 4. Sign off routines (coaches)
 
@@ -136,9 +183,11 @@ sign-off, entries without it are flagged to the organiser.
 # 5. Enter on your own
 
 1. Open the competition's **individual entry link** from the organiser.
-2. Type your name, choose your **Level**, which set routine where there's a
-   choice, and your voluntary from the routines saved in this browser, plus
-   video links if asked. Tap **Enter**.
+2. Choose the discipline at the top (where there's more than one), type your
+   name, choose your **Level** (and Men or Women if asked), which set routine
+   where there's a choice, and your voluntary from the routines saved in this
+   browser, plus video links if asked. For synchro, give your partner's name.
+   Tap **Enter**. Enter each discipline separately: each gets its own link.
 3. You get your own **personal link**, saved in this browser. Keep it: it's how
    you change (**Change the entry**) or withdraw your entry until entries close.
 4. If the competition needs a coach's sign-off, send your coach the **Sign-off
@@ -147,8 +196,8 @@ sign-off, entries without it are flagged to the organiser.
 
 # What's kept
 
-Only names, clubs, levels, routines, video links, and the organiser's and
-coaches' notes. No emails, birthdays or contact details. Videos are never
+Only names, clubs, levels and events, men or women where asked, synchro
+partners, routines, video links, and the organiser's and coaches' notes. No emails, birthdays or contact details. Videos are never
 uploaded: only their links.
 
 # Keeping your links safe

@@ -93,6 +93,13 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
   their own entries; the comp sec sees them all and sends them, then re-sends
   what's changed.
 - **Gymnasts without a club** can enter on their own, if the organiser allows.
+- **Trampoline, synchro, tumbling and DMT.** A gymnast can enter several;
+  synchro pairs can be any two gymnasts, confirmed by a partner link. Tumbling
+  and DMT entries are a level only, for now.
+- **The timetable**: flights on panels from the entries, men and women apart
+  where you choose, a finish time and how many panels it needs, adjusted by
+  hand, printed for marshals and the chair of judges, and published to clubs
+  and gymnasts.
 - **For the organiser**: one table per level with every problem, each entry in
   full, notes back to the club, printed competition cards, a CSV, and closing
   entries when you choose.
