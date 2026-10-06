@@ -120,7 +120,9 @@ has a starting value you can change.
    men and women are ranked separately, choose which levels also fly apart:
    a small level can fly mixed.
 4. **Blocked time:** add lunch, awards or an ad hoc event, at a fixed time or
-   anywhere between two times, on all areas or chosen ones.
+   anywhere between two times, on all areas or chosen ones. An ad hoc event
+   can say what officials it needs (a chair, judges, a recorder, a marshal),
+   and gets them from the rota.
 5. **Rules:** put an event on an area or a day, before another event, or apart
    from another, as a **must** or a **prefer** (e.g. Elite synchro must be on
    Panel 1).
@@ -129,7 +131,8 @@ has a starting value you can change.
    the flights are placed so no one is in two places at once, each day ends on
    time and the musts are kept, then as many preferences as fit. The report
    shows when each day finishes, anything that doesn't fit, anyone with too
-   little rest, and changes that would make it all fit.
+   little rest, names that look like one person entered twice, and changes
+   that would make it all fit (including capping an event's entries).
    Planning also fills every panel from the people who've offered to judge
    and help (see **Officials**): never someone competing or on another panel
    at the time, and only in roles they may take. Clubs share judging their

@@ -208,7 +208,7 @@ templ CompetitionTimetable(p TimetablePage) {
 								if it.Flight {
 									@flightBox(p, it)
 								} else {
-									<div class="box comp-block"><strong>{ it.Name }</strong> <span class="has-text-grey is-size-7">{ it.Start }–{ it.End }</span></div>
+									@blockBox(p, it)
 								}
 							}
 						</div>
@@ -335,6 +335,17 @@ templ setupSections(p TimetablePage) {
 						<label class="checkbox is-size-7"><input type="checkbox" name="area" value={ a }/> { a }</label>
 					}
 					<span class="is-size-7 has-text-grey">(none ticked: every area)</span>
+				</div>
+				<div class="comp-setup-row">
+					<span class="is-size-7">officials it needs (an ad hoc event, say):</span>
+					<input class="input is-small comp-num" type="number" min="0" max="20" name="chair" placeholder="0" aria-label="Chairs"/>
+					<span class="is-size-7">chair,</span>
+					<input class="input is-small comp-num" type="number" min="0" max="20" name="judges" placeholder="0" aria-label="Judges"/>
+					<span class="is-size-7">judges,</span>
+					<input class="input is-small comp-num" type="number" min="0" max="20" name="recorder" placeholder="0" aria-label="Recorders"/>
+					<span class="is-size-7">recorder,</span>
+					<input class="input is-small comp-num" type="number" min="0" max="20" name="marshal" placeholder="0" aria-label="Marshals"/>
+					<span class="is-size-7">marshal</span>
 				</div>
 				<button class="button is-small" type="submit" name="add" value="1">Add</button>
 			</form>
@@ -569,41 +580,7 @@ templ flightBox(p TimetablePage, f ItemView) {
 			}
 		</ol>
 		if len(f.Seats) > 0 {
-			<details class="comp-panel mt-2">
-				<summary class="is-size-7"><strong>Panel</strong> { seatsSummary(f.Seats) }</summary>
-				<ul class="is-size-7 mt-1">
-					for _, s := range f.Seats {
-						<li>
-							{ s.Role }:
-							if s.Person == "" {
-								<span class="has-text-danger">no one</span>
-							} else {
-								{ s.Name } <span class="has-text-grey">{ s.Club }</span>
-							}
-						</li>
-					}
-				</ul>
-				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/officials") } class="comp-flight-actions">
-					<input type="hidden" name="action" value="seat"/>
-					<input type="hidden" name="flight" value={ strconv.Itoa(f.Index) }/>
-					<div class="select is-small">
-						<select name="seat" aria-label={ "Seat on " + f.Name }>
-							for i, s := range f.Seats {
-								<option value={ strconv.Itoa(i) }>{ s.Label }</option>
-							}
-						</select>
-					</div>
-					<div class="select is-small">
-						<select name="person" aria-label={ "Person for " + f.Name }>
-							<option value="">No one</option>
-							for _, o := range p.Rota.Options {
-								<option value={ o.Value }>{ o.Label }</option>
-							}
-						</select>
-					</div>
-					<button class="button is-small" type="submit">Set</button>
-				</form>
-			</details>
+			@seatsEditor(p, f, "flight")
 		}
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/flight") } class="comp-flight-actions">
 			<input type="hidden" name="flight" value={ strconv.Itoa(f.Index) }/>
@@ -618,6 +595,55 @@ templ flightBox(p TimetablePage, f ItemView) {
 			<button class="button is-small" type="submit" name="action" value="move">Move</button>
 		</form>
 	</div>
+}
+
+// blockBox is blocked time on an area, with its panel if it needs one.
+templ blockBox(p TimetablePage, b ItemView) {
+	<div class="box comp-block">
+		<strong>{ b.Name }</strong> <span class="has-text-grey is-size-7">{ b.Start }–{ b.End }</span>
+		if len(b.Seats) > 0 {
+			@seatsEditor(p, b, "block")
+		}
+	</div>
+}
+
+// seatsEditor lists a panel's seats, with a form to give one to someone.
+templ seatsEditor(p TimetablePage, it ItemView, field string) {
+	<details class="comp-panel mt-2">
+		<summary class="is-size-7"><strong>Panel</strong> { seatsSummary(it.Seats) }</summary>
+		<ul class="is-size-7 mt-1">
+			for _, s := range it.Seats {
+				<li>
+					{ s.Role }:
+					if s.Person == "" {
+						<span class="has-text-danger">no one</span>
+					} else {
+						{ s.Name } <span class="has-text-grey">{ s.Club }</span>
+					}
+				</li>
+			}
+		</ul>
+		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/officials") } class="comp-flight-actions">
+			<input type="hidden" name="action" value="seat"/>
+			<input type="hidden" name={ field } value={ strconv.Itoa(it.Index) }/>
+			<div class="select is-small">
+				<select name="seat" aria-label={ "Seat on " + it.Name }>
+					for i, s := range it.Seats {
+						<option value={ strconv.Itoa(i) }>{ s.Label }</option>
+					}
+				</select>
+			</div>
+			<div class="select is-small">
+				<select name="person" aria-label={ "Person for " + it.Name }>
+					<option value="">No one</option>
+					for _, o := range p.Rota.Options {
+						<option value={ o.Value }>{ o.Label }</option>
+					}
+				</select>
+			</div>
+			<button class="button is-small" type="submit">Set</button>
+		</form>
+	</details>
 }
 
 // moveGymnast moves a gymnast to another flight, or out of the timetable.

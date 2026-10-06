@@ -91,13 +91,13 @@ every page answers 503.
 | `POST /competitions/admin/{token}/timetable/setup/days` | `day-{i}-name`, `-start`, `-end`, `-area`; `add`, `remove` | Saves, adds or removes days |
 | `POST /competitions/admin/{token}/timetable/setup/areas` | `area-{i}-name`, `-discipline`; `add`, `remove` | Saves, adds or removes areas (renames carry to days, blocks and rules) |
 | `POST /competitions/admin/{token}/timetable/setup/timings` | `per-`, `between-`, `max-` per discipline; `rest`, `restMust`, `separate`, `separateLevel` | Saves timings, rest and which levels fly men and women apart |
-| `POST /competitions/admin/{token}/timetable/setup/blocks` | `name`, `minutes`, `day`, `at` or `from`/`to`, `area`; or `remove` | Adds or removes blocked time |
+| `POST /competitions/admin/{token}/timetable/setup/blocks` | `name`, `minutes`, `day`, `at` or `from`/`to`, `area`, and officials needed: `chair`, `judges`, `recorder`, `marshal`; or `remove` | Adds or removes blocked time |
 | `POST /competitions/admin/{token}/timetable/setup/rules` | `kind` (`area`, `day`, `before`, `apart`; about officials: `role`, `off`, `hours`), `must`, `event`, `event2`, `area`, `day`, `person`, `role`, `from`, `to`; or `remove` | Adds or removes a rule |
 | `POST /competitions/admin/{token}/timetable/plan` | | Plans afresh from the entries and setup |
 | `POST /competitions/admin/{token}/timetable/flight` | `flight`, `action` (`redraw`, `move` with `to` = `day:area`) | Redraws or moves a flight |
 | `POST /competitions/admin/{token}/timetable/entry` | `entry`, `to` (flight index, `""` to take out) | Moves or places a gymnast |
 | `POST /competitions/admin/{token}/timetable/publish` | `on` (`1`/`0`) | Shows clubs and gymnasts their flight, or hides it |
-| `POST /competitions/admin/{token}/timetable/officials` | `action` (`rota`, or `seat` with `flight`, `seat`, `person`) | Assigns every panel again, or gives one seat to someone (`""` empties it) |
+| `POST /competitions/admin/{token}/timetable/officials` | `action` (`rota`, or `seat` with `flight` or `block`, `seat`, `person`) | Assigns every panel again, or gives one seat to someone (`""` empties it) |
 | `GET /competitions/admin/{token}/timetable/print` | `sheet` (`marshal`, `judges` or `rota`) | Printable sheets, one area to a page, with each flight's panel; or each person's duties |
 | `POST /competitions/admin/{token}/signoff` | `on` (`1`/`0`) | Whether entries need a coach's sign-off (also `signoff=1` on `POST /competitions`) |
 | `GET`, `POST /competitions/signoff/{token}` | `coach` (their name), `signed`, `note` | An individual's coach signing off their entry |

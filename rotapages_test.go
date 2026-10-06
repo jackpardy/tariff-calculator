@@ -90,3 +90,27 @@ func TestOfficialsRota(t *testing.T) {
 		t.Error("Dara sees she judges BUCS L3")
 	}
 }
+
+func TestBlockOfficials(t *testing.T) {
+	h := competitionServer(t)
+	admin := created(t, h, newCompetition())
+	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	tt := admin + "/timetable"
+	loc := redirected(t, h, tt+"/setup/blocks", url.Values{"add": {"1"}, "name": {"Ad hoc"}, "minutes": {"30"}, "day": {"0"}, "at": {"10:00"}, "chair": {"1"}, "judges": {"1"}})
+	if !strings.Contains(loc, "needs+2+officials") {
+		t.Errorf("the block says what it needs: %s", loc)
+	}
+	page := do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
+	if !strings.Contains(page, "· 1 of 2 seats filled") || !strings.Contains(page, "Ad hoc on Panel 1: no one for 1 execution judge") {
+		t.Fatalf("the block's panel: %s", page)
+	}
+	mary := regexp.MustCompile(`<option value="([^"]+)">Mary</option>`).FindStringSubmatch(page)
+	redirected(t, h, tt+"/officials", url.Values{"action": {"seat"}, "block": {"0"}, "seat": {"1"}, "person": {mary[1]}})
+	page = do(t, h, http.MethodGet, tt, nil).Body.String()
+	if !strings.Contains(page, "Mary has two seats on Ad hoc&#39;s panel") || !strings.Contains(page, "· 2 of 2 seats filled") {
+		t.Errorf("a seat set by hand: %s", page)
+	}
+	if rota := do(t, h, http.MethodGet, tt+"/print?sheet=rota", nil).Body.String(); !strings.Contains(rota, "Panel 1 · Ad hoc · Chair of judges") {
+		t.Error("the rota lists block duties")
+	}
+}
