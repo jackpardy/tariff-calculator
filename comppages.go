@@ -1009,6 +1009,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		Competition: summary(c.Competition, p.now()), Link: origin(r) + path, JustSaved: r.URL.Query().Get("saved") == "1",
 		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
 		Placement:   placement(c, e.ID),
+		Duties:      dutiesOf(c, individualKey(e.Entry.Gymnast)),
 		VideoReview: e.VideoReview, VideoNote: e.VideoNote,
 		Form: entryForm(c.Competition, form, path, "Save changes"), Withdraw: path + "/withdraw",
 	}

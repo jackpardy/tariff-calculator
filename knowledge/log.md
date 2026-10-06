@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: Step 5 of ADR 0005, the [officials rota](features/competition-entries.md#officials-rota-adr-0005-step-5):
+  planning fills every flight's panel from the people who offered, never
+  while they compete, with own-club judging shared, rules about people (a
+  role at an event, not officiating, hours), seats changed by hand, coach
+  clashes avoided and reported, the rota printed and duties shown once
+  published. The [competitions guide](guide/competition-guide.md) covers it.
 * **Update**: The [timetable](features/competition-entries.md#timetable-adr-0005-step-4)
   puts someone with little rest between two flights (less than twice the rest
   setting) early in the first running order and late in the second; a redraw

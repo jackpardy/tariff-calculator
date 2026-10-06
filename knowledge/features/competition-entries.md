@@ -124,7 +124,43 @@ each discipline's panel needs.
 - **Who may judge what:** anyone up to the level they say (the default), only
   levels below the one they compete at, or only people the organiser marks
   qualified. The page shows how many can judge and chair each discipline.
-- The officials rota (step 5) puts them on panels around their own turns.
+- The [officials rota](#officials-rota-adr-0005-step-5) puts them on panels
+  around their own turns.
+
+# Officials rota (ADR 0005, step 5)
+
+Planning the timetable also fills each flight's panel from the people who've
+offered (roadmap: competitions 4).
+
+- **Never in two places:** no one officiates while competing, or on two
+  panels at once. Each seat goes only to someone who may take it: judges
+  under the judging rule and up to their level, chairs who said they can
+  chair, recorders and marshals who offered.
+- **As far as it can:** clubs share judging their own gymnasts fairly (each
+  time costs a club more than the last), the work is spread, a panel stays
+  together on its area from one flight to the next, helpers who could judge
+  are kept for judging, and someone about to compete gets rest first.
+- **Rules about people,** each a must or a prefer: someone in a role at an
+  event ("Mary is Chair of judges at Elite Women"), someone not officiating
+  (at an event or at all), someone officiating on a day only between two
+  times. A must keeps that person for that seat, off any flight at the same
+  time. Changing these rules asks you to **Assign officials again**, not to
+  plan again.
+- **The report:** seats no one could take, hand changes that break the rota
+  (someone officiating while competing, in two places, or in a role they
+  can't take), rules not kept, coaches needed on two areas at once, times
+  each club judged its own, and the busiest officials.
+- **By hand:** give any seat to anyone who's offered, or empty it. **Assign
+  officials again** starts the rota afresh, keeping the flights.
+- **Coaches:** planning keeps a coach's gymnasts off two areas at once where
+  that can be done (by club and coach name), and reports where it can't.
+- **Printed:** each flight's panel on the marshal and chair of judges sheets,
+  and the **officials rota**, each person's duties in time order.
+- **Published,** members and gymnasts entering on their own see their duties
+  on their page.
+- Not yet: blocked time (an ad hoc event) needing officials, and placing
+  flights with officials in mind; the rota works with the flights as placed
+  and reports what it can't fill.
 
 # Timetable (ADR 0005, step 4)
 

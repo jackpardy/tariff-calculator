@@ -30,6 +30,7 @@ func (p *competitionPages) registerTimetable(handle func(string, http.HandlerFun
 	handle("POST /competitions/admin/{token}/timetable/plan", p.planTimetable)
 	handle("POST /competitions/admin/{token}/timetable/flight", p.editFlight)
 	handle("POST /competitions/admin/{token}/timetable/entry", p.moveEntry)
+	handle("POST /competitions/admin/{token}/timetable/officials", p.editRota)
 	handle("POST /competitions/admin/{token}/timetable/publish", p.publishTimetable)
 	handle("GET /competitions/admin/{token}/timetable/print", p.printTimetable)
 }
@@ -53,7 +54,7 @@ func personKeys(entries []store.Entry) map[string][]string {
 	individual := map[string]string{} // entry id → key
 	for _, e := range entries {
 		if e.Individual {
-			individual[e.ID] = "i:" + strings.ToLower(strings.Join(strings.Fields(e.Entry.Gymnast), " "))
+			individual[e.ID] = individualKey(e.Entry.Gymnast)
 		}
 	}
 	out := map[string][]string{}
@@ -72,6 +73,20 @@ func personKeys(entries []store.Entry) map[string][]string {
 	return out
 }
 
+// individualKey is the person key of a gymnast entering on their own, by name.
+func individualKey(name string) string {
+	return "i:" + strings.ToLower(strings.Join(strings.Fields(name), " "))
+}
+
+// coachKey is the key of an entry's coach, if it has one: by club and name.
+func coachKey(e store.Entry) string {
+	name := strings.ToLower(strings.Join(strings.Fields(e.CoachName()), " "))
+	if name == "" {
+		return ""
+	}
+	return "c:" + e.ClubID + ":" + name
+}
+
 // schedEntries are entries as the scheduler needs them, with their people.
 func schedEntries(entries []store.Entry) []competitions.SchedEntry {
 	keys := personKeys(entries)
@@ -85,6 +100,9 @@ func schedEntries(entries []store.Entry) []competitions.SchedEntry {
 			PlanEntry:  competitions.PlanEntry{ID: e.ID, Level: e.Entry.Event(), Category: e.Entry.Category, Club: club},
 			Discipline: e.Entry.Discipline, People: keys[e.ID],
 		}
+		if k := coachKey(e); k != "" {
+			out[i].Coaches = []string{k}
+		}
 	}
 	return out
 }
@@ -97,6 +115,9 @@ func peopleOf(entries []store.Entry) (map[string][]string, map[string]string) {
 		names[ps[0]] = e.Entry.Gymnast
 		if len(ps) > 1 && e.Entry.Partner != nil {
 			names[ps[1]] = e.Entry.Partner.Name
+		}
+		if k := coachKey(e); k != "" {
+			names[k] = e.CoachName()
 		}
 	}
 	return people, names
@@ -141,7 +162,8 @@ func (p *competitionPages) timetableOf(w http.ResponseWriter, r *http.Request) (
 
 // itemsOf are each day's areas' flights and blocks, as the pages show them,
 // with the gymnasts still entered (flagged if they've changed event since).
-func itemsOf(s competitions.Schedule, entries []store.Entry) []views.DayView {
+func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson) []views.DayView {
+	_, names := peopleOf(entries)
 	byID := map[string]store.Entry{}
 	for _, e := range entries {
 		byID[e.ID] = e
@@ -163,7 +185,7 @@ func itemsOf(s competitions.Schedule, entries []store.Entry) []views.DayView {
 				if f.Day != d || f.Area != a.Name {
 					continue
 				}
-				it := views.ItemView{Flight: true, Index: i, Name: f.Name(), Start: competitions.Clock(f.Start), End: competitions.Clock(f.End)}
+				it := views.ItemView{Flight: true, Index: i, Name: f.Name(), Start: competitions.Clock(f.Start), End: competitions.Clock(f.End), Seats: seatsOf(f, people, names)}
 				for _, id := range f.Entries {
 					e, ok := byID[id]
 					if !ok {
@@ -194,8 +216,14 @@ func itemsOf(s competitions.Schedule, entries []store.Entry) []views.DayView {
 }
 
 // setupForm is the setup as the forms show it.
-func setupForm(c competitions.Competition, s competitions.Setup) views.SetupForm {
+func setupForm(c competitions.Competition, s competitions.Setup, people []competitions.RotaPerson) views.SetupForm {
 	f := views.SetupForm{Rest: s.Rest, RestMust: s.RestMust, Events: c.EventNames()}
+	for _, o := range people {
+		f.People = append(f.People, views.FlightOption{Value: o.Key, Label: o.Name})
+	}
+	for _, role := range competitions.Roles {
+		f.Roles = append(f.Roles, views.FlightOption{Value: role, Label: competitions.RoleName(role)})
+	}
 	for _, a := range s.Areas {
 		f.Areas = append(f.Areas, views.AreaForm{Name: a.Name, Discipline: a.Discipline})
 		f.AreaNames = append(f.AreaNames, a.Name)
@@ -254,11 +282,18 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	people, err := p.rotaOf(r, c, entries)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	page := views.TimetablePage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Notice: r.URL.Query().Get("notice"),
-		Setup: setupForm(c.Competition, s.Setup), Planned: s.Planned, Stale: s.Stale, Published: s.Published, Entries: len(entries),
+		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Published: s.Published, Entries: len(entries),
 	}
 	if s.Planned {
+		officials := people
+		page.Rota = rotaView(s, entries, officials)
 		people, names := peopleOf(entries)
 		report := s.Report(people)
 		page.Report = views.ReportView{Unplaced: report.Unplaced, Blocks: report.UnplacedBlocks, Broken: report.Broken, Problems: s.Problems(people, names)}
@@ -273,7 +308,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 				page.Report.Fixes = append(page.Report.Fixes, views.FixView{Change: f.Change, Fits: f.Fits})
 			}
 		}
-		page.Days = itemsOf(s, entries)
+		page.Days = itemsOf(s, entries, officials)
 		for i, f := range s.Flights {
 			page.Moves = append(page.Moves, views.FlightOption{Value: strconv.Itoa(i), Label: fmt.Sprintf("%s · %s %s · %s", f.Name(), s.Setup.Days[f.Day].Name, competitions.Clock(f.Start), f.Area)})
 		}
@@ -305,6 +340,23 @@ func (p *competitionPages) saveSetup(w http.ResponseWriter, r *http.Request, c s
 	if err := p.st.SetTimetable(r.Context(), c.ID, &s); err != nil {
 		failed(w, r, err)
 		return
+	}
+	back(w, r, notice)
+}
+
+// saveRotaRules saves a change to the rules about officials: the flights
+// stand, so only the officials need assigning again.
+func (p *competitionPages) saveRotaRules(w http.ResponseWriter, r *http.Request, c store.Competition, s competitions.Schedule, notice string) {
+	if err := s.Setup.Check(c.EventNames()); err != nil {
+		back(w, r, "Nothing was changed: "+strings.Join(sentences(err), " "))
+		return
+	}
+	if err := p.st.SetTimetable(r.Context(), c.ID, &s); err != nil {
+		failed(w, r, err)
+		return
+	}
+	if s.Planned {
+		notice += " Assign officials again to use it."
 	}
 	back(w, r, notice)
 }
@@ -470,13 +522,33 @@ func (p *competitionPages) setupBlocks(w http.ResponseWriter, r *http.Request) {
 // setupRules adds a rule (add=1: kind, must, event, and the area, day or
 // other event it needs) or removes one (remove=<i>).
 func (p *competitionPages) setupRules(w http.ResponseWriter, r *http.Request) {
-	c, s, _, ok := p.timetableOf(w, r)
+	c, s, entries, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
 	if i, err := strconv.Atoi(r.FormValue("remove")); err == nil && i >= 0 && i < len(s.Setup.Rules) {
+		about := s.Setup.Rules[i].Person != ""
 		s.Setup.Rules = slices.Delete(s.Setup.Rules, i, i+1)
-		p.saveSetup(w, r, c, s, "Rule removed.")
+		if about {
+			p.saveRotaRules(w, r, c, s, "Rule removed.")
+		} else {
+			p.saveSetup(w, r, c, s, "Rule removed.")
+		}
+		return
+	}
+	if kind := r.FormValue("kind"); kind == competitions.RuleRole || kind == competitions.RuleOff || kind == competitions.RuleHours {
+		people, err := p.rotaOf(r, c, entries)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		rule, ok := personRule(r, people)
+		if !ok {
+			back(w, r, "Choose someone who's offered to officiate.")
+			return
+		}
+		s.Setup.Rules = append(s.Setup.Rules, rule)
+		p.saveRotaRules(w, r, c, s, "Rule added: "+rule.Describe(s.Setup.Days)+".")
 		return
 	}
 	rule := competitions.Rule{Kind: r.FormValue("kind"), Must: r.FormValue("must") == "1", Event: r.FormValue("event")}
@@ -504,6 +576,12 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 	}
 	planned := competitions.PlanSchedule(schedEntries(entries), c.EventNames(), s.Setup, uint64(p.now().UnixNano()))
 	planned.Published = s.Published
+	people, err := p.rotaOf(r, c, entries)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	p.staff(&planned, c, entries, people)
 	if err := p.st.SetTimetable(r.Context(), c.ID, &planned); err != nil {
 		failed(w, r, err)
 		return
@@ -607,7 +685,8 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 }
 
 // printTimetable prints the marshal sheets (sheet=marshal) or the chair of
-// judges sheets (sheet=judges), one area's day to a page.
+// judges sheets (sheet=judges), one area's day to a page, each flight with its
+// panel; or the officials rota (sheet=rota), each person's duties.
 func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request) {
 	c, s, entries, ok := p.timetableOf(w, r)
 	if !ok {
@@ -615,6 +694,17 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 	}
 	if !s.Planned {
 		back(w, r, "Plan the timetable first.")
+		return
+	}
+	people, err := p.rotaOf(r, c, entries)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if r.URL.Query().Get("sheet") == "rota" {
+		render(w, r, views.RotaPrint(views.RotaSheet{
+			Title: "Officials rota · " + c.Name, Back: timetablePath(r), Competition: summary(c.Competition, p.now()), People: rotaSheet(s, people),
+		}))
 		return
 	}
 	judges := r.URL.Query().Get("sheet") == "judges"
@@ -626,7 +716,7 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 		Title: title, Back: timetablePath(r), Competition: summary(c.Competition, p.now()), Judges: judges,
 		Exercises: map[string][2]string{}, Notes: map[string]string{},
 	}
-	for _, day := range itemsOf(s, entries) {
+	for _, day := range itemsOf(s, entries, people) {
 		for _, area := range day.Areas {
 			sheet := views.SheetView{Day: day.Name, Area: area.Name}
 			for _, it := range area.Items {
