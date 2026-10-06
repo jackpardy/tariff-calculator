@@ -114,7 +114,9 @@ has a starting value you can change.
 3. **Timings:** for each discipline, minutes per competitor (both rounds;
    5 is a starting point for trampoline, 2 for tumbling and DMT), minutes
    between flights (warm-up and changeover), and the largest flight. Set the
-   **rest** a person gets between their turns, and whether it's a must. Where
+   **rest** a person gets between their events (from the end of one flight
+   to the start of the next one's warm-up), and whether it's a must. Someone
+   with little rest goes early in their first flight and late in the next. Where
    men and women are ranked separately, choose which levels also fly apart:
    a small level can fly mixed.
 4. **Blocked time:** add lunch, awards or an ad hoc event, at a fixed time or

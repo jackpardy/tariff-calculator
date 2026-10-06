@@ -68,8 +68,9 @@ func (s *Schedule) MoveFlight(flight, day int, area string) bool {
 	return true
 }
 
-// Redraw draws a flight's running order again.
-func (s *Schedule) Redraw(flight int, clubs map[string]string, rng *rand.Rand) bool {
+// Redraw draws a flight's running order again, then puts people with little
+// rest early or late in it (OrderForRest).
+func (s *Schedule) Redraw(flight int, clubs map[string]string, people map[string][]string, rng *rand.Rand) bool {
 	if flight < 0 || flight >= len(s.Flights) {
 		return false
 	}
@@ -81,6 +82,9 @@ func (s *Schedule) Redraw(flight int, clubs map[string]string, rng *rand.Rand) b
 	f.Entries = f.Entries[:0]
 	for _, e := range Draw(entries, rng) {
 		f.Entries = append(f.Entries, e.ID)
+	}
+	if p, ok := s.restPulls(people)[flight]; ok {
+		f.Entries = orderForRest(f.Entries, p)
 	}
 	return true
 }
