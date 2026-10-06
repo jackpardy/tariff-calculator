@@ -102,6 +102,9 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
   when each day finishes, what doesn't fit and what would. Adjusted by hand,
   printed for marshals and the chair of judges, and published to clubs and
   gymnasts.
+- **Your competition**: one page for each gymnast with their events, card
+  status, flights, place in the running order, rough routine times, their
+  judging and the whole timetable.
 - **The officials rota**: every panel filled from the people who offered to
   judge and help, never while they compete, own-club judging shared fairly,
   your rules about who does what, printed and shown to each official.

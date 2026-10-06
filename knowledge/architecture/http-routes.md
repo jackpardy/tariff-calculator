@@ -58,6 +58,7 @@ every page answers 503.
 | `GET`, `POST /competitions/enter/{token}` | `gymnast`, `level`, `ex1Option`, `ex1Skills`, `ex2Option`, `ex2Skills`, and where video is asked for `ex1Video`, `ex1VideoNote`, `ex2Video`, `ex2VideoNote` | The individual entry form; entering redirects to the personal link |
 | `GET`, `POST /competitions/entry/{token}` | as entering | An individual's own entry, and changing it until the deadline |
 | `POST /competitions/entry/{token}/withdraw` | `confirm=1` | Withdraws and deletes the entry |
+| `GET /competitions/entry/{token}/day` | — | My competition, for someone entering on their own (all their entries, matched by name) |
 | `GET /competitions` | — | The competitions, clubs and entries this browser has links to |
 | `GET`, `POST /competitions/club/{token}` | `clubAdmin` (a club's admin link, or its token) | A competition's club link: a comp sec enters their club |
 | `GET /clubs/new`, `POST /clubs` | `name` | Creates a club: 303 to its page with `?new=created`; 429 after 5 an hour from one address |
@@ -69,6 +70,7 @@ every page answers 503.
 | `POST /clubs/admin/{token}/replace-link`, `/delete` | `confirm=1` to delete | As for a competition |
 | `GET`, `POST /clubs/join/{token}` | `name` | Joining a club: 303 to the member's page with `?new=joined` |
 | `GET /clubs/member/{token}` | — | A member's page: their entry for each competition the club is in |
+| `GET /clubs/member/{token}/competitions/{id}/day` | — | My competition: their events, cards, flights and times, duties, and the published timetable |
 | `POST /clubs/member/{token}/competitions/{id}` | as entering, without `gymnast` | Saves the member's entry (their club sends it) |
 | `POST /clubs/member/{token}/competitions/{id}/withdraw` | `confirm=1` | Withdraws it |
 | `POST /clubs/member/{token}/coach`, `POST /clubs/admin/{token}/members/{member}/coach` | `coach` (an id, `""` for none) | A member's coach, chosen by them or the comp sec |

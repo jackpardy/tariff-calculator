@@ -198,6 +198,7 @@ type EntryPage struct {
 	Partner     *PartnerView
 	Placement   *Placement // where they compete, once the timetable is published
 	Duties      []string   // their seats on panels, once the timetable is published
+	Day         string     // their My competition page
 	Offer       *OfferForm // what they offer to judge and help with
 }
 
@@ -942,6 +943,7 @@ templ CompetitionEntryPage(p EntryPage) {
 		if p.SignoffLink != "" {
 			@linkBox("Sign-off link for your coach", p.SignoffLink, "This competition needs a coach's sign-off. Send this link to your coach: they see your entry and sign it off.")
 		}
+		@dayLink(p.Day)
 		@placementLine(p.Placement)
 		@dutiesBox(p.Duties)
 		if p.Checked {

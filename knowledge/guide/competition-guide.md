@@ -204,6 +204,11 @@ and your coach show on your entry, and once the organiser publishes the
 timetable, your flight, area and warm-up time, and under **Officiating**
 when and where you judge or help.
 
+**Your competition** (under each competition) is the page for the day: each
+of your events and its card's status, and once the timetable is published,
+your flight, where you are in the running order, about when each routine is,
+what you officiate, and the whole timetable with you picked out.
+
 ## Synchro
 
 Enter synchro like any discipline, and give your **partner's name** (and club,
@@ -238,7 +243,9 @@ sign-off, entries without it are flagged to the organiser.
    you change (**Change the entry**) or withdraw your entry until entries close.
    Under **Judging and helping**, say what you can judge or help with. Once
    the timetable is published, your entry shows your flight and, under
-   **Officiating**, when and where you judge or help.
+   **Officiating**, when and where you judge or help. **Your competition**
+   gathers all your entries (each discipline), times and the whole timetable
+   on one page.
 4. If the competition needs a coach's sign-off, send your coach the **Sign-off
    link** shown on your entry. They open it, check it and sign off with their
    name.

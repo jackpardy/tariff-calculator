@@ -1,0 +1,162 @@
+package views
+
+import "strconv"
+
+// MyCompetitionPage is one person's competition (roadmap: competitions 5):
+// their events, cards and flights, what they officiate, and the published
+// timetable with them picked out.
+type MyCompetitionPage struct {
+	Competition CompetitionSummary
+	Name        string
+	Back        string // their own page
+	Published   bool
+	Events      []MyEvent
+	Duties      []string
+	Days        []DayView
+	Mine        map[string]bool // their entries, by id
+	Me          string          // their person key, for the seats they're in
+}
+
+// MyEvent is one of their events.
+type MyEvent struct {
+	Event, Gymnasts, Category string
+	Status                    string
+	Problems                  []string
+	Flight, Area, Day, WarmUp string
+	Position, Of              int
+	Turn, Turn2               string // about when each of their routines is
+}
+
+// MyCompetition is the person's page for a competition.
+templ MyCompetition(p MyCompetitionPage) {
+	@competitionLayout(p.Competition.Name + " · " + p.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Your page</a></p>
+		<h1 class="title is-4">{ p.Competition.Name }</h1>
+		<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
+		if len(p.Events) == 0 {
+			<div class="notification is-light">No entries for you have reached the competition yet. Once your club sends them (or you enter), they show here.</div>
+		}
+		for _, ev := range p.Events {
+			<div class="box comp-my-event">
+				<p class="mb-1">
+					<strong>{ ev.Event }</strong>
+					if ev.Category != "" {
+						<span class="has-text-grey"> · { ev.Category }</span>
+					}
+				</p>
+				<p class="is-size-7 mb-2">{ ev.Gymnasts }</p>
+				<p class="is-size-7">{ ev.Status }</p>
+				if len(ev.Problems) > 0 {
+					<ul class="is-size-7 has-text-danger mb-2">
+						for _, pr := range ev.Problems {
+							<li>{ pr }</li>
+						}
+					</ul>
+				}
+				if ev.Flight != "" {
+					<div class="comp-my-flight mt-2">
+						<p><strong>{ ev.Flight }</strong> · { ev.Area } · { ev.Day }</p>
+						<p>Warm-up <strong>{ ev.WarmUp }</strong> · you're <strong>{ ordinal(ev.Position) }</strong> of { strconv.Itoa(ev.Of) }</p>
+						<p class="is-size-7 has-text-grey">Routines at about { ev.Turn } and { ev.Turn2 }, if the flight runs to time: a guide only.</p>
+					</div>
+				} else if p.Published {
+					<p class="is-size-7 has-text-grey mt-2">Not in a flight yet: ask the organiser.</p>
+				}
+			</div>
+		}
+		@dutiesBox(p.Duties)
+		if !p.Published {
+			<div class="notification is-light">The timetable isn't published yet. Your flights, times and any judging show here once it is.</div>
+		} else {
+			<h2 class="title is-5 mt-5">The timetable</h2>
+			<p class="help mb-3">You're picked out in bold, and the panels you're on are marked.</p>
+			for _, day := range p.Days {
+				<h3 class="title is-6 mt-4">{ day.Name }</h3>
+				<div class="columns is-multiline">
+					for _, area := range day.Areas {
+						<div class="column is-half-tablet is-one-third-desktop">
+							<p class="has-text-weight-semibold mb-2">{ area.Name }</p>
+							for _, it := range area.Items {
+								if it.Flight {
+									@myFlight(p, it)
+								} else {
+									<div class="box comp-block"><strong>{ it.Name }</strong> <span class="has-text-grey is-size-7">{ it.Start }–{ it.End }</span></div>
+								}
+							}
+						</div>
+					}
+				</div>
+			}
+		}
+	}
+}
+
+templ myFlight(p MyCompetitionPage, f ItemView) {
+	<details class={ "box comp-flight", templ.KV("comp-mine", flightHas(p, f)) } open?={ flightHas(p, f) }>
+		<summary>
+			<strong>{ f.Name }</strong>
+			<span class="is-size-7 has-text-grey">{ f.Start }–{ f.End } · { gymnastCount(len(f.Gymnasts)) }</span>
+			if seatOf(p, f) != "" {
+				<span class="tag is-info is-light ml-1">{ seatOf(p, f) }</span>
+			}
+		</summary>
+		<ol class="comp-order mt-2">
+			for _, g := range f.Gymnasts {
+				<li>
+					if p.Mine[g.ID] {
+						<strong>{ g.Name }</strong>
+					} else {
+						{ g.Name }
+					}
+					<span class="has-text-grey is-size-7">{ g.Club }</span>
+				</li>
+			}
+		</ol>
+		if len(f.Seats) > 0 {
+			<p class="is-size-7 mt-2">{ panelLine(f.Seats) }</p>
+		}
+	</details>
+}
+
+// flightHas says whether the person competes in or officiates a flight.
+func flightHas(p MyCompetitionPage, f ItemView) bool {
+	for _, g := range f.Gymnasts {
+		if p.Mine[g.ID] {
+			return true
+		}
+	}
+	return seatOf(p, f) != ""
+}
+
+// seatOf is the person's role on a flight's panel, if they have one.
+func seatOf(p MyCompetitionPage, f ItemView) string {
+	for _, s := range f.Seats {
+		if s.Person != "" && s.Person == p.Me {
+			return s.Role
+		}
+	}
+	return ""
+}
+
+// ordinal writes 1 as "1st", 2 as "2nd", and so on.
+func ordinal(n int) string {
+	suffix := "th"
+	if n%100 < 11 || n%100 > 13 {
+		switch n % 10 {
+		case 1:
+			suffix = "st"
+		case 2:
+			suffix = "nd"
+		case 3:
+			suffix = "rd"
+		}
+	}
+	return strconv.Itoa(n) + suffix
+}
+
+// dayLink links to a person's My competition page.
+templ dayLink(href string) {
+	if href != "" {
+		<p class="mb-3"><a class="button is-small is-info is-light" href={ templ.SafeURL(href) }>Your competition: flights, times and the timetable →</a></p>
+	}
+}

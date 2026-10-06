@@ -106,6 +106,7 @@ type MemberCompetition struct {
 	Events      []MemberEvent // one per discipline the competition offers
 	Offer       *OfferForm    // what they offer to judge and help with
 	Duties      []string      // their seats on panels, once the timetable is published
+	Day         string        // their My competition page
 	Open        bool          // shown open on the page
 }
 
@@ -475,6 +476,7 @@ templ MemberHome(p MemberPage) {
 				</summary>
 				<div class="mt-3">
 					@competitionFacts(c.Competition)
+					@dayLink(c.Day)
 					for _, ev := range c.Events {
 						@memberEvent(c.Competition, ev)
 					}
