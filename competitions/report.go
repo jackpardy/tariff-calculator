@@ -120,16 +120,19 @@ func (s Schedule) Report(people map[string][]string) Report {
 	return r
 }
 
-// Fix is a change to the setup, and whether everything then fits.
+// Fix is a change to the setup (or a cap on an event's entries), and whether
+// everything then fits.
 type Fix struct {
-	Change string
-	Fits   bool
-	Setup  Setup
+	Change  string
+	Fits    bool
+	Setup   Setup
+	entries []SchedEntry // the entries, if the change caps some
 }
 
 // Fixes tries changes that might make everything fit, one at a time: another
 // area of a discipline, fewer minutes per competitor or between flights, larger
-// flights, or rest as a prefer rather than a must.
+// flights, rest as a prefer rather than a must, or a cap on the entries of an
+// event that doesn't fit, at as many as did.
 func Fixes(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) []Fix {
 	clone := func() Setup {
 		c := setup
@@ -192,8 +195,13 @@ func Fixes(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) 
 		c.RestMust = false
 		tries = append(tries, Fix{Change: "rest between turns as a prefer, not a must", Setup: c})
 	}
+	tries = append(tries, caps(entries, eventOrder, setup, seed)...)
 	for i := range tries {
-		s := PlanSchedule(entries, eventOrder, tries[i].Setup, seed)
+		with := entries
+		if tries[i].entries != nil {
+			with = tries[i].entries
+		}
+		s := PlanSchedule(with, eventOrder, tries[i].Setup, seed)
 		tries[i].Fits = len(s.Unplaced) == 0 && len(s.UnplacedBlocks) == 0
 	}
 	return tries
@@ -225,6 +233,48 @@ func (s Schedule) CoachClashes(coaches map[string][]string, names map[string]str
 				}
 			}
 		}
+	}
+	return out
+}
+
+// caps are the fixes that cap an event that doesn't fit at the entries of
+// it that did, dropping its last entries.
+func caps(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) []Fix {
+	planned := PlanSchedule(entries, eventOrder, setup, seed)
+	short := map[string]bool{}
+	for _, f := range planned.Unplaced {
+		short[f.Level] = true
+	}
+	placed := map[string]int{}
+	for _, f := range planned.Flights {
+		placed[f.Level] += len(f.Entries)
+	}
+	var out []Fix
+	for _, ev := range eventOrder {
+		if !short[ev] {
+			continue
+		}
+		total := 0
+		for _, e := range entries {
+			if e.Level == ev {
+				total++
+			}
+		}
+		n, kept := placed[ev], 0
+		if n == 0 {
+			continue // none of it fits: capping won't help
+		}
+		var capped []SchedEntry
+		for _, e := range entries {
+			if e.Level == ev {
+				if kept == n {
+					continue
+				}
+				kept++
+			}
+			capped = append(capped, e)
+		}
+		out = append(out, Fix{Change: fmt.Sprintf("%s capped at %d entries (%d fewer)", ev, n, total-n), Setup: setup, entries: capped})
 	}
 	return out
 }

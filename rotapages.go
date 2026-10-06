@@ -81,6 +81,23 @@ func (p *competitionPages) rotaOf(r *http.Request, c store.Competition, entries 
 	return rotaPeople(c.Competition, officials, entries), nil
 }
 
+// staffing is who may judge each event, and each discipline's panel's
+// judges, for placing flights where their judges are free.
+func staffing(c competitions.Competition, people []competitions.RotaPerson) *competitions.Staffing {
+	s := &competitions.Staffing{Judges: map[string][]string{}, Need: map[string]int{}}
+	for _, d := range c.Disciplines() {
+		s.Need[d] = c.Officials.Panel(d).Judges()
+	}
+	for _, o := range people {
+		for ev, ok := range o.Judge {
+			if ok {
+				s.Judges[ev] = append(s.Judges[ev], o.Key)
+			}
+		}
+	}
+	return s
+}
+
 // staff fills the timetable's panels.
 func (p *competitionPages) staff(s *competitions.Schedule, c store.Competition, entries []store.Entry, people []competitions.RotaPerson) {
 	s.Rota(schedEntries(entries), people, c.Officials, uint64(p.now().UnixNano()))

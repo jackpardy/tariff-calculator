@@ -289,6 +289,19 @@ func TestReportAndFixes(t *testing.T) {
 	if fits["Trampoline at 4.5 minutes per competitor, not 5"] {
 		t.Error("half a minute less isn't enough")
 	}
+
+	// One panel, 90 minutes, an event of two flights: one fits, so a cap at
+	// its entries would fit everything.
+	setup = venue()
+	setup.Areas, setup.Days[0].End = setup.Areas[:1], "10:30"
+	entries = people("L1", Trampoline, 24)
+	fits = map[string]bool{}
+	for _, f := range Fixes(entries, []string{"L1"}, setup, 1) {
+		fits[f.Change] = f.Fits
+	}
+	if !fits["L1 capped at 12 entries (12 fewer)"] {
+		t.Errorf("a cap fits: %+v", fits)
+	}
 }
 
 func TestScheduleEdits(t *testing.T) {

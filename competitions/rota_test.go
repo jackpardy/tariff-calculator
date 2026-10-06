@@ -208,3 +208,35 @@ func TestCoachClashes(t *testing.T) {
 		t.Errorf("clash: %v", c)
 	}
 }
+
+func TestPlacedWhereJudgesAreFree(t *testing.T) {
+	// L5's only judges compete in L3. Unstaffed, L5 runs alongside L3 on the
+	// second panel; staffed, it waits until L3 is over, when they're free.
+	setup := venue()
+	setup.Areas = setup.Areas[:2]
+	var l3 []SchedEntry
+	for i, e := range people("L3", Trampoline, 6) {
+		e.People = []string{fmt.Sprintf("J-%d", i)}
+		l3 = append(l3, e)
+	}
+	entries := append(l3, people("L5", Trampoline, 6)...)
+	order := []string{"L3", "L5"}
+	staff := &Staffing{Judges: map[string][]string{"L5": {"J-0", "J-1", "J-2", "J-3", "J-4", "J-5"}}, Need: map[string]int{Trampoline: 6}}
+	at := func(s Schedule, ev string) ScheduledFlight {
+		for _, f := range s.Flights {
+			if f.Level == ev {
+				return f
+			}
+		}
+		t.Fatalf("no %s", ev)
+		return ScheduledFlight{}
+	}
+	plain := PlanSchedule(entries, order, setup, 1)
+	if at(plain, "L5").Start != at(plain, "L3").Start {
+		t.Fatalf("unstaffed, L5 runs alongside L3: %+v", plain.Flights)
+	}
+	staffed := PlanStaffed(entries, order, setup, staff, 1)
+	if at(staffed, "L5").Start < at(staffed, "L3").End {
+		t.Errorf("staffed, L5 waits for its judges: %+v", staffed.Flights)
+	}
+}

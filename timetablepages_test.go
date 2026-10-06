@@ -189,3 +189,17 @@ func TestIndividualsMatchedByName(t *testing.T) {
 		t.Errorf("Dara's two flights don't overlap: %v", times)
 	}
 }
+
+func TestLookAlikeNames(t *testing.T) {
+	h := competitionServer(t)
+	form := newCompetition()
+	form.Set("tumbling", "Novice")
+	admin := created(t, h, form)
+	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	redirected(t, h, enter, url.Values{"gymnast": {"Dara O'Neill"}, "discipline": {"tumbling"}, "level": {"Novice"}})
+	redirected(t, h, enter, url.Values{"gymnast": {"Dara ONeill"}, "discipline": {"tumbling"}, "level": {"Novice"}})
+	page := do(t, h, http.MethodGet, redirected(t, h, admin+"/timetable/plan", url.Values{}), nil).Body.String()
+	if !strings.Contains(page, "Dara O&#39;Neill and Dara ONeill") {
+		t.Error("names that look alike are flagged")
+	}
+}

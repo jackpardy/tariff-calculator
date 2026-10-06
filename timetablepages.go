@@ -300,6 +300,15 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 		for _, d := range report.Days {
 			page.Report.Days = append(page.Report.Days, views.DayFinish{Name: d.Name, Finish: d.Finish, End: d.End, Spare: d.SpareMinutes})
 		}
+		gymnasts := map[string]string{}
+		for k, n := range names {
+			if !strings.HasPrefix(k, "c:") {
+				gymnasts[k] = n
+			}
+		}
+		for _, pair := range competitions.LookAlike(gymnasts) {
+			page.Report.LookAlike = append(page.Report.LookAlike, fmt.Sprintf("%s and %s", pair[0], pair[1]))
+		}
 		for _, sr := range report.ShortRest {
 			page.Report.ShortRest = append(page.Report.ShortRest, fmt.Sprintf("%s: %d minutes between %s and %s", names[sr.Person], sr.Minutes, sr.First, sr.Second))
 		}
@@ -574,13 +583,13 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 		back(w, r, "Fix the setup first: "+strings.Join(sentences(err), " "))
 		return
 	}
-	planned := competitions.PlanSchedule(schedEntries(entries), c.EventNames(), s.Setup, uint64(p.now().UnixNano()))
-	planned.Published = s.Published
 	people, err := p.rotaOf(r, c, entries)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
+	planned := competitions.PlanStaffed(schedEntries(entries), c.EventNames(), s.Setup, staffing(c.Competition, people), uint64(p.now().UnixNano()))
+	planned.Published = s.Published
 	p.staff(&planned, c, entries, people)
 	if err := p.st.SetTimetable(r.Context(), c.ID, &planned); err != nil {
 		failed(w, r, err)
