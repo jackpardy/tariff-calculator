@@ -1,7 +1,7 @@
 ---
 type: Runbook
 title: Build and deploy
-description: How the app is built (a multi-stage Docker image that runs the tests), tested in CI on every push to master, and deployed to the self-hosted server at tariff.pardy.ie through an SSH forced command.
+description: How the app is built (a multi-stage Docker image that runs the tests), tested in CI on every pull request and push to master, and deployed to the self-hosted server at tariff.pardy.ie through an SSH forced command.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/.github/workflows/deploy.yml
 tags: [operations, deploy, ci, docker, self-hosted]
 generated: { by: claude-code/cli, at: 2026-10-05T14:20:00Z }
@@ -30,7 +30,10 @@ is stateless and needs no secrets; competition entries need a data directory
 
 # CI
 
-`.github/workflows/deploy.yml` runs on every push to `master` and on demand.
+`.github/workflows/deploy.yml` runs on every push to `master`, on every pull
+request, and on demand. A pull request runs the **test** job only, so its
+checks show on the PR before merging; nothing deploys from it. A newer push to
+a PR cancels its older run.
 
 **test** job:
 - checks the generated templ code is current (`go tool templ generate` then
@@ -39,7 +42,9 @@ is stateless and needs no secrets; competition entries need a data directory
 - `go test ./...`,
 - `docker build`, so a broken image is caught before deploy.
 
-**deploy** job (after test): SSH to the server with a dedicated key. The server
+**deploy** job (after test, never for a pull request): SSH to the server with
+a dedicated key. Deploys run one at a time in their own concurrency group, so a
+PR's tests never hold one up. The server
 forces the command `/srv/infra/scripts/deploy.sh tariff` whatever is asked for.
 If the `DEPLOY_HOST` secret is empty, the job **skips itself** with a notice.
 The secrets are set, so every push to `master` deploys. The others are

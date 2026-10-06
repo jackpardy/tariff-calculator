@@ -3,12 +3,18 @@ name: Test and deploy
 on:
   push:
     branches: [master]
+  # Pull requests run the tests only; nothing deploys from them.
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency: deploy-tariff
+# One test run per branch or PR; a newer push to a PR cancels its older run.
+# Deploys have their own group (below), so a PR never holds one up.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
@@ -32,6 +38,8 @@ jobs:
 
   deploy:
     needs: test
+    if: github.event_name != 'pull_request'
+    concurrency: deploy-tariff
     runs-on: ubuntu-latest
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
