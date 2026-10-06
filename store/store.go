@@ -173,6 +173,71 @@ var migrations = []string{
 	// 5: the timetable (roadmap: competitions 3), and which levels split men and women.
 	`ALTER TABLE competitions ADD COLUMN split TEXT NOT NULL DEFAULT '{}';
 	ALTER TABLE competitions ADD COLUMN timetable TEXT NOT NULL DEFAULT '';`,
+
+	// 6: events across disciplines (ADR 0005 Decisions 1-3): a member keeps an
+	// entry per discipline, the competition a copy of each, and a synchro
+	// entry a partner link. SQLite can't change a key, so both tables are made
+	// again and their rows copied.
+	`CREATE TABLE member_entries_new (
+		member_id         TEXT NOT NULL REFERENCES members (id) ON DELETE CASCADE,
+		competition_id    TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		discipline        TEXT NOT NULL DEFAULT '',
+		entry             TEXT NOT NULL,
+		updated_at        TEXT NOT NULL,
+		signed_at         TEXT,
+		signed_by         TEXT NOT NULL DEFAULT '',
+		sign_note         TEXT NOT NULL DEFAULT '',
+		partner_token     TEXT NOT NULL DEFAULT '',
+		partner_hash      TEXT,
+		partner_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+		partner_member    TEXT,
+		partner_entry     TEXT,
+		PRIMARY KEY (member_id, competition_id, discipline)
+	);
+	INSERT INTO member_entries_new (member_id, competition_id, entry, updated_at, signed_at, signed_by, sign_note)
+		SELECT member_id, competition_id, entry, updated_at, signed_at, signed_by, sign_note FROM member_entries;
+	DROP TABLE member_entries;
+	ALTER TABLE member_entries_new RENAME TO member_entries;
+	CREATE INDEX member_entries_competition ON member_entries (competition_id);
+	CREATE UNIQUE INDEX member_entries_partner ON member_entries (partner_hash);
+
+	CREATE TABLE entries_new (
+		id                TEXT PRIMARY KEY,
+		competition_id    TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		club_id           TEXT REFERENCES clubs (id) ON DELETE SET NULL,
+		member_id         TEXT REFERENCES members (id) ON DELETE SET NULL,
+		discipline        TEXT NOT NULL DEFAULT '',
+		club_name         TEXT NOT NULL,
+		individual        BOOLEAN NOT NULL,
+		gymnast           TEXT NOT NULL,
+		token_hash        TEXT UNIQUE,
+		entry             TEXT NOT NULL,
+		sent_at           TEXT NOT NULL,
+		checked_at        TEXT,
+		note              TEXT NOT NULL DEFAULT '',
+		video_review      TEXT NOT NULL DEFAULT '',
+		video_note        TEXT NOT NULL DEFAULT '',
+		signed_at         TEXT,
+		signed_by         TEXT NOT NULL DEFAULT '',
+		sign_note         TEXT NOT NULL DEFAULT '',
+		signoff_token     TEXT NOT NULL DEFAULT '',
+		signoff_hash      TEXT,
+		partner_token     TEXT NOT NULL DEFAULT '',
+		partner_hash      TEXT,
+		partner_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+		partner_member    TEXT,
+		partner_entry     TEXT,
+		UNIQUE (competition_id, member_id, discipline)
+	);
+	INSERT INTO entries_new (id, competition_id, club_id, member_id, club_name, individual, gymnast, token_hash, entry, sent_at,
+		checked_at, note, video_review, video_note, signed_at, signed_by, sign_note, signoff_token, signoff_hash)
+		SELECT id, competition_id, club_id, member_id, club_name, individual, gymnast, token_hash, entry, sent_at,
+		checked_at, note, video_review, video_note, signed_at, signed_by, sign_note, signoff_token, signoff_hash FROM entries;
+	DROP TABLE entries;
+	ALTER TABLE entries_new RENAME TO entries;
+	CREATE INDEX entries_club ON entries (club_id);
+	CREATE UNIQUE INDEX entries_signoff ON entries (signoff_hash);
+	CREATE UNIQUE INDEX entries_partner ON entries (partner_hash);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

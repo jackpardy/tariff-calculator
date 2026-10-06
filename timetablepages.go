@@ -47,7 +47,7 @@ func planEntries(entries []store.Entry) []competitions.PlanEntry {
 		if e.Individual {
 			club = ""
 		}
-		out[i] = competitions.PlanEntry{ID: e.ID, Level: e.Entry.Level, Category: e.Entry.Category, Club: club}
+		out[i] = competitions.PlanEntry{ID: e.ID, Level: e.Entry.Event(), Category: e.Entry.Category, Club: club}
 	}
 	return out
 }
@@ -111,9 +111,9 @@ func panelsView(c competitions.Competition, t competitions.Timetable, entries []
 				if !ok {
 					continue // withdrawn since
 				}
-				g := views.TimetableGymnast{ID: id, Name: e.Entry.Gymnast, Club: clubOf(e), Category: e.Entry.Category}
-				if e.Entry.Level != f.Level || (f.Category != "" && e.Entry.Category != f.Category) {
-					g.Moved = strings.TrimSpace(e.Entry.Level + " " + e.Entry.Category)
+				g := views.TimetableGymnast{ID: id, Name: e.Entry.Gymnasts(), Club: clubOf(e), Category: e.Entry.Category}
+				if e.Entry.Event() != f.Level || (f.Category != "" && e.Entry.Category != f.Category) {
+					g.Moved = strings.TrimSpace(e.Entry.Event() + " " + e.Entry.Category)
 				}
 				fv.Gymnasts = append(fv.Gymnasts, g)
 			}
@@ -135,7 +135,7 @@ func start(c competitions.Competition, t competitions.Timetable) time.Time {
 // planForm is the settings as the form shows them.
 func planForm(c competitions.Competition, s competitions.PlanSettings) views.PlanForm {
 	var split []string
-	for _, l := range c.LevelNames() {
+	for _, l := range c.EventNames() {
 		if c.Split.Splits(l) {
 			split = append(split, l)
 		}
@@ -161,7 +161,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 		Notice: r.URL.Query().Get("notice"), Settings: planForm(c.Competition, settings), Entries: len(entries),
 	}
 	if settings.FinishBy != "" {
-		page.Needed = competitions.PanelsNeeded(planEntries(entries), c.LevelNames(), settings)
+		page.Needed = competitions.PanelsNeeded(planEntries(entries), c.EventNames(), settings)
 		switch {
 		case page.Needed > 0:
 			page.NeededText = fmt.Sprintf("To finish by %s you need %s.", settings.FinishBy, panelsWord(page.Needed))
@@ -183,7 +183,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 		for _, e := range entries {
 			if _, placed := t.Find(e.ID); !placed {
 				page.Unplaced = append(page.Unplaced, views.TimetableGymnast{
-					ID: e.ID, Name: e.Entry.Gymnast, Club: clubOf(e), Category: strings.TrimSpace(e.Entry.Level + " " + e.Entry.Category),
+					ID: e.ID, Name: e.Entry.Gymnasts(), Club: clubOf(e), Category: strings.TrimSpace(e.Entry.Event() + " " + e.Entry.Category),
 				})
 			}
 		}
@@ -248,7 +248,7 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 		t.Settings = s
 		notice = "Times updated; the flights are as they were. Plan again to change the panels, flight size or men's and women's flights."
 	} else {
-		t = competitions.Plan(planEntries(entries), c.LevelNames(), s, rand.New(rand.NewPCG(uint64(p.now().UnixNano()), 0)))
+		t = competitions.Plan(planEntries(entries), c.EventNames(), s, rand.New(rand.NewPCG(uint64(p.now().UnixNano()), 0)))
 		if c.Timetable != nil {
 			t.Published = c.Timetable.Published
 		}

@@ -413,7 +413,7 @@ func (j judged) matches(q url.Values) bool {
 	case q.Get("club") != "" && q.Get("club") != j.club,
 		q.Get("problems") == "1" && (len(j.problems) == 0 || j.Withdrawn),
 		q.Get("unchecked") == "1" && (j.Checked() || j.Withdrawn),
-		q.Get("level") != "" && q.Get("level") != j.Entry.Entry.Level,
+		q.Get("level") != "" && q.Get("level") != j.Entry.Entry.Event(),
 		q.Get("entry") != "" && q.Get("entry") != j.ID:
 		return false
 	}
@@ -445,7 +445,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		Club:  q.Get("club"), ProblemsOnly: q.Get("problems") == "1",
 		Entries: len(entries), New: q.Get("new"), Notice: q.Get("notice"),
 		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
-		Video: videoForm(c.Video), Split: splitForm(c.Split, c.LevelNames()),
+		Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()),
 	}
 	if d.New != "" {
 		d.Links.Admin = origin(r) + adminPath(r.PathValue("token"))
@@ -455,11 +455,9 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		d.Clubs, seen[club.Name] = append(d.Clubs, club.Name), true
 	}
 	byLevel := map[string]int{}
-	for _, l := range c.Levels {
-		if level, err := l.Resolve(); err == nil {
-			byLevel[level.Name] = len(d.Levels)
-			d.Levels = append(d.Levels, views.DashboardLevel{Name: level.Name})
-		}
+	for _, name := range c.EventNames() {
+		byLevel[name] = len(d.Levels)
+		d.Levels = append(d.Levels, views.DashboardLevel{Name: name})
 	}
 	filter := url.Values{"club": {d.Club}}
 	if d.ProblemsOnly {
@@ -484,7 +482,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		row := views.DashboardRow{
-			ID: j.ID, Gymnast: j.Entry.Entry.Gymnast, Club: j.club, Problems: j.problems,
+			ID: j.ID, Gymnast: j.Entry.Entry.Gymnasts(), Club: j.club, Problems: j.problems,
 			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note, Withdrawn: j.Withdrawn,
 			Video: videoStatus(c.Competition, j), Signoff: storedSignoff(c.Competition, j.Entry), Category: j.Entry.Entry.Category,
 		}
@@ -494,10 +492,10 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 				row.Exercises[i] = exerciseSummary(j.Entry.Entry.Exercises[i], ex)
 			}
 		}
-		n, ok := byLevel[j.Entry.Entry.Level]
+		n, ok := byLevel[j.Entry.Entry.Event()]
 		if !ok {
-			n, byLevel[j.Entry.Entry.Level] = len(d.Levels), len(d.Levels)
-			d.Levels = append(d.Levels, views.DashboardLevel{Name: j.Entry.Entry.Level})
+			n, byLevel[j.Entry.Entry.Event()] = len(d.Levels), len(d.Levels)
+			d.Levels = append(d.Levels, views.DashboardLevel{Name: j.Entry.Entry.Event()})
 		}
 		d.Levels[n].Rows = append(d.Levels[n].Rows, row)
 	}
@@ -522,7 +520,7 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 	all := judge(c.Competition, entries)
 	for _, level := range levelOrder(c.Competition, all) {
 		for _, j := range all {
-			if j.Entry.Entry.Level != level || !j.matches(q) || j.err != nil || (j.Withdrawn && q.Get("entry") == "") {
+			if j.Entry.Entry.Event() != level || !j.matches(q) || j.err != nil || (j.Withdrawn && q.Get("entry") == "") {
 				continue
 			}
 			club := j.ClubName
@@ -533,7 +531,7 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 				page.Cards = append(page.Cards, views.PrintedCard{
 					Validation: ex.Validation, Required: ex.Required, Checks: ex.Checks,
 					Details: views.SheetDetails{
-						"gymnast": j.Entry.Entry.Gymnast, "club": club, "category": strings.TrimSpace(j.card.Level.Name + " " + j.Entry.Entry.Category),
+						"gymnast": j.Entry.Entry.Gymnasts(), "club": club, "category": strings.TrimSpace(j.Entry.Entry.Event() + " " + j.Entry.Entry.Category),
 						"competition": c.Name, "round": [...]string{"1st exercise", "2nd exercise"}[i] + " · " + ex.SetName,
 						"coach": j.CoachName(),
 					},
@@ -549,13 +547,13 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 func levelOrder(c competitions.Competition, entries []judged) []string {
 	var out []string
 	seen := map[string]bool{}
-	for _, l := range c.Levels {
-		if level, err := l.Resolve(); err == nil && !seen[level.Name] {
-			out, seen[level.Name] = append(out, level.Name), true
+	for _, name := range c.EventNames() {
+		if !seen[name] {
+			out, seen[name] = append(out, name), true
 		}
 	}
 	for _, j := range entries {
-		if name := j.Entry.Entry.Level; !seen[name] {
+		if name := j.Entry.Entry.Event(); !seen[name] {
 			out, seen[name] = append(out, name), true
 		}
 	}
@@ -581,14 +579,14 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 	all := judge(c.Competition, entries)
 	for _, level := range levelOrder(c.Competition, all) {
 		for _, j := range all {
-			if j.Entry.Entry.Level != level {
+			if j.Entry.Entry.Event() != level {
 				continue
 			}
 			club := j.ClubName
 			if j.Individual {
 				club = "Individual"
 			}
-			row := []string{j.Entry.Entry.Gymnast, club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), "", "", j.Entry.Entry.Category}
+			row := []string{j.Entry.Entry.Gymnasts(), club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), "", "", j.Entry.Entry.Category}
 			if j.err == nil {
 				for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
 					row[3+2*i] = ex.SetName

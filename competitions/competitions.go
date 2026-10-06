@@ -40,7 +40,13 @@ type Competition struct {
 	Levels      []Level
 	Video       Video // whether gymnasts send video proof
 	Signoff     bool  // entries need a coach's sign-off (ADR 0004 Decision 11)
-	Split       Split // which levels split men and women
+	Split       Split // which events split men and women, by event name
+	// The other disciplines' events (ADR 0005 Decision 1): synchro at levels
+	// checked like trampoline's, and tumbling and DMT at levels the organiser
+	// names, entered and timetabled but not checked.
+	Synchro  []Level
+	Tumbling []string
+	DMT      []string
 }
 
 // Level is a level a competition offers. A built-in is kept by reference; a
@@ -132,13 +138,14 @@ func (c Competition) Validate() error {
 	case err == nil && c.Deadline.After(day.AddDate(0, 0, 1)):
 		errs = append(errs, errors.New("entries must close by the end of the competition date"))
 	}
-	if len(c.Levels) == 0 {
+	if len(c.EventNames()) == 0 {
 		errs = append(errs, errors.New("the competition needs at least one level"))
 	}
+	errs = append(errs, c.validateEvents()...)
 	if err := c.Video.validate(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := c.Split.validate(names(c)); err != nil {
+	if err := c.Split.validate(c.EventNames()); err != nil {
 		errs = append(errs, err)
 	}
 	names := map[string]bool{}
@@ -170,10 +177,12 @@ func (c Competition) Level(name string) (Level, requirements.Level, bool) {
 // exercises. A member keeps one with their club for each competition, and the
 // competition keeps a copy of what the club sent.
 type Entry struct {
-	Gymnast   string      `json:"gymnast"`
-	Level     string      `json:"level"`              // the name of one of the competition's levels
-	Category  string      `json:"category,omitempty"` // Men or Women, where the level splits them
-	Exercises [2]Exercise `json:"exercises"`
+	Gymnast    string      `json:"gymnast"`
+	Discipline string      `json:"discipline,omitempty"` // "" for individual trampoline, or Synchro, Tumbling, DMT
+	Level      string      `json:"level"`                // the name of one of the discipline's levels
+	Category   string      `json:"category,omitempty"`   // Men or Women, where the event splits them
+	Partner    *Partner    `json:"partner,omitempty"`    // the other gymnast, for synchro
+	Exercises  [2]Exercise `json:"exercises"`            // none for tumbling and DMT, which aren't checked
 }
 
 // Exercise is what a gymnast performs for one of a level's exercises.
@@ -205,16 +214,29 @@ func (c Competition) ValidateEntry(e *Entry) error {
 	if err := CheckName("gymnast", e.Gymnast); err != nil {
 		errs = append(errs, err)
 	}
-	_, level, ok := c.Level(e.Level)
+	if !slices.Contains(c.Disciplines(), e.Discipline) {
+		return errors.Join(append(errs, fmt.Errorf("the competition doesn't offer %s", DisciplineName(e.Discipline)))...)
+	}
+	if e.Discipline == Synchro {
+		if err := e.Partner.check(); err != nil {
+			errs = append(errs, err)
+		}
+	} else {
+		e.Partner = nil
+	}
+	if !Checked(e.Discipline) {
+		e.Exercises = [2]Exercise{}
+		if !slices.Contains(c.levelNames(e.Discipline), e.Level) {
+			errs = append(errs, fmt.Errorf("the competition doesn't offer %s at %q", DisciplineName(e.Discipline), e.Level))
+		}
+		c.checkCategory(e, &errs)
+		return errors.Join(errs...)
+	}
+	_, level, ok := c.LevelFor(e.Discipline, e.Level)
 	if !ok {
 		return errors.Join(append(errs, fmt.Errorf("the competition doesn't offer the level %q", e.Level))...)
 	}
-	switch {
-	case !c.Split.Splits(e.Level):
-		e.Category = ""
-	case !slices.Contains(Categories, e.Category):
-		errs = append(errs, fmt.Errorf("%s is split into men and women: choose one", e.Level))
-	}
+	c.checkCategory(e, &errs)
 	for i := range e.Exercises {
 		ex := &e.Exercises[i]
 		name := ordinal(i + 1)
@@ -256,12 +278,19 @@ func (c Competition) ValidateEntry(e *Entry) error {
 type Card struct {
 	Level requirements.Level
 	requirements.Pair
+	Unchecked bool // tumbling or DMT: entered and timetabled, not checked
 }
 
 // Check checks an entry. Names, tariffs and results are worked out afresh, so
 // engine fixes apply to stored entries too (ADR 0004 Decision 5).
 func (c Competition) Check(e Entry) (Card, error) {
-	l, level, ok := c.Level(e.Level)
+	if !Checked(e.Discipline) {
+		if !slices.Contains(c.levelNames(e.Discipline), e.Level) {
+			return Card{}, fmt.Errorf("the competition doesn't offer %s at %q", DisciplineName(e.Discipline), e.Level)
+		}
+		return Card{Level: requirements.Level{Name: e.Level}, Unchecked: true}, nil
+	}
+	l, level, ok := c.LevelFor(e.Discipline, e.Level)
 	if !ok {
 		return Card{}, fmt.Errorf("the competition doesn't offer the level %q", e.Level)
 	}
@@ -384,5 +413,3 @@ func names(c Competition) []string {
 	return out
 }
 
-// LevelNames are the names of the levels a competition offers, in order.
-func (c Competition) LevelNames() []string { return names(c) }

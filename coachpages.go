@@ -192,7 +192,7 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 			if e.CompetitionID != c.ID {
 				continue
 			}
-			row := views.CoachRow{Member: e.MemberName, Level: e.Entry.Level, Signoff: memberSignoff(c.Competition, e),
+			row := views.CoachRow{Member: e.MemberName, Level: e.Entry.Event(), Signoff: memberSignoff(c.Competition, e),
 				Open: path + "/members/" + e.MemberID + "/competitions/" + c.ID}
 			if checked, err := c.Check(e.Entry); err != nil {
 				row.Problems = 1
