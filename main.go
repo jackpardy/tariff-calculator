@@ -72,7 +72,7 @@ func routesWith(st *store.Store) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET "+static.Prefix, static.Handler())
 
-	mux.HandleFunc("GET /{$}", handleIndex(st != nil))
+	mux.HandleFunc("GET /{$}", handleIndex)
 	mux.HandleFunc("POST /skill-form", handleSkillForm)
 	mux.HandleFunc("POST /skill-inputs", handleSkillInputs)
 	mux.HandleFunc("GET /skill-search", handleSkillSearch)
@@ -120,11 +120,8 @@ func defaultSkill() skills.TrampolineSkill {
 }
 
 // handleIndex serves the calculator page; the form and routine load into it.
-// It links to competitions and clubs only where they can be stored.
-func handleIndex(competitions bool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		render(w, r, views.Page(requirements.BuiltinGroups(), competitions))
-	}
+func handleIndex(w http.ResponseWriter, r *http.Request) {
+	render(w, r, views.Page(requirements.BuiltinGroups()))
 }
 
 // prepared readies a skill for the editor: one twist per phase, straddle only for

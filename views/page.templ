@@ -9,8 +9,7 @@ import (
 
 // Page is the calculator page. The form and routine are empty placeholders that
 // the page's Alpine component (static/js/app.js) fills from the server on load.
-// competitions links to competition entries, where the server stores them.
-templ Page(groups []requirements.BuiltinGroup, competitions bool) {
+templ Page(groups []requirements.BuiltinGroup) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -38,9 +37,6 @@ templ Page(groups []requirements.BuiltinGroup, competitions bool) {
 					<div class="container">
 						<h1 class="title">Trampoline Tariff Calculator</h1>
 						<h2 class="subtitle">Calculate difficulty scores for skills and routines</h2>
-						if competitions {
-							<p><a class="button is-small is-light is-outlined" href="/competitions">Competitions and clubs</a></p>
-						}
 					</div>
 				</div>
 			</section>
