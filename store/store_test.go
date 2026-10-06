@@ -850,3 +850,83 @@ func TestMigrationKeepsEntries(t *testing.T) {
 }
 
 func got0[T any](v T) T { return v }
+
+func TestOfficials(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, admin, _ := s.CreateCompetition(ctx, competition())
+	club, _, _ := s.CreateClub(ctx, "UCD")
+	a, _, _ := s.Join(ctx, club.ID, "A")
+	b, _, _ := s.Join(ctx, club.ID, "B")
+	judge := competitions.Offer{Judge: map[string]competitions.JudgeOffer{"": {UpTo: "BUCS L3", Chair: true}}}
+	if err := s.SaveMemberOffer(ctx, a.ID, c.ID, judge); !errors.Is(err, ErrNotAttached) {
+		t.Errorf("only for a competition the club is in: %v", err)
+	}
+	must(t, s.AttachClub(ctx, club.ID, c.ID))
+	must(t, s.SaveMemberOffer(ctx, a.ID, c.ID, judge))
+	must(t, s.SaveMemberOffer(ctx, b.ID, c.ID, competitions.Offer{Marshal: true}))
+	if o, _ := s.MemberOffer(ctx, a.ID, c.ID); !o.Judge[""].Chair {
+		t.Errorf("A's offer: %+v", o)
+	}
+	if offers, _ := s.ClubOffers(ctx, club.ID, c.ID); len(offers) != 2 {
+		t.Errorf("the club's offers: %+v", offers)
+	}
+	if list, _ := s.Officials(ctx, c.ID); len(list) != 0 {
+		t.Error("the organiser sees nothing until the club sends")
+	}
+
+	// Sending takes the offers with the entries, even with no entries.
+	_, err := s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	list, _ := s.Officials(ctx, c.ID)
+	if len(list) != 2 || list[0].Name != "A" || list[0].ClubName != "UCD" || !list[0].Offer.Judge[""].Chair || list[1].Offer.Marshal != true {
+		t.Fatalf("the club's officials: %+v", list)
+	}
+	must(t, s.SetQualified(ctx, c.ID, list[0].ID, true))
+
+	// B stops offering; A changes theirs: the next send follows, keeping A's mark.
+	must(t, s.SaveMemberOffer(ctx, b.ID, c.ID, competitions.Offer{}))
+	judge.Recorder = true
+	must(t, s.SaveMemberOffer(ctx, a.ID, c.ID, judge))
+	_, err = s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	list, _ = s.Officials(ctx, c.ID)
+	if len(list) != 1 || !list[0].Offer.Recorder || !list[0].Qualified {
+		t.Errorf("only A, updated, still qualified: %+v", list)
+	}
+
+	// An individual offers on their entry; the organiser adds a judge with no club.
+	ind, token, err := s.AddIndividualEntry(ctx, c.ID, entry("I"))
+	must(t, err)
+	must(t, s.SetIndividualOffer(ctx, token, competitions.Offer{Recorder: true}))
+	if o, _ := s.IndividualOffer(ctx, ind.ID); !o.Recorder {
+		t.Error("the individual's offer")
+	}
+	added, err := s.AddOfficial(ctx, c.ID, "Judge J", "", judge)
+	must(t, err)
+	list, _ = s.Officials(ctx, c.ID)
+	if len(list) != 3 {
+		t.Fatalf("A, I and J: %+v", list)
+	}
+	must(t, s.UpdateOfficial(ctx, c.ID, added.ID, competitions.Offer{Marshal: true}))
+	if err := s.UpdateOfficial(ctx, c.ID, list[0].ID, competitions.Offer{}); !errors.Is(err, ErrNotFound) {
+		t.Error("the organiser changes only the people they added")
+	}
+	if err := s.RemoveOfficial(ctx, c.ID, list[0].ID); !errors.Is(err, ErrNotFound) {
+		t.Error("people who offered themselves can't be removed by the organiser")
+	}
+	must(t, s.RemoveOfficial(ctx, c.ID, added.ID))
+
+	// Withdrawing the individual's entry takes their offer too.
+	must(t, s.WithdrawIndividualEntry(ctx, token))
+	if list, _ := s.Officials(ctx, c.ID); len(list) != 1 {
+		t.Errorf("only A is left: %+v", list)
+	}
+
+	// The panels and judging rule.
+	settings := competitions.OfficialSettings{Judge: competitions.JudgeBelow, Panels: map[string]competitions.Panel{competitions.Synchro: {Chair: 1, Execution: 4}}}
+	must(t, s.SetOfficialSettings(ctx, c.ID, settings))
+	if got, _ := s.CompetitionByAdmin(ctx, admin); got.Officials.Judge != competitions.JudgeBelow || got.Officials.Panel(competitions.Synchro).Execution != 4 {
+		t.Errorf("settings kept: %+v", got.Officials)
+	}
+}
