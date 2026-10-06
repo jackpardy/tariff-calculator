@@ -156,7 +156,7 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		for _, e := range mine {
 			has[e.MemberID] = true
 			entered[e.MemberID]++
-			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Level, Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
+			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Event(), Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
 			switch {
 			case !e.Sent():
 				row.Status = "Not sent"
@@ -189,7 +189,7 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		// Entries the club sent for members who've since withdrawn or left.
 		for _, e := range sent {
 			if e.ClubID == club.ID && !has[e.MemberID] {
-				cc.Rows = append(cc.Rows, views.ClubEntryRow{Member: e.Entry.Gymnast, Level: e.Entry.Level, Status: "Withdrawn (still sent)"})
+				cc.Rows = append(cc.Rows, views.ClubEntryRow{Member: e.Entry.Gymnasts(), Level: e.Entry.Event(), Status: "Withdrawn (still sent)"})
 			}
 		}
 		page.Competitions = append(page.Competitions, cc)

@@ -309,7 +309,7 @@ func TestSending(t *testing.T) {
 	}
 
 	// B withdraws; sending everyone's takes B's entry back.
-	must(t, s.WithdrawMemberEntry(ctx, b.ID, c.ID))
+	must(t, s.WithdrawMemberEntry(ctx, b.ID, c.ID, ""))
 	if list, _ := s.Entries(ctx, c.ID); len(list) != 2 {
 		t.Error("until the club sends again, the competition keeps B's entry")
 	}
@@ -533,7 +533,7 @@ func TestWithdrawnEntries(t *testing.T) {
 	if got := withdrawn(); got["A"] || got["B"] || got["I"] {
 		t.Errorf("nothing withdrawn yet: %v", got)
 	}
-	must(t, s.WithdrawMemberEntry(ctx, a.ID, c.ID))
+	must(t, s.WithdrawMemberEntry(ctx, a.ID, c.ID, ""))
 	must(t, s.RemoveMember(ctx, club.ID, b.ID))
 	if got := withdrawn(); !got["A"] || !got["B"] || got["I"] {
 		t.Errorf("A withdrew and B left: both marked until the club sends again: %v", got)
@@ -609,15 +609,15 @@ func TestCoaches(t *testing.T) {
 	}
 	must(t, s.SetCoachesSeeAll(ctx, club.ID, false))
 
-	if err := s.SignOff(ctx, ann, y.ID, c.ID, true, ""); !errors.Is(err, ErrNotFound) {
+	if err := s.SignOff(ctx, ann, y.ID, c.ID, "", true, ""); !errors.Is(err, ErrNotFound) {
 		t.Error("Ann can't sign off Bob's member")
 	}
-	must(t, s.SignOff(ctx, ann, x.ID, c.ID, true, "Good to go"))
+	must(t, s.SignOff(ctx, ann, x.ID, c.ID, "", true, "Good to go"))
 	mine, _ := s.MemberEntries(ctx, x.ID)
 	if !mine[0].SignedOff() || mine[0].SignedBy != "Ann" || mine[0].SignNote != "Good to go" {
 		t.Errorf("signed off: %+v", mine[0])
 	}
-	must(t, s.SignOff(ctx, ann, z.ID, c.ID, false, "Not the full-in yet"))
+	must(t, s.SignOff(ctx, ann, z.ID, c.ID, "", false, "Not the full-in yet"))
 	if zs, _ := s.MemberEntries(ctx, z.ID); zs[0].SignedOff() || zs[0].SignedBy != "Ann" || zs[0].SignNote != "Not the full-in yet" {
 		t.Errorf("not yet: %+v", zs[0])
 	}
@@ -703,5 +703,135 @@ func TestTimetableStorage(t *testing.T) {
 	must(t, s.SetTimetable(ctx, c.ID, nil))
 	if got, _ := s.CompetitionByAdmin(ctx, admin); got.Timetable != nil {
 		t.Error("timetable removed")
+	}
+}
+
+func TestDisciplines(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp := competition()
+	comp.Tumbling = []string{"Novice"}
+	c, _, err := s.CreateCompetition(ctx, comp)
+	must(t, err)
+	club, _, _ := s.CreateClub(ctx, "UCD")
+	a, _, _ := s.Join(ctx, club.ID, "A")
+	b, bLink, _ := s.Join(ctx, club.ID, "B")
+	must(t, s.AttachClub(ctx, club.ID, c.ID))
+
+	// A enters trampoline, tumbling and synchro with B.
+	must(t, s.SaveMemberEntry(ctx, a.ID, c.ID, entry("A")))
+	must(t, s.SaveMemberEntry(ctx, a.ID, c.ID, competitions.Entry{Discipline: competitions.Tumbling, Level: "Novice"}))
+	synchro := competitions.Entry{Discipline: competitions.Synchro, Level: "BUCS L3", Partner: &competitions.Partner{Name: "B", Club: "UCD"}}
+	must(t, s.SaveMemberEntry(ctx, a.ID, c.ID, synchro))
+	mine, err := s.MemberEntries(ctx, a.ID)
+	must(t, err)
+	if len(mine) != 3 {
+		t.Fatalf("one entry per discipline: %+v", mine)
+	}
+	var link string
+	for _, e := range mine {
+		if e.Discipline == competitions.Synchro {
+			link = e.PartnerLink
+		}
+	}
+	if link == "" {
+		t.Fatal("the synchro entry has a partner link")
+	}
+
+	// B confirms through the partner link.
+	invite, err := s.PartnerByLink(ctx, link)
+	must(t, err)
+	if invite.Entry.Gymnast != "A" || invite.Club != "UCD" || invite.Confirmed || invite.CompetitionID != c.ID {
+		t.Errorf("the invite: %+v", invite)
+	}
+	bMember, err := s.MemberByLink(ctx, bLink)
+	must(t, err)
+	must(t, s.ConfirmPartner(ctx, link, bMember.ID, ""))
+	if invite, _ := s.PartnerByLink(ctx, link); !invite.Confirmed {
+		t.Error("confirmed")
+	}
+	// Saving the same pair keeps the link and the confirmation; a new partner doesn't.
+	must(t, s.SaveMemberEntry(ctx, a.ID, c.ID, synchro))
+	if invite, err := s.PartnerByLink(ctx, link); err != nil || !invite.Confirmed {
+		t.Error("the same partner stays confirmed")
+	}
+	synchro.Partner = &competitions.Partner{Name: "Someone else"}
+	must(t, s.SaveMemberEntry(ctx, a.ID, c.ID, synchro))
+	if _, err := s.PartnerByLink(ctx, link); !errors.Is(err, ErrNotFound) {
+		t.Error("a new partner gets a new link")
+	}
+
+	// Sending sends all three; withdrawing one discipline leaves the others.
+	_, err = s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	if list, _ := s.Entries(ctx, c.ID); len(list) != 3 {
+		t.Errorf("three entries sent: %d", len(list))
+	}
+	must(t, s.WithdrawMemberEntry(ctx, a.ID, c.ID, competitions.Tumbling))
+	list, _ := s.Entries(ctx, c.ID)
+	withdrawn := 0
+	for _, e := range list {
+		if e.Withdrawn {
+			withdrawn++
+			if e.Entry.Discipline != competitions.Tumbling {
+				t.Errorf("only tumbling is withdrawn: %+v", e)
+			}
+		}
+	}
+	if withdrawn != 1 {
+		t.Errorf("one withdrawn: %d", withdrawn)
+	}
+	_, err = s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	if list, _ := s.Entries(ctx, c.ID); len(list) != 2 {
+		t.Errorf("sending all takes back the tumbling entry: %d", len(list))
+	}
+
+	// An individual's synchro entry has its own partner link.
+	ind, token, err := s.AddIndividualEntry(ctx, c.ID, competitions.Entry{Gymnast: "I", Discipline: competitions.Synchro, Level: "BUCS L3", Partner: &competitions.Partner{Name: "J"}})
+	must(t, err)
+	if ind.PartnerLink == "" {
+		t.Fatal("an individual's synchro entry has a partner link")
+	}
+	must(t, s.ConfirmPartner(ctx, ind.PartnerLink, "", ""))
+	if e, _ := s.IndividualEntry(ctx, token); !e.PartnerConfirmed || e.PartnerLink != ind.PartnerLink {
+		t.Errorf("confirmed: %+v", e)
+	}
+	_ = b
+}
+
+func TestMigrationKeepsEntries(t *testing.T) {
+	dir := t.TempDir()
+	all := migrations
+	migrations = all[:5] // a database from before events
+	old, err := Open(ctx, dir)
+	if err != nil {
+		migrations = all
+		t.Fatal(err)
+	}
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	old.now = func() time.Time { return now }
+	c, _, _ := old.CreateCompetition(ctx, competition())
+	club, _, _ := old.CreateClub(ctx, "UCD")
+	must(t, old.AttachClub(ctx, club.ID, c.ID))
+	var memberID string
+	must(t, old.db.QueryRow(`INSERT INTO members (id, club_id, token_hash, name, created_at) VALUES ('m1', $1, 'h', 'A', '2027-01-01T00:00:00.000000Z') RETURNING id`, club.ID).Scan(&memberID))
+	_, err = old.db.Exec(`INSERT INTO member_entries (member_id, competition_id, entry, updated_at) VALUES ('m1', $1, '{"gymnast":"A","level":"BUCS L3"}', '2027-01-01T00:00:00.000000Z')`, c.ID)
+	must(t, err)
+	_, err = old.db.Exec(`INSERT INTO entries (id, competition_id, club_id, member_id, club_name, individual, gymnast, entry, sent_at)
+		VALUES ('e1', $1, $2, 'm1', 'UCD', FALSE, 'A', '{"gymnast":"A","level":"BUCS L3"}', '2027-01-02T00:00:00.000000Z')`, c.ID, club.ID)
+	must(t, err)
+	old.Close()
+	migrations = all
+
+	s, err := Open(ctx, dir)
+	must(t, err)
+	defer s.Close()
+	s.now = func() time.Time { return now }
+	if mine, err := s.MemberEntries(ctx, memberID); err != nil || len(mine) != 1 || mine[0].Discipline != "" || !mine[0].Sent() {
+		t.Errorf("the member's entry is kept, as trampoline, still sent: %+v, %v", mine, err)
+	}
+	if list, err := s.Entries(ctx, c.ID); err != nil || len(list) != 1 || list[0].Withdrawn {
+		t.Errorf("the competition's copy is kept: %+v, %v", list, err)
 	}
 }

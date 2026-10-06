@@ -126,14 +126,14 @@ func (s *Store) CoachEntries(ctx context.Context, c Coach) ([]MemberEntry, error
 // (signed false: not yet), under the coach's name, with a note for the member
 // and comp sec. The coach must see the member. Changing the entry clears it;
 // sending it takes the sign-off to the competition with it.
-func (s *Store) SignOff(ctx context.Context, c Coach, memberID, competitionID string, signed bool, note string) error {
+func (s *Store) SignOff(ctx context.Context, c Coach, memberID, competitionID, discipline string, signed bool, note string) error {
 	var at any
 	if signed {
 		at = s.stamp()
 	}
 	return affected(s.db.ExecContext(ctx, fmt.Sprintf(`UPDATE member_entries SET signed_at = $3, signed_by = $4, sign_note = $5
-		WHERE member_id = $6 AND competition_id = $7 AND member_id IN (SELECT m.id FROM members m WHERE %s)`, coachSees),
-		c.ID, c.ClubID, at, c.Name, note, memberID, competitionID))
+		WHERE member_id = $6 AND competition_id = $7 AND discipline = $8 AND member_id IN (SELECT m.id FROM members m WHERE %s)`, coachSees),
+		c.ID, c.ClubID, at, c.Name, note, memberID, competitionID, discipline))
 }
 
 // CoachesSeeAll says whether every coach of a club sees every member.

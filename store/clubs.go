@@ -225,9 +225,12 @@ func (s *Store) CompetitionClubs(ctx context.Context, competitionID string) ([]C
 // MemberEntry is a member's entry for a competition, as kept with their club,
 // and whether the club has sent it.
 type MemberEntry struct {
-	MemberID      string
-	MemberName    string
-	CompetitionID string
+	MemberID         string
+	MemberName       string
+	CompetitionID    string
+	Discipline       string // "" for individual trampoline
+	PartnerLink      string // a synchro entry's link for the partner to confirm
+	PartnerConfirmed bool
 	Entry         competitions.Entry
 	UpdatedAt     time.Time
 	SentAt        time.Time // zero if never sent
@@ -271,38 +274,52 @@ func (s *Store) SaveMemberEntry(ctx context.Context, memberID, competitionID str
 		if err := s.open(ctx, tx, competitionID); err != nil {
 			return err
 		}
+		// A synchro entry gets a partner link; naming a different partner
+		// makes a new one, unconfirmed.
+		token, err := partnerToken(ctx, tx, `SELECT entry, partner_token FROM member_entries
+			WHERE member_id = $1 AND competition_id = $2 AND discipline = $3`, e, memberID, competitionID, e.Discipline)
+		if err != nil {
+			return err
+		}
 		now := s.stamp()
-		if _, err := tx.ExecContext(ctx, `INSERT INTO member_entries (member_id, competition_id, entry, updated_at) VALUES ($1, $2, $3, $4)
-			ON CONFLICT (member_id, competition_id) DO UPDATE SET entry = excluded.entry, updated_at = excluded.updated_at,
-				signed_at = CASE WHEN member_entries.entry = excluded.entry THEN member_entries.signed_at ELSE NULL END`,
-			memberID, competitionID, string(data), now); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO member_entries (member_id, competition_id, discipline, entry, updated_at, partner_token, partner_hash)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			ON CONFLICT (member_id, competition_id, discipline) DO UPDATE SET entry = excluded.entry, updated_at = excluded.updated_at,
+				signed_at = CASE WHEN member_entries.entry = excluded.entry THEN member_entries.signed_at ELSE NULL END,
+				partner_confirmed = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_confirmed ELSE FALSE END,
+				partner_member = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_member ELSE NULL END,
+				partner_entry = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_entry ELSE NULL END,
+				partner_token = excluded.partner_token, partner_hash = excluded.partner_hash`,
+			memberID, competitionID, e.Discipline, string(data), now, token, nullHash(token)); err != nil {
 			return err
 		}
 		return touch(ctx, tx, clubID, now)
 	})
 }
 
-// WithdrawMemberEntry removes a member's entry for a competition, until the
-// deadline. A copy already sent stays until the club sends again.
-func (s *Store) WithdrawMemberEntry(ctx context.Context, memberID, competitionID string) error {
+// WithdrawMemberEntry removes a member's entry for a competition's
+// discipline, until the deadline. A copy already sent stays until the club
+// sends again.
+func (s *Store) WithdrawMemberEntry(ctx context.Context, memberID, competitionID, discipline string) error {
 	return s.tx(ctx, func(tx *sql.Tx) error {
 		if err := s.open(ctx, tx, competitionID); err != nil {
 			return err
 		}
-		return affected(tx.ExecContext(ctx, `DELETE FROM member_entries WHERE member_id = $1 AND competition_id = $2`, memberID, competitionID))
+		return affected(tx.ExecContext(ctx, `DELETE FROM member_entries WHERE member_id = $1 AND competition_id = $2 AND discipline = $3`,
+			memberID, competitionID, discipline))
 	})
 }
 
-const memberEntrySelect = `SELECT me.member_id, m.name, me.competition_id, me.entry, me.updated_at, COALESCE(e.sent_at, ''),
+const memberEntrySelect = `SELECT me.member_id, m.name, me.competition_id, me.discipline, me.entry, me.updated_at, COALESCE(e.sent_at, ''),
 		e.checked_at IS NOT NULL, COALESCE(e.note, ''), COALESCE(e.video_review, ''), COALESCE(e.video_note, ''),
-		COALESCE(me.signed_at, ''), me.signed_by, me.sign_note
+		COALESCE(me.signed_at, ''), me.signed_by, me.sign_note, me.partner_token, me.partner_confirmed
 	FROM member_entries me
 	JOIN members m ON m.id = me.member_id
-	LEFT JOIN entries e ON e.member_id = me.member_id AND e.competition_id = me.competition_id`
+	LEFT JOIN entries e ON e.member_id = me.member_id AND e.competition_id = me.competition_id AND e.discipline = me.discipline`
 
 // memberEntries runs memberEntrySelect with a condition.
 func (s *Store) memberEntries(ctx context.Context, where string, args ...any) ([]MemberEntry, error) {
-	rows, err := s.db.QueryContext(ctx, memberEntrySelect+" WHERE "+where+" ORDER BY m.name, me.competition_id", args...)
+	rows, err := s.db.QueryContext(ctx, memberEntrySelect+" WHERE "+where+" ORDER BY m.name, me.competition_id, me.discipline", args...)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +328,7 @@ func (s *Store) memberEntries(ctx context.Context, where string, args ...any) ([
 	for rows.Next() {
 		var e MemberEntry
 		var entry, updated, sent, signed string
-		if err := rows.Scan(&e.MemberID, &e.MemberName, &e.CompetitionID, &entry, &updated, &sent, &e.Checked, &e.Note, &e.VideoReview, &e.VideoNote, &signed, &e.SignedBy, &e.SignNote); err != nil {
+		if err := rows.Scan(&e.MemberID, &e.MemberName, &e.CompetitionID, &e.Discipline, &entry, &updated, &sent, &e.Checked, &e.Note, &e.VideoReview, &e.VideoNote, &signed, &e.SignedBy, &e.SignNote, &e.PartnerLink, &e.PartnerConfirmed); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal([]byte(entry), &e.Entry); err != nil {
@@ -356,11 +373,14 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		}
 
 		type pending struct {
-			member, name, entry string
-			signedAt            sql.NullString
-			signedBy, signNote  string
+			member, name, discipline, entry string
+			signedAt                        sql.NullString
+			signedBy, signNote              string
+			partnerConfirmed                bool
+			partnerMember, partnerEntry     sql.NullString
 		}
-		rows, err := tx.QueryContext(ctx, `SELECT me.member_id, m.name, me.entry, me.signed_at, me.signed_by, me.sign_note FROM member_entries me
+		rows, err := tx.QueryContext(ctx, `SELECT me.member_id, m.name, me.discipline, me.entry, me.signed_at, me.signed_by, me.sign_note,
+			me.partner_confirmed, me.partner_member, me.partner_entry FROM member_entries me
 			JOIN members m ON m.id = me.member_id
 			WHERE m.club_id = $1 AND me.competition_id = $2`, clubID, competitionID)
 		if err != nil {
@@ -369,7 +389,8 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		var all []pending
 		for rows.Next() {
 			var p pending
-			if err := rows.Scan(&p.member, &p.name, &p.entry, &p.signedAt, &p.signedBy, &p.signNote); err != nil {
+			if err := rows.Scan(&p.member, &p.name, &p.discipline, &p.entry, &p.signedAt, &p.signedBy, &p.signNote,
+				&p.partnerConfirmed, &p.partnerMember, &p.partnerEntry); err != nil {
 				rows.Close()
 				return err
 			}
@@ -394,24 +415,26 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		} else {
 			// Everyone's: what the competition has from this club becomes exactly this.
 			if _, err := tx.ExecContext(ctx, `DELETE FROM entries WHERE competition_id = $1 AND club_id = $2
-				AND (member_id IS NULL OR member_id NOT IN (
-					SELECT me.member_id FROM member_entries me JOIN members m ON m.id = me.member_id
-					WHERE m.club_id = $2 AND me.competition_id = $1))`, competitionID, clubID); err != nil {
+				AND NOT EXISTS (SELECT 1 FROM member_entries me JOIN members m ON m.id = me.member_id
+					WHERE m.club_id = $2 AND me.competition_id = $1
+					AND me.member_id = entries.member_id AND me.discipline = entries.discipline)`, competitionID, clubID); err != nil {
 				return err
 			}
 		}
 
 		now := s.stamp()
 		for _, p := range chosen {
-			if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_id, member_id, club_name, individual, gymnast, entry, sent_at,
-				signed_at, signed_by, sign_note)
-				VALUES ($1, $2, $3, $4, $5, FALSE, $6, $7, $8, $9, $10, $11)
-				ON CONFLICT (competition_id, member_id) DO UPDATE
+			if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_id, member_id, discipline, club_name, individual, gymnast, entry, sent_at,
+				signed_at, signed_by, sign_note, partner_confirmed, partner_member, partner_entry)
+				VALUES ($1, $2, $3, $4, $12, $5, FALSE, $6, $7, $8, $9, $10, $11, $13, $14, $15)
+				ON CONFLICT (competition_id, member_id, discipline) DO UPDATE
 				SET entry = excluded.entry, gymnast = excluded.gymnast, club_name = excluded.club_name, sent_at = excluded.sent_at,
 					signed_at = excluded.signed_at, signed_by = excluded.signed_by, sign_note = excluded.sign_note,
+					partner_confirmed = excluded.partner_confirmed, partner_member = excluded.partner_member, partner_entry = excluded.partner_entry,
 					checked_at = CASE WHEN entries.entry = excluded.entry THEN entries.checked_at ELSE NULL END,
 					video_review = CASE WHEN entries.entry = excluded.entry THEN entries.video_review ELSE '' END`,
-				newID(), competitionID, clubID, p.member, name, p.name, p.entry, now, p.signedAt, p.signedBy, p.signNote); err != nil {
+				newID(), competitionID, clubID, p.member, name, p.name, p.entry, now, p.signedAt, p.signedBy, p.signNote,
+				p.discipline, p.partnerConfirmed, p.partnerMember, p.partnerEntry); err != nil {
 				return err
 			}
 		}
