@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-06
+* **Creation**: [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md)
+  (proposed): timetabling for ISTO, across trampoline, synchro, tumbling and
+  DMT, with people who compete and judge, the venue's strict end time, rest
+  between turns, own-club judging balanced, and simulation. The officials rota
+  (competitions 4) becomes part of it ([roadmap](roadmap.md),
+  [open questions](open-questions.md)).
 * **Update**: The [timetable](features/competition-entries.md#timetable-roadmap-competitions-3)
   (roadmap: competitions 3): men and women ranked separately where the
   organiser chooses, flights planned on panels (split separately from
