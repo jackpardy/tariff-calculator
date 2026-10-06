@@ -106,6 +106,9 @@ func TestClubs(t *testing.T) {
 	if page := do(t, h, http.MethodGet, member, nil).Body.String(); !strings.Contains(page, "Sent by your club") {
 		t.Error("the member sees it's sent")
 	}
+	if page := do(t, h, http.MethodGet, member, nil).Body.String(); !strings.Contains(page, `<details class="box mt-4 comp-change"><summary><strong>Change your entry</strong>`) {
+		t.Error("with an entry, the form to change it starts closed")
+	}
 
 	// A change shows on both pages until the club sends again.
 	entry.Set("ex1Option", "builtin:bucs-l3-option-2")
@@ -150,6 +153,16 @@ func TestClubs(t *testing.T) {
 	redirected(t, h, withdraw, url.Values{"confirm": {"1"}})
 	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, "Withdrawn (still sent)") {
 		t.Error("the comp sec sees the withdrawn entry is still with the competition")
+	}
+	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	if !strings.Contains(dash, `class="is-withdrawn"`) || !strings.Contains(dash, ">Withdrawn</span>") || !strings.Contains(dash, `<p class="heading">withdrawn</p>`) {
+		t.Error("the organiser sees the entry marked withdrawn until the club sends again")
+	}
+	if !strings.Contains(dash, `<p class="title is-4">0</p><p class="heading">entries</p>`) {
+		t.Error("a withdrawn entry isn't counted")
+	}
+	if cards := do(t, h, http.MethodGet, admin+"/cards", nil).Body.String(); !strings.Contains(cards, "No entries to print.") {
+		t.Error("a withdrawn entry isn't printed")
 	}
 	redirected(t, h, send, url.Values{"which": {"all"}})
 	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); strings.Contains(dash, "A. Murphy") {

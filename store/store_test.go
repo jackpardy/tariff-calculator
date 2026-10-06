@@ -505,3 +505,46 @@ func TestVideo(t *testing.T) {
 		t.Errorf("a changed entry needs reviewing again: %+v", list[0])
 	}
 }
+
+func TestWithdrawnEntries(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	club, _, _ := s.CreateClub(ctx, "UCD")
+	a, _, _ := s.Join(ctx, club.ID, "A")
+	b, _, _ := s.Join(ctx, club.ID, "B")
+	must(t, s.AttachClub(ctx, club.ID, c.ID))
+	must(t, s.SaveMemberEntry(ctx, a.ID, c.ID, entry("A")))
+	must(t, s.SaveMemberEntry(ctx, b.ID, c.ID, entry("B")))
+	_, err := s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	_, _, err = s.AddIndividualEntry(ctx, c.ID, entry("I"))
+	must(t, err)
+
+	withdrawn := func() map[string]bool {
+		list, err := s.Entries(ctx, c.ID)
+		must(t, err)
+		out := map[string]bool{}
+		for _, e := range list {
+			out[e.Entry.Gymnast] = e.Withdrawn
+		}
+		return out
+	}
+	if got := withdrawn(); got["A"] || got["B"] || got["I"] {
+		t.Errorf("nothing withdrawn yet: %v", got)
+	}
+	must(t, s.WithdrawMemberEntry(ctx, a.ID, c.ID))
+	must(t, s.RemoveMember(ctx, club.ID, b.ID))
+	if got := withdrawn(); !got["A"] || !got["B"] || got["I"] {
+		t.Errorf("A withdrew and B left: both marked until the club sends again: %v", got)
+	}
+	list, _ := s.Entries(ctx, c.ID)
+	if e, err := s.CompetitionEntry(ctx, c.ID, list[0].ID); err != nil || !e.Withdrawn {
+		t.Errorf("one entry, marked too: %+v, %v", e, err)
+	}
+	_, err = s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	if got := withdrawn(); len(got) != 1 || got["I"] {
+		t.Errorf("sending everyone's takes them back: %v", got)
+	}
+}

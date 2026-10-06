@@ -398,8 +398,8 @@ func judge(c competitions.Competition, entries []store.Entry) []judged {
 func (j judged) matches(q url.Values) bool {
 	switch {
 	case q.Get("club") != "" && q.Get("club") != j.club,
-		q.Get("problems") == "1" && len(j.problems) == 0,
-		q.Get("unchecked") == "1" && j.Checked(),
+		q.Get("problems") == "1" && (len(j.problems) == 0 || j.Withdrawn),
+		q.Get("unchecked") == "1" && (j.Checked() || j.Withdrawn),
 		q.Get("level") != "" && q.Get("level") != j.Entry.Entry.Level,
 		q.Get("entry") != "" && q.Get("entry") != j.ID:
 		return false
@@ -456,10 +456,15 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		if !j.Individual && !seen[j.club] {
 			d.Clubs, seen[j.club] = append(d.Clubs, j.club), true // a club deleted since it sent
 		}
-		if len(j.problems) > 0 {
+		// A withdrawn entry isn't live: it's listed, marked, but not counted.
+		switch {
+		case j.Withdrawn:
+			d.Entries--
+			d.Withdrawn++
+		case len(j.problems) > 0:
 			d.WithProblems++
 		}
-		if !j.Checked() {
+		if !j.Checked() && !j.Withdrawn {
 			d.Unchecked++
 		}
 		if !j.matches(filter) {
@@ -467,7 +472,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		row := views.DashboardRow{
 			ID: j.ID, Gymnast: j.Entry.Entry.Gymnast, Club: j.club, Problems: j.problems,
-			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note,
+			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note, Withdrawn: j.Withdrawn,
 			Video: videoStatus(c.Competition, j),
 		}
 		if j.err == nil {
@@ -504,7 +509,7 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 	all := judge(c.Competition, entries)
 	for _, level := range levelOrder(c.Competition, all) {
 		for _, j := range all {
-			if j.Entry.Entry.Level != level || !j.matches(q) || j.err != nil {
+			if j.Entry.Entry.Level != level || !j.matches(q) || j.err != nil || (j.Withdrawn && q.Get("entry") == "") {
 				continue
 			}
 			club := j.ClubName
@@ -558,7 +563,7 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", fileName(c.Name)+".csv"))
 	out := csv.NewWriter(w)
-	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent", "Video"})
+	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent", "Video", "Withdrawn"})
 	all := judge(c.Competition, entries)
 	for _, level := range levelOrder(c.Competition, all) {
 		for _, j := range all {
@@ -569,7 +574,7 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 			if j.Individual {
 				club = "Individual"
 			}
-			row := []string{j.Entry.Entry.Gymnast, club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j)}
+			row := []string{j.Entry.Entry.Gymnast, club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), ""}
 			if j.err == nil {
 				for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
 					row[3+2*i] = ex.SetName
@@ -580,6 +585,9 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 			}
 			if j.Checked() {
 				row[8] = "yes"
+			}
+			if j.Withdrawn {
+				row[12] = "yes"
 			}
 			for i := range row {
 				row[i] = csvSafe(row[i])
@@ -692,6 +700,7 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
 		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
 		ID: e.ID, Checked: checkedText(e), Note: e.Note, VideoReview: e.VideoReview, VideoNote: e.VideoNote,
+		Withdrawn: e.Withdrawn,
 	}))
 }
 

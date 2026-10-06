@@ -57,6 +57,7 @@ type Dashboard struct {
 	DeadlineDate string // the closing time, for changing it
 	DeadlineTime string
 	Unchecked    int // entries not checked yet
+	Withdrawn    int // entries withdrawn since their club sent them
 	Video        VideoForm
 	Competition  CompetitionSummary
 	Links        CompetitionLinks
@@ -84,6 +85,7 @@ type DashboardRow struct {
 	Checked           bool
 	Note              string
 	Video             string // "" when not needed, else missing, provided, OK or need more
+	Withdrawn         bool   // withdrawn since the club sent it
 }
 
 // EntryCard is an entry checked exactly as the builder checks a level.
@@ -119,6 +121,7 @@ type EntryDetail struct {
 	Note        string
 	VideoReview string // "", "ok" or "more"
 	VideoNote   string
+	Withdrawn   bool // withdrawn since the club sent it
 }
 
 // EntryForm enters or replaces an individual's entry. Each level's exercises
@@ -348,6 +351,9 @@ templ CompetitionDashboard(d Dashboard) {
 			@count(d.Entries, "entries")
 			@count(d.WithProblems, "with problems")
 			@count(d.Unchecked, "not checked")
+			if d.Withdrawn > 0 {
+				@count(d.Withdrawn, "withdrawn")
+			}
 			@count(len(d.Clubs), "clubs")
 		</nav>
 		<details class="box comp-manage">
@@ -455,8 +461,13 @@ templ CompetitionDashboard(d Dashboard) {
 						</thead>
 						<tbody>
 							for _, r := range l.Rows {
-								<tr class={ templ.KV("has-problems", len(r.Problems) > 0) }>
-									<td><a href={ templ.SafeURL(d.Base + "/entries/" + r.ID) }>{ r.Gymnast }</a></td>
+								<tr class={ templ.KV("has-problems", len(r.Problems) > 0 && !r.Withdrawn), templ.KV("is-withdrawn", r.Withdrawn) }>
+									<td>
+										<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID) }>{ r.Gymnast }</a>
+										if r.Withdrawn {
+											<span class="tag is-warning is-light ml-1" title="Withdrawn since the club sent it; it goes when the club sends again">Withdrawn</span>
+										}
+									</td>
 									<td>{ r.Club }</td>
 									<td>{ r.Exercises[0] }</td>
 									<td>{ r.Exercises[1] }</td>
@@ -543,6 +554,11 @@ templ competitionFacts(c CompetitionSummary) {
 templ CompetitionEntry(d EntryDetail) {
 	@competitionLayout(d.Card.Gymnast + " · " + d.Competition.Name) {
 		<p class="mb-3"><a href={ templ.SafeURL(d.Base) }>← All entries</a></p>
+		if d.Withdrawn {
+			<div class="notification is-warning is-light">
+				<p><strong>Withdrawn.</strong> { d.Card.Gymnast } has withdrawn this entry, or left the club, since { d.Card.Club } sent it. It goes when the club sends its entries again; until then it isn't counted or printed.</p>
+			</div>
+		}
 		@entryCard(d.Card)
 		<p class="has-text-grey is-size-7 mt-4">Sent { d.Sent }.</p>
 		<div class="box mt-4">
