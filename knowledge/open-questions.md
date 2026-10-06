@@ -38,8 +38,6 @@ From the [British Gymnastics requirements](requirements/bg-national.md):
 
 - Whether to mark [ADR 0003](../docs/adr/0003-requirements-framework.md)
   Accepted.
-- Whether to accept [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md)
-  (multi-discipline timetabling for ISTO).
 
 # Not yet tested on a real phone
 
