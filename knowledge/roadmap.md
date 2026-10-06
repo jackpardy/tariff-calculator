@@ -4,7 +4,7 @@ title: Roadmap
 description: Where the project could go beyond the routine builder, covering tools for competition organisers and attendees and for people running or training in a club, with what already exists and what to build first.
 tags: [roadmap, competitions, clubs, planning]
 status: draft
-generated: { by: claude-code/cli, at: 2026-10-05T16:00:00Z }
+generated: { by: claude-code/cli, at: 2026-10-06T11:00:00Z }
 stale_after: 2027-04-01T00:00:00Z
 sources:
   - id: tramponline
@@ -62,7 +62,7 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 
 | # | Area | What it does | Builds on |
 |---|---|---|---|
-| 1 | **Card collection and checking** (first; [what each person sees](features/competition-entries.md)) | Members keep their entries with their club and change them freely; the club's competition secretary sends them to the competition (individuals can enter directly where allowed); the organiser and difficulty judges see every card already checked against its level, print them, mark them checked, and export CSV; optionally asks for video proof by link (an unlisted YouTube video, say) for chosen skills | requirements, levels, tariff sheet, sharing |
+| 1 | **Card collection and checking** (built, live at `/competitions` since 2026-10-06; [what each person sees](features/competition-entries.md)) | Members keep their entries with their club and change them freely; the club's competition secretary sends them to the competition (individuals can enter directly where allowed); the organiser and difficulty judges see every card already checked against its level, print them, mark them checked, and export CSV; optionally asks for video proof by link (an unlisted YouTube video, say) for chosen skills | requirements, levels, tariff sheet, sharing |
 | 2 | Difficulty judge helper | Tap elements as they're performed, compared live with the submitted card: changes, interruptions, the new tariff | picker, search, validation |
 | 3 | Timetable and flight planner | Entries per category, panels and minutes per competitor give flights, running orders and estimated times; printable marshal and chair-of-judges sheets | — |
 | 4 | Officials rota | Judges, recorders, marshals and spotters per panel and flight, with clashes flagged | 3 |
@@ -91,11 +91,12 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 - **Competition card collection is the first thing to build.** Its design goes
   in [ADR 0004](../docs/adr/0004-server-storage-secret-links.md) (server storage with secret links), amending ADR 0001's plan for
   accounts.
-- **Hosting for storage.** The app runs on the self-hosted server at
-  `tariff.pardy.ie` (Render's free service had no persistent disk). Its
-  `/srv/data/tariff` volume, `DATA_DIR` and nightly SQLite backup are a change
-  to the server repository; once applied, competition entries go live there
-  ([deploy](operations/deploy.md#competition-storage)).
+- **Storage is live (2026-10-06).** The app runs on the self-hosted server at
+  `tariff.pardy.ie` (Render's free service had no persistent disk), with
+  competition entries in SQLite on its `/srv/data/tariff` volume, backed up
+  nightly ([deploy](operations/deploy.md#competition-storage)). Card
+  collection (competitions 1) is built and live at `/competitions`, with coach
+  sign-off; the calculator doesn't link to it yet.
 - **Priorities (2026-10-05):** card collection first. The routine suggester
   drops to the bottom, as it would be hard to do right. ISTO's levels won't
   be available for a while, so building them in waits; users can write them

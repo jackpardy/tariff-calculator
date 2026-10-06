@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: Competition storage is live on tariff.pardy.ie: the server has
+  the `/srv/data/tariff` volume and `DATA_DIR`, the pages work at
+  `/competitions` (not linked from the calculator), and the nightly backup
+  includes the database ([deploy](operations/deploy.md#competition-storage),
+  [roadmap](roadmap.md), [competition entries](features/competition-entries.md)).
 * **Update**: Coach sign-off for [competition entries](features/competition-entries.md#coaches-coach-link)
   (ADR 0004 Decision 11): the comp sec adds coaches, members choose theirs
   (or the comp sec assigns), a coach's page lists the entries they see to

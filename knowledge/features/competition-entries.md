@@ -1,10 +1,9 @@
 ---
 type: Feature
-title: Competition entries (planned)
-description: What organisers, club competition secretaries and members will see when entries are collected for a competition. Organisers get an overview of every entry with its problems, a full view of any one entry, printed cards, an export, and optional video proof by link.
-tags: [feature, competitions, clubs, planned]
-status: draft
-generated: { by: claude-code/cli, at: 2026-10-05T16:30:00Z }
+title: Competition entries
+description: What organisers, club competition secretaries, members and coaches see when entries are collected for a competition. Organisers get an overview of every entry with its problems, a full view of any one entry, printed cards, an export, optional video proof by link, and optional coach sign-off.
+tags: [feature, competitions, clubs, coaches]
+generated: { by: claude-code/cli, at: 2026-10-06T11:00:00Z }
 sources:
   - id: adr-0004
     resource: ../../docs/adr/0004-server-storage-secret-links.md
@@ -12,20 +11,17 @@ sources:
     author: human:jackpardy
 ---
 
-**Not built yet.** This page describes the target for card collection, the
-first item on the [roadmap](../roadmap.md). Storage, links and clubs are
-decided in ADR 0004.[^adr-0004] Built so far (steps 2 and 3 of the ADR's
-migration, then 4): storage (`store`), checking (`competitions`), the pages for
-creating a competition, the organiser's dashboard and each entry, individual
-entry (`comppages.go`), and clubs: creating one, members joining and keeping
-their entries, the comp sec's page, and sending (`clubpages.go`,
-[routes](../architecture/http-routes.md#competition-pages)). `/competitions`
-lists the links this browser has. Step 5 added marking entries checked with a
-note, printing cards, the CSV, closing or reopening entries, and deleting
-expired data; step 6 video proof (links, which skills need them, and the
-organiser's review). They're on only where `DATA_DIR` is set
-([competition storage](../operations/deploy.md#competition-storage)), and are
-reached at `/competitions`: the calculator doesn't link to them, for now.
+**Live on tariff.pardy.ie since 2026-10-06**, at `/competitions`; the
+calculator doesn't link to it yet. This is card collection, the first item on
+the [roadmap](../roadmap.md). Storage, links, clubs, video proof and coach
+sign-off are decided in ADR 0004.[^adr-0004]
+
+It's built from storage (`store`), checking (`competitions`), and the pages:
+competitions, the organiser's dashboard and each entry, and individual entry
+(`comppages.go`); clubs, members and sending (`clubpages.go`); and coaches
+(`coachpages.go`) ([routes](../architecture/http-routes.md#competition-pages)).
+`/competitions` lists the links a browser has. The pages are on only where
+`DATA_DIR` is set ([competition storage](../operations/deploy.md#competition-storage)).
 
 # The organiser (competition admin link)
 

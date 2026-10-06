@@ -65,6 +65,11 @@ See the server bundle (private repository):
 
 # Competition storage
 
+**Live on tariff.pardy.ie since 2026-10-06.** The server has the volume and
+`DATA_DIR`, the app created `tariff.db` on start, the competition pages work
+at `/competitions`, and the nightly backup includes the database (checked the
+same day). The calculator doesn't link to the pages yet.
+
 [Competition entries](../features/competition-entries.md) are stored in one
 SQLite file, `tariff.db`, in `DATA_DIR`. Unset, storage is off: the
 calculator works as ever and the competition pages answer "Not available
