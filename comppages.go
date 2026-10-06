@@ -530,6 +530,7 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 					Details: views.SheetDetails{
 						"gymnast": j.Entry.Entry.Gymnast, "club": club, "category": j.card.Level.Name,
 						"competition": c.Name, "round": [...]string{"1st exercise", "2nd exercise"}[i] + " · " + ex.SetName,
+						"coach": j.CoachName(),
 					},
 				})
 			}

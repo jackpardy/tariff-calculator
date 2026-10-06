@@ -112,6 +112,8 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   who signed off.
 - An individual's entry page gives a **sign-off link** to send their coach,
   who signs off under their name, without a coach page.
+- Printed cards fill in the **Coach** field: the coach who signed the entry
+  off, or else the member's chosen or assigned coach.
 
 # The club's comp sec (club admin link)
 
