@@ -1,10 +1,10 @@
 ---
 type: Feature List
 title: Features
-description: Everything the trampoline tariff calculator can do, in plain language for gymnasts and coaches.
+description: Everything the trampoline tariff calculator can do, in plain language for gymnasts, coaches, clubs and competition organisers.
 resource: https://tariff.pardy.ie
 tags: [guide, features, users]
-generated: { by: claude-code/cli, at: 2026-10-05T15:30:00Z }
+generated: { by: claude-code/cli, at: 2026-10-06T11:30:00Z }
 ---
 
 # Work out difficulty
@@ -82,11 +82,31 @@ generated: { by: claude-code/cli, at: 2026-10-05T15:30:00Z }
   someone else's phone. Nothing is uploaded; everything travels inside the link
   ([sharing](../features/sharing.md)).
 
+# Competitions and clubs
+
+At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
+
+- **Collect every card before the day.** Organisers create a competition, and
+  every entry arrives already checked against its level, with its problems
+  listed ([competition entries](../features/competition-entries.md)).
+- **Clubs gather their members' entries.** Members join with a link and keep
+  their own entries; the comp sec sees them all and sends them, then re-sends
+  what's changed.
+- **Gymnasts without a club** can enter on their own, if the organiser allows.
+- **For the organiser**: one table per level with every problem, each entry in
+  full, notes back to the club, printed competition cards, a CSV, and closing
+  entries when you choose.
+- **Video proof by link**, for chosen skills or whole routines: never uploaded.
+- **Coach sign-off**: clubs add their coaches, and each coach signs off their
+  members' routines on their own page.
+- **No accounts**: everyone gets a private link, saved in their browser.
+
 # Good to know
 
-- **No account, nothing stored online.** Everything is saved in your phone's
-  browser. Clearing the browser's data deletes it, so share or export what you
-  want to keep.
+- **No account.** The calculator saves everything in your phone's browser.
+  Clearing the browser's data deletes it, so share or export what you want to
+  keep. Competition entries are kept on the server, reached by private links,
+  and deleted 120 days after the competition.
 - **Built-in rules can go out of date.** Check them against your competition's
   current rules.
 - The app tells you when it has been updated, with a Refresh button.

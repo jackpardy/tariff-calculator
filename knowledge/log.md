@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: The [user guide](guide/user-guide.md) has a section 7,
+  "Competitions and clubs": private links, running a competition, running a
+  club, entering through a club, signing off as a coach, entering on your own,
+  and what's kept. [Features](guide/features.md) lists competitions and clubs,
+  and the [PDF](guide/user-guide.pdf) is rebuilt.
 * **Update**: Competition storage is live on tariff.pardy.ie: the server has
   the `/srv/data/tariff` volume and `DATA_DIR`, the pages work at
   `/competitions` (not linked from the calculator), and the nightly backup
