@@ -101,6 +101,28 @@ func TestCoachSignoff(t *testing.T) {
 		t.Errorf("the CSV says who signed off:\n%s", csv)
 	}
 
+	// The comp sec assigns Y to Ann from the club page's members list.
+	clubPage = do(t, h, http.MethodGet, club, nil).Body.String()
+	assign := regexp.MustCompile(`action="(` + regexp.QuoteMeta(club) + `/members/[^"]+/coach)"`).FindAllStringSubmatch(clubPage, -1)
+	if len(assign) != 2 {
+		t.Fatalf("each member has a coach choice on the club page: %d", len(assign))
+	}
+	annID := regexp.MustCompile(`<option value="([^"]+)">Ann</option>`).FindStringSubmatch(clubPage)[1]
+	redirected(t, h, assign[1][1], url.Values{"coach": {annID}}) // members are by name: X, then Y
+	if page := do(t, h, http.MethodGet, y, nil).Body.String(); !strings.Contains(page, `<option value="`+annID+`" selected>Ann</option>`) {
+		t.Error("Y's page shows the coach the comp sec assigned")
+	}
+	redirected(t, h, club+"/coaches-see-all", url.Values{"on": {""}})
+	if page := do(t, h, http.MethodGet, bob, nil).Body.String(); strings.Contains(page, ">Y</a>") {
+		t.Error("once Y has Ann, Bob no longer sees Y")
+	}
+
+	// Printed cards name the coach: who signed off, or else the member's coach.
+	cards := do(t, h, http.MethodGet, admin+"/cards", nil).Body.String()
+	if !strings.Contains(cards, `aria-label="Coach" value="Bob"`) || !strings.Contains(cards, `aria-label="Coach" value="Ann"`) {
+		t.Error("X's cards say Bob (signed off), Y's say Ann (assigned)")
+	}
+
 	// A change needs signing off again.
 	entry.Set("ex1Option", "builtin:bucs-l3-option-2")
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, x, nil).Body.String(), x+"/competitions/"), entry)
@@ -141,6 +163,9 @@ func TestIndividualSignoff(t *testing.T) {
 	}
 	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, "✓ Coach C") {
 		t.Error("the organiser sees it signed off")
+	}
+	if cards := do(t, h, http.MethodGet, admin+"/cards", nil).Body.String(); !strings.Contains(cards, `aria-label="Coach" value="Coach C"`) {
+		t.Error("the individual's cards name the coach who signed off")
 	}
 
 	// Without the requirement, there's no sign-off link.
