@@ -71,6 +71,14 @@ every page answers 503.
 | `GET /clubs/member/{token}` | — | A member's page: their entry for each competition the club is in |
 | `POST /clubs/member/{token}/competitions/{id}` | as entering, without `gymnast` | Saves the member's entry (their club sends it) |
 | `POST /clubs/member/{token}/competitions/{id}/withdraw` | `confirm=1` | Withdraws it |
+| `POST /clubs/member/{token}/coach`, `POST /clubs/admin/{token}/members/{member}/coach` | `coach` (an id, `""` for none) | A member's coach, chosen by them or the comp sec |
+| `POST /clubs/admin/{token}/coaches` | `name` | Adds a coach: the club page with their coach link, shown once |
+| `POST /clubs/admin/{token}/coaches/{coach}/new-link`, `/remove` | — | A coach's new link (shown once), or removing them |
+| `POST /clubs/admin/{token}/coaches-see-all` | `on` (`1`/`""`) | Whether every coach sees every member |
+| `GET /clubs/coach/{token}` | — | A coach's page: each competition's entries they see, and their sign-off |
+| `GET`, `POST /clubs/coach/{token}/members/{member}/competitions/{id}` | `signed` (`1`/`0`), `note` | One entry, checked, to sign off or say not yet |
+| `POST /competitions/admin/{token}/signoff` | `on` (`1`/`0`) | Whether entries need a coach's sign-off (also `signoff=1` on `POST /competitions`) |
+| `GET`, `POST /competitions/signoff/{token}` | `coach` (their name), `signed`, `note` | An individual's coach signing off their entry |
 
 `requirementSet` is either `builtin:<id>` or the custom requirements as JSON.
 If the requirements can't be used, the problem is reported in the rendered

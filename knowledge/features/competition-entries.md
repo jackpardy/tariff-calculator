@@ -92,6 +92,27 @@ unlisted YouTube video, a Drive file shared with anyone with the link, Vimeo,
 Dropbox or OneDrive), never uploaded, and never played inside the app (ADR
 0004 Decision 10).[^adr-0004]
 
+# Coaches (coach link)
+
+Where a competition requires it, each entry needs a coach's **sign-off**
+(ADR 0004 Decision 11).[^adr-0004]
+
+- The comp sec adds the club's coaches on the club page; each gets a coach
+  link (shown once; **New link** replaces it).
+- A member chooses their coach on their own page, or the comp sec does on
+  the club page. A coach sees their own members and every member without a
+  coach; the club can let **every coach see every member**.
+- The coach's page lists each competition's entries they see, with problems
+  and sign-off, and how many are waiting. Opening one shows it checked, with
+  **Sign off** and **Not yet**, and a note the member and comp sec see.
+- A changed entry needs signing off again. The sign-off goes to the
+  competition with the entry when the club sends it.
+- Unsigned entries can still be sent: the organiser's dashboard has a Coach
+  column, counts "Not signed off by a coach" as a problem, and the CSV says
+  who signed off.
+- An individual's entry page gives a **sign-off link** to send their coach,
+  who signs off under their name, without a coach page.
+
 # The club's comp sec (club admin link)
 
 The same table, but for the club's members only, by competition. It has

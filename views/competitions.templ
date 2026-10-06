@@ -21,6 +21,7 @@ type CompetitionSummary struct {
 	Open        bool   // entries can still be sent or changed
 	Individuals bool   // individuals can enter directly
 	Video       string // what video proof it asks for, "" for none
+	Signoff     bool   // entries need a coach's sign-off
 }
 
 // CompetitionForm is the form that creates a competition. Levels are the
@@ -32,6 +33,7 @@ type CompetitionForm struct {
 	Levels                                 map[string]bool
 	Groups                                 []requirements.BuiltinGroup
 	Video                                  VideoForm
+	Signoff                                bool
 	Problems                               []string
 }
 
@@ -86,6 +88,7 @@ type DashboardRow struct {
 	Note              string
 	Video             string // "" when not needed, else missing, provided, OK or need more
 	Withdrawn         bool   // withdrawn since the club sent it
+	Signoff           SignoffView
 }
 
 // EntryCard is an entry checked exactly as the builder checks a level.
@@ -93,6 +96,7 @@ type EntryCard struct {
 	Gymnast, Club, Level string
 	Exercises            [2]ExerciseCard
 	Problems             []string
+	Signoff              SignoffView
 }
 
 // ExerciseCard is one exercise of an entry, checked.
@@ -175,6 +179,7 @@ type EntryPage struct {
 	Card        EntryCard
 	Form        EntryForm
 	Withdraw    string // where withdrawing posts
+	SignoffLink string // the link for their coach to sign it off, where the competition needs it
 }
 
 // EnterPage is a competition's individual entry page.
@@ -303,6 +308,7 @@ templ NewCompetition(f CompetitionForm) {
 				</details>
 			</fieldset>
 			@videoFields(f.Video)
+			@signoffField(f.Signoff)
 			<button class="button is-primary is-fullwidth" type="submit">Create competition</button>
 		</form>
 	}
@@ -371,6 +377,15 @@ templ CompetitionDashboard(d Dashboard) {
 					<input class="input is-small" name="deadlineTime" type="time" required value={ d.DeadlineTime } aria-label="Closing time"/>
 					<button class="button is-small" type="submit">Change</button>
 				</div>
+			</form>
+			<form method="post" action={ templ.SafeURL(d.Base + "/signoff") } class="mb-3">
+				if d.Competition.Signoff {
+					<input type="hidden" name="on" value="0"/>
+					<button class="button is-small" type="submit">Stop requiring coach sign-off</button>
+				} else {
+					<input type="hidden" name="on" value="1"/>
+					<button class="button is-small" type="submit">Require coach sign-off</button>
+				}
 			</form>
 			<form method="post" action={ templ.SafeURL(d.Base + "/video") } class="mb-3">
 				@videoFields(d.Video)
@@ -456,6 +471,9 @@ templ CompetitionDashboard(d Dashboard) {
 								if d.Competition.Video != "" {
 									<th>Video</th>
 								}
+								if d.Competition.Signoff {
+									<th>Coach</th>
+								}
 								<th>Checked</th>
 							</tr>
 						</thead>
@@ -493,6 +511,15 @@ templ CompetitionDashboard(d Dashboard) {
 												–
 											} else {
 												{ r.Video }
+											}
+										</td>
+									}
+									if d.Competition.Signoff {
+										<td class={ templ.KV("has-text-success", r.Signoff.Signed), templ.KV("has-text-danger", !r.Signoff.Signed && !r.Withdrawn) } title={ r.Signoff.Note }>
+											if r.Signoff.Signed {
+												✓ { r.Signoff.By }
+											} else {
+												not signed off
 											}
 										</td>
 									}
@@ -538,7 +565,7 @@ templ count(n int, label string) {
 
 templ competitionFacts(c CompetitionSummary) {
 	<p class="mb-1">{ c.Date }</p>
-	<p class={ templ.KV("mb-4", c.Video == ""), templ.KV("mb-1", c.Video != "") }>
+	<p class={ templ.KV("mb-4", c.Video == "" && !c.Signoff), templ.KV("mb-1", c.Video != "" || c.Signoff) }>
 		if c.Open {
 			Entries close { c.Deadline }.
 		} else {
@@ -546,7 +573,10 @@ templ competitionFacts(c CompetitionSummary) {
 		}
 	</p>
 	if c.Video != "" {
-		<p class="mb-4">{ c.Video }, as a link.</p>
+		<p class={ templ.KV("mb-4", !c.Signoff), templ.KV("mb-1", c.Signoff) }>{ c.Video }, as a link.</p>
+	}
+	if c.Signoff {
+		<p class="mb-4">Entries need a coach's sign-off.</p>
 	}
 }
 
@@ -617,6 +647,7 @@ templ CompetitionEntry(d EntryDetail) {
 templ entryCard(c EntryCard) {
 	<h1 class="title is-4">{ c.Gymnast }</h1>
 	<p class="subtitle is-6">{ c.Club } · { c.Level }</p>
+	@signoffBox(c.Signoff)
 	if len(c.Problems) == 0 {
 		<div class="notification is-success is-light">No problems found.</div>
 	} else {
@@ -828,6 +859,9 @@ templ CompetitionEntryPage(p EntryPage) {
 		<div data-entry-link={ p.Link } data-entry-name={ p.Card.Gymnast + " · " + p.Competition.Name }>
 			@linkBox("Your personal link (keep it to yourself)", p.Link, "")
 		</div>
+		if p.SignoffLink != "" {
+			@linkBox("Sign-off link for your coach", p.SignoffLink, "This competition needs a coach's sign-off. Send this link to your coach: they see your entry and sign it off.")
+		}
 		if p.Checked {
 			<p class="mb-2"><strong>✓ Checked by the organiser.</strong></p>
 		}
@@ -997,4 +1031,16 @@ templ videoReviewNote(review, note string) {
 			<p><strong>The organiser needs more video:</strong> { note }</p>
 		</div>
 	}
+}
+
+// signoffField asks whether entries need a coach's sign-off (ADR 0004
+// Decision 11).
+templ signoffField(on bool) {
+	<div class="field">
+		<label class="checkbox">
+			<input type="checkbox" name="signoff" value="1" checked?={ on }/>
+			Entries need a coach's sign-off
+		</label>
+		<p class="help">Clubs' coaches sign off their members' routines; gymnasts entering on their own send their coach a sign-off link. Entries without one can still be sent, flagged as a problem.</p>
+	</div>
 }

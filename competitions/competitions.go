@@ -39,6 +39,7 @@ type Competition struct {
 	Individuals bool      // individuals can enter directly, not only through a club
 	Levels      []Level
 	Video       Video // whether gymnasts send video proof
+	Signoff     bool  // entries need a coach's sign-off (ADR 0004 Decision 11)
 }
 
 // Level is a level a competition offers. A built-in is kept by reference; a

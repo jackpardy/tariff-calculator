@@ -9,6 +9,7 @@
         competitions: 'trampolineCompetitions',
         clubs: 'trampolineClubs',
         members: 'trampolineMemberLinks',
+        coaches: 'trampolineCoachLinks',
         entries: 'trampolineEntryLinks',
     };
 
@@ -51,6 +52,8 @@
         if (club) { keepLink(linkKeys.clubs, club.dataset.clubName, club.dataset.clubAdmin); }
         const member = document.querySelector('[data-member-link]');
         if (member) { keepLink(linkKeys.members, member.dataset.memberName, member.dataset.memberLink); }
+        const coach = document.querySelector('[data-coach-link]');
+        if (coach) { keepLink(linkKeys.coaches, coach.dataset.coachName, coach.dataset.coachLink); }
     }
 
     // linkItem is a list item linking to a saved link.
