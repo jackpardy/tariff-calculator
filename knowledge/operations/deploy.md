@@ -24,8 +24,9 @@ The `Dockerfile` builds in two stages:
    `PORT=8080`, with a `HEALTHCHECK` that runs `wget` against `/`.
 
 Templates and assets are compiled or embedded into the binary, so nothing else
-is copied ([static assets](../architecture/static-assets.md)). The app is
-stateless and needs no volumes or secrets.
+is copied ([static assets](../architecture/static-assets.md)). The calculator
+is stateless and needs no secrets; competition entries need a data directory
+([competition storage](#competition-storage)).
 
 # CI
 
@@ -61,3 +62,19 @@ See the server bundle (private repository):
 
 - [GUIDE.md](https://github.com/jackpardy/server/blob/main/GUIDE.md): setup, deploy on push, backups, retiring Render
 - [CONTRACT.md](https://github.com/jackpardy/server/blob/main/CONTRACT.md): paths, services, ports and env vars
+
+# Competition storage
+
+[Competition entries](../features/competition-entries.md) are stored in one
+SQLite file, `tariff.db`, in `DATA_DIR`. Unset, storage is off: the
+calculator works as ever, the competition pages answer "Not available yet",
+and the calculator doesn't link to them. Set (and writable), the calculator's
+header links to `/competitions`, and the app deletes expired competitions and
+clubs every 6 hours.
+
+On the server, the `tariff` service mounts `/srv/data/tariff` at `/data` with
+`DATA_DIR=/data`. The directory is owned by uid 1000 (the image's `app` user),
+mode 700. The nightly backup copies the database with `sqlite3 .backup`, which
+stays consistent while the app writes, and `scripts/restore.md` puts it back.
+These are in the server repository (CONTRACT.md "Tariff calculator storage",
+GUIDE.md section m).

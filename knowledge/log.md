@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: Step 7 of ADR 0004: the calculator's header links to
+  "Competitions and clubs" where storage is on ([deploy](operations/deploy.md#competition-storage)).
+  The server's `/srv/data/tariff` volume, `DATA_DIR` and nightly SQLite backup
+  are a change to the server repository, to apply before entries go live.
 * **Update**: Step 6 of ADR 0004, video proof for [competition entries](features/competition-entries.md):
   the organiser asks for none, some skills (any triple, any double or more,
   any skill of a tariff or more) or each whole routine, and can change it.

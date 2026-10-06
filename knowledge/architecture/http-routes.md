@@ -15,7 +15,7 @@ All routes are defined in `routes()` in `main.go`. Forms are
 
 | Method and path | Input | Returns |
 |---|---|---|
-| `GET /` | — | The calculator page ([routine builder](../features/routine-builder.md)) |
+| `GET /` | — | The calculator page ([routine builder](../features/routine-builder.md)), linking to competitions when storage is on |
 | `POST /skill-form` | optional `skill` (JSON) + `editIndex` | The "Add a skill" panel, for the default skill or the one being edited |
 | `POST /skill-inputs` | the form's fields, or `load=common` + `commonSkillKey` (+ `shape`), or `load=skill` + `skill` | The re-rendered editor; 204 while the form holds something unscorable |
 | `GET /skill-search` | `q` | Search results ([skill catalog](../domain/skill-catalog.md)) |
@@ -34,8 +34,8 @@ All routes are defined in `routes()` in `main.go`. Forms are
 ## Competition pages
 
 [Competition entries](../features/competition-entries.md) (`comppages.go`,
-`clubpages.go`), not
-linked from the calculator yet. `{token}` is a secret link (ADR 0004). These
+`clubpages.go`), linked from the calculator's header (`/competitions`) when
+storage is on. `{token}` is a secret link (ADR 0004). These
 pages send `Referrer-Policy: no-referrer`, `Cache-Control: no-store` and
 `X-Robots-Tag: noindex`. A wrong or replaced link gets 404, and without storage
 every page answers 503.

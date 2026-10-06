@@ -91,10 +91,11 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 - **Competition card collection is the first thing to build.** Its design goes
   in [ADR 0004](../docs/adr/0004-server-storage-secret-links.md) (server storage with secret links), amending ADR 0001's plan for
   accounts.
-- **Hosting for storage is in place.** The app now runs on the self-hosted
-  server at `tariff.pardy.ie`, which has a data volume and nightly backups
-  (Render's free service had no persistent disk). Server-stored features
-  ship there.
+- **Hosting for storage.** The app runs on the self-hosted server at
+  `tariff.pardy.ie` (Render's free service had no persistent disk). Its
+  `/srv/data/tariff` volume, `DATA_DIR` and nightly SQLite backup are a change
+  to the server repository; once applied, competition entries go live there
+  ([deploy](operations/deploy.md#competition-storage)).
 - **Priorities (2026-10-05):** card collection first. The routine suggester
   drops to the bottom, as it would be hard to do right. ISTO's levels won't
   be available for a while, so building them in waits; users can write them

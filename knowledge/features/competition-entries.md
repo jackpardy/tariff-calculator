@@ -23,8 +23,9 @@ their entries, the comp sec's page, and sending (`clubpages.go`,
 lists the links this browser has. Step 5 added marking entries checked with a
 note, printing cards, the CSV, closing or reopening entries, and deleting
 expired data; step 6 video proof (links, which skills need them, and the
-organiser's review). They're on only where `DATA_DIR` is set, and not linked
-from the calculator until the server's data volume is ready (step 7).
+organiser's review). They're on only where `DATA_DIR` is set; there the
+calculator's header links to them (step 7,
+[competition storage](../operations/deploy.md#competition-storage)).
 
 # The organiser (competition admin link)
 
