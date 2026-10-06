@@ -145,8 +145,10 @@ func flightsFor(g group, max int, rng *rand.Rand) []Flight {
 	return out
 }
 
-// Draw is a random running order that avoids the same club twice in a row
-// wherever it can. Individuals ("" club) never clash.
+// Draw is a random running order that, as a soft preference, avoids the
+// same club twice in a row where it easily can. It's only a tie-break
+// between random orders: it gives way whenever it can't, and never changes
+// who is in which flight. Individuals ("" club) never clash.
 func Draw(entries []PlanEntry, rng *rand.Rand) []PlanEntry {
 	pool := slices.Clone(entries)
 	rng.Shuffle(len(pool), func(i, j int) { pool[i], pool[j] = pool[j], pool[i] })

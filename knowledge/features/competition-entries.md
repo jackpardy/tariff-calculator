@@ -88,6 +88,31 @@ unlisted YouTube video, a Drive file shared with anyone with the link, Vimeo,
 Dropbox or OneDrive), never uploaded, and never played inside the app (ADR
 0004 Decision 10).[^adr-0004]
 
+# Timetable (roadmap: competitions 3)
+
+From the dashboard, **Timetable** plans the day.
+
+- **Men and women.** The competition can rank men and women separately at
+  every level, or only chosen ones; gymnasts at a split level say which when
+  entering. The timetable splits flights separately: a level ranked
+  separately can still run as one mixed flight (e.g. a small level).
+- **Plan** takes the number of panels, the start time, minutes per gymnast
+  (both rounds), minutes between flights (warm-up and changeover), the largest
+  flight, and optionally a finish time. It splits each level (or each of its
+  men and women) into even flights, keeps a level's flights together on one
+  panel so the same judges see it, shares levels out so the panels finish
+  soonest, and draws running orders at random, keeping a club's gymnasts
+  apart only where that's easy. With a finish time it says how many panels
+  that needs.
+- **Adjusting:** move a flight up or down its panel or to another panel,
+  redraw its order, move a gymnast to another flight, and place entries
+  made since planning. **Update times only** changes the times without
+  replanning; **Plan again** starts afresh.
+- **Sheets:** marshal sheets (running orders to tick off) and chair of judges
+  sheets (each gymnast's exercises and problems), one panel to a page.
+- **Publish** shows clubs (each member's row), members and gymnasts entering
+  on their own their flight, panel and warm-up time.
+
 # Coaches (coach link)
 
 Where a competition requires it, each entry needs a coach's **sign-off**

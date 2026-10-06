@@ -185,6 +185,7 @@ type EntryPage struct {
 	Form        EntryForm
 	Withdraw    string // where withdrawing posts
 	SignoffLink string // the link for their coach to sign it off, where the competition needs it
+	Placement   *Placement // where they compete, once the timetable is published
 }
 
 // EnterPage is a competition's individual entry page.
@@ -895,6 +896,7 @@ templ CompetitionEntryPage(p EntryPage) {
 		if p.SignoffLink != "" {
 			@linkBox("Sign-off link for your coach", p.SignoffLink, "This competition needs a coach's sign-off. Send this link to your coach: they see your entry and sign it off.")
 		}
+		@placementLine(p.Placement)
 		if p.Checked {
 			<p class="mb-2"><strong>✓ Checked by the organiser.</strong></p>
 		}

@@ -63,7 +63,7 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 | # | Area | What it does | Builds on |
 |---|---|---|---|
 | 1 | **Card collection and checking** (built, live at `/competitions` since 2026-10-06; [what each person sees](features/competition-entries.md)) | Members keep their entries with their club and change them freely; the club's competition secretary sends them to the competition (individuals can enter directly where allowed); the organiser and difficulty judges see every card already checked against its level, print them, mark them checked, and export CSV; optionally asks for video proof by link (an unlisted YouTube video, say) for chosen skills | requirements, levels, tariff sheet, sharing |
-| 3 | Timetable and flight planner | Entries per category, panels and minutes per competitor give flights, running orders and estimated times; printable marshal and chair-of-judges sheets | — |
+| 3 | Timetable and flight planner (built; [timetable](features/competition-entries.md#timetable-roadmap-competitions-3)) | Entries per category, panels and minutes per competitor give flights, running orders and estimated times; printable marshal and chair-of-judges sheets | — |
 | 4 | Officials rota | Judges, recorders, marshals and spotters per panel and flight, with clashes flagged | 3 |
 | 5 | "My competition" page | For attendees: flight, panel, time, card status | 1, 3 |
 | 6 | Results history | Import results CSVs (TrampOnline, TScore) for personal bests and progression, and for next year's level planning | — |

@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: The [timetable](features/competition-entries.md#timetable-roadmap-competitions-3)
+  (roadmap: competitions 3): men and women ranked separately where the
+  organiser chooses, flights planned on panels (split separately from
+  ranking), adjusted by hand, printed for marshals and the chair of judges,
+  and published to clubs and gymnasts.
 * **Update**: [Roadmap](roadmap.md) priorities: the timetable and flight
   planner (competitions 3) is next; the difficulty judge helper (2) moves to
   the bottom, as it would be hard to make reliable enough to use.
