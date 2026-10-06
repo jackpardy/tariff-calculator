@@ -179,7 +179,7 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 				row.Video, row.Note = "need more", strings.TrimSpace(row.Note+" "+e.VideoNote)
 			}
 			if cc.Competition.Open {
-				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID
+				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline
 			}
 			if at := placement(c, sentID[e.MemberID]); at != nil {
 				row.Flight = fmt.Sprintf("%s · panel %s · warm-up %s", at.Flight, at.Panel, at.Time)
@@ -288,13 +288,15 @@ func cmpErr(err, fallback error) error {
 }
 
 // memberEntry is a member's entry for a competition, if they have one.
+// memberEntry is a member's entry for a competition, in the discipline the
+// request names (discipline), if they have one.
 func (p *competitionPages) memberEntry(r *http.Request, memberID, competitionID string) (*store.MemberEntry, error) {
 	entries, err := p.st.MemberEntries(r.Context(), memberID)
 	if err != nil {
 		return nil, err
 	}
 	for _, e := range entries {
-		if e.CompetitionID == competitionID {
+		if e.CompetitionID == competitionID && e.Discipline == r.FormValue("discipline") {
 			return &e, nil
 		}
 	}
@@ -315,7 +317,7 @@ func (p *competitionPages) editMemberEntry(w http.ResponseWriter, r *http.Reques
 		failed(w, r, err)
 		return
 	}
-	start := competitions.Entry{Gymnast: m.Name}
+	start := competitions.Entry{Gymnast: m.Name, Discipline: r.FormValue("discipline")}
 	if existing != nil {
 		start = existing.Entry
 	}
@@ -547,7 +549,8 @@ func (p *competitionPages) memberHome(w http.ResponseWriter, r *http.Request) {
 }
 
 // renderMember shows a member their page. A form just posted with problems
-// (for competition failedID) is shown open, as posted.
+// (for failedID: a competition's id and the discipline, as "<id>/<discipline>")
+// is shown open, as posted.
 func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, m store.Member, failedID string, posted *competitions.Entry, problems []string) {
 	ctx := r.Context()
 	club, err := p.memberClub(r, m)
@@ -580,51 +583,76 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 	}
 	now := p.now()
 	for _, c := range comps {
-		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now), Status: "Not entered", Withdraw: path + "/competitions/" + c.ID + "/withdraw"}
-		start := competitions.Entry{Gymnast: m.Name}
-		for _, e := range entries {
-			if e.CompetitionID != c.ID {
-				continue
+		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now)}
+		var sent []store.Entry
+		disciplines := c.Disciplines()
+		entered := 0
+		for _, d := range disciplines {
+			ev := views.MemberEvent{
+				Discipline: d, Name: competitions.DisciplineName(d), Status: "Not entered",
+				Withdraw: path + "/competitions/" + c.ID + "/withdraw", Several: len(disciplines) > 1,
 			}
-			start = e.Entry
-			if e.Sent() {
-				if sent, err := p.st.Entries(ctx, c.ID); err == nil {
+			start := competitions.Entry{Gymnast: m.Name, Discipline: d}
+			for _, e := range entries {
+				if e.CompetitionID != c.ID || e.Discipline != d {
+					continue
+				}
+				entered++
+				start = e.Entry
+				if e.Sent() {
+					if sent == nil {
+						sent, _ = p.st.Entries(ctx, c.ID)
+					}
 					for _, s := range sent {
-						if s.MemberID == m.ID {
-							mc.Placement = placement(c, s.ID)
+						if s.MemberID == m.ID && s.Entry.Discipline == d {
+							ev.Placement = placement(c, s.ID)
 						}
 					}
 				}
+				shown, err := card(c.Competition, e.Entry, club)
+				if err != nil {
+					failed(w, r, err)
+					return
+				}
+				withSignoff(&shown, memberSignoff(c.Competition, e))
+				ev.Card = &shown
+				ev.Note, ev.VideoReview, ev.VideoNote = e.Note, e.VideoReview, e.VideoNote
+				if e.Entry.Partner != nil {
+					ev.Partner = &views.PartnerView{Name: e.Entry.Partner.Name, Link: origin(r) + partnerPath(e.PartnerLink), Confirmed: e.PartnerConfirmed}
+				}
+				switch {
+				case !e.Sent():
+					ev.Status = "Saved, not sent yet"
+				case e.ChangedSinceSent():
+					ev.Status = "Changed since your club sent it"
+				case e.Checked:
+					ev.Status = "Sent by your club · checked by the organiser ✓"
+				default:
+					ev.Status = "Sent by your club"
+				}
 			}
-			shown, err := card(c.Competition, e.Entry, club)
-			if err != nil {
-				failed(w, r, err)
-				return
+			key := c.ID + "/" + d
+			if key == failedID && posted != nil {
+				start = *posted
 			}
-			withSignoff(&shown, memberSignoff(c.Competition, e))
-			mc.Card = &shown
-			mc.Note, mc.VideoReview, mc.VideoNote = e.Note, e.VideoReview, e.VideoNote
-			switch {
-			case !e.Sent():
-				mc.Status = "Saved, not sent yet"
-			case e.ChangedSinceSent():
-				mc.Status = "Changed since your club sent it"
-			case e.Checked:
-				mc.Status = "Sent by your club · checked by the organiser ✓"
-			default:
-				mc.Status = "Sent by your club"
+			ev.Form = entryForm(c.Competition, start, path+"/competitions/"+c.ID, "Save")
+			ev.Form.Member, ev.Form.Key = true, "-"+c.ID+"-"+d
+			if key == failedID {
+				ev.Form.Problems = problems
+				mc.Open = true
 			}
+			mc.Events = append(mc.Events, ev)
 		}
-		if c.ID == failedID && posted != nil {
-			start = *posted
-		}
-		mc.Form = entryForm(c.Competition, start, path+"/competitions/"+c.ID, "Save")
-		mc.Form.Member, mc.Form.Key = true, "-"+c.ID
-		if c.ID == failedID {
-			mc.Form.Problems = problems
+		switch {
+		case len(disciplines) == 1:
+			mc.Status = mc.Events[0].Status
+		case entered == 1:
+			mc.Status = "1 entry"
+		default:
+			mc.Status = fmt.Sprintf("%d entries", entered)
 		}
 		// Open what needs doing: a competition still open, or one with problems just posted.
-		mc.Open = c.ID == failedID || (mc.Competition.Open && len(comps) == 1)
+		mc.Open = mc.Open || (mc.Competition.Open && len(comps) == 1)
 		page.Competitions = append(page.Competitions, mc)
 	}
 	if len(problems) > 0 {
@@ -654,7 +682,7 @@ func (p *competitionPages) saveOwnMemberEntry(w http.ResponseWriter, r *http.Req
 	}
 	e, problems := postedEntry(r, c.Competition, m.Name)
 	if len(problems) > 0 {
-		p.renderMember(w, r, m, c.ID, &e, problems)
+		p.renderMember(w, r, m, c.ID+"/"+e.Discipline, &e, problems)
 		return
 	}
 	if err := p.st.SaveMemberEntry(r.Context(), m.ID, c.ID, e); err != nil {
@@ -678,7 +706,7 @@ func (p *competitionPages) withdrawMemberEntry(w http.ResponseWriter, r *http.Re
 		http.Redirect(w, r, memberPath(r.PathValue("token")), http.StatusSeeOther)
 		return
 	}
-	if err := p.st.WithdrawMemberEntry(r.Context(), m.ID, c.ID); err != nil {
+	if err := p.st.WithdrawMemberEntry(r.Context(), m.ID, c.ID, r.FormValue("discipline")); err != nil {
 		failed(w, r, err)
 		return
 	}

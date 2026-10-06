@@ -412,4 +412,3 @@ func names(c Competition) []string {
 	}
 	return out
 }
-

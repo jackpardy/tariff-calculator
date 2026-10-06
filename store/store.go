@@ -237,7 +237,8 @@ var migrations = []string{
 	ALTER TABLE entries_new RENAME TO entries;
 	CREATE INDEX entries_club ON entries (club_id);
 	CREATE UNIQUE INDEX entries_signoff ON entries (signoff_hash);
-	CREATE UNIQUE INDEX entries_partner ON entries (partner_hash);`,
+	CREATE UNIQUE INDEX entries_partner ON entries (partner_hash);
+	ALTER TABLE competitions ADD COLUMN events TEXT NOT NULL DEFAULT '{}';`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

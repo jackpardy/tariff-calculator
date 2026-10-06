@@ -592,3 +592,5 @@ details > * { box-sizing: border-box; }
     .comp-page.section { padding: 0; }
     .comp-sheet { break-after: page; }
 }
+.comp-event { border-top: 1px solid #eee; padding-top: 0.75rem; margin-top: 0.75rem; }
+.comp-event .comp-change summary { color: #485fc7; }

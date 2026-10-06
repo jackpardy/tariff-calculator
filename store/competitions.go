@@ -39,28 +39,37 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	if err != nil {
 		return Competition{}, "", fmt.Errorf("encoding split: %w", err)
 	}
+	events, err := json.Marshal(otherEvents{c.Synchro, c.Tumbling, c.DMT})
+	if err != nil {
+		return Competition{}, "", fmt.Errorf("encoding events: %w", err)
+	}
 	_, err = s.db.ExecContext(ctx, `INSERT INTO competitions
-		(id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline, individuals, levels, created_at, delete_after, video, signoff, split)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+		(id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline, individuals, levels, created_at, delete_after, video, signoff, split, events)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
 		out.ID, hash(admin), out.ClubLink, hash(out.ClubLink), out.IndividualLink, hash(out.IndividualLink),
 		c.Name, c.Date, c.Deadline.UTC().Format(timeLayout), c.Individuals, string(levels),
-		out.CreatedAt.Format(timeLayout), c.DeleteAfter().Format(timeLayout), string(video), c.Signoff, string(split))
+		out.CreatedAt.Format(timeLayout), c.DeleteAfter().Format(timeLayout), string(video), c.Signoff, string(split), string(events))
 	if err != nil {
 		return Competition{}, "", fmt.Errorf("storing the competition: %w", err)
 	}
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
 	var deadline, levels, created, video string
-	var split, timetable string
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable); err != nil {
+	var split, timetable, events string
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events); err != nil {
 		return Competition{}, notFound(err)
 	}
+	var ev otherEvents
+	if err := json.Unmarshal([]byte(events), &ev); err != nil {
+		return Competition{}, fmt.Errorf("reading competition %s's events: %w", c.ID, err)
+	}
+	c.Synchro, c.Tumbling, c.DMT = ev.Synchro, ev.Tumbling, ev.DMT
 	if err := json.Unmarshal([]byte(split), &c.Split); err != nil {
 		return Competition{}, fmt.Errorf("reading competition %s's split: %w", c.ID, err)
 	}
@@ -442,4 +451,20 @@ func (s *Store) SetTimetable(ctx context.Context, id string, t *competitions.Tim
 		data = string(b)
 	}
 	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET timetable = $1 WHERE id = $2`, data, id))
+}
+
+// otherEvents are a competition's events beyond individual trampoline, as stored.
+type otherEvents struct {
+	Synchro  []competitions.Level `json:"synchro,omitempty"`
+	Tumbling []string             `json:"tumbling,omitempty"`
+	DMT      []string             `json:"dmt,omitempty"`
+}
+
+// SetEvents changes a competition's synchro, tumbling and DMT levels.
+func (s *Store) SetEvents(ctx context.Context, id string, synchro []competitions.Level, tumbling, dmt []string) error {
+	data, err := json.Marshal(otherEvents{synchro, tumbling, dmt})
+	if err != nil {
+		return err
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET events = $1 WHERE id = $2`, string(data), id))
 }

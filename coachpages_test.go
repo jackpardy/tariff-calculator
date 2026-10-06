@@ -77,7 +77,7 @@ func TestCoachSignoff(t *testing.T) {
 
 	// Bob signs off X; Y is sent without a sign-off and flagged.
 	location := redirected(t, h, xEntry, url.Values{"signed": {"1"}, "note": {"Ready"}})
-	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Signed off X&#39;s entry") && !strings.Contains(page, "Signed off X's entry") {
+	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Signed off X&#39;s BUCS L3 entry") {
 		t.Error("signed off")
 	}
 	if page := do(t, h, http.MethodGet, x, nil).Body.String(); !strings.Contains(page, "Signed off by Bob") || !strings.Contains(page, "Ready") {

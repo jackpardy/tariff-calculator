@@ -395,6 +395,10 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 				sheets.Notes[j.ID] = j.err.Error()
 				continue
 			}
+			if j.card.Unchecked {
+				sheets.Exercises[j.ID] = [2]string{"not checked", ""}
+				continue
+			}
 			var ex [2]string
 			for i, checked := range []requirements.Checked{j.card.First, j.card.Second} {
 				ex[i] = exerciseSummary(j.Entry.Entry.Exercises[i], checked)
