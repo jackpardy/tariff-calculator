@@ -1,6 +1,13 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: [Competition entries](features/competition-entries.md): an
+  entry a club sent for a member who has since withdrawn it (or left the
+  club) is marked "Withdrawn" on the organiser's dashboard and entry page,
+  and isn't counted, printed or listed as a problem, until the club sends
+  again and it goes. The CSV has a Withdrawn column. On a member's page and
+  the comp sec's page for a member, the form to change an entry starts
+  closed under the checked entry.
 * **Update**: Step 7 of ADR 0004: competition storage on the server is
   described in [deploy](operations/deploy.md#competition-storage). The
   `/srv/data/tariff` volume, `DATA_DIR` and nightly SQLite backup are a change

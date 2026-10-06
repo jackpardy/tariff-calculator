@@ -290,15 +290,17 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 		<p class="subtitle is-6">{ e.Competition.Name }</p>
 		if e.Card != nil {
 			@entryCard(*e.Card)
+			// Collapsed under the card, so the entry is what shows; open when a save had problems.
+			<details class="box mt-4 comp-change" open?={ len(e.Form.Problems) > 0 }>
+				<summary><strong>Change the entry</strong></summary>
+				<div class="mt-3">
+					@entryForm(e.Form)
+				</div>
+			</details>
+		} else {
+			<h2 class="title is-5 mt-5">Enter them</h2>
+			@entryForm(e.Form)
 		}
-		<h2 class="title is-5 mt-5">
-			if e.Card != nil {
-				Change the entry
-			} else {
-				Enter them
-			}
-		</h2>
-		@entryForm(e.Form)
 	}
 }
 
@@ -352,14 +354,18 @@ templ MemberHome(p MemberPage) {
 						@entryCard(*c.Card)
 					}
 					if c.Competition.Open {
-						<h2 class="title is-6 mt-4">
-							if c.Card != nil {
-								Change your entry
-							} else {
-								Enter
-							}
-						</h2>
-						@entryForm(c.Form)
+						if c.Card != nil {
+							// Collapsed under the card; open when a save had problems.
+							<details class="box mt-4 comp-change" open?={ len(c.Form.Problems) > 0 }>
+								<summary><strong>Change your entry</strong></summary>
+								<div class="mt-3">
+									@entryForm(c.Form)
+								</div>
+							</details>
+						} else {
+							<h2 class="title is-6 mt-4">Enter</h2>
+							@entryForm(c.Form)
+						}
 						if c.Card != nil {
 							<form method="post" action={ templ.SafeURL(c.Withdraw) } class="mt-4">
 								<label class="checkbox is-size-7">

@@ -68,6 +68,11 @@ and **Video OK** or **Need more** (with a note back to the club).
 The organiser never edits a routine. A problem goes back to the club as a note.
 The club fixes it and sends it again.
 
+An entry the club sent for a member who has since withdrawn it, or left the
+club, is marked **Withdrawn** and isn't counted or printed. It goes when the
+club sends everyone's entries again: the organiser only sees what the club
+sends (ADR 0004 Decision 2).
+
 ## Printing and export
 
 - The [tariff sheet](tariff-sheet.md) (competition card) with its details

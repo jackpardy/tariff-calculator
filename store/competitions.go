@@ -123,6 +123,11 @@ type Entry struct {
 	Note          string    // the organiser's note back to the club or gymnast
 	VideoReview   string    // the organiser's review of its videos: "", VideoOK or VideoMore
 	VideoNote     string    // what more the organiser needs
+	// Withdrawn is a club's entry whose member has since withdrawn it, or left
+	// the club. It stays until the club sends everyone's again (ADR 0004
+	// Decision 2: the organiser only sees what the club sends), marked so it
+	// isn't taken for a live entry.
+	Withdrawn bool
 }
 
 const (
@@ -138,7 +143,9 @@ func (e Entry) Checked() bool { return !e.CheckedAt.IsZero() }
 // Entries are everything entered for a competition: clubs' entries by club,
 // then individuals', each by gymnast.
 func (s *Store) Entries(ctx context.Context, competitionID string) ([]Entry, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note
+	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
+		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
+			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id)
 		FROM entries WHERE competition_id = $1
 		ORDER BY individual, club_name, gymnast, id`, competitionID)
 	if err != nil {
@@ -160,7 +167,7 @@ func (s *Store) Entries(ctx context.Context, competitionID string) ([]Entry, err
 func scanEntry(row interface{ Scan(...any) error }) (Entry, error) {
 	var e Entry
 	var entry, sent, checked string
-	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote); err != nil {
+	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn); err != nil {
 		return Entry{}, notFound(err)
 	}
 	if err := json.Unmarshal([]byte(entry), &e.Entry); err != nil {
@@ -223,7 +230,7 @@ func (s *Store) AddIndividualEntry(ctx context.Context, competitionID string, e 
 
 // IndividualEntry is the entry an individual's personal link opens.
 func (s *Store) IndividualEntry(ctx context.Context, token string) (Entry, error) {
-	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note
+	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE
 		FROM entries WHERE token_hash = $1`, hash(token)))
 }
 
@@ -291,7 +298,9 @@ func (s *Store) SetIndividuals(ctx context.Context, id string, on bool) error {
 
 // CompetitionEntry is one of a competition's entries, by id.
 func (s *Store) CompetitionEntry(ctx context.Context, competitionID, id string) (Entry, error) {
-	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note
+	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
+		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
+			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id)
 		FROM entries WHERE competition_id = $1 AND id = $2`, competitionID, id))
 }
 
