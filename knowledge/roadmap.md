@@ -63,12 +63,12 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 | # | Area | What it does | Builds on |
 |---|---|---|---|
 | 1 | **Card collection and checking** (built, live at `/competitions` since 2026-10-06; [what each person sees](features/competition-entries.md)) | Members keep their entries with their club and change them freely; the club's competition secretary sends them to the competition (individuals can enter directly where allowed); the organiser and difficulty judges see every card already checked against its level, print them, mark them checked, and export CSV; optionally asks for video proof by link (an unlisted YouTube video, say) for chosen skills | requirements, levels, tariff sheet, sharing |
-| 2 | Difficulty judge helper | Tap elements as they're performed, compared live with the submitted card: changes, interruptions, the new tariff | picker, search, validation |
 | 3 | Timetable and flight planner | Entries per category, panels and minutes per competitor give flights, running orders and estimated times; printable marshal and chair-of-judges sheets | — |
 | 4 | Officials rota | Judges, recorders, marshals and spotters per panel and flight, with clashes flagged | 3 |
 | 5 | "My competition" page | For attendees: flight, panel, time, card status | 1, 3 |
 | 6 | Results history | Import results CSVs (TrampOnline, TScore) for personal bests and progression, and for next year's level planning | — |
 | 7 | Later, if wanted | Entries, scoring with time of flight and displacement, live results: the "replace" path | 1–6 |
+| 2 | Difficulty judge helper (low priority) | Tap elements as they're performed, compared live with the submitted card: changes, interruptions, the new tariff. Hard to make reliable enough to use on the day | picker, search, validation |
 
 # Clubs: coaches, gymnasts, committees
 
@@ -101,6 +101,10 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
   drops to the bottom, as it would be hard to do right. ISTO's levels won't
   be available for a while, so building them in waits; users can write them
   as their own requirements meanwhile.
+- **Priorities (2026-10-06):** card collection is live. Next is the timetable
+  and flight planner (competitions 3), then the officials rota (4). The
+  difficulty judge helper (2) drops to the bottom: it would be hard to get
+  right enough to be useful on the day, and there's easier value elsewhere.
 - **Keep the name for now.** Competition and club tools stay on
   `tariff.pardy.ie` even though they go beyond tariffs; a broader name can
   come later.

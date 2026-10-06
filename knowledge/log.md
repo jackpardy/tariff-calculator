@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-06
+* **Update**: [Roadmap](roadmap.md) priorities: the timetable and flight
+  planner (competitions 3) is next; the difficulty judge helper (2) moves to
+  the bottom, as it would be hard to make reliable enough to use.
 * **Update**: CI runs the tests on every pull request, so checks show on a PR
   before merging; only pushes to `master` deploy ([deploy](operations/deploy.md#ci)).
   `master` now requires the test check before a PR merges, and auto-merge is
