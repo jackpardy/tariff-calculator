@@ -105,6 +105,7 @@ type MemberCompetition struct {
 	Status      string        // e.g. "2 entries"
 	Events      []MemberEvent // one per discipline the competition offers
 	Offer       *OfferForm    // what they offer to judge and help with
+	Duties      []string      // their seats on panels, once the timetable is published
 	Open        bool          // shown open on the page
 }
 
@@ -477,6 +478,7 @@ templ MemberHome(p MemberPage) {
 					for _, ev := range c.Events {
 						@memberEvent(c.Competition, ev)
 					}
+					@dutiesBox(c.Duties)
 					if c.Offer != nil && c.Competition.Open {
 						@offerBox(*c.Offer)
 					}

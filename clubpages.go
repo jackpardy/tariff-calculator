@@ -587,7 +587,7 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 	}
 	now := p.now()
 	for _, c := range comps {
-		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now)}
+		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now), Duties: dutiesOf(c, "m:"+m.ID)}
 		var sent []store.Entry
 		disciplines := c.Disciplines()
 		entered := 0

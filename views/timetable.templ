@@ -22,6 +22,25 @@ type TimetablePage struct {
 	Moves       []FlightOption     // flights a gymnast can move to
 	Places      []FlightOption     // day and area a flight can move to
 	Entries     int
+	Rota        RotaView
+}
+
+// RotaView is the officials rota's report, and the people who can officiate.
+type RotaView struct {
+	People   int
+	Options  []FlightOption // who can be given a seat
+	Short    []string       // seats no one could take
+	OwnClub  []string       // e.g. "UCD 4"
+	Busiest  []string
+	Broken   []string // the organiser's rules about people not kept
+	Problems []string // what hand changes broke
+	Coaches  []string // coaches needed in two places at once
+}
+
+// SeatView is one seat on a flight's panel.
+type SeatView struct {
+	Role, Person, Name, Club string
+	Label                    string // e.g. "Execution judge 3", to choose it by
 }
 
 // SetupForm is the timetable's setup, as the forms show it.
@@ -38,6 +57,8 @@ type SetupForm struct {
 	Rules       []string // described
 	Events      []string
 	DayNames    []string
+	People      []FlightOption // who can officiate, for rules about them
+	Roles       []FlightOption
 }
 
 // DayForm is one day.
@@ -99,6 +120,7 @@ type ItemView struct {
 	Name       string
 	Start, End string
 	Gymnasts   []TimetableGymnast
+	Seats      []SeatView // its panel
 }
 
 // TimetableGymnast is a gymnast in a running order.
@@ -142,6 +164,7 @@ templ CompetitionTimetable(p TimetablePage) {
 		}
 		if p.Planned {
 			@reportView(p.Report)
+			@rotaReport(p)
 			<div class="buttons">
 				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/publish") }>
 					if p.Published {
@@ -154,10 +177,11 @@ templ CompetitionTimetable(p TimetablePage) {
 				</form>
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=marshal") }>Print marshal sheets</a>
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=judges") }>Print chair of judges sheets</a>
+				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=rota") }>Print the officials rota</a>
 			</div>
 			<p class="help mb-4">
 				if p.Published {
-					Published: clubs, members and gymnasts entering on their own see their flight, area and time.
+					Published: clubs, members and gymnasts entering on their own see their flight, area and time, and officials their duties.
 				} else {
 					Not published: only you see it.
 				}
@@ -370,8 +394,92 @@ templ setupSections(p TimetablePage) {
 				</div>
 				<p class="help">The area, day or other event used is the one the rule needs. A must is never broken; a prefer is kept where it can be.</p>
 			</form>
+			if len(p.Setup.People) > 0 {
+				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/rules") } class="mt-4">
+					<p class="label is-small">Officials: who does what</p>
+					<div class="comp-setup-row">
+						<div class="select is-small">
+							<select name="person" aria-label="Person">
+								for _, o := range p.Setup.People {
+									<option value={ o.Value }>{ o.Label }</option>
+								}
+							</select>
+						</div>
+						<div class="select is-small">
+							<select name="kind" aria-label="Rule about them">
+								<option value="role">is</option>
+								<option value="off">doesn't officiate at</option>
+								<option value="hours">officiates only, on</option>
+							</select>
+						</div>
+						<div class="select is-small">
+							<select name="role" aria-label="Role">
+								for _, ro := range p.Setup.Roles {
+									<option value={ ro.Value }>{ ro.Label }</option>
+								}
+							</select>
+						</div>
+						<div class="select is-small">
+							<select name="event" aria-label="At event">
+								<option value="">any event</option>
+								for _, e := range p.Setup.Events {
+									<option value={ e }>{ e }</option>
+								}
+							</select>
+						</div>
+					</div>
+					<div class="comp-setup-row">
+						<div class="select is-small">
+							<select name="day" aria-label="Day">
+								for i, d := range p.Setup.DayNames {
+									<option value={ strconv.Itoa(i) }>{ d }</option>
+								}
+							</select>
+						</div>
+						<span class="is-size-7">from</span>
+						<input class="input is-small" type="time" name="from" aria-label="From"/>
+						<span class="is-size-7">until</span>
+						<input class="input is-small" type="time" name="to" aria-label="Until"/>
+					</div>
+					<div class="comp-setup-row">
+						<label class="radio is-size-7"><input type="radio" name="must" value="0" checked/> prefer</label>
+						<label class="radio is-size-7"><input type="radio" name="must" value="1"/> must</label>
+						<button class="button is-small" type="submit" name="add" value="1">Add</button>
+					</div>
+					<p class="help">E.g. Mary is Chair of judges at Elite Women; Tom doesn't officiate at any event; Ann officiates only on Saturday from 12:00. "Is" needs an event; hours use the day and times.</p>
+				</form>
+			} else {
+				<p class="help mt-3">Rules about officials appear here once people have offered to officiate (see Officials).</p>
+			}
 		</div>
 	</details>
+}
+
+// rotaReport is how the officials rota went.
+templ rotaReport(p TimetablePage) {
+	<div class="box">
+		<div class="is-flex is-justify-content-space-between is-align-items-center">
+			<p><strong>Officials</strong> <span class="has-text-grey is-size-7">· { strconv.Itoa(p.Rota.People) } can officiate</span></p>
+			<form method="post" action={ templ.SafeURL(p.Base + "/timetable/officials") }>
+				<button class="button is-small" type="submit" name="action" value="rota" onclick={ confirmRota() }>Assign officials again</button>
+			</form>
+		</div>
+		if p.Rota.People == 0 {
+			<p class="help">No one has offered to judge or help yet. Clubs send their members' offers with their entries, and you can add people on the Officials page.</p>
+		} else if len(p.Rota.Short) == 0 {
+			<p class="has-text-success is-size-7 mt-1">Every seat on every panel is filled.</p>
+		}
+		@problemsList("Seats no one could take", p.Rota.Short)
+		@problemsList("Hand changes have broken", p.Rota.Problems)
+		@problemsList("Your rules about officials not kept", p.Rota.Broken)
+		@problemsList("Coaches needed in two places", p.Rota.Coaches)
+		@problemsList("Judging their own club's gymnasts, times by club", p.Rota.OwnClub)
+		@problemsList("Busiest officials", p.Rota.Busiest)
+	</div>
+}
+
+script confirmRota() {
+	if (!confirm("Assign every panel again? Your changes to the officials are lost.")) { event.preventDefault(); }
 }
 
 templ reportView(r ReportView) {
@@ -456,6 +564,43 @@ templ flightBox(p TimetablePage, f ItemView) {
 				</li>
 			}
 		</ol>
+		if len(f.Seats) > 0 {
+			<details class="comp-panel mt-2">
+				<summary class="is-size-7"><strong>Panel</strong> { seatsSummary(f.Seats) }</summary>
+				<ul class="is-size-7 mt-1">
+					for _, s := range f.Seats {
+						<li>
+							{ s.Role }:
+							if s.Person == "" {
+								<span class="has-text-danger">no one</span>
+							} else {
+								{ s.Name } <span class="has-text-grey">{ s.Club }</span>
+							}
+						</li>
+					}
+				</ul>
+				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/officials") } class="comp-flight-actions">
+					<input type="hidden" name="action" value="seat"/>
+					<input type="hidden" name="flight" value={ strconv.Itoa(f.Index) }/>
+					<div class="select is-small">
+						<select name="seat" aria-label={ "Seat on " + f.Name }>
+							for i, s := range f.Seats {
+								<option value={ strconv.Itoa(i) }>{ s.Label }</option>
+							}
+						</select>
+					</div>
+					<div class="select is-small">
+						<select name="person" aria-label={ "Person for " + f.Name }>
+							<option value="">No one</option>
+							for _, o := range p.Rota.Options {
+								<option value={ o.Value }>{ o.Label }</option>
+							}
+						</select>
+					</div>
+					<button class="button is-small" type="submit">Set</button>
+				</form>
+			</details>
+		}
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/flight") } class="comp-flight-actions">
 			<input type="hidden" name="flight" value={ strconv.Itoa(f.Index) }/>
 			<button class="button is-small is-text" type="submit" name="action" value="redraw">Redraw order</button>
@@ -488,6 +633,37 @@ templ moveGymnast(p TimetablePage, g TimetableGymnast, named bool) {
 		</div>
 		<button class="button is-small" type="submit">Move</button>
 	</form>
+}
+
+// seatsSummary says how full a panel is, e.g. "· 9 of 11 seats filled".
+func seatsSummary(seats []SeatView) string {
+	n := 0
+	for _, s := range seats {
+		if s.Person != "" {
+			n++
+		}
+	}
+	return fmt.Sprintf("· %d of %d seats filled", n, len(seats))
+}
+
+// panelLine lists a panel for a sheet, e.g. "Chair of judges: Mary (UCD) ·
+// Execution judge: …".
+func panelLine(seats []SeatView) string {
+	out := ""
+	for i, s := range seats {
+		if i > 0 {
+			out += " · "
+		}
+		name := "—"
+		if s.Person != "" {
+			name = s.Name
+			if s.Club != "" {
+				name += " (" + s.Club + ")"
+			}
+		}
+		out += s.Role + ": " + name
+	}
+	return out
 }
 
 func gymnastCount(n int) string {
@@ -535,6 +711,9 @@ templ TimetablePrint(s TimetableSheets) {
 				for _, f := range sheet.Flights {
 					<h2 class="title is-6 mt-4 mb-1">{ f.Name }</h2>
 					<p class="is-size-7 mb-1">Warm-up { f.Start } · finishes about { f.End }</p>
+					if len(f.Seats) > 0 {
+						<p class="is-size-7 mb-1">{ panelLine(f.Seats) }</p>
+					}
 					<table class="table is-fullwidth is-narrow is-bordered comp-sheet-table">
 						<thead>
 							<tr>
@@ -588,6 +767,65 @@ templ placementLine(p *Placement) {
 	if p != nil {
 		<div class="notification is-info is-light">
 			<p><strong>{ p.Flight }</strong> · { p.Panel } · warm-up { p.Time }</p>
+		</div>
+	}
+}
+
+// RotaSheet is the printable officials rota: each person's duties.
+type RotaSheet struct {
+	Title       string
+	Back        string
+	Competition CompetitionSummary
+	People      []PersonDuties
+}
+
+// PersonDuties is one person's duties, in time order.
+type PersonDuties struct {
+	Name, Club string
+	Duties     []string
+}
+
+// RotaPrint prints the officials rota.
+templ RotaPrint(s RotaSheet) {
+	@competitionLayout(s.Title) {
+		<div class="comp-print-bar screen-only">
+			<a href={ templ.SafeURL(s.Back) }>← Timetable</a>
+			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
+		</div>
+		<h1 class="title is-5 mb-3">{ s.Competition.Name } · Officials rota</h1>
+		if len(s.People) == 0 {
+			<p>No one has a duty yet.</p>
+		}
+		<table class="table is-fullwidth is-narrow is-bordered comp-sheet-table">
+			<thead><tr><th>Name</th><th>Club</th><th>Duties</th></tr></thead>
+			<tbody>
+				for _, p := range s.People {
+					<tr>
+						<td>{ p.Name }</td>
+						<td>{ p.Club }</td>
+						<td class="is-size-7">
+							for _, d := range p.Duties {
+								<div>{ d }</div>
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+// dutiesBox lists a person's duties as an official, once the timetable is
+// published.
+templ dutiesBox(duties []string) {
+	if len(duties) > 0 {
+		<div class="notification is-info is-light">
+			<p><strong>Officiating</strong></p>
+			<ul class="is-size-7">
+				for _, d := range duties {
+					<li>{ d }</li>
+				}
+			</ul>
 		</div>
 	}
 }

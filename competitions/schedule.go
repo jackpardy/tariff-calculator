@@ -56,13 +56,21 @@ type Block struct {
 }
 
 // Rule kinds: an event on an area or day, an event before another, or two
-// events never at the same time.
+// events never at the same time; and for officials, a person in a role at an
+// event, a person not officiating (at an event, or at all), or a person
+// officiating on a day only between two times.
 const (
 	RuleArea   = "area"
 	RuleDay    = "day"
 	RuleBefore = "before"
 	RuleApart  = "apart"
+	RuleRole   = "role"
+	RuleOff    = "off"
+	RuleHours  = "hours"
 )
+
+// personRule says whether a rule is about an official.
+func personRule(kind string) bool { return kind == RuleRole || kind == RuleOff || kind == RuleHours }
 
 // Rule is one of the organiser's rules, a must (never broken) or a prefer
 // (a cost if broken).
@@ -72,21 +80,43 @@ type Rule struct {
 	Event  string `json:"event"`
 	Event2 string `json:"event2,omitempty"` // RuleBefore, RuleApart
 	Area   string `json:"area,omitempty"`   // RuleArea
-	Day    int    `json:"day,omitempty"`    // RuleDay
+	Day    int    `json:"day,omitempty"`    // RuleDay, RuleHours
+	Person string `json:"person,omitempty"` // RuleRole, RuleOff, RuleHours: their key
+	Name   string `json:"name,omitempty"`   // and their name
+	Role   string `json:"role,omitempty"`   // RuleRole
+	From   string `json:"from,omitempty"`   // RuleHours: "" for the day's start
+	To     string `json:"to,omitempty"`     // RuleHours: "" for the day's end
 }
 
 // Describe says what a rule says, e.g. "Synchro BUCS L3 on Panel 2 (must)".
 func (r Rule) Describe(days []Day) string {
 	var out string
+	day := fmt.Sprintf("day %d", r.Day+1)
+	if r.Day >= 0 && r.Day < len(days) && days[r.Day].Name != "" {
+		day = days[r.Day].Name
+	}
 	switch r.Kind {
 	case RuleArea:
 		out = r.Event + " on " + r.Area
 	case RuleDay:
-		day := fmt.Sprintf("day %d", r.Day+1)
-		if r.Day >= 0 && r.Day < len(days) && days[r.Day].Name != "" {
-			day = days[r.Day].Name
-		}
 		out = r.Event + " on " + day
+	case RuleRole:
+		out = r.Name + " " + roleVerbs[r.Role] + " " + r.Event
+	case RuleOff:
+		out = r.Name + " doesn't officiate"
+		if r.Event != "" {
+			out += " at " + r.Event
+		}
+	case RuleHours:
+		out = r.Name + " officiates on " + day + " only"
+		switch {
+		case r.From != "" && r.To != "":
+			out += " between " + r.From + " and " + r.To
+		case r.From != "":
+			out += " from " + r.From
+		default:
+			out += " until " + r.To
+		}
 	case RuleBefore:
 		out = r.Event + " before " + r.Event2
 	case RuleApart:
@@ -228,10 +258,34 @@ func (s Setup) Check(events []string) error {
 		}
 	}
 	for _, r := range s.Rules {
-		if !slices.Contains(events, r.Event) {
+		if (r.Event != "" || !personRule(r.Kind)) && !slices.Contains(events, r.Event) {
 			errs = append(errs, fmt.Errorf("a rule is about an event %q the competition doesn't offer", r.Event))
 		}
+		if personRule(r.Kind) && r.Person == "" {
+			errs = append(errs, errors.New("a rule about an official needs a person"))
+		}
 		switch r.Kind {
+		case RuleRole:
+			if !slices.Contains(Roles, r.Role) {
+				errs = append(errs, fmt.Errorf("a rule gives %s an unknown role %q", r.Name, r.Role))
+			}
+			if r.Event == "" {
+				errs = append(errs, fmt.Errorf("a rule about %s's role needs an event", r.Name))
+			}
+		case RuleOff:
+		case RuleHours:
+			from, err1 := clock(r.From)
+			to, err2 := clock(r.To)
+			switch {
+			case r.Day < 0 || r.Day >= len(s.Days):
+				errs = append(errs, fmt.Errorf("a rule about %s is on a day the competition doesn't have", r.Name))
+			case r.From == "" && r.To == "":
+				errs = append(errs, fmt.Errorf("a rule about %s's hours needs a time", r.Name))
+			case (r.From != "" && err1 != nil) || (r.To != "" && err2 != nil):
+				errs = append(errs, fmt.Errorf("a rule about %s: times should be written as 09:30", r.Name))
+			case r.From != "" && r.To != "" && to <= from:
+				errs = append(errs, fmt.Errorf("a rule about %s's hours ends before it starts", r.Name))
+			}
 		case RuleArea:
 			if !areas[r.Area] {
 				errs = append(errs, fmt.Errorf("a rule puts %s on an area %q that isn't set up", r.Event, r.Area))
@@ -267,6 +321,7 @@ type ScheduledFlight struct {
 	Area       string `json:"area"`
 	Start      int    `json:"start"` // minutes since midnight, when its warm-up starts
 	End        int    `json:"end"`
+	Officials  []Duty `json:"officials,omitempty"` // its panel's seats, from the rota
 }
 
 // ScheduledBlock is blocked time placed on its areas.
@@ -298,6 +353,7 @@ type SchedEntry struct {
 	PlanEntry
 	Discipline string
 	People     []string
+	Coaches    []string // who coaches its gymnasts, by a key: kept from being needed in two places where that can be done
 }
 
 // interval is a span of minutes on a day.
@@ -312,6 +368,7 @@ type planner struct {
 	days    [][2]int              // each day's start and end
 	busy    map[string][]interval // by area
 	people  map[string][]interval // by person
+	coaches map[string][]interval // by coach
 	placed  []ScheduledFlight
 	blocks  []ScheduledBlock
 	byEvent map[string][]ScheduledFlight
@@ -319,12 +376,12 @@ type planner struct {
 }
 
 // flightsOf builds each event's flights, in event order, with their people.
-func flightsOf(entries []SchedEntry, eventOrder []string, setup Setup, rng *rand.Rand) ([]ScheduledFlight, map[string][]string) {
-	people := map[string][]string{}
+func flightsOf(entries []SchedEntry, eventOrder []string, setup Setup, rng *rand.Rand) ([]ScheduledFlight, map[string][]string, map[string][]string) {
+	people, coaches := map[string][]string{}, map[string][]string{}
 	discipline := map[string]string{}
 	var plan []PlanEntry
 	for _, e := range entries {
-		people[e.ID] = e.People
+		people[e.ID], coaches[e.ID] = e.People, e.Coaches
 		discipline[e.Level] = e.Discipline
 		plan = append(plan, e.PlanEntry)
 	}
@@ -335,7 +392,7 @@ func flightsOf(entries []SchedEntry, eventOrder []string, setup Setup, rng *rand
 			out = append(out, ScheduledFlight{Flight: f, Discipline: d})
 		}
 	}
-	return out, people
+	return out, people, coaches
 }
 
 // duration is how long a flight takes, in whole minutes.
@@ -349,7 +406,7 @@ func (s Setup) duration(f ScheduledFlight) int {
 // tries several orders (deterministically, from seed) and keeps the best.
 func PlanSchedule(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) Schedule {
 	rng := rand.New(rand.NewPCG(seed, 7))
-	flights, people := flightsOf(entries, eventOrder, setup, rng)
+	flights, people, coaches := flightsOf(entries, eventOrder, setup, rng)
 	var best *planner
 	var bestUnplaced []ScheduledFlight
 	for attempt := range 24 {
@@ -367,7 +424,7 @@ func PlanSchedule(entries []SchedEntry, eventOrder []string, setup Setup, seed u
 		p := newPlanner(setup)
 		var unplaced []ScheduledFlight
 		for _, f := range order {
-			if !p.place(f, people) {
+			if !p.place(f, people, coaches) {
 				unplaced = append(unplaced, f)
 			}
 		}
@@ -407,7 +464,7 @@ func beforeOrder(order []ScheduledFlight, rules []Rule) []ScheduledFlight {
 }
 
 func newPlanner(setup Setup) *planner {
-	p := &planner{setup: setup, areas: setup.Areas, busy: map[string][]interval{}, people: map[string][]interval{}, byEvent: map[string][]ScheduledFlight{}}
+	p := &planner{setup: setup, areas: setup.Areas, busy: map[string][]interval{}, people: map[string][]interval{}, coaches: map[string][]interval{}, byEvent: map[string][]ScheduledFlight{}}
 	for _, d := range setup.Days {
 		start, _ := clock(d.Start)
 		end, _ := clock(d.End)
@@ -466,11 +523,14 @@ func (p *planner) placeBlocks() {
 }
 
 // place puts a flight at its best feasible place, if it has one.
-func (p *planner) place(f ScheduledFlight, people map[string][]string) bool {
-	who := map[string]bool{}
+func (p *planner) place(f ScheduledFlight, people, coaches map[string][]string) bool {
+	who, coached := map[string]bool{}, map[string]bool{}
 	for _, id := range f.Entries {
 		for _, person := range people[id] {
 			who[person] = true
+		}
+		for _, c := range coaches[id] {
+			coached[c] = true
 		}
 	}
 	length := p.setup.duration(f)
@@ -486,7 +546,7 @@ func (p *planner) place(f ScheduledFlight, people map[string][]string) bool {
 				continue
 			}
 			cand := ScheduledFlight{Flight: f.Flight, Discipline: f.Discipline, Day: day, Area: a.Name, Start: start, End: start + length}
-			if c := p.score(cand, who); c < bestCost {
+			if c := p.score(cand, who, coached); c < bestCost {
 				bestCost, best = c, cand
 			}
 		}
@@ -500,6 +560,9 @@ func (p *planner) place(f ScheduledFlight, people map[string][]string) bool {
 	p.busy[best.Area] = append(p.busy[best.Area], iv)
 	for person := range who {
 		p.people[person] = append(p.people[person], iv)
+	}
+	for c := range coached {
+		p.coaches[c] = append(p.coaches[c], iv)
 	}
 	p.cost += bestCost
 	return true
@@ -620,7 +683,7 @@ func (p *planner) clear(iv interval, area string, who map[string]bool, rest int,
 
 // score is how good a placement is: lower is better. Earlier is better
 // (later days much worse), and each broken prefer costs.
-func (p *planner) score(f ScheduledFlight, who map[string]bool) float64 {
+func (p *planner) score(f ScheduledFlight, who, coached map[string]bool) float64 {
 	cost := float64(f.Day*24*60 + f.End)
 	if p.broken(f.Level, f.Area, f.Day, false) {
 		cost += 120
@@ -646,6 +709,15 @@ func (p *planner) score(f ScheduledFlight, who map[string]bool) float64 {
 				if gap < p.setup.Rest {
 					cost += float64(p.setup.Rest - gap)
 				}
+			}
+		}
+	}
+	// A coach needed on two areas at once.
+	for c := range coached {
+		for _, iv := range p.coaches[c] {
+			if overlaps(iv, interval{f.Day, f.Start, f.End}) {
+				cost += 40
+				break
 			}
 		}
 	}

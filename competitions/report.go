@@ -198,3 +198,33 @@ func Fixes(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) 
 	}
 	return tries
 }
+
+// CoachClashes are coaches with gymnasts on two areas at once. coaches are
+// each entry's coaches, by entry id; names name them.
+func (s Schedule) CoachClashes(coaches map[string][]string, names map[string]string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for i, a := range s.Flights {
+		for _, b := range s.Flights[i+1:] {
+			if a.Area == b.Area || !overlaps(interval{a.Day, a.Start, a.End}, interval{b.Day, b.Start, b.End}) {
+				continue
+			}
+			in := map[string]bool{}
+			for _, id := range a.Entries {
+				for _, c := range coaches[id] {
+					in[c] = true
+				}
+			}
+			for _, id := range b.Entries {
+				for _, c := range coaches[id] {
+					msg := fmt.Sprintf("%s coaches in %s (%s) and %s (%s) at once", names[c], a.Name(), a.Area, b.Name(), b.Area)
+					if in[c] && !seen[msg] {
+						seen[msg] = true
+						out = append(out, msg)
+					}
+				}
+			}
+		}
+	}
+	return out
+}

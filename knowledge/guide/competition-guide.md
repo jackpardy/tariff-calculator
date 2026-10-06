@@ -130,13 +130,24 @@ has a starting value you can change.
    time and the musts are kept, then as many preferences as fit. The report
    shows when each day finishes, anything that doesn't fit, anyone with too
    little rest, and changes that would make it all fit.
+   Planning also fills every panel from the people who've offered to judge
+   and help (see **Officials**): never someone competing or on another panel
+   at the time, and only in roles they may take. Clubs share judging their
+   own gymnasts fairly, and a panel stays together on its area.
 7. Adjust by hand: move a flight to another day or area, **Redraw order**, or
    **move** a gymnast to another flight. Entries made after planning are
    listed for you to place. Changing the setup asks you to **Plan** again.
-8. **Print marshal sheets** and **Print chair of judges sheets** (one area to a
-   page).
-9. **Publish** to show clubs, members and gymnasts entering on their own their
-   flight, area and warm-up time.
+   Open a flight's **Panel** to give a seat to someone else; **Assign
+   officials again** redoes every panel and keeps the flights.
+8. Under **Your rules**, **Officials: who does what** says who does what, as a
+   must or a prefer: e.g. Mary **is** Chair of judges at Elite Women, Tom
+   **doesn't officiate**, Ann **officiates only** on Saturday from 12:00. Then
+   tap **Assign officials again**.
+9. **Print marshal sheets** and **Print chair of judges sheets** (one area to a
+   page, each flight with its panel), and **Print the officials rota** (each
+   person's duties) for the noticeboard.
+10. **Publish** to show clubs, members and gymnasts entering on their own their
+   flight, area and warm-up time, and officials their duties.
 
 # 2. Run your club (comp secs)
 
@@ -190,7 +201,8 @@ or marshal. Your comp sec can correct it, and sends it with the entries.
 To change it, open **Change your entry**. To pull out of one discipline, tick
 **Withdraw this entry** under it and tap **Withdraw**. Notes from the organiser
 and your coach show on your entry, and once the organiser publishes the
-timetable, your flight, panel and warm-up time.
+timetable, your flight, area and warm-up time, and under **Officiating**
+when and where you judge or help.
 
 ## Synchro
 
@@ -224,7 +236,9 @@ sign-off, entries without it are flagged to the organiser.
    Tap **Enter**. Enter each discipline separately: each gets its own link.
 3. You get your own **personal link**, saved in this browser. Keep it: it's how
    you change (**Change the entry**) or withdraw your entry until entries close.
-   Under **Judging and helping**, say what you can judge or help with.
+   Under **Judging and helping**, say what you can judge or help with. Once
+   the timetable is published, your entry shows your flight and, under
+   **Officiating**, when and where you judge or help.
 4. If the competition needs a coach's sign-off, send your coach the **Sign-off
    link** shown on your entry. They open it, check it and sign off with their
    name.
