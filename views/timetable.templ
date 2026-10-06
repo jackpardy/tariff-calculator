@@ -87,6 +87,7 @@ type ReportView struct {
 	Broken    []string
 	Fixes     []FixView
 	Problems  []string // what hand edits have broken
+	LookAlike []string // names that may be one person entered twice
 }
 
 // DayFinish is when a day finishes against its end.
@@ -518,6 +519,9 @@ templ reportView(r ReportView) {
 		@problemsList("Hand changes have broken", r.Problems)
 		@problemsList("Less rest than wanted", r.ShortRest)
 		@problemsList("Preferences not met", r.Broken)
+		if len(r.LookAlike) > 0 {
+			@problemsList("Names that look like the same person (if so, they're planned as two people: make the names match)", r.LookAlike)
+		}
 	</div>
 }
 

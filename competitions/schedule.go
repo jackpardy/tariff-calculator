@@ -369,6 +369,7 @@ type planner struct {
 	busy    map[string][]interval // by area
 	people  map[string][]interval // by person
 	coaches map[string][]interval // by coach
+	staff   *Staffing
 	placed  []ScheduledFlight
 	blocks  []ScheduledBlock
 	byEvent map[string][]ScheduledFlight
@@ -401,10 +402,24 @@ func (s Setup) duration(f ScheduledFlight) int {
 	return t.Between + int(math.Ceil(float64(len(f.Entries))*t.PerCompetitor))
 }
 
+// Staffing is who may judge each event, so that flights go where enough of
+// them are free (not competing), and how many judges each discipline's
+// panel needs.
+type Staffing struct {
+	Judges map[string][]string // by event: the keys of the people who may judge it
+	Need   map[string]int      // by discipline
+}
+
 // PlanSchedule schedules the entries: each event's flights, placed around blocked
 // time, keeping the rules and people's clashes, as early as they can go. It
 // tries several orders (deterministically, from seed) and keeps the best.
 func PlanSchedule(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) Schedule {
+	return PlanStaffed(entries, eventOrder, setup, nil, seed)
+}
+
+// PlanStaffed is PlanSchedule, also preferring times when enough of each
+// event's judges are free to fill its panel.
+func PlanStaffed(entries []SchedEntry, eventOrder []string, setup Setup, staff *Staffing, seed uint64) Schedule {
 	rng := rand.New(rand.NewPCG(seed, 7))
 	flights, people, coaches := flightsOf(entries, eventOrder, setup, rng)
 	var best *planner
@@ -422,6 +437,7 @@ func PlanSchedule(entries []SchedEntry, eventOrder []string, setup Setup, seed u
 		}
 		order = beforeOrder(order, setup.Rules)
 		p := newPlanner(setup)
+		p.staff = staff
 		var unplaced []ScheduledFlight
 		for _, f := range order {
 			if !p.place(f, people, coaches) {
@@ -712,6 +728,19 @@ func (p *planner) score(f ScheduledFlight, who, coached map[string]bool) float64
 			}
 		}
 	}
+	// Too few of an event's judges free, this one's or one already placed at
+	// the same time (whose judges this one's gymnasts would take): each judge
+	// short costs.
+	if p.staff != nil {
+		iv := interval{f.Day, f.Start, f.End}
+		cost += 30 * float64(p.short(f, iv, who))
+		for _, g := range p.placed {
+			giv := interval{g.Day, g.Start, g.End}
+			if overlaps(iv, giv) {
+				cost += 30 * float64(p.short(g, giv, who)-p.short(g, giv, nil))
+			}
+		}
+	}
 	// A coach needed on two areas at once.
 	for c := range coached {
 		for _, iv := range p.coaches[c] {
@@ -746,6 +775,25 @@ func (p *planner) score(f ScheduledFlight, who, coached map[string]bool) float64
 		}
 	}
 	return cost
+}
+
+// short is how many judges a flight's panel would be short of, counting as
+// busy whoever competes then, and also the people in who.
+func (p *planner) short(f ScheduledFlight, iv interval, who map[string]bool) int {
+	free := 0
+	for _, key := range p.staff.Judges[f.Level] {
+		if who[key] {
+			continue
+		}
+		busy := false
+		for _, used := range p.people[key] {
+			busy = busy || overlaps(iv, used)
+		}
+		if !busy {
+			free++
+		}
+	}
+	return max(0, p.staff.Need[f.Discipline]-free)
 }
 
 // sortFlights orders flights by day, area, then time.
