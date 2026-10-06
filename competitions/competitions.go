@@ -40,6 +40,7 @@ type Competition struct {
 	Levels      []Level
 	Video       Video // whether gymnasts send video proof
 	Signoff     bool  // entries need a coach's sign-off (ADR 0004 Decision 11)
+	Split       Split // which levels split men and women
 }
 
 // Level is a level a competition offers. A built-in is kept by reference; a
@@ -137,6 +138,9 @@ func (c Competition) Validate() error {
 	if err := c.Video.validate(); err != nil {
 		errs = append(errs, err)
 	}
+	if err := c.Split.validate(names(c)); err != nil {
+		errs = append(errs, err)
+	}
 	names := map[string]bool{}
 	for _, l := range c.Levels {
 		level, err := l.validate()
@@ -167,7 +171,8 @@ func (c Competition) Level(name string) (Level, requirements.Level, bool) {
 // competition keeps a copy of what the club sent.
 type Entry struct {
 	Gymnast   string      `json:"gymnast"`
-	Level     string      `json:"level"` // the name of one of the competition's levels
+	Level     string      `json:"level"`              // the name of one of the competition's levels
+	Category  string      `json:"category,omitempty"` // Men or Women, where the level splits them
 	Exercises [2]Exercise `json:"exercises"`
 }
 
@@ -203,6 +208,12 @@ func (c Competition) ValidateEntry(e *Entry) error {
 	_, level, ok := c.Level(e.Level)
 	if !ok {
 		return errors.Join(append(errs, fmt.Errorf("the competition doesn't offer the level %q", e.Level))...)
+	}
+	switch {
+	case !c.Split.Splits(e.Level):
+		e.Category = ""
+	case !slices.Contains(Categories, e.Category):
+		errs = append(errs, fmt.Errorf("%s is split into men and women: choose one", e.Level))
 	}
 	for i := range e.Exercises {
 		ex := &e.Exercises[i]
@@ -314,3 +325,64 @@ func ordinal(n int) string {
 	}
 	return "first"
 }
+
+// Categories are what a split level divides its gymnasts into.
+var Categories = []string{"Men", "Women"}
+
+// Split says which levels are split into men and women, so their flights
+// never mix them. Smaller levels are often left together.
+type Split struct {
+	Mode   string   `json:"mode,omitempty"`   // SplitNone, SplitAll or SplitSome
+	Levels []string `json:"levels,omitempty"` // with SplitSome: the levels split, by name
+}
+
+const (
+	SplitNone = ""
+	SplitAll  = "all"
+	SplitSome = "some"
+)
+
+// Splits says whether a level is split into men and women.
+func (s Split) Splits(level string) bool {
+	switch s.Mode {
+	case SplitAll:
+		return true
+	case SplitSome:
+		return slices.Contains(s.Levels, level)
+	}
+	return false
+}
+
+// Any says whether any level is split.
+func (s Split) Any() bool {
+	return s.Mode == SplitAll || (s.Mode == SplitSome && len(s.Levels) > 0)
+}
+
+func (s Split) validate(levels []string) error {
+	switch s.Mode {
+	case SplitNone, SplitAll:
+		return nil
+	case SplitSome:
+		for _, l := range s.Levels {
+			if !slices.Contains(levels, l) {
+				return fmt.Errorf("the competition doesn't offer the level %q to split", l)
+			}
+		}
+		return nil
+	}
+	return fmt.Errorf("unknown split %q", s.Mode)
+}
+
+// names are the names of the levels a competition offers, in order.
+func names(c Competition) []string {
+	var out []string
+	for _, l := range c.Levels {
+		if level, err := l.Resolve(); err == nil {
+			out = append(out, level.Name)
+		}
+	}
+	return out
+}
+
+// LevelNames are the names of the levels a competition offers, in order.
+func (c Competition) LevelNames() []string { return names(c) }
