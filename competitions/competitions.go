@@ -47,6 +47,9 @@ type Competition struct {
 	Synchro  []Level
 	Tumbling []string
 	DMT      []string
+	// Officials are the panels each discipline needs and who may judge what
+	// (ADR 0005 Decisions 5 and 13).
+	Officials OfficialSettings
 }
 
 // Level is a level a competition offers. A built-in is kept by reference; a
@@ -142,6 +145,9 @@ func (c Competition) Validate() error {
 		errs = append(errs, errors.New("the competition needs at least one level"))
 	}
 	errs = append(errs, c.validateEvents()...)
+	if err := c.Officials.Check(); err != nil {
+		errs = append(errs, err)
+	}
 	if err := c.Video.validate(); err != nil {
 		errs = append(errs, err)
 	}

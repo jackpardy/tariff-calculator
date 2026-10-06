@@ -55,15 +55,18 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
 	var deadline, levels, created, video string
-	var split, timetable, events string
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events); err != nil {
+	var split, timetable, events, officials string
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials); err != nil {
 		return Competition{}, notFound(err)
+	}
+	if err := json.Unmarshal([]byte(officials), &c.Officials); err != nil {
+		return Competition{}, fmt.Errorf("reading competition %s's officials: %w", c.ID, err)
 	}
 	var ev otherEvents
 	if err := json.Unmarshal([]byte(events), &ev); err != nil {

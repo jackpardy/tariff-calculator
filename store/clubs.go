@@ -441,6 +441,10 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		if err := full(ctx, tx, competitionID); err != nil {
 			return err
 		}
+		// What members offer to judge and help goes with the club's entries.
+		if err := sendOffers(ctx, tx, clubID, name, competitionID, now); err != nil {
+			return err
+		}
 		sent = len(chosen)
 		return touch(ctx, tx, clubID, now)
 	})

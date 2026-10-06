@@ -239,6 +239,34 @@ var migrations = []string{
 	CREATE UNIQUE INDEX entries_signoff ON entries (signoff_hash);
 	CREATE UNIQUE INDEX entries_partner ON entries (partner_hash);
 	ALTER TABLE competitions ADD COLUMN events TEXT NOT NULL DEFAULT '{}';`,
+
+	// 7: officials (ADR 0005 Decisions 5 and 13): what members offer to judge
+	// and help, the competition's officials (sent by clubs, offered by
+	// individuals, added by the organiser), and its panels and judging rule.
+	`CREATE TABLE member_offers (
+		member_id      TEXT NOT NULL REFERENCES members (id) ON DELETE CASCADE,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		offer          TEXT NOT NULL,
+		updated_at     TEXT NOT NULL,
+		PRIMARY KEY (member_id, competition_id)
+	);
+	CREATE TABLE officials (
+		id             TEXT PRIMARY KEY,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		club_id        TEXT REFERENCES clubs (id) ON DELETE SET NULL,
+		member_id      TEXT REFERENCES members (id) ON DELETE SET NULL,
+		entry_id       TEXT REFERENCES entries (id) ON DELETE CASCADE,
+		club_name      TEXT NOT NULL DEFAULT '',
+		name           TEXT NOT NULL,
+		offer          TEXT NOT NULL,
+		qualified      BOOLEAN NOT NULL DEFAULT FALSE,
+		added          BOOLEAN NOT NULL DEFAULT FALSE,
+		updated_at     TEXT NOT NULL,
+		UNIQUE (competition_id, member_id),
+		UNIQUE (competition_id, entry_id)
+	);
+	CREATE INDEX officials_competition ON officials (competition_id);
+	ALTER TABLE competitions ADD COLUMN officials TEXT NOT NULL DEFAULT '{}';`,
 }
 
 // migrate runs the migrations the database hasn't had yet.
