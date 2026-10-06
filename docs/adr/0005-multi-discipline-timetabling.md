@@ -22,6 +22,8 @@ trampoline:
 - **The venue has a strict end time.** That's the biggest constraint.
 - **People compete more than once:** in several disciplines, and in synchro
   as well as individually.
+- **Not everything is a flight.** Lunch, awards, and ad hoc events that take
+  entries on the day (a fun event, say) take up time on the areas too.
 
 The timetable built for competitions 3 plans flights of one discipline on
 panels, from entries that each belong to one gymnast. It can't see that the
@@ -39,6 +41,7 @@ Constraints, in order of weight:
 | A coach isn't coaching two gymnasts competing at once | Soft: where possible |
 | Gymnasts judging their own club: unavoidable, but balanced across clubs | Soft |
 | A level's flights on one panel; a club's gymnasts spread in a running order | Soft, as now |
+| Blocked time (lunch, awards, ad hoc events) at its fixed time or within its window | Hard |
 
 ## Decision
 
@@ -74,9 +77,19 @@ Constraints, in order of weight:
 
 6. **The venue.** The organiser describes the **areas**: trampoline panels
    (which also run synchro), tumbling tracks, DMT beds, and how many of each,
-   plus the day's **start** and **strict end** time, and breaks.
+   plus the day's **start** and **strict end** time.
 
-7. **The scheduler.** Planning builds flights per event (as now), then places
+7. **Blocked time.** The organiser can block off time for anything that isn't
+   a planned flight: **lunch**, **awards**, warm-up periods, or an **ad hoc
+   event** that takes its entries on the day. Each block has a name, a length,
+   the areas it takes (one, several, or the whole venue), and either a **fixed
+   time** or a **window** the planner may place it in ("lunch, 45 minutes,
+   somewhere between 12:00 and 14:00"). An ad hoc event can give an expected
+   number of entries to size it, and the officials it needs, who are then
+   treated like a flight's. Blocks count towards the end time, and the
+   planner schedules flights around them.
+
+8. **The scheduler.** Planning builds flights per event (as now), then places
    flights on areas and assigns officials:
    - Hard constraints are never broken. A flight that can't be placed, or
      can't be staffed, is reported rather than forced.
@@ -90,20 +103,20 @@ Constraints, in order of weight:
      have under 20 minutes between turns", "UCD judges its own gymnasts 4
      times, DCU 3".
 
-8. **When it doesn't fit, say what would.** If the plan runs past the end
+9. **When it doesn't fit, say what would.** If the plan runs past the end
    time, the timetable shows by how much and which events are left over, and
    re-plans to show what each option would do: another area, fewer minutes
    per gymnast or between flights, larger flights, or a cap on an event's
    entries.
 
-9. **Simulation.** Before entries exist (or alongside them), the organiser
+10. **Simulation.** Before entries exist (or alongside them), the organiser
    can **simulate**: numbers of entries per event, how many gymnasts enter two
    disciplines, and how many can judge. The app makes stand-in people and plans
    them with the real venue settings. It shows the finish time and what
    doesn't fit, without touching the real timetable. Several scenarios can be
    compared.
 
-10. **The officials rota (competitions 4) is part of this.** Judges and
+11. **The officials rota (competitions 4) is part of this.** Judges and
     helpers are assigned to flights by the scheduler, and printed on the
     marshal and chair of judges sheets.
 
@@ -149,9 +162,10 @@ Each step is a separate, shippable branch:
    links, tumbling and DMT entry-only.
 3. **Officials:** judging and helping abilities on entries, the organiser
    adding people, panels of officials per discipline.
-4. **Venue and scheduler:** areas, start, end and breaks; flights placed per
-   person with clashes, rest and end time; the report of what doesn't fit and
-   what would.
+4. **Venue and scheduler:** areas, start and end; blocked time (lunch,
+   awards, ad hoc events, fixed or within a window); flights placed per person
+   with clashes, rest and end time; the report of what doesn't fit and what
+   would.
 5. **Officials rota:** judges and helpers assigned to flights, own-club
    balance, coach clashes, printed on the sheets.
 6. **Simulation:** scenarios of entry numbers, planned against the venue.
