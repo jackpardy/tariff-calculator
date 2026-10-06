@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: A [demo competition](operations/deploy.md#demo-competition):
+  `tariffCalculator demo` fills `DATA_DIR` with a made-up student
+  competition (clubs, coaches, entries with some problems, officials, a
+  planned and published timetable) through the real pages, and prints the
+  links to open.
 * **Update**: Trampoline panels can have HD (horizontal displacement) judges,
   2 where no machine measures it: a setting on the
   [officials](features/competition-entries.md#officials-adr-0005-step-3)

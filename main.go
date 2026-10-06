@@ -18,6 +18,7 @@ import (
 	"github.com/a-h/templ"
 
 	"tariffCalculator/catalog"
+	"tariffCalculator/demo"
 	"tariffCalculator/requirements"
 	"tariffCalculator/skills"
 	"tariffCalculator/static"
@@ -47,6 +48,16 @@ func main() {
 			defer st.Close()
 			go deleteExpired(st)
 		}
+	}
+	// "demo" fills the storage with a made-up competition to show off, then stops.
+	if len(os.Args) > 1 && os.Args[1] == "demo" {
+		if st == nil {
+			log.Fatal("The demo needs competition storage: set DATA_DIR.")
+		}
+		if err := demo.Seed(routesWith(st), os.Stdout, uint64(time.Now().UnixNano())); err != nil {
+			log.Fatalf("Demo: %v", err)
+		}
+		return
 	}
 	srv := &http.Server{
 		Addr:              ":" + port,

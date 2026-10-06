@@ -33,6 +33,11 @@ settings (ADR 0005 Decisions 6 and 13). Still to learn:
 
 - Better default minutes per competitor for tumbling and DMT (2 is a guess),
   and the usual rest between a person's turns (20 minutes is a guess).
+- A judge offering "up to" a level is taken to judge every level the
+  competition lists before it, so it assumes the levels are listed easiest
+  first (the [demo](operations/deploy.md#demo-competition) lists BUCS L7 to L1
+  for that reason). Should levels carry their own order, or the organiser
+  set it?
 
 # Decisions pending
 
