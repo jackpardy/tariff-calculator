@@ -120,7 +120,8 @@ each discipline's panel needs.
   or without a club.
 - **Panels:** each discipline's starts as the FIG Code of Points' (a Chair of
   Judges Panel, 6 execution and 2 difficulty judges), plus a recorder and a
-  marshal, all changeable.
+  marshal, all changeable. Trampoline can add HD (horizontal displacement)
+  judges, 2 where no machine measures it; none by default.
 - **Who may judge what:** anyone up to the level they say (the default), only
   levels below the one they compete at, or only people the organiser marks
   qualified. The page shows how many can judge and chair each discipline.

@@ -22,6 +22,7 @@ import (
 const (
 	RoleChair      = "chair"
 	RoleDifficulty = "difficulty"
+	RoleHD         = "hd"
 	RoleExecution  = "execution"
 	RoleRecorder   = "recorder"
 	RoleMarshal    = "marshal"
@@ -29,15 +30,15 @@ const (
 
 // Roles are every role, in the order a panel's seats are listed and filled:
 // the chair and difficulty judges (whom fewest can be) first.
-var Roles = []string{RoleChair, RoleDifficulty, RoleExecution, RoleRecorder, RoleMarshal}
+var Roles = []string{RoleChair, RoleDifficulty, RoleHD, RoleExecution, RoleRecorder, RoleMarshal}
 
 var roleNames = map[string]string{
-	RoleChair: "Chair of judges", RoleDifficulty: "Difficulty judge", RoleExecution: "Execution judge",
+	RoleChair: "Chair of judges", RoleDifficulty: "Difficulty judge", RoleHD: "HD judge", RoleExecution: "Execution judge",
 	RoleRecorder: "Recorder", RoleMarshal: "Marshal",
 }
 
 var roleVerbs = map[string]string{
-	RoleChair: "chairs", RoleDifficulty: "judges difficulty at", RoleExecution: "judges execution at",
+	RoleChair: "chairs", RoleDifficulty: "judges difficulty at", RoleHD: "judges horizontal displacement at", RoleExecution: "judges execution at",
 	RoleRecorder: "records at", RoleMarshal: "marshals at",
 }
 
@@ -48,7 +49,7 @@ func RoleName(role string) string { return roleNames[role] }
 func (p Panel) Seats() []string {
 	var out []string
 	for _, r := range Roles {
-		n := map[string]int{RoleChair: p.Chair, RoleDifficulty: p.Difficulty, RoleExecution: p.Execution, RoleRecorder: p.Recorder, RoleMarshal: p.Marshal}[r]
+		n := map[string]int{RoleChair: p.Chair, RoleDifficulty: p.Difficulty, RoleHD: p.HD, RoleExecution: p.Execution, RoleRecorder: p.Recorder, RoleMarshal: p.Marshal}[r]
 		for range n {
 			out = append(out, r)
 		}
@@ -79,7 +80,7 @@ func (p RotaPerson) CanAny(role string) bool {
 	switch role {
 	case RoleChair:
 		return slices.Contains(slices.Collect(maps.Values(p.Chair)), true)
-	case RoleDifficulty, RoleExecution:
+	case RoleDifficulty, RoleHD, RoleExecution:
 		return slices.Contains(slices.Collect(maps.Values(p.Judge)), true)
 	}
 	return p.Can(role, "")
@@ -90,7 +91,7 @@ func (p RotaPerson) Can(role, event string) bool {
 	switch role {
 	case RoleChair:
 		return p.Chair[event]
-	case RoleDifficulty, RoleExecution:
+	case RoleDifficulty, RoleHD, RoleExecution:
 		return p.Judge[event]
 	case RoleRecorder:
 		return p.Recorder
@@ -292,7 +293,7 @@ func (r *rota) can(p RotaPerson, role string, i int) bool {
 }
 
 func isJudge(role string) bool {
-	return role == RoleChair || role == RoleDifficulty || role == RoleExecution
+	return role == RoleChair || role == RoleDifficulty || role == RoleHD || role == RoleExecution
 }
 
 // free says whether a person can officiate a flight: not competing or

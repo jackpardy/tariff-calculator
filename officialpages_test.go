@@ -83,6 +83,9 @@ func TestOfficialPages(t *testing.T) {
 		"panel-trampoline-chair": {"1"}, "panel-trampoline-execution": {"4"}, "panel-trampoline-difficulty": {"1"}, "panel-trampoline-recorder": {"1"}, "panel-trampoline-marshal": {"0"},
 		"panel-tumbling-chair": {"1"}, "panel-tumbling-execution": {"6"}, "panel-tumbling-difficulty": {"2"}, "panel-tumbling-recorder": {"1"}, "panel-tumbling-marshal": {"1"}})
 	page = do(t, h, http.MethodGet, officials, nil).Body.String()
+	if strings.Contains(page, `name="panel-tumbling-hd"`) || !strings.Contains(page, `name="panel-trampoline-hd" value="0"`) {
+		t.Error("HD judges are for trampoline, none until the organiser adds them")
+	}
 	if !strings.Contains(page, `name="panel-trampoline-execution" value="4"`) || !strings.Contains(page, "6 judges, 1 chair") {
 		t.Error("trampoline's panel changed to 6 judges")
 	}

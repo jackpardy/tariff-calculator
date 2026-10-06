@@ -80,7 +80,9 @@ Constraints, in order of weight:
    trampoline and synchro (§18.1; in synchro, execution judges 1, 3 and 5 watch
    trampoline 1 and 2, 4 and 6 trampoline 2), tumbling and DMT (§17.1 in
    their sections). The CJP covers time of flight, horizontal displacement and
-   synchronisation. Helpers (a recorder, a marshal) aren't in the Code; they
+   synchronisation. Trampoline adds 2 horizontal displacement (HD) judges
+   where no machine measures it, a setting (none by default). Helpers (a
+   recorder, a marshal) aren't in the Code; they
    default to one each per panel, also changeable. **Spotters aren't a panel
    position** and aren't scheduled.
 

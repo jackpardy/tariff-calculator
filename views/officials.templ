@@ -91,7 +91,8 @@ type OfficialsPage struct {
 // PanelSetting is a discipline's panel, as the form shows it.
 type PanelSetting struct {
 	Key, Name                                     string
-	Chair, Execution, Difficulty, Recorder, Marshal int
+	Chair, Execution, Difficulty, HD, Recorder, Marshal int
+	HasHD                                               bool // trampoline: HD judges where no machine measures it
 }
 
 // Cover is how many people can do each job in a discipline, against what one
@@ -136,10 +137,10 @@ templ CompetitionOfficials(p OfficialsPage) {
 		<details class="box comp-manage">
 			<summary><strong>Panels and who may judge</strong></summary>
 			<form method="post" action={ templ.SafeURL(p.Base + "/officials/settings") }>
-				<p class="help mb-2">Each discipline's panel starts as the FIG Code of Points' (a Chair of Judges Panel, 6 execution and 2 difficulty judges), plus a recorder and a marshal. Change any of it.</p>
+				<p class="help mb-2">Each discipline's panel starts as the FIG Code of Points' (a Chair of Judges Panel, 6 execution and 2 difficulty judges), plus a recorder and a marshal. Change any of it. Trampoline needs 2 HD (horizontal displacement) judges where no machine measures it.</p>
 				<div class="table-container">
 					<table class="table is-narrow comp-panels">
-						<thead><tr><th></th><th>Chair</th><th>Execution</th><th>Difficulty</th><th>Recorder</th><th>Marshal</th></tr></thead>
+						<thead><tr><th></th><th>Chair</th><th>Execution</th><th>Difficulty</th><th>HD</th><th>Recorder</th><th>Marshal</th></tr></thead>
 						<tbody>
 							for _, s := range p.Panels {
 								<tr>
@@ -147,6 +148,11 @@ templ CompetitionOfficials(p OfficialsPage) {
 									@panelInput(s.Key, "chair", s.Chair)
 									@panelInput(s.Key, "execution", s.Execution)
 									@panelInput(s.Key, "difficulty", s.Difficulty)
+									if s.HasHD {
+										@panelInput(s.Key, "hd", s.HD)
+									} else {
+										<td class="has-text-grey">—</td>
+									}
 									@panelInput(s.Key, "recorder", s.Recorder)
 									@panelInput(s.Key, "marshal", s.Marshal)
 								</tr>
