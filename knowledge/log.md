@@ -2,7 +2,7 @@
 
 ## 2026-10-06
 * **Creation**: [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md)
-  (proposed): timetabling for ISTO, across trampoline, synchro, tumbling and
+  (accepted): timetabling for ISTO, across trampoline, synchro, tumbling and
   DMT, with people who compete and judge, the venue's strict end time, rest
   between turns, own-club judging balanced, and simulation. The officials rota
   (competitions 4) becomes part of it, and organisers can block off time

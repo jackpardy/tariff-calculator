@@ -1,6 +1,6 @@
 # ADR 0005 — Timetabling multi-discipline competitions (ISTO)
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-06
 - **Deciders:** jackpardy (solo maintainer)
 - **Builds on:** ADR 0004 (competition entries, clubs, coaches) and the

@@ -12,4 +12,4 @@
 * [ADR 0002](../../docs/adr/0002-server-rendered-frontend.md) - Server-rendered frontend with templ and htmx (accepted, done).
 * [ADR 0003](../../docs/adr/0003-requirements-framework.md) - Requirements framework (proposed, implemented).
 * [ADR 0004](../../docs/adr/0004-server-storage-secret-links.md) - Server storage with secret links, no accounts (accepted, built and live: competition entries, clubs, video proof, coach sign-off).
-* [ADR 0005](../../docs/adr/0005-multi-discipline-timetabling.md) - Timetabling multi-discipline competitions for ISTO: events across trampoline, synchro, tumbling and DMT, people who compete and judge, the venue's end time, and simulation (proposed).
+* [ADR 0005](../../docs/adr/0005-multi-discipline-timetabling.md) - Timetabling multi-discipline competitions for ISTO: events across trampoline, synchro, tumbling and DMT, people who compete and judge, the venue's end time, blocked time, organiser rules and simulation (accepted; being built).

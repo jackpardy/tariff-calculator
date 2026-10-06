@@ -104,7 +104,7 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 - **The aim is ISTO (2026-10-06).** The competition tools work towards running
   the Irish Student Trampoline Open's day: trampoline, synchro, tumbling and
   DMT, with competitors judging and a venue that must finish on time
-  ([ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md)).
+  ([ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md), accepted).
 - **Priorities (2026-10-06):** card collection is live. Next is the timetable
   and flight planner (competitions 3), then the officials rota (4). The
   difficulty judge helper (2) drops to the bottom: it would be hard to get
