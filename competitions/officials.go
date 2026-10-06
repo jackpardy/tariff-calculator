@@ -13,24 +13,27 @@ import (
 
 // Panel is how many officials one panel of a discipline needs.
 type Panel struct {
-	Chair      int `json:"chair"`      // Chair of Judges Panel
-	Execution  int `json:"execution"`  // execution judges
-	Difficulty int `json:"difficulty"` // difficulty judges
+	Chair      int `json:"chair"`        // Chair of Judges Panel
+	Execution  int `json:"execution"`    // execution judges
+	Difficulty int `json:"difficulty"`   // difficulty judges
+	HD         int `json:"hd,omitempty"` // horizontal displacement judges, where no machine measures it (trampoline)
 	Recorder   int `json:"recorder"`
 	Marshal    int `json:"marshal"`
 }
 
 // CodePanel is the FIG Code of Points 2025–2028's panel, the same for every
 // discipline (§18.1 for trampoline and synchro, §17.1 for tumbling and DMT):
-// a CJP, 6 execution and 2 difficulty judges. Helpers aren't in the Code; one
+// a CJP, 6 execution and 2 difficulty judges. Trampoline also needs 2
+// horizontal displacement (HD) judges where no machine measures it: none by
+// default, for the organiser to add. Helpers aren't in the Code; one
 // recorder and one marshal is a starting point.
 var CodePanel = Panel{Chair: 1, Execution: 6, Difficulty: 2, Recorder: 1, Marshal: 1}
 
 // Judges is how many judges the panel needs, chair included.
-func (p Panel) Judges() int { return p.Chair + p.Execution + p.Difficulty }
+func (p Panel) Judges() int { return p.Chair + p.Execution + p.Difficulty + p.HD }
 
 func (p Panel) check() error {
-	for _, n := range []int{p.Chair, p.Execution, p.Difficulty, p.Recorder, p.Marshal} {
+	for _, n := range []int{p.Chair, p.Execution, p.Difficulty, p.HD, p.Recorder, p.Marshal} {
 		if n < 0 || n > 20 {
 			return errors.New("each kind of official on a panel should be from 0 to 20")
 		}

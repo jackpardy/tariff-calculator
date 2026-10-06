@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: Trampoline panels can have HD (horizontal displacement) judges,
+  2 where no machine measures it: a setting on the
+  [officials](features/competition-entries.md#officials-adr-0005-step-3)
+  page, none by default, filled by the rota like any judge.
 * **Update**: Timetable tidy-ups: names that look like one person entered
   twice are flagged; capping an event's entries is among the fixes; planning
   prefers times when an event's judges are free; blocked time (an ad hoc

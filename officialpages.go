@@ -171,7 +171,7 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		panel := c.Officials.Panel(d)
 		page.Panels = append(page.Panels, views.PanelSetting{
 			Key: offerKey(d), Name: competitions.DisciplineName(d), Chair: panel.Chair, Execution: panel.Execution,
-			Difficulty: panel.Difficulty, Recorder: panel.Recorder, Marshal: panel.Marshal,
+			Difficulty: panel.Difficulty, HD: panel.HD, HasHD: d == competitions.Trampoline, Recorder: panel.Recorder, Marshal: panel.Marshal,
 		})
 		cover := views.Cover{Name: competitions.DisciplineName(d), PanelJudges: panel.Judges(), PanelChairs: panel.Chair}
 		for _, o := range people {
@@ -218,6 +218,9 @@ func (p *competitionPages) officialSettings(w http.ResponseWriter, r *http.Reque
 			return v
 		}
 		panel := competitions.Panel{Chair: n("chair"), Execution: n("execution"), Difficulty: n("difficulty"), Recorder: n("recorder"), Marshal: n("marshal")}
+		if d == competitions.Trampoline && r.FormValue("panel-trampoline-hd") != "" {
+			panel.HD = n("hd")
+		}
 		if panel != competitions.CodePanel {
 			settings.Panels[d] = panel
 		}

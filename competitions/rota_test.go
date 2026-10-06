@@ -283,3 +283,25 @@ func TestRotaStaffsBlocks(t *testing.T) {
 		t.Errorf("problems: %v", p)
 	}
 }
+
+func TestRotaHDJudges(t *testing.T) {
+	// Trampoline without a machine for horizontal displacement: 2 HD judges.
+	panel := Panel{Chair: 1, Execution: 2, Difficulty: 1, HD: 2}
+	if fmt.Sprint(panel.Seats()) != "[chair difficulty hd hd execution execution]" || panel.Judges() != 6 {
+		t.Fatalf("seats: %v, judges %d", panel.Seats(), panel.Judges())
+	}
+	setup := venue()
+	setup.Areas = setup.Areas[:1]
+	entries := people("L3", Trampoline, 6)
+	s := PlanSchedule(entries, []string{"L3"}, setup, 1)
+	s.Rota(entries, judges("J", 8, "L3"), OfficialSettings{Panels: map[string]Panel{Trampoline: panel}}, 1)
+	hd := 0
+	for _, d := range s.Flights[0].Officials {
+		if d.Role == RoleHD && d.Person != "" {
+			hd++
+		}
+	}
+	if hd != 2 || RoleName(RoleHD) != "HD judge" {
+		t.Errorf("HD judges: %d", hd)
+	}
+}

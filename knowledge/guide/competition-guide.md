@@ -97,7 +97,9 @@ and anyone you add.
 - Tick **Qualified** for people qualified to judge.
 - Under **Panels and who may judge**, each discipline's panel starts as the
   FIG Code of Points' (a Chair of Judges Panel, 6 execution and 2 difficulty
-  judges) plus a recorder and a marshal; change any of it. Choose who may
+  judges) plus a recorder and a marshal; change any of it. Where there's no
+  machine measuring horizontal displacement, give trampoline 2 **HD** judges.
+  Choose who may
   judge: anyone up to the level they say, only levels below their own, or only
   people you mark qualified.
 
