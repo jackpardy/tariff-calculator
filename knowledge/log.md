@@ -6,7 +6,8 @@
   DMT, with people who compete and judge, the venue's strict end time, rest
   between turns, own-club judging balanced, and simulation. The officials rota
   (competitions 4) becomes part of it, and organisers can block off time
-  for lunch, awards and ad hoc events taking entries on the day
+  for lunch, awards and ad hoc events taking entries on the day, and set
+  their own rules (what happens where, who does what), each must or prefer
   ([roadmap](roadmap.md), [open questions](open-questions.md)).
 * **Update**: The [timetable](features/competition-entries.md#timetable-roadmap-competitions-3)
   (roadmap: competitions 3): men and women ranked separately where the
