@@ -383,12 +383,3 @@ func TestVideoProof(t *testing.T) {
 		t.Error("a bad tariff changes nothing")
 	}
 }
-
-func TestCalculatorLinksCompetitions(t *testing.T) {
-	if page := do(t, routes(), http.MethodGet, "/", nil).Body.String(); strings.Contains(page, `href="/competitions"`) {
-		t.Error("without storage, the calculator doesn't link to competitions")
-	}
-	if page := do(t, competitionServer(t), http.MethodGet, "/", nil).Body.String(); !strings.Contains(page, `href="/competitions"`) {
-		t.Error("with storage, it does")
-	}
-}

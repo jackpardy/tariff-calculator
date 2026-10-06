@@ -67,10 +67,10 @@ See the server bundle (private repository):
 
 [Competition entries](../features/competition-entries.md) are stored in one
 SQLite file, `tariff.db`, in `DATA_DIR`. Unset, storage is off: the
-calculator works as ever, the competition pages answer "Not available yet",
-and the calculator doesn't link to them. Set (and writable), the calculator's
-header links to `/competitions`, and the app deletes expired competitions and
-clubs every 6 hours.
+calculator works as ever and the competition pages answer "Not available
+yet". Set (and writable), they work at `/competitions`, and the app deletes
+expired competitions and clubs every 6 hours. The calculator doesn't link to
+them, for now.
 
 On the server, the `tariff` service mounts `/srv/data/tariff` at `/data` with
 `DATA_DIR=/data`. The directory is owned by uid 1000 (the image's `app` user),
