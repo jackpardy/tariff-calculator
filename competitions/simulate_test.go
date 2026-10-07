@@ -148,29 +148,36 @@ func TestClubQuota(t *testing.T) {
 		Clubs:   4,
 		Quota: map[string]ClubQuota{
 			Trampoline: {Per: 4, Judges: 1},            // 5, 5, 4 and 4 trampolinists: 2, 2, 1 and 1 judges
-			Tumbling:   {Per: 8, Judges: 1, Chairs: 1}, // 2, 2, 1 and 1 tumblers: a chair each
+			Tumbling:   {Per: 8, Judges: 1, Chairs: 1}, // 2, 2, 1 and 1 tumblers: a chair each, who can also be a trampoline judge
 		},
 		Judges: map[string]int{Synchro: 3}, Chairs: map[string]int{Synchro: 1}, // the organiser's own
 	}
+	// One judge can count for several disciplines: a club brings as many
+	// people as its biggest quota, the first of them judging tumbling too.
 	_, officials := c.standIns(sc, venue())
 	byClub := map[string]int{}
-	trampoline, tumblingChairs, own := 0, 0, 0
+	trampoline, tumblingChairs, both, own := 0, 0, 0, 0
 	for _, o := range officials {
-		switch {
-		case o.Club == "":
+		if o.Club == "" {
 			own++
 			if !o.Judge["Synchro BUCS L6"] || o.Judge["BUCS L7"] {
 				t.Errorf("the organiser's judges judge synchro only: %+v", o)
 			}
-		case o.Judge["BUCS L7"] && o.Judge["BUCS L6"]:
+			continue
+		}
+		if o.Judge["BUCS L7"] && o.Judge["BUCS L6"] {
 			trampoline++
 			byClub[o.Club]++
-		case o.Chair["Tumbling Novice"]:
+		}
+		if o.Chair["Tumbling Novice"] {
 			tumblingChairs++
+			if o.Judge["BUCS L7"] {
+				both++
+			}
 		}
 	}
-	if own != 3 || trampoline != 6 || tumblingChairs != 4 || len(officials) != 13 {
-		t.Errorf("%d own, %d trampoline and %d tumbling chairs from clubs, %d in all", own, trampoline, tumblingChairs, len(officials))
+	if own != 3 || trampoline != 6 || tumblingChairs != 4 || both != 4 || len(officials) != 9 {
+		t.Errorf("%d own, %d trampoline judges and %d tumbling chairs from clubs (%d judging both), %d in all", own, trampoline, tumblingChairs, both, len(officials))
 	}
 	if byClub["Club 1"] != 2 || byClub["Club 2"] != 2 || byClub["Club 3"] != 1 || byClub["Club 4"] != 1 {
 		t.Errorf("trampoline judges by club, rounding up: %v", byClub)
@@ -202,8 +209,8 @@ func TestClubQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.ClubJudges != 10 || r.Seats == 0 {
-		t.Errorf("the clubs brought %d judges, want 10", r.ClubJudges)
+	if r.ClubJudges != 6 || r.Seats == 0 {
+		t.Errorf("the clubs brought %d judges, want 6", r.ClubJudges)
 	}
 	for want, q := range map[string]map[string]ClubQuota{
 		"doesn't offer":  {DMT: {Per: 8, Judges: 1}},

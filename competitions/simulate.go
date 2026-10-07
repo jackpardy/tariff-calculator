@@ -31,7 +31,7 @@ type Scenario struct {
 	Chairs   map[string]int `json:"chairs,omitempty"` // of them, who can also chair
 	// Quota is what judges each club must bring, by discipline. With any,
 	// the clubs' judges come from it and Judges are the organiser's own, with
-	// no club.
+	// no club. One judge can count for several disciplines.
 	Quota map[string]ClubQuota `json:"quota,omitempty"`
 	// JudgePeople is how many people those judges are: someone judging
 	// trampoline and synchro counts once. None means no one judges two.
@@ -70,7 +70,7 @@ type SimResult struct {
 	Unplaced       []string    `json:"unplaced,omitempty"`
 	UnplacedBlocks []string    `json:"unplaced_blocks,omitempty"`
 	ShortRest      int         `json:"short_rest,omitempty"`  // people with less rest than wanted between turns
-	ClubJudges     int         `json:"club_judges,omitempty"` // judges the clubs brought under the quota
+	ClubJudges     int         `json:"club_judges,omitempty"` // people the clubs brought to judge under the quota
 	Seats          int         `json:"seats"`                 // every official's seat
 	Empty          int         `json:"empty,omitempty"`       // seats no one could take
 	Fix            string      `json:"fix,omitempty"`         // a change that would fit everything, if anything doesn't fit
@@ -304,17 +304,28 @@ func (c Competition) standIns(sc Scenario, setup Setup) ([]SchedEntry, []RotaPer
 		}
 		at += sc.Judges[d]
 	}
-	// Each club's judges for each discipline, by its gymnasts in it.
+	// Each club's judges, by its gymnasts in each discipline. Anyone can judge
+	// any mix of disciplines, so a club brings as few people as meet every
+	// discipline's quota: its first judges count for each discipline that
+	// needs them, and chair where it needs chairs.
 	for ci := range sc.Clubs {
 		name := club(ci)
+		need, chair := map[string]int{}, map[string]int{}
+		people := 0
 		for _, d := range AllDisciplines {
 			q := sc.Quota[d]
 			n := q.times(inClub[name][d])
-			for k := range n * q.Judges {
-				o := RotaPerson{Key: fmt.Sprintf("sim:c%d-%s-%d", ci+1, strings.ToLower(DisciplineName(d)), k+1), Name: fmt.Sprintf("%s judge %d", name, k+1), Club: name, Judge: map[string]bool{}, Chair: map[string]bool{}}
-				judgeAt(&o, d, k < n*q.Chairs)
-				officials = append(officials, o)
+			need[d], chair[d] = n*q.Judges, n*q.Chairs
+			people = max(people, need[d])
+		}
+		for k := range people {
+			o := RotaPerson{Key: fmt.Sprintf("sim:c%d-%d", ci+1, k+1), Name: fmt.Sprintf("%s judge %d", name, k+1), Club: name, Judge: map[string]bool{}, Chair: map[string]bool{}}
+			for _, d := range AllDisciplines {
+				if k < need[d] {
+					judgeAt(&o, d, k < chair[d])
+				}
 			}
+			officials = append(officials, o)
 		}
 	}
 	judges = len(officials)
