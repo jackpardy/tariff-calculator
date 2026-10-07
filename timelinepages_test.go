@@ -43,6 +43,10 @@ func TestPanelTimeline(t *testing.T) {
 	if !strings.Contains(page, "/timetable/print?sheet=timeline") {
 		t.Error("the timetable links to the timeline")
 	}
+	// Lunch takes both areas; the day runs to 18:00.
+	if !strings.Contains(page, "<td>Day 1</td><td>09:27</td><td>12:45</td><td>18:00</td><td>7h 48m</td>") {
+		t.Error("the report says when the flights end and the time free after them")
+	}
 
 	textOf := func(page string) string {
 		return strings.Join(strings.Fields(regexp.MustCompile(`<[^>]+>`).ReplaceAllString(page, " ")), " ")

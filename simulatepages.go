@@ -179,7 +179,7 @@ func scenarioView(c competitions.Competition, setup competitions.Setup, i int, s
 	v.Stale = r.Basis != c.SimBasis(setup)
 	v.Gymnasts, v.EntryCount = r.Gymnasts, r.Entries
 	for i, d := range r.Days {
-		day := views.SimDay{DayFinish: views.DayFinish{Name: d.Name, Finish: d.Finish, End: d.End, Spare: d.SpareMinutes}}
+		day := views.SimDay{DayFinish: views.DayFinish{Name: d.Name, Finish: d.Finish, End: d.End, Spare: d.SpareMinutes, FlightsEnd: d.FlightsEnd, Free: d.FreeMinutes}}
 		if i < len(r.FlightsEnd) {
 			day.FlightsEnd = r.FlightsEnd[i]
 		}

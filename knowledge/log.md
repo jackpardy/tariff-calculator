@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-07
+* **Fix**: The timetable report's spare time counted blocked time, so a day
+  ending with awards looked full however little ran. Each day now says when
+  its flights end and the time free after them that isn't blocked off for
+  the whole venue.
 * **Fix**: The rota report's "Seats no one could take" counted flights, not
   seats; it now says both ("11, on 3 flights").
 * **Update**: [Synchro](features/competition-entries.md#events-and-synchro-adr-0005-step-2)

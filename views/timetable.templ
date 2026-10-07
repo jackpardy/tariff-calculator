@@ -95,6 +95,8 @@ type ReportView struct {
 type DayFinish struct {
 	Name, Finish, End string
 	Spare             int
+	FlightsEnd        string // "" for no flights
+	Free              int    // minutes after the last flight not blocked off for the whole venue
 }
 
 // FixView is a change and whether everything would then fit.
@@ -511,14 +513,27 @@ templ reportView(r ReportView) {
 	<div class="box">
 		<div class="table-container">
 			<table class="table is-narrow mb-2">
-				<thead><tr><th>Day</th><th>Finishes</th><th>Must end by</th><th>Spare</th></tr></thead>
+				<thead><tr><th>Day</th><th>Flights end</th><th>Finishes</th><th>Must end by</th><th>Free after flights</th></tr></thead>
 				<tbody>
 					for _, d := range r.Days {
-						<tr><td>{ d.Name }</td><td>{ d.Finish }</td><td>{ d.End }</td><td>{ strconv.Itoa(d.Spare) } min</td></tr>
+						<tr>
+							<td>{ d.Name }</td>
+							<td>
+								if d.FlightsEnd == "" {
+									No flights
+								} else {
+									{ d.FlightsEnd }
+								}
+							</td>
+							<td>{ d.Finish }</td>
+							<td>{ d.End }</td>
+							<td>{ durationWord(d.Free) }</td>
+						</tr>
 					}
 				</tbody>
 			</table>
 		</div>
+		<p class="help mb-2">Finishes counts blocked time such as awards. Free after flights is the time from the last flight to the end that isn't blocked off for the whole venue: room for more flights.</p>
 		if len(r.Unplaced) > 0 || len(r.Blocks) > 0 {
 			<div class="notification is-danger is-light">
 				<p><strong>Doesn't fit:</strong> { joinNames(append(r.Unplaced, r.Blocks...)) }.</p>
@@ -1025,4 +1040,12 @@ func emptySeats(seats, flights int) string {
 		out = fmt.Sprintf("%d, on 1 flight", seats)
 	}
 	return out
+}
+
+// durationWord is minutes as "45 min" or "5h 35m".
+func durationWord(minutes int) string {
+	if minutes < 60 {
+		return fmt.Sprintf("%d min", minutes)
+	}
+	return fmt.Sprintf("%dh %02dm", minutes/60, minutes%60)
 }
