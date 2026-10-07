@@ -4,7 +4,7 @@ title: Competitions guide
 description: Step-by-step instructions for competition organisers, club competition secretaries, members, coaches and individual entrants, covering how to run a competition and its timetable, run a club, enter trampoline, synchro, tumbling and DMT, and sign off routines.
 resource: https://tariff.pardy.ie/competitions
 tags: [guide, how-to, users, competitions, clubs]
-generated: { by: claude-code/cli, at: 2026-10-07T10:00:00Z }
+generated: { by: claude-code/cli, at: 2026-10-07T20:00:00Z }
 ---
 
 This guide is also a [PDF](competition-guide.pdf). Routines are built and
@@ -32,8 +32,9 @@ Who does what:
 
 A competition can offer several **disciplines**: individual trampoline,
 **synchro**, **tumbling** and **DMT**, each at its own levels. A gymnast can
-enter several. Synchro routines are checked like trampoline's; tumbling and DMT
-entries are a level only, for now.
+enter several. A synchro pair enters one routine, the level's voluntary,
+checked like a trampoline routine; tumbling and DMT entries are a level only,
+for now.
 
 Routines come from the Routine Builder: build each voluntary there first, on
 the same phone, then choose it when entering. A set routine needs nothing: it's
@@ -65,8 +66,8 @@ The entries page shows the counts, then a table for each event (a level, or
 "Synchro BUCS L3", "Tumbling Novice"): gymnast (both names for a synchro pair), club,
 each exercise, requirements met, problems, video and coach sign-off where
 asked, when it was sent, and whether you've checked it. Filter by club or to
-**Problems only**. Tap a gymnast to see both exercises in full, checked as the
-Routine Builder checks them.
+**Problems only**. Tap a gymnast to see both exercises in full (a synchro
+pair's one routine), checked as the Routine Builder checks them.
 
 - **Mark checked** once you're happy, with a **note** for the club or gymnast
   if something needs fixing ("element 7 repeats element 3"). If they change
@@ -122,7 +123,8 @@ has a starting value you can change.
 2. **Areas:** name each trampoline panel, tumbling track and DMT bed. Synchro
    runs on trampoline areas.
 3. **Timings:** for each discipline, minutes per competitor (both rounds;
-   5 is a starting point for trampoline, 2 for tumbling and DMT), minutes
+   5 is a starting point for trampoline, 2½ per synchro pair, who do one
+   routine, and 2 for tumbling and DMT), minutes
    between flights (warm-up and changeover), and the largest flight. Set the
    **rest** a person gets between their events (from the end of one flight
    to the start of the next one's warm-up), and whether it's a must. Someone
@@ -199,11 +201,11 @@ rounding up), and how many of them must be able to chair: the clubs' judges
 then come from that, and the judges above are only your own. Each
 discipline's judges are their own people, so a club needing 4 trampoline and
 2 tumbling judges brings 6; say what percent of the clubs' judges can also
-judge other disciplines as well. Each scenario shows when each day's flights end, what doesn't fit
-and what would make it fit, how many judges the clubs bring, and how many
-panel seats no one could take, side
-by side with the others. **Change** starts a new one from its numbers; after
-changing the venue setup, **Run again**.
+judge other disciplines as well. Each scenario shows when each day's flights
+end, what doesn't fit and what would make it fit, how many judges the clubs
+bring, and how many panel seats no one could take, side by side with the
+others. **Change** starts a new one from its numbers; after changing the
+venue setup, **Run again**.
 
 # 2. Run your club (comp secs)
 
@@ -241,9 +243,10 @@ sign-off.
 2. If your club has coaches, choose **Your coach**.
 3. Under each competition there's a section for each discipline it offers.
    Open **Enter Trampoline** (or Synchro, Tumbling, DMT), choose your
-   **Level**, and Men or Women if asked. For trampoline and synchro, choose
-   which set routine you're doing where there's a choice, and the routine for
-   each voluntary from the routines saved in this browser. Add a **video link**
+   **Level**, and Men or Women if asked. For trampoline, choose which set
+   routine you're doing where there's a choice, and the routine for each
+   voluntary from the routines saved in this browser; for synchro, just the
+   pair's one routine, the level's voluntary. Add a **video link**
    if the competition asks (a YouTube video must be **unlisted, not private**;
    a Google Drive file shared with **anyone with the link**). Tap **Save**.
    Tumbling and DMT need only the level.
@@ -269,8 +272,8 @@ what you officiate, and the whole timetable with you picked out.
 
 Enter synchro like any discipline, and give your **partner's name** (and club,
 if they have one): any gymnast, from your club, another, or none. A pair does
-one routine: the level's voluntary. Your entry
-then shows a **partner link**: send it to your partner. They open it and
+one routine: the level's voluntary. Your entry then shows a **partner link**:
+send it to your partner. They open it and
 confirm who they are with their own member page or entry link (or that they
 have no other entry), so the timetable never puts either of you in two places
 at once. If you name a different partner, they confirm again.
