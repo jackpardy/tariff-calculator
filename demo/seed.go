@@ -15,11 +15,12 @@ import (
 )
 
 // Seed fills h's competition storage with a made-up student competition run
-// the ISTO way: eight clubs and some gymnasts entering on their own, in
-// trampoline (BUCS levels, men and women apart), synchro, tumbling and DMT,
-// with coaches signing entries off, judging offers, the organiser's own
-// judges, a venue over two and a half days, the timetable planned with its
-// officials rota, and published. Everything goes through the pages, as
+// the ISTO way: 25 clubs (about 400 gymnasts) and some gymnasts entering on
+// their own, in trampoline (BUCS levels, men and women apart), synchro,
+// tumbling and DMT, with coaches signing entries off, judging offers, the
+// organiser's own judges, a venue over three days of 09:00 to 17:30 (a
+// general warm-up first, an hour's lunch, synchro and a display on Sunday),
+// the timetable planned with its officials rota, and published. Everything goes through the pages, as
 // people would use them. It writes the links to open to out.
 func Seed(h http.Handler, out io.Writer, seed uint64) error {
 	s := &seeder{h: h, rng: rand.New(rand.NewPCG(seed, 99))}
@@ -120,14 +121,31 @@ var (
 		members int
 		coaches []string
 	}{
-		{"UCD", 22, []string{"Declan Ward", "Maria Costa"}},
-		{"DCU", 18, []string{"Alan Power"}},
-		{"Trinity", 20, []string{"Helen Byrne", "Tom Keogh"}},
-		{"UL", 16, []string{"Brian Ahern"}},
-		{"UCC", 15, []string{"Nora Healy"}},
-		{"Galway", 14, []string{"Ger Fahy"}},
-		{"Maynooth", 11, []string{"Ita Dunne"}},
-		{"TU Dublin", 10, []string{"Paddy Kerr"}},
+		{"UCD", 32, []string{"Declan Ward", "Maria Costa"}},
+		{"DCU", 28, []string{"Alan Power", "Sinéad Kirwan"}},
+		{"Trinity", 30, []string{"Helen Byrne", "Tom Keogh"}},
+		{"UL", 24, []string{"Brian Ahern"}},
+		{"UCC", 22, []string{"Nora Healy", "Fergal Twomey"}},
+		{"Galway", 20, []string{"Ger Fahy"}},
+		{"Maynooth", 17, []string{"Ita Dunne"}},
+		{"TU Dublin", 16, []string{"Paddy Kerr"}},
+		{"Queen's", 23, []string{"Lorraine McAllister"}},
+		{"Ulster", 14, []string{"Gavin Hamill"}},
+		{"MTU Cork", 13, []string{"Brendan Lucey"}},
+		{"SETU", 12, []string{"Orla Phelan"}},
+		{"ATU Sligo", 10, []string{"Dermot Feeney"}},
+		{"TUS Athlone", 11, []string{"Marie Claffey"}},
+		{"Mary Immaculate", 9, []string{"Tríona Hogan"}},
+		{"RCSI", 10, []string{"Neil Coughlan"}},
+		{"Griffith", 8, []string{"Úna Brady"}},
+		{"DkIT", 9, []string{"Seamus McEvoy"}},
+		{"IADT", 8, []string{"Karen Mooney"}},
+		{"Edinburgh", 20, []string{"Fraser Ross", "Kirsty Hay"}},
+		{"Glasgow", 16, []string{"Iain Morrison"}},
+		{"Strathclyde", 13, []string{"Alison Kerr"}},
+		{"Stirling", 11, []string{"Ewan Fraser"}},
+		{"St Andrews", 10, []string{"Morag Reid"}},
+		{"Aberdeen", 10, []string{"Callum Grant"}},
 	}
 	// Trampoline levels, easiest first, as the competition lists them, and
 	// how many of each hundred gymnasts enter each.
@@ -331,15 +349,15 @@ func (s *seeder) run(out io.Writer) error {
 			}
 			members = append(members, m)
 		}
-		// Synchro pairs within the club, men with men and women with women,
-		// each confirmed by the partner.
+		// A synchro pair within the club for men and one for women, each
+		// confirmed by the partner.
 		byCat := map[string][]person{}
 		for _, m := range members {
 			byCat[m.category] = append(byCat[m.category], m)
 		}
 		for _, cat := range []string{"Women", "Men"} {
 			ms := byCat[cat]
-			for i := 0; i+1 < len(ms) && i < 4; i += 2 {
+			for i := 0; i+1 < len(ms) && i < 2; i += 2 {
 				a, b := ms[i], ms[i+1]
 				level := "BUCS L5"
 				if slices.Index([]string{"BUCS L4", "BUCS L3", "BUCS L2", "BUCS L1"}, a.level) >= 0 {
@@ -409,29 +427,48 @@ func (s *seeder) run(out io.Writer) error {
 		_ = i
 	}
 
-	// The venue: Friday evening, Saturday and Sunday.
+	// The venue: Friday, Saturday and Sunday, 09:00 to 17:30, every area.
 	tt := admin + "/timetable"
 	s.post(tt+"/setup/areas", url.Values{"area-0-name": {"Panel 1"}, "area-0-discipline": {"trampoline"}, "area-1-name": {"Track 1"}, "area-1-discipline": {"tumbling"}, "area-2-name": {"DMT 1"}, "area-2-discipline": {"dmt"}})
 	s.post(tt+"/setup/areas", url.Values{"area-0-name": {"Panel 1"}, "area-0-discipline": {"trampoline"}, "area-1-name": {"Track 1"}, "area-1-discipline": {"tumbling"}, "area-2-name": {"DMT 1"}, "area-2-discipline": {"dmt"}, "add": {"1"}})
 	s.post(tt+"/setup/areas", url.Values{"area-0-name": {"Panel 1"}, "area-0-discipline": {"trampoline"}, "area-1-name": {"Track 1"}, "area-1-discipline": {"tumbling"}, "area-2-name": {"DMT 1"}, "area-2-discipline": {"dmt"}, "area-3-name": {"Panel 2"}, "area-3-discipline": {"trampoline"}, "add": {"1"}})
 	s.post(tt+"/setup/areas", url.Values{"area-0-name": {"Panel 1"}, "area-0-discipline": {"trampoline"}, "area-1-name": {"Track 1"}, "area-1-discipline": {"tumbling"}, "area-2-name": {"DMT 1"}, "area-2-discipline": {"dmt"}, "area-3-name": {"Panel 2"}, "area-3-discipline": {"trampoline"}, "area-4-name": {"Panel 3"}, "area-4-discipline": {"trampoline"}})
-	s.post(tt+"/setup/days", url.Values{"day-0-name": {"Friday"}, "day-0-start": {"17:30"}, "day-0-end": {"21:30"}, "add": {"1"}})
-	s.post(tt+"/setup/days", url.Values{"day-0-name": {"Friday"}, "day-0-start": {"17:30"}, "day-0-end": {"21:30"}, "day-0-area": {"Panel 1", "Panel 2"},
-		"day-1-name": {"Saturday"}, "day-1-start": {"08:30"}, "day-1-end": {"19:00"}, "add": {"1"}})
-	s.post(tt+"/setup/days", url.Values{"day-0-name": {"Friday"}, "day-0-start": {"17:30"}, "day-0-end": {"21:30"}, "day-0-area": {"Panel 1", "Panel 2"},
-		"day-1-name": {"Saturday"}, "day-1-start": {"08:30"}, "day-1-end": {"19:00"},
-		"day-2-name": {"Sunday"}, "day-2-start": {"08:30"}, "day-2-end": {"16:30"}})
-	for _, b := range []url.Values{
-		{"name": {"Lunch"}, "minutes": {"45"}, "day": {"1"}, "from": {"12:00"}, "to": {"14:00"}},
-		{"name": {"Lunch"}, "minutes": {"40"}, "day": {"2"}, "from": {"12:00"}, "to": {"13:30"}},
-		{"name": {"Fun synchro (entries on the day)"}, "minutes": {"45"}, "day": {"1"}, "at": {"17:45"}, "area": {"Panel 1"}, "chair": {"1"}, "judges": {"3"}, "recorder": {"1"}},
-		{"name": {"Awards"}, "minutes": {"40"}, "day": {"2"}, "at": {"15:50"}},
-	} {
+	days := url.Values{}
+	for i, name := range []string{"Friday", "Saturday", "Sunday"} {
+		days.Set(fmt.Sprintf("day-%d-name", i), name)
+		days.Set(fmt.Sprintf("day-%d-start", i), "09:00")
+		days.Set(fmt.Sprintf("day-%d-end", i), "17:30")
+		if i < 2 {
+			days.Set("add", "1")
+		} else {
+			days.Del("add")
+		}
+		s.post(tt+"/setup/days", days)
+	}
+	// Each day: a general warm-up on every area before the panels start at
+	// 09:30, and an hour's lunch. Sunday: a display taking the whole venue,
+	// fun synchro, then awards.
+	var blocks []url.Values
+	for day := range 3 {
+		d := fmt.Sprint(day)
+		blocks = append(blocks,
+			url.Values{"name": {"General warm-up"}, "minutes": {"30"}, "day": {d}, "at": {"09:00"}},
+			url.Values{"name": {"Lunch"}, "minutes": {"60"}, "day": {d}, "from": {"12:00"}, "to": {"14:00"}},
+		)
+	}
+	blocks = append(blocks,
+		url.Values{"name": {"Display"}, "minutes": {"60"}, "day": {"2"}, "at": {"14:00"}},
+		url.Values{"name": {"Fun synchro (entries on the day)"}, "minutes": {"45"}, "day": {"2"}, "at": {"16:00"}, "area": {"Panel 1"}, "chair": {"1"}, "judges": {"3"}, "recorder": {"1"}},
+		url.Values{"name": {"Awards"}, "minutes": {"40"}, "day": {"2"}, "at": {"16:50"}},
+	)
+	for _, b := range blocks {
 		b.Set("add", "1")
 		s.post(tt+"/setup/blocks", b)
 	}
 	for _, r := range []url.Values{
-		{"kind": {"day"}, "must": {"1"}, "event": {"BUCS L1"}, "day": {"2"}},
+		{"kind": {"day"}, "must": {"1"}, "event": {"Synchro BUCS L5"}, "day": {"2"}},
+		{"kind": {"day"}, "must": {"1"}, "event": {"Synchro BUCS L3"}, "day": {"2"}},
+		{"kind": {"day"}, "must": {"0"}, "event": {"BUCS L1"}, "day": {"2"}},
 		{"kind": {"area"}, "must": {"0"}, "event": {"Synchro BUCS L3"}, "area": {"Panel 1"}},
 		{"kind": {"before"}, "must": {"0"}, "event": {"BUCS L7"}, "event2": {"BUCS L6"}},
 	} {
