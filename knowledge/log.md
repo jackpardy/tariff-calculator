@@ -8,8 +8,9 @@
   flights end, what doesn't fit and what would, empty seats), without
   touching the timetable. Every step of ADR 0005 is now built. A scenario
   can say what judges each club must bring for every so many of its
-  competitors in a discipline, and how many of them can chair; one judge
-  can count for several disciplines.
+  competitors in a discipline, and how many of them can chair; a club
+  brings the sum of its quotas, and a percent of the clubs' judges can also
+  judge other disciplines.
 * **Update**: The [panel timeline](features/competition-entries.md#timetable-adr-0005-step-4)
   (roadmap, from the demo): every day side by side, a column per area, time
   running down, each flight and blocked time with who officiates it; printed

@@ -82,7 +82,7 @@ func actualScenario(c competitions.Competition, entries []store.Entry, people []
 
 // scenarioForm is a scenario's numbers as the form shows them.
 func scenarioForm(c competitions.Competition, sc competitions.Scenario) views.ScenarioForm {
-	f := views.ScenarioForm{Name: sc.Name, Gymnasts: sc.Gymnasts, Clubs: sc.Clubs, JudgePeople: sc.JudgePeople, Competing: sc.Competing, Helpers: sc.Helpers}
+	f := views.ScenarioForm{Name: sc.Name, AlsoJudge: sc.AlsoJudge, Gymnasts: sc.Gymnasts, Clubs: sc.Clubs, JudgePeople: sc.JudgePeople, Competing: sc.Competing, Helpers: sc.Helpers}
 	for i, ev := range c.EventNames() {
 		f.Events = append(f.Events, views.SimEvent{Field: "entries-" + strconv.Itoa(i), Name: ev, Entries: sc.Entries[ev]})
 	}
@@ -97,7 +97,8 @@ func scenarioForm(c competitions.Competition, sc competitions.Scenario) views.Sc
 // postedScenario reads the scenario form: name, entries-<i> by event,
 // judges-<discipline> and chairs-<discipline>, quota-per-<discipline>,
 // quota-judges-<discipline> and quota-chairs-<discipline> (what each club
-// must bring), judgePeople, gymnasts, clubs, competing and helpers. A blank number is none.
+// must bring), alsoJudge (percent of the clubs' judges who can also judge
+// other disciplines), judgePeople, gymnasts, clubs, competing and helpers. A blank number is none.
 func postedScenario(r *http.Request, c competitions.Competition) (competitions.Scenario, error) {
 	number := func(field string) (int, error) {
 		v := strings.TrimSpace(r.FormValue(field))
@@ -141,7 +142,7 @@ func postedScenario(r *http.Request, c competitions.Competition) (competitions.S
 		}
 	}
 	sc.Gymnasts, sc.Clubs, sc.Competing, sc.Helpers = read("gymnasts"), read("clubs"), read("competing"), read("helpers")
-	sc.JudgePeople = read("judgePeople")
+	sc.JudgePeople, sc.AlsoJudge = read("judgePeople"), read("alsoJudge")
 	if len(errs) > 0 {
 		return sc, fmt.Errorf("%s", errs[0])
 	}
@@ -165,6 +166,9 @@ func scenarioView(c competitions.Competition, setup competitions.Setup, i int, s
 		if q, ok := sc.Quota[d]; ok {
 			v.Quota = append(v.Quota, fmt.Sprintf("%s %d per %d competitors (%d can chair)", competitions.DisciplineName(d), q.Judges, q.Per, q.Chairs))
 		}
+	}
+	if len(sc.Quota) > 0 {
+		v.AlsoJudge = sc.AlsoJudge
 	}
 	r := sc.Result
 	if r == nil {
