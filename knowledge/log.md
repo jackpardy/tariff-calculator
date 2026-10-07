@@ -1,6 +1,23 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: Decided on the [roadmap](roadmap.md): opt-in notifications
+  for members, individuals, comp secs and coaches when a flight moves,
+  duties change or a card is checked, by phone push and email (clubs
+  always email), an email given only by someone 18 or over or as a
+  parent's. Notifications wait for a grace period after a change goes live,
+  then go out one per person told (a club's covers all its members, a
+  gymnast's all their events), summarising what changed; the organiser can
+  notify now or turn the wait off on the competition's days; questions left in
+  [open questions](open-questions.md#notifications).
+* **Update**: Decided on the [roadmap](roadmap.md): a kept "what if" is a
+  draft the organiser publishes, as is every change to a published
+  timetable; and a competition is set up in private, its links showing
+  when entries open, and goes live by a button or at a set time (and can be
+  made private again to pause entries).
+* **Update**: Confirmed that "the lower level" for a synchro pair a level
+  apart means the easier one, as built; the [roadmap](roadmap.md) keeps only
+  warning the gymnast on their own page.
 * **Update**: The [competitions guide](guide/competition-guide.md) says a
   synchro pair enters one routine (the level's voluntary) wherever it
   mattered, and gives synchro's default timing.
