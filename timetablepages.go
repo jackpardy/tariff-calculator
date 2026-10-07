@@ -713,7 +713,8 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 // printTimetable prints the marshal sheets (sheet=marshal) or the chair of
 // judges sheets (sheet=judges), one area's day to a page, each flight with its
 // panel; the officials rota (sheet=rota), each person's duties; or the panel
-// timeline (sheet=timeline).
+// timeline, without officials (sheet=timeline) or with them
+// (sheet=timeline-officials).
 func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request) {
 	c, s, entries, ok := p.timetableOf(w, r)
 	if !ok {
@@ -728,8 +729,8 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return
 	}
-	if r.URL.Query().Get("sheet") == "timeline" {
-		printTimeline(w, r, c, s, entries, people, p.now())
+	if sheet := r.URL.Query().Get("sheet"); sheet == "timeline" || sheet == "timeline-officials" {
+		printTimeline(w, r, c, s, entries, people, p.now(), sheet == "timeline-officials")
 		return
 	}
 	if r.URL.Query().Get("sheet") == "rota" {

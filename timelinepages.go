@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
-	"maps"
 	"net/http"
 	"slices"
 	"strconv"
@@ -16,8 +15,9 @@ import (
 )
 
 // The panel timeline (roadmap, competitions 3): every area's day side by side,
-// time running down, each flight and blocked time with who officiates it.
-// Printed, or downloaded as CSV.
+// time running down at an even scale, each flight and blocked time; or each
+// area with a column for each seat on its panel and who has it. Printed, or
+// downloaded as CSV.
 
 // timelineItem is a flight or blocked time on one area, as the timeline needs
 // it.
@@ -57,132 +57,165 @@ func dayAreas(s competitions.Setup, day competitions.Day) []string {
 	return out
 }
 
-// officialLines group a panel's seats by role, e.g. "Execution: A, B, C", with
-// "—" for a seat no one could take.
-func officialLines(duties []competitions.Duty, name func(key string) string) []string {
-	byRole := map[string][]string{}
-	for _, d := range duties {
-		who := "—"
-		if d.Person != "" {
-			who = name(d.Person)
-		}
-		byRole[d.Role] = append(byRole[d.Role], who)
-	}
-	var out []string
-	for _, r := range competitions.Roles {
-		if names := byRole[r]; len(names) > 0 {
-			out = append(out, roleShort[r]+": "+strings.Join(names, ", "))
-		}
-	}
-	return out
+// seatLabels are the timeline's names for seats: "Chair", "D1", "HD2", "E6".
+var seatLabels = map[string]string{
+	competitions.RoleChair: "Chair", competitions.RoleDifficulty: "D", competitions.RoleHD: "HD",
+	competitions.RoleExecution: "E", competitions.RoleRecorder: "Rec", competitions.RoleMarshal: "Mar",
 }
 
-// roleShort are the roles as the timeline labels them.
-var roleShort = map[string]string{
-	competitions.RoleChair: "Chair", competitions.RoleDifficulty: "Difficulty", competitions.RoleHD: "HD",
-	competitions.RoleExecution: "Execution", competitions.RoleRecorder: "Recorder", competitions.RoleMarshal: "Marshal",
+// seatLabel names a role's nth seat (0-based) of how many the area has.
+func seatLabel(role string, n, of int) string {
+	if of == 1 && role != competitions.RoleDifficulty && role != competitions.RoleHD && role != competitions.RoleExecution {
+		return seatLabels[role]
+	}
+	return seatLabels[role] + strconv.Itoa(n+1)
 }
 
-// timeline lays the schedule out as a table: a column per day's area, and a
-// row from each time anything starts or ends (and each hour) to the next, so
-// areas line up by time. An item spans the rows it runs over; items that
-// overlap on one area (moved by hand) share a cell.
-func timeline(s competitions.Schedule, name func(key string) string) ([]views.TimelineDay, []views.TimelineRow) {
+// timelineHeaderRows are the rows above the minutes: the day, the area, and
+// with officials each seat.
+func timelineHeaderRows(officials bool) int {
+	if officials {
+		return 3
+	}
+	return 2
+}
+
+// timeline lays the schedule out on a time scale: a row for every minute from
+// the earliest day's start to the latest day's end, so every area and day
+// lines up by time. Without officials, each day is a sheet with a column per
+// area; with them, each day's area is a sheet with a column for what's on and
+// one for each seat on its panel, a name to a cell.
+func timeline(s competitions.Schedule, name func(key string) string, officials bool) views.Timeline {
 	items := timelineItems(s)
-	var days []views.TimelineDay
-	times := map[int]bool{}
-	type column struct {
-		day        int
-		area       string
-		start, end int // the day's hours
-	}
-	var columns []column
-	for d, day := range s.Setup.Days {
-		start, end := day.Hours()
-		times[start], times[end] = true, true
-		areas := dayAreas(s.Setup, day)
-		days = append(days, views.TimelineDay{Name: day.Name, Areas: areas})
-		for _, a := range areas {
-			columns = append(columns, column{d, a, start, end})
+	// The minutes shown: from the earliest start to the latest end, of every
+	// day side by side; with officials, a sheet to a page, of its own day.
+	span := func(day int) (first, last int) {
+		first, last = -1, -1
+		widen := func(start, end int) {
+			if first < 0 || start < first {
+				first = start
+			}
+			last = max(last, end)
 		}
-	}
-	for _, it := range items {
-		times[it.start], times[it.end] = true, true
-	}
-	if len(times) == 0 {
-		return days, nil
-	}
-	breaks := slices.Sorted(maps.Keys(times))
-	for h := (breaks[0]/60 + 1) * 60; h < breaks[len(breaks)-1]; h += 60 {
-		times[h] = true
-	}
-	breaks = slices.Sorted(maps.Keys(times))
-	row := func(t int) int { i, _ := slices.BinarySearch(breaks, t); return i }
-
-	rows := make([]views.TimelineRow, len(breaks)-1)
-	for i := range rows {
-		rows[i] = views.TimelineRow{Time: competitions.Clock(breaks[i]), Hour: breaks[i]%60 == 0}
-	}
-	for _, col := range columns {
-		// The column's items, merged where they overlap.
-		type cluster struct {
-			start, end int
-			items      []timelineItem
+		for d, dd := range s.Setup.Days {
+			if day < 0 || d == day {
+				widen(dd.Hours())
+			}
 		}
-		var clusters []cluster
-		var mine []timelineItem
 		for _, it := range items {
-			if it.day == col.day && it.area == col.area {
-				mine = append(mine, it)
+			if day < 0 || it.day == day {
+				widen(it.start, it.end)
 			}
 		}
-		slices.SortStableFunc(mine, func(a, b timelineItem) int { return a.start - b.start })
-		for _, it := range mine {
-			if n := len(clusters); n > 0 && it.start < clusters[n-1].end {
-				clusters[n-1].items = append(clusters[n-1].items, it)
-				clusters[n-1].end = max(clusters[n-1].end, it.end)
-				continue
-			}
-			clusters = append(clusters, cluster{it.start, it.end, []timelineItem{it}})
+		return first, last
+	}
+	t := views.Timeline{Officials: officials, Header: timelineHeaderRows(officials)}
+	header := t.Header
+	first, last := span(-1)
+	if first < 0 || last <= first {
+		return t
+	}
+	row := func(minute int) int { return header + minute - first + 1 }
+
+	// The sheet's time column: each hour labelled, and a line across it.
+	frame := func(sh *views.TimelineSheet, dayStart, dayEnd int) {
+		sh.Minutes = last - first
+		for h := (first + 59) / 60 * 60; h < last; h += 60 {
+			sh.Hours = append(sh.Hours, views.TimelineHour{Row: row(h), Rows: min(60, last-h), Label: competitions.Clock(h)})
 		}
-		starts := map[int]cluster{}
-		for _, c := range clusters {
-			starts[row(c.start)] = c
+		if first < dayStart {
+			sh.Off = append(sh.Off, views.TimelineSpan{Row: row(first), Rows: dayStart - first})
 		}
-		off := func(i int) bool { return breaks[i] < col.start || breaks[i] >= col.end }
-		for i := 0; i < len(rows); {
-			if c, ok := starts[i]; ok {
-				cell := views.TimelineCell{Span: max(1, row(c.end)-i), Kind: "block"}
-				for _, it := range c.items {
-					if it.flight {
-						cell.Kind = "flight"
-					}
-					cell.Items = append(cell.Items, views.TimelineItem{
-						Name: it.name, Time: competitions.Clock(it.start) + "–" + competitions.Clock(it.end),
-						Gymnasts: it.gymnasts, Flight: it.flight, Officials: officialLines(it.officials, name),
-					})
-				}
-				rows[i].Cells = append(rows[i].Cells, cell)
-				i += cell.Span
-				continue
-			}
-			// A gap: free time, or outside the day's hours, until something starts.
-			j := i + 1
-			for j < len(rows) && off(j) == off(i) {
-				if _, ok := starts[j]; ok {
-					break
-				}
-				j++
-			}
-			kind := ""
-			if off(i) {
-				kind = "off"
-			}
-			rows[i].Cells = append(rows[i].Cells, views.TimelineCell{Span: j - i, Kind: kind})
-			i = j
+		if dayEnd < last {
+			sh.Off = append(sh.Off, views.TimelineSpan{Row: row(dayEnd), Rows: last - dayEnd})
 		}
 	}
-	return days, rows
+
+	for d, day := range s.Setup.Days {
+		dayStart, dayEnd := day.Hours()
+		if officials {
+			first, last = span(d)
+		}
+		var sheet *views.TimelineSheet
+		newSheet := func(title string) {
+			t.Sheets = append(t.Sheets, views.TimelineSheet{Day: day.Name, Title: title, Columns: "var(--tl-time)"})
+			sheet = &t.Sheets[len(t.Sheets)-1]
+			frame(sheet, dayStart, dayEnd)
+		}
+		if !officials {
+			newSheet(day.Name)
+		}
+		for _, area := range dayAreas(s.Setup, day) {
+			if officials {
+				newSheet(day.Name + " · " + area)
+			}
+			var mine []timelineItem
+			for _, it := range items {
+				if it.day == d && it.area == area {
+					mine = append(mine, it)
+				}
+			}
+			slices.SortStableFunc(mine, func(a, b timelineItem) int { return a.start - b.start })
+
+			// The area's seats: as many of each role as any of its items has.
+			seats := map[string]int{}
+			if officials {
+				for _, it := range mine {
+					n := map[string]int{}
+					for _, duty := range it.officials {
+						n[duty.Role]++
+						seats[duty.Role] = max(seats[duty.Role], n[duty.Role])
+					}
+				}
+			}
+			col := 2 // after the time column
+			for _, a := range sheet.Areas {
+				col += a.Columns
+			}
+			av := views.TimelineArea{Name: area, Column: col, Columns: 1}
+			seatCol := map[string]int{} // "role n" → column
+			sheet.Columns += " var(--tl-event)"
+			for _, role := range competitions.Roles {
+				for n := range seats[role] {
+					seatCol[fmt.Sprintf("%s %d", role, n)] = col + av.Columns
+					av.Seats = append(av.Seats, views.TimelineSeat{Label: seatLabel(role, n, seats[role]), Title: competitions.RoleName(role)})
+					av.Columns++
+					sheet.Columns += " var(--tl-seat)"
+				}
+			}
+			for i, it := range mine {
+				overlaps := i > 0 && it.start < mine[i-1].end || i+1 < len(mine) && mine[i+1].start < it.end
+				kind := "block"
+				if it.flight {
+					kind = "flight"
+				}
+				cell := views.TimelineCell{
+					Row: row(it.start), Rows: max(1, it.end-it.start), Column: col, Columns: 1, Kind: kind, Overlaps: overlaps,
+					Name: it.name, Time: competitions.Clock(it.start) + "–" + competitions.Clock(it.end), Flight: it.flight, Gymnasts: it.gymnasts,
+				}
+				if len(it.officials) == 0 {
+					cell.Columns = av.Columns // blocked time with no officials takes the whole area
+				}
+				av.Cells = append(av.Cells, cell)
+				n := map[string]int{}
+				for _, duty := range it.officials {
+					c, ok := seatCol[fmt.Sprintf("%s %d", duty.Role, n[duty.Role])]
+					n[duty.Role]++
+					if !ok {
+						continue
+					}
+					who := name(duty.Person)
+					if duty.Person == "" {
+						who = "—"
+					}
+					av.Cells = append(av.Cells, views.TimelineCell{Row: cell.Row, Rows: cell.Rows, Column: c, Columns: 1, Kind: "seat", Name: who,
+						Empty: duty.Person == "", Overlaps: overlaps, Time: competitions.RoleName(duty.Role) + " · " + it.name + " · " + cell.Time})
+				}
+			}
+			sheet.Areas = append(sheet.Areas, av)
+		}
+	}
+	return t
 }
 
 // officialNames name officials by their key: the rota's people first, then
@@ -206,14 +239,19 @@ func officialNames(people []competitions.RotaPerson, names map[string]string, wi
 	}
 }
 
-// printTimeline is the panel timeline, to print.
-func printTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, now time.Time) {
+// printTimeline is the panel timeline, to print: without officials
+// (sheet=timeline), or with a column for each seat (sheet=timeline-officials).
+func printTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, now time.Time, officials bool) {
 	_, names := peopleOf(entries)
-	days, rows := timeline(s, officialNames(people, names, false))
-	render(w, r, views.TimelinePrint(views.Timeline{
-		Title: "Panel timeline · " + c.Name, Back: timetablePath(r), CSV: timetablePath(r) + "/timeline.csv",
-		Competition: summary(c.Competition, now), Days: days, Rows: rows,
-	}))
+	t := timeline(s, officialNames(people, names, false), officials)
+	t.Title, t.Back, t.CSV = "Panel timeline · "+c.Name, timetablePath(r), timetablePath(r)+"/timeline.csv"
+	t.Competition = summary(c.Competition, now)
+	t.Other, t.OtherLabel = timetablePath(r)+"/print?sheet=timeline-officials", "With officials"
+	if officials {
+		t.Title = "Timeline with officials · " + c.Name
+		t.Other, t.OtherLabel = timetablePath(r)+"/print?sheet=timeline", "Without officials"
+	}
+	render(w, r, views.TimelinePrint(t))
 }
 
 // timelineCSV is the panel timeline as CSV: a row per flight or blocked time

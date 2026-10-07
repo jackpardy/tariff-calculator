@@ -605,30 +605,34 @@ details > * { box-sizing: border-box; }
 .comp-sim-table td { min-width: 11rem; vertical-align: top; }
 .comp-sim-table .buttons form { display: contents; }
 
-/* The panel timeline: days side by side, time running down. */
+/* The panel timeline (views/timetable.templ): sheets side by side, each a
+   grid with a row for every minute. */
 .comp-page .container:has(.comp-timeline) { max-width: none; }
-.comp-timeline-scroll { overflow-x: auto; }
-.comp-timeline-table { border-collapse: collapse; font-size: 0.72rem; line-height: 1.25; table-layout: fixed; width: 100%; min-width: calc(var(--areas) * 9rem + 3.5rem); }
-.comp-timeline-table col.comp-timeline-timecol { width: 3.5rem; }
-.comp-timeline-table th, .comp-timeline-table td { border: 1px solid #ddd; padding: 0.15rem 0.3rem; vertical-align: top; }
-.comp-timeline-table thead th { background: #f5f5f5; text-align: center; white-space: nowrap; }
-.comp-timeline-table th.comp-timeline-day { font-size: 0.85rem; }
-.comp-timeline-table .comp-timeline-daystart { border-left: 2px solid #888; }
-.comp-timeline-table th.comp-timeline-time { color: #666; font-weight: normal; white-space: nowrap; text-align: right; }
-.comp-timeline-table tbody th.comp-timeline-time { position: sticky; left: 0; background: #fff; z-index: 1; }
-.comp-timeline-table tr.comp-timeline-hour > th.comp-timeline-time { color: #000; font-weight: 600; }
-.comp-timeline-table td.comp-timeline-flight { background: #eef3fc; }
-.comp-timeline-table td.comp-timeline-block { background: #fdf5e6; }
-.comp-timeline-table td.comp-timeline-off { background: repeating-linear-gradient(45deg, #f4f4f4, #f4f4f4 4px, #fff 4px, #fff 8px); }
-.comp-timeline-item + .comp-timeline-item { border-top: 1px dashed #999; margin-top: 0.2rem; padding-top: 0.2rem; }
+.comp-timeline { --tl-min: 4px; --tl-time: 3.2rem; --tl-event: 9rem; --tl-seat: 5.5rem; }
+.comp-tl-sheets { display: flex; gap: 0.75rem; overflow-x: auto; align-items: flex-start; padding-bottom: 0.5rem; }
+.comp-tl-sheet { display: grid; flex: none; font-size: 0.72rem; line-height: 1.2; border: 1px solid #ddd; background: #fff; }
+.comp-tl-head { background: #f5f5f5; border-bottom: 1px solid #ddd; padding: 0.15rem 0.3rem; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.comp-tl-day { font-size: 0.85rem; }
+.comp-tl-timehead { color: #666; font-weight: normal; }
+.comp-tl-area { border-left: 2px solid #ccc; }
+.comp-tl-off { background: repeating-linear-gradient(45deg, #f2f2f2, #f2f2f2 4px, #fff 4px, #fff 8px); }
+.comp-tl-line { border-top: 1px solid #e3e3e3; }
+.comp-tl-hour { color: #555; font-weight: 600; text-align: right; padding: 0 0.3rem; border-top: 1px solid #ccc; }
+.comp-tl-cell { position: relative; z-index: 1; overflow: hidden; padding: 0.1rem 0.25rem; margin: 0 1px 1px; border-radius: 3px; }
+.comp-tl-flight { background: #e3ecfb; border-left: 3px solid #6a8fd8; }
+.comp-tl-block { background: #fbf0dc; border-left: 3px solid #d9a441; }
+.comp-tl-seat { background: #eef3fc; word-break: break-word; }
+.comp-tl-empty { background: #fde8e8; color: #b42318; text-align: center; }
+.comp-tl-overlap { outline: 2px solid #d92d20; }
 @page timeline { size: A3 landscape; margin: 10mm; }
 @media print {
-    .comp-timeline { page: timeline; }
-    .comp-timeline-scroll { overflow: visible; }
-    .comp-timeline-table { font-size: 6.5pt; min-width: 0; }
-    .comp-timeline-table col.comp-timeline-timecol { width: 2.5rem; }
-    .comp-timeline-table td, .comp-timeline-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .comp-timeline-table thead { display: table-header-group; }
+    .comp-timeline { page: timeline; --tl-min: 0.6mm; --tl-time: 9mm; --tl-event: minmax(0, 1fr); --tl-seat: minmax(0, 1fr); }
+    .comp-timeline-officials { --tl-event: minmax(0, 2.2fr); --tl-min: 0.4mm; }
+    .comp-tl-sheets { overflow: visible; gap: 3mm; }
+    .comp-tl-sheet { flex: var(--tl-areas) 1 0; min-width: 0; font-size: 6.5pt; }
+    .comp-timeline-officials .comp-tl-sheets { display: block; }
+    .comp-timeline-officials .comp-tl-sheet { break-after: page; }
+    .comp-tl-sheet *, .comp-tl-sheet { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 .comp-event { border-top: 1px solid #eee; padding-top: 0.75rem; margin-top: 0.75rem; }
 .comp-event .comp-change summary { color: #485fc7; }

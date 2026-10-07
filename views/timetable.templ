@@ -181,6 +181,7 @@ templ CompetitionTimetable(p TimetablePage) {
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=judges") }>Print chair of judges sheets</a>
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=rota") }>Print the officials rota</a>
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=timeline") }>Panel timeline</a>
+				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=timeline-officials") }>Timeline with officials</a>
 			</div>
 			<p class="help mb-4">
 				if p.Published {
@@ -862,43 +863,83 @@ templ dutiesBox(duties []string) {
 	}
 }
 
-// Timeline is the panel timeline: each day's areas side by side, a row from
-// each time anything starts or ends to the next.
+// Timeline is the panel timeline on a time scale: a row for every minute
+// from Header+1, in sheets side by side: a day each, or with officials a
+// day's area each.
 type Timeline struct {
-	Title, Back, CSV string
-	Competition      CompetitionSummary
-	Days             []TimelineDay
-	Rows             []TimelineRow
+	Title, Back, CSV  string
+	Other, OtherLabel string // the other kind of timeline
+	Officials         bool   // a column for each seat
+	Competition       CompetitionSummary
+	Header            int    // rows above the minutes
+	Sheets            []TimelineSheet
 }
 
-// TimelineDay is a day and the areas it uses, its columns.
-type TimelineDay struct {
-	Name  string
-	Areas []string
+// TimelineSheet is a day, or a day's area, with its own time column.
+type TimelineSheet struct {
+	Day, Title string
+	Columns    string // grid-template-columns
+	Minutes    int    // rows of a minute
+	Areas      []TimelineArea
+	Hours      []TimelineHour
+	Off        []TimelineSpan // outside the day's hours
 }
 
-// TimelineRow starts at Time; its cells are the columns not covered by a cell
-// above.
-type TimelineRow struct {
-	Time  string
-	Hour  bool // on the hour
-	Cells []TimelineCell
+// TimelineArea is an area's columns from Column: what's on, then its seats.
+type TimelineArea struct {
+	Name            string
+	Column, Columns int
+	Seats           []TimelineSeat
+	Cells           []TimelineCell
 }
 
-// TimelineCell is a flight or blocked time ("flight" or "block"), free time
-// (""), or outside the day's hours ("off"), over Span rows.
+// TimelineSeat is a seat's column heading.
+type TimelineSeat struct {
+	Label, Title string // "E3", "Execution judge"
+}
+
+// TimelineHour labels an hour's rows.
+type TimelineHour struct {
+	Row, Rows int
+	Label     string
+}
+
+// TimelineSpan is rows from Row.
+type TimelineSpan struct {
+	Row, Rows int
+}
+
+// TimelineCell is a flight or blocked time ("flight", "block"), or who has one
+// of its seats ("seat"), placed on the grid.
 type TimelineCell struct {
-	Span  int
-	Kind  string
-	Items []TimelineItem // more than one where they overlap
+	Row, Rows, Column, Columns int
+	Kind                       string
+	Name, Time                 string // for a seat: who, and the role, flight and time
+	Flight                     bool
+	Gymnasts                   int
+	Empty                      bool // a seat no one could take
+	Overlaps                   bool // moved by hand onto another
 }
 
-// TimelineItem is a flight or blocked time in a cell.
-type TimelineItem struct {
-	Name, Time string // "09:00–09:55", warm-up to finish
-	Flight     bool
-	Gymnasts   int
-	Officials  []string // by role, e.g. "Execution: A, B, C"
+func gridAt(row, rows, column, columns int) string {
+	return fmt.Sprintf("grid-row: %d / span %d; grid-column: %d / span %d", row, rows, column, columns)
+}
+
+func (t Timeline) rows(sh TimelineSheet) string {
+	return fmt.Sprintf("repeat(%d, auto) repeat(%d, var(--tl-min))", t.Header, sh.Minutes)
+}
+
+func (c TimelineCell) title() string {
+	if c.Empty {
+		return "No one · " + c.Time
+	}
+	if c.Kind == "seat" {
+		return c.Name + " · " + c.Time
+	}
+	if c.Flight {
+		return c.Name + " · " + c.Time + " · " + gymnastCount(c.Gymnasts)
+	}
+	return c.Name + " · " + c.Time
 }
 
 // TimelinePrint prints the panel timeline.
@@ -906,78 +947,62 @@ templ TimelinePrint(t Timeline) {
 	@competitionLayout(t.Title) {
 		<div class="comp-print-bar screen-only">
 			<a href={ templ.SafeURL(t.Back) }>← Timetable</a>
+			<a class="button is-small" href={ templ.SafeURL(t.Other) }>{ t.OtherLabel }</a>
 			<a class="button is-small" href={ templ.SafeURL(t.CSV) }>Download CSV</a>
 			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
 		</div>
-		<section class="comp-timeline">
-			<h1 class="title is-5 mb-3">{ t.Competition.Name } · Panel timeline</h1>
-			<div class="comp-timeline-scroll">
-				<table class="comp-timeline-table" style={ fmt.Sprintf("--areas: %d", timelineColumns(t.Days)) }>
-					<colgroup>
-						<col class="comp-timeline-timecol"/>
-						for _, d := range t.Days {
-							for range d.Areas {
-								<col/>
-							}
-						}
-					</colgroup>
-					<thead>
-						<tr>
-							<th rowspan="2" class="comp-timeline-time">Time</th>
-							for _, d := range t.Days {
-								<th colspan={ strconv.Itoa(len(d.Areas)) } class="comp-timeline-day">{ d.Name }</th>
-							}
-						</tr>
-						<tr>
-							for _, d := range t.Days {
-								for i, a := range d.Areas {
-									<th class={ templ.KV("comp-timeline-daystart", i == 0) }>{ a }</th>
+		<section class={ "comp-timeline", templ.KV("comp-timeline-officials", t.Officials) }>
+			<h1 class="title is-5 mb-3">
+				{ t.Competition.Name } ·
+				if t.Officials {
+					Timeline with officials
+				} else {
+					Panel timeline
+				}
+			</h1>
+			<div class="comp-tl-sheets">
+				for _, sh := range t.Sheets {
+					<div class="comp-tl-sheet" style={ fmt.Sprintf("grid-template-columns: %s; grid-template-rows: %s; --tl-areas: %d", sh.Columns, t.rows(sh), len(sh.Areas)) }>
+						<div class="comp-tl-head comp-tl-timehead" style={ gridAt(1, t.Header, 1, 1) }>Time</div>
+						<div class="comp-tl-head comp-tl-day" style={ fmt.Sprintf("grid-row: 1; grid-column: 2 / -1") }>{ sh.Title }</div>
+						for _, a := range sh.Areas {
+							if !t.Officials {
+								<div class="comp-tl-head comp-tl-areahead" style={ gridAt(2, 1, a.Column, a.Columns) }>{ a.Name }</div>
+							} else {
+								<div class="comp-tl-head comp-tl-areahead" style={ gridAt(2, 1, a.Column, 1) }>Flight</div>
+								for i, seat := range a.Seats {
+									<div class="comp-tl-head comp-tl-areahead" style={ gridAt(2, 1, a.Column+1+i, 1) } title={ seat.Title }>{ seat.Label }</div>
 								}
 							}
-						</tr>
-					</thead>
-					<tbody>
-						for _, r := range t.Rows {
-							<tr class={ templ.KV("comp-timeline-hour", r.Hour) }>
-								<th class="comp-timeline-time">{ r.Time }</th>
-								for _, c := range r.Cells {
-									<td rowspan={ strconv.Itoa(c.Span) } class={ "comp-timeline-" + timelineKind(c.Kind) }>
-										for _, it := range c.Items {
-											<div class="comp-timeline-item">
-												<strong>{ it.Name }</strong>
-												<div>
-													{ it.Time }
-													if it.Flight {
-														· { gymnastCount(it.Gymnasts) }
-													}
-												</div>
-												for _, o := range it.Officials {
-													<div>{ o }</div>
-												}
-											</div>
-										}
-									</td>
-								}
-							</tr>
+							<div class="comp-tl-area" style={ gridAt(t.Header+1, sh.Minutes, a.Column, a.Columns) }></div>
 						}
-					</tbody>
-				</table>
+						for _, o := range sh.Off {
+							<div class="comp-tl-off" style={ fmt.Sprintf("grid-row: %d / span %d; grid-column: 2 / -1", o.Row, o.Rows) }></div>
+						}
+						for _, h := range sh.Hours {
+							<div class="comp-tl-hour" style={ gridAt(h.Row, h.Rows, 1, 1) }>{ h.Label }</div>
+							<div class="comp-tl-line" style={ fmt.Sprintf("grid-row: %d / span 1; grid-column: 2 / -1", h.Row) }></div>
+						}
+						for _, a := range sh.Areas {
+							for _, c := range a.Cells {
+								<div class={ "comp-tl-cell", "comp-tl-" + c.Kind, templ.KV("comp-tl-empty", c.Empty), templ.KV("comp-tl-overlap", c.Overlaps) } style={ gridAt(c.Row, c.Rows, c.Column, c.Columns) } title={ c.title() }>
+									if c.Kind == "seat" {
+										{ c.Name }
+									} else {
+										<strong>{ c.Name }</strong>
+										<div>
+											{ c.Time }
+											if c.Flight {
+												· { strconv.Itoa(c.Gymnasts) }
+											}
+										</div>
+									}
+								</div>
+							}
+						}
+					</div>
+				}
 			</div>
 		</section>
 	}
-}
-
-func timelineColumns(days []TimelineDay) int {
-	n := 0
-	for _, d := range days {
-		n += len(d.Areas)
-	}
-	return n
-}
-
-func timelineKind(kind string) string {
-	if kind == "" {
-		return "free"
-	}
-	return kind
 }
