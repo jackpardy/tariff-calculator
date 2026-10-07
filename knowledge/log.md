@@ -1,5 +1,16 @@
 # Update log
 
+## 2026-10-08
+* **Update**: Tried with an ISTO organiser: approving coaches and removing
+  entries were their two big asks, next on the [roadmap](roadmap.md) after
+  the biggest priority, one panel for all of an event's flights.
+  An organiser ticks entries (one by one or a club at once) and removes
+  them or puts them on hold asking for changes, with an optional reason for
+  the club, the member or both, and can restore them. Approved coaches'
+  qualification is picked from a list of BG and Gymnastics Ireland levels,
+  a higher level counting; no expiry date; a club's certificate is kept for
+  its next competitions. A held entry sent again waits for the organiser.
+
 ## 2026-10-07
 * **Update**: Decided on the [roadmap](roadmap.md): one panel, every seat,
   for all of an event's flights, which run back to back on one area; an

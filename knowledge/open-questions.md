@@ -36,7 +36,7 @@ settings (ADR 0005 Decisions 6 and 13). Still to learn:
 
 # Notifications
 
-Decided 2026-10-07 ([roadmap](roadmap.md#next-steps-proposed-2026-10-07)):
+Decided 2026-10-07 ([roadmap](roadmap.md#next-steps-2026-10-08)):
 opt-in notifications by phone push and email. Push stores nothing
 personal. An email is given with a tick box, "I'm 18 or over, or this is a
 parent's email"; anyone younger can still use push (decided 2026-10-07).
@@ -45,26 +45,33 @@ Still to decide:
 - **How long the grace period is** before a notification goes out (about
   10 minutes suggested; the organiser can skip it with Notify now or turn
   it off on the competition's days, see the
-  [roadmap](roadmap.md#next-steps-proposed-2026-10-07)), and whether there
+  [roadmap](roadmap.md#next-steps-2026-10-08)), and whether there
   are quiet hours overnight before the competition day.
 
 Left to the build: which service sends email (Amazon SES in its Ireland
 region is the leaning).
 
+# Removing entries
+
+Decided 2026-10-08 ([roadmap](roadmap.md#next-steps-2026-10-08)): remove
+(blocked) or put on hold asking for changes, ticked one by one or a club at
+once, with an optional reason for the club, the member or both, and
+restorable; a held entry sent again waits for the organiser to accept it.
+Nothing left to decide.
+
 # Approved coaches
 
-Decided 2026-10-07 ([roadmap](roadmap.md#next-steps-proposed-2026-10-07)):
-clubs and individuals send coaches with a certificate, and the organiser
-approves each for their competition. Still to decide:
+Decided 2026-10-07 and 2026-10-08
+([roadmap](roadmap.md#next-steps-2026-10-08)): clubs and individuals send
+coaches with a certificate, and the organiser approves each for their
+competition against a qualification picked from a list (a higher level
+counting for a lower one). No expiry date is asked for. A club's
+certificate is kept with the club for its next competitions. Still to
+decide:
 
-- **Which qualifications** the organiser chooses from (British Gymnastics
-  and Gymnastics Ireland coaching levels, by discipline), or whether they
-  just describe what they need.
-- **Uploads:** largest file, which types (photo, PDF), and whether a club
-  can send the same certificate to its next competition without uploading
-  it again (it would still be approved afresh).
-- **A certificate's expiry date:** asked for, and checked against the
-  competition's date?
+- **The list itself:** which British Gymnastics and Gymnastics Ireland
+  coaching levels, by discipline, and their names.
+- **Uploads:** largest file, and which types (photo, PDF).
 
 # Decisions pending
 
