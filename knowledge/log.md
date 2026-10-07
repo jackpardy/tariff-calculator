@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: [Synchro](features/competition-entries.md#events-and-synchro-adr-0005-step-2)
+  levels can be paired into one event ("BUCS L1/L2"), each pair saying which
+  level they're doing; a pair entered at a level other than their individual
+  levels give (the same, or the easier of two a level apart) is flagged.
 * **Update**: Synchro panels have 2 synchronisation judges by default, a
   setting on the [officials](features/competition-entries.md#officials-adr-0005-step-3)
   page, filled by the rota from synchro's judges.

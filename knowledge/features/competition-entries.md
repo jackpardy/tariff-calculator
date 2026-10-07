@@ -106,6 +106,20 @@ A competition offers **events**: a discipline at a level.
   with their own member page or entry link (or as having no other entry), so
   the timetable can later check their clashes. Naming a different partner
   needs a new confirmation.
+- **Paired synchro levels:** the organiser can pair synchro levels into one
+  event, one a line ("BUCS L1 + BUCS L2" makes "Synchro BUCS L1/L2"),
+  flighted, ranked, judged and timetabled as one. Each pair says which level
+  they're doing ("BUCS L1/L2 (doing BUCS L1)", kept as the entry's
+  `choice`), and their routine is checked against it. Pairings are set when
+  creating the competition or under Links and settings; entries made before
+  a level was paired need re-entering in its event.
+- **A pair's level:** a pair does the level they both compete at
+  individually, or the easier of two a level apart (by the competition's
+  order of levels); more than a level apart, they usually can't pair. Once
+  the partner has confirmed and both have individual trampoline entries, a
+  synchro entry at another level is flagged on the dashboard, first among its
+  problems ("A (BUCS L3) and B (BUCS L4) compete individually, so as a pair
+  they do BUCS L4 in synchro, not BUCS L3").
 
 # Officials (ADR 0005, step 3)
 

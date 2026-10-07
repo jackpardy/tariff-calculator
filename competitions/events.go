@@ -99,8 +99,8 @@ func (c Competition) levelNames(discipline string) []string {
 	}
 	var out []string
 	for _, l := range c.levels(discipline) {
-		if level, err := l.Resolve(); err == nil {
-			out = append(out, level.Name)
+		if name, err := l.eventName(); err == nil {
+			out = append(out, name)
 		}
 	}
 	return out
@@ -112,7 +112,8 @@ func (c Competition) LevelNames(discipline string) []string { return c.levelName
 // LevelFor is a checked discipline's level with this name.
 func (c Competition) LevelFor(discipline, name string) (Level, requirements.Level, bool) {
 	for _, l := range c.levels(discipline) {
-		if level, err := l.Resolve(); err == nil && level.Name == name {
+		if n, err := l.eventName(); err == nil && n == name {
+			level, _ := l.Resolve()
 			return l, level, true
 		}
 	}
@@ -155,15 +156,23 @@ func (c Competition) checkCategory(e *Entry, errs *[]error) {
 func (c Competition) validateEvents() []error {
 	var errs []error
 	seen := map[string]bool{}
-	for _, l := range c.Synchro {
-		level, err := l.validate()
-		switch {
-		case err != nil:
-			errs = append(errs, fmt.Errorf("synchro: %w", err))
-		case seen[level.Name]:
-			errs = append(errs, fmt.Errorf("two synchro levels are called %q", level.Name))
+	for _, event := range c.Synchro {
+		for _, l := range event.Members() {
+			level, err := l.validate()
+			switch {
+			case err != nil:
+				errs = append(errs, fmt.Errorf("synchro: %w", err))
+			case seen[level.Name]:
+				errs = append(errs, fmt.Errorf("synchro has %q twice", level.Name))
+			}
+			seen[level.Name] = true
 		}
-		seen[level.Name] = true
+	}
+	for _, l := range c.Levels {
+		if len(l.With) > 0 {
+			errs = append(errs, errors.New("only synchro levels can be paired"))
+			break
+		}
 	}
 	for _, d := range []string{Tumbling, DMT} {
 		seen := map[string]bool{}

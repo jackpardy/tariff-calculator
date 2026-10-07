@@ -103,11 +103,11 @@ func (c Competition) LevelOrder(discipline string) []string {
 	}
 	var out []string
 	for _, l := range c.levels(discipline) {
-		level, err := l.Resolve()
+		name, err := l.eventName()
 		if err != nil {
-			level.Name = l.Ref
+			name = l.Ref
 		}
-		out = append(out, level.Name)
+		out = append(out, name)
 	}
 	return out
 }

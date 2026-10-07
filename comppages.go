@@ -173,7 +173,8 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 		form.Levels[ref] = true
 		c.Levels = append(c.Levels, competitions.Level{Ref: ref})
 	}
-	c.Synchro, c.Tumbling, c.DMT, form.Events = postedEvents(r)
+	var pairs [][]string
+	c.Synchro, c.Tumbling, c.DMT, pairs, form.Events = postedEvents(r)
 	for _, raw := range r.Form["custom"] {
 		var own struct {
 			Level requirements.Level          `json:"level"`
@@ -188,6 +189,11 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 	// Easiest first: built-ins by rank, the coach's own levels after them, to
 	// move where they belong.
 	c.Levels, c.Synchro = competitions.OrderLevels(nil, c.Levels), competitions.OrderLevels(nil, c.Synchro)
+	if paired, err := competitions.PairLevels(c.Synchro, pairs); err != nil {
+		problems = append(problems, sentences(err)...)
+	} else {
+		c.Synchro = paired
+	}
 	if c.Deadline.IsZero() {
 		c.Deadline = time.Now() // reported above; let Validate report the rest
 	}
@@ -413,6 +419,41 @@ func judge(c competitions.Competition, entries []store.Entry) []judged {
 			}
 		}
 		out[i] = j
+	}
+	for i, problem := range synchroLevels(c, entries) {
+		out[i].problems = append([]string{problem}, out[i].problems...)
+	}
+	return out
+}
+
+// synchroLevels checks each synchro pair's level against their individual
+// trampoline levels (by entry index): the same level, or the easier of two a
+// level apart; further apart, they usually can't pair.
+func synchroLevels(c competitions.Competition, entries []store.Entry) map[int]string {
+	keys := personKeys(entries)
+	individual := map[string]string{} // person → their trampoline level
+	for _, e := range entries {
+		if !e.Withdrawn && e.Entry.Discipline == competitions.Trampoline {
+			individual[keys[e.ID][0]] = e.Entry.Level
+		}
+	}
+	out := map[int]string{}
+	for i, e := range entries {
+		ks := keys[e.ID]
+		if e.Withdrawn || e.Entry.Discipline != competitions.Synchro || len(ks) < 2 || e.Entry.Partner == nil {
+			continue
+		}
+		a, b := individual[ks[0]], individual[ks[1]]
+		if a == "" || b == "" {
+			continue
+		}
+		pair := fmt.Sprintf("%s (%s) and %s (%s)", e.Entry.Gymnast, a, e.Entry.Partner.Name, b)
+		switch want, ok := c.SynchroLevel(a, b); {
+		case !ok:
+			out[i] = pair + " compete more than a level apart individually, so usually can't pair in synchro"
+		case want != e.Entry.DoesLevel():
+			out[i] = fmt.Sprintf("%s compete individually, so as a pair they do %s in synchro, not %s", pair, want, e.Entry.DoesLevel())
+		}
 	}
 	return out
 }
@@ -758,7 +799,10 @@ func card(c competitions.Competition, e competitions.Entry, club string) (views.
 	if checked.Unchecked {
 		return out, nil
 	}
-	l, _, _ := c.LevelFor(e.Discipline, e.Level)
+	l, _, _ := c.EntryLevel(e)
+	if e.Choice != "" {
+		out.Level += " (doing " + e.Choice + ")"
+	}
 	for i, ex := range []requirements.Checked{checked.First, checked.Second} {
 		card := views.ExerciseCard{
 			Title: [...]string{"First exercise", "Second exercise"}[i], Requirements: ex.SetName,
@@ -826,7 +870,7 @@ func (p *competitionPages) delete(w http.ResponseWriter, r *http.Request) {
 func entryForm(c competitions.Competition, e competitions.Entry, action, submit string) views.EntryForm {
 	d := e.Discipline
 	f := views.EntryForm{
-		Action: action, Submit: submit, Gymnast: e.Gymnast, Level: e.Level, Category: e.Category, Video: c.Video.Describe(),
+		Action: action, Submit: submit, Gymnast: e.Gymnast, Level: e.DoesLevel(), Category: e.Category, Video: c.Video.Describe(),
 		Discipline: d, Synchro: d == competitions.Synchro, Unchecked: !competitions.Checked(d),
 	}
 	if e.Partner != nil {
@@ -839,12 +883,17 @@ func entryForm(c competitions.Competition, e competitions.Entry, action, submit 
 		}
 		return f
 	}
-	for _, l := range c.LevelsOf(d) {
+	for _, l := range c.EntryLevels(d) {
 		level, err := l.Resolve()
 		if err != nil {
 			continue
 		}
-		el := views.EntryLevel{Name: level.Name, Split: c.Split.Splits(competitions.EventName(d, level.Name))}
+		event := level.Name
+		el := views.EntryLevel{Name: level.Name}
+		if ev, paired, ok := c.SynchroEventOf(level.Name); d == competitions.Synchro && ok && paired {
+			event, el.Label = ev, ev+" (doing "+level.Name+")"
+		}
+		el.Split = c.Split.Splits(competitions.EventName(d, event))
 		for n := range 2 {
 			ex := &el.Exercises[n]
 			for _, ref := range level.Exercise(n + 1).Options {
@@ -855,7 +904,7 @@ func entryForm(c competitions.Competition, e competitions.Entry, action, submit 
 				}
 				ex.Options = append(ex.Options, o)
 			}
-			if level.Name == e.Level {
+			if level.Name == e.DoesLevel() {
 				ex.Chosen = e.Exercises[n].Option
 				ex.Video, ex.Note = e.Exercises[n].Video, e.Exercises[n].VideoNote
 				if len(e.Exercises[n].Skills) > 0 {
@@ -880,9 +929,13 @@ func postedEntry(r *http.Request, c competitions.Competition, gymnast string) (c
 	e := competitions.Entry{Gymnast: gymnast, Discipline: r.FormValue("discipline"), Level: r.FormValue("level"), Category: r.FormValue("category")}
 	if e.Discipline == competitions.Synchro {
 		e.Partner = &competitions.Partner{Name: r.FormValue("partnerName"), Club: r.FormValue("partnerClub")}
+		// A level paired into an event: the pair enters the event, doing it.
+		if event, paired, ok := c.SynchroEventOf(e.Level); ok && paired {
+			e.Level, e.Choice = event, e.Level
+		}
 	}
 	var problems []string
-	l, _, ok := c.LevelFor(e.Discipline, e.Level)
+	l, _, ok := c.EntryLevel(e)
 	for i := range e.Exercises {
 		if !competitions.Checked(e.Discipline) {
 			break
@@ -1087,16 +1140,28 @@ func deleteExpired(st *store.Store) {
 
 // --- Other disciplines (ADR 0005 Decision 1) ---
 
-// postedEvents reads the synchro levels ticked (synchroLevel) and the tumbling
-// and DMT levels, one a line (tumbling, dmt), and the form as posted.
-func postedEvents(r *http.Request) ([]competitions.Level, []string, []string, views.EventsForm) {
-	form := views.EventsForm{Groups: requirements.BuiltinGroups(), Synchro: map[string]bool{}, Tumbling: r.FormValue("tumbling"), DMT: r.FormValue("dmt")}
+// postedEvents reads the synchro levels ticked (synchroLevel), which to pair
+// into one event (synchroPairs: one event a line, levels joined by "+"), the
+// tumbling and DMT levels, one a line (tumbling, dmt), and the form as posted.
+func postedEvents(r *http.Request) ([]competitions.Level, []string, []string, [][]string, views.EventsForm) {
+	form := views.EventsForm{Groups: requirements.BuiltinGroups(), Synchro: map[string]bool{}, Pairs: r.FormValue("synchroPairs"),
+		Tumbling: r.FormValue("tumbling"), DMT: r.FormValue("dmt")}
 	var synchro []competitions.Level
 	for _, ref := range r.Form["synchroLevel"] {
 		form.Synchro[ref] = true
 		synchro = append(synchro, competitions.Level{Ref: ref})
 	}
-	return synchro, lines(form.Tumbling), lines(form.DMT), form
+	var pairs [][]string
+	for _, line := range lines(form.Pairs) {
+		var names []string
+		for _, n := range strings.Split(line, "+") {
+			if n = strings.TrimSpace(n); n != "" {
+				names = append(names, n)
+			}
+		}
+		pairs = append(pairs, names)
+	}
+	return synchro, lines(form.Tumbling), lines(form.DMT), pairs, form
 }
 
 // lines are a text's non-blank lines, trimmed.
@@ -1115,8 +1180,15 @@ func eventsForm(c competitions.Competition) views.EventsForm {
 	f := views.EventsForm{Groups: requirements.BuiltinGroups(), Synchro: map[string]bool{},
 		Tumbling: strings.Join(c.Tumbling, "\n"), DMT: strings.Join(c.DMT, "\n")}
 	for _, l := range c.Synchro {
-		f.Synchro[l.Ref] = true
+		for _, m := range l.Members() {
+			f.Synchro[m.Ref] = true
+		}
 	}
+	var pairs []string
+	for _, names := range c.Pairings() {
+		pairs = append(pairs, strings.Join(names, " + "))
+	}
+	f.Pairs = strings.Join(pairs, "\n")
 	return f
 }
 
@@ -1132,10 +1204,18 @@ func (p *competitionPages) setEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	changed := c.Competition
-	changed.Synchro, changed.Tumbling, changed.DMT, _ = postedEvents(r)
-	changed.Synchro = competitions.OrderLevels(c.Synchro, changed.Synchro)
+	var pairs [][]string
+	changed.Synchro, changed.Tumbling, changed.DMT, pairs, _ = postedEvents(r)
+	var was []competitions.Level
+	for _, l := range c.Synchro {
+		was = append(was, l.Members()...)
+	}
+	changed.Synchro = competitions.OrderLevels(was, changed.Synchro)
 	notice := "Events changed."
-	if err := changed.Validate(); err != nil {
+	var err error
+	if changed.Synchro, err = competitions.PairLevels(changed.Synchro, pairs); err != nil {
+		notice = "Events weren't changed: " + strings.Join(sentences(err), " ")
+	} else if err := changed.Validate(); err != nil {
 		notice = "Events weren't changed: " + strings.Join(sentences(err), " ")
 	} else if err := p.st.SetEvents(r.Context(), c.ID, changed.Synchro, changed.Tumbling, changed.DMT); err != nil {
 		failed(w, r, err)
