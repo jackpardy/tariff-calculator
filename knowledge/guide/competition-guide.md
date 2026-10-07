@@ -171,6 +171,12 @@ has a starting value you can change.
 10. **Publish** to show clubs, members and gymnasts entering on their own their
    flight, area and warm-up time, and officials their duties.
 
+**What if there's a delay?** (on the timetable page, once planned): choose the
+day, when the hold-up starts, how many minutes and which areas (none ticked
+for all). It shows which flights now start later or move to another area, when
+each day's flights end, anything that no longer fits, and anyone needed in two
+places. Nothing is changed: it's to help you decide what to do.
+
 **Simulate** (on the timetable page) tries numbers before entries arrive, or
 alongside them, without changing your timetable. It starts from your entries
 and officials so far: change the entries per event, how many gymnasts there
