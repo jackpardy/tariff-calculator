@@ -124,6 +124,7 @@ type ItemView struct {
 	Name       string
 	Start, End string
 	Gymnasts   []TimetableGymnast
+	Pairs      bool       // synchro: each entry a pair
 	Seats      []SeatView // its panel
 }
 
@@ -591,7 +592,7 @@ func joinNames(names []string) string {
 templ flightBox(p TimetablePage, f ItemView) {
 	<div class="box comp-flight">
 		<p class="mb-1"><strong>{ f.Name }</strong></p>
-		<p class="is-size-7 has-text-grey mb-2">Warm-up { f.Start } · finishes about { f.End } · { gymnastCount(len(f.Gymnasts)) }</p>
+		<p class="is-size-7 has-text-grey mb-2">Warm-up { f.Start } · finishes about { f.End } · { flightCount(len(f.Gymnasts), f.Pairs) }</p>
 		<ol class="comp-order">
 			for _, g := range f.Gymnasts {
 				<li>
@@ -941,7 +942,8 @@ type TimelineCell struct {
 	Kind                       string
 	Name, Time                 string // for a seat: who, and the role, flight and time
 	Flight                     bool
-	Gymnasts                   int
+	Gymnasts                   int  // entries: pairs, for synchro
+	Pairs                      bool // synchro
 	Empty                      bool // a seat no one could take
 	Overlaps                   bool // moved by hand onto another
 }
@@ -962,7 +964,7 @@ func (c TimelineCell) title() string {
 		return c.Name + " · " + c.Time
 	}
 	if c.Flight {
-		return c.Name + " · " + c.Time + " · " + gymnastCount(c.Gymnasts)
+		return c.Name + " · " + c.Time + " · " + flightCount(c.Gymnasts, c.Pairs)
 	}
 	return c.Name + " · " + c.Time
 }
@@ -1048,4 +1050,15 @@ func durationWord(minutes int) string {
 		return fmt.Sprintf("%d min", minutes)
 	}
 	return fmt.Sprintf("%dh %02dm", minutes/60, minutes%60)
+}
+
+// flightCount counts a flight's entries: gymnasts, or for synchro pairs.
+func flightCount(n int, pairs bool) string {
+	switch {
+	case !pairs:
+		return gymnastCount(n)
+	case n == 1:
+		return "1 pair"
+	}
+	return fmt.Sprintf("%d pairs", n)
 }

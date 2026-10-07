@@ -189,7 +189,8 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 				if f.Day != d || f.Area != a.Name {
 					continue
 				}
-				it := views.ItemView{Flight: true, Index: i, Name: f.Name(), Start: competitions.Clock(f.Start), End: competitions.Clock(f.End), Seats: seatsOf(f, people, names)}
+				it := views.ItemView{Flight: true, Index: i, Name: f.Name(), Start: competitions.Clock(f.Start), End: competitions.Clock(f.End), Seats: seatsOf(f, people, names),
+					Pairs: f.Discipline == competitions.Synchro}
 				for _, id := range f.Entries {
 					e, ok := byID[id]
 					if !ok {

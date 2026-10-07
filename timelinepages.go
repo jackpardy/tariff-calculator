@@ -26,6 +26,7 @@ type timelineItem struct {
 	area       string
 	start, end int
 	flight     bool
+	pairs      bool // synchro: entries are pairs
 	name       string
 	gymnasts   int
 	officials  []competitions.Duty
@@ -36,7 +37,7 @@ type timelineItem struct {
 func timelineItems(s competitions.Schedule) []timelineItem {
 	var out []timelineItem
 	for _, f := range s.Flights {
-		out = append(out, timelineItem{day: f.Day, area: f.Area, start: f.Start, end: f.End, flight: true, name: f.Name(), gymnasts: len(f.Entries), officials: f.Officials})
+		out = append(out, timelineItem{day: f.Day, area: f.Area, start: f.Start, end: f.End, flight: true, pairs: f.Discipline == competitions.Synchro, name: f.Name(), gymnasts: len(f.Entries), officials: f.Officials})
 	}
 	for _, b := range s.Blocks {
 		for _, a := range b.Areas {
@@ -191,7 +192,7 @@ func timeline(s competitions.Schedule, name func(key string) string, officials b
 				}
 				cell := views.TimelineCell{
 					Row: row(it.start), Rows: max(1, it.end-it.start), Column: col, Columns: 1, Kind: kind, Overlaps: overlaps,
-					Name: it.name, Time: competitions.Clock(it.start) + "–" + competitions.Clock(it.end), Flight: it.flight, Gymnasts: it.gymnasts,
+					Name: it.name, Time: competitions.Clock(it.start) + "–" + competitions.Clock(it.end), Flight: it.flight, Gymnasts: it.gymnasts, Pairs: it.pairs,
 				}
 				if len(it.officials) == 0 {
 					cell.Columns = av.Columns // blocked time with no officials takes the whole area

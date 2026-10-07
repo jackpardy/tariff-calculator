@@ -153,8 +153,9 @@ Constraints, in order of weight:
     built in; the organiser can change each of these, per discipline:
     - the **panel of officials** (Decision 5; default: the Code of Points);
     - **minutes per competitor**: default 5 for trampoline (both rounds, from
-      British Gymnastics' 4½–6½), 5 per pair for synchro, and 2 for tumbling
-      and DMT (two passes) until better figures are known;
+      British Gymnastics' 4½–6½), 5 per pair for synchro (2½ since 2026-10-07:
+      a pair does one routine), and 2 for tumbling and DMT (two passes)
+      until better figures are known;
     - **minutes between flights** (warm-up and changeover), default 10;
     - **who can judge what**: anyone up to the level they say (the default),
       only levels below the one they compete at, or only people the organiser

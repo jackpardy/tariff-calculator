@@ -103,7 +103,7 @@ templ myFlight(p MyCompetitionPage, f ItemView) {
 	<details class={ "box comp-flight", templ.KV("comp-mine", flightHas(p, f)) } open?={ flightHas(p, f) }>
 		<summary>
 			<strong>{ f.Name }</strong>
-			<span class="is-size-7 has-text-grey">{ f.Start }–{ f.End } · { gymnastCount(len(f.Gymnasts)) }</span>
+			<span class="is-size-7 has-text-grey">{ f.Start }–{ f.End } · { flightCount(len(f.Gymnasts), f.Pairs) }</span>
 			if seatOf(p, f) != "" {
 				<span class="tag is-info is-light ml-1">{ seatOf(p, f) }</span>
 			}
