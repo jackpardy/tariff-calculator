@@ -102,7 +102,8 @@ to open, and stops; it needs `DATA_DIR` set. It is "ISTO 2027 (demo)": 25
 student clubs with coaches and about 400 gymnasts (6 entering on their own),
 BUCS L7 to L1 (men and women apart), tumbling and DMT, and synchro in three
 events of grouped levels (L6/L7, L4/L5, L1/L2/L3, mixed pairs, up to four a
-club, at the level the pair's individual levels give). Coaches sign off most
+club, about a third with a gymnast from another club, at the level the
+pair's individual levels give). Coaches sign off most
 entries, about 7% of routines are deliberately careless so the dashboard and
 cards show problems, members offer to judge, and the organiser adds their own
 judges. The timetable runs Friday to Sunday, 09:00 to 17:30, on Panels 1–3,

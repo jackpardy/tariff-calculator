@@ -153,6 +153,14 @@ var (
 	levels = []levelShare{{"BUCS L7", 24}, {"BUCS L6", 22}, {"BUCS L5", 18}, {"BUCS L4", 14}, {"BUCS L3", 11}, {"BUCS L2", 7}, {"BUCS L1", 4}}
 )
 
+// clubRun is a club as the demo made it: its admin link, coaches' links by
+// name, and members.
+type clubRun struct {
+	name, admin string
+	coaches     map[string]string
+	members     []person
+}
+
 // levelShare is a level and how many of each hundred gymnasts enter it.
 type levelShare struct {
 	name   string
@@ -295,6 +303,7 @@ func (s *seeder) run(out io.Writer) error {
 	var clubAdmins []string
 	var everyone []person
 	var firstMember, firstCoach string
+	var runs []clubRun
 	for _, cl := range clubs {
 		club := s.post("/clubs", url.Values{"name": {cl.name}})
 		clubAdmins = append(clubAdmins, cl.name+": "+club)
@@ -370,48 +379,71 @@ func (s *seeder) run(out io.Writer) error {
 			}
 			members = append(members, m)
 		}
-		// Synchro pairs within the club, men and women alike, up to four: two
-		// gymnasts no more than a level apart individually, doing the level
-		// they share or the easier of the two. Each is confirmed by the
-		// partner.
-		paired := map[int]bool{}
-		pairs := 0
-		for i := 0; i < len(members) && pairs < 4; i++ {
-			if paired[i] {
-				continue
-			}
-			for j := i + 1; j < len(members); j++ {
-				a, b := members[i], members[j]
-				ai, bi := levelIndex(a.level), levelIndex(b.level)
-				if paired[j] || ai-bi > 1 || bi-ai > 1 {
-					continue
-				}
-				paired[i], paired[j] = true, true
-				pairs++
-				entry := url.Values{"discipline": {"synchro"}, "partnerName": {b.name}, "partnerClub": {cl.name}}
-				s.routine(entry, levels[min(ai, bi)].name, false)
-				s.post(a.link+"/competitions/"+compID, entry)
-				partner := s.link(s.get(a.link), "/competitions/partner/")
-				s.post(partner, url.Values{"link": {"http://example.com" + b.link}})
-				break
+		runs = append(runs, clubRun{name: cl.name, admin: club, coaches: coachLinks, members: members})
+		everyone = append(everyone, members...)
+		if s.err != nil {
+			return s.err
+		}
+	}
+
+	// Synchro pairs, up to four a club: men and women alike, about a third
+	// with a gymnast from another club, two gymnasts no more than a level
+	// apart individually, doing the level they share or the easier of the
+	// two. Each is confirmed by the partner.
+	paired := map[string]bool{}
+	partnerFor := func(a person, from []person) (person, bool) {
+		for _, b := range from {
+			ai, bi := levelIndex(a.level), levelIndex(b.level)
+			if b.name != a.name && !paired[b.name] && ai-bi <= 1 && bi-ai <= 1 {
+				return b, true
 			}
 		}
-		// The coaches sign off most entries.
-		for name, coach := range coachLinks {
+		return person{}, false
+	}
+	for ci, run := range runs {
+		pairs := 0
+		for _, a := range run.members {
+			if pairs == 4 {
+				break
+			}
+			if paired[a.name] {
+				continue
+			}
+			other := runs[(ci+1+s.rng.IntN(len(runs)-1))%len(runs)].members
+			from := [][]person{run.members, other}
+			if s.rng.IntN(3) == 0 {
+				from[0], from[1] = other, run.members
+			}
+			b, ok := partnerFor(a, from[0])
+			if !ok {
+				b, ok = partnerFor(a, from[1])
+			}
+			if !ok {
+				continue
+			}
+			paired[a.name], paired[b.name] = true, true
+			pairs++
+			entry := url.Values{"discipline": {"synchro"}, "partnerName": {b.name}, "partnerClub": {b.club}}
+			s.routine(entry, levels[min(levelIndex(a.level), levelIndex(b.level))].name, false)
+			s.post(a.link+"/competitions/"+compID, entry)
+			partner := s.link(s.get(a.link), "/competitions/partner/")
+			s.post(partner, url.Values{"link": {"http://example.com" + b.link}})
+		}
+	}
+	// The coaches sign off most entries, and each comp sec sends them all.
+	for _, run := range runs {
+		for _, coach := range run.coaches {
 			page := s.get(coach)
 			for _, m := range regexp.MustCompile(`href="(`+regexp.QuoteMeta(coach)+`/members/[^"]+)"`).FindAllStringSubmatch(page, -1) {
 				if s.rng.IntN(100) < 88 {
 					s.post(strings.ReplaceAll(m[1], "&amp;", "&"), url.Values{"signed": {"1"}, "note": {[]string{"", "", "Good luck!", "Watch your arms in the set"}[s.rng.IntN(4)]}})
 				}
 			}
-			_ = name
 		}
-		// The comp sec sends them all.
-		s.post(club+"/competitions/"+compID+"/send", url.Values{"which": {"all"}})
-		everyone = append(everyone, members...)
-		if s.err != nil {
-			return s.err
-		}
+		s.post(run.admin+"/competitions/"+compID+"/send", url.Values{"which": {"all"}})
+	}
+	if s.err != nil {
+		return s.err
 	}
 
 	// Gymnasts entering on their own, some offering to judge.
