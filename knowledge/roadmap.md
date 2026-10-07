@@ -4,7 +4,7 @@ title: Roadmap
 description: Where the project could go beyond the routine builder, covering tools for competition organisers and attendees and for people running or training in a club, with what already exists and what to build first.
 tags: [roadmap, competitions, clubs, planning]
 status: draft
-generated: { by: claude-code/cli, at: 2026-10-06T11:00:00Z }
+generated: { by: claude-code/cli, at: 2026-10-07T19:00:00Z }
 stale_after: 2027-04-01T00:00:00Z
 sources:
   - id: tramponline
@@ -62,9 +62,9 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 
 | # | Area | What it does | Builds on |
 |---|---|---|---|
-| 1 | **Card collection and checking** (built, live at `/competitions` since 2026-10-06; [what each person sees](features/competition-entries.md)) | Members keep their entries with their club and change them freely; the club's competition secretary sends them to the competition (individuals can enter directly where allowed); the organiser and difficulty judges see every card already checked against its level, print them, mark them checked, and export CSV; optionally asks for video proof by link (an unlisted YouTube video, say) for chosen skills | requirements, levels, tariff sheet, sharing |
-| 3 | Timetable and flight planner (built over days and areas, ADR 0005 step 4: [timetable](features/competition-entries.md#timetable-adr-0005-step-4), with a panel timeline and [simulation](features/competition-entries.md#simulation-adr-0005-step-6), step 6; for ISTO, [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md)) | Entries per category, panels and minutes per competitor give flights, running orders and estimated times; printable marshal and chair-of-judges sheets. For ISTO: trampoline, synchro, tumbling and DMT; people who compete in several and judge; the venue's strict end time; simulation of entry numbers | — |
-| 4 | Officials rota (built, ADR 0005 step 5: [officials rota](features/competition-entries.md#officials-rota-adr-0005-step-5)) | Judges, recorders and marshals per panel and flight (spotters aren't scheduled), drawn from competitors and the organiser's own judges, with clashes flagged and own-club judging balanced | 3 |
+| 1 | **Card collection and checking** (built, live at `/competitions` since 2026-10-06; [what each person sees](features/competition-entries.md)) | Members keep their entries with their club and change them freely; the club's competition secretary sends them to the competition (individuals can enter directly where allowed); the organiser and difficulty judges see every card already checked against its level, print them, mark them checked, and export CSV; optionally asks for video proof by link (an unlisted YouTube video, say) for chosen skills. Synchro (2026-10-07): levels paired into one event (e.g. L1/L2), a pair entering one routine (the level's voluntary), and a pair at the wrong level for their individual ones flagged; levels kept easiest first, which judging "up to" goes by | requirements, levels, tariff sheet, sharing |
+| 3 | Timetable and flight planner (built: every step of [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md), 2026-10-07: [timetable](features/competition-entries.md#timetable-adr-0005-step-4), [simulation](features/competition-entries.md#simulation-adr-0005-step-6)) | Entries per category, panels and minutes per competitor give flights, running orders and estimated times over days and named areas, around blocked time and the organiser's rules; printable marshal and chair-of-judges sheets; a panel timeline at an even time scale, with or without each official's seat; simulation of entry numbers, judges and the judges each club must bring. On the day: [what if there's a delay](features/competition-entries.md#what-if-theres-a-delay) (shift or move flights, eased by moving or shortening breaks, shorter changeovers, quicker turns, bigger flights or running over) | — |
+| 4 | Officials rota (built, ADR 0005 step 5: [officials rota](features/competition-entries.md#officials-rota-adr-0005-step-5)) | Judges, recorders and marshals per panel and flight (spotters aren't scheduled), drawn from competitors and the organiser's own judges, with clashes flagged and own-club judging balanced; HD and synchronisation judges where no machine measures. On the day: [what if an official has to leave](features/competition-entries.md#what-if-an-official-has-to-leave) (each seat filled by someone free or by moving others round, easiest to fill or fewest changes) | 3 |
 | 5 | "My competition" page (built: [my competition](features/competition-entries.md#my-competition-roadmap-competitions-5)) | For attendees: flight, panel, time, card status | 1, 3 |
 | 6 | Results history | Import results CSVs (TrampOnline, TScore) for personal bests and progression, and for next year's level planning | — |
 | 7 | Later, if wanted | Entries, scoring with time of flight and displacement, live results: the "replace" path | 1–6 |
@@ -120,9 +120,45 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
   the timetable page is close, but it's for editing: on screen only, days
   one under another, and each area a list of flights rather than a time
   scale, so areas don't line up by time.
+- **Where things are (2026-10-07).** Every step of ADR 0005 is built and
+  live: events across disciplines, officials and the rota, the timetable over
+  days and areas, and simulation. Since then: the panel timeline (with and
+  without officials), synchro as ISTO runs it (paired levels, one routine, a
+  pair's level from their individual ones, synchronisation judges), clearer
+  reports (when flights end and the time free after them; empty seats
+  counted), and two on-the-day "what ifs", a delay and an official leaving,
+  neither of which changes the timetable. The demo is a 25-club, 400-gymnast
+  ISTO over three days. The fix for judging "up to" a BUCS level (levels
+  were hardest first) went out the same day.
 - **Keep the name for now.** Competition and club tools stay on
   `tariff.pardy.ie` even though they go beyond tariffs; a broader name can
   come later.
+
+# Next steps (proposed, 2026-10-07)
+
+Not decided yet: candidates, roughly in the order they'd help ISTO.
+
+1. **Try it for real.** Run the demo on the live site and walk an ISTO
+   organiser through it, from entries to the timetable and the on-the-day
+   tools; test the competition pages on a phone (see
+   [open questions](open-questions.md)). What they find should reorder the
+   rest.
+2. **Apply a "what if".** Let the organiser keep a delay's or a leaving
+   official's result as the timetable (and publish it again), instead of only
+   looking at it; and close the gaps they don't check yet: coaches in two
+   places, the organiser's rules about events and people, officials on
+   blocked time, and rest as a must.
+3. **Link the calculator to the competition tools.** Nothing on the routine
+   builder leads to `/competitions` yet.
+4. **Synchro's last details.** Confirm "the lower level" for a pair a level
+   apart means the easier one (as built), and warn the gymnast on their own
+   page too, not only the organiser.
+5. **Results history** (competitions 6): import TrampOnline and TScore
+   results CSVs for personal bests, progression and next year's levels.
+6. **Clubs:** the TrampOnline entry export (clubs 1), then skill tracking
+   (clubs 2).
+7. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
+   and the usual rest between turns (both guesses for now).
 
 See [open questions](open-questions.md) for what's waiting on documents and
 decisions.
