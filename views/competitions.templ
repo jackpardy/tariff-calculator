@@ -167,7 +167,8 @@ type EntryForm struct {
 
 // EntryLevel is a level an entry can choose, with its two exercises.
 type EntryLevel struct {
-	Name      string
+	Name      string // posted as the level
+	Label     string // how it's shown, if not its name: "BUCS L1/L2 (doing BUCS L1)"
 	Split     bool // gymnasts say Men or Women
 	Exercises [2]EntryExercise
 }
@@ -866,7 +867,7 @@ templ entryForm(f EntryForm) {
 				<select id={ "entry-level" + f.Key } name="level" required>
 					<option value="" disabled selected?={ f.Level == "" }>Choose a level</option>
 					for _, l := range f.Levels {
-						<option value={ l.Name } selected?={ f.Level == l.Name }>{ l.Name }</option>
+						<option value={ l.Name } selected?={ f.Level == l.Name }>{ entryLevelLabel(l) }</option>
 					}
 				</select>
 			</div>
@@ -1253,6 +1254,7 @@ templ levelGroups(groups []requirements.BuiltinGroup, name string, chosen map[st
 type EventsForm struct {
 	Groups   []requirements.BuiltinGroup
 	Synchro  map[string]bool // built-in levels ticked for synchro
+	Pairs    string          // synchro levels paired into one event, one event a line: "BUCS L1 + BUCS L2"
 	Tumbling string          // one level a line
 	DMT      string
 }
@@ -1266,6 +1268,11 @@ templ otherEvents(f EventsForm) {
 			<summary>Synchro levels</summary>
 			<div class="pl-4">
 				@levelGroups(f.Groups, "synchroLevel", f.Synchro)
+				<div class="field mt-2">
+					<label class="label is-small" for="events-synchro-pairs">Pair synchro levels into one event (optional)</label>
+					<textarea class="textarea is-small" id="events-synchro-pairs" name="synchroPairs" rows="2" placeholder="e.g. BUCS L1 + BUCS L2">{ f.Pairs }</textarea>
+					<p class="help">One event a line, levels joined by +: they're flighted and ranked as one (e.g. "BUCS L1/L2"), and each pair says which level they're doing: the one they both compete at, or the easier of two a level apart.</p>
+				</div>
 			</div>
 		</details>
 		<div class="field mt-2">
@@ -1308,4 +1315,11 @@ templ levelOrderForm(base string, order []LevelOrder) {
 			</ol>
 		}
 	</form>
+}
+
+func entryLevelLabel(l EntryLevel) string {
+	if l.Label != "" {
+		return l.Label
+	}
+	return l.Name
 }

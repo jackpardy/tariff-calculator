@@ -60,6 +60,10 @@ type Level struct {
 	Ref    string                      `json:"ref,omitempty"`    // "builtin-level:<id>"
 	Custom *requirements.Level         `json:"custom,omitempty"` // a coach's own level
 	Sets   map[string]requirements.Set `json:"sets,omitempty"`   // the custom requirements its options name, by id
+	// With are levels paired with this one in a synchro event, e.g. BUCS L2
+	// with BUCS L1 for "BUCS L1/L2": flighted and ranked together, each pair
+	// doing one of them.
+	With []Level `json:"with,omitempty"`
 }
 
 // Resolve is the level itself.
@@ -188,6 +192,7 @@ type Entry struct {
 	Level      string      `json:"level"`                // the name of one of the discipline's levels
 	Category   string      `json:"category,omitempty"`   // Men or Women, where the event splits them
 	Partner    *Partner    `json:"partner,omitempty"`    // the other gymnast, for synchro
+	Choice     string      `json:"choice,omitempty"`     // for a synchro event of paired levels, the one the pair does
 	Exercises  [2]Exercise `json:"exercises"`            // none for tumbling and DMT, which aren't checked
 }
 
@@ -238,7 +243,10 @@ func (c Competition) ValidateEntry(e *Entry) error {
 		c.checkCategory(e, &errs)
 		return errors.Join(errs...)
 	}
-	_, level, ok := c.LevelFor(e.Discipline, e.Level)
+	if err := c.checkChoice(e); err != nil {
+		return errors.Join(append(errs, err)...)
+	}
+	_, level, ok := c.EntryLevel(*e)
 	if !ok {
 		return errors.Join(append(errs, fmt.Errorf("the competition doesn't offer the level %q", e.Level))...)
 	}
@@ -296,7 +304,7 @@ func (c Competition) Check(e Entry) (Card, error) {
 		}
 		return Card{Level: requirements.Level{Name: e.Level}, Unchecked: true}, nil
 	}
-	l, level, ok := c.LevelFor(e.Discipline, e.Level)
+	l, level, ok := c.EntryLevel(e)
 	if !ok {
 		return Card{}, fmt.Errorf("the competition doesn't offer the level %q", e.Level)
 	}

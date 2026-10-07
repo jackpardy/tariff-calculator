@@ -79,7 +79,7 @@ every page answers 503.
 | `POST /clubs/admin/{token}/coaches-see-all` | `on` (`1`/`""`) | Whether every coach sees every member |
 | `GET /clubs/coach/{token}` | — | A coach's page: each competition's entries they see, and their sign-off |
 | `GET`, `POST /clubs/coach/{token}/members/{member}/competitions/{id}` | `signed` (`1`/`0`), `note` | One entry, checked, to sign off or say not yet |
-| `POST /competitions/admin/{token}/events` | `synchroLevel`, `tumbling`, `dmt` (one level a line) | Changes the synchro, tumbling and DMT events (also on `POST /competitions`); entries then take `discipline` and, for synchro, `partnerName` and `partnerClub` |
+| `POST /competitions/admin/{token}/events` | `synchroLevel`, `synchroPairs` (synchro levels to run as one event, one event a line, joined by `+`), `tumbling`, `dmt` (one level a line) | Changes the synchro, tumbling and DMT events (also on `POST /competitions`); entries then take `discipline` and, for synchro, `partnerName` and `partnerClub` |
 | `POST /competitions/admin/{token}/levels/move` | `move` (`<discipline>:<place>:<-1 or 1>`) | Moves a level one place easier or harder in its discipline's order (easiest first), which judging "up to" a level and "only levels below their own" go by |
 | `GET`, `POST /competitions/partner/{token}` | `link` (the partner's own member page or entry link, or blank) | A synchro partner confirming the pair |
 | `GET /competitions/admin/{token}/officials` | `notice` | The officials: who can judge and chair each discipline, the panels and judging rule, and everyone offered or added |

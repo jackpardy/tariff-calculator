@@ -47,7 +47,9 @@ performed as written.
    Routine Builder are under **Your own levels**.
 3. Under **Synchro, tumbling and DMT**, tick any synchro levels, and type the
    tumbling and DMT levels, one a line, easiest first. Leave them empty for
-   trampoline only.
+   trampoline only. To run synchro levels together, pair them, one event a
+   line: "BUCS L1 + BUCS L2" makes one event, "Synchro BUCS L1/L2", where each
+   pair says which level they're doing.
 4. Choose whether **gymnasts can also enter on their own**, whether to ask for
    **video proof** (none, some skills such as any triple, or each whole
    routine), whether **entries need a coach's sign-off**, and whether to **rank
@@ -252,6 +254,12 @@ then shows a **partner link**: send it to your partner. They open it and
 confirm who they are with their own member page or entry link (or that they
 have no other entry), so the timetable never puts either of you in two places
 at once. If you name a different partner, they confirm again.
+
+A pair does the level they both compete at individually, or the easier of the
+two if they're a level apart; more than a level apart, you usually can't pair.
+If the organiser has paired synchro levels into one event (e.g. "BUCS
+L1/L2"), choose the level you're doing, e.g. "BUCS L1/L2 (doing BUCS L2)".
+The organiser sees a pair entered at another level flagged.
 
 # 4. Sign off routines (coaches)
 
