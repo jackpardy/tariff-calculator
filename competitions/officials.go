@@ -13,10 +13,11 @@ import (
 
 // Panel is how many officials one panel of a discipline needs.
 type Panel struct {
-	Chair      int `json:"chair"`        // Chair of Judges Panel
-	Execution  int `json:"execution"`    // execution judges
-	Difficulty int `json:"difficulty"`   // difficulty judges
-	HD         int `json:"hd,omitempty"` // horizontal displacement judges, where no machine measures it (trampoline)
+	Chair      int `json:"chair"`          // Chair of Judges Panel
+	Execution  int `json:"execution"`      // execution judges
+	Difficulty int `json:"difficulty"`     // difficulty judges
+	HD         int `json:"hd,omitempty"`   // horizontal displacement judges, where no machine measures it (trampoline)
+	Sync       int `json:"sync,omitempty"` // synchronisation judges, where no machine measures it (synchro)
 	Recorder   int `json:"recorder"`
 	Marshal    int `json:"marshal"`
 }
@@ -29,11 +30,23 @@ type Panel struct {
 // recorder and one marshal is a starting point.
 var CodePanel = Panel{Chair: 1, Execution: 6, Difficulty: 2, Recorder: 1, Marshal: 1}
 
+// DefaultPanel is a discipline's panel until the organiser changes it: the
+// Code of Points', and for synchro 2 synchronisation judges, as student
+// competitions have no machine measuring synchronisation (the Code's §18.1
+// leaves it to one).
+func DefaultPanel(discipline string) Panel {
+	p := CodePanel
+	if discipline == Synchro {
+		p.Sync = 2
+	}
+	return p
+}
+
 // Judges is how many judges the panel needs, chair included.
-func (p Panel) Judges() int { return p.Chair + p.Execution + p.Difficulty + p.HD }
+func (p Panel) Judges() int { return p.Chair + p.Execution + p.Difficulty + p.HD + p.Sync }
 
 func (p Panel) check() error {
-	for _, n := range []int{p.Chair, p.Execution, p.Difficulty, p.HD, p.Recorder, p.Marshal} {
+	for _, n := range []int{p.Chair, p.Execution, p.Difficulty, p.HD, p.Sync, p.Recorder, p.Marshal} {
 		if n < 0 || n > 20 {
 			return errors.New("each kind of official on a panel should be from 0 to 20")
 		}
@@ -61,7 +74,7 @@ func (s OfficialSettings) Panel(discipline string) Panel {
 	if p, ok := s.Panels[discipline]; ok {
 		return p
 	}
-	return CodePanel
+	return DefaultPanel(discipline)
 }
 
 // Check reports what's wrong with the settings.

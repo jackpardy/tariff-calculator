@@ -59,13 +59,13 @@ func dayAreas(s competitions.Setup, day competitions.Day) []string {
 
 // seatLabels are the timeline's names for seats: "Chair", "D1", "HD2", "E6".
 var seatLabels = map[string]string{
-	competitions.RoleChair: "Chair", competitions.RoleDifficulty: "D", competitions.RoleHD: "HD",
+	competitions.RoleChair: "Chair", competitions.RoleDifficulty: "D", competitions.RoleHD: "HD", competitions.RoleSync: "S",
 	competitions.RoleExecution: "E", competitions.RoleRecorder: "Rec", competitions.RoleMarshal: "Mar",
 }
 
 // seatLabel names a role's nth seat (0-based) of how many the area has.
 func seatLabel(role string, n, of int) string {
-	if of == 1 && role != competitions.RoleDifficulty && role != competitions.RoleHD && role != competitions.RoleExecution {
+	if of == 1 && role != competitions.RoleDifficulty && role != competitions.RoleHD && role != competitions.RoleSync && role != competitions.RoleExecution {
 		return seatLabels[role]
 	}
 	return seatLabels[role] + strconv.Itoa(n+1)

@@ -10,6 +10,12 @@ func TestPanels(t *testing.T) {
 	if p := s.Panel(Tumbling); p != CodePanel || p.Judges() != 9 {
 		t.Errorf("the Code of Points' panel by default: %+v", p)
 	}
+	if p := s.Panel(Synchro); p.Sync != 2 || p.Judges() != 11 || len(p.Seats()) != 13 || p.Seats()[3] != RoleSync {
+		t.Errorf("synchro adds 2 synchronisation judges by default: %+v %v", p, p.Seats())
+	}
+	if !(RotaPerson{Judge: map[string]bool{"Synchro BUCS L3": true}}).Can(RoleSync, "Synchro BUCS L3") || RoleName(RoleSync) != "Synchronisation judge" {
+		t.Error("a synchro judge can judge synchronisation")
+	}
 	s.Panels = map[string]Panel{Synchro: {Chair: 1, Execution: 4, Difficulty: 1}}
 	if p := s.Panel(Synchro); p.Judges() != 6 || p.Recorder != 0 {
 		t.Errorf("a changed panel: %+v", p)

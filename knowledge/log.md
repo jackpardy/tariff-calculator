@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: Synchro panels have 2 synchronisation judges by default, a
+  setting on the [officials](features/competition-entries.md#officials-adr-0005-step-3)
+  page, filled by the rota from synchro's judges.
 * **Update**: The [panel timeline](features/competition-entries.md#timetable-adr-0005-step-4)
   runs at an even time scale, and comes in two views: without officials
   (every day side by side), and **with officials**, a sheet for each day's

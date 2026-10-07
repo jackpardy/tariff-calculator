@@ -93,11 +93,11 @@ func TestPanelTimeline(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := [][]string{
-		{"Day", "Area", "Starts", "Ends", "What", "Gymnasts", "Chair of judges", "Difficulty judge", "HD judge", "Execution judge", "Recorder", "Marshal"},
-		{"Day 1", "Track 1", "09:00", "09:12", "Tumbling Novice", "1", "Ann", "", "", "—", "", ""},
-		{"Day 1", "Panel 1", "09:12", "09:27", "BUCS L3", "1", "Mary (UCD)", "", "", "Tom; —", "", ""},
-		{"Day 1", "Panel 1", "12:00", "12:45", "Lunch", "", "", "", "", "", "", ""},
-		{"Day 1", "Track 1", "12:00", "12:45", "Lunch", "", "", "", "", "", "", ""},
+		{"Day", "Area", "Starts", "Ends", "What", "Gymnasts", "Chair of judges", "Difficulty judge", "HD judge", "Synchronisation judge", "Execution judge", "Recorder", "Marshal"},
+		{"Day 1", "Track 1", "09:00", "09:12", "Tumbling Novice", "1", "Ann", "", "", "", "—", "", ""},
+		{"Day 1", "Panel 1", "09:12", "09:27", "BUCS L3", "1", "Mary (UCD)", "", "", "", "Tom; —", "", ""},
+		{"Day 1", "Panel 1", "12:00", "12:45", "Lunch", "", "", "", "", "", "", "", ""},
+		{"Day 1", "Track 1", "12:00", "12:45", "Lunch", "", "", "", "", "", "", "", ""},
 	}
 	if !slices.EqualFunc(rows, want, slices.Equal) {
 		t.Errorf("the CSV:\n%q\nwant\n%q", rows, want)

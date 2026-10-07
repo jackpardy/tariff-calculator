@@ -121,7 +121,10 @@ each discipline's panel needs.
 - **Panels:** each discipline's starts as the FIG Code of Points' (a Chair of
   Judges Panel, 6 execution and 2 difficulty judges), plus a recorder and a
   marshal, all changeable. Trampoline can add HD (horizontal displacement)
-  judges, 2 where no machine measures it; none by default.
+  judges, 2 where no machine measures it; none by default. Synchro starts
+  with 2 synchronisation judges (the Code's §18.1 leaves synchronisation to
+  a machine, which student competitions don't have), any of its judges able
+  to take the seat; set 0 where a machine measures it.
 - **Who may judge what:** anyone up to the level they say (the default), only
   levels below the one they compete at, or only people the organiser marks
   qualified. Both go by the **order of levels**, easiest first: built-in
