@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: [What if an official has to leave?](features/competition-entries.md#what-if-an-official-has-to-leave):
+  each of their seats filled by someone free or by moving others round,
+  easiest to fill or fewest changes, without changing the rota.
 * **Update**: [What if there's a delay?](features/competition-entries.md#what-if-theres-a-delay):
   hold up areas from a time for some minutes and see the later flights shift
   (or move to another area when they'd overrun or clash), without changing

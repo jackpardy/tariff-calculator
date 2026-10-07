@@ -280,6 +280,23 @@ up to a size, saving a changeover); and **running past the end** of the day by
 up to some minutes. The page says what the easing is and what the delay
 alone would have done.
 
+## What if an official has to leave
+
+**What if an official has to leave?**, linked from a planned timetable,
+takes who (anyone with a seat), the day and time they go, and whether for
+the day or the rest of the competition, and fills each seat they'd have had
+from then without saving anything (`Schedule.Left`). A seat goes to someone
+free (not competing or on another panel then, allowed the role at that event
+and by the must rules about people), or is reached by moving others round, at
+most three moves: someone on that panel up a role, or someone across from a
+panel at the same time, their seat filled in turn. Two ways to choose:
+**easiest to fill** (the default) ends the chain at the seat the most free
+people could take (recorder or marshal before HD or execution, before chair),
+fewer moves breaking ties; **fewest changes** takes the shortest chain. Each
+seat shows the moves and who else was free for the last one; a seat no one
+can reach is left empty. Coaches, the organiser's own rules about events,
+and officials on blocked time aren't considered.
+
 ## Simulation (ADR 0005, step 6)
 
 **Simulate**, linked from the timetable, tries numbers against the venue

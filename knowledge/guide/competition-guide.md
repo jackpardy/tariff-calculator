@@ -181,6 +181,13 @@ turns, merging an event's flights into bigger ones, or letting the day run
 over; it shows what that buys against the delay alone. Nothing is changed:
 it's to help you decide what to do.
 
+**What if an official has to leave?** (on the timetable page, once planned):
+choose who, the day and time they go, and whether for good. Each of their
+seats is filled by someone free, or by moving others round: a judge on the
+panel moving up to chair, or someone moving across from another panel, their
+seat filled in turn. Choose **easiest to fill** (the gap ends at a seat many
+can take, such as recorder) or **fewest changes**. Nothing is changed.
+
 **Simulate** (on the timetable page) tries numbers before entries arrive, or
 alongside them, without changing your timetable. It starts from your entries
 and officials so far: change the entries per event, how many gymnasts there

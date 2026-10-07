@@ -617,6 +617,10 @@ details > * { box-sizing: border-box; }
     .comp-page.section { padding: 0; }
     .comp-sheet { break-after: page; }
 }
+/* What if an official leaves (views/leave.templ) */
+.comp-leave-seat { border-top: 1px solid #eee; padding: 0.5rem 0; }
+.comp-leave-seat ol { margin-left: 1.25rem; }
+
 /* Simulation (views/simulate.templ) */
 .comp-sim-grid { display: grid; gap: 0.3rem; margin-bottom: 0.5rem; }
 .comp-sim-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; }
