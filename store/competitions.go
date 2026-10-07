@@ -502,6 +502,31 @@ func (s *Store) SetLevelOrder(ctx context.Context, id string, c competitions.Com
 		string(levels), string(events), id))
 }
 
+// Scenarios are a competition's simulated timetables, oldest first.
+func (s *Store) Scenarios(ctx context.Context, id string) ([]competitions.Scenario, error) {
+	var data string
+	if err := s.db.QueryRowContext(ctx, `SELECT scenarios FROM competitions WHERE id = $1`, id).Scan(&data); err != nil {
+		return nil, notFound(err)
+	}
+	var out []competitions.Scenario
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return nil, fmt.Errorf("reading competition %s's scenarios: %w", id, err)
+	}
+	return out, nil
+}
+
+// SetScenarios replaces a competition's simulated timetables.
+func (s *Store) SetScenarios(ctx context.Context, id string, scenarios []competitions.Scenario) error {
+	if scenarios == nil {
+		scenarios = []competitions.Scenario{}
+	}
+	data, err := json.Marshal(scenarios)
+	if err != nil {
+		return err
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET scenarios = $1 WHERE id = $2`, string(data), id))
+}
+
 // otherEvents are a competition's events beyond individual trampoline, as stored.
 type otherEvents struct {
 	Synchro  []competitions.Level `json:"synchro,omitempty"`

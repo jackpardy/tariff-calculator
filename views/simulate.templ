@@ -1,0 +1,315 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+)
+
+// SimulationPage is the organiser's simulation (ADR 0005 Decision 11): a
+// scenario's numbers to plan, and the scenarios so far, side by side.
+type SimulationPage struct {
+	Base          string
+	Competition   CompetitionSummary
+	Notice        string
+	SetupProblems []string // what's wrong with the venue setup, which simulating needs
+	Entries       int      // real entries so far
+	Form          ScenarioForm
+	Scenarios     []ScenarioView
+	Max           int // how many scenarios are kept
+}
+
+// ScenarioForm is a scenario's numbers, to plan.
+type ScenarioForm struct {
+	Name                            string
+	Events                          []SimEvent
+	Disciplines                     []SimDiscipline
+	Gymnasts, Clubs, Competing      int
+	Helpers, JudgePeople            int
+}
+
+// SimEvent is one event's entries in the form.
+type SimEvent struct {
+	Field, Name string
+	Entries     int
+}
+
+// SimDiscipline is one discipline's judges in the form.
+type SimDiscipline struct {
+	Key, Name      string
+	Judges, Chairs int
+}
+
+// ScenarioView is a scenario and what it came to.
+type ScenarioView struct {
+	Index                           int
+	Name                            string
+	Entries                         []string // "BUCS L5: 12"
+	Judges                          []string // "Trampoline 20 (4 can chair)"
+	GymnastsIn, Clubs, Competing    int // the numbers given; GymnastsIn 0 for one per place
+	Helpers, JudgePeople            int
+	Run                             bool // it has a result
+	Stale                           bool // planned with another setup, panels or events
+	Gymnasts, EntryCount            int
+	Days                            []SimDay
+	Unplaced                        []string
+	Fix                             string
+	NoFix                           bool
+	Seats, Empty, ShortRest         int
+}
+
+// SimDay is when a scenario's day finishes, and when its last flight ends.
+type SimDay struct {
+	DayFinish
+	FlightsEnd string // "" for no flights
+}
+
+// Simulation is the simulation page.
+templ Simulation(p SimulationPage) {
+	@competitionLayout("Simulate · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Base + "/timetable") }>← Timetable</a></p>
+		<h1 class="title is-4">Simulate</h1>
+		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		if p.Notice != "" {
+			<div class="notification is-info is-light">{ p.Notice }</div>
+		}
+		<p class="mb-4">
+			Try numbers of entries, judges and helpers against your venue setup, before entries arrive or alongside them. Made-up gymnasts and officials are planned just as the timetable plans the real ones, with your days, areas, blocked time, rules, timings and panels. Your real timetable isn't changed.
+		</p>
+		if len(p.SetupProblems) > 0 {
+			<div class="notification is-warning is-light">
+				<p>Fix the venue setup on the timetable page first:</p>
+				<ul>
+					for _, s := range p.SetupProblems {
+						<li>{ s }</li>
+					}
+				</ul>
+			</div>
+		}
+		if len(p.Scenarios) > 0 {
+			@scenarioTable(p)
+		}
+		@scenarioFormView(p)
+	}
+}
+
+templ scenarioFormView(p SimulationPage) {
+	<form method="post" action={ templ.SafeURL(p.Base + "/timetable/simulate") } class="box">
+		<h2 class="title is-6">New scenario</h2>
+		<p class="help mb-3">
+			if p.Entries > 0 {
+				Filled in from the entries and offers so far ({ entriesWord(p.Entries) }); change any number.
+			} else {
+				Change any number. Leave a box empty for none.
+			}
+		</p>
+		<div class="field">
+			<label class="label is-small" for="sim-name">Name</label>
+			<input class="input is-small" id="sim-name" name="name" required maxlength="80" value={ p.Form.Name }/>
+		</div>
+		<fieldset class="field">
+			<legend class="label is-small">Entries per event</legend>
+			<p class="help mb-1">Synchro entries are pairs.</p>
+			<div class="comp-sim-grid">
+				for _, e := range p.Form.Events {
+					<label class="comp-sim-row">
+						<span>{ e.Name }</span>
+						<input class="input is-small comp-num" type="number" min="0" max="1000" name={ e.Field } value={ numberValue(e.Entries) }/>
+					</label>
+				}
+			</div>
+		</fieldset>
+		<div class="comp-sim-grid">
+			<label class="comp-sim-row">
+				<span>Gymnasts in all (fewer than the entries' gymnasts together means some enter several disciplines; empty if no one does)</span>
+				<input class="input is-small comp-num" type="number" min="0" name="gymnasts" value={ numberValue(p.Form.Gymnasts) }/>
+			</label>
+			<label class="comp-sim-row">
+				<span>Clubs they come from</span>
+				<input class="input is-small comp-num" type="number" min="1" max="100" name="clubs" required value={ strconv.Itoa(p.Form.Clubs) }/>
+			</label>
+		</div>
+		<fieldset class="field mt-3">
+			<legend class="label is-small">Officials</legend>
+			<p class="help mb-1">People who can judge each discipline (any level), and how many of them can chair.</p>
+			<div class="comp-sim-grid">
+				for _, d := range p.Form.Disciplines {
+					<div class="comp-sim-row">
+						<span>{ d.Name }</span>
+						<input class="input is-small comp-num" type="number" min="0" name={ "judges-" + d.Key } value={ numberValue(d.Judges) } aria-label={ d.Name + " judges" }/>
+						<span class="is-size-7">chair</span>
+						<input class="input is-small comp-num" type="number" min="0" name={ "chairs-" + d.Key } value={ numberValue(d.Chairs) } aria-label={ d.Name + " judges who can chair" }/>
+					</div>
+				}
+				<label class="comp-sim-row">
+					<span>How many people those judges are (someone judging two disciplines counts once; empty if no one does)</span>
+					<input class="input is-small comp-num" type="number" min="0" name="judgePeople" value={ numberValue(p.Form.JudgePeople) }/>
+				</label>
+				<label class="comp-sim-row">
+					<span>Of the judges, how many also compete</span>
+					<input class="input is-small comp-num" type="number" min="0" name="competing" value={ numberValue(p.Form.Competing) }/>
+				</label>
+				<label class="comp-sim-row">
+					<span>Recorders and marshals (not judging)</span>
+					<input class="input is-small comp-num" type="number" min="0" name="helpers" value={ numberValue(p.Form.Helpers) }/>
+				</label>
+			</div>
+		</fieldset>
+		<button class="button is-primary" type="submit" disabled?={ len(p.SetupProblems) > 0 }>Simulate</button>
+		<p class="help">Keeps the last { strconv.Itoa(p.Max) } scenarios.</p>
+	</form>
+}
+
+// scenarioTable compares the scenarios, one to a column.
+templ scenarioTable(p SimulationPage) {
+	<div class="box">
+		<h2 class="title is-6">Scenarios</h2>
+		<div class="table-container">
+			<table class="table is-narrow is-bordered comp-sim-table">
+				<thead>
+					<tr>
+						<th></th>
+						for _, s := range p.Scenarios {
+							<th>{ s.Name }</th>
+						}
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<th>Entries</th>
+						for _, s := range p.Scenarios {
+							<td>
+								if s.Run {
+									<div>{ entriesWord(s.EntryCount) }, { strconv.Itoa(s.Gymnasts) } gymnasts</div>
+								}
+								<details class="is-size-7">
+									<summary>Numbers</summary>
+									for _, e := range s.Entries {
+										<div>{ e }</div>
+									}
+									<div>
+										if s.GymnastsIn > 0 {
+											{ strconv.Itoa(s.GymnastsIn) } gymnasts ·
+										}
+										{ strconv.Itoa(s.Clubs) } clubs
+									</div>
+									for _, j := range s.Judges {
+										<div>Judges: { j }</div>
+									}
+									if s.JudgePeople > 0 {
+										<div>{ strconv.Itoa(s.JudgePeople) } people judging</div>
+									}
+									<div>{ strconv.Itoa(s.Competing) } judges compete · { strconv.Itoa(s.Helpers) } helpers</div>
+								</details>
+							</td>
+						}
+					</tr>
+					<tr>
+						<th>Finishes</th>
+						for _, s := range p.Scenarios {
+							<td>
+								for _, d := range s.Days {
+									<div>
+										<strong>{ d.Name }</strong>
+										if d.FlightsEnd != "" {
+											flights end { d.FlightsEnd },
+										} else {
+											no flights,
+										}
+										finishes { d.Finish }
+										<span class="is-size-7">({ spareWord(d.Spare) })</span>
+									</div>
+								}
+							</td>
+						}
+					</tr>
+					<tr>
+						<th>Fits?</th>
+						for _, s := range p.Scenarios {
+							<td>
+								if !s.Run {
+								} else if len(s.Unplaced) == 0 {
+									<span class="has-text-success">Everything fits</span>
+								} else {
+									<div class="has-text-danger">Doesn't fit:</div>
+									<ul class="is-size-7">
+										for _, u := range s.Unplaced {
+											<li>{ u }</li>
+										}
+									</ul>
+									if s.Fix != "" {
+										<div class="is-size-7">Would fit with { s.Fix }</div>
+									} else if s.NoFix {
+										<div class="is-size-7">No single change tried makes it fit</div>
+									}
+								}
+							</td>
+						}
+					</tr>
+					<tr>
+						<th>Officials</th>
+						for _, s := range p.Scenarios {
+							<td>
+								if s.Run {
+									if s.Empty == 0 {
+										Every seat filled ({ strconv.Itoa(s.Seats) })
+									} else {
+										<span class="has-text-danger">{ strconv.Itoa(s.Empty) } of { strconv.Itoa(s.Seats) } seats empty</span>
+									}
+								}
+							</td>
+						}
+					</tr>
+					<tr>
+						<th>Less rest than wanted</th>
+						for _, s := range p.Scenarios {
+							<td>
+								if s.Run {
+									{ strconv.Itoa(s.ShortRest) } gymnasts
+								}
+							</td>
+						}
+					</tr>
+					<tr>
+						<th></th>
+						for _, s := range p.Scenarios {
+							<td>
+								if s.Stale {
+									<p class="is-size-7 has-text-warning-dark mb-1">Planned with an earlier setup.</p>
+								}
+								<div class="buttons are-small">
+									<form method="post" action={ templ.SafeURL(p.Base + "/timetable/simulate") }>
+										<input type="hidden" name="again" value={ strconv.Itoa(s.Index) }/>
+										<button class={ "button", templ.KV("is-warning", s.Stale) } type="submit">Run again</button>
+									</form>
+									<a class="button" href={ templ.SafeURL(fmt.Sprintf("%s/timetable/simulate?from=%d#sim-name", p.Base, s.Index)) }>Change</a>
+									<form method="post" action={ templ.SafeURL(p.Base + "/timetable/simulate/delete") }>
+										<input type="hidden" name="remove" value={ strconv.Itoa(s.Index) }/>
+										<button class="button is-light" type="submit">Remove</button>
+									</form>
+								</div>
+							</td>
+						}
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+}
+
+func numberValue(n int) string {
+	if n == 0 {
+		return ""
+	}
+	return strconv.Itoa(n)
+}
+
+func entriesWord(n int) string {
+	if n == 1 {
+		return "1 entry"
+	}
+	return fmt.Sprintf("%d entries", n)
+}
+
+func spareWord(minutes int) string {
+	return fmt.Sprintf("%d min spare", minutes)
+}
