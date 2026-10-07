@@ -249,9 +249,11 @@ change it):
   of them able to chair) for every so many of the club's competitors in it,
   rounding up (9 at 1 per 8 is 2), a synchro pair counting as two. With any,
   the clubs' judges come from it and the judges above are only the
-  organiser's own, with no club. Anyone can judge any mix of disciplines, so
-  a club brings as few people as meet every discipline's quota (its biggest
-  one): its first judges count for each discipline that needs them. A competing judge
+  organiser's own, with no club. Each discipline's quota is filled by its
+  own judges, so a club brings their sum (4 trampoline and 2 tumbling judges
+  is 6 people). A percent of the clubs' judges, spread through them all, can
+  also judge every other discipline as well as filling their own quota (but
+  chair only in their own). A competing judge
   is a gymnast of their own club where it has one.
 
 Stand-ins are planned with the real setup, panels and rota (`PlanStaffed`,

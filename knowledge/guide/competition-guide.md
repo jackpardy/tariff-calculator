@@ -172,9 +172,10 @@ clubs, and how many people can judge, chair, record and marshal, then tap
 **Simulate**. Under **Judges each club must bring**, say how many judges a club
 brings for every so many of its competitors in a discipline (e.g. 1 per 8,
 rounding up), and how many of them must be able to chair: the clubs' judges
-then come from that, and the judges above are only your own. One judge can
-count for several disciplines, so a club needing 2 trampoline judges and 1
-tumbling judge brings 2 people. Each scenario shows when each day's flights end, what doesn't fit
+then come from that, and the judges above are only your own. Each
+discipline's judges are their own people, so a club needing 4 trampoline and
+2 tumbling judges brings 6; say what percent of the clubs' judges can also
+judge other disciplines as well. Each scenario shows when each day's flights end, what doesn't fit
 and what would make it fit, how many judges the clubs bring, and how many
 panel seats no one could take, side
 by side with the others. **Change** starts a new one from its numbers; after

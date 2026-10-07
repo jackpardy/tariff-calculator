@@ -148,12 +148,11 @@ func TestClubQuota(t *testing.T) {
 		Clubs:   4,
 		Quota: map[string]ClubQuota{
 			Trampoline: {Per: 4, Judges: 1},            // 5, 5, 4 and 4 trampolinists: 2, 2, 1 and 1 judges
-			Tumbling:   {Per: 8, Judges: 1, Chairs: 1}, // 2, 2, 1 and 1 tumblers: a chair each, who can also be a trampoline judge
+			Tumbling:   {Per: 8, Judges: 1, Chairs: 1}, // 2, 2, 1 and 1 tumblers: a chair each
 		},
 		Judges: map[string]int{Synchro: 3}, Chairs: map[string]int{Synchro: 1}, // the organiser's own
 	}
-	// One judge can count for several disciplines: a club brings as many
-	// people as its biggest quota, the first of them judging tumbling too.
+	// Each quota is filled by its own judges: a club brings their sum.
 	_, officials := c.standIns(sc, venue())
 	byClub := map[string]int{}
 	trampoline, tumblingChairs, both, own := 0, 0, 0, 0
@@ -171,16 +170,34 @@ func TestClubQuota(t *testing.T) {
 		}
 		if o.Chair["Tumbling Novice"] {
 			tumblingChairs++
-			if o.Judge["BUCS L7"] {
-				both++
-			}
+		}
+		if o.Judge["BUCS L7"] && o.Judge["Tumbling Novice"] {
+			both++
 		}
 	}
-	if own != 3 || trampoline != 6 || tumblingChairs != 4 || both != 4 || len(officials) != 9 {
+	if own != 3 || trampoline != 6 || tumblingChairs != 4 || both != 0 || len(officials) != 13 {
 		t.Errorf("%d own, %d trampoline judges and %d tumbling chairs from clubs (%d judging both), %d in all", own, trampoline, tumblingChairs, both, len(officials))
 	}
 	if byClub["Club 1"] != 2 || byClub["Club 2"] != 2 || byClub["Club 3"] != 1 || byClub["Club 4"] != 1 {
 		t.Errorf("trampoline judges by club, rounding up: %v", byClub)
+	}
+
+	// Half the clubs' judges can also judge the other disciplines, but chair
+	// only in their own.
+	half := sc
+	half.AlsoJudge = 50
+	_, officials = c.standIns(half, venue())
+	also, chairs := 0, 0
+	for _, o := range officials {
+		if o.Club != "" && o.Judge["BUCS L7"] && o.Judge["Synchro BUCS L6"] && o.Judge["Tumbling Novice"] {
+			also++
+		}
+		if o.Chair["BUCS L7"] || o.Chair["Synchro BUCS L6"] {
+			chairs++
+		}
+	}
+	if also != 5 || chairs != 1 {
+		t.Errorf("%d of the clubs' 10 judges judge everything, want 5; %d chair trampoline or synchro, want 1 (the organiser's)", also, chairs)
 	}
 
 	// Competing judges are gymnasts of their own club.
@@ -209,8 +226,8 @@ func TestClubQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.ClubJudges != 6 || r.Seats == 0 {
-		t.Errorf("the clubs brought %d judges, want 6", r.ClubJudges)
+	if r.ClubJudges != 10 || r.Seats == 0 {
+		t.Errorf("the clubs brought %d judges, want 10", r.ClubJudges)
 	}
 	for want, q := range map[string]map[string]ClubQuota{
 		"doesn't offer":  {DMT: {Per: 8, Judges: 1}},

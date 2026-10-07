@@ -25,6 +25,7 @@ type ScenarioForm struct {
 	Disciplines                []SimDiscipline
 	Gymnasts, Clubs, Competing int
 	Helpers, JudgePeople       int
+	AlsoJudge                  int // percent of the clubs' judges who can also judge other disciplines
 }
 
 // SimEvent is one event's entries in the form.
@@ -48,6 +49,7 @@ type ScenarioView struct {
 	Judges                       []string // "Trampoline 20 (4 can chair)"
 	Quota                        []string // what each club must bring: "Trampoline 1 per 8 competitors (0 can chair)"
 	ClubJudges                   int      // judges the clubs brought
+	AlsoJudge                    int      // percent of the clubs' judges who can also judge other disciplines
 	GymnastsIn, Clubs, Competing int      // the numbers given; GymnastsIn 0 for one per place
 	Helpers, JudgePeople         int
 	Run                          bool // it has a result
@@ -147,7 +149,7 @@ templ scenarioFormView(p SimulationPage) {
 				}
 			</div>
 			<p class="label is-small mt-3 mb-1">Judges each club must bring</p>
-			<p class="help mb-1">For every so many of a club's competitors in a discipline (or part of it: 9 at 1 per 8 is 2), so many judges, of whom so many can chair. A synchro pair is two competitors. Leave empty for none.</p>
+			<p class="help mb-1">For every so many of a club's competitors in a discipline (or part of it: 9 at 1 per 8 is 2), so many judges, of whom so many can chair. A synchro pair is two competitors. Each discipline's judges are their own people, so a club needing 4 trampoline and 2 tumbling judges brings 6. Leave empty for none.</p>
 			<div class="comp-sim-grid">
 				for _, d := range p.Form.Disciplines {
 					<div class="comp-sim-row">
@@ -163,6 +165,13 @@ templ scenarioFormView(p SimulationPage) {
 				}
 			</div>
 			<div class="comp-sim-grid mt-3">
+				<label class="comp-sim-row">
+					<span>Of the clubs' judges, the percent who can also judge any other discipline (as well as filling their own)</span>
+					<span class="comp-sim-nums">
+						<input class="input is-small comp-num" type="number" min="0" max="100" name="alsoJudge" value={ numberValue(p.Form.AlsoJudge) }/>
+						<span class="is-size-7">%</span>
+					</span>
+				</label>
 				<label class="comp-sim-row">
 					<span>How many people those judges are (someone judging two disciplines counts once; empty if no one does)</span>
 					<input class="input is-small comp-num" type="number" min="0" name="judgePeople" value={ numberValue(p.Form.JudgePeople) }/>
@@ -220,6 +229,9 @@ templ scenarioTable(p SimulationPage) {
 									}
 									for _, q := range s.Quota {
 										<div>Each club brings: { q }</div>
+									}
+									if s.AlsoJudge > 0 {
+										<div>{ strconv.Itoa(s.AlsoJudge) }% of the clubs' judges also judge other disciplines</div>
 									}
 									if s.JudgePeople > 0 {
 										<div>{ strconv.Itoa(s.JudgePeople) } people judging</div>
