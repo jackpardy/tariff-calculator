@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: The [competitions guide](guide/competition-guide.md) says a
+  synchro pair enters one routine (the level's voluntary) wherever it
+  mattered, and gives synchro's default timing.
 * **Update**: The [roadmap](roadmap.md) says where things are (every step of
   ADR 0005 built, synchro as ISTO runs it, the on-the-day "what ifs") and
   proposes next steps.
