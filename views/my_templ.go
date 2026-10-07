@@ -631,9 +631,9 @@ func myFlight(p MyCompetitionPage, f ItemView) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var35 string
-		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(gymnastCount(len(f.Gymnasts)))
+		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(flightCount(len(f.Gymnasts), f.Pairs))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 106, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 106, Col: 107}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 		if templ_7745c5c3_Err != nil {

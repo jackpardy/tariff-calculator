@@ -19,7 +19,8 @@ import (
 // their own, in trampoline (BUCS levels, men and women apart), synchro,
 // tumbling and DMT, with coaches signing entries off, judging offers, the
 // organiser's own judges, a venue over three days of 09:00 to 17:30 (a
-// general warm-up first, an hour's lunch, synchro and a display on Sunday),
+// general warm-up first, an hour's lunch, synchro in three events of grouped
+// levels and a display on Sunday),
 // the timetable planned with its officials rota, and published. Everything goes through the pages, as
 // people would use them. It writes the links to open to out.
 func Seed(h http.Handler, out io.Writer, seed uint64) error {
@@ -149,11 +150,14 @@ var (
 	}
 	// Trampoline levels, easiest first, as the competition lists them, and
 	// how many of each hundred gymnasts enter each.
-	levels = []struct {
-		name   string
-		weight int
-	}{{"BUCS L7", 24}, {"BUCS L6", 22}, {"BUCS L5", 18}, {"BUCS L4", 14}, {"BUCS L3", 11}, {"BUCS L2", 7}, {"BUCS L1", 4}}
+	levels = []levelShare{{"BUCS L7", 24}, {"BUCS L6", 22}, {"BUCS L5", 18}, {"BUCS L4", 14}, {"BUCS L3", 11}, {"BUCS L2", 7}, {"BUCS L1", 4}}
 )
+
+// levelShare is a level and how many of each hundred gymnasts enter it.
+type levelShare struct {
+	name   string
+	weight int
+}
 
 type person struct {
 	name, category string
@@ -175,6 +179,11 @@ func (s *seeder) name(used map[string]bool, category string) string {
 			return n
 		}
 	}
+}
+
+// levelIndex is a trampoline level's place in levels, easiest first.
+func levelIndex(name string) int {
+	return slices.IndexFunc(levels, func(l levelShare) bool { return l.name == name })
 }
 
 func (s *seeder) level() string {
@@ -246,14 +255,26 @@ func (s *seeder) run(out io.Writer) error {
 	// The organiser creates the competition.
 	form := url.Values{
 		"name": {"ISTO 2027 (demo)"}, "date": {"2027-02-27"}, "deadlineDate": {"2027-02-13"}, "deadlineTime": {"23:59"},
-		"individuals": {"1"}, "signoff": {"1"}, "split": {competitions.SplitAll},
-		"synchroLevel": {"builtin-level:bucs-l5", "builtin-level:bucs-l3"},
+		"individuals": {"1"}, "signoff": {"1"},
+		// Synchro on three panels: three events, levels grouped.
+		"synchroPairs": {"BUCS L6 + BUCS L7\nBUCS L4 + BUCS L5\nBUCS L1 + BUCS L2 + BUCS L3"},
 		"tumbling":     {"Novice\nIntermediate\nAdvanced"}, "dmt": {"Novice\nAdvanced"},
 	}
 	for _, l := range levels {
-		form.Add("level", "builtin-level:bucs-"+strings.ToLower(strings.TrimPrefix(l.name, "BUCS ")))
+		ref := "builtin-level:bucs-" + strings.ToLower(strings.TrimPrefix(l.name, "BUCS "))
+		form.Add("level", ref)
+		form.Add("synchroLevel", ref)
 	}
 	admin := s.post("/competitions", form)
+	// Men and women rank apart, except in synchro, where pairs can be mixed.
+	split := url.Values{"split": {competitions.SplitSome}}
+	for _, l := range levels {
+		split.Add("splitLevel", l.name)
+	}
+	for _, ev := range []string{"Tumbling Novice", "Tumbling Intermediate", "Tumbling Advanced", "DMT Novice", "DMT Advanced"} {
+		split.Add("splitLevel", ev)
+	}
+	s.post(admin+"/split", split)
 	dash := s.get(admin)
 	clubLink := s.link(dash, "/competitions/club/")
 	enter := s.link(dash, "/competitions/enter/")
@@ -349,25 +370,30 @@ func (s *seeder) run(out io.Writer) error {
 			}
 			members = append(members, m)
 		}
-		// A synchro pair within the club for men and one for women, each
-		// confirmed by the partner.
-		byCat := map[string][]person{}
-		for _, m := range members {
-			byCat[m.category] = append(byCat[m.category], m)
-		}
-		for _, cat := range []string{"Women", "Men"} {
-			ms := byCat[cat]
-			for i := 0; i+1 < len(ms) && i < 2; i += 2 {
-				a, b := ms[i], ms[i+1]
-				level := "BUCS L5"
-				if slices.Index([]string{"BUCS L4", "BUCS L3", "BUCS L2", "BUCS L1"}, a.level) >= 0 {
-					level = "BUCS L3"
+		// Synchro pairs within the club, men and women alike, up to four: two
+		// gymnasts no more than a level apart individually, doing the level
+		// they share or the easier of the two. Each is confirmed by the
+		// partner.
+		paired := map[int]bool{}
+		pairs := 0
+		for i := 0; i < len(members) && pairs < 4; i++ {
+			if paired[i] {
+				continue
+			}
+			for j := i + 1; j < len(members); j++ {
+				a, b := members[i], members[j]
+				ai, bi := levelIndex(a.level), levelIndex(b.level)
+				if paired[j] || ai-bi > 1 || bi-ai > 1 {
+					continue
 				}
-				entry := url.Values{"discipline": {"synchro"}, "category": {cat}, "partnerName": {b.name}, "partnerClub": {cl.name}}
-				s.routine(entry, level, false)
+				paired[i], paired[j] = true, true
+				pairs++
+				entry := url.Values{"discipline": {"synchro"}, "partnerName": {b.name}, "partnerClub": {cl.name}}
+				s.routine(entry, levels[min(ai, bi)].name, false)
 				s.post(a.link+"/competitions/"+compID, entry)
 				partner := s.link(s.get(a.link), "/competitions/partner/")
 				s.post(partner, url.Values{"link": {"http://example.com" + b.link}})
+				break
 			}
 		}
 		// The coaches sign off most entries.
@@ -466,10 +492,10 @@ func (s *seeder) run(out io.Writer) error {
 		s.post(tt+"/setup/blocks", b)
 	}
 	for _, r := range []url.Values{
-		{"kind": {"day"}, "must": {"1"}, "event": {"Synchro BUCS L5"}, "day": {"2"}},
-		{"kind": {"day"}, "must": {"1"}, "event": {"Synchro BUCS L3"}, "day": {"2"}},
+		{"kind": {"day"}, "must": {"1"}, "event": {"Synchro BUCS L6/L7"}, "day": {"2"}},
+		{"kind": {"day"}, "must": {"1"}, "event": {"Synchro BUCS L4/L5"}, "day": {"2"}},
+		{"kind": {"day"}, "must": {"1"}, "event": {"Synchro BUCS L1/L2/L3"}, "day": {"2"}},
 		{"kind": {"day"}, "must": {"0"}, "event": {"BUCS L1"}, "day": {"2"}},
-		{"kind": {"area"}, "must": {"0"}, "event": {"Synchro BUCS L3"}, "area": {"Panel 1"}},
 		{"kind": {"before"}, "must": {"0"}, "event": {"BUCS L7"}, "event2": {"BUCS L6"}},
 	} {
 		r.Set("add", "1")

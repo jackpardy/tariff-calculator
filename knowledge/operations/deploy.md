@@ -98,14 +98,18 @@ GUIDE.md section m).
 
 `tariffCalculator demo` (`go run . demo` from a checkout) fills the storage in
 `DATA_DIR` with a made-up competition to show the tools off, prints the links
-to open, and stops; it needs `DATA_DIR` set. It is "ISTO 2027 (demo)": eight
-student clubs with coaches and about 125 members, 6 gymnasts entering on their
-own, BUCS L7 to L1 (men and women apart), synchro, tumbling and DMT. Coaches
-sign off most entries, about 7% of routines are deliberately careless so the
-dashboard and cards show problems, members offer to judge, the organiser adds
-their own judges, and the timetable is set up over Friday evening, Saturday
-and Sunday on Panels 1–3, Track 1 and DMT 1, planned with its officials rota
-(HD judges included) and published. Everything goes through the real pages
+to open, and stops; it needs `DATA_DIR` set. It is "ISTO 2027 (demo)": 25
+student clubs with coaches and about 400 gymnasts (6 entering on their own),
+BUCS L7 to L1 (men and women apart), tumbling and DMT, and synchro in three
+events of grouped levels (L6/L7, L4/L5, L1/L2/L3, mixed pairs, up to four a
+club, at the level the pair's individual levels give). Coaches sign off most
+entries, about 7% of routines are deliberately careless so the dashboard and
+cards show problems, members offer to judge, and the organiser adds their own
+judges. The timetable runs Friday to Sunday, 09:00 to 17:30, on Panels 1–3,
+Track 1 and DMT 1: a 30-minute general warm-up on every area at 09:00, an
+hour's lunch, and on Sunday synchro, an hour's display taking the whole
+venue, fun synchro and awards. It's planned with its officials rota (HD
+judges included) and published. Everything goes through the real pages
 in-process (package `demo`), so it is only as right as they are. Each run makes
 a new competition with new names; the links it prints are the only way in.
 

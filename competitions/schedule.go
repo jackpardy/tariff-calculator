@@ -147,13 +147,15 @@ type Timings struct {
 }
 
 // DefaultTimings are a discipline's defaults: 5 minutes per gymnast for
-// trampoline's two rounds (British Gymnastics allows 4½–6½), 5 per synchro
-// pair, and 2 for tumbling's and DMT's two passes, until better figures are
-// known.
+// trampoline's two rounds (British Gymnastics allows 4½–6½), 2½ per synchro
+// pair, who do one routine, and 2 for tumbling's and DMT's two passes, until
+// better figures are known.
 func DefaultTimings(discipline string) Timings {
 	switch discipline {
 	case Tumbling, DMT:
 		return Timings{PerCompetitor: 2, Between: 10, MaxFlight: 15}
+	case Synchro:
+		return Timings{PerCompetitor: 2.5, Between: 10, MaxFlight: 12}
 	}
 	return Timings{PerCompetitor: 5, Between: 10, MaxFlight: 12}
 }

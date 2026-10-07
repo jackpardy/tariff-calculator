@@ -117,7 +117,7 @@ func TestTimelineLayout(t *testing.T) {
 		},
 		Flights: []competitions.ScheduledFlight{
 			{Flight: competitions.Flight{Level: "A"}, Day: 1, Area: "Panel 1", Start: 9 * 60, End: 10 * 60, Officials: duties},
-			{Flight: competitions.Flight{Level: "B"}, Day: 1, Area: "Panel 1", Start: 9*60 + 30, End: 10*60 + 30}, // moved by hand onto A
+			{Flight: competitions.Flight{Level: "B", Entries: []string{"x", "y"}}, Discipline: competitions.Synchro, Day: 1, Area: "Panel 1", Start: 9*60 + 30, End: 10*60 + 30}, // moved by hand onto A
 			{Flight: competitions.Flight{Level: "C"}, Day: 0, Area: "Panel 1", Start: 18 * 60, End: 18*60 + 20},
 		},
 	}
@@ -142,6 +142,9 @@ func TestTimelineLayout(t *testing.T) {
 	a, b := sat.Areas[0].Cells[0], sat.Areas[0].Cells[1]
 	if a.Row != 3 || a.Rows != 60 || b.Row != 33 || !a.Overlaps || !b.Overlaps || len(sat.Areas[0].Cells) != 2 {
 		t.Errorf("A and B overlap, without officials: %+v", sat.Areas[0].Cells)
+	}
+	if a.Pairs || !b.Pairs || b.Gymnasts != 2 {
+		t.Errorf("synchro flight B counts pairs: %+v", b)
 	}
 
 	// With officials, a sheet a day's area, each its own day's minutes, a

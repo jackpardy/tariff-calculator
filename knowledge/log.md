@@ -7,6 +7,11 @@
   the whole venue.
 * **Fix**: The rota report's "Seats no one could take" counted flights, not
   seats; it now says both ("11, on 3 flights").
+* **Update**: The [demo](operations/deploy.md#demo-competition) is bigger:
+  25 clubs and about 400 gymnasts over three days of 09:00 to 17:30, with a
+  general warm-up, an hour's lunch, and on Sunday synchro (three events of
+  grouped levels, mixed pairs) and an hour's display. Synchro defaults to 2½
+  minutes per pair, who do one routine, and its flights count pairs.
 * **Update**: [Synchro](features/competition-entries.md#events-and-synchro-adr-0005-step-2)
   levels can be paired into one event ("BUCS L1/L2"), each pair saying which
   level they're doing; a pair entered at a level other than their individual
