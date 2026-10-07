@@ -1,0 +1,109 @@
+package views
+
+
+// LeavePage is the organiser's "what if an official has to leave".
+type LeavePage struct {
+	Base        string
+	Competition CompetitionSummary
+	People      []FlightOption // officials with seats, by key
+	Days        []FlightOption
+	// As asked.
+	Person, Day, From, Prefer string
+	ForGood                   bool
+	Asked                     bool
+	Problems                  []string
+	Result                    *LeaveResult
+}
+
+// LeaveResult is how the leaver's seats are filled.
+type LeaveResult struct {
+	Who                     string
+	Summary                 string // e.g. "Mary's 3 seats: 2 filled by someone free, 1 by moving people round the panel."
+	Seats                   []SeatFillView
+	Direct, Reworked, Empty int
+}
+
+// SeatFillView is one seat filled again.
+type SeatFillView struct {
+	When, Where, Flight, Role string
+	Steps                     []string
+	Others                    string
+	Empty                     string
+}
+
+// Leave is the page.
+templ Leave(p LeavePage) {
+	@competitionLayout("What if an official leaves · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Base + "/timetable") }>← Timetable</a></p>
+		<h1 class="title is-4">What if an official has to leave?</h1>
+		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		<p class="mb-4">Choose who leaves and when. Each seat they'd have had from then is filled again by someone free (not competing, not on another panel, and allowed by your rules), or by moving others round where it helps: someone on that panel up a role, or someone across from a panel at the same time, their seat filled in turn (three moves at most). Nothing is saved: the rota stays as it is.</p>
+		@problemList(p.Problems)
+		<form method="get" action={ templ.SafeURL(p.Base + "/timetable/leave") } class="box">
+			<div class="comp-setup-row">
+				<label class="label is-small mb-0" for="leave-person">Who</label>
+				<div class="select is-small">
+					<select id="leave-person" name="person" required>
+						<option value="" disabled selected?={ p.Person == "" }>Choose an official</option>
+						for _, o := range p.People {
+							<option value={ o.Value } selected?={ p.Person == o.Value }>{ o.Label }</option>
+						}
+					</select>
+				</div>
+				<label class="label is-small mb-0" for="leave-day">leaves on</label>
+				<div class="select is-small">
+					<select id="leave-day" name="day">
+						for _, d := range p.Days {
+							<option value={ d.Value } selected?={ p.Day == d.Value }>{ d.Label }</option>
+						}
+					</select>
+				</div>
+				<label class="label is-small mb-0" for="leave-from">at</label>
+				<input class="input is-small comp-num" id="leave-from" name="from" type="time" required value={ p.From }/>
+			</div>
+			<label class="checkbox comp-option mt-2">
+				<input type="checkbox" name="forgood" value="1" checked?={ p.ForGood }/>
+				For the rest of the competition, not just that day
+			</label>
+			<fieldset class="field mt-2">
+				<legend class="label is-small">Fill each seat by</legend>
+				<label class="radio comp-option mr-3">
+					<input type="radio" name="prefer" value="" checked?={ p.Prefer == "" }/>
+					Making the gap the easiest seat to fill
+				</label>
+				<label class="radio comp-option">
+					<input type="radio" name="prefer" value="fewest" checked?={ p.Prefer == "fewest" }/>
+					Changing as few seats as possible
+				</label>
+				<p class="help">Easiest to fill moves people up or across (an execution judge to chair, a recorder to judge) so the seat left is one the most free people can take, such as recorder or marshal.</p>
+			</fieldset>
+			<button class="button is-primary is-small" type="submit">Show what happens</button>
+		</form>
+		if r := p.Result; r != nil {
+			<div class="box">
+				if len(r.Seats) == 0 {
+					<p>{ r.Who } has no seats from then.</p>
+				} else {
+					<p class="mb-3"><strong>{ r.Summary }</strong></p>
+					for _, s := range r.Seats {
+						<div class={ "comp-leave-seat", templ.KV("has-text-danger", s.Empty != "") }>
+							<p><strong>{ s.Flight }</strong> · { s.Where } · { s.When } · { s.Role }</p>
+							if s.Empty != "" {
+								<p class="is-size-7">{ s.Empty }</p>
+							} else {
+								<ol class="is-size-7">
+									for _, st := range s.Steps {
+										<li>{ st }</li>
+									}
+								</ol>
+								if s.Others != "" {
+									<p class="is-size-7 has-text-grey">{ s.Others }</p>
+								}
+							}
+						</div>
+					}
+				}
+			</div>
+		}
+	}
+}
