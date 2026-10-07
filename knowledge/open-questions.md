@@ -34,6 +34,23 @@ settings (ADR 0005 Decisions 6 and 13). Still to learn:
 - Better default minutes per competitor for tumbling and DMT (2 is a guess),
   and the usual rest between a person's turns (20 minutes is a guess).
 
+# Notifications
+
+Decided 2026-10-07 ([roadmap](roadmap.md#next-steps-proposed-2026-10-07)):
+opt-in notifications by phone push and email. Push stores nothing
+personal. An email is given with a tick box, "I'm 18 or over, or this is a
+parent's email"; anyone younger can still use push (decided 2026-10-07).
+Still to decide:
+
+- **How long the grace period is** before a notification goes out (about
+  10 minutes suggested; the organiser can skip it with Notify now or turn
+  it off on the competition's days, see the
+  [roadmap](roadmap.md#next-steps-proposed-2026-10-07)), and whether there
+  are quiet hours overnight before the competition day.
+
+Left to the build: which service sends email (Amazon SES in its Ireland
+region is the leaning).
+
 # Decisions pending
 
 - Whether to mark [ADR 0003](../docs/adr/0003-requirements-framework.md)

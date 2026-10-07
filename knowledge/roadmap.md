@@ -143,21 +143,60 @@ Not decided yet: candidates, roughly in the order they'd help ISTO.
    tools; test the competition pages on a phone (see
    [open questions](open-questions.md)). What they find should reorder the
    rest.
-2. **Apply a "what if".** Let the organiser keep a delay's or a leaving
-   official's result as the timetable (and publish it again), instead of only
-   looking at it; and close the gaps they don't check yet: coaches in two
-   places, the organiser's rules about events and people, officials on
-   blocked time, and rest as a must.
-3. **Link the calculator to the competition tools.** Nothing on the routine
+2. **Draft and published timetables, and applying a "what if"** (decided
+   2026-10-07). Once a timetable is published, attendees see that copy and
+   the organiser works on a **draft**: every change (moving a flight,
+   redrawing an order, planning again, keeping a delay's or a leaving
+   official's result) goes into the draft, and **Publish** makes it what
+   attendees see. Today the published timetable is the one being edited, so
+   every change goes live straight away. Also close the gaps the "what ifs"
+   don't check yet: coaches in two places, the organiser's rules about
+   events and people, officials on blocked time, and rest as a must.
+3. **Set up in private, go live when ready** (decided 2026-10-07). A new
+   competition starts **private**: the organiser sets up levels, events,
+   officials and the timetable, and the club and individual entry links
+   show the competition's name, date and when entries open, so they can be
+   shared early, but take no entries. It goes **live** when the organiser
+   presses Go live, or at a date and time they set. The organiser can make
+   a live competition private again to pause entries, keeping those already
+   made. Today a competition takes entries from the moment it's created
+   until its deadline.
+4. **Notifications, by opting in** (decided 2026-10-07). Members,
+   individuals, club comp secs and coaches can each ask to be told when
+   something affects them: a flight they're in moves (time, area or day, or
+   its warm-up), their officiating duties change, or their card is checked
+   or found to have a problem. A comp sec hears about the club's members, a
+   coach about the gymnasts they coach. Timetable and duty changes go out
+   when the organiser **publishes**, comparing the new timetable with the
+   last one and telling only those whose part changed; running order
+   changes alone don't notify. After a change goes live there's a **grace
+   period** before anyone is told, and anything else published in it joins
+   the same notification. Each one compares what was live before the first
+   change with what's live at the end, so a change made and then undone
+   tells no one. The organiser can skip the wait with **Notify now**, or
+   turn the grace period off for the competition's days, when news can't
+   wait. Notifications are **grouped per person told**: a club gets
+   one email however many of its members changed, and a gymnast one however
+   many of their events. Each **summarises the changes** (who, which event,
+   was and now) and links to their page. Notified by **phone push** where it works
+   (on iPhone, once the site is on the home screen) and by **email**, which
+   clubs always have. Emails are a change to
+   [ADR 0004](../docs/adr/0004-server-storage-secret-links.md), which keeps
+   none: they'd be given only to be notified and deleted with the
+   competition, with a tick box, "I'm 18 or over, or this is a parent's
+   email". Push stores nothing personal, so anyone can use it (see
+   [open questions](open-questions.md#notifications)).
+5. **Link the calculator to the competition tools.** Nothing on the routine
    builder leads to `/competitions` yet.
-4. **Synchro's last details.** Confirm "the lower level" for a pair a level
-   apart means the easier one (as built), and warn the gymnast on their own
-   page too, not only the organiser.
-5. **Results history** (competitions 6): import TrampOnline and TScore
+6. **Synchro's last detail.** Warn the gymnast on their own page too, not
+   only the organiser, when a pair is at the wrong level. ("The lower level"
+   for a pair a level apart means the easier one, as built: confirmed
+   2026-10-07.)
+7. **Results history** (competitions 6): import TrampOnline and TScore
    results CSVs for personal bests, progression and next year's levels.
-6. **Clubs:** the TrampOnline entry export (clubs 1), then skill tracking
+8. **Clubs:** the TrampOnline entry export (clubs 1), then skill tracking
    (clubs 2).
-7. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
+9. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
    and the usual rest between turns (both guesses for now).
 
 See [open questions](open-questions.md) for what's waiting on documents and
