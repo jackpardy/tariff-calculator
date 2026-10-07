@@ -46,7 +46,8 @@ performed as written.
    time). Tick the **Levels** gymnasts can enter; your own levels from the
    Routine Builder are under **Your own levels**.
 3. Under **Synchro, tumbling and DMT**, tick any synchro levels, and type the
-   tumbling and DMT levels, one a line. Leave them empty for trampoline only.
+   tumbling and DMT levels, one a line, easiest first. Leave them empty for
+   trampoline only.
 4. Choose whether **gymnasts can also enter on their own**, whether to ask for
    **video proof** (none, some skills such as any triple, or each whole
    routine), whether **entries need a coach's sign-off**, and whether to **rank
@@ -76,7 +77,9 @@ Routine Builder checks them.
   file.
 - **Download CSV** gives every entry for a spreadsheet or scoring system.
 - Under **Links and settings** you can change when entries close or **Close
-  entries now**, change the synchro, tumbling and DMT levels, choose which
+  entries now**, change the synchro, tumbling and DMT levels, put the levels
+  in order (**Order of levels**, easiest first: built-in levels start in
+  order, so check where your own levels sit), choose which
   levels rank men and women separately, turn individual entry, video proof or
   coach sign-off on or off, **Replace the admin link** if it's been shared too
   widely, or delete the competition.
@@ -101,7 +104,8 @@ and anyone you add.
   machine measuring horizontal displacement, give trampoline 2 **HD** judges.
   Choose who may
   judge: anyone up to the level they say, only levels below their own, or only
-  people you mark qualified.
+  people you mark qualified. "Up to" and "below" go by the **Order of levels**
+  under Links and settings.
 
 ## Plan the timetable
 

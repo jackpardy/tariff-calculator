@@ -47,7 +47,11 @@ change to how many elements score.
 `sets/groups.json` lists each group's levels by set ID, alongside its sets
 (`BuiltinGroup.Levels`, referenced as `builtin-level:<id>`). A level's source is
 its first set's. The loader panics if a level names a set that doesn't exist,
-and a test checks every built-in set belongs to a level.
+and a test checks every built-in set belongs to a level. A group lists its
+levels easiest first, unless it says `hardest_first` (BUCS, as its rule book
+lists them): `BuiltinLevelRank` gives each level's rank, easiest first, which
+a competition's order of levels uses. Levels of different groups aren't
+ranked against each other.
 
 | Group | Levels |
 |---|---|

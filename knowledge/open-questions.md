@@ -33,15 +33,6 @@ settings (ADR 0005 Decisions 6 and 13). Still to learn:
 
 - Better default minutes per competitor for tumbling and DMT (2 is a guess),
   and the usual rest between a person's turns (20 minutes is a guess).
-- **Bug: judging levels run the wrong way for BUCS.** "Up to" a level, and
-  "only levels below their own", go by the order of the competition's levels,
-  taking the first as easiest. Levels ticked on the new-competition form are
-  kept in the catalogue's order, which for BUCS is L1 (hardest) to L7, so
-  "up to BUCS L5" allows L1 to L5. Tumbling and DMT levels are typed, so
-  their order is the organiser's. The [demo](operations/deploy.md#demo-competition)
-  posts BUCS L7 to L1 and so isn't affected. Fix: give levels a known order
-  (built-ins ranked easiest first, own levels where the organiser puts them)
-  rather than relying on the form.
 
 # Decisions pending
 

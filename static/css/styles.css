@@ -554,6 +554,10 @@ details > * { box-sizing: border-box; }
 .comp-deadline { display: flex; gap: 0.5rem; }
 .comp-level-group { margin-bottom: 0.4rem; }
 .comp-level-group summary { cursor: pointer; font-weight: 600; padding: 0.2rem 0; }
+.comp-level-order { margin: 0 0 0.4rem 0.75rem; }
+.comp-level-order li { display: flex; align-items: center; gap: 0.3rem; padding: 0.1rem 0; }
+.comp-level-name { flex: 1; min-width: 0; }
+.comp-level-gap { width: 2.25em; flex: none; }
 .comp-level { display: flex; align-items: center; gap: 0.4rem; padding: 0.15rem 0 0.15rem 1rem; }
 .comp-counts { margin: 1rem 0; }
 .comp-manage summary { cursor: pointer; }

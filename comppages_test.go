@@ -383,3 +383,43 @@ func TestVideoProof(t *testing.T) {
 		t.Error("a bad tariff changes nothing")
 	}
 }
+
+func TestLevelOrderPages(t *testing.T) {
+	h := competitionServer(t)
+	form := newCompetition()
+	form["level"] = []string{"builtin-level:bucs-l1", "builtin-level:bucs-l5", "builtin-level:bucs-l7"}
+	form.Set("tumbling", "Novice\nElite")
+	admin := created(t, h, form)
+	order := func() string {
+		t.Helper()
+		page := do(t, h, http.MethodGet, admin, nil).Body.String()
+		start := strings.Index(page, `id="level-order"`)
+		if start < 0 {
+			t.Fatal("no order of levels on the dashboard")
+		}
+		section := page[start:]
+		section = section[:strings.Index(section, "</form>")]
+		var names []string
+		for _, m := range regexp.MustCompile(`<span class="comp-level-name">([^<]+)</span>`).FindAllStringSubmatch(section, -1) {
+			names = append(names, m[1])
+		}
+		return strings.Join(names, ", ")
+	}
+	if got := order(); got != "BUCS L7, BUCS L5, BUCS L1, Novice, Elite" {
+		t.Errorf("BUCS's levels, ticked as listed (hardest first), are kept easiest first: %s", got)
+	}
+
+	rec := do(t, h, http.MethodPost, admin+"/levels/move", url.Values{"move": {":2:-1"}})
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("moving: %d %s", rec.Code, rec.Body.String())
+	}
+	do(t, h, http.MethodPost, admin+"/levels/move", url.Values{"move": {"tumbling:1:-1"}})
+	if got := order(); got != "BUCS L7, BUCS L1, BUCS L5, Elite, Novice" {
+		t.Errorf("moved by the organiser: %s", got)
+	}
+	for _, bad := range []string{":0:-1", "tumbling:1:1", "dmt:0:1", "nonsense"} {
+		if rec := do(t, h, http.MethodPost, admin+"/levels/move", url.Values{"move": {bad}}); rec.Code != http.StatusBadRequest {
+			t.Errorf("moving %q: %d", bad, rec.Code)
+		}
+	}
+}
