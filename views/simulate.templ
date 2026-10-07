@@ -20,11 +20,11 @@ type SimulationPage struct {
 
 // ScenarioForm is a scenario's numbers, to plan.
 type ScenarioForm struct {
-	Name                            string
-	Events                          []SimEvent
-	Disciplines                     []SimDiscipline
-	Gymnasts, Clubs, Competing      int
-	Helpers, JudgePeople            int
+	Name                       string
+	Events                     []SimEvent
+	Disciplines                []SimDiscipline
+	Gymnasts, Clubs, Competing int
+	Helpers, JudgePeople       int
 }
 
 // SimEvent is one event's entries in the form.
@@ -35,26 +35,29 @@ type SimEvent struct {
 
 // SimDiscipline is one discipline's judges in the form.
 type SimDiscipline struct {
-	Key, Name      string
-	Judges, Chairs int
+	Key, Name                          string
+	Judges, Chairs                     int
+	QuotaPer, QuotaJudges, QuotaChairs int // what each club must bring: judges (chairs among them) per competitors
 }
 
 // ScenarioView is a scenario and what it came to.
 type ScenarioView struct {
-	Index                           int
-	Name                            string
-	Entries                         []string // "BUCS L5: 12"
-	Judges                          []string // "Trampoline 20 (4 can chair)"
-	GymnastsIn, Clubs, Competing    int // the numbers given; GymnastsIn 0 for one per place
-	Helpers, JudgePeople            int
-	Run                             bool // it has a result
-	Stale                           bool // planned with another setup, panels or events
-	Gymnasts, EntryCount            int
-	Days                            []SimDay
-	Unplaced                        []string
-	Fix                             string
-	NoFix                           bool
-	Seats, Empty, ShortRest         int
+	Index                        int
+	Name                         string
+	Entries                      []string // "BUCS L5: 12"
+	Judges                       []string // "Trampoline 20 (4 can chair)"
+	Quota                        []string // what each club must bring: "Trampoline 1 per 8 competitors (0 can chair)"
+	ClubJudges                   int      // judges the clubs brought
+	GymnastsIn, Clubs, Competing int      // the numbers given; GymnastsIn 0 for one per place
+	Helpers, JudgePeople         int
+	Run                          bool // it has a result
+	Stale                        bool // planned with another setup, panels or events
+	Gymnasts, EntryCount         int
+	Days                         []SimDay
+	Unplaced                     []string
+	Fix                          string
+	NoFix                        bool
+	Seats, Empty, ShortRest      int
 }
 
 // SimDay is when a scenario's day finishes, and when its last flight ends.
@@ -130,16 +133,36 @@ templ scenarioFormView(p SimulationPage) {
 		</div>
 		<fieldset class="field mt-3">
 			<legend class="label is-small">Officials</legend>
-			<p class="help mb-1">People who can judge each discipline (any level), and how many of them can chair.</p>
+			<p class="help mb-1">People who can judge each discipline (any level), and how many of them can chair. If clubs must bring judges (below), these are only your own, with no club.</p>
 			<div class="comp-sim-grid">
 				for _, d := range p.Form.Disciplines {
 					<div class="comp-sim-row">
 						<span>{ d.Name }</span>
-						<input class="input is-small comp-num" type="number" min="0" name={ "judges-" + d.Key } value={ numberValue(d.Judges) } aria-label={ d.Name + " judges" }/>
-						<span class="is-size-7">chair</span>
-						<input class="input is-small comp-num" type="number" min="0" name={ "chairs-" + d.Key } value={ numberValue(d.Chairs) } aria-label={ d.Name + " judges who can chair" }/>
+						<span class="comp-sim-nums">
+							<input class="input is-small comp-num" type="number" min="0" name={ "judges-" + d.Key } value={ numberValue(d.Judges) } aria-label={ d.Name + " judges" }/>
+							<span class="is-size-7">chair</span>
+							<input class="input is-small comp-num" type="number" min="0" name={ "chairs-" + d.Key } value={ numberValue(d.Chairs) } aria-label={ d.Name + " judges who can chair" }/>
+						</span>
 					</div>
 				}
+			</div>
+			<p class="label is-small mt-3 mb-1">Judges each club must bring</p>
+			<p class="help mb-1">For every so many of a club's competitors in a discipline (or part of it: 9 at 1 per 8 is 2), so many judges, of whom so many can chair. A synchro pair is two competitors. Leave empty for none.</p>
+			<div class="comp-sim-grid">
+				for _, d := range p.Form.Disciplines {
+					<div class="comp-sim-row">
+						<span>{ d.Name }</span>
+						<span class="comp-sim-nums">
+							<input class="input is-small comp-num" type="number" min="0" max="20" name={ "quota-judges-" + d.Key } value={ numberValue(d.QuotaJudges) } aria-label={ d.Name + " judges each club brings" }/>
+							<span class="is-size-7">per</span>
+							<input class="input is-small comp-num" type="number" min="0" max="100" name={ "quota-per-" + d.Key } value={ numberValue(d.QuotaPer) } aria-label={ d.Name + " competitors per lot of judges" }/>
+							<span class="is-size-7">competitors; chair</span>
+							<input class="input is-small comp-num" type="number" min="0" max="20" name={ "quota-chairs-" + d.Key } value={ numberValue(d.QuotaChairs) } aria-label={ d.Name + " of those judges who can chair" }/>
+						</span>
+					</div>
+				}
+			</div>
+			<div class="comp-sim-grid mt-3">
 				<label class="comp-sim-row">
 					<span>How many people those judges are (someone judging two disciplines counts once; empty if no one does)</span>
 					<input class="input is-small comp-num" type="number" min="0" name="judgePeople" value={ numberValue(p.Form.JudgePeople) }/>
@@ -194,6 +217,9 @@ templ scenarioTable(p SimulationPage) {
 									</div>
 									for _, j := range s.Judges {
 										<div>Judges: { j }</div>
+									}
+									for _, q := range s.Quota {
+										<div>Each club brings: { q }</div>
 									}
 									if s.JudgePeople > 0 {
 										<div>{ strconv.Itoa(s.JudgePeople) } people judging</div>
@@ -250,6 +276,9 @@ templ scenarioTable(p SimulationPage) {
 						for _, s := range p.Scenarios {
 							<td>
 								if s.Run {
+									if s.ClubJudges > 0 {
+										<div class="is-size-7">Clubs bring { strconv.Itoa(s.ClubJudges) } judges</div>
+									}
 									if s.Empty == 0 {
 										Every seat filled ({ strconv.Itoa(s.Seats) })
 									} else {

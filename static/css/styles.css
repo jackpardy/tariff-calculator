@@ -600,6 +600,7 @@ details > * { box-sizing: border-box; }
 .comp-sim-grid { display: grid; gap: 0.3rem; margin-bottom: 0.5rem; }
 .comp-sim-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; }
 .comp-sim-row > span:first-child { flex: 1 1 12rem; }
+.comp-sim-nums { display: inline-flex; align-items: center; gap: 0.35rem; flex-wrap: nowrap; }
 .comp-sim-table th { white-space: nowrap; }
 .comp-sim-table td { min-width: 11rem; vertical-align: top; }
 .comp-sim-table .buttons form { display: contents; }
