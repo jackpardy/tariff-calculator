@@ -1,6 +1,8 @@
 # Update log
 
 ## 2026-10-07
+* **Fix**: The rota report's "Seats no one could take" counted flights, not
+  seats; it now says both ("11, on 3 flights").
 * **Update**: [Synchro](features/competition-entries.md#events-and-synchro-adr-0005-step-2)
   levels can be paired into one event ("BUCS L1/L2"), each pair saying which
   level they're doing; a pair entered at a level other than their individual

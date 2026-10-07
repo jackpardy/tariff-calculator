@@ -169,7 +169,8 @@ offered (roadmap: competitions 4).
   times. A must keeps that person for that seat, off any flight at the same
   time. Changing these rules asks you to **Assign officials again**, not to
   plan again.
-- **The report:** seats no one could take, hand changes that break the rota
+- **The report:** seats no one could take (counted, with the flights
+  they're on: "11, on 3 flights"), hand changes that break the rota
   (someone officiating while competing, in two places, or in a role they
   can't take), rules not kept, coaches needed on two areas at once, times
   each club judged its own, and the busiest officials.

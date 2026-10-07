@@ -111,8 +111,17 @@ func TestRotaWhoCanDoWhat(t *testing.T) {
 		t.Errorf("seats: %v", got)
 	}
 	r := s.RotaReport(clubsOf(entries), officials)
-	if len(r.Short) != 1 || !strings.Contains(r.Short[0], "no one for 1 chair of judges") {
-		t.Errorf("short: %v", r.Short)
+	if len(r.Short) != 1 || !strings.Contains(r.Short[0], "no one for 1 chair of judges") || r.Empty != 1 {
+		t.Errorf("short: %v, %d empty", r.Short, r.Empty)
+	}
+
+	// Seats are counted, not flights: 3 empty on one, 1 on another.
+	empty := Schedule{Flights: []ScheduledFlight{
+		{Flight: Flight{Level: "A"}, Area: "P1", Officials: []Duty{{Role: RoleExecution}, {Role: RoleExecution}, {Role: RoleDifficulty}, {Role: RoleChair, Person: "x"}}},
+		{Flight: Flight{Level: "B"}, Area: "P1", Officials: []Duty{{Role: RoleExecution}}},
+	}}
+	if r := empty.RotaReport(nil, nil); r.Empty != 4 || len(r.Short) != 2 || r.Short[0] != "A on P1: no one for 1 difficulty judge and 2 execution judges" {
+		t.Errorf("4 empty seats on 2 flights: %d, %q", r.Empty, r.Short)
 	}
 }
 

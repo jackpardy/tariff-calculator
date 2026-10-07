@@ -35,6 +35,9 @@ func TestOfficialsRota(t *testing.T) {
 	if !strings.Contains(page, "Tumbling Novice flight 1 on Track 1: no one for 1 execution judge") && !strings.Contains(page, "Tumbling Novice on Track 1: no one for 1 execution judge") {
 		t.Error("a seat no one can take is reported")
 	}
+	if !strings.Contains(page, "<strong>Seats no one could take:</strong> 1, on 1 flight</summary>") {
+		t.Error("the empty seats are counted, with the flights they're on")
+	}
 	l3 := page[strings.Index(page, "<strong>BUCS L3"):]
 	l3 = strings.Join(strings.Fields(l3[:strings.Index(l3, "Redraw order")]), " ")
 	for _, who := range []string{"Chair of judges: Mary", "Execution judge: Dara", "Execution judge: Tom"} {
