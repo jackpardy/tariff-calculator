@@ -2,15 +2,16 @@ package main
 
 import (
 	"encoding/csv"
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
 	"slices"
-	"strconv"
 	"strings"
 	"testing"
 
 	"tariffCalculator/competitions"
+	"tariffCalculator/views"
 )
 
 func TestPanelTimeline(t *testing.T) {
@@ -43,25 +44,44 @@ func TestPanelTimeline(t *testing.T) {
 		t.Error("the timetable links to the timeline")
 	}
 
+	textOf := func(page string) string {
+		return strings.Join(strings.Fields(regexp.MustCompile(`<[^>]+>`).ReplaceAllString(page, " ")), " ")
+	}
+	// Without officials: the day's areas side by side, a row a minute from
+	// 09:00 under two header rows.
 	page = do(t, h, http.MethodGet, tt+"/print?sheet=timeline", nil).Body.String()
-	text := strings.Join(strings.Fields(regexp.MustCompile(`<[^>]+>`).ReplaceAllString(page, " ")), " ")
-	for _, want := range []string{
-		"Panel timeline", "Day 1 Panel 1 Track 1",
-		"Tumbling Novice 09:00–09:12 · 1 gymnast Chair: Ann Execution: —",
-		"BUCS L3 09:12–09:27 · 1 gymnast Chair: Mary Execution: Tom, —",
-		"Lunch 12:00–12:45",
-	} {
+	text := textOf(page)
+	for _, want := range []string{"Panel timeline", "Day 1 Panel 1 Track 1", "Tumbling Novice 09:00–09:12 · 1", "BUCS L3 09:12–09:27 · 1", "Lunch 12:00–12:45", "With officials"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("the timeline shows %q: %s", want, text)
 		}
 	}
-	if n := strings.Count(page, "comp-timeline-block"); n != 2 {
-		t.Errorf("lunch is on both areas: %d", n)
+	if strings.Contains(text, "Mary") || strings.Count(page, "comp-tl-block") != 2 {
+		t.Error("no officials, and lunch on both areas")
 	}
-	// Each row has a cell for every column not covered from above: the
-	// table lines up.
-	if !rowsLineUp(page, 2) {
-		t.Error("the timeline's rows don't line up")
+	for _, want := range []string{"grid-template-rows: repeat(2, auto) repeat(540, var(--tl-min))", "grid-row: 3 / span 12; grid-column: 3 / span 1", "grid-row: 15 / span 15; grid-column: 2 / span 1"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the grid has %q", want)
+		}
+	}
+
+	// With officials: an area to a sheet, a column for each seat, a name to a
+	// cell, and the same time scale under three header rows.
+	page = do(t, h, http.MethodGet, tt+"/print?sheet=timeline-officials", nil).Body.String()
+	text = textOf(page)
+	for _, want := range []string{"Timeline with officials", "Day 1 · Panel 1 Flight Chair E1 E2", "Day 1 · Track 1 Flight Chair E1", "BUCS L3 09:12–09:27 · 1 Mary", "Tumbling Novice 09:00–09:12 · 1 Ann —", "Without officials"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("the officials timeline shows %q: %s", want, text)
+		}
+	}
+	for _, want := range []string{
+		`grid-row: 16 / span 15; grid-column: 3 / span 1;" title="Mary · Chair of judges · BUCS L3 · 09:12–09:27">Mary`,
+		`comp-tl-seat comp-tl-empty" style="grid-row: 4 / span 12; grid-column: 4 / span 1;" title="No one · Execution judge · Tumbling Novice · 09:00–09:12">—`,
+		`grid-row: 184 / span 45; grid-column: 2 / span 4`, // lunch takes Panel 1's every column
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the officials grid has %q", want)
+		}
 	}
 
 	rec := do(t, h, http.MethodGet, tt+"/timeline.csv", nil)
@@ -84,58 +104,65 @@ func TestPanelTimeline(t *testing.T) {
 	}
 }
 
-// rowsLineUp checks a timeline table: every body row's cells, with those
-// spanning down from rows above, fill all its columns exactly.
-func rowsLineUp(page string, columns int) bool {
-	body := page[strings.Index(page, "<tbody>"):strings.Index(page, "</tbody>")]
-	covered := make([]int, columns) // rows each column is still covered for
-	for _, row := range strings.Split(body, "<tr")[1:] {
-		col := 0
-		for _, span := range regexp.MustCompile(`<td rowspan="(\d+)"`).FindAllStringSubmatch(row, -1) {
-			for col < columns && covered[col] > 0 {
-				col++
-			}
-			if col == columns {
-				return false
-			}
-			covered[col], _ = strconv.Atoi(span[1])
-			col++
-		}
-		for i := range covered {
-			if covered[i] == 0 {
-				return false
-			}
-			covered[i]--
-		}
-	}
-	return slices.Max(covered) == 0
-}
-
-func TestTimelineOverlaps(t *testing.T) {
+func TestTimelineLayout(t *testing.T) {
+	duties := []competitions.Duty{{Role: competitions.RoleChair, Person: "a"}, {Role: competitions.RoleExecution, Person: "b"}, {Role: competitions.RoleExecution}}
 	s := competitions.Schedule{
-		Setup: competitions.Setup{Areas: []competitions.Area{{Name: "Panel 1"}}, Days: []competitions.Day{{Name: "Sat", Start: "09:00", End: "12:00"}}},
+		Setup: competitions.Setup{
+			Areas: []competitions.Area{{Name: "Panel 1"}, {Name: "Track"}},
+			Days:  []competitions.Day{{Name: "Fri", Start: "18:00", End: "20:00", Areas: []string{"Panel 1"}}, {Name: "Sat", Start: "09:00", End: "12:00"}},
+		},
 		Flights: []competitions.ScheduledFlight{
-			{Flight: competitions.Flight{Level: "A"}, Area: "Panel 1", Start: 9 * 60, End: 10 * 60},
-			{Flight: competitions.Flight{Level: "B"}, Area: "Panel 1", Start: 9*60 + 30, End: 10*60 + 30}, // moved by hand onto A
-			{Flight: competitions.Flight{Level: "C"}, Area: "Panel 1", Start: 11 * 60, End: 11*60 + 20},
+			{Flight: competitions.Flight{Level: "A"}, Day: 1, Area: "Panel 1", Start: 9 * 60, End: 10 * 60, Officials: duties},
+			{Flight: competitions.Flight{Level: "B"}, Day: 1, Area: "Panel 1", Start: 9*60 + 30, End: 10*60 + 30}, // moved by hand onto A
+			{Flight: competitions.Flight{Level: "C"}, Day: 0, Area: "Panel 1", Start: 18 * 60, End: 18*60 + 20},
 		},
 	}
-	_, rows := timeline(s, func(string) string { return "" })
-	var times, cells []string
-	for _, r := range rows {
-		times = append(times, r.Time)
-		for _, c := range r.Cells {
-			var names []string
-			for _, it := range c.Items {
-				names = append(names, it.Name)
-			}
-			cells = append(cells, r.Time+" "+c.Kind+" "+strings.Join(names, "+")+" ×"+strconv.Itoa(c.Span))
-		}
+	name := func(k string) string { return strings.ToUpper(k) }
+
+	// Side by side, every day runs 09:00 to 20:00, the hours outside each
+	// day's shaded.
+	tl := timeline(s, name, false)
+	if len(tl.Sheets) != 2 || tl.Sheets[0].Minutes != 11*60 || tl.Header != 2 {
+		t.Fatalf("a sheet a day, 660 minutes: %+v", tl)
 	}
-	if want := []string{"09:00", "09:30", "10:00", "10:30", "11:00", "11:20"}; !slices.Equal(times, want) {
-		t.Errorf("rows at %v, want %v", times, want)
+	fri, sat := tl.Sheets[0], tl.Sheets[1]
+	if len(fri.Areas) != 1 || len(sat.Areas) != 2 || sat.Columns != "var(--tl-time) var(--tl-event) var(--tl-event)" {
+		t.Errorf("Friday has Panel 1 only, Saturday both: %+v", sat)
 	}
-	if want := []string{"09:00 flight A+B ×3", "10:30   ×1", "11:00 flight C ×1", "11:20   ×1"}; !slices.Equal(cells, want) {
+	if want := []views.TimelineSpan{{Row: 3, Rows: 9 * 60}}; !slices.Equal(fri.Off, want) {
+		t.Errorf("Friday before 18:00 is shaded: %v", fri.Off)
+	}
+	if len(fri.Hours) != 11 || fri.Hours[0] != (views.TimelineHour{Row: 3, Rows: 60, Label: "09:00"}) {
+		t.Errorf("the hours: %v", fri.Hours)
+	}
+	a, b := sat.Areas[0].Cells[0], sat.Areas[0].Cells[1]
+	if a.Row != 3 || a.Rows != 60 || b.Row != 33 || !a.Overlaps || !b.Overlaps || len(sat.Areas[0].Cells) != 2 {
+		t.Errorf("A and B overlap, without officials: %+v", sat.Areas[0].Cells)
+	}
+
+	// With officials, a sheet a day's area, each its own day's minutes, a
+	// column for each seat.
+	tl = timeline(s, name, true)
+	if len(tl.Sheets) != 3 || tl.Sheets[0].Title != "Fri · Panel 1" || tl.Sheets[0].Minutes != 120 || tl.Sheets[1].Minutes != 180 || tl.Header != 3 {
+		t.Fatalf("Friday's Panel 1, Saturday's Panel 1 and Track: %+v", tl.Sheets)
+	}
+	p1 := tl.Sheets[1].Areas[0]
+	var labels []string
+	for _, seat := range p1.Seats {
+		labels = append(labels, seat.Label)
+	}
+	if !slices.Equal(labels, []string{"Chair", "E1", "E2"}) || p1.Columns != 4 {
+		t.Errorf("Panel 1's seats: %v", labels)
+	}
+	var cells []string
+	for _, c := range p1.Cells {
+		cells = append(cells, fmt.Sprintf("%s %s %d/%d %d", c.Kind, c.Name, c.Row, c.Rows, c.Column))
+	}
+	want := []string{"flight A 4/60 2", "seat A 4/60 3", "seat B 4/60 4", "seat — 4/60 5", "flight B 34/60 2"}
+	if !slices.Equal(cells, want) {
 		t.Errorf("cells %q, want %q", cells, want)
+	}
+	if len(tl.Sheets[2].Areas[0].Seats) != 0 {
+		t.Error("the track has no seats")
 	}
 }

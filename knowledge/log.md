@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: The [panel timeline](features/competition-entries.md#timetable-adr-0005-step-4)
+  runs at an even time scale, and comes in two views: without officials
+  (every day side by side), and **with officials**, a sheet for each day's
+  area with a column for each seat on its panel and who has it.
 * **Update**: Step 6 of ADR 0005, [simulation](features/competition-entries.md#simulation-adr-0005-step-6):
   the organiser tries entries per event, gymnasts in all, clubs, judges,
   chairs and helpers against the venue setup; stand-ins are planned with the
