@@ -102,6 +102,8 @@ and anyone you add.
   FIG Code of Points' (a Chair of Judges Panel, 6 execution and 2 difficulty
   judges) plus a recorder and a marshal; change any of it. Where there's no
   machine measuring horizontal displacement, give trampoline 2 **HD** judges.
+  Synchro has 2 **Sync** (synchronisation) judges to start with; set 0 if a
+  machine measures synchronisation.
   Choose who may
   judge: anyone up to the level they say, only levels below their own, or only
   people you mark qualified. "Up to" and "below" go by the **Order of levels**
