@@ -43,6 +43,14 @@ type Day struct {
 // uses says whether a day uses an area.
 func (d Day) uses(area string) bool { return len(d.Areas) == 0 || slices.Contains(d.Areas, area) }
 
+// Hours are when the day starts and ends, in minutes since midnight (0 for a
+// time that can't be read; Setup.Check reports it).
+func (d Day) Hours() (start, end int) {
+	start, _ = clock(d.Start)
+	end, _ = clock(d.End)
+	return start, end
+}
+
 // Block is blocked time: lunch, awards, warm-ups, or an ad hoc event taking
 // entries on the day. It's at a fixed time, or anywhere within a window.
 type Block struct {
@@ -489,8 +497,7 @@ func beforeOrder(order []ScheduledFlight, rules []Rule) []ScheduledFlight {
 func newPlanner(setup Setup) *planner {
 	p := &planner{setup: setup, areas: setup.Areas, busy: map[string][]interval{}, people: map[string][]interval{}, coaches: map[string][]interval{}, byEvent: map[string][]ScheduledFlight{}}
 	for _, d := range setup.Days {
-		start, _ := clock(d.Start)
-		end, _ := clock(d.End)
+		start, end := d.Hours()
 		p.days = append(p.days, [2]int{start, end})
 	}
 	p.placeBlocks()

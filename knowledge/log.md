@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: The [panel timeline](features/competition-entries.md#timetable-adr-0005-step-4)
+  (roadmap, from the demo): every day side by side, a column per area, time
+  running down, each flight and blocked time with who officiates it; printed
+  on A3 landscape or downloaded as CSV. Linked from the timetable as
+  **Panel timeline**.
 * **Fix**: Judging levels ran the wrong way for BUCS: "up to" a level and
   "only levels below their own" went by the order the form sent, hardest
   first for BUCS, so "up to BUCS L5" allowed L1 to L5. A competition's levels

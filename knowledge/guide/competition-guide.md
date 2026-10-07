@@ -157,7 +157,10 @@ has a starting value you can change.
    tap **Assign officials again**.
 9. **Print marshal sheets** and **Print chair of judges sheets** (one area to a
    page, each flight with its panel), and **Print the officials rota** (each
-   person's duties) for the noticeboard.
+   person's duties) for the noticeboard. **Panel timeline** shows every day
+   side by side, a column per area, with each flight and break and who
+   officiates it, lined up by time: print it (A3 landscape) or **Download
+   CSV** for a spreadsheet.
 10. **Publish** to show clubs, members and gymnasts entering on their own their
    flight, area and warm-up time, and officials their duties.
 

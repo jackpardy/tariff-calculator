@@ -33,6 +33,7 @@ func (p *competitionPages) registerTimetable(handle func(string, http.HandlerFun
 	handle("POST /competitions/admin/{token}/timetable/officials", p.editRota)
 	handle("POST /competitions/admin/{token}/timetable/publish", p.publishTimetable)
 	handle("GET /competitions/admin/{token}/timetable/print", p.printTimetable)
+	handle("GET /competitions/admin/{token}/timetable/timeline.csv", p.timelineCSV)
 }
 
 // live are a competition's entries that count: not withdrawn.
@@ -708,7 +709,8 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 
 // printTimetable prints the marshal sheets (sheet=marshal) or the chair of
 // judges sheets (sheet=judges), one area's day to a page, each flight with its
-// panel; or the officials rota (sheet=rota), each person's duties.
+// panel; the officials rota (sheet=rota), each person's duties; or the panel
+// timeline (sheet=timeline).
 func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request) {
 	c, s, entries, ok := p.timetableOf(w, r)
 	if !ok {
@@ -721,6 +723,10 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 	people, err := p.rotaOf(r, c, entries)
 	if err != nil {
 		failed(w, r, err)
+		return
+	}
+	if r.URL.Query().Get("sheet") == "timeline" {
+		printTimeline(w, r, c, s, entries, people, p.now())
 		return
 	}
 	if r.URL.Query().Get("sheet") == "rota" {

@@ -179,6 +179,7 @@ templ CompetitionTimetable(p TimetablePage) {
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=marshal") }>Print marshal sheets</a>
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=judges") }>Print chair of judges sheets</a>
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=rota") }>Print the officials rota</a>
+				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=timeline") }>Panel timeline</a>
 			</div>
 			<p class="help mb-4">
 				if p.Published {
@@ -858,4 +859,124 @@ templ dutiesBox(duties []string) {
 			</ul>
 		</div>
 	}
+}
+
+// Timeline is the panel timeline: each day's areas side by side, a row from
+// each time anything starts or ends to the next.
+type Timeline struct {
+	Title, Back, CSV string
+	Competition      CompetitionSummary
+	Days             []TimelineDay
+	Rows             []TimelineRow
+}
+
+// TimelineDay is a day and the areas it uses, its columns.
+type TimelineDay struct {
+	Name  string
+	Areas []string
+}
+
+// TimelineRow starts at Time; its cells are the columns not covered by a cell
+// above.
+type TimelineRow struct {
+	Time  string
+	Hour  bool // on the hour
+	Cells []TimelineCell
+}
+
+// TimelineCell is a flight or blocked time ("flight" or "block"), free time
+// (""), or outside the day's hours ("off"), over Span rows.
+type TimelineCell struct {
+	Span  int
+	Kind  string
+	Items []TimelineItem // more than one where they overlap
+}
+
+// TimelineItem is a flight or blocked time in a cell.
+type TimelineItem struct {
+	Name, Time string // "09:00–09:55", warm-up to finish
+	Flight     bool
+	Gymnasts   int
+	Officials  []string // by role, e.g. "Execution: A, B, C"
+}
+
+// TimelinePrint prints the panel timeline.
+templ TimelinePrint(t Timeline) {
+	@competitionLayout(t.Title) {
+		<div class="comp-print-bar screen-only">
+			<a href={ templ.SafeURL(t.Back) }>← Timetable</a>
+			<a class="button is-small" href={ templ.SafeURL(t.CSV) }>Download CSV</a>
+			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
+		</div>
+		<section class="comp-timeline">
+			<h1 class="title is-5 mb-3">{ t.Competition.Name } · Panel timeline</h1>
+			<div class="comp-timeline-scroll">
+				<table class="comp-timeline-table" style={ fmt.Sprintf("--areas: %d", timelineColumns(t.Days)) }>
+					<colgroup>
+						<col class="comp-timeline-timecol"/>
+						for _, d := range t.Days {
+							for range d.Areas {
+								<col/>
+							}
+						}
+					</colgroup>
+					<thead>
+						<tr>
+							<th rowspan="2" class="comp-timeline-time">Time</th>
+							for _, d := range t.Days {
+								<th colspan={ strconv.Itoa(len(d.Areas)) } class="comp-timeline-day">{ d.Name }</th>
+							}
+						</tr>
+						<tr>
+							for _, d := range t.Days {
+								for i, a := range d.Areas {
+									<th class={ templ.KV("comp-timeline-daystart", i == 0) }>{ a }</th>
+								}
+							}
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range t.Rows {
+							<tr class={ templ.KV("comp-timeline-hour", r.Hour) }>
+								<th class="comp-timeline-time">{ r.Time }</th>
+								for _, c := range r.Cells {
+									<td rowspan={ strconv.Itoa(c.Span) } class={ "comp-timeline-" + timelineKind(c.Kind) }>
+										for _, it := range c.Items {
+											<div class="comp-timeline-item">
+												<strong>{ it.Name }</strong>
+												<div>
+													{ it.Time }
+													if it.Flight {
+														· { gymnastCount(it.Gymnasts) }
+													}
+												</div>
+												for _, o := range it.Officials {
+													<div>{ o }</div>
+												}
+											</div>
+										}
+									</td>
+								}
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	}
+}
+
+func timelineColumns(days []TimelineDay) int {
+	n := 0
+	for _, d := range days {
+		n += len(d.Areas)
+	}
+	return n
+}
+
+func timelineKind(kind string) string {
+	if kind == "" {
+		return "free"
+	}
+	return kind
 }
