@@ -85,6 +85,29 @@ func TestSimulation(t *testing.T) {
 		}
 	}
 
+	// Clubs must bring judges: the form's judges are the organiser's own.
+	quota := url.Values{"name": {"Quota"}, "entries-0": {"20"}, "entries-2": {"10"}, "clubs": {"4"},
+		"quota-judges-trampoline": {"1"}, "quota-per-trampoline": {"4"}, "quota-chairs-trampoline": {"1"},
+		"quota-judges-tumbling": {"1"}, "quota-per-tumbling": {"8"}, "judges-tumbling": {"1"}, "chairs-tumbling": {"1"}}
+	redirected(t, h, sim, quota)
+	page = do(t, h, http.MethodGet, sim, nil).Body.String()
+	text = strings.Join(strings.Fields(regexp.MustCompile(`<[^>]+>`).ReplaceAllString(page, " ")), " ")
+	// 5 trampolinists a club at 1 per 4 is 2 judges each; 2 or 3 tumblers at
+	// 1 per 8 is 1 each.
+	for _, want := range []string{"Each club brings: Trampoline 1 per 4 competitors (1 can chair)", "Each club brings: Tumbling 1 per 8 competitors (0 can chair)", "Clubs bring 12 judges"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("the quota scenario shows %q: %s", want, text)
+		}
+	}
+	if loc := redirected(t, h, sim, url.Values{"name": {"Bad quota"}, "entries-0": {"5"}, "clubs": {"2"}, "quota-judges-trampoline": {"1"}}); !strings.Contains(loc, "Nothing+was+simulated") {
+		t.Errorf("a quota needs its competitors: %s", loc)
+	}
+	pg := do(t, h, http.MethodGet, sim+"?from=2", nil).Body.String()
+	if value(pg, "quota-per-trampoline") != "4" || value(pg, "quota-chairs-trampoline") != "1" || value(pg, "quota-per-tumbling") != "8" {
+		t.Error("changing a scenario starts from its quota")
+	}
+	redirected(t, h, sim+"/delete", url.Values{"remove": {"2"}})
+
 	// Change one: the form starts from its numbers.
 	page = do(t, h, http.MethodGet, sim+"?from=0", nil).Body.String()
 	if value(page, "entries-0") != "60" || value(page, "judgePeople") != "14" || value(page, "name") != "Scenario 3" {

@@ -140,6 +140,84 @@ func TestSimulate(t *testing.T) {
 	}
 }
 
+func TestClubQuota(t *testing.T) {
+	c := simCompetition()
+	sc := Scenario{
+		Name:    "Clubs bring judges",
+		Entries: map[string]int{"BUCS L7": 10, "BUCS L6": 8, "Synchro BUCS L6": 3, "Tumbling Novice": 6},
+		Clubs:   4,
+		Quota: map[string]ClubQuota{
+			Trampoline: {Per: 4, Judges: 1},            // 5, 5, 4 and 4 trampolinists: 2, 2, 1 and 1 judges
+			Tumbling:   {Per: 8, Judges: 1, Chairs: 1}, // 2, 2, 1 and 1 tumblers: a chair each
+		},
+		Judges: map[string]int{Synchro: 3}, Chairs: map[string]int{Synchro: 1}, // the organiser's own
+	}
+	_, officials := c.standIns(sc, venue())
+	byClub := map[string]int{}
+	trampoline, tumblingChairs, own := 0, 0, 0
+	for _, o := range officials {
+		switch {
+		case o.Club == "":
+			own++
+			if !o.Judge["Synchro BUCS L6"] || o.Judge["BUCS L7"] {
+				t.Errorf("the organiser's judges judge synchro only: %+v", o)
+			}
+		case o.Judge["BUCS L7"] && o.Judge["BUCS L6"]:
+			trampoline++
+			byClub[o.Club]++
+		case o.Chair["Tumbling Novice"]:
+			tumblingChairs++
+		}
+	}
+	if own != 3 || trampoline != 6 || tumblingChairs != 4 || len(officials) != 13 {
+		t.Errorf("%d own, %d trampoline and %d tumbling chairs from clubs, %d in all", own, trampoline, tumblingChairs, len(officials))
+	}
+	if byClub["Club 1"] != 2 || byClub["Club 2"] != 2 || byClub["Club 3"] != 1 || byClub["Club 4"] != 1 {
+		t.Errorf("trampoline judges by club, rounding up: %v", byClub)
+	}
+
+	// Competing judges are gymnasts of their own club.
+	sc.Competing = 3
+	entries, officials := c.standIns(sc, venue())
+	clubOf := map[string]string{}
+	for _, e := range entries {
+		for _, p := range e.People {
+			clubOf[p] = e.Club
+		}
+	}
+	competing := 0
+	for _, o := range officials {
+		if club, ok := clubOf[o.Key]; ok {
+			competing++
+			if o.Club != club || !strings.HasPrefix(club, "Club ") {
+				t.Errorf("%s judges for %s but competes for %s", o.Key, o.Club, club)
+			}
+		}
+	}
+	if competing != 3 {
+		t.Errorf("%d competing judges, want 3", competing)
+	}
+
+	r, err := c.Simulate(sc, venue(), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.ClubJudges != 10 || r.Seats == 0 {
+		t.Errorf("the clubs brought %d judges, want 10", r.ClubJudges)
+	}
+	for want, q := range map[string]map[string]ClubQuota{
+		"doesn't offer":  {DMT: {Per: 8, Judges: 1}},
+		"every 1 to 100": {Trampoline: {Per: 0, Judges: 1}},
+		"no more chairs": {Trampoline: {Per: 8, Judges: 1, Chairs: 2}},
+	} {
+		bad := sc
+		bad.Quota = q
+		if err := c.CheckScenario(bad); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: %v", want, err)
+		}
+	}
+}
+
 func TestCheckScenario(t *testing.T) {
 	c := simCompetition()
 	good := Scenario{Name: "A", Entries: map[string]int{"BUCS L7": 5}, Clubs: 2}

@@ -6,13 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 )
 
 // Simulation (ADR 0005 Decision 11): before entries exist, or alongside them,
-// the organiser says how many will enter each event, how many gymnasts enter
-// two disciplines, and how many can judge and help. Stand-in people are made
+// the organiser says how many will enter each event, how many gymnasts there
+// are, how many can judge and help, and what judges each club must bring. Stand-in people are made
 // up from those numbers and planned with the real venue setup and panels, as
 // the real timetable would be, without touching it. Each scenario keeps its
 // result, so several can be compared.
@@ -26,8 +27,12 @@ type Scenario struct {
 	// means no one does.
 	Gymnasts int            `json:"gymnasts,omitempty"`
 	Clubs    int            `json:"clubs"`            // the clubs gymnasts and judges come from
-	Judges   map[string]int `json:"judges,omitempty"` // by discipline: people who can judge it, any level
+	Judges   map[string]int `json:"judges,omitempty"` // by discipline: people who can judge it, any level; with a club quota, the organiser's own
 	Chairs   map[string]int `json:"chairs,omitempty"` // of them, who can also chair
+	// Quota is what judges each club must bring, by discipline. With any,
+	// the clubs' judges come from it and Judges are the organiser's own, with
+	// no club.
+	Quota map[string]ClubQuota `json:"quota,omitempty"`
 	// JudgePeople is how many people those judges are: someone judging
 	// trampoline and synchro counts once. None means no one judges two.
 	JudgePeople int `json:"judge_people,omitempty"`
@@ -36,6 +41,23 @@ type Scenario struct {
 	Competing int        `json:"competing,omitempty"`
 	Helpers   int        `json:"helpers,omitempty"` // people who can record or marshal
 	Result    *SimResult `json:"result,omitempty"`
+}
+
+// ClubQuota is a club's judges for a discipline: Judges for every Per of its
+// competitors in it (or part of Per: 9 competitors at 1 per 8 is 2 judges), of
+// whom Chairs can chair. A synchro pair is two competitors.
+type ClubQuota struct {
+	Per    int `json:"per"`
+	Judges int `json:"judges"`
+	Chairs int `json:"chairs,omitempty"`
+}
+
+// times is how many times over a club with n competitors owes the quota.
+func (q ClubQuota) times(n int) int {
+	if q.Per <= 0 || n <= 0 {
+		return 0
+	}
+	return (n + q.Per - 1) / q.Per
 }
 
 // SimResult is what a scenario's plan came to.
@@ -47,11 +69,12 @@ type SimResult struct {
 	FlightsEnd     []string    `json:"flights_end"` // by day, when its last flight ends ("" for none): blocks such as awards can end later
 	Unplaced       []string    `json:"unplaced,omitempty"`
 	UnplacedBlocks []string    `json:"unplaced_blocks,omitempty"`
-	ShortRest      int         `json:"short_rest,omitempty"` // people with less rest than wanted between turns
-	Seats          int         `json:"seats"`                // every official's seat
-	Empty          int         `json:"empty,omitempty"`      // seats no one could take
-	Fix            string      `json:"fix,omitempty"`        // a change that would fit everything, if anything doesn't fit
-	NoFix          bool        `json:"no_fix,omitempty"`     // nothing tried fits everything
+	ShortRest      int         `json:"short_rest,omitempty"`  // people with less rest than wanted between turns
+	ClubJudges     int         `json:"club_judges,omitempty"` // judges the clubs brought under the quota
+	Seats          int         `json:"seats"`                 // every official's seat
+	Empty          int         `json:"empty,omitempty"`       // seats no one could take
+	Fix            string      `json:"fix,omitempty"`         // a change that would fit everything, if anything doesn't fit
+	NoFix          bool        `json:"no_fix,omitempty"`      // nothing tried fits everything
 }
 
 // Most a scenario can have, so a simulation stays quick.
@@ -127,7 +150,15 @@ func (c Competition) CheckScenario(sc Scenario) error {
 			errs = append(errs, fmt.Errorf("%s: chairs are counted among its judges", DisciplineName(d)))
 		}
 	}
-	if sc.Helpers < 0 || sc.Competing < 0 || sc.Competing > sc.judgePeople() {
+	for d, q := range sc.Quota {
+		switch {
+		case !slices.Contains(c.Disciplines(), d):
+			errs = append(errs, fmt.Errorf("the competition doesn't offer %s", DisciplineName(d)))
+		case q.Per < 1 || q.Per > 100 || q.Judges < 1 || q.Judges > 20 || q.Chairs < 0 || q.Chairs > q.Judges:
+			errs = append(errs, fmt.Errorf("%s: clubs bring 1 to 20 judges for every 1 to 100 competitors, with no more chairs than judges", DisciplineName(d)))
+		}
+	}
+	if sc.Helpers < 0 || sc.Competing < 0 || len(sc.Quota) == 0 && sc.Competing > sc.judgePeople() {
 		errs = append(errs, errors.New("helpers can't be fewer than none, nor competing judges more than the judges"))
 	}
 	if people > maxSimPeople {
@@ -226,45 +257,74 @@ func (c Competition) standIns(sc Scenario, setup Setup) ([]SchedEntry, []RotaPer
 		entries[i].Club = clubOf[entries[i].People[0]]
 	}
 
-	// Officials: a pool of judges, and helpers.
+	// Officials: the organiser's pool of judges, the judges each club must
+	// bring, and helpers.
 	var competitors []string
 	seen := map[string]bool{}
+	inClub := map[string]map[string]int{} // club → discipline → its gymnasts
 	for _, e := range entries {
 		for _, p := range e.People {
 			if !seen[p] {
 				seen[p] = true
 				competitors = append(competitors, p)
 			}
+			if !seen[e.Discipline+" "+p] {
+				seen[e.Discipline+" "+p] = true
+				if inClub[clubOf[p]] == nil {
+					inClub[clubOf[p]] = map[string]int{}
+				}
+				inClub[clubOf[p]][e.Discipline]++
+			}
 		}
 	}
-	// Judge i judges a run of disciplines: each discipline takes the next
-	// Judges[d] people round the pool, so they overlap only as much as the
-	// pool is smaller than the disciplines' judges together.
+	// The organiser's judges: judge i judges a run of disciplines, each
+	// discipline taking the next Judges[d] people round the pool, so they
+	// overlap only as much as the pool is smaller than the disciplines'
+	// judges together. With a club quota they have no club.
 	judges := sc.judgePeople()
 	officials := make([]RotaPerson, judges)
 	for j := range officials {
-		officials[j] = RotaPerson{Key: fmt.Sprintf("sim:j%d", j+1), Name: fmt.Sprintf("Judge %d", j+1), Club: club(j), Judge: map[string]bool{}, Chair: map[string]bool{}}
+		officials[j] = RotaPerson{Key: fmt.Sprintf("sim:j%d", j+1), Name: fmt.Sprintf("Judge %d", j+1), Judge: map[string]bool{}, Chair: map[string]bool{}}
+		if len(sc.Quota) == 0 {
+			officials[j].Club = club(j)
+		}
 	}
-	chairs := map[int]bool{}
+	judgeAt := func(o *RotaPerson, d string, chair bool) {
+		for _, ev := range events {
+			if of[ev] == d {
+				o.Judge[ev] = true
+				o.Chair[ev] = o.Chair[ev] || chair
+			}
+		}
+	}
 	at := 0
 	for _, d := range AllDisciplines {
 		for i := range sc.Judges[d] {
-			j := (at + i) % judges
-			for _, ev := range events {
-				if of[ev] == d {
-					officials[j].Judge[ev] = true
-					officials[j].Chair[ev] = officials[j].Chair[ev] || i < sc.Chairs[d]
-				}
-			}
-			chairs[j] = chairs[j] || i < sc.Chairs[d]
+			judgeAt(&officials[(at+i)%judges], d, i < sc.Chairs[d])
 		}
 		at += sc.Judges[d]
 	}
-	// The competing judges are gymnasts, spread across the entries, and
-	// spread across the judges, those who don't chair first.
+	// Each club's judges for each discipline, by its gymnasts in it.
+	for ci := range sc.Clubs {
+		name := club(ci)
+		for _, d := range AllDisciplines {
+			q := sc.Quota[d]
+			n := q.times(inClub[name][d])
+			for k := range n * q.Judges {
+				o := RotaPerson{Key: fmt.Sprintf("sim:c%d-%s-%d", ci+1, strings.ToLower(DisciplineName(d)), k+1), Name: fmt.Sprintf("%s judge %d", name, k+1), Club: name, Judge: map[string]bool{}, Chair: map[string]bool{}}
+				judgeAt(&o, d, k < n*q.Chairs)
+				officials = append(officials, o)
+			}
+		}
+	}
+	judges = len(officials)
+
+	// The competing judges are gymnasts, spread across the judges, those who
+	// don't chair first; each a gymnast of the judge's club where it has one
+	// not yet taken.
 	var others, chairing []int
-	for j := range judges {
-		if chairs[j] {
+	for j, o := range officials {
+		if slices.Contains(slices.Collect(maps.Values(o.Chair)), true) {
 			chairing = append(chairing, j)
 		} else {
 			others = append(others, j)
@@ -273,12 +333,28 @@ func (c Competition) standIns(sc Scenario, setup Setup) ([]SchedEntry, []RotaPer
 	slices.Reverse(chairing)
 	pool := append(others, chairing...) // every judge who doesn't chair, then chairs from the last
 	competing := min(sc.Competing, len(competitors), judges)
+	taken := map[string]bool{}
 	for k := range competing {
 		j := pool[k]
 		if competing <= len(others) {
 			j = others[k*len(others)/competing]
 		}
-		g := competitors[k*len(competitors)/competing]
+		g := ""
+		for _, p := range competitors {
+			if !taken[p] && officials[j].Club != "" && clubOf[p] == officials[j].Club {
+				g = p
+				break
+			}
+		}
+		if g == "" {
+			for i := range competitors {
+				if p := competitors[(k*len(competitors)/competing+i)%len(competitors)]; !taken[p] {
+					g = p
+					break
+				}
+			}
+		}
+		taken[g] = true
 		officials[j].Key, officials[j].Club = g, clubOf[g]
 	}
 	for i := range sc.Helpers {
@@ -298,6 +374,9 @@ func (c Competition) Simulate(sc Scenario, setup Setup, seed uint64) (SimResult,
 		return SimResult{}, err
 	}
 	entries, officials := c.standIns(sc, setup)
+	if len(officials) > maxSimPeople {
+		return SimResult{}, fmt.Errorf("a scenario can have up to %d judges and helpers, and this one has %d", maxSimPeople, len(officials))
+	}
 	staff := &Staffing{Judges: map[string][]string{}, Need: map[string]int{}}
 	for _, d := range c.Disciplines() {
 		staff.Need[d] = c.Officials.Panel(d).Judges()
@@ -322,7 +401,7 @@ func (c Competition) Simulate(sc Scenario, setup Setup, seed uint64) (SimResult,
 	}
 	report := s.Report(people)
 	r := SimResult{
-		Basis: c.SimBasis(setup), Gymnasts: len(gymnasts), Entries: len(entries), Days: report.Days,
+		Basis: c.SimBasis(setup), Gymnasts: len(gymnasts), Entries: len(entries), Days: report.Days, ClubJudges: len(officials) - sc.judgePeople() - sc.Helpers,
 		Unplaced: report.Unplaced, UnplacedBlocks: report.UnplacedBlocks,
 	}
 	r.FlightsEnd = make([]string, len(setup.Days))

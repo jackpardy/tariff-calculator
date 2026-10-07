@@ -169,8 +169,12 @@ alongside them, without changing your timetable. It starts from your entries
 and officials so far: change the entries per event, how many gymnasts there
 are in all (fewer than the entries means some enter several disciplines), the
 clubs, and how many people can judge, chair, record and marshal, then tap
-**Simulate**. Each scenario shows when each day's flights end, what doesn't fit
-and what would make it fit, and how many panel seats no one could take, side
+**Simulate**. Under **Judges each club must bring**, say how many judges a club
+brings for every so many of its competitors in a discipline (e.g. 1 per 8,
+rounding up), and how many of them must be able to chair: the clubs' judges
+then come from that, and the judges above are only your own. Each scenario shows when each day's flights end, what doesn't fit
+and what would make it fit, how many judges the clubs bring, and how many
+panel seats no one could take, side
 by side with the others. **Change** starts a new one from its numbers; after
 changing the venue setup, **Run again**.
 
