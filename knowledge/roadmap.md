@@ -143,7 +143,22 @@ Not decided yet: candidates, roughly in the order they'd help ISTO.
    tools; test the competition pages on a phone (see
    [open questions](open-questions.md)). What they find should reorder the
    rest.
-2. **Draft and published timetables, and applying a "what if"** (decided
+2. **One panel for a whole event** (decided 2026-10-07). Everyone on an
+   event's panel, recorders and marshals too, stays for all of its flights,
+   so every gymnast in it is judged by the same people. For that, the
+   timetable runs an event's flights **back to back on one area**, a must
+   rather than today's preference, and the rota fills the panel once for the
+   event instead of flight by flight. An event too big for one panel in the
+   time there is is reported with fixes, as anything else that doesn't fit.
+   Rarely, and only if the organiser chooses, an event can be split by
+   routine instead: everyone does their first routine on one panel and
+   their second on another, each panel's officials staying for their
+   round. Today both rounds are one flight and the rota only prefers to keep
+   a panel together through an area's flights, so an event's flights can
+   land on different days and panels with different judges. Also a fix:
+   **number flights in the order they run** (BUCS L7 Men's "flight 2 of 5"
+   now runs before its flight 1).
+3. **Draft and published timetables, and applying a "what if"** (decided
    2026-10-07). Once a timetable is published, attendees see that copy and
    the organiser works on a **draft**: every change (moving a flight,
    redrawing an order, planning again, keeping a delay's or a leaving
@@ -152,7 +167,7 @@ Not decided yet: candidates, roughly in the order they'd help ISTO.
    every change goes live straight away. Also close the gaps the "what ifs"
    don't check yet: coaches in two places, the organiser's rules about
    events and people, officials on blocked time, and rest as a must.
-3. **Set up in private, go live when ready** (decided 2026-10-07). A new
+4. **Set up in private, go live when ready** (decided 2026-10-07). A new
    competition starts **private**: the organiser sets up levels, events,
    officials and the timetable, and the club and individual entry links
    show the competition's name, date and when entries open, so they can be
@@ -161,7 +176,7 @@ Not decided yet: candidates, roughly in the order they'd help ISTO.
    a live competition private again to pause entries, keeping those already
    made. Today a competition takes entries from the moment it's created
    until its deadline.
-4. **Notifications, by opting in** (decided 2026-10-07). Members,
+5. **Notifications, by opting in** (decided 2026-10-07). Members,
    individuals, club comp secs and coaches can each ask to be told when
    something affects them: a flight they're in moves (time, area or day, or
    its warm-up), their officiating duties change, or their card is checked
@@ -186,17 +201,29 @@ Not decided yet: candidates, roughly in the order they'd help ISTO.
    competition, with a tick box, "I'm 18 or over, or this is a parent's
    email". Push stores nothing personal, so anyone can use it (see
    [open questions](open-questions.md#notifications)).
-5. **Link the calculator to the competition tools.** Nothing on the routine
+6. **Approved coaches** (decided 2026-10-07). Where a competition needs
+   coach sign-off, the organiser can also require coaches to be
+   **approved**, and set the qualification they need. Each club sends its
+   coaches to the competition with a **certificate** (a photo or PDF); an
+   individual names their coach and uploads theirs. The organiser approves
+   each coach for that competition alone, and an unapproved coach can't sign
+   off (nor can an individual's coach through their sign-off link). If the
+   organiser withdraws an approval, that coach's sign-offs stop counting and
+   the entries need signing off again. Certificates are a change to
+   [ADR 0004](../docs/adr/0004-server-storage-secret-links.md), which stores
+   no documents: only the organiser sees them, and they're deleted with the
+   competition (see [open questions](open-questions.md#approved-coaches)).
+7. **Link the calculator to the competition tools.** Nothing on the routine
    builder leads to `/competitions` yet.
-6. **Synchro's last detail.** Warn the gymnast on their own page too, not
+8. **Synchro's last detail.** Warn the gymnast on their own page too, not
    only the organiser, when a pair is at the wrong level. ("The lower level"
    for a pair a level apart means the easier one, as built: confirmed
    2026-10-07.)
-7. **Results history** (competitions 6): import TrampOnline and TScore
+9. **Results history** (competitions 6): import TrampOnline and TScore
    results CSVs for personal bests, progression and next year's levels.
-8. **Clubs:** the TrampOnline entry export (clubs 1), then skill tracking
+10. **Clubs:** the TrampOnline entry export (clubs 1), then skill tracking
    (clubs 2).
-9. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
+11. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
    and the usual rest between turns (both guesses for now).
 
 See [open questions](open-questions.md) for what's waiting on documents and
