@@ -51,6 +51,21 @@ Still to decide:
 Left to the build: which service sends email (Amazon SES in its Ireland
 region is the leaning).
 
+# Approved coaches
+
+Decided 2026-10-07 ([roadmap](roadmap.md#next-steps-proposed-2026-10-07)):
+clubs and individuals send coaches with a certificate, and the organiser
+approves each for their competition. Still to decide:
+
+- **Which qualifications** the organiser chooses from (British Gymnastics
+  and Gymnastics Ireland coaching levels, by discipline), or whether they
+  just describe what they need.
+- **Uploads:** largest file, which types (photo, PDF), and whether a club
+  can send the same certificate to its next competition without uploading
+  it again (it would still be approved afresh).
+- **A certificate's expiry date:** asked for, and checked against the
+  competition's date?
+
 # Decisions pending
 
 - Whether to mark [ADR 0003](../docs/adr/0003-requirements-framework.md)

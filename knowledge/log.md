@@ -1,6 +1,14 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: Decided on the [roadmap](roadmap.md): one panel, every seat,
+  for all of an event's flights, which run back to back on one area; an
+  event split across panels only rarely, by routine. Flights are to be
+  numbered in the order they run.
+* **Update**: Decided on the [roadmap](roadmap.md): an organiser can
+  require approved coaches, sent by clubs (or named by individuals) with a
+  certificate and approved per competition; only approved coaches sign off,
+  and a withdrawn approval undoes their sign-offs.
 * **Update**: Decided on the [roadmap](roadmap.md): opt-in notifications
   for members, individuals, comp secs and coaches when a flight moves,
   duties change or a card is checked, by phone push and email (clubs
