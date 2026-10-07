@@ -541,6 +541,9 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		if j.err == nil && !j.card.Unchecked {
 			for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
+				if !j.card.Does(i) {
+					continue
+				}
 				row.Met, row.Rules = row.Met+ex.Met(), row.Rules+len(ex.Results)
 				row.Exercises[i] = exerciseSummary(j.Entry.Entry.Exercises[i], ex)
 			}
@@ -581,11 +584,18 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 				club = ""
 			}
 			for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
+				if !j.card.Does(i) {
+					continue
+				}
+				round := [...]string{"1st exercise", "2nd exercise"}[i]
+				if j.card.Only > 0 {
+					round = "Routine"
+				}
 				page.Cards = append(page.Cards, views.PrintedCard{
 					Validation: ex.Validation, Required: ex.Required, Checks: ex.Checks,
 					Details: views.SheetDetails{
 						"gymnast": j.Entry.Entry.Gymnasts(), "club": club, "category": strings.TrimSpace(j.Entry.Entry.Event() + " " + j.Entry.Entry.Category),
-						"competition": c.Name, "round": [...]string{"1st exercise", "2nd exercise"}[i] + " · " + ex.SetName,
+						"competition": c.Name, "round": round + " · " + ex.SetName,
 						"coach": j.CoachName(),
 					},
 				})
@@ -642,6 +652,9 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 			row := []string{j.Entry.Entry.Gymnasts(), club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), "", "", j.Entry.Entry.Category}
 			if j.err == nil && !j.card.Unchecked {
 				for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
+					if !j.card.Does(i) {
+						continue
+					}
 					row[3+2*i] = ex.SetName
 					if ex.Checks.ScoreDifficulty {
 						row[4+2*i] = fmt.Sprintf("%.1f", ex.Validation.TotalTariff)
@@ -804,8 +817,16 @@ func card(c competitions.Competition, e competitions.Entry, club string) (views.
 		out.Level += " (doing " + e.Choice + ")"
 	}
 	for i, ex := range []requirements.Checked{checked.First, checked.Second} {
+		if !checked.Does(i) {
+			out.Exercises[i].Skip = true
+			continue
+		}
+		title := [...]string{"First exercise", "Second exercise"}[i]
+		if checked.Only > 0 {
+			title = "Routine (the level's voluntary)"
+		}
 		card := views.ExerciseCard{
-			Title: [...]string{"First exercise", "Second exercise"}[i], Requirements: ex.SetName,
+			Title: title, Requirements: ex.SetName,
 			Validation: ex.Validation, Checks: ex.Checks, Results: ex.Results, Required: ex.Required,
 		}
 		if ex.SetErr != nil {
@@ -818,6 +839,9 @@ func card(c competitions.Competition, e competitions.Entry, club string) (views.
 	}
 	out.Exercises[0].Carried, out.Exercises[1].Repeated = checked.Carried, checked.Repeated
 	for i, need := range c.VideoNeeds(checked) {
+		if !checked.Does(i) {
+			continue
+		}
 		out.Exercises[i].Video = views.VideoView{Needed: need.Needed, Skills: need.Skills, Link: e.Exercises[i].Video, Note: e.Exercises[i].VideoNote}
 	}
 	return out, nil
@@ -894,8 +918,16 @@ func entryForm(c competitions.Competition, e competitions.Entry, action, submit 
 			event, el.Label = ev, ev+" (doing "+level.Name+")"
 		}
 		el.Split = c.Split.Splits(competitions.EventName(d, event))
+		only := competitions.Entry{Discipline: d}.Only(level)
 		for n := range 2 {
 			ex := &el.Exercises[n]
+			if only > 0 && n+1 != only {
+				ex.Skip = true
+				continue
+			}
+			if only > 0 {
+				ex.Title = "Routine: the level's voluntary"
+			}
 			for _, ref := range level.Exercise(n + 1).Options {
 				o := views.EntryOption{Ref: ref, Label: ref}
 				if set, err := l.Set(ref); err == nil {
@@ -935,10 +967,14 @@ func postedEntry(r *http.Request, c competitions.Competition, gymnast string) (c
 		}
 	}
 	var problems []string
-	l, _, ok := c.EntryLevel(e)
+	l, level, ok := c.EntryLevel(e)
+	only := e.Only(level)
 	for i := range e.Exercises {
 		if !competitions.Checked(e.Discipline) {
 			break
+		}
+		if ok && only > 0 && i+1 != only {
+			continue // synchro does one routine
 		}
 		ex := &e.Exercises[i]
 		ex.Option = r.FormValue(fmt.Sprintf("ex%dOption", i+1))

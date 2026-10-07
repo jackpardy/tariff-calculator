@@ -55,8 +55,19 @@ func TestSynchroEvents(t *testing.T) {
 	if _, level, ok := c.EntryLevel(e); !ok || level.Name != "BUCS L2" || e.Event() != "Synchro BUCS L1/L2" || e.DoesLevel() != "BUCS L2" {
 		t.Errorf("checked against BUCS L2 in Synchro BUCS L1/L2: %v %q", ok, level.Name)
 	}
-	if card, err := c.Check(e); err != nil || card.Level.Name != "BUCS L2" {
-		t.Errorf("the card is BUCS L2's: %v", err)
+	if card, err := c.Check(e); err != nil || card.Level.Name != "BUCS L2" || card.Only != 2 || card.Does(0) || !card.Does(1) {
+		t.Errorf("the card is BUCS L2's voluntary only: %+v, %v", card, err)
+	}
+	if e.Exercises[0].Option != "" {
+		t.Error("synchro does one routine: the first exercise is dropped")
+	}
+	// The one routine's problems are the routine's, not an exercise's.
+	e.Exercises[1].Skills = nil
+	if card, _ := c.Check(e); len(card.Problems()) == 0 || !strings.HasPrefix(card.Problems()[0], "Routine: ") {
+		t.Errorf("problems: %v", card.Problems())
+	}
+	if (Entry{}).Only(requirements.Level{Second: &requirements.Exercise{}}) != 0 || SynchroExercise(requirements.Level{}) != 1 {
+		t.Error("only synchro does one exercise; a level with one exercise has it")
 	}
 	single := Entry{Gymnast: "A", Discipline: Synchro, Level: "BUCS L3", Choice: "BUCS L1", Partner: &Partner{Name: "B"},
 		Exercises: [2]Exercise{{Option: "builtin:bucs-l3-option-1"}, {Option: "builtin:bucs-l3-second"}}}

@@ -20,8 +20,12 @@ func TestPairedSynchro(t *testing.T) {
 		t.Error("one synchro event for both levels, and the pairing to change")
 	}
 	enter := pathIn(t, dash, "/competitions/enter/")
-	if page := do(t, h, http.MethodGet, enter+"?discipline=synchro", nil).Body.String(); !strings.Contains(page, ">BUCS L3/L4 (doing BUCS L3)</option>") || !strings.Contains(page, ">BUCS L3/L4 (doing BUCS L4)</option>") {
+	page := do(t, h, http.MethodGet, enter+"?discipline=synchro", nil).Body.String()
+	if !strings.Contains(page, ">BUCS L3/L4 (doing BUCS L3)</option>") || !strings.Contains(page, ">BUCS L3/L4 (doing BUCS L4)</option>") {
 		t.Error("a pair chooses which level of the event they do")
+	}
+	if !strings.Contains(page, "Routine: the level&#39;s voluntary") || strings.Contains(page, `name="ex1Option"`) {
+		t.Error("a pair enters one routine, the level's voluntary")
 	}
 
 	// A competes at L3 and B at L4: as a pair they do L4, the easier.
@@ -36,8 +40,8 @@ func TestPairedSynchro(t *testing.T) {
 	if !strings.Contains(dash, ">Synchro BUCS L3/L4 ") || !strings.Contains(dash, wrong) {
 		t.Errorf("the pair entered at the wrong level is flagged: %s", dash)
 	}
-	if page := do(t, h, http.MethodGet, pair, nil).Body.String(); !strings.Contains(page, "(doing BUCS L3)") {
-		t.Error("the entry says which level the pair does")
+	if page := do(t, h, http.MethodGet, pair, nil).Body.String(); !strings.Contains(page, "(doing BUCS L3)") || !strings.Contains(page, "Routine (the level&#39;s voluntary)") || strings.Contains(page, "First exercise") {
+		t.Error("the entry says which level the pair does, and shows their one routine")
 	}
 
 	// Changed to L4, it's right.

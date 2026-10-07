@@ -92,8 +92,9 @@ Dropbox or OneDrive), never uploaded, and never played inside the app (ADR
 
 A competition offers **events**: a discipline at a level.
 
-- **Trampoline** levels as before; **synchro** levels, checked like
-  trampoline routines (one routine for the pair); and **tumbling** and **DMT**
+- **Trampoline** levels as before; **synchro** levels, where a pair does one
+  routine, the level's voluntary (its second exercise, or its only one),
+  checked like a trampoline routine; and **tumbling** and **DMT**
   levels the organiser names, which are a level only, not checked yet. The
   organiser picks them when creating the competition and can change synchro,
   tumbling and DMT under Links and settings.

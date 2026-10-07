@@ -1,6 +1,8 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: A synchro pair enters one routine, the level's voluntary: the
+  entry form, card, dashboard, printed cards, CSV and sheets show just it.
 * **Fix**: The timetable report's spare time counted blocked time, so a day
   ending with awards looked full however little ran. Each day now says when
   its flights end and the time free after them that isn't blocked off for
