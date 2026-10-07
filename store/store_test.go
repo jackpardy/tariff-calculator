@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -847,6 +848,50 @@ func TestMigrationKeepsEntries(t *testing.T) {
 	}
 	if list, err := s.Entries(ctx, c.ID); err != nil || len(list) != 1 || list[0].Withdrawn {
 		t.Errorf("the competition's copy is kept: %+v, %v", list, err)
+	}
+}
+
+func TestLevelOrderMigration(t *testing.T) {
+	dir := t.TempDir()
+	all := migrations
+	migrations = all[:7] // a database from before levels had an order
+	old, err := Open(ctx, dir)
+	if err != nil {
+		migrations = all
+		t.Fatal(err)
+	}
+	_, err = old.db.Exec(`INSERT INTO competitions (id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline,
+		individuals, levels, created_at, delete_after, events) VALUES ('c1', 'a', 'ct', 'ch', 'it', 'ih', 'Old', '2027-03-13', '2027-03-06T23:59:00.000000Z',
+		TRUE, '[{"ref":"builtin-level:bucs-l1"},{"ref":"builtin-level:bucs-l7"}]', '2027-01-01T00:00:00.000000Z', '2027-07-11T00:00:00.000000Z',
+		'{"synchro":[{"ref":"builtin-level:bucs-l3"},{"ref":"builtin-level:bucs-l4"}],"tumbling":["Elite","Novice"]}')`)
+	must(t, err)
+	old.Close()
+	migrations = all
+
+	s, err := Open(ctx, dir)
+	must(t, err)
+	defer s.Close()
+	c, err := s.Competition(ctx, "c1")
+	must(t, err)
+	if got := c.LevelOrder(competitions.Trampoline); !slices.Equal(got, []string{"BUCS L7", "BUCS L1"}) {
+		t.Errorf("an old competition's levels are read easiest first: %v", got)
+	}
+	if got := c.LevelOrder(competitions.Synchro); !slices.Equal(got, []string{"BUCS L4", "BUCS L3"}) {
+		t.Errorf("and its synchro levels: %v", got)
+	}
+
+	// Once the organiser moves a level, their order is kept as it is.
+	moved := c.Competition
+	must(t, moved.MoveLevel(competitions.Trampoline, 0, 1))
+	must(t, moved.MoveLevel(competitions.Tumbling, 0, 1))
+	must(t, s.SetLevelOrder(ctx, "c1", moved))
+	c, err = s.Competition(ctx, "c1")
+	must(t, err)
+	if got := c.LevelOrder(competitions.Trampoline); !slices.Equal(got, []string{"BUCS L1", "BUCS L7"}) {
+		t.Errorf("the organiser's order: %v", got)
+	}
+	if got := c.LevelOrder(competitions.Tumbling); !slices.Equal(got, []string{"Novice", "Elite"}) {
+		t.Errorf("tumbling's order: %v", got)
 	}
 }
 

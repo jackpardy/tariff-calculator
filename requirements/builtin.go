@@ -25,9 +25,10 @@ type Builtin struct {
 // BuiltinGroup is a group of built-in sets, e.g. one organisation's rules,
 // and the levels they make up.
 type BuiltinGroup struct {
-	Name   string
-	Sets   []Builtin
-	Levels []BuiltinLevel
+	Name         string
+	Sets         []Builtin
+	Levels       []BuiltinLevel
+	HardestFirst bool // its levels are listed hardest first, as its rule book lists them
 }
 
 // BuiltinLevel is a level that ships with the app, pairing built-in sets.
@@ -75,12 +76,14 @@ const BuiltinLevelPrefix = "builtin-level:"
 var builtinGroups = mustLoadBuiltins()
 
 // groupFile is sets/groups.json: each group's folder, name and sets in order,
-// and its levels. A level names its sets by ID; its source is its first set's.
+// and its levels, easiest first unless hardest_first. A level names its sets
+// by ID; its source is its first set's.
 type groupFile []struct {
-	Dir    string   `json:"dir"`
-	Name   string   `json:"name"`
-	Sets   []string `json:"sets"`
-	Levels []struct {
+	Dir          string   `json:"dir"`
+	Name         string   `json:"name"`
+	HardestFirst bool     `json:"hardest_first"`
+	Sets         []string `json:"sets"`
+	Levels       []struct {
 		ID          string   `json:"id"`
 		Name        string   `json:"name"`
 		Description string   `json:"description"`
@@ -108,7 +111,7 @@ func mustLoadBuiltins() []BuiltinGroup {
 		if len(entries) != len(g.Sets) {
 			panic(fmt.Sprintf("sets/groups.json lists %d sets for %s, but it has %d files", len(g.Sets), g.Dir, len(entries)))
 		}
-		group := BuiltinGroup{Name: g.Name}
+		group := BuiltinGroup{Name: g.Name, HardestFirst: g.HardestFirst}
 		for _, id := range g.Sets {
 			if ids[id] {
 				panic(fmt.Sprintf("built-in requirement set %s is listed twice", id))
@@ -212,4 +215,22 @@ func LookupBuiltinLevel(ref string) (Level, bool) {
 		}
 	}
 	return Level{}, false
+}
+
+// BuiltinLevelRank places a built-in level by its reference: its group's
+// position among the groups, and its rank within the group, easiest first.
+// Levels of different groups aren't ranked against each other.
+func BuiltinLevelRank(ref string) (group, rank int, ok bool) {
+	id := strings.TrimPrefix(ref, BuiltinLevelPrefix)
+	for gi, g := range builtinGroups {
+		for li, l := range g.Levels {
+			if l.ID == id {
+				if g.HardestFirst {
+					li = len(g.Levels) - 1 - li
+				}
+				return gi, li, true
+			}
+		}
+	}
+	return 0, 0, false
 }

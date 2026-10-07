@@ -2,6 +2,7 @@
   {
     "dir": "bucs",
     "name": "BUCS student championships (2026)",
+    "hardest_first": true,
     "sets": [
       "bucs-fig",
       "bucs-l1-first",

@@ -74,6 +74,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("POST /competitions/admin/{token}/signoff", p.setSignoff)
 	handle("POST /competitions/admin/{token}/split", p.setSplit)
 	handle("POST /competitions/admin/{token}/events", p.setEvents)
+	handle("POST /competitions/admin/{token}/levels/move", p.moveLevel)
 	handle("GET /competitions/signoff/{token}", p.individualSignoff)
 	handle("POST /competitions/signoff/{token}", p.signOffIndividual)
 	handle("POST /competitions/admin/{token}/entries/{id}/video", p.reviewVideo)
@@ -184,6 +185,9 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 		}
 		c.Levels = append(c.Levels, competitions.Level{Custom: &own.Level, Sets: own.Sets})
 	}
+	// Easiest first: built-ins by rank, the coach's own levels after them, to
+	// move where they belong.
+	c.Levels, c.Synchro = competitions.OrderLevels(nil, c.Levels), competitions.OrderLevels(nil, c.Synchro)
 	if c.Deadline.IsZero() {
 		c.Deadline = time.Now() // reported above; let Validate report the rest
 	}
@@ -453,6 +457,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		Entries: len(entries), New: q.Get("new"), Notice: q.Get("notice"),
 		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
 		Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()), Events: eventsForm(c.Competition),
+		LevelOrder: levelOrderForm(c.Competition),
 	}
 	if d.New != "" {
 		d.Links.Admin = origin(r) + adminPath(r.PathValue("token"))
@@ -1128,6 +1133,7 @@ func (p *competitionPages) setEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	changed := c.Competition
 	changed.Synchro, changed.Tumbling, changed.DMT, _ = postedEvents(r)
+	changed.Synchro = competitions.OrderLevels(c.Synchro, changed.Synchro)
 	notice := "Events changed."
 	if err := changed.Validate(); err != nil {
 		notice = "Events weren't changed: " + strings.Join(sentences(err), " ")
@@ -1136,6 +1142,43 @@ func (p *competitionPages) setEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+}
+
+// levelOrderForm is each offered discipline's levels in order, to move.
+func levelOrderForm(c competitions.Competition) []views.LevelOrder {
+	var out []views.LevelOrder
+	for _, d := range c.Disciplines() {
+		out = append(out, views.LevelOrder{Discipline: d, Name: competitions.DisciplineName(d), Levels: c.LevelOrder(d)})
+	}
+	return out
+}
+
+// moveLevel moves a level one place easier or harder in its discipline's
+// order: move is "<discipline>:<place>:<-1 or 1>".
+func (p *competitionPages) moveLevel(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	var d string
+	var at, by int
+	if parts := strings.Split(r.FormValue("move"), ":"); len(parts) == 3 {
+		d = parts[0]
+		at, _ = strconv.Atoi(parts[1])
+		by, _ = strconv.Atoi(parts[2])
+	}
+	changed := c.Competition
+	changed.Levels, changed.Synchro = slices.Clone(c.Levels), slices.Clone(c.Synchro)
+	changed.Tumbling, changed.DMT = slices.Clone(c.Tumbling), slices.Clone(c.DMT)
+	if err := changed.MoveLevel(d, at, by); err != nil {
+		badRequest(w, err)
+		return
+	}
+	if err := p.st.SetLevelOrder(r.Context(), c.ID, changed); err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Order of levels changed.")+"#level-order", http.StatusSeeOther)
 }
 
 // --- Men and women ---

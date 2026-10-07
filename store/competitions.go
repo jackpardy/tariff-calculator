@@ -44,8 +44,8 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 		return Competition{}, "", fmt.Errorf("encoding events: %w", err)
 	}
 	_, err = s.db.ExecContext(ctx, `INSERT INTO competitions
-		(id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline, individuals, levels, created_at, delete_after, video, signoff, split, events)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+		(id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline, individuals, levels, created_at, delete_after, video, signoff, split, events, levels_ordered)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, TRUE)`,
 		out.ID, hash(admin), out.ClubLink, hash(out.ClubLink), out.IndividualLink, hash(out.IndividualLink),
 		c.Name, c.Date, c.Deadline.UTC().Format(timeLayout), c.Individuals, string(levels),
 		out.CreatedAt.Format(timeLayout), c.DeleteAfter().Format(timeLayout), string(video), c.Signoff, string(split), string(events))
@@ -55,14 +55,15 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
 	var deadline, levels, created, video string
 	var split, timetable, events, officials string
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials); err != nil {
+	var ordered bool
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered); err != nil {
 		return Competition{}, notFound(err)
 	}
 	if err := json.Unmarshal([]byte(officials), &c.Officials); err != nil {
@@ -87,6 +88,9 @@ func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	}
 	if err := json.Unmarshal([]byte(levels), &c.Levels); err != nil {
 		return Competition{}, fmt.Errorf("reading competition %s's levels: %w", c.ID, err)
+	}
+	if !ordered {
+		c.Levels, c.Synchro = competitions.OrderLevels(nil, c.Levels), competitions.OrderLevels(nil, c.Synchro)
 	}
 	c.Deadline, c.CreatedAt = parseTime(deadline), parseTime(created)
 	return c, nil
@@ -481,6 +485,21 @@ func (s *Store) SetTimetable(ctx context.Context, id string, t *competitions.Sch
 		data = string(b)
 	}
 	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET timetable = $1 WHERE id = $2`, data, id))
+}
+
+// SetLevelOrder stores the order of a competition's levels, every discipline's,
+// as the organiser left it.
+func (s *Store) SetLevelOrder(ctx context.Context, id string, c competitions.Competition) error {
+	levels, err := json.Marshal(c.Levels)
+	if err != nil {
+		return err
+	}
+	events, err := json.Marshal(otherEvents{c.Synchro, c.Tumbling, c.DMT})
+	if err != nil {
+		return err
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET levels = $1, events = $2, levels_ordered = TRUE WHERE id = $3`,
+		string(levels), string(events), id))
 }
 
 // otherEvents are a competition's events beyond individual trampoline, as stored.

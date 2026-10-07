@@ -65,6 +65,7 @@ type Dashboard struct {
 	Video        VideoForm
 	Split        SplitForm
 	Events       EventsForm
+	LevelOrder   []LevelOrder
 	Competition  CompetitionSummary
 	Links        CompetitionLinks
 	Clubs        []string // the clubs entered, by name
@@ -73,6 +74,13 @@ type Dashboard struct {
 	Entries      int // every entry, before filtering
 	WithProblems int
 	Levels       []DashboardLevel
+}
+
+// LevelOrder is one discipline's levels, easiest first, for the organiser to
+// move.
+type LevelOrder struct {
+	Discipline, Name string
+	Levels           []string
 }
 
 // DashboardLevel is one level's table.
@@ -405,6 +413,7 @@ templ CompetitionDashboard(d Dashboard) {
 				@otherEvents(d.Events)
 				<button class="button is-small" type="submit">Change events</button>
 			</form>
+			@levelOrderForm(d.Base, d.LevelOrder)
 			<form method="post" action={ templ.SafeURL(d.Base + "/split") } class="mb-3">
 				@splitFields("split", "splitLevel", "Men and women", "Which levels rank men and women separately. Their gymnasts say which when entering.", d.Split)
 				<button class="button is-small" type="submit">Change</button>
@@ -1260,12 +1269,43 @@ templ otherEvents(f EventsForm) {
 			</div>
 		</details>
 		<div class="field mt-2">
-			<label class="label is-small" for="events-tumbling">Tumbling levels, one a line</label>
+			<label class="label is-small" for="events-tumbling">Tumbling levels, one a line, easiest first</label>
 			<textarea class="textarea is-small" id="events-tumbling" name="tumbling" rows="2" placeholder="e.g. Novice">{ f.Tumbling }</textarea>
 		</div>
 		<div class="field">
-			<label class="label is-small" for="events-dmt">DMT levels, one a line</label>
+			<label class="label is-small" for="events-dmt">DMT levels, one a line, easiest first</label>
 			<textarea class="textarea is-small" id="events-dmt" name="dmt" rows="2" placeholder="e.g. Novice">{ f.DMT }</textarea>
 		</div>
 	</fieldset>
+}
+
+// levelOrderForm moves levels up and down each discipline's order. Judging
+// "up to" a level, and "only levels below their own", go by it.
+templ levelOrderForm(base string, order []LevelOrder) {
+	<form method="post" action={ templ.SafeURL(base + "/levels/move") } class="mb-3" id="level-order">
+		<p class="label is-small">Order of levels</p>
+		<p class="help mb-2">Easiest first. A judge offering "up to" a level judges it and the levels before it.</p>
+		for _, o := range order {
+			if len(order) > 1 {
+				<p class="is-size-7 has-text-weight-semibold mt-2">{ o.Name }</p>
+			}
+			<ol class="comp-level-order">
+				for i, name := range o.Levels {
+					<li>
+						<span class="comp-level-name">{ name }</span>
+						if i > 0 {
+							<button class="button is-small" type="submit" name="move" value={ fmt.Sprintf("%s:%d:-1", o.Discipline, i) } aria-label={ "Move " + name + " earlier (easier)" }>↑</button>
+						} else {
+							<span class="comp-level-gap"></span>
+						}
+						if i < len(o.Levels)-1 {
+							<button class="button is-small" type="submit" name="move" value={ fmt.Sprintf("%s:%d:1", o.Discipline, i) } aria-label={ "Move " + name + " later (harder)" }>↓</button>
+						} else {
+							<span class="comp-level-gap"></span>
+						}
+					</li>
+				}
+			</ol>
+		}
+	</form>
 }

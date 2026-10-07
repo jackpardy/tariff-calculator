@@ -267,6 +267,11 @@ var migrations = []string{
 	);
 	CREATE INDEX officials_competition ON officials (competition_id);
 	ALTER TABLE competitions ADD COLUMN officials TEXT NOT NULL DEFAULT '{}';`,
+
+	// 8: levels in order, easiest first. Competitions from before kept the
+	// order the form sent, so they're put in order when read
+	// (competitions.OrderLevels) until the organiser moves a level.
+	`ALTER TABLE competitions ADD COLUMN levels_ordered BOOLEAN NOT NULL DEFAULT FALSE;`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

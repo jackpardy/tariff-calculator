@@ -124,7 +124,12 @@ each discipline's panel needs.
   judges, 2 where no machine measures it; none by default.
 - **Who may judge what:** anyone up to the level they say (the default), only
   levels below the one they compete at, or only people the organiser marks
-  qualified. The page shows how many can judge and chair each discipline.
+  qualified. Both go by the **order of levels**, easiest first: built-in
+  levels by their rank (BUCS lists its levels hardest first, so they're
+  turned round), a coach's own levels after them, and tumbling and DMT's as
+  typed. The organiser moves any level up or down under Links and settings;
+  competitions from before the order (migration 8) are put in order when read
+  until a level is moved. The page shows how many can judge and chair each discipline.
 - The [officials rota](#officials-rota-adr-0005-step-5) puts them on panels
   around their own turns.
 

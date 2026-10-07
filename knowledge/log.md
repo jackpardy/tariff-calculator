@@ -1,6 +1,13 @@
 # Update log
 
 ## 2026-10-07
+* **Fix**: Judging levels ran the wrong way for BUCS: "up to" a level and
+  "only levels below their own" went by the order the form sent, hardest
+  first for BUCS, so "up to BUCS L5" allowed L1 to L5. A competition's levels
+  now have an [order](features/competition-entries.md#officials-adr-0005-step-3),
+  easiest first: built-ins by rank (BUCS turned round), the organiser's own
+  after them, and any level moved under Links and settings. Older
+  competitions are put in order when read.
 * **Update**: A [demo competition](operations/deploy.md#demo-competition):
   `tariffCalculator demo` fills `DATA_DIR` with a made-up student
   competition (clubs, coaches, entries with some problems, officials, a
