@@ -135,6 +135,9 @@ has a starting value you can change.
    shows when each day finishes, anything that doesn't fit, anyone with too
    little rest, names that look like one person entered twice, and changes
    that would make it all fit (including capping an event's entries).
+   Planning tries to keep a coach's gymnasts off two areas at once; where it
+   can't, **Coaches needed in two places** lists them, so you can move a
+   flight, or the club can bring another coach.
    Planning also fills every panel from the people who've offered to judge
    and help (see **Officials**): never someone competing or on another panel
    at the time, and only in roles they may take. Clubs share judging their
