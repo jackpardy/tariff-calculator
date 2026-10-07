@@ -126,6 +126,7 @@ type ExerciseCard struct {
 	Video        VideoView
 	Carried      []int // elements whose difficulty carries over (first exercise)
 	Repeated     []int // elements repeating one that carried over (second exercise)
+	Skip         bool  // not done: synchro does only the level's voluntary
 }
 
 // EntryDetail is the organiser's view of one entry.
@@ -182,6 +183,8 @@ type EntryExercise struct {
 	Count   int    // how many skills it has
 	Video   string // its video link and note, if the competition asks for video
 	Note    string
+	Skip    bool   // not done: synchro does only the level's voluntary
+	Title   string // its heading, if not "First exercise" or "Second exercise"
 }
 
 // EntryOption is one of an exercise's options.
@@ -716,9 +719,11 @@ templ entryCard(c EntryCard) {
 	} else {
 		<div class="columns">
 			for _, ex := range c.Exercises {
-				<div class="column">
-					@exerciseCard(ex)
-				</div>
+				if !ex.Skip {
+					<div class="column">
+						@exerciseCard(ex)
+					</div>
+				}
 			}
 		</div>
 	}
@@ -887,7 +892,9 @@ templ entryForm(f EntryForm) {
 				}
 				if !f.Unchecked {
 					for n, ex := range l.Exercises {
-						@entryExercise(n+1, ex, f.Video)
+						if !ex.Skip {
+							@entryExercise(n+1, ex, f.Video)
+						}
 					}
 				}
 			</fieldset>
@@ -899,7 +906,13 @@ templ entryForm(f EntryForm) {
 templ entryExercise(n int, ex EntryExercise, video string) {
 	{{ prefix := fmt.Sprintf("ex%d", n) }}
 	<div class="box comp-entry-exercise" data-exercise={ prefix }>
-		<h2 class="title is-6">{ titleCase(exerciseName(n)) } exercise</h2>
+		<h2 class="title is-6">
+			if ex.Title != "" {
+				{ ex.Title }
+			} else {
+				{ titleCase(exerciseName(n)) } exercise
+			}
+		</h2>
 		if len(ex.Options) > 1 {
 			for _, o := range ex.Options {
 				<label class="radio comp-option">

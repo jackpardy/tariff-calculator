@@ -213,3 +213,26 @@ func (c Competition) EntryLevels(discipline string) []Level {
 	}
 	return out
 }
+
+// Only is the one exercise an entry does, for synchro: a pair does one
+// routine, the level's voluntary (its second exercise, or its only one). 0
+// for both, as every other discipline does.
+func (e Entry) Only(level requirements.Level) int {
+	if e.Discipline != Synchro {
+		return 0
+	}
+	return SynchroExercise(level)
+}
+
+// SynchroExercise is the exercise of a level a synchro pair does: its
+// voluntary, the second exercise where it has one.
+func SynchroExercise(level requirements.Level) int {
+	if level.Second != nil {
+		return 2
+	}
+	return 1
+}
+
+// Does says whether the card's entry does an exercise (0-based): both do,
+// except for synchro.
+func (c Card) Does(i int) bool { return c.Only == 0 || i+1 == c.Only }

@@ -774,6 +774,9 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 			}
 			var ex [2]string
 			for i, checked := range []requirements.Checked{j.card.First, j.card.Second} {
+				if !j.card.Does(i) {
+					continue
+				}
 				ex[i] = exerciseSummary(j.Entry.Entry.Exercises[i], checked)
 			}
 			sheets.Exercises[j.ID] = ex

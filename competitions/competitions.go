@@ -251,8 +251,13 @@ func (c Competition) ValidateEntry(e *Entry) error {
 		return errors.Join(append(errs, fmt.Errorf("the competition doesn't offer the level %q", e.Level))...)
 	}
 	c.checkCategory(e, &errs)
+	only := e.Only(level)
 	for i := range e.Exercises {
 		ex := &e.Exercises[i]
+		if only > 0 && i+1 != only {
+			*ex = Exercise{} // synchro does one routine
+			continue
+		}
 		name := ordinal(i + 1)
 		options := level.Exercise(i + 1).Options
 		switch {
@@ -293,6 +298,7 @@ type Card struct {
 	Level requirements.Level
 	requirements.Pair
 	Unchecked bool // tumbling or DMT: entered and timetabled, not checked
+	Only      int  // synchro: the one exercise a pair does (1 or 2); 0 for both
 }
 
 // Check checks an entry. Names, tariffs and results are worked out afresh, so
@@ -308,8 +314,12 @@ func (c Competition) Check(e Entry) (Card, error) {
 	if !ok {
 		return Card{}, fmt.Errorf("the competition doesn't offer the level %q", e.Level)
 	}
+	only := e.Only(level)
 	var routines [2]requirements.Routine
 	for i, ex := range e.Exercises {
+		if only > 0 && i+1 != only {
+			continue
+		}
 		r := requirements.Routine{Skills: ex.Skills}
 		set, err := l.Set(ex.Option)
 		if err != nil {
@@ -323,6 +333,16 @@ func (c Competition) Check(e Entry) (Card, error) {
 		}
 		routines[i] = r
 	}
+	if only > 0 {
+		card := Card{Level: level, Only: only}
+		checked := requirements.Check(routines[only-1], nil)
+		if only == 1 {
+			card.First = checked
+		} else {
+			card.Second = checked
+		}
+		return card, nil
+	}
 	return Card{Level: level, Pair: requirements.CheckPair(routines[0], routines[1])}, nil
 }
 
@@ -333,6 +353,12 @@ func (c Card) Problems() []string {
 	var out []string
 	for i, ex := range []requirements.Checked{c.First, c.Second} {
 		prefix := [...]string{"First exercise: ", "Second exercise: "}[i]
+		switch {
+		case c.Only > 0 && i+1 != c.Only:
+			continue
+		case c.Only > 0:
+			prefix = "Routine: "
+		}
 		if ex.SetErr != nil {
 			out = append(out, prefix+ex.SetErr.Error())
 		}

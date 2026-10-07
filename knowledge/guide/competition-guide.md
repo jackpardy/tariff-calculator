@@ -251,7 +251,8 @@ what you officiate, and the whole timetable with you picked out.
 ## Synchro
 
 Enter synchro like any discipline, and give your **partner's name** (and club,
-if they have one): any gymnast, from your club, another, or none. Your entry
+if they have one): any gymnast, from your club, another, or none. A pair does
+one routine: the level's voluntary. Your entry
 then shows a **partner link**: send it to your partner. They open it and
 confirm who they are with their own member page or entry link (or that they
 have no other entry), so the timetable never puts either of you in two places
