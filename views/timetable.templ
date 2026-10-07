@@ -29,7 +29,8 @@ type TimetablePage struct {
 type RotaView struct {
 	People   int
 	Options  []FlightOption // who can be given a seat
-	Short    []string       // seats no one could take
+	Short    []string       // seats no one could take, a line a flight
+	Empty    int            // seats no one could take, in all
 	OwnClub  []string       // e.g. "UCD 4"
 	Busiest  []string
 	Broken   []string // the organiser's rules about people not kept
@@ -484,7 +485,16 @@ templ rotaReport(p TimetablePage) {
 		} else if len(p.Rota.Short) == 0 {
 			<p class="has-text-success is-size-7 mt-1">Every seat on every panel is filled.</p>
 		}
-		@problemsList("Seats no one could take", p.Rota.Short)
+		if len(p.Rota.Short) > 0 {
+			<details class="mt-2">
+				<summary class="is-size-7"><strong>Seats no one could take:</strong> { emptySeats(p.Rota.Empty, len(p.Rota.Short)) }</summary>
+				<ul class="is-size-7 mt-1">
+					for _, it := range p.Rota.Short {
+						<li>{ it }</li>
+					}
+				</ul>
+			</details>
+		}
 		@problemsList("Hand changes have broken", p.Rota.Problems)
 		@problemsList("Your rules about officials not kept", p.Rota.Broken)
 		@problemsList("Coaches needed in two places", p.Rota.Coaches)
@@ -1005,4 +1015,14 @@ templ TimelinePrint(t Timeline) {
 			</div>
 		</section>
 	}
+}
+
+// emptySeats counts seats no one could take and the flights they're on, e.g.
+// "11, on 3 flights".
+func emptySeats(seats, flights int) string {
+	out := fmt.Sprintf("%d, on %d flights", seats, flights)
+	if flights == 1 {
+		out = fmt.Sprintf("%d, on 1 flight", seats)
+	}
+	return out
 }

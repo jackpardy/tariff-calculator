@@ -408,7 +408,8 @@ func (r *rota) costOf(p RotaPerson, role string, i int) float64 {
 
 // RotaReport is how the rota meets its goals.
 type RotaReport struct {
-	Short   []string    // seats no one could take, by flight
+	Short   []string    // seats no one could take, a line a flight
+	Empty   int         // seats no one could take, in all
 	OwnClub []ClubCount // times each club's officials judged a flight with their club's gymnasts in
 	Busiest []Workload  // who officiates most
 	Broken  []string    // the organiser's rules about people that aren't kept
@@ -447,6 +448,7 @@ func (s Schedule) RotaReport(clubs map[string]string, officials []RotaPerson) Ro
 		for _, d := range f.Officials {
 			if d.Person == "" {
 				short[d.Role]++
+				rr.Empty++
 				continue
 			}
 			w := work[d.Person]

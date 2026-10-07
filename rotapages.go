@@ -184,7 +184,7 @@ func rotaView(s competitions.Schedule, entries []store.Entry, people []competiti
 		}
 	}
 	rr := s.RotaReport(clubs, people)
-	v := views.RotaView{People: len(people), Short: rr.Short, Broken: rr.Broken,
+	v := views.RotaView{People: len(people), Short: rr.Short, Empty: rr.Empty, Broken: rr.Broken,
 		Problems: s.RotaProblems(keys, people, names), Coaches: s.CoachClashes(coaches, names)}
 	for _, c := range rr.OwnClub {
 		v.OwnClub = append(v.OwnClub, fmt.Sprintf("%s %d", c.Club, c.Times))
