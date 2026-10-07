@@ -272,6 +272,10 @@ var migrations = []string{
 	// order the form sent, so they're put in order when read
 	// (competitions.OrderLevels) until the organiser moves a level.
 	`ALTER TABLE competitions ADD COLUMN levels_ordered BOOLEAN NOT NULL DEFAULT FALSE;`,
+
+	// 9: simulated timetables (ADR 0005 Decision 11), kept apart from the
+	// real one so planning it never touches them.
+	`ALTER TABLE competitions ADD COLUMN scenarios TEXT NOT NULL DEFAULT '[]';`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

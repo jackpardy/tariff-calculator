@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: Step 6 of ADR 0005, [simulation](features/competition-entries.md#simulation-adr-0005-step-6):
+  the organiser tries entries per event, gymnasts in all, clubs, judges,
+  chairs and helpers against the venue setup; stand-ins are planned with the
+  real scheduler and rota, and scenarios sit side by side (when each day's
+  flights end, what doesn't fit and what would, empty seats), without
+  touching the timetable. Every step of ADR 0005 is now built.
 * **Update**: The [panel timeline](features/competition-entries.md#timetable-adr-0005-step-4)
   (roadmap, from the demo): every day side by side, a column per area, time
   running down, each flight and blocked time with who officiates it; printed

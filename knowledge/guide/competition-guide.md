@@ -164,6 +164,16 @@ has a starting value you can change.
 10. **Publish** to show clubs, members and gymnasts entering on their own their
    flight, area and warm-up time, and officials their duties.
 
+**Simulate** (on the timetable page) tries numbers before entries arrive, or
+alongside them, without changing your timetable. It starts from your entries
+and officials so far: change the entries per event, how many gymnasts there
+are in all (fewer than the entries means some enter several disciplines), the
+clubs, and how many people can judge, chair, record and marshal, then tap
+**Simulate**. Each scenario shows when each day's flights end, what doesn't fit
+and what would make it fit, and how many panel seats no one could take, side
+by side with the others. **Change** starts a new one from its numbers; after
+changing the venue setup, **Run again**.
+
 # 2. Run your club (comp secs)
 
 1. Go to **tariff.pardy.ie/competitions** and tap **New club**. Give its name

@@ -228,6 +228,34 @@ From the dashboard, **Timetable** plans the competition over the venue's days
 - **Publish** shows clubs (each member's row), members and gymnasts entering
   on their own their flight, area, day and warm-up time.
 
+## Simulation (ADR 0005, step 6)
+
+**Simulate**, linked from the timetable, tries numbers against the venue
+setup before entries arrive, or alongside them (ADR 0005 Decision 11). The
+form starts from the competition as it stands (or from a scenario, to
+change it):
+
+- **Entries per event** (a synchro entry is a pair) and **gymnasts in all**:
+  fewer gymnasts than the entries' places means some enter several
+  disciplines. Stand-ins fill the biggest discipline first, then the rest go
+  to gymnasts already entered, in turn, never twice in one discipline.
+- **Clubs** the gymnasts and judges come from, round in turn.
+- **Officials:** people who can judge each discipline (any level) and how
+  many of them can chair; **how many people** those judges are (someone
+  judging trampoline and synchro counts once); how many of the judges also
+  **compete** (spread across the gymnasts, those who don't chair first); and
+  **recorders and marshals**.
+
+Stand-ins are planned with the real setup, panels and rota (`PlanStaffed`,
+then `Rota`), as the real timetable is, and the result kept with the
+scenario: entries and gymnasts, each day's last flight and finish, what
+doesn't fit (by event) with a change that would fit it, seats no one could
+take, and gymnasts with less rest than wanted. Scenarios sit side by side;
+one planned with an earlier setup, panels or events says so until **Run
+again**. The last 8 are kept, apart from the timetable (migration 9), so
+planning never touches them. Coaches aren't simulated, and stand-in judges
+judge any level, so a real day can be tighter.
+
 # Coaches (coach link)
 
 Where a competition requires it, each entry needs a coach's **sign-off**

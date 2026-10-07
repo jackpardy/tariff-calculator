@@ -596,6 +596,14 @@ details > * { box-sizing: border-box; }
     .comp-page.section { padding: 0; }
     .comp-sheet { break-after: page; }
 }
+/* Simulation (views/simulate.templ) */
+.comp-sim-grid { display: grid; gap: 0.3rem; margin-bottom: 0.5rem; }
+.comp-sim-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; }
+.comp-sim-row > span:first-child { flex: 1 1 12rem; }
+.comp-sim-table th { white-space: nowrap; }
+.comp-sim-table td { min-width: 11rem; vertical-align: top; }
+.comp-sim-table .buttons form { display: contents; }
+
 /* The panel timeline: days side by side, time running down. */
 .comp-page .container:has(.comp-timeline) { max-width: none; }
 .comp-timeline-scroll { overflow-x: auto; }
