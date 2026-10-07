@@ -220,7 +220,10 @@ From the dashboard, **Timetable** plans the competition over the venue's days
   A person is a member (by their member link) or, for individuals entering
   several disciplines, by name; a confirmed synchro partner is the same
   person as their own entries.
-- **The report:** each day's finish against its end and the time to spare,
+- **The report:** for each day, when its flights end, when it finishes
+  (blocked time such as awards included) against its end, and the time free
+  after the last flight that isn't blocked off for the whole venue (room for
+  more flights; the simulation shows it too),
   what didn't fit (flights and blocks), anyone resting less than asked, and
   rules broken, and names that look like one person entered twice (the same
   letters ignoring accents and punctuation, or one letter apart in a long

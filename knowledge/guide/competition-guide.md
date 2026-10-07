@@ -140,7 +140,9 @@ has a starting value you can change.
    drawn at random (keeping a club's gymnasts apart where that's easy), and
    the flights are placed so no one is in two places at once, each day ends on
    time and the musts are kept, then as many preferences as fit. The report
-   shows when each day finishes, anything that doesn't fit, anyone with too
+   shows when each day's flights end, when the day finishes (awards and other
+   blocked time included), the time free after the last flight for more
+   flights, anything that doesn't fit, anyone with too
    little rest, names that look like one person entered twice, and changes
    that would make it all fit (including capping an event's entries).
    Planning tries to keep a coach's gymnasts off two areas at once; where it

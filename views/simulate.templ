@@ -62,7 +62,9 @@ type ScenarioView struct {
 	Seats, Empty, ShortRest      int
 }
 
-// SimDay is when a scenario's day finishes, and when its last flight ends.
+// SimDay is when a scenario's day finishes, and when its last flight ends
+// (kept apart from DayFinish's, which results from before it was reported
+// lack, so their free time isn't shown).
 type SimDay struct {
 	DayFinish
 	FlightsEnd string // "" for no flights
@@ -254,7 +256,11 @@ templ scenarioTable(p SimulationPage) {
 											no flights,
 										}
 										finishes { d.Finish }
-										<span class="is-size-7">({ spareWord(d.Spare) })</span>
+										if d.DayFinish.FlightsEnd != "" {
+											<span class="is-size-7">({ durationWord(d.Free) } free after flights)</span>
+										} else {
+											<span class="is-size-7">({ spareWord(d.Spare) })</span>
+										}
 									</div>
 								}
 							</td>

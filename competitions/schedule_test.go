@@ -410,3 +410,28 @@ func TestOrderForRest(t *testing.T) {
 		t.Errorf("order: %v", got)
 	}
 }
+
+func TestFreeAfterFlights(t *testing.T) {
+	s := Schedule{
+		Setup: Setup{Areas: []Area{{Name: "P1"}, {Name: "P2"}}, Days: []Day{{Name: "Sun", Start: "09:00", End: "17:00"}, {Name: "Mon", Start: "09:00", End: "10:00"}}},
+		Flights: []ScheduledFlight{
+			{Flight: Flight{Level: "A"}, Day: 0, Area: "P1", Start: 9 * 60, End: 10 * 60},
+			{Flight: Flight{Level: "B"}, Day: 0, Area: "P2", Start: 9 * 60, End: 9*60 + 30},
+		},
+		Blocks: []ScheduledBlock{
+			{Name: "Lunch", Day: 0, Areas: []string{"P1", "P2"}, Start: 12 * 60, End: 12*60 + 45},
+			{Name: "Ad hoc", Day: 0, Areas: []string{"P2"}, Start: 13 * 60, End: 14 * 60}, // one area: still room on P1
+			{Name: "Awards", Day: 0, Areas: []string{"P1", "P2"}, Start: 16 * 60, End: 17 * 60},
+		},
+	}
+	r := s.Report(nil)
+	sun, mon := r.Days[0], r.Days[1]
+	// The awards fill to the end, but 7 hours after the last flight are free
+	// less lunch and the awards.
+	if sun.Finish != "17:00" || sun.SpareMinutes != 0 || sun.FlightsEnd != "10:00" || sun.FreeMinutes != 7*60-45-60 {
+		t.Errorf("Sunday: %+v", sun)
+	}
+	if mon.FlightsEnd != "" || mon.FreeMinutes != 60 {
+		t.Errorf("a day with nothing on is free: %+v", mon)
+	}
+}

@@ -310,7 +310,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 		report := s.Report(people)
 		page.Report = views.ReportView{Unplaced: report.Unplaced, Blocks: report.UnplacedBlocks, Broken: report.Broken, Problems: s.Problems(people, names)}
 		for _, d := range report.Days {
-			page.Report.Days = append(page.Report.Days, views.DayFinish{Name: d.Name, Finish: d.Finish, End: d.End, Spare: d.SpareMinutes})
+			page.Report.Days = append(page.Report.Days, views.DayFinish{Name: d.Name, Finish: d.Finish, End: d.End, Spare: d.SpareMinutes, FlightsEnd: d.FlightsEnd, Free: d.FreeMinutes})
 		}
 		gymnasts := map[string]string{}
 		for k, n := range names {

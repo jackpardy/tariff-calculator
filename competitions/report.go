@@ -18,12 +18,18 @@ type Report struct {
 	Broken         []string    // prefer rules the schedule breaks
 }
 
-// DayReport is when a day finishes against its end.
+// DayReport is when a day finishes against its end, and how much time is
+// free after its last flight.
 type DayReport struct {
 	Name          string
-	Finish, End   string
-	SpareMinutes  int // before the end; negative can't happen (the end is a must)
+	Finish, End   string // Finish counts blocked time, such as awards at the end
+	SpareMinutes  int    // after Finish, before the end; negative can't happen (the end is a must)
 	FlightsPlaced int
+	FlightsEnd    string `json:",omitempty"` // when the last flight ends; "" for none
+	// FreeMinutes is the time after the last flight (or from the day's
+	// start, with none) to the end, less blocked time that takes the whole
+	// venue: what more flights could use.
+	FreeMinutes int
 }
 
 // ShortRest is a person with less rest than wanted between two turns.
@@ -46,12 +52,22 @@ func (s Schedule) Report(people map[string][]string) Report {
 				last = max(last, f.End)
 			}
 		}
+		flightsEnd := last
 		for _, b := range s.Blocks {
 			if b.Day == i {
 				last = max(last, b.End)
 			}
 		}
-		r.Days = append(r.Days, DayReport{Name: d.Name, Finish: Clock(last), End: d.End, SpareMinutes: end - last, FlightsPlaced: n})
+		dr := DayReport{Name: d.Name, Finish: Clock(last), End: d.End, SpareMinutes: end - last, FlightsPlaced: n, FreeMinutes: end - flightsEnd}
+		if n > 0 {
+			dr.FlightsEnd = Clock(flightsEnd)
+		}
+		for _, b := range s.Blocks {
+			if b.Day == i && s.wholeVenue(d, b) {
+				dr.FreeMinutes -= max(0, min(b.End, end)-max(b.Start, flightsEnd))
+			}
+		}
+		r.Days = append(r.Days, dr)
 	}
 	for _, f := range s.Unplaced {
 		r.Unplaced = append(r.Unplaced, f.Name())
@@ -277,4 +293,14 @@ func caps(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) [
 		out = append(out, Fix{Change: fmt.Sprintf("%s capped at %d entries (%d fewer)", ev, n, total-n), Setup: setup, entries: capped})
 	}
 	return out
+}
+
+// wholeVenue says whether a block takes every area a day uses.
+func (s Schedule) wholeVenue(d Day, b ScheduledBlock) bool {
+	for _, a := range s.Setup.Areas {
+		if d.uses(a.Name) && !slices.Contains(b.Areas, a.Name) {
+			return false
+		}
+	}
+	return true
 }
