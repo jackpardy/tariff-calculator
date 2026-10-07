@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-07
+* **Update**: The [roadmap](roadmap.md) says where things are (every step of
+  ADR 0005 built, synchro as ISTO runs it, the on-the-day "what ifs") and
+  proposes next steps.
 * **Update**: [What if an official has to leave?](features/competition-entries.md#what-if-an-official-has-to-leave):
   each of their seats filled by someone free or by moving others round,
   easiest to fill or fewest changes, without changing the rota.
