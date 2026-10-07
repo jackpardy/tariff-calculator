@@ -141,11 +141,14 @@ approving coaches and removing entries, so those come next, after the
 biggest priority: one panel for all of an event's flights. The rest are
 roughly in the order they'd help ISTO.
 
-1. **One panel for a whole event** (decided 2026-10-07). Everyone on an
+1. **One panel for a whole event** (decided 2026-10-07; designed in
+   [ADR 0006](../docs/adr/0006-one-panel-per-event.md)). Everyone on an
    event's panel, recorders and marshals too, stays for all of its flights,
-   so every gymnast in it is judged by the same people. For that, the
+   so every gymnast in it is judged by the same people (the organiser can
+   let recorders and marshals change between flights). For that, the
    timetable runs an event's flights **back to back on one area**, a must
-   rather than today's preference, and the rota fills the panel once for the
+   rather than today's preference, not across lunch unless the organiser
+   allows it, and the rota fills the panel once for the
    event instead of flight by flight. An event too big for one panel in the
    time there is is reported with fixes, as anything else that doesn't fit.
    Rarely, and only if the organiser chooses, an event can be split by

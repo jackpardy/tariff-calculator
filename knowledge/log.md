@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [ADR 0006](../docs/adr/0006-one-panel-per-event.md) proposed:
+  one panel for a whole event, amending ADR 0005. The scheduler places an
+  event's flights as one run on one area and day, the rota fills its panel
+  once, flights are numbered in the order they run, and an organiser can
+  rarely split an event by routine across two areas.
 * **Update**: Tried with an ISTO organiser: approving coaches and removing
   entries were their two big asks, next on the [roadmap](roadmap.md) after
   the biggest priority, one panel for all of an event's flights.

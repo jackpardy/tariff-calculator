@@ -8,6 +8,8 @@
   timetable (roadmap: competitions 3)
 - **Amends:** the roadmap's officials rota (competitions 4), which becomes
   part of this
+- **Amended by:** ADR 0006 (one panel for a whole event, proposed
+  2026-10-08), for Decisions 9 and 12
 
 ## Context
 
