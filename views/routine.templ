@@ -234,6 +234,9 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 						</p>
 					</div>
 				</div>
+				<div class="judging-row">
+					@judgingButton(sv.Skill, endsExercise(i, last))
+				</div>
 				if message != "" {
 					<div class="skill-validation-row mt-1">
 						<p class="transition-status is-size-7 has-text-danger">{ message }</p>

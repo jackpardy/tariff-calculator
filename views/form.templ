@@ -228,6 +228,17 @@ templ editorCard(e SkillEditor) {
 			</div>
 			<p class="skill-card-tariff" title="Tariff (difficulty)">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</p>
 		</div>
+		if e.Skill.LandingPosition() != skills.Invalid {
+			<button
+				type="button"
+				class="button is-small is-light judging-button"
+				hx-get="/judging"
+				hx-include="#main-form"
+				hx-target="body"
+				hx-swap="beforeend"
+				data-judging
+			>How it's judged</button>
+		}
 		if e.Skill.LandingPosition() == skills.Invalid {
 			<p class="skill-card-problem">This skill can't land like that. Check the direction, somersault and twist.</p>
 		}

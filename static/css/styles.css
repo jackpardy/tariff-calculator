@@ -548,6 +548,27 @@ details > * { box-sizing: border-box; }
 .share-qr svg { width: min(14rem, 70vw); height: auto; }
 .share-note { text-align: center; font-size: 0.8rem; color: #777; margin-top: 0.25rem; }
 
+/* --- How a skill is judged (views/judging.templ, static/js/judging.js) --- */
+.judging-row { margin-top: 0.4rem; }
+.skill-card .judging-button { margin: 0.1rem 0 0.4rem; }
+.judging-modal .modal-card { width: calc(100% - 2rem); max-width: 34rem; margin: 0 auto; max-height: calc(100vh - 2rem); border-radius: 10px; }
+.judging-modal .modal-card-head { align-items: flex-start; gap: 0.75rem; padding: 0.9rem 1rem; }
+.judging-head { flex: 1; min-width: 0; }
+.judging-modal .modal-card-title { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.15rem; }
+.judging-skill { font-size: 0.9rem; overflow-wrap: anywhere; }
+.judging-skill .has-text-grey { margin-left: 0.35rem; white-space: nowrap; }
+.judging-modal .modal-card-body { padding: 0.9rem 1rem 1.2rem; }
+.judging-lead { font-size: 0.85rem; color: #555; margin-bottom: 0.5rem; }
+.judging-group { font-size: 0.95rem; font-weight: 700; margin: 0.9rem 0 0.3rem; }
+.judging-intro { font-size: 0.85rem; color: #555; margin-bottom: 0.4rem; }
+.judging-items { list-style: none; margin: 0; }
+.judging-items li { padding: 0.4rem 0; border-top: 1px solid #eee; }
+.judging-items li.is-note .judging-fault strong { font-weight: 600; color: #555; }
+.judging-fault { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin: 0; }
+.judging-amount { flex: none; font-weight: 700; color: #cc0f35; white-space: nowrap; }
+.judging-explain { font-size: 0.85rem; margin: 0.1rem 0 0; }
+.judging-ref { display: inline-block; margin-left: 0.3rem; font-size: 0.72rem; color: #888; white-space: nowrap; }
+
 /* --- Competition pages (views/competitions.templ) --- */
 .comp-page .container { max-width: 60rem; }
 .comp-page [hidden] { display: none !important; }

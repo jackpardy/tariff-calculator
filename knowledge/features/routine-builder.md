@@ -25,6 +25,15 @@ characters). It is shown alongside the official name, which is always derived
 by the server. A routine card's **Edit** button loads that skill back into the
 card for editing.
 
+**How it's judged**, on the "Add a skill" card and in each routine card's
+details, opens a pop-up with the execution deductions that can apply to that
+skill and what each means, worked out from the skill's attributes
+([execution judging](../domain/execution.md)). On the routine's last element
+(the 10th, or the last of a shorter routine) it adds the landing. htmx adds
+the pop-up to the end of the page (`GET /judging`); `static/js/judging.js`
+closes it with ✕, the background or Escape. The compare page's cards have it
+too.
+
 **Add to** chooses where Add puts the skill, from every saved routine; it
 starts on the routine on screen and goes back to it when the routine on screen
 changes (in Levels mode, the voluntary's routine, so a coach can look at a set

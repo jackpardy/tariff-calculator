@@ -1,0 +1,102 @@
+package views
+
+import (
+	"net/url"
+	"strconv"
+
+	"tariffCalculator/judging"
+	"tariffCalculator/skills"
+)
+
+// judgingURL is where a skill's judging guide is fetched from. last adds the
+// landing deductions for the final element.
+func judgingURL(s skills.TrampolineSkill, last bool) string {
+	v := url.Values{}
+	v.Set("rotation", strconv.Itoa(s.Rotation))
+	for _, t := range s.TwistDistribution {
+		v.Add("twist_distribution[]", strconv.Itoa(t))
+	}
+	v.Set("takeoff_position", s.TakeoffPosition.String())
+	v.Set("shape", s.Shape.String())
+	if s.Backward {
+		v.Set("backward", "on")
+	}
+	if s.SeatLanding {
+		v.Set("seat_landing", "on")
+	}
+	if last {
+		v.Set("last", "1")
+	}
+	return "/judging?" + v.Encode()
+}
+
+// endsExercise reports whether the skill at index i lands the exercise: the
+// 10th element, or the last one in a shorter routine.
+func endsExercise(i int, last bool) bool {
+	return i == skills.RoutineLength-1 || (last && i < skills.RoutineLength)
+}
+
+// judgingButton opens the judging guide for a routine's skill.
+templ judgingButton(s skills.TrampolineSkill, last bool) {
+	<button
+		type="button"
+		class="button is-small is-light judging-button"
+		hx-get={ judgingURL(s, last) }
+		hx-target="body"
+		hx-swap="beforeend"
+		data-judging
+	>How it's judged</button>
+}
+
+// JudgingGuide is the pop-up with a skill's judging guide. It's added to the end
+// of the page; static/js/judging.js closes it.
+templ JudgingGuide(g judging.Guide) {
+	<div class="modal is-active judging-modal" role="dialog" aria-modal="true" aria-labelledby="judging-title">
+		<div class="modal-background" data-judging-close></div>
+		<div class="modal-card">
+			<header class="modal-card-head">
+				<div class="judging-head">
+					<p class="modal-card-title" id="judging-title">How it's judged</p>
+					<p class="judging-skill">
+						{ g.Skill.Name }
+						if fig := g.Skill.FIGNotation(); fig != "" {
+							<span class="has-text-grey">{ fig }</span>
+						}
+					</p>
+				</div>
+				<button type="button" class="delete" aria-label="Close" data-judging-close></button>
+			</header>
+			<section class="modal-card-body">
+				<p class="judging-lead">What execution judges can take off for this skill, from the FIG Code of Points 2025–2028.</p>
+				for _, gr := range g.Groups {
+					<h3 class="judging-group">{ gr.Title }</h3>
+					if gr.Intro != "" {
+						<p class="judging-intro">{ gr.Intro }</p>
+					}
+					@judgingItems(gr.Items)
+				}
+				<h3 class="judging-group">How the score adds up</h3>
+				@judgingItems(judging.Scoring)
+			</section>
+		</div>
+	</div>
+}
+
+templ judgingItems(items []judging.Item) {
+	<ul class="judging-items">
+		for _, it := range items {
+			<li class={ templ.KV("is-note", it.Amount == "") }>
+				<p class="judging-fault">
+					<strong>{ it.Fault }</strong>
+					if it.Amount != "" {
+						<span class="judging-amount">{ it.Amount }</span>
+					}
+				</p>
+				<p class="judging-explain">
+					{ it.Explain }
+					<span class="judging-ref">CoP { it.Ref }</span>
+				</p>
+			</li>
+		}
+	</ul>
+}

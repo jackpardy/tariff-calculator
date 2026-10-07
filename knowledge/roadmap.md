@@ -77,7 +77,7 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 | 1 | Club competition secretary | Now part of card collection (competitions 1): members' entries gathered by the club and sent to each competition; still to add: export for TrampOnline entry | competitions 1 |
 | 2 | Skill tracking | Coaches tick skills per gymnast (club link); each gymnast sees what's next and which levels they're ready for | catalog |
 | 3 | Session planner | Trampolines, gymnasts and session time give a turn rotation with spotters and coach ratio, on a phone | — |
-| 4 | Judge and coach practice | Tariff and FIG-notation quizzes, card-checking practice with planted errors | engine |
+| 4 | Judge and coach practice | Tariff and FIG-notation quizzes, card-checking practice with planted errors; execution practice could build on the "How it's judged" rules ([execution judging](domain/execution.md), built 2026-10-07) | engine |
 | 5 | Committee handover kit | Safety checks, incident log and policy templates (mostly documents) | — |
 | 6 | Routine suggester (low priority) | From the skills a gymnast can do and a chosen level, suggests legal routines (landing to take-off, no repeats, requirements, caps), highest tariff first. Hard to do well: a legal, high-tariff routine isn't necessarily one a gymnast should compete | skills, requirements, 2 |
 
