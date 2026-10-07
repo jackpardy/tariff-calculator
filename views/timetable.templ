@@ -165,6 +165,9 @@ templ CompetitionTimetable(p TimetablePage) {
 			</p>
 		</form>
 		<p class="mb-4"><a href={ templ.SafeURL(p.Base + "/timetable/simulate") }>Simulate</a>: try numbers of entries and judges against this setup, before entries arrive or alongside them, without changing the timetable.</p>
+		if p.Planned {
+			<p class="mb-4"><a href={ templ.SafeURL(p.Base + "/timetable/delay") }>What if there's a delay?</a> See what holding up an area for a while does to the rest of the day, without changing the timetable.</p>
+		}
 		if p.Stale {
 			<div class="notification is-warning is-light">The setup has changed since this was planned. Plan again to use it.</div>
 		}

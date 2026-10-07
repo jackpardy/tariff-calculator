@@ -1,0 +1,150 @@
+package views
+
+import (
+	"slices"
+	"strconv"
+)
+
+// DelayPage is the organiser's "what if there's a delay": which areas are
+// held up, from when, for how long, and what it does to the day.
+type DelayPage struct {
+	Base        string
+	Competition CompetitionSummary
+	Days        []FlightOption // value: the day's index
+	AllAreas    []string
+	// The delay asked about, as given.
+	Day, From, Minutes string
+	Areas              []string // none for every area
+	Asked              bool
+	Problems           []string
+	Result             *DelayResult
+}
+
+// DelayResult is what a delay does.
+type DelayResult struct {
+	Days      []DelayDay
+	Changes   []DelayChangeView
+	Unplaced  []string
+	Clashes   []string
+	ShortRest [2]int // people with less rest than wanted, before and after
+}
+
+// DelayDay is how a day's end changes.
+type DelayDay struct {
+	Name, WasEnd, NowEnd, End string
+	WasFree, NowFree          int
+}
+
+// DelayChangeView is a flight that starts later or moves.
+type DelayChangeView struct {
+	Flight, Was, Now, Why string
+	Later                 int // minutes
+	Moved                 bool
+}
+
+// Delay is the delay page.
+templ Delay(p DelayPage) {
+	@competitionLayout("What if there's a delay · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Base + "/timetable") }>← Timetable</a></p>
+		<h1 class="title is-4">What if there's a delay?</h1>
+		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		<p class="mb-4">Say which areas are held up, from when and for how long. Their later flights shift back as little as they can (any slack takes some of it), around blocked time; a flight that would then run past the end of the day, or need someone in two places, moves to another area if one is free. Nothing is saved: the timetable stays as it is.</p>
+		@problemList(p.Problems)
+		<form method="get" action={ templ.SafeURL(p.Base + "/timetable/delay") } class="box">
+			<div class="comp-setup-row">
+				<label class="label is-small mb-0" for="delay-day">Day</label>
+				<div class="select is-small">
+					<select id="delay-day" name="day">
+						for _, d := range p.Days {
+							<option value={ d.Value } selected?={ p.Day == d.Value }>{ d.Label }</option>
+						}
+					</select>
+				</div>
+				<label class="label is-small mb-0" for="delay-from">from</label>
+				<input class="input is-small comp-num" id="delay-from" name="from" type="time" required value={ p.From }/>
+				<label class="label is-small mb-0" for="delay-minutes">for</label>
+				<input class="input is-small comp-num" id="delay-minutes" name="minutes" type="number" min="1" max="600" required value={ p.Minutes }/>
+				<span class="is-size-7">minutes</span>
+			</div>
+			<fieldset class="field mt-2">
+				<legend class="label is-small">Areas held up (none ticked: all of them)</legend>
+				for _, a := range p.AllAreas {
+					<label class="checkbox comp-option mr-3">
+						<input type="checkbox" name="area" value={ a } checked?={ slices.Contains(p.Areas, a) }/>
+						{ a }
+					</label>
+				}
+			</fieldset>
+			<button class="button is-primary is-small" type="submit">Show what happens</button>
+		</form>
+		if r := p.Result; r != nil {
+			<div class="box">
+				if len(r.Changes) == 0 {
+					<p class="has-text-success"><strong>Nothing changes:</strong> there's enough slack to take the delay.</p>
+				} else {
+					if len(r.Days) > 0 {
+						<div class="table-container">
+							<table class="table is-narrow mb-2">
+								<thead><tr><th>Day</th><th>Flights end</th><th>Must end by</th><th>Free after flights</th></tr></thead>
+								<tbody>
+									for _, d := range r.Days {
+										<tr>
+											<td>{ d.Name }</td>
+											<td>{ d.WasEnd } → <strong>{ d.NowEnd }</strong></td>
+											<td>{ d.End }</td>
+											<td class={ templ.KV("has-text-danger", d.NowFree < 0) }>{ durationWord(d.WasFree) } → <strong>{ signedDuration(d.NowFree) }</strong></td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						</div>
+					}
+					if len(r.Unplaced) > 0 {
+						<div class="notification is-danger is-light">
+							<p><strong>No longer fits the day:</strong> { joinNames(r.Unplaced) }. Nowhere free before the end could take it.</p>
+						</div>
+					} else {
+						<p class="has-text-success mb-2"><strong>Everything still fits.</strong></p>
+					}
+					@problemsList("Needed in two places", r.Clashes)
+					if r.ShortRest[1] > r.ShortRest[0] {
+						<p class="is-size-7 mb-2">Less rest than wanted: { strconv.Itoa(r.ShortRest[0]) } people before, { strconv.Itoa(r.ShortRest[1]) } after.</p>
+					}
+					<h2 class="title is-6 mt-3">Flights that change ({ strconv.Itoa(len(r.Changes)) })</h2>
+					<div class="table-container">
+						<table class="table is-narrow is-fullwidth comp-table">
+							<thead><tr><th>Flight</th><th>Was</th><th>Now</th><th></th></tr></thead>
+							<tbody>
+								for _, c := range r.Changes {
+									<tr>
+										<td>{ c.Flight }</td>
+										<td>{ c.Was }</td>
+										<td><strong>{ c.Now }</strong></td>
+										<td class="is-size-7 comp-wrap">
+											if c.Why != "" {
+												{ c.Why }
+											} else if c.Later > 0 {
+												{ strconv.Itoa(c.Later) } min later
+											} else {
+												runs late
+											}
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				}
+			</div>
+		} else if !p.Asked {
+			<p class="help">e.g. Panel 2's trampoline needs a spring replaced: Saturday, from 10:30, for 25 minutes, Panel 2.</p>
+		}
+	}
+}
+
+func signedDuration(minutes int) string {
+	if minutes < 0 {
+		return durationWord(-minutes) + " over"
+	}
+	return durationWord(minutes)
+}

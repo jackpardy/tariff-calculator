@@ -35,6 +35,7 @@ func (p *competitionPages) registerTimetable(handle func(string, http.HandlerFun
 	handle("GET /competitions/admin/{token}/timetable/print", p.printTimetable)
 	handle("GET /competitions/admin/{token}/timetable/timeline.csv", p.timelineCSV)
 	handle("GET /competitions/admin/{token}/timetable/simulate", p.simulation)
+	handle("GET /competitions/admin/{token}/timetable/delay", p.delay)
 	handle("POST /competitions/admin/{token}/timetable/simulate", p.simulate)
 	handle("POST /competitions/admin/{token}/timetable/simulate/delete", p.deleteScenario)
 }

@@ -255,6 +255,21 @@ From the dashboard, **Timetable** plans the competition over the venue's days
 - **Publish** shows clubs (each member's row), members and gymnasts entering
   on their own their flight, area, day and warm-up time.
 
+## What if there's a delay
+
+**What if there's a delay?**, linked from a planned timetable, takes a day,
+the areas held up (none for all), from when and for how long, and shows what
+follows without saving anything (`Schedule.Delayed`). A flight under way runs
+that much later; the area's later flights shift back only as far as they must
+(slack takes some of it), going round blocked time (a flight that wouldn't
+finish before lunch waits for it to end, and says so). A shifted flight that
+would run past the end of the day, or need someone (a gymnast or official) in
+two places, moves to the earliest free slot on another area of its
+discipline, no earlier than its published time and clear of the delay. The
+page shows each day's flights end and free time before and after, what no
+longer fits, who's needed in two places, short rest before and after, and
+each flight that changes (was, now, why).
+
 ## Simulation (ADR 0005, step 6)
 
 **Simulate**, linked from the timetable, tries numbers against the venue
