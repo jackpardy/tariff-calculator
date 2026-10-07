@@ -19,7 +19,7 @@ built and how it is deployed. Start with the [overview](overview.md).
 
 # Sections
 
-* [Domain](domain/) - The skill model, the Code of Points tariff, routine validation and the skill catalog.
+* [Domain](domain/) - The skill model, the Code of Points tariff, execution judging, routine validation and the skill catalog.
 * [Requirements](requirements/) - Checking a routine against a competition's rules, and the built-in requirements.
 * [Guide](guide/) - For gymnasts, coaches, clubs and organisers: what the app does and how to use it.
 * [Features](features/) - How each feature works: the routine builder, sharing, the view screen, the tariff sheet, comparing.

@@ -457,8 +457,8 @@ func TestIndexRendersThePage(t *testing.T) {
 	}
 	// Every asset is linked by a versioned URL that the server actually serves.
 	links := regexp.MustCompile(`(?:href|src)="(/static/[^"]+)"`).FindAllStringSubmatch(html, -1)
-	if len(links) != 11 {
-		t.Errorf("found %d asset links, want 11 (2 CSS, 9 JS)", len(links))
+	if len(links) != 12 {
+		t.Errorf("found %d asset links, want 12 (2 CSS, 10 JS)", len(links))
 	}
 	for _, l := range links {
 		u := strings.ReplaceAll(l[1], "&amp;", "&")
@@ -1334,5 +1334,56 @@ func TestViewTwoRoutines(t *testing.T) {
 	}
 	if !strings.Contains(html, "0.5") || !strings.Contains(html, "0.6") {
 		t.Errorf("each with its own difficulty")
+	}
+}
+
+// TestJudgingGuide checks the "How it's judged" pop-up: a skill's own
+// deductions, the landing only for the last element, and a bad skill refused.
+func TestJudgingGuide(t *testing.T) {
+	get := func(q string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/judging?"+q, nil))
+		return rec
+	}
+	tuckBack := "rotation=4&twist_distribution[]=0&takeoff_position=Feet&shape=Tuck&backward=on"
+	rec := get(tuckBack)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{"How it's judged", "Tuck Back", "Open tuck", "Late or no opening", "How the score adds up"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("guide is missing %q", want)
+		}
+	}
+	if strings.Contains(body, "Steps or bounces") {
+		t.Error("landing deductions on an element that isn't last")
+	}
+	if !strings.Contains(get(tuckBack+"&last=1").Body.String(), "Steps or bounces") {
+		t.Error("no landing deductions on the last element")
+	}
+	// Half a somersault from the feet lands on the head.
+	if rec := get("rotation=2&twist_distribution[]=0&takeoff_position=Feet&shape=Tuck"); rec.Code != http.StatusBadRequest {
+		t.Errorf("impossible skill: status %d, want 400", rec.Code)
+	}
+}
+
+// TestRoutineCardsLinkTheirJudging checks each card links to its own guide and
+// only the last element's link asks for the landing.
+func TestRoutineCardsLinkTheirJudging(t *testing.T) {
+	routine := `[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},
+		{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Pike","backward":true}]`
+	html := postRoutine(t, routine).Body.String()
+	links := regexp.MustCompile(`hx-get="(/judging\?[^"]+)"`).FindAllStringSubmatch(html, -1)
+	if len(links) != 2 {
+		t.Fatalf("found %d judging links, want 2", len(links))
+	}
+	if strings.Contains(links[0][1], "last=1") || !strings.Contains(links[1][1], "last=1") {
+		t.Errorf("landing should be on the last card only: %v", links)
+	}
+	rec := httptest.NewRecorder()
+	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, strings.ReplaceAll(links[1][1], "&amp;", "&"), nil))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Open pike") {
+		t.Errorf("card's link: status %d", rec.Code)
 	}
 }

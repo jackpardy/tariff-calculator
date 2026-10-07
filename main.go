@@ -19,6 +19,7 @@ import (
 
 	"tariffCalculator/catalog"
 	"tariffCalculator/demo"
+	"tariffCalculator/judging"
 	"tariffCalculator/requirements"
 	"tariffCalculator/skills"
 	"tariffCalculator/static"
@@ -88,6 +89,7 @@ func routesWith(st *store.Store) http.Handler {
 	mux.HandleFunc("POST /skill-inputs", handleSkillInputs)
 	mux.HandleFunc("GET /skill-search", handleSkillSearch)
 	mux.HandleFunc("POST /calculate-skill", handleCalculateSkill)
+	mux.HandleFunc("GET /judging", handleJudging)
 	mux.HandleFunc("POST /routine", handleRoutineView)
 	mux.HandleFunc("POST /set-routine", handleSetRoutine)
 	mux.HandleFunc("POST /qr", handleQR)
@@ -295,6 +297,20 @@ func handleCalculateSkill(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(skill); err != nil {
 		log.Printf("Error encoding calculated skill: %v", err)
 	}
+}
+
+// handleJudging returns the pop-up saying how a skill is judged. The skill comes
+// in the query, named as in the "Add a skill" form; last=1 adds the landing.
+func handleJudging(w http.ResponseWriter, r *http.Request) {
+	skill, err := calculatedSkill(r)
+	if err == nil && skill.LandingPosition() == skills.Invalid {
+		err = errors.New("this skill can't land like that")
+	}
+	if err != nil {
+		badRequest(w, err)
+		return
+	}
+	render(w, r, views.JudgingGuide(judging.For(skill, r.FormValue("last") == "1")))
 }
 
 // validateRoutineJSON parses a routine posted as JSON and validates it.

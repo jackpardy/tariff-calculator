@@ -8,6 +8,14 @@
 * **Update**: Synchro panels have 2 synchronisation judges by default, a
   setting on the [officials](features/competition-entries.md#officials-adr-0005-step-3)
   page, filled by the rota from synchro's judges.
+* **New**: **How it's judged**. Every skill card, and the "Add a skill" card,
+  opens a pop-up with the execution deductions that can apply to that skill
+  (shape, legs and feet, arms, opening and twist, and the landing on the last
+  element), each with its amount, an explanation and the Code of Points
+  reference, and how the score adds up. The list is worked out from the
+  skill's attributes by rules from the FIG Code of Points 2025–2028 §13, §16,
+  §20 and the Part II drawings, so custom skills get one too
+  ([execution judging](domain/execution.md)).
 * **Update**: The [panel timeline](features/competition-entries.md#timetable-adr-0005-step-4)
   runs at an even time scale, and comes in two views: without officials
   (every day side by side), and **with officials**, a sheet for each day's

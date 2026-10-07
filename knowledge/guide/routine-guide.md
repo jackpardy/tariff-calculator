@@ -54,6 +54,12 @@ Your routine is in the **Routine Builder**, below the skill box. Make sure
   now says "Edit skill 3". Change it, then tap **Update** (or **Cancel**).
 - **Remove a skill**: tap **Del**.
 - **See the details**: tap a card's name to open it.
+- **How it's judged**: in an open card, this lists what the execution judges
+  can take off for that skill, with the amounts and what each means: the
+  shape, legs and feet, arms, opening and twist, and on the last skill the
+  landing. It's from the FIG Code of Points 2025–2028 and works for any skill,
+  including ones you build. The **Add a skill** box has the same button, to
+  look a skill up before you add it.
 - **Total Tariff** is under the cards. It counts only what the judges count: the
   first ten skills, a repeated skill once, and nothing after an interruption.
   When something doesn't count, **Raw Total** shows what everything adds up
