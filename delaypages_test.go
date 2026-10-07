@@ -36,11 +36,23 @@ func TestDelayPage(t *testing.T) {
 
 	// Panel 1 held up from 09:05 for 20 minutes: BUCS L3, under way, runs late.
 	got = text(tt + "/delay?day=0&from=09:05&minutes=20&area=Panel+1")
-	for _, want := range []string{"Day 1 09:15 → 09:35", "Everything still fits.", "Flights that change (1)", "BUCS L3 Panel 1 09:00–09:15 Panel 1 09:00–09:35 runs late"} {
+	for _, want := range []string{"Day 1 09:15 → 09:35", "Everything still fits.", "Flights that change (1)", "BUCS L3 Panel 1 09:00–09:15 Panel 1 09:00–09:35 under way: finishes 20 min late"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("the delay shows %q: %s", want, got)
 		}
 	}
+	// Eased: no time between flights and quicker turns, compared with the
+	// delay alone.
+	got = text(tt + "/delay?day=0&from=09:05&minutes=20&area=Panel+1&between=0&quicker=50&breaks=shorten&shorten=10")
+	for _, want := range []string{"Easing it: breaks on the held-up areas can be up to 10 min shorter, 0 min between flights, turns 50% quicker.", "Without that: Day 1's flights end 09:35"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("the eased delay shows %q: %s", want, got)
+		}
+	}
+	if got := text(tt + "/delay?day=0&from=09:05&minutes=20&quicker=fast"); !strings.Contains(got, "Quicker turns should be a whole number") {
+		t.Errorf("a bad easing is refused: %s", got)
+	}
+
 	// The timetable itself is unchanged.
 	if !strings.Contains(text(tt), "Warm-up 09:00 · finishes about 09:15") {
 		t.Error("the timetable isn't changed")

@@ -270,6 +270,16 @@ page shows each day's flights end and free time before and after, what no
 longer fits, who's needed in two places, short rest before and after, and
 each flight that changes (was, now, why).
 
+The organiser can **ease** it on the held-up areas, from the delay: breaks
+(lunch and other blocked time) wait (the default), **move later** keeping
+their length, **start late** by up to some minutes, or are **worked
+through**, each on that area alone (the rest of the venue keeps its break);
+**fewer minutes between flights**; **quicker turns** (a percentage less per
+competitor); **bigger flights** (an event's flights next to each other merge
+up to a size, saving a changeover); and **running past the end** of the day by
+up to some minutes. The page says what the easing is and what the delay
+alone would have done.
+
 ## Simulation (ADR 0005, step 6)
 
 **Simulate**, linked from the timetable, tries numbers against the venue

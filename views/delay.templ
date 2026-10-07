@@ -15,6 +15,8 @@ type DelayPage struct {
 	// The delay asked about, as given.
 	Day, From, Minutes string
 	Areas              []string // none for every area
+	// How the organiser would ease it, as given.
+	Breaks, Shorten, Between, Quicker, MaxFlight, Overrun string
 	Asked              bool
 	Problems           []string
 	Result             *DelayResult
@@ -22,6 +24,10 @@ type DelayPage struct {
 
 // DelayResult is what a delay does.
 type DelayResult struct {
+	Easing    []string     // what the organiser does to ease it, described
+	Without   string       // what the delay alone would do, when eased
+	Merged    []string
+	Breaks    []string
 	Days      []DelayDay
 	Changes   []DelayChangeView
 	Unplaced  []string
@@ -75,10 +81,48 @@ templ Delay(p DelayPage) {
 					</label>
 				}
 			</fieldset>
+			<details class="mt-2 mb-3" open?={ p.Breaks != "" || p.Between != "" || p.Quicker != "" || p.MaxFlight != "" || p.Overrun != "" }>
+				<summary class="label is-small">Ease it (on the held-up areas, from the delay)</summary>
+				<div class="field mt-2">
+					<p class="label is-small mb-1">Breaks, such as lunch</p>
+					for _, o := range [][2]string{{"", "Wait for them"}, {"move", "Move them later"}, {"shorten", "Shorten them by up to"}, {"through", "Keep going through them"}} {
+						<label class="radio comp-option mr-3">
+							<input type="radio" name="breaks" value={ o[0] } checked?={ p.Breaks == o[0] }/>
+							{ o[1] }
+						</label>
+					}
+					<input class="input is-small comp-num" name="shorten" type="number" min="0" max="120" value={ p.Shorten } aria-label="Minutes breaks can be shortened by"/>
+					<span class="is-size-7">min</span>
+				</div>
+				<div class="comp-sim-grid">
+					<label class="comp-sim-row">
+						<span>Minutes between flights (empty: as set up)</span>
+						<input class="input is-small comp-num" name="between" type="number" min="0" max="60" value={ p.Between }/>
+					</label>
+					<label class="comp-sim-row">
+						<span>Quicker turns: % less time per competitor</span>
+						<input class="input is-small comp-num" name="quicker" type="number" min="0" max="50" value={ p.Quicker }/>
+					</label>
+					<label class="comp-sim-row">
+						<span>Bigger flights: merge an event's flights next to each other up to this many</span>
+						<input class="input is-small comp-num" name="maxFlight" type="number" min="0" max="40" value={ p.MaxFlight }/>
+					</label>
+					<label class="comp-sim-row">
+						<span>Let the day run past its end by up to (min)</span>
+						<input class="input is-small comp-num" name="overrun" type="number" min="0" max="240" value={ p.Overrun }/>
+					</label>
+				</div>
+			</details>
 			<button class="button is-primary is-small" type="submit">Show what happens</button>
 		</form>
 		if r := p.Result; r != nil {
 			<div class="box">
+				if len(r.Easing) > 0 {
+					<p class="mb-2"><strong>Easing it:</strong> { joinNames(r.Easing) }.</p>
+					if r.Without != "" {
+						<p class="is-size-7 mb-3">Without that: { r.Without }.</p>
+					}
+				}
 				if len(r.Changes) == 0 {
 					<p class="has-text-success"><strong>Nothing changes:</strong> there's enough slack to take the delay.</p>
 				} else {
@@ -107,6 +151,8 @@ templ Delay(p DelayPage) {
 						<p class="has-text-success mb-2"><strong>Everything still fits.</strong></p>
 					}
 					@problemsList("Needed in two places", r.Clashes)
+					@problemsList("Breaks", r.Breaks)
+					@problemsList("Flights merged", r.Merged)
 					if r.ShortRest[1] > r.ShortRest[0] {
 						<p class="is-size-7 mb-2">Less rest than wanted: { strconv.Itoa(r.ShortRest[0]) } people before, { strconv.Itoa(r.ShortRest[1]) } after.</p>
 					}
@@ -123,10 +169,6 @@ templ Delay(p DelayPage) {
 										<td class="is-size-7 comp-wrap">
 											if c.Why != "" {
 												{ c.Why }
-											} else if c.Later > 0 {
-												{ strconv.Itoa(c.Later) } min later
-											} else {
-												runs late
 											}
 										</td>
 									</tr>

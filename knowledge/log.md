@@ -4,7 +4,8 @@
 * **Update**: [What if there's a delay?](features/competition-entries.md#what-if-theres-a-delay):
   hold up areas from a time for some minutes and see the later flights shift
   (or move to another area when they'd overrun or clash), without changing
-  the timetable.
+  the timetable. It can be eased: breaks moved, shortened or worked through,
+  shorter changeovers, quicker turns, bigger flights, or running over.
 * **Update**: A synchro pair enters one routine, the level's voluntary: the
   entry form, card, dashboard, printed cards, CSV and sheets show just it.
 * **Fix**: The timetable report's spare time counted blocked time, so a day

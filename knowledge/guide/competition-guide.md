@@ -175,7 +175,11 @@ has a starting value you can change.
 day, when the hold-up starts, how many minutes and which areas (none ticked
 for all). It shows which flights now start later or move to another area, when
 each day's flights end, anything that no longer fits, and anyone needed in two
-places. Nothing is changed: it's to help you decide what to do.
+places. Under **Ease it**, try what you'd do on the day: move, shorten or
+work through lunch on those areas, fewer minutes between flights, quicker
+turns, merging an event's flights into bigger ones, or letting the day run
+over; it shows what that buys against the delay alone. Nothing is changed:
+it's to help you decide what to do.
 
 **Simulate** (on the timetable page) tries numbers before entries arrive, or
 alongside them, without changing your timetable. It starts from your entries
