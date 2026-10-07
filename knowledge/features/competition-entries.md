@@ -248,8 +248,10 @@ change it):
 - **Judges each club must bring**, per discipline: so many judges (so many
   of them able to chair) for every so many of the club's competitors in it,
   rounding up (9 at 1 per 8 is 2), a synchro pair counting as two. With any,
-  the clubs' judges come from it, each judging that discipline, and the
-  judges above are only the organiser's own, with no club. A competing judge
+  the clubs' judges come from it and the judges above are only the
+  organiser's own, with no club. Anyone can judge any mix of disciplines, so
+  a club brings as few people as meet every discipline's quota (its biggest
+  one): its first judges count for each discipline that needs them. A competing judge
   is a gymnast of their own club where it has one.
 
 Stand-ins are planned with the real setup, panels and rota (`PlanStaffed`,

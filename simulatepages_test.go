@@ -93,8 +93,8 @@ func TestSimulation(t *testing.T) {
 	page = do(t, h, http.MethodGet, sim, nil).Body.String()
 	text = strings.Join(strings.Fields(regexp.MustCompile(`<[^>]+>`).ReplaceAllString(page, " ")), " ")
 	// 5 trampolinists a club at 1 per 4 is 2 judges each; 2 or 3 tumblers at
-	// 1 per 8 is 1 each.
-	for _, want := range []string{"Each club brings: Trampoline 1 per 4 competitors (1 can chair)", "Each club brings: Tumbling 1 per 8 competitors (0 can chair)", "Clubs bring 12 judges"} {
+	// 1 per 8 is 1 each, who can be one of the 2.
+	for _, want := range []string{"Each club brings: Trampoline 1 per 4 competitors (1 can chair)", "Each club brings: Tumbling 1 per 8 competitors (0 can chair)", "Clubs bring 8 judges"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("the quota scenario shows %q: %s", want, text)
 		}
