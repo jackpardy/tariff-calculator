@@ -596,6 +596,31 @@ details > * { box-sizing: border-box; }
     .comp-page.section { padding: 0; }
     .comp-sheet { break-after: page; }
 }
+/* The panel timeline: days side by side, time running down. */
+.comp-page .container:has(.comp-timeline) { max-width: none; }
+.comp-timeline-scroll { overflow-x: auto; }
+.comp-timeline-table { border-collapse: collapse; font-size: 0.72rem; line-height: 1.25; table-layout: fixed; width: 100%; min-width: calc(var(--areas) * 9rem + 3.5rem); }
+.comp-timeline-table col.comp-timeline-timecol { width: 3.5rem; }
+.comp-timeline-table th, .comp-timeline-table td { border: 1px solid #ddd; padding: 0.15rem 0.3rem; vertical-align: top; }
+.comp-timeline-table thead th { background: #f5f5f5; text-align: center; white-space: nowrap; }
+.comp-timeline-table th.comp-timeline-day { font-size: 0.85rem; }
+.comp-timeline-table .comp-timeline-daystart { border-left: 2px solid #888; }
+.comp-timeline-table th.comp-timeline-time { color: #666; font-weight: normal; white-space: nowrap; text-align: right; }
+.comp-timeline-table tbody th.comp-timeline-time { position: sticky; left: 0; background: #fff; z-index: 1; }
+.comp-timeline-table tr.comp-timeline-hour > th.comp-timeline-time { color: #000; font-weight: 600; }
+.comp-timeline-table td.comp-timeline-flight { background: #eef3fc; }
+.comp-timeline-table td.comp-timeline-block { background: #fdf5e6; }
+.comp-timeline-table td.comp-timeline-off { background: repeating-linear-gradient(45deg, #f4f4f4, #f4f4f4 4px, #fff 4px, #fff 8px); }
+.comp-timeline-item + .comp-timeline-item { border-top: 1px dashed #999; margin-top: 0.2rem; padding-top: 0.2rem; }
+@page timeline { size: A3 landscape; margin: 10mm; }
+@media print {
+    .comp-timeline { page: timeline; }
+    .comp-timeline-scroll { overflow: visible; }
+    .comp-timeline-table { font-size: 6.5pt; min-width: 0; }
+    .comp-timeline-table col.comp-timeline-timecol { width: 2.5rem; }
+    .comp-timeline-table td, .comp-timeline-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .comp-timeline-table thead { display: table-header-group; }
+}
 .comp-event { border-top: 1px solid #eee; padding-top: 0.75rem; margin-top: 0.75rem; }
 .comp-event .comp-change summary { color: #485fc7; }
 

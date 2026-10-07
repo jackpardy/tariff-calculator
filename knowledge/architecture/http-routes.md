@@ -99,7 +99,8 @@ every page answers 503.
 | `POST /competitions/admin/{token}/timetable/entry` | `entry`, `to` (flight index, `""` to take out) | Moves or places a gymnast |
 | `POST /competitions/admin/{token}/timetable/publish` | `on` (`1`/`0`) | Shows clubs and gymnasts their flight, or hides it |
 | `POST /competitions/admin/{token}/timetable/officials` | `action` (`rota`, or `seat` with `flight` or `block`, `seat`, `person`) | Assigns every panel again, or gives one seat to someone (`""` empties it) |
-| `GET /competitions/admin/{token}/timetable/print` | `sheet` (`marshal`, `judges` or `rota`) | Printable sheets, one area to a page, with each flight's panel; or each person's duties |
+| `GET /competitions/admin/{token}/timetable/print` | `sheet` (`marshal`, `judges`, `rota` or `timeline`) | Printable sheets, one area to a page, with each flight's panel; each person's duties; or the panel timeline, every day's areas side by side |
+| `GET /competitions/admin/{token}/timetable/timeline.csv` | — | The panel timeline as CSV: a row per flight or block on each area, with its officials by role |
 | `POST /competitions/admin/{token}/signoff` | `on` (`1`/`0`) | Whether entries need a coach's sign-off (also `signoff=1` on `POST /competitions`) |
 | `GET`, `POST /competitions/signoff/{token}` | `coach` (their name), `signed`, `note` | An individual's coach signing off their entry |
 

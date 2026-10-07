@@ -216,6 +216,15 @@ From the dashboard, **Timetable** plans the competition over the venue's days
   again; moves are rechecked for clashes and listed as problems.
 - **Sheets:** marshal sheets (running orders to tick off) and chair of judges
   sheets (each gymnast's exercises and problems), one area to a page.
+- **Panel timeline:** every day side by side, a column per area and time
+  running down, showing each flight (warm-up to finish, how many gymnasts)
+  and blocked time with who officiates it, by role ("—" for a seat no one
+  could take). Rows run from each time anything starts or ends (and each
+  hour) to the next, so areas line up by time and each cell is as tall as
+  what it says; flights moved by hand onto each other share a cell. It
+  prints on A3 landscape and downloads as CSV (`timeline.csv`): a row per
+  flight or block on each area, in time order, with each role's officials
+  and their clubs.
 - **Publish** shows clubs (each member's row), members and gymnasts entering
   on their own their flight, area, day and warm-up time.
 
