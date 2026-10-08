@@ -79,6 +79,29 @@ sends (ADR 0004 Decision 2).
   single PDF of all cards is the cards page saved as PDF from the browser's
   print dialog.
 
+## Removing and holding entries
+
+Each row of the dashboard has a tick box (and each level's header ticks the
+whole table, so filtering by club takes a whole club). Under **Remove or
+hold entries** the organiser chooses:
+
+- **Remove**: the entry is taken out and can't be sent or changed again
+  (a club's Send skips it; an individual's page can't change it) until the
+  organiser **restores** it.
+- **Hold, asking for changes**: taken out until the club or gymnast changes
+  it and sends it again; it then shows "Changed and sent again: waiting for
+  you", and **Accept back in** returns it.
+
+Either way there's an optional reason, shown to the club, the gymnast or
+both (an individual always sees theirs). Removed and held entries are left
+out of `Store.Entries`, so out of every count, card, CSV, timetable, rota
+and "My competition", and listed at the end of the dashboard under
+**Removed and on hold**, to restore or accept. The club page and the
+member's and individual's pages say what the organiser did ("Removed by
+the organiser", "On hold: the organiser asks for changes", "On hold:
+changed, send it again", "Changed and sent again: waiting for the
+organiser") with the reason where it's for them.
+
 ## Video proof
 
 When creating the competition, the organiser chooses whether video proof is

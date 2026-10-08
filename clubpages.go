@@ -165,12 +165,26 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 				sentID[e.MemberID] = e.ID
 			}
 		}
+		removals, err := p.st.ClubRemovals(ctx, club.ID, c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
 		has := map[string]bool{}
 		for _, e := range mine {
 			has[e.MemberID] = true
 			entered[e.MemberID]++
 			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Event(), Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
+			rem, removed := removals[e.MemberID+"/"+e.Discipline]
 			switch {
+			case removed:
+				row.Status = removalStatus(rem, e.ChangedSinceSent())
+				if rem.ForClub() && rem.RemovalNote != "" {
+					row.Note = strings.TrimSpace(row.Note + " " + rem.RemovalNote)
+				}
+				if rem.Removal == store.Held && e.ChangedSinceSent() && !rem.Resent {
+					cc.ToSend++
+				}
 			case !e.Sent():
 				row.Status = "Not sent"
 				cc.ToSend++
@@ -624,6 +638,11 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 	}
 	now := p.now()
 	seen := p.seenFor(r)
+	removals, err := p.st.MemberRemovals(ctx, m.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	for _, c := range comps {
 		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now), Duties: dutiesOf(c, "m:"+m.ID), Day: dayPath(path, c.ID)}
 		var sent []store.Entry
@@ -669,7 +688,13 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 				if e.Entry.Partner != nil {
 					ev.Partner = &views.PartnerView{Name: e.Entry.Partner.Name, Link: origin(r) + partnerPath(e.PartnerLink), Confirmed: e.PartnerConfirmed}
 				}
+				rem, removed := removals[c.ID+"/"+d]
 				switch {
+				case removed:
+					ev.Status = removalStatus(rem, e.ChangedSinceSent())
+					if rem.ForMember() && rem.RemovalNote != "" {
+						ev.Note = strings.TrimSpace(ev.Note + " " + rem.RemovalNote)
+					}
 				case !e.Sent():
 					ev.Status = "Saved, not sent yet"
 				case e.ChangedSinceSent():
@@ -842,4 +867,18 @@ func (p *competitionPages) sendCoaches(w http.ResponseWriter, r *http.Request) {
 		notice = "No coaches sent."
 	}
 	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+}
+
+// removalStatus says what the organiser did with an entry: removed, or held
+// for changes (changed since, to send again; or sent again, waiting).
+func removalStatus(e store.Entry, changed bool) string {
+	switch {
+	case e.Removal == store.Removed:
+		return "Removed by the organiser"
+	case e.Resent:
+		return "Changed and sent again: waiting for the organiser"
+	case changed:
+		return "On hold: changed, send it again"
+	}
+	return "On hold: the organiser asks for changes"
 }

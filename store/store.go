@@ -29,6 +29,9 @@ var (
 	ErrClosed = errors.New("entries for this competition have closed")
 	// ErrLimit is a club or competition that's full.
 	ErrLimit = errors.New("limit reached")
+	// ErrRemoved is an entry the organiser has removed: it can't be sent or
+	// changed until they restore it.
+	ErrRemoved = errors.New("the organiser has removed this entry")
 	// ErrNotAttached is an entry for a competition the member's club hasn't joined.
 	ErrNotAttached = errors.New("the club isn't entered in this competition")
 )
@@ -328,6 +331,14 @@ var migrations = []string{
 		decided_at    TEXT,
 		counts_from   TEXT NOT NULL DEFAULT ''
 	);`,
+
+	// 13: the organiser removes entries, or holds them for changes (roadmap
+	// 2026-10-08), with an optional reason for the club, the member or both;
+	// a held entry sent again waits for the organiser (resent).
+	`ALTER TABLE entries ADD COLUMN removal TEXT NOT NULL DEFAULT '';
+	ALTER TABLE entries ADD COLUMN removal_note TEXT NOT NULL DEFAULT '';
+	ALTER TABLE entries ADD COLUMN removal_to TEXT NOT NULL DEFAULT '';
+	ALTER TABLE entries ADD COLUMN resent BOOLEAN NOT NULL DEFAULT FALSE;`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

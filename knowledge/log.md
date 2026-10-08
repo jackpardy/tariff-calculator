@@ -1,6 +1,13 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Removing and holding entries](features/competition-entries.md#removing-and-holding-entries):
+  the organiser ticks entries and removes them (not sent or changed again
+  until restored) or holds them for changes (sent again, then accepted
+  back in), with an optional reason for the club, the gymnast or both;
+  they're out of every count, card, CSV and timetable, and listed to
+  restore. On the [roadmap](roadmap.md): personal and club timetables laid
+  out like the panel timeline.
 * **Update**: On the [roadmap](roadmap.md): ways round the organiser's
   entries: collapsing levels, searching for a person, filtering by coach,
   checked, sign-off, video and more, sorting, and printing what's shown.

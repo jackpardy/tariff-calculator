@@ -100,6 +100,15 @@ pair's one routine), checked as the Routine Builder checks them.
   coach's sign-offs counting; approving them again, choose whether the
   sign-offs they gave before count again or only those from now on.
 
+**Remove or hold entries**: tick entries in the tables (a table's header
+ticks them all; filter by club first to take a whole club), then choose
+**Remove** (they can't be sent or changed again until you restore them) or
+**Hold, asking for changes** (the club or gymnast changes the entry and
+sends it again, and you **Accept back in**), with an optional reason for
+the club, the gymnast or both. They're no longer counted, printed or
+timetabled, and are listed at the end under **Removed and on hold**, to
+**Restore**.
+
 An entry marked **Withdrawn** was withdrawn after the club sent it. It isn't
 counted or printed, and goes when the club sends again. A competition and its
 entries are deleted 120 days after the competition date.

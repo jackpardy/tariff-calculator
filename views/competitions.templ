@@ -75,6 +75,16 @@ type Dashboard struct {
 	Entries       int // every entry, before filtering
 	WithProblems  int
 	Levels        []DashboardLevel
+	Removed       []RemovedRow // entries removed or held
+}
+
+// RemovedRow is an entry the organiser removed or holds.
+type RemovedRow struct {
+	ID, Gymnast, Club, Level string
+	Held                     bool   // on hold for changes, not removed
+	Resent                   bool   // held, changed and sent again: waiting to be accepted
+	Note                     string // the reason
+	To                       string // who sees it, e.g. "the club"
 }
 
 // LevelOrder is one discipline's levels, easiest first, for the organiser to
@@ -216,6 +226,7 @@ type EntryPage struct {
 	Coach       *EntryCoachView // their coach, where the competition approves coaches
 	Notice      string
 	Pairs       []PairView // synchro entries they're the partner in
+	Removal     string     // what the organiser did with it, and why, if anything
 }
 
 // EntryCoachView is the coach an individual names, for the organiser to
@@ -521,6 +532,8 @@ templ CompetitionDashboard(d Dashboard) {
 		}
 		if d.Entries == 0 {
 			<p class="has-text-grey">No entries yet. Clubs send theirs through the club link; individuals enter through theirs.</p>
+		} else {
+			@removeForm(d.Base)
 		}
 		for _, l := range d.Levels {
 			<h2 class="title is-5 mt-5">
@@ -536,6 +549,7 @@ templ CompetitionDashboard(d Dashboard) {
 					<table class="table is-fullwidth is-narrow comp-table">
 						<thead>
 							<tr>
+								<th><input type="checkbox" aria-label={ "Tick all of " + l.Name } onchange="this.closest('table').querySelectorAll('input[name=entry]').forEach(c => c.checked = this.checked)"/></th>
 								<th>Gymnast</th>
 								<th>Club</th>
 								<th>1st exercise</th>
@@ -555,6 +569,7 @@ templ CompetitionDashboard(d Dashboard) {
 						<tbody>
 							for _, r := range l.Rows {
 								<tr class={ templ.KV("has-problems", len(r.Problems) > 0 && !r.Withdrawn), templ.KV("is-withdrawn", r.Withdrawn) }>
+									<td><input type="checkbox" name="entry" value={ r.ID } form="remove-form" aria-label={ "Tick " + r.Gymnast }/></td>
 									<td>
 										<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID) }>{ r.Gymnast }</a>
 										if r.Withdrawn {
@@ -620,6 +635,7 @@ templ CompetitionDashboard(d Dashboard) {
 				</div>
 			}
 		}
+		@removedList(d.Base, d.Removed)
 	}
 }
 
@@ -993,6 +1009,9 @@ templ CompetitionEntryPage(p EntryPage) {
 		@partnerBox(p.Partner)
 		if p.Notice != "" {
 			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		if p.Removal != "" {
+			<div class="notification is-warning is-light">{ p.Removal }</div>
 		}
 		if p.Coach != nil {
 			@entryCoachBox(*p.Coach, p.Competition.Open)
@@ -1372,4 +1391,71 @@ func entryLevelLabel(l EntryLevel) string {
 		return l.Label
 	}
 	return l.Name
+}
+
+// removeForm removes or holds the entries ticked in the tables.
+templ removeForm(base string) {
+	<details class="box comp-manage">
+		<summary><strong>Remove or hold entries</strong> <span class="has-text-grey is-size-7">· tick them in the tables below</span></summary>
+		<form id="remove-form" method="post" action={ templ.SafeURL(base + "/remove") } class="mt-3">
+			<div class="field">
+				<label class="radio comp-option"><input type="radio" name="action" value="remove" checked/> <strong>Remove</strong>: they can't be sent or changed again unless you restore them</label>
+				<label class="radio comp-option"><input type="radio" name="action" value="hold"/> <strong>Hold, asking for changes</strong>: the club or gymnast changes the entry and sends it again, and you accept it back in</label>
+			</div>
+			<div class="field">
+				<input class="input is-small" name="note" maxlength="300" placeholder="Reason (optional), e.g. Entry fee not paid" aria-label="Reason"/>
+			</div>
+			<div class="field is-size-7">
+				Show the reason to
+				<label class="radio ml-2"><input type="radio" name="to" value="club"/> the club</label>
+				<label class="radio"><input type="radio" name="to" value="member"/> the gymnast</label>
+				<label class="radio"><input type="radio" name="to" value="both" checked/> both</label>
+			</div>
+			<button class="button is-small is-danger is-light" type="submit">Apply to the ticked entries</button>
+			<p class="help">To take a whole club, filter by the club above, then tick each table's header. Removed and held entries aren't counted, printed or timetabled.</p>
+		</form>
+	</details>
+}
+
+// removedList is the entries removed or held, to restore or accept.
+templ removedList(base string, rows []RemovedRow) {
+	if len(rows) > 0 {
+		<h2 class="title is-5 mt-5">Removed and on hold <span class="has-text-grey is-size-6">({ strconv.Itoa(len(rows)) })</span></h2>
+		<div class="table-container">
+			<table class="table is-fullwidth is-narrow">
+				<tbody>
+					for _, r := range rows {
+						<tr>
+							<td><a href={ templ.SafeURL(base + "/entries/" + r.ID) }>{ r.Gymnast }</a></td>
+							<td>{ r.Club }</td>
+							<td>{ r.Level }</td>
+							<td>
+								if r.Resent {
+									<span class="tag is-info is-light">Changed and sent again: waiting for you</span>
+								} else if r.Held {
+									<span class="tag is-warning is-light">On hold for changes</span>
+								} else {
+									<span class="tag is-danger is-light">Removed</span>
+								}
+								if r.Note != "" {
+									<span class="is-size-7 has-text-grey">{ r.Note } ({ r.To })</span>
+								}
+							</td>
+							<td class="has-text-right">
+								<form method="post" action={ templ.SafeURL(base + "/entries/" + r.ID + "/restore") }>
+									<button class="button is-small" type="submit">
+										if r.Resent {
+											Accept back in
+										} else {
+											Restore
+										}
+									</button>
+								</form>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
 }
