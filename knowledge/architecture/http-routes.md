@@ -64,6 +64,14 @@ every page answers 503.
 | `POST /competitions/admin/{token}/entries/{id}/video` | `review` (`ok`, `more`, `""`), `note` | The organiser's review of an entry's videos |
 | `POST /competitions/admin/{token}/individuals` | `on` (`1`/`0`) | Turns individual entry on or off |
 | `POST /competitions/admin/{token}/replace-link` | — | 303 to the new admin link, `?new=replaced` |
+| `POST /competitions/admin/{token}/links` | `name`, `kind` (`cards`, `chair`, `timetable`, `everything`) | Makes a helper's link (ADR 0009) and shows it once |
+| `POST /competitions/admin/{token}/links/{id}/remove` | — | Stops a helper's link working |
+| `GET /competitions/admin/{token}/history` | — | Every change, when and by which link |
+| `POST /competitions/admin/{token}/concerns` | `text`, optional `entry` | Flags a concern for the organiser (any admin link) |
+| `POST /competitions/admin/{token}/concerns/{id}/resolve` | `note` | Marks a concern resolved |
+
+Every `/competitions/admin/{token}` route takes the admin link or a helper's
+link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST /competitions/admin/{token}/delete` | `confirm=1` | Deletes the competition and its entries |
 | `GET`, `POST /competitions/enter/{token}` | `gymnast`, `level`, `ex1Option`, `ex1Skills`, `ex2Option`, `ex2Skills`, and where video is asked for `ex1Video`, `ex1VideoNote`, `ex2Video`, `ex2VideoNote` | The individual entry form; entering redirects to the personal link |
 | `GET`, `POST /competitions/entry/{token}` | as entering | An individual's own entry, and changing it until the deadline |

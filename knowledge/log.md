@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Helpers' links](features/competition-entries.md#helpers-links-history-and-concerns-adr-0009)
+  ([ADR 0009](../docs/adr/0009-helper-links.md)): the organiser makes links
+  for checking cards, chairs of judges, the timetable and officials, or a
+  co-organiser, each doing only that; a **History** of every change and who
+  made it; and **concerns** any helper can flag for the organiser to
+  resolve.
 * **Update**: [Roadmap](roadmap.md) priorities: while it's being demoed,
   admin links that can do less with a change history, entry fees, limits
   with a waiting list, then the day itself; ISTO 2027's entries open early

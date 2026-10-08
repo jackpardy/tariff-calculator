@@ -545,6 +545,36 @@ func (s *seeder) run(out io.Writer) error {
 	}
 	s.post(tt+"/plan", url.Values{})
 	s.post(tt+"/publish", url.Values{"on": {"1"}})
+
+	// Helpers' links (ADR 0009): the difficulty judges check a few cards,
+	// and a chair of judges flags a concern about one.
+	helper := func(name, kind string) string {
+		if s.err != nil {
+			return ""
+		}
+		rec := s.do(http.MethodPost, admin+"/links", url.Values{"name": {name}, "kind": {kind}})
+		if rec.Code != http.StatusOK {
+			s.fail("making a link for %s: %d", name, rec.Code)
+			return ""
+		}
+		m := regexp.MustCompile(`http://example\.com(/competitions/admin/[A-Za-z0-9_-]+)`).FindStringSubmatch(rec.Body.String())
+		if m == nil {
+			s.fail("no link for %s", name)
+			return ""
+		}
+		return m[1]
+	}
+	judges, chairs := helper("Difficulty judges", "cards"), helper("Chairs of judges", "chair")
+	helper("Timetable team", "timetable")
+	entryLinks := regexp.MustCompile(`href="`+regexp.QuoteMeta(admin)+`/entries/([^"]+)"`).FindAllStringSubmatch(s.get(admin), 4)
+	for i, m := range entryLinks {
+		if i < 3 {
+			s.post(judges+"/entries/"+m[1]+"/check", url.Values{"checked": {"1"}})
+		} else {
+			s.post(chairs+"/concerns", url.Values{"entry": {m[1]}, "text": {"The second routine's element 7 isn't what's on the card: check with the coach before the flight."}})
+		}
+	}
+	s.post(chairs+"/concerns", url.Values{"text": {"Panel 2's trampoline has a loose spring cover: can someone look at it at lunch?"}})
 	if s.err != nil {
 		return s.err
 	}
@@ -552,7 +582,9 @@ func (s *seeder) run(out io.Writer) error {
 	fmt.Fprintf(out, "Made ISTO 2027 (demo): %d club members and 6 gymnasts on their own.\n\n", len(everyone))
 	fmt.Fprintf(out, "Organiser (dashboard):  %s\n", admin)
 	fmt.Fprintf(out, "Timetable:              %s\n", tt)
-	fmt.Fprintf(out, "Officials:              %s/officials\n\n", admin)
+	fmt.Fprintf(out, "Officials:              %s/officials\n", admin)
+	fmt.Fprintf(out, "Difficulty judges:      %s\n", judges)
+	fmt.Fprintf(out, "Chairs of judges:       %s\n\n", chairs)
 	fmt.Fprintln(out, "Clubs (comp sec pages):")
 	for _, c := range clubAdmins {
 		fmt.Fprintf(out, "  %s\n", c)

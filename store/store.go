@@ -397,6 +397,38 @@ var migrations = []string{
 		SELECT c.id FROM coaches c WHERE c.club_id = entries.club_id AND lower(trim(c.name)) = lower(trim(entries.signed_by)))
 	WHERE signed_coach = '' AND signed_by <> '' AND NOT individual AND (
 		SELECT COUNT(*) FROM coaches c WHERE c.club_id = entries.club_id AND lower(trim(c.name)) = lower(trim(entries.signed_by))) = 1;`,
+
+	// 19: more admin links, each able to do less, and the change history
+	// (ADR 0009).
+	`CREATE TABLE competition_links (
+		id             TEXT PRIMARY KEY,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		token_hash     TEXT NOT NULL UNIQUE,
+		name           TEXT NOT NULL,
+		kind           TEXT NOT NULL,
+		created_at     TEXT NOT NULL
+	);
+	CREATE INDEX competition_links_competition ON competition_links (competition_id);
+	CREATE TABLE competition_log (
+		id             INTEGER PRIMARY KEY AUTOINCREMENT,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		at             TEXT NOT NULL,
+		who            TEXT NOT NULL,
+		what           TEXT NOT NULL
+	);
+	CREATE INDEX competition_log_competition ON competition_log (competition_id, id);
+	CREATE TABLE concerns (
+		id             TEXT PRIMARY KEY,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		entry_id       TEXT NOT NULL DEFAULT '',
+		who            TEXT NOT NULL,
+		text           TEXT NOT NULL,
+		at             TEXT NOT NULL,
+		resolved_at    TEXT NOT NULL DEFAULT '',
+		resolved_by    TEXT NOT NULL DEFAULT '',
+		resolution     TEXT NOT NULL DEFAULT ''
+	);
+	CREATE INDEX concerns_competition ON concerns (competition_id);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

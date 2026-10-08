@@ -1,0 +1,188 @@
+package views
+
+// Access is what the admin link a page was opened by can do (ADR 0009), so
+// its page offers only that.
+type Access struct {
+	Who       string // the link's name, "Organiser" for the admin link
+	Organiser bool   // the admin link: links, replacing it, deleting
+	Settings  bool   // the competition's settings
+	Remove    bool   // removing, holding and restoring entries
+	Check     bool   // checking cards and reviewing videos
+	Timetable bool   // the timetable and its tools
+	Sheets    bool   // the timetable's printed sheets
+	Officials bool
+	Coaches   bool // approving coaches
+	NotifyNow bool
+	Resolve   bool // resolving concerns
+}
+
+// LinkView is an extra admin link, for the organiser.
+type LinkView struct {
+	ID, Name, Kind, Made string
+}
+
+// LinkKind is a kind of link the organiser can make.
+type LinkKind struct {
+	Value, Label, Help string
+}
+
+// LinkKinds are the kinds of extra link, in the order offered.
+var LinkKinds = []LinkKind{
+	{"cards", "Checking cards", "For difficulty judges: see every entry, mark cards checked with notes, review videos."},
+	{"chair", "Chairs of judges", "See every entry and print the timetable's sheets (chair of judges, score sheets, marshal); flag concerns."},
+	{"timetable", "Timetable and officials", "Plan, change and publish the timetable and the officials, and see the entries."},
+	{"everything", "Everything but links and deleting", "A co-organiser: all you can do, except making or removing links, replacing the admin link and deleting the competition."},
+}
+
+// linksBox is where the organiser makes and removes extra links.
+templ linksBox(base string, links []LinkView) {
+	<div class="mb-4">
+		<p class="label is-small mb-1">Links for your helpers</p>
+		<p class="help mb-2">Each can do only part of what your admin link can, and the history says which link made each change. Anyone can flag a concern for you.</p>
+		if len(links) > 0 {
+			<ul class="is-size-7 mb-2">
+				for _, l := range links {
+					<li class="mb-1">
+						<strong>{ l.Name }</strong> · { l.Kind } · made { l.Made }
+						<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/remove") } class="is-inline">
+							<button class="button is-small is-text" type="submit">Remove</button>
+						</form>
+					</li>
+				}
+			</ul>
+		}
+		<form method="post" action={ templ.SafeURL(base + "/links") }>
+			<div class="field">
+				<input class="input is-small" name="name" required maxlength="60" placeholder="Who it's for, e.g. Difficulty judges" aria-label="Who the link is for"/>
+			</div>
+			<div class="field">
+				for i, k := range LinkKinds {
+					<label class="radio is-block mb-1 ml-0">
+						<input type="radio" name="kind" value={ k.Value } checked?={ i == 0 }/>
+						<strong>{ k.Label }</strong> <span class="is-size-7 has-text-grey">{ k.Help }</span>
+					</label>
+				}
+			</div>
+			<button class="button is-small" type="submit">Make a link</button>
+		</form>
+	</div>
+}
+
+// NewLinkPage shows a link just made, once.
+type NewLinkPage struct {
+	Competition      CompetitionSummary
+	Back             string
+	Name, Kind, Link string
+}
+
+// NewLink shows a link just made: it isn't kept, so it's copied now.
+templ NewLink(p NewLinkPage) {
+	@competitionLayout("New link · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← All entries</a></p>
+		<h1 class="title is-4">A link for { p.Name }</h1>
+		<p class="mb-3">It can do: { p.Kind }. Copy it now and send it to them: it's only shown this once. If it's lost, remove it and make another.</p>
+		@linkBox("Link for "+p.Name, p.Link, "Anyone with it can do this, until you remove it.")
+	}
+}
+
+// HistoryPage is a competition's changes.
+type HistoryPage struct {
+	Competition CompetitionSummary
+	Back        string
+	Changes     []HistoryChange
+}
+
+// HistoryChange is one change.
+type HistoryChange struct {
+	At, Who, What string
+}
+
+// History lists the latest changes, and which link made each.
+templ History(p HistoryPage) {
+	@competitionLayout("History · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← All entries</a></p>
+		<h1 class="title is-4">History</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		if len(p.Changes) == 0 {
+			<p class="has-text-grey">No changes yet.</p>
+		} else {
+			<table class="table is-fullwidth is-narrow">
+				<thead>
+					<tr><th>When</th><th>Who</th><th>What</th></tr>
+				</thead>
+				<tbody>
+					for _, c := range p.Changes {
+						<tr>
+							<td class="is-size-7 has-text-grey" style="white-space: nowrap">{ c.At }</td>
+							<td>{ c.Who }</td>
+							<td>{ c.What }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	}
+}
+
+// ConcernView is a concern flagged for the organiser.
+type ConcernView struct {
+	ID, Who, Text, At    string
+	About, AboutLink     string // the entry it's about, if any
+	Open                 bool
+	ResolvedBy, Resolution string
+}
+
+// concernsBox lists the concerns, open ones first.
+templ concernsBox(base string, concerns []ConcernView, open int, a Access) {
+	if len(concerns) > 0 {
+		<details class={ "box", templ.KV("comp-concerns-open", open > 0) } open?={ open > 0 && a.Resolve }>
+			<summary>
+				<strong>Concerns</strong>
+				if open > 0 {
+					<span class="tag is-warning ml-1">{ open } open</span>
+				} else {
+					<span class="is-size-7 has-text-grey">· none open</span>
+				}
+			</summary>
+			for _, c := range concerns {
+				<div class={ "mt-3", templ.KV("has-text-grey", !c.Open) }>
+					<p>
+						if c.About != "" {
+							<a href={ templ.SafeURL(c.AboutLink) }>{ c.About }</a>:
+						}
+						{ c.Text }
+					</p>
+					<p class="is-size-7 has-text-grey">{ c.Who } · { c.At }</p>
+					if !c.Open {
+						<p class="is-size-7">
+							Resolved by { c.ResolvedBy }
+							if c.Resolution != "" {
+								: { c.Resolution }
+							}
+						</p>
+					} else if a.Resolve {
+						<form method="post" action={ templ.SafeURL(base + "/concerns/" + c.ID + "/resolve") } class="comp-flight-actions mt-1">
+							<input class="input is-small" name="note" maxlength="300" placeholder="What was done (optional)" aria-label="What was done"/>
+							<button class="button is-small" type="submit">Resolved</button>
+						</form>
+					}
+				</div>
+			}
+		</details>
+	}
+}
+
+// concernForm flags a concern for the organiser, about an entry ("" for the
+// competition).
+templ concernForm(base, entryID, label string) {
+	<details class="mt-3">
+		<summary class="is-size-7">{ label }</summary>
+		<form method="post" action={ templ.SafeURL(base + "/concerns") } class="mt-2">
+			if entryID != "" {
+				<input type="hidden" name="entry" value={ entryID }/>
+			}
+			<textarea class="textarea is-small mb-2" name="text" required maxlength="500" rows="2" placeholder="What's the concern? e.g. element 7 isn't on the card" aria-label="The concern"></textarea>
+			<button class="button is-small is-warning is-light" type="submit">Flag for the organiser</button>
+		</form>
+	</details>
+}
