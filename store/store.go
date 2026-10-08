@@ -339,6 +339,12 @@ var migrations = []string{
 	ALTER TABLE entries ADD COLUMN removal_note TEXT NOT NULL DEFAULT '';
 	ALTER TABLE entries ADD COLUMN removal_to TEXT NOT NULL DEFAULT '';
 	ALTER TABLE entries ADD COLUMN resent BOOLEAN NOT NULL DEFAULT FALSE;`,
+
+	// 14: draft and published timetables (roadmap 2026-10-07): the organiser
+	// changes the draft (timetable), attendees see the published copy. One
+	// published before this is its own published copy.
+	`ALTER TABLE competitions ADD COLUMN published_timetable TEXT NOT NULL DEFAULT '';
+	UPDATE competitions SET published_timetable = timetable WHERE timetable <> '' AND json_extract(timetable, '$.published');`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

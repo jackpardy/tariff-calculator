@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: Draft and published timetables: once published, every change
+  the organiser makes (planning, moves, officials' seats, a kept delay or
+  leaving official) is a draft until **Publish changes**; attendees see the
+  published copy. **Discard changes** goes back to it. The delay and
+  leaving-official "what ifs" can be kept in the draft.
 * **Update**: [Personal and club timetables](features/competition-entries.md#personal-and-club-timetables):
   once published, the panel timeline with a person's flights and panels
   picked out, or everywhere a club has someone competing or officiating,

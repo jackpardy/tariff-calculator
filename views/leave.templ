@@ -13,6 +13,7 @@ type LeavePage struct {
 	Asked                     bool
 	Problems                  []string
 	Result                    *LeaveResult
+	Keep                      string // where keeping the result posts
 }
 
 // LeaveResult is how the leaver's seats are filled.
@@ -80,6 +81,11 @@ templ Leave(p LeavePage) {
 			<button class="button is-primary is-small" type="submit">Show what happens</button>
 		</form>
 		if r := p.Result; r != nil {
+			<form method="post" action={ templ.SafeURL(p.Keep) } class="mb-4">
+				<button class="button is-small is-success" type="submit">Keep this in the draft timetable</button>
+				<span class="help is-inline ml-2">Attendees see it once you publish the timetable again.</span>
+			</form>
+
 			<div class="box">
 				if len(r.Seats) == 0 {
 					<p>{ r.Who } has no seats from then.</p>

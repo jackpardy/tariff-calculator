@@ -20,6 +20,7 @@ type DelayPage struct {
 	Asked              bool
 	Problems           []string
 	Result             *DelayResult
+	Keep               string // where keeping the result posts
 }
 
 // DelayResult is what a delay does.
@@ -116,6 +117,11 @@ templ Delay(p DelayPage) {
 			<button class="button is-primary is-small" type="submit">Show what happens</button>
 		</form>
 		if r := p.Result; r != nil {
+			<form method="post" action={ templ.SafeURL(p.Keep) } class="mb-4">
+				<button class="button is-small is-success" type="submit">Keep this in the draft timetable</button>
+				<span class="help is-inline ml-2">Attendees see it once you publish the timetable again.</span>
+			</form>
+
 			<div class="box">
 				if len(r.Easing) > 0 {
 					<p class="mb-2"><strong>Easing it:</strong> { joinNames(r.Easing) }.</p>

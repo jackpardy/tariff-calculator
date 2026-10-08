@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand/v2"
 	"net/http"
@@ -36,7 +37,9 @@ func (p *competitionPages) registerTimetable(handle func(string, http.HandlerFun
 	handle("GET /competitions/admin/{token}/timetable/timeline.csv", p.timelineCSV)
 	handle("GET /competitions/admin/{token}/timetable/simulate", p.simulation)
 	handle("GET /competitions/admin/{token}/timetable/delay", p.delay)
+	handle("POST /competitions/admin/{token}/timetable/delay", p.delay)
 	handle("GET /competitions/admin/{token}/timetable/leave", p.leave)
+	handle("POST /competitions/admin/{token}/timetable/leave", p.leave)
 	handle("POST /competitions/admin/{token}/timetable/simulate", p.simulate)
 	handle("POST /competitions/admin/{token}/timetable/simulate/delete", p.deleteScenario)
 }
@@ -304,7 +307,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 	}
 	page := views.TimetablePage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Notice: r.URL.Query().Get("notice"),
-		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Published: s.Published, Entries: len(entries),
+		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Published: c.Published != nil, Changes: c.Published != nil && !sameTimetable(s, *c.Published), Entries: len(entries),
 	}
 	if s.Planned {
 		officials := people
@@ -619,7 +622,6 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	planned := competitions.PlanStaffed(schedEntries(entries), c.EventNames(), s.Setup, staffing(c.Competition, people), uint64(p.now().UnixNano()))
-	planned.Published = s.Published
 	p.staff(&planned, c, entries, people)
 	if err := p.st.SetTimetable(r.Context(), c.ID, &planned); err != nil {
 		failed(w, r, err)
@@ -714,14 +716,38 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 		back(w, r, "Plan the timetable first.")
 		return
 	}
-	s.Published = r.FormValue("on") == "1"
-	if err := p.st.SetTimetable(r.Context(), c.ID, &s); err != nil {
-		failed(w, r, err)
-		return
+	notice, action := "", r.FormValue("action")
+	if action == "" { // on=1 or 0, as before
+		action = map[string]string{"1": "publish", "0": "unpublish"}[r.FormValue("on")]
 	}
-	notice := "Unpublished: only you see the timetable."
-	if s.Published {
-		notice = "Published: clubs, members and gymnasts entering on their own see their flight, area and time."
+	switch action {
+	case "publish":
+		if err := p.st.PublishTimetable(r.Context(), c.ID, &s); err != nil {
+			failed(w, r, err)
+			return
+		}
+		notice = "Published: clubs, members and gymnasts entering on their own see their flight, area and time, and officials their duties."
+	case "unpublish":
+		if err := p.st.PublishTimetable(r.Context(), c.ID, nil); err != nil {
+			failed(w, r, err)
+			return
+		}
+		notice = "Unpublished: only you see the timetable."
+	case "discard":
+		if c.Published == nil {
+			back(w, r, "There's nothing published to go back to.")
+			return
+		}
+		draft := *c.Published
+		draft.Published = false
+		if err := p.st.SetTimetable(r.Context(), c.ID, &draft); err != nil {
+			failed(w, r, err)
+			return
+		}
+		notice = "Changes discarded: the timetable is as published."
+	default:
+		back(w, r, "")
+		return
 	}
 	back(w, r, notice)
 }
@@ -815,10 +841,10 @@ func problemsWord(n int) string {
 	return fmt.Sprintf("%d problems", n)
 }
 
-// placement is where an entry competes, once the timetable is published.
+// placement is where an entry competes, on the published timetable.
 func placement(c store.Competition, entryID string) *views.Placement {
-	t := c.Timetable
-	if t == nil || !t.Published || entryID == "" {
+	t := c.Published
+	if t == nil || entryID == "" {
 		return nil
 	}
 	i, ok := t.Find(entryID)
@@ -831,4 +857,26 @@ func placement(c store.Competition, entryID string) *views.Placement {
 		day = t.Setup.Days[f.Day].Name + " "
 	}
 	return &views.Placement{Flight: f.Name(), Panel: f.Area, Time: day + competitions.Clock(f.Start)}
+}
+
+// sameTimetable says whether a draft is what's published.
+func sameTimetable(draft, published competitions.Schedule) bool {
+	draft.Published, published.Published = false, false
+	a, err1 := json.Marshal(draft)
+	b, err2 := json.Marshal(published)
+	return err1 == nil && err2 == nil && string(a) == string(b)
+}
+
+// keepWhatIf makes a "what if"'s timetable the draft, for the organiser to
+// publish.
+func (p *competitionPages) keepWhatIf(w http.ResponseWriter, r *http.Request, c store.Competition, out competitions.Schedule, done string) {
+	if err := p.st.SetTimetable(r.Context(), c.ID, &out); err != nil {
+		failed(w, r, err)
+		return
+	}
+	notice := done
+	if c.Published != nil {
+		notice += " Publish the changes to show them to everyone."
+	}
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/timetable?notice="+url.QueryEscape(notice), http.StatusSeeOther)
 }

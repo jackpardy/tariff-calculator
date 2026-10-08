@@ -70,10 +70,14 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 		if err1 != nil || err2 != nil {
 			page.Problems = []string{"Give the day and the time they leave (e.g. 13:00)."}
 		} else {
-			_, fills, err := s.Left(competitions.Leave{Person: page.Person, Day: day, From: from, ForGood: page.ForGood, Prefer: page.Prefer}, people, officials)
+			out, fills, err := s.Left(competitions.Leave{Person: page.Person, Day: day, From: from, ForGood: page.ForGood, Prefer: page.Prefer}, people, officials)
 			if err != nil {
 				page.Problems = sentences(err)
+			} else if r.Method == http.MethodPost {
+				p.keepWhatIf(w, r, c, out, name(page.Person)+"'s seats are filled in the draft.")
+				return
 			} else {
+				page.Keep = r.URL.RequestURI()
 				page.Result = leaveView(s, fills, name, page.Person)
 			}
 		}

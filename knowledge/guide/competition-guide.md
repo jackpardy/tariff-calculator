@@ -215,7 +215,12 @@ has a starting value you can change.
    column for each seat on its panel and who has it. Print either (A3
    landscape) or **Download CSV** for a spreadsheet.
 10. **Publish** to show clubs, members and gymnasts entering on their own their
-   flight, area and warm-up time, and officials their duties.
+   flight, area and warm-up time, and officials their duties. After that,
+   anything you change (planning again, moving flights or gymnasts, giving
+   seats to officials, keeping a "what if") is a **draft**: everyone else
+   still sees what you published until you tap **Publish changes**. The page
+   says when there are changes not published yet; **Discard changes** goes
+   back to what's published, and **Unpublish** takes it down.
 
 **What if there's a delay?** (on the timetable page, once planned): choose the
 day, when the hold-up starts, how many minutes and which areas (none ticked
@@ -227,8 +232,9 @@ across breaks), and an event moves to another area with all its flights still
 to come. Flights that have already run, or are under way, never move. Under **Ease it**, try what you'd do on the day: move, shorten or
 work through lunch on those areas, fewer minutes between flights, quicker
 turns, merging an event's flights into bigger ones, or letting the day run
-over; it shows what that buys against the delay alone. Nothing is changed:
-it's to help you decide what to do.
+over; it shows what that buys against the delay alone. Nothing is changed
+unless you tap **Keep this in the draft timetable**; then publish the
+changes when you're ready.
 
 **What if an official has to leave?** (on the timetable page, once planned):
 choose who, the day and time they go, and whether for good. Each of their
@@ -236,7 +242,8 @@ seats is filled for the rest of its event, by one person: someone free for
 all of it, or by moving others round: a judge on the panel moving up to
 chair, or someone moving across from another panel, their seat filled in
 turn. Choose **easiest to fill** (the gap ends at a seat many
-can take, such as recorder) or **fewest changes**. Nothing is changed.
+can take, such as recorder) or **fewest changes**. Nothing is changed unless
+you tap **Keep this in the draft timetable**.
 
 **Simulate** (on the timetable page) tries numbers before entries arrive, or
 alongside them, without changing your timetable. It starts from your entries

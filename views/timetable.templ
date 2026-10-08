@@ -17,6 +17,7 @@ type TimetablePage struct {
 	Planned     bool
 	Stale       bool // the setup changed since planning
 	Published   bool
+	Changes     bool // the draft differs from what's published
 	Report      ReportView
 	Days        []DayView
 	Unplaced    []TimetableGymnast // entries in no flight
@@ -179,14 +180,21 @@ templ CompetitionTimetable(p TimetablePage) {
 		if p.Planned {
 			@reportView(p.Report)
 			@rotaReport(p)
+			if p.Published && p.Changes {
+				<div class="notification is-info is-light">
+					<strong>Changes not published yet.</strong> Clubs, gymnasts and officials still see the timetable as you last published it. <strong>Publish changes</strong> shows them this one; <strong>Discard changes</strong> goes back to what's published.
+				</div>
+			}
 			<div class="buttons">
-				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/publish") }>
-					if p.Published {
-						<input type="hidden" name="on" value="0"/>
-						<button class="button is-small" type="submit">Unpublish</button>
+				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/publish") } class="buttons mb-0">
+					if !p.Published {
+						<button class="button is-small is-success" type="submit" name="action" value="publish">Publish</button>
 					} else {
-						<input type="hidden" name="on" value="1"/>
-						<button class="button is-small is-success" type="submit">Publish</button>
+						if p.Changes {
+							<button class="button is-small is-success" type="submit" name="action" value="publish">Publish changes</button>
+							<button class="button is-small" type="submit" name="action" value="discard" onclick="return confirm('Go back to the published timetable, losing your changes since?')">Discard changes</button>
+						}
+						<button class="button is-small" type="submit" name="action" value="unpublish">Unpublish</button>
 					}
 				</form>
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=marshal") }>Print marshal sheets</a>
@@ -197,7 +205,7 @@ templ CompetitionTimetable(p TimetablePage) {
 			</div>
 			<p class="help mb-4">
 				if p.Published {
-					Published: clubs, members and gymnasts entering on their own see their flight, area and time, and officials their duties.
+					Published: clubs, members and gymnasts entering on their own see their flight, area and time, and officials their duties. What you change here (planning, moves, officials) is a draft until you publish it.
 				} else {
 					Not published: only you see it.
 				}

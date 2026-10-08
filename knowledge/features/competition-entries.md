@@ -317,13 +317,23 @@ From the dashboard, **Timetable** plans the competition over the venue's days
   as CSV (`timeline.csv`): a row per flight or block on each area, in time
   order, with each role's officials and their clubs.
 - **Publish** shows clubs (each member's row), members and gymnasts entering
-  on their own their flight, area, day and warm-up time.
+  on their own their flight, area, day and warm-up time. The competition
+  keeps two timetables (roadmap 2026-10-07): the organiser's **draft**
+  (`timetable`), which every change goes into (planning, moves, seats, a
+  kept "what if"), and the **published** copy (`published_timetable`),
+  which every attendee page reads (placements, duties, "My competition",
+  personal and club timetables). With changes not published, the page says
+  so: **Publish changes** copies the draft over, **Discard changes** copies
+  the published one back, **Unpublish** takes it down. Timetables published
+  before this became their own published copy (migration 14).
 
 ## What if there's a delay
 
 **What if there's a delay?**, linked from a planned timetable, takes a day,
 the areas held up (none for all), from when and for how long, and shows what
-follows without saving anything (`Schedule.Delayed`). A flight under way runs
+follows without saving anything (`Schedule.Delayed`), unless the organiser
+taps **Keep this in the draft timetable**, which makes it the draft, to
+publish. A flight under way runs
 that much later; the area's later flights shift back only as far as they must
 (slack takes some of it), going round blocked time (a flight that wouldn't
 finish before lunch waits for it to end, and says so). A shifted flight that
@@ -353,7 +363,8 @@ alone would have done.
 **What if an official has to leave?**, linked from a planned timetable,
 takes who (anyone with a seat), the day and time they go, and whether for
 the day or the rest of the competition, and fills each seat they'd have had
-from then without saving anything (`Schedule.Left`). Each seat is filled for
+from then without saving anything (`Schedule.Left`), unless kept in the
+draft as for a delay. Each seat is filled for
 the rest of its event's flights they'd have had, by one person. A seat goes
 to someone free for all of them (not competing or on another panel then, allowed the role at that event
 and by the must rules about people), or is reached by moving others round, at

@@ -1369,3 +1369,49 @@ func must3[T any](v T, err error) T {
 	}
 	return v
 }
+
+func TestDraftAndPublishedTimetables(t *testing.T) {
+	// A timetable published before drafts is its own published copy.
+	dir := t.TempDir()
+	all := migrations
+	migrations = all[:13]
+	old, err := Open(ctx, dir)
+	if err != nil {
+		migrations = all
+		t.Fatal(err)
+	}
+	_, err = old.db.Exec(`INSERT INTO competitions (id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline,
+		individuals, levels, created_at, delete_after, timetable) VALUES ('c1', 'a', 'ct', 'ch', 'it', 'ih', 'Old', '2027-03-13', '2027-03-06T23:59:00.000000Z',
+		TRUE, '[{"ref":"builtin-level:bucs-l3"}]', '2027-01-01T00:00:00.000000Z', '2027-07-11T00:00:00.000000Z',
+		'{"setup":{"areas":null,"days":null,"separate":{}},"flights":[],"published":true,"planned":true}'),
+		('c2', 'b', 'ct2', 'ch2', 'it2', 'ih2', 'Unpublished', '2027-03-13', '2027-03-06T23:59:00.000000Z',
+		TRUE, '[{"ref":"builtin-level:bucs-l3"}]', '2027-01-01T00:00:00.000000Z', '2027-07-11T00:00:00.000000Z',
+		'{"setup":{"areas":null,"days":null,"separate":{}},"flights":[],"planned":true}')`)
+	must(t, err)
+	old.Close()
+	migrations = all
+	s, err := Open(ctx, dir)
+	must(t, err)
+	defer s.Close()
+	if c, _ := s.Competition(ctx, "c1"); c.Published == nil || c.Timetable == nil {
+		t.Error("published before: published now")
+	}
+	if c, _ := s.Competition(ctx, "c2"); c.Published != nil {
+		t.Error("never published: not now either")
+	}
+
+	// The draft changes; the published copy stays until published again.
+	c, _ := s.Competition(ctx, "c2")
+	draft := *c.Timetable
+	must(t, s.PublishTimetable(ctx, "c2", &draft))
+	draft.Flights = []competitions.ScheduledFlight{{Flight: competitions.Flight{Level: "BUCS L3"}, Area: "Panel 1", Start: 540, End: 560}}
+	must(t, s.SetTimetable(ctx, "c2", &draft))
+	c, _ = s.Competition(ctx, "c2")
+	if len(c.Timetable.Flights) != 1 || c.Published == nil || len(c.Published.Flights) != 0 || !c.Published.Published {
+		t.Errorf("draft and published apart: %+v / %+v", c.Timetable, c.Published)
+	}
+	must(t, s.PublishTimetable(ctx, "c2", nil))
+	if c, _ := s.Competition(ctx, "c2"); c.Published != nil || c.Timetable == nil {
+		t.Error("taken down, the draft kept")
+	}
+}
