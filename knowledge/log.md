@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: On the [roadmap](roadmap.md): a synchro partner, their coach
+  and their club see the pair's entry once the partner confirms (decided);
+  a coach per discipline, and synchro signed off by both partners' coaches,
+  noted as possible additions.
 * **Fix**: synchro panels can have HD judges too, like trampoline's (none
   until the organiser adds them); the demo gives synchro 2.
 * **Update**: Individuals' coaches (ADR 0007 step 4, the last): where a
