@@ -24,9 +24,7 @@
       "isto-disability-l3-set",
       "isto-disability-l3-vol",
       "isto-disability-l4-set",
-      "isto-disability-l4-vol",
-      "isto-disability-l5-set",
-      "isto-disability-l5-vol"
+      "isto-disability-l4-vol"
     ],
     "levels": [
       {
@@ -136,17 +134,6 @@
           "isto-disability-l4-vol"
         ],
         "description": "Band 2. First exercise: the set routine. Second exercise: a voluntary, which may repeat the set routine."
-      },
-      {
-        "id": "isto-disability-l5",
-        "name": "ISTO Disability Level 5",
-        "first": [
-          "isto-disability-l5-set"
-        ],
-        "second": [
-          "isto-disability-l5-vol"
-        ],
-        "description": "Band 3. First exercise: the set routine. Second exercise: a voluntary, which may repeat the set routine."
       }
     ]
   },

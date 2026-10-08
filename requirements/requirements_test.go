@@ -319,8 +319,6 @@ func TestBuiltinSetRoutines(t *testing.T) {
 			c("seatHalfToFeet"), c("halfTwist"), jump(skills.Pike), c("backDrop"), c("backHalfToFeet")},
 		"isto-disability-l3-set": {c("halfTwist"), jump(skills.Straddle), c("seatDrop"), c("seatHalfToSeat"), c("seatHalfToFeet"),
 			jump(skills.Pike), c("backDrop"), c("backHalfToFeet"), jump(skills.Tuck), front(skills.Tuck)},
-		"isto-disability-l5-set": {back(skills.Tuck), jump(skills.Pike), barani(skills.Pike), jump(skills.Tuck), c("backToSeat"),
-			c("seatHalfToFeet"), c("halfTwist"), jump(skills.Pike), halfToFront, c("frontToFeet")},
 	}
 	// The disability routines repeat others.
 	routines["bucs-disability-l1-option-1"] = routines["bg-regional-l1-first"]
@@ -545,8 +543,8 @@ func TestSetRoutineLoads(t *testing.T) {
 			}
 		}
 	}
-	if loaded != 33 {
-		t.Errorf("loaded %d set routines, want 33", loaded)
+	if loaded != 32 {
+		t.Errorf("loaded %d set routines, want 32", loaded)
 	}
 	if _, ok := SetRoutine(Set{Rules: []Rule{{Type: Different}}}); ok {
 		t.Errorf("a set without a set routine has nothing to load")

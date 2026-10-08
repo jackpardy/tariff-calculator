@@ -55,7 +55,7 @@ ranked against each other.
 
 | Group | Levels |
 |---|---|
-| [ISTO](isto.md) | Novice, Intermediate, Intervanced, Advanced (Set A or B, then a voluntary), Elite and Elite-Pro (both exercises the same), Disability L1–L5 (set routine, then a voluntary) |
+| [ISTO](isto.md) | Novice, Intermediate, Intervanced, Advanced (Set A or B, then a voluntary), Elite and Elite-Pro (both exercises the same), Disability L1–L4 (set routine, then a voluntary) |
 | [BUCS](bucs.md) | FIG Level (both exercises the same), L1–L2 (voluntary, voluntary), L3–L7 and Disability L1–L2 (set routine option 1 or 2, then a voluntary) |
 | [FIG age groups](fig.md) | AG1, AG2 & Junior, AG3 (two elements carry over) |
 | [BG national](bg-national.md) | 10, 11–12, 13–14 & 15–16, 17–21 (two elements carry over) |

@@ -40,10 +40,7 @@ func TestLinked(t *testing.T) {
 }
 
 // Each ISTO set routine also meets its level's voluntary requirements, which
-// checks the voluntaries are written as the document means. Disability Level
-// 5's set repeats a pike jump, so repeated as the voluntary (as the document
-// allows) it isn't 10 different skills, and without the repeat its counted
-// difficulty is 2.3, under the voluntary's 2.4.
+// checks the voluntaries are written as the document means.
 func TestISTOSetsMeetVoluntaries(t *testing.T) {
 	for _, l := range BuiltinLevels() {
 		if !strings.HasPrefix(l.ID, "isto-") || l.Level.Second == nil {
@@ -57,8 +54,7 @@ func TestISTOSetsMeetVoluntaries(t *testing.T) {
 				t.Fatalf("%s: no set routine", ref)
 			}
 			for _, r := range Evaluate(vol, skills.ValidateRoutine(routine)) {
-				l5 := ref == "builtin:isto-disability-l5-set"
-				if !r.Passed && !(l5 && (r.Description == "10 different individual skills" || r.Detail == "is 2.3")) {
+				if !r.Passed {
 					t.Errorf("%s against %s: %s: %s", ref, vol.Name, r.Description, r.Detail)
 				}
 			}

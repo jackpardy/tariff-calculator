@@ -7,7 +7,7 @@
 
 # Built-in requirements
 
-* [ISTO, Irish Student Trampoline Open (2025)](isto.md) - Built-in requirements for ISTO's trampoline levels (Novice to Elite-Pro) and Disability Levels 1–5, with set routines, voluntary rules and tariff bands.
+* [ISTO, Irish Student Trampoline Open (2025)](isto.md) - Built-in requirements for ISTO's trampoline levels (Novice to Elite-Pro) and Disability Levels 1–4, with set routines, voluntary rules and tariff bands.
 * [BUCS student championships (2026)](bucs.md) - Built-in requirements for the BUCS Trampoline Championships 2026, covering levels 1–7, Disability 1–2 and FIG level, with set-routine options and difficulty bands.
 * [FIG age groups (2025–2028)](fig.md) - Built-in requirements for FIG Junior and World Age Group Competition (AG1, AG2 and Junior, AG3), covering first-exercise special requirements and second-exercise difficulty caps.
 * [British Gymnastics national pathway (2026)](bg-national.md) - Built-in requirements for the BG national pathway age groups (10, 11–12, 13–16, 17–21), covering first-exercise special requirements and second-exercise caps and qualifying scores.

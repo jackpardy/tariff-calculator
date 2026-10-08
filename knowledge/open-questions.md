@@ -32,10 +32,8 @@ From the [British Gymnastics requirements](requirements/bg-national.md):
 Answered 2026-10-08 by an ISTO organiser (see [ISTO](requirements/isto.md)):
 set A or B then a voluntary; set routines don't score difficulty; 2.0
 penalty outside the tariff band; linked somersaults as built; Elite's full
-twist is exactly a full; Disability L5's rotation limit is for somersault
-skills; Disability L4's set is 2.0. Still open: Disability Level 5's set
-repeats a Pike Jump, so it can't be repeated as the voluntary as the
-document allows.
+twist is exactly a full; Disability L4's set is 2.0. Disability Level 5 is an old routine and
+is left out.
 
 # For ISTO's timetable (ADR 0005)
 
