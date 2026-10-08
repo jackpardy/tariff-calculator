@@ -405,6 +405,7 @@ type judged struct {
 	card     competitions.Card
 	err      error // the entry couldn't be checked (its level is gone)
 	problems []string
+	video    string // videoStatus
 }
 
 // judge checks every entry.
@@ -423,6 +424,7 @@ func judge(c competitions.Competition, entries []store.Entry) []judged {
 				j.problems = append(j.problems, problem)
 			}
 		}
+		j.video = videoStatus(c, j)
 		out[i] = j
 	}
 	for i, problem := range synchroLevels(c, entries) {
@@ -464,17 +466,61 @@ func synchroLevels(c competitions.Competition, entries []store.Entry) map[int]st
 }
 
 // matches says whether an entry passes the dashboard's filter: club (a
-// club's name, or "individual"), problems=1, unchecked=1, level and entry (an id).
+// club's name, or "individual"), problems=1, unchecked=1, level, entry (an
+// id), q (a name, gymnast or synchro partner), coach (their name, or "none"),
+// checked and signedoff (yes or no), video (missing, provided, OK or need
+// more) and category (Men or Women).
 func (j judged) matches(q url.Values) bool {
+	yesNo := func(key string, is bool) bool {
+		return q.Get(key) == "" || (q.Get(key) == "yes") == is
+	}
+	coach := q.Get("coach")
 	switch {
 	case q.Get("club") != "" && q.Get("club") != j.club,
 		q.Get("problems") == "1" && (len(j.problems) == 0 || j.Withdrawn),
 		q.Get("unchecked") == "1" && (j.Checked() || j.Withdrawn),
 		q.Get("level") != "" && q.Get("level") != j.Entry.Entry.Event(),
-		q.Get("entry") != "" && q.Get("entry") != j.ID:
+		q.Get("entry") != "" && q.Get("entry") != j.ID,
+		!competitions.NameMatches(j.Entry.Entry.Gymnasts(), q.Get("q")),
+		coach == "none" && j.CoachName() != "",
+		coach != "" && coach != "none" && coach != j.CoachName(),
+		!yesNo("checked", j.Checked()),
+		!yesNo("signedoff", j.SignedOff()),
+		q.Get("video") != "" && q.Get("video") != j.video,
+		q.Get("category") != "" && q.Get("category") != j.Entry.Entry.Category:
 		return false
 	}
 	return true
+}
+
+// filterKeys are the dashboard's filters, as matches reads them.
+var filterKeys = []string{"club", "problems", "q", "coach", "checked", "signedoff", "video", "category"}
+
+// dashboardFilter is the request's filters, without anything else.
+func dashboardFilter(q url.Values) url.Values {
+	out := url.Values{}
+	for _, k := range filterKeys {
+		if v := strings.TrimSpace(q.Get(k)); v != "" {
+			out.Set(k, v)
+		}
+	}
+	return out
+}
+
+// sortRows orders a level's rows by gymnast, club, sent (latest first) or
+// coach; otherwise as they came (by club, then gymnast).
+func sortRows(rows []views.DashboardRow, sentAt map[string]time.Time, by string) {
+	key := map[string]func(r views.DashboardRow) string{
+		"gymnast": func(r views.DashboardRow) string { return strings.ToLower(r.Gymnast) },
+		"club":    func(r views.DashboardRow) string { return strings.ToLower(r.Club) },
+		"coach":   func(r views.DashboardRow) string { return strings.ToLower(r.Signoff.By + "\x00" + r.Coach) },
+	}[by]
+	switch {
+	case by == "sent":
+		slices.SortStableFunc(rows, func(a, b views.DashboardRow) int { return sentAt[b.ID].Compare(sentAt[a.ID]) })
+	case key != nil:
+		slices.SortStableFunc(rows, func(a, b views.DashboardRow) int { return strings.Compare(key(a), key(b)) })
+	}
 }
 
 // dashboard lists every entry by level, filtered by club (club: a club's name,
@@ -539,11 +585,18 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		byLevel[name] = len(d.Levels)
 		d.Levels = append(d.Levels, views.DashboardLevel{Name: name})
 	}
-	filter := url.Values{"club": {d.Club}}
-	if d.ProblemsOnly {
-		filter.Set("problems", "1")
-	}
+	filter := dashboardFilter(q)
+	d.Filter, d.Search, d.Coach, d.CheckedFilter, d.SignedFilter, d.VideoFilter, d.Category, d.Sort =
+		filter, filter.Get("q"), filter.Get("coach"), filter.Get("checked"), filter.Get("signedoff"), filter.Get("video"), filter.Get("category"), q.Get("sort")
+	d.CanSplit = c.Split.Any()
+	coaches := map[string]bool{}
+	sentAt := map[string]time.Time{}
 	for _, j := range judge(c.Competition, entries) {
+		if name := j.CoachName(); name != "" && !coaches[name] {
+			coaches[name] = true
+			d.Coaches = append(d.Coaches, name)
+		}
+
 		if !j.Individual && !seen[j.club] {
 			d.Clubs, seen[j.club] = append(d.Clubs, j.club), true // a club deleted since it sent
 		}
@@ -561,8 +614,10 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		if !j.matches(filter) {
 			continue
 		}
+		d.Shown++
+		sentAt[j.ID] = j.SentAt
 		row := views.DashboardRow{
-			ID: j.ID, Gymnast: j.Entry.Entry.Gymnasts(), Club: j.club, Problems: j.problems,
+			ID: j.ID, Gymnast: j.Entry.Entry.Gymnasts(), Club: j.club, Problems: j.problems, Coach: j.CoachName(),
 			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note, Withdrawn: j.Withdrawn,
 			Video: videoStatus(c.Competition, j), Signoff: storedSignoff(c.Competition, j.Entry), Category: j.Entry.Entry.Category,
 		}
@@ -581,6 +636,17 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 			d.Levels = append(d.Levels, views.DashboardLevel{Name: j.Entry.Entry.Event()})
 		}
 		d.Levels[n].Rows = append(d.Levels[n].Rows, row)
+	}
+	slices.Sort(d.Coaches)
+	totals := map[string]int{}
+	for _, e := range entries {
+		if !e.Withdrawn {
+			totals[e.Entry.Event()]++
+		}
+	}
+	for i := range d.Levels {
+		d.Levels[i].Anchor, d.Levels[i].Total = "level-"+strconv.Itoa(i), totals[d.Levels[i].Name]
+		sortRows(d.Levels[i].Rows, sentAt, d.Sort)
 	}
 	render(w, r, views.CompetitionDashboard(d))
 }
@@ -667,9 +733,10 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 	out := csv.NewWriter(w)
 	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent", "Video", "Withdrawn", "Signed off by", "Category"})
 	all := judge(c.Competition, entries)
+	q := r.URL.Query()
 	for _, level := range levelOrder(c.Competition, all) {
 		for _, j := range all {
-			if j.Entry.Entry.Event() != level {
+			if j.Entry.Entry.Event() != level || !j.matches(q) {
 				continue
 			}
 			club := j.ClubName

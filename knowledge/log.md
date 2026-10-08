@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Finding entries](features/competition-entries.md#dashboard)
+  on the organiser's dashboard: search by name, filters by club, coach,
+  checked, sign-off, video, men or women and problems, sorting, levels that
+  fold away with "12 of 96" counts and a list to jump to, and printing or
+  downloading what's shown.
 * **Update**: [Removing and holding entries](features/competition-entries.md#removing-and-holding-entries):
   the organiser ticks entries and removes them (not sent or changed again
   until restored) or holds them for changes (sent again, then accepted
