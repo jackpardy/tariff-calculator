@@ -1045,3 +1045,104 @@ func TestCoachQualifications(t *testing.T) {
 		t.Errorf("%d certificates left", n)
 	}
 }
+
+func TestCoachApproval(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp := competition()
+	comp.Signoff = true
+	c, admin, _ := s.CreateCompetition(ctx, comp)
+	must(t, s.SetApproveCoaches(ctx, c.ID, true, map[string]int{competitions.Trampoline: 3}))
+	if got, _ := s.CompetitionByAdmin(ctx, admin); !got.ApproveCoaches || got.CoachLevel(competitions.Synchro) != 3 || got.CoachLevel(competitions.DMT) != competitions.DefaultCoachLevel {
+		t.Errorf("the setting is kept: %+v %v", got.ApproveCoaches, got.CoachLevels)
+	}
+	club, _, _ := s.CreateClub(ctx, "UCD")
+	must(t, s.AttachClub(ctx, club.ID, c.ID))
+	ann, annLink, _ := s.CreateCoach(ctx, club.ID, "Ann")
+	bob, _, _ := s.CreateCoach(ctx, club.ID, "Bob")
+	must(t, s.SetCoachSignsOff(ctx, club.ID, bob.ID, false))
+	q, _ := s.AddQualification(ctx, club.ID, ann.ID, "bg-trampoline-3", "application/pdf", []byte("%PDF"))
+	x, _, _ := s.Join(ctx, club.ID, "X")
+	must(t, s.SaveMemberEntry(ctx, x.ID, c.ID, entry("X")))
+	coach, _ := s.CoachByLink(ctx, annLink)
+	signed := func() bool {
+		t.Helper()
+		now = now.Add(time.Minute)
+		_, err := s.Send(ctx, club.ID, c.ID, nil)
+		must(t, err)
+		es, err := s.Entries(ctx, c.ID)
+		must(t, err)
+		return es[0].SignedOff()
+	}
+	must(t, s.SignOff(ctx, coach, x.ID, c.ID, competitions.Trampoline, true, ""))
+	if signed() {
+		t.Error("Ann isn't approved yet")
+	}
+
+	// Sent, only Ann (Bob doesn't sign off), waiting.
+	must(t, s.SendCoaches(ctx, club.ID, c.ID, []string{ann.ID, bob.ID}))
+	sent, _ := s.CompetitionCoaches(ctx, c.ID)
+	if len(sent) != 1 || sent[0].Name != "Ann" || sent[0].ClubName != "UCD" || sent[0].Status != CoachWaiting || len(sent[0].Qualifications) != 1 || sent[0].Changed {
+		t.Fatalf("sent: %+v", sent)
+	}
+	if typ, _, err := s.CompetitionCertificate(ctx, c.ID, ann.ID, q.ID); err != nil || typ != "application/pdf" {
+		t.Errorf("the organiser can open her certificate: %v", err)
+	}
+	other, _, _ := s.CreateCompetition(ctx, competition())
+	if _, _, err := s.CompetitionCertificate(ctx, other.ID, ann.ID, q.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("not another competition: %v", err)
+	}
+
+	// Approved: her sign-off counts. Withdrawn: it doesn't.
+	must(t, s.DecideCoach(ctx, c.ID, ann.ID, CoachApproved, "", false))
+	if !signed() {
+		t.Error("Ann is approved")
+	}
+	must(t, s.DecideCoach(ctx, c.ID, ann.ID, CoachWithdrawn, "Certificate expired", false))
+	if signed() {
+		t.Error("her approval was withdrawn")
+	}
+	// Approved again from now on: the old sign-off doesn't count, a new one does.
+	must(t, s.DecideCoach(ctx, c.ID, ann.ID, CoachApproved, "", true))
+	if signed() {
+		t.Error("only sign-offs from now on")
+	}
+	now = now.Add(time.Minute)
+	must(t, s.SignOff(ctx, coach, x.ID, c.ID, competitions.Trampoline, true, ""))
+	if !signed() {
+		t.Error("signed off again")
+	}
+	// Withdrawn and approved again keeping them: it counts again.
+	must(t, s.DecideCoach(ctx, c.ID, ann.ID, CoachWithdrawn, "", false))
+	must(t, s.DecideCoach(ctx, c.ID, ann.ID, CoachApproved, "", false))
+	if !signed() {
+		t.Error("approved again with her sign-offs")
+	}
+
+	// A new qualification: changed since sent; sent again, she waits again.
+	_, err := s.AddQualification(ctx, club.ID, ann.ID, "gi-trampoline-3", "image/png", []byte("png"))
+	must(t, err)
+	if sent, _ := s.ClubSentCoaches(ctx, club.ID, c.ID); !sent[ann.ID].Changed || !sent[ann.ID].Approved() {
+		t.Errorf("changed, still approved until sent again: %+v", sent[ann.ID])
+	}
+	must(t, s.SendCoaches(ctx, club.ID, c.ID, []string{ann.ID}))
+	if sent, _ := s.CoachSentTo(ctx, ann.ID); sent[c.ID].Status != CoachWaiting || sent[c.ID].Changed || len(sent[c.ID].Qualifications) != 2 {
+		t.Errorf("waiting again: %+v", sent[c.ID])
+	}
+	// Taken back: no longer sent.
+	must(t, s.SendCoaches(ctx, club.ID, c.ID, nil))
+	if sent, _ := s.CompetitionCoaches(ctx, c.ID); len(sent) != 0 {
+		t.Errorf("taken back: %+v", sent)
+	}
+	// A club not entered can't send.
+	far, _, _ := s.CreateClub(ctx, "Far")
+	if err := s.SendCoaches(ctx, far.ID, c.ID, nil); !errors.Is(err, ErrNotFound) {
+		t.Errorf("not entered: %v", err)
+	}
+
+	// Without approval, any coach's sign-off counts.
+	must(t, s.SetApproveCoaches(ctx, c.ID, false, nil))
+	if !signed() {
+		t.Error("approval off")
+	}
+}

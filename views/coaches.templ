@@ -8,6 +8,20 @@ type SignoffView struct {
 	Signed   bool   // a coach has signed off the entry as it is now
 	By       string // the coach who signed it off, or said not yet
 	Note     string // the coach's note
+	// Unapproved is a sign-off by a coach the competition hasn't approved, at
+	// one that approves coaches: it doesn't count.
+	Unapproved bool
+}
+
+// Problem is what's missing, as the organiser counts it, or "".
+func (s SignoffView) Problem() string {
+	switch {
+	case !s.Required || s.Signed:
+		return ""
+	case s.Unapproved:
+		return "Signed off by " + s.By + ", who isn't an approved coach"
+	}
+	return "Not signed off by a coach"
 }
 
 // Status says where the sign-off stands, "" when there's nothing to say.
@@ -15,6 +29,8 @@ func (s SignoffView) Status() string {
 	switch {
 	case s.Signed:
 		return "Signed off by " + s.By
+	case s.Unapproved:
+		return "Signed off by " + s.By + ", but the competition hasn't approved them as a coach"
 	case s.By != "":
 		return "Not yet signed off: " + s.By + " needs changes"
 	case s.Required:
@@ -77,7 +93,8 @@ type CoachPage struct {
 type CoachCompetition struct {
 	Competition CompetitionSummary
 	Rows        []CoachRow
-	Waiting     int // entries not signed off
+	Waiting     int    // entries not signed off
+	Cannot      string // why they can't sign off for it (not approved), if they can't
 }
 
 // CoachRow is one member's entry, for their coach.
@@ -116,11 +133,14 @@ templ CoachHome(p CoachPage) {
 			<div class="box">
 				<h2 class="title is-6 mb-1">
 					{ c.Competition.Name }
-					if c.Waiting > 0 && p.SignsOff {
+					if c.Waiting > 0 && p.SignsOff && c.Cannot == "" {
 						<span class="tag is-warning is-light ml-1">{ strconv.Itoa(c.Waiting) } to sign off</span>
 					}
 				</h2>
 				@competitionFacts(c.Competition)
+				if c.Cannot != "" && p.SignsOff {
+					<p class="is-size-7 has-text-warning-dark mb-2">{ c.Cannot }</p>
+				}
 				if len(c.Rows) == 0 {
 					<p class="has-text-grey is-size-7">None of your members has entered yet.</p>
 				} else {

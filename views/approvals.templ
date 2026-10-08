@@ -1,0 +1,141 @@
+package views
+
+import "strconv"
+
+// CoachApprovalForm is the dashboard's setting for approving coaches (ADR
+// 0007 Decision 2).
+type CoachApprovalForm struct {
+	On      bool
+	Levels  []CoachLevelField
+	Waiting int // coaches sent and not decided yet
+}
+
+// CoachLevelField is the lowest level accepted in a discipline.
+type CoachLevelField struct {
+	Key, Name string
+	Level     int
+}
+
+// ApprovalsPage is the organiser's page of coaches sent for approval.
+type ApprovalsPage struct {
+	Base        string // the admin link's path
+	Competition CompetitionSummary
+	Notice      string
+	Asked       string // the levels asked for, e.g. "Trampoline Level 2, Tumbling Level 1"
+	Clubs       []ApprovalClub
+}
+
+// ApprovalClub is one club's coaches sent.
+type ApprovalClub struct {
+	Club    string
+	Coaches []ApprovalRow
+}
+
+// ApprovalRow is one coach sent, to approve.
+type ApprovalRow struct {
+	ID, Name       string
+	Status         string // e.g. "Waiting", "Approved ✓"
+	Approved       bool
+	Withdrawn      bool // approved before, so approving again asks about their sign-offs
+	Note           string
+	Changed        bool // the club has changed their qualifications since sending them
+	Qualifications []ApprovalQualification
+	Meets          []string // each discipline asked for, met or not, e.g. "Trampoline ✓"
+}
+
+// ApprovalQualification is a coach's qualification, with its certificate.
+type ApprovalQualification struct {
+	Name, Certificate string
+}
+
+// coachApprovalFields are the dashboard's setting for approving coaches.
+templ coachApprovalFields(base string, f CoachApprovalForm) {
+	<form method="post" action={ templ.SafeURL(base + "/approve-coaches") } class="mb-3">
+		<label class="checkbox">
+			<input type="checkbox" name="on" value="1" checked?={ f.On }/>
+			Coaches must be approved: clubs send their coaches with their qualifications, and only those you approve can sign off
+		</label>
+		<div class="comp-setup-row mt-1">
+			<span class="is-size-7">Lowest level accepted:</span>
+			for _, l := range f.Levels {
+				<label class="is-size-7" for={ "coach-level-" + l.Key }>{ l.Name }</label>
+				<div class="select is-small">
+					<select id={ "coach-level-" + l.Key } name={ "level-" + l.Key }>
+						for n := 1; n <= 4; n++ {
+							<option value={ strconv.Itoa(n) } selected?={ n == l.Level }>Level { strconv.Itoa(n) }</option>
+						}
+					</select>
+				</div>
+			}
+		</div>
+		<p class="help">British Gymnastics and Gymnastics Ireland coaching levels; a higher level counts.</p>
+		<button class="button is-small" type="submit">Save</button>
+	</form>
+}
+
+// CompetitionApprovals is the organiser's page of coaches to approve.
+templ CompetitionApprovals(p ApprovalsPage) {
+	@competitionLayout("Coaches · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
+		<h1 class="title is-4">Coaches</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		if p.Notice != "" {
+			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		<p class="mb-4">Only coaches you approve can sign off. You ask for at least { p.Asked }. Open each certificate to check it; clubs see your note.</p>
+		if len(p.Clubs) == 0 {
+			<p class="has-text-grey">No club has sent its coaches yet.</p>
+		}
+		for _, c := range p.Clubs {
+			<div class="box">
+				<h2 class="title is-6">{ c.Club }</h2>
+				for _, k := range c.Coaches {
+					<div class="mb-4">
+						<p>
+							<strong>{ k.Name }</strong>
+							<span class={ "tag is-light ml-1", templ.KV("is-success", k.Approved), templ.KV("is-warning", !k.Approved) }>{ k.Status }</span>
+							if k.Changed {
+								<span class="is-size-7 has-text-grey">· the club has changed their qualifications since, not sent yet</span>
+							}
+						</p>
+						if len(k.Qualifications) == 0 {
+							<p class="is-size-7 has-text-danger">No qualifications sent.</p>
+						}
+						<ul class="is-size-7">
+							for _, q := range k.Qualifications {
+								<li>{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a></li>
+							}
+						</ul>
+						<p class="is-size-7 has-text-grey">
+							for i, m := range k.Meets {
+								if i > 0 {
+									·
+								}
+								{ m }
+							}
+						</p>
+						if k.Note != "" {
+							<p class="is-size-7">Your note: { k.Note }</p>
+						}
+						<form method="post" action={ templ.SafeURL(p.Base + "/coaches/" + k.ID) } class="comp-flight-actions mt-1">
+							<input class="input is-small" name="note" maxlength="300" placeholder="Note for the club (optional)" aria-label={ "Note about " + k.Name }/>
+							if !k.Approved {
+								if k.Withdrawn {
+									<button class="button is-small is-success" type="submit" name="action" value="approve">Approve, with their sign-offs before</button>
+									<button class="button is-small is-success is-light" type="submit" name="action" value="afresh">Approve, sign-offs from now on</button>
+								} else {
+									<button class="button is-small is-success" type="submit" name="action" value="approve">Approve</button>
+								}
+							}
+							if k.Approved {
+								<button class="button is-small is-warning is-light" type="submit" name="action" value="withdraw">Withdraw approval</button>
+							} else if !k.Withdrawn && k.Status != "Not approved" {
+								<button class="button is-small is-warning is-light" type="submit" name="action" value="refuse">Not approved</button>
+							}
+						</form>
+					</div>
+				}
+			</div>
+		}
+	}
+}

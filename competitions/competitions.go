@@ -40,7 +40,12 @@ type Competition struct {
 	Levels      []Level
 	Video       Video // whether gymnasts send video proof
 	Signoff     bool  // entries need a coach's sign-off (ADR 0004 Decision 11)
-	Split       Split // which events split men and women, by event name
+	// ApproveCoaches has only coaches the organiser approves sign off, and
+	// CoachLevels is the lowest qualification level accepted, by discipline
+	// (missing: DefaultCoachLevel) (ADR 0007 Decision 2).
+	ApproveCoaches bool
+	CoachLevels    map[string]int
+	Split          Split // which events split men and women, by event name
 	// The other disciplines' events (ADR 0005 Decision 1): synchro at levels
 	// checked like trampoline's, and tumbling and DMT at levels the organiser
 	// names, entered and timetabled but not checked.
@@ -451,4 +456,16 @@ func names(c Competition) []string {
 		}
 	}
 	return out
+}
+
+// CoachLevel is the lowest coaching qualification level accepted in a
+// discipline (trampoline's for synchro).
+func (c Competition) CoachLevel(discipline string) int {
+	if discipline == Synchro {
+		discipline = Trampoline
+	}
+	if n, ok := c.CoachLevels[discipline]; ok {
+		return n
+	}
+	return DefaultCoachLevel
 }

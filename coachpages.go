@@ -27,8 +27,8 @@ func memberSignoff(c competitions.Competition, e store.MemberEntry) views.Signof
 // problems, as the organiser's dashboard counts it.
 func withSignoff(card *views.EntryCard, s views.SignoffView) {
 	card.Signoff = s
-	if s.Required && !s.Signed {
-		card.Problems = append(card.Problems, "Not signed off by a coach")
+	if problem := s.Problem(); problem != "" {
+		card.Problems = append(card.Problems, problem)
 	}
 }
 
@@ -186,10 +186,15 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	sentTo, err := p.st.CoachSentTo(ctx, coach.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	path := coachPath(r.PathValue("token"))
 	page := views.CoachPage{Club: club, Coach: coach.Name, Link: origin(r) + path, Notice: r.URL.Query().Get("notice"), SeesAll: seesAll, SignsOff: coach.SignsOff}
 	for _, c := range comps {
-		cc := views.CoachCompetition{Competition: summary(c.Competition, p.now())}
+		cc := views.CoachCompetition{Competition: summary(c.Competition, p.now()), Cannot: notApproved(c, sentTo)}
 		for _, e := range entries {
 			if e.CompetitionID != c.ID {
 				continue
@@ -254,6 +259,11 @@ func (p *competitionPages) coachEntry(w http.ResponseWriter, r *http.Request) {
 	}
 	if !coach.SignsOff {
 		page.Cannot = "Your club hasn't set you to sign off routines, so you can see this entry but not sign it off."
+	} else if why, err := p.notApprovedFor(r, c, coach); err != nil {
+		failed(w, r, err)
+		return
+	} else if why != "" {
+		page.Cannot = why
 	}
 	render(w, r, views.SignoffEntry(page))
 }
@@ -274,6 +284,13 @@ func (p *competitionPages) signOff(w http.ResponseWriter, r *http.Request) {
 	}
 	if !coach.SignsOff {
 		http.Redirect(w, r, coachPath(r.PathValue("token"))+"?notice="+urlQuery("Your club hasn't set you to sign off routines; nothing was changed."), http.StatusSeeOther)
+		return
+	}
+	if why, err := p.notApprovedFor(r, c, coach); err != nil {
+		failed(w, r, err)
+		return
+	} else if why != "" {
+		http.Redirect(w, r, coachPath(r.PathValue("token"))+"?notice="+urlQuery(why+" Nothing was changed."), http.StatusSeeOther)
 		return
 	}
 	signed := r.FormValue("signed") == "1"
@@ -438,4 +455,37 @@ func serveCertificate(w http.ResponseWriter, certType string, data []byte) {
 	w.Header().Set("Cache-Control", "private, no-store")
 	w.Header().Set("Content-Disposition", `inline; filename="certificate`+ext+`"`)
 	w.Write(data)
+}
+
+// notApproved says why a coach can't sign off at a competition that approves
+// coaches (ADR 0007 Decision 7), given where they've been sent; "" if they
+// can.
+func notApproved(c store.Competition, sentTo map[string]store.SentCoach) string {
+	if !c.Signoff || !c.ApproveCoaches {
+		return ""
+	}
+	s, ok := sentTo[c.ID]
+	switch {
+	case !ok:
+		return "This competition approves coaches: your club hasn't sent you yet, so you can't sign off for it."
+	case s.Status == store.CoachWaiting:
+		return "Waiting for the organiser to approve you before you can sign off."
+	case s.Status == store.CoachRefused:
+		return strings.TrimSpace("The organiser hasn't approved you, so you can't sign off. " + s.Note)
+	case s.Status == store.CoachWithdrawn:
+		return strings.TrimSpace("The organiser withdrew your approval, so you can't sign off. " + s.Note)
+	}
+	return ""
+}
+
+// notApprovedFor is notApproved, looking up where the coach has been sent.
+func (p *competitionPages) notApprovedFor(r *http.Request, c store.Competition, coach store.Coach) (string, error) {
+	if !c.Signoff || !c.ApproveCoaches {
+		return "", nil
+	}
+	sentTo, err := p.st.CoachSentTo(r.Context(), coach.ID)
+	if err != nil {
+		return "", err
+	}
+	return notApproved(c, sentTo), nil
 }

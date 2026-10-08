@@ -375,11 +375,11 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		type pending struct {
 			member, name, discipline, entry string
 			signedAt                        sql.NullString
-			signedBy, signNote              string
+			signedBy, signNote, signedCoach string
 			partnerConfirmed                bool
 			partnerMember, partnerEntry     sql.NullString
 		}
-		rows, err := tx.QueryContext(ctx, `SELECT me.member_id, m.name, me.discipline, me.entry, me.signed_at, me.signed_by, me.sign_note,
+		rows, err := tx.QueryContext(ctx, `SELECT me.member_id, m.name, me.discipline, me.entry, me.signed_at, me.signed_by, me.sign_note, me.signed_coach,
 			me.partner_confirmed, me.partner_member, me.partner_entry FROM member_entries me
 			JOIN members m ON m.id = me.member_id
 			WHERE m.club_id = $1 AND me.competition_id = $2`, clubID, competitionID)
@@ -389,7 +389,7 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		var all []pending
 		for rows.Next() {
 			var p pending
-			if err := rows.Scan(&p.member, &p.name, &p.discipline, &p.entry, &p.signedAt, &p.signedBy, &p.signNote,
+			if err := rows.Scan(&p.member, &p.name, &p.discipline, &p.entry, &p.signedAt, &p.signedBy, &p.signNote, &p.signedCoach,
 				&p.partnerConfirmed, &p.partnerMember, &p.partnerEntry); err != nil {
 				rows.Close()
 				return err
@@ -425,16 +425,16 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		now := s.stamp()
 		for _, p := range chosen {
 			if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_id, member_id, discipline, club_name, individual, gymnast, entry, sent_at,
-				signed_at, signed_by, sign_note, partner_confirmed, partner_member, partner_entry)
-				VALUES ($1, $2, $3, $4, $12, $5, FALSE, $6, $7, $8, $9, $10, $11, $13, $14, $15)
+				signed_at, signed_by, sign_note, partner_confirmed, partner_member, partner_entry, signed_coach)
+				VALUES ($1, $2, $3, $4, $12, $5, FALSE, $6, $7, $8, $9, $10, $11, $13, $14, $15, $16)
 				ON CONFLICT (competition_id, member_id, discipline) DO UPDATE
 				SET entry = excluded.entry, gymnast = excluded.gymnast, club_name = excluded.club_name, sent_at = excluded.sent_at,
-					signed_at = excluded.signed_at, signed_by = excluded.signed_by, sign_note = excluded.sign_note,
+					signed_at = excluded.signed_at, signed_by = excluded.signed_by, sign_note = excluded.sign_note, signed_coach = excluded.signed_coach,
 					partner_confirmed = excluded.partner_confirmed, partner_member = excluded.partner_member, partner_entry = excluded.partner_entry,
 					checked_at = CASE WHEN entries.entry = excluded.entry THEN entries.checked_at ELSE NULL END,
 					video_review = CASE WHEN entries.entry = excluded.entry THEN entries.video_review ELSE '' END`,
 				newID(), competitionID, clubID, p.member, name, p.name, p.entry, now, p.signedAt, p.signedBy, p.signNote,
-				p.discipline, p.partnerConfirmed, p.partnerMember, p.partnerEntry); err != nil {
+				p.discipline, p.partnerConfirmed, p.partnerMember, p.partnerEntry, p.signedCoach); err != nil {
 				return err
 			}
 		}

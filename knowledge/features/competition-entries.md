@@ -379,8 +379,26 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   certificate: a JPEG, PNG, WebP or PDF up to 10 MB, its type checked from
   its bytes. It's stored in the database with the coach, opened by the comp
   sec (served as its own type, `nosniff`, not cached), and deleted with the
-  qualification, the coach or the club. Approval by organisers comes next
-  (ADR 0007 step 3).
+  qualification, the coach or the club.
+- **Approval** (ADR 0007 Decisions 2, 5–7): where entries need sign-off, the
+  organiser can tick **Coaches must be approved** and set the lowest level
+  accepted per discipline (default Level 2; synchro goes by trampoline's).
+  Each competition that does lists, on the club page, the club's coaches who
+  sign off, to tick and **Send** (members' coaches ticked at first), with
+  the organiser's decision and note; changing a coach's qualifications
+  shows "send again", and sending them again makes them wait again. The
+  organiser's **Coaches** page lists them by club, with their certificates
+  (opened only for coaches sent there), whether they meet each level, and
+  **Approve**, **Not approved** or **Withdraw approval**, with a note;
+  approving a withdrawn coach again asks whether their earlier sign-offs
+  count, or only those from then (`counts_from`). A sign-off records which
+  coach gave it (`signed_coach`); it counts only while that coach is
+  approved, worked out as entries are read, so nothing is erased. An
+  unapproved coach sees why on their page and can't sign off; the
+  organiser's entry shows "Signed off by Ann, who isn't an approved coach".
+  Sign-offs from before this, and individuals' coaches (next, ADR 0007 step
+  4), count as before for individuals and not at all for clubs' entries
+  without a coach recorded.
 - A member chooses their coach on their own page, or the comp sec does on
   the club page. A coach sees their own members and every member without a
   coach; the club can let **every coach see every member**.

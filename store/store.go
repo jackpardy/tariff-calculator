@@ -289,6 +289,29 @@ var migrations = []string{
 		uploaded_at   TEXT NOT NULL
 	);
 	CREATE INDEX coach_qualifications_coach ON coach_qualifications (coach_id);`,
+
+	// 11: approving coaches (ADR 0007 Decisions 2, 5, 6 and 7): the
+	// competition's setting, which coach signed off, and the coaches clubs
+	// send, with the organiser's decision. A sign-off counts from counts_from
+	// ('' for all of them).
+	`ALTER TABLE competitions ADD COLUMN approve_coaches BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE competitions ADD COLUMN coach_levels TEXT NOT NULL DEFAULT '{}';
+	ALTER TABLE member_entries ADD COLUMN signed_coach TEXT NOT NULL DEFAULT '';
+	ALTER TABLE entries ADD COLUMN signed_coach TEXT NOT NULL DEFAULT '';
+	CREATE TABLE competition_coaches (
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		coach_id       TEXT NOT NULL REFERENCES coaches (id) ON DELETE CASCADE,
+		club_id        TEXT NOT NULL,
+		name           TEXT NOT NULL,
+		qualifications TEXT NOT NULL DEFAULT '[]',
+		sent_at        TEXT NOT NULL,
+		status         TEXT NOT NULL DEFAULT '',
+		note           TEXT NOT NULL DEFAULT '',
+		decided_at     TEXT,
+		counts_from    TEXT NOT NULL DEFAULT '',
+		PRIMARY KEY (competition_id, coach_id)
+	);
+	CREATE INDEX competition_coaches_club ON competition_coaches (club_id, competition_id);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

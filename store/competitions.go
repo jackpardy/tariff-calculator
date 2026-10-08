@@ -55,16 +55,19 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
 	var deadline, levels, created, video string
-	var split, timetable, events, officials string
+	var split, timetable, events, officials, coachLevels string
 	var ordered bool
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered); err != nil {
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels); err != nil {
 		return Competition{}, notFound(err)
+	}
+	if err := json.Unmarshal([]byte(coachLevels), &c.CoachLevels); err != nil {
+		return Competition{}, fmt.Errorf("reading competition %s's coach levels: %w", c.ID, err)
 	}
 	if err := json.Unmarshal([]byte(officials), &c.Officials); err != nil {
 		return Competition{}, fmt.Errorf("reading competition %s's officials: %w", c.ID, err)
@@ -162,6 +165,12 @@ type Entry struct {
 	SignedAt  time.Time // when a coach signed it off, as sent (or, for an individual, since); zero if not
 	SignedBy  string    // the coach who signed it off, or said not yet
 	SignNote  string    // the coach's note
+	// SignedCoach is which of the club's coaches signed it off ("" for an
+	// individual's coach, or a sign-off from before ADR 0007).
+	SignedCoach string
+	// Unapproved is a sign-off by a coach the competition hasn't approved, at
+	// one that approves coaches (ADR 0007 Decision 7): it doesn't count.
+	Unapproved bool
 	// SignoffLink is an individual's link for their coach to sign off the
 	// entry (ADR 0004 Decision 11); "" for a club's entry.
 	SignoffLink string
@@ -210,8 +219,18 @@ func (e Entry) CoachName() string {
 	return e.Coach
 }
 
-// SignedOff says whether a coach has signed off the entry.
-func (e Entry) SignedOff() bool { return !e.SignedAt.IsZero() }
+// SignedOff says whether a coach has signed off the entry, one the
+// competition approved where it approves coaches.
+func (e Entry) SignedOff() bool { return !e.SignedAt.IsZero() && !e.Unapproved }
+
+// signoffCounts is the condition, on a row of entries, for its sign-off to
+// count (ADR 0007 Decision 7): the competition doesn't approve coaches, or
+// the coach who signed is approved there (and signed since, if the organiser
+// started their sign-offs afresh). Individuals' coaches come later (ADR 0007
+// Decision 8): their sign-offs count as before.
+const signoffCounts = `(NOT (SELECT approve_coaches FROM competitions WHERE id = entries.competition_id) OR entries.individual
+	OR EXISTS (SELECT 1 FROM competition_coaches cc WHERE cc.competition_id = entries.competition_id AND cc.coach_id = entries.signed_coach
+		AND cc.status = 'approved' AND entries.signed_at >= cc.counts_from))`
 
 const (
 	// VideoOK and VideoMore are the organiser's review of an entry's videos:
@@ -229,7 +248,7 @@ func (s *Store) Entries(ctx context.Context, competitionID string) ([]Entry, err
 	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
 		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
 			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id AND me.discipline = entries.discipline), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
-		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, '')
+		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`
 		FROM entries WHERE competition_id = $1
 		ORDER BY individual, club_name, gymnast, id`, competitionID)
 	if err != nil {
@@ -251,9 +270,11 @@ func (s *Store) Entries(ctx context.Context, competitionID string) ([]Entry, err
 func scanEntry(row interface{ Scan(...any) error }) (Entry, error) {
 	var e Entry
 	var entry, sent, checked, signed string
-	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach, &e.PartnerLink, &e.PartnerConfirmed, &e.PartnerMemberID, &e.PartnerEntryID); err != nil {
+	var counts bool
+	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach, &e.PartnerLink, &e.PartnerConfirmed, &e.PartnerMemberID, &e.PartnerEntryID, &e.SignedCoach, &counts); err != nil {
 		return Entry{}, notFound(err)
 	}
+	e.Unapproved = signed != "" && !counts
 	if err := json.Unmarshal([]byte(entry), &e.Entry); err != nil {
 		return Entry{}, fmt.Errorf("reading entry %s: %w", e.ID, err)
 	}
@@ -319,7 +340,7 @@ func (s *Store) AddIndividualEntry(ctx context.Context, competitionID string, e 
 
 // IndividualEntry is the entry an individual's personal link opens.
 func (s *Store) IndividualEntry(ctx context.Context, token string) (Entry, error) {
-	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE, COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, '')
+	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE, COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`
 		FROM entries WHERE token_hash = $1`, hash(token)))
 }
 
@@ -390,6 +411,17 @@ func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err erro
 	return comps, clubs, err
 }
 
+// SetApproveCoaches says whether only coaches the organiser approves can sign
+// off, and the lowest qualification level accepted in each discipline (ADR
+// 0007 Decision 2).
+func (s *Store) SetApproveCoaches(ctx context.Context, id string, on bool, levels map[string]int) error {
+	b, err := json.Marshal(levels)
+	if err != nil {
+		return err
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET approve_coaches = $1, coach_levels = $2 WHERE id = $3`, on, string(b), id))
+}
+
 // SetIndividuals turns a competition's individual entry on or off.
 func (s *Store) SetIndividuals(ctx context.Context, id string, on bool) error {
 	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET individuals = $1 WHERE id = $2`, on, id))
@@ -400,7 +432,7 @@ func (s *Store) CompetitionEntry(ctx context.Context, competitionID, id string) 
 	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
 		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
 			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id AND me.discipline = entries.discipline), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
-		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, '')
+		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`
 		FROM entries WHERE competition_id = $1 AND id = $2`, competitionID, id))
 }
 
@@ -449,7 +481,7 @@ func (s *Store) SetSignoff(ctx context.Context, id string, on bool) error {
 // EntryBySignoffLink is the individual's entry a coach's sign-off link opens.
 func (s *Store) EntryBySignoffLink(ctx context.Context, token string) (Entry, error) {
 	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE,
-		COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, '')
+		COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`
 		FROM entries WHERE signoff_hash = $1`, hash(token)))
 }
 
