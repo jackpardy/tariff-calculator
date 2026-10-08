@@ -234,16 +234,39 @@ roughly in the order they'd help ISTO.
    [open questions](open-questions.md#notifications)).
 7. **Link the calculator to the competition tools.** Nothing on the routine
    builder leads to `/competitions` yet.
-8. **Synchro's last detail.** Warn the gymnast on their own page too, not
-   only the organiser, when a pair is at the wrong level. ("The lower level"
-   for a pair a level apart means the easier one, as built: confirmed
-   2026-10-07.)
+8. **Synchro partners see the pair's entry** (decided 2026-10-08). A synchro
+   entry belongs to the gymnast who entered it; today the partner only
+   confirms they're the partner, and neither they, their coach nor their
+   club sees it again. Once the partner confirms, the entry shows in the
+   partner's own entries (a member's page, or an individual's), and their
+   coach and their club's comp sec see it on their pages, marked as entered
+   by the partner (and their club, if it's another). The entrant still
+   enters and changes it; for the partner's side it's to see, as with any
+   entry: its checks, sign-off and, once published, their flight. Also warn
+   both gymnasts on their own pages, not only the organiser, when a pair is
+   at the wrong level. ("The lower level" for a pair a level apart means the
+   easier one, as built: confirmed 2026-10-07.)
 9. **Results history** (competitions 6): import TrampOnline and TScore
    results CSVs for personal bests, progression and next year's levels.
 10. **Clubs:** the TrampOnline entry export (clubs 1), then skill tracking
     (clubs 2).
 11. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
     and the usual rest between turns (both guesses for now).
+
+# Possible additions (not planned yet)
+
+Ideas to come back to (2026-10-08), not decided:
+
+- **A coach per discipline.** A member (or the comp sec) chooses a coach for
+  each discipline, e.g. trampoline with Ann and tumbling with Bob, and that
+  coach sees and signs off that entry. Today a member has one coach, and a
+  second coach can sign off only where the club lets every coach see every
+  member. (Individuals already name a coach per entry.)
+- **Synchro signed off by both partners' coaches.** A pair's entry counts as
+  signed off only when each gymnast's coach has signed it off, as fits "has
+  seen them perform it safely" for a pair from different coaches or clubs.
+  Today only the entrant's coach signs it off. Builds on the partner seeing
+  the entry (next steps).
 
 See [open questions](open-questions.md) for what's waiting on documents and
 decisions.
