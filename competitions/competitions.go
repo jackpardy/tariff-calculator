@@ -58,6 +58,11 @@ type Competition struct {
 	// Officials are the panels each discipline needs and who may judge what
 	// (ADR 0005 Decisions 5 and 13).
 	Officials OfficialSettings
+	// Fees are what it charges, if anything (roadmap 2026-10-08).
+	Fees Fees
+	// Limits are how many entries each event takes, by event name (missing
+	// or 0: no limit); later entries wait (roadmap 2026-10-08).
+	Limits map[string]int
 }
 
 // Level is a level a competition offers. A built-in is kept by reference; a

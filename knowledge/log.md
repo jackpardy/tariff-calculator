@@ -11,6 +11,13 @@
   An ISTO organiser answered the questions the same day: set routines don't
   score difficulty, a 2.0 penalty outside the tariff band, and Disability
   Level 5 (an old routine that contradicts itself) is left out.
+* **Update**: [Limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists):
+  a limit per event; later entries wait in the order they came in and move
+  up as places free; the organiser can let one in over the limit; clubs
+  and gymnasts see their place.
+* **Update**: [Entry fees](features/competition-entries.md#entry-fees): the
+  organiser sets fees per entry (by discipline) and per club, records
+  payments and prints invoices; clubs and individuals see what they owe.
 * **Update**: [Helpers' links](features/competition-entries.md#helpers-links-history-and-concerns-adr-0009)
   ([ADR 0009](../docs/adr/0009-helper-links.md)): the organiser makes links
   for checking cards, chairs of judges, the timetable and officials, or a

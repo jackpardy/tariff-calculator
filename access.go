@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"tariffCalculator/competitions"
 	"tariffCalculator/store"
 	"tariffCalculator/views"
 )
@@ -174,6 +175,27 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		return "Flagged a concern"
 	case "/concerns/{id}/resolve":
 		return "Resolved a concern"
+	case "/limits":
+		return "Changed the limits"
+	case "/entries/{id}/let-in":
+		if f("on") == "0" {
+			return "Put an entry back on the waiting list" + entry()
+		}
+		return "Let an entry in from the waiting list" + entry()
+	case "/fees/settings":
+		return "Changed the fees"
+	case "/fees/payments":
+		who := "someone"
+		if a, ok, err := p.accountOf(r.Context(), c, f("payer")); err == nil && ok {
+			who = a.name
+		}
+		amount := f("amount")
+		if cents, err := competitions.ParseMoney(amount); err == nil {
+			amount = c.Fees.Money(cents)
+		}
+		return "Recorded a payment of " + amount + " from " + who
+	case "/fees/payments/{id}/remove":
+		return "Removed a payment"
 	case "/notify-now":
 		return "Sent the changes waiting (Notify now)"
 	case "/timetable/plan":

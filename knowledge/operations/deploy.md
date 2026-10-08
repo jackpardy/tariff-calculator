@@ -40,14 +40,18 @@ a PR cancels its older run.
 straight to `master`). Auto-merge is allowed, so a PR can be set to merge
 itself once its check passes.
 
-**test** job:
+**test** job, which first looks at what changed: if only documents did
+(`knowledge/`, `docs/`, any `.md` or `.pdf`), it skips everything else and
+passes in seconds, so docs-only PRs can still merge, and nothing deploys
+(2026-10-08). Otherwise it:
 - checks the generated templ code is current (`go tool templ generate` then
   `git diff --exit-code`),
 - `go vet ./...`,
 - `go test ./...`,
 - `docker build`, so a broken image is caught before deploy.
 
-**deploy** job (after test, never for a pull request): SSH to the server with
+**deploy** job (after test, never for a pull request, nor for documents
+alone): SSH to the server with
 a dedicated key. Deploys run one at a time in their own concurrency group, so a
 PR's tests never hold one up. The server
 forces the command `/srv/infra/scripts/deploy.sh tariff` whatever is asked for.

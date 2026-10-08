@@ -52,6 +52,42 @@ the organisers only; the organiser and co-organisers mark each
 **Resolved**, with a note. The demo has helpers' links (printed by `demo`),
 three cards checked and two concerns.
 
+## Limits and waiting lists
+
+Under Links and settings, **Limits and waiting lists** sets how many
+entries each event takes (empty: no limit), showing how many have entered
+(roadmap 2026-10-08). Once an event is full, later entries wait, in the
+order they first came in (`entered_at`: kept when an entry is sent or
+changed again, reset if its level changes, so switching from a quiet
+level doesn't jump the queue). `Store.Entries` marks each entry's place
+(`Waiting`, from `markWaiting`); withdrawn entries take no place. A waiting
+entry isn't counted, charged, printed, exported or timetabled (`live`,
+`splitWaiting`). When one is withdrawn or removed, or the limit is raised,
+the next moves up by itself; **Let in** takes one in over the limit
+without moving anyone else. The dashboard shows "88 of 90 places" beside a
+limited event and a **Waiting lists** box; the comp sec sees "Sent ·
+waiting list, 3rd", and a member or individual "On the waiting list for
+BUCS L1: 3rd". Notifications (cards) say when an entry goes on or comes
+off a waiting list, when the organiser's change does it. The demo limits
+BUCS L1 to 12 and DMT Advanced to 17.
+
+## Entry fees
+
+**Fees** (the dashboard's button, for the organiser and co-organisers;
+roadmap 2026-10-08) sets what's charged: euro or sterling, an amount per
+entry for each discipline offered (a synchro pair is one entry), an
+optional fee once per club, and how to pay (printed on every invoice).
+Removed, held and withdrawn entries aren't charged (`Fees.Invoice`). The
+page lists each club, and each individual's entry, with entries, due, paid
+and balance ("Paid" once settled), and totals; the organiser records each
+payment (amount and note, with who recorded it) and can remove one made by
+mistake. Each has an **invoice** to print: a line per entry and the club
+fee, payments, what's left and how to pay. A club's comp sec sees "Fees:
+€49 · €25 paid · €24 to pay" on each competition, with the invoice; an
+individual on their entry. No money goes through the tools. The demo
+charges €12 an entry (€15 synchro, €10 tumbling and DMT) and €25 a club,
+with some clubs paid and some part paid.
+
 ## Going live
 
 A new competition starts **private** (roadmap 2026-10-07), unless the form

@@ -1,0 +1,81 @@
+package views
+
+import "strconv"
+
+// WaitingList is an event's waiting list (roadmap 2026-10-08).
+type WaitingList struct {
+	Event string
+	Limit int
+	Rows  []WaitingRow
+}
+
+// WaitingRow is an entry waiting for a place.
+type WaitingRow struct {
+	ID                          string
+	Place                       int
+	Gymnast, Club, Entered, Link string
+}
+
+// LimitField is an event's limit, for the form.
+type LimitField struct {
+	Event, Limit string // "" for none
+	Entered      int
+}
+
+// waitingLine says an entry is on a waiting list.
+templ waitingLine(text string) {
+	if text != "" {
+		<div class="notification is-warning is-light">{ text }</div>
+	}
+}
+
+// limitsForm sets how many entries each event takes.
+templ limitsForm(base string, fields []LimitField) {
+	<details class="mb-3">
+		<summary class="label is-small">Limits and waiting lists</summary>
+		<form method="post" action={ templ.SafeURL(base + "/limits") } class="mt-2">
+			<div class="comp-sim-grid">
+				for i, f := range fields {
+					<label class="comp-sim-row">
+						<span>{ f.Event } <span class="is-size-7 has-text-grey">({ strconv.Itoa(f.Entered) } entered)</span></span>
+						<input class="input is-small comp-num" name={ "limit-" + strconv.Itoa(i) } type="number" min="0" max="2000" value={ f.Limit } placeholder="none" aria-label={ "Limit for " + f.Event }/>
+					</label>
+				}
+			</div>
+			<p class="help">Once an event is full, later entries go on its waiting list in the order they came in, and move up as places free: when one is withdrawn or removed, or you raise the limit. Empty: no limit.</p>
+			<button class="button is-small" type="submit">Save limits</button>
+		</form>
+	</details>
+}
+
+// waitingBox lists each event's waiting list.
+templ waitingBox(base string, lists []WaitingList, letIn bool) {
+	if len(lists) > 0 {
+		<div class="box mt-5">
+			<h2 class="title is-5">Waiting lists</h2>
+			<p class="is-size-7 mb-3">They aren't counted, charged, printed or timetabled until they're in. Each moves up when a place frees.</p>
+			for _, wl := range lists {
+				<h3 class="title is-6 mt-3 mb-1">{ wl.Event } <span class="has-text-grey is-size-7 has-text-weight-normal">· full at { strconv.Itoa(wl.Limit) }</span></h3>
+				<table class="table is-fullwidth is-narrow">
+					<tbody>
+						for _, row := range wl.Rows {
+							<tr>
+								<td class="has-text-grey">{ strconv.Itoa(row.Place) }</td>
+								<td><a href={ templ.SafeURL(row.Link) }>{ row.Gymnast }</a></td>
+								<td>{ row.Club }</td>
+								<td class="is-size-7 has-text-grey">entered { row.Entered }</td>
+								<td>
+									if letIn {
+										<form method="post" action={ templ.SafeURL(base + "/entries/" + row.ID + "/let-in") }>
+											<button class="button is-small" type="submit" aria-label={ "Let in " + row.Gymnast }>Let in</button>
+										</form>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</div>
+	}
+}

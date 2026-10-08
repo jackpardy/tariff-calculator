@@ -163,13 +163,16 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		}
 		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now()), ApproveCoaches: c.ApproveCoaches && c.Signoff,
 			Notify: p.notifyLink(base + "/competitions/" + c.ID + "/notify")}
+		cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
 		if published(c) {
 			cc.Timeline = base + "/competitions/" + c.ID + "/timeline"
 		}
-		sentID := map[string]string{} // member → the competition's copy of their entry
+		sentID := map[string]string{}    // member → the competition's copy of their entry
+		waitingPlace := map[string]int{} // member and discipline → place on a waiting list
 		for _, e := range sent {
 			if e.ClubID == club.ID {
 				sentID[e.MemberID] = e.ID
+				waitingPlace[e.MemberID+"/"+e.Entry.Discipline] = e.Waiting
 			}
 		}
 		removals, err := p.st.ClubRemovals(ctx, club.ID, c.ID)
@@ -195,6 +198,8 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 			case !e.Sent():
 				row.Status = "Not sent"
 				cc.ToSend++
+			case waitingPlace[e.MemberID+"/"+e.Discipline] > 0 && !e.ChangedSinceSent():
+				row.Status = "Sent · waiting list, " + waitingWord(waitingPlace[e.MemberID+"/"+e.Discipline])
 			case e.ChangedSinceSent():
 				row.Status = "Changed since sent"
 				cc.ToSend++
@@ -682,7 +687,7 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 				copyID := ""
 				for _, s := range sent {
 					if s.MemberID == m.ID && s.Entry.Discipline == d {
-						ev.Placement, copyID = placement(c, s.ID), s.ID
+						ev.Placement, copyID, ev.Waiting = placement(c, s.ID), s.ID, waitingText(s)
 					}
 				}
 				shown, err := card(c.Competition, e.Entry, club)

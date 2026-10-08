@@ -436,10 +436,11 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		chosen = kept
 		for _, p := range chosen {
 			if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_id, member_id, discipline, club_name, individual, gymnast, entry, sent_at,
-				signed_at, signed_by, sign_note, partner_confirmed, partner_member, partner_entry, signed_coach)
-				VALUES ($1, $2, $3, $4, $12, $5, FALSE, $6, $7, $8, $9, $10, $11, $13, $14, $15, $16)
+				signed_at, signed_by, sign_note, partner_confirmed, partner_member, partner_entry, signed_coach, entered_at)
+				VALUES ($1, $2, $3, $4, $12, $5, FALSE, $6, $7, $8, $9, $10, $11, $13, $14, $15, $16, $8)
 				ON CONFLICT (competition_id, member_id, discipline) DO UPDATE
 				SET entry = excluded.entry, gymnast = excluded.gymnast, club_name = excluded.club_name, sent_at = excluded.sent_at,
+					entered_at = CASE WHEN json_extract(entries.entry, '$.level') = json_extract(excluded.entry, '$.level') THEN entries.entered_at ELSE excluded.entered_at END,
 					signed_at = excluded.signed_at, signed_by = excluded.signed_by, sign_note = excluded.sign_note, signed_coach = excluded.signed_coach,
 					resent = entries.resent OR (entries.removal = 'held' AND entries.entry <> excluded.entry),
 					partner_confirmed = excluded.partner_confirmed, partner_member = excluded.partner_member, partner_entry = excluded.partner_entry,

@@ -543,6 +543,14 @@ func (s *seeder) run(out io.Writer) error {
 	if m := regexp.MustCompile(`<option value="([^"]+)">Frank Lyons</option>`).FindStringSubmatch(page); m != nil {
 		s.post(tt+"/setup/rules", url.Values{"add": {"1"}, "kind": {"hours"}, "must": {"0"}, "person": {m[1]}, "day": {"1"}, "from": {"12:00"}})
 	}
+	// Two events are full, with a waiting list.
+	limits, limitForm := url.Values{}, s.get(admin)
+	for event, limit := range map[string]string{"BUCS L1": "12", "DMT Advanced": "17"} {
+		if m := regexp.MustCompile(`name="(limit-\d+)"[^>]*aria-label="Limit for ` + regexp.QuoteMeta(event) + `"`).FindStringSubmatch(limitForm); m != nil {
+			limits.Set(m[1], limit)
+		}
+	}
+	s.post(admin+"/limits", limits)
 	s.post(tt+"/plan", url.Values{})
 	s.post(tt+"/publish", url.Values{"on": {"1"}})
 
@@ -575,6 +583,23 @@ func (s *seeder) run(out io.Writer) error {
 		}
 	}
 	s.post(chairs+"/concerns", url.Values{"text": {"Panel 2's trampoline has a loose spring cover: can someone look at it at lunch?"}})
+
+	// Entry fees: some clubs have paid, some in part.
+	s.post(admin+"/fees/settings", url.Values{"fee-": {"12"}, "fee-synchro": {"15"}, "fee-tumbling": {"10"}, "fee-dmt": {"10"}, "club": {"25"},
+		"instructions": {"Bank transfer to ISTO 2027, IBAN IE00 DEMO 0000 0000 0000 00, with your club's name as the reference, by 20 February."}})
+	payers := regexp.MustCompile(`name="payer" value="([^"]+)"`).FindAllStringSubmatch(s.get(admin+"/fees"), 14)
+	for i, m := range payers {
+		inv := s.get(admin + "/fees/invoice?payer=" + url.QueryEscape(m[1]))
+		due := regexp.MustCompile(`To pay\s*</th>\s*<th class="has-text-right">€(\d+)`).FindStringSubmatch(inv)
+		if due == nil {
+			continue
+		}
+		amount, note := due[1], "Bank transfer"
+		if i%3 == 2 {
+			amount, note = "50", "Part paid at the club fair"
+		}
+		s.post(admin+"/fees/payments", url.Values{"payer": {m[1]}, "amount": {amount}, "note": {note}})
+	}
 	if s.err != nil {
 		return s.err
 	}
