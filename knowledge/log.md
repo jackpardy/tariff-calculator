@@ -12,6 +12,9 @@
   each judge's mark of each routine (the panel's own execution, HD and
   synchronisation judges), difficulty, penalty and totals, all left to
   fill in. Officials can open their own panels' sheets on their phone.
+* **Update**: Sign-offs made before approved coaches existed (they kept only
+  the coach's name) now count once that coach is approved, where the name
+  is exactly one of the club's coaches (migration 18).
 * **Update**: [Notifications](features/competition-entries.md#notifications-adr-0008)
   by phone push (ADR 0008 step 2): **On this phone** on the same pages, with
   a service worker and web manifest (iPhones from the home screen), the

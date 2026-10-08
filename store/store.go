@@ -382,6 +382,21 @@ var migrations = []string{
 		key   TEXT PRIMARY KEY,
 		value TEXT NOT NULL
 	);`,
+
+	// 18: sign-offs from before migration 11 kept only the coach's name.
+	// Where that name is exactly one of the club's coaches, it's that coach,
+	// so their sign-offs count once a competition approves them (as asked,
+	// 2026-10-08).
+	`UPDATE member_entries SET signed_coach = (
+		SELECT c.id FROM coaches c JOIN members m ON m.club_id = c.club_id
+		WHERE m.id = member_entries.member_id AND lower(trim(c.name)) = lower(trim(member_entries.signed_by)))
+	WHERE signed_coach = '' AND signed_by <> '' AND (
+		SELECT COUNT(*) FROM coaches c JOIN members m ON m.club_id = c.club_id
+		WHERE m.id = member_entries.member_id AND lower(trim(c.name)) = lower(trim(member_entries.signed_by))) = 1;
+	UPDATE entries SET signed_coach = (
+		SELECT c.id FROM coaches c WHERE c.club_id = entries.club_id AND lower(trim(c.name)) = lower(trim(entries.signed_by)))
+	WHERE signed_coach = '' AND signed_by <> '' AND NOT individual AND (
+		SELECT COUNT(*) FROM coaches c WHERE c.club_id = entries.club_id AND lower(trim(c.name)) = lower(trim(entries.signed_by))) = 1;`,
 }
 
 // migrate runs the migrations the database hasn't had yet.
