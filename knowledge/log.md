@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: Recorders' **score sheets** to print from the timetable: a
+  landscape page a flight, a row per gymnast in running order, a box for
+  each judge's mark of each routine (the panel's own execution, HD and
+  synchronisation judges), difficulty, penalty and totals, all left to
+  fill in. Officials can open their own panels' sheets on their phone.
 * **Update**: Sign-offs made before approved coaches existed (they kept only
   the coach's name) now count once that coach is approved, where the name
   is exactly one of the club's coaches (migration 18).

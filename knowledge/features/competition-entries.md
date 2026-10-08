@@ -243,8 +243,16 @@ are then filled flight by flight.
   **Assign officials again** starts the rota afresh, keeping the flights.
 - **Coaches:** planning keeps a coach's gymnasts off two areas at once where
   that can be done (by club and coach name), and reports where it can't.
-- **Printed:** each flight's panel on the marshal and chair of judges sheets,
-  and the **officials rota**, each person's duties in time order, one line
+- **Printed:** each flight's panel on the marshal and chair of judges sheets;
+  the recorders' **score sheets** (asked 2026-10-08, as ISTO records scores
+  online and on paper): a landscape page a flight, its panel named, a row
+  per gymnast (or pair) in running order, and for each routine a column per
+  execution judge, D, each HD and synchronisation judge the panel has,
+  penalty and total, then the total and place, all left to fill in. The
+  organiser prints them; an official on a flight's panel can also open that
+  flight's sheet on their phone (**Score sheets for your panels**, beside
+  their duties, once published). And the **officials rota**, each person's
+  duties in time order, one line
   for an event ("Friday 09:30–15:15 · Panel 2 · BUCS L7 Men · all 5
   flights · Execution judge").
 - **Published,** members and gymnasts entering on their own see their duties

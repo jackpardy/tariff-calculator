@@ -11,6 +11,7 @@ type MyCompetitionPage struct {
 	Back        string // their own page
 	Timeline    string // their timetable as the panel timeline, once published
 	Notify      string // where they ask to hear about changes
+	ScoreSheets string // the score sheets of the flights they officiate, if any
 	Published   bool
 	Events      []MyEvent
 	Duties      []string
@@ -67,7 +68,7 @@ templ MyCompetition(p MyCompetitionPage) {
 				}
 			</div>
 		}
-		@dutiesBox(p.Duties)
+		@dutiesBox(p.Duties, p.ScoreSheets)
 		if !p.Published {
 			<div class="notification is-light">The timetable isn't published yet. Your flights, times and any judging show here once it is.</div>
 		} else {

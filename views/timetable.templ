@@ -199,6 +199,7 @@ templ CompetitionTimetable(p TimetablePage) {
 				</form>
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=marshal") }>Print marshal sheets</a>
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=judges") }>Print chair of judges sheets</a>
+				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=scores") }>Print score sheets</a>
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=rota") }>Print the officials rota</a>
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=timeline") }>Panel timeline</a>
 				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=timeline-officials") }>Timeline with officials</a>
@@ -907,7 +908,7 @@ templ RotaPrint(s RotaSheet) {
 
 // dutiesBox lists a person's duties as an official, once the timetable is
 // published.
-templ dutiesBox(duties []string) {
+templ dutiesBox(duties []string, scoreSheets string) {
 	if len(duties) > 0 {
 		<div class="notification is-info is-light">
 			<p><strong>Officiating</strong></p>
@@ -916,6 +917,9 @@ templ dutiesBox(duties []string) {
 					<li>{ d }</li>
 				}
 			</ul>
+			if scoreSheets != "" {
+				<p class="is-size-7 mt-1"><a href={ templ.SafeURL(scoreSheets) }>Score sheets for your panels</a></p>
+			}
 		</div>
 	}
 }
@@ -1112,4 +1116,95 @@ func flightCount(n int, pairs bool) string {
 		return "1 pair"
 	}
 	return fmt.Sprintf("%d pairs", n)
+}
+
+// ScoreSheets are the recorders' score sheets: a page per flight, a row per
+// gymnast in running order, a column for each mark of each routine, to
+// write in as the paper copy of the scores.
+type ScoreSheets struct {
+	Title, Back string
+	BackLabel   string // e.g. "← Timetable"
+	Intro       string // for an official: whose flights these are
+	Competition CompetitionSummary
+	Flights     []ScoreFlight
+}
+
+// ScoreFlight is one flight's score sheet.
+type ScoreFlight struct {
+	Name, Day, Area, Start string
+	Seats                  []SeatView // who's on its panel
+	Marks                  []string // each routine's columns: "E1"…, "D", "HD", "S1"…, "Pen", "Total"
+	Rows                   []ScoreRow
+}
+
+// ScoreRow is a gymnast (or synchro pair) on a score sheet.
+type ScoreRow struct {
+	Name, Club string
+}
+
+// ScorePrint is the recorders' score sheets, to print landscape.
+templ ScorePrint(s ScoreSheets) {
+	@competitionLayout(s.Title) {
+		<style>@page { size: A4 landscape; margin: 10mm; }</style>
+		<div class="comp-print-bar screen-only">
+			<a href={ templ.SafeURL(s.Back) }>{ s.BackLabel }</a>
+			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
+			<span class="is-size-7">Landscape, a page a flight.</span>
+		</div>
+		if s.Intro != "" {
+			<p class="mb-4 screen-only">{ s.Intro }</p>
+		}
+		if len(s.Flights) == 0 && s.Intro != "" {
+			<p class="has-text-grey">You're not on the panel for any flight.</p>
+		} else if len(s.Flights) == 0 {
+			<p class="has-text-grey">No flights.</p>
+		}
+		for _, f := range s.Flights {
+			<section class="comp-sheet">
+				<h1 class="title is-5 mb-1">{ f.Name }</h1>
+				<p class="mb-1">{ s.Competition.Name } · { f.Area } · { f.Day } · warm-up { f.Start } · Recorder's score sheet</p>
+				if len(f.Seats) > 0 {
+					<p class="is-size-7 mb-2">{ panelLine(f.Seats) }</p>
+				}
+				<div class="table-container">
+				<table class="table is-fullwidth is-bordered comp-score-table">
+					<thead>
+						<tr>
+							<th rowspan="2">#</th>
+							<th rowspan="2">Gymnast</th>
+							<th rowspan="2">Club</th>
+							<th colspan={ strconv.Itoa(len(f.Marks)) } class="has-text-centered">1st routine</th>
+							<th colspan={ strconv.Itoa(len(f.Marks)) } class="has-text-centered">2nd routine</th>
+							<th rowspan="2">Total</th>
+							<th rowspan="2">Place</th>
+						</tr>
+						<tr>
+							for range 2 {
+								for _, m := range f.Marks {
+									<th class={ "comp-score-mark", templ.KV("comp-score-total", m == "Total") }>{ m }</th>
+								}
+							}
+						</tr>
+					</thead>
+					<tbody>
+						for i, g := range f.Rows {
+							<tr>
+								<td>{ strconv.Itoa(i + 1) }</td>
+								<td>{ g.Name }</td>
+								<td class="is-size-7">{ g.Club }</td>
+								for range 2 {
+									for _, m := range f.Marks {
+										<td class={ "comp-score-mark", templ.KV("comp-score-total", m == "Total") }></td>
+									}
+								}
+								<td class="comp-score-total"></td>
+								<td></td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				</div>
+			</section>
+		}
+	}
 }

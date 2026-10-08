@@ -52,6 +52,7 @@ every page answers 503.
 | `GET /competitions/admin/{token}/entries.csv` | — | Every entry as CSV: gymnast, club, level, each exercise and its difficulty, problems, checked, note, sent |
 | `POST /competitions/admin/{token}/deadline` | `close=1`, or `deadlineDate` and `deadlineTime` | Closes entries now, or changes when they close (by the end of the competition date) |
 | `GET`, `POST /clubs/member/{token}/competitions/{id}/notify`, `/competitions/entry/{token}/notify`, `/clubs/admin/{token}/competitions/{id}/notify`, `/clubs/coach/{token}/competitions/{id}/notify` | `email`, `adult=1`, each `topic` (`timetable`, `duties`, `cards`), `action` (`save`, or `remove` with `remove`, the subscription) | Hearing about a competition's changes (ADR 0008): a member, an individual, the comp sec, a coach. Push: `action=push`, `endpoint`, `p256dh`, `auth`, each `topic` (from `static/js/push.js`) |
+| `GET /clubs/member/{token}/competitions/{id}/score-sheets`, `/competitions/entry/{token}/score-sheets` | — | The published score sheets of the flights the person officiates |
 | `GET /sw.js` | — | The service worker, for push notifications |
 | `GET /manifest.webmanifest` | — | The web manifest, for adding a page to the home screen (no `start_url`) |
 | `GET`, `POST /notify/confirm/{token}` | — | Confirms an email (a button, then done) |
@@ -108,7 +109,7 @@ every page answers 503.
 | `POST /competitions/admin/{token}/timetable/entry` | `entry`, `to` (flight index, `""` to take out) | Moves or places a gymnast |
 | `POST /competitions/admin/{token}/timetable/publish` | `on` (`1`/`0`) | Shows clubs and gymnasts their flight, or hides it |
 | `POST /competitions/admin/{token}/timetable/officials` | `action` (`rota`, or `seat` with `flight` or `block`, `seat`, `person`) | Assigns every panel again, or gives one seat to someone (`""` empties it) |
-| `GET /competitions/admin/{token}/timetable/print` | `sheet` (`marshal`, `judges`, `rota`, `timeline` or `timeline-officials`) | Printable sheets, one area to a page, with each flight's panel; each person's duties; the panel timeline, every day's areas side by side; or the timeline with a column for each seat, a day's area to a sheet |
+| `GET /competitions/admin/{token}/timetable/print` | `sheet` (`marshal`, `judges`, `scores`, `rota`, `timeline` or `timeline-officials`) | Printable sheets, one area to a page, with each flight's panel; the recorders' score sheets, a flight to a landscape page; each person's duties; the panel timeline, every day's areas side by side; or the timeline with a column for each seat, a day's area to a sheet |
 | `GET /competitions/admin/{token}/timetable/timeline.csv` | — | The panel timeline as CSV: a row per flight or block on each area, with its officials by role |
 | `GET /competitions/admin/{token}/timetable/delay` | `day` (index), `from` ("10:30"), `minutes`, `area` (any number; none for all); easing: `breaks` (`""`, `move`, `shorten`, `through`), `shorten`, `between`, `quicker` (%), `maxFlight`, `overrun` | What a delay does to the planned timetable, without saving: flights shifted or moved, what no longer fits, clashes |
 | `GET /competitions/admin/{token}/timetable/leave` | `person` (key), `day`, `from`, `forgood` (`1`), `prefer` (`""` easiest to fill, `fewest`) | How a leaving official's seats would be filled, without saving |
