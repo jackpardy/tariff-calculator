@@ -138,6 +138,7 @@ type MemberCompetition struct {
 	Timeline     string        // their timetable, and their club's, once published
 	ClubTimeline string
 	Notify       string // where they ask to hear about changes
+	ScoreSheets  string // the score sheets of the flights they officiate, if any
 	Open         bool // shown open on the page
 }
 
@@ -587,7 +588,7 @@ templ MemberHome(p MemberPage) {
 					for _, ev := range c.Events {
 						@memberEvent(c.Competition, ev)
 					}
-					@dutiesBox(c.Duties)
+					@dutiesBox(c.Duties, c.ScoreSheets)
 					if c.Offer != nil && c.Competition.Open {
 						@offerBox(*c.Offer)
 					}

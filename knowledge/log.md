@@ -11,7 +11,7 @@
   landscape page a flight, a row per gymnast in running order, a box for
   each judge's mark of each routine (the panel's own execution, HD and
   synchronisation judges), difficulty, penalty and totals, all left to
-  fill in.
+  fill in. Officials can open their own panels' sheets on their phone.
 * **Update**: [Notifications](features/competition-entries.md#notifications-adr-0008)
   by phone push (ADR 0008 step 2): **On this phone** on the same pages, with
   a service worker and web manifest (iPhones from the home screen), the

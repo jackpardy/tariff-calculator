@@ -908,7 +908,7 @@ templ RotaPrint(s RotaSheet) {
 
 // dutiesBox lists a person's duties as an official, once the timetable is
 // published.
-templ dutiesBox(duties []string) {
+templ dutiesBox(duties []string, scoreSheets string) {
 	if len(duties) > 0 {
 		<div class="notification is-info is-light">
 			<p><strong>Officiating</strong></p>
@@ -917,6 +917,9 @@ templ dutiesBox(duties []string) {
 					<li>{ d }</li>
 				}
 			</ul>
+			if scoreSheets != "" {
+				<p class="is-size-7 mt-1"><a href={ templ.SafeURL(scoreSheets) }>Score sheets for your panels</a></p>
+			}
 		</div>
 	}
 }
@@ -1120,6 +1123,8 @@ func flightCount(n int, pairs bool) string {
 // write in as the paper copy of the scores.
 type ScoreSheets struct {
 	Title, Back string
+	BackLabel   string // e.g. "← Timetable"
+	Intro       string // for an official: whose flights these are
 	Competition CompetitionSummary
 	Flights     []ScoreFlight
 }
@@ -1142,10 +1147,18 @@ templ ScorePrint(s ScoreSheets) {
 	@competitionLayout(s.Title) {
 		<style>@page { size: A4 landscape; margin: 10mm; }</style>
 		<div class="comp-print-bar screen-only">
-			<a href={ templ.SafeURL(s.Back) }>← Timetable</a>
+			<a href={ templ.SafeURL(s.Back) }>{ s.BackLabel }</a>
 			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
 			<span class="is-size-7">Landscape, a page a flight.</span>
 		</div>
+		if s.Intro != "" {
+			<p class="mb-4 screen-only">{ s.Intro }</p>
+		}
+		if len(s.Flights) == 0 && s.Intro != "" {
+			<p class="has-text-grey">You're not on the panel for any flight.</p>
+		} else if len(s.Flights) == 0 {
+			<p class="has-text-grey">No flights.</p>
+		}
 		for _, f := range s.Flights {
 			<section class="comp-sheet">
 				<h1 class="title is-5 mb-1">{ f.Name }</h1>
@@ -1153,6 +1166,7 @@ templ ScorePrint(s ScoreSheets) {
 				if len(f.Seats) > 0 {
 					<p class="is-size-7 mb-2">{ panelLine(f.Seats) }</p>
 				}
+				<div class="table-container">
 				<table class="table is-fullwidth is-bordered comp-score-table">
 					<thead>
 						<tr>
@@ -1189,6 +1203,7 @@ templ ScorePrint(s ScoreSheets) {
 						}
 					</tbody>
 				</table>
+				</div>
 			</section>
 		}
 	}

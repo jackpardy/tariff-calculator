@@ -249,6 +249,7 @@ type EntryPage struct {
 	Removal     string     // what the organiser did with it, and why, if anything
 	Timeline    string     // their timetable as the panel timeline, once published
 	Notify      string     // where they ask to hear about changes
+	ScoreSheets string     // the score sheets of the flights they officiate, if any
 }
 
 // EntryCoachView is the coach an individual names, for the organiser to
@@ -1132,7 +1133,7 @@ templ CompetitionEntryPage(p EntryPage) {
 		@dayLink(p.Day)
 		@timelineLinks(p.Timeline, "", p.Notify)
 		@placementLine(p.Placement)
-		@dutiesBox(p.Duties)
+		@dutiesBox(p.Duties, p.ScoreSheets)
 		if p.Checked {
 			<p class="mb-2"><strong>✓ Checked by the organiser.</strong></p>
 		}

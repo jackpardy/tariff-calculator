@@ -219,8 +219,9 @@ has a starting value you can change.
    page, each flight with its panel), **Print score sheets** for the
    recorders (a flight to a landscape page: each gymnast in running order,
    a box for each judge's mark of each routine, difficulty, penalty and
-   totals, the paper copy beside the scores entered
-   online), and **Print the officials rota** (each person's duties) for the
+   totals, the paper copy beside the scores entered online; officials can
+   also open their own panels' sheets on their phone from **Score sheets
+   for your panels**, beside their duties), and **Print the officials rota** (each person's duties) for the
    noticeboard. **Panel timeline** shows every day
    side by side, a column per area, each flight and break with time running
    down evenly; **Timeline with officials** shows each area's day with a
