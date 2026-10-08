@@ -21,6 +21,15 @@ type Flight struct {
 	Entries  []string `json:"entries"`            // entry ids, in running order
 }
 
+// Event is what the flight is part of for its panel: its level, and its
+// category where men and women fly separately (ADR 0006 Decision 1).
+func (f Flight) Event() string {
+	if f.Category == "" {
+		return f.Level
+	}
+	return f.Level + " " + f.Category
+}
+
 // Name is the flight's name, e.g. "BUCS L3 Women · flight 2 of 3".
 func (f Flight) Name() string {
 	name := f.Level

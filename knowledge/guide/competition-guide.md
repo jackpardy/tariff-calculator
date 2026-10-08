@@ -134,19 +134,25 @@ has a starting value you can change.
 4. **Blocked time:** add lunch, awards or an ad hoc event, at a fixed time or
    anywhere between two times, on all areas or chosen ones. An ad hoc event
    can say what officials it needs (a chair, judges, a recorder, a marshal),
-   and gets them from the rota.
+   and gets them from the rota. Each event is all before a break or all
+   after it, unless you tick **Events can run across breaks**: then an event
+   too long to fit between breaks (five flights, say) pauses for lunch and
+   finishes afterwards.
 5. **Rules:** put an event on an area or a day, before another event, or apart
    from another, as a **must** or a **prefer** (e.g. Elite synchro must be on
    Panel 1).
 6. Tap **Plan**. Each event is split into even flights with running orders
    drawn at random (keeping a club's gymnasts apart where that's easy), and
-   the flights are placed so no one is in two places at once, each day ends on
-   time and the musts are kept, then as many preferences as fit. The report
+   each event's flights are placed back to back on one area, so one panel
+   can judge them all, with flight 1 first. No one is in two places at once,
+   each day ends on time and the musts are kept, then as many preferences as
+   fit. The report
    shows when each day's flights end, when the day finishes (awards and other
    blocked time included), the time free after the last flight for more
    flights, anything that doesn't fit, anyone with too
    little rest, names that look like one person entered twice, and changes
-   that would make it all fit (including capping an event's entries).
+   that would make it all fit (including capping an event's entries, or
+   letting events run across breaks).
    Planning tries to keep a coach's gymnasts off two areas at once; where it
    can't, **Coaches needed in two places** lists them, so you can move a
    flight, or the club can bring another coach.
@@ -154,9 +160,12 @@ has a starting value you can change.
    and help (see **Officials**): never someone competing or on another panel
    at the time, and only in roles they may take. Clubs share judging their
    own gymnasts fairly, and a panel stays together on its area.
-7. Adjust by hand: move a flight to another day or area, **Redraw order**, or
-   **move** a gymnast to another flight. Entries made after planning are
-   listed for you to place. Changing the setup asks you to **Plan** again.
+7. Adjust by hand: **Move event** moves all of an event's flights together
+   to another day or area, **Earlier** swaps a flight with the one before it
+   in its event, **Redraw order** draws a flight's running order again, and
+   **move** puts a gymnast in another flight. If an event's flights end up
+   apart, or either side of a break you haven't allowed, it's listed as a
+   problem. Entries made after planning are listed for you to place. Changing the setup asks you to **Plan** again.
    Open a flight's **Panel** to give a seat to someone else; **Assign
    officials again** redoes every panel and keeps the flights.
 8. Under **Your rules**, **Officials: who does what** says who does what, as a
@@ -177,7 +186,10 @@ has a starting value you can change.
 day, when the hold-up starts, how many minutes and which areas (none ticked
 for all). It shows which flights now start later or move to another area, when
 each day's flights end, anything that no longer fits, and anyone needed in two
-places. Under **Ease it**, try what you'd do on the day: move, shorten or
+places. An event's flights stay together: if one would no longer finish
+before a break, the rest of the event waits for it too (unless events can run
+across breaks), and an event moves to another area with all its flights still
+to come. Flights that have already run, or are under way, never move. Under **Ease it**, try what you'd do on the day: move, shorten or
 work through lunch on those areas, fewer minutes between flights, quicker
 turns, merging an event's flights into bigger ones, or letting the day run
 over; it shows what that buys against the delay alone. Nothing is changed:

@@ -81,6 +81,27 @@ func TestTimetable(t *testing.T) {
 	if !strings.Contains(page, "BUCS L3 Women · flight 1 of 2") {
 		t.Error("flights of at most 2: the three women in two flights")
 	}
+	// The women's two flights go together: moving one moves the event, and
+	// the second can go first.
+	if !strings.Contains(page, "Move event") {
+		t.Error("an event of two flights moves as one")
+	}
+	second := regexp.MustCompile(`(?s)<strong>BUCS L3 Women · flight 2 of 2</strong>.*?<input type="hidden" name="flight" value="(\d+)"`).FindStringSubmatch(page)
+	if second == nil || !strings.Contains(page, `value="earlier"`) {
+		t.Fatal("the second flight can go earlier")
+	}
+	if location := redirected(t, h, tt+"/flight", url.Values{"flight": {second[1]}, "action": {"earlier"}}); strings.Contains(location, "notice=") {
+		t.Errorf("swapped: %s", location)
+	}
+
+	// Events can run across breaks, if the organiser says so.
+	if location := redirected(t, h, tt+"/setup/blocks", url.Values{"breaks": {"1"}, "across": {"1"}}); !strings.Contains(location, "events+can+run+across+breaks") {
+		t.Errorf("saved: %s", location)
+	}
+	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); !strings.Contains(page, `name="across" value="1" checked`) {
+		t.Error("the setting shows")
+	}
+	redirected(t, h, tt+"/setup/blocks", url.Values{"breaks": {"1"}})
 
 	// Too little time: what doesn't fit, and what would fix it.
 	// Flights of two take 20 minutes: Saturday fits one per panel by 09:20,

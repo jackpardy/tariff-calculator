@@ -11,7 +11,10 @@ import (
 // minutes. Each delayed area's later flights shift back, only as far as they
 // must (slack absorbs the delay) and around blocked time; a flight that would
 // then run past the day's end, or put someone in two places, moves to another
-// area of its discipline if one is free, no earlier than it was. The organiser
+// area of its discipline if one is free, no earlier than it was. An event's
+// flights stay together (ADR 0006): unless the organiser lets events run
+// across breaks, the rest of a run waits for a break as one, and a run only
+// moves with all of its flights still to come. The organiser
 // can ease it on the held-up areas: breaks moved, shortened or worked
 // through, shorter changeovers, quicker turns, bigger flights, and running
 // past the end. Nothing is saved: the timetable stays as published.
@@ -195,46 +198,89 @@ func (s Schedule) Delayed(d Delay, people map[string][]string) (Schedule, DelayR
 		slices.SortFunc(idx, func(a, b int) int { return out.Flights[a].Start - out.Flights[b].Start })
 		cursor := d.From + d.Minutes
 		eased := map[int]bool{} // breaks on this area already moved or shortened
-		for _, i := range idx {
+		for u := 0; u < len(idx); {
+			i := idx[u]
 			f := &out.Flights[i]
-			length := f.End - f.Start
 			if f.Start < d.From { // under way: it finishes that much later
 				f.End += d.Minutes
 				cursor = f.End
 				shifted = append(shifted, i)
+				u++
 				continue
 			}
-			if d.Between != nil || d.Quicker > 0 || merged[i] {
-				length = out.easedLength(*f, d)
+			// The flights placed as one: this one, and unless events can run
+			// across breaks, the rest of its run next on this area.
+			unit := []int{i}
+			for !s.Setup.AcrossBreaks && u+len(unit) < len(idx) && out.Flights[idx[u+len(unit)]].Event() == f.Event() {
+				unit = append(unit, idx[u+len(unit)])
 			}
-			from := max(f.Start, cursor)
-			t, waitedFor := out.placeAround(d, area, from, length, eased, &r)
+			lengths, total := make([]int, len(unit)), 0
+			for k, j := range unit {
+				g := out.Flights[j]
+				lengths[k] = g.End - g.Start
+				if d.Between != nil || d.Quicker > 0 || merged[j] {
+					lengths[k] = out.easedLength(g, d)
+				}
+				total += lengths[k]
+			}
+			t, waitedFor := out.placeAround(d, area, max(f.Start, cursor), total, eased, &r)
 			if waitedFor != "" {
 				waited[i] = waitedFor
 			}
-			if t != f.Start || t+length != f.End {
-				f.Start, f.End = t, t+length
-				shifted = append(shifted, i)
+			for k, j := range unit {
+				g := &out.Flights[j]
+				if t != g.Start || t+lengths[k] != g.End {
+					g.Start, g.End = t, t+lengths[k]
+					shifted = append(shifted, j)
+				}
+				t += lengths[k]
 			}
-			cursor = f.End
+			cursor = t
+			u += len(unit)
 		}
 	}
 
 	// A shifted flight past the day's end, or putting someone in two places,
 	// moves if it can.
+	// It moves with the rest of its run that hasn't started.
 	why := map[int][2]bool{}
 	slices.SortFunc(shifted, func(a, b int) int { return out.Flights[a].Start - out.Flights[b].Start })
+	done := map[int]bool{}
 	for _, i := range shifted {
 		f := out.Flights[i]
+		if done[i] {
+			continue
+		}
 		pastEnd, clashes := f.End > dayEnd, len(out.clashes(i, people)) > 0
 		if !pastEnd && !clashes {
 			continue
 		}
-		why[i] = [2]bool{pastEnd, clashes}
-		if place, ok := out.freeSlot(i, s.Flights[origin[i]].Start, dayEnd, people, d, areas); ok {
-			out.Flights[i].Area, out.Flights[i].Start, out.Flights[i].End = place.Area, place.Start, place.End
+		var unit []int
+		for _, j := range out.runOf(i) {
+			if g := out.Flights[j]; g.Day == f.Day && g.Area == f.Area && g.Start >= d.From {
+				unit = append(unit, j)
+			}
+		}
+		if len(unit) == 0 { // under way: it can't move
+			unit = []int{i}
+		}
+		for _, j := range unit {
+			done[j] = true
+			why[j] = [2]bool{pastEnd, clashes}
+		}
+		if area, t, ok := out.freeSlot(unit, s.Flights[origin[unit[0]]].Start, dayEnd, people, d, areas); ok {
+			for _, j := range unit {
+				g := &out.Flights[j]
+				length := g.End - g.Start
+				g.Area, g.Start, g.End = area, t, t+length
+				t += length
+			}
 		} else if pastEnd {
-			r.Unplaced = append(r.Unplaced, f.Name())
+			for _, j := range unit {
+				if out.Flights[j].End > dayEnd {
+					r.Unplaced = append(r.Unplaced, out.Flights[j].Name())
+				}
+			}
 		}
 	}
 
@@ -327,21 +373,26 @@ func (s Schedule) clashes(i int, people map[string][]string) []Clash {
 	return out
 }
 
-// freeSlot is the earliest place for a flight, no earlier than it was
-// published, on an area of its discipline that day, ending by the day's end,
-// clear of other flights, blocked time and the delay on the area and of its
-// people's other flights. Its own area wins a tie.
-func (s Schedule) freeSlot(i, notBefore, dayEnd int, people map[string][]string, d Delay, delayed []string) (ScheduledFlight, bool) {
-	f := s.Flights[i]
-	length := f.End - f.Start
-	mine := s.who(i, people)
+// freeSlot is the earliest place for some flights back to back (the rest of
+// a run), no earlier than they were published, on an area of their
+// discipline that day, ending by the day's end, clear of other flights,
+// blocked time and the delay on the area and of their people's other
+// flights. Their own area wins a tie.
+func (s Schedule) freeSlot(unit []int, notBefore, dayEnd int, people map[string][]string, d Delay, delayed []string) (string, int, bool) {
+	f := s.Flights[unit[0]]
+	length := 0
+	var mine []string
+	for _, i := range unit {
+		length += s.Flights[i].End - s.Flights[i].Start
+		mine = append(mine, s.who(i, people)...)
+	}
 	areas := []string{f.Area}
 	for _, a := range s.Setup.Areas {
 		if a.Name != f.Area && a.runs(f.Discipline) && s.Setup.Days[f.Day].uses(a.Name) {
 			areas = append(areas, a.Name)
 		}
 	}
-	best, found := f, false
+	bestArea, bestStart, found := "", 0, false
 	for _, area := range areas {
 		for t := notBefore; t+length <= dayEnd; {
 			t = s.afterBlocks(f.Day, area, t, length)
@@ -353,7 +404,7 @@ func (s Schedule) freeSlot(i, notBefore, dayEnd int, people map[string][]string,
 				blocked = d.From + d.Minutes
 			}
 			for j, g := range s.Flights {
-				if j == i || g.Day != f.Day || !(t < g.End && g.Start < t+length) {
+				if slices.Contains(unit, j) || g.Day != f.Day || !(t < g.End && g.Start < t+length) {
 					continue
 				}
 				if g.Area == area || slices.ContainsFunc(s.who(j, people), func(p string) bool { return slices.Contains(mine, p) }) {
@@ -361,15 +412,15 @@ func (s Schedule) freeSlot(i, notBefore, dayEnd int, people map[string][]string,
 				}
 			}
 			if blocked < 0 {
-				if !found || t < best.Start {
-					best.Area, best.Start, best.End, found = area, t, t+length, true
+				if !found || t < bestStart {
+					bestArea, bestStart, found = area, t, true
 				}
 				break
 			}
 			t = blocked
 		}
 	}
-	return best, found
+	return bestArea, bestStart, found
 }
 
 // easedLength is a flight's length with the delay's changeovers and quicker

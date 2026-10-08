@@ -19,8 +19,8 @@ import (
 // their own, in trampoline (BUCS levels, men and women apart), synchro,
 // tumbling and DMT, with coaches signing entries off, judging offers, the
 // organiser's own judges, a venue over three days of 09:00 to 17:30 (a
-// general warm-up first, an hour's lunch, synchro in three events of grouped
-// levels and a display on Sunday),
+// general warm-up first, an hour's lunch that the biggest events run across,
+// synchro in three events of grouped levels and a display on Sunday),
 // the timetable planned with its officials rota, and published. Everything goes through the pages, as
 // people would use them. It writes the links to open to out.
 func Seed(h http.Handler, out io.Writer, seed uint64) error {
@@ -523,6 +523,9 @@ func (s *seeder) run(out io.Writer) error {
 		b.Set("add", "1")
 		s.post(tt+"/setup/blocks", b)
 	}
+	// The biggest events (five flights, five hours or more) are longer than
+	// the time between breaks, so they pause for lunch.
+	s.post(tt+"/setup/blocks", url.Values{"breaks": {"1"}, "across": {"1"}})
 	for _, r := range []url.Values{
 		{"kind": {"day"}, "must": {"1"}, "event": {"Synchro BUCS L6/L7"}, "day": {"2"}},
 		{"kind": {"day"}, "must": {"1"}, "event": {"Synchro BUCS L4/L5"}, "day": {"2"}},

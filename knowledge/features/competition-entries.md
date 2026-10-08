@@ -207,14 +207,22 @@ From the dashboard, **Timetable** plans the competition over the venue's days
 - **Blocked time:** lunch, awards or an ad hoc event, on a day, at a fixed time
   or anywhere in a window, on chosen areas or all of them. Blocked time can
   need officials (a chair, judges, a recorder, a marshal): the rota staffs it
-  from anyone who judges or helps.
+  from anyone who judges or helps. **Events can run across breaks** lets an
+  event pause for blocked time on its area and finish afterwards; otherwise
+  each event is all before a break or all after it (the default).
 - **Rules,** each a **must** or a **prefer**: an event on an area, on a day,
   before another event, or apart from another (not at the same time).
 - **Plan** splits each event into even flights, draws running orders (clubs
-  spread where easy) and places the flights: never a person in two places,
-  every flight inside its day's hours and around the blocks, keeping the
-  musts; then as many preferences as it can (rest, an event's flights on one
-  area, the organiser's prefers). It tries many orders and keeps the best.
+  spread where easy) and places each event's flights as one **run**, back to
+  back on one area and day, so one panel can judge them all
+  ([ADR 0006](../../docs/adr/0006-one-panel-per-event.md)): never a person
+  in two places, every flight inside its day's hours and around the blocks,
+  keeping the musts; then as many preferences as it can (rest, the
+  organiser's prefers). Flights are numbered in the order they run. It tries
+  many orders and keeps the best: events a must ties to a day or area
+  first, then the longest; what didn't fit goes first next time; and a
+  break with a window (lunch between 12:00 and 14:00) at different times in
+  it.
   Where a person's next flight that day starts less than twice the rest after
   their last, they go early in the first flight's running order and late in
   the second's (also when a flight is redrawn).
@@ -230,12 +238,18 @@ From the dashboard, **Timetable** plans the competition over the venue's days
   letters ignoring accents and punctuation, or one letter apart in a long
   name). When something doesn't fit, it tries changes one at a time (another
   area, half a minute less per competitor, fewer minutes between flights,
-  bigger flights, rest only preferred, or an event capped at the entries
-  that fitted) and says which would fit everything.
-- **Adjusting:** move a flight to another day or area, redraw its order, move
-  a gymnast to another flight or take them out, and place entries made since
-  planning. Changing the setup marks the plan out of date until **Plan**
-  again; moves are rechecked for clashes and listed as problems.
+  bigger flights, rest only preferred, events running across breaks, or an
+  event capped at the most entries that fit, a flight's worth fewer at a
+  time) and says which would fit everything.
+- **Adjusting:** **Move event** moves all of a flight's event to another day
+  or area, after what's there (clear of breaks unless events can run across
+  them); **Earlier** swaps a flight with the one before it in its event;
+  redraw a flight's order, move a gymnast to another flight or take them
+  out, and place entries made since planning. Changing the setup marks the
+  plan out of date until **Plan** again; moves are rechecked and listed as
+  problems: clashes, and an event whose flights aren't back to back on one
+  area, or run either side of a break that isn't allowed (timetables
+  planned before ADR 0006 show these until planned again).
 - **Sheets:** marshal sheets (running orders to tick off) and chair of judges
   sheets (each gymnast's exercises and problems), one area to a page.
 - **Panel timeline:** time running down at an even scale (a grid row a
@@ -265,7 +279,11 @@ that much later; the area's later flights shift back only as far as they must
 finish before lunch waits for it to end, and says so). A shifted flight that
 would run past the end of the day, or need someone (a gymnast or official) in
 two places, moves to the earliest free slot on another area of its
-discipline, no earlier than its published time and clear of the delay. The
+discipline, no earlier than its published time and clear of the delay. An
+event's flights stay together (ADR 0006): unless events can run across
+breaks, the rest of an event's run waits for a break as one, and a flight
+moves to another area with all of its event's flights still to come. Flights
+that have already run, or are under way when the delay starts, never move. The
 page shows each day's flights end and free time before and after, what no
 longer fits, who's needed in two places, short rest before and after, and
 each flight that changes (was, now, why).

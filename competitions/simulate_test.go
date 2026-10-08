@@ -124,8 +124,9 @@ func TestSimulate(t *testing.T) {
 		t.Errorf("8 judges and 2 helpers, judging as many of each discipline as before: %d officials, %v", len(officials), judging)
 	}
 
-	// Too many for the day: what doesn't fit, and what would.
-	sc.Entries = map[string]int{"BUCS L7": 120, "BUCS L6": 100, "Tumbling Novice": 40}
+	// Too many for the day: what doesn't fit, and what would. (BUCS L7 still
+	// fits, so its panels show the one trampoline judge.)
+	sc.Entries = map[string]int{"BUCS L7": 60, "BUCS L6": 100, "Tumbling Novice": 40}
 	sc.Gymnasts = 0
 	sc.Judges[Trampoline], sc.Chairs[Trampoline] = 1, 1
 	r, err = c.Simulate(sc, venue(), 1)

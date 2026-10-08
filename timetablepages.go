@@ -192,7 +192,7 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 					continue
 				}
 				it := views.ItemView{Flight: true, Index: i, Name: f.Name(), Start: competitions.Clock(f.Start), End: competitions.Clock(f.End), Seats: seatsOf(f, people, names),
-					Pairs: f.Discipline == competitions.Synchro}
+					Pairs: f.Discipline == competitions.Synchro, InRun: f.Of > 1, Earlier: f.Number > 1}
 				for _, id := range f.Entries {
 					e, ok := byID[id]
 					if !ok {
@@ -228,7 +228,7 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 
 // setupForm is the setup as the forms show it.
 func setupForm(c competitions.Competition, s competitions.Setup, people []competitions.RotaPerson) views.SetupForm {
-	f := views.SetupForm{Rest: s.Rest, RestMust: s.RestMust, Events: c.EventNames()}
+	f := views.SetupForm{Rest: s.Rest, RestMust: s.RestMust, AcrossBreaks: s.AcrossBreaks, Events: c.EventNames()}
 	for _, o := range people {
 		f.People = append(f.People, views.FlightOption{Value: o.Key, Label: o.Name})
 	}
@@ -518,7 +518,8 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 }
 
 // setupBlocks adds blocked time (add=1: name, minutes, day, at or from and
-// to, area) or removes some (remove=<i>).
+// to, area), removes some (remove=<i>), or says whether events can run
+// across breaks (breaks=1, across=1 if they can).
 func (p *competitionPages) setupBlocks(w http.ResponseWriter, r *http.Request) {
 	c, s, _, ok := p.timetableOf(w, r)
 	if !ok {
@@ -526,6 +527,15 @@ func (p *competitionPages) setupBlocks(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := r.ParseForm(); err != nil {
 		badRequest(w, err)
+		return
+	}
+	if r.Form.Has("breaks") {
+		s.Setup.AcrossBreaks = r.FormValue("across") == "1"
+		notice := "Saved: each event is all before a break or all after it."
+		if s.Setup.AcrossBreaks {
+			notice = "Saved: events can run across breaks."
+		}
+		p.saveSetup(w, r, c, s, notice)
 		return
 	}
 	if i, err := strconv.Atoi(r.FormValue("remove")); err == nil && i >= 0 && i < len(s.Setup.Blocks) {
@@ -629,8 +639,9 @@ func gymnastsWord(n int) string {
 	return fmt.Sprintf("%d gymnasts", n)
 }
 
-// editFlight redraws a flight's running order (action=redraw) or moves it to
-// the end of a day's area (action=move, to: "<day>:<area>").
+// editFlight redraws a flight's running order (action=redraw), moves its
+// event to the end of a day's area (action=move, to: "<day>:<area>"), or swaps
+// it with the flight before it in its event (action=earlier).
 func (p *competitionPages) editFlight(w http.ResponseWriter, r *http.Request) {
 	c, s, entries, ok := p.timetableOf(w, r)
 	if !ok {
@@ -650,6 +661,8 @@ func (p *competitionPages) editFlight(w http.ResponseWriter, r *http.Request) {
 		day, area, _ := strings.Cut(r.FormValue("to"), ":")
 		d, err := strconv.Atoi(day)
 		done = err == nil && s.MoveFlight(flight, d, area)
+	case "earlier":
+		done = s.Earlier(flight)
 	}
 	if !done {
 		back(w, r, "That flight can't go there, or has moved since; nothing was changed.")

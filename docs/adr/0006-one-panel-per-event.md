@@ -1,6 +1,6 @@
 # ADR 0006 — One panel for a whole event
 
-- **Status:** Proposed
+- **Status:** Accepted; step 2 (runs) built 2026-10-08
 - **Date:** 2026-10-08
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0005 Decisions 9 (the scheduler) and 12 (the officials
