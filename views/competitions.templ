@@ -530,8 +530,14 @@ templ CompetitionDashboard(d Dashboard) {
 		} else {
 			@removeForm(d.Base)
 		}
+		if len(d.Levels) > 0 {
+			<div class="buttons mt-4 mb-0">
+				<button class="button is-small" type="button" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = true)">Expand all</button>
+				<button class="button is-small" type="button" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = false)">Collapse all</button>
+			</div>
+		}
 		for _, l := range d.Levels {
-			<details class="comp-dash-level" id={ l.Anchor } open?={ len(l.Rows) > 0 }>
+			<details class="comp-dash-level" id={ l.Anchor } open?={ filtered(d) && len(l.Rows) > 0 }>
 			<summary class="title is-5 mt-5">
 				{ l.Name } <span class="has-text-grey is-size-6">({ shownCount(d, l) })</span>
 				if len(l.Rows) > 0 {
@@ -1550,9 +1556,6 @@ templ dashboardFilters(d Dashboard) {
 				}
 				<a href={ templ.SafeURL("#" + l.Anchor) } onclick={ openLevel(l.Anchor) }>{ l.Name } ({ shownCount(d, l) })</a>
 			}
-			·
-			<a href="#" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = false); return false">collapse all</a> ·
-			<a href="#" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = true); return false">expand all</a>
 		</p>
 	</form>
 }
