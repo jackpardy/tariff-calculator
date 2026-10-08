@@ -22,6 +22,15 @@ func TestDashboardNavigation(t *testing.T) {
 		return do(t, h, http.MethodGet, admin+"?"+query, nil).Body.String()
 	}
 
+	// Levels start collapsed, with buttons to expand or collapse them all;
+	// filtering opens the levels with something shown.
+	if page := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(page, `data-level="BUCS L3" data-remember>`) || !strings.Contains(page, "Expand all") || !strings.Contains(page, "Collapse all") {
+		t.Error("levels start collapsed")
+	}
+	if !strings.Contains(shows("q=oneill"), `data-level="BUCS L3" open`) {
+		t.Error("a search opens the level it finds someone in")
+	}
+
 	// Search ignores accents and case.
 	page := shows("q=oneill")
 	if !strings.Contains(page, `aria-label="Tick Dara O&#39;Néill"`) || strings.Contains(page, `aria-label="Tick Ann Ryan"`) || !strings.Contains(page, "1 of 3 shown") {

@@ -2,7 +2,8 @@
 // views/clubs.templ). Copies links; keeps organisers', comp secs', members'
 // and gymnasts' links in this browser and lists them; offers the levels saved
 // here when creating a competition, and the clubs saved here when entering
-// one; and fills each voluntary on an entry form from the routines saved here.
+// one; fills each voluntary on an entry form from the routines saved here;
+// and remembers which levels of the organiser's dashboard are open.
 (function () {
     // Links saved in this browser: {name, url} lists under these keys.
     const linkKeys = {
@@ -199,7 +200,30 @@
         }
     }
 
+    // openLevels remembers, in this browser, which levels of an organiser's
+    // dashboard are open, and opens them again next time. A search or filter
+    // opens the levels it finds people in instead, so it isn't remembered.
+    function openLevels() {
+        const levels = document.querySelectorAll('details.comp-dash-level[data-remember]');
+        if (levels.length === 0) {
+            return;
+        }
+        const key = 'trampolineOpenLevels:' + location.pathname;
+        let open = [];
+        try { open = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { /* none remembered */ }
+        if (!Array.isArray(open)) {
+            open = [];
+        }
+        levels.forEach((d) => { if (open.includes(d.dataset.level)) { d.open = true; } });
+        const save = () => {
+            const now = Array.from(levels).filter((d) => d.open).map((d) => d.dataset.level);
+            try { localStorage.setItem(key, JSON.stringify(now)); } catch (e) { /* not remembered */ }
+        };
+        levels.forEach((d) => d.addEventListener('toggle', save));
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+        openLevels();
         copyButtons();
         saveLinks();
         newCompetition();
