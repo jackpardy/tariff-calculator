@@ -6,7 +6,7 @@ import (
 	"slices"
 )
 
-// Hand edits to a schedule: the organiser moves gymnasts and flights; times
+// Manual changes to a schedule: the organiser moves gymnasts and flights; times
 // are worked out again, and anything the edits break is flagged rather than
 // refused.
 
@@ -172,7 +172,7 @@ func (s *Schedule) number() {
 	}
 }
 
-// Problems are what hand edits have broken: a flight past its day's end, an
+// Problems are what manual changes have broken: a flight past its day's end, an
 // event's flights not back to back on one area (or across a break, where
 // that isn't allowed), or a person in two places at once. people are each
 // entry's people, by entry id.

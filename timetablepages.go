@@ -17,7 +17,7 @@ import (
 
 // The timetable (ADR 0005 step 4): the organiser sets up the days, areas,
 // timings, blocked time and rules; plans; sees what doesn't fit and what would
-// fix it; adjusts by hand; prints the sheets; and publishes, so clubs and
+// fix it; adjusts manually; prints the sheets; and publishes, so clubs and
 // gymnasts see their flight, area and time.
 
 func (p *competitionPages) registerTimetable(handle func(string, http.HandlerFunc)) {
