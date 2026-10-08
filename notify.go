@@ -446,7 +446,7 @@ func (n *notifier) changesEmail(c store.Competition, groups []changeGroup, subs 
 	}
 }
 
-func (n *notifier) offLink(token string) string    { return n.base + "/notify/off/" + token }
+func (n *notifier) offLink(token string) string     { return n.base + "/notify/off/" + token }
 func (n *notifier) confirmLink(token string) string { return n.base + "/notify/confirm/" + token }
 
 // confirmEmail asks an address to confirm it before anything else is sent.
