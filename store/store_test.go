@@ -29,6 +29,7 @@ func competition() competitions.Competition {
 		Name:        "Student Open",
 		Date:        "2027-03-13",
 		Deadline:    time.Date(2027, 3, 6, 23, 59, 0, 0, time.UTC),
+		LiveAt:      time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		Individuals: true,
 		Levels:      []competitions.Level{{Ref: "builtin-level:bucs-l3"}},
 	}
@@ -1413,5 +1414,40 @@ func TestDraftAndPublishedTimetables(t *testing.T) {
 	must(t, s.PublishTimetable(ctx, "c2", nil))
 	if c, _ := s.Competition(ctx, "c2"); c.Published != nil || c.Timetable == nil {
 		t.Error("taken down, the draft kept")
+	}
+}
+
+func TestGoingLive(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp := competition()
+	comp.LiveAt = time.Time{}
+	c, admin, _ := s.CreateCompetition(ctx, comp)
+	if _, _, err := s.AddIndividualEntry(ctx, c.ID, entry("Ann")); !errors.Is(err, ErrNotOpen) {
+		t.Errorf("a private competition takes no entries: %v", err)
+	}
+
+	// Going live later: not open until then.
+	must(t, s.SetLive(ctx, c.ID, now.Add(time.Hour)))
+	if _, _, err := s.AddIndividualEntry(ctx, c.ID, entry("Ann")); !errors.Is(err, ErrNotOpen) {
+		t.Errorf("not live yet: %v", err)
+	}
+	now = now.Add(time.Hour)
+	_, token, err := s.AddIndividualEntry(ctx, c.ID, entry("Ann"))
+	must(t, err)
+	if got, _ := s.CompetitionByAdmin(ctx, admin); !got.LiveAt.Equal(now) || !got.Open(now) {
+		t.Errorf("live from then: %v", got.LiveAt)
+	}
+
+	// Private again pauses entries, keeping those made.
+	must(t, s.SetLive(ctx, c.ID, time.Time{}))
+	if err := s.ReplaceIndividualEntry(ctx, token, entry("Ann")); !errors.Is(err, ErrNotOpen) {
+		t.Errorf("paused: %v", err)
+	}
+	if got, _ := s.Entries(ctx, c.ID); len(got) != 1 {
+		t.Errorf("entries made are kept: %d", len(got))
+	}
+	if got, _ := s.CompetitionByAdmin(ctx, admin); !got.LiveAt.IsZero() {
+		t.Errorf("private: %v", got.LiveAt)
 	}
 }

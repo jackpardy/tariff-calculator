@@ -262,7 +262,7 @@ func (s *seeder) run(out io.Writer) error {
 
 	// The organiser creates the competition.
 	form := url.Values{
-		"name": {"ISTO 2027 (demo)"}, "date": {"2027-02-27"}, "deadlineDate": {"2027-02-13"}, "deadlineTime": {"23:59"},
+		"name": {"ISTO 2027 (demo)"}, "date": {"2027-02-27"}, "deadlineDate": {"2027-02-13"}, "deadlineTime": {"23:59"}, "opens": {"now"},
 		"individuals": {"1"}, "signoff": {"1"},
 		// Synchro on three panels: three events, levels grouped.
 		"synchroPairs": {"BUCS L6 + BUCS L7\nBUCS L4 + BUCS L5\nBUCS L1 + BUCS L2 + BUCS L3"},

@@ -876,9 +876,16 @@ func SignoffEntry(p SignoffPage) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 74, "<p class=\"has-text-grey\">Entries have closed, so the sign-off can't be changed.</p>")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
+				if p.Competition.Live {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 74, "<p class=\"has-text-grey\">Entries have closed, so the sign-off can't be changed.</p>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				} else {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "<p class=\"has-text-grey\">Entries aren't open at the moment, so the sign-off can't be changed.</p>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
 				}
 			}
 			return nil

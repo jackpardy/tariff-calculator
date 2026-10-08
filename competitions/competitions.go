@@ -33,10 +33,13 @@ const (
 // Competition is what an organiser sets up: when it is, when entries close,
 // whether individuals can enter, and the levels gymnasts enter.
 type Competition struct {
-	Name        string
-	Date        string    // the competition's (first) day, as DateLayout
-	Deadline    time.Time // entries can be sent and changed until then
-	Individuals bool      // individuals can enter directly, not only through a club
+	Name     string
+	Date     string    // the competition's (first) day, as DateLayout
+	Deadline time.Time // entries can be sent and changed until then
+	// LiveAt is when entries open (roadmap 2026-10-07): zero while the
+	// competition is private, being set up or paused.
+	LiveAt      time.Time
+	Individuals bool // individuals can enter directly, not only through a club
 	Levels      []Level
 	Video       Video // whether gymnasts send video proof
 	Signoff     bool  // entries need a coach's sign-off (ADR 0004 Decision 11)
@@ -129,9 +132,16 @@ func (c Competition) DeleteAfter() time.Time {
 	return day.AddDate(0, 0, RetentionDays)
 }
 
-// Open says whether entries can still be sent or changed at now.
+// Open says whether entries can be sent or changed at now: it's live and
+// entries haven't closed.
 func (c Competition) Open(now time.Time) bool {
-	return now.Before(c.Deadline)
+	return c.Live(now) && now.Before(c.Deadline)
+}
+
+// Live says whether the competition has gone live at now, rather than being
+// private (set up, or paused) or due to go live later.
+func (c Competition) Live(now time.Time) bool {
+	return !c.LiveAt.IsZero() && !now.Before(c.LiveAt)
 }
 
 // Validate reports everything wrong with a competition, one problem per line.
@@ -149,6 +159,8 @@ func (c Competition) Validate() error {
 		errs = append(errs, errors.New("entries need a deadline"))
 	case err == nil && c.Deadline.After(day.AddDate(0, 0, 1)):
 		errs = append(errs, errors.New("entries must close by the end of the competition date"))
+	case !c.LiveAt.IsZero() && !c.LiveAt.Before(c.Deadline):
+		errs = append(errs, errors.New("entries must open before they close"))
 	}
 	if len(c.EventNames()) == 0 {
 		errs = append(errs, errors.New("the competition needs at least one level"))

@@ -233,7 +233,11 @@ templ SignoffEntry(p SignoffPage) {
 				</form>
 			</div>
 		} else {
-			<p class="has-text-grey">Entries have closed, so the sign-off can't be changed.</p>
+			if p.Competition.Live {
+				<p class="has-text-grey">Entries have closed, so the sign-off can't be changed.</p>
+			} else {
+				<p class="has-text-grey">Entries aren't open at the moment, so the sign-off can't be changed.</p>
+			}
 		}
 	}
 }

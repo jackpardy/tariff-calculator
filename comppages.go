@@ -70,6 +70,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("GET /competitions/admin/{token}/cards", p.cards)
 	handle("GET /competitions/admin/{token}/entries.csv", p.csvExport)
 	handle("POST /competitions/admin/{token}/deadline", p.deadline)
+	handle("POST /competitions/admin/{token}/live", p.live)
 	handle("POST /competitions/admin/{token}/video", p.video)
 	handle("POST /competitions/admin/{token}/signoff", p.setSignoff)
 	handle("POST /competitions/admin/{token}/remove", p.removeEntries)
@@ -124,6 +125,8 @@ func failed(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		message(w, r, http.StatusNotFound, "Link not found", "This link doesn't lead anywhere. It may have been replaced, or the competition deleted.")
+	case errors.Is(err, store.ErrNotOpen):
+		message(w, r, http.StatusConflict, "Entries aren't open", "The organiser hasn't opened entries for this competition, so they can't be sent or changed just now.")
 	case errors.Is(err, store.ErrClosed):
 		message(w, r, http.StatusConflict, "Entries have closed", "The deadline for this competition has passed, so entries can't be changed.")
 	case errors.Is(err, store.ErrLimit):
@@ -136,11 +139,20 @@ func failed(w http.ResponseWriter, r *http.Request, err error) {
 	}
 }
 
+// notOpen is why a competition's entries aren't open: not live yet (or
+// paused), or closed.
+func notOpen(c competitions.Competition, now time.Time) error {
+	if !c.Live(now) {
+		return store.ErrNotOpen
+	}
+	return store.ErrClosed
+}
+
 // --- Creating a competition ---
 
 func (p *competitionPages) newForm(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.NewCompetition(views.CompetitionForm{
-		DeadlineTime: "23:59", Individuals: true, Levels: map[string]bool{}, Groups: requirements.BuiltinGroups(),
+		DeadlineTime: "23:59", Opens: "later", LiveTime: "09:00", Individuals: true, Levels: map[string]bool{}, Groups: requirements.BuiltinGroups(),
 		Events: views.EventsForm{Groups: requirements.BuiltinGroups(), Synchro: map[string]bool{}},
 	}))
 }
@@ -157,10 +169,16 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 		Name: strings.TrimSpace(r.FormValue("name")), Date: r.FormValue("date"),
 		DeadlineDate: r.FormValue("deadlineDate"), DeadlineTime: r.FormValue("deadlineTime"),
 		Individuals: r.FormValue("individuals") == "1", Levels: map[string]bool{}, Groups: requirements.BuiltinGroups(),
+		Opens: r.FormValue("opens"), LiveDate: r.FormValue("liveDate"), LiveTime: r.FormValue("liveTime"),
 	}
 	c := competitions.Competition{Name: form.Name, Date: form.Date, Individuals: form.Individuals}
 	var problems []string
 	c.Video, form.Video, problems = postedVideo(r)
+	if at, err := postedLiveAt(r, p.now()); err != nil {
+		problems = append(problems, err.Error())
+	} else {
+		c.LiveAt = at
+	}
 	c.Signoff = r.FormValue("signoff") == "1"
 	form.Signoff = c.Signoff
 	if r.FormValue("split") == competitions.SplitAll {
@@ -378,7 +396,10 @@ func summary(c competitions.Competition, now time.Time) views.CompetitionSummary
 	out := views.CompetitionSummary{
 		Name: c.Name, Date: c.Date, Deadline: c.Deadline.In(local).Format("Monday 2 January 2006, 15:04"),
 		DeleteAfter: c.DeleteAfter().Format("2 January 2006"), Open: c.Open(now), Individuals: c.Individuals,
-		Video: c.Video.Describe(), Signoff: c.Signoff,
+		Video: c.Video.Describe(), Signoff: c.Signoff, Live: c.Live(now),
+	}
+	if !c.LiveAt.IsZero() && !out.Live {
+		out.Opens = c.LiveAt.In(local).Format("Monday 2 January 2006, 15:04")
 	}
 	if day, err := c.Day(); err == nil {
 		out.Date = day.Format("Monday 2 January 2006")
@@ -543,12 +564,18 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	q := r.URL.Query()
 	deadline := c.Deadline.In(local)
+	liveAt := c.LiveAt.In(local)
+	if c.LiveAt.IsZero() {
+		today := p.now().In(local) // suggest tomorrow morning
+		liveAt = time.Date(today.Year(), today.Month(), today.Day()+1, 9, 0, 0, 0, local)
+	}
 	d := views.Dashboard{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
 		Links: views.CompetitionLinks{Club: origin(r) + "/competitions/club/" + c.ClubLink, Individual: origin(r) + "/competitions/enter/" + c.IndividualLink},
 		Club:  q.Get("club"), ProblemsOnly: q.Get("problems") == "1",
 		Entries: len(entries), New: q.Get("new"), Notice: q.Get("notice"),
 		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
+		LiveDate: liveAt.Format("2006-01-02"), LiveTime: liveAt.Format("15:04"),
 		Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()), Events: eventsForm(c.Competition),
 		LevelOrder: levelOrderForm(c.Competition),
 	}
@@ -815,6 +842,61 @@ func (p *competitionPages) check(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id"), http.StatusSeeOther)
+}
+
+// postedLiveAt is when a form says entries open: opens=now, opens=at with
+// liveDate and liveTime still to come, or anything else for private (zero).
+func postedLiveAt(r *http.Request, now time.Time) (time.Time, error) {
+	switch r.FormValue("opens") {
+	case "now":
+		return now, nil
+	case "at":
+		at, err := time.ParseInLocation("2006-01-02 15:04", r.FormValue("liveDate")+" "+r.FormValue("liveTime"), local)
+		switch {
+		case err != nil:
+			return time.Time{}, errors.New("Say the date and time entries open.")
+		case !at.After(now):
+			return time.Time{}, errors.New("The time entries open has already passed: go live now instead.")
+		}
+		return at.UTC(), nil
+	}
+	return time.Time{}, nil
+}
+
+// live takes a competition live now (opens=now) or at a time (opens=at,
+// liveDate, liveTime), or makes it private, pausing entries and keeping
+// those made (opens=private).
+func (p *competitionPages) live(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	back := func(notice string) {
+		http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	}
+	at, err := postedLiveAt(r, p.now())
+	if err != nil {
+		back(err.Error())
+		return
+	}
+	changed := c.Competition
+	changed.LiveAt = at
+	if !at.IsZero() && changed.Validate() != nil {
+		back("Entries must open before they close (" + c.Deadline.In(local).Format("Monday 2 January 2006, 15:04") + "): change the closing time first.")
+		return
+	}
+	if err := p.st.SetLive(r.Context(), c.ID, at); err != nil {
+		failed(w, r, err)
+		return
+	}
+	switch {
+	case at.IsZero():
+		back("The competition is private: nobody can send or change entries until you go live again. Entries already made are kept.")
+	case at.After(p.now()):
+		back("Entries open " + at.In(local).Format("Monday 2 January 2006, 15:04") + ".")
+	default:
+		back("The competition is live: clubs and gymnasts can enter.")
+	}
 }
 
 // deadline closes entries now (close=1) or changes when they close
@@ -1554,7 +1636,7 @@ func (p *competitionPages) signOffIndividual(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if !c.Open(p.now()) {
-		failed(w, r, store.ErrClosed)
+		failed(w, r, notOpen(c.Competition, p.now()))
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("coach"))

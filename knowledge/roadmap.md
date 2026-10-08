@@ -141,8 +141,7 @@ approving coaches and removing entries, built that day after the biggest
 priority, one panel for all of an event's flights (all but splitting an
 event by routine, now 10).
 
-**Order (2026-10-08).** Built first (1–5), then in this order: going live
-(6), notifications (7), the "what ifs'" missing checks (8), saying what a
+**Order (2026-10-08).** Built first (1–6), then in this order: notifications (7), the "what ifs'" missing checks (8), saying what a
 manual change breaks (9), then splitting an event by routine (10) and the
 rest.
 
@@ -216,15 +215,16 @@ rest.
    both gymnasts on their own pages, not only the organiser, when a pair is
    at the wrong level. ("The lower level" for a pair a level apart means the
    easier one, as built: confirmed 2026-10-07.)
-6. **Set up in private, go live when ready** (decided 2026-10-07). A new
+6. **Set up in private, go live when ready** (decided 2026-10-07; built
+   2026-10-08: [going live](features/competition-entries.md#going-live)). A new
    competition starts **private**: the organiser sets up levels, events,
    officials and the timetable, and the club and individual entry links
    show the competition's name, date and when entries open, so they can be
    shared early, but take no entries. It goes **live** when the organiser
    presses Go live, or at a date and time they set. The organiser can make
    a live competition private again to pause entries, keeping those already
-   made. Today a competition takes entries from the moment it's created
-   until its deadline.
+   made. (Before this, a competition took entries from the moment it was
+   created until its deadline; those made before stay live.)
 7. **Notifications, by opting in** (decided 2026-10-07). Members,
    individuals, club comp secs and coaches can each ask to be told when
    something affects them: a flight they're in moves (time, area or day, or

@@ -109,8 +109,8 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
   judge and help, never while they compete, own-club judging shared fairly,
   your rules about who does what, printed and shown to each official.
 - **For the organiser**: one table per level with every problem, each entry in
-  full, notes back to the club, printed competition cards, a CSV, and closing
-  entries when you choose.
+  full, notes back to the club, printed competition cards, a CSV, and
+  setting up in private, then opening and closing entries when you choose.
 - **Video proof by link**, for chosen skills or whole routines: never uploaded.
 - **Coach sign-off**: clubs add their coaches, and each coach signs off their
   members' routines on their own page.

@@ -295,7 +295,7 @@ func (p *competitionPages) signOff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !c.Open(p.now()) {
-		failed(w, r, store.ErrClosed)
+		failed(w, r, notOpen(c.Competition, p.now()))
 		return
 	}
 	if !coach.SignsOff {

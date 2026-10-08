@@ -19,6 +19,8 @@ type CompetitionSummary struct {
 	Deadline    string // e.g. "Saturday 6 March 2027, 23:59"
 	DeleteAfter string // when it and its entries are deleted
 	Open        bool   // entries can still be sent or changed
+	Live        bool   // gone live: not private, being set up or paused
+	Opens       string // when it goes live, if it's due to, e.g. "Monday 1 February 2027, 09:00"
 	Individuals bool   // individuals can enter directly
 	Video       string // what video proof it asks for, "" for none
 	Signoff     bool   // entries need a coach's sign-off
@@ -29,6 +31,8 @@ type CompetitionSummary struct {
 // browser (static/js/competitions.js) and are posted as JSON.
 type CompetitionForm struct {
 	Name, Date, DeadlineDate, DeadlineTime string
+	Opens                                  string // "later" (private), "now" or "at"
+	LiveDate, LiveTime                     string // when, for "at"
 	Individuals                            bool
 	Levels                                 map[string]bool
 	Groups                                 []requirements.BuiltinGroup
@@ -60,6 +64,8 @@ type Dashboard struct {
 	Notice        string // what just happened
 	DeadlineDate  string // the closing time, for changing it
 	DeadlineTime  string
+	LiveDate      string // when it's due to go live, for changing it
+	LiveTime      string
 	Unchecked     int // entries not checked yet
 	Withdrawn     int // entries withdrawn since their club sent them
 	Video         VideoForm
@@ -358,6 +364,26 @@ templ NewCompetition(f CompetitionForm) {
 				</div>
 				<p class="help">Irish and UK time. Clubs and gymnasts can change entries until then.</p>
 			</div>
+			<fieldset class="field">
+				<legend class="label">Entries open</legend>
+				<label class="radio is-block mb-1">
+					<input type="radio" name="opens" value="later" checked?={ f.Opens != "now" && f.Opens != "at" }/>
+					When I go live: set it up in private first
+				</label>
+				<label class="radio is-block mb-1 ml-0">
+					<input type="radio" name="opens" value="at" checked?={ f.Opens == "at" }/>
+					At a set time
+				</label>
+				<div class="comp-deadline mb-1 ml-4">
+					<input class="input is-small" name="liveDate" type="date" value={ f.LiveDate } aria-label="Opening date"/>
+					<input class="input is-small" name="liveTime" type="time" value={ f.LiveTime } aria-label="Opening time"/>
+				</div>
+				<label class="radio is-block ml-0">
+					<input type="radio" name="opens" value="now" checked?={ f.Opens == "now" }/>
+					Now
+				</label>
+				<p class="help">Until then, the club and individual links show the competition's name and date, and when entries open, so you can share them early.</p>
+			</fieldset>
 			<div class="field">
 				<label class="checkbox">
 					<input type="checkbox" name="individuals" value="1" checked?={ f.Individuals }/>
@@ -427,6 +453,7 @@ templ CompetitionDashboard(d Dashboard) {
 			<div class="notification is-success is-light">{ d.Notice }</div>
 		}
 		@competitionFacts(d.Competition)
+		@liveBox(d)
 		<nav class="level is-mobile comp-counts">
 			@count(d.Entries, "entries")
 			@count(d.WithProblems, "with problems")
@@ -477,6 +504,13 @@ templ CompetitionDashboard(d Dashboard) {
 				@videoFields(d.Video)
 				<button class="button is-small" type="submit">Change video proof</button>
 			</form>
+			if d.Competition.Live {
+				<form method="post" action={ templ.SafeURL(d.Base + "/live") } class="mb-3">
+					<input type="hidden" name="opens" value="private"/>
+					<button class="button is-small" type="submit">Make private (pause entries)</button>
+					<p class="help">Nobody can send or change entries until you go live again. Entries already made are kept.</p>
+				</form>
+			}
 			if d.Competition.Open {
 				<form method="post" action={ templ.SafeURL(d.Base + "/deadline") } class="mb-3">
 					<input type="hidden" name="close" value="1"/>
@@ -667,6 +701,10 @@ templ competitionFacts(c CompetitionSummary) {
 	<p class={ templ.KV("mb-4", c.Video == "" && !c.Signoff), templ.KV("mb-1", c.Video != "" || c.Signoff) }>
 		if c.Open {
 			Entries close { c.Deadline }.
+		} else if !c.Live && c.Opens != "" {
+			<strong>Entries open { c.Opens }</strong>, and close { c.Deadline }.
+		} else if !c.Live {
+			<strong>Entries aren't open at the moment.</strong> They close { c.Deadline }.
 		} else {
 			<strong>Entries closed { c.Deadline }.</strong>
 		}
@@ -676,6 +714,51 @@ templ competitionFacts(c CompetitionSummary) {
 	}
 	if c.Signoff {
 		<p class="mb-4">Entries need a coach's sign-off.</p>
+	}
+}
+
+// liveBox is the organiser's way to go live, while the competition is
+// private or due to go live.
+templ liveBox(d Dashboard) {
+	if !d.Competition.Live {
+		<div class="box comp-live">
+			<p class="mb-2">
+				<strong>Private.</strong>
+				if d.Competition.Opens != "" {
+					It goes live { d.Competition.Opens }.
+				}
+				The club and individual links show the competition's name and date, and when entries open, but nobody can enter until it's live.
+			</p>
+			<form method="post" action={ templ.SafeURL(d.Base + "/live") } class="mb-2">
+				<input type="hidden" name="opens" value="now"/>
+				<button class="button is-small is-success" type="submit">Go live now</button>
+			</form>
+			<p class="is-size-7 mb-1">
+				if d.Competition.Opens != "" {
+					Or change when:
+				} else {
+					Or go live at a set time:
+				}
+			</p>
+			<form method="post" action={ templ.SafeURL(d.Base + "/live") } class="comp-deadline">
+				<input type="hidden" name="opens" value="at"/>
+				<input class="input is-small" name="liveDate" type="date" required value={ d.LiveDate } aria-label="Opening date"/>
+				<input class="input is-small" name="liveTime" type="time" required value={ d.LiveTime } aria-label="Opening time"/>
+				<button class="button is-small" type="submit">
+					if d.Competition.Opens != "" {
+						Change
+					} else {
+						Go live then
+					}
+				</button>
+			</form>
+			if d.Competition.Opens != "" {
+				<form method="post" action={ templ.SafeURL(d.Base + "/live") } class="mt-2">
+					<input type="hidden" name="opens" value="private"/>
+					<button class="button is-small is-text" type="submit">Don't go live then: stay private</button>
+				</form>
+			}
+		</div>
 	}
 }
 

@@ -25,6 +25,7 @@ func competition(t *testing.T) Competition {
 		Name:     "Student Open",
 		Date:     "2027-03-13",
 		Deadline: time.Date(2027, 3, 6, 23, 59, 0, 0, time.UTC),
+		LiveAt:   time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC),
 		Levels: []Level{
 			{Ref: "builtin-level:bucs-l3"},
 			{Ref: "builtin-level:fig-ag3"},
@@ -47,6 +48,19 @@ func TestValidate(t *testing.T) {
 	}
 	if !c.Open(c.Deadline.Add(-time.Minute)) || c.Open(c.Deadline) {
 		t.Error("open until the deadline")
+	}
+	if c.Open(c.LiveAt.Add(-time.Minute)) || !c.Open(c.LiveAt) {
+		t.Error("open from going live")
+	}
+	private := c
+	private.LiveAt = time.Time{}
+	if private.Open(c.Deadline.Add(-time.Minute)) || private.Live(c.Deadline) {
+		t.Error("a private competition takes no entries")
+	}
+	late := c
+	late.LiveAt = c.Deadline
+	if late.Validate() == nil {
+		t.Error("entries must open before they close")
 	}
 
 	for _, tc := range []struct {
