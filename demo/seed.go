@@ -575,6 +575,23 @@ func (s *seeder) run(out io.Writer) error {
 		}
 	}
 	s.post(chairs+"/concerns", url.Values{"text": {"Panel 2's trampoline has a loose spring cover: can someone look at it at lunch?"}})
+
+	// Entry fees: some clubs have paid, some in part.
+	s.post(admin+"/fees/settings", url.Values{"fee-": {"12"}, "fee-synchro": {"15"}, "fee-tumbling": {"10"}, "fee-dmt": {"10"}, "club": {"25"},
+		"instructions": {"Bank transfer to ISTO 2027, IBAN IE00 DEMO 0000 0000 0000 00, with your club's name as the reference, by 20 February."}})
+	payers := regexp.MustCompile(`name="payer" value="([^"]+)"`).FindAllStringSubmatch(s.get(admin+"/fees"), 14)
+	for i, m := range payers {
+		inv := s.get(admin + "/fees/invoice?payer=" + url.QueryEscape(m[1]))
+		due := regexp.MustCompile(`To pay\s*</th>\s*<th class="has-text-right">€(\d+)`).FindStringSubmatch(inv)
+		if due == nil {
+			continue
+		}
+		amount, note := due[1], "Bank transfer"
+		if i%3 == 2 {
+			amount, note = "50", "Part paid at the club fair"
+		}
+		s.post(admin+"/fees/payments", url.Values{"payer": {m[1]}, "amount": {amount}, "note": {note}})
+	}
 	if s.err != nil {
 		return s.err
 	}

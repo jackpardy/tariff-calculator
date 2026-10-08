@@ -64,6 +64,12 @@ every page answers 503.
 | `POST /competitions/admin/{token}/entries/{id}/video` | `review` (`ok`, `more`, `""`), `note` | The organiser's review of an entry's videos |
 | `POST /competitions/admin/{token}/individuals` | `on` (`1`/`0`) | Turns individual entry on or off |
 | `POST /competitions/admin/{token}/replace-link` | — | 303 to the new admin link, `?new=replaced` |
+| `GET /competitions/admin/{token}/fees` | — | Entry fees: what's charged, and each club's and individual's account |
+| `POST /competitions/admin/{token}/fees/settings` | `currency` (`GBP` or not), `fee-<discipline>`, `club`, `instructions` | Sets the fees |
+| `POST /competitions/admin/{token}/fees/payments` | `payer` (`club:<id>` or `entry:<id>`), `amount`, `note` | Records a payment |
+| `POST /competitions/admin/{token}/fees/payments/{id}/remove` | — | Removes a payment |
+| `GET /competitions/admin/{token}/fees/invoice` | `payer` | A payer's invoice, to print |
+| `GET /clubs/admin/{token}/competitions/{id}/invoice`, `/competitions/entry/{token}/invoice` | — | The club's, or an individual's, invoice |
 | `POST /competitions/admin/{token}/links` | `name`, `kind` (`cards`, `chair`, `timetable`, `everything`) | Makes a helper's link (ADR 0009) and shows it once |
 | `POST /competitions/admin/{token}/links/{id}/remove` | — | Stops a helper's link working |
 | `GET /competitions/admin/{token}/history` | — | Every change, when and by which link |

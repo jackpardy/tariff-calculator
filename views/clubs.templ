@@ -63,6 +63,7 @@ type ClubCompetition struct {
 	Coaches        []ClubSendCoach
 	Timeline       string // the club's timetable, once published
 	Notify         string // where the comp sec asks to hear about changes
+	Fees           *FeesSummary // what the club owes, if the competition charges
 }
 
 // ClubSendCoach is one of the club's coaches, to send to a competition.
@@ -252,6 +253,7 @@ templ ClubAdmin(c ClubPage) {
 			<div class="box">
 				<h3 class="title is-6 mb-1">{ comp.Competition.Name }</h3>
 				@competitionFacts(comp.Competition)
+				@feesLine(comp.Fees)
 				@timelineLinks("", comp.Timeline, comp.Notify)
 				if len(comp.Rows) == 0 {
 					<p class="has-text-grey is-size-7">No member has entered yet.</p>

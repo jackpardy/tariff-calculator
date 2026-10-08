@@ -52,6 +52,23 @@ the organisers only; the organiser and co-organisers mark each
 **Resolved**, with a note. The demo has helpers' links (printed by `demo`),
 three cards checked and two concerns.
 
+## Entry fees
+
+**Fees** (the dashboard's button, for the organiser and co-organisers;
+roadmap 2026-10-08) sets what's charged: euro or sterling, an amount per
+entry for each discipline offered (a synchro pair is one entry), an
+optional fee once per club, and how to pay (printed on every invoice).
+Removed, held and withdrawn entries aren't charged (`Fees.Invoice`). The
+page lists each club, and each individual's entry, with entries, due, paid
+and balance ("Paid" once settled), and totals; the organiser records each
+payment (amount and note, with who recorded it) and can remove one made by
+mistake. Each has an **invoice** to print: a line per entry and the club
+fee, payments, what's left and how to pay. A club's comp sec sees "Fees:
+€49 · €25 paid · €24 to pay" on each competition, with the invoice; an
+individual on their entry. No money goes through the tools. The demo
+charges €12 an entry (€15 synchro, €10 tumbling and DMT) and €25 a club,
+with some clubs paid and some part paid.
+
 ## Going live
 
 A new competition starts **private** (roadmap 2026-10-07), unless the form

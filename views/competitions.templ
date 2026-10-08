@@ -256,6 +256,7 @@ type EntryPage struct {
 	Timeline    string     // their timetable as the panel timeline, once published
 	Notify      string     // where they ask to hear about changes
 	ScoreSheets string     // the score sheets of the flights they officiate, if any
+	Fees        *FeesSummary // what they owe, if the competition charges
 }
 
 // EntryCoachView is the coach an individual names, for the organiser to
@@ -598,6 +599,9 @@ templ CompetitionDashboard(d Dashboard) {
 			}
 			if d.Access.Officials {
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/officials") }>Officials</a>
+			}
+			if d.Access.Settings {
+				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/fees") }>Fees</a>
 			}
 			<a class="button is-small is-light" href={ templ.SafeURL(d.Base + "/history") }>History</a>
 			if d.CoachApproval.On && d.Access.Coaches {
@@ -1184,6 +1188,7 @@ templ CompetitionEntryPage(p EntryPage) {
 			@linkBox("Sign-off link for your coach", p.SignoffLink, "This competition needs a coach's sign-off. Send this link to your coach: they see your entry and sign it off.")
 		}
 		@dayLink(p.Day)
+		@feesLine(p.Fees)
 		@timelineLinks(p.Timeline, "", p.Notify)
 		@placementLine(p.Placement)
 		@dutiesBox(p.Duties, p.ScoreSheets)
