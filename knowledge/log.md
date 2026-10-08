@@ -1,6 +1,13 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [ADR 0007](../docs/adr/0007-approved-coaches.md) accepted:
+  approved coaches. A built-in list of coaching qualifications (levels 1–4
+  by discipline, either body), certificates stored in the database and kept
+  with the club, clubs saying which coaches sign off and ticking which go
+  to each competition, organisers approving them (choosing, on approving
+  again, whether earlier sign-offs count), and only approved coaches'
+  sign-offs counting.
 * **Update**: [Officials rota](features/competition-entries.md#officials-rota-adr-0005-step-5)
   (ADR 0006 step 3): each event's panel is filled once, with people free
   for all its flights, and judges all of them; the organiser can let
