@@ -1,6 +1,6 @@
 # ADR 0008 — Notifications, by opting in
 
-- **Status:** Accepted
+- **Status:** Accepted; step 1 (email) built 2026-10-08
 - **Date:** 2026-10-08
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 6 (personal data: an email can be kept, to

@@ -1451,3 +1451,52 @@ func TestGoingLive(t *testing.T) {
 		t.Errorf("private: %v", got.LiveAt)
 	}
 }
+
+func TestSubscriptions(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	sub := Subscription{CompetitionID: c.ID, Kind: NotifyMember, OwnerID: "m1", Channel: ByEmail, Address: "ann@example.com", Topics: []string{AboutCards, "nonsense"}, Page: "/p"}
+	got, token, err := s.Subscribe(ctx, sub)
+	must(t, err)
+	if token == "" || got.Confirmed || len(got.Topics) != 1 {
+		t.Errorf("waiting to be confirmed, cards only: %+v", got)
+	}
+	if all, _ := s.CompetitionSubscriptions(ctx, c.ID); len(all) != 0 {
+		t.Error("an unconfirmed email isn't told")
+	}
+	must(t, s.ConfirmSubscription(ctx, token))
+
+	// The same address keeps its confirmation; another needs confirming.
+	sub.Topics = []string{AboutTimetable, AboutCards}
+	if got, token, _ := s.Subscribe(ctx, sub); token != "" || !got.Confirmed || !got.About(AboutTimetable) {
+		t.Errorf("the same address: %+v %q", got, token)
+	}
+	sub.Address = "bea@example.com"
+	if got, token, _ := s.Subscribe(ctx, sub); token == "" || got.Confirmed {
+		t.Errorf("a new address: %+v", got)
+	}
+	if mine, _ := s.Subscriptions(ctx, c.ID, NotifyMember, "m1"); len(mine) != 1 || mine[0].Address != "bea@example.com" {
+		t.Errorf("one email each: %+v", mine)
+	}
+
+	// Waiting changes: the first change's baseline stays; claimed when due.
+	must(t, s.MarkChanged(ctx, c.ID, []byte("first"), now.Add(10*time.Minute)))
+	must(t, s.MarkChanged(ctx, c.ID, []byte("second"), now.Add(20*time.Minute)))
+	if due, _ := s.ClaimDue(ctx); len(due) != 0 {
+		t.Error("not due yet")
+	}
+	now = now.Add(10 * time.Minute)
+	if due, _ := s.ClaimDue(ctx); len(due) != 1 || string(due[0].Baseline) != "first" {
+		t.Errorf("due: %+v", due)
+	}
+	if due, _ := s.ClaimDue(ctx); len(due) != 0 {
+		t.Error("claimed once")
+	}
+
+	// Deleted with the competition.
+	must(t, s.DeleteCompetition(ctx, c.ID))
+	if mine, _ := s.Subscriptions(ctx, c.ID, NotifyMember, "m1"); len(mine) != 0 {
+		t.Error("deleted with the competition")
+	}
+}

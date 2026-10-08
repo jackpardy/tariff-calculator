@@ -354,6 +354,27 @@ var migrations = []string{
 	// when they were made.
 	`ALTER TABLE competitions ADD COLUMN live_at TEXT NOT NULL DEFAULT '';
 	UPDATE competitions SET live_at = created_at;`,
+
+	// 16: notifications (ADR 0008): who opted in, per competition, and each
+	// competition's baseline of what was live and when telling is due.
+	`CREATE TABLE notify_subscriptions (
+		id             TEXT PRIMARY KEY,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		kind           TEXT NOT NULL,
+		owner_id       TEXT NOT NULL,
+		channel        TEXT NOT NULL,
+		address        TEXT NOT NULL,
+		keys           TEXT NOT NULL DEFAULT '',
+		page           TEXT NOT NULL,
+		topics         TEXT NOT NULL,
+		token          TEXT NOT NULL UNIQUE,
+		confirmed      BOOLEAN NOT NULL DEFAULT FALSE,
+		created_at     TEXT NOT NULL
+	);
+	CREATE INDEX notify_subscriptions_owner ON notify_subscriptions (competition_id, kind, owner_id);
+	ALTER TABLE competitions ADD COLUMN notify_baseline TEXT NOT NULL DEFAULT '';
+	ALTER TABLE competitions ADD COLUMN notify_due TEXT NOT NULL DEFAULT '';
+	ALTER TABLE competitions ADD COLUMN notify_no_wait BOOLEAN NOT NULL DEFAULT FALSE;`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

@@ -722,12 +722,14 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 	}
 	switch action {
 	case "publish":
+		p.notify.changing(r.Context(), c)
 		if err := p.st.PublishTimetable(r.Context(), c.ID, &s); err != nil {
 			failed(w, r, err)
 			return
 		}
 		notice = "Published: clubs, members and gymnasts entering on their own see their flight, area and time, and officials their duties."
 	case "unpublish":
+		p.notify.changing(r.Context(), c)
 		if err := p.st.PublishTimetable(r.Context(), c.ID, nil); err != nil {
 			failed(w, r, err)
 			return

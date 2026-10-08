@@ -21,6 +21,9 @@ const (
 	maxClubsPerHour = 5
 	// maxJoinsPerHour is how many times one address can join clubs in an hour.
 	maxJoinsPerHour = 30
+	// maxEmailsPerHour is how many confirmation emails one address can have
+	// sent in an hour (ADR 0008 Decision 2).
+	maxEmailsPerHour = 10
 )
 
 func (p *competitionPages) registerClubs(mux *http.ServeMux) {
@@ -158,7 +161,8 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 			failed(w, r, err)
 			return
 		}
-		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now()), ApproveCoaches: c.ApproveCoaches && c.Signoff}
+		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now()), ApproveCoaches: c.ApproveCoaches && c.Signoff,
+			Notify: p.notifyLink(base + "/competitions/" + c.ID + "/notify")}
 		if published(c) {
 			cc.Timeline = base + "/competitions/" + c.ID + "/timeline"
 		}
@@ -647,7 +651,8 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	for _, c := range comps {
-		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now), Duties: dutiesOf(c, "m:"+m.ID), Day: dayPath(path, c.ID)}
+		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now), Duties: dutiesOf(c, "m:"+m.ID), Day: dayPath(path, c.ID),
+			Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
 		if published(c) {
 			mc.Timeline, mc.ClubTimeline = path+"/competitions/"+c.ID+"/timeline", path+"/competitions/"+c.ID+"/club-timeline"
 		}

@@ -10,6 +10,7 @@ type MyCompetitionPage struct {
 	Name        string
 	Back        string // their own page
 	Timeline    string // their timetable as the panel timeline, once published
+	Notify      string // where they ask to hear about changes
 	Published   bool
 	Events      []MyEvent
 	Duties      []string
@@ -34,7 +35,7 @@ templ MyCompetition(p MyCompetitionPage) {
 		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Your page</a></p>
 		<h1 class="title is-4">{ p.Competition.Name }</h1>
 		<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
-		@timelineLinks(p.Timeline, "")
+		@timelineLinks(p.Timeline, "", p.Notify)
 		if len(p.Events) == 0 {
 			<div class="notification is-light">No entries for you have reached the competition yet. Once your club sends them (or you enter), they show here.</div>
 		}
@@ -173,14 +174,17 @@ templ dayLink(href string) {
 
 // timelineLinks are a person's and their club's timetables, laid out as
 // the panel timeline, once the timetable is published.
-templ timelineLinks(mine, club string) {
-	if mine != "" || club != "" {
+templ timelineLinks(mine, club, notify string) {
+	if mine != "" || club != "" || notify != "" {
 		<p class="mb-3 buttons">
 			if mine != "" {
 				<a class="button is-small is-success is-light" href={ templ.SafeURL(mine) }>Your timetable</a>
 			}
 			if club != "" {
 				<a class="button is-small is-success is-light" href={ templ.SafeURL(club) }>Club timetable</a>
+			}
+			if notify != "" {
+				<a class="button is-small is-light" href={ templ.SafeURL(notify) }>Tell me about changes</a>
 			}
 		</p>
 	}

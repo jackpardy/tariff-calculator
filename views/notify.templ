@@ -1,0 +1,111 @@
+package views
+
+// NotifyPage is where a person opts in to hear about a competition's
+// changes (ADR 0008 Decision 1).
+type NotifyPage struct {
+	Competition CompetitionSummary
+	Back        string
+	Action      string // where the form posts
+	For         string // whose changes, e.g. "you", "UCD's members"
+	Notice      string
+	Problems    []string
+	EmailOn     bool // email can be sent from this server
+	Email       NotifyEmail
+	Topics      []NotifyTopic
+}
+
+// NotifyEmail is the person's email for the competition, if they've given one.
+type NotifyEmail struct {
+	Address   string
+	Confirmed bool
+	Remove    string // the subscription's id, to turn it off
+}
+
+// NotifyTopic is something they can ask to hear about.
+type NotifyTopic struct {
+	Value, Label string
+	On           bool
+}
+
+// NotifyCompetition is the page for opting in.
+templ NotifyCompetition(p NotifyPage) {
+	@competitionLayout("Changes · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Back</a></p>
+		<h1 class="title is-4">Tell me about changes</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		if p.Notice != "" {
+			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		@problemList(p.Problems)
+		<p class="mb-4">Hear when the organiser changes something for { p.For }: one message for all of it, a few minutes after they publish, with what was and what is now.</p>
+		if !p.EmailOn {
+			<p class="has-text-grey">Emails can't be sent from here yet.</p>
+		} else {
+			<div class="box">
+				<h2 class="title is-6 mb-2">By email</h2>
+				if p.Email.Address != "" {
+					<p class="mb-2">
+						<strong>{ p.Email.Address }</strong>
+						if p.Email.Confirmed {
+							<span class="tag is-success is-light ml-1">On</span>
+						} else {
+							<span class="tag is-warning is-light ml-1">Waiting for you to confirm it</span>
+						}
+					</p>
+					if !p.Email.Confirmed {
+						<p class="is-size-7 mb-2">We've emailed it a link: nothing is sent until it's tapped.</p>
+					}
+				}
+				<form method="post" action={ templ.SafeURL(p.Action) }>
+					<div class="field">
+						<label class="label is-small" for="notify-email">Email</label>
+						<input class="input is-small" id="notify-email" name="email" type="email" required maxlength="254" value={ p.Email.Address } autocomplete="email"/>
+					</div>
+					<fieldset class="field">
+						<legend class="label is-small">About</legend>
+						for _, t := range p.Topics {
+							<label class="checkbox is-block mb-1">
+								<input type="checkbox" name="topic" value={ t.Value } checked?={ t.On }/>
+								{ t.Label }
+							</label>
+						}
+					</fieldset>
+					<div class="field">
+						<label class="checkbox">
+							<input type="checkbox" name="adult" value="1" required/>
+							I'm 18 or over, or this is a parent's email
+						</label>
+					</div>
+					<button class="button is-small is-primary" type="submit" name="action" value="save">
+						if p.Email.Address == "" {
+							Email me
+						} else {
+							Save
+						}
+					</button>
+				</form>
+				if p.Email.Remove != "" {
+					<form method="post" action={ templ.SafeURL(p.Action) } class="mt-2">
+						<input type="hidden" name="remove" value={ p.Email.Remove }/>
+						<button class="button is-small is-text" type="submit" name="action" value="remove">Stop emailing me</button>
+					</form>
+				}
+				<p class="help mt-3">The email is kept only to tell you about this competition, and deleted with it. Every email has a link to stop them.</p>
+			</div>
+		}
+	}
+}
+
+// NotifyLink is a confirm or turn-off link's page: a button, so a link
+// checker opening it does nothing.
+templ NotifyLink(title, text, action, button string) {
+	@competitionLayout(title) {
+		<h1 class="title is-4">{ title }</h1>
+		<p class="mb-4">{ text }</p>
+		if action != "" {
+			<form method="post" action={ templ.SafeURL(action) }>
+				<button class="button is-primary" type="submit">{ button }</button>
+			</form>
+		}
+	}
+}

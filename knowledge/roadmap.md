@@ -226,7 +226,9 @@ rest.
    made. (Before this, a competition took entries from the moment it was
    created until its deadline; those made before stay live.)
 7. **Notifications, by opting in** (decided 2026-10-07; designed in
-   [ADR 0008](../docs/adr/0008-notifications.md)). Members,
+   [ADR 0008](../docs/adr/0008-notifications.md); email built 2026-10-08,
+   [notifications](features/competition-entries.md#notifications-adr-0008),
+   waiting on an email provider on the server; push next). Members,
    individuals, club comp secs and coaches can each ask to be told when
    something affects them: a flight they're in moves (time, area or day, or
    its warm-up), their officiating duties change, or their card is checked

@@ -94,6 +94,21 @@ stays consistent while the app writes, and `scripts/restore.md` puts it back.
 These are in the server repository (CONTRACT.md "Tariff calculator storage",
 GUIDE.md section m).
 
+# Notifications
+
+[Notifications](../features/competition-entries.md#notifications-adr-0008)
+send email by SMTP with STARTTLS (ADR 0008 Decision 7), set by:
+
+- `SMTP_HOST`, and `SMTP_PORT` (default 587);
+- `SMTP_USERNAME` and `SMTP_PASSWORD`;
+- `MAIL_FROM`, the sender, e.g. `ISTO tools <notify@tariff.pardy.ie>`;
+- `PUBLIC_URL`, the site's address for links in emails (default
+  `https://tariff.pardy.ie`).
+
+Without `SMTP_HOST` and `MAIL_FROM`, email isn't offered. **Not set up on
+the server yet:** it needs a provider (Amazon SES in its Ireland region is
+the leaning) and SPF and DKIM records for the sending domain.
+
 # Demo competition
 
 `tariffCalculator demo` (`go run . demo` from a checkout) fills the storage in

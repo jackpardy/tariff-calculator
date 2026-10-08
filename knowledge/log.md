@@ -1,6 +1,14 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Notifications](features/competition-entries.md#notifications-adr-0008)
+  by email ([ADR 0008](../docs/adr/0008-notifications.md) step 1): members,
+  individuals, comp secs and coaches opt in per competition, confirm their
+  email, and get one email per batch of changes (timetable, officiating,
+  cards) after a 10-minute wait, with Notify now and no wait on the
+  competition's days. Needs `SMTP_HOST` and `MAIL_FROM` on the server. The
+  delay "what if" no longer brings an event's flights after lunch earlier,
+  and its Ease it options show they open.
 * **Update**: [Going live](features/competition-entries.md#going-live): a
   new competition starts private, its links showing when entries open; the
   organiser goes live now or at a set time, and can make it private again
