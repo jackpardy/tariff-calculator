@@ -359,7 +359,9 @@ two places, moves to the earliest free slot on another area of its
 discipline, no earlier than its published time and clear of the delay. An
 event's flights stay together (ADR 0006): unless events can run across
 breaks, the rest of an event's run waits for a break as one, and a flight
-moves to another area with all of its event's flights still to come. Flights
+moves to another area with all of its event's flights still to come. No
+flight comes earlier than it was: one already after a break stays where it
+is when the flight before it works through the break. Flights
 that have already run, or are under way when the delay starts, never move. The
 page shows each day's flights end and free time before and after, what no
 longer fits, who's needed in two places, short rest before and after, and

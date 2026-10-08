@@ -203,6 +203,8 @@ func delayView(r competitions.DelayReport, names map[string]string) *views.Delay
 			ch.Why = fmt.Sprintf("%d min later: it wouldn't finish before %s, so it waits for it to end", c.NewStart-c.Start, c.After)
 		case c.NewStart > c.Start:
 			ch.Why = fmt.Sprintf("%d min later", c.NewStart-c.Start)
+		case c.NewStart < c.Start:
+			ch.Why = fmt.Sprintf("%d min earlier", c.Start-c.NewStart)
 		case c.NewEnd > c.End:
 			ch.Why = fmt.Sprintf("under way: finishes %d min late", c.NewEnd-c.End)
 		case c.NewEnd < c.End:
