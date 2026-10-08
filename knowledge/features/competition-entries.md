@@ -28,6 +28,30 @@ competitions, the organiser's dashboard and each entry, and individual entry
 The tariff sheet is only one of the organiser's views: the printable one. The
 organiser's first need is an **overview of every entry with its problems**.
 
+## Helpers' links, history and concerns (ADR 0009)
+
+Under Links and settings the organiser makes **links for helpers**, each
+named (who it's for) and of a kind: **checking cards** (see the entries,
+mark cards checked with notes, review videos), **chairs of judges** (see
+the entries, print the chair of judges, score and marshal sheets and the
+panel timeline), **timetable and officials** (plan, change and publish
+them, Notify now, see the entries) and **everything but links and
+deleting** (a co-organiser). Each is a secret link, kept as a hash and
+shown once; **Remove** stops it. Up to 20. Every admin route goes through
+one gate (`allowed` in `access.go`); pages show only what the link can do,
+and say whose link it is.
+
+**History** (`/history`) lists every change made through any admin link,
+latest first: when, which link (its name, "Organiser" for the admin link)
+and what ("Marked a card checked: Ann Ryan · BUCS L3"); the latest 2,000
+are kept.
+
+**Concerns:** anyone with an admin link can **flag a concern**, on an entry
+or generally. The dashboard lists them (open first, with who and when), for
+the organisers only; the organiser and co-organisers mark each
+**Resolved**, with a note. The demo has helpers' links (printed by `demo`),
+three cards checked and two concerns.
+
 ## Going live
 
 A new competition starts **private** (roadmap 2026-10-07), unless the form

@@ -66,6 +66,10 @@ type Dashboard struct {
 	DeadlineTime  string
 	LiveDate      string // when it's due to go live, for changing it
 	NotifyOn      bool   // people can ask to hear about changes (ADR 0008)
+	Access        Access // what the link it was opened by can do (ADR 0009)
+	LinkList      []LinkView
+	Concerns      []ConcernView
+	OpenConcerns  int
 	NotifyAt      string // when the changes waiting are told, e.g. "14:32"; "" for none
 	NoWait        bool   // no wait on the competition's days
 	LiveTime      string
@@ -163,6 +167,8 @@ type ExerciseCard struct {
 // EntryDetail is the organiser's view of one entry.
 type EntryDetail struct {
 	Base        string
+	Access      Access
+	Notice      string
 	ID          string
 	Competition CompetitionSummary
 	Card        EntryCard
@@ -460,13 +466,18 @@ templ CompetitionDashboard(d Dashboard) {
 			<div class="notification is-success is-light">{ d.Notice }</div>
 		}
 		@competitionFacts(d.Competition)
-		if d.NotifyAt != "" {
+		if !d.Access.Organiser {
+			<p class="is-size-7 has-text-grey mb-3">You're using the link for <strong>{ d.Access.Who }</strong>.</p>
+		}
+		if d.NotifyAt != "" && d.Access.NotifyNow {
 			<form method="post" action={ templ.SafeURL(d.Base + "/notify-now") } class="notification is-info is-light">
 				Your changes go to everyone who asked to hear about them at { d.NotifyAt }, after a wait in case anything is put back.
 				<button class="button is-small ml-2" type="submit">Notify now</button>
 			</form>
 		}
-		@liveBox(d)
+		if d.Access.Settings {
+			@liveBox(d)
+		}
 		<nav class="level is-mobile comp-counts">
 			@count(d.Entries, "entries")
 			@count(d.WithProblems, "with problems")
@@ -476,8 +487,16 @@ templ CompetitionDashboard(d Dashboard) {
 			}
 			@count(len(d.Clubs), "clubs")
 		</nav>
+		@concernsBox(d.Base, d.Concerns, d.OpenConcerns, d.Access)
+		if !d.Access.Organiser {
+			@concernForm(d.Base, "", "Flag a concern for the organiser")
+		}
+		if d.Access.Settings {
 		<details class="box comp-manage">
 			<summary><strong>Links and settings</strong></summary>
+			if d.Access.Organiser {
+				@linksBox(d.Base, d.LinkList)
+			}
 			if d.Links.Club != "" {
 				@linkBox("Club link", d.Links.Club, "Give it to clubs' competition secretaries: they enter their club and send its members' entries.")
 			}
@@ -552,23 +571,36 @@ templ CompetitionDashboard(d Dashboard) {
 					<button class="button is-small" type="submit">Let gymnasts enter on their own</button>
 				}
 			</form>
-			<form method="post" action={ templ.SafeURL(d.Base + "/replace-link") } class="mb-3">
-				<button class="button is-small" type="submit">Replace the admin link</button>
-				<p class="help">If the admin link has been shared too widely. The old one stops working.</p>
-			</form>
-			<form method="post" action={ templ.SafeURL(d.Base + "/delete") }>
-				<label class="checkbox is-size-7">
-					<input type="checkbox" name="confirm" value="1" required/>
-					Delete the competition and every entry, now
-				</label>
-				<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
-			</form>
+			if d.Access.Organiser {
+				<form method="post" action={ templ.SafeURL(d.Base + "/replace-link") } class="mb-3">
+					<button class="button is-small" type="submit">Replace the admin link</button>
+					<p class="help">If the admin link has been shared too widely. The old one stops working.</p>
+				</form>
+				<form method="post" action={ templ.SafeURL(d.Base + "/delete") }>
+					<label class="checkbox is-size-7">
+						<input type="checkbox" name="confirm" value="1" required/>
+						Delete the competition and every entry, now
+					</label>
+					<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
+				</form>
+			}
 		</details>
+		}
 		@dashboardFilters(d)
 		<div class="buttons">
-			<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable") }>Timetable</a>
-			<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/officials") }>Officials</a>
-			if d.CoachApproval.On {
+			if d.Access.Timetable {
+				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable") }>Timetable</a>
+			} else if d.Access.Sheets {
+				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable/print?sheet=judges") }>Chair of judges sheets</a>
+				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable/print?sheet=scores") }>Score sheets</a>
+				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable/print?sheet=marshal") }>Marshal sheets</a>
+				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable/print?sheet=timeline-officials") }>Panel timeline</a>
+			}
+			if d.Access.Officials {
+				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/officials") }>Officials</a>
+			}
+			<a class="button is-small is-light" href={ templ.SafeURL(d.Base + "/history") }>History</a>
+			if d.CoachApproval.On && d.Access.Coaches {
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/coaches") }>
 					Coaches
 					if d.CoachApproval.Waiting > 0 {
@@ -586,7 +618,7 @@ templ CompetitionDashboard(d Dashboard) {
 		}
 		if d.Entries == 0 {
 			<p class="has-text-grey">No entries yet. Clubs send theirs through the club link; individuals enter through theirs.</p>
-		} else {
+		} else if d.Access.Remove {
 			@removeForm(d.Base)
 		}
 		if len(d.Levels) > 0 {
@@ -610,7 +642,9 @@ templ CompetitionDashboard(d Dashboard) {
 					<table class="table is-fullwidth is-narrow comp-table comp-entries">
 						<thead>
 							<tr>
-								<th><input type="checkbox" aria-label={ "Tick all of " + l.Name } onchange="this.closest('table').querySelectorAll('input[name=entry]').forEach(c => c.checked = this.checked)"/></th>
+								if d.Access.Remove {
+									<th><input type="checkbox" aria-label={ "Tick all of " + l.Name } onchange="this.closest('table').querySelectorAll('input[name=entry]').forEach(c => c.checked = this.checked)"/></th>
+								}
 								<th>Gymnast</th>
 								<th>Club</th>
 								<th>1st exercise</th>
@@ -630,7 +664,9 @@ templ CompetitionDashboard(d Dashboard) {
 						<tbody>
 							for _, r := range l.Rows {
 								<tr class={ templ.KV("has-problems", len(r.Problems) > 0 && !r.Withdrawn), templ.KV("is-withdrawn", r.Withdrawn) }>
-									<td><input type="checkbox" name="entry" value={ r.ID } form="remove-form" aria-label={ "Tick " + r.Gymnast }/></td>
+									if d.Access.Remove {
+										<td><input type="checkbox" name="entry" value={ r.ID } form="remove-form" aria-label={ "Tick " + r.Gymnast }/></td>
+									}
 									<td>
 										<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID) }>{ r.Gymnast }</a>
 										if r.Withdrawn {
@@ -697,7 +733,9 @@ templ CompetitionDashboard(d Dashboard) {
 			}
 			</details>
 		}
-		@removedList(d.Base, d.Removed)
+		if d.Access.Remove {
+			@removedList(d.Base, d.Removed)
+		}
 	}
 }
 
@@ -798,6 +836,20 @@ templ CompetitionEntry(d EntryDetail) {
 		}
 		@entryCard(d.Card)
 		<p class="has-text-grey is-size-7 mt-4">Sent { d.Sent }.</p>
+		if d.Notice != "" {
+			<div class="notification is-success is-light mt-3">{ d.Notice }</div>
+		}
+		if !d.Access.Check {
+			if d.Checked != "" {
+				<p class="mt-3"><strong>✓ Checked</strong> <span class="has-text-grey is-size-7">{ d.Checked }</span></p>
+			}
+			if d.Note != "" {
+				<p class="is-size-7">The organiser's note: { d.Note }</p>
+			}
+			<p class="mt-2"><a class="button is-small" href={ templ.SafeURL(d.Base + "/cards?entry=" + d.ID) }>Print card</a></p>
+		}
+		@concernForm(d.Base, d.ID, "Flag a concern about this entry")
+		if d.Access.Check {
 		<div class="box mt-4">
 			<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/check") }>
 				if d.Checked != "" {
@@ -820,7 +872,8 @@ templ CompetitionEntry(d EntryDetail) {
 				<p class="help">If the entry changes after you check it, it needs checking again. The note stays.</p>
 			</form>
 		</div>
-		if d.Competition.Video != "" {
+		}
+		if d.Competition.Video != "" && d.Access.Check {
 			<div class="box mt-4">
 				<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/video") }>
 					<p class="mb-2">

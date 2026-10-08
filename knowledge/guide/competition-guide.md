@@ -101,6 +101,18 @@ pair's one routine), checked as the Routine Builder checks them.
   levels rank men and women separately, turn individual entry, video proof or
   coach sign-off on or off, **Replace the admin link** if it's been shared too
   widely, or delete the competition.
+- **Links for your helpers** (under **Links and settings**): name a link
+  (who it's for) and choose what it can do: **Checking cards** (for
+  difficulty judges: check cards, add notes, review videos), **Chairs of
+  judges** (see the entries and print the chair of judges, score and
+  marshal sheets), **Timetable and officials**, or **Everything but links
+  and deleting** (a co-organiser). Copy the link straight away: it's shown
+  only once. **Remove** stops it working. **History** lists every change,
+  when, and which link made it.
+- **Concerns:** anyone with one of your links can **Flag a concern**, about
+  an entry or generally ("element 7 isn't on the card"). They're listed at
+  the top of your entries page, for you alone; mark each **Resolved**, with
+  a note of what was done.
 - **Approved coaches:** where entries need sign-off, tick **Coaches must be
   approved** and choose the lowest coaching level you accept in each
   discipline (Level 2 to start with; British Gymnastics and Gymnastics
