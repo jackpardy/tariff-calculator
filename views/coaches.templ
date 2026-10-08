@@ -69,6 +69,7 @@ type CoachPage struct {
 	Link         string // their coach link, as a full URL
 	Notice       string
 	SeesAll      bool // they see every member, not just their own and those without a coach
+	SignsOff     bool // the club lets them sign off routines
 	Competitions []CoachCompetition
 }
 
@@ -104,6 +105,9 @@ templ CoachHome(p CoachPage) {
 			} else {
 				You see the members who chose you, and those who haven't chosen a coach.
 			}
+			if !p.SignsOff {
+				Your club hasn't set you to sign off routines, so you can see their entries but not sign them off.
+			}
 		</p>
 		if len(p.Competitions) == 0 {
 			<p class="has-text-grey">The club isn't entered in any competitions yet.</p>
@@ -112,7 +116,7 @@ templ CoachHome(p CoachPage) {
 			<div class="box">
 				<h2 class="title is-6 mb-1">
 					{ c.Competition.Name }
-					if c.Waiting > 0 {
+					if c.Waiting > 0 && p.SignsOff {
 						<span class="tag is-warning is-light ml-1">{ strconv.Itoa(c.Waiting) } to sign off</span>
 					}
 				</h2>
@@ -168,6 +172,7 @@ type SignoffPage struct {
 	AskName     bool   // the coach gives their name (an individual's coach)
 	Name        string // as given before
 	Problems    []string
+	Cannot      string // why they can't sign it off, if they can't
 }
 
 // SignoffEntry is the page where a coach signs off an entry.
@@ -179,7 +184,9 @@ templ SignoffEntry(p SignoffPage) {
 		<p class="has-text-grey mb-1">{ p.Competition.Name }</p>
 		@competitionFacts(p.Competition)
 		@entryCard(p.Card)
-		if p.Competition.Open {
+		if p.Cannot != "" {
+			<p class="has-text-grey mt-4">{ p.Cannot }</p>
+		} else if p.Competition.Open {
 			<div class="box mt-4">
 				@problemList(p.Problems)
 				<form method="post" action={ templ.SafeURL(p.Action) }>

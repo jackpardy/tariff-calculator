@@ -45,6 +45,10 @@ func (p *competitionPages) registerClubs(mux *http.ServeMux) {
 	handle("POST /clubs/admin/{token}/coaches", p.addCoach)
 	handle("POST /clubs/admin/{token}/coaches/{coach}/new-link", p.newCoachLink)
 	handle("POST /clubs/admin/{token}/coaches/{coach}/remove", p.removeCoach)
+	handle("POST /clubs/admin/{token}/coaches/{coach}/signs-off", p.coachSignsOff)
+	handle("POST /clubs/admin/{token}/coaches/{coach}/qualifications", p.addQualification)
+	handle("POST /clubs/admin/{token}/coaches/{coach}/qualifications/{q}/remove", p.removeQualification)
+	handle("GET /clubs/admin/{token}/coaches/{coach}/qualifications/{q}/certificate", p.clubCertificate)
 	handle("POST /clubs/admin/{token}/coaches-see-all", p.coachesSeeAll)
 	handle("POST /clubs/admin/{token}/members/{member}/coach", p.assignCoach)
 	handle("GET /clubs/coach/{token}", p.coachHome)
@@ -122,6 +126,14 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 	if err != nil {
 		failed(w, r, err)
 		return
+	}
+	quals, err := p.st.Qualifications(ctx, club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	for _, q := range competitions.Qualifications {
+		page.QualificationOptions = append(page.QualificationOptions, views.CoachOption{ID: q.Key, Name: q.Name()})
 	}
 	members, err := p.st.Members(ctx, club.ID)
 	if err != nil {
@@ -204,7 +216,12 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		coached[m.CoachID]++
 	}
 	for _, c := range coaches {
-		page.Coaches = append(page.Coaches, views.ClubCoach{ID: c.ID, Name: c.Name, Members: coached[c.ID]})
+		cv := views.ClubCoach{ID: c.ID, Name: c.Name, Members: coached[c.ID], SignsOff: c.SignsOff}
+		for _, q := range quals[c.ID] {
+			cv.Qualifications = append(cv.Qualifications, views.QualificationView{ID: q.ID, Name: qualificationName(q.Qualification),
+				Certificate: base + "/coaches/" + c.ID + "/qualifications/" + q.ID + "/certificate"})
+		}
+		page.Coaches = append(page.Coaches, cv)
 		page.CoachOptions = append(page.CoachOptions, views.CoachOption{ID: c.ID, Name: c.Name})
 	}
 	render(w, r, views.ClubAdmin(page))

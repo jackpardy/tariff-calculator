@@ -161,7 +161,9 @@ roughly in the order they'd help ISTO.
    **number flights in the order they run** (BUCS L7 Men's "flight 2 of 5"
    now runs before its flight 1).
 2. **Approved coaches** (decided 2026-10-07; designed in
-   [ADR 0007](../docs/adr/0007-approved-coaches.md)). Where a competition needs
+   [ADR 0007](../docs/adr/0007-approved-coaches.md); coaches'
+   qualifications and certificates built 2026-10-08, approval next). Where a
+   competition needs
    coach sign-off, the organiser can also require coaches to be
    **approved**, and pick the qualification they need from a list (British
    Gymnastics and Gymnastics Ireland coaching levels, by discipline; a

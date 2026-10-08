@@ -1,6 +1,7 @@
 # ADR 0007 — Approved coaches
 
-- **Status:** Accepted
+- **Status:** Accepted; step 2 (qualifications and certificates) built
+  2026-10-08
 - **Date:** 2026-10-08
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decisions 6 (personal data: certificates are kept),

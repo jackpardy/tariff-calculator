@@ -976,3 +976,72 @@ func TestOfficials(t *testing.T) {
 		t.Errorf("settings kept: %+v", got.Officials)
 	}
 }
+
+func TestCoachQualifications(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp := competition()
+	comp.Signoff = true
+	c, _, _ := s.CreateCompetition(ctx, comp)
+	club, _, _ := s.CreateClub(ctx, "UCD")
+	must(t, s.AttachClub(ctx, club.ID, c.ID))
+	ann, annLink, _ := s.CreateCoach(ctx, club.ID, "Ann")
+	other, _, _ := s.CreateClub(ctx, "DCU")
+
+	// Coaches sign off unless the club says not.
+	if !ann.SignsOff {
+		t.Error("a new coach signs off")
+	}
+	must(t, s.SetCoachSignsOff(ctx, club.ID, ann.ID, false))
+	if got, _ := s.CoachByLink(ctx, annLink); got.SignsOff {
+		t.Error("Ann no longer signs off")
+	}
+	x, _, _ := s.Join(ctx, club.ID, "X")
+	must(t, s.SaveMemberEntry(ctx, x.ID, c.ID, entry("X")))
+	got, _ := s.CoachByLink(ctx, annLink)
+	if err := s.SignOff(ctx, got, x.ID, c.ID, competitions.Trampoline, true, ""); !errors.Is(err, ErrNotFound) {
+		t.Errorf("a coach who doesn't sign off can't: %v", err)
+	}
+	if err := s.SetCoachSignsOff(ctx, other.ID, ann.ID, true); !errors.Is(err, ErrNotFound) {
+		t.Errorf("only Ann's club: %v", err)
+	}
+
+	// Qualifications with certificates, four at most, kept with the coach.
+	pdf := []byte("%PDF-1.4 certificate")
+	q, err := s.AddQualification(ctx, club.ID, ann.ID, "bg-trampoline-2", "application/pdf", pdf)
+	must(t, err)
+	if _, err := s.AddQualification(ctx, other.ID, ann.ID, "bg-trampoline-3", "application/pdf", pdf); !errors.Is(err, ErrNotFound) {
+		t.Errorf("only for the club's own coaches: %v", err)
+	}
+	for range 3 {
+		_, err := s.AddQualification(ctx, club.ID, ann.ID, "gi-tumbling-1", "image/png", []byte("png"))
+		must(t, err)
+	}
+	if _, err := s.AddQualification(ctx, club.ID, ann.ID, "gi-dmt-1", "image/png", []byte("png")); !errors.Is(err, ErrLimit) {
+		t.Errorf("four at most: %v", err)
+	}
+	qs, _ := s.Qualifications(ctx, club.ID)
+	if len(qs[ann.ID]) != 4 || qs[ann.ID][0].Qualification != "bg-trampoline-2" || qs[ann.ID][0].CertType != "application/pdf" {
+		t.Errorf("qualifications: %+v", qs)
+	}
+	if typ, data, err := s.Certificate(ctx, club.ID, q.ID); err != nil || typ != "application/pdf" || string(data) != string(pdf) {
+		t.Errorf("certificate: %q %q %v", typ, data, err)
+	}
+	if _, _, err := s.Certificate(ctx, other.ID, q.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("another club can't open it: %v", err)
+	}
+	if err := s.RemoveQualification(ctx, other.ID, q.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("another club can't remove it: %v", err)
+	}
+	must(t, s.RemoveQualification(ctx, club.ID, q.ID))
+	if qs, _ := s.Qualifications(ctx, club.ID); len(qs[ann.ID]) != 3 {
+		t.Errorf("removed: %+v", qs)
+	}
+	// Removing the coach removes their certificates.
+	must(t, s.RemoveCoach(ctx, club.ID, ann.ID))
+	var n int
+	must(t, s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM coach_qualifications`).Scan(&n))
+	if n != 0 {
+		t.Errorf("%d certificates left", n)
+	}
+}

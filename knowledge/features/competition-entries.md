@@ -369,7 +369,18 @@ Where a competition requires it, each entry needs a coach's **sign-off**
 (ADR 0004 Decision 11).[^adr-0004]
 
 - The comp sec adds the club's coaches on the club page; each gets a coach
-  link (shown once; **New link** replaces it).
+  link (shown once; **New link** replaces it). Each coach **signs off
+  routines** or not (ADR 0007 Decision 3; new coaches do): one who doesn't
+  sees their members' entries, checked, but has no sign-off buttons, and a
+  sign-off from them is refused.
+- **Qualifications** (ADR 0007 Decision 4): the comp sec gives a coach up to
+  four, each from the built-in list (British Gymnastics levels 1–4 and
+  Gymnastics Ireland levels 1–3, in trampoline, tumbling and DMT) with a
+  certificate: a JPEG, PNG, WebP or PDF up to 10 MB, its type checked from
+  its bytes. It's stored in the database with the coach, opened by the comp
+  sec (served as its own type, `nosniff`, not cached), and deleted with the
+  qualification, the coach or the club. Approval by organisers comes next
+  (ADR 0007 step 3).
 - A member chooses their coach on their own page, or the comp sec does on
   the club page. A coach sees their own members and every member without a
   coach; the club can let **every coach see every member**.

@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Coaches](features/competition-entries.md#coaches-coach-link)
+  (ADR 0007 step 2): the comp sec says whether each coach signs off
+  routines (one who doesn't sees entries without the buttons), and gives
+  coaches qualifications from the built-in list, each with a photo or PDF
+  of its certificate (up to 10 MB, four per coach), stored with the coach.
 * **Update**: [ADR 0007](../docs/adr/0007-approved-coaches.md) accepted:
   approved coaches. A built-in list of coaching qualifications (levels 1–4
   by discipline, either body), certificates stored in the database and kept
