@@ -1,6 +1,8 @@
 # Update log
 
 ## 2026-10-08
+* **Fix**: synchro panels can have HD judges too, like trampoline's (none
+  until the organiser adds them); the demo gives synchro 2.
 * **Update**: Individuals' coaches (ADR 0007 step 4, the last): where a
   competition approves coaches, a gymnast entering on their own names their
   coach with a qualification and certificate; the organiser approves them

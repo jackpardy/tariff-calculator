@@ -117,7 +117,8 @@ and anyone you add.
 - Under **Panels and who may judge**, each discipline's panel starts as the
   FIG Code of Points' (a Chair of Judges Panel, 6 execution and 2 difficulty
   judges) plus a recorder and a marshal; change any of it. Where there's no
-  machine measuring horizontal displacement, give trampoline 2 **HD** judges.
+  machine measuring horizontal displacement, give trampoline and synchro
+  **HD** judges (2 for trampoline).
   Synchro has 2 **Sync** (synchronisation) judges to start with; set 0 if a
   machine measures synchronisation. A panel judges all of an event's
   flights, so every gymnast in it is scored by the same people; tick

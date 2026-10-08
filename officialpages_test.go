@@ -101,3 +101,20 @@ func TestOfficialPages(t *testing.T) {
 		t.Error("removed")
 	}
 }
+
+func TestSynchroHD(t *testing.T) {
+	h := competitionServer(t)
+	form := newCompetition()
+	form.Add("synchroLevel", "builtin-level:bucs-l3")
+	admin := created(t, h, form)
+	officials := admin + "/officials"
+	if page := do(t, h, http.MethodGet, officials, nil).Body.String(); !strings.Contains(page, `name="panel-synchro-hd" value="0"`) {
+		t.Fatal("synchro can have HD judges, none to start with")
+	}
+	redirected(t, h, officials+"/settings", url.Values{
+		"panel-trampoline-chair": {"1"}, "panel-trampoline-execution": {"6"}, "panel-trampoline-difficulty": {"2"}, "panel-trampoline-recorder": {"1"}, "panel-trampoline-marshal": {"1"},
+		"panel-synchro-chair": {"1"}, "panel-synchro-execution": {"6"}, "panel-synchro-difficulty": {"2"}, "panel-synchro-hd": {"2"}, "panel-synchro-sync": {"2"}, "panel-synchro-recorder": {"1"}, "panel-synchro-marshal": {"1"}})
+	if page := do(t, h, http.MethodGet, officials, nil).Body.String(); !strings.Contains(page, `name="panel-synchro-hd" value="2"`) {
+		t.Error("synchro's HD judges saved")
+	}
+}

@@ -16,7 +16,7 @@ type Panel struct {
 	Chair      int `json:"chair"`          // Chair of Judges Panel
 	Execution  int `json:"execution"`      // execution judges
 	Difficulty int `json:"difficulty"`     // difficulty judges
-	HD         int `json:"hd,omitempty"`   // horizontal displacement judges, where no machine measures it (trampoline)
+	HD         int `json:"hd,omitempty"`   // horizontal displacement judges, where no machine measures it (trampoline and synchro)
 	Sync       int `json:"sync,omitempty"` // synchronisation judges, where no machine measures it (synchro)
 	Recorder   int `json:"recorder"`
 	Marshal    int `json:"marshal"`
@@ -24,9 +24,9 @@ type Panel struct {
 
 // CodePanel is the FIG Code of Points 2025–2028's panel, the same for every
 // discipline (§18.1 for trampoline and synchro, §17.1 for tumbling and DMT):
-// a CJP, 6 execution and 2 difficulty judges. Trampoline also needs 2
-// horizontal displacement (HD) judges where no machine measures it: none by
-// default, for the organiser to add. Helpers aren't in the Code; one
+// a CJP, 6 execution and 2 difficulty judges. Trampoline and synchro also
+// need horizontal displacement (HD) judges where no machine measures it:
+// none by default, for the organiser to add. Helpers aren't in the Code; one
 // recorder and one marshal is a starting point.
 var CodePanel = Panel{Chair: 1, Execution: 6, Difficulty: 2, Recorder: 1, Marshal: 1}
 

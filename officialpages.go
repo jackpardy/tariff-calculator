@@ -171,7 +171,7 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		panel := c.Officials.Panel(d)
 		page.Panels = append(page.Panels, views.PanelSetting{
 			Key: offerKey(d), Name: competitions.DisciplineName(d), Chair: panel.Chair, Execution: panel.Execution,
-			Difficulty: panel.Difficulty, HD: panel.HD, HasHD: d == competitions.Trampoline, Sync: panel.Sync, HasSync: d == competitions.Synchro,
+			Difficulty: panel.Difficulty, HD: panel.HD, HasHD: d == competitions.Trampoline || d == competitions.Synchro, Sync: panel.Sync, HasSync: d == competitions.Synchro,
 			Recorder: panel.Recorder, Marshal: panel.Marshal,
 		})
 		cover := views.Cover{Name: competitions.DisciplineName(d), PanelJudges: panel.Judges(), PanelChairs: panel.Chair}
@@ -219,7 +219,7 @@ func (p *competitionPages) officialSettings(w http.ResponseWriter, r *http.Reque
 			return v
 		}
 		panel := competitions.Panel{Chair: n("chair"), Execution: n("execution"), Difficulty: n("difficulty"), Recorder: n("recorder"), Marshal: n("marshal")}
-		if d == competitions.Trampoline && r.FormValue("panel-trampoline-hd") != "" {
+		if (d == competitions.Trampoline || d == competitions.Synchro) && r.FormValue("panel-"+offerKey(d)+"-hd") != "" {
 			panel.HD = n("hd")
 		}
 		if d == competitions.Synchro && r.FormValue("panel-synchro-sync") != "" {
