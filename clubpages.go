@@ -30,6 +30,7 @@ func (p *competitionPages) registerClubs(mux *http.ServeMux) {
 	handle("POST /clubs", p.createClub)
 	handle("GET /clubs/admin/{token}", p.club)
 	handle("POST /clubs/admin/{token}/competitions/{id}/send", p.send)
+	handle("POST /clubs/admin/{token}/competitions/{id}/coaches", p.sendCoaches)
 	handle("GET /clubs/admin/{token}/members/{member}/competitions/{id}", p.editMemberEntry)
 	handle("POST /clubs/admin/{token}/members/{member}/competitions/{id}", p.saveMemberEntryForMember)
 	handle("POST /clubs/admin/{token}/members/{member}/new-link", p.newMemberLink)
@@ -157,7 +158,7 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 			failed(w, r, err)
 			return
 		}
-		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now())}
+		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now()), ApproveCoaches: c.ApproveCoaches && c.Signoff}
 		sentID := map[string]string{} // member → the competition's copy of their entry
 		for _, e := range sent {
 			if e.ClubID == club.ID {
@@ -202,6 +203,12 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		for _, e := range sent {
 			if e.ClubID == club.ID && !has[e.MemberID] {
 				cc.Rows = append(cc.Rows, views.ClubEntryRow{Member: e.Entry.Gymnasts(), Level: e.Entry.Event(), Status: "Withdrawn (still sent)"})
+			}
+		}
+		if cc.ApproveCoaches {
+			if cc.Coaches, err = p.clubSendCoaches(r, club, c.ID, coaches, quals, members, mine); err != nil {
+				failed(w, r, err)
+				return
 			}
 		}
 		if cc.Offers, err = p.clubOffers(r, base, club, c, members); err != nil {
@@ -740,4 +747,69 @@ func (p *competitionPages) withdrawMemberEntry(w http.ResponseWriter, r *http.Re
 	}
 	notice := "Withdrawn from " + c.Name + ". If your club already sent it, it stays with the competition until the club sends again."
 	http.Redirect(w, r, memberPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+}
+
+// clubSendCoaches are the club's coaches who sign off, to send to a
+// competition that approves coaches: those sent are ticked, or before any
+// are, the coaches of members entered.
+func (p *competitionPages) clubSendCoaches(r *http.Request, club store.Club, competitionID string, coaches []store.Coach,
+	quals map[string][]store.CoachQualification, members []store.Member, mine []store.MemberEntry) ([]views.ClubSendCoach, error) {
+	sent, err := p.st.ClubSentCoaches(r.Context(), club.ID, competitionID)
+	if err != nil {
+		return nil, err
+	}
+	coachOf := map[string]string{}
+	for _, m := range members {
+		coachOf[m.ID] = m.CoachID
+	}
+	entered := map[string]bool{}
+	for _, e := range mine {
+		entered[coachOf[e.MemberID]] = true
+	}
+	var out []views.ClubSendCoach
+	for _, c := range coaches {
+		if !c.SignsOff {
+			continue
+		}
+		k := views.ClubSendCoach{ID: c.ID, Name: c.Name, Ticked: entered[c.ID] && len(sent) == 0, NoQualifications: len(quals[c.ID]) == 0}
+		if s, ok := sent[c.ID]; ok {
+			k.Ticked, k.Status, k.Approved, k.Note, k.Changed = true, coachStatus(s.Status), s.Approved(), s.Note, s.Changed
+		}
+		out = append(out, k)
+	}
+	return out, nil
+}
+
+// coachStatus says what an organiser has decided about a coach.
+func coachStatus(status string) string {
+	switch status {
+	case store.CoachApproved:
+		return "Approved ✓"
+	case store.CoachRefused:
+		return "Not approved"
+	case store.CoachWithdrawn:
+		return "Approval withdrawn"
+	}
+	return "Waiting for the organiser"
+}
+
+// sendCoaches sends the coaches ticked (coach: their ids) to a competition.
+func (p *competitionPages) sendCoaches(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		badRequest(w, err)
+		return
+	}
+	if err := p.st.SendCoaches(r.Context(), club.ID, r.PathValue("id"), r.Form["coach"]); err != nil {
+		failed(w, r, err)
+		return
+	}
+	notice := "Coaches sent: the organiser approves them before they can sign off."
+	if len(r.Form["coach"]) == 0 {
+		notice = "No coaches sent."
+	}
+	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
 }

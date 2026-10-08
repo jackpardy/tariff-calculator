@@ -86,6 +86,17 @@ pair's one routine), checked as the Routine Builder checks them.
   levels rank men and women separately, turn individual entry, video proof or
   coach sign-off on or off, **Replace the admin link** if it's been shared too
   widely, or delete the competition.
+- **Approved coaches:** where entries need sign-off, tick **Coaches must be
+  approved** and choose the lowest coaching level you accept in each
+  discipline (Level 2 to start with; British Gymnastics and Gymnastics
+  Ireland levels count alike, and a higher level counts). Clubs then send
+  their coaches with their qualifications. **Coaches** (with how many are
+  waiting) lists them by club: open each certificate, see whether they meet
+  your level, and **Approve** or say **Not approved**, with a note the club
+  sees. Only approved coaches can sign off, and only their sign-offs count:
+  an entry signed off by anyone else says so. **Withdraw approval** stops a
+  coach's sign-offs counting; approving them again, choose whether the
+  sign-offs they gave before count again or only those from now on.
 
 An entry marked **Withdrawn** was withdrawn after the club sent it. It isn't
 counted or printed, and goes when the club sends again. A competition and its
@@ -240,6 +251,11 @@ problems and status (**Not sent**, **Sent**, **Changed since sent**, or
 withdrawn), plus any note from the organiser, and missing videos and coach
 sign-off.
 
+- **Coaches for this competition** (where it approves coaches): tick the
+  coaches who'll sign off its entries (your members' coaches start ticked)
+  and tap **Send coaches**. Each shows whether the organiser has approved
+  them, with their note. If you change a coach's qualifications, send them
+  again for the organiser to approve again.
 - **Send new and changed** sends the entries the competition doesn't have yet,
   or that changed since you sent them. **Send all again** sends everyone's and
   takes back withdrawn ones. The organiser only sees what you send, until
@@ -313,7 +329,10 @@ The organiser sees a pair entered at another level flagged.
 Your comp sec adds you and sends you your **coach link**. Your page lists each
 competition with the entries you see: the members who chose you, those who
 haven't chosen a coach, or everyone if the club says so. If the club hasn't
-set you to sign off routines, you see the entries but can't sign them off.
+set you to sign off routines, you see the entries but can't sign them off. A
+competition that approves coaches says if you're waiting for its organiser
+to approve you (or why they haven't): until they do, you can't sign off its
+entries.
 
 1. Tap a member to see their entry, checked.
 2. Tap **Sign off** if you've seen them perform it safely and it's ready, or

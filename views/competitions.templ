@@ -55,25 +55,26 @@ type CompetitionLinks struct {
 
 // Dashboard is the organiser's overview of every entry.
 type Dashboard struct {
-	Base         string // the admin link's path, which the dashboard's own links extend
-	New          string // "created" or "replaced" just after the admin link was made, to say to save it
-	Notice       string // what just happened
-	DeadlineDate string // the closing time, for changing it
-	DeadlineTime string
-	Unchecked    int // entries not checked yet
-	Withdrawn    int // entries withdrawn since their club sent them
-	Video        VideoForm
-	Split        SplitForm
-	Events       EventsForm
-	LevelOrder   []LevelOrder
-	Competition  CompetitionSummary
-	Links        CompetitionLinks
-	Clubs        []string // the clubs entered, by name
-	Club         string   // the club the table is filtered to ("" for all, "individual" for individuals)
-	ProblemsOnly bool
-	Entries      int // every entry, before filtering
-	WithProblems int
-	Levels       []DashboardLevel
+	Base          string // the admin link's path, which the dashboard's own links extend
+	New           string // "created" or "replaced" just after the admin link was made, to say to save it
+	Notice        string // what just happened
+	DeadlineDate  string // the closing time, for changing it
+	DeadlineTime  string
+	Unchecked     int // entries not checked yet
+	Withdrawn     int // entries withdrawn since their club sent them
+	Video         VideoForm
+	CoachApproval CoachApprovalForm
+	Split         SplitForm
+	Events        EventsForm
+	LevelOrder    []LevelOrder
+	Competition   CompetitionSummary
+	Links         CompetitionLinks
+	Clubs         []string // the clubs entered, by name
+	Club          string   // the club the table is filtered to ("" for all, "individual" for individuals)
+	ProblemsOnly  bool
+	Entries       int // every entry, before filtering
+	WithProblems  int
+	Levels        []DashboardLevel
 }
 
 // LevelOrder is one discipline's levels, easiest first, for the organiser to
@@ -170,7 +171,7 @@ type EntryForm struct {
 type EntryLevel struct {
 	Name      string // posted as the level
 	Label     string // how it's shown, if not its name: "BUCS L1/L2 (doing BUCS L1)"
-	Split     bool // gymnasts say Men or Women
+	Split     bool   // gymnasts say Men or Women
 	Exercises [2]EntryExercise
 }
 
@@ -431,6 +432,9 @@ templ CompetitionDashboard(d Dashboard) {
 					<button class="button is-small" type="submit">Require coach sign-off</button>
 				}
 			</form>
+			if d.Competition.Signoff {
+				@coachApprovalFields(d.Base, d.CoachApproval)
+			}
 			<form method="post" action={ templ.SafeURL(d.Base + "/video") } class="mb-3">
 				@videoFields(d.Video)
 				<button class="button is-small" type="submit">Change video proof</button>
@@ -484,6 +488,14 @@ templ CompetitionDashboard(d Dashboard) {
 		<div class="buttons">
 			<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable") }>Timetable</a>
 			<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/officials") }>Officials</a>
+			if d.CoachApproval.On {
+				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/coaches") }>
+					Coaches
+					if d.CoachApproval.Waiting > 0 {
+						<span class="tag is-warning ml-1">{ strconv.Itoa(d.CoachApproval.Waiting) } waiting</span>
+					}
+				</a>
+			}
 		</div>
 		if d.Entries > 0 {
 			<div class="buttons">
@@ -583,7 +595,7 @@ templ CompetitionDashboard(d Dashboard) {
 											–
 										}
 										if r.Note != "" {
-											<span class="has-text-grey" aria-label="Has a note"> ✎</span>
+											<span class="has-text-grey" aria-label="Has a note">✎</span>
 										}
 									</td>
 								</tr>
@@ -759,10 +771,11 @@ templ exerciseCard(ex ExerciseCard) {
 							<td>
 								{ displayName(sv.Skill) }
 								if ex.Required[i+1] {
-									<span title="Meets a requirement"> *</span>
+									<span title="Meets a requirement">*</span>
 								}
 								if ex.Validation.Messages[i] != "" {
-									<br/><span class="is-size-7 has-text-danger">{ ex.Validation.Messages[i] }</span>
+									<br/>
+									<span class="is-size-7 has-text-danger">{ ex.Validation.Messages[i] }</span>
 								}
 							</td>
 							<td class="has-text-grey">{ sv.FIGNotation }</td>
@@ -1222,11 +1235,13 @@ templ PartnerConfirm(p PartnerPage) {
 		if p.Confirmed {
 			<div class="notification is-success is-light">The pair is confirmed. Thank you.</div>
 		} else {
-			<p class="mb-3">{ p.Gymnast }
+			<p class="mb-3">
+				{ p.Gymnast }
 				if p.Club != "" {
 					({ p.Club })
 				}
-				has entered { p.Event } with you, { p.Partner }. Confirm so the timetable knows it's you, and never puts you in two places at once.</p>
+				has entered { p.Event } with you, { p.Partner }. Confirm so the timetable knows it's you, and never puts you in two places at once.
+			</p>
 			@problemList(p.Problems)
 			<form method="post" action={ templ.SafeURL(p.Action) } class="comp-partner">
 				// Links saved in this browser (static/js/competitions.js).

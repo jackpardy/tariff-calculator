@@ -56,6 +56,21 @@ type ClubCompetition struct {
 	Rows        []ClubEntryRow
 	ToSend      int // entries never sent, or changed since
 	Offers      []ClubOfferRow
+	// ApproveCoaches says the competition approves coaches; Coaches are the
+	// club's who sign off, to send for approval (ADR 0007 Decision 5).
+	ApproveCoaches bool
+	Coaches        []ClubSendCoach
+}
+
+// ClubSendCoach is one of the club's coaches, to send to a competition.
+type ClubSendCoach struct {
+	ID, Name         string
+	Ticked           bool   // sent, or to send
+	Status           string // e.g. "Waiting for the organiser", "" if not sent
+	Approved         bool
+	Note             string // the organiser's
+	Changed          bool   // their qualifications changed since they were sent
+	NoQualifications bool
 }
 
 // ClubOfferRow is what a member offers to judge and help with.
@@ -287,6 +302,38 @@ templ ClubAdmin(c ClubPage) {
 						<button class="button is-small" type="submit" name="which" value="all">Send all again</button>
 					</form>
 					<p class="help">The organiser sees only what you send. "Send all again" also takes back withdrawn entries. What members offer to judge and help with goes with every send.</p>
+				}
+				if comp.ApproveCoaches {
+					<div class="mt-3">
+						<p class="is-size-7 mb-1"><strong>Coaches for this competition.</strong> It approves coaches from their qualifications: only those it approves can sign off. Tick who to send.</p>
+						if len(comp.Coaches) == 0 {
+							<p class="is-size-7 has-text-grey">None of your coaches signs off routines yet (see Coaches below).</p>
+						} else {
+							<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/coaches") }>
+								for _, k := range comp.Coaches {
+									<div class="is-size-7">
+										<label class="checkbox">
+											<input type="checkbox" name="coach" value={ k.ID } checked?={ k.Ticked }/>
+											{ k.Name }
+										</label>
+										if k.Status != "" {
+											<span class={ "tag is-light ml-1", templ.KV("is-success", k.Approved), templ.KV("is-warning", !k.Approved) }>{ k.Status }</span>
+										}
+										if k.Changed {
+											<span class="has-text-grey">· qualifications changed since sent: send again</span>
+										}
+										if k.NoQualifications {
+											<span class="has-text-danger">· no qualifications added</span>
+										}
+										if k.Note != "" {
+											<span class="has-text-grey">· { k.Note }</span>
+										}
+									</div>
+								}
+								<button class="button is-small mt-1" type="submit">Send coaches</button>
+							</form>
+						}
+					</div>
 				}
 				if len(comp.Offers) > 0 {
 					<details class="mt-3">

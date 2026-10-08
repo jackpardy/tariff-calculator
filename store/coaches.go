@@ -133,7 +133,7 @@ func (s *Store) SignOff(ctx context.Context, c Coach, memberID, competitionID, d
 	if signed {
 		at = s.stamp()
 	}
-	return affected(s.db.ExecContext(ctx, fmt.Sprintf(`UPDATE member_entries SET signed_at = $3, signed_by = $4, sign_note = $5
+	return affected(s.db.ExecContext(ctx, fmt.Sprintf(`UPDATE member_entries SET signed_at = $3, signed_by = $4, sign_note = $5, signed_coach = $1
 		WHERE member_id = $6 AND competition_id = $7 AND discipline = $8 AND member_id IN (SELECT m.id FROM members m WHERE %s)
 		AND (SELECT signs_off FROM coaches WHERE id = $1)`, coachSees),
 		c.ID, c.ClubID, at, c.Name, note, memberID, competitionID, discipline))

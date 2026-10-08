@@ -1,6 +1,13 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Approved coaches](features/competition-entries.md#coaches-coach-link)
+  (ADR 0007 step 3): organisers can require coaches approved, with the
+  lowest level per discipline; clubs tick and send coaches; the organiser's
+  **Coaches** page shows certificates and whether each meets the level, to
+  approve, refuse or withdraw (approving again, choosing whether earlier
+  sign-offs count). Sign-offs record their coach and count only while that
+  coach is approved; unapproved coaches can't sign off.
 * **Update**: [Coaches](features/competition-entries.md#coaches-coach-link)
   (ADR 0007 step 2): the comp sec says whether each coach signs off
   routines (one who doesn't sees entries without the buttons), and gives

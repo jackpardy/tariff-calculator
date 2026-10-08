@@ -90,6 +90,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerTimetable(handle)
 	p.registerPartners(handle)
 	p.registerOfficials(handle)
+	p.registerApprovals(handle)
 	p.registerMine(handle)
 }
 
@@ -414,8 +415,8 @@ func judge(c competitions.Competition, entries []store.Entry) []judged {
 			j.problems = []string{j.err.Error()}
 		} else {
 			j.problems = j.card.Problems()
-			if c.Signoff && !j.SignedOff() && !j.Withdrawn {
-				j.problems = append(j.problems, "Not signed off by a coach")
+			if problem := storedSignoff(c, j.Entry).Problem(); problem != "" && !j.Withdrawn {
+				j.problems = append(j.problems, problem)
 			}
 		}
 		out[i] = j
@@ -499,6 +500,14 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
 		Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()), Events: eventsForm(c.Competition),
 		LevelOrder: levelOrderForm(c.Competition),
+	}
+	if c.Signoff {
+		sentCoaches, err := p.st.CompetitionCoaches(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		d.CoachApproval = coachApprovalForm(c.Competition, sentCoaches)
 	}
 	if d.New != "" {
 		d.Links.Admin = origin(r) + adminPath(r.PathValue("token"))
@@ -1348,7 +1357,7 @@ func signoffPath(token string) string { return "/competitions/signoff/" + token 
 
 // storedSignoff is a competition's entry's sign-off, as the pages show it.
 func storedSignoff(c competitions.Competition, e store.Entry) views.SignoffView {
-	return views.SignoffView{Required: c.Signoff, Signed: e.SignedOff(), By: e.SignedBy, Note: e.SignNote}
+	return views.SignoffView{Required: c.Signoff, Signed: e.SignedOff(), By: e.SignedBy, Note: e.SignNote, Unapproved: e.Unapproved}
 }
 
 // setSignoff turns on or off whether entries need a coach's sign-off.
