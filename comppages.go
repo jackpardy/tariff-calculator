@@ -1131,6 +1131,22 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		failed(w, r, err)
 		return
 	}
+	seen := p.seenFor(r)
+	if warn, err := seen.pairWarning(c.ID, e.ID); err != nil {
+		failed(w, r, err)
+		return
+	} else if warn != "" {
+		page.Card.Problems = append([]string{warn}, page.Card.Problems...)
+	}
+	pairs, err := p.st.IndividualPairEntries(r.Context(), e.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if page.Pairs, err = seen.pairViews(pairs, nil); err != nil {
+		failed(w, r, err)
+		return
+	}
 	if e.Entry.Partner != nil {
 		page.Partner = &views.PartnerView{Name: e.Entry.Partner.Name, Link: origin(r) + partnerPath(e.PartnerLink), Confirmed: e.PartnerConfirmed}
 	}

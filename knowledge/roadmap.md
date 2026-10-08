@@ -246,7 +246,7 @@ roughly in the order they'd help ISTO.
    [open questions](open-questions.md#notifications)).
 8. **Link the calculator to the competition tools.** Nothing on the routine
    builder leads to `/competitions` yet.
-9. **Synchro partners see the pair's entry** (decided 2026-10-08). A synchro
+9. **Synchro partners see the pair's entry** (decided and built 2026-10-08). A synchro
    entry belongs to the gymnast who entered it; today the partner only
    confirms they're the partner, and neither they, their coach nor their
    club sees it again. Once the partner confirms, the entry shows in the

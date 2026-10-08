@@ -188,3 +188,32 @@ templ entryCoachBox(c EntryCoachView, open bool) {
 		}
 	</div>
 }
+
+// PairView is a synchro entry as its partner's side sees it.
+type PairView struct {
+	Competition string
+	Title       string // e.g. "Synchro BUCS L6/L7 · Ann and Bea"
+	EnteredBy   string // e.g. "Ann (UCD)"
+	Status      string
+	Placement   *Placement
+	Card        EntryCard
+}
+
+// pairEntries are synchro entries the gymnast (or their coach's or club's
+// member) is the partner in, entered by the other gymnast.
+templ pairEntries(list []PairView) {
+	if len(list) > 0 {
+		<div class="box">
+			<h2 class="title is-6 mb-2">Synchro as a partner</h2>
+			<p class="is-size-7 mb-2">Entries the other gymnast made and changes; they're here once the partner confirms.</p>
+			for _, v := range list {
+				<details class="mb-2">
+					<summary>{ v.Title } <span class="has-text-grey is-size-7">· { v.Competition }</span></summary>
+					<p class="is-size-7 mt-1">Entered by { v.EnteredBy } · { v.Status }</p>
+					@placementLine(v.Placement)
+					@entryCard(v.Card)
+				</details>
+			}
+		</div>
+	}
+}

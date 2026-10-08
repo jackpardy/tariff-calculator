@@ -87,6 +87,7 @@ type CoachPage struct {
 	SeesAll      bool // they see every member, not just their own and those without a coach
 	SignsOff     bool // the club lets them sign off routines
 	Competitions []CoachCompetition
+	Pairs        []PairView // synchro entries others made with members they see
 }
 
 // CoachCompetition is one competition's entries a coach sees.
@@ -129,6 +130,7 @@ templ CoachHome(p CoachPage) {
 		if len(p.Competitions) == 0 {
 			<p class="has-text-grey">The club isn't entered in any competitions yet.</p>
 		}
+		@pairEntries(p.Pairs)
 		for _, c := range p.Competitions {
 			<div class="box">
 				<h2 class="title is-6 mb-1">

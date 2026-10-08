@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Synchro partners](features/competition-entries.md#events-and-synchro-adr-0005-step-2)
+  see the pair's entry once they confirm: on their own page, their coach's
+  and their club's, under **Synchro as a partner**, even if their club
+  isn't entered. Both gymnasts' entries warn when the pair is at the wrong
+  level for their individual ones.
 * **Update**: "Hand changes" are "manual changes" on the pages and in the
   guide. On the [roadmap](roadmap.md): officials' changes go in the draft
   timetable too, and a manual change is to say at once what it breaks and

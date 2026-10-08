@@ -106,7 +106,14 @@ A competition offers **events**: a discipline at a level.
   shows a **partner link** to send them; the partner confirms who they are
   with their own member page or entry link (or as having no other entry), so
   the timetable can later check their clashes. Naming a different partner
-  needs a new confirmation.
+  needs a new confirmation. Once confirmed, the pair's entry shows under
+  **Synchro as a partner** on the partner's page (member or individual),
+  their coach's (unless they already see the entrant) and their club's comp
+  sec's (unless the entrant is their own member), whether or not that club
+  is entered (`PairEntries`): as checked, with its sign-off, sent or not,
+  and once published, the flight. Only the entrant's side changes it. Both
+  gymnasts' entries carry the pair-level warning the dashboard gives
+  ("… compete individually, so as a pair they do BUCS L4 in synchro").
 - **Paired synchro levels:** the organiser can pair synchro levels into one
   event, one a line ("BUCS L1 + BUCS L2" makes "Synchro BUCS L1/L2"),
   flighted, ranked, judged and timetabled as one. Each pair says which level
