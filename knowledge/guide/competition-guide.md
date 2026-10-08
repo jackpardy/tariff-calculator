@@ -216,8 +216,12 @@ has a starting value you can change.
    **doesn't officiate**, Ann **officiates only** on Saturday from 12:00. Then
    tap **Assign officials again**.
 9. **Print marshal sheets** and **Print chair of judges sheets** (one area to a
-   page, each flight with its panel), and **Print the officials rota** (each
-   person's duties) for the noticeboard. **Panel timeline** shows every day
+   page, each flight with its panel), **Print score sheets** for the
+   recorders (a flight to a landscape page: each gymnast in running order,
+   a box for each judge's mark of each routine, difficulty filled in from
+   the card, penalty and totals, the paper copy beside the scores entered
+   online), and **Print the officials rota** (each person's duties) for the
+   noticeboard. **Panel timeline** shows every day
    side by side, a column per area, each flight and break with time running
    down evenly; **Timeline with officials** shows each area's day with a
    column for each seat on its panel and who has it. Print either (A3

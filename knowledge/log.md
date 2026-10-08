@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: Recorders' **score sheets** to print from the timetable: a
+  landscape page a flight, a row per gymnast in running order, a box for
+  each judge's mark of each routine (the panel's own execution, HD and
+  synchronisation judges), difficulty filled in from the card, penalty and
+  totals.
 * **Update**: [Notifications](features/competition-entries.md#notifications-adr-0008)
   by phone push (ADR 0008 step 2): **On this phone** on the same pages, with
   a service worker and web manifest (iPhones from the home screen), the

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"tariffCalculator/competitions"
 	"tariffCalculator/requirements"
@@ -756,7 +757,7 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 
 // printTimetable prints the marshal sheets (sheet=marshal) or the chair of
 // judges sheets (sheet=judges), one area's day to a page, each flight with its
-// panel; the officials rota (sheet=rota), each person's duties; or the panel
+// panel; the recorders' score sheets (sheet=scores), a flight to a page; the officials rota (sheet=rota), each person's duties; or the panel
 // timeline, without officials (sheet=timeline) or with them
 // (sheet=timeline-officials).
 func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request) {
@@ -781,6 +782,10 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 		render(w, r, views.RotaPrint(views.RotaSheet{
 			Title: "Officials rota · " + c.Name, Back: timetablePath(r), Competition: summary(c.Competition, p.now()), People: rotaSheet(s, people),
 		}))
+		return
+	}
+	if r.URL.Query().Get("sheet") == "scores" {
+		render(w, r, views.ScorePrint(scoreSheets(c, s, entries, people, timetablePath(r), p.now())))
 		return
 	}
 	judges := r.URL.Query().Get("sheet") == "judges"
@@ -881,4 +886,63 @@ func (p *competitionPages) keepWhatIf(w http.ResponseWriter, r *http.Request, c 
 		notice += " Publish the changes to show them to everyone."
 	}
 	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/timetable?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+}
+
+// scoreSheets are the recorders' score sheets: each flight in time order,
+// its gymnasts in running order, a column for each mark its panel gives
+// each routine, and each routine's difficulty from the card.
+func scoreSheets(c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, back string, now time.Time) views.ScoreSheets {
+	out := views.ScoreSheets{Title: "Score sheets · " + c.Name, Back: back, Competition: summary(c.Competition, now)}
+	difficulty := map[string][2]string{}
+	for _, j := range judge(c.Competition, entries) {
+		if j.err != nil {
+			continue
+		}
+		var d [2]string
+		for i, checked := range []requirements.Checked{j.card.First, j.card.Second} {
+			if j.card.Does(i) && checked.Checks.ScoreDifficulty {
+				d[i] = fmt.Sprintf("%.1f", checked.Validation.TotalTariff)
+			}
+		}
+		difficulty[j.ID] = d
+	}
+	for _, day := range itemsOf(s, entries, people) {
+		for _, area := range day.Areas {
+			for _, it := range area.Items {
+				if !it.Flight {
+					continue
+				}
+				f := views.ScoreFlight{Name: it.Name, Day: day.Name, Area: area.Name, Start: it.Start, Seats: it.Seats,
+					Marks: scoreMarks(c.Officials.Panel(s.Flights[it.Index].Discipline))}
+				for _, g := range it.Gymnasts {
+					f.Rows = append(f.Rows, views.ScoreRow{Name: g.Name, Club: g.Club, D: difficulty[g.ID]})
+				}
+				out.Flights = append(out.Flights, f)
+			}
+		}
+	}
+	return out
+}
+
+// scoreMarks are the columns a panel gives each routine: each execution
+// judge's, difficulty, each HD and synchronisation judge's, any penalty, and
+// the routine's total.
+func scoreMarks(p competitions.Panel) []string {
+	var out []string
+	numbered := func(label string, n int) {
+		for i := range n {
+			if n == 1 {
+				out = append(out, label)
+			} else {
+				out = append(out, label+strconv.Itoa(i+1))
+			}
+		}
+	}
+	numbered("E", p.Execution)
+	if p.Difficulty > 0 {
+		out = append(out, "D")
+	}
+	numbered("HD", p.HD)
+	numbered("S", p.Sync)
+	return append(out, "Pen", "Total")
 }
