@@ -8,7 +8,7 @@
 - **Amends:** ADR 0001 §3 (persistence) and its roadmap, which tied storage to
   accounts ("accounts only when save routines forces it")
 - **Amended by:** ADR 0007 (approved coaches, 2026-10-08), for Decisions 6,
-  7 and 11
+  7 and 11; ADR 0008 (notifications, 2026-10-08), for Decision 6
 
 ## Context
 

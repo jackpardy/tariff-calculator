@@ -225,7 +225,8 @@ rest.
    a live competition private again to pause entries, keeping those already
    made. (Before this, a competition took entries from the moment it was
    created until its deadline; those made before stay live.)
-7. **Notifications, by opting in** (decided 2026-10-07). Members,
+7. **Notifications, by opting in** (decided 2026-10-07; designed in
+   [ADR 0008](../docs/adr/0008-notifications.md)). Members,
    individuals, club comp secs and coaches can each ask to be told when
    something affects them: a flight they're in moves (time, area or day, or
    its warm-up), their officiating duties change, or their card is checked
