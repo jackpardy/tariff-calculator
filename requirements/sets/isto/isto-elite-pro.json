@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "name": "ISTO Elite-Pro",
+  "description": "Two voluntary routines under the same rules; the higher-scoring one ranks, with the tariff of both recorded. Tariff at least 6.3, no maximum. Below the minimum tariff: a 2.0 penalty.",
+  "source": "ISTO 2025 Routines (updated)",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "different",
+      "label": "10 different individual skills"
+    },
+    {
+      "type": "difficulty",
+      "min": 6.3
+    },
+    {
+      "type": "every",
+      "label": "Every skill has 270° or more somersault rotation",
+      "match": {
+        "rotation": {
+          "min": 3
+        }
+      }
+    },
+    {
+      "type": "count",
+      "label": "No somersault over 1080° (disqualification)",
+      "match": {
+        "rotation": {
+          "min": 13
+        }
+      },
+      "max": 0
+    }
+  ]
+}

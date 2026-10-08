@@ -1,0 +1,210 @@
+{
+  "format": 1,
+  "name": "ISTO Intermediate · Set B",
+  "description": "Set routine. Its tariff, 1.6, is for information: difficulty isn't scored.",
+  "source": "ISTO 2025 Routines (updated)",
+  "rules": [
+    {
+      "type": "sequence",
+      "sequence": [
+        {
+          "label": "Back Landing",
+          "rotation": {
+            "min": 1,
+            "max": 1
+          },
+          "direction": "backward",
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "back"
+          ],
+          "fig": "(1 -)"
+        },
+        {
+          "label": "1/2 Twist to Feet",
+          "rotation": {
+            "min": 1,
+            "max": 1
+          },
+          "direction": "forward",
+          "twist": {
+            "min": 1,
+            "max": 1
+          },
+          "takeoff": [
+            "back"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(1 1)"
+        },
+        {
+          "label": "Straddle Jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "straddle"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(v)"
+        },
+        {
+          "label": "1/2 Twist to Seat",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 1,
+            "max": 1
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "seat"
+          ],
+          "fig": "(0 1)"
+        },
+        {
+          "label": "1/2 Twist to Feet",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 1,
+            "max": 1
+          },
+          "takeoff": [
+            "seat"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(0 1)"
+        },
+        {
+          "label": "Full Twist",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 2,
+            "max": 2
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(0 2)"
+        },
+        {
+          "label": "Pike Jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "pike"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(<)"
+        },
+        {
+          "label": "1/2 Twist",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 1,
+            "max": 1
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(0 1)"
+        },
+        {
+          "label": "Tuck Jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "tuck"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(o)"
+        },
+        {
+          "label": "Front S/S (T)",
+          "rotation": {
+            "min": 4,
+            "max": 4
+          },
+          "direction": "forward",
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "tuck"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(4 - o)"
+        }
+      ]
+    }
+  ],
+  "no_difficulty": true,
+  "repeats_allowed": true
+}

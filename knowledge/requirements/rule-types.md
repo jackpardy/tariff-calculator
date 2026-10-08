@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Rule types and matchers
-description: The nine rule types a list of requirements can contain (count, every, elements, difficulty, position, sequence, separate, includes, different) and the matcher that describes elements.
+description: The ten rule types a list of requirements can contain (count, linked, every, elements, difficulty, position, sequence, separate, includes, different) and the matcher that describes elements.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/requirements/requirements.go
 tags: [requirements, reference, json]
 generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
@@ -18,6 +18,7 @@ own wording. Without a label, a plain-English description is generated
 | `separate` | `each`: matchers | Each matcher is met by a **different** element. This is a maximum bipartite matching, so an element that could meet two requirements is used where it's needed most. | FIG/BG first exercise special requirements: "to front or back", "from front or back" |
 | `includes` | `options`: lists of matchers | At least one option appears, its elements one straight after another | BUCS L1: "¾ to front or back then 1¼, **or** a full with a full twist" |
 | `count` | `match`, `min`/`max` (whole) | The number of matching elements is in range | Required (`min: 1`), forbidden (`max: 0`), "at most 2 doubles" |
+| `linked` | `match`, `min`/`max` (whole) | The number of pairs of matching elements one straight after another is in range. Pairs overlap: three in a row are two pairs. | ISTO: "no linked somersaults" (`max: 0`), "at most 1 linked somersault pair" |
 | `every` | `match` | Every element matches | "Every element has at least ¾ somersault" |
 | `different` | — | No element repeats, using CoP §14's definition ([skill model](../domain/skill-model.md#derived-rules)) | "10 different elements" |
 | `elements` | `min`/`max` (whole) | The number of elements is in range | Exactly 10 |
@@ -26,7 +27,7 @@ own wording. Without a label, a plain-English description is generated
 | `sequence` | `sequence`: matchers | Element *i* matches matcher *i*, with exactly that many elements. This makes the requirements a [set routine](set-routines.md). | BG Club L1 |
 
 What each result reports in `Elements`: the matching elements for `count` and
-`includes`, and the offending ones for `every`, `position`, `sequence` and
+`includes`, those in a linked pair for `linked`, and the offending ones for `every`, `position`, `sequence` and
 `different`. For `separate`, `Assigned` holds the element meeting each
 requirement (0 where none can). These are the elements starred on a competition
 card.

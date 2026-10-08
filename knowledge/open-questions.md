@@ -13,11 +13,8 @@ generated: { by: claude-code/cli, at: 2026-10-05T16:00:00Z }
   The [recorders' score sheets](features/competition-entries.md) are built
   to a general layout; their format may change to match ISTO's.
 
-- **ISTO levels.** The Irish Student Trampoline Open's level rules aren't
-  online (its site has lapsed). They need its documents before they can become
-  [built-in requirements](requirements/framework.md#built-in-requirements).
-  Not expected for a while (2026-10-05); until then, users write them as
-  their own requirements.
+- **ISTO's 2027 routines.** The [ISTO levels](requirements/isto.md) are built
+  in from the 2025 document (2026-10-08); swap in 2027's when it comes.
 - **Gymnastics Ireland levels.** Not published; the development plan goes to
   club secretaries on request.
 
@@ -29,6 +26,14 @@ From the [British Gymnastics requirements](requirements/bg-national.md):
 - What counts as a "double" in each rule?
 - Are the national qualifying scores (difficulty and total) in the set
   descriptions current?
+
+# ISTO's routines to confirm
+
+Answered 2026-10-08 by an ISTO organiser (see [ISTO](requirements/isto.md)):
+set A or B then a voluntary; set routines don't score difficulty; 2.0
+penalty outside the tariff band; linked somersaults as built; Elite's full
+twist is exactly a full; Disability L4's set is 2.0. Disability Level 5 is an old routine and
+is left out.
 
 # For ISTO's timetable (ADR 0005)
 

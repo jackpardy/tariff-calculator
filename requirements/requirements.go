@@ -45,10 +45,11 @@ const (
 	Separate   = "separate"   // special requirements: each of Each is met by a different element
 	Different  = "different"  // no element is repeated (CoP §14)
 	Includes   = "includes"   // at least one of Options appears: its elements, consecutively
+	Linked     = "linked"     // at least Min / at most Max pairs of elements one straight after another both match Match
 )
 
 // RuleTypes lists the rule types in the order the editor offers them.
-var RuleTypes = []string{Separate, Includes, Count, Every, Different, Elements, Difficulty, Position, Sequence}
+var RuleTypes = []string{Separate, Includes, Count, Linked, Every, Different, Elements, Difficulty, Position, Sequence}
 
 // Rule is one requirement. Which fields apply depends on Type.
 type Rule struct {
@@ -157,7 +158,7 @@ func (r Rule) validate() error {
 	}
 
 	switch r.Type {
-	case Count:
+	case Count, Linked:
 		needMatch()
 		needBounds(true)
 	case Every:
@@ -333,6 +334,23 @@ func Evaluate(set Set, rv skills.RoutineValidation) []Result {
 			}
 			res.Passed = within(rule.Min, rule.Max, float64(len(res.Elements)))
 			res.Detail = fmt.Sprintf("found %d", len(res.Elements))
+		case Linked:
+			// Pairs may overlap: three somersaults in a row are two linked pairs.
+			var pairs []string
+			for j := 1; j < len(routine); j++ {
+				if rule.Match.Matches(routine[j-1]) && rule.Match.Matches(routine[j]) {
+					pairs = append(pairs, fmt.Sprintf("%d–%d", j, j+1))
+					if !slices.Contains(res.Elements, j) {
+						res.Elements = append(res.Elements, j)
+					}
+					res.Elements = append(res.Elements, j+1)
+				}
+			}
+			res.Passed = within(rule.Min, rule.Max, float64(len(pairs)))
+			res.Detail = fmt.Sprintf("found %d %s", len(pairs), plural(len(pairs), "pair", "pairs"))
+			if len(pairs) > 0 {
+				res.Detail += " (" + strings.Join(pairs, ", ") + ")"
+			}
 		case Every:
 			for j, s := range routine {
 				if !rule.Match.Matches(s) {

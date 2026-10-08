@@ -16,6 +16,8 @@ func Describe(r Rule) string {
 	switch r.Type {
 	case Count:
 		return countPhrase(r.Min, r.Max) + ": " + DescribeMatcher(*r.Match)
+	case Linked:
+		return linkedPhrase(r.Min, r.Max) + ", one straight after another: " + DescribeMatcher(*r.Match)
 	case Every:
 		return "Every element: " + DescribeMatcher(*r.Match)
 	case Elements:
@@ -116,6 +118,24 @@ func countPhrase(min, max *float64) string {
 		return "At least " + elementsWord(*min)
 	default:
 		return "At most " + elementsWord(*max)
+	}
+}
+
+// linkedPhrase is how many linked pairs a linked rule allows, e.g. "At most 1
+// linked pair".
+func linkedPhrase(min, max *float64) string {
+	pairs := func(n float64) string { return wholeNumber(n) + " " + plural(int(n), "linked pair", "linked pairs") }
+	switch {
+	case max != nil && *max == 0:
+		return "No linked pairs"
+	case min != nil && max != nil && *min == *max:
+		return "Exactly " + pairs(*min)
+	case min != nil && max != nil:
+		return wholeNumber(*min) + " to " + pairs(*max)
+	case min != nil:
+		return "At least " + pairs(*min)
+	default:
+		return "At most " + pairs(*max)
 	}
 }
 

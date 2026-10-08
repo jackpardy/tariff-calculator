@@ -1,6 +1,16 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [ISTO's levels](requirements/isto.md) built in from its 2025
+  routines: Novice to Advanced (Set A or B, then a voluntary), Elite and
+  Elite-Pro (two voluntaries), and Disability Levels 1–4. A new
+  [`linked` rule](requirements/rule-types.md) counts skills one straight
+  after another, for "no linked somersaults". Questions on the document are
+  in [open questions](open-questions.md#istos-routines-to-confirm); synchro,
+  DMT and tumbling gaps on the [roadmap](roadmap.md#possible-additions-not-planned-yet).
+  An ISTO organiser answered the questions the same day: set routines don't
+  score difficulty, a 2.0 penalty outside the tariff band, and Disability
+  Level 5 (an old routine that contradicts itself) is left out.
 * **Update**: [Limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists):
   a limit per event; later entries wait in the order they came in and move
   up as places free; the organiser can let one in over the limit; clubs

@@ -1,0 +1,56 @@
+{
+  "format": 1,
+  "name": "ISTO Disability Level 4 · voluntary",
+  "description": "Band 2. Competitors perform the set routine and a voluntary; the voluntary may repeat the set routine. Tariff 1.9 to 2.3. Below the minimum tariff or above the maximum: a 2.0 penalty.",
+  "source": "ISTO 2025 Routines (updated)",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "different",
+      "label": "10 different individual skills"
+    },
+    {
+      "type": "difficulty",
+      "min": 1.9,
+      "max": 2.3
+    },
+    {
+      "type": "count",
+      "label": "2 to 4 somersault skills (270° to 360°)",
+      "match": {
+        "rotation": {
+          "min": 3
+        }
+      },
+      "min": 2,
+      "max": 4
+    },
+    {
+      "type": "count",
+      "label": "No somersault rotation over 360° in a skill",
+      "match": {
+        "rotation": {
+          "min": 5
+        }
+      },
+      "max": 0
+    },
+    {
+      "type": "count",
+      "label": "At most 180° twist in somersault skills",
+      "match": {
+        "rotation": {
+          "min": 3
+        },
+        "twist": {
+          "min": 2
+        }
+      },
+      "max": 0
+    }
+  ]
+}

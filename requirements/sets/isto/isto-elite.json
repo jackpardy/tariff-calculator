@@ -1,0 +1,145 @@
+{
+  "format": 1,
+  "name": "ISTO Elite",
+  "description": "Two voluntary routines under the same rules; the higher-scoring one ranks, with the tariff of both recorded. Tariff 4.3 to 6.2. Below the minimum tariff or above the maximum: a 2.0 penalty.",
+  "source": "ISTO 2025 Routines (updated)",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "different",
+      "label": "10 different individual skills"
+    },
+    {
+      "type": "difficulty",
+      "min": 4.3,
+      "max": 6.2
+    },
+    {
+      "type": "count",
+      "label": "7 to 9 skills with 270° or more somersault rotation",
+      "match": {
+        "rotation": {
+          "min": 3
+        }
+      },
+      "min": 7,
+      "max": 9
+    },
+    {
+      "type": "includes",
+      "label": "A back somersault from feet with a full twist (360°), or a front somersault from feet with 540° twist",
+      "options": [
+        [
+          {
+            "label": "360° back somersault from feet with 360° twist",
+            "rotation": {
+              "min": 4,
+              "max": 4
+            },
+            "direction": "backward",
+            "twist": {
+              "min": 2,
+              "max": 2
+            },
+            "takeoff": [
+              "feet"
+            ]
+          }
+        ],
+        [
+          {
+            "label": "360° front somersault from feet with 540° twist",
+            "rotation": {
+              "min": 4,
+              "max": 4
+            },
+            "direction": "forward",
+            "twist": {
+              "min": 3,
+              "max": 3
+            },
+            "takeoff": [
+              "feet"
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "type": "includes",
+      "label": "270° somersault to a body landing, then a 450° somersault with at most 540° twist",
+      "options": [
+        [
+          {
+            "label": "270° somersault to front or back",
+            "rotation": {
+              "min": 3,
+              "max": 3
+            },
+            "landing": [
+              "front",
+              "back"
+            ]
+          },
+          {
+            "label": "450° somersault, at most 540° twist",
+            "rotation": {
+              "min": 5,
+              "max": 5
+            },
+            "twist": {
+              "max": 3
+            }
+          }
+        ]
+      ]
+    },
+    {
+      "type": "count",
+      "label": "No somersault over 720° (prohibited)",
+      "match": {
+        "rotation": {
+          "min": 9
+        }
+      },
+      "max": 0
+    },
+    {
+      "type": "count",
+      "label": "No twist over 900° (prohibited)",
+      "match": {
+        "twist": {
+          "min": 6
+        }
+      },
+      "max": 0
+    },
+    {
+      "type": "count",
+      "label": "At most one skill over 450° somersault",
+      "match": {
+        "rotation": {
+          "min": 6
+        }
+      },
+      "max": 1
+    },
+    {
+      "type": "count",
+      "label": "A skill over 450° somersault has no twist",
+      "match": {
+        "rotation": {
+          "min": 6
+        },
+        "twist": {
+          "min": 1
+        }
+      },
+      "max": 0
+    }
+  ]
+}
