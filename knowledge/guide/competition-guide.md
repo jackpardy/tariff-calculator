@@ -189,7 +189,7 @@ each day's flights end, anything that no longer fits, and anyone needed in two
 places. An event's flights stay together: if one would no longer finish
 before a break, the rest of the event waits for it too (unless events can run
 across breaks), and an event moves to another area with all its flights still
-to come. Under **Ease it**, try what you'd do on the day: move, shorten or
+to come. Flights that have already run, or are under way, never move. Under **Ease it**, try what you'd do on the day: move, shorten or
 work through lunch on those areas, fewer minutes between flights, quicker
 turns, merging an event's flights into bigger ones, or letting the day run
 over; it shows what that buys against the delay alone. Nothing is changed:

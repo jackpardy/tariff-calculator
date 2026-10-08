@@ -174,4 +174,39 @@ func TestDelayKeepsRunsTogether(t *testing.T) {
 	if starts, areas := ys(out); !slices.Equal(areas, []string{"P2", "P2"}) || starts[1] != starts[0]+20 {
 		t.Errorf("all of Y moves to P2, back to back: %v %v (%+v)", starts, areas, r.Changes)
 	}
+
+	// Z's first flight has already run, and its second is under way, when P1
+	// is held up: they stay as they were. Only the flights still to come,
+	// which the delay pushes past the end, move.
+	z := func(start int, a string) ScheduledFlight {
+		return ScheduledFlight{Flight: Flight{Level: "Z", Entries: []string{a}}, Area: "P1", Start: start, End: start + 20}
+	}
+	people["g"], people["h"], people["i"], people["j"] = []string{"g"}, []string{"h"}, []string{"i"}, []string{"j"}
+	s = Schedule{
+		Setup:   Setup{Areas: []Area{{Name: "P1"}, {Name: "P2"}}, Days: []Day{{Name: "Sat", Start: "09:00", End: "10:40"}}},
+		Flights: []ScheduledFlight{z(9*60, "g"), z(9*60+20, "h"), z(9*60+40, "i"), z(10*60, "j")},
+	}
+	out, r = delayed(t, s, Delay{Areas: []string{"P1"}, From: 9*60 + 30, Minutes: 30}, people)
+	for _, f := range out.Flights {
+		switch f.Entries[0] {
+		case "g":
+			if f.Area != "P1" || f.Start != 9*60 || f.End != 9*60+20 {
+				t.Errorf("the flight already run stays: %+v", f)
+			}
+		case "h":
+			if f.Area != "P1" || f.Start != 9*60+20 || f.End != 10*60+10 {
+				t.Errorf("the flight under way runs late where it is: %+v", f)
+			}
+		default:
+			if f.Area != "P2" {
+				t.Errorf("the flights still to come move together: %+v (%+v)", f, r.Changes)
+			}
+		}
+	}
+	for _, c := range r.Changes {
+		if c.Moved && c.Start < 9*60+30 {
+			t.Errorf("a flight that started before the delay moved: %+v", c)
+		}
+	}
 }
+
