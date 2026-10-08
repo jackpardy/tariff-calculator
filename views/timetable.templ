@@ -46,20 +46,21 @@ type SeatView struct {
 
 // SetupForm is the timetable's setup, as the forms show it.
 type SetupForm struct {
-	Days        []DayForm
-	Areas       []AreaForm
-	AreaNames   []string
-	Timings     []TimingForm
-	Rest        int
-	RestMust    bool
-	Separate    SplitForm
-	CanSeparate bool
-	Blocks      []string // described
-	Rules       []string // described
-	Events      []string
-	DayNames    []string
-	People      []FlightOption // who can officiate, for rules about them
-	Roles       []FlightOption
+	Days         []DayForm
+	Areas        []AreaForm
+	AreaNames    []string
+	Timings      []TimingForm
+	Rest         int
+	RestMust     bool
+	Separate     SplitForm
+	AcrossBreaks bool // an event can run across a break
+	CanSeparate  bool
+	Blocks       []string // described
+	Rules        []string // described
+	Events       []string
+	DayNames     []string
+	People       []FlightOption // who can officiate, for rules about them
+	Roles        []FlightOption
 }
 
 // DayForm is one day.
@@ -75,7 +76,7 @@ type AreaForm struct {
 
 // TimingForm is a discipline's timings.
 type TimingForm struct {
-	Key, Name                           string
+	Key, Name                         string
 	PerCompetitor, Between, MaxFlight string
 }
 
@@ -126,6 +127,8 @@ type ItemView struct {
 	Gymnasts   []TimetableGymnast
 	Pairs      bool       // synchro: each entry a pair
 	Seats      []SeatView // its panel
+	InRun      bool       // one of its event's flights: moving it moves them all
+	Earlier    bool       // not its event's first flight, so it can go earlier
 }
 
 // TimetableGymnast is a gymnast in a running order.
@@ -314,6 +317,11 @@ templ setupSections(p TimetablePage) {
 	<details class="box comp-manage">
 		<summary><strong>Blocked time</strong> <span class="has-text-grey is-size-7">· lunch, awards, events taking entries on the day ({ strconv.Itoa(len(p.Setup.Blocks)) })</span></summary>
 		<div class="mt-3">
+			<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/blocks") } class="comp-setup-row mb-3">
+				<input type="hidden" name="breaks" value="1"/>
+				<label class="checkbox is-size-7"><input type="checkbox" name="across" value="1" checked?={ p.Setup.AcrossBreaks }/> Events can run across breaks: an event pauses for one on its area and finishes afterwards, its panel breaking too. Otherwise each event is all before a break or all after it.</label>
+				<button class="button is-small" type="submit">Save</button>
+			</form>
 			for i, b := range p.Setup.Blocks {
 				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/blocks") } class="comp-setup-row">
 					<span>{ b }</span>
@@ -618,6 +626,9 @@ templ flightBox(p TimetablePage, f ItemView) {
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/flight") } class="comp-flight-actions">
 			<input type="hidden" name="flight" value={ strconv.Itoa(f.Index) }/>
 			<button class="button is-small is-text" type="submit" name="action" value="redraw">Redraw order</button>
+			if f.Earlier {
+				<button class="button is-small is-text" type="submit" name="action" value="earlier">Earlier</button>
+			}
 			<div class="select is-small">
 				<select name="to" aria-label={ "Move " + f.Name }>
 					for _, o := range p.Places {
@@ -625,7 +636,11 @@ templ flightBox(p TimetablePage, f ItemView) {
 					}
 				</select>
 			</div>
-			<button class="button is-small" type="submit" name="action" value="move">Move</button>
+			if f.InRun {
+				<button class="button is-small" type="submit" name="action" value="move">Move event</button>
+			} else {
+				<button class="button is-small" type="submit" name="action" value="move">Move</button>
+			}
 		</form>
 	</div>
 }
@@ -799,7 +814,7 @@ templ TimetablePrint(s TimetableSheets) {
 									<td>
 										{ g.Name }
 										if g.Category != "" {
-											<span class="is-size-7"> ({ g.Category })</span>
+											<span class="is-size-7">({ g.Category })</span>
 										}
 									</td>
 									<td>{ g.Club }</td>
@@ -901,7 +916,7 @@ type Timeline struct {
 	Other, OtherLabel string // the other kind of timeline
 	Officials         bool   // a column for each seat
 	Competition       CompetitionSummary
-	Header            int    // rows above the minutes
+	Header            int // rows above the minutes
 	Sheets            []TimelineSheet
 }
 

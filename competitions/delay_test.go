@@ -115,8 +115,9 @@ func TestDelayEasing(t *testing.T) {
 		return ScheduledFlight{Flight: Flight{Level: name, Entries: []string{a, b}}, Area: "P1", Start: start, End: start + 20}
 	}
 	people := map[string][]string{"a": {"a"}, "b": {"b"}, "c": {"c"}, "d": {"d"}, "e": {"e"}, "f": {"f"}}
+	// Y's flights are either side of lunch, so events run across breaks.
 	s := Schedule{
-		Setup:   Setup{Areas: []Area{{Name: "P1"}, {Name: "P2"}}, Days: []Day{{Name: "Sat", Start: "09:00", End: "12:00"}}},
+		Setup:   Setup{Areas: []Area{{Name: "P1"}, {Name: "P2"}}, Days: []Day{{Name: "Sat", Start: "09:00", End: "12:00"}}, AcrossBreaks: true},
 		Flights: []ScheduledFlight{two("X", 9*60, "a", "b"), two("Y", 9*60+20, "c", "d"), two("Y", 10*60+30, "e", "f")},
 		Blocks:  []ScheduledBlock{{Name: "Lunch", Areas: []string{"P1", "P2"}, Start: 10 * 60, End: 10*60 + 30}},
 	}

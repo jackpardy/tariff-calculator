@@ -1,6 +1,16 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Timetable](features/competition-entries.md#timetable-adr-0005-step-4)
+  runs (ADR 0006 step 2): each event's flights are planned back to back on
+  one area and day, numbered in the order they run, and by default all
+  before or all after a break (**Events can run across breaks** to allow
+  it). **Move event** moves all of an event's flights, **Earlier** reorders
+  them, and an event split up by hand is listed as a problem. The delay
+  "what if" keeps an event's flights together. Planning tries events tied
+  to a day first, then the longest, puts what didn't fit first next time,
+  and tries a windowed lunch at different times; the demo's biggest events
+  run across lunch.
 * **Update**: [ADR 0006](../docs/adr/0006-one-panel-per-event.md) proposed:
   one panel for a whole event, amending ADR 0005. The scheduler places an
   event's flights as one run on one area and day, the rota fills its panel

@@ -142,7 +142,8 @@ biggest priority: one panel for all of an event's flights. The rest are
 roughly in the order they'd help ISTO.
 
 1. **One panel for a whole event** (decided 2026-10-07; designed in
-   [ADR 0006](../docs/adr/0006-one-panel-per-event.md)). Everyone on an
+   [ADR 0006](../docs/adr/0006-one-panel-per-event.md); runs built
+   2026-10-08, the rota's one panel per event next). Everyone on an
    event's panel, recorders and marshals too, stays for all of its flights,
    so every gymnast in it is judged by the same people (the organiser can
    let recorders and marshals change between flights). For that, the

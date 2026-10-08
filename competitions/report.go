@@ -147,8 +147,8 @@ type Fix struct {
 
 // Fixes tries changes that might make everything fit, one at a time: another
 // area of a discipline, fewer minutes per competitor or between flights, larger
-// flights, rest as a prefer rather than a must, or a cap on the entries of an
-// event that doesn't fit, at as many as did.
+// flights, rest as a prefer rather than a must, events running across breaks,
+// or a cap on the entries of an event that doesn't fit, at as many as would.
 func Fixes(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) []Fix {
 	clone := func() Setup {
 		c := setup
@@ -211,6 +211,11 @@ func Fixes(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) 
 		c.RestMust = false
 		tries = append(tries, Fix{Change: "rest between turns as a prefer, not a must", Setup: c})
 	}
+	if !setup.AcrossBreaks && len(setup.Blocks) > 0 {
+		c := clone()
+		c.AcrossBreaks = true
+		tries = append(tries, Fix{Change: "events can run across breaks", Setup: c})
+	}
 	tries = append(tries, caps(entries, eventOrder, setup, seed)...)
 	for i := range tries {
 		with := entries
@@ -253,44 +258,55 @@ func (s Schedule) CoachClashes(coaches map[string][]string, names map[string]str
 	return out
 }
 
-// caps are the fixes that cap an event that doesn't fit at the entries of
-// it that did, dropping its last entries.
+// caps are the fixes that cap an event that doesn't fit at the most entries
+// that would, dropping its last entries. An event goes whole or not at all
+// (ADR 0006), so they're found by trying a flight's worth fewer at a time.
 func caps(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) []Fix {
 	planned := PlanSchedule(entries, eventOrder, setup, seed)
 	short := map[string]bool{}
 	for _, f := range planned.Unplaced {
 		short[f.Level] = true
 	}
-	placed := map[string]int{}
-	for _, f := range planned.Flights {
-		placed[f.Level] += len(f.Entries)
-	}
 	var out []Fix
 	for _, ev := range eventOrder {
 		if !short[ev] {
 			continue
 		}
-		total := 0
+		total, discipline := 0, ""
 		for _, e := range entries {
 			if e.Level == ev {
 				total++
+				discipline = e.Discipline
 			}
 		}
-		n, kept := placed[ev], 0
-		if n == 0 {
-			continue // none of it fits: capping won't help
-		}
-		var capped []SchedEntry
-		for _, e := range entries {
-			if e.Level == ev {
-				if kept == n {
-					continue
-				}
-				kept++
+		step := setup.TimingsFor(discipline).MaxFlight
+		for n, tries := total-step, 0; n > 0 && tries < 8; n, tries = n-step, tries+1 {
+			capped := capAt(entries, ev, n)
+			fitted := true
+			for _, f := range PlanSchedule(capped, eventOrder, setup, seed).Unplaced {
+				fitted = fitted && f.Level != ev
 			}
-			capped = append(capped, e)
+			if fitted {
+				out = append(out, Fix{Change: fmt.Sprintf("%s capped at %d entries (%d fewer)", ev, n, total-n), Setup: setup, entries: capped})
+				break
+			}
 		}
-		out = append(out, Fix{Change: fmt.Sprintf("%s capped at %d entries (%d fewer)", ev, n, total-n), Setup: setup, entries: capped})
+	}
+	return out
+}
+
+// capAt is the entries with an event's kept to its first n.
+func capAt(entries []SchedEntry, event string, n int) []SchedEntry {
+	var out []SchedEntry
+	kept := 0
+	for _, e := range entries {
+		if e.Level == event {
+			if kept == n {
+				continue
+			}
+			kept++
+		}
+		out = append(out, e)
 	}
 	return out
 }

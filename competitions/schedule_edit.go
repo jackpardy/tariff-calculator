@@ -39,7 +39,8 @@ func (s *Schedule) MoveEntry(entryID string, flight int) bool {
 	return true
 }
 
-// MoveFlight moves a flight to after everything else on an area and day.
+// MoveFlight moves a flight's event, its whole run, to after everything else
+// on an area and day, keeping its flights' order (ADR 0006 Decision 8).
 func (s *Schedule) MoveFlight(flight, day int, area string) bool {
 	if flight < 0 || flight >= len(s.Flights) || day < 0 || day >= len(s.Setup.Days) {
 		return false
@@ -51,21 +52,62 @@ func (s *Schedule) MoveFlight(flight, day int, area string) bool {
 	if !ok {
 		return false
 	}
+	run := s.runOf(flight)
 	start, _ := clock(s.Setup.Days[day].Start)
+	length := 0
+	for _, i := range run {
+		length += s.Setup.duration(s.Flights[i])
+	}
 	for i, f := range s.Flights {
-		if i != flight && f.Day == day && f.Area == area {
+		if !slices.Contains(run, i) && f.Day == day && f.Area == area {
 			start = max(start, f.End)
 		}
 	}
-	for _, b := range s.Blocks {
-		if b.Day == day && slices.Contains(b.Areas, area) && b.End > start && b.Start <= start {
-			start = b.End
-		}
+	if !s.Setup.AcrossBreaks {
+		start = s.afterBlocks(day, area, start, length) // clear of breaks, the whole run
 	}
-	f := &s.Flights[flight]
-	f.Day, f.Area, f.Start = day, area, start
+	for _, i := range run {
+		f := &s.Flights[i]
+		f.Day, f.Area, f.Start = day, area, start
+		start += s.Setup.duration(*f)
+	}
 	s.Retime()
 	return true
+}
+
+// Earlier swaps a flight with the one before it in its event's run.
+func (s *Schedule) Earlier(flight int) bool {
+	if flight < 0 || flight >= len(s.Flights) {
+		return false
+	}
+	run := s.runOf(flight)
+	k := slices.Index(run, flight)
+	if k < 1 {
+		return false
+	}
+	a, b := &s.Flights[run[k-1]], &s.Flights[flight]
+	if a.Day == b.Day && a.Area == b.Area {
+		b.Start, a.Start = a.Start, a.Start+s.Setup.duration(*b)
+	} else {
+		a.Day, a.Area, a.Start, b.Day, b.Area, b.Start = b.Day, b.Area, b.Start, a.Day, a.Area, a.Start
+	}
+	s.Retime()
+	return true
+}
+
+// runOf is the flights of a flight's event, by index, in the order they run.
+func (s Schedule) runOf(flight int) []int {
+	var out []int
+	for i, f := range s.Flights {
+		if f.Event() == s.Flights[flight].Event() {
+			out = append(out, i)
+		}
+	}
+	slices.SortStableFunc(out, func(a, b int) int {
+		fa, fb := s.Flights[a], s.Flights[b]
+		return (fa.Day*1440 + fa.Start) - (fb.Day*1440 + fb.Start)
+	})
+	return out
 }
 
 // Redraw draws a flight's running order again, then puts people with little
@@ -109,10 +151,31 @@ func (s *Schedule) Retime() {
 		}
 		f.End = f.Start + s.Setup.duration(*f)
 	}
+	s.number()
 }
 
-// Problems are what hand edits have broken: a flight past its day's end, or a
-// person in two places at once. people are each entry's people, by entry id.
+// number numbers each event's flights in the order they run (ADR 0006
+// Decision 5): flight 1 starts first.
+func (s *Schedule) number() {
+	byEvent := map[string][]int{}
+	for i, f := range s.Flights {
+		byEvent[f.Event()] = append(byEvent[f.Event()], i)
+	}
+	for _, idx := range byEvent {
+		slices.SortStableFunc(idx, func(a, b int) int {
+			fa, fb := s.Flights[a], s.Flights[b]
+			return (fa.Day*1440 + fa.Start) - (fb.Day*1440 + fb.Start)
+		})
+		for n, i := range idx {
+			s.Flights[i].Number = n + 1
+		}
+	}
+}
+
+// Problems are what hand edits have broken: a flight past its day's end, an
+// event's flights not back to back on one area (or across a break, where
+// that isn't allowed), or a person in two places at once. people are each
+// entry's people, by entry id.
 func (s Schedule) Problems(people map[string][]string, names map[string]string) []string {
 	var out []string
 	for _, f := range s.Flights {
@@ -122,6 +185,7 @@ func (s Schedule) Problems(people map[string][]string, names map[string]string) 
 			}
 		}
 	}
+	out = append(out, s.runProblems()...)
 	type turn struct {
 		f      ScheduledFlight
 		person string
@@ -147,6 +211,44 @@ func (s Schedule) Problems(people map[string][]string, names map[string]string) 
 					out = append(out, msg)
 				}
 			}
+		}
+	}
+	return out
+}
+
+// runProblems are events whose flights one panel can't judge together: not
+// back to back on one area and day, or (unless the organiser allows it)
+// either side of blocked time.
+func (s Schedule) runProblems() []string {
+	var out []string
+	seen := map[string]bool{}
+	for i, f := range s.Flights {
+		if seen[f.Event()] {
+			continue
+		}
+		seen[f.Event()] = true
+		run := s.runOf(i)
+		split, across := false, ""
+		for k := 1; k < len(run); k++ {
+			a, b := s.Flights[run[k-1]], s.Flights[run[k]]
+			if a.Day != b.Day || a.Area != b.Area {
+				split = true
+				break
+			}
+			for j, g := range s.Flights {
+				split = split || (!slices.Contains(run, j) && g.Day == a.Day && g.Area == a.Area && g.Start >= a.End && g.Start < b.Start)
+			}
+			for _, bl := range s.Blocks {
+				if across == "" && bl.Day == a.Day && slices.Contains(bl.Areas, a.Area) && bl.Start >= a.End && bl.End <= b.Start {
+					across = bl.Name
+				}
+			}
+		}
+		switch {
+		case split:
+			out = append(out, fmt.Sprintf("%s's flights aren't back to back on one area, so one panel can't judge them all", f.Event()))
+		case across != "" && !s.Setup.AcrossBreaks:
+			out = append(out, fmt.Sprintf("%s runs either side of %s", f.Event(), across))
 		}
 	}
 	return out

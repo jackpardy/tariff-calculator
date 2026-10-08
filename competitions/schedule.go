@@ -1,6 +1,7 @@
 package competitions
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"math"
@@ -14,8 +15,9 @@ import (
 // The scheduler (ADR 0005 Decisions 6–10 and 13): a competition's flights,
 // placed at times on the venue's named areas across its days, around blocked
 // time, keeping the organiser's rules, never putting a person in two places
-// at once, and finishing each day by its end. What can't be placed is
-// reported, not forced.
+// at once, and finishing each day by its end. Each event's flights go as one
+// run, back to back on one area and day, so one panel can judge them all
+// (ADR 0006). What can't be placed is reported, not forced.
 
 // Area is one of the venue's named areas: a trampoline panel (which also
 // runs synchro), a tumbling track or a DMT.
@@ -172,6 +174,9 @@ type Setup struct {
 	Rest     int   `json:"rest,omitempty"`
 	RestMust bool  `json:"rest_must,omitempty"`
 	Separate Split `json:"separate"` // levels with separate men's and women's flights
+	// AcrossBreaks lets an event's run pause for blocked time on its area
+	// (lunch, say) and finish afterwards; otherwise it's all before or after.
+	AcrossBreaks bool `json:"across_breaks,omitempty"`
 }
 
 // TimingsFor are a discipline's timings.
@@ -439,27 +444,62 @@ func PlanSchedule(entries []SchedEntry, eventOrder []string, setup Setup, seed u
 func PlanStaffed(entries []SchedEntry, eventOrder []string, setup Setup, staff *Staffing, seed uint64) Schedule {
 	rng := rand.New(rand.NewPCG(seed, 7))
 	flights, people, coaches := flightsOf(entries, eventOrder, setup, rng)
+	runs := runsOf(flights)
+	// Longest first packs the days best, after the events a must ties to a
+	// day or area, which have least choice.
+	longest := make([]int, len(runs))
+	for i := range longest {
+		longest[i] = i
+	}
+	tied := func(i int) bool {
+		return slices.ContainsFunc(setup.Rules, func(r Rule) bool {
+			return r.Must && r.Event == runs[i][0].Level && (r.Kind == RuleDay || r.Kind == RuleArea)
+		})
+	}
+	slices.SortStableFunc(longest, func(a, b int) int { return setup.runLength(runs[b]) - setup.runLength(runs[a]) })
+	slices.SortStableFunc(longest, func(a, b int) int {
+		ta, tb := tied(a), tied(b)
+		return map[bool]int{true: 0, false: 1}[ta] - map[bool]int{true: 0, false: 1}[tb]
+	})
 	var best *planner
 	var bestUnplaced []ScheduledFlight
-	for attempt := range 24 {
-		order := slices.Clone(flights)
-		if attempt > 0 {
-			// Shuffle within the rules' order; longest-first and event order are tried first.
-			rng.Shuffle(len(order), func(i, j int) { order[i], order[j] = order[j], order[i] })
-		} else {
-			slices.SortStableFunc(order, func(a, b ScheduledFlight) int { return setup.duration(b) - setup.duration(a) })
-			slices.SortStableFunc(order, func(a, b ScheduledFlight) int {
-				return slices.Index(eventOrder, a.Level) - slices.Index(eventOrder, b.Level)
-			})
+	var squeaky []int // the last order that missed something, what it missed moved first
+	for attempt := range 40 {
+		var order []int
+		switch {
+		case attempt == 0:
+			order = slices.Clone(longest)
+		case attempt == 1: // the events' order
+			for i := range runs {
+				order = append(order, i)
+			}
+		case squeaky != nil && attempt%2 == 1:
+			order = slices.Clone(squeaky)
+		default: // longest first, jumbled a little
+			order = slices.Clone(longest)
+			weight := make([]float64, len(runs))
+			for i := range runs {
+				weight[i] = float64(setup.runLength(runs[i])) * (1 + 0.3*rng.Float64())
+			}
+			slices.SortStableFunc(order, func(a, b int) int { return cmp.Compare(weight[b], weight[a]) })
 		}
-		order = beforeOrder(order, setup.Rules)
-		p := newPlanner(setup)
+		order = beforeOrder(order, runs, setup.Rules)
+		var jumble *rand.Rand
+		if attempt >= 2 {
+			jumble = rng
+		}
+		p := newPlanner(setup, jumble)
 		p.staff = staff
 		var unplaced []ScheduledFlight
-		for _, f := range order {
-			if !p.place(f, people, coaches) {
-				unplaced = append(unplaced, f)
+		var missed []int
+		for _, i := range order {
+			if !p.placeRun(runs[i], people, coaches) {
+				unplaced = append(unplaced, runs[i]...)
+				missed = append(missed, i)
 			}
+		}
+		if len(missed) > 0 {
+			squeaky = append(slices.Clone(missed), slices.DeleteFunc(slices.Clone(order), func(i int) bool { return slices.Contains(missed, i) })...)
 		}
 		p.cost += float64(len(unplaced)) * 1e6
 		if best == nil || p.cost < best.cost {
@@ -477,38 +517,70 @@ func PlanStaffed(entries []SchedEntry, eventOrder []string, setup Setup, staff *
 		}
 	}
 	sortFlights(out.Flights)
+	out.number()
 	out.OrderForRest(people)
 	return out
 }
 
-// beforeOrder moves flights so every "before" rule's first event comes ahead
-// of its second, keeping the order otherwise.
-func beforeOrder(order []ScheduledFlight, rules []Rule) []ScheduledFlight {
+// runsOf groups flights into runs: each event's flights (each of its men
+// and women, where they fly separately), in order. One panel judges a run
+// (ADR 0006 Decision 1).
+func runsOf(flights []ScheduledFlight) [][]ScheduledFlight {
+	var out [][]ScheduledFlight
+	at := map[string]int{}
+	for _, f := range flights {
+		i, ok := at[f.Event()]
+		if !ok {
+			i = len(out)
+			at[f.Event()] = i
+			out = append(out, nil)
+		}
+		out[i] = append(out[i], f)
+	}
+	return out
+}
+
+// runLength is how long a run takes, without breaks.
+func (s Setup) runLength(run []ScheduledFlight) int {
+	n := 0
+	for _, f := range run {
+		n += s.duration(f)
+	}
+	return n
+}
+
+// beforeOrder moves runs (by index) so every "before" must's first event
+// comes ahead of its second, keeping the order otherwise. (A prefer is
+// scored instead.)
+func beforeOrder(order []int, runs [][]ScheduledFlight, rules []Rule) []int {
 	rank := map[string]int{}
 	for i := 0; i < len(rules)+1; i++ {
 		for _, r := range rules {
-			if r.Kind == RuleBefore && rank[r.Event2] <= rank[r.Event] {
+			if r.Kind == RuleBefore && r.Must && rank[r.Event2] <= rank[r.Event] {
 				rank[r.Event2] = rank[r.Event] + 1
 			}
 		}
 	}
-	slices.SortStableFunc(order, func(a, b ScheduledFlight) int { return rank[a.Level] - rank[b.Level] })
+	slices.SortStableFunc(order, func(a, b int) int { return rank[runs[a][0].Level] - rank[runs[b][0].Level] })
 	return order
 }
 
-func newPlanner(setup Setup) *planner {
+// newPlanner starts an attempt with the blocks placed; with rng, windowed
+// blocks try a random time in their window first.
+func newPlanner(setup Setup, rng *rand.Rand) *planner {
 	p := &planner{setup: setup, areas: setup.Areas, busy: map[string][]interval{}, people: map[string][]interval{}, coaches: map[string][]interval{}, byEvent: map[string][]ScheduledFlight{}}
 	for _, d := range setup.Days {
 		start, end := d.Hours()
 		p.days = append(p.days, [2]int{start, end})
 	}
-	p.placeBlocks()
+	p.placeBlocks(rng)
 	return p
 }
 
 // placeBlocks puts blocked time first: fixed blocks at their time, windowed
-// ones at the earliest time in their window that all their areas are free.
-func (p *planner) placeBlocks() {
+// ones at the earliest time in their window that all their areas are free
+// (with rng, from a random quarter hour in it, then round to the earliest).
+func (p *planner) placeBlocks(rng *rand.Rand) {
 	for _, b := range p.setup.Blocks {
 		if b.Day < 0 || b.Day >= len(p.days) {
 			continue
@@ -530,6 +602,10 @@ func (p *planner) placeBlocks() {
 			to, _ := clock(b.To)
 			for t := from; t+b.Minutes <= to; t += 5 {
 				starts = append(starts, t)
+			}
+			if rng != nil && len(starts) > 0 {
+				k := 3 * rng.IntN((len(starts)+2)/3)
+				starts = append(starts[k:], starts[:k]...)
 			}
 		}
 		for _, t := range starts {
@@ -554,47 +630,58 @@ func (p *planner) placeBlocks() {
 	}
 }
 
-// place puts a flight at its best feasible place, if it has one.
-func (p *planner) place(f ScheduledFlight, people, coaches map[string][]string) bool {
-	who, coached := map[string]bool{}, map[string]bool{}
-	for _, id := range f.Entries {
-		for _, person := range people[id] {
-			who[person] = true
+// placeRun puts an event's flights, in order, back to back on one area and
+// day (ADR 0006 Decision 2), where they fit best, if they fit anywhere.
+func (p *planner) placeRun(run []ScheduledFlight, people, coaches map[string][]string) bool {
+	whos, coacheds := make([]map[string]bool, len(run)), make([]map[string]bool, len(run))
+	lengths := make([]int, len(run))
+	for k, f := range run {
+		whos[k], coacheds[k] = map[string]bool{}, map[string]bool{}
+		for _, id := range f.Entries {
+			for _, person := range people[id] {
+				whos[k][person] = true
+			}
+			for _, c := range coaches[id] {
+				coacheds[k][c] = true
+			}
 		}
-		for _, c := range coaches[id] {
-			coached[c] = true
-		}
+		lengths[k] = p.setup.duration(f)
 	}
-	length := p.setup.duration(f)
+	event := run[0].Level
 	bestCost := math.Inf(1)
-	var best ScheduledFlight
+	var best []ScheduledFlight
 	for day := range p.days {
 		for _, a := range p.areas {
-			if !a.runs(f.Discipline) || !p.setup.Days[day].uses(a.Name) || p.broken(f.Level, a.Name, day, true) {
+			if !a.runs(run[0].Discipline) || !p.setup.Days[day].uses(a.Name) || p.broken(event, a.Name, day, true) {
 				continue
 			}
-			start, ok := p.earliest(f.Level, who, a.Name, day, length)
+			cand, ok := p.earliestRun(run, whos, lengths, a.Name, day)
 			if !ok {
 				continue
 			}
-			cand := ScheduledFlight{Flight: f.Flight, Discipline: f.Discipline, Day: day, Area: a.Name, Start: start, End: start + length}
-			if c := p.score(cand, who, coached); c < bestCost {
-				bestCost, best = c, cand
+			cost := 0.0
+			for k, f := range cand {
+				cost += p.score(f, whos[k], coacheds[k])
+			}
+			if cost < bestCost {
+				bestCost, best = cost, cand
 			}
 		}
 	}
-	if math.IsInf(bestCost, 1) {
+	if best == nil {
 		return false
 	}
-	p.placed = append(p.placed, best)
-	p.byEvent[best.Level] = append(p.byEvent[best.Level], best)
-	iv := interval{best.Day, best.Start, best.End}
-	p.busy[best.Area] = append(p.busy[best.Area], iv)
-	for person := range who {
-		p.people[person] = append(p.people[person], iv)
-	}
-	for c := range coached {
-		p.coaches[c] = append(p.coaches[c], iv)
+	for k, f := range best {
+		p.placed = append(p.placed, f)
+		p.byEvent[f.Level] = append(p.byEvent[f.Level], f)
+		iv := interval{f.Day, f.Start, f.End}
+		p.busy[f.Area] = append(p.busy[f.Area], iv)
+		for person := range whos[k] {
+			p.people[person] = append(p.people[person], iv)
+		}
+		for c := range coacheds[k] {
+			p.coaches[c] = append(p.coaches[c], iv)
+		}
 	}
 	p.cost += bestCost
 	return true
@@ -614,17 +701,98 @@ func (p *planner) broken(event, area string, day int, mustOnly bool) bool {
 	return false
 }
 
-// earliest is the earliest start on an area and day that fits before the
-// day's end, clear of the area's other flights and blocks, the people's other
-// turns (and their rest, if it's a must), and the order rules.
-func (p *planner) earliest(event string, who map[string]bool, area string, day, length int) (int, bool) {
+// earliestRun is a run laid out from the earliest start on an area and day
+// that fits it before the day's end: each flight clear of the area's other
+// flights and blocks, its people's other turns (and their rest, if it's a
+// must), and the order rules. Flights follow each other without a gap; where
+// the organiser lets events run across breaks, a flight that would overlap
+// blocked time waits for it instead.
+func (p *planner) earliestRun(run []ScheduledFlight, whos []map[string]bool, lengths []int, area string, day int) ([]ScheduledFlight, bool) {
 	dayStart, dayEnd := p.days[day][0], p.days[day][1]
 	rest := 0
 	if p.setup.RestMust {
 		rest = p.setup.Rest
 	}
-	notBefore, notAfter := dayStart, dayEnd // must-rules on order
-	var apart []interval
+	notBefore, notAfter, apart, ok := p.orderLimits(run[0].Level, day)
+	if !ok {
+		return nil, false
+	}
+	// Starts worth trying: where something the run must follow ends, less
+	// the time before the flight it holds up.
+	candidates := []int{max(dayStart, notBefore)}
+	for _, iv := range p.busy[area] {
+		if iv.day == day {
+			candidates = append(candidates, iv.end)
+		}
+	}
+	offset := 0
+	for k := range run {
+		for person := range whos[k] {
+			for _, iv := range p.people[person] {
+				if iv.day == day {
+					candidates = append(candidates, iv.end+rest-offset)
+				}
+			}
+		}
+		for _, iv := range apart {
+			if iv.day == day {
+				candidates = append(candidates, iv.end-offset)
+			}
+		}
+		offset += lengths[k]
+	}
+	sort.Ints(candidates)
+	candidates = slices.Compact(candidates)
+	for _, t := range candidates {
+		if t < dayStart || t < notBefore {
+			continue
+		}
+		laid, fits := p.layout(run, lengths, area, day, t), true
+		for k, f := range laid {
+			iv := interval{day, f.Start, f.End}
+			fits = fits && f.End <= min(dayEnd, notAfter) && p.clear(iv, area, whos[k], rest, apart)
+		}
+		if fits {
+			return laid, true
+		}
+	}
+	return nil, false
+}
+
+// layout places a run's flights one after another on an area from t; where
+// events can run across breaks, a flight overlapping blocked time on the
+// area starts after it.
+func (p *planner) layout(run []ScheduledFlight, lengths []int, area string, day, t int) []ScheduledFlight {
+	out := make([]ScheduledFlight, len(run))
+	for k, f := range run {
+		if p.setup.AcrossBreaks {
+			t = p.afterBlocks(area, day, t, lengths[k])
+		}
+		out[k] = ScheduledFlight{Flight: f.Flight, Discipline: f.Discipline, Day: day, Area: area, Start: t, End: t + lengths[k]}
+		t += lengths[k]
+	}
+	return out
+}
+
+// afterBlocks is the earliest start from t that a flight of length minutes
+// can have on an area without overlapping its blocked time.
+func (p *planner) afterBlocks(area string, day, t, length int) int {
+	for moved := true; moved; {
+		moved = false
+		for _, b := range p.blocks {
+			if b.Day == day && slices.Contains(b.Areas, area) && t < b.End && b.Start < t+length {
+				t, moved = b.End, true
+			}
+		}
+	}
+	return t
+}
+
+// orderLimits are the must rules about order for an event on a day: the
+// earliest it can start and latest it can end, the times it must keep clear
+// of, and whether it can go on that day at all.
+func (p *planner) orderLimits(event string, day int) (notBefore, notAfter int, apart []interval, ok bool) {
+	notBefore, notAfter = p.days[day][0], p.days[day][1]
 	for _, r := range p.setup.Rules {
 		if !r.Must {
 			continue
@@ -634,7 +802,7 @@ func (p *planner) earliest(event string, who map[string]bool, area string, day, 
 			for _, f := range p.byEvent[r.Event] {
 				switch {
 				case f.Day > day:
-					return 0, false
+					return 0, 0, nil, false
 				case f.Day == day && f.End > notBefore:
 					notBefore = f.End
 				}
@@ -643,7 +811,7 @@ func (p *planner) earliest(event string, who map[string]bool, area string, day, 
 			for _, f := range p.byEvent[r.Event2] {
 				switch {
 				case f.Day < day:
-					return 0, false
+					return 0, 0, nil, false
 				case f.Day == day && f.Start < notAfter:
 					notAfter = f.Start
 				}
@@ -658,35 +826,7 @@ func (p *planner) earliest(event string, who map[string]bool, area string, day, 
 			}
 		}
 	}
-	candidates := []int{max(dayStart, notBefore)}
-	for _, iv := range p.busy[area] {
-		if iv.day == day {
-			candidates = append(candidates, iv.end)
-		}
-	}
-	for person := range who {
-		for _, iv := range p.people[person] {
-			if iv.day == day {
-				candidates = append(candidates, iv.end+rest)
-			}
-		}
-	}
-	for _, iv := range apart {
-		if iv.day == day {
-			candidates = append(candidates, iv.end)
-		}
-	}
-	sort.Ints(candidates)
-	for _, t := range candidates {
-		if t < dayStart || t < notBefore || t+length > min(dayEnd, notAfter) {
-			continue
-		}
-		iv := interval{day, t, t + length}
-		if p.clear(iv, area, who, rest, apart) {
-			return t, true
-		}
-	}
-	return 0, false
+	return notBefore, notAfter, apart, true
 }
 
 // clear says whether a span is free on an area, for the people (with rest
@@ -719,13 +859,6 @@ func (p *planner) score(f ScheduledFlight, who, coached map[string]bool) float64
 	cost := float64(f.Day*24*60 + f.End)
 	if p.broken(f.Level, f.Area, f.Day, false) {
 		cost += 120
-	}
-	// A level's flights on one area.
-	for _, other := range p.byEvent[f.Level] {
-		if other.Area != f.Area || other.Day != f.Day {
-			cost += 60
-			break
-		}
 	}
 	// Rest, as a prefer: each minute short costs.
 	if !p.setup.RestMust && p.setup.Rest > 0 {
@@ -775,6 +908,12 @@ func (p *planner) score(f ScheduledFlight, who, coached map[string]bool) float64
 		case r.Kind == RuleBefore && r.Event2 == f.Level:
 			for _, other := range p.byEvent[r.Event] {
 				if other.Day > f.Day || (other.Day == f.Day && other.End > f.Start) {
+					cost += 120
+				}
+			}
+		case r.Kind == RuleBefore && r.Event == f.Level:
+			for _, other := range p.byEvent[r.Event2] {
+				if f.Day > other.Day || (f.Day == other.Day && f.End > other.Start) {
 					cost += 120
 				}
 			}
