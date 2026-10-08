@@ -303,6 +303,39 @@ rest.
 14. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
     and the usual rest between turns (both guesses for now).
 
+**Added 2026-10-08, still to put in order.** Proposed after the
+notifications, and all wanted:
+
+- **Recorders' score sheets** (asked and built 2026-10-08): ISTO records
+  scores online and on paper, so the timetable prints a landscape sheet a
+  flight, a row per gymnast in running order and a box for each judge's
+  mark of each routine, left to fill in. No competitor numbers.
+- **On the day:**
+  - **Flights started and finished**, tapped by the marshal: planned and
+    actual times side by side, so the delay "what if" fills itself in,
+    attendees see "running 20 min late", and it can notify.
+  - **Check-in and scratches**: the marshal marks who's there; a no-show
+    comes out of the running order and the rota.
+  - **A "now on" screen** for the venue: what's on each panel, and what's
+    warming up next.
+  - **Pages that work offline**: the service worker (from notifications)
+    keeps a person's own pages for poor venue wifi.
+- **Organising:**
+  - **Copy last year's competition**: levels, events, officials, timetable
+    setup and rules, without the entries.
+  - **More admin links, each able to do less**: for example a card-checking
+    link for difficulty judges that can't change settings, and a timetable
+    link. Today one link does everything.
+  - **A change history**: who changed what, and when, once more than one
+    link can.
+  - **Entry fees**: each club marked paid or not, with an invoice per club
+    to print. No money is handled.
+  - **Limits per level, with a waiting list.**
+  - **Judges' qualifications**, approved like coaches'.
+- **For attendees:**
+  - **Add to calendar**: a person's or club's flights and duties as a
+    calendar link that updates when the timetable is published again.
+
 # Possible additions (not planned yet)
 
 Ideas to come back to (2026-10-08), not decided:

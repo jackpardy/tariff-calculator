@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: On the [roadmap](roadmap.md), still to put in order: flights
+  started and finished by the marshal, check-in and scratches, a "now on"
+  screen, pages that work offline, copying last year's competition, more
+  admin links each able to do less, a change history, entry fees, limits
+  per level with a waiting list, judges' qualifications, and add to
+  calendar.
 * **Update**: Recorders' **score sheets** to print from the timetable: a
   landscape page a flight, a row per gymnast in running order, a box for
   each judge's mark of each routine (the panel's own execution, HD and
