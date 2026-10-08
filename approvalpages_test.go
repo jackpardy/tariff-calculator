@@ -122,3 +122,76 @@ func TestCoachApprovalPages(t *testing.T) {
 		t.Error("approved again with her sign-offs")
 	}
 }
+
+func TestIndividualCoachPages(t *testing.T) {
+	h := competitionServer(t)
+	form := newCompetition()
+	form.Set("signoff", "1")
+	admin := created(t, h, form)
+	redirected(t, h, admin+"/approve-coaches", url.Values{"on": {"1"}})
+	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Mary"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+
+	// Mary's page asks for her coach; until she names one, the sign-off link
+	// can't be used.
+	page := do(t, h, http.MethodGet, own, nil).Body.String()
+	if !strings.Contains(page, "Your coach") || !strings.Contains(page, "Trampoline Level 2") {
+		t.Fatal("Mary is asked to name her coach")
+	}
+	signoff := pathIn(t, page, "/competitions/signoff/")
+	if page := do(t, h, http.MethodGet, signoff, nil).Body.String(); !strings.Contains(page, "Mary hasn") || strings.Contains(page, `value="1">Sign off`) {
+		t.Error("no sign-off until a coach is named and approved")
+	}
+	if rec := do(t, h, http.MethodPost, signoff, url.Values{"coach": {"Ann"}, "signed": {"1"}}); rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("refused: %d", rec.Code)
+	}
+
+	// She names Ann, with her certificate: waiting.
+	rec := upload(t, h, own+"/coach", map[string]string{"name": "Ann", "qualification": "gi-trampoline-2"}, "certificate", []byte("%PDF-1.4 Ann"))
+	if location := rec.Header().Get("Location"); !strings.Contains(location, "Sent+Ann+to+the+organiser") {
+		t.Fatalf("named: %d %s", rec.Code, location)
+	}
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Gymnastics Ireland Level 2 Trampoline Coach") || !strings.Contains(page, "Waiting for the organiser") {
+		t.Error("Mary sees Ann waiting")
+	}
+	if page := do(t, h, http.MethodGet, signoff, nil).Body.String(); !strings.Contains(page, "Waiting for the organiser to approve Ann") {
+		t.Error("the sign-off link says it's waiting")
+	}
+
+	// The organiser sees her under Individuals, opens the certificate and approves.
+	coaches := do(t, h, http.MethodGet, admin+"/coaches", nil).Body.String()
+	cert := regexp.MustCompile(`href="(` + regexp.QuoteMeta(admin) + `/entry-coaches/[^"]+/certificate)"`).FindStringSubmatch(coaches)
+	action := regexp.MustCompile(`action="(` + regexp.QuoteMeta(admin) + `/entry-coaches/[^"]+)"`).FindStringSubmatch(coaches)
+	if !strings.Contains(coaches, "Individuals") || !strings.Contains(coaches, "Ann, coach of Mary") || !strings.Contains(coaches, "Trampoline Level 2 ✓") || cert == nil || action == nil {
+		t.Fatalf("the coaches page: %s", coaches)
+	}
+	if got := do(t, h, http.MethodGet, cert[1], nil); got.Body.String() != "%PDF-1.4 Ann" {
+		t.Error("the organiser opens the certificate")
+	}
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, "1 waiting") {
+		t.Error("counted waiting")
+	}
+	redirected(t, h, action[1], url.Values{"action": {"approve"}})
+
+	// Approved: Ann signs off under her own name, and it counts.
+	if page := do(t, h, http.MethodGet, signoff, nil).Body.String(); !strings.Contains(page, `value="1">Sign off`) || strings.Contains(page, `name="coach"`) {
+		t.Error("Ann signs off, as herself")
+	}
+	redirected(t, h, signoff, url.Values{"signed": {"1"}})
+	entryPage := func() string {
+		dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+		e := regexp.MustCompile(`href="(` + regexp.QuoteMeta(admin) + `/entries/[^"?]+)`).FindStringSubmatch(dash)
+		return do(t, h, http.MethodGet, e[1], nil).Body.String()
+	}
+	if p := entryPage(); strings.Contains(p, "Not signed off") || strings.Contains(p, "approved coach") || !strings.Contains(p, "Signed off by Ann") {
+		t.Error("Ann's sign-off counts")
+	}
+	// Withdrawn: it doesn't.
+	redirected(t, h, action[1], url.Values{"action": {"withdraw"}, "note": {"Wrong certificate"}})
+	if p := entryPage(); !strings.Contains(p, "approved coach") {
+		t.Error("withdrawn: not counted")
+	}
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Wrong certificate") {
+		t.Error("Mary sees why")
+	}
+}

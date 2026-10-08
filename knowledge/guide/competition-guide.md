@@ -93,7 +93,9 @@ pair's one routine), checked as the Routine Builder checks them.
   their coaches with their qualifications. **Coaches** (with how many are
   waiting) lists them by club: open each certificate, see whether they meet
   your level, and **Approve** or say **Not approved**, with a note the club
-  sees. Only approved coaches can sign off, and only their sign-offs count:
+  sees. Coaches named by gymnasts entering on their own are listed under
+  **Individuals**. Only approved coaches can sign off, and only their
+  sign-offs count:
   an entry signed off by anyone else says so. **Withdraw approval** stops a
   coach's sign-offs counting; approving them again, choose whether the
   sign-offs they gave before count again or only those from now on.
@@ -358,7 +360,12 @@ sign-off, entries without it are flagged to the organiser.
    on one page.
 4. If the competition needs a coach's sign-off, send your coach the **Sign-off
    link** shown on your entry. They open it, check it and sign off with their
-   name.
+   name. If it approves coaches, first name your coach under **Your coach**,
+   with their qualification and a photo or PDF of its certificate, and tap
+   **Send to the organiser**. Once the organiser approves them, the link
+   works and they sign off as themselves; your page shows the organiser's
+   decision and any note. Changing your coach sends them to be approved
+   again.
 
 # What's kept
 

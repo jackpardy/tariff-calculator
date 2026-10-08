@@ -396,9 +396,8 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   approved, worked out as entries are read, so nothing is erased. An
   unapproved coach sees why on their page and can't sign off; the
   organiser's entry shows "Signed off by Ann, who isn't an approved coach".
-  Sign-offs from before this, and individuals' coaches (next, ADR 0007 step
-  4), count as before for individuals and not at all for clubs' entries
-  without a coach recorded.
+  Sign-offs from before this don't count at a competition that approves
+  coaches.
 - A member chooses their coach on their own page, or the comp sec does on
   the club page. A coach sees their own members and every member without a
   coach; the club can let **every coach see every member**.
@@ -411,7 +410,15 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   column, counts "Not signed off by a coach" as a problem, and the CSV says
   who signed off.
 - An individual's entry page gives a **sign-off link** to send their coach,
-  who signs off under their name, without a coach page.
+  who signs off under their name, without a coach page. Where the
+  competition approves coaches (ADR 0007 Decision 8), the entry page first
+  asks for **Your coach**: a name, a qualification from the list and a
+  certificate, stored with the entry (deleted with it, or the competition).
+  The organiser's Coaches page lists them under **Individuals**, to approve
+  as clubs' coaches are. Until approved, the sign-off link says why and
+  can't be used; once approved, the coach signs off as the named coach,
+  and the sign-off counts while they stay approved. Naming another coach
+  waits for approval again.
 - Printed cards fill in the **Coach** field: the coach who signed the entry
   off, or else the member's chosen or assigned coach.
 

@@ -1146,3 +1146,72 @@ func TestCoachApproval(t *testing.T) {
 		t.Error("approval off")
 	}
 }
+
+func TestEntryCoaches(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp := competition()
+	comp.Signoff, comp.Individuals = true, true
+	c, _, _ := s.CreateCompetition(ctx, comp)
+	must(t, s.SetApproveCoaches(ctx, c.ID, true, nil))
+	e, token, err := s.AddIndividualEntry(ctx, c.ID, entry("Mary"))
+	must(t, err)
+	got, _ := s.IndividualEntry(ctx, token)
+	signed := func() bool {
+		t.Helper()
+		got, err := s.IndividualEntry(ctx, token)
+		must(t, err)
+		return got.SignedOff()
+	}
+	must(t, s.SignOffIndividual(ctx, got.SignoffLink, "Ann", true, ""))
+	if signed() {
+		t.Error("no coach named yet")
+	}
+	if _, err := s.EntryCoachOf(ctx, e.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("none: %v", err)
+	}
+	must(t, s.SetEntryCoach(ctx, token, "Ann", "gi-trampoline-2", "application/pdf", []byte("%PDF Ann")))
+	ec, err := s.EntryCoachOf(ctx, e.ID)
+	if err != nil || ec.Name != "Ann" || ec.Gymnast != "Mary" || ec.Status != CoachWaiting {
+		t.Fatalf("named: %+v %v", ec, err)
+	}
+	if typ, data, err := s.EntryCertificate(ctx, c.ID, e.ID); err != nil || typ != "application/pdf" || string(data) != "%PDF Ann" {
+		t.Errorf("certificate: %v", err)
+	}
+	other, _, _ := s.CreateCompetition(ctx, competition())
+	if _, _, err := s.EntryCertificate(ctx, other.ID, e.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("only for its competition: %v", err)
+	}
+	if err := s.DecideEntryCoach(ctx, other.ID, e.ID, CoachApproved, "", false); !errors.Is(err, ErrNotFound) {
+		t.Errorf("only its organiser decides: %v", err)
+	}
+	must(t, s.DecideEntryCoach(ctx, c.ID, e.ID, CoachApproved, "", false))
+	if !signed() {
+		t.Error("approved: Ann's sign-off counts")
+	}
+	must(t, s.DecideEntryCoach(ctx, c.ID, e.ID, CoachWithdrawn, "", false))
+	if signed() {
+		t.Error("withdrawn")
+	}
+	now = now.Add(time.Minute)
+	must(t, s.DecideEntryCoach(ctx, c.ID, e.ID, CoachApproved, "", true))
+	if signed() {
+		t.Error("afresh")
+	}
+	// Named again: waiting again.
+	must(t, s.SetEntryCoach(ctx, token, "Bob", "bg-trampoline-3", "image/png", []byte("png")))
+	if list, _ := s.CompetitionEntryCoaches(ctx, c.ID); len(list) != 1 || list[0].Name != "Bob" || list[0].Status != CoachWaiting {
+		t.Errorf("Bob waits: %+v", list)
+	}
+	// Withdrawing the entry removes its coach and certificate.
+	must(t, s.WithdrawIndividualEntry(ctx, token))
+	if list, _ := s.CompetitionEntryCoaches(ctx, c.ID); len(list) != 0 {
+		t.Errorf("gone with the entry: %+v", list)
+	}
+	// After the deadline, no coach can be named.
+	_, token, _ = s.AddIndividualEntry(ctx, c.ID, entry("Nell"))
+	now = comp.Deadline.Add(time.Hour)
+	if err := s.SetEntryCoach(ctx, token, "Ann", "gi-trampoline-2", "image/png", []byte("png")); !errors.Is(err, ErrClosed) {
+		t.Errorf("closed: %v", err)
+	}
+}

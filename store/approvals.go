@@ -254,3 +254,104 @@ func (s *Store) CompetitionCertificate(ctx context.Context, competitionID, coach
 		AND EXISTS (SELECT 1 FROM json_each(cc.qualifications) WHERE json_each.value = q.id)`, id, competitionID, coachID).Scan(&certType, &data)
 	return certType, data, notFound(err)
 }
+
+// EntryCoach is the coach an individual names on their entry, at a
+// competition that approves coaches (ADR 0007 Decision 8).
+type EntryCoach struct {
+	EntryID, CompetitionID string
+	Gymnast                string
+	Name, Qualification    string
+	CertType               string
+	SentAt                 time.Time
+	Status                 string // CoachWaiting, CoachApproved, CoachRefused or CoachWithdrawn
+	Note                   string
+	DecidedAt              time.Time
+	AllSignoffs            bool // as SentCoach's
+}
+
+// Approved says whether the coach can sign off the entry.
+func (c EntryCoach) Approved() bool { return c.Status == CoachApproved }
+
+// SetEntryCoach names the coach of the individual entry a personal link
+// opens, with their qualification and certificate, already checked, until
+// the competition's deadline. A coach named again waits for the organiser
+// again.
+func (s *Store) SetEntryCoach(ctx context.Context, token, name, qualification, certType string, certificate []byte) error {
+	now := s.stamp()
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		var entryID, competitionID string
+		if err := tx.QueryRowContext(ctx, `SELECT id, competition_id FROM entries WHERE token_hash = $1 AND individual`, hash(token)).Scan(&entryID, &competitionID); err != nil {
+			return notFound(err)
+		}
+		if err := s.open(ctx, tx, competitionID); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `INSERT INTO entry_coaches (entry_id, name, qualification, cert_type, certificate, sent_at) VALUES ($1, $2, $3, $4, $5, $6)
+			ON CONFLICT (entry_id) DO UPDATE SET name = excluded.name, qualification = excluded.qualification, cert_type = excluded.cert_type,
+				certificate = excluded.certificate, sent_at = excluded.sent_at, status = '', note = ''`,
+			entryID, name, qualification, certType, certificate, now)
+		return err
+	})
+}
+
+const entryCoachColumns = `ec.entry_id, e.competition_id, e.gymnast, ec.name, ec.qualification, ec.cert_type, ec.sent_at, ec.status, ec.note, COALESCE(ec.decided_at, ''), ec.counts_from`
+
+// entryCoaches reads individuals' coaches.
+func (s *Store) entryCoaches(ctx context.Context, where string, args ...any) ([]EntryCoach, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT `+entryCoachColumns+` FROM entry_coaches ec JOIN entries e ON e.id = ec.entry_id
+		WHERE `+where+` ORDER BY e.gymnast, ec.name`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []EntryCoach
+	for rows.Next() {
+		var c EntryCoach
+		var sent, decided, from string
+		if err := rows.Scan(&c.EntryID, &c.CompetitionID, &c.Gymnast, &c.Name, &c.Qualification, &c.CertType, &sent, &c.Status, &c.Note, &decided, &from); err != nil {
+			return nil, err
+		}
+		c.SentAt, c.DecidedAt, c.AllSignoffs = parseTime(sent), parseTime(decided), from == ""
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+// EntryCoachOf is the coach named on an entry.
+func (s *Store) EntryCoachOf(ctx context.Context, entryID string) (EntryCoach, error) {
+	list, err := s.entryCoaches(ctx, `ec.entry_id = $1`, entryID)
+	if err != nil {
+		return EntryCoach{}, err
+	}
+	if len(list) == 0 {
+		return EntryCoach{}, ErrNotFound
+	}
+	return list[0], nil
+}
+
+// CompetitionEntryCoaches are the coaches individuals have named for a
+// competition, by gymnast.
+func (s *Store) CompetitionEntryCoaches(ctx context.Context, competitionID string) ([]EntryCoach, error) {
+	return s.entryCoaches(ctx, `e.competition_id = $1`, competitionID)
+}
+
+// DecideEntryCoach is DecideCoach for the coach an individual named.
+func (s *Store) DecideEntryCoach(ctx context.Context, competitionID, entryID, status, note string, afresh bool) error {
+	now := s.stamp()
+	from := `counts_from`
+	if status == CoachApproved && afresh {
+		from = `$5`
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE entry_coaches SET status = $1, note = $2, decided_at = $5, counts_from = `+from+`
+		WHERE entry_id = $4 AND entry_id IN (SELECT id FROM entries WHERE competition_id = $3)`, status, note, competitionID, entryID, now))
+}
+
+// EntryCertificate is the certificate of the coach an individual named, for
+// the competition's organiser.
+func (s *Store) EntryCertificate(ctx context.Context, competitionID, entryID string) (string, []byte, error) {
+	var certType string
+	var data []byte
+	err := s.db.QueryRowContext(ctx, `SELECT ec.cert_type, ec.certificate FROM entry_coaches ec JOIN entries e ON e.id = ec.entry_id
+		WHERE ec.entry_id = $1 AND e.competition_id = $2`, entryID, competitionID).Scan(&certType, &data)
+	return certType, data, notFound(err)
+}

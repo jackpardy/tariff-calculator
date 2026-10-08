@@ -312,6 +312,22 @@ var migrations = []string{
 		PRIMARY KEY (competition_id, coach_id)
 	);
 	CREATE INDEX competition_coaches_club ON competition_coaches (club_id, competition_id);`,
+
+	// 12: an individual's coach, named on their entry with a qualification
+	// and certificate, and the organiser's decision (ADR 0007 Decision 8).
+	// It goes with the entry, and so the competition.
+	`CREATE TABLE entry_coaches (
+		entry_id      TEXT PRIMARY KEY REFERENCES entries (id) ON DELETE CASCADE,
+		name          TEXT NOT NULL,
+		qualification TEXT NOT NULL,
+		cert_type     TEXT NOT NULL,
+		certificate   BLOB NOT NULL,
+		sent_at       TEXT NOT NULL,
+		status        TEXT NOT NULL DEFAULT '',
+		note          TEXT NOT NULL DEFAULT '',
+		decided_at    TEXT,
+		counts_from   TEXT NOT NULL DEFAULT ''
+	);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.
