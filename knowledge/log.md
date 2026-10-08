@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Roadmap](roadmap.md) priorities: while it's being demoed,
+  admin links that can do less with a change history, entry fees, limits
+  with a waiting list, then the day itself; ISTO 2027's entries open early
+  in 2027, the competition is early April.
 * **Update**: On the [roadmap](roadmap.md), still to put in order: flights
   started and finished by the marshal, check-in and scratches, a "now on"
   screen, pages that work offline, copying last year's competition, more
