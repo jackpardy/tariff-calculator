@@ -141,9 +141,30 @@ approving coaches and removing entries, built that day after the biggest
 priority, one panel for all of an event's flights (all but splitting an
 event by routine, now 10).
 
-**Order (2026-10-08).** Built first (1–6), then in this order: notifications (7), the "what ifs'" missing checks (8), saying what a
-manual change breaks (9), then splitting an event by routine (10) and the
-rest.
+**Priorities (2026-10-08, evening).** ISTO 2027's entries open early in
+2027 and the competition is early April 2027. For now the tools are being
+demoed to show they'd be useful, so for the next week or two the work is
+features that show that, in this order:
+
+1. **More admin links, each able to do less, and a change history** (built
+   2026-10-08, [ADR 0009](../docs/adr/0009-helper-links.md)): checking
+   cards, chairs of judges, timetable, and co-organiser links, and concerns
+   any helper can flag for the organiser.
+2. **Entry fees.**
+3. **Limits per level, with a waiting list.**
+4. **The day itself,** as far as it goes: flights started and finished by
+   the marshal, check-in and scratches, messages from the organisers' desk,
+   a "now on" screen, pages that work offline, add to calendar.
+
+Then, by when ISTO needs them: link the calculator (before entries open),
+the "what ifs'" missing checks (8) and saying what a manual change breaks
+(9), judges' qualifications, and details like better defaults (14);
+splitting an event by routine (10) if ISTO's timetable needs it. A dress
+rehearsal of the day in March, and nothing but fixes in the last two weeks.
+After ISTO: copying last year's competition, results history, the club
+tools and the possible additions.
+
+Notifications (7) are built; numbers 1–7 below are built.
 
 1. **Approved coaches** (decided 2026-10-07; designed in
    [ADR 0007](../docs/adr/0007-approved-coaches.md); built 2026-10-08).
@@ -303,8 +324,7 @@ rest.
 14. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
     and the usual rest between turns (both guesses for now).
 
-**Added 2026-10-08, still to put in order.** Proposed after the
-notifications, and all wanted:
+**Added 2026-10-08** (all wanted; ordered under Priorities above):
 
 - **Recorders' score sheets** (asked and built 2026-10-08): ISTO records
   scores online and on paper, so the timetable prints a landscape sheet a
@@ -321,10 +341,11 @@ notifications, and all wanted:
   - **Pages that work offline**: the service worker (from notifications)
     keeps a person's own pages for poor venue wifi.
   - **Messages from the organisers' desk** (asked 2026-10-08): the
-    organiser sends a club (its comp sec, coaches, or everyone who asked to
-    hear) a message, or asks for someone from the club to come to the
-    desk, by push and email at once, without waiting. Builds on
-    notifications.
+    organiser sends a message, or asks someone to come to the desk, by push
+    and email at once, without waiting, to more than clubs: a **club** (its
+    comp sec, coaches, or everyone who asked to hear), **individuals**,
+    everyone in a **flight**, **officials** (all, or a panel), or an **ad
+    hoc group** the organiser picks. Builds on notifications.
 - **Organising:**
   - **Copy last year's competition**: levels, events, officials, timetable
     setup and rules, without the entries.
