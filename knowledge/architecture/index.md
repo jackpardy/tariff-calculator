@@ -13,3 +13,4 @@
 * [ADR 0003](../../docs/adr/0003-requirements-framework.md) - Requirements framework (proposed, implemented).
 * [ADR 0004](../../docs/adr/0004-server-storage-secret-links.md) - Server storage with secret links, no accounts (accepted, built and live: competition entries, clubs, video proof, coach sign-off).
 * [ADR 0005](../../docs/adr/0005-multi-discipline-timetabling.md) - Timetabling multi-discipline competitions for ISTO: events across trampoline, synchro, tumbling and DMT, people who compete and judge, the venue's end time, blocked time, organiser rules and simulation (accepted; being built).
+* [ADR 0006](../../docs/adr/0006-one-panel-per-event.md) - One panel for a whole event: an event's flights back to back on one area, its panel filled once for all of them, flights numbered in the order they run, and rarely a split by routine (proposed; amends 0005).
