@@ -537,7 +537,7 @@ templ CompetitionDashboard(d Dashboard) {
 			</div>
 		}
 		for _, l := range d.Levels {
-			<details class="comp-dash-level" id={ l.Anchor } open?={ filtered(d) && len(l.Rows) > 0 }>
+			<details class="comp-dash-level" id={ l.Anchor } data-level={ l.Name } data-remember?={ !filtered(d) } open?={ filtered(d) && len(l.Rows) > 0 }>
 			<summary class="title is-5 mt-5">
 				{ l.Name } <span class="has-text-grey is-size-6">({ shownCount(d, l) })</span>
 				if len(l.Rows) > 0 {
