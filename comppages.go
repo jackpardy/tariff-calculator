@@ -77,6 +77,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerAccess(handle)
 	p.registerFees(handle)
 	p.registerLimits(handle)
+	p.registerLate(handle)
 	handle("GET /competitions/new", p.newForm)
 	handle("POST /competitions", p.create)
 	handle("GET /competitions/admin/{token}", p.dashboard)
@@ -601,6 +602,13 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		d.NotifyAt = c.NotifyDue.In(local).Format("15:04")
 	}
 	d.Waiting, d.Limits = waitingLists(c, waiting, d.Base), limitFields(c, all)
+	if late, err := p.st.LateRequests(r.Context(), c.ID); err == nil {
+		for _, l := range late {
+			if l.Status == store.LateWaiting {
+				d.LateWaiting++
+			}
+		}
+	}
 	d.Access = access(r)
 	if d.Access.Organiser {
 		links, err := p.st.Links(r.Context(), c.ID)
@@ -1323,6 +1331,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
 		Placement:   placement(c, e.ID),
 		Waiting:     waitingText(p.waitingOf(r.Context(), c.ID, e.ID)),
+		Late:        p.lateStatusOf(r.Context(), c, e.ID),
 		Duties:      dutiesOf(c, individualKey(e.Entry.Gymnast)),
 		Day:         path + "/day",
 		VideoReview: e.VideoReview, VideoNote: e.VideoNote,
@@ -1337,6 +1346,9 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	}
 	page.Notify = p.notifyLink(path + "/notify")
 	page.Fees = p.feesSummary(r.Context(), c, entryPayer(e.ID), path+"/invoice")
+	if lateOpen(c, p.now()) {
+		page.LateAsk = path + "/late"
+	}
 	if len(page.Duties) > 0 {
 		page.ScoreSheets = path + "/score-sheets"
 	}

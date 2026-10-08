@@ -156,7 +156,14 @@ features that show that, in this order:
    individuals.
 3. **Limits per level, with a waiting list** (built 2026-10-08,
    [limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists)).
-4. **The day itself,** as far as it goes: flights started and finished by
+4. **Late changes** (asked and built 2026-10-08,
+   [late changes](features/competition-entries.md#late-changes)): after the
+   deadline clubs and individuals ask for the changes the organiser allows
+   (a level change, new routines), each with its own fee charged if
+   accepted; the organiser sees whether it fits (limits, the draft
+   timetable) and accepts it or says why not. Late new entries could
+   follow.
+5. **The day itself,** as far as it goes: flights started and finished by
    the marshal, check-in and scratches, messages from the organisers' desk,
    a "now on" screen, pages that work offline, add to calendar.
 

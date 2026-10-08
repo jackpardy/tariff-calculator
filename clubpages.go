@@ -169,10 +169,12 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		}
 		sentID := map[string]string{}    // member → the competition's copy of their entry
 		waitingPlace := map[string]int{} // member and discipline → place on a waiting list
+		copyOf := map[string]string{}    // member and discipline → the competition's copy
 		for _, e := range sent {
 			if e.ClubID == club.ID {
 				sentID[e.MemberID] = e.ID
 				waitingPlace[e.MemberID+"/"+e.Entry.Discipline] = e.Waiting
+				copyOf[e.MemberID+"/"+e.Entry.Discipline] = e.ID
 			}
 		}
 		removals, err := p.st.ClubRemovals(ctx, club.ID, c.ID)
@@ -219,6 +221,12 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 			}
 			if cc.Competition.Open {
 				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline
+			}
+			if id := copyOf[e.MemberID+"/"+e.Discipline]; id != "" {
+				row.Late = p.lateStatusOf(ctx, c, id)
+				if lateOpen(c, p.now()) {
+					row.LateAsk = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "/late?discipline=" + url.QueryEscape(e.Discipline)
+				}
 			}
 			if at := placement(c, sentID[e.MemberID]); at != nil {
 				row.Flight = fmt.Sprintf("%s · %s · warm-up %s", at.Flight, at.Panel, at.Time)
@@ -688,6 +696,10 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 				for _, s := range sent {
 					if s.MemberID == m.ID && s.Entry.Discipline == d {
 						ev.Placement, copyID, ev.Waiting = placement(c, s.ID), s.ID, waitingText(s)
+						ev.Late = p.lateStatusOf(ctx, c, s.ID)
+						if lateOpen(c, now) {
+							ev.LateAsk = path + "/competitions/" + c.ID + "/late?discipline=" + url.QueryEscape(d)
+						}
 					}
 				}
 				shown, err := card(c.Competition, e.Entry, club)

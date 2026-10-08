@@ -175,6 +175,12 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		return "Flagged a concern"
 	case "/concerns/{id}/resolve":
 		return "Resolved a concern"
+	case "/late/settings":
+		return "Changed the late changes allowed"
+	case "/late/{id}/accept":
+		return "Accepted a late change"
+	case "/late/{id}/reject":
+		return "Turned down a late change"
 	case "/limits":
 		return "Changed the limits"
 	case "/entries/{id}/let-in":

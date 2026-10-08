@@ -92,6 +92,7 @@ type ClubEntryRow struct {
 	Video         string // "missing" or "need more" when the club needs to act
 	Signoff       SignoffView
 	Flight        string // where they compete, once the timetable is published
+	Late, LateAsk string // a late change: where it stands, and where to ask for one
 }
 
 // ClubEntryEdit is the comp sec changing a member's entry on their behalf.
@@ -149,6 +150,8 @@ type MemberEvent struct {
 	Name        string // the discipline's, e.g. "Synchro"
 	Status      string
 	Waiting     string // on a waiting list, and where
+	Late        string // a late change, where it stands
+	LateAsk     string // where to ask for a late change, once entries close
 	Note        string // the organiser's note
 	VideoReview string // the organiser's review of its videos
 	VideoNote   string
@@ -285,6 +288,14 @@ templ ClubAdmin(c ClubPage) {
 											if row.Flight != "" {
 												<br/>
 												<span class="is-size-7 has-text-info-dark">{ row.Flight }</span>
+											}
+											if row.Late != "" {
+												<br/>
+												<span class="is-size-7">Late change: { row.Late }</span>
+											}
+											if row.LateAsk != "" {
+												<br/>
+												<a class="is-size-7" href={ templ.SafeURL(row.LateAsk) }>Ask for a late change</a>
 											}
 											if s := row.Signoff.Status(); s != "" {
 												<br/>
@@ -634,6 +645,7 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 			</h2>
 		}
 		@waitingLine(ev.Waiting)
+		@lateLine(ev.Late, ev.LateAsk)
 		@placementLine(ev.Placement)
 		@organiserNote(ev.Note)
 		@videoReviewNote(ev.VideoReview, ev.VideoNote)

@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Late changes](features/competition-entries.md#late-changes):
+  after the deadline, clubs and individuals ask for the changes the
+  organiser allows (level or routines, each with a fee if accepted); the
+  organiser sees whether each fits and accepts it, into the draft
+  timetable and onto the invoice, or says why not.
 * **Update**: [Limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists):
   a limit per event; later entries wait in the order they came in and move
   up as places free; the organiser can let one in over the limit; clubs

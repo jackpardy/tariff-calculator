@@ -452,6 +452,27 @@ var migrations = []string{
 	ALTER TABLE entries ADD COLUMN entered_at TEXT NOT NULL DEFAULT '';
 	UPDATE entries SET entered_at = sent_at;
 	ALTER TABLE entries ADD COLUMN let_in BOOLEAN NOT NULL DEFAULT FALSE;`,
+
+	// 22: late changes (roadmap 2026-10-08): which the organiser allows, at
+	// what fee, and each request, with the organiser's decision and the fee
+	// charged.
+	`ALTER TABLE competitions ADD COLUMN late TEXT NOT NULL DEFAULT '{}';
+	CREATE TABLE late_requests (
+		id             TEXT PRIMARY KEY,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		entry_id       TEXT NOT NULL,
+		kind           TEXT NOT NULL,
+		entry          TEXT NOT NULL,
+		who            TEXT NOT NULL,
+		note           TEXT NOT NULL DEFAULT '',
+		at             TEXT NOT NULL,
+		status         TEXT NOT NULL DEFAULT '',
+		reason         TEXT NOT NULL DEFAULT '',
+		decided_at     TEXT NOT NULL DEFAULT '',
+		decided_by     TEXT NOT NULL DEFAULT '',
+		fee            INTEGER NOT NULL DEFAULT 0
+	);
+	CREATE INDEX late_requests_competition ON late_requests (competition_id, entry_id);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

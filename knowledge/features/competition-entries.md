@@ -52,6 +52,33 @@ the organisers only; the organiser and co-organisers mark each
 **Resolved**, with a note. The demo has helpers' links (printed by `demo`),
 three cards checked and two concerns.
 
+## Late changes
+
+After the deadline (the competition live, entries closed), clubs and
+individuals can ask for the changes the organiser allows (roadmap
+2026-10-08). On **Late changes** (the dashboard's button, which counts
+those to decide) the organiser ticks which kinds can be asked for, each
+with a fee charged only if accepted: a **level change** (a different
+level, with its routines) or a **routine change** (new routines at the
+same level). A member ("Ask for a late change" under each event), their
+comp sec (on the club page's row) or an individual (on their entry) fills
+in the entry form as it should be, with a note; the entry stays as it is
+until decided, and a new request replaces one still waiting.
+
+Each waiting request shows the organiser whether it can be fitted in
+(`lateChecks`): the new card's problems; whether the new level is full,
+and their place on its waiting list if so; and in the draft timetable,
+the flight of the new level they'd join (the one with fewest entries, at
+the end of its running order; `Schedule.PlaceChange`), how much later it
+finishes, how many later flights move, and anything it would break (a
+clash, a day running over). **Accept** (with an optional note) replaces
+the entry on the competition's copy and the club's, needing checking and
+signing off again; a level change joins the new level's waiting list if
+it's full, or moves into that flight in the draft timetable, to publish;
+and the fee goes on the club's or individual's invoice. **Not accepted**
+needs a reason, which whoever asked sees. Both show on their pages, and
+notifications (cards) tell them.
+
 ## Limits and waiting lists
 
 Under Links and settings, **Limits and waiting lists** sets how many

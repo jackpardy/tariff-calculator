@@ -71,6 +71,7 @@ type Dashboard struct {
 	Concerns      []ConcernView
 	OpenConcerns  int
 	Waiting       []WaitingList // each limited event's waiting list
+	LateWaiting   int           // late changes to decide
 	Limits        []LimitField
 	NotifyAt      string // when the changes waiting are told, e.g. "14:32"; "" for none
 	NoWait        bool   // no wait on the competition's days
@@ -204,6 +205,8 @@ type EntryForm struct {
 	Unchecked   bool
 	PartnerName string
 	PartnerClub string
+	Note        bool   // ask for a note for the organiser (a late change)
+	NoteText    string
 }
 
 // EntryLevel is a level an entry can choose, with its two exercises.
@@ -236,6 +239,8 @@ type EntryOption struct {
 // EntryPage is an individual's own entry, through their personal link.
 type EntryPage struct {
 	Waiting     string // on a waiting list, and where
+	Late        string // a late change, where it stands
+	LateAsk     string // where to ask for a late change, once entries close
 	Competition CompetitionSummary
 	Link        string // their personal link, as a full URL
 	JustSaved   bool
@@ -607,6 +612,12 @@ templ CompetitionDashboard(d Dashboard) {
 			}
 			if d.Access.Settings {
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/fees") }>Fees</a>
+				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/late") }>
+					Late changes
+					if d.LateWaiting > 0 {
+						<span class="tag is-warning ml-1">{ strconv.Itoa(d.LateWaiting) } to decide</span>
+					}
+				</a>
 			}
 			<a class="button is-small is-light" href={ templ.SafeURL(d.Base + "/history") }>History</a>
 			if d.CoachApproval.On && d.Access.Coaches {
@@ -1120,6 +1131,12 @@ templ entryForm(f EntryForm) {
 				}
 			</fieldset>
 		}
+		if f.Note {
+			<div class="field mt-4">
+				<label class="label is-small" for={ "entry-note" + f.Key }>Note for the organiser (optional)</label>
+				<textarea class="textarea is-small" id={ "entry-note" + f.Key } name="note" rows="2" maxlength="500" placeholder="e.g. She's been moved up a level by her coach">{ f.NoteText }</textarea>
+			</div>
+		}
 		<button class="button is-primary is-fullwidth mt-4" type="submit">{ f.Submit }</button>
 	</form>
 }
@@ -1200,6 +1217,7 @@ templ CompetitionEntryPage(p EntryPage) {
 		@feesLine(p.Fees)
 		@timelineLinks(p.Timeline, "", p.Notify)
 		@waitingLine(p.Waiting)
+		@lateLine(p.Late, p.LateAsk)
 		@placementLine(p.Placement)
 		@dutiesBox(p.Duties, p.ScoreSheets)
 		if p.Checked {

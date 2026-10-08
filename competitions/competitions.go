@@ -63,6 +63,9 @@ type Competition struct {
 	// Limits are how many entries each event takes, by event name (missing
 	// or 0: no limit); later entries wait (roadmap 2026-10-08).
 	Limits map[string]int
+	// Late are the changes that can be asked for after the deadline, with
+	// their fees (roadmap 2026-10-08).
+	Late LateChanges
 }
 
 // Level is a level a competition offers. A built-in is kept by reference; a
