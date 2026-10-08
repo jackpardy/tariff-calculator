@@ -109,6 +109,14 @@ pair's one routine), checked as the Routine Builder checks them.
   and deleting** (a co-organiser). Copy the link straight away: it's shown
   only once. **Remove** stops it working. **History** lists every change,
   when, and which link made it.
+- **Fees:** tap **Fees** to set what you charge (euro or sterling, an
+  amount per entry for each discipline, a synchro pair counting as one,
+  and a club fee if you have one) and how to pay. Each club and individual
+  is listed with what's due, paid and left; record payments as they come
+  (**Paid**, with the amount and a note), and print each one's **Invoice**.
+  Clubs see what they owe on their club page, with their invoice;
+  individuals on their entry. Removed, held and withdrawn entries aren't
+  charged.
 - **Concerns:** anyone with one of your links can **Flag a concern**, about
   an entry or generally ("element 7 isn't on the card"). They're listed at
   the top of your entries page, for you alone; mark each **Resolved**, with

@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Entry fees](features/competition-entries.md#entry-fees): the
+  organiser sets fees per entry (by discipline) and per club, records
+  payments and prints invoices; clubs and individuals see what they owe.
 * **Update**: [Helpers' links](features/competition-entries.md#helpers-links-history-and-concerns-adr-0009)
   ([ADR 0009](../docs/adr/0009-helper-links.md)): the organiser makes links
   for checking cards, chairs of judges, the timetable and officials, or a

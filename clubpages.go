@@ -163,6 +163,7 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		}
 		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now()), ApproveCoaches: c.ApproveCoaches && c.Signoff,
 			Notify: p.notifyLink(base + "/competitions/" + c.ID + "/notify")}
+		cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
 		if published(c) {
 			cc.Timeline = base + "/competitions/" + c.ID + "/timeline"
 		}

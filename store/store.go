@@ -429,6 +429,20 @@ var migrations = []string{
 		resolution     TEXT NOT NULL DEFAULT ''
 	);
 	CREATE INDEX concerns_competition ON concerns (competition_id);`,
+
+	// 20: entry fees (roadmap 2026-10-08): what the competition charges, and
+	// payments the organiser records, from a club or an individual's entry.
+	`ALTER TABLE competitions ADD COLUMN fees TEXT NOT NULL DEFAULT '{}';
+	CREATE TABLE payments (
+		id             TEXT PRIMARY KEY,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		payer          TEXT NOT NULL,
+		amount         INTEGER NOT NULL,
+		note           TEXT NOT NULL DEFAULT '',
+		at             TEXT NOT NULL,
+		who            TEXT NOT NULL
+	);
+	CREATE INDEX payments_competition ON payments (competition_id, payer);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

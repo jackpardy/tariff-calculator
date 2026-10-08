@@ -150,7 +150,10 @@ features that show that, in this order:
    2026-10-08, [ADR 0009](../docs/adr/0009-helper-links.md)): checking
    cards, chairs of judges, timetable, and co-organiser links, and concerns
    any helper can flag for the organiser.
-2. **Entry fees.**
+2. **Entry fees** (built 2026-10-08,
+   [entry fees](features/competition-entries.md#entry-fees)): per entry by
+   discipline and per club, payments recorded, invoices for clubs and
+   individuals.
 3. **Limits per level, with a waiting list.**
 4. **The day itself,** as far as it goes: flights started and finished by
    the marshal, check-in and scratches, messages from the organisers' desk,

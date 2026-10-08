@@ -75,6 +75,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 		mux.Handle(pattern, p.secret(h))
 	}
 	p.registerAccess(handle)
+	p.registerFees(handle)
 	handle("GET /competitions/new", p.newForm)
 	handle("POST /competitions", p.create)
 	handle("GET /competitions/admin/{token}", p.dashboard)
@@ -1326,6 +1327,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		page.Timeline = path + "/timeline"
 	}
 	page.Notify = p.notifyLink(path + "/notify")
+	page.Fees = p.feesSummary(r.Context(), c, entryPayer(e.ID), path+"/invoice")
 	if len(page.Duties) > 0 {
 		page.ScoreSheets = path + "/score-sheets"
 	}

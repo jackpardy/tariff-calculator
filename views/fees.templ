@@ -1,0 +1,239 @@
+package views
+
+import "strconv"
+
+// FeesPage is the organiser's page of entry fees (roadmap 2026-10-08).
+type FeesPage struct {
+	Base, Notice string
+	Competition  CompetitionSummary
+	On           bool // anything is charged
+	GBP          bool
+	PerEntry     []FeeField
+	PerClub      string
+	Instructions string
+	Accounts     []AccountView
+	Due, Paid    string // everyone's
+	Balance      string
+}
+
+// FeeField is a discipline's fee per entry, for the form.
+type FeeField struct {
+	Key, Name, Amount string
+}
+
+// AccountView is what a club or individual owes.
+type AccountView struct {
+	Payer, Name          string
+	Entries              int
+	Due, Paid, Balance   string
+	Settled              bool
+	Invoice              string
+	Payments             []PaymentView
+}
+
+// PaymentView is a payment recorded.
+type PaymentView struct {
+	ID, Amount, Note, At, Who string
+}
+
+// FeesAdmin is the organiser's fees page.
+templ FeesAdmin(p FeesPage) {
+	@competitionLayout("Fees · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
+		<h1 class="title is-4">Fees</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		if p.Notice != "" {
+			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		<details class="box" open?={ !p.On }>
+			<summary><strong>What you charge</strong></summary>
+			<form method="post" action={ templ.SafeURL(p.Base + "/fees/settings") } class="mt-3">
+				<div class="field">
+					<label class="radio mr-3"><input type="radio" name="currency" value="" checked?={ !p.GBP }/> Euro (€)</label>
+					<label class="radio"><input type="radio" name="currency" value="GBP" checked?={ p.GBP }/> Sterling (£)</label>
+				</div>
+				<div class="comp-sim-grid">
+					for _, f := range p.PerEntry {
+						<label class="comp-sim-row">
+							<span>
+								{ f.Name } entry
+								if f.Key == "synchro" {
+									<span class="is-size-7 has-text-grey">(a pair)</span>
+								}
+							</span>
+							<input class="input is-small comp-num" name={ "fee-" + f.Key } inputmode="decimal" value={ f.Amount } placeholder="0" aria-label={ f.Name + " entry fee" }/>
+						</label>
+					}
+					<label class="comp-sim-row">
+						<span>Club fee, once for each club</span>
+						<input class="input is-small comp-num" name="club" inputmode="decimal" value={ p.PerClub } placeholder="0" aria-label="Club fee"/>
+					</label>
+				</div>
+				<div class="field mt-3">
+					<label class="label is-small" for="fee-instructions">How to pay (on every invoice)</label>
+					<textarea class="textarea is-small" id="fee-instructions" name="instructions" rows="3" maxlength="500" placeholder="e.g. Bank transfer to ISTO, IBAN IE00 …, with your club's name as the reference, by 1 March">{ p.Instructions }</textarea>
+				</div>
+				<button class="button is-small is-primary" type="submit">Save</button>
+				<p class="help">Removed, held and withdrawn entries aren't charged. No money goes through here: record payments as they come.</p>
+			</form>
+		</details>
+		if p.On {
+			<nav class="level is-mobile comp-counts">
+				@moneyCount(p.Due, "due")
+				@moneyCount(p.Paid, "paid")
+				@moneyCount(p.Balance, "to come")
+			</nav>
+		}
+		if len(p.Accounts) == 0 {
+			<p class="has-text-grey">No entries yet.</p>
+		} else if p.On {
+			<div class="table-container">
+				<table class="table is-fullwidth is-narrow">
+					<thead>
+						<tr><th>Club or individual</th><th>Entries</th><th>Due</th><th>Paid</th><th>Balance</th><th></th></tr>
+					</thead>
+					<tbody>
+						for _, a := range p.Accounts {
+							<tr>
+								<td>
+									{ a.Name }
+									for _, pay := range a.Payments {
+										<div class="is-size-7 has-text-grey">
+											{ pay.Amount } on { pay.At }
+											if pay.Note != "" {
+												· { pay.Note }
+											}
+											· { pay.Who }
+											<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments/" + pay.ID + "/remove") } class="is-inline">
+												<button class="button is-small is-text p-0 ml-1" type="submit">remove</button>
+											</form>
+										</div>
+									}
+								</td>
+								<td>{ strconv.Itoa(a.Entries) }</td>
+								<td>{ a.Due }</td>
+								<td>{ a.Paid }</td>
+								<td>
+									if a.Settled {
+										<span class="tag is-success is-light">Paid</span>
+									} else {
+										<strong>{ a.Balance }</strong>
+									}
+								</td>
+								<td>
+									<a class="is-size-7" href={ templ.SafeURL(a.Invoice) }>Invoice</a>
+									<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments") } class="comp-pay-form mt-1">
+										<input type="hidden" name="payer" value={ a.Payer }/>
+										<input class="input is-small comp-num" name="amount" inputmode="decimal" required placeholder="Amount" aria-label={ "Amount paid by " + a.Name }/>
+										<input class="input is-small" name="note" maxlength="300" placeholder="Note" aria-label="Note"/>
+										<button class="button is-small" type="submit">Paid</button>
+									</form>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	}
+}
+
+templ moneyCount(amount, label string) {
+	<div class="level-item has-text-centered">
+		<div>
+			<p class="title is-5">{ amount }</p>
+			<p class="heading">{ label }</p>
+		</div>
+	</div>
+}
+
+// InvoicePage is one club's or individual's invoice.
+type InvoicePage struct {
+	Competition                   CompetitionSummary
+	Back, To, Date, Instructions  string
+	Lines                         []InvoiceLineView
+	Total, Paid, Balance          string
+	Settled                       bool
+	Payments                      []PaymentView
+}
+
+// InvoiceLineView is one thing charged.
+type InvoiceLineView struct {
+	What, Amount string
+}
+
+// Invoice is an invoice to print.
+templ Invoice(p InvoicePage) {
+	@competitionLayout("Invoice · " + p.To + " · " + p.Competition.Name) {
+		<div class="comp-print-bar screen-only">
+			<a href={ templ.SafeURL(p.Back) }>← Back</a>
+			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
+		</div>
+		<h1 class="title is-4">Invoice</h1>
+		<p class="mb-1"><strong>{ p.Competition.Name }</strong> · { p.Competition.Date }</p>
+		<p class="mb-4">To <strong>{ p.To }</strong> · { p.Date }</p>
+		<table class="table is-fullwidth is-narrow">
+			<thead>
+				<tr><th>Entry</th><th class="has-text-right">Fee</th></tr>
+			</thead>
+			<tbody>
+				for _, l := range p.Lines {
+					<tr><td>{ l.What }</td><td class="has-text-right">{ l.Amount }</td></tr>
+				}
+			</tbody>
+			<tfoot>
+				<tr><th>Total</th><th class="has-text-right">{ p.Total }</th></tr>
+				for _, pay := range p.Payments {
+					<tr>
+						<td>
+							Paid { pay.At }
+							if pay.Note != "" {
+								· { pay.Note }
+							}
+						</td>
+						<td class="has-text-right">−{ pay.Amount }</td>
+					</tr>
+				}
+				<tr>
+					<th>
+						if p.Settled {
+							Paid in full
+						} else {
+							To pay
+						}
+					</th>
+					<th class="has-text-right">{ p.Balance }</th>
+				</tr>
+			</tfoot>
+		</table>
+		if p.Instructions != "" && !p.Settled {
+			<div class="box">
+				<p class="label is-small mb-1">How to pay</p>
+				<p style="white-space: pre-line">{ p.Instructions }</p>
+			</div>
+		}
+		<p class="is-size-7 has-text-grey">Removed, held and withdrawn entries aren't charged. If something here is wrong, ask the organiser.</p>
+	}
+}
+
+// FeesSummary is what a club or individual owes, on their page.
+type FeesSummary struct {
+	Due, Paid, Balance string
+	Settled            bool
+	Invoice            string
+}
+
+// feesLine says what's owed, with the invoice.
+templ feesLine(f *FeesSummary) {
+	if f != nil {
+		<p class="is-size-7 mb-2">
+			<strong>Fees:</strong> { f.Due }
+			if f.Settled {
+				<span class="tag is-success is-light ml-1">Paid</span>
+			} else {
+				· { f.Paid } paid · <strong>{ f.Balance } to pay</strong>
+			}
+			· <a href={ templ.SafeURL(f.Invoice) }>Invoice</a>
+		</p>
+	}
+}

@@ -60,15 +60,15 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
-	var deadline, levels, created, video, liveAt, notifyDue string
+	var deadline, levels, created, video, liveAt, notifyDue, fees string
 	var split, timetable, events, officials, coachLevels, publishedTimetable string
 	var ordered bool
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait); err != nil {
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees); err != nil {
 		return Competition{}, notFound(err)
 	}
 	if publishedTimetable != "" {
@@ -76,6 +76,9 @@ func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 		if err := json.Unmarshal([]byte(publishedTimetable), c.Published); err != nil {
 			return Competition{}, fmt.Errorf("reading competition %s's published timetable: %w", c.ID, err)
 		}
+	}
+	if err := json.Unmarshal([]byte(fees), &c.Fees); err != nil {
+		return Competition{}, fmt.Errorf("reading competition %s's fees: %w", c.ID, err)
 	}
 	if err := json.Unmarshal([]byte(coachLevels), &c.CoachLevels); err != nil {
 		return Competition{}, fmt.Errorf("reading competition %s's coach levels: %w", c.ID, err)
