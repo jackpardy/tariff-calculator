@@ -105,7 +105,10 @@ send email by SMTP with STARTTLS (ADR 0008 Decision 7), set by:
 - `PUBLIC_URL`, the site's address for links in emails (default
   `https://tariff.pardy.ie`).
 
-Without `SMTP_HOST` and `MAIL_FROM`, email isn't offered. **Not set up on
+Without `SMTP_HOST` and `MAIL_FROM`, email isn't offered. Phone push needs
+nothing set: the app makes its push (VAPID) keys on first use and keeps them
+in the database, so the nightly backup covers them (losing them stops push
+to every phone already subscribed). **Not set up on
 the server yet:** it needs a provider (Amazon SES in its Ireland region is
 the leaning) and SPF and DKIM records for the sending domain.
 

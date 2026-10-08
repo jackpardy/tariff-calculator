@@ -125,13 +125,16 @@ func TestNotifications(t *testing.T) {
 	}
 }
 
-func TestNotificationsOff(t *testing.T) {
+func TestNotificationsWithoutEmail(t *testing.T) {
 	h := competitionServer(t) // no email configured
 	admin := created(t, h, newCompetition())
 	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
 	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Ann Ryan"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
-	if strings.Contains(do(t, h, http.MethodGet, own, nil).Body.String(), "/notify") {
-		t.Error("no link to a page that can't notify")
+	if !strings.Contains(do(t, h, http.MethodGet, own, nil).Body.String(), own+"/notify") {
+		t.Fatal("push needs nothing set up, so the link is there")
+	}
+	if page := do(t, h, http.MethodGet, own+"/notify", nil).Body.String(); !strings.Contains(page, "On this phone") || strings.Contains(page, `name="email"`) {
+		t.Error("push, but no email")
 	}
 }
 

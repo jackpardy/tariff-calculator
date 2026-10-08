@@ -547,11 +547,12 @@ too.
 
 # Notifications (ADR 0008)
 
-Where the server can send email, members (each competition on their page,
-and "My competition"), individuals (their entry), comp secs (each
-competition on the club page) and coaches (each competition on theirs) have
-**Tell me about changes**: an email, the tick box "I'm 18 or over, or this
-is a parent's email", and what about: **when or where** they (or their
+Members (each competition on their page, and "My competition"),
+individuals (their entry), comp secs (each competition on the club page)
+and coaches (each competition on theirs) have **Tell me about changes**:
+**On this phone** (push), and where the server can send email, an email
+with the tick box "I'm 18 or over, or this is a parent's email"; each says
+what about: **when or where** they (or their
 gymnasts) compete, **officiating**, and **cards** (checked, a note from the
 organiser, removed or on hold). A member and an individual hear about
 themselves, a comp sec about every member of the club, a coach about the
@@ -575,8 +576,24 @@ members they coach. It's per competition, and deleted with it.
   their pages and to stop the emails (also as one-click `List-Unsubscribe`).
 
 Email goes by SMTP when `SMTP_HOST` and `MAIL_FROM` are set
-([deploy](../operations/deploy.md#notifications)); without them nothing
-links to it. Phone push is the next step (ADR 0008 Build 2).
+([deploy](../operations/deploy.md#notifications)); without them only push
+is offered.
+
+**Push** (ADR 0008 Decision 3) needs nothing set up. `static/js/push.js`
+registers the service worker (`/sw.js`, the site's whole scope), asks to
+show notifications and subscribes with the app's VAPID public key, made on
+first use and kept in the `settings` table; the page keeps the browser's
+endpoint and keys (up to 5 phones a person a competition) and lists them,
+"This phone" for the one in hand, each with **Turn off**. Only push
+services' addresses are taken (Google, Mozilla, Apple, Microsoft), so the
+server posts nowhere else. A batch's push says the one change, or "3
+changes for Ann Ryan and Bea Kelly. Tap to see them.", and opens their
+page; it's encrypted for the browser (RFC 8291, `aes128gcm`) and signed
+(RFC 8292, ES256), on the standard library. A push service answering 404
+or 410 drops the phone. On an iPhone or iPad, push works only from the home
+screen (iOS 16.4+): the page says to add it first (Share, Add to Home
+Screen); the web manifest has no `start_url`, so the home screen opens the
+person's own page.
 
 # Built from
 

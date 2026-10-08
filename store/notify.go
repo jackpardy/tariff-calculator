@@ -266,3 +266,25 @@ func (s *Store) ClaimDue(ctx context.Context) ([]Due, error) {
 	})
 	return out, err
 }
+
+// Setting is one of the app's own settings, made by make the first time it's
+// asked for and kept from then on, even if two ask at once.
+func (s *Store) Setting(ctx context.Context, key string, make func() (string, error)) (string, error) {
+	var value string
+	err := s.db.QueryRowContext(ctx, `SELECT value FROM settings WHERE key = $1`, key).Scan(&value)
+	if err == nil {
+		return value, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return "", err
+	}
+	made, err := make()
+	if err != nil {
+		return "", err
+	}
+	if _, err := s.db.ExecContext(ctx, `INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING`, key, made); err != nil {
+		return "", err
+	}
+	err = s.db.QueryRowContext(ctx, `SELECT value FROM settings WHERE key = $1`, key).Scan(&value)
+	return value, err
+}

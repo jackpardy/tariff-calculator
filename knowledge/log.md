@@ -2,6 +2,11 @@
 
 ## 2026-10-08
 * **Update**: [Notifications](features/competition-entries.md#notifications-adr-0008)
+  by phone push (ADR 0008 step 2): **On this phone** on the same pages, with
+  a service worker and web manifest (iPhones from the home screen), the
+  app's own VAPID keys, and messages encrypted and signed on the standard
+  library. Needs nothing set up, so "Tell me about changes" shows now.
+* **Update**: [Notifications](features/competition-entries.md#notifications-adr-0008)
   by email ([ADR 0008](../docs/adr/0008-notifications.md) step 1): members,
   individuals, comp secs and coaches opt in per competition, confirm their
   email, and get one email per batch of changes (timetable, officiating,

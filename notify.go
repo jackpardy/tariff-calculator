@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"slices"
 	"strings"
@@ -28,7 +30,9 @@ type notifier struct {
 	st   *store.Store
 	mail mailer // nil: email isn't offered
 	now  func() time.Time
-	base string // the site's address, for links in what's sent
+	base string       // the site's address, for links in what's sent
+	keys *vapid       // the push keys, once read
+	http *http.Client // for pushes; nil for the usual one
 }
 
 func newNotifier(st *store.Store) *notifier {
@@ -402,6 +406,15 @@ func (n *notifier) tellCompetition(ctx context.Context, d store.Due) error {
 			if err := n.mail.send(t.subs[0].Address, subject, body, headers); err != nil {
 				log.Printf("Notifications: emailing about %s: %v", c.ID, err)
 			}
+		case store.ByPush:
+			err := n.push(ctx, t.subs[0], pushMessage{Title: c.Name, Body: pushSummary(groups), URL: n.base + t.subs[0].Page})
+			if errors.Is(err, errGone) {
+				for _, s := range t.subs {
+					n.st.DropSubscription(ctx, s.ID)
+				}
+			} else if err != nil {
+				log.Printf("Notifications: pushing about %s: %v", c.ID, err)
+			}
 		}
 	}
 	return nil
@@ -411,6 +424,28 @@ func (n *notifier) tellCompetition(ctx context.Context, d store.Due) error {
 type changeGroup struct {
 	Who   string
 	Lines []string
+}
+
+// pushSummary is a push notification's text: the change, if there's one,
+// or how many and whose.
+func pushSummary(groups []changeGroup) string {
+	count := 0
+	var who []string
+	for _, g := range groups {
+		count += len(g.Lines)
+		who = append(who, g.Who)
+	}
+	if count == 1 {
+		return groups[0].Who + " · " + groups[0].Lines[0]
+	}
+	if len(who) > 3 {
+		who = append(who[:3], fmt.Sprintf("%d more", len(who)-3))
+	}
+	names := strings.Join(who, ", ")
+	if i := strings.LastIndex(names, ", "); i >= 0 {
+		names = names[:i] + " and " + names[i+2:]
+	}
+	return fmt.Sprintf("%d changes for %s. Tap to see them.", count, names)
 }
 
 // changesEmail is the email telling one address its changes.

@@ -1,7 +1,11 @@
 package main
 
 import (
+	"crypto/ecdh"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/mail"
 	"net/url"
@@ -35,10 +39,10 @@ func (p *competitionPages) registerNotify(handle func(string, http.HandlerFunc))
 	handle("POST /competitions/admin/{token}/no-wait", p.noWait)
 }
 
-// notifyLink is a link to a notify page, or "" while there's no way to
-// notify from this server.
+// notifyLink is a link to a notify page, or "" without storage. Push needs
+// nothing set up, so there's always a way.
 func (p *competitionPages) notifyLink(path string) string {
-	if p.notify == nil || p.notify.mail == nil {
+	if p.notify == nil {
 		return ""
 	}
 	return path
@@ -127,8 +131,20 @@ func (p *competitionPages) notifyPage(w http.ResponseWriter, r *http.Request) {
 				failed(w, r, err)
 				return
 			}
-			http.Redirect(w, r, r.URL.Path+"?notice="+url.QueryEscape("No more emails about this competition."), http.StatusSeeOther)
+			notice := "Turned off."
+			if email != nil && email.ID == r.FormValue("remove") {
+				notice = "No more emails about this competition."
+			}
+			http.Redirect(w, r, r.URL.Path+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
 			return
+		case "push":
+			problems := p.savePush(r, t)
+			if len(problems) == 0 {
+				http.Redirect(w, r, r.URL.Path+"?notice="+url.QueryEscape("Notifications are on for this phone."), http.StatusSeeOther)
+				return
+			}
+			page.Problems = problems
+			w.WriteHeader(http.StatusUnprocessableEntity)
 		default:
 			notice, problems := p.saveEmail(r, t, email)
 			if len(problems) == 0 {
@@ -149,6 +165,16 @@ func (p *competitionPages) notifyPage(w http.ResponseWriter, r *http.Request) {
 	}
 	if email != nil {
 		page.Email = views.NotifyEmail{Address: email.Address, Confirmed: email.Confirmed, Remove: email.ID}
+	}
+	page.PushKey = p.notify.pushPublicKey(ctx)
+	for _, topic := range store.Topics {
+		page.PushTopics = append(page.PushTopics, views.NotifyTopic{Value: topic, Label: labels[topic], On: true})
+	}
+	for _, s := range subs {
+		if s.Channel == store.ByPush {
+			page.Phones = append(page.Phones, views.NotifyPhone{ID: s.ID, Endpoint: s.Address,
+				Added: s.CreatedAt.In(local).Format("2 January"), Topics: strings.Join(s.Topics, ", ")})
+		}
 	}
 	if r.Method == http.MethodPost {
 		page.Email.Address = r.FormValue("email")
@@ -195,6 +221,43 @@ func (p *competitionPages) saveEmail(r *http.Request, t notifyTarget, was *store
 		return "", []string{"The email couldn't be sent. Check the address, or try again later."}
 	}
 	return "We've emailed " + address + " a link to confirm it. Nothing else is sent until it's tapped.", nil
+}
+
+// savePush saves this phone's push subscription, as push.js posts it:
+// endpoint, p256dh, auth and each topic.
+func (p *competitionPages) savePush(r *http.Request, t notifyTarget) []string {
+	endpoint := r.FormValue("endpoint")
+	keys := pushKeys{P256dh: r.FormValue("p256dh"), Auth: r.FormValue("auth")}
+	if !pushEndpoint(endpoint) || len(endpoint) > 1024 || !validPushKeys(keys) {
+		return []string{"This browser's notifications can't be used here."}
+	}
+	topics := r.Form["topic"]
+	if len(topics) == 0 {
+		return []string{"Tick at least one thing to hear about."}
+	}
+	k, _ := json.Marshal(keys)
+	_, _, err := p.st.Subscribe(r.Context(), store.Subscription{
+		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByPush, Address: endpoint, Keys: string(k), Topics: topics, Page: t.page,
+	})
+	switch {
+	case errors.Is(err, store.ErrLimit):
+		return []string{fmt.Sprintf("Notifications are already on for %d phones: turn one off first.", store.MaxPush)}
+	case err != nil:
+		return []string{"That didn't work. Please try again in a minute."}
+	}
+	return nil
+}
+
+// validPushKeys says whether a browser's push keys are the right shape: a
+// P-256 public key and a 16-byte secret.
+func validPushKeys(k pushKeys) bool {
+	pub, err1 := base64.RawURLEncoding.DecodeString(strings.TrimRight(k.P256dh, "="))
+	auth, err2 := base64.RawURLEncoding.DecodeString(strings.TrimRight(k.Auth, "="))
+	if err1 != nil || err2 != nil || len(auth) != 16 {
+		return false
+	}
+	_, err := ecdh.P256().NewPublicKey(pub)
+	return err == nil
 }
 
 // emailAddress is an email address as given, if it is one: a plain

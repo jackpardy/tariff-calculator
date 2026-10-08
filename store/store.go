@@ -375,6 +375,13 @@ var migrations = []string{
 	ALTER TABLE competitions ADD COLUMN notify_baseline TEXT NOT NULL DEFAULT '';
 	ALTER TABLE competitions ADD COLUMN notify_due TEXT NOT NULL DEFAULT '';
 	ALTER TABLE competitions ADD COLUMN notify_no_wait BOOLEAN NOT NULL DEFAULT FALSE;`,
+
+	// 17: the app's own settings, such as its push (VAPID) keys (ADR 0008
+	// Decision 3).
+	`CREATE TABLE settings (
+		key   TEXT PRIMARY KEY,
+		value TEXT NOT NULL
+	);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.
