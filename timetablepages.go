@@ -889,23 +889,10 @@ func (p *competitionPages) keepWhatIf(w http.ResponseWriter, r *http.Request, c 
 }
 
 // scoreSheets are the recorders' score sheets: each flight in time order,
-// its gymnasts in running order, a column for each mark its panel gives
-// each routine, and each routine's difficulty from the card.
+// its gymnasts in running order, and a column for each mark its panel gives
+// each routine, all left to fill in.
 func scoreSheets(c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, back string, now time.Time) views.ScoreSheets {
 	out := views.ScoreSheets{Title: "Score sheets · " + c.Name, Back: back, Competition: summary(c.Competition, now)}
-	difficulty := map[string][2]string{}
-	for _, j := range judge(c.Competition, entries) {
-		if j.err != nil {
-			continue
-		}
-		var d [2]string
-		for i, checked := range []requirements.Checked{j.card.First, j.card.Second} {
-			if j.card.Does(i) && checked.Checks.ScoreDifficulty {
-				d[i] = fmt.Sprintf("%.1f", checked.Validation.TotalTariff)
-			}
-		}
-		difficulty[j.ID] = d
-	}
 	for _, day := range itemsOf(s, entries, people) {
 		for _, area := range day.Areas {
 			for _, it := range area.Items {
@@ -915,7 +902,7 @@ func scoreSheets(c store.Competition, s competitions.Schedule, entries []store.E
 				f := views.ScoreFlight{Name: it.Name, Day: day.Name, Area: area.Name, Start: it.Start, Seats: it.Seats,
 					Marks: scoreMarks(c.Officials.Panel(s.Flights[it.Index].Discipline))}
 				for _, g := range it.Gymnasts {
-					f.Rows = append(f.Rows, views.ScoreRow{Name: g.Name, Club: g.Club, D: difficulty[g.ID]})
+					f.Rows = append(f.Rows, views.ScoreRow{Name: g.Name, Club: g.Club})
 				}
 				out.Flights = append(out.Flights, f)
 			}

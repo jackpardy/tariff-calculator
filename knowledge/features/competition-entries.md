@@ -247,8 +247,7 @@ are then filled flight by flight.
   the recorders' **score sheets** (asked 2026-10-08, as ISTO records scores
   online and on paper): a landscape page a flight, its panel named, a row
   per gymnast (or pair) in running order, and for each routine a column per
-  execution judge, D (filled in from the card, checked, where difficulty is
-  scored), each HD and synchronisation judge the panel has, penalty and
+  execution judge, D, each HD and synchronisation judge the panel has, penalty and
   total, then the total and place; and the **officials rota**, each person's duties in time order, one line
   for an event ("Friday 09:30–15:15 · Panel 2 · BUCS L7 Men · all 5
   flights · Execution judge").

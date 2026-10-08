@@ -1135,7 +1135,6 @@ type ScoreFlight struct {
 // ScoreRow is a gymnast (or synchro pair) on a score sheet.
 type ScoreRow struct {
 	Name, Club string
-	D          [2]string // each routine's difficulty from the card, "" for a set routine or none
 }
 
 // ScorePrint is the recorders' score sheets, to print landscape.
@@ -1145,7 +1144,7 @@ templ ScorePrint(s ScoreSheets) {
 		<div class="comp-print-bar screen-only">
 			<a href={ templ.SafeURL(s.Back) }>← Timetable</a>
 			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
-			<span class="is-size-7">Landscape, a page a flight. D is from each card, checked; cross it out if it changes.</span>
+			<span class="is-size-7">Landscape, a page a flight.</span>
 		</div>
 		for _, f := range s.Flights {
 			<section class="comp-sheet">
@@ -1179,13 +1178,9 @@ templ ScorePrint(s ScoreSheets) {
 								<td>{ strconv.Itoa(i + 1) }</td>
 								<td>{ g.Name }</td>
 								<td class="is-size-7">{ g.Club }</td>
-								for r := range 2 {
+								for range 2 {
 									for _, m := range f.Marks {
-										<td class={ "comp-score-mark", templ.KV("comp-score-total", m == "Total") }>
-											if m == "D" {
-												{ g.D[r] }
-											}
-										</td>
+										<td class={ "comp-score-mark", templ.KV("comp-score-total", m == "Total") }></td>
 									}
 								}
 								<td class="comp-score-total"></td>

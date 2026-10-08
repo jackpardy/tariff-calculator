@@ -36,8 +36,8 @@ func TestScoreSheets(t *testing.T) {
 	if !strings.Contains(page, "Ann Ryan") || !strings.Contains(page, "Bea Kelly") || !strings.Contains(page, "size: A4 landscape") {
 		t.Error("both gymnasts, landscape")
 	}
-	// The set routine has no difficulty; the voluntary's is from the card.
-	if !regexp.MustCompile(`<td class="comp-score-mark">\s*\d\.\d\s*</td>`).MatchString(page) {
-		t.Errorf("the voluntary's difficulty filled in")
+	// Nothing filled in, difficulty included.
+	if regexp.MustCompile(`<td class="comp-score-mark">\s*\d`).MatchString(page) {
+		t.Errorf("every mark left to fill in")
 	}
 }
