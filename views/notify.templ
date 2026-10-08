@@ -1,5 +1,11 @@
 package views
 
+import (
+	"encoding/json"
+
+	"tariffCalculator/static"
+)
+
 // NotifyPage is where a person opts in to hear about a competition's
 // changes (ADR 0008 Decision 1).
 type NotifyPage struct {
@@ -12,6 +18,23 @@ type NotifyPage struct {
 	EmailOn     bool // email can be sent from this server
 	Email       NotifyEmail
 	Topics      []NotifyTopic
+	PushKey     string        // the server's key for push; "" if push can't be offered
+	Phones      []NotifyPhone // phones told by push
+	PushTopics  []NotifyTopic
+}
+
+// NotifyPhone is a phone (or browser) told by push.
+type NotifyPhone struct {
+	ID       string `json:"id"`
+	Endpoint string `json:"endpoint"` // to recognise this phone's
+	Added    string `json:"-"`        // e.g. "8 October"
+	Topics   string `json:"-"`        // e.g. "timetable, cards"
+}
+
+// phonesJSON is the phones, for push.js to find this one among them.
+func phonesJSON(phones []NotifyPhone) string {
+	b, _ := json.Marshal(phones)
+	return string(b)
 }
 
 // NotifyEmail is the person's email for the competition, if they've given one.
@@ -38,9 +61,10 @@ templ NotifyCompetition(p NotifyPage) {
 		}
 		@problemList(p.Problems)
 		<p class="mb-4">Hear when the organiser changes something for { p.For }: one message for all of it, a few minutes after they publish, with what was and what is now.</p>
-		if !p.EmailOn {
-			<p class="has-text-grey">Emails can't be sent from here yet.</p>
-		} else {
+		if p.PushKey != "" {
+			@pushBox(p)
+		}
+		if p.EmailOn {
 			<div class="box">
 				<h2 class="title is-6 mb-2">By email</h2>
 				if p.Email.Address != "" {
@@ -94,6 +118,39 @@ templ NotifyCompetition(p NotifyPage) {
 			</div>
 		}
 	}
+}
+
+// pushBox turns on push for this phone (static/js/push.js).
+templ pushBox(p NotifyPage) {
+	<div class="box" data-push-key={ p.PushKey } data-push-action={ p.Action } data-push-phones={ phonesJSON(p.Phones) }>
+		<h2 class="title is-6 mb-2">On this phone</h2>
+		<fieldset class="field">
+			<legend class="label is-small">About</legend>
+			for _, t := range p.PushTopics {
+				<label class="checkbox is-block mb-1">
+					<input type="checkbox" name="pushTopic" value={ t.Value } checked?={ t.On }/>
+					{ t.Label }
+				</label>
+			}
+		</fieldset>
+		<button class="button is-small is-primary" type="button" data-push-on>Turn on notifications</button>
+		<p class="is-size-7 mt-2" data-push-status></p>
+		if len(p.Phones) > 0 {
+			<ul class="is-size-7 mt-2">
+				for _, ph := range p.Phones {
+					<li data-phone={ ph.ID } class="mb-1">
+						<span data-phone-name>A phone or browser added { ph.Added }</span> · { ph.Topics }
+						<form method="post" action={ templ.SafeURL(p.Action) } class="is-inline">
+							<input type="hidden" name="remove" value={ ph.ID }/>
+							<button class="button is-small is-text" type="submit" name="action" value="remove">Turn off</button>
+						</form>
+					</li>
+				}
+			</ul>
+		}
+		<p class="help mt-2">Nothing personal is kept: only the address your phone's browser gives for its notifications, deleted with the competition.</p>
+		<script defer src={ static.URL("js/push.js") }></script>
+	</div>
 }
 
 // NotifyLink is a confirm or turn-off link's page: a button, so a link

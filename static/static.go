@@ -96,3 +96,13 @@ var Version = func() string {
 	}
 	return strconv.FormatInt(time.Now().UnixNano(), 36)
 }()
+
+// Bytes is the content of the asset at path (e.g. "js/sw.js"), for the few
+// files served at fixed addresses.
+func Bytes(path string) []byte {
+	a, ok := assets[path]
+	if !ok {
+		panic("static: no asset " + path)
+	}
+	return a.data
+}

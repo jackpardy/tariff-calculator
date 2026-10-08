@@ -116,6 +116,8 @@ func routesWithPages(pages *competitionPages) http.Handler {
 	mux.HandleFunc("POST /view", handleView)
 	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
 	mux.HandleFunc("POST /tariff-sheet", handleTariffSheet)
+	mux.HandleFunc("GET /sw.js", handleServiceWorker)
+	mux.HandleFunc("GET /manifest.webmanifest", handleManifest)
 	pages.register(mux)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
