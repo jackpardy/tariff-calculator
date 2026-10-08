@@ -543,6 +543,14 @@ func (s *seeder) run(out io.Writer) error {
 	if m := regexp.MustCompile(`<option value="([^"]+)">Frank Lyons</option>`).FindStringSubmatch(page); m != nil {
 		s.post(tt+"/setup/rules", url.Values{"add": {"1"}, "kind": {"hours"}, "must": {"0"}, "person": {m[1]}, "day": {"1"}, "from": {"12:00"}})
 	}
+	// Two events are full, with a waiting list.
+	limits, limitForm := url.Values{}, s.get(admin)
+	for event, limit := range map[string]string{"BUCS L1": "12", "DMT Advanced": "17"} {
+		if m := regexp.MustCompile(`name="(limit-\d+)"[^>]*aria-label="Limit for ` + regexp.QuoteMeta(event) + `"`).FindStringSubmatch(limitForm); m != nil {
+			limits.Set(m[1], limit)
+		}
+	}
+	s.post(admin+"/limits", limits)
 	s.post(tt+"/plan", url.Values{})
 	s.post(tt+"/publish", url.Values{"on": {"1"}})
 

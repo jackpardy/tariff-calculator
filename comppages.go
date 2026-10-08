@@ -76,6 +76,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	}
 	p.registerAccess(handle)
 	p.registerFees(handle)
+	p.registerLimits(handle)
 	handle("GET /competitions/new", p.newForm)
 	handle("POST /competitions", p.create)
 	handle("GET /competitions/admin/{token}", p.dashboard)
@@ -567,11 +568,12 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	entries, err := p.st.Entries(r.Context(), c.ID)
+	all, err := p.st.Entries(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
+	entries, waiting := splitWaiting(all)
 	clubs, err := p.st.CompetitionClubs(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
@@ -598,6 +600,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	if !c.NotifyDue.IsZero() {
 		d.NotifyAt = c.NotifyDue.In(local).Format("15:04")
 	}
+	d.Waiting, d.Limits = waitingLists(c, waiting, d.Base), limitFields(c, all)
 	d.Access = access(r)
 	if d.Access.Organiser {
 		links, err := p.st.Links(r.Context(), c.ID)
@@ -706,6 +709,9 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	for i := range d.Levels {
 		d.Levels[i].Anchor, d.Levels[i].Total = "level-"+strconv.Itoa(i), totals[d.Levels[i].Name]
+		if limit := c.Limits[d.Levels[i].Name]; limit > 0 {
+			d.Levels[i].Places = fmt.Sprintf("%d of %d places", totals[d.Levels[i].Name], limit)
+		}
 		sortRows(d.Levels[i].Rows, sentAt, d.Sort)
 	}
 	render(w, r, views.CompetitionDashboard(d))
@@ -719,11 +725,12 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	entries, err := p.st.Entries(r.Context(), c.ID)
+	stored, err := p.st.Entries(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
+	entries, _ := splitWaiting(stored)
 	page := views.CardsPage{Title: "Cards · " + c.Name, Back: adminPath(r.PathValue("token"))}
 	q := r.URL.Query()
 	all := judge(c.Competition, entries)
@@ -783,11 +790,12 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	entries, err := p.st.Entries(r.Context(), c.ID)
+	stored, err := p.st.Entries(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
+	entries, _ := splitWaiting(stored)
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", fileName(c.Name)+".csv"))
 	out := csv.NewWriter(w)
@@ -1314,6 +1322,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		Competition: summary(c.Competition, p.now()), Link: origin(r) + path, JustSaved: r.URL.Query().Get("saved") == "1",
 		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
 		Placement:   placement(c, e.ID),
+		Waiting:     waitingText(p.waitingOf(r.Context(), c.ID, e.ID)),
 		Duties:      dutiesOf(c, individualKey(e.Entry.Gymnast)),
 		Day:         path + "/day",
 		VideoReview: e.VideoReview, VideoNote: e.VideoNote,

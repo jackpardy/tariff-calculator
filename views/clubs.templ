@@ -148,6 +148,7 @@ type MemberEvent struct {
 	Discipline  string
 	Name        string // the discipline's, e.g. "Synchro"
 	Status      string
+	Waiting     string // on a waiting list, and where
 	Note        string // the organiser's note
 	VideoReview string // the organiser's review of its videos
 	VideoNote   string
@@ -632,6 +633,7 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 				<span class="has-text-grey is-size-7 has-text-weight-normal">· { ev.Status }</span>
 			</h2>
 		}
+		@waitingLine(ev.Waiting)
 		@placementLine(ev.Placement)
 		@organiserNote(ev.Note)
 		@videoReviewNote(ev.VideoReview, ev.VideoNote)

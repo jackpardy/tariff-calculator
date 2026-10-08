@@ -64,6 +64,8 @@ every page answers 503.
 | `POST /competitions/admin/{token}/entries/{id}/video` | `review` (`ok`, `more`, `""`), `note` | The organiser's review of an entry's videos |
 | `POST /competitions/admin/{token}/individuals` | `on` (`1`/`0`) | Turns individual entry on or off |
 | `POST /competitions/admin/{token}/replace-link` | — | 303 to the new admin link, `?new=replaced` |
+| `POST /competitions/admin/{token}/limits` | `limit-<n>` for each event, in the competition's order (empty: none) | Sets each event's limit (waiting lists) |
+| `POST /competitions/admin/{token}/entries/{id}/let-in` | `on` (`1`/`0`) | Lets a waiting entry in over the limit, or back |
 | `GET /competitions/admin/{token}/fees` | — | Entry fees: what's charged, and each club's and individual's account |
 | `POST /competitions/admin/{token}/fees/settings` | `currency` (`GBP` or not), `fee-<discipline>`, `club`, `instructions` | Sets the fees |
 | `POST /competitions/admin/{token}/fees/payments` | `payer` (`club:<id>` or `entry:<id>`), `amount`, `note` | Records a payment |
