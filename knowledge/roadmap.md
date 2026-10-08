@@ -137,30 +137,16 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 # Next steps (2026-10-08)
 
 **Tried with an ISTO organiser (2026-10-08).** Their two big asks were
-approving coaches and removing entries, so those come next, after the
-biggest priority: one panel for all of an event's flights. The rest are
-roughly in the order they'd help ISTO.
+approving coaches and removing entries, built that day after the biggest
+priority, one panel for all of an event's flights (all but splitting an
+event by routine, now 10).
 
-1. **One panel for a whole event** (decided 2026-10-07; designed in
-   [ADR 0006](../docs/adr/0006-one-panel-per-event.md); runs and
-   one panel per run built 2026-10-08; splitting by routine is left). Everyone on an
-   event's panel, recorders and marshals too, stays for all of its flights,
-   so every gymnast in it is judged by the same people (the organiser can
-   let recorders, or marshals, change between flights). For that, the
-   timetable runs an event's flights **back to back on one area**, a must
-   rather than today's preference, not across lunch unless the organiser
-   allows it, and the rota fills the panel once for the
-   event instead of flight by flight. An event too big for one panel in the
-   time there is is reported with fixes, as anything else that doesn't fit.
-   Rarely, and only if the organiser chooses, an event can be split by
-   routine instead: everyone does their first routine on one panel and
-   their second on another, each panel's officials staying for their
-   round. Today both rounds are one flight and the rota only prefers to keep
-   a panel together through an area's flights, so an event's flights can
-   land on different days and panels with different judges. Also a fix:
-   **number flights in the order they run** (BUCS L7 Men's "flight 2 of 5"
-   now runs before its flight 1).
-2. **Approved coaches** (decided 2026-10-07; designed in
+**Order (2026-10-08).** Built first (1–5), then in this order: going live
+(6), notifications (7), the "what ifs'" missing checks (8), saying what a
+manual change breaks (9), then splitting an event by routine (10) and the
+rest.
+
+1. **Approved coaches** (decided 2026-10-07; designed in
    [ADR 0007](../docs/adr/0007-approved-coaches.md); built 2026-10-08).
    Where a competition needs
    coach sign-off, the organiser can also require coaches to be
@@ -179,7 +165,7 @@ roughly in the order they'd help ISTO.
    coach is removed; an individual's goes with the competition. Only the
    organisers it's sent to see it (see
    [open questions](open-questions.md#approved-coaches)).
-3. **Organisers remove entries** (decided and built 2026-10-08). The organiser ticks
+2. **Organisers remove entries** (decided and built 2026-10-08). The organiser ticks
    entries on the dashboard, one by one or a whole club at once, and either
    **removes** them, so they can't be sent again, or puts them **on hold**,
    asking for changes: the club or individual changes the entry and sends
@@ -189,7 +175,7 @@ roughly in the order they'd help ISTO.
    timetabled, and stay in a list the organiser can **restore** them from.
    Today only the club or the gymnast can withdraw an entry; the organiser
    can only take someone out of a flight.
-4. **Find your way round the entries** (asked and built 2026-10-08). The organiser's
+3. **Find your way round the entries** (asked and built 2026-10-08). The organiser's
    dashboard is one long table per level; with hundreds of entries it needs
    more ways in:
    - **collapse and expand** each level (or event), and jump to one from a
@@ -202,9 +188,12 @@ roughly in the order they'd help ISTO.
      stay in the link so a view can be shared or kept;
    - **sort** a level's table by gymnast, club, sent or coach;
    - counts that update with the filters ("12 of 96 shown").
+   Levels start collapsed, with Expand all and Collapse all, and the
+   browser remembers which were left open; a search or filter opens the
+   levels it finds people in.
    The same filters could serve the printed cards and the CSV ("print what
    I'm looking at").
-5. **Personal and club timetables** (asked and built 2026-10-08). A timetable laid
+4. **Personal and club timetables** (asked and built 2026-10-08). A timetable laid
    out like the panel timeline (days side by side, a column per area, time
    running down evenly) for:
    - **a person**: everywhere they are, competing or officiating, picked
@@ -215,29 +204,19 @@ roughly in the order they'd help ISTO.
    Both printable. Today "My competition" lists a person's flights and shows
    the whole timetable with them in bold, area by area rather than on one
    time scale, and a club has no timetable of its own.
-6. **Draft and published timetables, and applying a "what if"** (decided
-   2026-10-07; drafts, officials in them, and keeping a "what if" built
-   2026-10-08; the "what ifs'" missing checks still to do). Once a timetable is published, attendees see that copy and
-   the organiser works on a **draft**: every change (moving a flight,
-   redrawing an order, planning again, keeping a delay's or a leaving
-   official's result) goes into the draft, and **Publish** makes it what
-   attendees see. The officials go in the draft too (2026-10-08): assigning
-   officials again or changing a seat waits for **Publish** like any other
-   change, so officials see their duties change only then. Today the
-   published timetable is the one being edited, so every change goes live
-   straight away. Also close the gaps the "what ifs" don't check yet:
-   coaches in two places, the organiser's rules about events and people,
-   officials on blocked time, and rest as a must.
-7. **Say what a manual change breaks, and how to fix it** (proposed
-   2026-10-08). Today a manual change (moving a flight or a gymnast, giving
-   someone a seat) is made, and what it broke is listed afterwards under
-   "Manual changes have broken". Instead, making a change says at once what
-   it causes ("Eoin Hughes would officiate BUCS L7 Men and Tumbling
-   Intermediate Women at once") and offers fixes where there are some
-   (someone free to take Eoin's tumbling seat; another time for the
-   flight), to apply or to make the change anyway. With drafts (4), nothing
-   reaches attendees until it's published.
-8. **Set up in private, go live when ready** (decided 2026-10-07). A new
+5. **Synchro partners see the pair's entry** (decided and built 2026-10-08). A synchro
+   entry belongs to the gymnast who entered it; today the partner only
+   confirms they're the partner, and neither they, their coach nor their
+   club sees it again. Once the partner confirms, the entry shows in the
+   partner's own entries (a member's page, or an individual's), and their
+   coach and their club's comp sec see it on their pages, marked as entered
+   by the partner (and their club, if it's another). The entrant still
+   enters and changes it; for the partner's side it's to see, as with any
+   entry: its checks, sign-off and, once published, their flight. Also warn
+   both gymnasts on their own pages, not only the organiser, when a pair is
+   at the wrong level. ("The lower level" for a pair a level apart means the
+   easier one, as built: confirmed 2026-10-07.)
+6. **Set up in private, go live when ready** (decided 2026-10-07). A new
    competition starts **private**: the organiser sets up levels, events,
    officials and the timetable, and the club and individual entry links
    show the competition's name, date and when entries open, so they can be
@@ -246,7 +225,7 @@ roughly in the order they'd help ISTO.
    a live competition private again to pause entries, keeping those already
    made. Today a competition takes entries from the moment it's created
    until its deadline.
-9. **Notifications, by opting in** (decided 2026-10-07). Members,
+7. **Notifications, by opting in** (decided 2026-10-07). Members,
    individuals, club comp secs and coaches can each ask to be told when
    something affects them: a flight they're in moves (time, area or day, or
    its warm-up), their officiating duties change, or their card is checked
@@ -271,20 +250,49 @@ roughly in the order they'd help ISTO.
    competition, with a tick box, "I'm 18 or over, or this is a parent's
    email". Push stores nothing personal, so anyone can use it (see
    [open questions](open-questions.md#notifications)).
-10. **Link the calculator to the competition tools.** Nothing on the routine
+8. **Draft and published timetables, and applying a "what if"** (decided
+   2026-10-07; drafts, officials in them, and keeping a "what if" built
+   2026-10-08; the "what ifs'" missing checks still to do). Once a timetable is published, attendees see that copy and
+   the organiser works on a **draft**: every change (moving a flight,
+   redrawing an order, planning again, keeping a delay's or a leaving
+   official's result) goes into the draft, and **Publish** makes it what
+   attendees see. The officials go in the draft too (2026-10-08): assigning
+   officials again or changing a seat waits for **Publish** like any other
+   change, so officials see their duties change only then. Today the
+   published timetable is the one being edited, so every change goes live
+   straight away. Also close the gaps the "what ifs" don't check yet:
+   coaches in two places, the organiser's rules about events and people,
+   officials on blocked time, and rest as a must.
+9. **Say what a manual change breaks, and how to fix it** (proposed
+   2026-10-08). Today a manual change (moving a flight or a gymnast, giving
+   someone a seat) is made, and what it broke is listed afterwards under
+   "Manual changes have broken". Instead, making a change says at once what
+   it causes ("Eoin Hughes would officiate BUCS L7 Men and Tumbling
+   Intermediate Women at once") and offers fixes where there are some
+   (someone free to take Eoin's tumbling seat; another time for the
+   flight), to apply or to make the change anyway. With drafts (8), nothing
+   reaches attendees until it's published.
+10. **One panel for a whole event** (decided 2026-10-07; designed in
+   [ADR 0006](../docs/adr/0006-one-panel-per-event.md); runs and
+   one panel per run built 2026-10-08; splitting by routine is left). Everyone on an
+   event's panel, recorders and marshals too, stays for all of its flights,
+   so every gymnast in it is judged by the same people (the organiser can
+   let recorders, or marshals, change between flights). For that, the
+   timetable runs an event's flights **back to back on one area**, a must
+   rather than today's preference, not across lunch unless the organiser
+   allows it, and the rota fills the panel once for the
+   event instead of flight by flight. An event too big for one panel in the
+   time there is is reported with fixes, as anything else that doesn't fit.
+   Rarely, and only if the organiser chooses, an event can be split by
+   routine instead: everyone does their first routine on one panel and
+   their second on another, each panel's officials staying for their
+   round. Today both rounds are one flight and the rota only prefers to keep
+   a panel together through an area's flights, so an event's flights can
+   land on different days and panels with different judges. Also a fix:
+   **number flights in the order they run** (BUCS L7 Men's "flight 2 of 5"
+   now runs before its flight 1).
+11. **Link the calculator to the competition tools.** Nothing on the routine
    builder leads to `/competitions` yet.
-11. **Synchro partners see the pair's entry** (decided and built 2026-10-08). A synchro
-   entry belongs to the gymnast who entered it; today the partner only
-   confirms they're the partner, and neither they, their coach nor their
-   club sees it again. Once the partner confirms, the entry shows in the
-   partner's own entries (a member's page, or an individual's), and their
-   coach and their club's comp sec see it on their pages, marked as entered
-   by the partner (and their club, if it's another). The entrant still
-   enters and changes it; for the partner's side it's to see, as with any
-   entry: its checks, sign-off and, once published, their flight. Also warn
-   both gymnasts on their own pages, not only the organiser, when a pair is
-   at the wrong level. ("The lower level" for a pair a level apart means the
-   easier one, as built: confirmed 2026-10-07.)
 12. **Results history** (competitions 6): import TrampOnline and TScore
    results CSVs for personal bests, progression and next year's levels.
 13. **Clubs:** the TrampOnline entry export (clubs 1), then skill tracking
