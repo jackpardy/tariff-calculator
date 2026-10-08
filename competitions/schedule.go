@@ -660,8 +660,19 @@ func (p *planner) placeRun(run []ScheduledFlight, people, coaches map[string][]s
 				continue
 			}
 			cost := 0.0
+			all := map[string]bool{}
 			for k, f := range cand {
 				cost += p.score(f, whos[k], coacheds[k])
+				for person := range whos[k] {
+					all[person] = true
+				}
+			}
+			// One panel judges the whole run: too few of its judges free
+			// for all of it costs too.
+			if p.staff != nil {
+				span := cand[0]
+				span.End = cand[len(cand)-1].End
+				cost += 30 * float64(p.short(span, interval{span.Day, span.Start, span.End}, all))
 			}
 			if cost < bestCost {
 				bestCost, best = cost, cand

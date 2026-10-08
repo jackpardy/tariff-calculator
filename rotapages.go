@@ -247,28 +247,56 @@ func dutiesOf(c store.Competition, key string) []string {
 	return dutiesIn(*t, key)
 }
 
-// dutiesIn are a person's seats, in time order.
+// dutiesIn are a person's seats, in time order, one line for the flights of
+// an event they hold a seat for, e.g. "Friday 09:30–15:15 · Panel 2 · BUCS
+// L7 Men · all 5 flights · Execution judge".
 func dutiesIn(s competitions.Schedule, key string) []string {
+	type duty struct {
+		f    competitions.ScheduledFlight
+		role string
+		n    int // flights in a row, of the same event, in the same seat
+		last int // the last's number
+	}
 	jobs := s.Staffed()
 	slices.SortStableFunc(jobs, func(a, b competitions.ScheduledFlight) int { return (a.Day*1440 + a.Start) - (b.Day*1440 + b.Start) })
-	var out []string
+	var held []duty
 	for _, f := range jobs {
 		for _, d := range f.Officials {
-			if d.Person == key {
-				out = append(out, dutyLine(s, f, d.Role))
+			if d.Person != key {
+				continue
 			}
+			if k := len(held) - 1; k >= 0 && held[k].f.Of > 1 && held[k].f.Event() == f.Event() && held[k].f.Area == f.Area && held[k].f.Day == f.Day &&
+				held[k].role == d.Role && held[k].last+1 == f.Number {
+				held[k].f.End, held[k].n, held[k].last = f.End, held[k].n+1, f.Number
+				continue
+			}
+			held = append(held, duty{f, d.Role, 1, f.Number})
 		}
+	}
+	var out []string
+	for _, h := range held {
+		out = append(out, dutyLine(s, h.f, h.role, h.n, h.last))
 	}
 	return out
 }
 
-// dutyLine says when, where and what a duty is.
-func dutyLine(s competitions.Schedule, f competitions.ScheduledFlight, role string) string {
+// dutyLine says when, where and what a duty is, over n of an event's
+// flights up to its flight last.
+func dutyLine(s competitions.Schedule, f competitions.ScheduledFlight, role string, n, last int) string {
 	day := ""
 	if f.Day < len(s.Setup.Days) {
 		day = s.Setup.Days[f.Day].Name + " "
 	}
-	return fmt.Sprintf("%s%s–%s · %s · %s · %s", day, competitions.Clock(f.Start), competitions.Clock(f.End), f.Area, f.Name(), competitions.RoleName(role))
+	name := f.Name()
+	switch {
+	case n == 2 && n == f.Of:
+		name = f.Event() + " · both flights"
+	case n > 1 && n == f.Of:
+		name = fmt.Sprintf("%s · all %d flights", f.Event(), n)
+	case n > 1:
+		name = fmt.Sprintf("%s · flights %d–%d of %d", f.Event(), last-n+1, last, f.Of)
+	}
+	return fmt.Sprintf("%s%s–%s · %s · %s · %s", day, competitions.Clock(f.Start), competitions.Clock(f.End), f.Area, name, competitions.RoleName(role))
 }
 
 // rotaSheet is each person's duties, for the noticeboard.

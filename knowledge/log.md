@@ -1,6 +1,15 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Officials rota](features/competition-entries.md#officials-rota-adr-0005-step-5)
+  (ADR 0006 step 3): each event's panel is filled once, with people free
+  for all its flights, and judges all of them; the organiser can let
+  recorders, or marshals, change between flights (each on its own). Seats
+  no one could take are counted a seat per event ("on 3 panels"); a seat
+  given by hand goes on the event's other flights; the officials rota gives
+  one line per event ("all 5 flights"); and **What if an official has to
+  leave?** fills each seat for the rest of the event, with one person.
+  Planning prefers times when an event's judges are free for all of it.
 * **Update**: [Timetable](features/competition-entries.md#timetable-adr-0005-step-4)
   runs (ADR 0006 step 2): each event's flights are planned back to back on
   one area and day, numbered in the order they run, and by default all

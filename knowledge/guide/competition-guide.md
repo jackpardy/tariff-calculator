@@ -106,7 +106,10 @@ and anyone you add.
   judges) plus a recorder and a marshal; change any of it. Where there's no
   machine measuring horizontal displacement, give trampoline 2 **HD** judges.
   Synchro has 2 **Sync** (synchronisation) judges to start with; set 0 if a
-  machine measures synchronisation.
+  machine measures synchronisation. A panel judges all of an event's
+  flights, so every gymnast in it is scored by the same people; tick
+  **Recorders can change** or **Marshals can change** to let those seats
+  change between the event's flights.
   Choose who may
   judge: anyone up to the level they say, only levels below their own, or only
   people you mark qualified. "Up to" and "below" go by the **Order of levels**
@@ -158,16 +161,18 @@ has a starting value you can change.
    flight, or the club can bring another coach.
    Planning also fills every panel from the people who've offered to judge
    and help (see **Officials**): never someone competing or on another panel
-   at the time, and only in roles they may take. Clubs share judging their
-   own gymnasts fairly, and a panel stays together on its area.
+   at the time, and only in roles they may take. Each event's panel is
+   filled once, with people free for all of its flights, and judges all of
+   them. Clubs share judging their own gymnasts fairly.
 7. Adjust by hand: **Move event** moves all of an event's flights together
    to another day or area, **Earlier** swaps a flight with the one before it
    in its event, **Redraw order** draws a flight's running order again, and
    **move** puts a gymnast in another flight. If an event's flights end up
    apart, or either side of a break you haven't allowed, it's listed as a
-   problem. Entries made after planning are listed for you to place. Changing the setup asks you to **Plan** again.
-   Open a flight's **Panel** to give a seat to someone else; **Assign
-   officials again** redoes every panel and keeps the flights.
+   problem. Entries made after planning are listed for you to place.
+   Changing the setup asks you to **Plan** again. Open a flight's **Panel**
+   to give a seat to someone else, for all the event's flights they had it
+   for; **Assign officials again** redoes every panel and keeps the flights.
 8. Under **Your rules**, **Officials: who does what** says who does what, as a
    must or a prefer: e.g. Mary **is** Chair of judges at Elite Women, Tom
    **doesn't officiate**, Ann **officiates only** on Saturday from 12:00. Then
@@ -197,9 +202,10 @@ it's to help you decide what to do.
 
 **What if an official has to leave?** (on the timetable page, once planned):
 choose who, the day and time they go, and whether for good. Each of their
-seats is filled by someone free, or by moving others round: a judge on the
-panel moving up to chair, or someone moving across from another panel, their
-seat filled in turn. Choose **easiest to fill** (the gap ends at a seat many
+seats is filled for the rest of its event, by one person: someone free for
+all of it, or by moving others round: a judge on the panel moving up to
+chair, or someone moving across from another panel, their seat filled in
+turn. Choose **easiest to fill** (the gap ends at a seat many
 can take, such as recorder) or **fewest changes**. Nothing is changed.
 
 **Simulate** (on the timetable page) tries numbers before entries arrive, or

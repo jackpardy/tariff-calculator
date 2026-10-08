@@ -691,6 +691,9 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 			</div>
 			<button class="button is-small" type="submit">Set</button>
 		</form>
+		if it.InRun {
+			<p class="help">A seat is the event's: the change goes on its other flights that had the same person.</p>
+		}
 	</details>
 }
 
@@ -1055,10 +1058,10 @@ templ TimelinePrint(t Timeline) {
 
 // emptySeats counts seats no one could take and the flights they're on, e.g.
 // "11, on 3 flights".
-func emptySeats(seats, flights int) string {
-	out := fmt.Sprintf("%d, on %d flights", seats, flights)
-	if flights == 1 {
-		out = fmt.Sprintf("%d, on 1 flight", seats)
+func emptySeats(seats, panels int) string {
+	out := fmt.Sprintf("%d, on %d panels", seats, panels)
+	if panels == 1 {
+		out = fmt.Sprintf("%d, on 1 panel", seats)
 	}
 	return out
 }
