@@ -70,6 +70,8 @@ type Dashboard struct {
 	LinkList      []LinkView
 	Concerns      []ConcernView
 	OpenConcerns  int
+	Waiting       []WaitingList // each limited event's waiting list
+	Limits        []LimitField
 	NotifyAt      string // when the changes waiting are told, e.g. "14:32"; "" for none
 	NoWait        bool   // no wait on the competition's days
 	LiveTime      string
@@ -120,6 +122,7 @@ type DashboardLevel struct {
 	Name   string
 	Anchor string // its id on the page, to jump to
 	Total  int    // its entries, before the filters
+	Places string // with a limit, e.g. "88 of 90 places"
 	Rows   []DashboardRow
 }
 
@@ -232,6 +235,7 @@ type EntryOption struct {
 
 // EntryPage is an individual's own entry, through their personal link.
 type EntryPage struct {
+	Waiting     string // on a waiting list, and where
 	Competition CompetitionSummary
 	Link        string // their personal link, as a full URL
 	JustSaved   bool
@@ -512,6 +516,7 @@ templ CompetitionDashboard(d Dashboard) {
 					<button class="button is-small" type="submit">Change</button>
 				</div>
 			</form>
+			@limitsForm(d.Base, d.Limits)
 			<form method="post" action={ templ.SafeURL(d.Base + "/events") } class="mb-3">
 				@otherEvents(d.Events)
 				<button class="button is-small" type="submit">Change events</button>
@@ -635,6 +640,9 @@ templ CompetitionDashboard(d Dashboard) {
 			<details class="comp-dash-level" id={ l.Anchor } data-level={ l.Name } data-remember?={ !filtered(d) } open?={ filtered(d) && len(l.Rows) > 0 }>
 			<summary class="title is-5 mt-5">
 				{ l.Name } <span class="has-text-grey is-size-6">({ shownCount(d, l) })</span>
+				if l.Places != "" {
+					<span class="tag is-light is-size-7 has-text-weight-normal ml-1">{ l.Places }</span>
+				}
 				if len(l.Rows) > 0 {
 					<a class="is-size-7 has-text-weight-normal ml-2" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) }>Print this level</a>
 				}
@@ -737,6 +745,7 @@ templ CompetitionDashboard(d Dashboard) {
 			}
 			</details>
 		}
+		@waitingBox(d.Base, d.Waiting, d.Access.Settings)
 		if d.Access.Remove {
 			@removedList(d.Base, d.Removed)
 		}
@@ -1190,6 +1199,7 @@ templ CompetitionEntryPage(p EntryPage) {
 		@dayLink(p.Day)
 		@feesLine(p.Fees)
 		@timelineLinks(p.Timeline, "", p.Notify)
+		@waitingLine(p.Waiting)
 		@placementLine(p.Placement)
 		@dutiesBox(p.Duties, p.ScoreSheets)
 		if p.Checked {

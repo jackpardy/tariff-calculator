@@ -62,6 +62,7 @@ type entryState struct {
 	Checked  bool     `json:"checked,omitempty"` //
 	Note     string   `json:"note,omitempty"`    // the organiser's note
 	Removal  string   `json:"removal,omitempty"` // store.Removed or store.Held
+	Waiting  int      `json:"waiting,omitempty"` // its place on a waiting list
 }
 
 // state is what's live for a competition now.
@@ -80,7 +81,7 @@ func (n *notifier) state(ctx context.Context, c store.Competition) (notifyState,
 	for _, e := range all {
 		es := entryState{
 			Gymnasts: e.Entry.Gymnasts(), Event: e.Entry.Level, Keys: keys[e.ID], Club: e.ClubID,
-			Checked: !e.CheckedAt.IsZero(), Note: e.Note, Removal: e.Removal,
+			Checked: !e.CheckedAt.IsZero(), Note: e.Note, Removal: e.Removal, Waiting: e.Waiting,
 		}
 		if t := c.Published; t != nil {
 			if i, ok := t.Find(e.ID); ok {
@@ -199,6 +200,10 @@ func changes(was, now notifyState) []change {
 			continue // a new entry: nothing about its card to tell yet
 		}
 		switch {
+		case b.Waiting > 0 && e.Waiting == 0 && e.Removal == "":
+			add(store.AboutCards, e.Event+": in, off the waiting list")
+		case b.Waiting == 0 && e.Waiting > 0 && e.Removal == "":
+			add(store.AboutCards, e.Event+": on the waiting list ("+waitingWord(e.Waiting)+")")
 		case e.Removal != b.Removal && e.Removal == store.Removed:
 			add(store.AboutCards, e.Event+": removed by the organiser")
 		case e.Removal != b.Removal && e.Removal == store.Held:

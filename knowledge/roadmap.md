@@ -154,7 +154,8 @@ features that show that, in this order:
    [entry fees](features/competition-entries.md#entry-fees)): per entry by
    discipline and per club, payments recorded, invoices for clubs and
    individuals.
-3. **Limits per level, with a waiting list.**
+3. **Limits per level, with a waiting list** (built 2026-10-08,
+   [limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists)).
 4. **The day itself,** as far as it goes: flights started and finished by
    the marshal, check-in and scratches, messages from the organisers' desk,
    a "now on" screen, pages that work offline, add to calendar.

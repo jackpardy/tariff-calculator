@@ -1543,3 +1543,56 @@ func TestOldSignoffsMatchedByName(t *testing.T) {
 		}
 	}
 }
+
+func TestWaitingLists(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp := competition()
+	c, _, _ := s.CreateCompetition(ctx, comp)
+	var tokens []string
+	for _, name := range []string{"Ann", "Bea", "Cat", "Dee"} {
+		_, token, err := s.AddIndividualEntry(ctx, c.ID, entry(name))
+		must(t, err)
+		tokens = append(tokens, token)
+		now = now.Add(time.Minute)
+	}
+	places := func() map[string]int {
+		t.Helper()
+		entries, err := s.Entries(ctx, c.ID)
+		must(t, err)
+		out := map[string]int{}
+		for _, e := range entries {
+			out[e.Entry.Gymnast] = e.Waiting
+		}
+		return out
+	}
+	if p := places(); p["Dee"] != 0 {
+		t.Error("no limit, no waiting")
+	}
+	must(t, s.SetLimits(ctx, c.ID, map[string]int{"BUCS L3": 2}))
+	if p := places(); p["Ann"] != 0 || p["Bea"] != 0 || p["Cat"] != 1 || p["Dee"] != 2 {
+		t.Errorf("first come, first in: %v", p)
+	}
+	// Changing an entry keeps its place.
+	must(t, s.ReplaceIndividualEntry(ctx, tokens[0], entry("Ann")))
+	if p := places(); p["Ann"] != 0 || p["Cat"] != 1 {
+		t.Errorf("Ann keeps her place: %v", p)
+	}
+	// Let in over the limit: no one else moves.
+	entries, _ := s.Entries(ctx, c.ID)
+	var dee string
+	for _, e := range entries {
+		if e.Entry.Gymnast == "Dee" {
+			dee = e.ID
+		}
+	}
+	must(t, s.LetIn(ctx, c.ID, dee, true))
+	if p := places(); p["Dee"] != 0 || p["Cat"] != 1 || p["Bea"] != 0 {
+		t.Errorf("Dee let in over the limit: %v", p)
+	}
+	// Bea withdraws: Cat moves up.
+	must(t, s.WithdrawIndividualEntry(ctx, tokens[1]))
+	if p := places(); p["Cat"] != 0 {
+		t.Errorf("Cat moves up: %v", p)
+	}
+}

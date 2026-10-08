@@ -49,7 +49,7 @@ func (p *competitionPages) registerTimetable(handle func(string, http.HandlerFun
 func live(entries []store.Entry) []store.Entry {
 	var out []store.Entry
 	for _, e := range entries {
-		if !e.Withdrawn {
+		if !e.Withdrawn && e.Waiting == 0 {
 			out = append(out, e)
 		}
 	}

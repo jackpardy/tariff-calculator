@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"tariffCalculator/competitions"
@@ -60,15 +62,15 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
-	var deadline, levels, created, video, liveAt, notifyDue, fees string
+	var deadline, levels, created, video, liveAt, notifyDue, fees, limits string
 	var split, timetable, events, officials, coachLevels, publishedTimetable string
 	var ordered bool
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees); err != nil {
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits); err != nil {
 		return Competition{}, notFound(err)
 	}
 	if publishedTimetable != "" {
@@ -76,6 +78,9 @@ func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 		if err := json.Unmarshal([]byte(publishedTimetable), c.Published); err != nil {
 			return Competition{}, fmt.Errorf("reading competition %s's published timetable: %w", c.ID, err)
 		}
+	}
+	if err := json.Unmarshal([]byte(limits), &c.Limits); err != nil {
+		return Competition{}, fmt.Errorf("reading competition %s's limits: %w", c.ID, err)
 	}
 	if err := json.Unmarshal([]byte(fees), &c.Fees); err != nil {
 		return Competition{}, fmt.Errorf("reading competition %s's fees: %w", c.ID, err)
@@ -204,6 +209,13 @@ type Entry struct {
 	PartnerConfirmed bool
 	PartnerMemberID  string // the confirmed partner, as a club's member
 	PartnerEntryID   string // or as an individual, by their entry
+	// EnteredAt is when it first came in, for its place on a waiting list:
+	// kept through sending it again, unless its level changes. LetIn is the
+	// organiser letting it in over its event's limit; Waiting is its place on
+	// the waiting list (1 first), 0 for in (roadmap 2026-10-08).
+	EnteredAt time.Time
+	LetIn     bool
+	Waiting   int
 }
 
 // People are the entry's people, by a key that's the same wherever the same
@@ -268,8 +280,74 @@ func (e Entry) Checked() bool { return !e.CheckedAt.IsZero() }
 // Entries are everything entered for a competition, but those the organiser
 // has removed or holds: clubs' entries by club, then individuals', each by
 // gymnast.
+// Each says whether it's waiting (Waiting), where the competition limits
+// its event.
 func (s *Store) Entries(ctx context.Context, competitionID string) ([]Entry, error) {
-	return s.entriesWhere(ctx, `competition_id = $1 AND removal = ''`, competitionID)
+	entries, err := s.entriesWhere(ctx, `competition_id = $1 AND removal = ''`, competitionID)
+	if err != nil {
+		return nil, err
+	}
+	var limits string
+	if err := s.db.QueryRowContext(ctx, `SELECT limits FROM competitions WHERE id = $1`, competitionID).Scan(&limits); err != nil {
+		return nil, notFound(err)
+	}
+	var byEvent map[string]int
+	if err := json.Unmarshal([]byte(limits), &byEvent); err != nil {
+		return nil, fmt.Errorf("reading competition %s's limits: %w", competitionID, err)
+	}
+	markWaiting(byEvent, entries)
+	return entries, nil
+}
+
+// markWaiting sets each entry's place on its event's waiting list: where an
+// event has a limit, its entries (not withdrawn) by when they first came in,
+// up to the limit, are in, and the others wait, in that order; those the
+// organiser lets in are in over the limit.
+func markWaiting(limits map[string]int, entries []Entry) {
+	if len(limits) == 0 {
+		return
+	}
+	byEvent := map[string][]int{}
+	for i, e := range entries {
+		if limit := limits[e.Entry.Event()]; limit > 0 && !e.Withdrawn {
+			byEvent[e.Entry.Event()] = append(byEvent[e.Entry.Event()], i)
+		}
+	}
+	for event, idx := range byEvent {
+		places := limits[event]
+		var queue []int // those let in are over the limit, so take no place
+		for _, i := range idx {
+			if !entries[i].LetIn {
+				queue = append(queue, i)
+			}
+		}
+		slices.SortStableFunc(queue, func(a, b int) int {
+			if c := entries[a].EnteredAt.Compare(entries[b].EnteredAt); c != 0 {
+				return c
+			}
+			return strings.Compare(entries[a].ID, entries[b].ID)
+		})
+		for n, i := range queue {
+			if n >= places {
+				entries[i].Waiting = n - places + 1
+			}
+		}
+	}
+}
+
+// SetLimits changes the competition's limits, by event (0 or missing: no
+// limit).
+func (s *Store) SetLimits(ctx context.Context, competitionID string, limits map[string]int) error {
+	data, err := json.Marshal(limits)
+	if err != nil {
+		return err
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET limits = $1 WHERE id = $2`, string(data), competitionID))
+}
+
+// LetIn lets an entry in over its event's limit, or takes that back.
+func (s *Store) LetIn(ctx context.Context, competitionID, id string, on bool) error {
+	return affected(s.db.ExecContext(ctx, `UPDATE entries SET let_in = $1 WHERE competition_id = $2 AND id = $3`, on, competitionID, id))
 }
 
 // entriesWhere are the entries meeting a condition, by club then gymnast.
@@ -277,7 +355,7 @@ func (s *Store) entriesWhere(ctx context.Context, where string, args ...any) ([]
 	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
 		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
 			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id AND me.discipline = entries.discipline), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
-		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent
+		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent, entered_at, let_in
 		FROM entries WHERE `+where+`
 		ORDER BY individual, club_name, gymnast, id`, args...)
 	if err != nil {
@@ -298,16 +376,16 @@ func (s *Store) entriesWhere(ctx context.Context, where string, args ...any) ([]
 // scanEntry reads a row of entries, as Entries selects it.
 func scanEntry(row interface{ Scan(...any) error }) (Entry, error) {
 	var e Entry
-	var entry, sent, checked, signed string
+	var entry, sent, checked, signed, entered string
 	var counts bool
-	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach, &e.PartnerLink, &e.PartnerConfirmed, &e.PartnerMemberID, &e.PartnerEntryID, &e.SignedCoach, &counts, &e.Removal, &e.RemovalNote, &e.RemovalTo, &e.Resent); err != nil {
+	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach, &e.PartnerLink, &e.PartnerConfirmed, &e.PartnerMemberID, &e.PartnerEntryID, &e.SignedCoach, &counts, &e.Removal, &e.RemovalNote, &e.RemovalTo, &e.Resent, &entered, &e.LetIn); err != nil {
 		return Entry{}, notFound(err)
 	}
 	e.Unapproved = signed != "" && !counts
 	if err := json.Unmarshal([]byte(entry), &e.Entry); err != nil {
 		return Entry{}, fmt.Errorf("reading entry %s: %w", e.ID, err)
 	}
-	e.SentAt, e.CheckedAt, e.SignedAt = parseTime(sent), parseTime(checked), parseTime(signed)
+	e.SentAt, e.CheckedAt, e.SignedAt, e.EnteredAt = parseTime(sent), parseTime(checked), parseTime(signed), parseTime(entered)
 	return e, nil
 }
 
@@ -359,8 +437,8 @@ func (s *Store) AddIndividualEntry(ctx context.Context, competitionID string, e 
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_name, individual, gymnast, token_hash, entry, sent_at, signoff_token, signoff_hash,
-			discipline, partner_token, partner_hash)
-			VALUES ($1, $2, '', TRUE, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, out.ID, competitionID, e.Gymnast, hash(token), string(data), out.SentAt.Format(timeLayout),
+			discipline, partner_token, partner_hash, entered_at)
+			VALUES ($1, $2, '', TRUE, $3, $4, $5, $6, $7, $8, $9, $10, $11, $6)`, out.ID, competitionID, e.Gymnast, hash(token), string(data), out.SentAt.Format(timeLayout),
 			out.SignoffLink, hash(out.SignoffLink), e.Discipline, out.PartnerLink, nullHash(out.PartnerLink)); err != nil {
 			return err
 		}
@@ -374,7 +452,7 @@ func (s *Store) AddIndividualEntry(ctx context.Context, competitionID string, e 
 
 // IndividualEntry is the entry an individual's personal link opens.
 func (s *Store) IndividualEntry(ctx context.Context, token string) (Entry, error) {
-	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE, COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent
+	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE, COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent, entered_at, let_in
 		FROM entries WHERE token_hash = $1`, hash(token)))
 }
 
@@ -400,6 +478,7 @@ func (s *Store) ReplaceIndividualEntry(ctx context.Context, token string, e comp
 			return err
 		}
 		return affected(tx.ExecContext(ctx, `UPDATE entries SET entry = $1, gymnast = $2, sent_at = $3, discipline = $5,
+			entered_at = CASE WHEN discipline = $5 AND json_extract(entry, '$.level') = json_extract($1, '$.level') THEN entered_at ELSE $3 END,
 			resent = resent OR (removal = 'held' AND entry <> $1),
 			checked_at = CASE WHEN entry = $1 THEN checked_at ELSE NULL END,
 			video_review = CASE WHEN entry = $1 THEN video_review ELSE '' END,
@@ -470,7 +549,7 @@ func (s *Store) CompetitionEntry(ctx context.Context, competitionID, id string) 
 	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
 		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
 			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id AND me.discipline = entries.discipline), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
-		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent
+		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent, entered_at, let_in
 		FROM entries WHERE competition_id = $1 AND id = $2`, competitionID, id))
 }
 
@@ -526,7 +605,7 @@ func (s *Store) SetSignoff(ctx context.Context, id string, on bool) error {
 // EntryBySignoffLink is the individual's entry a coach's sign-off link opens.
 func (s *Store) EntryBySignoffLink(ctx context.Context, token string) (Entry, error) {
 	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE,
-		COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent
+		COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent, entered_at, let_in
 		FROM entries WHERE signoff_hash = $1`, hash(token)))
 }
 

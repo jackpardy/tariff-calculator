@@ -443,6 +443,15 @@ var migrations = []string{
 		who            TEXT NOT NULL
 	);
 	CREATE INDEX payments_competition ON payments (competition_id, payer);`,
+
+	// 21: limits per event with a waiting list (roadmap 2026-10-08): each
+	// competition's limits, when each entry first came in (kept through
+	// sending again, unless its level changes), and those the organiser lets
+	// in over the limit.
+	`ALTER TABLE competitions ADD COLUMN limits TEXT NOT NULL DEFAULT '{}';
+	ALTER TABLE entries ADD COLUMN entered_at TEXT NOT NULL DEFAULT '';
+	UPDATE entries SET entered_at = sent_at;
+	ALTER TABLE entries ADD COLUMN let_in BOOLEAN NOT NULL DEFAULT FALSE;`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

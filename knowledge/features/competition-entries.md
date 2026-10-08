@@ -52,6 +52,25 @@ the organisers only; the organiser and co-organisers mark each
 **Resolved**, with a note. The demo has helpers' links (printed by `demo`),
 three cards checked and two concerns.
 
+## Limits and waiting lists
+
+Under Links and settings, **Limits and waiting lists** sets how many
+entries each event takes (empty: no limit), showing how many have entered
+(roadmap 2026-10-08). Once an event is full, later entries wait, in the
+order they first came in (`entered_at`: kept when an entry is sent or
+changed again, reset if its level changes, so switching from a quiet
+level doesn't jump the queue). `Store.Entries` marks each entry's place
+(`Waiting`, from `markWaiting`); withdrawn entries take no place. A waiting
+entry isn't counted, charged, printed, exported or timetabled (`live`,
+`splitWaiting`). When one is withdrawn or removed, or the limit is raised,
+the next moves up by itself; **Let in** takes one in over the limit
+without moving anyone else. The dashboard shows "88 of 90 places" beside a
+limited event and a **Waiting lists** box; the comp sec sees "Sent ·
+waiting list, 3rd", and a member or individual "On the waiting list for
+BUCS L1: 3rd". Notifications (cards) say when an entry goes on or comes
+off a waiting list, when the organiser's change does it. The demo limits
+BUCS L1 to 12 and DMT Advanced to 17.
+
 ## Entry fees
 
 **Fees** (the dashboard's button, for the organiser and co-organisers;

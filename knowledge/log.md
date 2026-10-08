@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists):
+  a limit per event; later entries wait in the order they came in and move
+  up as places free; the organiser can let one in over the limit; clubs
+  and gymnasts see their place.
 * **Update**: [Entry fees](features/competition-entries.md#entry-fees): the
   organiser sets fees per entry (by discipline) and per club, records
   payments and prints invoices; clubs and individuals see what they owe.
