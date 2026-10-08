@@ -195,6 +195,9 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 	page := views.CoachPage{Club: club, Coach: coach.Name, Link: origin(r) + path, Notice: r.URL.Query().Get("notice"), SeesAll: seesAll, SignsOff: coach.SignsOff}
 	for _, c := range comps {
 		cc := views.CoachCompetition{Competition: summary(c.Competition, p.now()), Cannot: notApproved(c, sentTo)}
+		if published(c) {
+			cc.Timeline = path + "/competitions/" + c.ID + "/timeline"
+		}
 		for _, e := range entries {
 			if e.CompetitionID != c.ID {
 				continue

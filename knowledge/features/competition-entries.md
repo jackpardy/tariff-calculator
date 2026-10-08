@@ -497,6 +497,24 @@ competition** opens one page for the day:
   their name in bold and the flights they're in or on the panel of open and
   outlined.
 
+## Personal and club timetables
+
+Once the timetable is published (roadmap 2026-10-08), the panel timeline
+(days side by side, a column per area, time running down evenly) is also
+shown focused (`timelineFocus`):
+
+- **Your timetable** (a member's page, an individual's entry, "My
+  competition"): the flights they compete in ("You compete") and the panels
+  they sit on ("You: Execution judge") picked out in green.
+- **Club timetable** (the comp sec's page, a coach's, a member's): every
+  flight with one of the club's gymnasts, named, or one of its people
+  officiating ("Officials: Ann (E2)"; members, and the organiser's judges
+  from the club), picked out.
+
+The rest is faint, or with **Only these**, left out (blocked time stays).
+Each prints like the panel timeline; notes are in each cell's hover text
+too.
+
 # Built from
 
 - `views.TariffSheet` (`views/sheet.templ`) for printed cards.

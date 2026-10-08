@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"slices"
+	"strings"
 
 	"tariffCalculator/competitions"
 	"tariffCalculator/store"
@@ -53,6 +54,9 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 	entries := live(all)
 	keys := personKeys(entries)
 	page := views.MyCompetitionPage{Competition: summary(c.Competition, p.now()), Name: name, Back: back, Mine: map[string]bool{}, Me: key}
+	if published(c) {
+		page.Timeline = strings.TrimSuffix(r.URL.Path, "/day") + "/timeline"
+	}
 	t := c.Timetable
 	published := t != nil && t.Published
 	page.Published = published

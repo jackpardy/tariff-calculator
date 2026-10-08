@@ -238,6 +238,7 @@ type EntryPage struct {
 	Notice      string
 	Pairs       []PairView // synchro entries they're the partner in
 	Removal     string     // what the organiser did with it, and why, if anything
+	Timeline    string     // their timetable as the panel timeline, once published
 }
 
 // EntryCoachView is the coach an individual names, for the organiser to
@@ -1016,6 +1017,7 @@ templ CompetitionEntryPage(p EntryPage) {
 			@linkBox("Sign-off link for your coach", p.SignoffLink, "This competition needs a coach's sign-off. Send this link to your coach: they see your entry and sign it off.")
 		}
 		@dayLink(p.Day)
+		@timelineLinks(p.Timeline, "")
 		@placementLine(p.Placement)
 		@dutiesBox(p.Duties)
 		if p.Checked {
