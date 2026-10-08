@@ -685,3 +685,6 @@ details > * { box-sizing: border-box; }
 .comp-my-flight { border-left: 3px solid #485fc7; padding-left: 0.75rem; }
 .comp-flight > summary { cursor: pointer; }
 .comp-mine { box-shadow: 0 0 0 2px #485fc7; }
+
+/* The delay's "Ease it" options fold away: show it can be opened. */
+.comp-ease { cursor: pointer; }
