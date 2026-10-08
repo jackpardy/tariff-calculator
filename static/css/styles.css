@@ -656,6 +656,10 @@ details > * { box-sizing: border-box; }
 .comp-tl-seat { background: #eef3fc; word-break: break-word; }
 .comp-tl-empty { background: #fde8e8; color: #b42318; text-align: center; }
 .comp-tl-overlap { outline: 2px solid #d92d20; }
+/* A person's or club's timeline: theirs picked out, the rest faint. */
+.comp-tl-mine { background: #dcf3e2; border-left: 3px solid #2f9e57; box-shadow: 0 0 0 1px #2f9e57 inset; }
+.comp-tl-faint { opacity: 0.35; }
+.comp-tl-note { font-weight: 600; color: #1d6b3a; }
 @page timeline { size: A3 landscape; margin: 10mm; }
 @media print {
     .comp-timeline { page: timeline; --tl-min: 0.6mm; --tl-time: 9mm; --tl-event: minmax(0, 1fr); --tl-seat: minmax(0, 1fr); }

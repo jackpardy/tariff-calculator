@@ -204,7 +204,7 @@ roughly in the order they'd help ISTO.
    - counts that update with the filters ("12 of 96 shown").
    The same filters could serve the printed cards and the CSV ("print what
    I'm looking at").
-5. **Personal and club timetables** (asked 2026-10-08). A timetable laid
+5. **Personal and club timetables** (asked and built 2026-10-08). A timetable laid
    out like the panel timeline (days side by side, a column per area, time
    running down evenly) for:
    - **a person**: everywhere they are, competing or officiating, picked

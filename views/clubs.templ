@@ -61,6 +61,7 @@ type ClubCompetition struct {
 	// club's who sign off, to send for approval (ADR 0007 Decision 5).
 	ApproveCoaches bool
 	Coaches        []ClubSendCoach
+	Timeline       string // the club's timetable, once published
 }
 
 // ClubSendCoach is one of the club's coaches, to send to a competition.
@@ -126,14 +127,16 @@ type MemberPage struct {
 // MemberCompetition is a member's entry for one competition, and the form to
 // make or change it.
 type MemberCompetition struct {
-	ID          string
-	Competition CompetitionSummary
-	Status      string        // e.g. "2 entries"
-	Events      []MemberEvent // one per discipline the competition offers
-	Offer       *OfferForm    // what they offer to judge and help with
-	Duties      []string      // their seats on panels, once the timetable is published
-	Day         string        // their My competition page
-	Open        bool          // shown open on the page
+	ID           string
+	Competition  CompetitionSummary
+	Status       string        // e.g. "2 entries"
+	Events       []MemberEvent // one per discipline the competition offers
+	Offer        *OfferForm    // what they offer to judge and help with
+	Duties       []string      // their seats on panels, once the timetable is published
+	Day          string        // their My competition page
+	Timeline     string        // their timetable, and their club's, once published
+	ClubTimeline string
+	Open         bool // shown open on the page
 }
 
 // MemberEvent is a member's entry for one of a competition's disciplines.
@@ -246,6 +249,7 @@ templ ClubAdmin(c ClubPage) {
 			<div class="box">
 				<h3 class="title is-6 mb-1">{ comp.Competition.Name }</h3>
 				@competitionFacts(comp.Competition)
+				@timelineLinks("", comp.Timeline)
 				if len(comp.Rows) == 0 {
 					<p class="has-text-grey is-size-7">No member has entered yet.</p>
 				} else {
@@ -577,6 +581,7 @@ templ MemberHome(p MemberPage) {
 				<div class="mt-3">
 					@competitionFacts(c.Competition)
 					@dayLink(c.Day)
+					@timelineLinks(c.Timeline, c.ClubTimeline)
 					for _, ev := range c.Events {
 						@memberEvent(c.Competition, ev)
 					}

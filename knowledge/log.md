@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Personal and club timetables](features/competition-entries.md#personal-and-club-timetables):
+  once published, the panel timeline with a person's flights and panels
+  picked out, or everywhere a club has someone competing or officiating,
+  named; the rest faint, or hidden with "Only these". Linked from members',
+  individuals', coaches' and comp secs' pages.
 * **Update**: [Finding entries](features/competition-entries.md#dashboard)
   on the organiser's dashboard: search by name, filters by club, coach,
   checked, sign-off, video, men or women and problems, sorting, levels that

@@ -159,6 +159,9 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 			return
 		}
 		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now()), ApproveCoaches: c.ApproveCoaches && c.Signoff}
+		if published(c) {
+			cc.Timeline = base + "/competitions/" + c.ID + "/timeline"
+		}
 		sentID := map[string]string{} // member → the competition's copy of their entry
 		for _, e := range sent {
 			if e.ClubID == club.ID {
@@ -645,6 +648,9 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 	}
 	for _, c := range comps {
 		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now), Duties: dutiesOf(c, "m:"+m.ID), Day: dayPath(path, c.ID)}
+		if published(c) {
+			mc.Timeline, mc.ClubTimeline = path+"/competitions/"+c.ID+"/timeline", path+"/competitions/"+c.ID+"/club-timeline"
+		}
 		var sent []store.Entry
 		disciplines := c.Disciplines()
 		entered := 0

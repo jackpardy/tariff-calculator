@@ -29,7 +29,16 @@ type timelineItem struct {
 	pairs      bool // synchro: entries are pairs
 	name       string
 	gymnasts   int
+	entries    []string // a flight's, by id
 	officials  []competitions.Duty
+}
+
+// timelineFocus picks out some of the timeline (a person's, or a club's):
+// what mark says is theirs, with notes (who, doing what); the rest faint, or
+// with only, left out (blocked time stays).
+type timelineFocus struct {
+	mark func(it timelineItem) (bool, []string)
+	only bool
 }
 
 // timelineItems are every placed flight and block, area by area: a block on
@@ -37,7 +46,7 @@ type timelineItem struct {
 func timelineItems(s competitions.Schedule) []timelineItem {
 	var out []timelineItem
 	for _, f := range s.Flights {
-		out = append(out, timelineItem{day: f.Day, area: f.Area, start: f.Start, end: f.End, flight: true, pairs: f.Discipline == competitions.Synchro, name: f.Name(), gymnasts: len(f.Entries), officials: f.Officials})
+		out = append(out, timelineItem{day: f.Day, area: f.Area, start: f.Start, end: f.End, flight: true, pairs: f.Discipline == competitions.Synchro, name: f.Name(), gymnasts: len(f.Entries), entries: f.Entries, officials: f.Officials})
 	}
 	for _, b := range s.Blocks {
 		for _, a := range b.Areas {
@@ -86,7 +95,7 @@ func timelineHeaderRows(officials bool) int {
 // lines up by time. Without officials, each day is a sheet with a column per
 // area; with them, each day's area is a sheet with a column for what's on and
 // one for each seat on its panel, a name to a cell.
-func timeline(s competitions.Schedule, name func(key string) string, officials bool) views.Timeline {
+func timeline(s competitions.Schedule, name func(key string) string, officials bool, focus *timelineFocus) views.Timeline {
 	items := timelineItems(s)
 	// The minutes shown: from the earliest start to the latest end, of every
 	// day side by side; with officials, a sheet to a page, of its own day.
@@ -110,7 +119,7 @@ func timeline(s competitions.Schedule, name func(key string) string, officials b
 		}
 		return first, last
 	}
-	t := views.Timeline{Officials: officials, Header: timelineHeaderRows(officials)}
+	t := views.Timeline{Officials: officials, Header: timelineHeaderRows(officials), Focus: focus != nil}
 	header := t.Header
 	first, last := span(-1)
 	if first < 0 || last <= first {
@@ -194,6 +203,13 @@ func timeline(s competitions.Schedule, name func(key string) string, officials b
 					Row: row(it.start), Rows: max(1, it.end-it.start), Column: col, Columns: 1, Kind: kind, Overlaps: overlaps,
 					Name: it.name, Time: competitions.Clock(it.start) + "–" + competitions.Clock(it.end), Flight: it.flight, Gymnasts: it.gymnasts, Pairs: it.pairs,
 				}
+				if focus != nil {
+					cell.Mine, cell.Notes = focus.mark(it)
+					cell.Faint = !cell.Mine
+					if focus.only && !cell.Mine && it.flight {
+						continue
+					}
+				}
 				if len(it.officials) == 0 {
 					cell.Columns = av.Columns // blocked time with no officials takes the whole area
 				}
@@ -244,7 +260,7 @@ func officialNames(people []competitions.RotaPerson, names map[string]string, wi
 // (sheet=timeline), or with a column for each seat (sheet=timeline-officials).
 func printTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, now time.Time, officials bool) {
 	_, names := peopleOf(entries)
-	t := timeline(s, officialNames(people, names, false), officials)
+	t := timeline(s, officialNames(people, names, false), officials, nil)
 	t.Title, t.Back, t.CSV = "Panel timeline · "+c.Name, timetablePath(r), timetablePath(r)+"/timeline.csv"
 	t.Competition = summary(c.Competition, now)
 	t.Other, t.OtherLabel = timetablePath(r)+"/print?sheet=timeline-officials", "With officials"

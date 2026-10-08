@@ -96,6 +96,7 @@ type CoachCompetition struct {
 	Rows        []CoachRow
 	Waiting     int    // entries not signed off
 	Cannot      string // why they can't sign off for it (not approved), if they can't
+	Timeline    string // the club's timetable, once published
 }
 
 // CoachRow is one member's entry, for their coach.
@@ -140,6 +141,7 @@ templ CoachHome(p CoachPage) {
 					}
 				</h2>
 				@competitionFacts(c.Competition)
+				@timelineLinks("", c.Timeline)
 				if c.Cannot != "" && p.SignsOff {
 					<p class="is-size-7 has-text-warning-dark mb-2">{ c.Cannot }</p>
 				}

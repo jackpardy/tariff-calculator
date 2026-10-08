@@ -325,7 +325,13 @@ when and where you judge or help.
 **Your competition** (under each competition) is the page for the day: each
 of your events and its card's status, and once the timetable is published,
 your flight, where you are in the running order, about when each routine is,
-what you officiate, and the whole timetable with you picked out.
+what you officiate, and the whole timetable with you picked out. Once it's
+published, **Your timetable** shows it laid out like the organiser's panel
+timeline (days side by side, time running down evenly), with where you
+compete and the panels you sit on in green and the rest faint (**Only
+these** hides the rest); **Club timetable** does the same for everyone in
+your club, naming who. The comp sec and coaches have **Club timetable** on
+their pages too. Each prints on A3.
 
 ## Synchro
 

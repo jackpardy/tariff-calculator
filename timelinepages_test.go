@@ -125,7 +125,7 @@ func TestTimelineLayout(t *testing.T) {
 
 	// Side by side, every day runs 09:00 to 20:00, the hours outside each
 	// day's shaded.
-	tl := timeline(s, name, false)
+	tl := timeline(s, name, false, nil)
 	if len(tl.Sheets) != 2 || tl.Sheets[0].Minutes != 11*60 || tl.Header != 2 {
 		t.Fatalf("a sheet a day, 660 minutes: %+v", tl)
 	}
@@ -149,7 +149,7 @@ func TestTimelineLayout(t *testing.T) {
 
 	// With officials, a sheet a day's area, each its own day's minutes, a
 	// column for each seat.
-	tl = timeline(s, name, true)
+	tl = timeline(s, name, true, nil)
 	if len(tl.Sheets) != 3 || tl.Sheets[0].Title != "Fri · Panel 1" || tl.Sheets[0].Minutes != 120 || tl.Sheets[1].Minutes != 180 || tl.Header != 3 {
 		t.Fatalf("Friday's Panel 1, Saturday's Panel 1 and Track: %+v", tl.Sheets)
 	}

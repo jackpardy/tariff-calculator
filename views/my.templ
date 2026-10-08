@@ -9,6 +9,7 @@ type MyCompetitionPage struct {
 	Competition CompetitionSummary
 	Name        string
 	Back        string // their own page
+	Timeline    string // their timetable as the panel timeline, once published
 	Published   bool
 	Events      []MyEvent
 	Duties      []string
@@ -33,6 +34,7 @@ templ MyCompetition(p MyCompetitionPage) {
 		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Your page</a></p>
 		<h1 class="title is-4">{ p.Competition.Name }</h1>
 		<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
+		@timelineLinks(p.Timeline, "")
 		if len(p.Events) == 0 {
 			<div class="notification is-light">No entries for you have reached the competition yet. Once your club sends them (or you enter), they show here.</div>
 		}
@@ -166,5 +168,20 @@ func ordinal(n int) string {
 templ dayLink(href string) {
 	if href != "" {
 		<p class="mb-3"><a class="button is-small is-info is-light" href={ templ.SafeURL(href) }>Your competition: flights, times and the timetable →</a></p>
+	}
+}
+
+// timelineLinks are a person's and their club's timetables, laid out as
+// the panel timeline, once the timetable is published.
+templ timelineLinks(mine, club string) {
+	if mine != "" || club != "" {
+		<p class="mb-3 buttons">
+			if mine != "" {
+				<a class="button is-small is-success is-light" href={ templ.SafeURL(mine) }>Your timetable</a>
+			}
+			if club != "" {
+				<a class="button is-small is-success is-light" href={ templ.SafeURL(club) }>Club timetable</a>
+			}
+		</p>
 	}
 }

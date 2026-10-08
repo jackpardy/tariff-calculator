@@ -94,6 +94,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerOfficials(handle)
 	p.registerApprovals(handle)
 	p.registerMine(handle)
+	p.registerTimelines(handle)
 }
 
 // secret marks the pages as private: links in their URLs mustn't leak through
@@ -1207,6 +1208,9 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		page.SignoffLink = origin(r) + signoffPath(e.SignoffLink)
 	}
 	page.Notice = r.URL.Query().Get("notice")
+	if published(c) {
+		page.Timeline = path + "/timeline"
+	}
 	switch {
 	case e.Removal == store.Removed:
 		page.Removal = strings.TrimSpace("The organiser removed this entry, so it can't be changed. " + e.RemovalNote)

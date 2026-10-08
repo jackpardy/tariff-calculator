@@ -1,6 +1,7 @@
 package views
 
 import (
+	"strings"
 	"fmt"
 	"strconv"
 )
@@ -921,6 +922,10 @@ type Timeline struct {
 	Competition       CompetitionSummary
 	Header            int // rows above the minutes
 	Sheets            []TimelineSheet
+	// Focus picks out someone's (or a club's) flights, explained by Heading
+	// and Intro; BackLabel names where Back goes.
+	Focus                   bool
+	Heading, Intro, BackLabel string
 }
 
 // TimelineSheet is a day, or a day's area, with its own time column.
@@ -968,6 +973,8 @@ type TimelineCell struct {
 	Pairs                      bool // synchro
 	Empty                      bool // a seat no one could take
 	Overlaps                   bool // moved manually onto another
+	Mine, Faint                bool     // picked out, or not, on a focused timeline
+	Notes                      []string // who, doing what, when picked out
 }
 
 func gridAt(row, rows, column, columns int) string {
@@ -986,7 +993,7 @@ func (c TimelineCell) title() string {
 		return c.Name + " · " + c.Time
 	}
 	if c.Flight {
-		return c.Name + " · " + c.Time + " · " + flightCount(c.Gymnasts, c.Pairs)
+		return strings.Join(append([]string{c.Name + " · " + c.Time + " · " + flightCount(c.Gymnasts, c.Pairs)}, c.Notes...), "\n")
 	}
 	return c.Name + " · " + c.Time
 }
@@ -995,20 +1002,31 @@ func (c TimelineCell) title() string {
 templ TimelinePrint(t Timeline) {
 	@competitionLayout(t.Title) {
 		<div class="comp-print-bar screen-only">
-			<a href={ templ.SafeURL(t.Back) }>← Timetable</a>
+			if t.BackLabel != "" {
+				<a href={ templ.SafeURL(t.Back) }>{ t.BackLabel }</a>
+			} else {
+				<a href={ templ.SafeURL(t.Back) }>← Timetable</a>
+			}
 			<a class="button is-small" href={ templ.SafeURL(t.Other) }>{ t.OtherLabel }</a>
-			<a class="button is-small" href={ templ.SafeURL(t.CSV) }>Download CSV</a>
+			if t.CSV != "" {
+				<a class="button is-small" href={ templ.SafeURL(t.CSV) }>Download CSV</a>
+			}
 			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
 		</div>
 		<section class={ "comp-timeline", templ.KV("comp-timeline-officials", t.Officials) }>
 			<h1 class="title is-5 mb-3">
 				{ t.Competition.Name } ·
-				if t.Officials {
+				if t.Heading != "" {
+					{ t.Heading }
+				} else if t.Officials {
 					Timeline with officials
 				} else {
 					Panel timeline
 				}
 			</h1>
+			if t.Intro != "" {
+				<p class="is-size-7 mb-3">{ t.Intro }</p>
+			}
 			<div class="comp-tl-sheets">
 				for _, sh := range t.Sheets {
 					<div class="comp-tl-sheet" style={ fmt.Sprintf("grid-template-columns: %s; grid-template-rows: %s; --tl-areas: %d", sh.Columns, t.rows(sh), len(sh.Areas)) }>
@@ -1034,7 +1052,7 @@ templ TimelinePrint(t Timeline) {
 						}
 						for _, a := range sh.Areas {
 							for _, c := range a.Cells {
-								<div class={ "comp-tl-cell", "comp-tl-" + c.Kind, templ.KV("comp-tl-empty", c.Empty), templ.KV("comp-tl-overlap", c.Overlaps) } style={ gridAt(c.Row, c.Rows, c.Column, c.Columns) } title={ c.title() }>
+								<div class={ "comp-tl-cell", "comp-tl-" + c.Kind, templ.KV("comp-tl-empty", c.Empty), templ.KV("comp-tl-overlap", c.Overlaps), templ.KV("comp-tl-mine", c.Mine), templ.KV("comp-tl-faint", c.Faint) } style={ gridAt(c.Row, c.Rows, c.Column, c.Columns) } title={ c.title() }>
 									if c.Kind == "seat" {
 										{ c.Name }
 									} else {
@@ -1045,6 +1063,9 @@ templ TimelinePrint(t Timeline) {
 												· { strconv.Itoa(c.Gymnasts) }
 											}
 										</div>
+										for _, n := range c.Notes {
+											<div class="comp-tl-note">{ n }</div>
+										}
 									}
 								</div>
 							}
