@@ -1500,3 +1500,46 @@ func TestSubscriptions(t *testing.T) {
 		t.Error("deleted with the competition")
 	}
 }
+
+// Sign-offs from before coaches were recorded (migration 11) are matched to
+// the club's coach of that name, if there's exactly one (migration 18).
+func TestOldSignoffsMatchedByName(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	club, _, _ := s.CreateClub(ctx, "UCD")
+	must(t, s.AttachClub(ctx, club.ID, c.ID))
+	declan, _, _ := s.CreateCoach(ctx, club.ID, "Declan Ward")
+	s.CreateCoach(ctx, club.ID, "Pat Kelly")
+	s.CreateCoach(ctx, club.ID, "Pat Kelly") // two of that name: can't tell which
+	var members []Member
+	for _, name := range []string{"X", "Y", "Z"} {
+		m, _, _ := s.Join(ctx, club.ID, name)
+		must(t, s.SaveMemberEntry(ctx, m.ID, c.ID, entry(name)))
+		members = append(members, m)
+	}
+	_, err := s.Send(ctx, club.ID, c.ID, []string{members[0].ID, members[1].ID, members[2].ID})
+	must(t, err)
+	// As they were before migration 11: a name and no coach.
+	for i, by := range []string{" declan ward ", "Pat Kelly", "Someone Else"} {
+		for _, table := range []string{"member_entries", "entries"} {
+			_, err := s.db.ExecContext(ctx, `UPDATE `+table+` SET signed_at = $1, signed_by = $2, signed_coach = '' WHERE member_id = $3`, s.stamp(), by, members[i].ID)
+			must(t, err)
+		}
+	}
+	_, err = s.db.ExecContext(ctx, migrations[17])
+	must(t, err)
+	coachOf := func(table, member string) string {
+		var id string
+		must(t, s.db.QueryRowContext(ctx, `SELECT signed_coach FROM `+table+` WHERE member_id = $1`, member).Scan(&id))
+		return id
+	}
+	for _, table := range []string{"member_entries", "entries"} {
+		if got := coachOf(table, members[0].ID); got != declan.ID {
+			t.Errorf("%s: Declan's, whatever the case and spaces round it: %q", table, got)
+		}
+		if coachOf(table, members[1].ID) != "" || coachOf(table, members[2].ID) != "" {
+			t.Errorf("%s: two coaches of that name, or none: left alone", table)
+		}
+	}
+}

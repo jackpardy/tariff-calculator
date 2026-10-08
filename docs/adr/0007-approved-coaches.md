@@ -95,7 +95,11 @@ approved.
      signed off" (and why) until an approved coach signs it off. Nothing in
      the club's own records is erased;
    - entries signed off before this existed (no `signed_coach`) count as not
-     signed off at a competition that requires approval.
+     signed off at a competition that requires approval. Amended
+     2026-10-08 (migration 18): where such a sign-off's name is exactly one
+     of the club's coaches (ignoring case and spaces round it), it's taken
+     as theirs, so it counts once they're approved; otherwise it still
+     doesn't.
 
 8. **Individuals name their coach.** An individual's entry page asks for
    their coach's name, qualification and certificate. The sign-off link

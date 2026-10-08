@@ -475,7 +475,9 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   approved, worked out as entries are read, so nothing is erased. An
   unapproved coach sees why on their page and can't sign off; the
   organiser's entry shows "Signed off by Ann, who isn't an approved coach".
-  Sign-offs from before this don't count at a competition that approves
+  Sign-offs from before this kept only a name: where it's exactly one of
+  the club's coaches, it's theirs (migration 18) and counts once they're
+  approved; otherwise it doesn't count at a competition that approves
   coaches.
 - A member chooses their coach on their own page, or the comp sec does on
   the club page. A coach sees their own members and every member without a
