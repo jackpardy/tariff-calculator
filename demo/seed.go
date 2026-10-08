@@ -294,7 +294,7 @@ func (s *seeder) run(out io.Writer) error {
 	// Panels as a student competition runs them, with HD judges (no machine).
 	s.post(admin+"/officials/settings", url.Values{"judge": {""},
 		"panel-trampoline-chair": {"1"}, "panel-trampoline-execution": {"4"}, "panel-trampoline-difficulty": {"1"}, "panel-trampoline-hd": {"2"}, "panel-trampoline-recorder": {"1"}, "panel-trampoline-marshal": {"1"},
-		"panel-synchro-chair": {"1"}, "panel-synchro-execution": {"4"}, "panel-synchro-difficulty": {"1"}, "panel-synchro-recorder": {"1"}, "panel-synchro-marshal": {"0"},
+		"panel-synchro-chair": {"1"}, "panel-synchro-execution": {"4"}, "panel-synchro-difficulty": {"1"}, "panel-synchro-hd": {"2"}, "panel-synchro-recorder": {"1"}, "panel-synchro-marshal": {"0"},
 		"panel-tumbling-chair": {"1"}, "panel-tumbling-execution": {"3"}, "panel-tumbling-difficulty": {"1"}, "panel-tumbling-recorder": {"1"}, "panel-tumbling-marshal": {"1"},
 		"panel-dmt-chair": {"1"}, "panel-dmt-execution": {"3"}, "panel-dmt-difficulty": {"1"}, "panel-dmt-recorder": {"1"}, "panel-dmt-marshal": {"0"},
 	})

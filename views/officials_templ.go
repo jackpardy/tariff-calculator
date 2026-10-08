@@ -340,7 +340,7 @@ type OfficialsPage struct {
 type PanelSetting struct {
 	Key, Name                                                 string
 	Chair, Execution, Difficulty, HD, Sync, Recorder, Marshal int
-	HasHD                                                     bool // trampoline: HD judges where no machine measures it
+	HasHD                                                     bool // trampoline and synchro: HD judges where no machine measures it
 	HasSync                                                   bool // synchro: synchronisation judges where no machine measures it
 }
 
@@ -529,7 +529,7 @@ func CompetitionOfficials(p OfficialsPage) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "\"><p class=\"help mb-2\">Each discipline's panel starts as the FIG Code of Points' (a Chair of Judges Panel, 6 execution and 2 difficulty judges), plus a recorder and a marshal. Change any of it. Trampoline needs 2 HD (horizontal displacement) judges where no machine measures it; synchro starts with 2 synchronisation judges, for where no machine measures synchronisation.</p><div class=\"table-container\"><table class=\"table is-narrow comp-panels\"><thead><tr><th></th><th>Chair</th><th>Execution</th><th>Difficulty</th><th>HD</th><th>Sync</th><th>Recorder</th><th>Marshal</th></tr></thead> <tbody>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "\"><p class=\"help mb-2\">Each discipline's panel starts as the FIG Code of Points' (a Chair of Judges Panel, 6 execution and 2 difficulty judges), plus a recorder and a marshal. Change any of it. Trampoline and synchro need HD (horizontal displacement) judges where no machine measures it; synchro starts with 2 synchronisation judges, for where no machine measures synchronisation.</p><div class=\"table-container\"><table class=\"table is-narrow comp-panels\"><thead><tr><th></th><th>Chair</th><th>Execution</th><th>Difficulty</th><th>HD</th><th>Sync</th><th>Recorder</th><th>Marshal</th></tr></thead> <tbody>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
