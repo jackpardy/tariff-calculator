@@ -167,7 +167,7 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		if published(c) {
 			cc.Timeline = base + "/competitions/" + c.ID + "/timeline"
 		}
-		sentID := map[string]string{} // member → the competition's copy of their entry
+		sentID := map[string]string{}    // member → the competition's copy of their entry
 		waitingPlace := map[string]int{} // member and discipline → place on a waiting list
 		for _, e := range sent {
 			if e.ClubID == club.ID {
