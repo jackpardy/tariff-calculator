@@ -320,6 +320,11 @@ notifications, and all wanted:
     warming up next.
   - **Pages that work offline**: the service worker (from notifications)
     keeps a person's own pages for poor venue wifi.
+  - **Messages from the organisers' desk** (asked 2026-10-08): the
+    organiser sends a club (its comp sec, coaches, or everyone who asked to
+    hear) a message, or asks for someone from the club to come to the
+    desk, by push and email at once, without waiting. Builds on
+    notifications.
 - **Organising:**
   - **Copy last year's competition**: levels, events, officials, timetable
     setup and rules, without the entries.
