@@ -171,6 +171,13 @@ type Entry struct {
 	// Unapproved is a sign-off by a coach the competition hasn't approved, at
 	// one that approves coaches (ADR 0007 Decision 7): it doesn't count.
 	Unapproved bool
+	// Removal is the organiser's: "", Removed or Held, with a note for the
+	// club, the member or both (RemovalTo); Resent is a held entry sent again,
+	// waiting for the organiser to accept it.
+	Removal     string
+	RemovalNote string
+	RemovalTo   string
+	Resent      bool
 	// SignoffLink is an individual's link for their coach to sign off the
 	// entry (ADR 0004 Decision 11); "" for a club's entry.
 	SignoffLink string
@@ -244,15 +251,21 @@ const (
 // Checked says whether the organiser has checked the entry as it is now.
 func (e Entry) Checked() bool { return !e.CheckedAt.IsZero() }
 
-// Entries are everything entered for a competition: clubs' entries by club,
-// then individuals', each by gymnast.
+// Entries are everything entered for a competition, but those the organiser
+// has removed or holds: clubs' entries by club, then individuals', each by
+// gymnast.
 func (s *Store) Entries(ctx context.Context, competitionID string) ([]Entry, error) {
+	return s.entriesWhere(ctx, `competition_id = $1 AND removal = ''`, competitionID)
+}
+
+// entriesWhere are the entries meeting a condition, by club then gymnast.
+func (s *Store) entriesWhere(ctx context.Context, where string, args ...any) ([]Entry, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
 		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
 			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id AND me.discipline = entries.discipline), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
-		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`
-		FROM entries WHERE competition_id = $1
-		ORDER BY individual, club_name, gymnast, id`, competitionID)
+		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent
+		FROM entries WHERE `+where+`
+		ORDER BY individual, club_name, gymnast, id`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +286,7 @@ func scanEntry(row interface{ Scan(...any) error }) (Entry, error) {
 	var e Entry
 	var entry, sent, checked, signed string
 	var counts bool
-	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach, &e.PartnerLink, &e.PartnerConfirmed, &e.PartnerMemberID, &e.PartnerEntryID, &e.SignedCoach, &counts); err != nil {
+	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach, &e.PartnerLink, &e.PartnerConfirmed, &e.PartnerMemberID, &e.PartnerEntryID, &e.SignedCoach, &counts, &e.Removal, &e.RemovalNote, &e.RemovalTo, &e.Resent); err != nil {
 		return Entry{}, notFound(err)
 	}
 	e.Unapproved = signed != "" && !counts
@@ -342,7 +355,7 @@ func (s *Store) AddIndividualEntry(ctx context.Context, competitionID string, e 
 
 // IndividualEntry is the entry an individual's personal link opens.
 func (s *Store) IndividualEntry(ctx context.Context, token string) (Entry, error) {
-	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE, COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`
+	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE, COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent
 		FROM entries WHERE token_hash = $1`, hash(token)))
 }
 
@@ -353,18 +366,22 @@ func (s *Store) ReplaceIndividualEntry(ctx context.Context, token string, e comp
 		return err
 	}
 	return s.tx(ctx, func(tx *sql.Tx) error {
-		var competitionID string
-		if err := tx.QueryRowContext(ctx, `SELECT competition_id FROM entries WHERE token_hash = $1`, hash(token)).Scan(&competitionID); err != nil {
+		var competitionID, removal string
+		if err := tx.QueryRowContext(ctx, `SELECT competition_id, removal FROM entries WHERE token_hash = $1`, hash(token)).Scan(&competitionID, &removal); err != nil {
 			return notFound(err)
 		}
 		if err := s.open(ctx, tx, competitionID); err != nil {
 			return err
+		}
+		if removal == Removed {
+			return ErrRemoved
 		}
 		partner, err := partnerToken(ctx, tx, `SELECT entry, partner_token FROM entries WHERE token_hash = $1`, e, hash(token))
 		if err != nil {
 			return err
 		}
 		return affected(tx.ExecContext(ctx, `UPDATE entries SET entry = $1, gymnast = $2, sent_at = $3, discipline = $5,
+			resent = resent OR (removal = 'held' AND entry <> $1),
 			checked_at = CASE WHEN entry = $1 THEN checked_at ELSE NULL END,
 			video_review = CASE WHEN entry = $1 THEN video_review ELSE '' END,
 			signed_at = CASE WHEN entry = $1 THEN signed_at ELSE NULL END,
@@ -434,7 +451,7 @@ func (s *Store) CompetitionEntry(ctx context.Context, competitionID, id string) 
 	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
 		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
 			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id AND me.discipline = entries.discipline), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
-		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`
+		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent
 		FROM entries WHERE competition_id = $1 AND id = $2`, competitionID, id))
 }
 
@@ -483,7 +500,7 @@ func (s *Store) SetSignoff(ctx context.Context, id string, on bool) error {
 // EntryBySignoffLink is the individual's entry a coach's sign-off link opens.
 func (s *Store) EntryBySignoffLink(ctx context.Context, token string) (Entry, error) {
 	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE,
-		COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`
+		COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent
 		FROM entries WHERE signoff_hash = $1`, hash(token)))
 }
 

@@ -72,6 +72,8 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("POST /competitions/admin/{token}/deadline", p.deadline)
 	handle("POST /competitions/admin/{token}/video", p.video)
 	handle("POST /competitions/admin/{token}/signoff", p.setSignoff)
+	handle("POST /competitions/admin/{token}/remove", p.removeEntries)
+	handle("POST /competitions/admin/{token}/entries/{id}/restore", p.restoreEntry)
 	handle("POST /competitions/admin/{token}/split", p.setSplit)
 	handle("POST /competitions/admin/{token}/events", p.setEvents)
 	handle("POST /competitions/admin/{token}/levels/move", p.moveLevel)
@@ -125,6 +127,8 @@ func failed(w http.ResponseWriter, r *http.Request, err error) {
 		message(w, r, http.StatusConflict, "Entries have closed", "The deadline for this competition has passed, so entries can't be changed.")
 	case errors.Is(err, store.ErrLimit):
 		message(w, r, http.StatusConflict, "Competition full", "This competition has as many entries as it can take.")
+	case errors.Is(err, store.ErrRemoved):
+		message(w, r, http.StatusConflict, "Entry removed", "The organiser has removed this entry, so it can't be changed. Ask them if you think it should be back in.")
 	default:
 		log.Printf("Competition storage: %s %s: %v", r.Method, r.URL.Path, err)
 		message(w, r, http.StatusInternalServerError, "Something went wrong", "That didn't work. Please try again in a minute.")
@@ -500,6 +504,15 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
 		Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()), Events: eventsForm(c.Competition),
 		LevelOrder: levelOrderForm(c.Competition),
+	}
+	removed, err := p.st.RemovedEntries(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	for _, e := range removed {
+		d.Removed = append(d.Removed, views.RemovedRow{ID: e.ID, Gymnast: e.Entry.Gymnasts(), Club: clubOf(e), Level: e.Entry.Event(),
+			Held: e.Removal == store.Held, Resent: e.Resent, Note: e.RemovalNote, To: reasonTo(e)})
 	}
 	if c.Signoff {
 		sentCoaches, err := p.st.CompetitionCoaches(r.Context(), c.ID)
@@ -1127,6 +1140,15 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		page.SignoffLink = origin(r) + signoffPath(e.SignoffLink)
 	}
 	page.Notice = r.URL.Query().Get("notice")
+	switch {
+	case e.Removal == store.Removed:
+		page.Removal = strings.TrimSpace("The organiser removed this entry, so it can't be changed. " + e.RemovalNote)
+		page.Competition.Open = false
+	case e.Resent:
+		page.Removal = "Changed and sent again: waiting for the organiser to accept it back in."
+	case e.Removal == store.Held:
+		page.Removal = strings.TrimSpace("The organiser asks for changes before taking this entry back in: change it below. " + e.RemovalNote)
+	}
 	if page.Coach, err = p.entryCoachView(r, c, e, path); err != nil {
 		failed(w, r, err)
 		return
@@ -1544,4 +1566,62 @@ func clientIP(r *http.Request) string {
 		return r.RemoteAddr
 	}
 	return host
+}
+
+// reasonTo says who sees why an entry was removed or held.
+func reasonTo(e store.Entry) string {
+	switch {
+	case e.Individual:
+		return "the gymnast sees it"
+	case e.RemovalTo == store.ToClub:
+		return "the club sees it"
+	case e.RemovalTo == store.ToMember:
+		return "the gymnast sees it"
+	}
+	return "the club and gymnast see it"
+}
+
+// removeEntries removes (action=remove) or holds (action=hold) the entries
+// ticked (entry: their ids), with a reason (note) for the club, the gymnast
+// or both (to).
+func (p *competitionPages) removeEntries(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		badRequest(w, err)
+		return
+	}
+	removal, done := store.Removed, "Removed"
+	if r.FormValue("action") == "hold" {
+		removal, done = store.Held, "Put on hold"
+	}
+	to := r.FormValue("to")
+	if to != store.ToClub && to != store.ToMember {
+		to = store.ToBoth
+	}
+	n, err := p.st.RemoveEntries(r.Context(), c.ID, r.Form["entry"], removal, limitNote(r.FormValue("note")), to)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	notice := "Tick the entries to remove or hold first; nothing was changed."
+	if n > 0 {
+		notice = fmt.Sprintf("%s %s. They're listed at the end, to restore.", done, entriesWord(n))
+	}
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+}
+
+// restoreEntry puts a removed or held entry back in the competition.
+func (p *competitionPages) restoreEntry(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	if err := p.st.RestoreEntry(r.Context(), c.ID, r.PathValue("id")); err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Back in the competition."), http.StatusSeeOther)
 }

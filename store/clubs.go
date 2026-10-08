@@ -423,6 +423,17 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		}
 
 		now := s.stamp()
+		kept := chosen[:0]
+		for _, p := range chosen {
+			// An entry the organiser removed isn't sent again.
+			if removal, err := removalOf(ctx, tx, competitionID, p.member, p.discipline); err != nil {
+				return err
+			} else if removal == Removed {
+				continue
+			}
+			kept = append(kept, p)
+		}
+		chosen = kept
 		for _, p := range chosen {
 			if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_id, member_id, discipline, club_name, individual, gymnast, entry, sent_at,
 				signed_at, signed_by, sign_note, partner_confirmed, partner_member, partner_entry, signed_coach)
@@ -430,6 +441,7 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 				ON CONFLICT (competition_id, member_id, discipline) DO UPDATE
 				SET entry = excluded.entry, gymnast = excluded.gymnast, club_name = excluded.club_name, sent_at = excluded.sent_at,
 					signed_at = excluded.signed_at, signed_by = excluded.signed_by, sign_note = excluded.sign_note, signed_coach = excluded.signed_coach,
+					resent = entries.resent OR (entries.removal = 'held' AND entries.entry <> excluded.entry),
 					partner_confirmed = excluded.partner_confirmed, partner_member = excluded.partner_member, partner_entry = excluded.partner_entry,
 					checked_at = CASE WHEN entries.entry = excluded.entry THEN entries.checked_at ELSE NULL END,
 					video_review = CASE WHEN entries.entry = excluded.entry THEN entries.video_review ELSE '' END`,

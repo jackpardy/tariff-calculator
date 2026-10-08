@@ -1272,3 +1272,100 @@ func TestPairEntries(t *testing.T) {
 		t.Errorf("K, an individual, sees J's: %+v", got)
 	}
 }
+
+func TestRemovingEntries(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp := competition()
+	comp.Individuals = true
+	c, _, _ := s.CreateCompetition(ctx, comp)
+	club, _, _ := s.CreateClub(ctx, "UCD")
+	must(t, s.AttachClub(ctx, club.ID, c.ID))
+	x, _, _ := s.Join(ctx, club.ID, "X")
+	y, _, _ := s.Join(ctx, club.ID, "Y")
+	for _, m := range []Member{x, y} {
+		must(t, s.SaveMemberEntry(ctx, m.ID, c.ID, entry(m.Name)))
+	}
+	_, err := s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	ind, token, _ := s.AddIndividualEntry(ctx, c.ID, entry("I"))
+	all, _ := s.Entries(ctx, c.ID)
+	id := map[string]string{}
+	for _, e := range all {
+		id[e.Entry.Gymnast] = e.ID
+	}
+
+	// X removed (reason for the club), Y held (for both), I held.
+	if n, err := s.RemoveEntries(ctx, c.ID, []string{id["X"]}, Removed, "Not paid", ToClub); err != nil || n != 1 {
+		t.Fatalf("removed: %d %v", n, err)
+	}
+	must2(s.RemoveEntries(ctx, c.ID, []string{id["Y"], ind.ID}, Held, "Fix the second routine", ToBoth))
+	if left, _ := s.Entries(ctx, c.ID); len(left) != 0 {
+		t.Errorf("none left in: %+v", left)
+	}
+	gone, _ := s.RemovedEntries(ctx, c.ID)
+	if len(gone) != 3 {
+		t.Fatalf("listed: %+v", gone)
+	}
+	byClub, _ := s.ClubRemovals(ctx, club.ID, c.ID)
+	if e := byClub[x.ID+"/"]; e.Removal != Removed || e.RemovalNote != "Not paid" || !e.ForClub() || e.ForMember() {
+		t.Errorf("the club sees X removed, and why: %+v", e)
+	}
+	if mine, _ := s.MemberRemovals(ctx, y.ID); mine[c.ID+"/"].Removal != Held || !mine[c.ID+"/"].ForMember() {
+		t.Errorf("Y sees theirs held: %+v", mine)
+	}
+
+	// Sending again: X stays removed, unchanged; Y unchanged isn't resent;
+	// changed, it waits for the organiser.
+	n, err := s.Send(ctx, club.ID, c.ID, nil)
+	must(t, err)
+	if n != 1 {
+		t.Errorf("only Y is sent: %d", n)
+	}
+	if gone, _ := s.RemovedEntries(ctx, c.ID); gone[1].Resent || gone[2].Resent {
+		t.Errorf("Y unchanged: not resent: %+v", gone)
+	}
+	changed := entry("Y")
+	changed.Level = "BUCS L4"
+	must(t, s.SaveMemberEntry(ctx, y.ID, c.ID, changed))
+	must2(s.Send(ctx, club.ID, c.ID, nil))
+	must(t, s.ReplaceIndividualEntry(ctx, token, entry("I2")))
+	for _, e := range must3(s.RemovedEntries(ctx, c.ID)) {
+		if (e.ID == id["Y"] || e.ID == ind.ID) != e.Resent {
+			t.Errorf("%s resent: %v", e.Entry.Gymnast, e.Resent)
+		}
+	}
+	// The organiser accepts Y back in, and restores X; X can be sent again.
+	must(t, s.RestoreEntry(ctx, c.ID, id["Y"]))
+	must(t, s.RestoreEntry(ctx, c.ID, id["X"]))
+	if err := s.RestoreEntry(ctx, c.ID, id["X"]); !errors.Is(err, ErrNotFound) {
+		t.Errorf("already restored: %v", err)
+	}
+	if left, _ := s.Entries(ctx, c.ID); len(left) != 2 {
+		t.Errorf("X and Y back in: %+v", left)
+	}
+
+	// A removed individual can't change their entry.
+	must2(s.RemoveEntries(ctx, c.ID, []string{ind.ID}, Removed, "", ToBoth))
+	if err := s.ReplaceIndividualEntry(ctx, token, entry("I3")); !errors.Is(err, ErrRemoved) {
+		t.Errorf("blocked: %v", err)
+	}
+	// Another competition's entries can't be touched.
+	other, _, _ := s.CreateCompetition(ctx, competition())
+	if n, _ := s.RemoveEntries(ctx, other.ID, []string{id["Y"]}, Removed, "", ToBoth); n != 0 {
+		t.Error("only its own entries")
+	}
+}
+
+func must2[T any](_ T, err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func must3[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
