@@ -240,8 +240,8 @@ func seatsOf(f competitions.ScheduledFlight, people []competitions.RotaPerson, n
 // dutiesOf are a person's seats on a published timetable, in time order,
 // e.g. "Saturday 10:40–11:50 · Panel 2 · BUCS L5 · Execution judge".
 func dutiesOf(c store.Competition, key string) []string {
-	t := c.Timetable
-	if t == nil || !t.Published || key == "" {
+	t := c.Published
+	if t == nil || key == "" {
 		return nil
 	}
 	return dutiesIn(*t, key)

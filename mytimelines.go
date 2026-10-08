@@ -84,8 +84,8 @@ func (p *competitionPages) coachClubTimeline(w http.ResponseWriter, r *http.Requ
 // or a page saying it isn't published yet.
 func (p *competitionPages) focusedTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, back string,
 	mark func(entries []store.Entry, officials []competitions.RotaPerson, name func(string) string) func(timelineItem) (bool, []string)) (views.Timeline, bool) {
-	t := c.Timetable
-	if t == nil || !t.Published {
+	t := c.Published
+	if t == nil {
 		message(w, r, http.StatusNotFound, "No timetable yet", "The organiser hasn't published the timetable yet. It shows here once they do.")
 		return views.Timeline{}, false
 	}
@@ -199,4 +199,4 @@ func (p *competitionPages) clubTimeline(w http.ResponseWriter, r *http.Request, 
 }
 
 // published says whether a competition's timetable is published.
-func published(c store.Competition) bool { return c.Timetable != nil && c.Timetable.Published }
+func published(c store.Competition) bool { return c.Published != nil }

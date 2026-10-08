@@ -19,7 +19,8 @@ type Competition struct {
 	ClubLink       string // comp secs attach their club and send its entries
 	IndividualLink string // individuals enter directly, if Individuals allows
 	CreatedAt      time.Time
-	Timetable      *competitions.Schedule // the timetable and its setup; nil until the organiser sets one up
+	Timetable      *competitions.Schedule // the organiser's draft timetable and its setup; nil until set up
+	Published      *competitions.Schedule // the copy attendees see; nil until published
 }
 
 // CreateCompetition stores a validated competition and returns it with its
@@ -55,16 +56,22 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
 	var deadline, levels, created, video string
-	var split, timetable, events, officials, coachLevels string
+	var split, timetable, events, officials, coachLevels, publishedTimetable string
 	var ordered bool
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels); err != nil {
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable); err != nil {
 		return Competition{}, notFound(err)
+	}
+	if publishedTimetable != "" {
+		c.Published = &competitions.Schedule{}
+		if err := json.Unmarshal([]byte(publishedTimetable), c.Published); err != nil {
+			return Competition{}, fmt.Errorf("reading competition %s's published timetable: %w", c.ID, err)
+		}
 	}
 	if err := json.Unmarshal([]byte(coachLevels), &c.CoachLevels); err != nil {
 		return Competition{}, fmt.Errorf("reading competition %s's coach levels: %w", c.ID, err)
@@ -525,7 +532,24 @@ func (s *Store) SetSplit(ctx context.Context, id string, split competitions.Spli
 	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET split = $1 WHERE id = $2`, string(data), id))
 }
 
-// SetTimetable saves a competition's timetable and its setup (nil to remove it).
+// PublishTimetable makes a timetable the copy attendees see (nil to take it
+// down), leaving the organiser's draft as it is.
+func (s *Store) PublishTimetable(ctx context.Context, id string, t *competitions.Schedule) error {
+	data := ""
+	if t != nil {
+		published := *t
+		published.Published = true
+		b, err := json.Marshal(published)
+		if err != nil {
+			return err
+		}
+		data = string(b)
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET published_timetable = $1 WHERE id = $2`, data, id))
+}
+
+// SetTimetable saves the organiser's draft timetable and its setup (nil to
+// remove it); attendees see it only once it's published.
 func (s *Store) SetTimetable(ctx context.Context, id string, t *competitions.Schedule) error {
 	data := ""
 	if t != nil {

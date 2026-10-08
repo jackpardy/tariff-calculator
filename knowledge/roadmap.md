@@ -216,7 +216,8 @@ roughly in the order they'd help ISTO.
    the whole timetable with them in bold, area by area rather than on one
    time scale, and a club has no timetable of its own.
 6. **Draft and published timetables, and applying a "what if"** (decided
-   2026-10-07). Once a timetable is published, attendees see that copy and
+   2026-10-07; drafts, officials in them, and keeping a "what if" built
+   2026-10-08; the "what ifs'" missing checks still to do). Once a timetable is published, attendees see that copy and
    the organiser works on a **draft**: every change (moving a flight,
    redrawing an order, planning again, keeping a delay's or a leaving
    official's result) goes into the draft, and **Publish** makes it what

@@ -57,8 +57,8 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 	if published(c) {
 		page.Timeline = strings.TrimSuffix(r.URL.Path, "/day") + "/timeline"
 	}
-	t := c.Timetable
-	published := t != nil && t.Published
+	t := c.Published
+	published := t != nil
 	page.Published = published
 	for _, j := range judge(c.Competition, entries) {
 		if !slices.Contains(keys[j.ID], key) {
