@@ -1,6 +1,9 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: On the [roadmap](roadmap.md): ways round the organiser's
+  entries: collapsing levels, searching for a person, filtering by coach,
+  checked, sign-off, video and more, sorting, and printing what's shown.
 * **Update**: [Synchro partners](features/competition-entries.md#events-and-synchro-adr-0005-step-2)
   see the pair's entry once they confirm: on their own page, their coach's
   and their club's, under **Synchro as a partner**, even if their club
