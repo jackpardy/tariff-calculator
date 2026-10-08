@@ -68,7 +68,13 @@ func newCompetitionPages(st *store.Store) *competitionPages {
 }
 
 func (p *competitionPages) register(mux *http.ServeMux) {
-	handle := func(pattern string, h http.HandlerFunc) { mux.Handle(pattern, p.secret(h)) }
+	handle := func(pattern string, h http.HandlerFunc) {
+		if strings.Contains(pattern, " "+adminPrefix) {
+			h = p.gate(pattern, h)
+		}
+		mux.Handle(pattern, p.secret(h))
+	}
+	p.registerAccess(handle)
 	handle("GET /competitions/new", p.newForm)
 	handle("POST /competitions", p.create)
 	handle("GET /competitions/admin/{token}", p.dashboard)
@@ -419,7 +425,7 @@ func summary(c competitions.Competition, now time.Time) views.CompetitionSummary
 
 // admin is the competition an admin link opens, or a page saying it doesn't.
 func (p *competitionPages) admin(w http.ResponseWriter, r *http.Request) (store.Competition, bool) {
-	c, err := p.st.CompetitionByAdmin(r.Context(), r.PathValue("token"))
+	c, _, err := p.st.AdminLink(r.Context(), r.PathValue("token"))
 	if err != nil {
 		failed(w, r, err)
 		return c, false
@@ -590,6 +596,19 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	if !c.NotifyDue.IsZero() {
 		d.NotifyAt = c.NotifyDue.In(local).Format("15:04")
+	}
+	d.Access = access(r)
+	if d.Access.Organiser {
+		links, err := p.st.Links(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		d.LinkList = linkViews(links)
+	}
+	if d.Concerns, d.OpenConcerns, err = p.concernViews(r.Context(), c, d.Base); err != nil {
+		failed(w, r, err)
+		return
 	}
 	removed, err := p.st.RemovedEntries(r.Context(), c.ID)
 	if err != nil {
@@ -972,7 +991,7 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
 		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
 		ID: e.ID, Checked: checkedText(e), Note: e.Note, VideoReview: e.VideoReview, VideoNote: e.VideoNote,
-		Withdrawn: e.Withdrawn,
+		Withdrawn: e.Withdrawn, Access: access(r), Notice: r.URL.Query().Get("notice"),
 	}))
 }
 
