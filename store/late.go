@@ -17,8 +17,8 @@ import (
 
 // What the organiser has decided about a late change.
 const (
-	LateWaiting  = ""         // for the organiser
-	LateCoach    = "coach"    // for a coach to sign off first
+	LateWaiting  = ""      // for the organiser
+	LateCoach    = "coach" // for a coach to sign off first
 	LateAccepted = "accepted"
 	LateRejected = "rejected"
 )
