@@ -157,6 +157,10 @@ func (c *conflicts) tooMany() {
 			if r.Min != nil {
 				n, what = int(*r.Min), "elements"
 			}
+		case Linked:
+			if r.Min != nil && *r.Min >= 1 {
+				n, what = int(*r.Min)+1, "elements in a row"
+			}
 		case Separate:
 			n, what = len(r.Each), "different elements"
 		case Position:

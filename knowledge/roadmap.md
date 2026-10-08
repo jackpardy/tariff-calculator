@@ -377,6 +377,16 @@ Ideas to come back to (2026-10-08), not decided:
   Today only the entrant's coach signs it off. Builds on the partner seeing
   the entry (next steps).
 
+- **ISTO's synchro, DMT and tumbling rules** (from its 2025 routines,
+  2026-10-08). A gymnast may enter synchro **twice** (two partners); today
+  it's one entry per gymnast per discipline. Synchro pairs may do **the set
+  routine or** the lower level's voluntary; today synchro checks the
+  voluntary only. DMT (Levels 1–6: a mounter, spotter and dismount per pass,
+  or round difficulty limits) and tumbling (Levels 1–4: set passes, or 5–8
+  elements with a required twist) aren't checked.
+- **Results** for Elite and Elite-Pro: two voluntaries, the higher-scoring
+  ranks, with both tariffs recorded for ties.
+
 See [open questions](open-questions.md) for what's waiting on documents and
 decisions.
 

@@ -95,12 +95,13 @@ same way. The app tells users to check built-ins against the current rules.
 
 | Group | Concept |
 |---|---|
+| ISTO, Irish Student Trampoline Open (2025) | [ISTO](isto.md) |
 | BUCS student championships (2026) | [BUCS](bucs.md) |
 | FIG age groups (2025–2028) | [FIG age groups](fig.md) |
 | British Gymnastics national pathway (2026) | [BG national](bg-national.md) |
 | British Gymnastics club & regional pathway (2027) | [BG club & regional](bg-regional.md) |
 
-ISTO and Gymnastics Ireland levels are waiting for documents (see
+Gymnastics Ireland levels are waiting for documents (see
 [open questions](../open-questions.md)). Requirements that are a single fixed
 routine are listed apart as [set routines](set-routines.md). Each group's
 requirements are also paired into [levels](levels.md), one per competition

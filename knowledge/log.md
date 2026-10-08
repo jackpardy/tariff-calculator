@@ -1,6 +1,13 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [ISTO's levels](requirements/isto.md) built in from its 2025
+  routines: Novice to Advanced (Set A or B, then a voluntary), Elite and
+  Elite-Pro (two voluntaries), and Disability Levels 1–5. A new
+  [`linked` rule](requirements/rule-types.md) counts skills one straight
+  after another, for "no linked somersaults". Questions on the document are
+  in [open questions](open-questions.md#istos-routines-to-confirm); synchro,
+  DMT and tumbling gaps on the [roadmap](roadmap.md#possible-additions-not-planned-yet).
 * **Update**: [Helpers' links](features/competition-entries.md#helpers-links-history-and-concerns-adr-0009)
   ([ADR 0009](../docs/adr/0009-helper-links.md)): the organiser makes links
   for checking cards, chairs of judges, the timetable and officials, or a

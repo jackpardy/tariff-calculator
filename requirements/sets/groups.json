@@ -1,5 +1,156 @@
 [
   {
+    "dir": "isto",
+    "name": "ISTO, Irish Student Trampoline Open (2025)",
+    "sets": [
+      "isto-novice-set-a",
+      "isto-novice-set-b",
+      "isto-novice-vol",
+      "isto-intermediate-set-a",
+      "isto-intermediate-set-b",
+      "isto-intermediate-vol",
+      "isto-intervanced-set-a",
+      "isto-intervanced-set-b",
+      "isto-intervanced-vol",
+      "isto-advanced-set-a",
+      "isto-advanced-set-b",
+      "isto-advanced-vol",
+      "isto-elite",
+      "isto-elite-pro",
+      "isto-disability-l1-set",
+      "isto-disability-l1-vol",
+      "isto-disability-l2-set",
+      "isto-disability-l2-vol",
+      "isto-disability-l3-set",
+      "isto-disability-l3-vol",
+      "isto-disability-l4-set",
+      "isto-disability-l4-vol",
+      "isto-disability-l5-set",
+      "isto-disability-l5-vol"
+    ],
+    "levels": [
+      {
+        "id": "isto-novice",
+        "name": "ISTO Novice",
+        "first": [
+          "isto-novice-set-a",
+          "isto-novice-set-b"
+        ],
+        "second": [
+          "isto-novice-vol"
+        ],
+        "description": "First exercise: Set A or Set B. Second exercise: a voluntary."
+      },
+      {
+        "id": "isto-intermediate",
+        "name": "ISTO Intermediate",
+        "first": [
+          "isto-intermediate-set-a",
+          "isto-intermediate-set-b"
+        ],
+        "second": [
+          "isto-intermediate-vol"
+        ],
+        "description": "First exercise: Set A or Set B. Second exercise: a voluntary."
+      },
+      {
+        "id": "isto-intervanced",
+        "name": "ISTO Intervanced",
+        "first": [
+          "isto-intervanced-set-a",
+          "isto-intervanced-set-b"
+        ],
+        "second": [
+          "isto-intervanced-vol"
+        ],
+        "description": "First exercise: Set A or Set B. Second exercise: a voluntary."
+      },
+      {
+        "id": "isto-advanced",
+        "name": "ISTO Advanced",
+        "first": [
+          "isto-advanced-set-a",
+          "isto-advanced-set-b"
+        ],
+        "second": [
+          "isto-advanced-vol"
+        ],
+        "description": "First exercise: Set A or Set B. Second exercise: a voluntary."
+      },
+      {
+        "id": "isto-elite",
+        "name": "ISTO Elite",
+        "first": [
+          "isto-elite"
+        ],
+        "description": "Two voluntary routines under the same rules; the higher-scoring one ranks."
+      },
+      {
+        "id": "isto-elite-pro",
+        "name": "ISTO Elite-Pro",
+        "first": [
+          "isto-elite-pro"
+        ],
+        "description": "Two voluntary routines under the same rules; the higher-scoring one ranks."
+      },
+      {
+        "id": "isto-disability-l1",
+        "name": "ISTO Disability Level 1",
+        "first": [
+          "isto-disability-l1-set"
+        ],
+        "second": [
+          "isto-disability-l1-vol"
+        ],
+        "description": "Band 1. First exercise: the set routine. Second exercise: a voluntary, which may repeat the set routine."
+      },
+      {
+        "id": "isto-disability-l2",
+        "name": "ISTO Disability Level 2",
+        "first": [
+          "isto-disability-l2-set"
+        ],
+        "second": [
+          "isto-disability-l2-vol"
+        ],
+        "description": "Band 1. First exercise: the set routine. Second exercise: a voluntary, which may repeat the set routine."
+      },
+      {
+        "id": "isto-disability-l3",
+        "name": "ISTO Disability Level 3",
+        "first": [
+          "isto-disability-l3-set"
+        ],
+        "second": [
+          "isto-disability-l3-vol"
+        ],
+        "description": "Band 2. First exercise: the set routine. Second exercise: a voluntary, which may repeat the set routine."
+      },
+      {
+        "id": "isto-disability-l4",
+        "name": "ISTO Disability Level 4",
+        "first": [
+          "isto-disability-l4-set"
+        ],
+        "second": [
+          "isto-disability-l4-vol"
+        ],
+        "description": "Band 2. First exercise: the set routine. Second exercise: a voluntary, which may repeat the set routine."
+      },
+      {
+        "id": "isto-disability-l5",
+        "name": "ISTO Disability Level 5",
+        "first": [
+          "isto-disability-l5-set"
+        ],
+        "second": [
+          "isto-disability-l5-vol"
+        ],
+        "description": "Band 3. First exercise: the set routine. Second exercise: a voluntary, which may repeat the set routine."
+      }
+    ]
+  },
+  {
     "dir": "bucs",
     "name": "BUCS student championships (2026)",
     "hardest_first": true,

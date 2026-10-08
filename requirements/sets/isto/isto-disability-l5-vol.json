@@ -1,0 +1,44 @@
+{
+  "format": 1,
+  "name": "ISTO Disability Level 5 · voluntary",
+  "description": "Band 3. Competitors perform the set routine and a voluntary; the voluntary may repeat the set routine. Tariff at least 2.4, no maximum.",
+  "source": "ISTO 2025 Routines (updated)",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "different",
+      "label": "10 different individual skills"
+    },
+    {
+      "type": "difficulty",
+      "min": 2.4
+    },
+    {
+      "type": "count",
+      "label": "No somersault rotation over 450° in a skill",
+      "match": {
+        "rotation": {
+          "min": 6
+        }
+      },
+      "max": 0
+    },
+    {
+      "type": "count",
+      "label": "At most 360° twist in somersault skills",
+      "match": {
+        "rotation": {
+          "min": 3
+        },
+        "twist": {
+          "min": 3
+        }
+      },
+      "max": 0
+    }
+  ]
+}

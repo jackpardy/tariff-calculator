@@ -1,0 +1,45 @@
+{
+  "format": 1,
+  "name": "ISTO Novice · voluntary",
+  "description": "Voluntary: 10 different skills, tariff 1.1 to 1.5, nothing over 270° somersault and no twisting somersaults.",
+  "source": "ISTO 2025 Routines (updated)",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "different",
+      "label": "10 different individual skills"
+    },
+    {
+      "type": "difficulty",
+      "min": 1.1,
+      "max": 1.5
+    },
+    {
+      "type": "count",
+      "label": "No somersault rotation over 270° in a skill",
+      "match": {
+        "rotation": {
+          "min": 4
+        }
+      },
+      "max": 0
+    },
+    {
+      "type": "count",
+      "label": "No twisting in somersault skills",
+      "match": {
+        "rotation": {
+          "min": 3
+        },
+        "twist": {
+          "min": 1
+        }
+      },
+      "max": 0
+    }
+  ]
+}
