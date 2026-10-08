@@ -67,6 +67,11 @@ const (
 type OfficialSettings struct {
 	Panels map[string]Panel `json:"panels,omitempty"` // by discipline; missing: the Code of Points'
 	Judge  string           `json:"judge,omitempty"`  // JudgeDeclared, JudgeBelow or JudgeQualified
+	// RecordersChange and MarshalsChange let those seats change between an
+	// event's flights; otherwise the whole panel stays for all of them (ADR
+	// 0006).
+	RecordersChange bool `json:"recorders_change,omitempty"`
+	MarshalsChange  bool `json:"marshals_change,omitempty"`
 }
 
 // Panel is a discipline's panel.

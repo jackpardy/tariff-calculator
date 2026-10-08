@@ -78,19 +78,21 @@ templ offerBox(f OfferForm) {
 // OfficialsPage is the organiser's officials: the panels and judging rule,
 // who's available for each discipline, and everyone who has offered.
 type OfficialsPage struct {
-	Base        string
-	Competition CompetitionSummary
-	Notice      string
-	Judge       string // the judging rule
-	Panels      []PanelSetting
-	Cover       []Cover
-	Officials   []OfficialRow
-	Add         OfferForm // for adding a person
+	Base            string
+	Competition     CompetitionSummary
+	Notice          string
+	Judge           string // the judging rule
+	RecordersChange bool   // recorders can change between an event's flights
+	MarshalsChange  bool   // marshals can too
+	Panels          []PanelSetting
+	Cover           []Cover
+	Officials       []OfficialRow
+	Add             OfferForm // for adding a person
 }
 
 // PanelSetting is a discipline's panel, as the form shows it.
 type PanelSetting struct {
-	Key, Name                                     string
+	Key, Name                                                 string
 	Chair, Execution, Difficulty, HD, Sync, Recorder, Marshal int
 	HasHD                                                     bool // trampoline: HD judges where no machine measures it
 	HasSync                                                   bool // synchro: synchronisation judges where no machine measures it
@@ -166,6 +168,9 @@ templ CompetitionOfficials(p OfficialsPage) {
 						</tbody>
 					</table>
 				</div>
+				<p class="help mb-1">A panel judges all of an event's flights, so every gymnast in it is scored by the same people.</p>
+				<label class="checkbox comp-option"><input type="checkbox" name="recordersChange" value="1" checked?={ p.RecordersChange }/> Recorders can change between an event's flights</label>
+				<label class="checkbox comp-option mb-3"><input type="checkbox" name="marshalsChange" value="1" checked?={ p.MarshalsChange }/> Marshals can change between an event's flights</label>
 				<fieldset class="field">
 					<legend class="label is-small">Who may judge what</legend>
 					<label class="radio comp-option"><input type="radio" name="judge" value="" checked?={ p.Judge == "" }/> Anyone, up to the level they say</label>
@@ -187,7 +192,7 @@ templ CompetitionOfficials(p OfficialsPage) {
 							<tr>
 								<td>
 									{ o.Name }
-									<span class="has-text-grey is-size-7"> · { o.Source }</span>
+									<span class="has-text-grey is-size-7">· { o.Source }</span>
 								</td>
 								<td>{ o.Club }</td>
 								<td class="comp-wrap">{ o.Offer }</td>

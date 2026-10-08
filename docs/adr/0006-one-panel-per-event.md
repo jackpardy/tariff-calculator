@@ -1,6 +1,7 @@
 # ADR 0006 — One panel for a whole event
 
-- **Status:** Accepted; step 2 (runs) built 2026-10-08
+- **Status:** Accepted; steps 2 (runs) and 3 (one panel per run) built
+  2026-10-08
 - **Date:** 2026-10-08
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0005 Decisions 9 (the scheduler) and 12 (the officials
@@ -76,9 +77,9 @@ placed, so "flight 2 of 5" can run before flight 1.
    staffed separately, never from a panel that's paused for it.
    - **Recorders and marshals can change, if the organiser allows it.** By
      default the whole panel stays, recorders and marshals included. The
-     organiser can let **recorders and marshals change between flights**:
-     then those seats are filled flight by flight, as now, while the judges
-     stay for the run.
+     organiser can let **recorders change** or **marshals change** between
+     flights, each on its own (2026-10-08): then those seats are filled
+     flight by flight, as before, while the judges stay for the run.
 
 6. **Flights are numbered in the order they run.** Within an event, flight 1
    is the first to start. Numbers are worked out again whenever times are

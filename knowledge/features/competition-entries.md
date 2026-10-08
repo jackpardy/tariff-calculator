@@ -153,8 +153,13 @@ each discipline's panel needs.
 
 # Officials rota (ADR 0005, step 5)
 
-Planning the timetable also fills each flight's panel from the people who've
-offered (roadmap: competitions 4).
+Planning the timetable also fills each event's panel from the people who've
+offered (roadmap: competitions 4): once for all of its flights, so everyone
+in it is judged by the same people ([ADR 0006](../../docs/adr/0006-one-panel-per-event.md)).
+A seat goes to someone free for the whole event. The organiser can let
+**recorders change** or **marshals change** between an event's flights
+(each on its own, both off by default, on the officials page); those seats
+are then filled flight by flight.
 
 - **Never in two places:** no one officiates while competing, or on two
   panels at once. Each seat goes only to someone who may take it: judges
@@ -162,7 +167,7 @@ offered (roadmap: competitions 4).
   chair, recorders and marshals who offered.
 - **As far as it can:** clubs share judging their own gymnasts fairly (each
   time costs a club more than the last), the work is spread, a panel stays
-  together on its area from one flight to the next, helpers who could judge
+  together on its area from one event to the next, helpers who could judge
   are kept for judging, and someone about to compete gets rest first.
 - **Rules about people,** each a must or a prefer: someone in a role at an
   event ("Mary is Chair of judges at Elite Women"), someone not officiating
@@ -170,22 +175,26 @@ offered (roadmap: competitions 4).
   times. A must keeps that person for that seat, off any flight at the same
   time. Changing these rules asks you to **Assign officials again**, not to
   plan again.
-- **The report:** seats no one could take (counted, with the flights
-  they're on: "11, on 3 flights"), hand changes that break the rota
+- **The report:** seats no one could take, a seat for the whole event it's
+  on (counted, with the panels they're on: "11, on 3 panels"), hand changes that break the rota
   (someone officiating while competing, in two places, or in a role they
   can't take), rules not kept, coaches needed on two areas at once, times
   each club judged its own, and the busiest officials.
-- **By hand:** give any seat to anyone who's offered, or empty it. **Assign
-  officials again** starts the rota afresh, keeping the flights.
+- **By hand:** give any seat to anyone who's offered, or empty it; the change
+  goes on the event's other flights the same person had that seat for.
+  **Assign officials again** starts the rota afresh, keeping the flights.
 - **Coaches:** planning keeps a coach's gymnasts off two areas at once where
   that can be done (by club and coach name), and reports where it can't.
 - **Printed:** each flight's panel on the marshal and chair of judges sheets,
-  and the **officials rota**, each person's duties in time order.
+  and the **officials rota**, each person's duties in time order, one line
+  for an event ("Friday 09:30–15:15 · Panel 2 · BUCS L7 Men · all 5
+  flights · Execution judge").
 - **Published,** members and gymnasts entering on their own see their duties
   on their page.
 - **Flights where judges are free:** planning prefers times when enough of
-  an event's judges aren't competing to fill its panel, counting both the
-  flight being placed and those already beside it.
+  an event's judges aren't competing to fill its panel, for each flight and
+  for the whole event, counting both the flights being placed and those
+  already beside them.
 
 # Timetable (ADR 0005, step 4)
 
@@ -303,8 +312,9 @@ alone would have done.
 **What if an official has to leave?**, linked from a planned timetable,
 takes who (anyone with a seat), the day and time they go, and whether for
 the day or the rest of the competition, and fills each seat they'd have had
-from then without saving anything (`Schedule.Left`). A seat goes to someone
-free (not competing or on another panel then, allowed the role at that event
+from then without saving anything (`Schedule.Left`). Each seat is filled for
+the rest of its event's flights they'd have had, by one person. A seat goes
+to someone free for all of them (not competing or on another panel then, allowed the role at that event
 and by the must rules about people), or is reached by moving others round, at
 most three moves: someone on that panel up a role, or someone across from a
 panel at the same time, their seat filled in turn. Two ways to choose:

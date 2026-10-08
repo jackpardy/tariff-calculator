@@ -10,13 +10,14 @@ import (
 	"strings"
 )
 
-// The officials rota (ADR 0005 Decisions 5, 8, 9 and 12): each placed
-// flight's panel filled from the people who can officiate, never someone
-// competing or officiating elsewhere at the same time, keeping the
-// organiser's rules about people. Then, as far as it can: own-club judging
-// shared fairly between clubs, the work spread, panels kept together through
-// an area's flights, and rest before a person competes. A seat no one can
-// take is left empty and reported.
+// The officials rota (ADR 0005 Decisions 5, 8, 9 and 12, and ADR 0006): each
+// event's panel filled once for all of its flights (its recorders and
+// marshals flight by flight, if the organiser lets them change) from the
+// people who can officiate, never someone competing or officiating elsewhere
+// at the same time, keeping the organiser's rules about people. Then, as far
+// as it can: own-club judging shared fairly between clubs, the work spread,
+// panels kept together through an area's events, and rest before a person
+// competes. A seat no one can take is left empty and reported.
 
 // Roles on a panel.
 const (
@@ -161,31 +162,111 @@ type lastDuty struct {
 	end  int
 }
 
-// Rota fills every placed flight's panel (Decision 12), replacing any it had.
-// entries are the scheduled entries (for who competes when, and their clubs);
-// people are those who can officiate.
+// rotaJob is what one panel staffs: an event's run (its flights back to
+// back on one area), or one of its flights for the seats that change
+// between flights, or blocked time.
+type rotaJob struct {
+	flights []int    // the flights it staffs, by index
+	block   int      // the block, if it's blocked time; -1 otherwise
+	roles   []string // its seats
+}
+
+// rotaJobs are the panels to staff, and each as a flight spanning its time
+// with all its gymnasts: runs (and their flights, for recorders and
+// marshals who change) first, then blocks that need officials.
+func (s Schedule) rotaJobs(settings OfficialSettings) ([]ScheduledFlight, []rotaJob) {
+	var jobs []ScheduledFlight
+	var meta []rotaJob
+	for _, seg := range s.segments() {
+		first, last := s.Flights[seg[0]], s.Flights[seg[len(seg)-1]]
+		span := ScheduledFlight{Flight: Flight{Level: first.Level, Category: first.Category, Number: 1, Of: 1}, Discipline: first.Discipline, Day: first.Day, Area: first.Area, Start: first.Start, End: last.End}
+		for _, i := range seg {
+			span.Entries = append(span.Entries, s.Flights[i].Entries...)
+		}
+		var judges, helpers []string
+		for _, role := range settings.Panel(first.Discipline).Seats() {
+			if role == RoleRecorder && settings.RecordersChange || role == RoleMarshal && settings.MarshalsChange {
+				helpers = append(helpers, role)
+			} else {
+				judges = append(judges, role)
+			}
+		}
+		jobs, meta = append(jobs, span), append(meta, rotaJob{flights: seg, block: -1, roles: judges})
+		for _, i := range seg {
+			if len(helpers) > 0 {
+				jobs, meta = append(jobs, s.Flights[i]), append(meta, rotaJob{flights: []int{i}, block: -1, roles: helpers})
+			}
+		}
+	}
+	for i, b := range s.Blocks {
+		if len(s.blockSeats(b)) == 0 && len(b.Officials) == 0 {
+			continue
+		}
+		jobs = append(jobs, ScheduledFlight{Flight: Flight{Level: b.Name}, Day: b.Day, Area: strings.Join(b.Areas, ", "), Start: b.Start, End: b.End})
+		meta = append(meta, rotaJob{block: i, roles: s.blockSeats(b)})
+	}
+	return jobs, meta
+}
+
+// segments are each event's runs: its flights back to back on one area and
+// day, by index, in order. A run split by hand is a segment for each part.
+func (s Schedule) segments() [][]int {
+	idx := make([]int, len(s.Flights))
+	for i := range idx {
+		idx[i] = i
+	}
+	slices.SortStableFunc(idx, func(a, b int) int {
+		fa, fb := s.Flights[a], s.Flights[b]
+		return cmp.Or(fa.Day-fb.Day, strings.Compare(fa.Area, fb.Area), fa.Start-fb.Start)
+	})
+	var out [][]int
+	for k := 0; k < len(idx); {
+		f := s.Flights[idx[k]]
+		seg := []int{idx[k]}
+		for k+len(seg) < len(idx) {
+			g := s.Flights[idx[k+len(seg)]]
+			if g.Day != f.Day || g.Area != f.Area || g.Event() != f.Event() {
+				break
+			}
+			seg = append(seg, idx[k+len(seg)])
+		}
+		out = append(out, seg)
+		k += len(seg)
+	}
+	return out
+}
+
+// Rota fills every placed event's panel (Decision 12; ADR 0006), replacing
+// any it had. entries are the scheduled entries (for who competes when, and
+// their clubs); people are those who can officiate.
 func (s *Schedule) Rota(entries []SchedEntry, people []RotaPerson, settings OfficialSettings, seed uint64) {
 	rng := rand.New(rand.NewPCG(seed, 11))
 	byEntry := map[string]SchedEntry{}
 	for _, e := range entries {
 		byEntry[e.ID] = e
 	}
-	jobs, blocks := s.jobs()
-	busy := map[string][]interval{}
+	jobs, meta := s.rotaJobs(settings)
+	busy := map[string][]interval{} // competing: each flight, not its whole run
+	for _, f := range s.Flights {
+		for _, id := range f.Entries {
+			for _, p := range byEntry[id].People {
+				busy[p] = append(busy[p], interval{f.Day, f.Start, f.End})
+			}
+		}
+	}
 	var clubsIn []map[string]bool
-	for _, f := range jobs {
-		iv := interval{f.Day, f.Start, f.End}
+	flights := 0
+	for k, f := range jobs {
 		clubs := map[string]bool{}
 		for _, id := range f.Entries {
-			e := byEntry[id]
-			for _, p := range e.People {
-				busy[p] = append(busy[p], iv)
-			}
-			if e.Club != "" {
+			if e := byEntry[id]; e.Club != "" {
 				clubs[e.Club] = true
 			}
 		}
 		clubsIn = append(clubsIn, clubs)
+		if meta[k].block < 0 {
+			flights++
+		}
 	}
 	order := make([]int, len(jobs))
 	for i := range order {
@@ -198,7 +279,7 @@ func (s *Schedule) Rota(entries []SchedEntry, people []RotaPerson, settings Offi
 	var best *rota
 	for range 12 {
 		r := &rota{
-			s: s, jobs: jobs, flights: len(s.Flights), people: people, busy: busy, duties: map[string][]interval{}, minutes: map[string]int{},
+			s: s, jobs: jobs, flights: flights, people: people, busy: busy, duties: map[string][]interval{}, minutes: map[string]int{},
 			own: map[string]int{}, lastOn: map[string]lastDuty{}, clubsIn: clubsIn, hours: map[string][]Rule{},
 			assigned: make([][]Duty, len(jobs)), byKey: map[string]int{}, rng: rng,
 		}
@@ -211,11 +292,7 @@ func (s *Schedule) Rota(entries []SchedEntry, people []RotaPerson, settings Offi
 			}
 		}
 		for _, i := range order {
-			seats := settings.Panel(jobs[i].Discipline).Seats()
-			if i >= len(s.Flights) {
-				seats = s.blockSeats(s.Blocks[blocks[i-len(s.Flights)]])
-			}
-			r.staff(i, seats)
+			r.staff(i, meta[i].roles)
 		}
 		r.cost += float64(r.empty) * 1000
 		if best == nil || r.cost < best.cost {
@@ -223,10 +300,16 @@ func (s *Schedule) Rota(entries []SchedEntry, people []RotaPerson, settings Offi
 		}
 	}
 	for i := range s.Flights {
-		s.Flights[i].Officials = best.assigned[i]
+		s.Flights[i].Officials = nil
 	}
-	for k, b := range blocks {
-		s.Blocks[b].Officials = best.assigned[len(s.Flights)+k]
+	for k, m := range meta {
+		if m.block >= 0 {
+			s.Blocks[m.block].Officials = best.assigned[k]
+			continue
+		}
+		for _, i := range m.flights { // a run's judges, then a flight's own seats: the panel's order
+			s.Flights[i].Officials = append(s.Flights[i].Officials, best.assigned[k]...)
+		}
 	}
 }
 
@@ -428,8 +511,9 @@ type Workload struct {
 	Minutes int
 }
 
-// RotaReport reports on the rota. clubs are each entry's club; officials
-// are the people who can officiate.
+// RotaReport reports on the rota, a seat at a time over the flights one
+// person holds it for (an event's, as a rule). clubs are each entry's club;
+// officials are the people who can officiate.
 func (s Schedule) RotaReport(clubs map[string]string, officials []RotaPerson) RotaReport {
 	var rr RotaReport
 	clubOf := map[string]string{}
@@ -438,39 +522,57 @@ func (s Schedule) RotaReport(clubs map[string]string, officials []RotaPerson) Ro
 	}
 	own := map[string]int{}
 	work := map[string]*Workload{}
-	jobs, _ := s.jobs()
-	for _, f := range jobs {
-		short := map[string]int{}
+	type seats struct {
+		label string
+		short map[string]int
+	}
+	var shorts []*seats
+	shortAt := map[string]*seats{}
+	held := func(person, role, label string, minutes int, in map[string]bool) {
+		if person == "" {
+			if shortAt[label] == nil {
+				shortAt[label] = &seats{label: label, short: map[string]int{}}
+				shorts = append(shorts, shortAt[label])
+			}
+			shortAt[label].short[role]++
+			rr.Empty++
+			return
+		}
+		w := work[person]
+		if w == nil {
+			w = &Workload{Person: person}
+			work[person] = w
+		}
+		w.Duties++
+		w.Minutes += minutes
+		if c := clubOf[person]; c != "" && in[c] && isJudge(role) {
+			own[c]++
+		}
+	}
+	for _, st := range s.seatStretches() {
+		iv := s.span(st)
 		in := map[string]bool{}
-		for _, id := range f.Entries {
-			in[clubs[id]] = true
-		}
-		for _, d := range f.Officials {
-			if d.Person == "" {
-				short[d.Role]++
-				rr.Empty++
-				continue
-			}
-			w := work[d.Person]
-			if w == nil {
-				w = &Workload{Person: d.Person}
-				work[d.Person] = w
-			}
-			w.Duties++
-			w.Minutes += f.End - f.Start
-			if c := clubOf[d.Person]; c != "" && in[c] && isJudge(d.Role) {
-				own[c]++
+		for _, i := range st.flights {
+			for _, id := range s.Flights[i].Entries {
+				in[clubs[id]] = true
 			}
 		}
+		d := s.Flights[st.flights[0]].Officials[st.seat]
+		held(d.Person, d.Role, s.label(st), iv.end-iv.start, in)
+	}
+	for _, b := range s.Blocks {
+		for _, d := range b.Officials {
+			held(d.Person, d.Role, b.Name+" on "+strings.Join(b.Areas, ", "), b.End-b.Start, nil)
+		}
+	}
+	for _, sh := range shorts {
 		var parts []string
 		for _, role := range Roles {
-			if n := short[role]; n > 0 {
+			if n := sh.short[role]; n > 0 {
 				parts = append(parts, fmt.Sprintf("%d %s", n, strings.ToLower(roleNames[role])+plural(n)))
 			}
 		}
-		if len(parts) > 0 {
-			rr.Short = append(rr.Short, fmt.Sprintf("%s on %s: no one for %s", f.Name(), f.Area, joinList(parts)))
-		}
+		rr.Short = append(rr.Short, fmt.Sprintf("%s: no one for %s", sh.label, joinList(parts)))
 	}
 	for c, n := range own {
 		rr.OwnClub = append(rr.OwnClub, ClubCount{c, n})
@@ -482,6 +584,7 @@ func (s Schedule) RotaReport(clubs map[string]string, officials []RotaPerson) Ro
 	slices.SortFunc(rr.Busiest, func(a, b Workload) int { return cmp.Or(b.Minutes-a.Minutes, strings.Compare(a.Person, b.Person)) })
 	rr.Busiest = rr.Busiest[:min(len(rr.Busiest), 5)]
 
+	jobs, _ := s.jobs()
 	for _, rule := range s.Setup.Rules {
 		if !personRule(rule.Kind) {
 			continue
@@ -509,6 +612,21 @@ func (s Schedule) RotaReport(clubs map[string]string, officials []RotaPerson) Ro
 	return rr
 }
 
+// seatStretches are every flight's seats, each in the stretch one person
+// (or no one) holds it for: the rest of its event's run, or its flight.
+func (s Schedule) seatStretches() []stretch {
+	var out []stretch
+	for i, f := range s.Flights {
+		for seat := range f.Officials {
+			if prev := s.before(i); prev >= 0 && seat < len(s.Flights[prev].Officials) && s.Flights[prev].Officials[seat] == f.Officials[seat] {
+				continue // in the stretch that starts earlier
+			}
+			out = append(out, s.stretchFrom(i, seat))
+		}
+	}
+	return out
+}
+
 func plural(n int) string {
 	if n == 1 {
 		return ""
@@ -525,12 +643,19 @@ func (s *Schedule) SetBlockDuty(block, seat int, person string) bool {
 	return true
 }
 
-// SetDuty gives a seat on a flight's panel to a person ("" to empty it).
+// SetDuty gives a seat on a flight's panel to a person ("" to empty it), for
+// all the flights of its event whoever has it now holds it for.
 func (s *Schedule) SetDuty(flight, seat int, person string) bool {
 	if flight < 0 || flight >= len(s.Flights) || seat < 0 || seat >= len(s.Flights[flight].Officials) {
 		return false
 	}
-	s.Flights[flight].Officials[seat].Person = person
+	start := flight
+	for prev := s.before(start); prev >= 0 && seat < len(s.Flights[prev].Officials) && s.Flights[prev].Officials[seat] == s.Flights[flight].Officials[seat]; prev = s.before(start) {
+		start = prev
+	}
+	for _, i := range s.stretchFrom(start, seat).flights {
+		s.Flights[i].Officials[seat].Person = person
+	}
 	return true
 }
 

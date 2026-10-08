@@ -165,7 +165,7 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 	}
 	page := views.OfficialsPage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Notice: r.URL.Query().Get("notice"),
-		Judge: c.Officials.Judge, Add: offerForm(c.Competition, competitions.Offer{}, ""),
+		Judge: c.Officials.Judge, RecordersChange: c.Officials.RecordersChange, MarshalsChange: c.Officials.MarshalsChange, Add: offerForm(c.Competition, competitions.Offer{}, ""),
 	}
 	for _, d := range c.Disciplines() {
 		panel := c.Officials.Panel(d)
@@ -209,7 +209,7 @@ func (p *competitionPages) officialSettings(w http.ResponseWriter, r *http.Reque
 	if !ok {
 		return
 	}
-	settings := competitions.OfficialSettings{Judge: r.FormValue("judge"), Panels: map[string]competitions.Panel{}}
+	settings := competitions.OfficialSettings{Judge: r.FormValue("judge"), Panels: map[string]competitions.Panel{}, RecordersChange: r.FormValue("recordersChange") == "1", MarshalsChange: r.FormValue("marshalsChange") == "1"}
 	for _, d := range c.Disciplines() {
 		n := func(role string) int {
 			v, err := strconv.Atoi(strings.TrimSpace(r.FormValue("panel-" + offerKey(d) + "-" + role)))

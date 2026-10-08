@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"tariffCalculator/competitions"
 )
 
 func TestOfficialsRota(t *testing.T) {
@@ -17,6 +19,18 @@ func TestOfficialsRota(t *testing.T) {
 	redirected(t, h, officials+"/settings", url.Values{
 		"panel-trampoline-chair": {"1"}, "panel-trampoline-execution": {"2"}, "panel-trampoline-difficulty": {"0"}, "panel-trampoline-recorder": {"0"}, "panel-trampoline-marshal": {"0"},
 		"panel-tumbling-chair": {"1"}, "panel-tumbling-execution": {"1"}, "panel-tumbling-difficulty": {"0"}, "panel-tumbling-recorder": {"0"}, "panel-tumbling-marshal": {"0"}})
+	page := do(t, h, http.MethodGet, officials, nil).Body.String()
+	if !strings.Contains(page, `name="recordersChange"`) || strings.Contains(page, `name="recordersChange" value="1" checked`) || strings.Contains(page, `name="marshalsChange" value="1" checked`) {
+		t.Error("recorders and marshals stay by default")
+	}
+	// Marshals can change between flights; recorders still stay.
+	settings := url.Values{
+		"panel-trampoline-chair": {"1"}, "panel-trampoline-execution": {"2"}, "panel-trampoline-difficulty": {"0"}, "panel-trampoline-recorder": {"0"}, "panel-trampoline-marshal": {"0"},
+		"panel-tumbling-chair": {"1"}, "panel-tumbling-execution": {"1"}, "panel-tumbling-difficulty": {"0"}, "panel-tumbling-recorder": {"0"}, "panel-tumbling-marshal": {"0"}, "marshalsChange": {"1"}}
+	redirected(t, h, officials+"/settings", settings)
+	if page := do(t, h, http.MethodGet, officials, nil).Body.String(); strings.Contains(page, `name="recordersChange" value="1" checked`) || !strings.Contains(page, `name="marshalsChange" value="1" checked`) {
+		t.Error("each chosen on its own")
+	}
 	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "judge-tumbling": {"1"}, "chair-tumbling": {"1"}})
@@ -28,15 +42,15 @@ func TestOfficialsRota(t *testing.T) {
 	tt := admin + "/timetable"
 	redirected(t, h, tt+"/setup/rules", url.Values{"add": {"1"}, "kind": {"before"}, "must": {"1"}, "event": {"Tumbling Novice"}, "event2": {"BUCS L3"}})
 
-	page := do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
+	page = do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
 	if !strings.Contains(page, "4 can officiate") || !strings.Contains(page, "· 3 of 3 seats filled") || !strings.Contains(page, "· 1 of 2 seats filled") {
 		t.Fatalf("the panels are filled from the officials: %s", page)
 	}
 	if !strings.Contains(page, "Tumbling Novice flight 1 on Track 1: no one for 1 execution judge") && !strings.Contains(page, "Tumbling Novice on Track 1: no one for 1 execution judge") {
 		t.Error("a seat no one can take is reported")
 	}
-	if !strings.Contains(page, "<strong>Seats no one could take:</strong> 1, on 1 flight</summary>") {
-		t.Error("the empty seats are counted, with the flights they're on")
+	if !strings.Contains(page, "<strong>Seats no one could take:</strong> 1, on 1 panel</summary>") {
+		t.Error("the empty seats are counted, with the panels they're on")
 	}
 	l3 := page[strings.Index(page, "<strong>BUCS L3"):]
 	l3 = strings.Join(strings.Fields(l3[:strings.Index(l3, "Redraw order")]), " ")
@@ -115,5 +129,20 @@ func TestBlockOfficials(t *testing.T) {
 	}
 	if rota := do(t, h, http.MethodGet, tt+"/print?sheet=rota", nil).Body.String(); !strings.Contains(rota, "Panel 1 · Ad hoc · Chair of judges") {
 		t.Error("the rota lists block duties")
+	}
+}
+
+func TestDutiesByEvent(t *testing.T) {
+	flight := func(n, start int) competitions.ScheduledFlight {
+		return competitions.ScheduledFlight{Flight: competitions.Flight{Level: "BUCS L7", Category: "Men", Number: n, Of: 3}, Area: "Panel 2", Start: start, End: start + 60,
+			Officials: []competitions.Duty{{Role: competitions.RoleExecution, Person: "m:1"}}}
+	}
+	s := competitions.Schedule{Setup: competitions.Setup{Days: []competitions.Day{{Name: "Friday"}}}, Flights: []competitions.ScheduledFlight{flight(1, 570), flight(2, 630), flight(3, 690)}}
+	if got := dutiesIn(s, "m:1"); len(got) != 1 || got[0] != "Friday 09:30–12:30 · Panel 2 · BUCS L7 Men · all 3 flights · Execution judge" {
+		t.Errorf("one line for the event: %q", got)
+	}
+	s.Flights[2].Officials[0].Person = "m:2"
+	if got := dutiesIn(s, "m:1"); len(got) != 1 || got[0] != "Friday 09:30–11:30 · Panel 2 · BUCS L7 Men · flights 1–2 of 3 · Execution judge" {
+		t.Errorf("two of its flights: %q", got)
 	}
 }
