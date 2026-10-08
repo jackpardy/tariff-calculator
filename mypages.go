@@ -57,6 +57,7 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 	if published(c) {
 		page.Timeline = strings.TrimSuffix(r.URL.Path, "/day") + "/timeline"
 	}
+	page.Notify = p.notifyLink(strings.TrimSuffix(r.URL.Path, "/day") + "/notify")
 	t := c.Published
 	published := t != nil
 	page.Published = published

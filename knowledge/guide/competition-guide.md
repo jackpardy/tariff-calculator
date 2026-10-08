@@ -348,6 +348,15 @@ these** hides the rest); **Club timetable** does the same for everyone in
 your club, naming who. The comp sec and coaches have **Club timetable** on
 their pages too. Each prints on A3.
 
+**Tell me about changes** (where it's on) emails you when the organiser
+changes something for you: when or where you compete, what you officiate,
+or your card (checked, a note, removed or on hold). Give your email, tick
+that you're 18 or over (or that it's a parent's email) and what to hear
+about, then tap the link it sends to confirm. You get one email for each
+round of changes, a few minutes after the organiser publishes, saying what
+was and what is now. The comp sec hears about all the club's members, and
+a coach about the gymnasts they coach. Every email has a link to stop them.
+
 ## Synchro
 
 Enter synchro like any discipline, and give your **partner's name** (and club,

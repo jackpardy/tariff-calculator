@@ -64,9 +64,13 @@ func main() {
 		}
 		return
 	}
+	pages := newCompetitionPages(st)
+	if pages.notify != nil {
+		go pages.notify.run()
+	}
 	srv := &http.Server{
 		Addr:              ":" + port,
-		Handler:           routesWith(st),
+		Handler:           routesWithPages(pages),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
@@ -85,6 +89,11 @@ func routes() http.Handler {
 // routesWith builds the application's handler, with every request body
 // size-limited. st is the competition storage, nil when it's off.
 func routesWith(st *store.Store) http.Handler {
+	return routesWithPages(newCompetitionPages(st))
+}
+
+// routesWithPages is every route, with the competition pages given.
+func routesWithPages(pages *competitionPages) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET "+static.Prefix, static.Handler())
 
@@ -107,7 +116,7 @@ func routesWith(st *store.Store) http.Handler {
 	mux.HandleFunc("POST /view", handleView)
 	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
 	mux.HandleFunc("POST /tariff-sheet", handleTariffSheet)
-	newCompetitionPages(st).register(mux)
+	pages.register(mux)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limit := int64(maxRequestBytes)

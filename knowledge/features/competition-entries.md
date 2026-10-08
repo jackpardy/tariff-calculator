@@ -543,6 +543,39 @@ The rest is faint, or with **Only these**, left out (blocked time stays).
 Each prints like the panel timeline; notes are in each cell's hover text
 too.
 
+# Notifications (ADR 0008)
+
+Where the server can send email, members (each competition on their page,
+and "My competition"), individuals (their entry), comp secs (each
+competition on the club page) and coaches (each competition on theirs) have
+**Tell me about changes**: an email, the tick box "I'm 18 or over, or this
+is a parent's email", and what about: **when or where** they (or their
+gymnasts) compete, **officiating**, and **cards** (checked, a note from the
+organiser, removed or on hold). A member and an individual hear about
+themselves, a comp sec about every member of the club, a coach about the
+members they coach. It's per competition, and deleted with it.
+
+- An email is sent a link to confirm it first; nothing else is sent until
+  it's tapped (a button, so link checkers don't). At most 10 confirmation
+  emails an hour from one address.
+- Before the organiser publishes or unpublishes the timetable, checks a
+  card or changes its note, or removes, holds or restores an entry, what's
+  live is kept as a **baseline** (unless changes are already waiting), due
+  **10 minutes** later. The dashboard says when, with **Notify now**; **No
+  wait on the competition's days** (Links and settings) makes them due at
+  once on those days.
+- Every half minute the server compares each due baseline with what's live
+  (`changes`): each entry's flight, area and warm-up time, each person's
+  duties, and each card. Running orders, and anything changed and put back,
+  tell no one. Each address gets **one email** for all of it, grouped by
+  gymnast ("Ann Ryan" then "- BUCS L5 Women · flight 2 of 3: now warm-up
+  Saturday 10:20, Panel 2 (was Saturday 09:40, Panel 1)"), with links to
+  their pages and to stop the emails (also as one-click `List-Unsubscribe`).
+
+Email goes by SMTP when `SMTP_HOST` and `MAIL_FROM` are set
+([deploy](../operations/deploy.md#notifications)); without them nothing
+links to it. Phone push is the next step (ADR 0008 Build 2).
+
 # Built from
 
 - `views.TariffSheet` (`views/sheet.templ`) for printed cards.

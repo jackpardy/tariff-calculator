@@ -65,6 +65,9 @@ type Dashboard struct {
 	DeadlineDate  string // the closing time, for changing it
 	DeadlineTime  string
 	LiveDate      string // when it's due to go live, for changing it
+	NotifyOn      bool   // people can ask to hear about changes (ADR 0008)
+	NotifyAt      string // when the changes waiting are told, e.g. "14:32"; "" for none
+	NoWait        bool   // no wait on the competition's days
 	LiveTime      string
 	Unchecked     int // entries not checked yet
 	Withdrawn     int // entries withdrawn since their club sent them
@@ -245,6 +248,7 @@ type EntryPage struct {
 	Pairs       []PairView // synchro entries they're the partner in
 	Removal     string     // what the organiser did with it, and why, if anything
 	Timeline    string     // their timetable as the panel timeline, once published
+	Notify      string     // where they ask to hear about changes
 }
 
 // EntryCoachView is the coach an individual names, for the organiser to
@@ -453,6 +457,12 @@ templ CompetitionDashboard(d Dashboard) {
 			<div class="notification is-success is-light">{ d.Notice }</div>
 		}
 		@competitionFacts(d.Competition)
+		if d.NotifyAt != "" {
+			<form method="post" action={ templ.SafeURL(d.Base + "/notify-now") } class="notification is-info is-light">
+				Your changes go to everyone who asked to hear about them at { d.NotifyAt }, after a wait in case anything is put back.
+				<button class="button is-small ml-2" type="submit">Notify now</button>
+			</form>
+		}
 		@liveBox(d)
 		<nav class="level is-mobile comp-counts">
 			@count(d.Entries, "entries")
@@ -516,6 +526,18 @@ templ CompetitionDashboard(d Dashboard) {
 					<input type="hidden" name="close" value="1"/>
 					<button class="button is-small" type="submit">Close entries now</button>
 					<p class="help">Nobody can send or change entries after that, unless you change the closing time again.</p>
+				</form>
+			}
+			if d.NotifyOn {
+				<form method="post" action={ templ.SafeURL(d.Base + "/no-wait") } class="mb-3">
+					if d.NoWait {
+						<input type="hidden" name="on" value="0"/>
+						<button class="button is-small" type="submit">Wait 10 minutes before telling changes, on the competition's days too</button>
+					} else {
+						<input type="hidden" name="on" value="1"/>
+						<button class="button is-small" type="submit">No wait on the competition's days</button>
+					}
+					<p class="help">Changes you publish, and cards you check, go to those who asked after 10 minutes, so a mistake put right tells no one. On the competition's days, news may not wait.</p>
 				</form>
 			}
 			<form method="post" action={ templ.SafeURL(d.Base + "/individuals") } class="mb-3">
@@ -1106,7 +1128,7 @@ templ CompetitionEntryPage(p EntryPage) {
 			@linkBox("Sign-off link for your coach", p.SignoffLink, "This competition needs a coach's sign-off. Send this link to your coach: they see your entry and sign it off.")
 		}
 		@dayLink(p.Day)
-		@timelineLinks(p.Timeline, "")
+		@timelineLinks(p.Timeline, "", p.Notify)
 		@placementLine(p.Placement)
 		@dutiesBox(p.Duties)
 		if p.Checked {

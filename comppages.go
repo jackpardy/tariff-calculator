@@ -47,17 +47,24 @@ const maxCompetitionsPerHour = 5
 type competitionPages struct {
 	st                                *store.Store
 	limiter, clubLimiter, joinLimiter *limiter
+	emailLimiter                      *limiter // confirmation emails asked for, per address
 	now                               func() time.Time
+	notify                            *notifier // nil when storage is off
 }
 
 func newCompetitionPages(st *store.Store) *competitionPages {
-	return &competitionPages{
-		st:          st,
-		limiter:     newLimiter(maxCompetitionsPerHour, time.Hour),
-		clubLimiter: newLimiter(maxClubsPerHour, time.Hour),
-		joinLimiter: newLimiter(maxJoinsPerHour, time.Hour),
-		now:         time.Now,
+	p := &competitionPages{
+		st:           st,
+		limiter:      newLimiter(maxCompetitionsPerHour, time.Hour),
+		clubLimiter:  newLimiter(maxClubsPerHour, time.Hour),
+		joinLimiter:  newLimiter(maxJoinsPerHour, time.Hour),
+		emailLimiter: newLimiter(maxEmailsPerHour, time.Hour),
+		now:          time.Now,
 	}
+	if st != nil {
+		p.notify = newNotifier(st)
+	}
+	return p
 }
 
 func (p *competitionPages) register(mux *http.ServeMux) {
@@ -96,6 +103,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerApprovals(handle)
 	p.registerMine(handle)
 	p.registerTimelines(handle)
+	p.registerNotify(handle)
 }
 
 // secret marks the pages as private: links in their URLs mustn't leak through
@@ -576,8 +584,12 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		Entries: len(entries), New: q.Get("new"), Notice: q.Get("notice"),
 		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
 		LiveDate: liveAt.Format("2006-01-02"), LiveTime: liveAt.Format("15:04"),
+		NotifyOn: p.notifyLink("/") != "", NoWait: c.NoWait,
 		Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()), Events: eventsForm(c.Competition),
 		LevelOrder: levelOrderForm(c.Competition),
+	}
+	if !c.NotifyDue.IsZero() {
+		d.NotifyAt = c.NotifyDue.In(local).Format("15:04")
 	}
 	removed, err := p.st.RemovedEntries(r.Context(), c.ID)
 	if err != nil {
@@ -837,6 +849,7 @@ func (p *competitionPages) check(w http.ResponseWriter, r *http.Request) {
 	if len([]rune(note)) > 500 {
 		note = string([]rune(note)[:500])
 	}
+	p.notify.changing(r.Context(), c)
 	if err := p.st.MarkChecked(r.Context(), c.ID, r.PathValue("id"), r.FormValue("checked") == "1", note); err != nil {
 		failed(w, r, err)
 		return
@@ -1293,6 +1306,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	if published(c) {
 		page.Timeline = path + "/timeline"
 	}
+	page.Notify = p.notifyLink(path + "/notify")
 	switch {
 	case e.Removal == store.Removed:
 		page.Removal = strings.TrimSpace("The organiser removed this entry, so it can't be changed. " + e.RemovalNote)
@@ -1754,6 +1768,7 @@ func (p *competitionPages) removeEntries(w http.ResponseWriter, r *http.Request)
 	if to != store.ToClub && to != store.ToMember {
 		to = store.ToBoth
 	}
+	p.notify.changing(r.Context(), c)
 	n, err := p.st.RemoveEntries(r.Context(), c.ID, r.Form["entry"], removal, limitNote(r.FormValue("note")), to)
 	if err != nil {
 		failed(w, r, err)
@@ -1772,6 +1787,7 @@ func (p *competitionPages) restoreEntry(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
+	p.notify.changing(r.Context(), c)
 	if err := p.st.RestoreEntry(r.Context(), c.ID, r.PathValue("id")); err != nil {
 		failed(w, r, err)
 		return

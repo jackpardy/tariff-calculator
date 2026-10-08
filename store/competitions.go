@@ -21,6 +21,10 @@ type Competition struct {
 	CreatedAt      time.Time
 	Timetable      *competitions.Schedule // the organiser's draft timetable and its setup; nil until set up
 	Published      *competitions.Schedule // the copy attendees see; nil until published
+	// NotifyDue is when the changes waiting are told (ADR 0008), zero for
+	// none; NoWait sends them at once on the competition's days.
+	NotifyDue time.Time
+	NoWait    bool
 }
 
 // CreateCompetition stores a validated competition and returns it with its
@@ -56,15 +60,15 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
-	var deadline, levels, created, video, liveAt string
+	var deadline, levels, created, video, liveAt, notifyDue string
 	var split, timetable, events, officials, coachLevels, publishedTimetable string
 	var ordered bool
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt); err != nil {
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait); err != nil {
 		return Competition{}, notFound(err)
 	}
 	if publishedTimetable != "" {
@@ -102,7 +106,7 @@ func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	if !ordered {
 		c.Levels, c.Synchro = competitions.OrderLevels(nil, c.Levels), competitions.OrderLevels(nil, c.Synchro)
 	}
-	c.Deadline, c.CreatedAt, c.LiveAt = parseTime(deadline), parseTime(created), parseTime(liveAt)
+	c.Deadline, c.CreatedAt, c.LiveAt, c.NotifyDue = parseTime(deadline), parseTime(created), parseTime(liveAt), parseTime(notifyDue)
 	return c, nil
 }
 

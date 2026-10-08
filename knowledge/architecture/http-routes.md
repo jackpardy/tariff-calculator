@@ -51,6 +51,11 @@ every page answers 503.
 | `GET /competitions/admin/{token}/cards` | optional `club`, `problems=1`, `unchecked=1`, `level`, `entry` | Printable competition cards (the [tariff sheet](../features/tariff-sheet.md), filled in), one exercise per page |
 | `GET /competitions/admin/{token}/entries.csv` | — | Every entry as CSV: gymnast, club, level, each exercise and its difficulty, problems, checked, note, sent |
 | `POST /competitions/admin/{token}/deadline` | `close=1`, or `deadlineDate` and `deadlineTime` | Closes entries now, or changes when they close (by the end of the competition date) |
+| `GET`, `POST /clubs/member/{token}/competitions/{id}/notify`, `/competitions/entry/{token}/notify`, `/clubs/admin/{token}/competitions/{id}/notify`, `/clubs/coach/{token}/competitions/{id}/notify` | `email`, `adult=1`, each `topic` (`timetable`, `duties`, `cards`), `action` (`save`, or `remove` with `remove`, the subscription) | Hearing about a competition's changes by email (ADR 0008): a member, an individual, the comp sec, a coach |
+| `GET`, `POST /notify/confirm/{token}` | — | Confirms an email (a button, then done) |
+| `GET`, `POST /notify/off/{token}` | — (or `List-Unsubscribe=One-Click`) | Stops an email |
+| `POST /competitions/admin/{token}/notify-now` | — | Sends the changes waiting at once |
+| `POST /competitions/admin/{token}/no-wait` | `on` (`1`/`0`) | No wait before telling changes on the competition's days |
 | `POST /competitions/admin/{token}/live` | `opens`: `now`, `at` (with `liveDate` and `liveTime`, before the deadline) or `private` | Goes live now or then, or makes the competition private, pausing entries and keeping those made |
 | `POST /competitions/admin/{token}/video` | `video` (`""`, `skills`, `routine`), `videoTriples`, `videoDoubles`, `videoTariff` | Changes what video proof the competition asks for (also taken by `POST /competitions`) |
 | `POST /competitions/admin/{token}/entries/{id}/video` | `review` (`ok`, `more`, `""`), `note` | The organiser's review of an entry's videos |
