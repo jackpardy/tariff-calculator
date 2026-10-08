@@ -20,6 +20,7 @@ type ClubPage struct {
 	CoachOptions         []CoachOption
 	CoachesSeeAll        bool
 	QualificationOptions []CoachOption // every qualification, to give a coach
+	Pairs                []PairView    // synchro entries other clubs' gymnasts made with members
 }
 
 // ClubCoach is one of the club's coaches.
@@ -119,6 +120,7 @@ type MemberPage struct {
 	New          bool   // just joined
 	Notice       string
 	Competitions []MemberCompetition
+	Pairs        []PairView // synchro entries they're the partner in
 }
 
 // MemberCompetition is a member's entry for one competition, and the form to
@@ -385,6 +387,7 @@ templ ClubAdmin(c ClubPage) {
 				</tbody>
 			</table>
 		}
+		@pairEntries(c.Pairs)
 		<h2 class="title is-5 mt-5">Coaches <span class="has-text-grey is-size-6">({ strconv.Itoa(len(c.Coaches)) })</span></h2>
 		<p class="help mb-3">Coaches sign off members' routines on their own page. A member chooses their coach, or you do above; a coach sees their members and those without a coach. A competition can ask for coaches with qualifications: add each coach's, with a photo or PDF of the certificate. Only you, and organisers you send the coach to, can open it.</p>
 		if len(c.Coaches) > 0 {
@@ -564,6 +567,7 @@ templ MemberHome(p MemberPage) {
 		if len(p.Competitions) == 0 {
 			<p class="has-text-grey">Your club isn't entered in any competitions yet. When it is, you'll enter here.</p>
 		}
+		@pairEntries(p.Pairs)
 		for _, c := range p.Competitions {
 			<details class="box" open?={ c.Open }>
 				<summary>

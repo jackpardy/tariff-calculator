@@ -215,6 +215,7 @@ type EntryPage struct {
 	Offer       *OfferForm // what they offer to judge and help with
 	Coach       *EntryCoachView // their coach, where the competition approves coaches
 	Notice      string
+	Pairs       []PairView // synchro entries they're the partner in
 }
 
 // EntryCoachView is the coach an individual names, for the organiser to
@@ -1009,6 +1010,7 @@ templ CompetitionEntryPage(p EntryPage) {
 		@videoReviewNote(p.VideoReview, p.VideoNote)
 		@entryCard(p.Card)
 		<p class="has-text-grey is-size-7">Entered { p.Sent }.</p>
+		@pairEntries(p.Pairs)
 		if p.Competition.Open {
 			<details class="box mt-4" open?={ len(p.Form.Problems) > 0 }>
 				<summary><strong>Change the entry</strong></summary>

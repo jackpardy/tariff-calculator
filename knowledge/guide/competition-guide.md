@@ -319,7 +319,12 @@ one routine: the level's voluntary. Your entry then shows a **partner link**:
 send it to your partner. They open it and
 confirm who they are with their own member page or entry link (or that they
 have no other entry), so the timetable never puts either of you in two places
-at once. If you name a different partner, they confirm again.
+at once. If you name a different partner, they confirm again. Once they've
+confirmed, the entry shows on their own page under **Synchro as a partner**,
+and to their coach and their club's comp sec, even if their club isn't
+entered: checked, with its sign-off and, once the timetable is published,
+the flight. You (or your comp sec) still make any changes. Both your pages
+warn if the pair is at the wrong level for your individual levels.
 
 A pair does the level they both compete at individually, or the easier of the
 two if they're a level apart; more than a level apart, you usually can't pair.

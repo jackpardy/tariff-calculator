@@ -1215,3 +1215,60 @@ func TestEntryCoaches(t *testing.T) {
 		t.Errorf("closed: %v", err)
 	}
 }
+
+func TestPairEntries(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp := competition()
+	comp.Individuals = true
+	comp.Synchro = comp.Levels
+	c, _, _ := s.CreateCompetition(ctx, comp)
+	ucd, _, _ := s.CreateClub(ctx, "UCD")
+	dcu, _, _ := s.CreateClub(ctx, "DCU")
+	must(t, s.AttachClub(ctx, ucd.ID, c.ID))
+	a, _, _ := s.Join(ctx, ucd.ID, "A")
+	b, _, _ := s.Join(ctx, dcu.ID, "B") // DCU isn't entered
+	dcuCoach, _, _ := s.CreateCoach(ctx, dcu.ID, "Dee")
+	must(t, s.SetMemberCoach(ctx, dcu.ID, b.ID, dcuCoach.ID))
+
+	// A (UCD) enters synchro with B (DCU).
+	must(t, s.SaveMemberEntry(ctx, a.ID, c.ID, competitions.Entry{Discipline: competitions.Synchro, Level: "BUCS L3", Partner: &competitions.Partner{Name: "B", Club: "DCU"}}))
+	mine, _ := s.MemberEntries(ctx, a.ID)
+	if got, _ := s.MemberPairEntries(ctx, b.ID); len(got) != 0 {
+		t.Errorf("nothing until B confirms: %+v", got)
+	}
+	must(t, s.ConfirmPartner(ctx, mine[0].PartnerLink, b.ID, ""))
+	got, err := s.MemberPairEntries(ctx, b.ID)
+	must(t, err)
+	if len(got) != 1 || got[0].Entrant != "A" || got[0].Club != "UCD" || got[0].EntrantMemberID != a.ID || got[0].CopyID != "" || got[0].Entry.Partner.Name != "B" {
+		t.Fatalf("B sees the pair's entry, not sent yet: %+v", got)
+	}
+	_, err = s.Send(ctx, ucd.ID, c.ID, nil)
+	must(t, err)
+	if got, _ := s.MemberPairEntries(ctx, b.ID); got[0].CopyID == "" {
+		t.Error("sent: the competition's copy")
+	}
+	coach, _ := s.Coaches(ctx, dcu.ID)
+	if got, _ := s.CoachPairEntries(ctx, coach[0]); len(got) != 1 {
+		t.Errorf("B's coach sees it: %+v", got)
+	}
+	if got, _ := s.ClubPairEntries(ctx, dcu.ID); len(got) != 1 {
+		t.Errorf("B's club sees it: %+v", got)
+	}
+	if got, _ := s.ClubPairEntries(ctx, ucd.ID); len(got) != 0 {
+		t.Errorf("not as UCD's partner entries: %+v", got)
+	}
+
+	// An individual enters with B too; and an individual partner of A's.
+	ind, _, _ := s.AddIndividualEntry(ctx, c.ID, competitions.Entry{Gymnast: "I", Discipline: competitions.Synchro, Level: "BUCS L3", Partner: &competitions.Partner{Name: "B"}})
+	must(t, s.ConfirmPartner(ctx, ind.PartnerLink, b.ID, ""))
+	if got, _ := s.MemberPairEntries(ctx, b.ID); len(got) != 2 || got[1].Club != "" || got[1].CopyID != ind.ID {
+		t.Errorf("an individual's pair entry: %+v", got)
+	}
+	j, _, _ := s.AddIndividualEntry(ctx, c.ID, competitions.Entry{Gymnast: "J", Discipline: competitions.Synchro, Level: "BUCS L3", Partner: &competitions.Partner{Name: "K"}})
+	k, _, _ := s.AddIndividualEntry(ctx, c.ID, entry("K"))
+	must(t, s.ConfirmPartner(ctx, j.PartnerLink, "", k.ID))
+	if got, _ := s.IndividualPairEntries(ctx, k.ID); len(got) != 1 || got[0].Entry.Gymnast != "J" {
+		t.Errorf("K, an individual, sees J's: %+v", got)
+	}
+}

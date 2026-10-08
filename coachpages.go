@@ -213,6 +213,19 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 		}
 		page.Competitions = append(page.Competitions, cc)
 	}
+	pairs, err := p.st.CoachPairEntries(ctx, coach)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	sees := map[string]bool{} // members whose own entries they see already
+	for _, e := range entries {
+		sees[e.MemberID] = true
+	}
+	if page.Pairs, err = p.seenFor(r).pairViews(pairs, func(pe store.PairEntry) bool { return sees[pe.EntrantMemberID] }); err != nil {
+		failed(w, r, err)
+		return
+	}
 	render(w, r, views.CoachHome(page))
 }
 

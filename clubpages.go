@@ -231,6 +231,19 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		page.Coaches = append(page.Coaches, cv)
 		page.CoachOptions = append(page.CoachOptions, views.CoachOption{ID: c.ID, Name: c.Name})
 	}
+	pairs, err := p.st.ClubPairEntries(ctx, club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	ours := map[string]bool{}
+	for _, m := range members {
+		ours[m.ID] = true
+	}
+	if page.Pairs, err = p.seenFor(r).pairViews(pairs, func(pe store.PairEntry) bool { return ours[pe.EntrantMemberID] }); err != nil {
+		failed(w, r, err)
+		return
+	}
 	render(w, r, views.ClubAdmin(page))
 }
 
@@ -610,6 +623,7 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 		page.Coaches = append(page.Coaches, views.CoachOption{ID: c.ID, Name: c.Name})
 	}
 	now := p.now()
+	seen := p.seenFor(r)
 	for _, c := range comps {
 		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now), Duties: dutiesOf(c, "m:"+m.ID), Day: dayPath(path, c.ID)}
 		var sent []store.Entry
@@ -631,10 +645,11 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 					if sent == nil {
 						sent, _ = p.st.Entries(ctx, c.ID)
 					}
-					for _, s := range sent {
-						if s.MemberID == m.ID && s.Entry.Discipline == d {
-							ev.Placement = placement(c, s.ID)
-						}
+				}
+				copyID := ""
+				for _, s := range sent {
+					if s.MemberID == m.ID && s.Entry.Discipline == d {
+						ev.Placement, copyID = placement(c, s.ID), s.ID
 					}
 				}
 				shown, err := card(c.Competition, e.Entry, club)
@@ -643,6 +658,12 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 					return
 				}
 				withSignoff(&shown, memberSignoff(c.Competition, e))
+				if warn, err := seen.pairWarning(c.ID, copyID); err != nil {
+					failed(w, r, err)
+					return
+				} else if warn != "" {
+					shown.Problems = append([]string{warn}, shown.Problems...)
+				}
 				ev.Card = &shown
 				ev.Note, ev.VideoReview, ev.VideoNote = e.Note, e.VideoReview, e.VideoNote
 				if e.Entry.Partner != nil {
@@ -689,6 +710,15 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 		// Open what needs doing: a competition still open, or one with problems just posted.
 		mc.Open = mc.Open || (mc.Competition.Open && len(comps) == 1)
 		page.Competitions = append(page.Competitions, mc)
+	}
+	pairs, err := p.st.MemberPairEntries(ctx, m.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if page.Pairs, err = seen.pairViews(pairs, nil); err != nil {
+		failed(w, r, err)
+		return
 	}
 	if len(problems) > 0 {
 		w.WriteHeader(http.StatusUnprocessableEntity)
