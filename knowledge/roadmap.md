@@ -189,7 +189,22 @@ roughly in the order they'd help ISTO.
    timetabled, and stay in a list the organiser can **restore** them from.
    Today only the club or the gymnast can withdraw an entry; the organiser
    can only take someone out of a flight.
-4. **Draft and published timetables, and applying a "what if"** (decided
+4. **Find your way round the entries** (asked 2026-10-08). The organiser's
+   dashboard is one long table per level; with hundreds of entries it needs
+   more ways in:
+   - **collapse and expand** each level (or event), and jump to one from a
+     list at the top, with its count;
+   - **search for a person** by name, across every level (gymnast or synchro
+     partner);
+   - **filter** by coach, checked or not, signed off or not, video (missing,
+     to review, need more), men or women, and changed since checked or
+     withdrawn, beside today's club and problems only; filters combine, and
+     stay in the link so a view can be shared or kept;
+   - **sort** a level's table by gymnast, club, sent or coach;
+   - counts that update with the filters ("12 of 96 shown").
+   The same filters could serve the printed cards and the CSV ("print what
+   I'm looking at").
+5. **Draft and published timetables, and applying a "what if"** (decided
    2026-10-07). Once a timetable is published, attendees see that copy and
    the organiser works on a **draft**: every change (moving a flight,
    redrawing an order, planning again, keeping a delay's or a leaving
@@ -201,7 +216,7 @@ roughly in the order they'd help ISTO.
    straight away. Also close the gaps the "what ifs" don't check yet:
    coaches in two places, the organiser's rules about events and people,
    officials on blocked time, and rest as a must.
-5. **Say what a manual change breaks, and how to fix it** (proposed
+6. **Say what a manual change breaks, and how to fix it** (proposed
    2026-10-08). Today a manual change (moving a flight or a gymnast, giving
    someone a seat) is made, and what it broke is listed afterwards under
    "Manual changes have broken". Instead, making a change says at once what
@@ -210,7 +225,7 @@ roughly in the order they'd help ISTO.
    (someone free to take Eoin's tumbling seat; another time for the
    flight), to apply or to make the change anyway. With drafts (4), nothing
    reaches attendees until it's published.
-6. **Set up in private, go live when ready** (decided 2026-10-07). A new
+7. **Set up in private, go live when ready** (decided 2026-10-07). A new
    competition starts **private**: the organiser sets up levels, events,
    officials and the timetable, and the club and individual entry links
    show the competition's name, date and when entries open, so they can be
@@ -219,7 +234,7 @@ roughly in the order they'd help ISTO.
    a live competition private again to pause entries, keeping those already
    made. Today a competition takes entries from the moment it's created
    until its deadline.
-7. **Notifications, by opting in** (decided 2026-10-07). Members,
+8. **Notifications, by opting in** (decided 2026-10-07). Members,
    individuals, club comp secs and coaches can each ask to be told when
    something affects them: a flight they're in moves (time, area or day, or
    its warm-up), their officiating duties change, or their card is checked
@@ -244,9 +259,9 @@ roughly in the order they'd help ISTO.
    competition, with a tick box, "I'm 18 or over, or this is a parent's
    email". Push stores nothing personal, so anyone can use it (see
    [open questions](open-questions.md#notifications)).
-8. **Link the calculator to the competition tools.** Nothing on the routine
+9. **Link the calculator to the competition tools.** Nothing on the routine
    builder leads to `/competitions` yet.
-9. **Synchro partners see the pair's entry** (decided and built 2026-10-08). A synchro
+10. **Synchro partners see the pair's entry** (decided and built 2026-10-08). A synchro
    entry belongs to the gymnast who entered it; today the partner only
    confirms they're the partner, and neither they, their coach nor their
    club sees it again. Once the partner confirms, the entry shows in the
@@ -258,11 +273,11 @@ roughly in the order they'd help ISTO.
    both gymnasts on their own pages, not only the organiser, when a pair is
    at the wrong level. ("The lower level" for a pair a level apart means the
    easier one, as built: confirmed 2026-10-07.)
-10. **Results history** (competitions 6): import TrampOnline and TScore
+11. **Results history** (competitions 6): import TrampOnline and TScore
    results CSVs for personal bests, progression and next year's levels.
-11. **Clubs:** the TrampOnline entry export (clubs 1), then skill tracking
+12. **Clubs:** the TrampOnline entry export (clubs 1), then skill tracking
     (clubs 2).
-12. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
+13. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
     and the usual rest between turns (both guesses for now).
 
 # Possible additions (not planned yet)
