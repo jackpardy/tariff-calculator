@@ -30,6 +30,10 @@ import (
 // maxRequestBytes bounds request bodies and headers; a full routine is a few kilobytes.
 const maxRequestBytes = 64 << 10
 
+// maxUploadBytes limits a request that uploads a certificate (ADR 0007
+// Decision 9): the file and the form around it.
+const maxUploadBytes = maxCertificateBytes + 64<<10
+
 // --- Main Function ---
 func main() {
 	port := os.Getenv("PORT")
@@ -106,7 +110,11 @@ func routesWith(st *store.Store) http.Handler {
 	newCompetitionPages(st).register(mux)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBytes)
+		limit := int64(maxRequestBytes)
+		if r.Method == http.MethodPost && uploads(r.URL.Path) {
+			limit = maxUploadBytes
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, limit)
 		w.Header().Set(static.VersionHeader, static.Version)
 		mux.ServeHTTP(w, r)
 	})

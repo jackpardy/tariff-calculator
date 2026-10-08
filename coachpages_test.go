@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
@@ -172,5 +175,102 @@ func TestIndividualSignoff(t *testing.T) {
 	redirected(t, h, admin+"/signoff", url.Values{"on": {"0"}})
 	if page := do(t, h, http.MethodGet, own, nil).Body.String(); strings.Contains(page, "Sign-off link for your coach") {
 		t.Error("no sign-off link when it isn't needed")
+	}
+}
+
+// upload posts a multipart form with one file.
+func upload(t *testing.T, h http.Handler, path string, fields map[string]string, file string, data []byte) *httptest.ResponseRecorder {
+	t.Helper()
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	for k, v := range fields {
+		mw.WriteField(k, v)
+	}
+	fw, _ := mw.CreateFormFile(file, "certificate")
+	fw.Write(data)
+	mw.Close()
+	req := httptest.NewRequest(http.MethodPost, path, &body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestCoachQualificationsPages(t *testing.T) {
+	h := competitionServer(t)
+	form := newCompetition()
+	form.Set("signoff", "1")
+	admin := created(t, h, form)
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/club/")
+	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
+	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
+	ann := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
+	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	x := withoutQuery(redirected(t, h, join, url.Values{"name": {"X"}}))
+	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	redirected(t, h, formAction(t, do(t, h, http.MethodGet, x, nil).Body.String(), x+"/competitions/"), entry)
+
+	page := do(t, h, http.MethodGet, club, nil).Body.String()
+	coach := regexp.MustCompile(regexp.QuoteMeta(club) + `/coaches/([^/"]+)/signs-off`).FindStringSubmatch(page)
+	if coach == nil || !strings.Contains(page, "British Gymnastics Level 2 Trampoline Coach") {
+		t.Fatal("each coach can sign off or not, and be given qualifications from the list")
+	}
+	base := club + "/coaches/" + coach[1]
+
+	// Ann doesn't sign off: she sees X's entry, without the buttons, and
+	// signing off is refused.
+	redirected(t, h, base+"/signs-off", url.Values{"on": {""}})
+	home := do(t, h, http.MethodGet, ann, nil).Body.String()
+	if !strings.Contains(home, "hasn't set you to sign off") || strings.Contains(home, "to sign off</span>") {
+		t.Error("Ann's page says she doesn't sign off")
+	}
+	open := regexp.MustCompile(`href="(` + regexp.QuoteMeta(ann) + `/members/[^"]+)"`).FindStringSubmatch(home)
+	if open == nil {
+		t.Fatal("Ann still sees X's entry")
+	}
+	action := strings.ReplaceAll(open[1], "&amp;", "&")
+	if page := do(t, h, http.MethodGet, action, nil).Body.String(); strings.Contains(page, `value="1">Sign off`) {
+		t.Error("no sign-off buttons")
+	}
+	if location := redirected(t, h, action, url.Values{"signed": {"1"}}); !strings.Contains(location, "nothing+was+changed") {
+		t.Errorf("signing off is refused: %s", location)
+	}
+	redirected(t, h, base+"/signs-off", url.Values{"on": {"1"}})
+
+	// A qualification with its certificate: a PDF is kept and shown to the
+	// comp sec; anything else, or anything over 10 MB, is refused.
+	pdf := []byte("%PDF-1.4\n% Ann's certificate\n")
+	rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "bg-trampoline-2"}, "certificate", pdf)
+	if location := rec.Header().Get("Location"); !strings.Contains(location, "Added+British+Gymnastics+Level+2+Trampoline+Coach+for+Ann") {
+		t.Fatalf("added: %d %s", rec.Code, location)
+	}
+	page = do(t, h, http.MethodGet, club, nil).Body.String()
+	cert := regexp.MustCompile(`href="(` + regexp.QuoteMeta(base) + `/qualifications/[^"]+/certificate)"`).FindStringSubmatch(page)
+	if cert == nil {
+		t.Fatal("the certificate is listed")
+	}
+	got := do(t, h, http.MethodGet, cert[1], nil)
+	if got.Header().Get("Content-Type") != "application/pdf" || got.Header().Get("X-Content-Type-Options") != "nosniff" || got.Body.String() != string(pdf) {
+		t.Errorf("the certificate is served as a PDF: %v", got.Header())
+	}
+	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "bg-trampoline-2"}, "certificate", []byte("<html>not a certificate</html>")); !strings.Contains(rec.Header().Get("Location"), "photo+%28JPEG") {
+		t.Errorf("only photos and PDFs: %s", rec.Header().Get("Location"))
+	}
+	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "nonsense"}, "certificate", pdf); !strings.Contains(rec.Header().Get("Location"), "choose+Ann") {
+		t.Errorf("a qualification from the list: %s", rec.Header().Get("Location"))
+	}
+	big := append([]byte("%PDF-1.4\n"), make([]byte, 11<<20)...)
+	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "bg-trampoline-2"}, "certificate", big); !strings.Contains(rec.Header().Get("Location"), "over+10+MB") {
+		t.Errorf("10 MB at most: %d %s", rec.Code, rec.Header().Get("Location"))
+	}
+	// Another club's comp sec can't open it.
+	other := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"DCU"}}))
+	if rec := do(t, h, http.MethodGet, strings.Replace(cert[1], club, other, 1), nil); rec.Code == http.StatusOK {
+		t.Error("only the club's comp sec")
+	}
+	remove := regexp.MustCompile(`action="(` + regexp.QuoteMeta(base) + `/qualifications/[^"]+/remove)"`).FindStringSubmatch(page)[1]
+	redirected(t, h, remove, url.Values{})
+	if rec := do(t, h, http.MethodGet, cert[1], nil); rec.Code == http.StatusOK {
+		t.Error("removed with its certificate")
 	}
 }

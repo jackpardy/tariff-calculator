@@ -17,6 +17,7 @@ type Coach struct {
 	ID        string
 	ClubID    string
 	Name      string
+	SignsOff  bool // the club lets them sign off routines (ADR 0007 Decision 3)
 	CreatedAt time.Time
 }
 
@@ -24,7 +25,7 @@ type Coach struct {
 // name must already be checked.
 func (s *Store) CreateCoach(ctx context.Context, clubID, name string) (Coach, string, error) {
 	now := s.stamp()
-	c := Coach{ID: newID(), ClubID: clubID, Name: name, CreatedAt: parseTime(now)}
+	c := Coach{ID: newID(), ClubID: clubID, Name: name, SignsOff: true, CreatedAt: parseTime(now)}
 	token := newToken()
 	err := s.tx(ctx, func(tx *sql.Tx) error {
 		var n int
@@ -51,7 +52,7 @@ const MaxCoaches = 50
 
 // Coaches are a club's coaches, by name.
 func (s *Store) Coaches(ctx context.Context, clubID string) ([]Coach, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, club_id, name, created_at FROM coaches WHERE club_id = $1 ORDER BY name, created_at`, clubID)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, club_id, name, signs_off, created_at FROM coaches WHERE club_id = $1 ORDER BY name, created_at`, clubID)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +61,7 @@ func (s *Store) Coaches(ctx context.Context, clubID string) ([]Coach, error) {
 	for rows.Next() {
 		var c Coach
 		var created string
-		if err := rows.Scan(&c.ID, &c.ClubID, &c.Name, &created); err != nil {
+		if err := rows.Scan(&c.ID, &c.ClubID, &c.Name, &c.SignsOff, &created); err != nil {
 			return nil, err
 		}
 		c.CreatedAt = parseTime(created)
@@ -74,8 +75,8 @@ func (s *Store) CoachByLink(ctx context.Context, token string) (Coach, error) {
 	var c Coach
 	var created string
 	err := s.tx(ctx, func(tx *sql.Tx) error {
-		err := tx.QueryRowContext(ctx, `SELECT id, club_id, name, created_at FROM coaches WHERE token_hash = $1`, hash(token)).
-			Scan(&c.ID, &c.ClubID, &c.Name, &created)
+		err := tx.QueryRowContext(ctx, `SELECT id, club_id, name, signs_off, created_at FROM coaches WHERE token_hash = $1`, hash(token)).
+			Scan(&c.ID, &c.ClubID, &c.Name, &c.SignsOff, &created)
 		if err != nil {
 			return notFound(err)
 		}
@@ -124,16 +125,99 @@ func (s *Store) CoachEntries(ctx context.Context, c Coach) ([]MemberEntry, error
 
 // SignOff records a coach's sign-off of a member's entry for a competition
 // (signed false: not yet), under the coach's name, with a note for the member
-// and comp sec. The coach must see the member. Changing the entry clears it;
-// sending it takes the sign-off to the competition with it.
+// and comp sec. The coach must see the member and be one the club lets sign
+// off. Changing the entry clears it; sending it takes the sign-off to the
+// competition with it.
 func (s *Store) SignOff(ctx context.Context, c Coach, memberID, competitionID, discipline string, signed bool, note string) error {
 	var at any
 	if signed {
 		at = s.stamp()
 	}
 	return affected(s.db.ExecContext(ctx, fmt.Sprintf(`UPDATE member_entries SET signed_at = $3, signed_by = $4, sign_note = $5
-		WHERE member_id = $6 AND competition_id = $7 AND discipline = $8 AND member_id IN (SELECT m.id FROM members m WHERE %s)`, coachSees),
+		WHERE member_id = $6 AND competition_id = $7 AND discipline = $8 AND member_id IN (SELECT m.id FROM members m WHERE %s)
+		AND (SELECT signs_off FROM coaches WHERE id = $1)`, coachSees),
 		c.ID, c.ClubID, at, c.Name, note, memberID, competitionID, discipline))
+}
+
+// SetCoachSignsOff says whether one of a club's coaches signs off routines.
+func (s *Store) SetCoachSignsOff(ctx context.Context, clubID, coachID string, on bool) error {
+	return affected(s.db.ExecContext(ctx, `UPDATE coaches SET signs_off = $1 WHERE id = $2 AND club_id = $3`, on, coachID, clubID))
+}
+
+// CoachQualification is one of a coach's qualifications, with its
+// certificate (ADR 0007 Decision 4), kept until the comp sec removes it, or
+// the coach or club goes.
+type CoachQualification struct {
+	ID            string
+	CoachID       string
+	Qualification string // its key in competitions.Qualifications
+	CertType      string // the certificate's media type, e.g. "application/pdf"
+	UploadedAt    time.Time
+}
+
+// MaxQualifications is the most qualifications a coach can have.
+const MaxQualifications = 4
+
+// AddQualification gives one of a club's coaches a qualification, with its
+// certificate, already checked, of a type certType.
+func (s *Store) AddQualification(ctx context.Context, clubID, coachID, qualification, certType string, certificate []byte) (CoachQualification, error) {
+	now := s.stamp()
+	q := CoachQualification{ID: newID(), CoachID: coachID, Qualification: qualification, CertType: certType, UploadedAt: parseTime(now)}
+	err := s.tx(ctx, func(tx *sql.Tx) error {
+		var n int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM coach_qualifications q JOIN coaches c ON c.id = q.coach_id WHERE c.id = $1 AND c.club_id = $2`, coachID, clubID).Scan(&n); err != nil {
+			return err
+		}
+		if n >= MaxQualifications {
+			return ErrLimit
+		}
+		res, err := tx.ExecContext(ctx, `INSERT INTO coach_qualifications (id, coach_id, qualification, cert_type, certificate, uploaded_at)
+			SELECT $1, id, $3, $4, $5, $6 FROM coaches WHERE id = $2 AND club_id = $7`, q.ID, coachID, qualification, certType, certificate, now, clubID)
+		if err := affected(res, err); err != nil {
+			return err
+		}
+		return touch(ctx, tx, clubID, now)
+	})
+	return q, err
+}
+
+// Qualifications are a club's coaches' qualifications, by coach id, in the
+// order they were added.
+func (s *Store) Qualifications(ctx context.Context, clubID string) (map[string][]CoachQualification, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT q.id, q.coach_id, q.qualification, q.cert_type, q.uploaded_at
+		FROM coach_qualifications q JOIN coaches c ON c.id = q.coach_id WHERE c.club_id = $1 ORDER BY q.uploaded_at, q.rowid`, clubID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string][]CoachQualification{}
+	for rows.Next() {
+		var q CoachQualification
+		var at string
+		if err := rows.Scan(&q.ID, &q.CoachID, &q.Qualification, &q.CertType, &at); err != nil {
+			return nil, err
+		}
+		q.UploadedAt = parseTime(at)
+		out[q.CoachID] = append(out[q.CoachID], q)
+	}
+	return out, rows.Err()
+}
+
+// RemoveQualification removes one of a club's coaches' qualifications, and
+// its certificate.
+func (s *Store) RemoveQualification(ctx context.Context, clubID, id string) error {
+	return affected(s.db.ExecContext(ctx, `DELETE FROM coach_qualifications
+		WHERE id = $1 AND coach_id IN (SELECT id FROM coaches WHERE club_id = $2)`, id, clubID))
+}
+
+// Certificate is the certificate of one of a club's coaches' qualifications:
+// its media type and bytes.
+func (s *Store) Certificate(ctx context.Context, clubID, id string) (string, []byte, error) {
+	var certType string
+	var data []byte
+	err := s.db.QueryRowContext(ctx, `SELECT q.cert_type, q.certificate FROM coach_qualifications q JOIN coaches c ON c.id = q.coach_id
+		WHERE q.id = $1 AND c.club_id = $2`, id, clubID).Scan(&certType, &data)
+	return certType, data, notFound(err)
 }
 
 // CoachesSeeAll says whether every coach of a club sees every member.

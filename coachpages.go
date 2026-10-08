@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -185,7 +187,7 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	path := coachPath(r.PathValue("token"))
-	page := views.CoachPage{Club: club, Coach: coach.Name, Link: origin(r) + path, Notice: r.URL.Query().Get("notice"), SeesAll: seesAll}
+	page := views.CoachPage{Club: club, Coach: coach.Name, Link: origin(r) + path, Notice: r.URL.Query().Get("notice"), SeesAll: seesAll, SignsOff: coach.SignsOff}
 	for _, c := range comps {
 		cc := views.CoachCompetition{Competition: summary(c.Competition, p.now())}
 		for _, e := range entries {
@@ -246,10 +248,14 @@ func (p *competitionPages) coachEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	withSignoff(&shown, memberSignoff(c.Competition, e))
-	render(w, r, views.SignoffEntry(views.SignoffPage{
+	page := views.SignoffPage{
 		Back: coachPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
 		Card: shown, Signoff: shown.Signoff, Action: r.URL.Path + "?discipline=" + e.Discipline,
-	}))
+	}
+	if !coach.SignsOff {
+		page.Cannot = "Your club hasn't set you to sign off routines, so you can see this entry but not sign it off."
+	}
+	render(w, r, views.SignoffEntry(page))
 }
 
 // signOff records the coach's sign-off (signed=1) or not yet, with a note.
@@ -266,6 +272,10 @@ func (p *competitionPages) signOff(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, store.ErrClosed)
 		return
 	}
+	if !coach.SignsOff {
+		http.Redirect(w, r, coachPath(r.PathValue("token"))+"?notice="+urlQuery("Your club hasn't set you to sign off routines; nothing was changed."), http.StatusSeeOther)
+		return
+	}
 	signed := r.FormValue("signed") == "1"
 	if err := p.st.SignOff(r.Context(), coach, e.MemberID, c.ID, e.Discipline, signed, limitNote(r.FormValue("note"))); err != nil {
 		failed(w, r, err)
@@ -276,4 +286,156 @@ func (p *competitionPages) signOff(w http.ResponseWriter, r *http.Request) {
 		notice = fmt.Sprintf("Told %s their %s entry for %s isn't ready yet.", e.MemberName, e.Entry.Event(), c.Name)
 	}
 	http.Redirect(w, r, coachPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+}
+
+// maxCertificateBytes is the largest certificate (ADR 0007 Decision 4).
+const maxCertificateBytes = 10 << 20
+
+// uploads says whether a path takes an upload, for its larger size limit.
+func uploads(path string) bool {
+	return strings.HasPrefix(path, "/clubs/admin/") && strings.HasSuffix(path, "/qualifications")
+}
+
+// certificateType is the media type of a certificate from its own bytes:
+// a JPEG, PNG or WebP photo, or a PDF; "" for anything else.
+func certificateType(data []byte) string {
+	switch t := http.DetectContentType(data); t {
+	case "image/jpeg", "image/png", "image/webp", "application/pdf":
+		return t
+	}
+	return ""
+}
+
+// qualificationName names a qualification by its key, or says it's no
+// longer on the list.
+func qualificationName(key string) string {
+	if q, ok := competitions.QualificationByKey(key); ok {
+		return q.Name()
+	}
+	return "A qualification no longer on the list"
+}
+
+// coachSignsOff says whether a coach signs off routines (on=1) or not.
+func (p *competitionPages) coachSignsOff(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	coach, err := p.clubCoach(r, club)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	on := r.FormValue("on") == "1"
+	if err := p.st.SetCoachSignsOff(r.Context(), club.ID, coach.ID, on); err != nil {
+		failed(w, r, err)
+		return
+	}
+	notice := coach.Name + " signs off routines."
+	if !on {
+		notice = coach.Name + " doesn't sign off routines, but still sees their members' entries."
+	}
+	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+}
+
+// addQualification gives a coach a qualification (qualification: its key)
+// with its certificate (a file).
+func (p *competitionPages) addQualification(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	coach, err := p.clubCoach(r, club)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	back := func(notice string) {
+		http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	}
+	if err := r.ParseMultipartForm(1 << 20); err != nil {
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			back("Nothing was added: the certificate is over 10 MB. A photo or a smaller PDF will do.")
+			return
+		}
+		back("Nothing was added: choose a qualification and its certificate.")
+		return
+	}
+	q, ok := competitions.QualificationByKey(r.FormValue("qualification"))
+	if !ok {
+		back("Nothing was added: choose " + coach.Name + "'s qualification.")
+		return
+	}
+	file, _, err := r.FormFile("certificate")
+	if err != nil {
+		back("Nothing was added: add the certificate, a photo or PDF of it.")
+		return
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, maxCertificateBytes+1))
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if len(data) > maxCertificateBytes {
+		back("Nothing was added: the certificate is over 10 MB. A photo or a smaller PDF will do.")
+		return
+	}
+	certType := certificateType(data)
+	if certType == "" {
+		back("Nothing was added: the certificate should be a photo (JPEG, PNG or WebP) or a PDF.")
+		return
+	}
+	if _, err := p.st.AddQualification(r.Context(), club.ID, coach.ID, q.Key, certType, data); errors.Is(err, store.ErrLimit) {
+		back(fmt.Sprintf("Nothing was added: a coach can have %d qualifications at most. Remove one first.", store.MaxQualifications))
+		return
+	} else if err != nil {
+		failed(w, r, err)
+		return
+	}
+	back("Added " + q.Name() + " for " + coach.Name + ".")
+}
+
+// removeQualification removes a coach's qualification and its certificate.
+func (p *competitionPages) removeQualification(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	coach, err := p.clubCoach(r, club)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if err := p.st.RemoveQualification(r.Context(), club.ID, r.PathValue("q")); err != nil {
+		failed(w, r, err)
+		return
+	}
+	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery("Removed a qualification of "+coach.Name+"'s, and its certificate."), http.StatusSeeOther)
+}
+
+// clubCertificate shows the comp sec a coach's certificate.
+func (p *competitionPages) clubCertificate(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	certType, data, err := p.st.Certificate(r.Context(), club.ID, r.PathValue("q"))
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	serveCertificate(w, certType, data)
+}
+
+// serveCertificate writes a certificate: as its own type only, never
+// cached, shown in the browser.
+func serveCertificate(w http.ResponseWriter, certType string, data []byte) {
+	ext := map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "application/pdf": ".pdf"}[certType]
+	w.Header().Set("Content-Type", certType)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.Header().Set("Content-Disposition", `inline; filename="certificate`+ext+`"`)
+	w.Write(data)
 }

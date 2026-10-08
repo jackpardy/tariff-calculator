@@ -276,6 +276,19 @@ var migrations = []string{
 	// 9: simulated timetables (ADR 0005 Decision 11), kept apart from the
 	// real one so planning it never touches them.
 	`ALTER TABLE competitions ADD COLUMN scenarios TEXT NOT NULL DEFAULT '[]';`,
+
+	// 10: which coaches sign off, and coaches' qualifications with their
+	// certificates, kept with the coach (ADR 0007 Decisions 3, 4 and 9).
+	`ALTER TABLE coaches ADD COLUMN signs_off BOOLEAN NOT NULL DEFAULT TRUE;
+	CREATE TABLE coach_qualifications (
+		id            TEXT PRIMARY KEY,
+		coach_id      TEXT NOT NULL REFERENCES coaches (id) ON DELETE CASCADE,
+		qualification TEXT NOT NULL,
+		cert_type     TEXT NOT NULL,
+		certificate   BLOB NOT NULL,
+		uploaded_at   TEXT NOT NULL
+	);
+	CREATE INDEX coach_qualifications_coach ON coach_qualifications (coach_id);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

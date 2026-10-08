@@ -249,7 +249,13 @@ sign-off.
   their link a **New link** (their old one stops working), or **Remove** them.
 - **Coaches**: type a name and tap **Add coach**, then send them the coach link
   shown (it's shown only then; **New link** makes another). Tick **Every coach
-  sees every member** if your coaches share everyone.
+  sees every member** if your coaches share everyone. Untick a coach's
+  **Signs off routines** if they shouldn't sign off: they still see their
+  members' entries. Under **Add a qualification**, choose each coach's
+  coaching qualification from the list and add a photo or PDF of its
+  certificate (up to 10 MB, four per coach), for competitions that ask for
+  qualified coaches. Only you, and organisers you send the coach to, can
+  open it; it's kept until you remove it or the coach.
 - **Settings**: replace the admin link, or delete the club. A club is deleted
   120 days after it was last used.
 
@@ -306,7 +312,8 @@ The organiser sees a pair entered at another level flagged.
 
 Your comp sec adds you and sends you your **coach link**. Your page lists each
 competition with the entries you see: the members who chose you, those who
-haven't chosen a coach, or everyone if the club says so.
+haven't chosen a coach, or everyone if the club says so. If the club hasn't
+set you to sign off routines, you see the entries but can't sign them off.
 
 1. Tap a member to see their entry, checked.
 2. Tap **Sign off** if you've seen them perform it safely and it's ready, or
@@ -337,8 +344,10 @@ sign-off, entries without it are flagged to the organiser.
 # What's kept
 
 Only names, clubs, levels and events, men or women where asked, synchro
-partners, routines, video links, and the organiser's and coaches' notes. No emails, birthdays or contact details. Videos are never
-uploaded: only their links.
+partners, routines, video links, and the organiser's and coaches' notes, and
+coaches' qualifications with their certificates where the club adds them. No
+emails, birthdays or contact details. Videos are never uploaded: only their
+links.
 
 # Keeping your links safe
 

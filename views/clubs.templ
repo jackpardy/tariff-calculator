@@ -7,24 +7,33 @@ import (
 
 // ClubPage is a club's competition secretary's page.
 type ClubPage struct {
-	Base         string // the admin link's path, which the page's own links extend
-	Name         string
-	New          string // "created" or "replaced" just after the admin link was made
-	AdminLink    string // set only when New is
-	JoinLink     string
-	NewLink      *MemberLink // a member's or coach's link just made, to send them
-	Notice       string      // what just happened, e.g. "Sent 4 entries to Student Open"
-	Members       []ClubMember
-	Competitions  []ClubCompetition
-	Coaches       []ClubCoach
-	CoachOptions  []CoachOption
-	CoachesSeeAll bool
+	Base                 string // the admin link's path, which the page's own links extend
+	Name                 string
+	New                  string // "created" or "replaced" just after the admin link was made
+	AdminLink            string // set only when New is
+	JoinLink             string
+	NewLink              *MemberLink // a member's or coach's link just made, to send them
+	Notice               string      // what just happened, e.g. "Sent 4 entries to Student Open"
+	Members              []ClubMember
+	Competitions         []ClubCompetition
+	Coaches              []ClubCoach
+	CoachOptions         []CoachOption
+	CoachesSeeAll        bool
+	QualificationOptions []CoachOption // every qualification, to give a coach
 }
 
 // ClubCoach is one of the club's coaches.
 type ClubCoach struct {
-	ID, Name string
-	Members  int // members who chose them
+	ID, Name       string
+	Members        int  // members who chose them
+	SignsOff       bool // they sign off routines
+	Qualifications []QualificationView
+}
+
+// QualificationView is one of a coach's qualifications.
+type QualificationView struct {
+	ID, Name    string
+	Certificate string // where to open it
 }
 
 // MemberLink is a member's personal link.
@@ -243,16 +252,20 @@ templ ClubAdmin(c ClubPage) {
 										<td>
 											{ row.Status }
 											if row.Video != "" {
-												<br/><span class="is-size-7 has-text-danger">Video { row.Video }</span>
+												<br/>
+												<span class="is-size-7 has-text-danger">Video { row.Video }</span>
 											}
 											if row.Flight != "" {
-												<br/><span class="is-size-7 has-text-info-dark">{ row.Flight }</span>
+												<br/>
+												<span class="is-size-7 has-text-info-dark">{ row.Flight }</span>
 											}
 											if s := row.Signoff.Status(); s != "" {
-												<br/><span class={ "is-size-7", templ.KV("has-text-success", row.Signoff.Signed), templ.KV("has-text-warning-dark", !row.Signoff.Signed) } title={ row.Signoff.Note }>{ s }</span>
+												<br/>
+												<span class={ "is-size-7", templ.KV("has-text-success", row.Signoff.Signed), templ.KV("has-text-warning-dark", !row.Signoff.Signed) } title={ row.Signoff.Note }>{ s }</span>
 											}
 											if row.Note != "" {
-												<br/><span class="is-size-7 has-text-info-dark">Organiser: { row.Note }</span>
+												<br/>
+												<span class="is-size-7 has-text-info-dark">Organiser: { row.Note }</span>
 											}
 										</td>
 										<td>
@@ -326,7 +339,7 @@ templ ClubAdmin(c ClubPage) {
 			</table>
 		}
 		<h2 class="title is-5 mt-5">Coaches <span class="has-text-grey is-size-6">({ strconv.Itoa(len(c.Coaches)) })</span></h2>
-		<p class="help mb-3">Coaches sign off members' routines on their own page. A member chooses their coach, or you do above; a coach sees their members and those without a coach.</p>
+		<p class="help mb-3">Coaches sign off members' routines on their own page. A member chooses their coach, or you do above; a coach sees their members and those without a coach. A competition can ask for coaches with qualifications: add each coach's, with a photo or PDF of the certificate. Only you, and organisers you send the coach to, can open it.</p>
 		if len(c.Coaches) > 0 {
 			<table class="table is-fullwidth is-narrow">
 				<tbody>
@@ -341,6 +354,42 @@ templ ClubAdmin(c ClubPage) {
 								<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/remove") } class="is-inline" onsubmit={ confirmRemoveCoach(coach.Name) }>
 									<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
 								</form>
+							</td>
+						</tr>
+						<tr>
+							<td colspan="3" class="is-size-7">
+								<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/signs-off") } class="mb-1">
+									<input type="hidden" name="on" value={ boolValue(!coach.SignsOff) }/>
+									<label class="checkbox">
+										<input type="checkbox" checked?={ coach.SignsOff } onchange="this.form.submit()"/>
+										Signs off routines
+									</label>
+									<noscript><button class="button is-small" type="submit">Change</button></noscript>
+								</form>
+								for _, q := range coach.Qualifications {
+									<div>
+										{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a>
+										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/qualifications/" + q.ID + "/remove") } class="is-inline">
+											<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+										</form>
+									</div>
+								}
+								<details>
+									<summary>Add a qualification</summary>
+									<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/qualifications") } enctype="multipart/form-data" class="comp-flight-actions mt-1">
+										<div class="select is-small">
+											<select name="qualification" required aria-label={ coach.Name + "'s qualification" }>
+												<option value="">Qualification…</option>
+												for _, o := range c.QualificationOptions {
+													<option value={ o.ID }>{ o.Name }</option>
+												}
+											</select>
+										</div>
+										<input class="input is-small" type="file" name="certificate" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label={ coach.Name + "'s certificate" }/>
+										<button class="button is-small" type="submit">Add</button>
+									</form>
+									<p class="help">The certificate: a photo or PDF, up to 10 MB. It's kept until you remove it or the coach.</p>
+								</details>
 							</td>
 						</tr>
 					}
