@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "ISTO Intervanced · voluntary",
-  "description": "Voluntary: 10 different skills, tariff 2.4 to 3.1, 3 or 4 somersault skills (270° to 360°, at most 180° twist), at most 1 linked pair.",
+  "description": "Voluntary: 10 different skills, tariff 2.4 to 3.1, 3 or 4 somersault skills (270° to 360°, at most 180° twist), at most 1 linked pair. Below the minimum tariff or above the maximum: a 2.0 penalty.",
   "source": "ISTO 2025 Routines (updated)",
   "rules": [
     {

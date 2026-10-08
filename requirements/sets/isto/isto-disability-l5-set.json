@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "ISTO Disability Level 5 · Set",
-  "description": "Set routine (tariff 2.4).",
+  "description": "Set routine. Its tariff, 2.4, is for information: difficulty isn't scored.",
   "source": "ISTO 2025 Routines (updated)",
   "rules": [
     {
@@ -48,7 +48,7 @@
           "landing": [
             "feet"
           ],
-          "fig": "(\u003c)"
+          "fig": "(<)"
         },
         {
           "label": "Barani (P)",
@@ -70,7 +70,7 @@
           "landing": [
             "feet"
           ],
-          "fig": "(4 1 \u003c)"
+          "fig": "(4 1 <)"
         },
         {
           "label": "Tuck Jump",
@@ -170,7 +170,7 @@
           "landing": [
             "feet"
           ],
-          "fig": "(\u003c)"
+          "fig": "(<)"
         },
         {
           "label": "1/2 Twist to Front Drop",
@@ -213,5 +213,6 @@
       ]
     }
   ],
+  "no_difficulty": true,
   "repeats_allowed": true
 }

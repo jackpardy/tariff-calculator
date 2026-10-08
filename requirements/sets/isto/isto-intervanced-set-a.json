@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "ISTO Intervanced · Set A",
-  "description": "Set routine (tariff 2.4).",
+  "description": "Set routine. Its tariff, 2.4, is for information: difficulty isn't scored.",
   "source": "ISTO 2025 Routines (updated)",
   "rules": [
     {
@@ -27,7 +27,7 @@
           "landing": [
             "feet"
           ],
-          "fig": "(4 1 \u003c)"
+          "fig": "(4 1 <)"
         },
         {
           "label": "Tuck Jump",
@@ -185,7 +185,7 @@
           "landing": [
             "feet"
           ],
-          "fig": "(\u003c)"
+          "fig": "(<)"
         },
         {
           "label": "Front S/S (P)",
@@ -207,10 +207,11 @@
           "landing": [
             "feet"
           ],
-          "fig": "(4 - \u003c)"
+          "fig": "(4 - <)"
         }
       ]
     }
   ],
+  "no_difficulty": true,
   "repeats_allowed": true
 }

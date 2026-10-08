@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "ISTO Disability Level 1 · Set",
-  "description": "Set routine (tariff 1.0).",
+  "description": "Set routine. Its tariff, 1.0, is for information: difficulty isn't scored.",
   "source": "ISTO 2025 Routines (updated)",
   "rules": [
     {
@@ -159,7 +159,7 @@
           "landing": [
             "feet"
           ],
-          "fig": "(\u003c)"
+          "fig": "(<)"
         },
         {
           "label": "Back Drop",
@@ -202,5 +202,6 @@
       ]
     }
   ],
+  "no_difficulty": true,
   "repeats_allowed": true
 }

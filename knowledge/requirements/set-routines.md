@@ -55,6 +55,6 @@ be copied there (`/?fromSet=<ref>`) to make one's own.
 
 | Source | Set routines |
 |---|---|
-| [ISTO](isto.md) | Novice–Advanced first exercises (Set A or B), Disability L1–L5. These count difficulty. |
+| [ISTO](isto.md) | Novice–Advanced first exercises (Set A or B), Disability L1–L5 |
 | [BUCS](bucs.md) | L3–L7 and Disability L1–L2 first exercises, two options each |
 | [BG club & regional](bg-regional.md) | Club L1–L3 (both exercises), Regional L1–L3 first exercises |

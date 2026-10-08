@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "ISTO Disability Level 4 · Set",
-  "description": "Set routine. The ISTO document gives its tariff as 1.9, but its elements add up to 2.0.",
+  "description": "Set routine. Its tariff is for information: difficulty isn't scored. The ISTO document gives it as 1.9, but its elements add up to 2.0.",
   "source": "ISTO 2025 Routines (updated)",
   "rules": [
     {
@@ -122,7 +122,7 @@
           "landing": [
             "feet"
           ],
-          "fig": "(\u003c)"
+          "fig": "(<)"
         },
         {
           "label": "Back Drop",
@@ -203,10 +203,11 @@
           "landing": [
             "feet"
           ],
-          "fig": "(4 - \u003c)"
+          "fig": "(4 - <)"
         }
       ]
     }
   ],
+  "no_difficulty": true,
   "repeats_allowed": true
 }

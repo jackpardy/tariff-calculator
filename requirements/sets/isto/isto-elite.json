@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "ISTO Elite",
-  "description": "Two voluntary routines under the same rules; the higher-scoring one ranks, with the tariff of both recorded. Tariff 4.3 to 6.2.",
+  "description": "Two voluntary routines under the same rules; the higher-scoring one ranks, with the tariff of both recorded. Tariff 4.3 to 6.2. Below the minimum tariff or above the maximum: a 2.0 penalty.",
   "source": "ISTO 2025 Routines (updated)",
   "rules": [
     {

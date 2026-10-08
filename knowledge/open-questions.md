@@ -29,19 +29,13 @@ From the [British Gymnastics requirements](requirements/bg-national.md):
 
 # ISTO's routines to confirm
 
-From the [ISTO levels](requirements/isto.md) (2025 document):
-
-- Novice–Advanced: is it set routine then voluntary (as built), as the
-  Disability levels say? The TRA pages don't say.
-- Do set routines count difficulty (as built, since each gives a tariff)?
-- What's the penalty below a level's minimum tariff, or above its maximum?
-- Is a "linked" somersault two somersault skills (270°+) one straight after
-  another?
-- Elite: does "360° twist" mean exactly a full (as built), or at least?
-- Disability L5: "rotation between 270° and 450° per skill" is read as
-  somersault skills only (its set has jumps). And its set repeats a Pike
-  Jump, so it can't be repeated as the voluntary.
-- Disability L4's set: tariff 1.9 printed, 2.0 by its elements.
+Answered 2026-10-08 by an ISTO organiser (see [ISTO](requirements/isto.md)):
+set A or B then a voluntary; set routines don't score difficulty; 2.0
+penalty outside the tariff band; linked somersaults as built; Elite's full
+twist is exactly a full; Disability L5's rotation limit is for somersault
+skills; Disability L4's set is 2.0. Still open: Disability Level 5's set
+repeats a Pike Jump, so it can't be repeated as the voluntary as the
+document allows.
 
 # For ISTO's timetable (ADR 0005)
 

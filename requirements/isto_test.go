@@ -1,6 +1,7 @@
 package requirements
 
 import (
+	"math"
 	"slices"
 	"strings"
 	"testing"
@@ -93,5 +94,27 @@ func TestISTOElite(t *testing.T) {
 	noBodyLanding[1], noBodyLanding[2] = c("backSomersault", skills.Straight), c("barani", skills.Straight)
 	if got := failing(noBodyLanding); !slices.Equal(got, []string{"270° somersault to a body landing, then a 450° somersault with at most 540° twist"}) {
 		t.Errorf("no 270° to body landing: failed %q", got)
+	}
+}
+
+// A level's Set A and Set B are the same difficulty, though it isn't scored.
+func TestISTOSetsSameDifficulty(t *testing.T) {
+	tariff := func(ref string) float64 {
+		set, _ := LookupBuiltin(ref)
+		routine, _ := SetRoutine(set)
+		total := 0.0
+		for _, s := range routine {
+			total += s.Tariff
+		}
+		return total
+	}
+	for _, l := range BuiltinLevels() {
+		if !strings.HasPrefix(l.ID, "isto-") || len(l.Level.First.Options) < 2 {
+			continue
+		}
+		a, b := l.Level.First.Options[0], l.Level.First.Options[1]
+		if ta, tb := tariff(a), tariff(b); math.Abs(ta-tb) > 1e-9 {
+			t.Errorf("%s: %s is %.1f but %s is %.1f", l.ID, a, ta, b, tb)
+		}
 	}
 }

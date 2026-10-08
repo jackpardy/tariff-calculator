@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "ISTO Intermediate · Set B",
-  "description": "Set routine (tariff 1.6).",
+  "description": "Set routine. Its tariff, 1.6, is for information: difficulty isn't scored.",
   "source": "ISTO 2025 Routines (updated)",
   "rules": [
     {
@@ -139,7 +139,7 @@
           "landing": [
             "feet"
           ],
-          "fig": "(\u003c)"
+          "fig": "(<)"
         },
         {
           "label": "1/2 Twist",
@@ -205,5 +205,6 @@
       ]
     }
   ],
+  "no_difficulty": true,
   "repeats_allowed": true
 }

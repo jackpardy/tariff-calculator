@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "ISTO Intermediate · voluntary",
-  "description": "Voluntary: 10 different skills, tariff 1.6 to 2.3, 1 or 2 somersault skills (270° to 360°, no twisting), none linked.",
+  "description": "Voluntary: 10 different skills, tariff 1.6 to 2.3, 1 or 2 somersault skills (270° to 360°, no twisting), none linked. Below the minimum tariff or above the maximum: a 2.0 penalty.",
   "source": "ISTO 2025 Routines (updated)",
   "rules": [
     {

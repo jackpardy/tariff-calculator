@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "ISTO Advanced · Set A",
-  "description": "Set routine (tariff 3.2).",
+  "description": "Set routine. Its tariff, 3.2, is for information: difficulty isn't scored.",
   "source": "ISTO 2025 Routines (updated)",
   "rules": [
     {
@@ -27,7 +27,7 @@
           "landing": [
             "feet"
           ],
-          "fig": "(4 - \u003c)"
+          "fig": "(4 - <)"
         },
         {
           "label": "Barani (T)",
@@ -212,10 +212,11 @@
           "landing": [
             "feet"
           ],
-          "fig": "(4 - \u003c)"
+          "fig": "(4 - <)"
         }
       ]
     }
   ],
+  "no_difficulty": true,
   "repeats_allowed": true
 }

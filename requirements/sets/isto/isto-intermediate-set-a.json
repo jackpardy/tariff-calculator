@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "ISTO Intermediate · Set A",
-  "description": "Set routine (tariff 1.6).",
+  "description": "Set routine. Its tariff, 1.6, is for information: difficulty isn't scored.",
   "source": "ISTO 2025 Routines (updated)",
   "rules": [
     {
@@ -87,7 +87,7 @@
           "landing": [
             "feet"
           ],
-          "fig": "(\u003c)"
+          "fig": "(<)"
         },
         {
           "label": "Seat Drop",
@@ -203,5 +203,6 @@
       ]
     }
   ],
+  "no_difficulty": true,
   "repeats_allowed": true
 }

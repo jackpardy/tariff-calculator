@@ -29,20 +29,26 @@ the app's main audience.
 | Elite | Voluntary, both exercises the same rules | 4.3–6.2; 7–9 somersaults of 270°+; a full back **or** a rudi (from feet); a 270° to front or back then a 450° with at most 540° twist; nothing over 720° or 900° twist; at most one skill over 450°, untwisted |
 | Elite-Pro | Voluntary, both exercises the same rules | at least 6.3; every skill 270°+; nothing over 1080° |
 | Disability L1–L2 (Band 1) | Set routine (1.0, 1.2) | 1.0–1.1 / 1.2–1.4; nothing over 270°, no twisting somersaults, at most one somersault |
-| Disability L3–L4 (Band 2) | Set routine (1.5, 1.9 as printed) | 1.5–1.8: as Intermediate / 1.9–2.3: 2–4 somersaults, at most 180° twist in them |
+| Disability L3–L4 (Band 2) | Set routine (1.5, 2.0) | 1.5–1.8: as Intermediate / 1.9–2.3: 2–4 somersaults, at most 180° twist in them |
 | Disability L5 (Band 3) | Set routine (2.4) | at least 2.4; nothing over 450°, at most 360° twist in somersaults |
 
-Every voluntary also needs 10 different skills. A "somersault skill" is read
-as one of 270° or more, and a "linked" pair as two somersault skills one
-straight after another (the [`linked` rule](rule-types.md)). Set routines
-count difficulty (the document gives each one's tariff), unlike BUCS's and
-BG's.
+Novice to Advanced do Set A or Set B, then a voluntary that meets the
+level's requirements. Every voluntary needs 10 different skills; below a
+level's minimum tariff or above its maximum is a 2.0 penalty. A "somersault
+skill" is one of 270° or more, and a "linked" pair two somersault skills one
+straight after another (the [`linked` rule](rule-types.md)). Elite's "360°
+twist" is exactly a full. Disability Level 5's "rotation between 270° and
+450° per skill" means its somersault skills (the document's wording is loose).
+Set routines don't score difficulty: the tariff printed with each is for
+information, and a level's Set A and B are the same
+(`TestISTOSetsSameDifficulty`). All confirmed by an ISTO organiser
+(2026-10-08).
 
 # Checked against the document
 
 - Each set routine's elements add up to the tariff printed, except Disability
-  Level 4: the document says 1.9, its elements add up to 2.0. It's the same
-  routine as BUCS L5 option 1.
+  Level 4: the document says 1.9, its elements add up to 2.0 (the organiser
+  agrees). It's the same routine as BUCS L5 option 1.
 - Each Novice–Advanced set (and Disability L1–L4's) also meets its level's
   voluntary rules (`TestISTOSetsMeetVoluntaries`), a check that the rules are
   read as meant.
@@ -52,8 +58,6 @@ BG's.
 
 # Not built in
 
-- **What happens outside a band.** The document gives minimum and maximum
-  tariffs but not the penalty (BUCS: 2.0 below, disqualification above).
 - **Synchro** (Levels 1–3 pairing Novice/Intermediate, Intervanced/Advanced,
   Elite/Elite-Pro) is set up as [paired synchro levels](../features/competition-entries.md#events-and-synchro-adr-0005-step-2)
   on a competition, not as requirements.
