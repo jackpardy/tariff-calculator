@@ -8,6 +8,11 @@ generated: { by: claude-code/cli, at: 2026-10-05T16:00:00Z }
 
 # Waiting on documents
 
+- **ISTO's score sheets.** Example paper score sheets for each event
+  (trampoline, synchro, tumbling, DMT), to be got from ISTO (2026-10-08).
+  The [recorders' score sheets](features/competition-entries.md) are built
+  to a general layout; their format may change to match ISTO's.
+
 - **ISTO levels.** The Irish Student Trampoline Open's level rules aren't
   online (its site has lapsed). They need its documents before they can become
   [built-in requirements](requirements/framework.md#built-in-requirements).
