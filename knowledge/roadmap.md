@@ -146,9 +146,10 @@ event by routine, now 10).
 demoed to show they'd be useful, so for the next week or two the work is
 features that show that, in this order:
 
-1. **More admin links, each able to do less, and a change history** (from
-   "Added 2026-10-08" below), so difficulty judges can check cards without
-   the full admin link.
+1. **More admin links, each able to do less, and a change history** (built
+   2026-10-08, [ADR 0009](../docs/adr/0009-helper-links.md)): checking
+   cards, chairs of judges, timetable, and co-organiser links, and concerns
+   any helper can flag for the organiser.
 2. **Entry fees.**
 3. **Limits per level, with a waiting list.**
 4. **The day itself,** as far as it goes: flights started and finished by
