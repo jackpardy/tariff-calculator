@@ -83,7 +83,7 @@ templ Delay(p DelayPage) {
 				}
 			</fieldset>
 			<details class="mt-2 mb-3" open?={ p.Breaks != "" || p.Between != "" || p.Quicker != "" || p.MaxFlight != "" || p.Overrun != "" }>
-				<summary class="label is-small">Ease it (on the held-up areas, from the delay)</summary>
+				<summary class="comp-ease"><strong>Ease it</strong> <span class="is-size-7 has-text-grey">· move or shorten breaks, shorter changeovers, quicker turns, bigger flights, running over (on the held-up areas, from the delay)</span></summary>
 				<div class="field mt-2">
 					<p class="label is-small mb-1">Breaks, such as lunch</p>
 					for _, o := range [][2]string{{"", "Wait for them"}, {"move", "Move them later"}, {"shorten", "Shorten them by up to"}, {"through", "Keep going through them"}} {

@@ -279,7 +279,7 @@ func Delay(p DelayPage) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "><summary class=\"label is-small\">Ease it (on the held-up areas, from the delay)</summary><div class=\"field mt-2\"><p class=\"label is-small mb-1\">Breaks, such as lunch</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "><summary class=\"comp-ease\"><strong>Ease it</strong> <span class=\"is-size-7 has-text-grey\">· move or shorten breaks, shorter changeovers, quicker turns, bigger flights, running over (on the held-up areas, from the delay)</span></summary><div class=\"field mt-2\"><p class=\"label is-small mb-1\">Breaks, such as lunch</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
