@@ -76,6 +76,14 @@ type Dashboard struct {
 	WithProblems  int
 	Levels        []DashboardLevel
 	Removed       []RemovedRow // entries removed or held
+	// The filters (roadmap 2026-10-08): as given, and each.
+	Filter                                    url.Values
+	Search, Coach                             string
+	CheckedFilter, SignedFilter, VideoFilter string // "", yes or no; a video status
+	Category, Sort                            string
+	CanSplit                                  bool     // some levels rank men and women apart
+	Coaches                                   []string // the coaches entries have, to filter by
+	Shown                                     int      // entries the filters show
 }
 
 // RemovedRow is an entry the organiser removed or holds.
@@ -96,8 +104,10 @@ type LevelOrder struct {
 
 // DashboardLevel is one level's table.
 type DashboardLevel struct {
-	Name string
-	Rows []DashboardRow
+	Name   string
+	Anchor string // its id on the page, to jump to
+	Total  int    // its entries, before the filters
+	Rows   []DashboardRow
 }
 
 // DashboardRow is one entry in a level's table.
@@ -113,6 +123,7 @@ type DashboardRow struct {
 	Withdrawn         bool   // withdrawn since the club sent it
 	Category          string // Men or Women, where the level splits them
 	Signoff           SignoffView
+	Coach             string // who coaches them: who signed off, or else their coach
 }
 
 // EntryCard is an entry checked exactly as the builder checks a level.
@@ -493,24 +504,7 @@ templ CompetitionDashboard(d Dashboard) {
 				<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
 			</form>
 		</details>
-		<form method="get" class="comp-filter">
-			<div class="select is-small">
-				<select name="club" aria-label="Club" onchange="this.form.submit()">
-					<option value="" selected?={ d.Club == "" }>All clubs</option>
-					for _, c := range d.Clubs {
-						<option value={ c } selected?={ d.Club == c }>{ c }</option>
-					}
-					if d.Competition.Individuals || hasIndividuals(d) {
-						<option value="individual" selected?={ d.Club == "individual" }>Individuals</option>
-					}
-				</select>
-			</div>
-			<label class="checkbox is-size-7">
-				<input type="checkbox" name="problems" value="1" checked?={ d.ProblemsOnly } onchange="this.form.submit()"/>
-				Problems only
-			</label>
-			<noscript><button class="button is-small" type="submit">Filter</button></noscript>
-		</form>
+		@dashboardFilters(d)
 		<div class="buttons">
 			<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable") }>Timetable</a>
 			<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/officials") }>Officials</a>
@@ -536,17 +530,18 @@ templ CompetitionDashboard(d Dashboard) {
 			@removeForm(d.Base)
 		}
 		for _, l := range d.Levels {
-			<h2 class="title is-5 mt-5">
-				{ l.Name } <span class="has-text-grey is-size-6">({ strconv.Itoa(len(l.Rows)) })</span>
+			<details class="comp-dash-level" id={ l.Anchor } open?={ len(l.Rows) > 0 }>
+			<summary class="title is-5 mt-5">
+				{ l.Name } <span class="has-text-grey is-size-6">({ shownCount(d, l) })</span>
 				if len(l.Rows) > 0 {
 					<a class="is-size-7 has-text-weight-normal ml-2" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) }>Print this level</a>
 				}
-			</h2>
+			</summary>
 			if len(l.Rows) == 0 {
 				<p class="has-text-grey is-size-7">None</p>
 			} else {
 				<div class="table-container">
-					<table class="table is-fullwidth is-narrow comp-table">
+					<table class="table is-fullwidth is-narrow comp-table comp-entries">
 						<thead>
 							<tr>
 								<th><input type="checkbox" aria-label={ "Tick all of " + l.Name } onchange="this.closest('table').querySelectorAll('input[name=entry]').forEach(c => c.checked = this.checked)"/></th>
@@ -589,7 +584,7 @@ templ CompetitionDashboard(d Dashboard) {
 											{ fmt.Sprintf("%d/%d %s", r.Met, r.Rules, markFor(r.Met == r.Rules)) }
 										}
 									</td>
-									<td>
+									<td class="comp-problem-cell">
 										if len(r.Problems) == 0 {
 											–
 										} else {
@@ -634,6 +629,7 @@ templ CompetitionDashboard(d Dashboard) {
 					</table>
 				</div>
 			}
+			</details>
 		}
 		@removedList(d.Base, d.Removed)
 	}
@@ -1054,19 +1050,27 @@ templ CompetitionEntryPage(p EntryPage) {
 // level or ("") all.
 func filterQuery(d Dashboard, level string) string {
 	q := url.Values{}
+	for k, v := range d.Filter {
+		q[k] = v
+	}
 	if level != "" {
 		q.Set("level", level)
-	}
-	if d.Club != "" {
-		q.Set("club", d.Club)
-	}
-	if d.ProblemsOnly {
-		q.Set("problems", "1")
 	}
 	if len(q) == 0 {
 		return ""
 	}
 	return "?" + q.Encode()
+}
+
+// filtered says whether any filter is on.
+func filtered(d Dashboard) bool { return len(d.Filter) > 0 }
+
+// shownCount says how many of a level's entries are shown, e.g. "12 of 96".
+func shownCount(d Dashboard, l DashboardLevel) string {
+	if filtered(d) && len(l.Rows) != l.Total {
+		return fmt.Sprintf("%d of %d", len(l.Rows), l.Total)
+	}
+	return strconv.Itoa(l.Total)
 }
 
 // CardsPage is a set of competition cards to print, one exercise per page.
@@ -1458,4 +1462,112 @@ templ removedList(base string, rows []RemovedRow) {
 			</table>
 		</div>
 	}
+}
+
+// dashboardFilters are the ways to find entries: search, filters, sorting,
+// a list of the levels to jump to, and printing or downloading what's shown.
+templ dashboardFilters(d Dashboard) {
+	<form method="get" class="box comp-filters">
+		<div class="comp-setup-row">
+			<input class="input is-small" type="search" name="q" value={ d.Search } placeholder="Search for a gymnast" aria-label="Search for a gymnast"/>
+			<div class="select is-small">
+				<select name="club" aria-label="Club" onchange="this.form.submit()">
+					<option value="" selected?={ d.Club == "" }>All clubs</option>
+					for _, c := range d.Clubs {
+						<option value={ c } selected?={ d.Club == c }>{ c }</option>
+					}
+					if d.Competition.Individuals || hasIndividuals(d) {
+						<option value="individual" selected?={ d.Club == "individual" }>Individuals</option>
+					}
+				</select>
+			</div>
+			if len(d.Coaches) > 0 {
+				<div class="select is-small">
+					<select name="coach" aria-label="Coach" onchange="this.form.submit()">
+						<option value="" selected?={ d.Coach == "" }>Any coach</option>
+						for _, c := range d.Coaches {
+							<option value={ c } selected?={ d.Coach == c }>{ c }</option>
+						}
+						<option value="none" selected?={ d.Coach == "none" }>No coach</option>
+					</select>
+				</div>
+			}
+			@yesNoFilter("checked", "Checked", d.CheckedFilter, "Checked or not", "Checked", "Not checked")
+			if d.Competition.Signoff {
+				@yesNoFilter("signedoff", "Signed off", d.SignedFilter, "Signed off or not", "Signed off", "Not signed off")
+			}
+			if d.Competition.Video != "" {
+				<div class="select is-small">
+					<select name="video" aria-label="Video" onchange="this.form.submit()">
+						<option value="" selected?={ d.VideoFilter == "" }>Any video</option>
+						<option value="missing" selected?={ d.VideoFilter == "missing" }>Video missing</option>
+						<option value="provided" selected?={ d.VideoFilter == "provided" }>Video to review</option>
+						<option value="need more" selected?={ d.VideoFilter == "need more" }>Video: need more</option>
+						<option value="OK" selected?={ d.VideoFilter == "OK" }>Video OK</option>
+					</select>
+				</div>
+			}
+			if d.CanSplit {
+				<div class="select is-small">
+					<select name="category" aria-label="Men or women" onchange="this.form.submit()">
+						<option value="" selected?={ d.Category == "" }>Men and women</option>
+						<option value="Men" selected?={ d.Category == "Men" }>Men</option>
+						<option value="Women" selected?={ d.Category == "Women" }>Women</option>
+					</select>
+				</div>
+			}
+			<label class="checkbox is-size-7">
+				<input type="checkbox" name="problems" value="1" checked?={ d.ProblemsOnly } onchange="this.form.submit()"/>
+				Problems only
+			</label>
+			<div class="select is-small">
+				<select name="sort" aria-label="Sort by" onchange="this.form.submit()">
+					<option value="" selected?={ d.Sort == "" }>By club</option>
+					<option value="gymnast" selected?={ d.Sort == "gymnast" }>By gymnast</option>
+					<option value="sent" selected?={ d.Sort == "sent" }>Latest sent first</option>
+					if d.Competition.Signoff {
+						<option value="coach" selected?={ d.Sort == "coach" }>By coach</option>
+					}
+				</select>
+			</div>
+			<button class="button is-small" type="submit">Show</button>
+			if filtered(d) || d.Sort != "" {
+				<a class="button is-small is-text" href={ templ.SafeURL(d.Base) }>Clear</a>
+			}
+		</div>
+		<p class="is-size-7 mt-2">
+			if filtered(d) {
+				<strong>{ strconv.Itoa(d.Shown) } of { strconv.Itoa(d.Entries) } shown.</strong>
+				<a href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) }>Print what's shown</a> ·
+				<a href={ templ.SafeURL(d.Base + "/entries.csv" + filterQuery(d, "")) } download>CSV of what's shown</a> ·
+			}
+			Jump to:
+			for i, l := range d.Levels {
+				if i > 0 {
+					·
+				}
+				<a href={ templ.SafeURL("#" + l.Anchor) } onclick={ openLevel(l.Anchor) }>{ l.Name } ({ shownCount(d, l) })</a>
+			}
+			·
+			<a href="#" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = false); return false">collapse all</a> ·
+			<a href="#" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = true); return false">expand all</a>
+		</p>
+	</form>
+}
+
+// yesNoFilter is a filter that's on, off or either.
+templ yesNoFilter(name, label, value, either, yes, no string) {
+	<div class="select is-small">
+		<select name={ name } aria-label={ label } onchange="this.form.submit()">
+			<option value="" selected?={ value == "" }>{ either }</option>
+			<option value="yes" selected?={ value == "yes" }>{ yes }</option>
+			<option value="no" selected?={ value == "no" }>{ no }</option>
+		</select>
+	</div>
+}
+
+// openLevel opens a level's table when jumping to it.
+script openLevel(id string) {
+	const d = document.getElementById(id);
+	if (d) { d.open = true; }
 }

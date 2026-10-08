@@ -587,6 +587,13 @@ details > * { box-sizing: border-box; }
 .comp-table td, .comp-table th { white-space: nowrap; }
 .comp-table td:nth-child(6) { white-space: normal; min-width: 12rem; }
 .comp-table tr.has-problems td:nth-child(6) { color: #cc0f35; }
+/* The entries table has a tick box first: its problems are marked by class. */
+.comp-entries td:nth-child(6) { white-space: nowrap; min-width: 0; }
+.comp-entries tr.has-problems td:nth-child(6) { color: inherit; }
+.comp-entries td.comp-problem-cell { white-space: normal; min-width: 12rem; }
+.comp-entries tr.has-problems td.comp-problem-cell { color: #cc0f35; }
+.comp-dash-level > summary { cursor: pointer; }
+.comp-filters .input[type=search] { width: 14rem; }
 .comp-skills tr.not-counted td { color: #999; text-decoration: line-through; }
 .comp-results { list-style: none; margin: 0; font-size: 0.9rem; }
 .comp-results .is-unmet { color: #cc0f35; }

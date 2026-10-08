@@ -65,8 +65,15 @@ performed as written.
 The entries page shows the counts, then a table for each event (a level, or
 "Synchro BUCS L3", "Tumbling Novice"): gymnast (both names for a synchro pair), club,
 each exercise, requirements met, problems, video and coach sign-off where
-asked, when it was sent, and whether you've checked it. Filter by club or to
-**Problems only**. Tap a gymnast to see both exercises in full (a synchro
+asked, when it was sent, and whether you've checked it. To find entries:
+**search** for a gymnast (accents and case don't matter, and synchro partners
+count), filter by club, coach (or no coach), checked or not, signed off or
+not, video, men or women, or **Problems only**, and sort by club, gymnast,
+latest sent or coach. The filters stay in the page's address, so you can
+bookmark or share a view; **Print what's shown** and **CSV of what's shown**
+use them too. Each event's table folds away (tap its heading), says how
+many of its entries are shown ("12 of 96"), and the list at the top jumps
+to it, with **collapse all** and **expand all**. Tap a gymnast to see both exercises in full (a synchro
 pair's one routine), checked as the Routine Builder checks them.
 
 - **Mark checked** once you're happy, with a **note** for the club or gymnast

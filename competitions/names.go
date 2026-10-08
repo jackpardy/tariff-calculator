@@ -84,3 +84,16 @@ func LookAlike(names map[string]string) [][2]string {
 	slices.SortFunc(out, func(x, y [2]string) int { return strings.Compare(x[0]+x[1], y[0]+y[1]) })
 	return out
 }
+
+// NameMatches says whether a name matches a search: each of the search's
+// words is in the name, ignoring case, accents and punctuation ("o'neill"
+// finds "Dara O'Néill", "dar nei" too).
+func NameMatches(name, search string) bool {
+	folded := fold(name)
+	for _, word := range strings.Fields(search) {
+		if !strings.Contains(folded, fold(word)) {
+			return false
+		}
+	}
+	return true
+}

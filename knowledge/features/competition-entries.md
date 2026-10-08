@@ -30,8 +30,19 @@ organiser's first need is an **overview of every entry with its problems**.
 
 ## Dashboard
 
-There is one table per level, which can be filtered by club or to "problems
-only":
+There is one table per level (event), each folding away under its heading,
+which says how many are shown ("12 of 96"); a list at the top jumps to each,
+with collapse and expand all. Finding entries (roadmap 2026-10-08), all in
+the page's address so a view can be kept or shared:
+
+- **search** (`q`): every word in the gymnast's or synchro partner's name,
+  ignoring case, accents and punctuation (`competitions.NameMatches`);
+- **filters**: club, coach (who signed off, else the member's coach; or
+  none), checked, signed off, video (missing, to review, need more, OK),
+  men or women, problems only;
+- **sort**: by club (as stored), gymnast, latest sent or coach;
+- **print and CSV what's shown**: the cards and the CSV take the same
+  filters.
 
 | Gymnast | Club | 1st exercise | 2nd exercise | Requirements | Problems | Video | Sent | Checked |
 |---|---|---|---|---|---|---|---|---|

@@ -16,3 +16,20 @@ func TestLookAlike(t *testing.T) {
 		t.Errorf("look alike: %v", got)
 	}
 }
+
+func TestNameMatches(t *testing.T) {
+	for _, c := range []struct {
+		name, search string
+		want         bool
+	}{
+		{"Dara O'Néill", "o'neill", true},
+		{"Dara O'Néill", "dar nei", true},
+		{"Dara O'Néill & Ann Ryan", "ryan", true},
+		{"Dara O'Néill", "ryan", false},
+		{"Dara O'Néill", "", true},
+	} {
+		if got := NameMatches(c.name, c.search); got != c.want {
+			t.Errorf("%q in %q: %v", c.search, c.name, got)
+		}
+	}
+}

@@ -189,7 +189,7 @@ roughly in the order they'd help ISTO.
    timetabled, and stay in a list the organiser can **restore** them from.
    Today only the club or the gymnast can withdraw an entry; the organiser
    can only take someone out of a flight.
-4. **Find your way round the entries** (asked 2026-10-08). The organiser's
+4. **Find your way round the entries** (asked and built 2026-10-08). The organiser's
    dashboard is one long table per level; with hundreds of entries it needs
    more ways in:
    - **collapse and expand** each level (or event), and jump to one from a
