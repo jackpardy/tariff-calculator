@@ -40,16 +40,11 @@ Decided 2026-10-07 ([roadmap](roadmap.md#next-steps-2026-10-08)):
 opt-in notifications by phone push and email. Push stores nothing
 personal. An email is given with a tick box, "I'm 18 or over, or this is a
 parent's email"; anyone younger can still use push (decided 2026-10-07).
-Still to decide:
-
-- **How long the grace period is** before a notification goes out (about
-  10 minutes suggested; the organiser can skip it with Notify now or turn
-  it off on the competition's days, see the
-  [roadmap](roadmap.md#next-steps-2026-10-08)), and whether there
-  are quiet hours overnight before the competition day.
-
-Left to the build: which service sends email (Amazon SES in its Ireland
-region is the leaning).
+Designed in [ADR 0008](../docs/adr/0008-notifications.md) (2026-10-08):
+opting in per competition, emails confirmed, a ten-minute grace period by
+default, no quiet hours, and email by SMTP (Amazon SES in its Ireland
+region is the leaning). Still to do on the server: an email provider, with
+SPF and DKIM for `tariff.pardy.ie`.
 
 # Removing entries
 
