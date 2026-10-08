@@ -19,12 +19,37 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # Only documents changed (knowledge/, docs/, Markdown, the guide's
+      # PDFs): nothing to build, test or deploy. The job still reports, as
+      # "test" is a required check.
+      - name: What changed
+        id: changes
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "code=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          files=$(git diff --name-only "$BASE...HEAD")
+          code=$(printf '%s\n' "$files" | grep -vE '^(knowledge/|docs/)|\.md$|\.pdf$' | grep -c . || true)
+          if [ "$code" = "0" ]; then
+            echo "::notice::Only documents changed; skipping the build, tests and deploy."
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-go@v7
+        if: steps.changes.outputs.code == 'true'
         with:
           go-version-file: go.mod
       - name: Check generated templ code is up to date
+        if: steps.changes.outputs.code == 'true'
         run: |
           go tool templ generate
           git diff --exit-code -- '*_templ.go' || {
@@ -32,13 +57,16 @@ jobs:
             exit 1
           }
       - run: go vet ./...
+        if: steps.changes.outputs.code == 'true'
       - run: go test ./...
+        if: steps.changes.outputs.code == 'true'
       - name: Build the Docker image
+        if: steps.changes.outputs.code == 'true'
         run: docker build -t tariff-calculator:ci .
 
   deploy:
     needs: test
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && needs.test.outputs.code == 'true'
     concurrency: deploy-tariff
     runs-on: ubuntu-latest
     env:
