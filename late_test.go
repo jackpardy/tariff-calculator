@@ -104,3 +104,89 @@ func TestLateChanges(t *testing.T) {
 		t.Error("the history")
 	}
 }
+
+// With sign-off first, a late change waits for a coach, whose sign-off
+// goes onto the entry when it's accepted.
+func TestLateChangeSignoff(t *testing.T) {
+	h := competitionServer(t)
+	form := newCompetition()
+	form.Set("signoff", "1")
+	form["level"] = append(form["level"], "builtin-level:bucs-l4")
+	admin := created(t, h, form)
+	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	clubLink, enter := pathIn(t, dash, "/competitions/club/"), pathIn(t, dash, "/competitions/enter/")
+	l3 := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	l4 := url.Values{"level": {"BUCS L4"}, "ex1Option": {"builtin:bucs-l4-option-1"}, "ex2Option": {"builtin:bucs-l4-second"}, "ex2Skills": {voluntary}}
+	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
+	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
+	ann := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
+	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	x := withoutQuery(redirected(t, h, join, url.Values{"name": {"X"}}))
+	redirected(t, h, formAction(t, do(t, h, http.MethodGet, x, nil).Body.String(), x+"/competitions/"), l3)
+	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
+	ind := url.Values{"gymnast": {"Ivy"}}
+	for k, v := range l3 {
+		ind[k] = v
+	}
+	ivy := withoutQuery(redirected(t, h, enter, ind))
+	signoff := pathIn(t, do(t, h, http.MethodGet, ivy, nil).Body.String(), "/competitions/signoff/")
+
+	redirected(t, h, admin+"/deadline", url.Values{"close": {"1"}})
+	redirected(t, h, admin+"/late/settings", url.Values{"late-level": {"1"}, "signoffFirst": {"1"}})
+
+	// X asks; it waits for a coach.
+	ask := regexp.MustCompile(regexp.QuoteMeta(x) + `/competitions/[^/"]+/late\?discipline=`).FindString(do(t, h, http.MethodGet, x, nil).Body.String())
+	if ask == "" {
+		t.Fatal("X can ask")
+	}
+	if loc := redirected(t, h, strings.ReplaceAll(ask, "&amp;", "&"), l4); !strings.Contains(loc, "gone+to+your+coach") {
+		t.Errorf("it goes to the coach first: %s", loc)
+	}
+	late := do(t, h, http.MethodGet, admin+"/late", nil).Body.String()
+	if !strings.Contains(late, "waiting for a coach to sign it off") || strings.Contains(late, "/accept") {
+		t.Fatalf("the organiser can't accept it yet: %s", late)
+	}
+
+	// Ann signs it off from her page.
+	home := do(t, h, http.MethodGet, ann, nil).Body.String()
+	link := regexp.MustCompile(regexp.QuoteMeta(ann) + `/late/[^"]+`).FindString(home)
+	if link == "" {
+		t.Fatal("Ann's page lists it")
+	}
+	if page := do(t, h, http.MethodGet, link, nil).Body.String(); !strings.Contains(page, "Level change to BUCS L4") {
+		t.Error("Ann sees the change")
+	}
+	redirected(t, h, link, url.Values{"note": {"Seen it in training"}})
+
+	// Ivy asks; her coach signs it off through her sign-off link.
+	redirected(t, h, ivy+"/late", func() url.Values {
+		v := url.Values{"gymnast": {"Ivy"}}
+		for k, x := range l4 {
+			v[k] = x
+		}
+		return v
+	}())
+	if page := do(t, h, http.MethodGet, signoff, nil).Body.String(); !strings.Contains(page, "Late changes to sign off") {
+		t.Fatal("Ivy's coach sees it on her sign-off link")
+	}
+	if rec := do(t, h, http.MethodPost, signoff+"/late", url.Values{}); rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("the coach gives their name: %d", rec.Code)
+	}
+	redirected(t, h, signoff+"/late", url.Values{"coach": {"Coach C"}})
+
+	// Both reach the organiser, signed off; accepted, the entries are signed off.
+	late = do(t, h, http.MethodGet, admin+"/late", nil).Body.String()
+	if !strings.Contains(late, "Signed off by Ann.") || !strings.Contains(late, "Signed off by Coach C.") {
+		t.Fatalf("the checks say who signed off: %s", late)
+	}
+	for _, m := range regexp.MustCompile(`/late/([^/"]+)/accept`).FindAllStringSubmatch(late, -1) {
+		redirected(t, h, admin+"/late/"+m[1]+"/accept", url.Values{})
+	}
+	page := do(t, h, http.MethodGet, admin, nil).Body.String()
+	if strings.Contains(page, "Not signed off by a coach") {
+		t.Errorf("the changed entries are signed off: %s", page)
+	}
+	if !strings.Contains(do(t, h, http.MethodGet, x, nil).Body.String(), "Ann") {
+		t.Error("X's entry shows Ann's sign-off")
+	}
+}

@@ -472,7 +472,11 @@ var migrations = []string{
 		decided_by     TEXT NOT NULL DEFAULT '',
 		fee            INTEGER NOT NULL DEFAULT 0
 	);
-	CREATE INDEX late_requests_competition ON late_requests (competition_id, entry_id);`,
+	CREATE INDEX late_requests_competition ON late_requests (competition_id, entry_id);
+	ALTER TABLE late_requests ADD COLUMN signed_at TEXT NOT NULL DEFAULT '';
+	ALTER TABLE late_requests ADD COLUMN signed_by TEXT NOT NULL DEFAULT '';
+	ALTER TABLE late_requests ADD COLUMN signed_coach TEXT NOT NULL DEFAULT '';
+	ALTER TABLE late_requests ADD COLUMN sign_note TEXT NOT NULL DEFAULT '';`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

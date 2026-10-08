@@ -65,6 +65,16 @@ comp sec (on the club page's row) or an individual (on their entry) fills
 in the entry form as it should be, with a note; the entry stays as it is
 until decided, and a new request replaces one still waiting.
 
+**Coach sign-off.** Where entries need a coach's sign-off, the organiser
+can tick **A coach must sign off a late change before it comes to you**:
+the request then waits for a coach (a member's coach, on their coach page
+under "Late changes to sign off"; an individual's, through the sign-off
+link), who sees the new card and signs it off, approved where the
+competition approves coaches; then it reaches the organiser. Without it, a
+coach can still sign off a request while it waits. Accepting carries the
+request's sign-off onto the entry (both copies); one not signed off leaves
+the entry needing sign-off. The checks say which.
+
 Each waiting request shows the organiser whether it can be fitted in
 (`lateChecks`): the new card's problems; whether the new level is full,
 and their place on its waiting list if so; and in the draft timetable,

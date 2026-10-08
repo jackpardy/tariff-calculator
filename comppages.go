@@ -1681,6 +1681,9 @@ func (p *competitionPages) renderIndividualSignoff(w http.ResponseWriter, r *htt
 	} else if named != "" {
 		page.AskName, page.Name = false, named
 	}
+	if req, open, err := p.openLateFor(r.Context(), c.ID, e.ID); err == nil && open && !req.SignedOff() && c.Signoff {
+		page.Late = []views.CoachLate{{Member: req.Entry.Gymnasts(), What: competitions.LateKindName(req.Kind) + " to " + req.Entry.Event(), Link: r.URL.Path + "/late"}}
+	}
 	if len(problems) > 0 {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}

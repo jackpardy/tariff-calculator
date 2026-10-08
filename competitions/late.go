@@ -32,11 +32,18 @@ type LateRule struct {
 	Fee int  `json:"fee,omitempty"` // in cents, charged when accepted
 }
 
-// LateChanges are the late changes the organiser allows, by kind.
-type LateChanges map[string]LateRule
+// LateChanges are the late changes the organiser allows, by kind, and
+// whether a coach must sign off a request before it reaches the organiser.
+type LateChanges struct {
+	Rules        map[string]LateRule `json:"rules,omitempty"`
+	SignoffFirst bool                `json:"signoff_first,omitempty"`
+}
+
+// Rule is a kind's rule.
+func (l LateChanges) Rule(kind string) LateRule { return l.Rules[kind] }
 
 // Allowed says whether a kind of late change can be asked for.
-func (l LateChanges) Allowed(kind string) bool { return l[kind].On }
+func (l LateChanges) Allowed(kind string) bool { return l.Rules[kind].On }
 
 // Any says whether any late change can be asked for.
 func (l LateChanges) Any() bool {

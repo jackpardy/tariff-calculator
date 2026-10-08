@@ -98,6 +98,7 @@ type CoachCompetition struct {
 	Cannot      string // why they can't sign off for it (not approved), if they can't
 	Timeline    string // the club's timetable, once published
 	Notify      string // where the coach asks to hear about changes
+	Late        []CoachLate // late changes to sign off
 }
 
 // CoachRow is one member's entry, for their coach.
@@ -142,6 +143,7 @@ templ CoachHome(p CoachPage) {
 					}
 				</h2>
 				@competitionFacts(c.Competition)
+				@coachLates(c.Late)
 				@timelineLinks("", c.Timeline, c.Notify)
 				if c.Cannot != "" && p.SignsOff {
 					<p class="is-size-7 has-text-warning-dark mb-2">{ c.Cannot }</p>
@@ -190,6 +192,7 @@ templ CoachHome(p CoachPage) {
 // member's (with a coach link) or an individual's (with a sign-off link).
 type SignoffPage struct {
 	Back        string // "" for an individual's coach, who has no coach page
+	Late        []CoachLate // a late change to sign off, through an individual's link
 	Competition CompetitionSummary
 	Card        EntryCard
 	Signoff     SignoffView
@@ -208,6 +211,7 @@ templ SignoffEntry(p SignoffPage) {
 		}
 		<p class="has-text-grey mb-1">{ p.Competition.Name }</p>
 		@competitionFacts(p.Competition)
+		@coachLates(p.Late)
 		@entryCard(p.Card)
 		if p.Cannot != "" {
 			<p class="has-text-grey mt-4">{ p.Cannot }</p>

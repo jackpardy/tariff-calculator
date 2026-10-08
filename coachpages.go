@@ -198,6 +198,22 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 		if published(c) {
 			cc.Timeline = path + "/competitions/" + c.ID + "/timeline"
 		}
+		seen := map[string]bool{}
+		for _, e := range entries {
+			if e.CompetitionID == c.ID {
+				seen[e.MemberID] = true
+			}
+		}
+		if coach.SignsOff && c.Signoff {
+			lates, err := p.coachLateRequests(ctx, c, seen)
+			if err != nil {
+				failed(w, r, err)
+				return
+			}
+			for _, l := range lates {
+				cc.Late = append(cc.Late, views.CoachLate{Member: l.Entry.Gymnasts(), What: competitions.LateKindName(l.Kind) + " to " + l.Entry.Event(), Link: path + "/late/" + l.ID})
+			}
+		}
 		for _, e := range entries {
 			if e.CompetitionID != c.ID {
 				continue

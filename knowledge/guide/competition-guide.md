@@ -117,7 +117,11 @@ pair's one routine), checked as the Routine Builder checks them.
   **Accept** applies it (it needs checking and signing off again, goes into
   the draft timetable for you to publish, and the fee goes on their
   invoice) or say why it's **Not accepted**. Members, comp secs and
-  individuals ask with **Ask for a late change** on their pages.
+  individuals ask with **Ask for a late change** on their pages. Where
+  entries need sign-off, tick **A coach must sign off a late change before
+  it comes to you**: the coach signs off the new card first (on their coach
+  page, or an individual's coach through the sign-off link), and accepting
+  carries that sign-off onto the entry.
 - **Limits and waiting lists** (under **Links and settings**): give an
   event a limit and, once it's full, later entries go on its waiting list
   in the order they came in. The next one moves up by itself when an entry
