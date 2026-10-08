@@ -51,16 +51,22 @@ performed as written.
    trampoline only. To run synchro levels together, pair them, one event a
    line: "BUCS L1 + BUCS L2" makes one event, "Synchro BUCS L1/L2", where each
    pair says which level they're doing.
-4. Choose whether **gymnasts can also enter on their own**, whether to ask for
+4. Choose when **Entries open**: when you go live (the competition stays
+   private while you set it up), at a set time, or now.
+5. Choose whether **gymnasts can also enter on their own**, whether to ask for
    **video proof** (none, some skills such as any triple, or each whole
    routine), whether **entries need a coach's sign-off**, and whether to **rank
    men and women separately** (you can choose only some levels later).
-5. Tap **Create competition**. You land on the entries page with your **admin
+6. Tap **Create competition**. You land on the entries page with your **admin
    link**. Save it: it's the only way back, and anyone who has it can manage
    the competition.
-6. Open **Links and settings** for the **club link** (give it to each club's
+7. Open **Links and settings** for the **club link** (give it to each club's
    comp sec) and the **individual entry link** (give it to gymnasts without a
-   club).
+   club). You can share them while the competition is private: they show its
+   name, date and when entries open, but nobody can enter yet.
+8. When you're ready, tap **Go live now**, or set a date and time for it to go
+   live by itself. **Make private (pause entries)** under **Links and
+   settings** stops entries again; the entries already made are kept.
 
 The entries page shows the counts, then a table for each event (a level, or
 "Synchro BUCS L3", "Tumbling Novice"): gymnast (both names for a synchro pair), club,
@@ -71,9 +77,11 @@ count), filter by club, coach (or no coach), checked or not, signed off or
 not, video, men or women, or **Problems only**, and sort by club, gymnast,
 latest sent or coach. The filters stay in the page's address, so you can
 bookmark or share a view; **Print what's shown** and **CSV of what's shown**
-use them too. Each event's table folds away (tap its heading), says how
-many of its entries are shown ("12 of 96"), and the list at the top jumps
-to it, with **collapse all** and **expand all**. Tap a gymnast to see both exercises in full (a synchro
+use them too. Each event's table starts folded (tap its heading to open it),
+says how many of its entries are shown ("12 of 96"), and the list at the top
+jumps to it; **Expand all** and **Collapse all** open or fold every one, and
+your browser remembers which you left open. A search or filter opens the
+events it finds people in. Tap a gymnast to see both exercises in full (a synchro
 pair's one routine), checked as the Routine Builder checks them.
 
 - **Mark checked** once you're happy, with a **note** for the club or gymnast

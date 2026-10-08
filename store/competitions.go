@@ -45,26 +45,26 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 		return Competition{}, "", fmt.Errorf("encoding events: %w", err)
 	}
 	_, err = s.db.ExecContext(ctx, `INSERT INTO competitions
-		(id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline, individuals, levels, created_at, delete_after, video, signoff, split, events, levels_ordered)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, TRUE)`,
+		(id, admin_hash, club_token, club_hash, individual_token, individual_hash, name, date, deadline, individuals, levels, created_at, delete_after, video, signoff, split, events, live_at, levels_ordered)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, TRUE)`,
 		out.ID, hash(admin), out.ClubLink, hash(out.ClubLink), out.IndividualLink, hash(out.IndividualLink),
 		c.Name, c.Date, c.Deadline.UTC().Format(timeLayout), c.Individuals, string(levels),
-		out.CreatedAt.Format(timeLayout), c.DeleteAfter().Format(timeLayout), string(video), c.Signoff, string(split), string(events))
+		out.CreatedAt.Format(timeLayout), c.DeleteAfter().Format(timeLayout), string(video), c.Signoff, string(split), string(events), formatTime(c.LiveAt))
 	if err != nil {
 		return Competition{}, "", fmt.Errorf("storing the competition: %w", err)
 	}
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
-	var deadline, levels, created, video string
+	var deadline, levels, created, video, liveAt string
 	var split, timetable, events, officials, coachLevels, publishedTimetable string
 	var ordered bool
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable); err != nil {
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt); err != nil {
 		return Competition{}, notFound(err)
 	}
 	if publishedTimetable != "" {
@@ -102,7 +102,7 @@ func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	if !ordered {
 		c.Levels, c.Synchro = competitions.OrderLevels(nil, c.Levels), competitions.OrderLevels(nil, c.Synchro)
 	}
-	c.Deadline, c.CreatedAt = parseTime(deadline), parseTime(created)
+	c.Deadline, c.CreatedAt, c.LiveAt = parseTime(deadline), parseTime(created), parseTime(liveAt)
 	return c, nil
 }
 
@@ -304,15 +304,20 @@ func scanEntry(row interface{ Scan(...any) error }) (Entry, error) {
 	return e, nil
 }
 
-// open reads a competition's deadline in a transaction, failing with ErrClosed
-// once it has passed.
+// open reads when a competition's entries open and close in a transaction,
+// failing with ErrNotOpen before it goes live (or while it's paused) and
+// ErrClosed once its deadline has passed.
 func (s *Store) open(ctx context.Context, tx *sql.Tx, competitionID string) error {
-	var deadline string
-	if err := tx.QueryRowContext(ctx, `SELECT deadline FROM competitions WHERE id = $1`, competitionID).Scan(&deadline); err != nil {
+	var deadline, liveAt string
+	if err := tx.QueryRowContext(ctx, `SELECT deadline, live_at FROM competitions WHERE id = $1`, competitionID).Scan(&deadline, &liveAt); err != nil {
 		return notFound(err)
 	}
-	if !s.now().Before(parseTime(deadline)) {
+	now := s.now()
+	if !now.Before(parseTime(deadline)) {
 		return ErrClosed
+	}
+	if liveAt == "" || now.Before(parseTime(liveAt)) {
+		return ErrNotOpen
 	}
 	return nil
 }
@@ -471,6 +476,13 @@ func (s *Store) MarkChecked(ctx context.Context, competitionID, id string, check
 	}
 	return affected(s.db.ExecContext(ctx, `UPDATE entries SET checked_at = $1, note = $2 WHERE competition_id = $3 AND id = $4`,
 		at, note, competitionID, id))
+}
+
+// SetLive sets when a competition's entries open: now to go live, later to
+// go live then, or zero to make it private (pausing entries, keeping those
+// made).
+func (s *Store) SetLive(ctx context.Context, id string, at time.Time) error {
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET live_at = $1 WHERE id = $2`, formatTime(at), id))
 }
 
 // SetDeadline changes when a competition's entries close: now to close them,

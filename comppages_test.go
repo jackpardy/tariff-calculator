@@ -40,7 +40,7 @@ func do(t *testing.T, h http.Handler, method, path string, form url.Values) *htt
 func newCompetition() url.Values {
 	return url.Values{
 		"name": {"Student Open"}, "date": {"2030-03-16"}, "deadlineDate": {"2030-03-09"}, "deadlineTime": {"23:59"},
-		"individuals": {"1"}, "level": {"builtin-level:bucs-l3", "builtin-level:fig-ag3"},
+		"individuals": {"1"}, "level": {"builtin-level:bucs-l3", "builtin-level:fig-ag3"}, "opens": {"now"},
 	}
 }
 

@@ -1,6 +1,14 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Going live](features/competition-entries.md#going-live): a
+  new competition starts private, its links showing when entries open; the
+  organiser goes live now or at a set time, and can make it private again
+  to pause entries, keeping those made. Dashboard levels start folded, with
+  Expand all and Collapse all, remembered in the browser. The
+  [roadmap](roadmap.md)'s next steps: notifications, the "what ifs'"
+  missing checks, saying what a manual change breaks, then splitting an
+  event by routine.
 * **Update**: Draft and published timetables: once published, every change
   the organiser makes (planning, moves, officials' seats, a kept delay or
   leaving official) is a draft until **Publish changes**; attendees see the

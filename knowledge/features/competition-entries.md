@@ -28,11 +28,28 @@ competitions, the organiser's dashboard and each entry, and individual entry
 The tariff sheet is only one of the organiser's views: the printable one. The
 organiser's first need is an **overview of every entry with its problems**.
 
+## Going live
+
+A new competition starts **private** (roadmap 2026-10-07), unless the form
+says to open entries now or at a set time. While it's private the organiser
+sets it up; the club and individual links already show its name, date and
+when entries open ("Entries open Monday 1 February 2027, 09:00", or
+"Entries aren't open at the moment"), so they can be shared early, but
+nothing can be entered, sent, changed, withdrawn or signed off
+(`store.ErrNotOpen`). The dashboard's **Go live now** opens entries, or a
+date and time opens them then (before the deadline); **Make private (pause
+entries)**, under Links and settings, stops them again, keeping the entries
+already made. Entries are open while the competition is live and before
+its deadline (`Competition.Open`); the time is `live_at`, empty while
+private. Competitions made before this went live when they were made.
+
 ## Dashboard
 
 There is one table per level (event), each folding away under its heading,
-which says how many are shown ("12 of 96"); a list at the top jumps to each,
-with collapse and expand all. Finding entries (roadmap 2026-10-08), all in
+which says how many are shown ("12 of 96"); a list at the top jumps to each.
+Levels start folded, with **Expand all** and **Collapse all**; the browser
+remembers which were left open, and a search or filter opens the levels it
+finds people in. Finding entries (roadmap 2026-10-08), all in
 the page's address so a view can be kept or shared:
 
 - **search** (`q`): every word in the gymnast's or synchro partner's name,

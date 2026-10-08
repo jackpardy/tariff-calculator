@@ -27,6 +27,9 @@ var (
 	ErrNotFound = errors.New("not found")
 	// ErrClosed is a change after the competition's deadline.
 	ErrClosed = errors.New("entries for this competition have closed")
+	// ErrNotOpen is a change before the competition goes live, or while
+	// the organiser has paused it.
+	ErrNotOpen = errors.New("entries for this competition aren't open")
 	// ErrLimit is a club or competition that's full.
 	ErrLimit = errors.New("limit reached")
 	// ErrRemoved is an entry the organiser has removed: it can't be sent or
@@ -345,6 +348,12 @@ var migrations = []string{
 	// published before this is its own published copy.
 	`ALTER TABLE competitions ADD COLUMN published_timetable TEXT NOT NULL DEFAULT '';
 	UPDATE competitions SET published_timetable = timetable WHERE timetable <> '' AND json_extract(timetable, '$.published');`,
+
+	// 15: set up in private, go live when ready (roadmap 2026-10-07): when
+	// entries open, '' while private. Those made before this went live
+	// when they were made.
+	`ALTER TABLE competitions ADD COLUMN live_at TEXT NOT NULL DEFAULT '';
+	UPDATE competitions SET live_at = created_at;`,
 }
 
 // migrate runs the migrations the database hasn't had yet.
@@ -396,6 +405,14 @@ func (s *Store) stamp() string {
 func parseTime(v string) time.Time {
 	t, _ := time.Parse(timeLayout, v)
 	return t
+}
+
+// formatTime is a time as stored, "" for none.
+func formatTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.UTC().Format(timeLayout)
 }
 
 // newToken is a secret link token: 128 bits from crypto/rand, as base64url.
