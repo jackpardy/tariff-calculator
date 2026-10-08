@@ -229,6 +229,18 @@ func (s Schedule) Delayed(d Delay, people map[string][]string) (Schedule, DelayR
 			}
 			for k, j := range unit {
 				g := &out.Flights[j]
+				// A flight that had a gap before it (it waited for a break)
+				// doesn't come earlier: the rest of the unit goes from its
+				// own time, around the breaks as the delay says.
+				if k > 0 && g.Start > t {
+					rest := 0
+					for _, l := range lengths[k:] {
+						rest += l
+					}
+					if t, waitedFor = out.placeAround(d, area, g.Start, rest, eased, &r); waitedFor != "" {
+						waited[j] = waitedFor
+					}
+				}
 				if t != g.Start || t+lengths[k] != g.End {
 					g.Start, g.End = t, t+lengths[k]
 					shifted = append(shifted, j)

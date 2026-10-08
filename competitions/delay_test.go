@@ -205,3 +205,35 @@ func TestDelayOverrun(t *testing.T) {
 		t.Errorf("30 minutes over is allowed: %+v, %v", c, r.Unplaced)
 	}
 }
+
+// Working through lunch, the flight that runs into it carries on, but the
+// event's flight already after lunch doesn't come earlier.
+func TestDelayThroughKeepsLaterFlights(t *testing.T) {
+	flight := func(n, start, end int, entry string) ScheduledFlight {
+		return ScheduledFlight{Flight: Flight{Level: "L6", Category: "Women", Number: n, Of: 4, Entries: []string{entry}}, Area: "P1", Start: start, End: end}
+	}
+	people := map[string][]string{"a": {"a"}, "b": {"b"}, "c": {"c"}, "d": {"d"}}
+	s := Schedule{
+		Setup: Setup{Areas: []Area{{Name: "P1"}}, Days: []Day{{Name: "Sat", Start: "09:00", End: "17:30"}}},
+		Flights: []ScheduledFlight{
+			flight(1, 9*60+30, 10*60+40, "a"), flight(2, 10*60+40, 11*60+50, "b"),
+			flight(3, 11*60+50, 13*60, "c"), flight(4, 14*60, 15*60+10, "d"),
+		},
+		Blocks: []ScheduledBlock{{Name: "Lunch", Areas: []string{"P1"}, Start: 13 * 60, End: 14 * 60}},
+	}
+	d := Delay{Areas: []string{"P1"}, From: 10 * 60, Minutes: 45, Breaks: BreaksThrough}
+	for _, across := range []bool{false, true} {
+		s.Setup.AcrossBreaks = across
+		out, _ := delayed(t, s, d, people)
+		var got [][2]int
+		for _, f := range out.Flights {
+			got = append(got, [2]int{f.Start, f.End})
+		}
+		want := [][2]int{{9*60 + 30, 11*60 + 25}, {11*60 + 25, 12*60 + 35}, {12*60 + 35, 13*60 + 45}, {14 * 60, 15*60 + 10}}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Errorf("across breaks %v: flight %d at %v, want %v", across, i+1, got[i], want[i])
+			}
+		}
+	}
+}
