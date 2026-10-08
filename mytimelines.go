@@ -200,3 +200,52 @@ func (p *competitionPages) clubTimeline(w http.ResponseWriter, r *http.Request, 
 
 // published says whether a competition's timetable is published.
 func published(c store.Competition) bool { return c.Published != nil }
+
+// Score sheets for an official (asked 2026-10-08): the published
+// timetable's sheets for the flights they have a seat on, to read on a
+// phone; the organiser prints them.
+
+func (p *competitionPages) memberScoreSheets(w http.ResponseWriter, r *http.Request) {
+	m, ok := p.member(w, r)
+	if !ok {
+		return
+	}
+	c, ok := p.memberCompetition(w, r, m)
+	if !ok {
+		return
+	}
+	p.officialScoreSheets(w, r, c, "m:"+m.ID, dayPath(memberPath(r.PathValue("token")), c.ID))
+}
+
+func (p *competitionPages) individualScoreSheets(w http.ResponseWriter, r *http.Request) {
+	e, c, ok := p.own(w, r)
+	if !ok {
+		return
+	}
+	p.officialScoreSheets(w, r, c, individualKey(e.Entry.Gymnast), "/competitions/entry/"+r.PathValue("token"))
+}
+
+// officialScoreSheets are the score sheets of the flights a person (by key)
+// officiates, once the timetable is published.
+func (p *competitionPages) officialScoreSheets(w http.ResponseWriter, r *http.Request, c store.Competition, key, back string) {
+	t := c.Published
+	if t == nil {
+		message(w, r, http.StatusNotFound, "No timetable yet", "The organiser hasn't published the timetable yet. Score sheets show here once they do.")
+		return
+	}
+	all, err := p.st.Entries(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	entries := live(all)
+	officials, err := p.rotaOf(r, c, entries)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	sheets := scoreSheets(c, *t, entries, officials, back, p.now(), key)
+	sheets.BackLabel = "← Back"
+	sheets.Intro = "The score sheets of the flights you're on the panel for. The organiser prints them for the day; you don't need to."
+	render(w, r, views.ScorePrint(sheets))
+}

@@ -21,6 +21,8 @@ import (
 func (p *competitionPages) registerMine(handle func(string, http.HandlerFunc)) {
 	handle("GET /clubs/member/{token}/competitions/{id}/day", p.memberDay)
 	handle("GET /competitions/entry/{token}/day", p.individualDay)
+	handle("GET /clubs/member/{token}/competitions/{id}/score-sheets", p.memberScoreSheets)
+	handle("GET /competitions/entry/{token}/score-sheets", p.individualScoreSheets)
 }
 
 func (p *competitionPages) memberDay(w http.ResponseWriter, r *http.Request) {
@@ -104,6 +106,9 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 			return
 		}
 		page.Duties = dutiesOf(c, key)
+		if len(page.Duties) > 0 {
+			page.ScoreSheets = strings.TrimSuffix(r.URL.Path, "/day") + "/score-sheets"
+		}
 		page.Days = itemsOf(*t, entries, officials)
 	}
 	render(w, r, views.MyCompetition(page))

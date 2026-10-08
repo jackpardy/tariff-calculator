@@ -785,7 +785,7 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if r.URL.Query().Get("sheet") == "scores" {
-		render(w, r, views.ScorePrint(scoreSheets(c, s, entries, people, timetablePath(r), p.now())))
+		render(w, r, views.ScorePrint(scoreSheets(c, s, entries, people, timetablePath(r), p.now(), "")))
 		return
 	}
 	judges := r.URL.Query().Get("sheet") == "judges"
@@ -891,12 +891,13 @@ func (p *competitionPages) keepWhatIf(w http.ResponseWriter, r *http.Request, c 
 // scoreSheets are the recorders' score sheets: each flight in time order,
 // its gymnasts in running order, and a column for each mark its panel gives
 // each routine, all left to fill in.
-func scoreSheets(c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, back string, now time.Time) views.ScoreSheets {
-	out := views.ScoreSheets{Title: "Score sheets · " + c.Name, Back: back, Competition: summary(c.Competition, now)}
+// With a person's key, only the flights they have a seat on.
+func scoreSheets(c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, back string, now time.Time, key string) views.ScoreSheets {
+	out := views.ScoreSheets{Title: "Score sheets · " + c.Name, Back: back, BackLabel: "← Timetable", Competition: summary(c.Competition, now)}
 	for _, day := range itemsOf(s, entries, people) {
 		for _, area := range day.Areas {
 			for _, it := range area.Items {
-				if !it.Flight {
+				if !it.Flight || key != "" && !slices.ContainsFunc(s.Flights[it.Index].Officials, func(d competitions.Duty) bool { return d.Person == key }) {
 					continue
 				}
 				f := views.ScoreFlight{Name: it.Name, Day: day.Name, Area: area.Name, Start: it.Start, Seats: it.Seats,

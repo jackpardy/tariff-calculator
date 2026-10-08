@@ -653,6 +653,9 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 	for _, c := range comps {
 		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now), Duties: dutiesOf(c, "m:"+m.ID), Day: dayPath(path, c.ID),
 			Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
+		if len(mc.Duties) > 0 {
+			mc.ScoreSheets = path + "/competitions/" + c.ID + "/score-sheets"
+		}
 		if published(c) {
 			mc.Timeline, mc.ClubTimeline = path+"/competitions/"+c.ID+"/timeline", path+"/competitions/"+c.ID+"/club-timeline"
 		}

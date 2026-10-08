@@ -1307,6 +1307,9 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		page.Timeline = path + "/timeline"
 	}
 	page.Notify = p.notifyLink(path + "/notify")
+	if len(page.Duties) > 0 {
+		page.ScoreSheets = path + "/score-sheets"
+	}
 	switch {
 	case e.Removal == store.Removed:
 		page.Removal = strings.TrimSpace("The organiser removed this entry, so it can't be changed. " + e.RemovalNote)

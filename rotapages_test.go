@@ -106,6 +106,17 @@ func TestOfficialsRota(t *testing.T) {
 	if !strings.Contains(do(t, h, http.MethodGet, dara, nil).Body.String(), "BUCS L3 · Execution judge") {
 		t.Error("Dara sees she judges BUCS L3")
 	}
+	// And the score sheets of the flights she's on the panel for, only.
+	if !strings.Contains(do(t, h, http.MethodGet, dara, nil).Body.String(), dara+"/score-sheets") {
+		t.Fatal("Dara's page links to her panels' score sheets")
+	}
+	sheets := do(t, h, http.MethodGet, dara+"/score-sheets", nil).Body.String()
+	if !strings.Contains(sheets, "<h1 class=\"title is-5 mb-1\">BUCS L3") || strings.Contains(sheets, "Tumbling Novice</h1>") || !strings.Contains(sheets, "you don&#39;t need to") && !strings.Contains(sheets, "you don't need to") {
+		t.Errorf("BUCS L3's sheet, not tumbling's: %s", sheets)
+	}
+	if strings.Contains(do(t, h, http.MethodGet, withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Fay"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})), nil).Body.String(), "/score-sheets") {
+		t.Error("no link for someone who doesn't officiate")
+	}
 }
 
 func TestBlockOfficials(t *testing.T) {
