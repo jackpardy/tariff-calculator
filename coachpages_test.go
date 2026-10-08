@@ -256,7 +256,7 @@ func TestCoachQualificationsPages(t *testing.T) {
 	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "bg-trampoline-2"}, "certificate", []byte("<html>not a certificate</html>")); !strings.Contains(rec.Header().Get("Location"), "photo+%28JPEG") {
 		t.Errorf("only photos and PDFs: %s", rec.Header().Get("Location"))
 	}
-	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "nonsense"}, "certificate", pdf); !strings.Contains(rec.Header().Get("Location"), "choose+Ann") {
+	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "nonsense"}, "certificate", pdf); !strings.Contains(rec.Header().Get("Location"), "choose+the+coach") {
 		t.Errorf("a qualification from the list: %s", rec.Header().Get("Location"))
 	}
 	big := append([]byte("%PDF-1.4\n"), make([]byte, 11<<20)...)

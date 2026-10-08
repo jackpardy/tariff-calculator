@@ -213,6 +213,20 @@ type EntryPage struct {
 	Duties      []string   // their seats on panels, once the timetable is published
 	Day         string     // their My competition page
 	Offer       *OfferForm // what they offer to judge and help with
+	Coach       *EntryCoachView // their coach, where the competition approves coaches
+	Notice      string
+}
+
+// EntryCoachView is the coach an individual names, for the organiser to
+// approve (ADR 0007 Decision 8).
+type EntryCoachView struct {
+	Name, Qualification string // as named; "" before
+	Status              string // e.g. "Waiting for the organiser"
+	Approved            bool
+	Note                string // the organiser's
+	Action              string // where naming them posts
+	Options             []CoachOption
+	Asked               string // the levels the competition asks for
 }
 
 // EnterPage is a competition's individual entry page.
@@ -976,6 +990,12 @@ templ CompetitionEntryPage(p EntryPage) {
 			@linkBox("Your personal link (keep it to yourself)", p.Link, "")
 		</div>
 		@partnerBox(p.Partner)
+		if p.Notice != "" {
+			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		if p.Coach != nil {
+			@entryCoachBox(*p.Coach, p.Competition.Open)
+		}
 		if p.SignoffLink != "" {
 			@linkBox("Sign-off link for your coach", p.SignoffLink, "This competition needs a coach's sign-off. Send this link to your coach: they see your entry and sign it off.")
 		}

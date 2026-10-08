@@ -507,7 +507,12 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 			failed(w, r, err)
 			return
 		}
-		d.CoachApproval = coachApprovalForm(c.Competition, sentCoaches)
+		named, err := p.st.CompetitionEntryCoaches(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		d.CoachApproval = coachApprovalForm(c.Competition, sentCoaches, named)
 	}
 	if d.New != "" {
 		d.Links.Admin = origin(r) + adminPath(r.PathValue("token"))
@@ -1121,6 +1126,11 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	if c.Signoff {
 		page.SignoffLink = origin(r) + signoffPath(e.SignoffLink)
 	}
+	page.Notice = r.URL.Query().Get("notice")
+	if page.Coach, err = p.entryCoachView(r, c, e, path); err != nil {
+		failed(w, r, err)
+		return
+	}
 	if e.Entry.Partner != nil {
 		page.Partner = &views.PartnerView{Name: e.Entry.Partner.Name, Link: origin(r) + partnerPath(e.PartnerLink), Confirmed: e.PartnerConfirmed}
 	}
@@ -1413,6 +1423,14 @@ func (p *competitionPages) renderIndividualSignoff(w http.ResponseWriter, r *htt
 		Competition: summary(c.Competition, p.now()), Card: shown, Signoff: shown.Signoff,
 		Action: r.URL.Path, AskName: true, Name: name, Problems: problems,
 	}
+	if named, why, err := p.entryCoachFor(r, c, e); err != nil {
+		failed(w, r, err)
+		return
+	} else if why != "" {
+		page.Cannot = why
+	} else if named != "" {
+		page.AskName, page.Name = false, named
+	}
 	if len(problems) > 0 {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}
@@ -1431,6 +1449,15 @@ func (p *competitionPages) signOffIndividual(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("coach"))
+	if named, why, err := p.entryCoachFor(r, c, e); err != nil {
+		failed(w, r, err)
+		return
+	} else if why != "" {
+		p.renderIndividualSignoff(w, r, e, c, name, []string{why})
+		return
+	} else if named != "" {
+		name = named // the coach the organiser approved
+	}
 	if err := competitions.CheckName("coach", name); err != nil {
 		p.renderIndividualSignoff(w, r, e, c, name, sentences(err))
 		return

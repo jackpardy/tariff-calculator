@@ -310,7 +310,8 @@ const maxCertificateBytes = 10 << 20
 
 // uploads says whether a path takes an upload, for its larger size limit.
 func uploads(path string) bool {
-	return strings.HasPrefix(path, "/clubs/admin/") && strings.HasSuffix(path, "/qualifications")
+	return strings.HasPrefix(path, "/clubs/admin/") && strings.HasSuffix(path, "/qualifications") ||
+		strings.HasPrefix(path, "/competitions/entry/") && strings.HasSuffix(path, "/coach")
 }
 
 // certificateType is the media type of a certificate from its own bytes:
@@ -370,38 +371,9 @@ func (p *competitionPages) addQualification(w http.ResponseWriter, r *http.Reque
 	back := func(notice string) {
 		http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
 	}
-	if err := r.ParseMultipartForm(1 << 20); err != nil {
-		var tooBig *http.MaxBytesError
-		if errors.As(err, &tooBig) {
-			back("Nothing was added: the certificate is over 10 MB. A photo or a smaller PDF will do.")
-			return
-		}
-		back("Nothing was added: choose a qualification and its certificate.")
-		return
-	}
-	q, ok := competitions.QualificationByKey(r.FormValue("qualification"))
-	if !ok {
-		back("Nothing was added: choose " + coach.Name + "'s qualification.")
-		return
-	}
-	file, _, err := r.FormFile("certificate")
-	if err != nil {
-		back("Nothing was added: add the certificate, a photo or PDF of it.")
-		return
-	}
-	defer file.Close()
-	data, err := io.ReadAll(io.LimitReader(file, maxCertificateBytes+1))
-	if err != nil {
-		failed(w, r, err)
-		return
-	}
-	if len(data) > maxCertificateBytes {
-		back("Nothing was added: the certificate is over 10 MB. A photo or a smaller PDF will do.")
-		return
-	}
-	certType := certificateType(data)
-	if certType == "" {
-		back("Nothing was added: the certificate should be a photo (JPEG, PNG or WebP) or a PDF.")
+	q, data, certType, problem := postedCertificate(r)
+	if problem != "" {
+		back("Nothing was added: " + problem)
 		return
 	}
 	if _, err := p.st.AddQualification(r.Context(), club.ID, coach.ID, q.Key, certType, data); errors.Is(err, store.ErrLimit) {
@@ -412,6 +384,35 @@ func (p *competitionPages) addQualification(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	back("Added " + q.Name() + " for " + coach.Name + ".")
+}
+
+// postedCertificate is the qualification (its key) and certificate (a file)
+// a form uploads, or what's wrong with them.
+func postedCertificate(r *http.Request) (q competitions.Qualification, data []byte, certType, problem string) {
+	if err := r.ParseMultipartForm(1 << 20); err != nil {
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			return q, nil, "", "the certificate is over 10 MB. A photo or a smaller PDF will do."
+		}
+		return q, nil, "", "choose a qualification and its certificate."
+	}
+	q, ok := competitions.QualificationByKey(r.FormValue("qualification"))
+	if !ok {
+		return q, nil, "", "choose the coach's qualification."
+	}
+	file, _, err := r.FormFile("certificate")
+	if err != nil {
+		return q, nil, "", "add the certificate, a photo or PDF of it."
+	}
+	defer file.Close()
+	data, err = io.ReadAll(io.LimitReader(file, maxCertificateBytes+1))
+	if err != nil || len(data) > maxCertificateBytes {
+		return q, nil, "", "the certificate is over 10 MB. A photo or a smaller PDF will do."
+	}
+	if certType = certificateType(data); certType == "" {
+		return q, nil, "", "the certificate should be a photo (JPEG, PNG or WebP) or a PDF."
+	}
+	return q, data, certType, ""
 }
 
 // removeQualification removes a coach's qualification and its certificate.

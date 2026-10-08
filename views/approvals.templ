@@ -34,6 +34,7 @@ type ApprovalClub struct {
 // ApprovalRow is one coach sent, to approve.
 type ApprovalRow struct {
 	ID, Name       string
+	Action         string // where deciding posts
 	Status         string // e.g. "Waiting", "Approved ✓"
 	Approved       bool
 	Withdrawn      bool // approved before, so approving again asks about their sign-offs
@@ -117,7 +118,7 @@ templ CompetitionApprovals(p ApprovalsPage) {
 						if k.Note != "" {
 							<p class="is-size-7">Your note: { k.Note }</p>
 						}
-						<form method="post" action={ templ.SafeURL(p.Base + "/coaches/" + k.ID) } class="comp-flight-actions mt-1">
+						<form method="post" action={ templ.SafeURL(k.Action) } class="comp-flight-actions mt-1">
 							<input class="input is-small" name="note" maxlength="300" placeholder="Note for the club (optional)" aria-label={ "Note about " + k.Name }/>
 							if !k.Approved {
 								if k.Withdrawn {
@@ -138,4 +139,52 @@ templ CompetitionApprovals(p ApprovalsPage) {
 			</div>
 		}
 	}
+}
+
+// entryCoachBox is where an individual names their coach.
+templ entryCoachBox(c EntryCoachView, open bool) {
+	<div class="box">
+		<h2 class="title is-6 mb-2">Your coach</h2>
+		<p class="is-size-7 mb-2">This competition approves coaches: name yours, with their coaching qualification (at least { c.Asked }) and a photo or PDF of its certificate. Once the organiser approves them, they can sign off your entry with the link below. Only the organiser sees the certificate, and it's deleted with the competition.</p>
+		if c.Name != "" {
+			<p class="mb-2">
+				<strong>{ c.Name }</strong> · { c.Qualification }
+				<span class={ "tag is-light ml-1", templ.KV("is-success", c.Approved), templ.KV("is-warning", !c.Approved) }>{ c.Status }</span>
+			</p>
+			if c.Note != "" {
+				<p class="is-size-7 mb-2">The organiser's note: { c.Note }</p>
+			}
+		}
+		if open {
+			<details open?={ c.Name == "" }>
+				<summary class="is-size-7">
+					if c.Name == "" {
+						Name your coach
+					} else {
+						Change your coach (the organiser approves them again)
+					}
+				</summary>
+				<form method="post" action={ templ.SafeURL(c.Action) } enctype="multipart/form-data" class="mt-2">
+					<div class="field">
+						<input class="input is-small" name="name" required maxlength="80" placeholder="Coach's name" aria-label="Coach's name"/>
+					</div>
+					<div class="field">
+						<div class="select is-small">
+							<select name="qualification" required aria-label="Their qualification">
+								<option value="">Qualification…</option>
+								for _, o := range c.Options {
+									<option value={ o.ID }>{ o.Name }</option>
+								}
+							</select>
+						</div>
+					</div>
+					<div class="field">
+						<input class="input is-small" type="file" name="certificate" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label="Their certificate"/>
+						<p class="help">A photo or PDF, up to 10 MB.</p>
+					</div>
+					<button class="button is-small" type="submit">Send to the organiser</button>
+				</form>
+			</details>
+		}
+	</div>
 }

@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: Individuals' coaches (ADR 0007 step 4, the last): where a
+  competition approves coaches, a gymnast entering on their own names their
+  coach with a qualification and certificate; the organiser approves them
+  under **Individuals** on the Coaches page; the sign-off link works once
+  they're approved, and the coach signs off as themselves.
 * **Update**: [Approved coaches](features/competition-entries.md#coaches-coach-link)
   (ADR 0007 step 3): organisers can require coaches approved, with the
   lowest level per discipline; clubs tick and send coaches; the organiser's

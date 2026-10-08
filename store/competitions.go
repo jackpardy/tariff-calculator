@@ -224,13 +224,15 @@ func (e Entry) CoachName() string {
 func (e Entry) SignedOff() bool { return !e.SignedAt.IsZero() && !e.Unapproved }
 
 // signoffCounts is the condition, on a row of entries, for its sign-off to
-// count (ADR 0007 Decision 7): the competition doesn't approve coaches, or
-// the coach who signed is approved there (and signed since, if the organiser
-// started their sign-offs afresh). Individuals' coaches come later (ADR 0007
-// Decision 8): their sign-offs count as before.
-const signoffCounts = `(NOT (SELECT approve_coaches FROM competitions WHERE id = entries.competition_id) OR entries.individual
-	OR EXISTS (SELECT 1 FROM competition_coaches cc WHERE cc.competition_id = entries.competition_id AND cc.coach_id = entries.signed_coach
-		AND cc.status = 'approved' AND entries.signed_at >= cc.counts_from))`
+// count (ADR 0007 Decisions 7 and 8): the competition doesn't approve
+// coaches, or the coach who signed is approved there (and signed since, if
+// the organiser started their sign-offs afresh): a club's coach, or the
+// coach an individual named.
+const signoffCounts = `(NOT (SELECT approve_coaches FROM competitions WHERE id = entries.competition_id)
+	OR EXISTS (SELECT 1 FROM competition_coaches cc WHERE NOT entries.individual AND cc.competition_id = entries.competition_id
+		AND cc.coach_id = entries.signed_coach AND cc.status = 'approved' AND entries.signed_at >= cc.counts_from)
+	OR EXISTS (SELECT 1 FROM entry_coaches ec WHERE entries.individual AND ec.entry_id = entries.id
+		AND ec.status = 'approved' AND entries.signed_at >= ec.counts_from))`
 
 const (
 	// VideoOK and VideoMore are the organiser's review of an entry's videos:
