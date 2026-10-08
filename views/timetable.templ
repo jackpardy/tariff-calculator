@@ -34,7 +34,7 @@ type RotaView struct {
 	OwnClub  []string       // e.g. "UCD 4"
 	Busiest  []string
 	Broken   []string // the organiser's rules about people not kept
-	Problems []string // what hand changes broke
+	Problems []string // what manual changes broke
 	Coaches  []string // coaches needed in two places at once
 }
 
@@ -88,7 +88,7 @@ type ReportView struct {
 	ShortRest []string
 	Broken    []string
 	Fixes     []FixView
-	Problems  []string // what hand edits have broken
+	Problems  []string // what manual changes have broken
 	LookAlike []string // names that may be one person entered twice
 }
 
@@ -510,7 +510,7 @@ templ rotaReport(p TimetablePage) {
 				</ul>
 			</details>
 		}
-		@problemsList("Hand changes have broken", p.Rota.Problems)
+		@problemsList("Manual changes have broken", p.Rota.Problems)
 		@problemsList("Your rules about officials not kept", p.Rota.Broken)
 		@problemsList("Coaches needed in two places", p.Rota.Coaches)
 		@problemsList("Judging their own club's gymnasts, times by club", p.Rota.OwnClub)
@@ -568,7 +568,7 @@ templ reportView(r ReportView) {
 		} else {
 			<p class="has-text-success mb-2"><strong>Everything fits.</strong></p>
 		}
-		@problemsList("Hand changes have broken", r.Problems)
+		@problemsList("Manual changes have broken", r.Problems)
 		@problemsList("Less rest than wanted", r.ShortRest)
 		@problemsList("Preferences not met", r.Broken)
 		if len(r.LookAlike) > 0 {
@@ -967,7 +967,7 @@ type TimelineCell struct {
 	Gymnasts                   int  // entries: pairs, for synchro
 	Pairs                      bool // synchro
 	Empty                      bool // a seat no one could take
-	Overlaps                   bool // moved by hand onto another
+	Overlaps                   bool // moved manually onto another
 }
 
 func gridAt(row, rows, column, columns int) string {

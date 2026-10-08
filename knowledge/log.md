@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: "Hand changes" are "manual changes" on the pages and in the
+  guide. On the [roadmap](roadmap.md): officials' changes go in the draft
+  timetable too, and a manual change is to say at once what it breaks and
+  offer fixes.
 * **Update**: On the [roadmap](roadmap.md): a synchro partner, their coach
   and their club see the pair's entry once the partner confirms (decided);
   a coach per discipline, and synchro signed off by both partners' coaches,

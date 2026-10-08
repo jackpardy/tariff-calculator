@@ -99,7 +99,7 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
 - **The timetable**: flights from the entries placed over the venue's days
   and areas, around lunch and other blocked time and the organiser's rules,
   never a person in two places and with rest between their turns; it says
-  when each day finishes, what doesn't fit and what would. Adjusted by hand,
+  when each day finishes, what doesn't fit and what would. Adjusted manually,
   printed for marshals and the chair of judges, and published to clubs and
   gymnasts.
 - **Your competition**: one page for each gymnast with their events, card

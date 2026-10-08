@@ -209,7 +209,7 @@ func (s Schedule) rotaJobs(settings OfficialSettings) ([]ScheduledFlight, []rota
 }
 
 // segments are each event's runs: its flights back to back on one area and
-// day, by index, in order. A run split by hand is a segment for each part.
+// day, by index, in order. A run split manually is a segment for each part.
 func (s Schedule) segments() [][]int {
 	idx := make([]int, len(s.Flights))
 	for i := range idx {
@@ -659,7 +659,7 @@ func (s *Schedule) SetDuty(flight, seat int, person string) bool {
 	return true
 }
 
-// RotaProblems are what hand changes (to flights or seats) have broken in the
+// RotaProblems are what manual changes (to flights or seats) have broken in the
 // rota: someone officiating while competing or officiating elsewhere, or in a
 // role they can't take. people are each entry's people; names name people.
 func (s Schedule) RotaProblems(people map[string][]string, officials []RotaPerson, names map[string]string) []string {

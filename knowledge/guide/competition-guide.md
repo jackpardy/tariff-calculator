@@ -178,7 +178,7 @@ has a starting value you can change.
    at the time, and only in roles they may take. Each event's panel is
    filled once, with people free for all of its flights, and judges all of
    them. Clubs share judging their own gymnasts fairly.
-7. Adjust by hand: **Move event** moves all of an event's flights together
+7. Adjust manually: **Move event** moves all of an event's flights together
    to another day or area, **Earlier** swaps a flight with the one before it
    in its event, **Redraw order** draws a flight's running order again, and
    **move** puts a gymnast in another flight. If an event's flights end up

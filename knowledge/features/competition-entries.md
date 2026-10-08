@@ -176,11 +176,11 @@ are then filled flight by flight.
   time. Changing these rules asks you to **Assign officials again**, not to
   plan again.
 - **The report:** seats no one could take, a seat for the whole event it's
-  on (counted, with the panels they're on: "11, on 3 panels"), hand changes that break the rota
+  on (counted, with the panels they're on: "11, on 3 panels"), manual changes that break the rota
   (someone officiating while competing, in two places, or in a role they
   can't take), rules not kept, coaches needed on two areas at once, times
   each club judged its own, and the busiest officials.
-- **By hand:** give any seat to anyone who's offered, or empty it; the change
+- **Manually:** give any seat to anyone who's offered, or empty it; the change
   goes on the event's other flights the same person had that seat for.
   **Assign officials again** starts the rota afresh, keeping the flights.
 - **Coaches:** planning keeps a coach's gymnasts off two areas at once where
@@ -272,7 +272,7 @@ From the dashboard, **Timetable** plans the competition over the venue's days
     cell ("—" for a seat no one could take). Each sheet runs over its own
     day's hours and prints a page each.
 
-  Flights moved by hand onto each other are outlined in red. Both download
+  Flights moved manually onto each other are outlined in red. Both download
   as CSV (`timeline.csv`): a row per flight or block on each area, in time
   order, with each role's officials and their clubs.
 - **Publish** shows clubs (each member's row), members and gymnasts entering

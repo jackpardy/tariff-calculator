@@ -194,11 +194,23 @@ roughly in the order they'd help ISTO.
    the organiser works on a **draft**: every change (moving a flight,
    redrawing an order, planning again, keeping a delay's or a leaving
    official's result) goes into the draft, and **Publish** makes it what
-   attendees see. Today the published timetable is the one being edited, so
-   every change goes live straight away. Also close the gaps the "what ifs"
-   don't check yet: coaches in two places, the organiser's rules about
-   events and people, officials on blocked time, and rest as a must.
-5. **Set up in private, go live when ready** (decided 2026-10-07). A new
+   attendees see. The officials go in the draft too (2026-10-08): assigning
+   officials again or changing a seat waits for **Publish** like any other
+   change, so officials see their duties change only then. Today the
+   published timetable is the one being edited, so every change goes live
+   straight away. Also close the gaps the "what ifs" don't check yet:
+   coaches in two places, the organiser's rules about events and people,
+   officials on blocked time, and rest as a must.
+5. **Say what a manual change breaks, and how to fix it** (proposed
+   2026-10-08). Today a manual change (moving a flight or a gymnast, giving
+   someone a seat) is made, and what it broke is listed afterwards under
+   "Manual changes have broken". Instead, making a change says at once what
+   it causes ("Eoin Hughes would officiate BUCS L7 Men and Tumbling
+   Intermediate Women at once") and offers fixes where there are some
+   (someone free to take Eoin's tumbling seat; another time for the
+   flight), to apply or to make the change anyway. With drafts (4), nothing
+   reaches attendees until it's published.
+6. **Set up in private, go live when ready** (decided 2026-10-07). A new
    competition starts **private**: the organiser sets up levels, events,
    officials and the timetable, and the club and individual entry links
    show the competition's name, date and when entries open, so they can be
@@ -207,7 +219,7 @@ roughly in the order they'd help ISTO.
    a live competition private again to pause entries, keeping those already
    made. Today a competition takes entries from the moment it's created
    until its deadline.
-6. **Notifications, by opting in** (decided 2026-10-07). Members,
+7. **Notifications, by opting in** (decided 2026-10-07). Members,
    individuals, club comp secs and coaches can each ask to be told when
    something affects them: a flight they're in moves (time, area or day, or
    its warm-up), their officiating duties change, or their card is checked
@@ -232,9 +244,9 @@ roughly in the order they'd help ISTO.
    competition, with a tick box, "I'm 18 or over, or this is a parent's
    email". Push stores nothing personal, so anyone can use it (see
    [open questions](open-questions.md#notifications)).
-7. **Link the calculator to the competition tools.** Nothing on the routine
+8. **Link the calculator to the competition tools.** Nothing on the routine
    builder leads to `/competitions` yet.
-8. **Synchro partners see the pair's entry** (decided 2026-10-08). A synchro
+9. **Synchro partners see the pair's entry** (decided 2026-10-08). A synchro
    entry belongs to the gymnast who entered it; today the partner only
    confirms they're the partner, and neither they, their coach nor their
    club sees it again. Once the partner confirms, the entry shows in the
@@ -246,11 +258,11 @@ roughly in the order they'd help ISTO.
    both gymnasts on their own pages, not only the organiser, when a pair is
    at the wrong level. ("The lower level" for a pair a level apart means the
    easier one, as built: confirmed 2026-10-07.)
-9. **Results history** (competitions 6): import TrampOnline and TScore
+10. **Results history** (competitions 6): import TrampOnline and TScore
    results CSVs for personal bests, progression and next year's levels.
-10. **Clubs:** the TrampOnline entry export (clubs 1), then skill tracking
+11. **Clubs:** the TrampOnline entry export (clubs 1), then skill tracking
     (clubs 2).
-11. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
+12. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
     and the usual rest between turns (both guesses for now).
 
 # Possible additions (not planned yet)

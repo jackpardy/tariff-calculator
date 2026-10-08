@@ -42,7 +42,7 @@ type RotaView struct {
 	OwnClub  []string       // e.g. "UCD 4"
 	Busiest  []string
 	Broken   []string // the organiser's rules about people not kept
-	Problems []string // what hand changes broke
+	Problems []string // what manual changes broke
 	Coaches  []string // coaches needed in two places at once
 }
 
@@ -96,7 +96,7 @@ type ReportView struct {
 	ShortRest []string
 	Broken    []string
 	Fixes     []FixView
-	Problems  []string // what hand edits have broken
+	Problems  []string // what manual changes have broken
 	LookAlike []string // names that may be one person entered twice
 }
 
@@ -1835,7 +1835,7 @@ func rotaReport(p TimetablePage) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = problemsList("Hand changes have broken", p.Rota.Problems).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = problemsList("Manual changes have broken", p.Rota.Problems).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2065,7 +2065,7 @@ func reportView(r ReportView) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = problemsList("Hand changes have broken", r.Problems).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = problemsList("Manual changes have broken", r.Problems).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -3658,7 +3658,7 @@ type TimelineCell struct {
 	Gymnasts                   int  // entries: pairs, for synchro
 	Pairs                      bool // synchro
 	Empty                      bool // a seat no one could take
-	Overlaps                   bool // moved by hand onto another
+	Overlaps                   bool // moved manually onto another
 }
 
 func gridAt(row, rows, column, columns int) string {
