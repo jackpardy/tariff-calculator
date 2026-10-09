@@ -304,4 +304,7 @@ func TestScratchClearing(t *testing.T) {
 	if page := get(day); strings.Contains(page, "Finn is scratched") {
 		t.Errorf("the desk no longer sees Finn: %s", page)
 	}
+	if hist := get(admin + "/history"); !strings.Contains(hist, "said they&#39;re here for the rest") && !strings.Contains(hist, "said they're here for the rest") {
+		t.Error("the history says Finn cleared it himself")
+	}
 }

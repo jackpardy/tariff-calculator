@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"slices"
@@ -333,6 +334,9 @@ func (p *competitionPages) stillHere(w http.ResponseWriter, r *http.Request, c s
 			}
 		}
 		notice = "Thanks: the organisers can see you're here."
+		if err := p.st.Record(r.Context(), c.ID, name, name+" said they're here for the rest (from their own page)"); err != nil {
+			log.Printf("History: %s: %v", c.ID, err)
+		}
 	}
 	http.Redirect(w, r, back+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
 }
