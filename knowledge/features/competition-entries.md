@@ -541,7 +541,9 @@ L3 · flight 1 of 2 (Panel 1)").
 the flight with the latest recorded event (finishing beats starting for the
 same flight), and compare the actual time with the planned one, the flight's
 end if it finished and its start if it only started. Late is positive, early
-negative, and an area with nothing recorded says "Nothing started yet". The
+negative, and an area with nothing recorded says "Nothing started yet".
+Times marked on another date than the day's (trying the page before the
+competition, say) don't count: the area says "Not measured". The
 area's header reads "Running 15 min late", "On time" or "5 min early", with
 what it's measured from.
 
