@@ -62,15 +62,15 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
-	var deadline, levels, created, video, liveAt, notifyDue, fees, limits string
+	var deadline, levels, created, video, liveAt, notifyDue, fees, limits, late string
 	var split, timetable, events, officials, coachLevels, publishedTimetable string
 	var ordered bool
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits); err != nil {
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits, &late); err != nil {
 		return Competition{}, notFound(err)
 	}
 	if publishedTimetable != "" {
@@ -78,6 +78,9 @@ func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 		if err := json.Unmarshal([]byte(publishedTimetable), c.Published); err != nil {
 			return Competition{}, fmt.Errorf("reading competition %s's published timetable: %w", c.ID, err)
 		}
+	}
+	if err := json.Unmarshal([]byte(late), &c.Late); err != nil {
+		return Competition{}, fmt.Errorf("reading competition %s's late changes: %w", c.ID, err)
 	}
 	if err := json.Unmarshal([]byte(limits), &c.Limits); err != nil {
 		return Competition{}, fmt.Errorf("reading competition %s's limits: %w", c.ID, err)

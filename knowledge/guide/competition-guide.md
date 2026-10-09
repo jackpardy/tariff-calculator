@@ -109,6 +109,19 @@ pair's one routine), checked as the Routine Builder checks them.
   and deleting** (a co-organiser). Copy the link straight away: it's shown
   only once. **Remove** stops it working. **History** lists every change,
   when, and which link made it.
+- **Late changes:** tap **Late changes** to choose what clubs and gymnasts
+  can ask for once entries close (a **level change**, a **routine change**,
+  or both), each with a fee charged only if you accept. Each request shows
+  whether it fits: the new card's problems, whether the new level is full,
+  and where it would go in the draft timetable and what that moves.
+  **Accept** applies it (it needs checking and signing off again, goes into
+  the draft timetable for you to publish, and the fee goes on their
+  invoice) or say why it's **Not accepted**. Members, comp secs and
+  individuals ask with **Ask for a late change** on their pages. Where
+  entries need sign-off, tick **A coach must sign off a late change before
+  it comes to you**: the coach signs off the new card first (on their coach
+  page, or an individual's coach through the sign-off link), and accepting
+  carries that sign-off onto the entry.
 - **Limits and waiting lists** (under **Links and settings**): give an
   event a limit and, once it's full, later entries go on its waiting list
   in the order they came in. The next one moves up by itself when an entry

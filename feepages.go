@@ -80,6 +80,27 @@ func (p *competitionPages) accounts(ctx context.Context, c store.Competition) ([
 		}
 		out[i].lines, out[i].due = c.Fees.Invoice(entries, out[i].club)
 	}
+	// Late changes accepted with a fee go on the payer's invoice.
+	late, err := p.st.LateRequests(ctx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	payerOf := map[string]string{}
+	for _, e := range all {
+		payerOf[e.ID] = entryPayer(e.ID)
+		if !e.Individual {
+			payerOf[e.ID] = clubPayer(e.ClubID)
+		}
+	}
+	for _, r := range late {
+		if r.Status != store.LateAccepted || r.Fee == 0 {
+			continue
+		}
+		if i, ok := index[payerOf[r.EntryID]]; ok {
+			out[i].lines = append(out[i].lines, competitions.InvoiceLine{What: competitions.LateKindName(r.Kind) + ": " + r.Entry.Gymnasts() + " · " + r.Entry.Event(), Amount: r.Fee})
+			out[i].due += r.Fee
+		}
+	}
 	return out, nil
 }
 

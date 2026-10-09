@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-08
+* **Update**: [Late changes](features/competition-entries.md#late-changes):
+  after the deadline, clubs and individuals ask for the changes the
+  organiser allows (level or routines, each with a fee if accepted); the
+  organiser sees whether each fits and accepts it, into the draft
+  timetable and onto the invoice, or says why not.
 * **Update**: [ISTO's levels](requirements/isto.md) built in from its 2025
   routines: Novice to Advanced (Set A or B, then a voluntary), Elite and
   Elite-Pro (two voluntaries), and Disability Levels 1–4. A new

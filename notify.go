@@ -63,6 +63,7 @@ type entryState struct {
 	Note     string   `json:"note,omitempty"`    // the organiser's note
 	Removal  string   `json:"removal,omitempty"` // store.Removed or store.Held
 	Waiting  int      `json:"waiting,omitempty"` // its place on a waiting list
+	Late     string   `json:"late,omitempty"`    // its latest late change: id, status and reason
 }
 
 // state is what's live for a competition now.
@@ -88,6 +89,9 @@ func (n *notifier) state(ctx context.Context, c store.Competition) (notifyState,
 				f := t.Flights[i]
 				es.Flight, es.Area, es.Time = f.Name(), f.Area, dayClock(*t, f.Day, f.Start)
 			}
+		}
+		if r, ok, err := n.st.LatestLateRequest(ctx, c.ID, e.ID); err == nil && ok && r.Status != store.LateWaiting {
+			es.Late = r.ID + "|" + r.Status + "|" + r.Reason
 		}
 		out.Entries[e.ID] = es
 	}
@@ -198,6 +202,14 @@ func changes(was, now notifyState) []change {
 		}
 		if _, existed := was.Entries[id]; !existed {
 			continue // a new entry: nothing about its card to tell yet
+		}
+		if e.Late != b.Late && e.Late != "" {
+			parts := strings.SplitN(e.Late, "|", 3)
+			if parts[1] == store.LateAccepted {
+				add(store.AboutCards, e.Event+": late change accepted")
+			} else {
+				add(store.AboutCards, e.Event+": late change not accepted: "+parts[2])
+			}
 		}
 		switch {
 		case b.Waiting > 0 && e.Waiting == 0 && e.Removal == "":
