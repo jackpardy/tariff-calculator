@@ -4,7 +4,7 @@ title: Features
 description: Everything the trampoline tariff calculator can do, in plain language for gymnasts, coaches, clubs and competition organisers.
 resource: https://tariff.pardy.ie
 tags: [guide, features, users]
-generated: { by: claude-code/cli, at: 2026-10-06T14:00:00Z }
+generated: { by: claude-code/cli, at: 2026-10-09T12:00:00Z }
 ---
 
 # Work out difficulty
@@ -111,6 +111,32 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
 - **For the organiser**: one table per level with every problem, each entry in
   full, notes back to the club, printed competition cards, a CSV, and
   setting up in private, then opening and closing entries when you choose.
+- **Entry fees**: an amount per entry for each discipline and a club fee if
+  you have one, payments recorded as they come in, and an invoice for each
+  club and individual.
+- **Limits and waiting lists**: cap an event, and later entries wait their
+  turn, moving up as places free.
+- **Late changes**: the organiser chooses what may change after entries
+  close (a level change, a routine change, or both), each with its own fee
+  charged only if accepted, and whether a coach must sign it off first.
+  Entries, changes and sign-offs can each close at their own time.
+- **Links for helpers**: give those checking cards, chairs of judges, the
+  timetable team, a venue screen or a co-organiser a link of their own; every
+  change is listed in a history, and anyone with a link can flag a concern.
+- **Score sheets**: printed for the recorders, a flight to a page, and on
+  each official's phone for their own panels.
+- **Tell me about changes**: a push on your phone or an email when the
+  organiser changes when or where you compete, what you officiate or your
+  card. **Add to calendar** puts your flights and duties in your phone's
+  calendar.
+- **On the day**: flights marked started and finished, with how late each
+  area is running shown to everyone; check-in and scratches for gymnasts,
+  and chairs checking in their panel; a **Notify** button for anyone not
+  there; messages from the organisers' desk to a club, a flight, the
+  officials or anyone you pick; and a venue screen showing what's on each
+  area now and next.
+- **Works offline**: pages you've opened still open without a connection,
+  marked with when they were last loaded.
 - **Video proof by link**, for chosen skills or whole routines: never uploaded.
 - **Coach sign-off**: clubs add their coaches, and each coach signs off their
   members' routines on their own page.
