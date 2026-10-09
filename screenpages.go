@@ -51,6 +51,23 @@ func nowOn(s competitions.Schedule, day int, area string, firstDay time.Time, ac
 	n := now.In(local)
 	d := firstDay.AddDate(0, 0, day)
 	onDay := n.Year() == d.Year() && n.Month() == d.Month() && n.Day() == d.Day()
+	// Times marked on another date (trying the tools out before the day,
+	// say) say nothing about this day, as for lateness.
+	sameDate := func(t time.Time) bool {
+		y, m, dd := t.In(local).Date()
+		return y == d.Year() && m == d.Month() && dd == d.Day()
+	}
+	dated := map[string]competitions.Actual{}
+	for k, a := range actual {
+		if !a.Started.IsZero() && !sameDate(a.Started) {
+			a.Started = time.Time{}
+		}
+		if !a.Finished.IsZero() && !sameDate(a.Finished) {
+			a.Finished = time.Time{}
+		}
+		dated[k] = a
+	}
+	actual = dated
 	minute := n.Hour()*60 + n.Minute()
 	untouched := func(f competitions.ScheduledFlight) bool {
 		a := actual[competitions.FlightKey(f)]

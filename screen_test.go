@@ -75,8 +75,8 @@ func TestNowOn(t *testing.T) {
 		{what: "a break for every area", now: at(16, 13, 30), area: "Floor 2", on: "-", brk: "Awards", next: "-"},
 		{what: "not the day: nothing planned, the first flight is next", now: at(17, 9, 30), area: "Floor 1", on: "-", next: "A"},
 		{what: "not the day: no break", now: at(17, 12, 30), area: "Floor 1", on: "-", next: "A"},
-		{what: "marked on another date still shows", now: at(17, 9, 30), area: "Floor 1", on: "A", next: "B",
-			actual: map[string]competitions.Actual{key(a): {Started: at(17, 9, 0)}}},
+		{what: "marked on another date doesn't count", now: at(16, 9, 30), area: "Floor 1", on: "A", planned: true, next: "B",
+			actual: map[string]competitions.Actual{key(a): {Started: at(15, 9, 0)}}},
 	} {
 		got := nowOn(s, 0, tc.area, first, tc.actual, tc.now)
 		if name(got.Flight) != tc.on || got.Planned != tc.planned || got.Break != tc.brk || name(got.Next) != tc.next {
@@ -88,7 +88,16 @@ func TestNowOn(t *testing.T) {
 
 func TestVenueScreen(t *testing.T) {
 	h := competitionServer(t)
-	admin := created(t, h, newCompetition())
+	// Today's competition, so flights marked now count for its first day.
+	form := newCompetition()
+	today := time.Now().In(local)
+	if today.Hour() == 23 && today.Minute() >= 50 {
+		t.Skip("too close to midnight for a competition today")
+	}
+	form.Set("date", today.Format("2006-01-02"))
+	form.Set("deadlineDate", today.Format("2006-01-02"))
+	form.Set("deadlineTime", "23:59")
+	admin := created(t, h, form)
 	screen := madeLink(t, h, admin, "Main hall screen", "screen")
 	if rec := do(t, h, http.MethodGet, screen+"/screen", nil); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "The timetable isn&#39;t published yet") && !strings.Contains(rec.Body.String(), "The timetable isn't published yet") {
 		t.Errorf("nothing to show before publishing: %d %s", rec.Code, rec.Body.String())
