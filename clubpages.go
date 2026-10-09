@@ -164,8 +164,10 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now()), ApproveCoaches: c.ApproveCoaches && c.Signoff,
 			Notify: p.notifyLink(base + "/competitions/" + c.ID + "/notify")}
 		cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
+		cc.Desk = p.deskNotes(ctx, c.ID, memberKeys(members), clubIDs(club.ID), clubIDs(club.ID))
 		if published(c) {
 			cc.Timeline = base + "/competitions/" + c.ID + "/timeline"
+			cc.Calendar = base + "/competitions/" + c.ID + "/calendar.ics"
 		}
 		sentID := map[string]string{}    // member → the competition's copy of their entry
 		waitingPlace := map[string]int{} // member and discipline → place on a waiting list
@@ -666,11 +668,13 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 	for _, c := range comps {
 		mc := views.MemberCompetition{ID: c.ID, Competition: summary(c.Competition, now), Duties: dutiesOf(c, "m:"+m.ID), Day: dayPath(path, c.ID),
 			Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
+		mc.Desk = p.deskNotes(ctx, c.ID, []string{"m:" + m.ID}, clubIDs(m.ClubID), nil)
 		if len(mc.Duties) > 0 {
 			mc.ScoreSheets = path + "/competitions/" + c.ID + "/score-sheets"
 		}
 		if published(c) {
 			mc.Timeline, mc.ClubTimeline = path+"/competitions/"+c.ID+"/timeline", path+"/competitions/"+c.ID+"/club-timeline"
+			mc.Calendar, mc.ClubCalendar = path+"/competitions/"+c.ID+"/calendar.ics", path+"/competitions/"+c.ID+"/club-calendar.ics"
 		}
 		var sent []store.Entry
 		disciplines := c.Disciplines()

@@ -44,6 +44,7 @@ type RotaView struct {
 type SeatView struct {
 	Role, Person, Name, Club string
 	Label                    string // e.g. "Execution judge 3", to choose it by
+	Here                     bool   // checked in for the panel on the day
 }
 
 // SetupForm is the timetable's setup, as the forms show it.
@@ -137,6 +138,7 @@ type ItemView struct {
 type TimetableGymnast struct {
 	ID, Name, Club, Category string
 	Moved                    string // the event they're entered at now, if not the flight's
+	Scratched                bool   // a no-show on the day: struck through on the printed sheets
 }
 
 // FlightOption is somewhere to move a gymnast or flight to.
@@ -753,6 +755,9 @@ func panelLine(seats []SeatView) string {
 			}
 		}
 		out += s.Role + ": " + name
+		if s.Here && s.Person != "" {
+			out += " ✓"
+		}
 	}
 	return out
 }
@@ -825,7 +830,11 @@ templ TimetablePrint(s TimetableSheets) {
 								<tr>
 									<td>{ strconv.Itoa(i + 1) }</td>
 									<td>
-										{ g.Name }
+										if g.Scratched {
+											<s class="comp-scratched">{ g.Name }</s> (scratched)
+										} else {
+											{ g.Name }
+										}
 										if g.Category != "" {
 											<span class="is-size-7">({ g.Category })</span>
 										}
@@ -1140,6 +1149,7 @@ type ScoreFlight struct {
 // ScoreRow is a gymnast (or synchro pair) on a score sheet.
 type ScoreRow struct {
 	Name, Club string
+	Scratched  bool // a no-show on the day: struck through
 }
 
 // ScorePrint is the recorders' score sheets, to print landscape.
@@ -1190,7 +1200,13 @@ templ ScorePrint(s ScoreSheets) {
 						for i, g := range f.Rows {
 							<tr>
 								<td>{ strconv.Itoa(i + 1) }</td>
-								<td>{ g.Name }</td>
+								<td>
+									if g.Scratched {
+										<s class="comp-scratched">{ g.Name }</s> (scratched)
+									} else {
+										{ g.Name }
+									}
+								</td>
 								<td class="is-size-7">{ g.Club }</td>
 								for range 2 {
 									for _, m := range f.Marks {

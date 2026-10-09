@@ -35,8 +35,10 @@ named (who it's for) and of a kind: **checking cards** (see the entries,
 mark cards checked with notes, review videos), **chairs of judges** (see
 the entries, print the chair of judges, score and marshal sheets and the
 panel timeline), **timetable and officials** (plan, change and publish
-them, Notify now, see the entries) and **everything but links and
-deleting** (a co-organiser). Each is a secret link, kept as a hash and
+them, Notify now, see the entries), **venue screen** (see
+[the venue screen](#the-venue-screen); it can open that page and nothing
+else, not even the dashboard or flagging a concern) and **everything but
+links and deleting** (a co-organiser). Each is a secret link, kept as a hash and
 shown once; **Remove** stops it. Up to 20. Every admin route goes through
 one gate (`allowed` in `access.go`); pages show only what the link can do,
 and say whose link it is.
@@ -517,6 +519,251 @@ seat shows the moves and who else was free for the last one; a seat no one
 can reach is left empty. Coaches, the organiser's own rules about events,
 and officials on blocked time aren't considered.
 
+## On the day: flights started and finished
+
+Once the timetable is published, **On the day** (a button on the entries
+page, and `/day` under the admin link) is where the marshal or chair of
+judges records what really happened. It shows one day at a time (today's if
+today is a day of the timetable, else the first; tabs switch), a section for
+each area with flights that day, and under each area its flights in start
+order: the planned time (warm-up start to end), when it actually started and
+finished, and who tapped it. **Started** (a flight not yet started),
+**Finished** (started, not finished) and **Undo** (takes back the finish, else
+the start) post to `/day/flight`, which stores the time now (`flight_times`,
+one row per published flight, keyed `day|area|level|category|number`; see
+`competitions.FlightKey`). A tap that changes nothing (someone else got there
+first) is ignored and says so. It always works from the **published**
+timetable, so planning again or moving flights in the draft doesn't lose
+the times; republishing with a flight's day, area or number changed does
+orphan its row. Organiser, "everything", chair-of-judges and timetable links
+can use it, and each tap is in the history ("Marked a flight started: BUCS
+L3 · flight 1 of 2 (Panel 1)").
+
+**How late an area is** (`competitions.Lateness`): on that day and area, take
+the flight with the latest recorded event (finishing beats starting for the
+same flight), and compare the actual time with the planned one, the flight's
+end if it finished and its start if it only started. Late is positive, early
+negative, and an area with nothing recorded says "Nothing started yet".
+Times marked on another date than the day's (trying the page before the
+competition, say) don't count: the area says "Not measured". The
+area's header reads "Running 15 min late", "On time" or "5 min early", with
+what it's measured from.
+
+Where an area is late, **What if: see the rest of the day** (for links that can
+use the timetable) opens the [delay](#what-if-theres-a-delay) page with the
+day, area, the time of the measured event and the minutes late filled in; it
+shows what holding up the area by that long does to its later flights. Nothing is saved from the day page.
+
+Attendees see it too: on **My competition** (the same today-only rule), a line
+at the top for each area their flights are on that is running 5 or more minutes
+late or early, such as "Panel 2 is running about 15 min late (as of 10:40)".
+
+**Check-in and scratches** (built 2026-10-09): under each flight on the day
+page, a folded **Check-in · 8 of 10 here, 1 scratched** lists the flight's
+gymnasts in running order (entries since withdrawn are left out), each with
+their state and the buttons that would change it: **Here**, **Scratched** and
+**Clear**. They post to `/day/checkin` (`entry`, `status` = `here`,
+`scratched` or empty to clear, `day`), which stores one row per entry in
+`checkins` (status, when, who; no row means not marked yet). The entry has to
+be in a flight of the published timetable; a tap that changes nothing is
+ignored with a notice, and each real change is in the history ("Checked in:
+Ann Ryan (BUCS L3)", "Scratched: …", "Cleared check-in: …"). Organiser,
+"everything", chair-of-judges and timetable links can use it.
+
+A scratched gymnast is struck through, with "(scratched)", on the printed
+marshal, chair of judges and score sheets, and their event on My competition
+starts its status with "Scratched". They are not taken out of the running
+order or the rota: the sheets still show where they would have been. If a
+scratched gymnast also holds a seat on a flight that day (matched by person
+key, so a scratched entry counts for the person), the top of the day page
+lists them under "Ann Ryan is scratched" with **But officiates:** and their
+seats on that day's flights ("Panel 2 · BUCS L4 · Execution judge"), and, for
+links that can use the timetable, **What if they leave** opens the
+[leave](#what-if-an-official-has-to-leave) tool for them and that day.
+
+**Scratch warnings: officiating, competing and clearing** (built 2026-10-09).
+`scratchWarnings` (`checkinpages.go`) flags each person with any entry
+scratched, for the day shown, with up to two lists under their name:
+**officiating** (their seats on that day's flights, as above) and
+**competing** (their *other* entries, not scratched, that are in a flight that
+day: "Tumbling Novice · flight 1 of 2 · Track 1 · 14:00", the flight's name,
+area and warm-up time). A person with neither list isn't shown. Each list has a
+button, **Still officiating** and **Still competing**, that posts to
+`/day/clear` (`person` key, `kind` = `officiating` or `competing`, `day`). The
+person must be scratched in this competition and the timetable published, or
+it's refused with a 400; it stores a row in `scratch_clears` (migration 27: one
+per competition, person and kind, with who and when), so the warning goes for
+the whole competition, not just that day, and the history says "Cleared Ann
+Ryan's scratch warning (officiating)". Clearing what is already cleared is
+ignored with a notice and not recorded. Organiser, "everything", chair and
+timetable links can clear.
+
+Two things clear both kinds without the desk doing anything. **Checking in any
+other entry** of the person ("here") clears them, computed from the check-ins
+rather than stored, so taking that check-in back (Clear) brings the warnings
+back. And the person can say so themselves: on **My competition**, if one of
+their entries is scratched and they have officiating seats or other entries
+(any day) whose warning isn't cleared, a box says "You're scratched from
+Tumbling Novice. If you're still here for your other events, tell the
+organisers:" with an **I'm here for the rest** button. It posts to
+`/clubs/member/{token}/competitions/{id}/here` or
+`/competitions/entry/{token}/here` (their own secret links, so no admin gate),
+clears both kinds for that person as themselves, and goes back to My
+competition with "Thanks: the organisers can see you're here." It only works
+once the timetable is published, and only for someone scratched. Self-clears
+aren't in the history, but the person drops off the day page's list.
+
+**Panel check-in** (built 2026-10-09). Beside each flight's gymnasts' check-in, a
+folded **Panel · 4 of 6 here, 1 missing** lists the seats that have someone in
+them (empty seats are left out): the official's name, their role, their state
+(**Here** or **Missing**, with who marked it) and the buttons that would change
+it, **Here**, **Missing** and **Clear**. They post to `/day/officials`
+(`person` key, `flight` key, `status` = `here`, `missing` or empty to clear,
+`day`), which stores one row per person and flight in `official_checkins`
+(migration 28: status, who, when; no row means not marked). The person must
+hold a seat on that flight of the published timetable, or it's a 400; a tap
+that changes nothing is ignored with a notice. Organiser, "everything", chair
+and timetable links can use it, and the history says "Checked in official: Mary
+(BUCS L3, Panel 1)", "Marked an official missing: …" or "Cleared an official's
+check-in: …".
+
+**Runs.** One panel judges an event's whole run, so a check-in is for the run,
+not the flight tapped: `runOf` (`panelcheckin.go`) takes the flights of the
+same event on the same area and day that are back to back (the same grouping
+the rota uses for a run's judges), and the status is stored for every flight of
+the run where the person holds a seat (seats that change between flights, a
+recorder say, are only marked where they hold them). Each flight's list reads
+its own rows, so marking Mary here on flight 1 of 2 shows her here on flight 2
+too, and Clear on either takes both back.
+
+**Missing → what if.** A missing official has **What if they leave** (for links
+that can use the timetable), which opens the [leave](#what-if-an-official-has-to-leave)
+tool for them and that day, as for a scratched official. **Here** on any flight
+also counts as "here somewhere" for the scratch warnings: a scratched person
+who is checked in for their panel has turned up, so both of their warnings go,
+computed rather than stored (so Clear brings them back). **Missing** doesn't
+clear anything. On the printed chair of judges sheets (`sheet=judges`) the
+panel line puts " ✓" after the name of each official who is checked in for that
+flight; the other sheets don't.
+
+**Notify** (built 2026-10-09). Next to each official who isn't checked in or is
+missing, and each gymnast who isn't checked in (not one already marked here or
+scratched), a folded **Notify** has two tick boxes, **Them** (ticked) and **Their
+club** (only for someone who belongs to a club: a club member, or an entry that
+came from a club; organiser-added officials and individuals have none), an
+optional extra line (up to 300 characters) and **Send**. It posts to
+`/day/notify` (`person` key, `flight` key, `as` = `official` or `gymnast`,
+`them`, `club`, `note`, `day`) and sends a [desk message](#messages-from-the-organisers-desk)
+at once, as the link that tapped it. The text is built for them:
+"Mary should be at Panel 1 now to officiate BUCS L3 · flight 1 of 2 (Execution
+judge)." for an official, or "Ann should be at Panel 1 now to compete in BUCS
+L3 · flight 1 of 2, warm-up 09:14." for a gymnast (a synchro pair is named
+together and both are told), with the extra line after it. The person has to be
+on that flight (a seat, or an entry in it) or it's a 400; with neither box
+ticked, or **Their club** only for someone with no club, nothing is sent and the
+notice says so. **Their club** reaches only the club's comp sec and coaches, not
+its members: the message's `staff` (below) holds the club, where `clubs` would
+reach everyone. The page comes back with "Sent to Ann and their club. Told 0 by
+push and 3 by email." and the history says "Notified Ann (and their club): should
+be at Panel 1" (or "Notified Ann's club: …" for the club alone). Organiser,
+"everything", chair and timetable links can use it.
+
+## The venue screen
+
+Built 2026-10-09. `GET /competitions/admin/{token}/screen?day=N` (default:
+today's index by `todayIndex`, else the first day) is a page for a screen at
+the venue, from the published timetable (`screenpages.go`,
+`views/screen.templ`). With no published timetable it just says "The
+timetable isn't published yet". It has no navigation: the competition name
+(and the day's name when there are several) and the local time ("10:42") at
+the top, then a card per area that has flights that day, side by side on a
+wide screen (CSS grid, `auto-fit`, at least 18rem each) and stacked on a
+narrow one, in large dark-on-light type. Its own layout (`screenLayout`)
+carries `<meta http-equiv="refresh" content="30">`, so it reloads itself on
+any browser without JavaScript, and `noindex`.
+
+Each card has:
+
+- **Now:** chosen by `nowOn`, a pure function of the schedule, the recorded
+  times and a moment. In order: the flight on that area that has been marked
+  started and not finished (the latest started, if several); else the
+  planned flight whose time window (its warm-up start to its end) contains
+  now and that hasn't been marked at all, labelled "(planned)"; else the name
+  of a block covering now on that area (a block with no areas is on all of
+  them); else "—". Planned windows and blocks only count when now is on the
+  day shown; times marked on another date still count, so the screen can be
+  tried out before the day. Under it, the flight's gymnasts in running order,
+  names only in a smaller font, scratched ones struck through, at most 12 and
+  then "+N more".
+- **Next:** the following flight on that area in start order that hasn't
+  been started or finished, with its planned warm-up time; when nothing is
+  on, the first that starts after now (the first of the day when now isn't on
+  that day).
+- The area's lateness line ("Running 15 min late", "On time", "5 min early")
+  when `Lateness` measures one (it ignores times marked on another date).
+
+A new kind of link, **venue screen** (`store.LinkScreen`), can `GET` this
+route and nothing else. Organiser, "everything", chair and timetable links
+can open it too, and their On the day page has a **Venue screen** link at the
+top. The organiser makes the link under Links and settings.
+## Messages from the organisers' desk
+
+Built 2026-10-09. **Desk messages** (a button on the entries page, a link at
+the top of the On the day page, and `/desk` under the admin link) lets the
+organiser, a co-organiser ("everything"), a chair of judges or a timetable
+link send a message at once, with no grace wait, or ask people to come to the
+organisers' desk. Cards links can't use it.
+
+**To** is one of: a **club** (a select of the clubs entered: its comp sec,
+coaches and members); **a flight** (a select of the published flights,
+grouped by day and area, with **Its gymnasts** and **Its officials** to
+tick, either or both: the gymnasts in it, with a synchro pair's partner,
+and the people holding a seat on its panel); **all officials**; **one panel's officials** on a day (the people
+holding a seat on that area's flights that day); or **people I pick** (a
+searchable list of every gymnast and official). The **Message** is up to 500
+characters, and **Ask them to come to the organisers' desk** starts it with
+"Please come to the organisers' desk." (the message can then be empty). The
+form is resolved to person keys (members `m:<id>`, individuals by name
+`i:<name>`, organiser-added officials `o:<id>`) and, for a club, the club's
+id; nothing is sent if there is no one to send it to.
+
+**Who is told** (`notifier.tellDesk`, in `desk.go`): every confirmed
+subscription (push, and confirmed emails; any topic, since it is urgent) that
+covers someone it was sent to: a member's own; an individual's, if their key
+is in it; the comp sec's, if the message is for their club or any of its
+members, or its **staff**; a coach's, if it is for their club or its staff, or
+any member who chose them. A message's **staff** is a list of club ids whose
+comp sec and coaches (every coach of the club, whoever they coach) hear it,
+without the club's members (the On the day [Notify](#on-the-day-flights-started-and-finished)
+button's **Their club**; the desk form itself doesn't use it).
+Each address is told once, however many pages it was given on. Email has the
+subject "Message from the organisers of *Competition*" (or "Please come to the
+organisers' desk · *Competition*"), the text, the page to see it on and the
+off link; push has the competition's name as the title, the text as the body
+and the person's page as the link. A push service that says the phone is gone
+drops it. It is sent while the organiser's request is handled (a handful of
+sends), and a mailer that is off simply sends none.
+
+**On recipients' pages** (up to the latest 10, newest first, with when it was
+sent and, within the last day, how long ago, e.g. "Sat 27 Feb, 10:42 · 12
+min ago", as there's no read status; in a "Messages from the organisers"
+box): My competition, the member's
+competition section, the individual's entry page, the club page's competition
+box and the coach page's competition box. A message shows on a page if its
+people include that person (on a club or coach page: any of the club's
+members, or the coach's members) or its clubs include their club, so people
+who haven't asked to be notified still see it when they look. A message to a
+club's staff shows only on that club's page and its coaches' pages
+(`DeskMessage.Reaches` takes people, clubs and staff clubs), not on its
+members' pages.
+
+Messages are kept in `desk_messages` (the text, whether it asks them to come,
+the audience in words such as "UCD" or "3 people", its person keys and club
+ids as JSON, who sent it, when, and how many addresses were pushed and
+emailed; the club ids of its staff as JSON, added in migration 29); a competition keeps up to 500. The page lists them, latest first.
+Each is in the history: "Sent a message to UCD", "Called Panel 2's officials,
+Saturday to the desk".
+
 ## Simulation (ADR 0005, step 6)
 
 **Simulate**, linked from the timetable, tries numbers against the venue
@@ -668,6 +915,20 @@ The rest is faint, or with **Only these**, left out (blocked time stays).
 Each prints like the panel timeline; notes are in each cell's hover text
 too.
 
+**Add to calendar** (roadmap 2026-10-09): next to those links, the same
+flights and duties as an iCalendar file (`calendar.ics`, `calendar.go`):
+**Add to calendar** for a person (their flights, as a synchro partner too,
+and the seats they hold) and **Club calendar** for a club (every flight one
+of its gymnasts competes in and every seat one of its people holds, named;
+the same rule as the club timetable). One event per flight and person, from
+the warm-up to about the end, in UTC, with the area as the location and the
+times in the description. The links are secret and stay the same, and each
+event's UID is stable (competition, whose, flight, role), so a calendar app
+subscribed to one picks up changes when the timetable is published again
+(the file also asks for an hourly refresh). Before it is published the
+file is a valid empty calendar, and fills in later. Only the published
+timetable is used.
+
 # Notifications (ADR 0008)
 
 Members (each competition on their page, and "My competition"),
@@ -717,6 +978,32 @@ or 410 drops the phone. On an iPhone or iPad, push works only from the home
 screen (iOS 16.4+): the page says to add it first (Share, Add to Home
 Screen); the web manifest has no `start_url`, so the home screen opens the
 person's own page.
+
+## Offline
+
+Venue wifi is often poor, so a person's own pages still open, as last seen,
+when the connection drops. Every competition page registers the service
+worker (`/sw.js`), which keeps a copy of each page opened on that phone: the
+competition pages under `/clubs/`, `/competitions/` (admin pages included) and
+`/notify/`, and the app's static files. Pages are **network first**: the live
+page when the connection answers within about four seconds, else the copy
+last opened, else a short page saying this one hasn't been opened on this
+phone before. Static files are kept as first fetched (their addresses change
+with each version). Only successful pages are kept, never what a form
+posted, and at most 60 pages per phone, the oldest dropped first. The
+calculator's own pages and the rest of the site are left to the network.
+
+While the phone is offline, a banner at the top of each page says "You're
+offline: this is the page as it was when last opened", with the day and time
+the server made it (Irish time, e.g. "Saturday 14:05"). It goes when the
+connection comes back; a page that is still the kept copy then needs a
+reload.
+
+The copies stay on the phone, in its browser's cache for this site; nothing
+secret leaves it. The server still marks these pages `no-store`, which keeps
+the browser's ordinary cache from holding them; the service worker's cache
+ignores that on purpose. Clearing the browser's data for the site (in its
+settings) clears them.
 
 # Built from
 

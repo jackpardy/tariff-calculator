@@ -80,6 +80,7 @@ type Dashboard struct {
 	OpenConcerns  int
 	Waiting       []WaitingList // each limited event's waiting list
 	LateWaiting   int           // late changes to decide
+	Published     bool          // the timetable is published
 	Limits        []LimitField
 	NotifyAt      string // when the changes waiting are told, e.g. "14:32"; "" for none
 	NoWait        bool   // no wait on the competition's days
@@ -271,9 +272,11 @@ type EntryPage struct {
 	Pairs       []PairView // synchro entries they're the partner in
 	Removal     string     // what the organiser did with it, and why, if anything
 	Timeline    string     // their timetable as the panel timeline, once published
+	Calendar    string     // their timetable as a calendar file, once published
 	Notify      string     // where they ask to hear about changes
 	ScoreSheets string     // the score sheets of the flights they officiate, if any
 	Fees        *FeesSummary // what they owe, if the competition charges
+	Desk        []DeskNote   // messages from the organisers that reach them
 }
 
 // EntryCoachView is the coach an individual names, for the organiser to
@@ -312,6 +315,7 @@ templ competitionLayout(title string) {
 			<meta name="apple-mobile-web-app-capable" content="yes"/>
 			<title>{ title }</title>
 			<meta name="app-version" content={ static.Version }/>
+			<meta name="page-time" content={ pageTime() }/>
 			<script defer src={ static.URL("js/version.js") }></script>
 			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
 			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
@@ -322,6 +326,7 @@ templ competitionLayout(title string) {
 		<body>
 			<section class="section comp-page">
 				<div class="container">
+					<div class="notification is-warning is-light comp-offline" hidden>You're offline: this is the page as it was when last opened (<span data-offline-when></span>).</div>
 					{ children... }
 				</div>
 			</section>
@@ -633,6 +638,12 @@ templ CompetitionDashboard(d Dashboard) {
 			}
 			if d.Access.Officials {
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/officials") }>Officials</a>
+			}
+			if d.Published && d.Access.Day {
+				<a class="button is-small is-success is-light" href={ templ.SafeURL(d.Base + "/day") }>On the day</a>
+			}
+			if d.Access.Desk {
+				<a class="button is-small is-success is-light" href={ templ.SafeURL(d.Base + "/desk") }>Desk messages</a>
 			}
 			if d.Access.Settings {
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/fees") }>Fees</a>
@@ -1253,7 +1264,8 @@ templ CompetitionEntryPage(p EntryPage) {
 		}
 		@dayLink(p.Day)
 		@feesLine(p.Fees)
-		@timelineLinks(p.Timeline, "", p.Notify)
+		@deskMessages(p.Desk)
+		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
 		@waitingLine(p.Waiting)
 		@lateLine(p.Late, p.LateAsk)
 		@placementLine(p.Placement)

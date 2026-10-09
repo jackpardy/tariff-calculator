@@ -78,6 +78,9 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerFees(handle)
 	p.registerLimits(handle)
 	p.registerLate(handle)
+	p.registerDesk(handle)
+	p.registerDay(handle)
+	p.registerScreen(handle)
 	handle("GET /competitions/new", p.newForm)
 	handle("POST /competitions", p.create)
 	handle("GET /competitions/admin/{token}", p.dashboard)
@@ -113,6 +116,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerApprovals(handle)
 	p.registerMine(handle)
 	p.registerTimelines(handle)
+	p.registerCalendars(handle)
 	p.registerNotify(handle)
 }
 
@@ -622,7 +626,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		SignoffsDate: dateField(c.SignoffsUntil, c.Deadline), SignoffsTime: timeField(c.SignoffsUntil, c.Deadline),
 		NotifyOn: p.notifyLink("/") != "", NoWait: c.NoWait,
 		Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()), Events: eventsForm(c.Competition),
-		LevelOrder: levelOrderForm(c.Competition),
+		LevelOrder: levelOrderForm(c.Competition), Published: published(c),
 	}
 	if !c.NotifyDue.IsZero() {
 		d.NotifyAt = c.NotifyDue.In(local).Format("15:04")
@@ -1408,9 +1412,10 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	}
 	page.Notice = r.URL.Query().Get("notice")
 	if published(c) {
-		page.Timeline = path + "/timeline"
+		page.Timeline, page.Calendar = path+"/timeline", path+"/calendar.ics"
 	}
 	page.Notify = p.notifyLink(path + "/notify")
+	page.Desk = p.deskNotes(r.Context(), c.ID, []string{individualKey(e.Entry.Gymnast)}, nil, nil)
 	page.Fees = p.feesSummary(r.Context(), c, entryPayer(e.ID), path+"/invoice")
 	if lateOpen(c, p.now()) {
 		page.LateAsk = path + "/late"

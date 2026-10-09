@@ -1618,3 +1618,181 @@ func TestLaterDeadlines(t *testing.T) {
 		t.Errorf("sign-offs still open, changes and entries not: %v", err)
 	}
 }
+
+func TestFlightTimes(t *testing.T) {
+	now := time.Date(2027, 3, 13, 9, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	const key = "0|Panel 1|BUCS L3||1"
+	times := func() FlightTime {
+		t.Helper()
+		all, err := s.FlightTimes(ctx, c.ID)
+		must(t, err)
+		return all[key]
+	}
+	if got := times(); !got.Started.IsZero() {
+		t.Errorf("nothing yet: %+v", got)
+	}
+	must(t, s.MarkFlight(ctx, c.ID, key, "start", "Ann"))
+	if got := times(); !got.Started.Equal(now) || !got.Finished.IsZero() || got.Who != "Ann" {
+		t.Errorf("started: %+v", got)
+	}
+	now = now.Add(40 * time.Minute)
+	must(t, s.MarkFlight(ctx, c.ID, key, "finish", "Bea"))
+	if got := times(); !got.Started.Equal(now.Add(-40*time.Minute)) || !got.Finished.Equal(now) || got.Who != "Bea" {
+		t.Errorf("finished: %+v", got)
+	}
+	must(t, s.MarkFlight(ctx, c.ID, key, "undo", "Bea"))
+	if got := times(); got.Started.IsZero() || !got.Finished.IsZero() {
+		t.Errorf("undo takes back the finish: %+v", got)
+	}
+	must(t, s.MarkFlight(ctx, c.ID, key, "undo", "Bea"))
+	if got := times(); !got.Started.IsZero() || !got.Finished.IsZero() {
+		t.Errorf("undo again takes back the start: %+v", got)
+	}
+	if err := s.MarkFlight(ctx, c.ID, key, "nonsense", "Bea"); err == nil {
+		t.Error("an unknown mark is refused")
+	}
+}
+
+func TestCheckins(t *testing.T) {
+	now := time.Date(2027, 3, 13, 9, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	all := func() map[string]Checkin {
+		t.Helper()
+		got, err := s.Checkins(ctx, c.ID)
+		must(t, err)
+		return got
+	}
+	if got := all(); len(got) != 0 {
+		t.Errorf("nothing yet: %+v", got)
+	}
+	must(t, s.SetCheckin(ctx, c.ID, "a", CheckedIn, "Ann"))
+	must(t, s.SetCheckin(ctx, c.ID, "b", Scratched, "Bea"))
+	got := all()
+	if len(got) != 2 || got["a"].Status != CheckedIn || got["a"].Who != "Ann" || !got["a"].At.Equal(now) || got["b"].Status != Scratched {
+		t.Errorf("here and scratched: %+v", got)
+	}
+	now = now.Add(time.Hour)
+	must(t, s.SetCheckin(ctx, c.ID, "a", Scratched, "Cal"))
+	if got := all()["a"]; got.Status != Scratched || got.Who != "Cal" || !got.At.Equal(now) {
+		t.Errorf("changing the mark replaces it: %+v", got)
+	}
+	must(t, s.SetCheckin(ctx, c.ID, "a", "", "Cal"))
+	if got := all(); len(got) != 1 || got["b"].Status != Scratched {
+		t.Errorf("clear takes the mark away: %+v", got)
+	}
+	if err := s.SetCheckin(ctx, c.ID, "a", "nonsense", "Cal"); err == nil {
+		t.Error("an unknown status is refused")
+	}
+}
+
+func TestOfficialCheckins(t *testing.T) {
+	now := time.Date(2027, 3, 13, 9, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	all := func() map[string]map[string]Checkin {
+		t.Helper()
+		got, err := s.OfficialCheckins(ctx, c.ID)
+		must(t, err)
+		return got
+	}
+	if got := all(); len(got) != 0 {
+		t.Errorf("nothing yet: %+v", got)
+	}
+	must(t, s.SetOfficialCheckin(ctx, c.ID, "i:mary", []string{"f1", "f2"}, OfficialHere, "Chris"))
+	must(t, s.SetOfficialCheckin(ctx, c.ID, "i:tom", []string{"f1"}, OfficialMissing, "Chris"))
+	got := all()
+	if len(got) != 2 || got["f1"]["i:mary"].Status != OfficialHere || got["f2"]["i:mary"].Who != "Chris" || !got["f2"]["i:mary"].At.Equal(now) || got["f1"]["i:tom"].Status != OfficialMissing {
+		t.Errorf("here for two flights, missing for one: %+v", got)
+	}
+	now = now.Add(time.Hour)
+	must(t, s.SetOfficialCheckin(ctx, c.ID, "i:mary", []string{"f2"}, OfficialMissing, "Dee"))
+	if got := all()["f2"]["i:mary"]; got.Status != OfficialMissing || got.Who != "Dee" || !got.At.Equal(now) || all()["f1"]["i:mary"].Status != OfficialHere {
+		t.Errorf("changing one flight's mark replaces only it: %+v", got)
+	}
+	must(t, s.SetOfficialCheckin(ctx, c.ID, "i:mary", []string{"f1", "f2"}, "", "Dee"))
+	if got := all(); len(got) != 1 || got["f1"]["i:tom"].Status != OfficialMissing {
+		t.Errorf("clear takes the marks away: %+v", got)
+	}
+	if err := s.SetOfficialCheckin(ctx, c.ID, "i:mary", []string{"f1"}, "nonsense", "Dee"); err == nil {
+		t.Error("an unknown status is refused")
+	}
+}
+
+func TestScratchClears(t *testing.T) {
+	now := time.Date(2027, 3, 13, 9, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	all := func() map[string]map[string]ScratchClear {
+		t.Helper()
+		got, err := s.ScratchClears(ctx, c.ID)
+		must(t, err)
+		return got
+	}
+	if got := all(); len(got) != 0 {
+		t.Errorf("nothing yet: %+v", got)
+	}
+	must(t, s.ClearScratch(ctx, c.ID, "i:bea", ClearOfficiating, "Chris"))
+	must(t, s.ClearScratch(ctx, c.ID, "i:bea", ClearCompeting, "Bea"))
+	must(t, s.ClearScratch(ctx, c.ID, "m:a", ClearCompeting, "Ann"))
+	got := all()
+	if len(got) != 2 || len(got["i:bea"]) != 2 || got["i:bea"][ClearOfficiating].Who != "Chris" || !got["i:bea"][ClearOfficiating].At.Equal(now) || got["m:a"][ClearCompeting].Who != "Ann" {
+		t.Errorf("by person, then kind: %+v", got)
+	}
+	now = now.Add(time.Hour)
+	must(t, s.ClearScratch(ctx, c.ID, "i:bea", ClearOfficiating, "Dee"))
+	if got := all()["i:bea"][ClearOfficiating]; got.Who != "Dee" || !got.At.Equal(now) {
+		t.Errorf("clearing again replaces who and when: %+v", got)
+	}
+	if len(all()["i:bea"]) != 2 {
+		t.Error("still one row for each kind")
+	}
+	if err := s.ClearScratch(ctx, c.ID, "i:bea", "nonsense", "Dee"); err == nil {
+		t.Error("an unknown kind is refused")
+	}
+}
+
+func TestDeskMessages(t *testing.T) {
+	now := time.Date(2027, 3, 13, 9, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	first, err := s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "Hello", Audience: "UCD", Clubs: []string{"club1"}, Who: "Organiser"})
+	must(t, err)
+	now = now.Add(time.Minute)
+	_, err = s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "Come", Come: true, Audience: "2 people", People: []string{"m:a", "i:bea"}, Who: "Chairs"})
+	must(t, err)
+	must(t, s.SetDeskTold(ctx, c.ID, first.ID, 1, 2))
+	got, err := s.DeskMessages(ctx, c.ID)
+	must(t, err)
+	if len(got) != 2 || got[0].Text != "Come" || got[1].Pushed != 1 || got[1].Emailed != 2 || got[1].Clubs[0] != "club1" || !slices.Equal(got[0].People, []string{"m:a", "i:bea"}) {
+		t.Fatalf("latest first, with who it went to: %+v", got)
+	}
+	if got[0].Full() != "Please come to the organisers' desk. Come" || got[1].Full() != "Hello" || (DeskMessage{Come: true}).Full() != ComeToTheDesk {
+		t.Errorf("the full text: %q %q", got[0].Full(), got[1].Full())
+	}
+	if !got[0].Reaches([]string{"m:a"}, nil, nil) || got[0].Reaches([]string{"m:b"}, []string{"club1"}, []string{"club1"}) || !got[1].Reaches(nil, []string{"club1"}, nil) {
+		t.Error("a message reaches its people and clubs")
+	}
+	staff, err := s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "Staff", Audience: "Ann and their club", People: []string{"m:a"}, Staff: []string{"club1"}, Who: "Chairs"})
+	must(t, err)
+	if !slices.Equal(staff.Staff, []string{"club1"}) {
+		t.Errorf("the message sent: %+v", staff)
+	}
+	got, err = s.DeskMessages(ctx, c.ID)
+	must(t, err)
+	if len(got) != 3 || !slices.Equal(got[0].Staff, []string{"club1"}) || len(got[1].Staff) != 0 {
+		t.Fatalf("staff clubs are kept: %+v", got)
+	}
+	if !got[0].Reaches(nil, nil, []string{"club1"}) || got[0].Reaches(nil, []string{"club1"}, nil) || got[0].Reaches(nil, nil, []string{"club2"}) {
+		t.Error("a message to a club's staff reaches the staff, not the club's members")
+	}
+	for range MaxDeskMessages - 3 {
+		_, err = s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "x", Audience: "UCD"})
+		must(t, err)
+	}
+	if _, err := s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "x", Audience: "UCD"}); !errors.Is(err, ErrLimit) {
+		t.Errorf("a full competition: %v", err)
+	}
+}

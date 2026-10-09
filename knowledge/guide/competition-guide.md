@@ -105,7 +105,9 @@ pair's one routine), checked as the Routine Builder checks them.
   (who it's for) and choose what it can do: **Checking cards** (for
   difficulty judges: check cards, add notes, review videos), **Chairs of
   judges** (see the entries and print the chair of judges, score and
-  marshal sheets), **Timetable and officials**, or **Everything but links
+  marshal sheets), **Timetable and officials**, **Venue screen** (for a
+  screen at the venue: what's on each area now and next, and nothing else; see
+  [On the day](#on-the-day-venue-screen) below), or **Everything but links
   and deleting** (a co-organiser). Copy the link straight away: it's shown
   only once. **Remove** stops it working. **History** lists every change,
   when, and which link made it.
@@ -278,6 +280,46 @@ has a starting value you can change.
    still sees what you published until you tap **Publish changes**. The page
    says when there are changes not published yet; **Discard changes** goes
    back to what's published, and **Unpublish** takes it down.
+11. **On the day** (a button on the entries page once you've published; chairs
+   of judges' and timetable links get it too): pick the day, then for each
+   area tap **Started** when a flight begins its warm-up and **Finished**
+   when it's done (**Undo** takes back the latest tap). Planned and actual
+   times sit side by side, and each area says whether it's "Running 15 min
+   late", "On time" or early. Where an area is late, **What if: see the rest
+   of the day** opens the delay page filled in. Gymnasts and officials see "Panel 2 is
+   running about 15 min late" on their page once an area is 5 minutes or more
+   out. Under each flight, **Check-in** lists its gymnasts: tap **Here** as
+   they arrive, or **Scratched** for a no-show (**Clear** takes it back).
+   Scratched gymnasts are struck through on the printed sheets, and if one
+   also has a seat on a panel that day, or is still entered in other flights
+   that day, the page says so under their name, with a link to "what if they
+   leave". Tap **Still officiating** or **Still competing** once you know
+   they're staying and the warning goes. It also goes by itself if another of
+   their entries is checked in, and the gymnast can clear it from their own
+   page with **I'm here for the rest**. Under each flight, **Panel** does the
+   same for the officials: tap **Here** as each arrives (it counts for the
+   whole run of that event on the area, and clears a scratch warning), or
+   **Missing**, which links to "what if they leave". Next to anyone who isn't
+   here, **Notify** sends them, their club's comp sec and coaches, or both,
+   a message saying where they should be.
+   <a id="on-the-day-venue-screen"></a>**Venue screen** (a link at the top of
+   the On the day page): what's on each area now and what's next, in big type
+   for a screen at the venue. Under **Links and settings** make a **Venue
+   screen** link, open it on the screen's browser and leave it: it refreshes
+   itself every 30 seconds, and that link can open nothing else. Each area
+   shows the flight that has been tapped **Started** (or, if none, the one
+   the plan says should be on, marked "(planned)", or the break), its
+   gymnasts in running order with scratched ones struck through, the next
+   flight with its warm-up time, and how late the area is running.
+12. **Desk messages** (a button on the entries page, and a link at the top of
+   On the day; chairs of judges' and timetable links get it too): send a
+   message at once to a club, a flight (its gymnasts, its officials or both), all officials, one
+   panel's officials, or people you pick, and tick **Ask them to come to the
+   organisers' desk** to call someone over. It is pushed and emailed straight
+   away to those who asked to hear about changes, and shown in a "Messages
+   from the organisers" box on each person's own page, so those who didn't
+   still see it when they look. The page lists what you sent and how many
+   were told.
 
 **What if there's a delay?** (on the timetable page, once planned): choose the
 day, when the hold-up starts, how many minutes and which areas (none ticked
@@ -395,7 +437,9 @@ timeline (days side by side, time running down evenly), with where you
 compete and the panels you sit on in green and the rest faint (**Only
 these** hides the rest); **Club timetable** does the same for everyone in
 your club, naming who. The comp sec and coaches have **Club timetable** on
-their pages too. Each prints on A3.
+their pages too. Each prints on A3. **Add to calendar** (and **Club
+calendar**) puts the same flights and duties in your phone's calendar; subscribe to it
+and it updates when the timetable is published again.
 
 **Tell me about changes** tells you when the organiser changes something
 for you: when or where you compete, what you officiate, or your card
@@ -486,5 +530,7 @@ links.
 Competition entries are kept on the server. The links to them are saved in the
 browser, so copy any you'd hate to lose: clearing the browser's data, or using
 a private window, loses the saved links (not the entries).
+
+Pages you've opened on your phone still open without a connection, as they were when last loaded.
 
 If a bar says **The app has been updated**, tap **Refresh**.

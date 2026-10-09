@@ -14,6 +14,8 @@ type Access struct {
 	Coaches   bool // approving coaches
 	NotifyNow bool
 	Resolve   bool // resolving concerns
+	Day       bool // the on-the-day page: flights started and finished
+	Desk      bool // messages from the organisers' desk
 }
 
 // LinkView is an extra admin link, for the organiser.
@@ -32,6 +34,7 @@ var LinkKinds = []LinkKind{
 	{"chair", "Chairs of judges", "See every entry and print the timetable's sheets (chair of judges, score sheets, marshal); flag concerns."},
 	{"timetable", "Timetable and officials", "Plan, change and publish the timetable and the officials, and see the entries."},
 	{"everything", "Everything but links and deleting", "A co-organiser: all you can do, except making or removing links, replacing the admin link and deleting the competition."},
+	{"screen", "Venue screen", "For a screen at the venue: shows what's on each area now and next, and nothing else."},
 }
 
 // linksBox is where the organiser makes and removes extra links.

@@ -482,6 +482,69 @@ var migrations = []string{
 	// than the deadline (roadmap 2026-10-08).
 	`ALTER TABLE competitions ADD COLUMN changes_until TEXT NOT NULL DEFAULT '';
 	ALTER TABLE competitions ADD COLUMN signoffs_until TEXT NOT NULL DEFAULT '';`,
+
+	// 24: flights started and finished on the day (roadmap 2026-10-08).
+	`CREATE TABLE flight_times (
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		flight         TEXT NOT NULL,
+		started_at     TEXT NOT NULL DEFAULT '',
+		finished_at    TEXT NOT NULL DEFAULT '',
+		who            TEXT NOT NULL DEFAULT '',
+		PRIMARY KEY (competition_id, flight)
+	);`,
+
+	// 25: check-in and scratches on the day (roadmap 2026-10-09).
+	`CREATE TABLE checkins (
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		entry_id       TEXT NOT NULL,
+		status         TEXT NOT NULL,
+		at             TEXT NOT NULL,
+		who            TEXT NOT NULL,
+		PRIMARY KEY (competition_id, entry_id)
+	);`,
+
+	// 26: messages from the organisers' desk (roadmap 2026-10-09).
+	`CREATE TABLE desk_messages (
+		id             TEXT PRIMARY KEY,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		text           TEXT NOT NULL,
+		come           BOOLEAN NOT NULL DEFAULT FALSE,
+		audience       TEXT NOT NULL,
+		people         TEXT NOT NULL,
+		clubs          TEXT NOT NULL,
+		who            TEXT NOT NULL,
+		at             TEXT NOT NULL,
+		pushed         INTEGER NOT NULL DEFAULT 0,
+		emailed        INTEGER NOT NULL DEFAULT 0
+	);
+	CREATE INDEX desk_messages_competition ON desk_messages (competition_id, at);`,
+
+	// 27: scratch warnings cleared (roadmap 2026-10-09): a scratched person
+	// who is still here to officiate or to compete in another entry.
+	`CREATE TABLE scratch_clears (
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		person         TEXT NOT NULL,
+		kind           TEXT NOT NULL,
+		who            TEXT NOT NULL,
+		at             TEXT NOT NULL,
+		PRIMARY KEY (competition_id, person, kind)
+	);`,
+
+	// 28: officials checked in for their panel on the day (roadmap
+	// 2026-10-09): here or missing, per person and flight.
+	`CREATE TABLE official_checkins (
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		person         TEXT NOT NULL,
+		flight         TEXT NOT NULL,
+		status         TEXT NOT NULL,
+		who            TEXT NOT NULL,
+		at             TEXT NOT NULL,
+		PRIMARY KEY (competition_id, person, flight)
+	);`,
+
+	// 29: desk messages that reach only a club's comp sec and coaches, not
+	// its members.
+	`ALTER TABLE desk_messages ADD COLUMN staff TEXT NOT NULL DEFAULT '[]';`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

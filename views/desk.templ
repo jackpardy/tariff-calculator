@@ -1,0 +1,187 @@
+package views
+
+import "strconv"
+
+// DeskPage is the organisers' desk (roadmap 2026-10-09): the form to send a
+// message to a club, a flight, the officials or a group, and what was sent.
+type DeskPage struct {
+	Base, Notice string
+	Competition  CompetitionSummary
+	Published    bool              // there's a timetable to pick flights and panels from
+	Clubs        []DeskOption      // the clubs entered
+	Flights      []DeskGroup       // the published flights, by day and area
+	Panels       []DeskOption      // each day's area whose panel has officials
+	People       []DeskPersonOption // every gymnast and official
+	Sent         []DeskSent
+}
+
+// DeskOption is a choice in a list.
+type DeskOption struct {
+	Value, Label string
+}
+
+// DeskGroup is choices under a heading.
+type DeskGroup struct {
+	Label   string
+	Options []DeskOption
+}
+
+// DeskPersonOption is a person to pick.
+type DeskPersonOption struct {
+	Key, Name, Detail string
+}
+
+// DeskSent is a message sent.
+type DeskSent struct {
+	At, Who, To, Text string
+	Come              bool
+	Pushed, Emailed   int
+}
+
+// DeskNote is a message on a recipient's own page.
+type DeskNote struct {
+	Text, At string
+	Come     bool
+}
+
+// Desk is the organisers' desk.
+templ Desk(p DeskPage) {
+	@competitionLayout("Desk messages · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
+		<h1 class="title is-4">Desk messages</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		if p.Notice != "" {
+			<div class="notification is-info is-light">{ p.Notice }</div>
+		}
+		<form method="post" action={ templ.SafeURL(p.Base + "/desk") } class="box">
+			<p class="label is-small">To</p>
+			<div class="field">
+				<label class="radio is-block mb-2 ml-0">
+					<input type="radio" name="to" value="club" checked/>
+					A club: its comp sec, coaches and members
+				</label>
+				<div class="select is-small mb-3">
+					<select name="club" aria-label="Club">
+						for _, c := range p.Clubs {
+							<option value={ c.Value }>{ c.Label }</option>
+						}
+						if len(p.Clubs) == 0 {
+							<option value="">No club is entered</option>
+						}
+					</select>
+				</div>
+				<label class="radio is-block mb-2 ml-0">
+					<input type="radio" name="to" value="flight" disabled?={ len(p.Flights) == 0 }/>
+					A flight
+					if !p.Published {
+						<span class="is-size-7 has-text-grey">(publish the timetable first)</span>
+					}
+				</label>
+				if len(p.Flights) > 0 {
+					<div class="select is-small mb-3">
+						<select name="flight" aria-label="Flight">
+							for _, g := range p.Flights {
+								<optgroup label={ g.Label }>
+									for _, o := range g.Options {
+										<option value={ o.Value }>{ o.Label }</option>
+									}
+								</optgroup>
+							}
+						</select>
+					</div>
+					<div class="mb-3 ml-4">
+						<input type="hidden" name="flightChoice" value="1"/>
+						<label class="checkbox mr-3">
+							<input type="checkbox" name="flightGymnasts" value="1" checked/>
+							Its gymnasts
+						</label>
+						<label class="checkbox">
+							<input type="checkbox" name="flightOfficials" value="1"/>
+							Its officials
+						</label>
+					</div>
+				}
+				<label class="radio is-block mb-2 ml-0">
+					<input type="radio" name="to" value="officials"/>
+					All officials
+				</label>
+				<label class="radio is-block mb-2 ml-0">
+					<input type="radio" name="to" value="panel" disabled?={ len(p.Panels) == 0 }/>
+					One panel's officials, for a day
+				</label>
+				if len(p.Panels) > 0 {
+					<div class="select is-small mb-3">
+						<select name="panel" aria-label="Panel">
+							for _, o := range p.Panels {
+								<option value={ o.Value }>{ o.Label }</option>
+							}
+						</select>
+					</div>
+				}
+				<label class="radio is-block mb-2 ml-0">
+					<input type="radio" name="to" value="people"/>
+					People I pick
+				</label>
+				if len(p.People) == 0 {
+					<p class="is-size-7 has-text-grey">No one has entered or offered to officiate yet.</p>
+				} else {
+					<div x-data="{ q: '' }">
+						<input class="input is-small mb-2" type="search" x-model="q" placeholder="Find a name" aria-label="Find a name"/>
+						<div class="comp-desk-people" style="max-height: 14rem; overflow-y: auto">
+							for _, d := range p.People {
+								<label class="checkbox is-block" data-name={ d.Name } x-show="q === '' || $el.dataset.name.toLowerCase().includes(q.toLowerCase())">
+									<input type="checkbox" name="person" value={ d.Key }/>
+									{ d.Name }
+									if d.Detail != "" {
+										<span class="is-size-7 has-text-grey">· { d.Detail }</span>
+									}
+								</label>
+							}
+						</div>
+					</div>
+				}
+			</div>
+			<div class="field">
+				<label class="label is-small" for="desk-text">Message</label>
+				<textarea class="textarea" id="desk-text" name="text" rows="3" maxlength="500" placeholder="e.g. Panel 2 is running 15 minutes late"></textarea>
+			</div>
+			<div class="field">
+				<label class="checkbox"><input type="checkbox" name="come" value="1"/> Ask them to come to the organisers' desk</label>
+			</div>
+			<button class="button is-primary" type="submit">Send now</button>
+			<p class="help">It goes at once by push and email to those who asked to hear about this competition, and shows on each person's own page for those who didn't.</p>
+		</form>
+		<h2 class="title is-5">Sent</h2>
+		if len(p.Sent) == 0 {
+			<p class="has-text-grey">Nothing sent yet.</p>
+		}
+		for _, m := range p.Sent {
+			<div class="box py-3">
+				<p>
+					{ m.Text }
+				</p>
+				<p class="is-size-7 has-text-grey">
+					{ m.At } · { m.Who } · to { m.To } · told { strconv.Itoa(m.Pushed) } by push, { strconv.Itoa(m.Emailed) } by email
+				</p>
+			</div>
+		}
+	}
+}
+
+// deskMessages are the messages from the organisers that reach a person,
+// newest first, on their own page.
+templ deskMessages(notes []DeskNote) {
+	if len(notes) > 0 {
+		<div class="box comp-desk-messages">
+			<p class="label is-small mb-2">Messages from the organisers</p>
+			for _, n := range notes {
+				<div class="mb-2">
+					<p>
+						{ n.Text }
+					</p>
+					<p class="is-size-7 has-text-grey">{ n.At }</p>
+				</div>
+			}
+		</div>
+	}
+}

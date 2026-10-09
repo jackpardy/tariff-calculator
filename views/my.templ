@@ -10,14 +10,27 @@ type MyCompetitionPage struct {
 	Name        string
 	Back        string // their own page
 	Timeline    string // their timetable as the panel timeline, once published
+	Calendar    string // their timetable as a calendar file, once published
 	Notify      string // where they ask to hear about changes
 	ScoreSheets string // the score sheets of the flights they officiate, if any
+	Lateness    []string // how late the areas their flights are on are running today
+	Desk        []DeskNote // messages from the organisers that reach them
+	Notice      string     // what just happened, e.g. after "I'm here for the rest"
+	Here        *MyHere    // the box for someone scratched who may still be here; nil for none
 	Published   bool
 	Events      []MyEvent
 	Duties      []string
 	Days        []DayView
 	Mine        map[string]bool // their entries, by id
 	Me          string          // their person key, for the seats they're in
+}
+
+// MyHere is the box that lets someone scratched from an event tell the
+// organisers they're still here for the rest.
+type MyHere struct {
+	Scratched string // the events they're scratched from, e.g. "Tumbling Novice and Trampoline L3"
+	For       string // what they might still be here for: "your other events", "your officiating" or "both"
+	Action    string // where the button posts to
 }
 
 // MyEvent is one of their events.
@@ -36,7 +49,20 @@ templ MyCompetition(p MyCompetitionPage) {
 		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Your page</a></p>
 		<h1 class="title is-4">{ p.Competition.Name }</h1>
 		<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
-		@timelineLinks(p.Timeline, "", p.Notify)
+		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
+		if p.Notice != "" {
+			<div class="notification is-info is-light">{ p.Notice }</div>
+		}
+		@latenessNotes(p.Lateness)
+		@deskMessages(p.Desk)
+		if p.Here != nil {
+			<div class="notification is-warning is-light">
+				<p>You're scratched from { p.Here.Scratched }. If you're still here for { p.Here.For }, tell the organisers:</p>
+				<form method="post" action={ templ.SafeURL(p.Here.Action) } class="mt-2">
+					<button class="button is-warning" type="submit">I'm here for the rest</button>
+				</form>
+			</div>
+		}
 		if len(p.Events) == 0 {
 			<div class="notification is-light">No entries for you have reached the competition yet. Once your club sends them (or you enter), they show here.</div>
 		}
@@ -173,16 +199,36 @@ templ dayLink(href string) {
 	}
 }
 
+// latenessNotes say how late the areas someone's flights are on are running.
+templ latenessNotes(lines []string) {
+	for _, l := range lines {
+		@latenessLine(l)
+	}
+}
+
+// latenessLine is one area running late or early, e.g. "Panel 2 is running
+// about 15 min late (as of 10:40)".
+templ latenessLine(text string) {
+	<div class="notification is-warning is-light py-2">{ text }</div>
+}
+
 // timelineLinks are a person's and their club's timetables, laid out as
-// the panel timeline, once the timetable is published.
-templ timelineLinks(mine, club, notify string) {
-	if mine != "" || club != "" || notify != "" {
+// the panel timeline, and as calendar files to add to a calendar (subscribe
+// to keep it up to date), once the timetable is published.
+templ timelineLinks(mine, club, notify, calendar, clubCalendar string) {
+	if mine != "" || club != "" || notify != "" || calendar != "" || clubCalendar != "" {
 		<p class="mb-3 buttons">
 			if mine != "" {
 				<a class="button is-small is-success is-light" href={ templ.SafeURL(mine) }>Your timetable</a>
 			}
 			if club != "" {
 				<a class="button is-small is-success is-light" href={ templ.SafeURL(club) }>Club timetable</a>
+			}
+			if calendar != "" {
+				<a class="button is-small is-light" href={ templ.SafeURL(calendar) } title="Subscribe to it to keep it up to date">Add to calendar</a>
+			}
+			if clubCalendar != "" {
+				<a class="button is-small is-light" href={ templ.SafeURL(clubCalendar) } title="Subscribe to it to keep it up to date">Club calendar</a>
 			}
 			if notify != "" {
 				<a class="button is-small is-light" href={ templ.SafeURL(notify) }>Tell me about changes</a>

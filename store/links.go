@@ -17,6 +17,7 @@ const (
 	LinkCards      = "cards"      // see the entries, check cards and review videos
 	LinkTimetable  = "timetable"  // the timetable and officials, and see the entries
 	LinkChair      = "chair"      // chairs of judges: see the entries and print the timetable's sheets
+	LinkScreen     = "screen"     // a venue screen: what's on each area now and next, and nothing else
 )
 
 // MaxLinks is how many extra links a competition can have.
@@ -58,7 +59,7 @@ func (s *Store) AdminLink(ctx context.Context, token string) (Competition, Link,
 // kept only as a hash: shown once, like the admin link.
 func (s *Store) AddLink(ctx context.Context, competitionID, name, kind string) (Link, string, error) {
 	switch kind {
-	case LinkEverything, LinkCards, LinkTimetable, LinkChair:
+	case LinkEverything, LinkCards, LinkTimetable, LinkChair, LinkScreen:
 	default:
 		return Link{}, "", errors.New("unknown kind of link")
 	}

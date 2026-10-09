@@ -1,0 +1,326 @@
+package views
+
+import "strconv"
+
+// DayPage is the "On the day" page: for one day of the published timetable,
+// each area's flights with when they were planned and when they really
+// started and finished, and how late the area is running.
+type DayPage struct {
+	Base        string
+	Competition CompetitionSummary
+	Notice      string
+	Screen      string // the venue screen for this day; "" if this link can't open it
+	Day         int    // the day shown, by index
+	Days        []DayTab
+	Areas       []DayArea
+	Scratched   []DayScratched // scratched gymnasts who officiate or compete that day
+	Desk        string         // the organisers' desk, to send a message; "" if this link can't
+}
+
+// DayScratched is a scratched gymnast who also holds seats that day, or is
+// in other flights, and whom the organisers haven't been told is still here.
+type DayScratched struct {
+	Name        string
+	Person      string   // their key, to clear a warning
+	Officiating []string // their seats, e.g. "Panel 2 · BUCS L4 · Execution judge"
+	Competing   []string // their other entries, e.g. "Tumbling Novice · flight 1 of 2 · Track 1 · 14:00"
+	WhatIf      string   // the "what if they leave" page for them; "" if this link can't use it
+}
+
+// DayTab is a day to switch to.
+type DayTab struct {
+	Name, Link string
+	Active     bool
+}
+
+// DayArea is an area's flights that day, and how it's running.
+type DayArea struct {
+	Name    string
+	Status  string // e.g. "Running 15 min late", "On time"; "" for nothing recorded yet
+	Late    bool   // running behind
+	Early   bool   // running ahead
+	Since   string // what it's measured from, e.g. "Finished BUCS L3 at 10:40"
+	WhatIf  string // where to see the rest of the day if it's late; "" for none
+	Flights []DayFlight
+}
+
+// DayFlight is a flight on the day: planned, and as it happened.
+type DayFlight struct {
+	Key, Name string
+	Planned   string // e.g. "09:30–10:40"
+	Started   string // when it started, "" if not yet
+	Finished  string
+	Who       string // who last marked it
+	CanStart  bool   // not started yet
+	CanFinish bool   // started, not finished
+	CanUndo   bool   // something to take back
+	Checkin   string // e.g. "8 of 10 here, 1 scratched"
+	Gymnasts  []DayGymnast
+	Panel     string // e.g. "4 of 6 here, 1 missing"; "" if no one has a seat
+	Seats     []DaySeat
+}
+
+// DayNotify is the Notify form beside someone who isn't here; Person is ""
+// for none.
+type DayNotify struct {
+	Person string // their key
+	As     string // "official" or "gymnast"
+	Club   bool   // they belong to a club, so "Their club" is offered
+}
+
+// DaySeat is an official in a flight's panel check-in.
+type DaySeat struct {
+	Person, Name, Role string
+	State              string // "here", "missing" or "" for not marked
+	Who                string // who marked them
+	CanHere            bool
+	CanMissing         bool
+	CanClear           bool
+	WhatIf             string // the "what if they leave" page for a missing official; "" if this link can't use it
+	Notify             DayNotify
+}
+
+// DayGymnast is a gymnast in a flight's check-in.
+type DayGymnast struct {
+	Entry, Name string
+	Club        string
+	State       string // "here", "scratched" or "" for not marked
+	Who         string // who marked them
+	CanHere     bool
+	CanScratch  bool
+	CanClear    bool
+	Notify      DayNotify
+}
+
+// Day is the on-the-day page.
+templ Day(p DayPage) {
+	@competitionLayout("On the day · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
+		<h1 class="title is-4">On the day</h1>
+		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		if p.Screen != "" {
+			<p class="mb-3">
+				<a class="button is-small is-link is-light" href={ templ.SafeURL(p.Screen) }>Venue screen</a>
+				<span class="help is-inline ml-2">What's on each area now and next, for a screen at the venue. The organiser makes a Venue screen link under Links and settings.</span>
+			</p>
+		}
+		if p.Desk != "" {
+			<p class="mb-3"><a class="button is-small is-light" href={ templ.SafeURL(p.Desk) }>Message from the desk</a></p>
+		}
+		if p.Notice != "" {
+			<div class="notification is-info is-light">{ p.Notice }</div>
+		}
+		if len(p.Days) > 1 {
+			<div class="tabs is-small">
+				<ul>
+					for _, d := range p.Days {
+						<li class={ templ.KV("is-active", d.Active) }><a href={ templ.SafeURL(d.Link) }>{ d.Name }</a></li>
+					}
+				</ul>
+			</div>
+		}
+		for _, s := range p.Scratched {
+			<div class="notification is-warning is-light">
+				<p><strong>{ s.Name } is scratched</strong></p>
+				if len(s.Officiating) > 0 {
+					<p class="mt-2">But officiates:</p>
+					for _, d := range s.Officiating {
+						<p>{ d }</p>
+					}
+					if s.WhatIf != "" {
+						<p><a href={ templ.SafeURL(s.WhatIf) }>What if they leave</a></p>
+					}
+					@stillHereForm(p, s, "officiating", "Still officiating")
+				}
+				if len(s.Competing) > 0 {
+					<p class="mt-2">But is still entered in:</p>
+					for _, d := range s.Competing {
+						<p>{ d }</p>
+					}
+					@stillHereForm(p, s, "competing", "Still competing")
+				}
+			</div>
+		}
+		if len(p.Areas) == 0 {
+			<div class="notification is-light">No flights on this day.</div>
+		}
+		<div class="columns">
+			for _, a := range p.Areas {
+				<div class="column">
+					@dayArea(p, a)
+				</div>
+			}
+		</div>
+	}
+}
+
+// stillHereForm is the button that clears a kind of scratch warning: the
+// person is still here for it.
+templ stillHereForm(p DayPage, s DayScratched, kind, label string) {
+	<form method="post" action={ templ.SafeURL(p.Base + "/day/clear") } class="mt-1">
+		<input type="hidden" name="person" value={ s.Person }/>
+		<input type="hidden" name="kind" value={ kind }/>
+		<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+		<button class="button is-small is-warning" type="submit">{ label }</button>
+	</form>
+}
+
+// dayArea is one area's header and flights.
+templ dayArea(p DayPage, a DayArea) {
+	<h2 class="title is-5 mb-1">{ a.Name }</h2>
+	<p class="mb-3">
+		if a.Status == "" {
+			<span class="tag is-light">Nothing started yet</span>
+		} else if a.Late {
+			<span class="tag is-warning">{ a.Status }</span>
+		} else if a.Early {
+			<span class="tag is-info is-light">{ a.Status }</span>
+		} else if a.Since == "" {
+			<span class="tag is-light">{ a.Status }</span>
+		} else {
+			<span class="tag is-success is-light">{ a.Status }</span>
+		}
+		if a.Since != "" {
+			<span class="is-size-7 has-text-grey">{ a.Since }</span>
+		}
+	</p>
+	if a.WhatIf != "" {
+		<p class="is-size-7 mb-3"><a href={ templ.SafeURL(a.WhatIf) }>What if: see the rest of the day</a></p>
+	}
+	for _, f := range a.Flights {
+		<div class="box comp-flight">
+			<p class="mb-1"><strong>{ f.Name }</strong></p>
+			<p class="is-size-7 mb-1">Planned { f.Planned }</p>
+			<p class="is-size-7 mb-2">
+				Started
+				if f.Started != "" {
+					<strong>{ f.Started }</strong>
+				} else {
+					—
+				}
+				· finished
+				if f.Finished != "" {
+					<strong>{ f.Finished }</strong>
+				} else {
+					—
+				}
+				if f.Who != "" && (f.Started != "" || f.Finished != "") {
+					<span class="has-text-grey"> · { f.Who }</span>
+				}
+			</p>
+			if f.CanStart || f.CanFinish || f.CanUndo {
+				<form method="post" action={ templ.SafeURL(p.Base + "/day/flight") } class="buttons mb-0">
+					<input type="hidden" name="flight" value={ f.Key }/>
+					<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+					if f.CanStart {
+						<button class="button is-success" type="submit" name="what" value="start">Started</button>
+					}
+					if f.CanFinish {
+						<button class="button is-success" type="submit" name="what" value="finish">Finished</button>
+					}
+					if f.CanUndo {
+						<button class="button is-light is-small" type="submit" name="what" value="undo">Undo</button>
+					}
+				</form>
+			}
+			if len(f.Gymnasts) > 0 {
+				<details class="comp-checkin mt-2">
+					<summary class="is-size-7">Check-in · { f.Checkin }</summary>
+					for _, g := range f.Gymnasts {
+						<div class="comp-checkin-row">
+							<span class="comp-checkin-name">
+								<span class={ templ.KV("comp-scratched", g.State == "scratched") }>{ g.Name }</span>
+								<span class="has-text-grey is-size-7">{ g.Club }</span>
+								if g.State == "here" {
+									<span class="tag is-success is-light">Here</span>
+								} else if g.State == "scratched" {
+									<span class="tag is-danger is-light">Scratched</span>
+								}
+								if g.Who != "" {
+									<span class="has-text-grey is-size-7">{ g.Who }</span>
+								}
+							</span>
+							<form method="post" action={ templ.SafeURL(p.Base + "/day/checkin") }>
+								<input type="hidden" name="entry" value={ g.Entry }/>
+								<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+								if g.CanHere {
+									<button class="button is-small is-success is-light" type="submit" name="status" value="here">Here</button>
+								}
+								if g.CanScratch {
+									<button class="button is-small is-danger is-light" type="submit" name="status" value="scratched">Scratched</button>
+								}
+								if g.CanClear {
+									<button class="button is-small is-light" type="submit" name="status" value="">Clear</button>
+								}
+							</form>
+							if g.Notify.Person != "" {
+								@dayNotify(p, f.Key, g.Notify)
+							}
+						</div>
+					}
+				</details>
+			}
+			if len(f.Seats) > 0 {
+				<details class="comp-checkin mt-2">
+					<summary class="is-size-7">Panel · { f.Panel }</summary>
+					for _, s := range f.Seats {
+						<div class="comp-checkin-row">
+							<span class="comp-panel-name">
+								<span>{ s.Name }</span>
+								<span class="has-text-grey is-size-7">{ s.Role }</span>
+								if s.State == "here" {
+									<span class="tag is-success is-light">Here</span>
+								} else if s.State == "missing" {
+									<span class="tag is-danger is-light">Missing</span>
+								}
+								if s.Who != "" {
+									<span class="has-text-grey is-size-7">{ s.Who }</span>
+								}
+							</span>
+							<form method="post" action={ templ.SafeURL(p.Base + "/day/officials") }>
+								<input type="hidden" name="person" value={ s.Person }/>
+								<input type="hidden" name="flight" value={ f.Key }/>
+								<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+								if s.CanHere {
+									<button class="button is-small is-success is-light" type="submit" name="status" value="here">Here</button>
+								}
+								if s.CanMissing {
+									<button class="button is-small is-danger is-light" type="submit" name="status" value="missing">Missing</button>
+								}
+								if s.CanClear {
+									<button class="button is-small is-light" type="submit" name="status" value="">Clear</button>
+								}
+							</form>
+							if s.WhatIf != "" {
+								<a class="is-size-7" href={ templ.SafeURL(s.WhatIf) }>What if they leave</a>
+							}
+							if s.Notify.Person != "" {
+								@dayNotify(p, f.Key, s.Notify)
+							}
+						</div>
+					}
+				</details>
+			}
+		</div>
+	}
+}
+
+// dayNotify is the small form that tells someone who isn't here where they
+// should be: them, their club's comp sec and coaches, or both.
+templ dayNotify(p DayPage, flight string, n DayNotify) {
+	<details class="comp-notify">
+		<summary class="is-size-7">Notify</summary>
+		<form method="post" action={ templ.SafeURL(p.Base + "/day/notify") }>
+			<input type="hidden" name="person" value={ n.Person }/>
+			<input type="hidden" name="flight" value={ flight }/>
+			<input type="hidden" name="as" value={ n.As }/>
+			<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+			<label class="checkbox is-size-7"><input type="checkbox" name="them" value="1" checked/> Them</label>
+			if n.Club {
+				<label class="checkbox is-size-7"><input type="checkbox" name="club" value="1"/> Their club</label>
+			}
+			<input class="input is-small" type="text" name="note" maxlength="300" placeholder="Extra line (optional)" aria-label="Extra line"/>
+			<button class="button is-small is-link is-light" type="submit">Send</button>
+		</form>
+	</details>
+}

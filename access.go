@@ -40,6 +40,8 @@ func allowed(kind, pattern string) bool {
 		return true
 	case store.LinkEverything:
 		return !post || !(path == "/links" || path == "/links/{id}/remove" || path == "/replace-link" || path == "/delete")
+	case store.LinkScreen:
+		return get && path == "/screen" // nothing else, not even flagging a concern
 	}
 	if post && path == "/concerns" {
 		return true // anyone can flag a concern
@@ -49,9 +51,9 @@ func allowed(kind, pattern string) bool {
 	case store.LinkCards:
 		return viewing || post && (path == "/entries/{id}/check" || path == "/entries/{id}/video")
 	case store.LinkChair:
-		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv")
+		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/day/officials" || path == "/day/notify" || path == "/desk")
 	case store.LinkTimetable:
-		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials") ||
+		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/day/officials" || path == "/day/notify" || path == "/desk") ||
 			post && (strings.HasPrefix(path, "/timetable/") || strings.HasPrefix(path, "/officials/") || path == "/notify-now")
 	}
 	return false
@@ -77,6 +79,8 @@ func access(r *http.Request) views.Access {
 		Coaches:   can(r, "GET", "/coaches"),
 		NotifyNow: can(r, "POST", "/notify-now"),
 		Resolve:   can(r, "POST", "/concerns/{id}/resolve"),
+		Day:       can(r, "GET", "/day"),
+		Desk:      can(r, "GET", "/desk"),
 	}
 }
 
@@ -228,6 +232,18 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		return "Kept an official leaving in the draft timetable"
 	case "/timetable/simulate", "/timetable/simulate/delete":
 		return "" // simulations change nothing
+	case "/day/flight":
+		return p.describeFlightMark(r, c)
+	case "/day/checkin":
+		return p.describeCheckin(r, c)
+	case "/day/clear":
+		return p.describeClear(r, c)
+	case "/day/officials":
+		return p.describeOfficial(r, c)
+	case "/day/notify":
+		return p.describeNotify(r, c)
+	case "/desk":
+		return p.describeDesk(r, c)
 	}
 	switch {
 	case strings.HasPrefix(path, "/timetable/setup/"):
@@ -246,6 +262,7 @@ var linkKinds = map[string]string{
 	store.LinkCards:      "checking cards",
 	store.LinkTimetable:  "timetable and officials",
 	store.LinkChair:      "chairs of judges",
+	store.LinkScreen:     "venue screen",
 }
 
 func (p *competitionPages) registerAccess(handle func(string, http.HandlerFunc)) {

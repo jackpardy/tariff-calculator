@@ -1,6 +1,54 @@
 # Update log
 
 ## 2026-10-09
+* **Update**: [Panel check-in and Notify](features/competition-entries.md#on-the-day-flights-started-and-finished):
+  under each flight on the On the day page, a **Panel** lists the officials
+  with **Here**, **Missing** and **Clear**, applied to the event's whole run;
+  a missing official links to "what if they leave", a checked-in one clears
+  their scratch warnings and is ticked on the chair of judges sheets. **Notify**
+  beside anyone not here tells them, their club's comp sec and coaches, or
+  both where they should be (desk messages gain a staff audience that skips
+  the club's members).
+* **Update**: [Scratch warnings](features/competition-entries.md#on-the-day-flights-started-and-finished):
+  the On the day page now flags a scratched person who still officiates or
+  still has other entries in flights that day, and each warning can be
+  cleared (**Still officiating**, **Still competing**) by the desk, by the
+  person with **I'm here for the rest** on My competition, or by checking in
+  another of their entries.
+* **Update**: [Pages that work offline](features/competition-entries.md#offline):
+  the pages a person has opened on their phone (club, member, entry,
+  notification and admin pages) still open without a connection, as last
+  seen; a banner says the page is old and when it was loaded. Nothing leaves
+  the phone.
+* **Update**: [The venue screen](features/competition-entries.md#the-venue-screen):
+  a new **Venue screen** kind of helper link opens a page for a screen at the
+  venue and nothing else. Each area has a card with the flight on now (started
+  by the recorded times, else the planned one, else a break), its gymnasts
+  with scratched ones struck through, the next flight with its warm-up time,
+  and how late the area is running. It refreshes itself every 30 seconds.
+* **Update**: [Messages from the organisers' desk](features/competition-entries.md#messages-from-the-organisers-desk):
+  a **Desk messages** page for the organiser, co-organisers, chairs of
+  judges and timetable links: send a message, or ask people to come to the
+  organisers' desk, at once to a club, everyone in a flight, all officials,
+  one panel's officials or people picked by hand. It is pushed and emailed
+  to those who asked to hear and shown in a box on each recipient's own
+  page; the page lists what was sent and how many were told.
+* **Update**: [Check-in and scratches](features/competition-entries.md#on-the-day-flights-started-and-finished):
+  under each flight on the On the day page, mark gymnasts **Here** or
+  **Scratched** (or clear it). Scratched gymnasts are struck through on the
+  printed marshal, chair of judges and score sheets and marked on My
+  competition; if one also officiates that day, the page says so and links
+  to "what if they leave".
+* **Update**: [Add to calendar](features/competition-entries.md#personal-and-club-timetables):
+  a person's or a club's flights and duties from the published timetable
+  as a calendar file to add or subscribe to; it updates when the
+  timetable is published again.
+* **Update**: [Flights started and finished](features/competition-entries.md#on-the-day-flights-started-and-finished):
+  an **On the day** page for the organiser, chairs of judges and timetable
+  links: tap **Started** and **Finished** for each flight of the published
+  timetable, planned and actual times side by side, and each area says how
+  late it is running, with a link to the delay what-if filled in. People see
+  their area's lateness on My competition.
 * **Update**: [Entries, changes and sign-offs close separately](features/competition-entries.md#when-entries-changes-and-sign-offs-close):
   changes to entries and coaches' sign-offs can close later than new
   entries; a coach's sign-off reaches the competition without sending

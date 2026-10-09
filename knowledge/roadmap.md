@@ -165,8 +165,24 @@ features that show that, in this order:
    why not. Changes to entries and coaches' sign-offs can close later than
    new entries (built 2026-10-09). Late new entries could follow.
 5. **The day itself,** as far as it goes: flights started and finished by
-   the marshal, check-in and scratches, messages from the organisers' desk,
-   a "now on" screen, pages that work offline, add to calendar.
+   the marshal (built 2026-10-09,
+   [on the day](features/competition-entries.md#on-the-day-flights-started-and-finished):
+   planned against actual, how late each area is, shown to attendees and
+   feeding the delay "what if"), check-in and scratches (built 2026-10-09,
+   same page: marked here or scratched, struck through on the printed
+   sheets, a scratched official flagged), panel check-in and a Notify
+   button (built 2026-10-09, same page: officials marked here or missing for
+   their run, and a message to someone not here or their club's staff),
+   messages from the organisers'
+   desk (built 2026-10-09,
+   [desk messages](features/competition-entries.md#messages-from-the-organisers-desk):
+   to a club, a flight, the officials or picked people, by push and email at
+   once and on each person's page), a "now on" screen (built 2026-10-09,
+   [the venue screen](features/competition-entries.md#the-venue-screen):
+   a Venue screen link shows what's on each area now and next), pages that
+   work offline (built 2026-10-09,
+   [offline](features/competition-entries.md#offline): a person's opened
+   pages open without a connection, as last seen), add to calendar.
 
 Then, by when ISTO needs them: link the calculator (before entries open),
 the "what ifs'" missing checks (8) and saying what a manual change breaks
@@ -349,11 +365,12 @@ Notifications (7) are built; numbers 1–7 below are built.
   - **Check-in and scratches**: the marshal marks who's there; a no-show
     comes out of the running order and the rota.
   - **A "now on" screen** for the venue: what's on each panel, and what's
-    warming up next.
-  - **Pages that work offline**: the service worker (from notifications)
-    keeps a person's own pages for poor venue wifi.
-  - **Messages from the organisers' desk** (asked 2026-10-08): the
-    organiser sends a message, or asks someone to come to the desk, by push
+    warming up next. *Built 2026-10-09* as a Venue screen link
+    ([the venue screen](features/competition-entries.md#the-venue-screen)).
+  - **Pages that work offline** (built 2026-10-09): the service worker
+    (from notifications) keeps a person's own pages for poor venue wifi.
+  - **Messages from the organisers' desk** (asked 2026-10-08, built
+    2026-10-09): the organiser sends a message, or asks someone to come to the desk, by push
     and email at once, without waiting, to more than clubs: a **club** (its
     comp sec, coaches, or everyone who asked to hear), **individuals**,
     everyone in a **flight**, **officials** (all, or a panel), or an **ad
@@ -372,7 +389,8 @@ Notifications (7) are built; numbers 1–7 below are built.
   - **Judges' qualifications**, approved like coaches'.
 - **For attendees:**
   - **Add to calendar**: a person's or club's flights and duties as a
-    calendar link that updates when the timetable is published again.
+    calendar link that updates when the timetable is published again
+    (built 2026-10-09).
 
 # Possible additions (not planned yet)
 
