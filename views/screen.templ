@@ -1,0 +1,121 @@
+package views
+
+import (
+	"strconv"
+
+	"tariffCalculator/static"
+)
+
+// ScreenPage is the venue screen: what's on each area of a day now, and
+// what's next.
+type ScreenPage struct {
+	Competition string
+	Time        string // now, e.g. "10:42"
+	Day         string // the day's name, when the timetable has more than one
+	Published   bool   // there is a published timetable
+	Areas       []ScreenArea
+}
+
+// ScreenArea is an area's card on the venue screen.
+type ScreenArea struct {
+	Name       string
+	Now        string // the flight on now, or the break's name; "" for nothing
+	NowTimes   string // the flight's planned time, e.g. "09:30–10:40"
+	Planned    bool   // Now is on by the plan only: nobody has marked it started
+	Break      bool   // Now is a break
+	Gymnasts   []ScreenGymnast
+	More       int    // gymnasts not named
+	Next       string // the next flight; "" for none
+	NextWarmUp string // when its warm-up starts, e.g. "10:45"
+	Late       string // e.g. "Running 15 min late"; "" when not measured
+	Behind     bool   // running late
+	Ahead      bool   // running early
+}
+
+// ScreenGymnast is a gymnast in the flight on now.
+type ScreenGymnast struct {
+	Name      string
+	Scratched bool
+}
+
+// screenLayout is a page for a screen at the venue: no navigation, and it
+// reloads itself every 30 seconds, so it needs no JavaScript.
+templ screenLayout(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="robots" content="noindex"/>
+			<meta http-equiv="refresh" content="30"/>
+			<title>{ title }</title>
+			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
+			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
+		</head>
+		<body class="screen-body">
+			{ children... }
+		</body>
+	</html>
+}
+
+// Screen is the venue screen.
+templ Screen(p ScreenPage) {
+	@screenLayout("Now on · " + p.Competition) {
+		<header class="screen-head">
+			<div class="screen-title">
+				{ p.Competition }
+				if p.Day != "" {
+					<span>· { p.Day }</span>
+				}
+			</div>
+			<div class="screen-clock">{ p.Time }</div>
+		</header>
+		if !p.Published {
+			<p class="screen-empty">The timetable isn't published yet</p>
+		} else if len(p.Areas) == 0 {
+			<p class="screen-empty">No flights on this day</p>
+		} else {
+			<div class="screen-grid">
+				for _, a := range p.Areas {
+					<section class="screen-card">
+						<h2 class="screen-area">{ a.Name }</h2>
+						<p class="screen-label">Now</p>
+						if a.Now == "" {
+							<p class="screen-now">—</p>
+						} else {
+							<p class="screen-now">
+								{ a.Now }
+								if a.Planned {
+									<span class="screen-sub">(planned)</span>
+								}
+							</p>
+							if a.NowTimes != "" {
+								<p class="screen-sub">{ a.NowTimes }</p>
+							}
+						}
+						if len(a.Gymnasts) > 0 {
+							<ul class="screen-gymnasts">
+								for _, g := range a.Gymnasts {
+									<li class={ templ.KV("comp-scratched", g.Scratched) }>{ g.Name }</li>
+								}
+								if a.More > 0 {
+									<li>+{ strconv.Itoa(a.More) } more</li>
+								}
+							</ul>
+						}
+						<p class="screen-label">Next</p>
+						if a.Next == "" {
+							<p class="screen-now">—</p>
+						} else {
+							<p class="screen-now">{ a.Next }</p>
+							<p class="screen-sub">Warm-up { a.NextWarmUp }</p>
+						}
+						if a.Late != "" {
+							<p class={ "screen-late", templ.KV("is-behind", a.Behind) }>{ a.Late }</p>
+						}
+					</section>
+				}
+			</div>
+		}
+	}
+}

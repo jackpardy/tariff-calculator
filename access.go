@@ -40,6 +40,8 @@ func allowed(kind, pattern string) bool {
 		return true
 	case store.LinkEverything:
 		return !post || !(path == "/links" || path == "/links/{id}/remove" || path == "/replace-link" || path == "/delete")
+	case store.LinkScreen:
+		return get && path == "/screen" // nothing else, not even flagging a concern
 	}
 	if post && path == "/concerns" {
 		return true // anyone can flag a concern
@@ -49,9 +51,9 @@ func allowed(kind, pattern string) bool {
 	case store.LinkCards:
 		return viewing || post && (path == "/entries/{id}/check" || path == "/entries/{id}/video")
 	case store.LinkChair:
-		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv" || path == "/day") || post && (path == "/day/flight" || path == "/day/checkin")
+		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv" || path == "/day" || path == "/screen") || post && (path == "/day/flight" || path == "/day/checkin")
 	case store.LinkTimetable:
-		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/day") || post && (path == "/day/flight" || path == "/day/checkin") ||
+		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/day" || path == "/screen") || post && (path == "/day/flight" || path == "/day/checkin") ||
 			post && (strings.HasPrefix(path, "/timetable/") || strings.HasPrefix(path, "/officials/") || path == "/notify-now")
 	}
 	return false
@@ -251,6 +253,7 @@ var linkKinds = map[string]string{
 	store.LinkCards:      "checking cards",
 	store.LinkTimetable:  "timetable and officials",
 	store.LinkChair:      "chairs of judges",
+	store.LinkScreen:     "venue screen",
 }
 
 func (p *competitionPages) registerAccess(handle func(string, http.HandlerFunc)) {

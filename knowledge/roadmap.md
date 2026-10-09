@@ -171,8 +171,10 @@ features that show that, in this order:
    feeding the delay "what if"), check-in and scratches (built 2026-10-09,
    same page: marked here or scratched, struck through on the printed
    sheets, a scratched official flagged), messages from the
-   organisers' desk, a "now on" screen, pages that work offline (built
-   2026-10-09,
+   organisers' desk, a "now on" screen (built 2026-10-09,
+   [the venue screen](features/competition-entries.md#the-venue-screen):
+   a Venue screen link shows what's on each area now and next), pages that
+   work offline (built 2026-10-09,
    [offline](features/competition-entries.md#offline): a person's opened
    pages open without a connection, as last seen), add to calendar.
 
@@ -357,7 +359,8 @@ Notifications (7) are built; numbers 1–7 below are built.
   - **Check-in and scratches**: the marshal marks who's there; a no-show
     comes out of the running order and the rota.
   - **A "now on" screen** for the venue: what's on each panel, and what's
-    warming up next.
+    warming up next. *Built 2026-10-09* as a Venue screen link
+    ([the venue screen](features/competition-entries.md#the-venue-screen)).
   - **Pages that work offline** (built 2026-10-09): the service worker
     (from notifications) keeps a person's own pages for poor venue wifi.
   - **Messages from the organisers' desk** (asked 2026-10-08): the

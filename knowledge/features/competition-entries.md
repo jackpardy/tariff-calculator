@@ -35,8 +35,10 @@ named (who it's for) and of a kind: **checking cards** (see the entries,
 mark cards checked with notes, review videos), **chairs of judges** (see
 the entries, print the chair of judges, score and marshal sheets and the
 panel timeline), **timetable and officials** (plan, change and publish
-them, Notify now, see the entries) and **everything but links and
-deleting** (a co-organiser). Each is a secret link, kept as a hash and
+them, Notify now, see the entries), **venue screen** (see
+[the venue screen](#the-venue-screen); it can open that page and nothing
+else, not even the dashboard or flagging a concern) and **everything but
+links and deleting** (a co-organiser). Each is a secret link, kept as a hash and
 shown once; **Remove** stops it. Up to 20. Every admin route goes through
 one gate (`allowed` in `access.go`); pages show only what the link can do,
 and say whose link it is.
@@ -577,6 +579,45 @@ key, so a scratched entry counts for the person), the top of the day page says
 "Ann Ryan is scratched but officiates: Panel 2 · BUCS L4 · Execution judge",
 and, for links that can use the timetable, **What if they leave** opens the
 [leave](#what-if-an-official-has-to-leave) tool for them and that day.
+
+## The venue screen
+
+Built 2026-10-09. `GET /competitions/admin/{token}/screen?day=N` (default:
+today's index by `todayIndex`, else the first day) is a page for a screen at
+the venue, from the published timetable (`screenpages.go`,
+`views/screen.templ`). With no published timetable it just says "The
+timetable isn't published yet". It has no navigation: the competition name
+(and the day's name when there are several) and the local time ("10:42") at
+the top, then a card per area that has flights that day, side by side on a
+wide screen (CSS grid, `auto-fit`, at least 18rem each) and stacked on a
+narrow one, in large dark-on-light type. Its own layout (`screenLayout`)
+carries `<meta http-equiv="refresh" content="30">`, so it reloads itself on
+any browser without JavaScript, and `noindex`.
+
+Each card has:
+
+- **Now:** chosen by `nowOn`, a pure function of the schedule, the recorded
+  times and a moment. In order: the flight on that area that has been marked
+  started and not finished (the latest started, if several); else the
+  planned flight whose time window (its warm-up start to its end) contains
+  now and that hasn't been marked at all, labelled "(planned)"; else the name
+  of a block covering now on that area (a block with no areas is on all of
+  them); else "—". Planned windows and blocks only count when now is on the
+  day shown; times marked on another date still count, so the screen can be
+  tried out before the day. Under it, the flight's gymnasts in running order,
+  names only in a smaller font, scratched ones struck through, at most 12 and
+  then "+N more".
+- **Next:** the following flight on that area in start order that hasn't
+  been started or finished, with its planned warm-up time; when nothing is
+  on, the first that starts after now (the first of the day when now isn't on
+  that day).
+- The area's lateness line ("Running 15 min late", "On time", "5 min early")
+  when `Lateness` measures one (it ignores times marked on another date).
+
+A new kind of link, **venue screen** (`store.LinkScreen`), can `GET` this
+route and nothing else. Organiser, "everything", chair and timetable links
+can open it too, and their On the day page has a **Venue screen** link at the
+top. The organiser makes the link under Links and settings.
 
 ## Simulation (ADR 0005, step 6)
 
