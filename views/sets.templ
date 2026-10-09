@@ -351,6 +351,7 @@ var ruleTypeLabels = map[string]string{
 	requirements.Different:  "No repeated elements",
 	requirements.Includes:   "Includes one of…",
 	requirements.Count:      "Elements that must (or mustn't) appear",
+	requirements.Linked:     "Linked elements (one straight after another)",
 	requirements.Every:      "Every element must…",
 	requirements.Elements:   "Number of elements",
 	requirements.Difficulty: "Total difficulty",
@@ -476,6 +477,13 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 				<div class="rule-grid">
 					@numberField(p+"min", "At least", floatText(rule.Min), "1")
 					@numberField(p+"max", "At most (0 = not allowed)", floatText(rule.Max), "1")
+				</div>
+				@matcherFields(p+"m.", rule.Match, "Elements that count")
+			case requirements.Linked:
+				<p class="matcher-hint mb-2">Counts pairs of these elements performed one straight after another, e.g. linked somersaults. Three in a row are two pairs.</p>
+				<div class="rule-grid">
+					@numberField(p+"min", "At least (pairs)", floatText(rule.Min), "1")
+					@numberField(p+"max", "At most (0 = none linked)", floatText(rule.Max), "1")
 				</div>
 				@matcherFields(p+"m.", rule.Match, "Elements that count")
 			case requirements.Every:
@@ -652,11 +660,14 @@ func describedRules(set requirements.Set) []string {
 
 // describeSafely describes a rule that may still be incomplete in the editor.
 func describeSafely(r requirements.Rule) string {
-	if (r.Type == requirements.Count || r.Type == requirements.Every || r.Type == requirements.Position) && r.Match == nil {
+	if (r.Type == requirements.Count || r.Type == requirements.Linked || r.Type == requirements.Every || r.Type == requirements.Position) && r.Match == nil {
 		r.Match = &requirements.Matcher{}
 	}
 	if r.Type == requirements.Count && r.Min == nil && r.Max == nil {
 		return "Elements that must (or mustn't) appear: give a minimum or maximum"
+	}
+	if r.Type == requirements.Linked && r.Min == nil && r.Max == nil {
+		return "Linked elements: give a minimum or maximum"
 	}
 	return requirements.Describe(r)
 }

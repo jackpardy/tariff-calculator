@@ -1,0 +1,225 @@
+{
+  "format": 1,
+  "name": "ISTO Advanced · Set B",
+  "description": "Set routine. Its tariff, 3.2, is for information: difficulty isn't scored.",
+  "source": "ISTO 2025 Routines (updated)",
+  "rules": [
+    {
+      "type": "sequence",
+      "sequence": [
+        {
+          "label": "3/4 Back S/S to Front",
+          "rotation": {
+            "min": 3,
+            "max": 3
+          },
+          "direction": "backward",
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "straight"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "front"
+          ],
+          "fig": "(3 - /)"
+        },
+        {
+          "label": "To Feet",
+          "rotation": {
+            "min": 1,
+            "max": 1
+          },
+          "direction": "backward",
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "front"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(1 -)"
+        },
+        {
+          "label": "Straddle Jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "straddle"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(v)"
+        },
+        {
+          "label": "Back S/S (P)",
+          "rotation": {
+            "min": 4,
+            "max": 4
+          },
+          "direction": "backward",
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "pike"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(4 - <)"
+        },
+        {
+          "label": "Pike Jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "pike"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(<)"
+        },
+        {
+          "label": "Barani (P)",
+          "rotation": {
+            "min": 4,
+            "max": 4
+          },
+          "direction": "forward",
+          "twist": {
+            "min": 1,
+            "max": 1
+          },
+          "shapes": [
+            "pike"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(4 1 <)"
+        },
+        {
+          "label": "Back S/S (T)",
+          "rotation": {
+            "min": 4,
+            "max": 4
+          },
+          "direction": "backward",
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "tuck"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(4 - o)"
+        },
+        {
+          "label": "Full Twist",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 2,
+            "max": 2
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(0 2)"
+        },
+        {
+          "label": "Tuck Jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "tuck"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(o)"
+        },
+        {
+          "label": "Barani (S)",
+          "rotation": {
+            "min": 4,
+            "max": 4
+          },
+          "direction": "forward",
+          "twist": {
+            "min": 1,
+            "max": 1
+          },
+          "shapes": [
+            "straight"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(4 1 /)"
+        }
+      ]
+    }
+  ],
+  "no_difficulty": true,
+  "repeats_allowed": true
+}

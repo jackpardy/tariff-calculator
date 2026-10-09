@@ -297,12 +297,35 @@ func TestBuiltinSetRoutines(t *testing.T) {
 			jump(skills.Pike), c("halfToSeat"), c("seatHalfToFeet"), jump(skills.Tuck), c("fullTwist")},
 		"bucs-l7-option-2": {c("fullTwist"), jump(skills.Straddle), c("seatDrop"), c("seatHalfToFeet"), jump(skills.Pike),
 			c("seatDrop"), c("seatToFeet"), jump(skills.Tuck), c("frontDrop"), c("frontToFeet")},
+		"isto-novice-set-a": {c("fullTwist"), jump(skills.Straddle), c("halfTwist"), c("seatDrop"), c("seatHalfToSeat"),
+			c("seatToFeet"), jump(skills.Tuck), jump(skills.Pike), c("backDrop"), c("backToFeet")},
+		"isto-novice-set-b": {c("frontDrop"), c("frontToFeet"), jump(skills.Pike), c("seatDrop"), c("seatHalfToSeat"),
+			c("seatHalfToFeet"), jump(skills.Tuck), c("fullTwist"), jump(skills.Straddle), c("halfTwist")},
+		"isto-intermediate-set-a": {back(skills.Tuck), jump(skills.Straddle), c("fullTwist"), jump(skills.Pike), c("seatDrop"),
+			c("seatHalfToSeat"), c("seatToFeet"), jump(skills.Tuck), halfToFront, c("frontToFeet")},
+		"isto-intermediate-set-b": {c("backDrop"), c("backHalfToFeet"), jump(skills.Straddle), c("halfToSeat"), c("seatHalfToFeet"),
+			c("fullTwist"), jump(skills.Pike), c("halfTwist"), jump(skills.Tuck), front(skills.Tuck)},
+		"isto-intervanced-set-a": {barani(skills.Pike), jump(skills.Tuck), back(skills.Tuck), c("seatDrop"), c("seatHalfToFeet"),
+			jump(skills.Straddle), c("backDrop"), c("backToFeet"), jump(skills.Pike), front(skills.Pike)},
+		"isto-intervanced-set-b": {c("frontDrop"), c("frontToFeet"), jump(skills.Straddle), back(skills.Pike), jump(skills.Tuck),
+			barani(skills.Tuck), c("seatDrop"), c("seatHalfToFeet"), jump(skills.Pike), front(skills.Tuck)},
+		"isto-advanced-set-a": {back(skills.Pike), barani(skills.Tuck), jump(skills.Straddle), c("backToSeat"), c("seatHalfToFeet"),
+			c("halfTwist"), jump(skills.Tuck), c("crashDive"), c("backHalfToFeet"), front(skills.Pike)},
+		"isto-advanced-set-b": {c("lazyBack"), c("frontToFeet"), jump(skills.Straddle), back(skills.Pike), jump(skills.Pike),
+			barani(skills.Pike), back(skills.Tuck), c("fullTwist"), jump(skills.Tuck), barani(skills.Straight)},
+		"isto-disability-l1-set": {c("frontDrop"), c("frontToFeet"), jump(skills.Straddle), c("seatDrop"), c("seatHalfToFeet"),
+			jump(skills.Tuck), c("halfTwist"), jump(skills.Pike), c("backDrop"), c("backToFeet")},
+		"isto-disability-l2-set": {halfToFront, c("frontToFeet"), jump(skills.Straddle), c("seatDrop"), c("seatHalfToSeat"),
+			c("seatHalfToFeet"), c("halfTwist"), jump(skills.Pike), c("backDrop"), c("backHalfToFeet")},
+		"isto-disability-l3-set": {c("halfTwist"), jump(skills.Straddle), c("seatDrop"), c("seatHalfToSeat"), c("seatHalfToFeet"),
+			jump(skills.Pike), c("backDrop"), c("backHalfToFeet"), jump(skills.Tuck), front(skills.Tuck)},
 	}
 	// The disability routines repeat others.
 	routines["bucs-disability-l1-option-1"] = routines["bg-regional-l1-first"]
 	routines["bucs-disability-l1-option-2"] = routines["bg-regional-l2-first"]
 	routines["bucs-disability-l2-option-1"] = routines["bucs-l7-option-1"]
 	routines["bucs-disability-l2-option-2"] = routines["bg-club-l3"]
+	routines["isto-disability-l4-set"] = routines["bucs-l5-option-1"]
 	for id, routine := range routines {
 		checkBuiltin(t, id, routine)
 	}
@@ -520,8 +543,8 @@ func TestSetRoutineLoads(t *testing.T) {
 			}
 		}
 	}
-	if loaded != 20 {
-		t.Errorf("loaded %d set routines, want 20", loaded)
+	if loaded != 32 {
+		t.Errorf("loaded %d set routines, want 32", loaded)
 	}
 	if _, ok := SetRoutine(Set{Rules: []Rule{{Type: Different}}}); ok {
 		t.Errorf("a set without a set routine has nothing to load")
