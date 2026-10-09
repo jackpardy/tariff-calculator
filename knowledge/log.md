@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-09
+* **Update**: [Flights started and finished](features/competition-entries.md#on-the-day-flights-started-and-finished):
+  an **On the day** page for the organiser, chairs of judges and timetable
+  links: tap **Started** and **Finished** for each flight of the published
+  timetable, planned and actual times side by side, and each area says how
+  late it is running, with a link to the delay what-if filled in. People see
+  their area's lateness on My competition.
 * **Update**: [Entries, changes and sign-offs close separately](features/competition-entries.md#when-entries-changes-and-sign-offs-close):
   changes to entries and coaches' sign-offs can close later than new
   entries; a coach's sign-off reaches the competition without sending

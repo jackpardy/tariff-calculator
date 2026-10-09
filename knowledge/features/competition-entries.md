@@ -517,6 +517,43 @@ seat shows the moves and who else was free for the last one; a seat no one
 can reach is left empty. Coaches, the organiser's own rules about events,
 and officials on blocked time aren't considered.
 
+## On the day: flights started and finished
+
+Once the timetable is published, **On the day** (a button on the entries
+page, and `/day` under the admin link) is where the marshal or chair of
+judges records what really happened. It shows one day at a time (today's if
+today is a day of the timetable, else the first; tabs switch), a section for
+each area with flights that day, and under each area its flights in start
+order: the planned time (warm-up start to end), when it actually started and
+finished, and who tapped it. **Started** (a flight not yet started),
+**Finished** (started, not finished) and **Undo** (takes back the finish, else
+the start) post to `/day/flight`, which stores the time now (`flight_times`,
+one row per published flight, keyed `day|area|level|category|number`; see
+`competitions.FlightKey`). A tap that changes nothing (someone else got there
+first) is ignored and says so. It always works from the **published**
+timetable, so planning again or moving flights in the draft doesn't lose
+the times; republishing with a flight's day, area or number changed does
+orphan its row. Organiser, "everything", chair-of-judges and timetable links
+can use it, and each tap is in the history ("Marked a flight started: BUCS
+L3 · flight 1 of 2 (Panel 1)").
+
+**How late an area is** (`competitions.Lateness`): on that day and area, take
+the flight with the latest recorded event (finishing beats starting for the
+same flight), and compare the actual time with the planned one, the flight's
+end if it finished and its start if it only started. Late is positive, early
+negative, and an area with nothing recorded says "Nothing started yet". The
+area's header reads "Running 15 min late", "On time" or "5 min early", with
+what it's measured from.
+
+Where an area is late, **What if: see the rest of the day** (for links that can
+use the timetable) opens the [delay](#what-if-theres-a-delay) page with the
+day, area, the time of the measured event and the minutes late filled in; it
+shows what holding up the area by that long does to its later flights. Nothing is saved from the day page.
+
+Attendees see it too: on **My competition** (the same today-only rule), a line
+at the top for each area their flights are on that is running 5 or more minutes
+late or early, such as "Panel 2 is running about 15 min late (as of 10:40)".
+
 ## Simulation (ADR 0005, step 6)
 
 **Simulate**, linked from the timetable, tries numbers against the venue
