@@ -127,6 +127,9 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 	if can(r, "GET", "/screen") {
 		page.Screen = base + "/screen?day=" + strconv.Itoa(day)
 	}
+	if can(r, "GET", "/desk") {
+		page.Desk = base + "/desk"
+	}
 	whatIf := ""
 	if can(r, "GET", "/timetable/leave") {
 		whatIf = base + "/timetable/leave"

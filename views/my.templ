@@ -14,6 +14,7 @@ type MyCompetitionPage struct {
 	Notify      string // where they ask to hear about changes
 	ScoreSheets string // the score sheets of the flights they officiate, if any
 	Lateness    []string // how late the areas their flights are on are running today
+	Desk        []DeskNote // messages from the organisers that reach them
 	Published   bool
 	Events      []MyEvent
 	Duties      []string
@@ -40,6 +41,7 @@ templ MyCompetition(p MyCompetitionPage) {
 		<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
 		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
 		@latenessNotes(p.Lateness)
+		@deskMessages(p.Desk)
 		if len(p.Events) == 0 {
 			<div class="notification is-light">No entries for you have reached the competition yet. Once your club sends them (or you enter), they show here.</div>
 		}

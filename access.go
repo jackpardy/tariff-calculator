@@ -51,9 +51,9 @@ func allowed(kind, pattern string) bool {
 	case store.LinkCards:
 		return viewing || post && (path == "/entries/{id}/check" || path == "/entries/{id}/video")
 	case store.LinkChair:
-		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv" || path == "/day" || path == "/screen") || post && (path == "/day/flight" || path == "/day/checkin")
+		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/desk")
 	case store.LinkTimetable:
-		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/day" || path == "/screen") || post && (path == "/day/flight" || path == "/day/checkin") ||
+		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/desk") ||
 			post && (strings.HasPrefix(path, "/timetable/") || strings.HasPrefix(path, "/officials/") || path == "/notify-now")
 	}
 	return false
@@ -80,6 +80,7 @@ func access(r *http.Request) views.Access {
 		NotifyNow: can(r, "POST", "/notify-now"),
 		Resolve:   can(r, "POST", "/concerns/{id}/resolve"),
 		Day:       can(r, "GET", "/day"),
+		Desk:      can(r, "GET", "/desk"),
 	}
 }
 
@@ -235,6 +236,8 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		return p.describeFlightMark(r, c)
 	case "/day/checkin":
 		return p.describeCheckin(r, c)
+	case "/desk":
+		return p.describeDesk(r, c)
 	}
 	switch {
 	case strings.HasPrefix(path, "/timetable/setup/"):

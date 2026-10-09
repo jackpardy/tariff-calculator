@@ -14,6 +14,7 @@ type DayPage struct {
 	Days        []DayTab
 	Areas       []DayArea
 	Scratched   []DayScratched // scratched gymnasts who officiate that day
+	Desk        string         // the organisers' desk, to send a message; "" if this link can't
 }
 
 // DayScratched is a scratched gymnast who also holds seats that day.
@@ -76,6 +77,9 @@ templ Day(p DayPage) {
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(p.Screen) }>Venue screen</a>
 				<span class="help is-inline ml-2">What's on each area now and next, for a screen at the venue. The organiser makes a Venue screen link under Links and settings.</span>
 			</p>
+		}
+		if p.Desk != "" {
+			<p class="mb-3"><a class="button is-small is-light" href={ templ.SafeURL(p.Desk) }>Message from the desk</a></p>
 		}
 		if p.Notice != "" {
 			<div class="notification is-info is-light">{ p.Notice }</div>

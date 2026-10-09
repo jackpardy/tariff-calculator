@@ -191,10 +191,22 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	clubMembers, err := p.st.Members(ctx, coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	var coached []store.Member // the members who chose this coach
+	for _, m := range clubMembers {
+		if m.CoachID == coach.ID {
+			coached = append(coached, m)
+		}
+	}
 	path := coachPath(r.PathValue("token"))
 	page := views.CoachPage{Club: club, Coach: coach.Name, Link: origin(r) + path, Notice: r.URL.Query().Get("notice"), SeesAll: seesAll, SignsOff: coach.SignsOff}
 	for _, c := range comps {
 		cc := views.CoachCompetition{Competition: summary(c.Competition, p.now()), Cannot: notApproved(c, sentTo), Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
+		cc.Desk = p.deskNotes(ctx, c.ID, memberKeys(coached), clubIDs(coach.ClubID))
 		if published(c) {
 			cc.Timeline = path + "/competitions/" + c.ID + "/timeline"
 			cc.Calendar = path + "/competitions/" + c.ID + "/calendar.ics"

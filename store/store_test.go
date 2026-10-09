@@ -1687,3 +1687,33 @@ func TestCheckins(t *testing.T) {
 		t.Error("an unknown status is refused")
 	}
 }
+
+func TestDeskMessages(t *testing.T) {
+	now := time.Date(2027, 3, 13, 9, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	first, err := s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "Hello", Audience: "UCD", Clubs: []string{"club1"}, Who: "Organiser"})
+	must(t, err)
+	now = now.Add(time.Minute)
+	_, err = s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "Come", Come: true, Audience: "2 people", People: []string{"m:a", "i:bea"}, Who: "Chairs"})
+	must(t, err)
+	must(t, s.SetDeskTold(ctx, c.ID, first.ID, 1, 2))
+	got, err := s.DeskMessages(ctx, c.ID)
+	must(t, err)
+	if len(got) != 2 || got[0].Text != "Come" || got[1].Pushed != 1 || got[1].Emailed != 2 || got[1].Clubs[0] != "club1" || !slices.Equal(got[0].People, []string{"m:a", "i:bea"}) {
+		t.Fatalf("latest first, with who it went to: %+v", got)
+	}
+	if got[0].Full() != "Please come to the organisers' desk. Come" || got[1].Full() != "Hello" || (DeskMessage{Come: true}).Full() != ComeToTheDesk {
+		t.Errorf("the full text: %q %q", got[0].Full(), got[1].Full())
+	}
+	if !got[0].Reaches([]string{"m:a"}, nil) || got[0].Reaches([]string{"m:b"}, []string{"club1"}) || !got[1].Reaches(nil, []string{"club1"}) {
+		t.Error("a message reaches its people and clubs")
+	}
+	for range MaxDeskMessages - 2 {
+		_, err = s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "x", Audience: "UCD"})
+		must(t, err)
+	}
+	if _, err := s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "x", Audience: "UCD"}); !errors.Is(err, ErrLimit) {
+		t.Errorf("a full competition: %v", err)
+	}
+}

@@ -12,6 +12,13 @@
   by the recorded times, else the planned one, else a break), its gymnasts
   with scratched ones struck through, the next flight with its warm-up time,
   and how late the area is running. It refreshes itself every 30 seconds.
+* **Update**: [Messages from the organisers' desk](features/competition-entries.md#messages-from-the-organisers-desk):
+  a **Desk messages** page for the organiser, co-organisers, chairs of
+  judges and timetable links: send a message, or ask people to come to the
+  organisers' desk, at once to a club, everyone in a flight, all officials,
+  one panel's officials or people picked by hand. It is pushed and emailed
+  to those who asked to hear and shown in a box on each recipient's own
+  page; the page lists what was sent and how many were told.
 * **Update**: [Check-in and scratches](features/competition-entries.md#on-the-day-flights-started-and-finished):
   under each flight on the On the day page, mark gymnasts **Here** or
   **Scratched** (or clear it). Scratched gymnasts are struck through on the

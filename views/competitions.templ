@@ -276,6 +276,7 @@ type EntryPage struct {
 	Notify      string     // where they ask to hear about changes
 	ScoreSheets string     // the score sheets of the flights they officiate, if any
 	Fees        *FeesSummary // what they owe, if the competition charges
+	Desk        []DeskNote   // messages from the organisers that reach them
 }
 
 // EntryCoachView is the coach an individual names, for the organiser to
@@ -640,6 +641,9 @@ templ CompetitionDashboard(d Dashboard) {
 			}
 			if d.Published && d.Access.Day {
 				<a class="button is-small is-success is-light" href={ templ.SafeURL(d.Base + "/day") }>On the day</a>
+			}
+			if d.Access.Desk {
+				<a class="button is-small is-success is-light" href={ templ.SafeURL(d.Base + "/desk") }>Desk messages</a>
 			}
 			if d.Access.Settings {
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/fees") }>Fees</a>
@@ -1260,6 +1264,7 @@ templ CompetitionEntryPage(p EntryPage) {
 		}
 		@dayLink(p.Day)
 		@feesLine(p.Fees)
+		@deskMessages(p.Desk)
 		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
 		@waitingLine(p.Waiting)
 		@lateLine(p.Late, p.LateAsk)

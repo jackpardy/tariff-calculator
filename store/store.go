@@ -502,6 +502,22 @@ var migrations = []string{
 		who            TEXT NOT NULL,
 		PRIMARY KEY (competition_id, entry_id)
 	);`,
+
+	// 26: messages from the organisers' desk (roadmap 2026-10-09).
+	`CREATE TABLE desk_messages (
+		id             TEXT PRIMARY KEY,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		text           TEXT NOT NULL,
+		come           BOOLEAN NOT NULL DEFAULT FALSE,
+		audience       TEXT NOT NULL,
+		people         TEXT NOT NULL,
+		clubs          TEXT NOT NULL,
+		who            TEXT NOT NULL,
+		at             TEXT NOT NULL,
+		pushed         INTEGER NOT NULL DEFAULT 0,
+		emailed        INTEGER NOT NULL DEFAULT 0
+	);
+	CREATE INDEX desk_messages_competition ON desk_messages (competition_id, at);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.
