@@ -133,10 +133,21 @@ func (s *Store) SignOff(ctx context.Context, c Coach, memberID, competitionID, d
 	if signed {
 		at = s.stamp()
 	}
-	return affected(s.db.ExecContext(ctx, fmt.Sprintf(`UPDATE member_entries SET signed_at = $3, signed_by = $4, sign_note = $5, signed_coach = $1
-		WHERE member_id = $6 AND competition_id = $7 AND discipline = $8 AND member_id IN (SELECT m.id FROM members m WHERE %s)
-		AND (SELECT signs_off FROM coaches WHERE id = $1)`, coachSees),
-		c.ID, c.ClubID, at, c.Name, note, memberID, competitionID, discipline))
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		if err := affected(tx.ExecContext(ctx, fmt.Sprintf(`UPDATE member_entries SET signed_at = $3, signed_by = $4, sign_note = $5, signed_coach = $1
+			WHERE member_id = $6 AND competition_id = $7 AND discipline = $8 AND member_id IN (SELECT m.id FROM members m WHERE %s)
+			AND (SELECT signs_off FROM coaches WHERE id = $1)`, coachSees),
+			c.ID, c.ClubID, at, c.Name, note, memberID, competitionID, discipline)); err != nil {
+			return err
+		}
+		// The competition's copy, if it's the entry the coach signed: so a
+		// sign-off reaches it without sending again, after changes close too.
+		_, err := tx.ExecContext(ctx, `UPDATE entries SET signed_at = $1, signed_by = $2, sign_note = $3, signed_coach = $4
+			WHERE member_id = $5 AND competition_id = $6 AND discipline = $7
+			AND entry = (SELECT entry FROM member_entries WHERE member_id = $5 AND competition_id = $6 AND discipline = $7)`,
+			at, c.Name, note, c.ID, memberID, competitionID, discipline)
+		return err
+	})
 }
 
 // SetCoachSignsOff says whether one of a club's coaches signs off routines.

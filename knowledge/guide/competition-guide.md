@@ -109,6 +109,11 @@ pair's one routine), checked as the Routine Builder checks them.
   and deleting** (a co-organiser). Copy the link straight away: it's shown
   only once. **Remove** stops it working. **History** lists every change,
   when, and which link made it.
+- **Changes and sign-off after entries close** (under **Links and
+  settings**): entries closing stops new entries; give **Changes to
+  entries close** and **Coaches' sign-off closes** later dates to let clubs
+  and gymnasts keep changing, withdrawing or sending again the entries
+  they've made, and coaches keep signing off, until then.
 - **Late changes:** tap **Late changes** to choose what clubs and gymnasts
   can ask for once entries close (a **level change**, a **routine change**,
   or both), each with a fee charged only if you accept. Each request shows

@@ -310,7 +310,7 @@ func (p *competitionPages) signOff(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !c.Open(p.now()) {
+	if !c.SignoffsOpen(p.now()) {
 		failed(w, r, notOpen(c.Competition, p.now()))
 		return
 	}

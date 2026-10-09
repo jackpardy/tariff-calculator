@@ -38,11 +38,15 @@ type Competition struct {
 	Deadline time.Time // entries can be sent and changed until then
 	// LiveAt is when entries open (roadmap 2026-10-07): zero while the
 	// competition is private, being set up or paused.
-	LiveAt      time.Time
-	Individuals bool // individuals can enter directly, not only through a club
-	Levels      []Level
-	Video       Video // whether gymnasts send video proof
-	Signoff     bool  // entries need a coach's sign-off (ADR 0004 Decision 11)
+	LiveAt time.Time
+	// ChangesUntil and SignoffsUntil are when changes to entries already
+	// made, and coaches' sign-offs, close: zero, or no later than the
+	// deadline, for with it (roadmap 2026-10-08).
+	ChangesUntil, SignoffsUntil time.Time
+	Individuals                 bool // individuals can enter directly, not only through a club
+	Levels                      []Level
+	Video                       Video // whether gymnasts send video proof
+	Signoff                     bool  // entries need a coach's sign-off (ADR 0004 Decision 11)
 	// ApproveCoaches has only coaches the organiser approves sign off, and
 	// CoachLevels is the lowest qualification level accepted, by discipline
 	// (missing: DefaultCoachLevel) (ADR 0007 Decision 2).
@@ -146,6 +150,33 @@ func (c Competition) Open(now time.Time) bool {
 	return c.Live(now) && now.Before(c.Deadline)
 }
 
+// ChangesClose is when changes to entries already made close.
+func (c Competition) ChangesClose() time.Time {
+	if c.ChangesUntil.After(c.Deadline) {
+		return c.ChangesUntil
+	}
+	return c.Deadline
+}
+
+// SignoffsClose is when coaches' sign-offs close.
+func (c Competition) SignoffsClose() time.Time {
+	if c.SignoffsUntil.After(c.Deadline) {
+		return c.SignoffsUntil
+	}
+	return c.Deadline
+}
+
+// ChangesOpen says whether entries already made can be changed, withdrawn
+// or sent again at now.
+func (c Competition) ChangesOpen(now time.Time) bool {
+	return c.Live(now) && now.Before(c.ChangesClose())
+}
+
+// SignoffsOpen says whether coaches can sign off at now.
+func (c Competition) SignoffsOpen(now time.Time) bool {
+	return c.Live(now) && now.Before(c.SignoffsClose())
+}
+
 // Live says whether the competition has gone live at now, rather than being
 // private (set up, or paused) or due to go live later.
 func (c Competition) Live(now time.Time) bool {
@@ -169,6 +200,14 @@ func (c Competition) Validate() error {
 		errs = append(errs, errors.New("entries must close by the end of the competition date"))
 	case !c.LiveAt.IsZero() && !c.LiveAt.Before(c.Deadline):
 		errs = append(errs, errors.New("entries must open before they close"))
+	}
+	if err == nil {
+		for _, t := range []time.Time{c.ChangesUntil, c.SignoffsUntil} {
+			if t.After(day.AddDate(0, 0, 1)) {
+				errs = append(errs, errors.New("changes and sign-offs must close by the end of the competition date"))
+				break
+			}
+		}
 	}
 	if len(c.EventNames()) == 0 {
 		errs = append(errs, errors.New("the competition needs at least one level"))

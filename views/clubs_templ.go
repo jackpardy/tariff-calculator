@@ -820,7 +820,7 @@ func ClubAdmin(c ClubPage) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				}
-				if comp.Competition.Open && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
+				if comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "<form method=\"post\" action=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -2070,7 +2070,7 @@ func MemberHome(p MemberPage) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				if c.Offer != nil && c.Competition.Open {
+				if c.Offer != nil && c.Competition.ChangesOpen {
 					templ_7745c5c3_Err = offerBox(*c.Offer).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -2288,7 +2288,7 @@ func memberEvent(comp CompetitionSummary, ev MemberEvent) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		if comp.Open {
+		if comp.ChangesOpen {
 			if ev.Card != nil {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 192, " <details class=\"box mt-4 comp-change\"")
 				if templ_7745c5c3_Err != nil {

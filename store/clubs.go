@@ -271,7 +271,7 @@ func (s *Store) SaveMemberEntry(ctx context.Context, memberID, competitionID str
 		if err != nil {
 			return err
 		}
-		if err := s.open(ctx, tx, competitionID); err != nil {
+		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
 		// A synchro entry gets a partner link; naming a different partner
@@ -302,7 +302,7 @@ func (s *Store) SaveMemberEntry(ctx context.Context, memberID, competitionID str
 // sends again.
 func (s *Store) WithdrawMemberEntry(ctx context.Context, memberID, competitionID, discipline string) error {
 	return s.tx(ctx, func(tx *sql.Tx) error {
-		if err := s.open(ctx, tx, competitionID); err != nil {
+		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
 		return affected(tx.ExecContext(ctx, `DELETE FROM member_entries WHERE member_id = $1 AND competition_id = $2 AND discipline = $3`,
@@ -368,7 +368,7 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 			}
 			return err
 		}
-		if err := s.open(ctx, tx, competitionID); err != nil {
+		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
 
@@ -423,6 +423,7 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		}
 
 		now := s.stamp()
+		newOpen := s.open(ctx, tx, competitionID, entering) == nil // after the deadline, only entries already made
 		kept := chosen[:0]
 		for _, p := range chosen {
 			// An entry the organiser removed isn't sent again.
@@ -430,6 +431,16 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 				return err
 			} else if removal == Removed {
 				continue
+			}
+			if !newOpen {
+				var n int
+				if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM entries WHERE competition_id = $1 AND member_id = $2 AND discipline = $3`,
+					competitionID, p.member, p.discipline).Scan(&n); err != nil {
+					return err
+				}
+				if n == 0 {
+					continue
+				}
 			}
 			kept = append(kept, p)
 		}

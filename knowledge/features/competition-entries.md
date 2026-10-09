@@ -52,9 +52,25 @@ the organisers only; the organiser and co-organisers mark each
 **Resolved**, with a note. The demo has helpers' links (printed by `demo`),
 three cards checked and two concerns.
 
+## When entries, changes and sign-offs close
+
+Three times (roadmap 2026-10-08), set under Links and settings: **entries
+close** (the deadline: no new entries after it), **changes to entries
+close** (changing, withdrawing or sending again entries already made,
+offers to officiate) and **coaches' sign-off closes** (signing off, naming
+a coach for approval). The last two can be later than the deadline, by the
+end of the competition date; empty, they close with it
+(`Competition.ChangesClose`, `SignoffsClose`; `store.open` checks each
+change against its own). After the deadline a club's **Send** sends only
+entries the competition already has. A coach's sign-off now goes straight
+onto the competition's copy too, where it's the entry the coach signed, so
+it doesn't need sending again. The pages say "New entries closed …
+Changes to entries until … Coaches' sign-off until …". Late changes open
+once changes close.
+
 ## Late changes
 
-After the deadline (the competition live, entries closed), clubs and
+Once changes to entries close (the competition live), clubs and
 individuals can ask for the changes the organiser allows (roadmap
 2026-10-08). On **Late changes** (the dashboard's button, which counts
 those to decide) the organiser ticks which kinds can be asked for, each

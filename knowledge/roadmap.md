@@ -160,9 +160,10 @@ features that show that, in this order:
    [late changes](features/competition-entries.md#late-changes)): after the
    deadline clubs and individuals ask for the changes the organiser allows
    (a level change, new routines), each with its own fee charged if
-   accepted; the organiser sees whether it fits (limits, the draft
-   timetable) and accepts it or says why not. Late new entries could
-   follow.
+   accepted, optionally signed off by a coach first; the organiser sees
+   whether it fits (limits, the draft timetable) and accepts it or says
+   why not. Changes to entries and coaches' sign-offs can close later than
+   new entries (built 2026-10-09). Late new entries could follow.
 5. **The day itself,** as far as it goes: flights started and finished by
    the marshal, check-in and scratches, messages from the organisers' desk,
    a "now on" screen, pages that work offline, add to calendar.

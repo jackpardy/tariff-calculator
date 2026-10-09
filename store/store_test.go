@@ -1596,3 +1596,25 @@ func TestWaitingLists(t *testing.T) {
 		t.Errorf("Cat moves up: %v", p)
 	}
 }
+
+func TestLaterDeadlines(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp := competition()
+	c, _, _ := s.CreateCompetition(ctx, comp)
+	_, token, err := s.AddIndividualEntry(ctx, c.ID, entry("Ann"))
+	must(t, err)
+	must(t, s.SetChangesAndSignoffs(ctx, c.ID, comp.Deadline.Add(48*time.Hour), comp.Deadline.Add(72*time.Hour)))
+	now = comp.Deadline.Add(time.Hour)
+	if _, _, err := s.AddIndividualEntry(ctx, c.ID, entry("Bea")); !errors.Is(err, ErrClosed) {
+		t.Errorf("no new entries after the deadline: %v", err)
+	}
+	must(t, s.ReplaceIndividualEntry(ctx, token, entry("Ann")))
+	now = comp.Deadline.Add(49 * time.Hour)
+	if err := s.ReplaceIndividualEntry(ctx, token, entry("Ann")); !errors.Is(err, ErrClosed) {
+		t.Errorf("no changes after changes close: %v", err)
+	}
+	if c2, err := s.Competition(ctx, c.ID); err != nil || !c2.SignoffsOpen(now) || c2.ChangesOpen(now) || c2.Open(now) {
+		t.Errorf("sign-offs still open, changes and entries not: %v", err)
+	}
+}

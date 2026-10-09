@@ -1,5 +1,12 @@
 # Update log
 
+## 2026-10-09
+* **Update**: [Entries, changes and sign-offs close separately](features/competition-entries.md#when-entries-changes-and-sign-offs-close):
+  changes to entries and coaches' sign-offs can close later than new
+  entries; a coach's sign-off reaches the competition without sending
+  again. Late changes can be signed off by a coach first, and open once
+  changes close.
+
 ## 2026-10-08
 * **Update**: [Late changes](features/competition-entries.md#late-changes):
   after the deadline, clubs and individuals ask for the changes the

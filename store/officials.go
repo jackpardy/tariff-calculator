@@ -40,7 +40,7 @@ func (s *Store) SaveMemberOffer(ctx context.Context, memberID, competitionID str
 		} else if err != nil {
 			return err
 		}
-		if err := s.open(ctx, tx, competitionID); err != nil {
+		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
 		if o.Empty() {
@@ -125,7 +125,7 @@ func (s *Store) SetIndividualOffer(ctx context.Context, token string, o competit
 			Scan(&id, &competitionID, &name); err != nil {
 			return notFound(err)
 		}
-		if err := s.open(ctx, tx, competitionID); err != nil {
+		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
 		if o.Empty() {

@@ -202,9 +202,9 @@ func (p *competitionPages) renderLateSignoff(w http.ResponseWriter, r *http.Requ
 }
 
 // lateOpen says whether late changes can be asked for now: the competition
-// is live, entries have closed, and the organiser allows some.
+// is live, changes to entries have closed, and the organiser allows some.
 func lateOpen(c store.Competition, now time.Time) bool {
-	return c.Live(now) && !c.Open(now) && c.Late.Any()
+	return c.Live(now) && !c.ChangesOpen(now) && c.Late.Any()
 }
 
 // lateTarget is whose entry a late change page is for.
@@ -279,7 +279,7 @@ func (p *competitionPages) lateRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	c, ctx := t.c, r.Context()
 	if !lateOpen(c, p.now()) {
-		message(w, r, http.StatusConflict, "No late changes", "Late changes can be asked for only after entries close, where the organiser allows them. While entries are open, change the entry as usual.")
+		message(w, r, http.StatusConflict, "No late changes", "Late changes can be asked for only after changes to entries close, where the organiser allows them. Until then, change the entry as usual.")
 		return
 	}
 	action := r.URL.Path

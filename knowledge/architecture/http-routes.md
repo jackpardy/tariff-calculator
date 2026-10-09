@@ -69,6 +69,7 @@ every page answers 503.
 | `POST /competitions/admin/{token}/late/settings` | `late-<kind>=1`, `fee-<kind>` (`level`, `routines`) | Which late changes can be asked for, and their fees |
 | `POST /competitions/admin/{token}/late/{id}/accept` | `note` | Applies a late change: the entry, the draft timetable, the fee |
 | `POST /competitions/admin/{token}/late/{id}/reject` | `reason` | Turns a late change down |
+| `POST /competitions/admin/{token}/later-deadlines` | `changesDate`, `changesTime`, `signoffsDate`, `signoffsTime` (empty: with the deadline) | When changes to entries, and coaches' sign-offs, close |
 | `POST /competitions/admin/{token}/limits` | `limit-<n>` for each event, in the competition's order (empty: none) | Sets each event's limit (waiting lists) |
 | `POST /competitions/admin/{token}/entries/{id}/let-in` | `on` (`1`/`0`) | Lets a waiting entry in over the limit, or back |
 | `GET /competitions/admin/{token}/fees` | — | Entry fees: what's charged, and each club's and individual's account |
