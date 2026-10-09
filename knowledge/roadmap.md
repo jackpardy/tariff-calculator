@@ -165,8 +165,12 @@ features that show that, in this order:
    why not. Changes to entries and coaches' sign-offs can close later than
    new entries (built 2026-10-09). Late new entries could follow.
 5. **The day itself,** as far as it goes: flights started and finished by
-   the marshal, check-in and scratches, messages from the organisers' desk,
-   a "now on" screen, pages that work offline, add to calendar.
+   the marshal (built 2026-10-09,
+   [on the day](features/competition-entries.md#on-the-day-flights-started-and-finished):
+   planned against actual, how late each area is, shown to attendees and
+   feeding the delay "what if"), check-in and scratches, messages from the
+   organisers' desk, a "now on" screen, pages that work offline, add to
+   calendar.
 
 Then, by when ISTO needs them: link the calculator (before entries open),
 the "what ifs'" missing checks (8) and saying what a manual change breaks

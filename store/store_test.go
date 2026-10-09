@@ -1618,3 +1618,39 @@ func TestLaterDeadlines(t *testing.T) {
 		t.Errorf("sign-offs still open, changes and entries not: %v", err)
 	}
 }
+
+func TestFlightTimes(t *testing.T) {
+	now := time.Date(2027, 3, 13, 9, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	const key = "0|Panel 1|BUCS L3||1"
+	times := func() FlightTime {
+		t.Helper()
+		all, err := s.FlightTimes(ctx, c.ID)
+		must(t, err)
+		return all[key]
+	}
+	if got := times(); !got.Started.IsZero() {
+		t.Errorf("nothing yet: %+v", got)
+	}
+	must(t, s.MarkFlight(ctx, c.ID, key, "start", "Ann"))
+	if got := times(); !got.Started.Equal(now) || !got.Finished.IsZero() || got.Who != "Ann" {
+		t.Errorf("started: %+v", got)
+	}
+	now = now.Add(40 * time.Minute)
+	must(t, s.MarkFlight(ctx, c.ID, key, "finish", "Bea"))
+	if got := times(); !got.Started.Equal(now.Add(-40*time.Minute)) || !got.Finished.Equal(now) || got.Who != "Bea" {
+		t.Errorf("finished: %+v", got)
+	}
+	must(t, s.MarkFlight(ctx, c.ID, key, "undo", "Bea"))
+	if got := times(); got.Started.IsZero() || !got.Finished.IsZero() {
+		t.Errorf("undo takes back the finish: %+v", got)
+	}
+	must(t, s.MarkFlight(ctx, c.ID, key, "undo", "Bea"))
+	if got := times(); !got.Started.IsZero() || !got.Finished.IsZero() {
+		t.Errorf("undo again takes back the start: %+v", got)
+	}
+	if err := s.MarkFlight(ctx, c.ID, key, "nonsense", "Bea"); err == nil {
+		t.Error("an unknown mark is refused")
+	}
+}

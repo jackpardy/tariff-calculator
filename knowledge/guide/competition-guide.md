@@ -278,6 +278,15 @@ has a starting value you can change.
    still sees what you published until you tap **Publish changes**. The page
    says when there are changes not published yet; **Discard changes** goes
    back to what's published, and **Unpublish** takes it down.
+11. **On the day** (a button on the entries page once you've published; chairs
+   of judges' and timetable links get it too): pick the day, then for each
+   area tap **Started** when a flight begins its warm-up and **Finished**
+   when it's done (**Undo** takes back the latest tap). Planned and actual
+   times sit side by side, and each area says whether it's "Running 15 min
+   late", "On time" or early. Where an area is late, **What if: see the rest
+   of the day** opens the delay page filled in. Gymnasts and officials see "Panel 2 is
+   running about 15 min late" on their page once an area is 5 minutes or more
+   out.
 
 **What if there's a delay?** (on the timetable page, once planned): choose the
 day, when the hold-up starts, how many minutes and which areas (none ticked

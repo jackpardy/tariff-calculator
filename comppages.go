@@ -78,6 +78,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerFees(handle)
 	p.registerLimits(handle)
 	p.registerLate(handle)
+	p.registerDay(handle)
 	handle("GET /competitions/new", p.newForm)
 	handle("POST /competitions", p.create)
 	handle("GET /competitions/admin/{token}", p.dashboard)
@@ -623,7 +624,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		SignoffsDate: dateField(c.SignoffsUntil, c.Deadline), SignoffsTime: timeField(c.SignoffsUntil, c.Deadline),
 		NotifyOn: p.notifyLink("/") != "", NoWait: c.NoWait,
 		Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()), Events: eventsForm(c.Competition),
-		LevelOrder: levelOrderForm(c.Competition),
+		LevelOrder: levelOrderForm(c.Competition), Published: published(c),
 	}
 	if !c.NotifyDue.IsZero() {
 		d.NotifyAt = c.NotifyDue.In(local).Format("15:04")

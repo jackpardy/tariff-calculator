@@ -482,6 +482,16 @@ var migrations = []string{
 	// than the deadline (roadmap 2026-10-08).
 	`ALTER TABLE competitions ADD COLUMN changes_until TEXT NOT NULL DEFAULT '';
 	ALTER TABLE competitions ADD COLUMN signoffs_until TEXT NOT NULL DEFAULT '';`,
+
+	// 24: flights started and finished on the day (roadmap 2026-10-08).
+	`CREATE TABLE flight_times (
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		flight         TEXT NOT NULL,
+		started_at     TEXT NOT NULL DEFAULT '',
+		finished_at    TEXT NOT NULL DEFAULT '',
+		who            TEXT NOT NULL DEFAULT '',
+		PRIMARY KEY (competition_id, flight)
+	);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

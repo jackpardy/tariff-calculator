@@ -13,6 +13,7 @@ type MyCompetitionPage struct {
 	Calendar    string // their timetable as a calendar file, once published
 	Notify      string // where they ask to hear about changes
 	ScoreSheets string // the score sheets of the flights they officiate, if any
+	Lateness    []string // how late the areas their flights are on are running today
 	Published   bool
 	Events      []MyEvent
 	Duties      []string
@@ -38,6 +39,7 @@ templ MyCompetition(p MyCompetitionPage) {
 		<h1 class="title is-4">{ p.Competition.Name }</h1>
 		<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
 		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
+		@latenessNotes(p.Lateness)
 		if len(p.Events) == 0 {
 			<div class="notification is-light">No entries for you have reached the competition yet. Once your club sends them (or you enter), they show here.</div>
 		}
@@ -172,6 +174,19 @@ templ dayLink(href string) {
 	if href != "" {
 		<p class="mb-3"><a class="button is-small is-info is-light" href={ templ.SafeURL(href) }>Your competition: flights, times and the timetable →</a></p>
 	}
+}
+
+// latenessNotes say how late the areas someone's flights are on are running.
+templ latenessNotes(lines []string) {
+	for _, l := range lines {
+		@latenessLine(l)
+	}
+}
+
+// latenessLine is one area running late or early, e.g. "Panel 2 is running
+// about 15 min late (as of 10:40)".
+templ latenessLine(text string) {
+	<div class="notification is-warning is-light py-2">{ text }</div>
 }
 
 // timelineLinks are a person's and their club's timetables, laid out as
