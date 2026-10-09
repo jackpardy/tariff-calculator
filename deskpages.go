@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"tariffCalculator/competitions"
 	"tariffCalculator/store"
@@ -383,10 +384,29 @@ func (p *competitionPages) deskNotes(ctx context.Context, competitionID string, 
 			break
 		}
 		if m.Reaches(people, clubs) {
-			out = append(out, views.DeskNote{Text: m.Full(), At: m.At.In(local).Format("Mon 2 Jan, 15:04"), Come: m.Come})
+			out = append(out, views.DeskNote{Text: m.Full(), At: deskWhen(m.At, p.now()), Come: m.Come})
 		}
 	}
 	return out
+}
+
+// deskWhen is when a message was sent, and for one sent in the last day how
+// long ago, e.g. "Sat 27 Feb, 10:42 · 12 min ago": with no read status, how
+// recent a message is matters most on the day.
+func deskWhen(at, now time.Time) string {
+	s := at.In(local).Format("Mon 2 Jan, 15:04")
+	switch ago := now.Sub(at); {
+	case ago < 0 || ago >= 24*time.Hour:
+		return s
+	case ago < time.Minute:
+		return s + " · just now"
+	case ago < time.Hour:
+		return fmt.Sprintf("%s · %d min ago", s, int(ago.Minutes()))
+	case ago < 2*time.Hour:
+		return s + " · 1 hour ago"
+	default:
+		return fmt.Sprintf("%s · %d hours ago", s, int(ago.Hours()))
+	}
 }
 
 // clubIDs is a club's id as a list, empty for none.

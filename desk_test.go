@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 // deskBox is the heading of the messages on a recipient's page.
@@ -458,5 +459,20 @@ func TestDeskToOfficials(t *testing.T) {
 	}
 	if to, _ := send(nil); !strings.Contains(to, "Nothing+was+sent") {
 		t.Errorf("neither ticked: %s", to)
+	}
+}
+
+func TestDeskWhen(t *testing.T) {
+	at := time.Date(2027, 2, 27, 10, 42, 0, 0, local)
+	for ago, want := range map[time.Duration]string{
+		30 * time.Second: "Sat 27 Feb, 10:42 · just now",
+		12 * time.Minute: "Sat 27 Feb, 10:42 · 12 min ago",
+		90 * time.Minute: "Sat 27 Feb, 10:42 · 1 hour ago",
+		5 * time.Hour:    "Sat 27 Feb, 10:42 · 5 hours ago",
+		48 * time.Hour:   "Sat 27 Feb, 10:42",
+	} {
+		if got := deskWhen(at, at.Add(ago)); got != want {
+			t.Errorf("%v later: %q, want %q", ago, got, want)
+		}
 	}
 }

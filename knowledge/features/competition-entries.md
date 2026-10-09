@@ -652,8 +652,10 @@ and the person's page as the link. A push service that says the phone is gone
 drops it. It is sent while the organiser's request is handled (a handful of
 sends), and a mailer that is off simply sends none.
 
-**On recipients' pages** (up to the latest 10, newest first, with the time, in
-a "Messages from the organisers" box): My competition, the member's
+**On recipients' pages** (up to the latest 10, newest first, with when it was
+sent and, within the last day, how long ago, e.g. "Sat 27 Feb, 10:42 · 12
+min ago", as there's no read status; in a "Messages from the organisers"
+box): My competition, the member's
 competition section, the individual's entry page, the club page's competition
 box and the coach page's competition box. A message shows on a page if its
 people include that person (on a club or coach page: any of the club's
