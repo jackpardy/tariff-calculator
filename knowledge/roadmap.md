@@ -170,7 +170,10 @@ features that show that, in this order:
    planned against actual, how late each area is, shown to attendees and
    feeding the delay "what if"), check-in and scratches (built 2026-10-09,
    same page: marked here or scratched, struck through on the printed
-   sheets, a scratched official flagged), messages from the organisers'
+   sheets, a scratched official flagged), panel check-in and a Notify
+   button (built 2026-10-09, same page: officials marked here or missing for
+   their run, and a message to someone not here or their club's staff),
+   messages from the organisers'
    desk (built 2026-10-09,
    [desk messages](features/competition-entries.md#messages-from-the-organisers-desk):
    to a club, a flight, the officials or picked people, by push and email at

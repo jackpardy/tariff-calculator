@@ -613,6 +613,61 @@ competition with "Thanks: the organisers can see you're here." It only works
 once the timetable is published, and only for someone scratched. Self-clears
 aren't in the history, but the person drops off the day page's list.
 
+**Panel check-in** (built 2026-10-09). Beside each flight's gymnasts' check-in, a
+folded **Panel · 4 of 6 here, 1 missing** lists the seats that have someone in
+them (empty seats are left out): the official's name, their role, their state
+(**Here** or **Missing**, with who marked it) and the buttons that would change
+it, **Here**, **Missing** and **Clear**. They post to `/day/officials`
+(`person` key, `flight` key, `status` = `here`, `missing` or empty to clear,
+`day`), which stores one row per person and flight in `official_checkins`
+(migration 28: status, who, when; no row means not marked). The person must
+hold a seat on that flight of the published timetable, or it's a 400; a tap
+that changes nothing is ignored with a notice. Organiser, "everything", chair
+and timetable links can use it, and the history says "Checked in official: Mary
+(BUCS L3, Panel 1)", "Marked an official missing: …" or "Cleared an official's
+check-in: …".
+
+**Runs.** One panel judges an event's whole run, so a check-in is for the run,
+not the flight tapped: `runOf` (`panelcheckin.go`) takes the flights of the
+same event on the same area and day that are back to back (the same grouping
+the rota uses for a run's judges), and the status is stored for every flight of
+the run where the person holds a seat (seats that change between flights, a
+recorder say, are only marked where they hold them). Each flight's list reads
+its own rows, so marking Mary here on flight 1 of 2 shows her here on flight 2
+too, and Clear on either takes both back.
+
+**Missing → what if.** A missing official has **What if they leave** (for links
+that can use the timetable), which opens the [leave](#what-if-an-official-has-to-leave)
+tool for them and that day, as for a scratched official. **Here** on any flight
+also counts as "here somewhere" for the scratch warnings: a scratched person
+who is checked in for their panel has turned up, so both of their warnings go,
+computed rather than stored (so Clear brings them back). **Missing** doesn't
+clear anything. On the printed chair of judges sheets (`sheet=judges`) the
+panel line puts " ✓" after the name of each official who is checked in for that
+flight; the other sheets don't.
+
+**Notify** (built 2026-10-09). Next to each official who isn't checked in or is
+missing, and each gymnast who isn't checked in (not one already marked here or
+scratched), a folded **Notify** has two tick boxes, **Them** (ticked) and **Their
+club** (only for someone who belongs to a club: a club member, or an entry that
+came from a club; organiser-added officials and individuals have none), an
+optional extra line (up to 300 characters) and **Send**. It posts to
+`/day/notify` (`person` key, `flight` key, `as` = `official` or `gymnast`,
+`them`, `club`, `note`, `day`) and sends a [desk message](#messages-from-the-organisers-desk)
+at once, as the link that tapped it. The text is built for them:
+"Mary should be at Panel 1 now to officiate BUCS L3 · flight 1 of 2 (Execution
+judge)." for an official, or "Ann should be at Panel 1 now to compete in BUCS
+L3 · flight 1 of 2, warm-up 09:14." for a gymnast (a synchro pair is named
+together and both are told), with the extra line after it. The person has to be
+on that flight (a seat, or an entry in it) or it's a 400; with neither box
+ticked, or **Their club** only for someone with no club, nothing is sent and the
+notice says so. **Their club** reaches only the club's comp sec and coaches, not
+its members: the message's `staff` (below) holds the club, where `clubs` would
+reach everyone. The page comes back with "Sent to Ann and their club. Told 0 by
+push and 3 by email." and the history says "Notified Ann (and their club): should
+be at Panel 1" (or "Notified Ann's club: …" for the club alone). Organiser,
+"everything", chair and timetable links can use it.
+
 ## The venue screen
 
 Built 2026-10-09. `GET /competitions/admin/{token}/screen?day=N` (default:
@@ -676,7 +731,11 @@ id; nothing is sent if there is no one to send it to.
 subscription (push, and confirmed emails; any topic, since it is urgent) that
 covers someone it was sent to: a member's own; an individual's, if their key
 is in it; the comp sec's, if the message is for their club or any of its
-members; a coach's, if it is for their club or any member who chose them.
+members, or its **staff**; a coach's, if it is for their club or its staff, or
+any member who chose them. A message's **staff** is a list of club ids whose
+comp sec and coaches (every coach of the club, whoever they coach) hear it,
+without the club's members (the On the day [Notify](#on-the-day-flights-started-and-finished)
+button's **Their club**; the desk form itself doesn't use it).
 Each address is told once, however many pages it was given on. Email has the
 subject "Message from the organisers of *Competition*" (or "Please come to the
 organisers' desk · *Competition*"), the text, the page to see it on and the
@@ -693,12 +752,15 @@ competition section, the individual's entry page, the club page's competition
 box and the coach page's competition box. A message shows on a page if its
 people include that person (on a club or coach page: any of the club's
 members, or the coach's members) or its clubs include their club, so people
-who haven't asked to be notified still see it when they look.
+who haven't asked to be notified still see it when they look. A message to a
+club's staff shows only on that club's page and its coaches' pages
+(`DeskMessage.Reaches` takes people, clubs and staff clubs), not on its
+members' pages.
 
 Messages are kept in `desk_messages` (the text, whether it asks them to come,
 the audience in words such as "UCD" or "3 people", its person keys and club
 ids as JSON, who sent it, when, and how many addresses were pushed and
-emailed); a competition keeps up to 500. The page lists them, latest first.
+emailed; the club ids of its staff as JSON, added in migration 29); a competition keeps up to 500. The page lists them, latest first.
 Each is in the history: "Sent a message to UCD", "Called Panel 2's officials,
 Saturday to the desk".
 

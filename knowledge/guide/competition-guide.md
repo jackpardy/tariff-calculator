@@ -296,7 +296,12 @@ has a starting value you can change.
    leave". Tap **Still officiating** or **Still competing** once you know
    they're staying and the warning goes. It also goes by itself if another of
    their entries is checked in, and the gymnast can clear it from their own
-   page with **I'm here for the rest**.
+   page with **I'm here for the rest**. Under each flight, **Panel** does the
+   same for the officials: tap **Here** as each arrives (it counts for the
+   whole run of that event on the area, and clears a scratch warning), or
+   **Missing**, which links to "what if they leave". Next to anyone who isn't
+   here, **Notify** sends them, their club's comp sec and coaches, or both,
+   a message saying where they should be.
    <a id="on-the-day-venue-screen"></a>**Venue screen** (a link at the top of
    the On the day page): what's on each area now and what's next, in big type
    for a screen at the venue. Under **Links and settings** make a **Venue
