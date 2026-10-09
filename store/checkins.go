@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 )
@@ -105,6 +106,60 @@ func (s *Store) ScratchClears(ctx context.Context, competitionID string) (map[st
 			out[person] = map[string]ScratchClear{}
 		}
 		out[person][kind] = c
+	}
+	return out, rows.Err()
+}
+
+// Official check-in statuses on a panel; no row at all means not marked yet.
+const (
+	OfficialHere    = "here"    // the official has arrived for the panel
+	OfficialMissing = "missing" // the official hasn't turned up
+)
+
+// SetOfficialCheckin marks a person here or missing for each of these
+// flights (by key), by who, in one go; a status of "" takes the mark away.
+func (s *Store) SetOfficialCheckin(ctx context.Context, competitionID, person string, flights []string, status, who string) error {
+	if status != "" && status != OfficialHere && status != OfficialMissing {
+		return fmt.Errorf("unknown official check-in status %q", status)
+	}
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		for _, f := range flights {
+			if status == "" {
+				if _, err := tx.ExecContext(ctx, `DELETE FROM official_checkins WHERE competition_id = $1 AND person = $2 AND flight = $3`, competitionID, person, f); err != nil {
+					return err
+				}
+				continue
+			}
+			if _, err := tx.ExecContext(ctx, `INSERT INTO official_checkins (competition_id, person, flight, status, who, at) VALUES ($1, $2, $3, $4, $5, $6)
+				ON CONFLICT (competition_id, person, flight) DO UPDATE SET status = excluded.status, who = excluded.who, at = excluded.at`,
+				competitionID, person, f, status, who, s.stamp()); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// OfficialCheckins are a competition's panel check-ins, by flight key and
+// then person.
+func (s *Store) OfficialCheckins(ctx context.Context, competitionID string) (map[string]map[string]Checkin, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT flight, person, status, at, who FROM official_checkins WHERE competition_id = $1`, competitionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]map[string]Checkin{}
+	for rows.Next() {
+		var flight, person, at string
+		var c Checkin
+		if err := rows.Scan(&flight, &person, &c.Status, &at, &c.Who); err != nil {
+			return nil, err
+		}
+		c.At = parseTime(at)
+		if out[flight] == nil {
+			out[flight] = map[string]Checkin{}
+		}
+		out[flight][person] = c
 	}
 	return out, rows.Err()
 }

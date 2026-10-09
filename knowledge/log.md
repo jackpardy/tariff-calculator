@@ -1,6 +1,14 @@
 # Update log
 
 ## 2026-10-09
+* **Update**: [Panel check-in and Notify](features/competition-entries.md#on-the-day-flights-started-and-finished):
+  under each flight on the On the day page, a **Panel** lists the officials
+  with **Here**, **Missing** and **Clear**, applied to the event's whole run;
+  a missing official links to "what if they leave", a checked-in one clears
+  their scratch warnings and is ticked on the chair of judges sheets. **Notify**
+  beside anyone not here tells them, their club's comp sec and coaches, or
+  both where they should be (desk messages gain a staff audience that skips
+  the club's members).
 * **Update**: [Scratch warnings](features/competition-entries.md#on-the-day-flights-started-and-finished):
   the On the day page now flags a scratched person who still officiates or
   still has other entries in flights that day, and each warning can be

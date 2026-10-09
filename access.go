@@ -51,9 +51,9 @@ func allowed(kind, pattern string) bool {
 	case store.LinkCards:
 		return viewing || post && (path == "/entries/{id}/check" || path == "/entries/{id}/video")
 	case store.LinkChair:
-		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/desk")
+		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/day/officials" || path == "/day/notify" || path == "/desk")
 	case store.LinkTimetable:
-		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/desk") ||
+		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/day/officials" || path == "/day/notify" || path == "/desk") ||
 			post && (strings.HasPrefix(path, "/timetable/") || strings.HasPrefix(path, "/officials/") || path == "/notify-now")
 	}
 	return false
@@ -238,6 +238,10 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		return p.describeCheckin(r, c)
 	case "/day/clear":
 		return p.describeClear(r, c)
+	case "/day/officials":
+		return p.describeOfficial(r, c)
+	case "/day/notify":
+		return p.describeNotify(r, c)
 	case "/desk":
 		return p.describeDesk(r, c)
 	}

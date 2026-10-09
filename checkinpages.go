@@ -37,8 +37,9 @@ func (p *competitionPages) scratchedOf(ctx context.Context, competitionID string
 // checkinOf is a flight's check-in: how many are here and scratched, in words
 // ("8 of 10 here, 1 scratched"), and each gymnast in running order with their
 // state and what could be done about it. Entries no longer in the competition
-// are left out.
-func checkinOf(f competitions.ScheduledFlight, byID map[string]store.Entry, checkins map[string]store.Checkin) (string, []views.DayGymnast) {
+// are left out. keys are the people of each entry; notify says whether to
+// offer to Notify the gymnasts who aren't here.
+func checkinOf(f competitions.ScheduledFlight, byID map[string]store.Entry, checkins map[string]store.Checkin, keys map[string][]string, notify bool) (string, []views.DayGymnast) {
 	var out []views.DayGymnast
 	here, scratched := 0, 0
 	for _, id := range f.Entries {
@@ -53,10 +54,14 @@ func checkinOf(f competitions.ScheduledFlight, byID map[string]store.Entry, chec
 		case store.Scratched:
 			scratched++
 		}
-		out = append(out, views.DayGymnast{
+		g := views.DayGymnast{
 			Entry: id, Name: e.Entry.Gymnasts(), Club: clubOf(e), State: c.Status, Who: c.Who,
 			CanHere: c.Status != store.CheckedIn, CanScratch: c.Status != store.Scratched, CanClear: c.Status != "",
-		})
+		}
+		if notify && c.Status == "" && len(keys[id]) > 0 {
+			g.Notify = views.DayNotify{Person: keys[id][0], As: "gymnast", Club: !e.Individual && e.ClubID != ""}
+		}
+		out = append(out, g)
 	}
 	if len(out) == 0 {
 		return "", nil
@@ -83,9 +88,10 @@ func scratchedPeople(entries []store.Entry, checkins map[string]store.Checkin) m
 	return out
 }
 
-// hereSomewhere are the people with an entry checked in: they've turned up for
+// hereSomewhere are the people with an entry checked in, or checked in for a
+// panel (official, by flight and then person): they've turned up for
 // something, so a scratch elsewhere isn't a worry.
-func hereSomewhere(entries []store.Entry, checkins map[string]store.Checkin) map[string]bool {
+func hereSomewhere(entries []store.Entry, checkins map[string]store.Checkin, official map[string]map[string]store.Checkin) map[string]bool {
 	keys := personKeys(entries)
 	out := map[string]bool{}
 	for _, e := range entries {
@@ -95,12 +101,20 @@ func hereSomewhere(entries []store.Entry, checkins map[string]store.Checkin) map
 			}
 		}
 	}
+	for _, people := range official {
+		for k, c := range people {
+			if c.Status == store.OfficialHere {
+				out[k] = true
+			}
+		}
+	}
 	return out
 }
 
 // warned says whether a kind of scratch warning (store.ClearOfficiating or
 // store.ClearCompeting) still stands for a person: it hasn't been cleared, and
-// no entry of theirs is checked in (which clears both, unrecorded).
+// no entry of theirs, or seat on a panel, is checked in (which clears both,
+// unrecorded).
 func warned(person, kind string, here map[string]bool, clears map[string]map[string]store.ScratchClear) bool {
 	_, cleared := clears[person][kind]
 	return !here[person] && !cleared
@@ -110,13 +124,13 @@ func warned(person, kind string, here map[string]bool, clears map[string]map[str
 // day of the published timetable, with their seats on its flights and their
 // other entries in them, less what's been cleared. whatIf is the "what if an
 // official has to leave" page, or "" if the link can't use it.
-func scratchWarnings(s competitions.Schedule, day int, entries []store.Entry, checkins map[string]store.Checkin, clears map[string]map[string]store.ScratchClear, whatIf string) []views.DayScratched {
+func scratchWarnings(s competitions.Schedule, day int, entries []store.Entry, checkins map[string]store.Checkin, official map[string]map[string]store.Checkin, clears map[string]map[string]store.ScratchClear, whatIf string) []views.DayScratched {
 	gone := scratchedPeople(entries, checkins)
 	if len(gone) == 0 {
 		return nil
 	}
 	keys, names := peopleOf(entries)
-	here := hereSomewhere(entries, checkins)
+	here := hereSomewhere(entries, checkins, official)
 	byID := map[string]store.Entry{}
 	for _, e := range entries {
 		byID[e.ID] = e

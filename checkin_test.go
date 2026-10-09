@@ -138,6 +138,15 @@ func TestCheckinAndScratches(t *testing.T) {
 func scratchSetup(t *testing.T) (h http.Handler, admin, tt string, finn [2]string) {
 	t.Helper()
 	h = competitionServer(t)
+	admin, tt, finn, _ = scratchSetupOn(t, h, nil)
+	return h, admin, tt, finn
+}
+
+// scratchSetupOn is scratchSetup on a server of the caller's choosing (one
+// that can send notifications, say), with the timetable's timings set first if
+// timings isn't nil (to make more flights). It also returns Dara's entry link.
+func scratchSetupOn(t *testing.T, h http.Handler, timings url.Values) (admin, tt string, finn [2]string, dara string) {
+	t.Helper()
 	form := newCompetition()
 	form.Set("tumbling", "Novice")
 	admin = created(t, h, form)
@@ -152,19 +161,22 @@ func scratchSetup(t *testing.T) (h http.Handler, admin, tt string, finn [2]strin
 	redirected(t, h, enter, url.Values{"gymnast": {"Eve"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
 	// Dara competes in tumbling and judges trampoline: tumbling goes first
 	// (as in TestOfficialsRota, where she is seated as an execution judge).
-	dara := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "discipline": {"tumbling"}, "level": {"Novice"}}))
+	dara = withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "discipline": {"tumbling"}, "level": {"Novice"}}))
 	redirected(t, h, dara+"/offer", url.Values{"judge-trampoline": {"1"}})
 	// Finn enters both: tumbling, then BUCS L3 (each entry has its own link).
 	finn[0] = withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Finn"}, "discipline": {"tumbling"}, "level": {"Novice"}}))
 	finn[1] = withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Finn"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
 	tt = admin + "/timetable"
 	redirected(t, h, tt+"/setup/rules", url.Values{"add": {"1"}, "kind": {"before"}, "must": {"1"}, "event": {"Tumbling Novice"}, "event2": {"BUCS L3"}})
+	if timings != nil {
+		redirected(t, h, tt+"/setup/timings", timings)
+	}
 	page := do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
 	if !strings.Contains(page, "Execution judge: Dara") {
 		t.Fatalf("Dara has a seat to be scratched from: %s", page)
 	}
 	redirected(t, h, tt+"/publish", url.Values{"action": {"publish"}})
-	return h, admin, tt, finn
+	return admin, tt, finn, dara
 }
 
 // A scratched gymnast who officiates that day is called out on the day page,

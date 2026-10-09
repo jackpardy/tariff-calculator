@@ -529,6 +529,22 @@ var migrations = []string{
 		at             TEXT NOT NULL,
 		PRIMARY KEY (competition_id, person, kind)
 	);`,
+
+	// 28: officials checked in for their panel on the day (roadmap
+	// 2026-10-09): here or missing, per person and flight.
+	`CREATE TABLE official_checkins (
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		person         TEXT NOT NULL,
+		flight         TEXT NOT NULL,
+		status         TEXT NOT NULL,
+		who            TEXT NOT NULL,
+		at             TEXT NOT NULL,
+		PRIMARY KEY (competition_id, person, flight)
+	);`,
+
+	// 29: desk messages that reach only a club's comp sec and coaches, not
+	// its members.
+	`ALTER TABLE desk_messages ADD COLUMN staff TEXT NOT NULL DEFAULT '[]';`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

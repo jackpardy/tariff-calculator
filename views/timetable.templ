@@ -44,6 +44,7 @@ type RotaView struct {
 type SeatView struct {
 	Role, Person, Name, Club string
 	Label                    string // e.g. "Execution judge 3", to choose it by
+	Here                     bool   // checked in for the panel on the day
 }
 
 // SetupForm is the timetable's setup, as the forms show it.
@@ -754,6 +755,9 @@ func panelLine(seats []SeatView) string {
 			}
 		}
 		out += s.Role + ": " + name
+		if s.Here && s.Person != "" {
+			out += " ✓"
+		}
 	}
 	return out
 }

@@ -73,7 +73,7 @@ func (p *competitionPages) individualHere(w http.ResponseWriter, r *http.Request
 // hereBox is the box for someone scratched from some events who may still be
 // here for the rest: their other entries (any day) or their officiating, so
 // long as the organisers haven't been told. nil if there's nothing to say.
-func hereBox(entries []store.Entry, keys map[string][]string, key string, officiates bool, checkins map[string]store.Checkin, clears map[string]map[string]store.ScratchClear, action string) *views.MyHere {
+func hereBox(entries []store.Entry, keys map[string][]string, key string, officiates bool, checkins map[string]store.Checkin, official map[string]map[string]store.Checkin, clears map[string]map[string]store.ScratchClear, action string) *views.MyHere {
 	var scratched []string
 	others := 0
 	for _, e := range entries {
@@ -89,7 +89,7 @@ func hereBox(entries []store.Entry, keys map[string][]string, key string, offici
 	if len(scratched) == 0 {
 		return nil
 	}
-	here := hereSomewhere(entries, checkins)
+	here := hereSomewhere(entries, checkins, official)
 	officiating := officiates && warned(key, store.ClearOfficiating, here, clears)
 	competing := others > 0 && warned(key, store.ClearCompeting, here, clears)
 	box := &views.MyHere{Scratched: joinAnd(scratched), Action: action}
@@ -122,7 +122,7 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 		page.Calendar = strings.TrimSuffix(r.URL.Path, "/day") + "/calendar.ics"
 	}
 	page.Notify = p.notifyLink(strings.TrimSuffix(r.URL.Path, "/day") + "/notify")
-	page.Desk = p.deskNotes(r.Context(), c.ID, []string{key}, clubIDs(club))
+	page.Desk = p.deskNotes(r.Context(), c.ID, []string{key}, clubIDs(club), nil)
 	t := c.Published
 	published := t != nil
 	page.Published = published
@@ -188,12 +188,17 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 			failed(w, r, err)
 			return
 		}
+		official, err := p.st.OfficialCheckins(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
 		clears, err := p.st.ScratchClears(r.Context(), c.ID)
 		if err != nil {
 			failed(w, r, err)
 			return
 		}
-		page.Here = hereBox(entries, keys, key, len(page.Duties) > 0, checkins, clears, strings.TrimSuffix(r.URL.Path, "/day")+"/here")
+		page.Here = hereBox(entries, keys, key, len(page.Duties) > 0, checkins, official, clears, strings.TrimSuffix(r.URL.Path, "/day")+"/here")
 		if len(page.Duties) > 0 {
 			page.ScoreSheets = strings.TrimSuffix(r.URL.Path, "/day") + "/score-sheets"
 		}
