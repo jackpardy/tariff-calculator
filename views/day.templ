@@ -13,15 +13,18 @@ type DayPage struct {
 	Day         int    // the day shown, by index
 	Days        []DayTab
 	Areas       []DayArea
-	Scratched   []DayScratched // scratched gymnasts who officiate that day
+	Scratched   []DayScratched // scratched gymnasts who officiate or compete that day
 	Desk        string         // the organisers' desk, to send a message; "" if this link can't
 }
 
-// DayScratched is a scratched gymnast who also holds seats that day.
+// DayScratched is a scratched gymnast who also holds seats that day, or is
+// in other flights, and whom the organisers haven't been told is still here.
 type DayScratched struct {
-	Name   string
-	Duties []string // e.g. "Panel 2 · BUCS L4 · Execution judge"
-	WhatIf string   // the "what if they leave" page for them; "" if this link can't use it
+	Name        string
+	Person      string   // their key, to clear a warning
+	Officiating []string // their seats, e.g. "Panel 2 · BUCS L4 · Execution judge"
+	Competing   []string // their other entries, e.g. "Tumbling Novice · flight 1 of 2 · Track 1 · 14:00"
+	WhatIf      string   // the "what if they leave" page for them; "" if this link can't use it
 }
 
 // DayTab is a day to switch to.
@@ -95,14 +98,23 @@ templ Day(p DayPage) {
 		}
 		for _, s := range p.Scratched {
 			<div class="notification is-warning is-light">
-				<strong>{ s.Name } is scratched but officiates:</strong>
-				for _, d := range s.Duties {
-					<br/>
-					{ d }
+				<p><strong>{ s.Name } is scratched</strong></p>
+				if len(s.Officiating) > 0 {
+					<p class="mt-2">But officiates:</p>
+					for _, d := range s.Officiating {
+						<p>{ d }</p>
+					}
+					if s.WhatIf != "" {
+						<p><a href={ templ.SafeURL(s.WhatIf) }>What if they leave</a></p>
+					}
+					@stillHereForm(p, s, "officiating", "Still officiating")
 				}
-				if s.WhatIf != "" {
-					<br/>
-					<a href={ templ.SafeURL(s.WhatIf) }>What if they leave</a>
+				if len(s.Competing) > 0 {
+					<p class="mt-2">But is still entered in:</p>
+					for _, d := range s.Competing {
+						<p>{ d }</p>
+					}
+					@stillHereForm(p, s, "competing", "Still competing")
 				}
 			</div>
 		}
@@ -117,6 +129,17 @@ templ Day(p DayPage) {
 			}
 		</div>
 	}
+}
+
+// stillHereForm is the button that clears a kind of scratch warning: the
+// person is still here for it.
+templ stillHereForm(p DayPage, s DayScratched, kind, label string) {
+	<form method="post" action={ templ.SafeURL(p.Base + "/day/clear") } class="mt-1">
+		<input type="hidden" name="person" value={ s.Person }/>
+		<input type="hidden" name="kind" value={ kind }/>
+		<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+		<button class="button is-small is-warning" type="submit">{ label }</button>
+	</form>
 }
 
 // dayArea is one area's header and flights.

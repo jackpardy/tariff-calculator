@@ -518,6 +518,17 @@ var migrations = []string{
 		emailed        INTEGER NOT NULL DEFAULT 0
 	);
 	CREATE INDEX desk_messages_competition ON desk_messages (competition_id, at);`,
+
+	// 27: scratch warnings cleared (roadmap 2026-10-09): a scratched person
+	// who is still here to officiate or to compete in another entry.
+	`CREATE TABLE scratch_clears (
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		person         TEXT NOT NULL,
+		kind           TEXT NOT NULL,
+		who            TEXT NOT NULL,
+		at             TEXT NOT NULL,
+		PRIMARY KEY (competition_id, person, kind)
+	);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

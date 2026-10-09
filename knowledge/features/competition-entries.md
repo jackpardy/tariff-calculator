@@ -575,10 +575,43 @@ marshal, chair of judges and score sheets, and their event on My competition
 starts its status with "Scratched". They are not taken out of the running
 order or the rota: the sheets still show where they would have been. If a
 scratched gymnast also holds a seat on a flight that day (matched by person
-key, so a scratched entry counts for the person), the top of the day page says
-"Ann Ryan is scratched but officiates: Panel 2 · BUCS L4 · Execution judge",
-and, for links that can use the timetable, **What if they leave** opens the
+key, so a scratched entry counts for the person), the top of the day page
+lists them under "Ann Ryan is scratched" with **But officiates:** and their
+seats on that day's flights ("Panel 2 · BUCS L4 · Execution judge"), and, for
+links that can use the timetable, **What if they leave** opens the
 [leave](#what-if-an-official-has-to-leave) tool for them and that day.
+
+**Scratch warnings: officiating, competing and clearing** (built 2026-10-09).
+`scratchWarnings` (`checkinpages.go`) flags each person with any entry
+scratched, for the day shown, with up to two lists under their name:
+**officiating** (their seats on that day's flights, as above) and
+**competing** (their *other* entries, not scratched, that are in a flight that
+day: "Tumbling Novice · flight 1 of 2 · Track 1 · 14:00", the flight's name,
+area and warm-up time). A person with neither list isn't shown. Each list has a
+button, **Still officiating** and **Still competing**, that posts to
+`/day/clear` (`person` key, `kind` = `officiating` or `competing`, `day`). The
+person must be scratched in this competition and the timetable published, or
+it's refused with a 400; it stores a row in `scratch_clears` (migration 27: one
+per competition, person and kind, with who and when), so the warning goes for
+the whole competition, not just that day, and the history says "Cleared Ann
+Ryan's scratch warning (officiating)". Clearing what is already cleared is
+ignored with a notice and not recorded. Organiser, "everything", chair and
+timetable links can clear.
+
+Two things clear both kinds without the desk doing anything. **Checking in any
+other entry** of the person ("here") clears them, computed from the check-ins
+rather than stored, so taking that check-in back (Clear) brings the warnings
+back. And the person can say so themselves: on **My competition**, if one of
+their entries is scratched and they have officiating seats or other entries
+(any day) whose warning isn't cleared, a box says "You're scratched from
+Tumbling Novice. If you're still here for your other events, tell the
+organisers:" with an **I'm here for the rest** button. It posts to
+`/clubs/member/{token}/competitions/{id}/here` or
+`/competitions/entry/{token}/here` (their own secret links, so no admin gate),
+clears both kinds for that person as themselves, and goes back to My
+competition with "Thanks: the organisers can see you're here." It only works
+once the timetable is published, and only for someone scratched. Self-clears
+aren't in the history, but the person drops off the day page's list.
 
 ## The venue screen
 

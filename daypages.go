@@ -23,6 +23,7 @@ func (p *competitionPages) registerDay(handle func(string, http.HandlerFunc)) {
 	handle("GET /competitions/admin/{token}/day", p.day)
 	handle("POST /competitions/admin/{token}/day/flight", p.markFlight)
 	handle("POST /competitions/admin/{token}/day/checkin", p.markCheckin)
+	handle("POST /competitions/admin/{token}/day/clear", p.clearScratch)
 }
 
 // lateEnough is how many minutes late or early an area has to run before
@@ -134,7 +135,12 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 	if can(r, "GET", "/timetable/leave") {
 		whatIf = base + "/timetable/leave"
 	}
-	page.Scratched = scratchedOfficials(*s, day, entries, checkins, whatIf)
+	clears, err := p.st.ScratchClears(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	page.Scratched = scratchWarnings(*s, day, entries, checkins, clears, whatIf)
 	for i, d := range s.Setup.Days {
 		page.Days = append(page.Days, views.DayTab{Name: d.Name, Link: base + "/day?day=" + strconv.Itoa(i), Active: i == day})
 	}
