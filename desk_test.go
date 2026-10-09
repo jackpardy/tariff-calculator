@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -421,5 +422,41 @@ func TestDeskToOfficials(t *testing.T) {
 	}
 	if history := html2text(do(t, h, http.MethodGet, admin+"/history", nil).Body.String()); !strings.Contains(history, "Called "+html2text(panel[2])+" to the desk") {
 		t.Errorf("the history names the panel: %s", history)
+	}
+
+	// A flight: its gymnasts, its officials, or both. Eve competes in BUCS
+	// L3; Dara judges it.
+	page = do(t, h, http.MethodGet, desk, nil).Body.String()
+	flight := regexp.MustCompile(`<option value="([^"]+)">[^<]*BUCS L3[^<]*</option>`).FindStringSubmatch(page)
+	if flight == nil {
+		t.Fatalf("BUCS L3's flight is offered: %s", page)
+	}
+	key := html2text(flight[1])
+	send := func(extra url.Values) (string, []string) {
+		t.Helper()
+		mail.sent = nil
+		form := url.Values{"to": {"flight"}, "flight": {key}, "flightChoice": {"1"}, "text": {"Flight news"}}
+		for k, v := range extra {
+			form[k] = v
+		}
+		to := redirected(t, h, desk, form)
+		var told []string
+		for _, m := range mail.sent {
+			told = append(told, m.to)
+		}
+		slices.Sort(told)
+		return to, told
+	}
+	if to, told := send(url.Values{"flightOfficials": {"1"}}); !strings.Contains(to, "officials") || strings.Join(told, " ") != "dara@example.com" {
+		t.Errorf("its officials: %s %v", to, told)
+	}
+	if _, told := send(url.Values{"flightGymnasts": {"1"}}); strings.Join(told, " ") != "eve@example.com" {
+		t.Errorf("its gymnasts: %v", told)
+	}
+	if _, told := send(url.Values{"flightGymnasts": {"1"}, "flightOfficials": {"1"}}); strings.Join(told, " ") != "dara@example.com eve@example.com" {
+		t.Errorf("both: %v", told)
+	}
+	if to, _ := send(nil); !strings.Contains(to, "Nothing+was+sent") {
+		t.Errorf("neither ticked: %s", to)
 	}
 }

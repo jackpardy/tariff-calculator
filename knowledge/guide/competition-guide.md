@@ -304,7 +304,7 @@ has a starting value you can change.
    flight with its warm-up time, and how late the area is running.
 12. **Desk messages** (a button on the entries page, and a link at the top of
    On the day; chairs of judges' and timetable links get it too): send a
-   message at once to a club, everyone in a flight, all officials, one
+   message at once to a club, a flight (its gymnasts, its officials or both), all officials, one
    panel's officials, or people you pick, and tick **Ask them to come to the
    organisers' desk** to call someone over. It is pushed and emailed straight
    away to those who asked to hear about changes, and shown in a "Messages

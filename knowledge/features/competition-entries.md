@@ -627,9 +627,10 @@ link send a message at once, with no grace wait, or ask people to come to the
 organisers' desk. Cards links can't use it.
 
 **To** is one of: a **club** (a select of the clubs entered: its comp sec,
-coaches and members); **everyone in a flight** (a select of the published
-flights, grouped by day and area; the gymnasts in it, with a synchro pair's
-partner); **all officials**; **one panel's officials** on a day (the people
+coaches and members); **a flight** (a select of the published flights,
+grouped by day and area, with **Its gymnasts** and **Its officials** to
+tick, either or both: the gymnasts in it, with a synchro pair's partner,
+and the people holding a seat on its panel); **all officials**; **one panel's officials** on a day (the people
 holding a seat on that area's flights that day); or **people I pick** (a
 searchable list of every gymnast and official). The **Message** is up to 500
 characters, and **Ask them to come to the organisers' desk** starts it with

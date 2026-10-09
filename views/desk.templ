@@ -72,7 +72,7 @@ templ Desk(p DeskPage) {
 				</div>
 				<label class="radio is-block mb-2 ml-0">
 					<input type="radio" name="to" value="flight" disabled?={ len(p.Flights) == 0 }/>
-					Everyone in a flight
+					A flight
 					if !p.Published {
 						<span class="is-size-7 has-text-grey">(publish the timetable first)</span>
 					}
@@ -88,6 +88,17 @@ templ Desk(p DeskPage) {
 								</optgroup>
 							}
 						</select>
+					</div>
+					<div class="mb-3 ml-4">
+						<input type="hidden" name="flightChoice" value="1"/>
+						<label class="checkbox mr-3">
+							<input type="checkbox" name="flightGymnasts" value="1" checked/>
+							Its gymnasts
+						</label>
+						<label class="checkbox">
+							<input type="checkbox" name="flightOfficials" value="1"/>
+							Its officials
+						</label>
 					</div>
 				}
 				<label class="radio is-block mb-2 ml-0">

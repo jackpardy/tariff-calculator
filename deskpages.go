@@ -138,20 +138,44 @@ func (p *competitionPages) deskFormOf(r *http.Request, c store.Competition) (d d
 			return d, err
 		}
 		keys := personKeys(all)
+		// Its gymnasts, its officials (its panel's seats), or both; gymnasts
+		// if the form says neither (as before officials could be chosen).
+		gymnasts, officials := r.Form.Get("flightGymnasts") == "1", r.Form.Get("flightOfficials") == "1"
+		if _, asked := r.Form["flightChoice"]; !asked && !gymnasts && !officials {
+			gymnasts = true
+		}
+		add := func(k string) {
+			if !slices.Contains(d.msg.People, k) {
+				d.msg.People = append(d.msg.People, k)
+			}
+		}
 		for _, f := range s.Flights {
 			if competitions.FlightKey(f) != r.Form.Get("flight") {
 				continue
 			}
-			for _, id := range f.Entries {
-				for _, k := range keys[id] {
-					if !slices.Contains(d.msg.People, k) {
-						d.msg.People = append(d.msg.People, k)
+			if gymnasts {
+				for _, id := range f.Entries {
+					for _, k := range keys[id] {
+						add(k)
 					}
 				}
 			}
+			if officials {
+				for _, o := range f.Officials {
+					add(o.Person)
+				}
+			}
 			d.msg.Audience = f.Name()
+			switch {
+			case gymnasts && officials:
+				d.msg.Audience += " (gymnasts and officials)"
+			case officials:
+				d.msg.Audience += " (officials)"
+			}
 		}
 		switch {
+		case !gymnasts && !officials:
+			d.problem = "Tick gymnasts, officials or both for the flight."
 		case d.msg.Audience == "":
 			d.problem = "Pick a flight."
 		case len(d.msg.People) == 0:
