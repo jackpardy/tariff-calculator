@@ -80,6 +80,7 @@ type Dashboard struct {
 	OpenConcerns  int
 	Waiting       []WaitingList // each limited event's waiting list
 	LateWaiting   int           // late changes to decide
+	Published     bool          // the timetable is published
 	Limits        []LimitField
 	NotifyAt      string // when the changes waiting are told, e.g. "14:32"; "" for none
 	NoWait        bool   // no wait on the competition's days
@@ -633,6 +634,9 @@ templ CompetitionDashboard(d Dashboard) {
 			}
 			if d.Access.Officials {
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/officials") }>Officials</a>
+			}
+			if d.Published && d.Access.Day {
+				<a class="button is-small is-success is-light" href={ templ.SafeURL(d.Base + "/day") }>On the day</a>
 			}
 			if d.Access.Settings {
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/fees") }>Fees</a>

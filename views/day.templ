@@ -1,0 +1,135 @@
+package views
+
+import "strconv"
+
+// DayPage is the "On the day" page: for one day of the published timetable,
+// each area's flights with when they were planned and when they really
+// started and finished, and how late the area is running.
+type DayPage struct {
+	Base        string
+	Competition CompetitionSummary
+	Notice      string
+	Day         int // the day shown, by index
+	Days        []DayTab
+	Areas       []DayArea
+}
+
+// DayTab is a day to switch to.
+type DayTab struct {
+	Name, Link string
+	Active     bool
+}
+
+// DayArea is an area's flights that day, and how it's running.
+type DayArea struct {
+	Name    string
+	Status  string // e.g. "Running 15 min late", "On time"; "" for nothing recorded yet
+	Late    bool   // running behind
+	Early   bool   // running ahead
+	Since   string // what it's measured from, e.g. "Finished BUCS L3 at 10:40"
+	WhatIf  string // where to see the rest of the day if it's late; "" for none
+	Flights []DayFlight
+}
+
+// DayFlight is a flight on the day: planned, and as it happened.
+type DayFlight struct {
+	Key, Name string
+	Planned   string // e.g. "09:30–10:40"
+	Started   string // when it started, "" if not yet
+	Finished  string
+	Who       string // who last marked it
+	CanStart  bool   // not started yet
+	CanFinish bool   // started, not finished
+	CanUndo   bool   // something to take back
+}
+
+// Day is the on-the-day page.
+templ Day(p DayPage) {
+	@competitionLayout("On the day · " + p.Competition.Name) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
+		<h1 class="title is-4">On the day</h1>
+		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		if p.Notice != "" {
+			<div class="notification is-info is-light">{ p.Notice }</div>
+		}
+		if len(p.Days) > 1 {
+			<div class="tabs is-small">
+				<ul>
+					for _, d := range p.Days {
+						<li class={ templ.KV("is-active", d.Active) }><a href={ templ.SafeURL(d.Link) }>{ d.Name }</a></li>
+					}
+				</ul>
+			</div>
+		}
+		if len(p.Areas) == 0 {
+			<div class="notification is-light">No flights on this day.</div>
+		}
+		<div class="columns">
+			for _, a := range p.Areas {
+				<div class="column">
+					@dayArea(p, a)
+				</div>
+			}
+		</div>
+	}
+}
+
+// dayArea is one area's header and flights.
+templ dayArea(p DayPage, a DayArea) {
+	<h2 class="title is-5 mb-1">{ a.Name }</h2>
+	<p class="mb-3">
+		if a.Status == "" {
+			<span class="tag is-light">Nothing started yet</span>
+		} else if a.Late {
+			<span class="tag is-warning">{ a.Status }</span>
+		} else if a.Early {
+			<span class="tag is-info is-light">{ a.Status }</span>
+		} else {
+			<span class="tag is-success is-light">{ a.Status }</span>
+		}
+		if a.Since != "" {
+			<span class="is-size-7 has-text-grey">{ a.Since }</span>
+		}
+	</p>
+	if a.WhatIf != "" {
+		<p class="is-size-7 mb-3"><a href={ templ.SafeURL(a.WhatIf) }>What if: see the rest of the day</a></p>
+	}
+	for _, f := range a.Flights {
+		<div class="box comp-flight">
+			<p class="mb-1"><strong>{ f.Name }</strong></p>
+			<p class="is-size-7 mb-1">Planned { f.Planned }</p>
+			<p class="is-size-7 mb-2">
+				Started
+				if f.Started != "" {
+					<strong>{ f.Started }</strong>
+				} else {
+					—
+				}
+				· finished
+				if f.Finished != "" {
+					<strong>{ f.Finished }</strong>
+				} else {
+					—
+				}
+				if f.Who != "" && (f.Started != "" || f.Finished != "") {
+					<span class="has-text-grey"> · { f.Who }</span>
+				}
+			</p>
+			if f.CanStart || f.CanFinish || f.CanUndo {
+				<form method="post" action={ templ.SafeURL(p.Base + "/day/flight") } class="buttons mb-0">
+					<input type="hidden" name="flight" value={ f.Key }/>
+					<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+					if f.CanStart {
+						<button class="button is-success" type="submit" name="what" value="start">Started</button>
+					}
+					if f.CanFinish {
+						<button class="button is-success" type="submit" name="what" value="finish">Finished</button>
+					}
+					if f.CanUndo {
+						<button class="button is-light is-small" type="submit" name="what" value="undo">Undo</button>
+					}
+				</form>
+			}
+		</div>
+	}
+}

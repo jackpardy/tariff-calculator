@@ -63,6 +63,7 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 	t := c.Published
 	published := t != nil
 	page.Published = published
+	var mine []competitions.ScheduledFlight // the flights they're in
 	for _, j := range judge(c.Competition, entries) {
 		if !slices.Contains(keys[j.ID], key) {
 			continue
@@ -81,6 +82,7 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 		if published {
 			if i, ok := t.Find(j.ID); ok {
 				f := t.Flights[i]
+				mine = append(mine, f)
 				pos := slices.Index(f.Entries, j.ID)
 				timing := t.Setup.TimingsFor(f.Discipline)
 				ev.Flight, ev.Area = f.Name(), f.Area
@@ -100,6 +102,10 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 		page.Events = append(page.Events, ev)
 	}
 	if published {
+		if page.Lateness, err = p.lateNotes(r.Context(), c, mine); err != nil {
+			failed(w, r, err)
+			return
+		}
 		officials, err := p.rotaOf(r, c, entries)
 		if err != nil {
 			failed(w, r, err)
