@@ -105,7 +105,9 @@ pair's one routine), checked as the Routine Builder checks them.
   (who it's for) and choose what it can do: **Checking cards** (for
   difficulty judges: check cards, add notes, review videos), **Chairs of
   judges** (see the entries and print the chair of judges, score and
-  marshal sheets), **Timetable and officials**, or **Everything but links
+  marshal sheets), **Timetable and officials**, **Venue screen** (for a
+  screen at the venue: what's on each area now and next, and nothing else; see
+  [On the day](#on-the-day-venue-screen) below), or **Everything but links
   and deleting** (a co-organiser). Copy the link straight away: it's shown
   only once. **Remove** stops it working. **History** lists every change,
   when, and which link made it.
@@ -291,6 +293,15 @@ has a starting value you can change.
    Scratched gymnasts are struck through on the printed sheets, and if one
    also has a seat on a panel that day the page says so, with a link to
    "what if they leave".
+   <a id="on-the-day-venue-screen"></a>**Venue screen** (a link at the top of
+   the On the day page): what's on each area now and what's next, in big type
+   for a screen at the venue. Under **Links and settings** make a **Venue
+   screen** link, open it on the screen's browser and leave it: it refreshes
+   itself every 30 seconds, and that link can open nothing else. Each area
+   shows the flight that has been tapped **Started** (or, if none, the one
+   the plan says should be on, marked "(planned)", or the break), its
+   gymnasts in running order with scratched ones struck through, the next
+   flight with its warm-up time, and how late the area is running.
 
 **What if there's a delay?** (on the timetable page, once planned): choose the
 day, when the hold-up starts, how many minutes and which areas (none ticked

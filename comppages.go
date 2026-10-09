@@ -79,6 +79,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerLimits(handle)
 	p.registerLate(handle)
 	p.registerDay(handle)
+	p.registerScreen(handle)
 	handle("GET /competitions/new", p.newForm)
 	handle("POST /competitions", p.create)
 	handle("GET /competitions/admin/{token}", p.dashboard)

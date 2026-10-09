@@ -34,6 +34,8 @@ chairs to flag concerns.
    - **Everything but links and deleting:** a co-organiser; all but making
      or removing links, replacing the admin link and deleting the
      competition.
+   - **Venue screen** (added 2026-10-09): for a screen at the venue; it can
+     open the "now on" screen and nothing else, not even the dashboard.
    Each is a secret link like the admin link (ADR 0004 Decision 3), kept as
    a hash, shown once when made; the organiser can remove it, and it stops
    working. Up to 20 a competition. The admin link stays the organiser's

@@ -9,7 +9,8 @@ type DayPage struct {
 	Base        string
 	Competition CompetitionSummary
 	Notice      string
-	Day         int // the day shown, by index
+	Screen      string // the venue screen for this day; "" if this link can't open it
+	Day         int    // the day shown, by index
 	Days        []DayTab
 	Areas       []DayArea
 	Scratched   []DayScratched // scratched gymnasts who officiate that day
@@ -70,6 +71,12 @@ templ Day(p DayPage) {
 		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
 		<h1 class="title is-4">On the day</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		if p.Screen != "" {
+			<p class="mb-3">
+				<a class="button is-small is-link is-light" href={ templ.SafeURL(p.Screen) }>Venue screen</a>
+				<span class="help is-inline ml-2">What's on each area now and next, for a screen at the venue. The organiser makes a Venue screen link under Links and settings.</span>
+			</p>
+		}
 		if p.Notice != "" {
 			<div class="notification is-info is-light">{ p.Notice }</div>
 		}

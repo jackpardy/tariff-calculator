@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-09
+* **Update**: [The venue screen](features/competition-entries.md#the-venue-screen):
+  a new **Venue screen** kind of helper link opens a page for a screen at the
+  venue and nothing else. Each area has a card with the flight on now (started
+  by the recorded times, else the planned one, else a break), its gymnasts
+  with scratched ones struck through, the next flight with its warm-up time,
+  and how late the area is running. It refreshes itself every 30 seconds.
 * **Update**: [Check-in and scratches](features/competition-entries.md#on-the-day-flights-started-and-finished):
   under each flight on the On the day page, mark gymnasts **Here** or
   **Scratched** (or clear it). Scratched gymnasts are struck through on the
