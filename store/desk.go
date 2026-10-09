@@ -20,7 +20,8 @@ type DeskMessage struct {
 	Come     bool     // it asks them to come to the organisers' desk
 	Audience string   // who it went to, in words, e.g. "UCD" or "3 people"
 	People   []string // the person keys it went to
-	Clubs    []string // the club ids it went to
+	Clubs    []string // the club ids it went to, and all their members
+	Staff    []string // the club ids whose comp sec and coaches it went to, not their members
 	Who      string   // the link that sent it
 	At       time.Time
 	Pushed   int // addresses told by push
@@ -45,9 +46,13 @@ func (s *Store) SendDeskMessage(ctx context.Context, competitionID string, m Des
 	if err != nil {
 		return DeskMessage{}, err
 	}
+	staff, err := json.Marshal(append([]string{}, m.Staff...))
+	if err != nil {
+		return DeskMessage{}, err
+	}
 	m.ID, m.At = newID(), parseTime(s.stamp())
-	_, err = s.db.ExecContext(ctx, `INSERT INTO desk_messages (id, competition_id, text, come, audience, people, clubs, who, at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		m.ID, competitionID, m.Text, m.Come, m.Audience, string(people), string(clubs), m.Who, s.stamp())
+	_, err = s.db.ExecContext(ctx, `INSERT INTO desk_messages (id, competition_id, text, come, audience, people, clubs, staff, who, at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+		m.ID, competitionID, m.Text, m.Come, m.Audience, string(people), string(clubs), string(staff), m.Who, s.stamp())
 	return m, err
 }
 
@@ -58,7 +63,7 @@ func (s *Store) SetDeskTold(ctx context.Context, competitionID, id string, pushe
 
 // DeskMessages are a competition's messages, latest first.
 func (s *Store) DeskMessages(ctx context.Context, competitionID string) ([]DeskMessage, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, text, come, audience, people, clubs, who, at, pushed, emailed FROM desk_messages WHERE competition_id = $1 ORDER BY at DESC, rowid DESC LIMIT $2`,
+	rows, err := s.db.QueryContext(ctx, `SELECT id, text, come, audience, people, clubs, staff, who, at, pushed, emailed FROM desk_messages WHERE competition_id = $1 ORDER BY at DESC, rowid DESC LIMIT $2`,
 		competitionID, MaxDeskMessages)
 	if err != nil {
 		return nil, err
@@ -67,12 +72,13 @@ func (s *Store) DeskMessages(ctx context.Context, competitionID string) ([]DeskM
 	var out []DeskMessage
 	for rows.Next() {
 		var m DeskMessage
-		var people, clubs, at string
-		if err := rows.Scan(&m.ID, &m.Text, &m.Come, &m.Audience, &people, &clubs, &m.Who, &at, &m.Pushed, &m.Emailed); err != nil {
+		var people, clubs, staff, at string
+		if err := rows.Scan(&m.ID, &m.Text, &m.Come, &m.Audience, &people, &clubs, &staff, &m.Who, &at, &m.Pushed, &m.Emailed); err != nil {
 			return nil, err
 		}
 		json.Unmarshal([]byte(people), &m.People)
 		json.Unmarshal([]byte(clubs), &m.Clubs)
+		json.Unmarshal([]byte(staff), &m.Staff)
 		m.At = parseTime(at)
 		out = append(out, m)
 	}
@@ -94,8 +100,11 @@ func (m DeskMessage) Full() string {
 	return ComeToTheDesk + " " + m.Text
 }
 
-// Reaches says whether the message went to any of these people or clubs.
-func (m DeskMessage) Reaches(people, clubs []string) bool {
+// Reaches says whether the message went to any of these people, to any of
+// these clubs (and so their members), or to the comp sec and coaches of any of
+// these staff clubs.
+func (m DeskMessage) Reaches(people, clubs, staff []string) bool {
 	return slices.ContainsFunc(people, func(k string) bool { return slices.Contains(m.People, k) }) ||
-		slices.ContainsFunc(clubs, func(c string) bool { return slices.Contains(m.Clubs, c) })
+		slices.ContainsFunc(clubs, func(c string) bool { return slices.Contains(m.Clubs, c) }) ||
+		slices.ContainsFunc(staff, func(c string) bool { return slices.Contains(m.Staff, c) })
 }

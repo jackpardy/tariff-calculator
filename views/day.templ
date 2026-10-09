@@ -56,6 +56,28 @@ type DayFlight struct {
 	CanUndo   bool   // something to take back
 	Checkin   string // e.g. "8 of 10 here, 1 scratched"
 	Gymnasts  []DayGymnast
+	Panel     string // e.g. "4 of 6 here, 1 missing"; "" if no one has a seat
+	Seats     []DaySeat
+}
+
+// DayNotify is the Notify form beside someone who isn't here; Person is ""
+// for none.
+type DayNotify struct {
+	Person string // their key
+	As     string // "official" or "gymnast"
+	Club   bool   // they belong to a club, so "Their club" is offered
+}
+
+// DaySeat is an official in a flight's panel check-in.
+type DaySeat struct {
+	Person, Name, Role string
+	State              string // "here", "missing" or "" for not marked
+	Who                string // who marked them
+	CanHere            bool
+	CanMissing         bool
+	CanClear           bool
+	WhatIf             string // the "what if they leave" page for a missing official; "" if this link can't use it
+	Notify             DayNotify
 }
 
 // DayGymnast is a gymnast in a flight's check-in.
@@ -67,6 +89,7 @@ type DayGymnast struct {
 	CanHere     bool
 	CanScratch  bool
 	CanClear    bool
+	Notify      DayNotify
 }
 
 // Day is the on-the-day page.
@@ -230,10 +253,74 @@ templ dayArea(p DayPage, a DayArea) {
 									<button class="button is-small is-light" type="submit" name="status" value="">Clear</button>
 								}
 							</form>
+							if g.Notify.Person != "" {
+								@dayNotify(p, f.Key, g.Notify)
+							}
+						</div>
+					}
+				</details>
+			}
+			if len(f.Seats) > 0 {
+				<details class="comp-checkin mt-2">
+					<summary class="is-size-7">Panel · { f.Panel }</summary>
+					for _, s := range f.Seats {
+						<div class="comp-checkin-row">
+							<span class="comp-panel-name">
+								<span>{ s.Name }</span>
+								<span class="has-text-grey is-size-7">{ s.Role }</span>
+								if s.State == "here" {
+									<span class="tag is-success is-light">Here</span>
+								} else if s.State == "missing" {
+									<span class="tag is-danger is-light">Missing</span>
+								}
+								if s.Who != "" {
+									<span class="has-text-grey is-size-7">{ s.Who }</span>
+								}
+							</span>
+							<form method="post" action={ templ.SafeURL(p.Base + "/day/officials") }>
+								<input type="hidden" name="person" value={ s.Person }/>
+								<input type="hidden" name="flight" value={ f.Key }/>
+								<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+								if s.CanHere {
+									<button class="button is-small is-success is-light" type="submit" name="status" value="here">Here</button>
+								}
+								if s.CanMissing {
+									<button class="button is-small is-danger is-light" type="submit" name="status" value="missing">Missing</button>
+								}
+								if s.CanClear {
+									<button class="button is-small is-light" type="submit" name="status" value="">Clear</button>
+								}
+							</form>
+							if s.WhatIf != "" {
+								<a class="is-size-7" href={ templ.SafeURL(s.WhatIf) }>What if they leave</a>
+							}
+							if s.Notify.Person != "" {
+								@dayNotify(p, f.Key, s.Notify)
+							}
 						</div>
 					}
 				</details>
 			}
 		</div>
 	}
+}
+
+// dayNotify is the small form that tells someone who isn't here where they
+// should be: them, their club's comp sec and coaches, or both.
+templ dayNotify(p DayPage, flight string, n DayNotify) {
+	<details class="comp-notify">
+		<summary class="is-size-7">Notify</summary>
+		<form method="post" action={ templ.SafeURL(p.Base + "/day/notify") }>
+			<input type="hidden" name="person" value={ n.Person }/>
+			<input type="hidden" name="flight" value={ flight }/>
+			<input type="hidden" name="as" value={ n.As }/>
+			<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+			<label class="checkbox is-size-7"><input type="checkbox" name="them" value="1" checked/> Them</label>
+			if n.Club {
+				<label class="checkbox is-size-7"><input type="checkbox" name="club" value="1"/> Their club</label>
+			}
+			<input class="input is-small" type="text" name="note" maxlength="300" placeholder="Extra line (optional)" aria-label="Extra line"/>
+			<button class="button is-small is-link is-light" type="submit">Send</button>
+		</form>
+	</details>
 }

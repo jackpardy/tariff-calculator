@@ -371,8 +371,9 @@ func (p *competitionPages) sendDesk(w http.ResponseWriter, r *http.Request) {
 }
 
 // deskNotes are the messages that reach someone, newest first, at most
-// maxDeskShown: those sent to any of these people, or to any of these clubs.
-func (p *competitionPages) deskNotes(ctx context.Context, competitionID string, people, clubs []string) []views.DeskNote {
+// maxDeskShown: those sent to any of these people, to any of these clubs (all
+// their members), or to the comp sec and coaches of any of these staff clubs.
+func (p *competitionPages) deskNotes(ctx context.Context, competitionID string, people, clubs, staff []string) []views.DeskNote {
 	sent, err := p.st.DeskMessages(ctx, competitionID)
 	if err != nil {
 		log.Printf("Desk: %s: %v", competitionID, err)
@@ -383,7 +384,7 @@ func (p *competitionPages) deskNotes(ctx context.Context, competitionID string, 
 		if len(out) == maxDeskShown {
 			break
 		}
-		if m.Reaches(people, clubs) {
+		if m.Reaches(people, clubs, staff) {
 			out = append(out, views.DeskNote{Text: m.Full(), At: deskWhen(m.At, p.now()), Come: m.Come})
 		}
 	}

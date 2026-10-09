@@ -1415,7 +1415,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		page.Timeline, page.Calendar = path+"/timeline", path+"/calendar.ics"
 	}
 	page.Notify = p.notifyLink(path + "/notify")
-	page.Desk = p.deskNotes(r.Context(), c.ID, []string{individualKey(e.Entry.Gymnast)}, nil)
+	page.Desk = p.deskNotes(r.Context(), c.ID, []string{individualKey(e.Entry.Gymnast)}, nil, nil)
 	page.Fees = p.feesSummary(r.Context(), c, entryPayer(e.ID), path+"/invoice")
 	if lateOpen(c, p.now()) {
 		page.LateAsk = path + "/late"

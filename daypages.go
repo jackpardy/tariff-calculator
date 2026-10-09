@@ -24,6 +24,8 @@ func (p *competitionPages) registerDay(handle func(string, http.HandlerFunc)) {
 	handle("POST /competitions/admin/{token}/day/flight", p.markFlight)
 	handle("POST /competitions/admin/{token}/day/checkin", p.markCheckin)
 	handle("POST /competitions/admin/{token}/day/clear", p.clearScratch)
+	handle("POST /competitions/admin/{token}/day/officials", p.markOfficial)
+	handle("POST /competitions/admin/{token}/day/notify", p.notifyOne)
 }
 
 // lateEnough is how many minutes late or early an area has to run before
@@ -140,7 +142,25 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	page.Scratched = scratchWarnings(*s, day, entries, checkins, clears, whatIf)
+	official, err := p.st.OfficialCheckins(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	page.Scratched = scratchWarnings(*s, day, entries, checkins, official, clears, whatIf)
+	rota, err := p.rotaOf(r, c, entries)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	_, names := peopleOf(entries)
+	nameOf := officialNames(rota, names, false)
+	inClub := map[string]bool{} // people who belong to a club, to offer "Their club"
+	for _, o := range rota {
+		inClub[o.Key] = o.Club != ""
+	}
+	notify := can(r, "POST", "/day/notify")
+	keys := personKeys(entries)
 	for i, d := range s.Setup.Days {
 		page.Days = append(page.Days, views.DayTab{Name: d.Name, Link: base + "/day?day=" + strconv.Itoa(i), Active: i == day})
 	}
@@ -171,7 +191,8 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 				CanStart: t.Started.IsZero(), CanFinish: !t.Started.IsZero() && t.Finished.IsZero(),
 				CanUndo: !t.Started.IsZero() || !t.Finished.IsZero(),
 			}
-			df.Checkin, df.Gymnasts = checkinOf(f, byID, checkins)
+			df.Checkin, df.Gymnasts = checkinOf(f, byID, checkins, keys, notify)
+			df.Panel, df.Seats = panelOf(f, day, nameOf, inClub, official[competitions.FlightKey(f)], whatIf, notify)
 			area.Flights = append(area.Flights, df)
 		}
 		marked := slices.ContainsFunc(area.Flights, func(f views.DayFlight) bool { return f.Started != "" || f.Finished != "" })

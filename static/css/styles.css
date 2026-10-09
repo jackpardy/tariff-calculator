@@ -704,6 +704,11 @@ details > * { box-sizing: border-box; }
 .comp-checkin-row { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; align-items: center; padding: 0.35rem 0; border-top: 1px solid #eee; }
 .comp-checkin-row .comp-checkin-name { flex: 1 1 8rem; }
 .comp-checkin-row form { display: flex; gap: 0.3rem; margin: 0; }
+.comp-checkin-row .comp-panel-name { flex: 1 1 8rem; }
+.comp-notify { flex: 1 1 100%; }
+.comp-notify summary { cursor: pointer; }
+.comp-checkin-row .comp-notify form { flex-wrap: wrap; align-items: center; margin-top: 0.3rem; }
+.comp-notify .input { width: 14rem; max-width: 100%; }
 /* The venue screen (views/screen.templ): dark on light, readable across a hall. */
 .screen-body { background: #fff; color: #111; margin: 0; padding: 1.25rem 1.5rem; font-size: 1.25rem; }
 .screen-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.25rem 1.5rem; border-bottom: 4px solid #111; padding-bottom: 0.5rem; margin-bottom: 1.25rem; }

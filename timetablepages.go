@@ -802,11 +802,21 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 		Title: title, Back: timetablePath(r), Competition: summary(c.Competition, p.now()), Judges: judges,
 		Exercises: map[string][2]string{}, Notes: map[string]string{},
 	}
+	var arrived map[string]map[string]store.Checkin // panel check-ins, ticked on the chair of judges sheets
+	if judges {
+		if arrived, err = p.st.OfficialCheckins(r.Context(), c.ID); err != nil {
+			failed(w, r, err)
+			return
+		}
+	}
 	for _, day := range itemsOf(s, entries, people) {
 		for _, area := range day.Areas {
 			sheet := views.SheetView{Day: day.Name, Area: area.Name}
 			for _, it := range area.Items {
 				if it.Flight {
+					for i := range it.Seats {
+						it.Seats[i].Here = arrived[competitions.FlightKey(s.Flights[it.Index])][it.Seats[i].Person].Status == store.OfficialHere
+					}
 					for i := range it.Gymnasts {
 						it.Gymnasts[i].Scratched = scratched[it.Gymnasts[i].ID]
 					}

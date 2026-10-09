@@ -36,7 +36,8 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 	}
 	keys := personKeys(entries)
 
-	// Who it reaches: its people, and every member of its clubs.
+	// Who it reaches: its people, every member of its clubs, and the comp sec
+	// and coaches of its clubs and staff clubs.
 	members := map[string][]store.Member{}
 	reached := map[string]bool{}
 	for _, k := range m.People {
@@ -52,9 +53,10 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 			n.members(ctx, e.ClubID, members)
 		}
 	}
-	// A club's coaches hear what is sent to the club, even with no members.
+	// A club's coaches hear what is sent to the club, even with no members,
+	// and what is sent to its staff.
 	clubCoach := map[string]bool{}
-	for _, club := range m.Clubs {
+	for _, club := range slices.Concat(m.Clubs, m.Staff) {
 		coaches, err := n.st.Coaches(ctx, club)
 		if err != nil {
 			log.Printf("Desk: coaches of %s: %v", club, err)
@@ -71,7 +73,7 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 		case store.NotifyIndividual:
 			return len(keys[sub.OwnerID]) > 0 && reached[keys[sub.OwnerID][0]]
 		case store.NotifyClub:
-			return slices.Contains(m.Clubs, sub.OwnerID) || slices.ContainsFunc(n.members(ctx, sub.OwnerID, members), func(mem store.Member) bool { return reached["m:"+mem.ID] })
+			return slices.Contains(m.Clubs, sub.OwnerID) || slices.Contains(m.Staff, sub.OwnerID) || slices.ContainsFunc(n.members(ctx, sub.OwnerID, members), func(mem store.Member) bool { return reached["m:"+mem.ID] })
 		case store.NotifyCoach:
 			if clubCoach[sub.OwnerID] {
 				return true
