@@ -118,6 +118,8 @@ templ dayArea(p DayPage, a DayArea) {
 			<span class="tag is-warning">{ a.Status }</span>
 		} else if a.Early {
 			<span class="tag is-info is-light">{ a.Status }</span>
+		} else if a.Since == "" {
+			<span class="tag is-light">{ a.Status }</span>
 		} else {
 			<span class="tag is-success is-light">{ a.Status }</span>
 		}

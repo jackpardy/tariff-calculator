@@ -34,7 +34,9 @@ type AreaLateness struct {
 // recorded (by FlightKey). Each area is measured from its flight with the
 // latest recorded event (finishing beats starting for the same flight): the
 // actual time against the planned one (a flight's end if it finished, its
-// start if it only started). Areas with nothing recorded are absent.
+// start if it only started). Times recorded on another date than the day's
+// (marking a flight before the competition, say) don't count. Areas with
+// nothing recorded are absent.
 func Lateness(s Schedule, day int, firstDay time.Time, loc *time.Location, actual map[string]Actual) map[string]AreaLateness {
 	midnight := time.Date(firstDay.Year(), firstDay.Month(), firstDay.Day()+day, 0, 0, 0, 0, loc)
 	out := map[string]AreaLateness{}
@@ -49,6 +51,9 @@ func Lateness(s Schedule, day int, firstDay time.Time, loc *time.Location, actua
 		at, as, planned := a.Started, "started", f.Start
 		if !a.Finished.IsZero() {
 			at, as, planned = a.Finished, "finished", f.End
+		}
+		if y, m, d := at.In(loc).Date(); y != midnight.Year() || m != midnight.Month() || d != midnight.Day() {
+			continue
 		}
 		if cur, ok := out[f.Area]; ok && !at.After(cur.At) {
 			continue

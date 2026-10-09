@@ -46,3 +46,14 @@ func TestLateness(t *testing.T) {
 		t.Errorf("the next day is measured on its own: %+v", d2)
 	}
 }
+
+// A time recorded on another date than the flight's day doesn't count.
+func TestLatenessOtherDay(t *testing.T) {
+	first := time.Date(2030, 3, 16, 0, 0, 0, 0, time.UTC)
+	f := ScheduledFlight{Flight: Flight{Level: "BUCS L3", Number: 1, Of: 1}, Area: "P1", Start: 9 * 60, End: 10 * 60}
+	s := Schedule{Setup: Setup{Days: []Day{{Name: "Sat"}}}, Flights: []ScheduledFlight{f}}
+	early := map[string]Actual{FlightKey(f): {Started: time.Date(2026, 10, 9, 9, 0, 0, 0, time.UTC)}}
+	if got := Lateness(s, 0, first, time.UTC, early); len(got) != 0 {
+		t.Errorf("a time from another date: %+v", got)
+	}
+}

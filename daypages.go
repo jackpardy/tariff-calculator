@@ -162,6 +162,12 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 			df.Checkin, df.Gymnasts = checkinOf(f, byID, checkins)
 			area.Flights = append(area.Flights, df)
 		}
+		marked := slices.ContainsFunc(area.Flights, func(f views.DayFlight) bool { return f.Started != "" || f.Finished != "" })
+		if _, ok := late[a.Name]; !ok && marked {
+			// Times marked on another date (trying the page out before
+			// the day, say) say nothing about how late it's running.
+			area.Status = "Not measured: times marked on another date than " + s.Setup.Days[day].Name + "'s"
+		}
 		if l, ok := late[a.Name]; ok {
 			area.Status = lateText(l)
 			area.Late, area.Early = l.Minutes > 0, l.Minutes < 0
