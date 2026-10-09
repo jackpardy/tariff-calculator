@@ -477,6 +477,11 @@ var migrations = []string{
 	ALTER TABLE late_requests ADD COLUMN signed_by TEXT NOT NULL DEFAULT '';
 	ALTER TABLE late_requests ADD COLUMN signed_coach TEXT NOT NULL DEFAULT '';
 	ALTER TABLE late_requests ADD COLUMN sign_note TEXT NOT NULL DEFAULT '';`,
+
+	// 23: when changes to entries, and coaches' sign-offs, close, if later
+	// than the deadline (roadmap 2026-10-08).
+	`ALTER TABLE competitions ADD COLUMN changes_until TEXT NOT NULL DEFAULT '';
+	ALTER TABLE competitions ADD COLUMN signoffs_until TEXT NOT NULL DEFAULT '';`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

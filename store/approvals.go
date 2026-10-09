@@ -283,7 +283,7 @@ func (s *Store) SetEntryCoach(ctx context.Context, token, name, qualification, c
 		if err := tx.QueryRowContext(ctx, `SELECT id, competition_id FROM entries WHERE token_hash = $1 AND individual`, hash(token)).Scan(&entryID, &competitionID); err != nil {
 			return notFound(err)
 		}
-		if err := s.open(ctx, tx, competitionID); err != nil {
+		if err := s.open(ctx, tx, competitionID, signing); err != nil {
 			return err
 		}
 		_, err := tx.ExecContext(ctx, `INSERT INTO entry_coaches (entry_id, name, qualification, cert_type, certificate, sent_at) VALUES ($1, $2, $3, $4, $5, $6)

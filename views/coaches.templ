@@ -215,7 +215,7 @@ templ SignoffEntry(p SignoffPage) {
 		@entryCard(p.Card)
 		if p.Cannot != "" {
 			<p class="has-text-grey mt-4">{ p.Cannot }</p>
-		} else if p.Competition.Open {
+		} else if p.Competition.SignoffsOpen {
 			<div class="box mt-4">
 				@problemList(p.Problems)
 				<form method="post" action={ templ.SafeURL(p.Action) }>

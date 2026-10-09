@@ -309,7 +309,7 @@ func (p *competitionPages) clubOffers(r *http.Request, base string, club store.C
 			continue
 		}
 		row := views.ClubOfferRow{Member: m.Name, Offer: o.Describe()}
-		if c.Open(p.now()) {
+		if c.ChangesOpen(p.now()) {
 			row.Edit = base + "/members/" + m.ID + "/competitions/" + c.ID + "/offer"
 		}
 		out = append(out, row)

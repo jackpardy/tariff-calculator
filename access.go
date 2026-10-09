@@ -152,6 +152,8 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 			return fmt.Sprintf("Put %s on hold", entriesWord(n))
 		}
 		return "Removed " + entriesWord(n)
+	case "/later-deadlines":
+		return "Changed when changes and sign-offs close"
 	case "/deadline":
 		if f("close") == "1" {
 			return "Closed entries"

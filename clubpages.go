@@ -219,7 +219,7 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 			if row.Video == "" && e.VideoReview == store.VideoMore && !e.ChangedSinceSent() {
 				row.Video, row.Note = "need more", strings.TrimSpace(row.Note+" "+e.VideoNote)
 			}
-			if cc.Competition.Open {
+			if cc.Competition.ChangesOpen {
 				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline
 			}
 			if id := copyOf[e.MemberID+"/"+e.Discipline]; id != "" {
@@ -764,7 +764,7 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 		form := offerForm(c.Competition, offer, path+"/competitions/"+c.ID+"/offer")
 		mc.Offer = &form
 		// Open what needs doing: a competition still open, or one with problems just posted.
-		mc.Open = mc.Open || (mc.Competition.Open && len(comps) == 1)
+		mc.Open = mc.Open || (mc.Competition.ChangesOpen && len(comps) == 1)
 		page.Competitions = append(page.Competitions, mc)
 	}
 	pairs, err := p.st.MemberPairEntries(ctx, m.ID)

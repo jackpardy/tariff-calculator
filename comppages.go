@@ -86,6 +86,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("GET /competitions/admin/{token}/cards", p.cards)
 	handle("GET /competitions/admin/{token}/entries.csv", p.csvExport)
 	handle("POST /competitions/admin/{token}/deadline", p.deadline)
+	handle("POST /competitions/admin/{token}/later-deadlines", p.laterDeadlines)
 	handle("POST /competitions/admin/{token}/live", p.live)
 	handle("POST /competitions/admin/{token}/video", p.video)
 	handle("POST /competitions/admin/{token}/signoff", p.setSignoff)
@@ -408,15 +409,38 @@ func origin(r *http.Request) string {
 	return scheme + "://" + r.Host
 }
 
+// dateField and timeField are a later closing time for a form: "" if it
+// isn't later than the deadline.
+func dateField(t, deadline time.Time) string {
+	if !t.After(deadline) {
+		return ""
+	}
+	return t.In(local).Format("2006-01-02")
+}
+
+func timeField(t, deadline time.Time) string {
+	if !t.After(deadline) {
+		return ""
+	}
+	return t.In(local).Format("15:04")
+}
+
 // summary is what the pages say about a competition.
 func summary(c competitions.Competition, now time.Time) views.CompetitionSummary {
 	out := views.CompetitionSummary{
 		Name: c.Name, Date: c.Date, Deadline: c.Deadline.In(local).Format("Monday 2 January 2006, 15:04"),
 		DeleteAfter: c.DeleteAfter().Format("2 January 2006"), Open: c.Open(now), Individuals: c.Individuals,
+		ChangesOpen: c.ChangesOpen(now), SignoffsOpen: c.SignoffsOpen(now),
 		Video: c.Video.Describe(), Signoff: c.Signoff, Live: c.Live(now),
 	}
 	if !c.LiveAt.IsZero() && !out.Live {
 		out.Opens = c.LiveAt.In(local).Format("Monday 2 January 2006, 15:04")
+	}
+	if c.ChangesClose().After(c.Deadline) {
+		out.ChangesUntil = c.ChangesClose().In(local).Format("Monday 2 January 2006, 15:04")
+	}
+	if c.SignoffsClose().After(c.Deadline) {
+		out.SignoffsUntil = c.SignoffsClose().In(local).Format("Monday 2 January 2006, 15:04")
 	}
 	if day, err := c.Day(); err == nil {
 		out.Date = day.Format("Monday 2 January 2006")
@@ -594,6 +618,8 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		Entries: len(entries), New: q.Get("new"), Notice: q.Get("notice"),
 		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
 		LiveDate: liveAt.Format("2006-01-02"), LiveTime: liveAt.Format("15:04"),
+		ChangesDate: dateField(c.ChangesUntil, c.Deadline), ChangesTime: timeField(c.ChangesUntil, c.Deadline),
+		SignoffsDate: dateField(c.SignoffsUntil, c.Deadline), SignoffsTime: timeField(c.SignoffsUntil, c.Deadline),
 		NotifyOn: p.notifyLink("/") != "", NoWait: c.NoWait,
 		Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()), Events: eventsForm(c.Competition),
 		LevelOrder: levelOrderForm(c.Competition),
@@ -973,6 +999,46 @@ func (p *competitionPages) deadline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+}
+
+// laterDeadlines sets when changes to entries (changesDate, changesTime)
+// and coaches' sign-offs (signoffsDate, signoffsTime) close, if later than
+// the deadline; empty: with it.
+func (p *competitionPages) laterDeadlines(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	at := func(date, clock string) (time.Time, bool) {
+		if strings.TrimSpace(date) == "" {
+			return time.Time{}, true
+		}
+		if clock == "" {
+			clock = "23:59"
+		}
+		t, err := time.ParseInLocation("2006-01-02 15:04", date+" "+clock, local)
+		return t.UTC(), err == nil
+	}
+	changes, ok1 := at(r.FormValue("changesDate"), r.FormValue("changesTime"))
+	signoffs, ok2 := at(r.FormValue("signoffsDate"), r.FormValue("signoffsTime"))
+	changed := c.Competition
+	changed.ChangesUntil, changed.SignoffsUntil = changes, signoffs
+	switch {
+	case !ok1 || !ok2:
+		backToDashboard(w, r, "Give each date as a date and time; nothing was changed.")
+		return
+	case !changes.IsZero() && changes.Before(c.Deadline), !signoffs.IsZero() && signoffs.Before(c.Deadline):
+		backToDashboard(w, r, "Changes and sign-offs can't close before entries do; nothing was changed.")
+		return
+	case changed.Validate() != nil:
+		backToDashboard(w, r, "Changes and sign-offs must close by the end of the competition date; nothing was changed.")
+		return
+	}
+	if err := p.st.SetChangesAndSignoffs(r.Context(), c.ID, changes, signoffs); err != nil {
+		failed(w, r, err)
+		return
+	}
+	backToDashboard(w, r, "Saved.")
 }
 
 // exerciseSummary is an exercise in a dashboard row: a set routine performed as
@@ -1355,7 +1421,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	switch {
 	case e.Removal == store.Removed:
 		page.Removal = strings.TrimSpace("The organiser removed this entry, so it can't be changed. " + e.RemovalNote)
-		page.Competition.Open = false
+		page.Competition.Open, page.Competition.ChangesOpen = false, false
 	case e.Resent:
 		page.Removal = "Changed and sent again: waiting for the organiser to accept it back in."
 	case e.Removal == store.Held:
@@ -1697,7 +1763,7 @@ func (p *competitionPages) signOffIndividual(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	if !c.Open(p.now()) {
+	if !c.SignoffsOpen(p.now()) {
 		failed(w, r, notOpen(c.Competition, p.now()))
 		return
 	}

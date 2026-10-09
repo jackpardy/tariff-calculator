@@ -317,7 +317,7 @@ templ ClubAdmin(c ClubPage) {
 						</table>
 					</div>
 				}
-				if comp.Competition.Open && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
+				if comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
 					<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/send") } class="buttons">
 						<button class="button is-primary is-small" type="submit" name="which" value="changed" disabled?={ comp.ToSend == 0 }>
 							{ fmt.Sprintf("Send new and changed (%d)", comp.ToSend) }
@@ -603,7 +603,7 @@ templ MemberHome(p MemberPage) {
 						@memberEvent(c.Competition, ev)
 					}
 					@dutiesBox(c.Duties, c.ScoreSheets)
-					if c.Offer != nil && c.Competition.Open {
+					if c.Offer != nil && c.Competition.ChangesOpen {
 						@offerBox(*c.Offer)
 					}
 				</div>
@@ -653,7 +653,7 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 		if ev.Card != nil {
 			@entryCard(*ev.Card)
 		}
-		if comp.Open {
+		if comp.ChangesOpen {
 			if ev.Card != nil {
 				// Collapsed under the card; open when a save had problems.
 				<details class="box mt-4 comp-change" open?={ len(ev.Form.Problems) > 0 }>

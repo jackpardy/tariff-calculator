@@ -18,7 +18,11 @@ type CompetitionSummary struct {
 	Date        string // e.g. "Saturday 13 March 2027"
 	Deadline    string // e.g. "Saturday 6 March 2027, 23:59"
 	DeleteAfter string // when it and its entries are deleted
-	Open        bool   // entries can still be sent or changed
+	Open        bool   // new entries can be made
+	ChangesOpen bool   // entries already made can be changed, withdrawn or sent again
+	SignoffsOpen bool  // coaches can sign off
+	ChangesUntil  string // when changes close, if later than the deadline
+	SignoffsUntil string // when sign-offs close, if later than the deadline
 	Live        bool   // gone live: not private, being set up or paused
 	Opens       string // when it goes live, if it's due to, e.g. "Monday 1 February 2027, 09:00"
 	Individuals bool   // individuals can enter directly
@@ -64,6 +68,10 @@ type Dashboard struct {
 	Notice        string // what just happened
 	DeadlineDate  string // the closing time, for changing it
 	DeadlineTime  string
+	ChangesDate   string // when changes and sign-offs close, if later, for changing them
+	ChangesTime   string
+	SignoffsDate  string
+	SignoffsTime  string
 	LiveDate      string // when it's due to go live, for changing it
 	NotifyOn      bool   // people can ask to hear about changes (ADR 0008)
 	Access        Access // what the link it was opened by can do (ADR 0009)
@@ -521,6 +529,22 @@ templ CompetitionDashboard(d Dashboard) {
 					<button class="button is-small" type="submit">Change</button>
 				</div>
 			</form>
+			<form method="post" action={ templ.SafeURL(d.Base + "/later-deadlines") } class="mb-3">
+				<label class="label is-small">Changes to entries close (empty: with entries)</label>
+				<div class="comp-deadline mb-2">
+					<input class="input is-small" name="changesDate" type="date" value={ d.ChangesDate } aria-label="Changes closing date"/>
+					<input class="input is-small" name="changesTime" type="time" value={ d.ChangesTime } aria-label="Changes closing time"/>
+				</div>
+				if d.Competition.Signoff {
+					<label class="label is-small">Coaches' sign-off closes (empty: with entries)</label>
+					<div class="comp-deadline mb-2">
+						<input class="input is-small" name="signoffsDate" type="date" value={ d.SignoffsDate } aria-label="Sign-off closing date"/>
+						<input class="input is-small" name="signoffsTime" type="time" value={ d.SignoffsTime } aria-label="Sign-off closing time"/>
+					</div>
+				}
+				<button class="button is-small" type="submit">Change</button>
+				<p class="help">After entries close, no new entries; clubs and gymnasts can still change, withdraw or send again the entries they've made until changes close, and coaches can sign off until sign-off closes. Either can be later than entries closing, by the end of the competition date. After changes close, late changes are by request.</p>
+			</form>
 			@limitsForm(d.Base, d.Limits)
 			<form method="post" action={ templ.SafeURL(d.Base + "/events") } class="mb-3">
 				@otherEvents(d.Events)
@@ -788,6 +812,20 @@ templ competitionFacts(c CompetitionSummary) {
 	<p class={ templ.KV("mb-4", c.Video == "" && !c.Signoff), templ.KV("mb-1", c.Video != "" || c.Signoff) }>
 		if c.Open {
 			Entries close { c.Deadline }.
+			if c.ChangesUntil != "" {
+				Changes to entries until { c.ChangesUntil }.
+			}
+			if c.SignoffsUntil != "" && c.Signoff {
+				Coaches' sign-off until { c.SignoffsUntil }.
+			}
+		} else if c.Live && (c.ChangesOpen || c.SignoffsOpen && c.Signoff) {
+			<strong>New entries closed { c.Deadline }.</strong>
+			if c.ChangesOpen {
+				Changes to entries until { c.ChangesUntil }.
+			}
+			if c.SignoffsOpen && c.Signoff {
+				Coaches' sign-off until { c.SignoffsUntil }.
+			}
 		} else if !c.Live && c.Opens != "" {
 			<strong>Entries open { c.Opens }</strong>, and close { c.Deadline }.
 		} else if !c.Live {
@@ -1208,7 +1246,7 @@ templ CompetitionEntryPage(p EntryPage) {
 			<div class="notification is-warning is-light">{ p.Removal }</div>
 		}
 		if p.Coach != nil {
-			@entryCoachBox(*p.Coach, p.Competition.Open)
+			@entryCoachBox(*p.Coach, p.Competition.SignoffsOpen)
 		}
 		if p.SignoffLink != "" {
 			@linkBox("Sign-off link for your coach", p.SignoffLink, "This competition needs a coach's sign-off. Send this link to your coach: they see your entry and sign it off.")
@@ -1228,7 +1266,7 @@ templ CompetitionEntryPage(p EntryPage) {
 		@entryCard(p.Card)
 		<p class="has-text-grey is-size-7">Entered { p.Sent }.</p>
 		@pairEntries(p.Pairs)
-		if p.Competition.Open {
+		if p.Competition.ChangesOpen {
 			<details class="box mt-4" open?={ len(p.Form.Problems) > 0 }>
 				<summary><strong>Change the entry</strong></summary>
 				@entryForm(p.Form)

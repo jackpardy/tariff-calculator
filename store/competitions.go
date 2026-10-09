@@ -62,15 +62,15 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late, changes_until, signoffs_until`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
-	var deadline, levels, created, video, liveAt, notifyDue, fees, limits, late string
+	var deadline, levels, created, video, liveAt, notifyDue, fees, limits, late, changesUntil, signoffsUntil string
 	var split, timetable, events, officials, coachLevels, publishedTimetable string
 	var ordered bool
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits, &late); err != nil {
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits, &late, &changesUntil, &signoffsUntil); err != nil {
 		return Competition{}, notFound(err)
 	}
 	if publishedTimetable != "" {
@@ -118,6 +118,7 @@ func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 		c.Levels, c.Synchro = competitions.OrderLevels(nil, c.Levels), competitions.OrderLevels(nil, c.Synchro)
 	}
 	c.Deadline, c.CreatedAt, c.LiveAt, c.NotifyDue = parseTime(deadline), parseTime(created), parseTime(liveAt), parseTime(notifyDue)
+	c.ChangesUntil, c.SignoffsUntil = parseTime(changesUntil), parseTime(signoffsUntil)
 	return c, nil
 }
 
@@ -392,22 +393,42 @@ func scanEntry(row interface{ Scan(...any) error }) (Entry, error) {
 	return e, nil
 }
 
+// What a change to a competition's entries is, for when it closes.
+const (
+	entering = iota // a new entry
+	changing        // changing, withdrawing or sending again one already made
+	signing         // a coach's sign-off, or naming a coach
+)
+
 // open reads when a competition's entries open and close in a transaction,
 // failing with ErrNotOpen before it goes live (or while it's paused) and
-// ErrClosed once its deadline has passed.
-func (s *Store) open(ctx context.Context, tx *sql.Tx, competitionID string) error {
-	var deadline, liveAt string
-	if err := tx.QueryRowContext(ctx, `SELECT deadline, live_at FROM competitions WHERE id = $1`, competitionID).Scan(&deadline, &liveAt); err != nil {
+// ErrClosed once what's asked for has closed: new entries at the deadline,
+// changes and sign-offs at theirs, if later.
+func (s *Store) open(ctx context.Context, tx *sql.Tx, competitionID string, what int) error {
+	var deadline, liveAt, changesUntil, signoffsUntil string
+	if err := tx.QueryRowContext(ctx, `SELECT deadline, live_at, changes_until, signoffs_until FROM competitions WHERE id = $1`, competitionID).
+		Scan(&deadline, &liveAt, &changesUntil, &signoffsUntil); err != nil {
 		return notFound(err)
 	}
+	closes := parseTime(deadline)
+	switch later := map[int]string{changing: changesUntil, signing: signoffsUntil}[what]; {
+	case later != "" && parseTime(later).After(closes):
+		closes = parseTime(later)
+	}
 	now := s.now()
-	if !now.Before(parseTime(deadline)) {
+	if !now.Before(closes) {
 		return ErrClosed
 	}
 	if liveAt == "" || now.Before(parseTime(liveAt)) {
 		return ErrNotOpen
 	}
 	return nil
+}
+
+// SetChangesAndSignoffs sets when changes to entries, and coaches'
+// sign-offs, close (zero: with the deadline).
+func (s *Store) SetChangesAndSignoffs(ctx context.Context, id string, changes, signoffs time.Time) error {
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET changes_until = $1, signoffs_until = $2 WHERE id = $3`, formatTime(changes), formatTime(signoffs), id))
 }
 
 // full fails with ErrLimit when a competition holds more than MaxEntries, so
@@ -436,7 +457,7 @@ func (s *Store) AddIndividualEntry(ctx context.Context, competitionID string, e 
 		out.PartnerLink = newToken()
 	}
 	err = s.tx(ctx, func(tx *sql.Tx) error {
-		if err := s.open(ctx, tx, competitionID); err != nil {
+		if err := s.open(ctx, tx, competitionID, entering); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_name, individual, gymnast, token_hash, entry, sent_at, signoff_token, signoff_hash,
@@ -470,7 +491,7 @@ func (s *Store) ReplaceIndividualEntry(ctx context.Context, token string, e comp
 		if err := tx.QueryRowContext(ctx, `SELECT competition_id, removal FROM entries WHERE token_hash = $1`, hash(token)).Scan(&competitionID, &removal); err != nil {
 			return notFound(err)
 		}
-		if err := s.open(ctx, tx, competitionID); err != nil {
+		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
 		if removal == Removed {
@@ -501,7 +522,7 @@ func (s *Store) WithdrawIndividualEntry(ctx context.Context, token string) error
 		if err := tx.QueryRowContext(ctx, `SELECT competition_id FROM entries WHERE token_hash = $1`, hash(token)).Scan(&competitionID); err != nil {
 			return notFound(err)
 		}
-		if err := s.open(ctx, tx, competitionID); err != nil {
+		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
 		return affected(tx.ExecContext(ctx, `DELETE FROM entries WHERE token_hash = $1`, hash(token)))
