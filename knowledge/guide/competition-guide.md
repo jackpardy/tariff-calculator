@@ -502,4 +502,6 @@ Competition entries are kept on the server. The links to them are saved in the
 browser, so copy any you'd hate to lose: clearing the browser's data, or using
 a private window, loses the saved links (not the entries).
 
+Pages you've opened on your phone still open without a connection, as they were when last loaded.
+
 If a bar says **The app has been updated**, tap **Refresh**.

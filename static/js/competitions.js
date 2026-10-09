@@ -3,7 +3,8 @@
 // and gymnasts' links in this browser and lists them; offers the levels saved
 // here when creating a competition, and the clubs saved here when entering
 // one; fills each voluntary on an entry form from the routines saved here;
-// and remembers which levels of the organiser's dashboard are open.
+// remembers which levels of the organiser's dashboard are open; and registers
+// the service worker that keeps pages for offline, with a banner when offline.
 (function () {
     // Links saved in this browser: {name, url} lists under these keys.
     const linkKeys = {
@@ -222,7 +223,32 @@
         levels.forEach((d) => d.addEventListener('toggle', save));
     }
 
+    // offlineBanner shows the "you're offline" banner while the phone has no
+    // connection, saying when this page was loaded (the page-time meta, set
+    // by the server when it rendered the page, so a copy the service worker
+    // kept says when it was last opened).
+    function offlineBanner() {
+        const banner = document.querySelector('.comp-offline');
+        if (!banner) { return; }
+        const when = document.querySelector('meta[name="page-time"]')?.content || 'at an unknown time';
+        for (const el of banner.querySelectorAll('[data-offline-when]')) { el.textContent = when; }
+        const show = () => { banner.hidden = navigator.onLine; };
+        window.addEventListener('offline', show);
+        window.addEventListener('online', show);
+        show();
+    }
+
+    // keepOffline registers the service worker (sw.js), which keeps the pages
+    // opened on this phone so they still open without a connection.
+    function keepOffline() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => { /* no offline copies */ });
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+        keepOffline();
+        offlineBanner();
         openLevels();
         copyButtons();
         saveLinks();
