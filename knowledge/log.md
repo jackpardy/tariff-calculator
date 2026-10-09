@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-09
+* **Update**: The web layer (every page, notifications, push, mail, calendar) moved from the repo root into package `web/`; the root keeps `main.go`.
 * **Update**: [Panel check-in and Notify](features/competition-entries.md#on-the-day-flights-started-and-finished):
   under each flight on the On the day page, a **Panel** lists the officials
   with **Here**, **Missing** and **Clear**, applied to the event's whole run;

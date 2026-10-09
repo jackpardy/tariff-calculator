@@ -32,7 +32,8 @@ generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 | `store` | SQLite storage for competitions, clubs, members and entries, reached by secret links (ADR 0004). Plain `database/sql`, numbered migrations. |
 | `views` | templ components: page, form, routine, sheet, compare, view screen, requirements page and the level editor. |
 | `static` | Embedded CSS/JS with content-hashed URLs ([static assets](static-assets.md)). |
-| `main` | Handlers (`main.go`), the requirements and level editors' form parsing (`setform.go`, `levelform.go`) and QR codes (`qrcode.go`). |
+| `web` | Every handler: the calculator (`web/calculator.go`), the competition pages, notifications, push, mail and calendar, the requirements and level editors' form parsing (`web/setform.go`, `web/levelform.go`) and QR codes (`web/qrcode.go`). Exposes `web.New`, `Handler`, `Notify`, `Routes` and `DeleteExpired`. |
+| `main` | The root `main.go` only: reads `PORT` and `DATA_DIR`, opens the store, seeds the demo, and starts the server with `web`. |
 
 Domain packages import nothing HTTP or template-related, so the engine can
 later be published as a module or put behind a JSON API (ADR 0002 §6) without

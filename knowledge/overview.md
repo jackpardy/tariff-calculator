@@ -42,7 +42,7 @@ Wording in the app is plain and avoids jargon where it can (see the
 | Routine rules | `skills/` (`ValidateRoutine`) | [Routine validation](domain/routine-validation.md) |
 | Choosing skills | `catalog/` | [Skill catalog](domain/skill-catalog.md) |
 | Competition rules | `requirements/` | [Requirements framework](requirements/framework.md), [Levels](requirements/levels.md) |
-| Pages and fragments | `views/` (templ), `main.go` | [Rendering](architecture/rendering.md), [HTTP routes](architecture/http-routes.md), [View screen](features/view.md) |
+| Pages and fragments | `views/` (templ), `web/` | [Rendering](architecture/rendering.md), [HTTP routes](architecture/http-routes.md), [View screen](features/view.md) |
 | Browser glue | `static/js/` | [Stack](architecture/stack.md) |
 
 All domain rules live in Go. The server renders every page and fragment as

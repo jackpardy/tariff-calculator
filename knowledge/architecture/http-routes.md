@@ -2,14 +2,14 @@
 type: API Reference
 title: HTTP routes
 description: Every route the server exposes, what it takes and what it returns, along with the limits applied to all requests.
-resource: https://github.com/jackpardy/tariff-calculator/blob/master/main.go
+resource: https://github.com/jackpardy/tariff-calculator/blob/master/web/calculator.go
 tags: [architecture, http, routes]
 generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 ---
 
 # Routes
 
-All routes are defined in `routes()` in `main.go`. Forms are
+All routes are defined in `routesWithPages()` in `web/calculator.go`. Forms are
 `application/x-www-form-urlencoded`. "Routine" means a JSON array of
 [skills](../domain/skill-model.md#schema).
 
@@ -34,8 +34,8 @@ All routes are defined in `routes()` in `main.go`. Forms are
 
 ## Competition pages
 
-[Competition entries](../features/competition-entries.md) (`comppages.go`,
-`clubpages.go`), reached at `/competitions`; the calculator doesn't link to
+[Competition entries](../features/competition-entries.md) (`web/comppages.go`,
+`web/clubpages.go`), reached at `/competitions`; the calculator doesn't link to
 them, for now. `{token}` is a secret link (ADR 0004). These
 pages send `Referrer-Policy: no-referrer`, `Cache-Control: no-store` and
 `X-Robots-Tag: noindex`. A wrong or replaced link gets 404, and without storage
