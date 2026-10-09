@@ -197,6 +197,7 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 		cc := views.CoachCompetition{Competition: summary(c.Competition, p.now()), Cannot: notApproved(c, sentTo), Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
 		if published(c) {
 			cc.Timeline = path + "/competitions/" + c.ID + "/timeline"
+			cc.Calendar = path + "/competitions/" + c.ID + "/calendar.ics"
 		}
 		seen := map[string]bool{}
 		for _, e := range entries {

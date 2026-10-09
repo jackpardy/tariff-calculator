@@ -1,6 +1,10 @@
 # Update log
 
 ## 2026-10-09
+* **Update**: [Add to calendar](features/competition-entries.md#personal-and-club-timetables):
+  a person's or a club's flights and duties from the published timetable
+  as a calendar file to add or subscribe to; it updates when the
+  timetable is published again.
 * **Update**: [Entries, changes and sign-offs close separately](features/competition-entries.md#when-entries-changes-and-sign-offs-close):
   changes to entries and coaches' sign-offs can close later than new
   entries; a coach's sign-off reaches the competition without sending

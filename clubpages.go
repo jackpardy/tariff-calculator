@@ -166,6 +166,7 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
 		if published(c) {
 			cc.Timeline = base + "/competitions/" + c.ID + "/timeline"
+			cc.Calendar = base + "/competitions/" + c.ID + "/calendar.ics"
 		}
 		sentID := map[string]string{}    // member → the competition's copy of their entry
 		waitingPlace := map[string]int{} // member and discipline → place on a waiting list
@@ -671,6 +672,7 @@ func (p *competitionPages) renderMember(w http.ResponseWriter, r *http.Request, 
 		}
 		if published(c) {
 			mc.Timeline, mc.ClubTimeline = path+"/competitions/"+c.ID+"/timeline", path+"/competitions/"+c.ID+"/club-timeline"
+			mc.Calendar, mc.ClubCalendar = path+"/competitions/"+c.ID+"/calendar.ics", path+"/competitions/"+c.ID+"/club-calendar.ics"
 		}
 		var sent []store.Entry
 		disciplines := c.Disciplines()

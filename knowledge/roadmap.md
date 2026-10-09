@@ -372,7 +372,8 @@ Notifications (7) are built; numbers 1–7 below are built.
   - **Judges' qualifications**, approved like coaches'.
 - **For attendees:**
   - **Add to calendar**: a person's or club's flights and duties as a
-    calendar link that updates when the timetable is published again.
+    calendar link that updates when the timetable is published again
+    (built 2026-10-09).
 
 # Possible additions (not planned yet)
 
