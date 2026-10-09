@@ -21,6 +21,8 @@ import (
 func (p *competitionPages) registerMine(handle func(string, http.HandlerFunc)) {
 	handle("GET /clubs/member/{token}/competitions/{id}/day", p.memberDay)
 	handle("GET /competitions/entry/{token}/day", p.individualDay)
+	handle("POST /clubs/member/{token}/competitions/{id}/here", p.memberHere)
+	handle("POST /competitions/entry/{token}/here", p.individualHere)
 	handle("GET /clubs/member/{token}/competitions/{id}/score-sheets", p.memberScoreSheets)
 	handle("GET /competitions/entry/{token}/score-sheets", p.individualScoreSheets)
 }
@@ -45,6 +47,65 @@ func (p *competitionPages) individualDay(w http.ResponseWriter, r *http.Request)
 	p.renderDay(w, r, c, individualKey(e.Entry.Gymnast), "", e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token"))
 }
 
+// memberHere is a scratched member saying they're still here for the rest.
+func (p *competitionPages) memberHere(w http.ResponseWriter, r *http.Request) {
+	m, ok := p.member(w, r)
+	if !ok {
+		return
+	}
+	c, ok := p.memberCompetition(w, r, m)
+	if !ok {
+		return
+	}
+	p.stillHere(w, r, c, "m:"+m.ID, m.Name, dayPath(memberPath(r.PathValue("token")), c.ID))
+}
+
+// individualHere is a scratched individual saying they're still here for the
+// rest.
+func (p *competitionPages) individualHere(w http.ResponseWriter, r *http.Request) {
+	e, c, ok := p.own(w, r)
+	if !ok {
+		return
+	}
+	p.stillHere(w, r, c, individualKey(e.Entry.Gymnast), e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token")+"/day")
+}
+
+// hereBox is the box for someone scratched from some events who may still be
+// here for the rest: their other entries (any day) or their officiating, so
+// long as the organisers haven't been told. nil if there's nothing to say.
+func hereBox(entries []store.Entry, keys map[string][]string, key string, officiates bool, checkins map[string]store.Checkin, clears map[string]map[string]store.ScratchClear, action string) *views.MyHere {
+	var scratched []string
+	others := 0
+	for _, e := range entries {
+		if !slices.Contains(keys[e.ID], key) {
+			continue
+		}
+		if checkins[e.ID].Status == store.Scratched {
+			scratched = append(scratched, e.Entry.Event())
+		} else {
+			others++
+		}
+	}
+	if len(scratched) == 0 {
+		return nil
+	}
+	here := hereSomewhere(entries, checkins)
+	officiating := officiates && warned(key, store.ClearOfficiating, here, clears)
+	competing := others > 0 && warned(key, store.ClearCompeting, here, clears)
+	box := &views.MyHere{Scratched: joinAnd(scratched), Action: action}
+	switch {
+	case officiating && competing:
+		box.For = "both your other events and your officiating"
+	case officiating:
+		box.For = "your officiating"
+	case competing:
+		box.For = "your other events"
+	default:
+		return nil
+	}
+	return box
+}
+
 // renderDay shows a person's competition: key is who they are, as the
 // timetable knows them, and club is their club's id ("" for an individual).
 func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c store.Competition, key, club, name, back string) {
@@ -55,7 +116,7 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 	}
 	entries := live(all)
 	keys := personKeys(entries)
-	page := views.MyCompetitionPage{Competition: summary(c.Competition, p.now()), Name: name, Back: back, Mine: map[string]bool{}, Me: key}
+	page := views.MyCompetitionPage{Competition: summary(c.Competition, p.now()), Name: name, Back: back, Mine: map[string]bool{}, Me: key, Notice: r.URL.Query().Get("notice")}
 	if published(c) {
 		page.Timeline = strings.TrimSuffix(r.URL.Path, "/day") + "/timeline"
 		page.Calendar = strings.TrimSuffix(r.URL.Path, "/day") + "/calendar.ics"
@@ -122,6 +183,17 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 			return
 		}
 		page.Duties = dutiesOf(c, key)
+		checkins, err := p.st.Checkins(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		clears, err := p.st.ScratchClears(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		page.Here = hereBox(entries, keys, key, len(page.Duties) > 0, checkins, clears, strings.TrimSuffix(r.URL.Path, "/day")+"/here")
 		if len(page.Duties) > 0 {
 			page.ScoreSheets = strings.TrimSuffix(r.URL.Path, "/day") + "/score-sheets"
 		}

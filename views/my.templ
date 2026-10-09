@@ -15,12 +15,22 @@ type MyCompetitionPage struct {
 	ScoreSheets string // the score sheets of the flights they officiate, if any
 	Lateness    []string // how late the areas their flights are on are running today
 	Desk        []DeskNote // messages from the organisers that reach them
+	Notice      string     // what just happened, e.g. after "I'm here for the rest"
+	Here        *MyHere    // the box for someone scratched who may still be here; nil for none
 	Published   bool
 	Events      []MyEvent
 	Duties      []string
 	Days        []DayView
 	Mine        map[string]bool // their entries, by id
 	Me          string          // their person key, for the seats they're in
+}
+
+// MyHere is the box that lets someone scratched from an event tell the
+// organisers they're still here for the rest.
+type MyHere struct {
+	Scratched string // the events they're scratched from, e.g. "Tumbling Novice and Trampoline L3"
+	For       string // what they might still be here for: "your other events", "your officiating" or "both"
+	Action    string // where the button posts to
 }
 
 // MyEvent is one of their events.
@@ -40,8 +50,19 @@ templ MyCompetition(p MyCompetitionPage) {
 		<h1 class="title is-4">{ p.Competition.Name }</h1>
 		<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
 		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
+		if p.Notice != "" {
+			<div class="notification is-info is-light">{ p.Notice }</div>
+		}
 		@latenessNotes(p.Lateness)
 		@deskMessages(p.Desk)
+		if p.Here != nil {
+			<div class="notification is-warning is-light">
+				<p>You're scratched from { p.Here.Scratched }. If you're still here for { p.Here.For }, tell the organisers:</p>
+				<form method="post" action={ templ.SafeURL(p.Here.Action) } class="mt-2">
+					<button class="button is-warning" type="submit">I'm here for the rest</button>
+				</form>
+			</div>
+		}
 		if len(p.Events) == 0 {
 			<div class="notification is-light">No entries for you have reached the competition yet. Once your club sends them (or you enter), they show here.</div>
 		}

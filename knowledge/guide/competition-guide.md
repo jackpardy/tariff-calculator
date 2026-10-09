@@ -291,8 +291,12 @@ has a starting value you can change.
    out. Under each flight, **Check-in** lists its gymnasts: tap **Here** as
    they arrive, or **Scratched** for a no-show (**Clear** takes it back).
    Scratched gymnasts are struck through on the printed sheets, and if one
-   also has a seat on a panel that day the page says so, with a link to
-   "what if they leave".
+   also has a seat on a panel that day, or is still entered in other flights
+   that day, the page says so under their name, with a link to "what if they
+   leave". Tap **Still officiating** or **Still competing** once you know
+   they're staying and the warning goes. It also goes by itself if another of
+   their entries is checked in, and the gymnast can clear it from their own
+   page with **I'm here for the rest**.
    <a id="on-the-day-venue-screen"></a>**Venue screen** (a link at the top of
    the On the day page): what's on each area now and what's next, in big type
    for a screen at the venue. Under **Links and settings** make a **Venue

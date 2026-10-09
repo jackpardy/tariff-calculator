@@ -1688,6 +1688,39 @@ func TestCheckins(t *testing.T) {
 	}
 }
 
+func TestScratchClears(t *testing.T) {
+	now := time.Date(2027, 3, 13, 9, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	all := func() map[string]map[string]ScratchClear {
+		t.Helper()
+		got, err := s.ScratchClears(ctx, c.ID)
+		must(t, err)
+		return got
+	}
+	if got := all(); len(got) != 0 {
+		t.Errorf("nothing yet: %+v", got)
+	}
+	must(t, s.ClearScratch(ctx, c.ID, "i:bea", ClearOfficiating, "Chris"))
+	must(t, s.ClearScratch(ctx, c.ID, "i:bea", ClearCompeting, "Bea"))
+	must(t, s.ClearScratch(ctx, c.ID, "m:a", ClearCompeting, "Ann"))
+	got := all()
+	if len(got) != 2 || len(got["i:bea"]) != 2 || got["i:bea"][ClearOfficiating].Who != "Chris" || !got["i:bea"][ClearOfficiating].At.Equal(now) || got["m:a"][ClearCompeting].Who != "Ann" {
+		t.Errorf("by person, then kind: %+v", got)
+	}
+	now = now.Add(time.Hour)
+	must(t, s.ClearScratch(ctx, c.ID, "i:bea", ClearOfficiating, "Dee"))
+	if got := all()["i:bea"][ClearOfficiating]; got.Who != "Dee" || !got.At.Equal(now) {
+		t.Errorf("clearing again replaces who and when: %+v", got)
+	}
+	if len(all()["i:bea"]) != 2 {
+		t.Error("still one row for each kind")
+	}
+	if err := s.ClearScratch(ctx, c.ID, "i:bea", "nonsense", "Dee"); err == nil {
+		t.Error("an unknown kind is refused")
+	}
+}
+
 func TestDeskMessages(t *testing.T) {
 	now := time.Date(2027, 3, 13, 9, 0, 0, 0, time.UTC)
 	s := open(t, &now)

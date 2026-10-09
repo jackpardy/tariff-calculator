@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-09
+* **Update**: [Scratch warnings](features/competition-entries.md#on-the-day-flights-started-and-finished):
+  the On the day page now flags a scratched person who still officiates or
+  still has other entries in flights that day, and each warning can be
+  cleared (**Still officiating**, **Still competing**) by the desk, by the
+  person with **I'm here for the rest** on My competition, or by checking in
+  another of their entries.
 * **Update**: [Pages that work offline](features/competition-entries.md#offline):
   the pages a person has opened on their phone (club, member, entry,
   notification and admin pages) still open without a connection, as last
