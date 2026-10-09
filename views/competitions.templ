@@ -314,6 +314,7 @@ templ competitionLayout(title string) {
 			<meta name="apple-mobile-web-app-capable" content="yes"/>
 			<title>{ title }</title>
 			<meta name="app-version" content={ static.Version }/>
+			<meta name="page-time" content={ pageTime() }/>
 			<script defer src={ static.URL("js/version.js") }></script>
 			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
 			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
@@ -324,6 +325,7 @@ templ competitionLayout(title string) {
 		<body>
 			<section class="section comp-page">
 				<div class="container">
+					<div class="notification is-warning is-light comp-offline" hidden>You're offline: this is the page as it was when last opened (<span data-offline-when></span>).</div>
 					{ children... }
 				</div>
 			</section>

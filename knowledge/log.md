@@ -1,6 +1,11 @@
 # Update log
 
 ## 2026-10-09
+* **Update**: [Pages that work offline](features/competition-entries.md#offline):
+  the pages a person has opened on their phone (club, member, entry,
+  notification and admin pages) still open without a connection, as last
+  seen; a banner says the page is old and when it was loaded. Nothing leaves
+  the phone.
 * **Update**: [Check-in and scratches](features/competition-entries.md#on-the-day-flights-started-and-finished):
   under each flight on the On the day page, mark gymnasts **Here** or
   **Scratched** (or clear it). Scratched gymnasts are struck through on the

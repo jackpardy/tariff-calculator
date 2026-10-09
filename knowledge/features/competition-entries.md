@@ -793,6 +793,32 @@ screen (iOS 16.4+): the page says to add it first (Share, Add to Home
 Screen); the web manifest has no `start_url`, so the home screen opens the
 person's own page.
 
+## Offline
+
+Venue wifi is often poor, so a person's own pages still open, as last seen,
+when the connection drops. Every competition page registers the service
+worker (`/sw.js`), which keeps a copy of each page opened on that phone: the
+competition pages under `/clubs/`, `/competitions/` (admin pages included) and
+`/notify/`, and the app's static files. Pages are **network first**: the live
+page when the connection answers within about four seconds, else the copy
+last opened, else a short page saying this one hasn't been opened on this
+phone before. Static files are kept as first fetched (their addresses change
+with each version). Only successful pages are kept, never what a form
+posted, and at most 60 pages per phone, the oldest dropped first. The
+calculator's own pages and the rest of the site are left to the network.
+
+While the phone is offline, a banner at the top of each page says "You're
+offline: this is the page as it was when last opened", with the day and time
+the server made it (Irish time, e.g. "Saturday 14:05"). It goes when the
+connection comes back; a page that is still the kept copy then needs a
+reload.
+
+The copies stay on the phone, in its browser's cache for this site; nothing
+secret leaves it. The server still marks these pages `no-store`, which keeps
+the browser's ordinary cache from holding them; the service worker's cache
+ignores that on purpose. Clearing the browser's data for the site (in its
+settings) clears them.
+
 # Built from
 
 - `views.TariffSheet` (`views/sheet.templ`) for printed cards.

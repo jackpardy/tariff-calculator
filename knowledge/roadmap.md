@@ -171,8 +171,10 @@ features that show that, in this order:
    feeding the delay "what if"), check-in and scratches (built 2026-10-09,
    same page: marked here or scratched, struck through on the printed
    sheets, a scratched official flagged), messages from the
-   organisers' desk, a "now on" screen, pages that work offline, add to
-   calendar.
+   organisers' desk, a "now on" screen, pages that work offline (built
+   2026-10-09,
+   [offline](features/competition-entries.md#offline): a person's opened
+   pages open without a connection, as last seen), add to calendar.
 
 Then, by when ISTO needs them: link the calculator (before entries open),
 the "what ifs'" missing checks (8) and saying what a manual change breaks
@@ -356,8 +358,8 @@ Notifications (7) are built; numbers 1–7 below are built.
     comes out of the running order and the rota.
   - **A "now on" screen** for the venue: what's on each panel, and what's
     warming up next.
-  - **Pages that work offline**: the service worker (from notifications)
-    keeps a person's own pages for poor venue wifi.
+  - **Pages that work offline** (built 2026-10-09): the service worker
+    (from notifications) keeps a person's own pages for poor venue wifi.
   - **Messages from the organisers' desk** (asked 2026-10-08): the
     organiser sends a message, or asks someone to come to the desk, by push
     and email at once, without waiting, to more than clubs: a **club** (its
