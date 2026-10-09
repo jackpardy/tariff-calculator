@@ -291,6 +291,15 @@ has a starting value you can change.
    Scratched gymnasts are struck through on the printed sheets, and if one
    also has a seat on a panel that day the page says so, with a link to
    "what if they leave".
+12. **Desk messages** (a button on the entries page, and a link at the top of
+   On the day; chairs of judges' and timetable links get it too): send a
+   message at once to a club, everyone in a flight, all officials, one
+   panel's officials, or people you pick, and tick **Ask them to come to the
+   organisers' desk** to call someone over. It is pushed and emailed straight
+   away to those who asked to hear about changes, and shown in a "Messages
+   from the organisers" box on each person's own page, so those who didn't
+   still see it when they look. The page lists what you sent and how many
+   were told.
 
 **What if there's a delay?** (on the timetable page, once planned): choose the
 day, when the hold-up starts, how many minutes and which areas (none ticked

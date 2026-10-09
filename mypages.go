@@ -34,7 +34,7 @@ func (p *competitionPages) memberDay(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	p.renderDay(w, r, c, "m:"+m.ID, m.Name, memberPath(r.PathValue("token")))
+	p.renderDay(w, r, c, "m:"+m.ID, m.ClubID, m.Name, memberPath(r.PathValue("token")))
 }
 
 func (p *competitionPages) individualDay(w http.ResponseWriter, r *http.Request) {
@@ -42,12 +42,12 @@ func (p *competitionPages) individualDay(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	p.renderDay(w, r, c, individualKey(e.Entry.Gymnast), e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token"))
+	p.renderDay(w, r, c, individualKey(e.Entry.Gymnast), "", e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token"))
 }
 
 // renderDay shows a person's competition: key is who they are, as the
-// timetable knows them.
-func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c store.Competition, key, name, back string) {
+// timetable knows them, and club is their club's id ("" for an individual).
+func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c store.Competition, key, club, name, back string) {
 	all, err := p.st.Entries(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
@@ -61,6 +61,7 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 		page.Calendar = strings.TrimSuffix(r.URL.Path, "/day") + "/calendar.ics"
 	}
 	page.Notify = p.notifyLink(strings.TrimSuffix(r.URL.Path, "/day") + "/notify")
+	page.Desk = p.deskNotes(r.Context(), c.ID, []string{key}, clubIDs(club))
 	t := c.Published
 	published := t != nil
 	page.Published = published

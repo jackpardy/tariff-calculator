@@ -578,6 +578,54 @@ key, so a scratched entry counts for the person), the top of the day page says
 and, for links that can use the timetable, **What if they leave** opens the
 [leave](#what-if-an-official-has-to-leave) tool for them and that day.
 
+## Messages from the organisers' desk
+
+Built 2026-10-09. **Desk messages** (a button on the entries page, a link at
+the top of the On the day page, and `/desk` under the admin link) lets the
+organiser, a co-organiser ("everything"), a chair of judges or a timetable
+link send a message at once, with no grace wait, or ask people to come to the
+organisers' desk. Cards links can't use it.
+
+**To** is one of: a **club** (a select of the clubs entered: its comp sec,
+coaches and members); **everyone in a flight** (a select of the published
+flights, grouped by day and area; the gymnasts in it, with a synchro pair's
+partner); **all officials**; **one panel's officials** on a day (the people
+holding a seat on that area's flights that day); or **people I pick** (a
+searchable list of every gymnast and official). The **Message** is up to 500
+characters, and **Ask them to come to the organisers' desk** starts it with
+"Please come to the organisers' desk." (the message can then be empty). The
+form is resolved to person keys (members `m:<id>`, individuals by name
+`i:<name>`, organiser-added officials `o:<id>`) and, for a club, the club's
+id; nothing is sent if there is no one to send it to.
+
+**Who is told** (`notifier.tellDesk`, in `desk.go`): every confirmed
+subscription (push, and confirmed emails; any topic, since it is urgent) that
+covers someone it was sent to: a member's own; an individual's, if their key
+is in it; the comp sec's, if the message is for their club or any of its
+members; a coach's, if it is for their club or any member who chose them.
+Each address is told once, however many pages it was given on. Email has the
+subject "Message from the organisers of *Competition*" (or "Please come to the
+organisers' desk · *Competition*"), the text, the page to see it on and the
+off link; push has the competition's name as the title, the text as the body
+and the person's page as the link. A push service that says the phone is gone
+drops it. It is sent while the organiser's request is handled (a handful of
+sends), and a mailer that is off simply sends none.
+
+**On recipients' pages** (up to the latest 10, newest first, with the time, in
+a "Messages from the organisers" box): My competition, the member's
+competition section, the individual's entry page, the club page's competition
+box and the coach page's competition box. A message shows on a page if its
+people include that person (on a club or coach page: any of the club's
+members, or the coach's members) or its clubs include their club, so people
+who haven't asked to be notified still see it when they look.
+
+Messages are kept in `desk_messages` (the text, whether it asks them to come,
+the audience in words such as "UCD" or "3 people", its person keys and club
+ids as JSON, who sent it, when, and how many addresses were pushed and
+emailed); a competition keeps up to 500. The page lists them, latest first.
+Each is in the history: "Sent a message to UCD", "Called Panel 2's officials,
+Saturday to the desk".
+
 ## Simulation (ADR 0005, step 6)
 
 **Simulate**, linked from the timetable, tries numbers against the venue

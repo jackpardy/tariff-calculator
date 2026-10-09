@@ -170,9 +170,12 @@ features that show that, in this order:
    planned against actual, how late each area is, shown to attendees and
    feeding the delay "what if"), check-in and scratches (built 2026-10-09,
    same page: marked here or scratched, struck through on the printed
-   sheets, a scratched official flagged), messages from the
-   organisers' desk, a "now on" screen, pages that work offline, add to
-   calendar.
+   sheets, a scratched official flagged), messages from the organisers'
+   desk (built 2026-10-09,
+   [desk messages](features/competition-entries.md#messages-from-the-organisers-desk):
+   to a club, a flight, the officials or picked people, by push and email at
+   once and on each person's page), a "now on" screen, pages that work
+   offline, add to calendar.
 
 Then, by when ISTO needs them: link the calculator (before entries open),
 the "what ifs'" missing checks (8) and saying what a manual change breaks
@@ -358,8 +361,8 @@ Notifications (7) are built; numbers 1–7 below are built.
     warming up next.
   - **Pages that work offline**: the service worker (from notifications)
     keeps a person's own pages for poor venue wifi.
-  - **Messages from the organisers' desk** (asked 2026-10-08): the
-    organiser sends a message, or asks someone to come to the desk, by push
+  - **Messages from the organisers' desk** (asked 2026-10-08, built
+    2026-10-09): the organiser sends a message, or asks someone to come to the desk, by push
     and email at once, without waiting, to more than clubs: a **club** (its
     comp sec, coaches, or everyone who asked to hear), **individuals**,
     everyone in a **flight**, **officials** (all, or a panel), or an **ad

@@ -124,6 +124,9 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 	}
 	base := adminPath(r.PathValue("token"))
 	page := views.DayPage{Base: base, Competition: summary(c.Competition, p.now()), Notice: r.URL.Query().Get("notice"), Day: day}
+	if can(r, "GET", "/desk") {
+		page.Desk = base + "/desk"
+	}
 	whatIf := ""
 	if can(r, "GET", "/timetable/leave") {
 		whatIf = base + "/timetable/leave"
