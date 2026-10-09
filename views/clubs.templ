@@ -62,6 +62,7 @@ type ClubCompetition struct {
 	ApproveCoaches bool
 	Coaches        []ClubSendCoach
 	Timeline       string // the club's timetable, once published
+	Calendar       string // the club's timetable as a calendar file, once published
 	Notify         string // where the comp sec asks to hear about changes
 	Fees           *FeesSummary // what the club owes, if the competition charges
 }
@@ -139,6 +140,8 @@ type MemberCompetition struct {
 	Day          string        // their My competition page
 	Timeline     string        // their timetable, and their club's, once published
 	ClubTimeline string
+	Calendar     string // their timetable as a calendar file, and their club's
+	ClubCalendar string
 	Notify       string // where they ask to hear about changes
 	ScoreSheets  string // the score sheets of the flights they officiate, if any
 	Open         bool // shown open on the page
@@ -258,7 +261,7 @@ templ ClubAdmin(c ClubPage) {
 				<h3 class="title is-6 mb-1">{ comp.Competition.Name }</h3>
 				@competitionFacts(comp.Competition)
 				@feesLine(comp.Fees)
-				@timelineLinks("", comp.Timeline, comp.Notify)
+				@timelineLinks("", comp.Timeline, comp.Notify, "", comp.Calendar)
 				if len(comp.Rows) == 0 {
 					<p class="has-text-grey is-size-7">No member has entered yet.</p>
 				} else {
@@ -598,7 +601,7 @@ templ MemberHome(p MemberPage) {
 				<div class="mt-3">
 					@competitionFacts(c.Competition)
 					@dayLink(c.Day)
-					@timelineLinks(c.Timeline, c.ClubTimeline, c.Notify)
+					@timelineLinks(c.Timeline, c.ClubTimeline, c.Notify, c.Calendar, c.ClubCalendar)
 					for _, ev := range c.Events {
 						@memberEvent(c.Competition, ev)
 					}

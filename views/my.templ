@@ -10,6 +10,7 @@ type MyCompetitionPage struct {
 	Name        string
 	Back        string // their own page
 	Timeline    string // their timetable as the panel timeline, once published
+	Calendar    string // their timetable as a calendar file, once published
 	Notify      string // where they ask to hear about changes
 	ScoreSheets string // the score sheets of the flights they officiate, if any
 	Published   bool
@@ -36,7 +37,7 @@ templ MyCompetition(p MyCompetitionPage) {
 		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Your page</a></p>
 		<h1 class="title is-4">{ p.Competition.Name }</h1>
 		<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
-		@timelineLinks(p.Timeline, "", p.Notify)
+		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
 		if len(p.Events) == 0 {
 			<div class="notification is-light">No entries for you have reached the competition yet. Once your club sends them (or you enter), they show here.</div>
 		}
@@ -174,15 +175,22 @@ templ dayLink(href string) {
 }
 
 // timelineLinks are a person's and their club's timetables, laid out as
-// the panel timeline, once the timetable is published.
-templ timelineLinks(mine, club, notify string) {
-	if mine != "" || club != "" || notify != "" {
+// the panel timeline, and as calendar files to add to a calendar (subscribe
+// to keep it up to date), once the timetable is published.
+templ timelineLinks(mine, club, notify, calendar, clubCalendar string) {
+	if mine != "" || club != "" || notify != "" || calendar != "" || clubCalendar != "" {
 		<p class="mb-3 buttons">
 			if mine != "" {
 				<a class="button is-small is-success is-light" href={ templ.SafeURL(mine) }>Your timetable</a>
 			}
 			if club != "" {
 				<a class="button is-small is-success is-light" href={ templ.SafeURL(club) }>Club timetable</a>
+			}
+			if calendar != "" {
+				<a class="button is-small is-light" href={ templ.SafeURL(calendar) } title="Subscribe to it to keep it up to date">Add to calendar</a>
+			}
+			if clubCalendar != "" {
+				<a class="button is-small is-light" href={ templ.SafeURL(clubCalendar) } title="Subscribe to it to keep it up to date">Club calendar</a>
 			}
 			if notify != "" {
 				<a class="button is-small is-light" href={ templ.SafeURL(notify) }>Tell me about changes</a>

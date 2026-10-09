@@ -53,6 +53,8 @@ every page answers 503.
 | `POST /competitions/admin/{token}/deadline` | `close=1`, or `deadlineDate` and `deadlineTime` | Closes entries now, or changes when they close (by the end of the competition date) |
 | `GET`, `POST /clubs/member/{token}/competitions/{id}/notify`, `/competitions/entry/{token}/notify`, `/clubs/admin/{token}/competitions/{id}/notify`, `/clubs/coach/{token}/competitions/{id}/notify` | `email`, `adult=1`, each `topic` (`timetable`, `duties`, `cards`), `action` (`save`, or `remove` with `remove`, the subscription) | Hearing about a competition's changes (ADR 0008): a member, an individual, the comp sec, a coach. Push: `action=push`, `endpoint`, `p256dh`, `auth`, each `topic` (from `static/js/push.js`) |
 | `GET /clubs/member/{token}/competitions/{id}/score-sheets`, `/competitions/entry/{token}/score-sheets` | — | The published score sheets of the flights the person officiates |
+| `GET /clubs/member/{token}/competitions/{id}/calendar.ics`, `/competitions/entry/{token}/calendar.ics` | — | A person's published flights and duties as an iCalendar file to add or subscribe to; empty until published |
+| `GET /clubs/member/{token}/competitions/{id}/club-calendar.ics`, `/clubs/admin/{token}/competitions/{id}/calendar.ics`, `/clubs/coach/{token}/competitions/{id}/calendar.ics` | — | The club's: every flight one of its gymnasts competes in, and every seat one of its people holds, named |
 | `GET /sw.js` | — | The service worker, for push notifications |
 | `GET /manifest.webmanifest` | — | The web manifest, for adding a page to the home screen (no `start_url`) |
 | `GET`, `POST /notify/confirm/{token}` | — | Confirms an email (a button, then done) |

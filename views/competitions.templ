@@ -271,6 +271,7 @@ type EntryPage struct {
 	Pairs       []PairView // synchro entries they're the partner in
 	Removal     string     // what the organiser did with it, and why, if anything
 	Timeline    string     // their timetable as the panel timeline, once published
+	Calendar    string     // their timetable as a calendar file, once published
 	Notify      string     // where they ask to hear about changes
 	ScoreSheets string     // the score sheets of the flights they officiate, if any
 	Fees        *FeesSummary // what they owe, if the competition charges
@@ -1253,7 +1254,7 @@ templ CompetitionEntryPage(p EntryPage) {
 		}
 		@dayLink(p.Day)
 		@feesLine(p.Fees)
-		@timelineLinks(p.Timeline, "", p.Notify)
+		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
 		@waitingLine(p.Waiting)
 		@lateLine(p.Late, p.LateAsk)
 		@placementLine(p.Placement)

@@ -113,6 +113,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerApprovals(handle)
 	p.registerMine(handle)
 	p.registerTimelines(handle)
+	p.registerCalendars(handle)
 	p.registerNotify(handle)
 }
 
@@ -1408,7 +1409,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	}
 	page.Notice = r.URL.Query().Get("notice")
 	if published(c) {
-		page.Timeline = path + "/timeline"
+		page.Timeline, page.Calendar = path+"/timeline", path+"/calendar.ics"
 	}
 	page.Notify = p.notifyLink(path + "/notify")
 	page.Fees = p.feesSummary(r.Context(), c, entryPayer(e.ID), path+"/invoice")

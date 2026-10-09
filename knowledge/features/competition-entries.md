@@ -668,6 +668,20 @@ The rest is faint, or with **Only these**, left out (blocked time stays).
 Each prints like the panel timeline; notes are in each cell's hover text
 too.
 
+**Add to calendar** (roadmap 2026-10-09): next to those links, the same
+flights and duties as an iCalendar file (`calendar.ics`, `calendar.go`):
+**Add to calendar** for a person (their flights, as a synchro partner too,
+and the seats they hold) and **Club calendar** for a club (every flight one
+of its gymnasts competes in and every seat one of its people holds, named;
+the same rule as the club timetable). One event per flight and person, from
+the warm-up to about the end, in UTC, with the area as the location and the
+times in the description. The links are secret and stay the same, and each
+event's UID is stable (competition, whose, flight, role), so a calendar app
+subscribed to one picks up changes when the timetable is published again
+(the file also asks for an hourly refresh). Before it is published the
+file is a valid empty calendar, and fills in later. Only the published
+timetable is used.
+
 # Notifications (ADR 0008)
 
 Members (each competition on their page, and "My competition"),

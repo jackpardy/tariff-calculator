@@ -58,6 +58,7 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 	page := views.MyCompetitionPage{Competition: summary(c.Competition, p.now()), Name: name, Back: back, Mine: map[string]bool{}, Me: key}
 	if published(c) {
 		page.Timeline = strings.TrimSuffix(r.URL.Path, "/day") + "/timeline"
+		page.Calendar = strings.TrimSuffix(r.URL.Path, "/day") + "/calendar.ics"
 	}
 	page.Notify = p.notifyLink(strings.TrimSuffix(r.URL.Path, "/day") + "/notify")
 	t := c.Published

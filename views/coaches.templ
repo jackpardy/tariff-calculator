@@ -97,6 +97,7 @@ type CoachCompetition struct {
 	Waiting     int    // entries not signed off
 	Cannot      string // why they can't sign off for it (not approved), if they can't
 	Timeline    string // the club's timetable, once published
+	Calendar    string // the club's timetable as a calendar file, once published
 	Notify      string // where the coach asks to hear about changes
 	Late        []CoachLate // late changes to sign off
 }
@@ -144,7 +145,7 @@ templ CoachHome(p CoachPage) {
 				</h2>
 				@competitionFacts(c.Competition)
 				@coachLates(c.Late)
-				@timelineLinks("", c.Timeline, c.Notify)
+				@timelineLinks("", c.Timeline, c.Notify, "", c.Calendar)
 				if c.Cannot != "" && p.SignsOff {
 					<p class="is-size-7 has-text-warning-dark mb-2">{ c.Cannot }</p>
 				}

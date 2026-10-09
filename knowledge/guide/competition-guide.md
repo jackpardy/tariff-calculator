@@ -395,7 +395,9 @@ timeline (days side by side, time running down evenly), with where you
 compete and the panels you sit on in green and the rest faint (**Only
 these** hides the rest); **Club timetable** does the same for everyone in
 your club, naming who. The comp sec and coaches have **Club timetable** on
-their pages too. Each prints on A3.
+their pages too. Each prints on A3. **Add to calendar** (and **Club
+calendar**) puts the same flights and duties in your phone's calendar; subscribe to it
+and it updates when the timetable is published again.
 
 **Tell me about changes** tells you when the organiser changes something
 for you: when or where you compete, what you officiate, or your card
