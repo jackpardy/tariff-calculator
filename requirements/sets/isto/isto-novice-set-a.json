@@ -1,0 +1,204 @@
+{
+  "format": 1,
+  "name": "ISTO Novice · Set A",
+  "description": "Set routine. Its tariff, 1.1, is for information: difficulty isn't scored.",
+  "source": "ISTO 2025 Routines (updated)",
+  "rules": [
+    {
+      "type": "sequence",
+      "sequence": [
+        {
+          "label": "Full Twist",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 2,
+            "max": 2
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(0 2)"
+        },
+        {
+          "label": "Straddle Jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "straddle"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(v)"
+        },
+        {
+          "label": "Half Twist",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 1,
+            "max": 1
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(0 1)"
+        },
+        {
+          "label": "Seat Drop",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "seat"
+          ]
+        },
+        {
+          "label": "1/2 Twist to Seat Drop",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 1,
+            "max": 1
+          },
+          "takeoff": [
+            "seat"
+          ],
+          "landing": [
+            "seat"
+          ],
+          "fig": "(0 1)"
+        },
+        {
+          "label": "To Feet",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "seat"
+          ],
+          "landing": [
+            "feet"
+          ]
+        },
+        {
+          "label": "Tuck Jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "tuck"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(o)"
+        },
+        {
+          "label": "Pike Jump",
+          "rotation": {
+            "min": 0,
+            "max": 0
+          },
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "shapes": [
+            "pike"
+          ],
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(<)"
+        },
+        {
+          "label": "Back Landing",
+          "rotation": {
+            "min": 1,
+            "max": 1
+          },
+          "direction": "backward",
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "feet"
+          ],
+          "landing": [
+            "back"
+          ],
+          "fig": "(1 -)"
+        },
+        {
+          "label": "To Feet",
+          "rotation": {
+            "min": 1,
+            "max": 1
+          },
+          "direction": "forward",
+          "twist": {
+            "min": 0,
+            "max": 0
+          },
+          "takeoff": [
+            "back"
+          ],
+          "landing": [
+            "feet"
+          ],
+          "fig": "(1 -)"
+        }
+      ]
+    }
+  ],
+  "no_difficulty": true,
+  "repeats_allowed": true
+}

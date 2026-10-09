@@ -92,7 +92,7 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 			Label: strings.TrimSpace(r.FormValue(p + "label")),
 		}
 		switch rule.Type {
-		case requirements.Count, requirements.Every, requirements.Position:
+		case requirements.Count, requirements.Linked, requirements.Every, requirements.Position:
 			m := matcher(p + "m.")
 			rule.Match = &m
 		case requirements.Sequence:
@@ -122,7 +122,7 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 				rule.Options = append(rule.Options, steps)
 			}
 		}
-		if rule.Type == requirements.Count || rule.Type == requirements.Elements || rule.Type == requirements.Difficulty {
+		if rule.Type == requirements.Count || rule.Type == requirements.Linked || rule.Type == requirements.Elements || rule.Type == requirements.Difficulty {
 			rule.Min, rule.Max = floatField(p+"min"), floatField(p+"max")
 		}
 		if rule.Type == requirements.Difficulty {
@@ -154,6 +154,9 @@ func newRule(ruleType string) requirements.Rule {
 	switch ruleType {
 	case requirements.Count:
 		return requirements.Rule{Type: ruleType, Match: &requirements.Matcher{}, Min: &one}
+	case requirements.Linked:
+		somersault, none := 3, 0.0
+		return requirements.Rule{Type: ruleType, Match: &requirements.Matcher{Rotation: &requirements.Range{Min: &somersault}}, Max: &none}
 	case requirements.Every:
 		return requirements.Rule{Type: ruleType, Match: &requirements.Matcher{}}
 	case requirements.Elements:

@@ -1,0 +1,66 @@
+{
+  "format": 1,
+  "name": "ISTO Advanced · voluntary",
+  "description": "Voluntary: 10 different skills, tariff 3.2 to 4.2, 5 to 7 somersault skills (270° to 360°, at most 180° twist), at most 1 linked pair. Below the minimum tariff or above the maximum: a 2.0 penalty.",
+  "source": "ISTO 2025 Routines (updated)",
+  "rules": [
+    {
+      "type": "elements",
+      "min": 10,
+      "max": 10
+    },
+    {
+      "type": "different",
+      "label": "10 different individual skills"
+    },
+    {
+      "type": "difficulty",
+      "min": 3.2,
+      "max": 4.2
+    },
+    {
+      "type": "count",
+      "label": "5 to 7 somersault skills (270° to 360°)",
+      "match": {
+        "rotation": {
+          "min": 3
+        }
+      },
+      "min": 5,
+      "max": 7
+    },
+    {
+      "type": "count",
+      "label": "No somersault rotation over 360° in a skill",
+      "match": {
+        "rotation": {
+          "min": 5
+        }
+      },
+      "max": 0
+    },
+    {
+      "type": "count",
+      "label": "At most 180° twist in somersault skills",
+      "match": {
+        "rotation": {
+          "min": 3
+        },
+        "twist": {
+          "min": 2
+        }
+      },
+      "max": 0
+    },
+    {
+      "type": "linked",
+      "label": "At most 1 linked somersault pair",
+      "match": {
+        "rotation": {
+          "min": 3
+        }
+      },
+      "max": 1
+    }
+  ]
+}

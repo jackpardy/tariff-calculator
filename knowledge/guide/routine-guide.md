@@ -100,7 +100,8 @@ number of skills.
    The competition sets these for you. Change them only if your competition
    differs.
 
-Built-in rules are drafted from each organisation's published rules. **Check
+Built-in rules are drafted from each organisation's published rules (ISTO's
+from its 2025 routines). **Check
 them against your competition's current rules.**
 
 ## Start from a set routine
@@ -137,22 +138,23 @@ You can keep several entries for the same level, say one per gymnast. Use
 (next to the level) sends the level with its voluntary routines, and it opens
 in Levels mode for whoever receives it.
 
-# 5. Write your own requirements (e.g. ISTO)
+# 5. Write your own requirements
 
-The app doesn't have every competition built in: ISTO's levels, for example,
-aren't online yet. You can add them yourself.
+The app has ISTO's, BUCS's, FIG's and British Gymnastics' levels built in, but
+not every competition's. You can add your own, or change a built-in one.
 
 1. Tap **Manage requirements** (under Check against). The requirements page
    opens in a new tab.
 2. Under **Your requirements**, tap **+ New**. Or find a similar built-in one
    and tap **Duplicate** to start from it.
-3. Give it a **Name**, and optionally a description and source (e.g. "ISTO
-   handbook 2026–27").
+3. Give it a **Name**, and optionally a description and source (e.g. "Club
+   championships 2027").
 4. **Add a rule** for each requirement. The kinds of rule are:
    - special requirements that must each be met by a different skill;
    - "one of these" (e.g. a ¾ somersault followed by a 1¼, *or* a full with a
      full twist);
    - how many skills of a kind (at least, at most, or none);
+   - linked skills, one straight after another (e.g. no linked somersaults);
    - every skill of a kind;
    - no repeats;
    - number of skills;

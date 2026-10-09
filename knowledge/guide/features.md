@@ -39,14 +39,14 @@ generated: { by: claude-code/cli, at: 2026-10-06T14:00:00Z }
 
 # Check against a competition
 
-- **Built-in requirements** for BUCS (2026), FIG age groups (2025–2028) and
+- **Built-in requirements** for ISTO (2025), BUCS (2026), FIG age groups (2025–2028) and
   British Gymnastics national (2026) and club & regional (2027) levels. Each
   names the rule book it came from
   ([requirements](../requirements/framework.md)).
 - **Pass or fail for each requirement**, with the skills that meet it
   highlighted, and special requirements starred.
-- **Your own requirements**, for any competition the app doesn't know yet
-  (including ISTO): required skills, banned skills, skill counts, difficulty
+- **Your own requirements**, for any competition the app doesn't know yet:
+  required skills, banned skills, skill counts, linked skills, difficulty
   limits or caps. Start from scratch, or duplicate a built-in one and adjust
   it. The editor flags rules that contradict each other or can't be met.
 - **Choose what is scored**: turn difficulty or the repeat rule off, or score
