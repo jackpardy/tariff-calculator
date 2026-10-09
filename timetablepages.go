@@ -784,8 +784,13 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 		}))
 		return
 	}
+	scratched, err := p.scratchedOf(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	if r.URL.Query().Get("sheet") == "scores" {
-		render(w, r, views.ScorePrint(scoreSheets(c, s, entries, people, timetablePath(r), p.now(), "")))
+		render(w, r, views.ScorePrint(scoreSheets(c, s, entries, people, scratched, timetablePath(r), p.now(), "")))
 		return
 	}
 	judges := r.URL.Query().Get("sheet") == "judges"
@@ -802,6 +807,9 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 			sheet := views.SheetView{Day: day.Name, Area: area.Name}
 			for _, it := range area.Items {
 				if it.Flight {
+					for i := range it.Gymnasts {
+						it.Gymnasts[i].Scratched = scratched[it.Gymnasts[i].ID]
+					}
 					sheet.Flights = append(sheet.Flights, it)
 				}
 			}
@@ -892,7 +900,8 @@ func (p *competitionPages) keepWhatIf(w http.ResponseWriter, r *http.Request, c 
 // its gymnasts in running order, and a column for each mark its panel gives
 // each routine, all left to fill in.
 // With a person's key, only the flights they have a seat on.
-func scoreSheets(c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, back string, now time.Time, key string) views.ScoreSheets {
+// Scratched gymnasts (entry ids) are struck through.
+func scoreSheets(c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, scratched map[string]bool, back string, now time.Time, key string) views.ScoreSheets {
 	out := views.ScoreSheets{Title: "Score sheets · " + c.Name, Back: back, BackLabel: "← Timetable", Competition: summary(c.Competition, now)}
 	for _, day := range itemsOf(s, entries, people) {
 		for _, area := range day.Areas {
@@ -903,7 +912,7 @@ func scoreSheets(c store.Competition, s competitions.Schedule, entries []store.E
 				f := views.ScoreFlight{Name: it.Name, Day: day.Name, Area: area.Name, Start: it.Start, Seats: it.Seats,
 					Marks: scoreMarks(c.Officials.Panel(s.Flights[it.Index].Discipline))}
 				for _, g := range it.Gymnasts {
-					f.Rows = append(f.Rows, views.ScoreRow{Name: g.Name, Club: g.Club})
+					f.Rows = append(f.Rows, views.ScoreRow{Name: g.Name, Club: g.Club, Scratched: scratched[g.ID]})
 				}
 				out.Flights = append(out.Flights, f)
 			}

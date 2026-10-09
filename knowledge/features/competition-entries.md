@@ -554,6 +554,28 @@ Attendees see it too: on **My competition** (the same today-only rule), a line
 at the top for each area their flights are on that is running 5 or more minutes
 late or early, such as "Panel 2 is running about 15 min late (as of 10:40)".
 
+**Check-in and scratches** (built 2026-10-09): under each flight on the day
+page, a folded **Check-in · 8 of 10 here, 1 scratched** lists the flight's
+gymnasts in running order (entries since withdrawn are left out), each with
+their state and the buttons that would change it: **Here**, **Scratched** and
+**Clear**. They post to `/day/checkin` (`entry`, `status` = `here`,
+`scratched` or empty to clear, `day`), which stores one row per entry in
+`checkins` (status, when, who; no row means not marked yet). The entry has to
+be in a flight of the published timetable; a tap that changes nothing is
+ignored with a notice, and each real change is in the history ("Checked in:
+Ann Ryan (BUCS L3)", "Scratched: …", "Cleared check-in: …"). Organiser,
+"everything", chair-of-judges and timetable links can use it.
+
+A scratched gymnast is struck through, with "(scratched)", on the printed
+marshal, chair of judges and score sheets, and their event on My competition
+starts its status with "Scratched". They are not taken out of the running
+order or the rota: the sheets still show where they would have been. If a
+scratched gymnast also holds a seat on a flight that day (matched by person
+key, so a scratched entry counts for the person), the top of the day page says
+"Ann Ryan is scratched but officiates: Panel 2 · BUCS L4 · Execution judge",
+and, for links that can use the timetable, **What if they leave** opens the
+[leave](#what-if-an-official-has-to-leave) tool for them and that day.
+
 ## Simulation (ADR 0005, step 6)
 
 **Simulate**, linked from the timetable, tries numbers against the venue

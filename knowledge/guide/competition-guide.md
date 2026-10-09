@@ -286,7 +286,11 @@ has a starting value you can change.
    late", "On time" or early. Where an area is late, **What if: see the rest
    of the day** opens the delay page filled in. Gymnasts and officials see "Panel 2 is
    running about 15 min late" on their page once an area is 5 minutes or more
-   out.
+   out. Under each flight, **Check-in** lists its gymnasts: tap **Here** as
+   they arrive, or **Scratched** for a no-show (**Clear** takes it back).
+   Scratched gymnasts are struck through on the printed sheets, and if one
+   also has a seat on a panel that day the page says so, with a link to
+   "what if they leave".
 
 **What if there's a delay?** (on the timetable page, once planned): choose the
 day, when the hold-up starts, how many minutes and which areas (none ticked
