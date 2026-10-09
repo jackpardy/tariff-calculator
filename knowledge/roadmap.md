@@ -204,11 +204,48 @@ features that show that, in this order:
    which gymnast is on now and what they're doing (set routine, then
    voluntary) and who's up next, tapped through by the marshal.
 
+**Ready for the dry run (decided 2026-10-09).** A dry run of the core tools,
+entries through to the day, with about 20 people from 3 clubs, is planned for
+late 2026: entries from mid November, the day in late November or early
+December. Before it:
+
+- **Faster pages.** Measured on the demo, which has about 400 gymnasts: a
+  gymnast's own page manages about 25 loads a second on a fast laptop,
+  because every load reads all the entries again and works out the levels
+  and officials rota from scratch. Keep that per competition and
+  refresh it only when something changes. The server (a Hetzner CX23: 2
+  shared processors, 4 GB) is several times slower than the laptop, so
+  without this a desk message to everyone could stall it.
+- **Smaller pages.** Pages are sent uncompressed: the organiser's On the
+  day page is 875 KB (26 KB compressed), a gymnast's page 101 KB (10 KB).
+  Compress them, in the app or in the web server in front of it.
+- **A Feedback button** on every competition page while the dry run is on,
+  saving the words, the page, the role and the time for the maintainer.
+  Helper links already have Flag a concern; this is for everyone.
+- **Email on the server**: a provider (Amazon SES in Ireland is the
+  leaning) and the SPF and DKIM records.
+- **Taps without signal**: Started, Finished, Here and Scratched saved on
+  the phone with the time they were tapped, and sent when the signal
+  comes back; and a way to correct a start or finish time afterwards,
+  for when the paper sheet was used instead.
+- **A load test**: a script acting as 300 people against a test copy on
+  the server, to get real numbers before the dry run.
+
+For ISTO itself: a 4G/5G router for the organiser, marshals and chairs
+(and a cable for the venue screen); everyone's times by push and email
+the night before, so their page is saved on their phone before they
+arrive; and the server scaled up for the weekend (Hetzner charges by the
+hour; keep the disk size so it can scale back down; a minute or two
+offline, so do it the day before). The March rehearsal runs on a copy of
+the real competition with its entries, at the venue if possible, with a
+script standing in for the crowd and 15 minutes with the app switched off
+to practise the paper fallback; copying a competition with its entries
+builds on copying last year's.
+
 Then, by when ISTO needs them: link the calculator (before entries open),
 the "what ifs'" missing checks (8) and saying what a manual change breaks
 (9), judges' qualifications, and details like better defaults (14);
-splitting an event by routine (10) if ISTO's timetable needs it. A dress
-rehearsal of the day in March, and nothing but fixes in the last two weeks.
+splitting an event by routine (10) if ISTO's timetable needs it. A dry run of the core tools in late 2026 (above), a full rehearsal of the day in March, and nothing but fixes in the last two weeks.
 After ISTO: copying last year's competition, results history, the club
 tools and the possible additions.
 
