@@ -184,6 +184,26 @@ features that show that, in this order:
    [offline](features/competition-entries.md#offline): a person's opened
    pages open without a connection, as last seen), add to calendar.
 
+**Next (asked 2026-10-09), before the rest:**
+
+1. **Check-in keeps the flight open**: marking someone Here, Scratched or
+   Clear on the On the day page updates just their row, so the flight's
+   check-in list doesn't close.
+2. **All people, for the organiser**: a list of everyone at the
+   competition, one row a person whatever their roles, which the coaches,
+   officials and entries lists link to. Each person's page shows everything
+   they're doing, like their own Your competition page, read-only.
+3. **One link for a person with several roles**: a member who also coaches
+   or is comp sec gets one link, with tabs between their views. The comp
+   sec can make a member a coach too, and anyone can add another of their
+   links to their page to join them. A join can be undone.
+4. **Search and filter every list of people**: a name search on each, and
+   filters that suit the list (for officials: club, role, event, level,
+   qualified).
+5. **Venue screen changes** (to be gone through). Stretch goal: show
+   which gymnast is on now and what they're doing (set routine, then
+   voluntary) and who's up next, tapped through by the marshal.
+
 Then, by when ISTO needs them: link the calculator (before entries open),
 the "what ifs'" missing checks (8) and saying what a manual change breaks
 (9), judges' qualifications, and details like better defaults (14);
