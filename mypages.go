@@ -65,6 +65,11 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 	published := t != nil
 	page.Published = published
 	var mine []competitions.ScheduledFlight // the flights they're in
+	scratched, err := p.scratchedOf(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	for _, j := range judge(c.Competition, entries) {
 		if !slices.Contains(keys[j.ID], key) {
 			continue
@@ -79,6 +84,9 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 			ev.Problems = j.problems
 		default:
 			ev.Status = "Sent, not checked yet"
+		}
+		if scratched[j.ID] {
+			ev.Status = "Scratched · " + ev.Status
 		}
 		if published {
 			if i, ok := t.Find(j.ID); ok {

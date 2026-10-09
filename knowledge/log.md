@@ -1,6 +1,12 @@
 # Update log
 
 ## 2026-10-09
+* **Update**: [Check-in and scratches](features/competition-entries.md#on-the-day-flights-started-and-finished):
+  under each flight on the On the day page, mark gymnasts **Here** or
+  **Scratched** (or clear it). Scratched gymnasts are struck through on the
+  printed marshal, chair of judges and score sheets and marked on My
+  competition; if one also officiates that day, the page says so and links
+  to "what if they leave".
 * **Update**: [Add to calendar](features/competition-entries.md#personal-and-club-timetables):
   a person's or a club's flights and duties from the published timetable
   as a calendar file to add or subscribe to; it updates when the

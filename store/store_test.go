@@ -1654,3 +1654,36 @@ func TestFlightTimes(t *testing.T) {
 		t.Error("an unknown mark is refused")
 	}
 }
+
+func TestCheckins(t *testing.T) {
+	now := time.Date(2027, 3, 13, 9, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	all := func() map[string]Checkin {
+		t.Helper()
+		got, err := s.Checkins(ctx, c.ID)
+		must(t, err)
+		return got
+	}
+	if got := all(); len(got) != 0 {
+		t.Errorf("nothing yet: %+v", got)
+	}
+	must(t, s.SetCheckin(ctx, c.ID, "a", CheckedIn, "Ann"))
+	must(t, s.SetCheckin(ctx, c.ID, "b", Scratched, "Bea"))
+	got := all()
+	if len(got) != 2 || got["a"].Status != CheckedIn || got["a"].Who != "Ann" || !got["a"].At.Equal(now) || got["b"].Status != Scratched {
+		t.Errorf("here and scratched: %+v", got)
+	}
+	now = now.Add(time.Hour)
+	must(t, s.SetCheckin(ctx, c.ID, "a", Scratched, "Cal"))
+	if got := all()["a"]; got.Status != Scratched || got.Who != "Cal" || !got.At.Equal(now) {
+		t.Errorf("changing the mark replaces it: %+v", got)
+	}
+	must(t, s.SetCheckin(ctx, c.ID, "a", "", "Cal"))
+	if got := all(); len(got) != 1 || got["b"].Status != Scratched {
+		t.Errorf("clear takes the mark away: %+v", got)
+	}
+	if err := s.SetCheckin(ctx, c.ID, "a", "nonsense", "Cal"); err == nil {
+		t.Error("an unknown status is refused")
+	}
+}

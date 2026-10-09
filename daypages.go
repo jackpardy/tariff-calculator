@@ -22,6 +22,7 @@ import (
 func (p *competitionPages) registerDay(handle func(string, http.HandlerFunc)) {
 	handle("GET /competitions/admin/{token}/day", p.day)
 	handle("POST /competitions/admin/{token}/day/flight", p.markFlight)
+	handle("POST /competitions/admin/{token}/day/checkin", p.markCheckin)
 }
 
 // lateEnough is how many minutes late or early an area has to run before
@@ -106,8 +107,28 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	all, err := p.st.Entries(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	entries := live(all)
+	byID := map[string]store.Entry{}
+	for _, e := range entries {
+		byID[e.ID] = e
+	}
+	checkins, err := p.st.Checkins(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	base := adminPath(r.PathValue("token"))
 	page := views.DayPage{Base: base, Competition: summary(c.Competition, p.now()), Notice: r.URL.Query().Get("notice"), Day: day}
+	whatIf := ""
+	if can(r, "GET", "/timetable/leave") {
+		whatIf = base + "/timetable/leave"
+	}
+	page.Scratched = scratchedOfficials(*s, day, entries, checkins, whatIf)
 	for i, d := range s.Setup.Days {
 		page.Days = append(page.Days, views.DayTab{Name: d.Name, Link: base + "/day?day=" + strconv.Itoa(i), Active: i == day})
 	}
@@ -131,13 +152,15 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		}
 		for _, f := range flights {
 			t := times[competitions.FlightKey(f)]
-			area.Flights = append(area.Flights, views.DayFlight{
+			df := views.DayFlight{
 				Key: competitions.FlightKey(f), Name: f.Name(),
 				Planned: competitions.Clock(f.Start) + "–" + competitions.Clock(f.End),
 				Started: clock(t.Started), Finished: clock(t.Finished), Who: t.Who,
 				CanStart: t.Started.IsZero(), CanFinish: !t.Started.IsZero() && t.Finished.IsZero(),
 				CanUndo: !t.Started.IsZero() || !t.Finished.IsZero(),
-			})
+			}
+			df.Checkin, df.Gymnasts = checkinOf(f, byID, checkins)
+			area.Flights = append(area.Flights, df)
 		}
 		if l, ok := late[a.Name]; ok {
 			area.Status = lateText(l)

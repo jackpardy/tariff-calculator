@@ -49,9 +49,9 @@ func allowed(kind, pattern string) bool {
 	case store.LinkCards:
 		return viewing || post && (path == "/entries/{id}/check" || path == "/entries/{id}/video")
 	case store.LinkChair:
-		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv" || path == "/day") || post && path == "/day/flight"
+		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv" || path == "/day") || post && (path == "/day/flight" || path == "/day/checkin")
 	case store.LinkTimetable:
-		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/day") || post && path == "/day/flight" ||
+		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/day") || post && (path == "/day/flight" || path == "/day/checkin") ||
 			post && (strings.HasPrefix(path, "/timetable/") || strings.HasPrefix(path, "/officials/") || path == "/notify-now")
 	}
 	return false
@@ -231,6 +231,8 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		return "" // simulations change nothing
 	case "/day/flight":
 		return p.describeFlightMark(r, c)
+	case "/day/checkin":
+		return p.describeCheckin(r, c)
 	}
 	switch {
 	case strings.HasPrefix(path, "/timetable/setup/"):

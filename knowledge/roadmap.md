@@ -168,7 +168,9 @@ features that show that, in this order:
    the marshal (built 2026-10-09,
    [on the day](features/competition-entries.md#on-the-day-flights-started-and-finished):
    planned against actual, how late each area is, shown to attendees and
-   feeding the delay "what if"), check-in and scratches, messages from the
+   feeding the delay "what if"), check-in and scratches (built 2026-10-09,
+   same page: marked here or scratched, struck through on the printed
+   sheets, a scratched official flagged), messages from the
    organisers' desk, a "now on" screen, pages that work offline, add to
    calendar.
 

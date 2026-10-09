@@ -492,6 +492,16 @@ var migrations = []string{
 		who            TEXT NOT NULL DEFAULT '',
 		PRIMARY KEY (competition_id, flight)
 	);`,
+
+	// 25: check-in and scratches on the day (roadmap 2026-10-09).
+	`CREATE TABLE checkins (
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		entry_id       TEXT NOT NULL,
+		status         TEXT NOT NULL,
+		at             TEXT NOT NULL,
+		who            TEXT NOT NULL,
+		PRIMARY KEY (competition_id, entry_id)
+	);`,
 }
 
 // migrate runs the migrations the database hasn't had yet.

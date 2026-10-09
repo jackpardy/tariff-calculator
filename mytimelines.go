@@ -244,7 +244,12 @@ func (p *competitionPages) officialScoreSheets(w http.ResponseWriter, r *http.Re
 		failed(w, r, err)
 		return
 	}
-	sheets := scoreSheets(c, *t, entries, officials, back, p.now(), key)
+	scratched, err := p.scratchedOf(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	sheets := scoreSheets(c, *t, entries, officials, scratched, back, p.now(), key)
 	sheets.BackLabel = "← Back"
 	sheets.Intro = "The score sheets of the flights you're on the panel for. The organiser prints them for the day; you don't need to."
 	render(w, r, views.ScorePrint(sheets))
