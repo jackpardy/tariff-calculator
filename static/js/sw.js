@@ -104,7 +104,13 @@ async function page(request) {
         return await pageFromNetwork(request);
     } catch (e) {
         const cached = await caches.match(request.url, { cacheName: PAGES });
-        return cached || new Response(OFFLINE_PAGE, {
+        if (cached) {
+            // Show the page's "you're offline" note: on a slow connection the
+            // phone still counts as online, so the page itself wouldn't.
+            const html = (await cached.text()).replace(' comp-offline" hidden>', ' comp-offline" data-from-copy>');
+            return new Response(html, { headers: cached.headers });
+        }
+        return new Response(OFFLINE_PAGE, {
             status: 503,
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });

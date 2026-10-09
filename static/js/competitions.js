@@ -232,7 +232,10 @@
         if (!banner) { return; }
         const when = document.querySelector('meta[name="page-time"]')?.content || 'at an unknown time';
         for (const el of banner.querySelectorAll('[data-offline-when]')) { el.textContent = when; }
-        const show = () => { banner.hidden = navigator.onLine; };
+        // A copy the service worker served because the network was too slow
+        // is marked, so the banner shows though the phone counts as online.
+        const fromCopy = banner.hasAttribute('data-from-copy');
+        const show = () => { banner.hidden = navigator.onLine && !fromCopy; };
         window.addEventListener('offline', show);
         window.addEventListener('online', show);
         show();

@@ -28,3 +28,16 @@ func TestOfflineServiceWorkerAndPages(t *testing.T) {
 		t.Errorf("a competition page says when it was made: %s", body[:min(len(body), 600)])
 	}
 }
+
+// The service worker marks a copy it serves by changing exactly this
+// markup, so the page's banner shows: keep them in step.
+func TestOfflineBannerMarkup(t *testing.T) {
+	h := competitionServer(t)
+	page := do(t, h, http.MethodGet, "/competitions/new", nil).Body.String()
+	if !strings.Contains(page, ` comp-offline" hidden>`) {
+		t.Error("the banner's markup, as sw.js expects it")
+	}
+	if sw := do(t, h, http.MethodGet, "/sw.js", nil).Body.String(); !strings.Contains(sw, `' comp-offline" hidden>'`) {
+		t.Error("sw.js looks for the banner's markup")
+	}
+}
