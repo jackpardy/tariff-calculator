@@ -1,5 +1,8 @@
 # Update log
 
+## 2026-10-13
+* **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): sending desk messages and notifications in the background, before the dry run; email decided as Amazon SES in Ireland, with the setup steps in [deploy](operations/deploy.md#notifications).
+
 ## 2026-10-09
 * **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): ready for a late-2026 dry run: faster pages, compressed pages, a Feedback button, email on the server, taps without signal, a load test; and for ISTO, staff wifi, the server scaled up for the weekend, and a March rehearsal on a copy of the real competition.
 * **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): next are check-in keeping the flight open, an All people list, one link for several roles, search and filters on lists of people, and venue screen changes (stretch: who's on, which routine, and who's next).

@@ -113,8 +113,22 @@ Without `SMTP_HOST` and `MAIL_FROM`, email isn't offered. Phone push needs
 nothing set: the app makes its push (VAPID) keys on first use and keeps them
 in the database, so the nightly backup covers them (losing them stops push
 to every phone already subscribed). **Not set up on
-the server yet:** it needs a provider (Amazon SES in its Ireland region is
-the leaning) and SPF and DKIM records for the sending domain.
+the server yet.** The provider is Amazon SES in its Ireland region
+(decided 2026-10-09; Postmark if SES refuses). To set it up:
+
+1. In SES (eu-west-1), add the domain `tariff.pardy.ie` as an identity.
+2. Add its DNS records: the three DKIM CNAMEs; a custom MAIL FROM
+   subdomain (e.g. `mail.tariff.pardy.ie`) with the MX and SPF TXT records
+   SES lists; and `_dmarc.tariff.pardy.ie` TXT `v=DMARC1; p=none;`.
+3. Ask for production access: low volume, opt-in, addresses confirmed by
+   a link, a stop link in every email.
+4. Create SMTP credentials in SES.
+5. On the server, set `SMTP_HOST=email-smtp.eu-west-1.amazonaws.com`,
+   `SMTP_USERNAME`, `SMTP_PASSWORD` and `MAIL_FROM`, and restart the
+   service. Hetzner blocks ports 25 and 465 but not 587.
+6. Test with a Gmail and an Outlook address: confirm, check it isn't in
+   spam, and that SPF, DKIM and DMARC pass (Gmail's "Show original").
+7. Optionally have SES send bounces and complaints to an email address.
 
 # Demo competition
 

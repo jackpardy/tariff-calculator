@@ -222,8 +222,19 @@ December. Before it:
 - **A Feedback button** on every competition page while the dry run is on,
   saving the words, the page, the role and the time for the maintainer.
   Helper links already have Flag a concern; this is for everyone.
-- **Email on the server**: a provider (Amazon SES in Ireland is the
-  leaning) and the SPF and DKIM records.
+- **Send in the background.** A desk message, or a round of change
+  notifications, emails and pushes each person one at a time before the
+  organiser's page answers: about half a second to a second an email, so
+  a message to 300 people hangs for minutes and may time out part way
+  through. Send a few at a time in the background, and say at once how
+  many it's going to.
+- **Email on the server**: Amazon SES in Ireland (decided 2026-10-09:
+  pennies a competition and no daily cap that matters, unlike the free
+  tiers of Resend or Brevo; Postmark is the fallback if SES refuses
+  production access). Sending from `tariff.pardy.ie`, with DKIM, SPF on a
+  MAIL FROM subdomain and a DMARC record starting at `p=none`; apply for
+  production access early. The steps are in
+  [deploy](operations/deploy.md#notifications).
 - **Taps without signal**: Started, Finished, Here and Scratched saved on
   the phone with the time they were tapped, and sent when the signal
   comes back; and a way to correct a start or finish time afterwards,
