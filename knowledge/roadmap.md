@@ -201,21 +201,21 @@ features that show that, in this order:
    filters that suit the list (for officials: club, role, event, level,
    qualified). Long lists can be collapsed too, starting with the club's
    Members list (asked 2026-10-13).
-4b. **Finding your way round (asked 2026-10-13):**
-    - **A menu for the organiser**, with sections and subsections:
-      entries, timetable, coaches, panels and officials, routines and
-      competition settings. Today it's a row of buttons on the entries
-      page.
-    - **Links and settings on a page of their own**, not at the foot of
-      the entries page.
-    - **The same for clubs and gymnasts entering on their own**, with a
-      menu in place of one long page.
-    - **Individuals: a Competitions tab** listing their competitions, each
-      opening that competition's page. Within it, each entry is collapsed
-      by default and the list view comes first. Other tabs come later,
-      such as routines, or a coach's view once one link covers several
-      roles.
-5. **Make dropdowns look like dropdowns** (asked 2026-10-13). **Limits
+5. **Finding your way round (asked 2026-10-13):**
+   - **A menu for the organiser**, with sections and subsections:
+     entries, timetable, coaches, panels and officials, routines and
+     competition settings. Today it's a row of buttons on the entries
+     page.
+   - **Links and settings on a page of their own**, not a section of
+     the entries page.
+   - **The same for clubs and gymnasts entering on their own**, with a
+     menu in place of one long page.
+   - **Individuals: a Competitions tab** listing their competitions, each
+     opening that competition's page. Within it, each entry is collapsed
+     by default and the list view comes first. Other tabs come later,
+     such as routines, or a coach's view once one link covers several
+     roles.
+6. **Make dropdowns look like dropdowns** (asked 2026-10-13). **Limits
    and waiting lists**, under Links and settings, opens when tapped but
    shows no arrow, so it reads as a plain heading. Bulma's `label` class
    on its `<summary>` makes it a block and hides the marker
@@ -223,7 +223,7 @@ features that show that, in this order:
    dropdowns: the dashboard's level headings (`title` on the summary in
    `views/competitions.templ`) look like the same problem. Give every
    dropdown one look, with an arrow that turns when open.
-6. **Venue screen changes** (to be gone through). Stretch goal: show
+7. **Venue screen changes** (to be gone through). Stretch goal: show
    which gymnast is on now and what they're doing (set routine, then
    voluntary) and who's up next, tapped through by the marshal.
 
