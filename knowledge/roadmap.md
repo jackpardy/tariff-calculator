@@ -200,7 +200,15 @@ features that show that, in this order:
 4. **Search and filter every list of people**: a name search on each, and
    filters that suit the list (for officials: club, role, event, level,
    qualified).
-5. **Venue screen changes** (to be gone through). Stretch goal: show
+5. **Make dropdowns look like dropdowns** (asked 2026-10-13). **Limits
+   and waiting lists**, under Links and settings, opens when tapped but
+   shows no arrow, so it reads as a plain heading. Bulma's `label` class
+   on its `<summary>` makes it a block and hides the marker
+   (`views/limits.templ`). This isn't the first time, so review all 52
+   dropdowns: the dashboard's level headings (`title` on the summary in
+   `views/competitions.templ`) look like the same problem. Give every
+   dropdown one look, with an arrow that turns when open.
+6. **Venue screen changes** (to be gone through). Stretch goal: show
    which gymnast is on now and what they're doing (set routine, then
    voluntary) and who's up next, tapped through by the marshal.
 

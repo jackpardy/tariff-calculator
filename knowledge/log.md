@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-13
+* **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): dropdowns that don't look like dropdowns (Limits and waiting lists first), and a review of them all.
 * **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): sending desk messages and notifications in the background, before the dry run; email decided as Amazon SES in Ireland, with the setup steps in [deploy](operations/deploy.md#notifications).
 
 ## 2026-10-09
