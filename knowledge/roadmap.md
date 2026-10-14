@@ -257,7 +257,10 @@ features that show that, in this order:
 6. **Search and filter every list of people**: a name search on each, and
    filters that suit the list (for officials: club, role, event, level,
    qualified). Long lists can be collapsed too, starting with the club's
-   Members list (asked 2026-10-13).
+   Members list (asked 2026-10-13). **Started 2026-10-14:** the Officials
+   page's People list has the search and filters, built from shared pieces
+   that every other list will use
+   ([how](architecture/rendering.md#lists-of-people-search-and-filters)).
 7. **Venue screen changes** (to be gone through). Stretch goal: show
    which gymnast is on now and what they're doing (set routine, then
    voluntary) and who's up next, tapped through by the marshal.

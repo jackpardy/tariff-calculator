@@ -60,6 +60,45 @@ something else opts out by `content: none` on its `::before`, in the same block:
 (`.comp-move`), or any summary given the class `no-arrow`. The tariff sheet and
 the view page have their own stylesheets and menus, so the rule doesn't reach them.
 
+# Lists of people: search and filters
+
+Every list of people has the same search and filters (roadmap item 6), from
+one set of pieces, so they look and work alike. The organiser's Officials
+page's People list is the example to copy.
+
+- **The section.** `@listSection(title, count, closed)` in `views/lists.templ`
+  draws the heading and count as a dropdown, open unless `closed`. Put the
+  list, and its "nobody yet" message, inside it.
+- **The tools.** `@listTools(views.ListTools{ID, Noun, Total, Filters})`
+  goes above the list, which gets `id={ ID }`. `ID` is unique on the page and
+  also keys the saved search, so keep it stable. `Noun` is plural ("people",
+  "members"). Leave the tools out when the list is empty.
+- **The rows.** Each row (`<tr>`, `<li>`, `<label>`) spreads
+  `{ row.List.Attrs()... }`, from a `views.ListRow{Name, Values}`. `Name` is
+  what "Find a name" searches. `Values` holds the row's values for each
+  filter key; a row can have several values for a key, or none.
+- **The filters.** Build them in Go, in `web/lists.go`, so lists share
+  them: `clubFilter` and `clubValue` (with "No club"), `canDoFilter` and
+  `canDo`, `judgesFilter` and `judges` (discipline and level, `AtLeast`:
+  "BUCS L6" matches anyone judging L6 or harder), and `qualifiedFilter` and
+  `qualifiedValue`. Add a new filter there, next to its row values, as a
+  `views.ListFilter{Key, Label, Any, Options}`. `Any` is the first choice,
+  which matches everyone (for example "Every club"). Group long choices with
+  `ListOption.Group`.
+- **The script.** `listTools` in `static/js/competitions.js` does the rest
+  on the phone:
+  - it searches ignoring case, accents and apostrophes, so "oneill" finds
+    "O'Neill" and "o briain" finds "Ó Briain";
+  - it shows "12 of 323 people", a Clear button, and "Nobody matches";
+  - it keeps the search and filters for the tab, so a page that reloads after
+    a change comes back filtered the same.
+
+  The tools stay hidden without JavaScript, and the whole list shows. Don't
+  add Alpine or any other script for a list.
+
+Test a list with `listRows` in `web/lists_test.go`, which reads each row's
+name and values from the page.
+
 # JavaScript's job
 
 Only what must run in the browser: keeping `localStorage` in sync, expanding

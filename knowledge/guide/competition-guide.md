@@ -231,6 +231,10 @@ and anyone you add.
   judge: anyone up to the level they say, only levels below their own, or only
   people you mark qualified. "Up to" and "below" go by the **Order of levels**
   on the Settings page.
+  To find people in a long list, type part of a name in **Find a name**, or
+  narrow it by club, what they can do, the level they can judge (a level
+  shows everyone who can judge it or a harder one) or qualified. **Clear**
+  shows everyone again.
 
 ## Plan the timetable
 

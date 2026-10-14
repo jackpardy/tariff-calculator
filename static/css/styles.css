@@ -756,3 +756,17 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .role-tabs .tabs a { white-space: nowrap; }
 .comp-other-link { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; border-bottom: 1px solid #ededed; padding: 0.25rem 0; }
 .comp-other-link span { min-width: 0; overflow-wrap: anywhere; }
+/* Search and filters on lists of people (views/lists.templ): the name search, then a
+   select for each filter, wrapping onto more lines on a phone, where the search takes
+   the whole first line and the selects share the rest. */
+.comp-list > summary.title { display: block; }
+.comp-list-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.comp-list-controls .comp-list-search { flex: 1 1 14rem; max-width: 22rem; }
+.comp-list-controls .select, .comp-list-controls .select select { max-width: 100%; }
+.comp-list-count { display: flex; align-items: center; gap: 0.5rem; min-height: 1.9rem; }
+.comp-list-clear { height: auto; padding: 0 0.25rem; }
+@media screen and (max-width: 768px) {
+  .comp-list-controls .comp-list-search { flex-basis: 100%; max-width: none; }
+  .comp-list-controls .select { flex: 1 1 calc(50% - 0.25rem); }
+  .comp-list-controls .select select { width: 100%; }
+}

@@ -193,9 +193,19 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		}
 		page.Cover = append(page.Cover, cover)
 	}
+	var clubs []string
+	for _, o := range people {
+		clubs = append(clubs, o.ClubName)
+	}
+	page.Tools = views.ListTools{ID: "officials", Noun: "people", Total: len(people), Filters: []views.ListFilter{
+		clubFilter(clubs), canDoFilter(), judgesFilter(c.Competition), qualifiedFilter(),
+	}}
 	for _, o := range people {
 		row := views.OfficialRow{ID: o.ID, Name: o.Name, Club: o.ClubName, Offer: o.Offer.Describe(), Qualified: o.Qualified, Added: o.Added,
-			Person: personPath(page.Base, officialKey(o, keys))}
+			Person: personPath(page.Base, officialKey(o, keys)),
+			List: views.ListRow{Name: o.Name, Values: map[string][]string{
+				"club": {clubValue(o.ClubName)}, "can": canDo(o.Offer), "judges": judges(c.Competition, o.Offer), "qualified": {qualifiedValue(o.Qualified)},
+			}}}
 		switch {
 		case o.Added:
 			row.Source = "added by you"

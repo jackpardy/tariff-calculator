@@ -396,8 +396,89 @@
         }
     }
 
+    // fold makes text searchable: lower case, without accents or apostrophes,
+    // so "o briain" finds "Ó Briain" and "oneill" finds "O'Neill".
+    function fold(text) {
+        return text.normalize('NFD').replace(/[\p{M}'’]/gu, '').toLowerCase();
+    }
+
+    // listTools searches and filters each list of people (views/lists.templ):
+    // a row shows when its name has every word searched for and it matches
+    // every filter chosen. The search and filters are kept for the tab, so a
+    // page that reloads after a change comes back the same.
+    function listTools() {
+        for (const tools of document.querySelectorAll('[data-list-tools]')) {
+            const list = document.getElementById(tools.dataset.listTools);
+            if (!list) { continue; }
+            const rows = [...list.querySelectorAll('[data-list-row]')].map((el) => {
+                let values = {};
+                try { values = JSON.parse(el.dataset.values || '{}'); } catch (e) { /* no values: matches no filter */ }
+                return { el, name: fold(el.dataset.name || ''), values };
+            });
+            const search = tools.querySelector('[data-list-search]');
+            const filters = [...tools.querySelectorAll('[data-list-filter]')];
+            const count = tools.querySelector('[data-list-count]');
+            const clear = tools.querySelector('[data-list-clear]');
+            const none = tools.querySelector('[data-list-none]');
+            const noun = tools.dataset.noun;
+            const stateKey = 'trampolineList:' + location.pathname + ':' + tools.dataset.listTools;
+
+            // matches says whether a row has a filter's chosen value: for an
+            // "at least" filter, a value with the same prefix and as high a number.
+            const matches = (row, filter) => {
+                const have = row.values[filter.dataset.listFilter] || [];
+                if (!filter.hasAttribute('data-at-least')) { return have.includes(filter.value); }
+                const at = filter.value.lastIndexOf(':');
+                const prefix = filter.value.slice(0, at + 1);
+                const need = Number(filter.value.slice(at + 1));
+                return have.some((v) => v.startsWith(prefix) && Number(v.slice(prefix.length)) >= need);
+            };
+
+            const apply = () => {
+                const words = fold(search.value).split(/\s+/).filter(Boolean);
+                const chosen = filters.filter((f) => f.value !== '');
+                let shown = 0;
+                for (const row of rows) {
+                    const show = words.every((w) => row.name.includes(w)) && chosen.every((f) => matches(row, f));
+                    row.el.hidden = !show;
+                    if (show) { shown++; }
+                }
+                const filtered = words.length > 0 || chosen.length > 0;
+                count.textContent = filtered ? `${shown} of ${rows.length} ${noun}` : `${rows.length} ${noun}`;
+                clear.hidden = !filtered;
+                none.hidden = shown > 0;
+                list.hidden = shown === 0;
+                try {
+                    sessionStorage.setItem(stateKey, JSON.stringify({ q: search.value, f: filters.map((f) => f.value) }));
+                } catch (e) { /* not kept: the page starts unfiltered next time */ }
+            };
+
+            try {
+                const saved = JSON.parse(sessionStorage.getItem(stateKey) || 'null');
+                if (saved) {
+                    search.value = saved.q || '';
+                    filters.forEach((f, i) => {
+                        // A choice the page no longer offers is dropped.
+                        if ([...f.options].some((o) => o.value === saved.f?.[i])) { f.value = saved.f[i]; }
+                    });
+                }
+            } catch (e) { /* nothing kept */ }
+            search.addEventListener('input', apply);
+            for (const f of filters) { f.addEventListener('change', apply); }
+            clear.addEventListener('click', () => {
+                search.value = '';
+                for (const f of filters) { f.value = ''; }
+                apply();
+                search.focus();
+            });
+            tools.hidden = false;
+            apply();
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         keepOffline();
+        listTools();
         offlineBanner();
         openLevels();
         menuInView();

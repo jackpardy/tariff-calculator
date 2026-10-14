@@ -1,0 +1,121 @@
+package views
+
+import (
+	"encoding/json"
+	"strconv"
+)
+
+// Search and filters on lists of people (roadmap: search and filter every
+// list of people). Every list uses the same pieces, so they look and work
+// alike:
+//
+//   - listSection: the list's heading, with its count, as a dropdown that
+//     can start open or closed;
+//   - listTools: the name search, a select for each filter, how many are
+//     shown, and Clear; hidden until the page's script runs, since they need
+//     it;
+//   - ListRow.Attrs on each row (a <tr>, <li> or <label>), giving its name
+//     and its values for each filter.
+//
+// static/js/competitions.js (listTools) does the filtering on the phone, and
+// keeps the search and filters while the tab is open, so a page that reloads
+// after a change (ticking someone qualified) comes back filtered the same.
+
+// ListTools is a list's search and filters.
+type ListTools struct {
+	ID      string // the list's element id, unique on the page; it also keys the saved search
+	Noun    string // what the list is of, plural, e.g. "people"
+	Total   int
+	Filters []ListFilter
+}
+
+// ListFilter is one filter: a select whose choices each match rows with
+// that value.
+type ListFilter struct {
+	Key     string // the row's values for it are ListRow.Values[Key]
+	Label   string // e.g. "Club"
+	Any     string // the choice that matches every row, e.g. "Every club"
+	Options []ListOption
+	// AtLeast matches a row whose value with the option's prefix (up to its
+	// last ":") is at least the option's number: "trampoline:5" matches a row
+	// with "trampoline:7". Used for levels, ranked easiest first. Otherwise
+	// a row matches when it has the option's value.
+	AtLeast bool
+}
+
+// ListOption is one choice of a filter, in a group of choices if Group is
+// set (consecutive options with the same group share it).
+type ListOption struct {
+	Value, Label, Group string
+}
+
+// ListRow is what a row of a list is searched and filtered by.
+type ListRow struct {
+	Name   string              // searched, ignoring case and accents
+	Values map[string][]string // by filter key; a row can have several, or none
+}
+
+// Attrs are the row's attributes for the script.
+func (r ListRow) Attrs() templ.Attributes {
+	a := templ.Attributes{"data-list-row": "", "data-name": r.Name}
+	if len(r.Values) > 0 {
+		values, _ := json.Marshal(r.Values)
+		a["data-values"] = string(values)
+	}
+	return a
+}
+
+// listGroups are a filter's options in their groups, in order.
+func listGroups(options []ListOption) [][]ListOption {
+	var out [][]ListOption
+	for i, o := range options {
+		if i == 0 || o.Group != options[i-1].Group {
+			out = append(out, nil)
+		}
+		out[len(out)-1] = append(out[len(out)-1], o)
+	}
+	return out
+}
+
+// listSection is a list under its heading and count, as a dropdown, open
+// unless closed is set. Its children are the list's tools and the list.
+templ listSection(title string, count int, closed bool) {
+	<details class="comp-list mt-5" open?={ !closed }>
+		<summary class="title is-5 mb-3">{ title } <span class="has-text-grey is-size-6">({ strconv.Itoa(count) })</span></summary>
+		{ children... }
+	</details>
+}
+
+// listTools is the search and filters of the list with element id t.ID.
+templ listTools(t ListTools) {
+	<div class="comp-list-tools mb-3" data-list-tools={ t.ID } data-noun={ t.Noun } hidden>
+		<div class="comp-list-controls">
+			<input class="input is-small comp-list-search" type="search" placeholder="Find a name" aria-label="Find a name" data-list-search autocomplete="off"/>
+			for _, f := range t.Filters {
+				<div class="select is-small">
+					<select aria-label={ f.Label } data-list-filter={ f.Key } data-at-least?={ f.AtLeast }>
+						<option value="">{ f.Any }</option>
+						for _, group := range listGroups(f.Options) {
+							if group[0].Group != "" {
+								<optgroup label={ group[0].Group }>
+									for _, o := range group {
+										<option value={ o.Value }>{ o.Label }</option>
+									}
+								</optgroup>
+							} else {
+								for _, o := range group {
+									<option value={ o.Value }>{ o.Label }</option>
+								}
+							}
+						}
+					</select>
+				</div>
+			}
+		</div>
+		<p class="comp-list-count is-size-7 has-text-grey mt-1" aria-live="polite">
+			<span data-list-count>{ strconv.Itoa(t.Total) } { t.Noun }</span>
+			<button class="button is-small is-text comp-list-clear" type="button" data-list-clear hidden>Clear</button>
+		</p>
+		<p class="has-text-grey is-size-7" data-list-none hidden>Nobody matches.</p>
+	</div>
+}

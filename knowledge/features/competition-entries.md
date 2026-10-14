@@ -386,7 +386,12 @@ A competition offers **events**: a discipline at a level.
 # Officials (ADR 0005, step 3)
 
 **Officials** (under Timetable in the menu) lists everyone who can judge or help, and what
-each discipline's panel needs.
+each discipline's panel needs. The People list can be searched by name and
+filtered by club, what they can do (judge, chair, recorder, marshal), the
+discipline and level they can judge (a level shows everyone who judges it or
+a harder one), and qualified or not. The search and filters stay while the tab
+is open, so ticking someone qualified keeps the list as it was
+([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
 
 - **Offers.** On their page, a member says what they can do at each
   competition: judge a discipline (up to a level, perhaps chairing), and help
