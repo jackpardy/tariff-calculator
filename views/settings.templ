@@ -12,6 +12,7 @@ type SettingsPage struct {
 	Competition   CompetitionSummary
 	Links         CompetitionLinks
 	LinkList      []LinkView
+	Ties          []TieView // people whose own link opens these pages (ADR 0010)
 	DeadlineDate  string // the closing time, for changing it
 	DeadlineTime  string
 	ChangesDate   string // when changes and sign-offs close, if later, for changing them
@@ -42,7 +43,7 @@ templ CompetitionSettings(p SettingsPage) {
 		<h1 class="title is-4">Settings</h1>
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
-		if p.New != "" {
+		if p.New != "" && p.Links.Admin != "" {
 			@newAdminLink(p.Competition, p.Links.Admin, p.New)
 		}
 		if p.Notice != "" {
@@ -68,6 +69,7 @@ templ CompetitionSettings(p SettingsPage) {
 		@settingsGroup("links", "Links")
 		if p.Access.Organiser {
 			@linksBox(p.Base, p.LinkList)
+			@tiesBox(p.Base+"/ties/remove", p.Ties, "Someone who adds the admin link or a helper's link to their own page (a club member's, say) opens these pages from there, with a tab for each.")
 		}
 		if p.Links.Club != "" {
 			@linkBox("Club link", p.Links.Club, "Give it to clubs' competition secretaries: they enter their club and send its members' entries.")

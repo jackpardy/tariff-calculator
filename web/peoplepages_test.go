@@ -59,6 +59,22 @@ func peopleCompetition(t *testing.T) peopleSetup {
 	return peopleSetup{h: h, admin: admin, member: mo}
 }
 
+// personKeyIn is a person's key, from the link to their page in a page.
+func personKeyIn(t *testing.T, page, admin, name string) string {
+	t.Helper()
+	return strings.TrimPrefix(mustUnescape(t, personLink(t, page, admin, name)), admin+"/people/")
+}
+
+// mustUnescape is a path with its escapes undone.
+func mustUnescape(t *testing.T, path string) string {
+	t.Helper()
+	p, err := url.PathUnescape(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
 // personLink is the link to a person's page from a page, by their name.
 func personLink(t *testing.T, page, admin, name string) string {
 	t.Helper()

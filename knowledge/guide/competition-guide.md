@@ -423,8 +423,10 @@ coach sign-off. Changing a member's entry is part of Competitions too.
 - **Change** edits a member's entry for them.
 - **Members** (its own section): the **Join link**, then each member: choose
   their coach from the list, give a member who lost their link a **New link**
-  (their old one stops working), or **Remove** them. Synchro entries that
-  gymnasts from other clubs made with your members are listed here too.
+  (their old one stops working), or **Remove** them. A member who also coaches
+  needs no coach link: tap **Make a coach too** beside them, and their member
+  link opens their coach's page as well. Synchro entries that gymnasts from
+  other clubs made with your members are listed here too.
 - **Coaches** (its own section): type a name and tap **Add coach**, then send them the coach link
   shown (it's shown only then; **New link** makes another). Tick **Every coach
   sees every member** if your coaches share everyone. Untick a coach's
@@ -435,7 +437,10 @@ coach sign-off. Changing a member's entry is part of Competitions too.
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
 - **Settings** (its own section): replace the admin link, or delete the club. A
-  club is deleted 120 days after it was last used.
+  club is deleted 120 days after it was last used. **Opened from people's own
+  links** lists anyone who added the admin link to their own page (see
+  [One link for all your roles](#6-one-link-for-all-your-roles)), with
+  **Remove**; replacing the admin link ends it for all of them.
 
 # 3. Enter through your club (members)
 
@@ -446,7 +451,8 @@ coach sign-off. Changing a member's entry is part of Competitions too.
    competitions your club is in, each with its date and where your entries
    stand (for example **Not entered**, **Saved, not sent yet**, or **Timetable
    published**); tap one to open it. **Your details** has your personal link,
-   to keep, and, if your club has coaches, **Your coach** to choose.
+   to keep, **Your coach** to choose if your club has coaches, and **Your other
+   links** (see [One link for all your roles](#6-one-link-for-all-your-roles)).
 3. A competition's page has a row for each discipline it offers, closed until
    you tap it: the discipline, your level and its status (for example **Not
    entered**, **Checked**, **2 problems**, or **Waiting list, 3rd**). Open
@@ -544,14 +550,23 @@ sign-off, entries without it are flagged to the organiser.
    name, choose your **Level** (and Men or Women if asked), which set routine
    where there's a choice, and your voluntary from the routines saved in this
    browser, plus video links if asked. For synchro, give your partner's name.
-   Tap **Enter**. Enter each discipline separately: each gets its own link.
-3. You get your own **personal link**, saved in this browser. Keep it: it's how
-   you change (**Change the entry**) or withdraw your entry until entries close.
-   Under **Judging and helping**, say what you can judge or help with. Once
-   the timetable is published, your entry shows your flight and, under
-   **Officiating**, when and where you judge or help. **Your competition**
-   gathers all your entries (each discipline), times and the whole timetable
-   on one page.
+   If you've entered on your own before, or you're a club member here, choose
+   yourself under **Who's entering?** (or paste **your page's link**), so the
+   entry joins your page; leave it blank the first time. Tap **Enter**.
+3. You get your own page and its **personal link**, saved in this browser.
+   Keep it: it opens every entry you make with it. Your page has
+   **Competitions** (each competition you entered: tap one for a row per
+   discipline, **Open this entry** to change or withdraw it, and **Enter
+   another discipline**, under the same link) and **Your details** (your link,
+   and your other links). On an entry, under **Judging and helping**, say what
+   you can judge or help with. Once the timetable is published, your entry
+   shows your flight and, under **Officiating**, when and where you judge or
+   help. **Your competition** gathers all your entries (each discipline),
+   times and the whole timetable on one page.
+
+   Entered before, with a link for each entry? Each link still works and opens
+   its entry on your page. Add the others under **Your details**, **Your other
+   links**, so they're all on one page.
 4. If the competition needs a coach's sign-off, send your coach the **Sign-off
    link** shown on your entry. They open it, check it and sign off with their
    name. If it approves coaches, first name your coach under **Your coach**,
@@ -560,6 +575,25 @@ sign-off, entries without it are flagged to the organiser.
    works and they sign off as themselves; your page shows the organiser's
    decision and any note. Changing your coach sends them to be approved
    again.
+
+# 6. One link for all your roles
+
+If you're a member who also coaches, your club's comp sec, entering some
+competitions on your own, or helping run one, you can open all of it from
+one link. On your page's **Your details** (a coach's is at the foot of their
+page), under **Your other links**, paste another of your links and tap
+**Add**. Then tabs at the top (Member, Coach, Comp sec, On your own, or the
+competition's) switch between them, whichever of your links you open. Each
+link listed has **Undo**.
+
+- Only add links that are yours. Pasting a link is how you show it's yours,
+  so there's nothing to approve.
+- A shared link, such as your club's comp sec link or a link the organiser
+  gave a panel, opens from your page, but never opens your page: everyone
+  else who has it sees only what it always showed. The comp sec or organiser
+  sees who added it, and can remove it; replacing it ends it for everyone.
+- If your comp sec makes you a coach too, there's no coach link: your member
+  link opens your coach's page.
 
 # What's kept
 
@@ -573,7 +607,8 @@ links.
 
 Competition entries are kept on the server. The links to them are saved in the
 browser, so copy any you'd hate to lose: clearing the browser's data, or using
-a private window, loses the saved links (not the entries).
+a private window, loses the saved links (not the entries). With all your roles
+on one page, keeping that one link is enough.
 
 Pages you've opened on your phone still open without a connection, as they were when last loaded.
 

@@ -2,6 +2,7 @@ package demo
 
 import (
 	"fmt"
+	"html"
 	"io"
 	"math/rand/v2"
 	"net/http"
@@ -386,6 +387,24 @@ func (s *seeder) run(out io.Writer) error {
 		}
 	}
 
+	// One link, several roles (ADR 0010): in the first club, the comp sec
+	// makes a member a coach too, and another member, who is the club's
+	// comp sec, adds its admin link to their page.
+	first := runs[0]
+	coachToo, compSec := first.members[1], first.members[2]
+	if id := regexp.MustCompile(`(?s)` + regexp.QuoteMeta(html.EscapeString(coachToo.name)) + `.*?name="member" value="([^"]+)"`).FindStringSubmatch(s.get(first.admin + "/members")); id != nil {
+		s.post(first.admin+"/coaches/from-member", url.Values{"member": {id[1]}})
+	} else {
+		s.fail("no %s on the Members page", coachToo.name)
+	}
+	s.post(compSec.link+"/links", url.Values{"link": {"http://example.com" + first.admin}})
+	coached := first.members[3] // and is coached by the member who coaches
+	if id := regexp.MustCompile(`<option value="([^"]+)">` + regexp.QuoteMeta(html.EscapeString(coachToo.name)) + `</option>`).FindStringSubmatch(s.get(coached.link + "/details")); id != nil {
+		s.post(coached.link+"/coach", url.Values{"coach": {id[1]}})
+	} else {
+		s.fail("no coach %s for %s", coachToo.name, coached.name)
+	}
+
 	// Synchro pairs, up to four a club: men and women alike, about a third
 	// with a gymnast from another club, two gymnasts no more than a level
 	// apart individually, doing the level they share or the easier of the
@@ -446,8 +465,9 @@ func (s *seeder) run(out io.Writer) error {
 		return s.err
 	}
 
-	// Gymnasts entering on their own, some offering to judge.
-	var firstOwn string
+	// Gymnasts entering on their own, some offering to judge. The first
+	// enters tumbling too, from their own page, so it has two entries.
+	var firstOwn, firstOwnEntry string
 	for i := range 6 {
 		cat := []string{"Women", "Men"}[i%2]
 		p := person{name: s.name(used, cat), category: cat, level: s.level()}
@@ -455,7 +475,9 @@ func (s *seeder) run(out io.Writer) error {
 		s.routine(entry, p.level, false)
 		own := s.post(enter, entry)
 		if firstOwn == "" {
-			firstOwn = p.name + ": " + own
+			page := s.link(s.get(own), "/competitions/gymnast/")
+			s.post(page+"/competitions/"+compID+"/enter", url.Values{"gymnast": {p.name}, "category": {cat}, "discipline": {"tumbling"}, "level": {"Intermediate"}})
+			firstOwn, firstOwnEntry = p.name+": "+page, own
 		}
 		if i%2 == 0 {
 			s.post(own+"/offer", url.Values{"judge-trampoline": {"1"}, "upto-trampoline": {p.level}})
@@ -617,6 +639,9 @@ func (s *seeder) run(out io.Writer) error {
 	fmt.Fprintf(out, "\nA member:               %s\n", firstMember)
 	fmt.Fprintf(out, "Their competition:      %s\n", strings.SplitN(firstMember, ": ", 2)[1]+"/competitions/"+compID+"/day")
 	fmt.Fprintf(out, "A coach:                %s\n", firstCoach)
+	fmt.Fprintf(out, "A member, coach too:    %s (%s): %s\n", coachToo.name, first.name, coachToo.link)
+	fmt.Fprintf(out, "A member, comp sec too: %s (%s): %s\n", compSec.name, first.name, compSec.link)
 	fmt.Fprintf(out, "Entering on their own:  %s\n", firstOwn)
+	fmt.Fprintf(out, "Their trampoline entry: %s\n", firstOwnEntry)
 	return nil
 }

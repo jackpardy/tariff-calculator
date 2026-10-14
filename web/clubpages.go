@@ -52,6 +52,8 @@ func (p *competitionPages) registerClubs(mux *http.ServeMux) {
 	handle("POST /clubs/member/{token}/competitions/{id}/withdraw", p.withdrawMemberEntry)
 	handle("POST /clubs/member/{token}/coach", p.chooseOwnCoach)
 	handle("POST /clubs/admin/{token}/coaches", p.addCoach)
+	handle("POST /clubs/admin/{token}/coaches/from-member", p.makeCoach)
+	handle("POST /clubs/admin/{token}/ties/remove", p.removeClubTie)
 	handle("POST /clubs/admin/{token}/coaches/{coach}/new-link", p.newCoachLink)
 	handle("POST /clubs/admin/{token}/coaches/{coach}/remove", p.removeCoach)
 	handle("POST /clubs/admin/{token}/coaches/{coach}/signs-off", p.coachSignsOff)
@@ -156,7 +158,7 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		Base: base, Name: club.Name, New: r.URL.Query().Get("new"), NewLink: newLink, Notice: r.URL.Query().Get("notice"),
 		JoinLink: origin(r) + "/clubs/join/" + club.JoinLink, CoachesSeeAll: club.CoachesSeeAll, Menu: clubMenu(token, section),
 	}
-	if page.New != "" {
+	if page.New != "" && !store.IsVia(token) {
 		page.AdminLink = origin(r) + base
 	}
 	var err error
@@ -167,6 +169,8 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 		err = p.clubMembersPart(r, club, &page)
 	case clubCoaches:
 		err = p.clubCoachesPart(r, club, &page)
+	case clubSettings:
+		err = p.clubSettingsPart(r, club, &page)
 	}
 	if err != nil {
 		failed(w, r, err)
@@ -230,7 +234,7 @@ func (p *competitionPages) clubMembersPart(r *http.Request, club store.Club, pag
 		}
 	}
 	for _, m := range members {
-		page.Members = append(page.Members, views.ClubMember{ID: m.ID, Name: m.Name, Entries: entered[m.ID], CoachID: m.CoachID})
+		page.Members = append(page.Members, views.ClubMember{ID: m.ID, Name: m.Name, Entries: entered[m.ID], CoachID: m.CoachID, AlsoCoach: m.AlsoCoach != ""})
 	}
 	for _, c := range coaches {
 		page.CoachOptions = append(page.CoachOptions, views.CoachOption{ID: c.ID, Name: c.Name})
@@ -270,14 +274,29 @@ func (p *competitionPages) clubCoachesPart(r *http.Request, club store.Club, pag
 		coached[m.CoachID]++
 	}
 	for _, c := range coaches {
-		cv := views.ClubCoach{ID: c.ID, Name: c.Name, Members: coached[c.ID], SignsOff: c.SignsOff}
+		cv := views.ClubCoach{ID: c.ID, Name: c.Name, Members: coached[c.ID], SignsOff: c.SignsOff, Member: c.Member}
 		for _, q := range quals[c.ID] {
 			cv.Qualifications = append(cv.Qualifications, views.QualificationView{ID: q.ID, Name: qualificationName(q.Qualification),
 				Certificate: page.Base + "/coaches/" + c.ID + "/qualifications/" + q.ID + "/certificate"})
 		}
 		page.Coaches = append(page.Coaches, cv)
 	}
+	for _, m := range members {
+		if m.AlsoCoach == "" {
+			page.MemberOptions = append(page.MemberOptions, views.CoachOption{ID: m.ID, Name: m.Name})
+		}
+	}
 	return nil
+}
+
+// clubSettingsPart fills in the Settings section: who opens the comp sec's
+// pages from their own link.
+func (p *competitionPages) clubSettingsPart(r *http.Request, club store.Club, page *views.ClubPage) error {
+	ties, err := p.st.ClubTies(r.Context(), club.ID)
+	for _, t := range ties {
+		page.Ties = append(page.Ties, views.TieView{ID: t.ID, Name: t.Name, Since: t.At.In(local).Format("2 January 2006")})
+	}
+	return err
 }
 
 // clubCompetitions are the competitions the club is entered in, each with its
@@ -778,6 +797,10 @@ func (p *competitionPages) memberDetails(w http.ResponseWriter, r *http.Request)
 	for _, c := range coaches {
 		page.Coaches = append(page.Coaches, views.CoachOption{ID: c.ID, Name: c.Name})
 	}
+	if page.Other, err = p.otherLinks(r, memberPath(r.PathValue("token"))); err != nil {
+		failed(w, r, err)
+		return
+	}
 	render(w, r, views.MemberDetails(page))
 }
 
@@ -811,10 +834,14 @@ func (p *competitionPages) memberPage(w http.ResponseWriter, r *http.Request, m 
 	}
 	token := r.PathValue("token")
 	path := memberPath(token)
-	return views.MemberPage{
+	page := views.MemberPage{
 		Club: club, Member: m.Name, Link: origin(r) + path, New: r.URL.Query().Get("new") == "joined", Notice: r.URL.Query().Get("notice"),
 		CoachID: m.CoachID, CoachAction: path + "/coach", Home: path, Menu: memberMenu(token, tab),
-	}, entries, true
+	}
+	if store.IsVia(token) {
+		page.Link = "" // opened through another of their links, which is the one to keep
+	}
+	return page, entries, true
 }
 
 // renderMemberCompetition shows a member their page for a competition. A form

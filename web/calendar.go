@@ -45,7 +45,7 @@ func (p *competitionPages) individualCalendar(w http.ResponseWriter, r *http.Req
 	if !ok {
 		return
 	}
-	p.personalCalendar(w, r, c, individualKey(e.Entry.Gymnast), e.Entry.Gymnast)
+	p.personalCalendar(w, r, c, personKeyOf(e), e.Entry.Gymnast)
 }
 
 func (p *competitionPages) memberClubCalendar(w http.ResponseWriter, r *http.Request) {

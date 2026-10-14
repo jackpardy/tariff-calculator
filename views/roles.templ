@@ -1,0 +1,134 @@
+package views
+
+import "context"
+
+// One link for a person with several roles (ADR 0010): tabs above every page
+// a personal link opens, one for each of the person's roles, and the place on
+// their details where they add their other links and take them off.
+
+// RoleTab is one of a person's roles, as a tab above their pages.
+type RoleTab struct {
+	Label, Href string
+	Current     bool
+}
+
+type rolesKey struct{}
+
+// WithRoles keeps the person's roles for the page, so the layout shows them
+// whatever page it is.
+func WithRoles(ctx context.Context, tabs []RoleTab) context.Context {
+	return context.WithValue(ctx, rolesKey{}, tabs)
+}
+
+// rolesOf are the roles kept for the page, if any.
+func rolesOf(ctx context.Context) []RoleTab {
+	tabs, _ := ctx.Value(rolesKey{}).([]RoleTab)
+	return tabs
+}
+
+// roleTabs are the person's roles, when they have more than one.
+templ roleTabs(tabs []RoleTab) {
+	if len(tabs) > 1 {
+		<nav class="role-tabs mb-3" aria-label="Your roles">
+			<div class="tabs is-toggle is-small mb-0">
+				<ul>
+					for _, t := range tabs {
+						<li class={ "role-tab", templ.KV("is-active", t.Current) }>
+							<a href={ templ.SafeURL(t.Href) } aria-current?={ t.Current }>{ t.Label }</a>
+						</li>
+					}
+				</ul>
+			</div>
+		</nav>
+	}
+}
+
+// OtherLinks are a person's other roles, on their details, each to take off,
+// and the form to add another link.
+type OtherLinks struct {
+	Add    string // where a pasted link posts
+	Remove string // where taking one off posts
+	Roles  []OtherRole
+}
+
+// OtherRole is one of the person's other roles.
+type OtherRole struct {
+	Label string // e.g. "Comp sec of UCD"
+	Kind  string // posted back with ID to take it off
+	ID    string
+}
+
+// TieView is someone whose own link opens a shared link's pages, because
+// they added it to their page.
+type TieView struct {
+	ID, Name, Since string
+	What            string // which link, where there are several: "" for the only one
+}
+
+// tiesBox lists who opens these pages from their own link, for the shared
+// link's holder to see and remove.
+templ tiesBox(remove string, ties []TieView, none string) {
+	<div class="box" id="ties">
+		<h3 class="title is-6 mb-2">Opened from people's own links</h3>
+		if len(ties) == 0 {
+			<p class="is-size-7">No one yet. { none }</p>
+		} else {
+			<p class="is-size-7 mb-2">These people added a link to their own page, so it opens these pages from there. Replacing or removing the link ends it for them.</p>
+			<ul>
+				for _, t := range ties {
+					<li class="comp-other-link">
+						<span>
+							{ t.Name }
+							<span class="has-text-grey is-size-7">
+								if t.What != "" {
+									{ t.What } ·
+								}
+								since { t.Since }
+							</span>
+						</span>
+						<form method="post" action={ templ.SafeURL(remove) } class="is-inline">
+							<input type="hidden" name="id" value={ t.ID }/>
+							<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+						</form>
+					</li>
+				}
+			</ul>
+		}
+	</div>
+}
+
+// otherLinksBox lists the person's other roles and adds more.
+templ otherLinksBox(o OtherLinks) {
+	<div class="box comp-other-links" id="other-links">
+		<h2 class="title is-6 mb-2">Your other links</h2>
+		if len(o.Roles) == 0 {
+			<p class="is-size-7 mb-3">If you have another link here, such as a coach's, your club's comp sec link, a competition you entered on your own or one you help run, add it below. Then this link opens all of them, with a tab for each.</p>
+		} else {
+			<p class="is-size-7 mb-2">This link also opens these, with a tab for each:</p>
+			<ul class="mb-3">
+				for _, r := range o.Roles {
+					<li class="comp-other-link">
+						<span>{ r.Label }</span>
+						<form method="post" action={ templ.SafeURL(o.Remove) } class="is-inline">
+							<input type="hidden" name="kind" value={ r.Kind }/>
+							<input type="hidden" name="id" value={ r.ID }/>
+							<button class="button is-small is-text" type="submit">Undo</button>
+						</form>
+					</li>
+				}
+			</ul>
+		}
+		<form method="post" action={ templ.SafeURL(o.Add) }>
+			<label class="label is-small" for="other-link">Add your other link</label>
+			<div class="field has-addons">
+				<div class="control is-expanded">
+					<input class="input is-small" id="other-link" name="link" required placeholder="Paste the link" autocomplete="off"/>
+				</div>
+				<div class="control">
+					<button class="button is-small is-link" type="submit">Add</button>
+				</div>
+			</div>
+			<p class="help">Only add links that are yours. A shared link, such as a club's comp sec link, opens from here, but never opens this page.</p>
+		</form>
+	</div>
+}

@@ -26,7 +26,7 @@ func officialKey(o store.Official, keys map[string][]string) string {
 		if k := keys[o.EntryID]; len(k) > 0 {
 			return k[0]
 		}
-		return individualKey(o.Name)
+		return store.IndividualKey(o.Name)
 	}
 	return "o:" + o.ID
 }

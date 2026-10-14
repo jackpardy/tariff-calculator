@@ -36,12 +36,12 @@ func (s *Store) CreateClub(ctx context.Context, name string) (Club, string, erro
 	return c, admin, nil
 }
 
-// clubBy finds a club by one of its links' hashes and marks it used.
-func (s *Store) clubBy(ctx context.Context, column, token string) (Club, error) {
+// clubBy finds a club by a condition on its row (from $2) and marks it used.
+func (s *Store) clubBy(ctx context.Context, where string, args ...any) (Club, error) {
 	var c Club
 	var created, used string
-	err := s.db.QueryRowContext(ctx, `UPDATE clubs SET last_used = $1 WHERE `+column+` = $2
-		RETURNING id, name, join_token, coaches_see_all, created_at, last_used`, s.stamp(), hash(token)).
+	err := s.db.QueryRowContext(ctx, `UPDATE clubs SET last_used = $1 WHERE `+where+`
+		RETURNING id, name, join_token, coaches_see_all, created_at, last_used`, append([]any{s.stamp()}, args...)...).
 		Scan(&c.ID, &c.Name, &c.JoinLink, &c.CoachesSeeAll, &created, &used)
 	if err != nil {
 		return Club{}, notFound(err)
@@ -50,14 +50,25 @@ func (s *Store) clubBy(ctx context.Context, column, token string) (Club, error) 
 	return c, nil
 }
 
-// ClubByAdmin is the club a comp sec's admin link opens.
+// ClubByAdmin is the club a comp sec's admin link opens: the link itself, or
+// a personal link's Via to the club, whose person added the admin link as it
+// is now to their page (ADR 0010).
 func (s *Store) ClubByAdmin(ctx context.Context, token string) (Club, error) {
-	return s.clubBy(ctx, "admin_hash", token)
+	personal, id, ok := splitVia(token)
+	if !ok {
+		return s.clubBy(ctx, "admin_hash = $2", hash(token))
+	}
+	h, err := holderOf(ctx, s.db, personal)
+	if err != nil {
+		return Club{}, err
+	}
+	return s.clubBy(ctx, `id = $2 AND EXISTS (SELECT 1 FROM shared_ties t WHERE t.kind = 'club' AND t.target_id = clubs.id
+		AND t.link_hash = clubs.admin_hash AND t.record_id IN (`+personRecords("3")+`))`, id, h.PersonID)
 }
 
 // ClubByJoinLink is the club a join link joins.
 func (s *Store) ClubByJoinLink(ctx context.Context, token string) (Club, error) {
-	return s.clubBy(ctx, "join_hash", token)
+	return s.clubBy(ctx, "join_hash = $2", hash(token))
 }
 
 // ReplaceClubAdmin gives a club a new admin link, which ends the old one.
@@ -79,6 +90,10 @@ type Member struct {
 	Name      string
 	CoachID   string // the coach who signs off their routines; "" for none chosen
 	CreatedAt time.Time
+	PersonID  string // who they are, with their other roles (ADR 0010)
+	// AlsoCoach is the club's coach who is the same person (ADR 0010); ""
+	// for none. Only Members fills it in.
+	AlsoCoach string
 }
 
 // Join adds a member to a club and returns them with their personal link. The
@@ -95,7 +110,7 @@ func (s *Store) Join(ctx context.Context, clubID, name string) (Member, string, 
 		if n >= MaxMembers {
 			return ErrLimit
 		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO members (id, club_id, token_hash, name, created_at) VALUES ($1, $2, $3, $4, $5)`,
+		if _, err := tx.ExecContext(ctx, `INSERT INTO members (id, club_id, token_hash, name, created_at, person_id) VALUES ($1, $2, $3, $4, $5, $1)`,
 			m.ID, clubID, hash(token), name, now); err != nil {
 			return err
 		}
@@ -112,13 +127,18 @@ func touch(ctx context.Context, tx *sql.Tx, clubID, now string) error {
 	return affected(tx.ExecContext(ctx, `UPDATE clubs SET last_used = $1 WHERE id = $2`, now, clubID))
 }
 
-// MemberByLink is the member a personal link belongs to. It marks their club used.
+// MemberByLink is the member a personal link belongs to, or a personal
+// link's Via to them opens (ADR 0010). It marks their club used.
 func (s *Store) MemberByLink(ctx context.Context, token string) (Member, error) {
 	var m Member
 	var created string
 	err := s.tx(ctx, func(tx *sql.Tx) error {
-		err := tx.QueryRowContext(ctx, `SELECT id, club_id, name, COALESCE(coach_id, ''), created_at FROM members WHERE token_hash = $1`, hash(token)).
-			Scan(&m.ID, &m.ClubID, &m.Name, &m.CoachID, &created)
+		where, args, err := recordWhere(ctx, tx, token)
+		if err != nil {
+			return err
+		}
+		err = tx.QueryRowContext(ctx, `SELECT id, club_id, name, COALESCE(coach_id, ''), created_at, COALESCE(person_id, id) FROM members WHERE `+where, args...).
+			Scan(&m.ID, &m.ClubID, &m.Name, &m.CoachID, &created, &m.PersonID)
 		if err != nil {
 			return notFound(err)
 		}
@@ -130,7 +150,9 @@ func (s *Store) MemberByLink(ctx context.Context, token string) (Member, error) 
 
 // Members are a club's members, by name.
 func (s *Store) Members(ctx context.Context, clubID string) ([]Member, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, club_id, name, COALESCE(coach_id, ''), created_at FROM members WHERE club_id = $1 ORDER BY name, created_at`, clubID)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, club_id, name, COALESCE(coach_id, ''), created_at, COALESCE(person_id, id),
+		COALESCE((SELECT c.id FROM coaches c WHERE c.club_id = members.club_id AND c.person_id = members.person_id ORDER BY c.created_at LIMIT 1), '')
+		FROM members WHERE club_id = $1 ORDER BY name, created_at`, clubID)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +161,7 @@ func (s *Store) Members(ctx context.Context, clubID string) ([]Member, error) {
 	for rows.Next() {
 		var m Member
 		var created string
-		if err := rows.Scan(&m.ID, &m.ClubID, &m.Name, &m.CoachID, &created); err != nil {
+		if err := rows.Scan(&m.ID, &m.ClubID, &m.Name, &m.CoachID, &created, &m.PersonID, &m.AlsoCoach); err != nil {
 			return nil, err
 		}
 		m.CreatedAt = parseTime(created)
@@ -150,16 +172,24 @@ func (s *Store) Members(ctx context.Context, clubID string) ([]Member, error) {
 
 // ReplaceMemberLink gives a club's member a new personal link, which ends the
 // old one: for the comp sec to send to a member who lost theirs. Only hashes
-// are kept, so the old link can't be shown again.
+// are kept, so the old link can't be shown again. They're the same person,
+// with the same other roles.
 func (s *Store) ReplaceMemberLink(ctx context.Context, clubID, memberID string) (string, error) {
 	token := newToken()
 	return token, affected(s.db.ExecContext(ctx, `UPDATE members SET token_hash = $1 WHERE id = $2 AND club_id = $3`, hash(token), memberID, clubID))
 }
 
-// RemoveMember removes a member from their club, with their entries. Entries
-// already sent stay with each competition.
+// RemoveMember removes a member from their club, with their entries and the
+// shared links added on their page. Entries already sent stay with each
+// competition.
 func (s *Store) RemoveMember(ctx context.Context, clubID, memberID string) error {
-	return affected(s.db.ExecContext(ctx, `DELETE FROM members WHERE id = $1 AND club_id = $2`, memberID, clubID))
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		if err := affected(tx.ExecContext(ctx, `DELETE FROM members WHERE id = $1 AND club_id = $2`, memberID, clubID)); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, memberID)
+		return err
+	})
 }
 
 // AttachClub enters a club in a competition, through the competition's club
@@ -479,8 +509,8 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 func (s *Store) Member(ctx context.Context, clubID, memberID string) (Member, error) {
 	var m Member
 	var created string
-	err := s.db.QueryRowContext(ctx, `SELECT id, club_id, name, COALESCE(coach_id, ''), created_at FROM members WHERE id = $1 AND club_id = $2`, memberID, clubID).
-		Scan(&m.ID, &m.ClubID, &m.Name, &m.CoachID, &created)
+	err := s.db.QueryRowContext(ctx, `SELECT id, club_id, name, COALESCE(coach_id, ''), created_at, COALESCE(person_id, id) FROM members WHERE id = $1 AND club_id = $2`, memberID, clubID).
+		Scan(&m.ID, &m.ClubID, &m.Name, &m.CoachID, &created, &m.PersonID)
 	m.CreatedAt = parseTime(created)
 	return m, notFound(err)
 }

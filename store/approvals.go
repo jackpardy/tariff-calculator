@@ -279,14 +279,18 @@ func (c EntryCoach) Approved() bool { return c.Status == CoachApproved }
 func (s *Store) SetEntryCoach(ctx context.Context, token, name, qualification, certType string, certificate []byte) error {
 	now := s.stamp()
 	return s.tx(ctx, func(tx *sql.Tx) error {
-		var entryID, competitionID string
-		if err := tx.QueryRowContext(ctx, `SELECT id, competition_id FROM entries WHERE token_hash = $1 AND individual`, hash(token)).Scan(&entryID, &competitionID); err != nil {
+		entryID, err := individualEntryID(ctx, tx, token)
+		if err != nil {
+			return err
+		}
+		var competitionID string
+		if err := tx.QueryRowContext(ctx, `SELECT competition_id FROM entries WHERE id = $1`, entryID).Scan(&competitionID); err != nil {
 			return notFound(err)
 		}
 		if err := s.open(ctx, tx, competitionID, signing); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `INSERT INTO entry_coaches (entry_id, name, qualification, cert_type, certificate, sent_at) VALUES ($1, $2, $3, $4, $5, $6)
+		_, err = tx.ExecContext(ctx, `INSERT INTO entry_coaches (entry_id, name, qualification, cert_type, certificate, sent_at) VALUES ($1, $2, $3, $4, $5, $6)
 			ON CONFLICT (entry_id) DO UPDATE SET name = excluded.name, qualification = excluded.qualification, cert_type = excluded.cert_type,
 				certificate = excluded.certificate, sent_at = excluded.sent_at, status = '', note = ''`,
 			entryID, name, qualification, certType, certificate, now)

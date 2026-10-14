@@ -63,7 +63,7 @@ func (p *competitionPages) settings(w http.ResponseWriter, r *http.Request) {
 		Limits: limitFields(c, entries), Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()),
 		Events: eventsForm(c.Competition), LevelOrder: levelOrderForm(c.Competition),
 	}
-	if page.New != "" {
+	if page.New != "" && !store.IsVia(r.PathValue("token")) {
 		page.Links.Admin = origin(r) + adminPath(r.PathValue("token"))
 	}
 	if page.Access.Organiser {
@@ -73,6 +73,22 @@ func (p *competitionPages) settings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		page.LinkList = linkViews(links)
+		ties, err := p.st.CompetitionTies(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		names := map[string]string{}
+		for _, l := range links {
+			names[l.ID] = l.Name
+		}
+		for _, t := range ties {
+			what := "Admin link"
+			if t.Kind == store.RoleHelper {
+				what = names[t.Target]
+			}
+			page.Ties = append(page.Ties, views.TieView{ID: t.ID, Name: t.Name, What: what, Since: t.At.In(local).Format("2 January 2006")})
+		}
 	}
 	if c.Signoff {
 		sent, err := p.st.CompetitionCoaches(r.Context(), c.ID)

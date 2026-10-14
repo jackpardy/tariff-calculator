@@ -120,9 +120,13 @@ func sendOffers(ctx context.Context, tx *sql.Tx, clubID, clubName, competitionID
 // the deadline. An empty offer removes it.
 func (s *Store) SetIndividualOffer(ctx context.Context, token string, o competitions.Offer) error {
 	return s.tx(ctx, func(tx *sql.Tx) error {
-		var id, competitionID, name string
-		if err := tx.QueryRowContext(ctx, `SELECT id, competition_id, gymnast FROM entries WHERE token_hash = $1`, hash(token)).
-			Scan(&id, &competitionID, &name); err != nil {
+		id, err := individualEntryID(ctx, tx, token)
+		if err != nil {
+			return err
+		}
+		var competitionID, name string
+		if err := tx.QueryRowContext(ctx, `SELECT competition_id, gymnast FROM entries WHERE id = $1`, id).
+			Scan(&competitionID, &name); err != nil {
 			return notFound(err)
 		}
 		if err := s.open(ctx, tx, competitionID, changing); err != nil {

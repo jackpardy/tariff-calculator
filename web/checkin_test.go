@@ -163,9 +163,10 @@ func scratchSetupOn(t *testing.T, h http.Handler, timings url.Values) (admin, tt
 	// (as in TestOfficialsRota, where she is seated as an execution judge).
 	dara = withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "discipline": {"tumbling"}, "level": {"Novice"}}))
 	redirected(t, h, dara+"/offer", url.Values{"judge-trampoline": {"1"}})
-	// Finn enters both: tumbling, then BUCS L3 (each entry has its own link).
+	// Finn enters both: tumbling, then BUCS L3, as the same person.
 	finn[0] = withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Finn"}, "discipline": {"tumbling"}, "level": {"Novice"}}))
-	finn[1] = withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Finn"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	finn[1] = withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Finn"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary},
+		"as": {"http://example.com" + finn[0]}}))
 	tt = admin + "/timetable"
 	redirected(t, h, tt+"/setup/rules", url.Values{"add": {"1"}, "kind": {"before"}, "must": {"1"}, "event": {"Tumbling Novice"}, "event2": {"BUCS L3"}})
 	if timings != nil {
@@ -198,7 +199,7 @@ func TestScratchedOfficial(t *testing.T) {
 	if leave == nil {
 		t.Fatalf("a link to the what-if tool: %s", page)
 	}
-	if to := html2text(leave[1]); !strings.HasPrefix(to, tt+"/leave?") || !strings.Contains(to, "person=i%3Adara") || !strings.Contains(to, "day=0") {
+	if to := html2text(leave[1]); !strings.HasPrefix(to, tt+"/leave?") || !strings.Contains(to, "person=i%3A") || !strings.Contains(to, "day=0") {
 		t.Errorf("the link is for Dara on that day: %s", to)
 	} else if rec := do(t, h, http.MethodGet, to, nil); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Dara") {
 		t.Errorf("the what-if page opens for her: %d", rec.Code)
@@ -247,7 +248,7 @@ func TestScratchClearing(t *testing.T) {
 	}
 	// A chair clears it; the history says so, once.
 	chair := madeLink(t, h, admin, "Chris", "chair")
-	clear := url.Values{"person": {"i:dara"}, "kind": {"officiating"}, "day": {"0"}}
+	clear := url.Values{"person": {personKeyIn(t, get(admin+"/people"), admin, "Dara")}, "kind": {"officiating"}, "day": {"0"}}
 	if to := redirected(t, h, chair+"/day/clear", clear); !strings.HasPrefix(to, chair+"/day?day=0") || strings.Contains(to, "notice=") {
 		t.Errorf("back to the day: %s", to)
 	}

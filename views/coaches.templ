@@ -87,7 +87,8 @@ type CoachPage struct {
 	SeesAll      bool // they see every member, not just their own and those without a coach
 	SignsOff     bool // the club lets them sign off routines
 	Competitions []CoachCompetition
-	Pairs        []PairView // synchro entries others made with members they see
+	Pairs        []PairView  // synchro entries others made with members they see
+	Other        *OtherLinks // their other links (ADR 0010)
 }
 
 // CoachCompetition is one competition's entries a coach sees.
@@ -119,9 +120,11 @@ templ CoachHome(p CoachPage) {
 		if p.Notice != "" {
 			<div class="notification is-success is-light">{ p.Notice }</div>
 		}
-		<div data-coach-link={ p.Link } data-coach-name={ p.Coach + " · " + p.Club }>
-			@linkBox("Your coach link (keep it to yourself)", p.Link, "Saved in this browser too.")
-		</div>
+		if p.Link != "" {
+			<div data-coach-link={ p.Link } data-coach-name={ p.Coach + " · " + p.Club }>
+				@linkBox("Your coach link (keep it to yourself)", p.Link, "Saved in this browser too.")
+			</div>
+		}
 		<p class="mb-4 has-text-grey is-size-7">
 			if p.SeesAll {
 				You see every member of the club.
@@ -187,6 +190,9 @@ templ CoachHome(p CoachPage) {
 					</div>
 				}
 			</div>
+		}
+		if p.Other != nil {
+			@otherLinksBox(*p.Other)
 		}
 	}
 }

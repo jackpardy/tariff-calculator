@@ -750,3 +750,9 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 @media (max-width: 480px) {
     .comp-menu .tabs:not(.comp-submenu) a { padding: 0.5em 0.55em; font-size: 0.92rem; }
 }
+/* One link, several roles (views/roles.templ): a person's roles as toggle
+   tabs above the page's own menu, scrolling sideways on a narrow screen; and
+   their other links on their details, each with Undo. */
+.role-tabs .tabs a { white-space: nowrap; }
+.comp-other-link { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; border-bottom: 1px solid #ededed; padding: 0.25rem 0; }
+.comp-other-link span { min-width: 0; overflow-wrap: anywhere; }
