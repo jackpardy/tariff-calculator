@@ -3,8 +3,9 @@
 // and gymnasts' links in this browser and lists them; offers the levels saved
 // here when creating a competition, and the clubs saved here when entering
 // one; fills each voluntary on an entry form from the routines saved here;
-// remembers which levels of the organiser's dashboard are open; and registers
-// the service worker that keeps pages for offline, with a banner when offline.
+// remembers which levels of the organiser's dashboard are open; updates the
+// On the day page in place as its buttons are tapped; and registers the
+// service worker that keeps pages for offline, with a banner when offline.
 (function () {
     // Links saved in this browser: {name, url} lists under these keys.
     const linkKeys = {
@@ -223,6 +224,124 @@
         levels.forEach((d) => d.addEventListener('toggle', save));
     }
 
+    // dayPage keeps the On the day page where it is when a button on it is
+    // tapped (Here, Scratched, Started, Notify...). The form is sent in the
+    // background, then the notice, the scratch warnings and the areas are
+    // swapped for fresh ones, with the lists that were open still open and the
+    // page not moving. Which lists are open is also kept for this tab, so a
+    // reload keeps them. If anything goes wrong the form is posted the usual
+    // way, as it is without JavaScript, and the server sends the browser back
+    // to the flight's box.
+    function dayPage() {
+        if (!document.getElementById('day-areas')?.hasAttribute('data-day-page')) {
+            return;
+        }
+        const key = 'trampolineOpenDay:' + location.pathname + '?day=' + (new URLSearchParams(location.search).get('day') || '');
+        const openKeys = (root) => new Set(Array.from(root.querySelectorAll('details[data-key][open]'), (d) => d.dataset.key));
+        const reopen = (root, keys) => root.querySelectorAll('details[data-key]').forEach((d) => { d.open = keys.has(d.dataset.key); });
+        const save = () => {
+            try { sessionStorage.setItem(key, JSON.stringify(Array.from(openKeys(document)))); } catch (e) { /* not remembered */ }
+        };
+
+        try {
+            const kept = JSON.parse(sessionStorage.getItem(key) || '[]');
+            if (Array.isArray(kept)) { reopen(document, new Set(kept)); }
+        } catch (e) { /* none remembered */ }
+        // toggle doesn't bubble, so listen on the way down.
+        document.addEventListener('toggle', (event) => {
+            if (event.target.matches?.('details[data-key]')) { save(); }
+        }, true);
+
+        // swap puts a fresh copy of the page's changing parts in place of the
+        // current ones. If the areas on the page changed, all of them go.
+        const swap = (fresh) => {
+            for (const id of ['day-notice', 'day-warnings']) {
+                const now = document.getElementById(id);
+                const next = fresh.getElementById(id);
+                if (now && next) { now.replaceWith(document.importNode(next, true)); }
+            }
+            const now = document.getElementById('day-areas');
+            const next = fresh.getElementById('day-areas');
+            const ids = (root) => Array.from(root.querySelectorAll('[id^="area-"]'), (a) => a.id);
+            if (ids(now).join() !== ids(next).join()) {
+                now.replaceWith(document.importNode(next, true));
+                return;
+            }
+            for (const id of ids(next)) {
+                document.getElementById(id).replaceWith(document.importNode(fresh.getElementById(id), true));
+            }
+        };
+
+        // plainSubmit posts the form the usual way, with the button that was
+        // tapped (form.submit() leaves it out).
+        const plainSubmit = (form, submitter) => {
+            if (!form.isConnected) {
+                location.reload();
+                return;
+            }
+            if (submitter) {
+                submitter.disabled = false;
+                if (submitter.name) {
+                    form.append(Object.assign(document.createElement('input'), { type: 'hidden', name: submitter.name, value: submitter.value }));
+                }
+            }
+            form.submit();
+        };
+
+        // send posts the form, and swaps in the page it ends up at; shut is
+        // the data-key of a list to leave closed.
+        const send = async (form, submitter, body, shut) => {
+            let fresh;
+            try {
+                const response = await fetch(form.action, { method: 'POST', body, credentials: 'same-origin' });
+                if (!response.ok) { throw new Error('status ' + response.status); }
+                fresh = new DOMParser().parseFromString(await response.text(), 'text/html');
+                if (!fresh.getElementById('day-areas')?.hasAttribute('data-day-page')) { throw new Error('not the day page'); }
+            } catch (e) {
+                plainSubmit(form, submitter);
+                return;
+            }
+            try {
+                // Keep the flight where it is on the screen, whatever changes above it.
+                const anchor = form.closest('.comp-flight')?.id || 'day-areas';
+                const before = document.getElementById(anchor).getBoundingClientRect().top;
+                const keys = openKeys(document);
+                keys.delete(shut);
+                reopen(fresh, keys);
+                swap(fresh);
+                const after = document.getElementById(anchor)?.getBoundingClientRect().top;
+                if (after !== undefined && after !== before) { window.scrollBy(0, after - before); }
+                save();
+                // A notice left in the address would come back on a reload.
+                const url = new URL(location.href);
+                if (url.searchParams.has('notice')) {
+                    url.searchParams.delete('notice');
+                    history.replaceState(null, '', url);
+                }
+            } catch (e) {
+                location.reload();
+            }
+        };
+
+        // One at a time, so a slow answer can't undo a newer one.
+        let queue = Promise.resolve();
+        document.addEventListener('submit', (event) => {
+            const form = event.target;
+            if (event.defaultPrevented || !form.closest('#day-areas, #day-warnings')) {
+                return;
+            }
+            event.preventDefault();
+            const submitter = event.submitter;
+            // Sent as a plain form (not multipart), as the server expects, with
+            // the button that was tapped.
+            const body = new URLSearchParams(new FormData(form, submitter));
+            if (submitter) { submitter.disabled = true; }
+            // A Notify list closes once it has been sent.
+            const shut = form.closest('details.comp-notify')?.dataset.key;
+            queue = queue.then(() => send(form, submitter, body, shut));
+        });
+    }
+
     // offlineBanner shows the "you're offline" banner while the phone has no
     // connection, saying when this page was loaded (the page-time meta, set
     // by the server when it rendered the page, so a copy the service worker
@@ -253,6 +372,7 @@
         keepOffline();
         offlineBanner();
         openLevels();
+        dayPage();
         copyButtons();
         saveLinks();
         newCompetition();

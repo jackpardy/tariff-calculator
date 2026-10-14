@@ -708,6 +708,8 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-pay-form input[name="note"] { width: 9rem; }
 /* Check-in and scratches on the day (views/day.templ, the printed sheets). */
 .comp-scratched { text-decoration: line-through; color: #7a7a7a; }
+/* The day page's notice stays in view, as the page no longer jumps to the top to show it. */
+.comp-day-notice { position: sticky; top: 0; z-index: 20; }
 .comp-checkin-row { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; align-items: center; padding: 0.35rem 0; border-top: 1px solid #eee; }
 .comp-checkin-row .comp-checkin-name { flex: 1 1 8rem; }
 .comp-checkin-row form { display: flex; gap: 0.3rem; margin: 0; }

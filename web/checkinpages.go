@@ -217,21 +217,21 @@ func (p *competitionPages) markCheckin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	entryID, status := r.FormValue("entry"), r.FormValue("status")
-	back := adminPath(r.PathValue("token")) + "/day?day=" + url.QueryEscape(r.FormValue("day"))
-	e, _, applies, found, err := p.checkinAction(r.Context(), c, entryID, status)
+	e, f, applies, found, err := p.checkinAction(r.Context(), c, entryID, status)
+	anchor := flightID(competitions.FlightKey(f))
 	switch {
 	case err != nil:
 		failed(w, r, err)
 	case !found:
 		message(w, r, http.StatusBadRequest, "Not a gymnast in a flight", "That gymnast isn't in a flight of the published timetable. It may have been changed: go back and try again.")
 	case !applies:
-		http.Redirect(w, r, back+"&notice="+url.QueryEscape("Someone has already done that for "+e.Entry.Gymnasts()+"."), http.StatusSeeOther)
+		http.Redirect(w, r, backToDay(r, "Someone has already done that for "+e.Entry.Gymnasts()+".", anchor), http.StatusSeeOther)
 	default:
 		if err := p.st.SetCheckin(r.Context(), c.ID, entryID, status, linkOf(r).Name); err != nil {
 			failed(w, r, err)
 			return
 		}
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
 	}
 }
 
@@ -292,7 +292,6 @@ func (p *competitionPages) clearScratch(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	person, kind := r.FormValue("person"), r.FormValue("kind")
-	back := adminPath(r.PathValue("token")) + "/day?day=" + url.QueryEscape(r.FormValue("day"))
 	name, applies, found, err := p.clearAction(r.Context(), c, person, kind)
 	switch {
 	case err != nil:
@@ -300,13 +299,13 @@ func (p *competitionPages) clearScratch(w http.ResponseWriter, r *http.Request) 
 	case !found:
 		message(w, r, http.StatusBadRequest, "Not a scratched gymnast", "That person isn't scratched in the published timetable. It may have been changed: go back and try again.")
 	case !applies:
-		http.Redirect(w, r, back+"&notice="+url.QueryEscape("Someone has already done that for "+name+"."), http.StatusSeeOther)
+		http.Redirect(w, r, backToDay(r, "Someone has already done that for "+name+".", warningsID), http.StatusSeeOther)
 	default:
 		if err := p.st.ClearScratch(r.Context(), c.ID, person, kind, linkOf(r).Name); err != nil {
 			failed(w, r, err)
 			return
 		}
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		http.Redirect(w, r, backToDay(r, "", warningsID), http.StatusSeeOther)
 	}
 }
 

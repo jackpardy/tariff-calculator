@@ -558,6 +558,37 @@ Attendees see it too: on **My competition** (the same today-only rule), a line
 at the top for each area their flights are on that is running 5 or more minutes
 late or early, such as "Panel 2 is running about 15 min late (as of 10:40)".
 
+**The page stays where it is** (built 2026-10-14). Every button on the day
+page (flight Started/Finished/Undo, check-in, panel, Notify, Still
+officiating/competing) is still a plain form that posts and redirects (303)
+back to `/day?day=N`, so it works without JavaScript. The page marks its
+parts with ids and keys so the browser can keep its place: `#day-notice` and
+`#day-warnings` (always there, though they may be empty), `#day-areas` (which
+carries `data-day-page`, the marker for the script), `area-…` on each area's
+block and `flight-…` on each flight's box (ids made from the name or the
+flight key by `idPart`, which turns every byte that isn't a letter, a number
+or "-" into `_` and two hex characters, so different keys never share an id),
+and a `data-key` on every `<details>` (`checkin:<flight key>`,
+`panel:<flight key>`, `notify:<as>:<flight key>:<person>`). Without
+JavaScript, each handler's redirect ends in a `#fragment` for the flight's box
+(the warnings, for Still officiating/competing), so the browser lands back on
+it; the notice stays in the query, and its block is sticky at the top of the
+screen so it's seen from there. With JavaScript (`dayPage` in
+`static/js/competitions.js`), a tap on a form inside the areas or the warnings
+is sent in the background as a plain urlencoded form
+(`new URLSearchParams(new FormData(form, submitter))`, so the tapped button's
+name and value go; the history, which reads `r.Form`, would not see a
+multipart body). The page it is redirected to is parsed, and the notice,
+warnings and areas are swapped for the fresh ones, with the `<details>` that
+were open still open (a Notify list closes once sent), the flight kept at the
+same place on the screen, and the tapped button disabled meanwhile; taps are
+sent one at a time. If the request fails or the answer isn't the day page, the
+form is submitted the usual way (with the tapped button added back as a hidden
+input) and the server's redirect brings the person back to the flight. Which
+lists are open is also kept in `sessionStorage` (per path and `?day`), so a
+reload keeps them. The service worker only handles GET navigations, so these
+posts go straight to the network.
+
 **Check-in and scratches** (built 2026-10-09): under each flight on the day
 page, a folded **Check-in · 8 of 10 here, 1 scratched** lists the flight's
 gymnasts in running order (entries since withdrawn are left out), each with
