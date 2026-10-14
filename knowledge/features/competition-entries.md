@@ -32,7 +32,7 @@ organiser's first need is an **overview of every entry with its problems**.
 
 Every page of the organiser's section has a **menu** under its title (the
 shared `pageMenu` in `views/menu.templ`, built by `orgMenu` in
-`web/menus.go`): **Entries** (Entries, Late changes, Coaches when coaches are
+`web/menus.go`): **Entries** (Entries, People, Late changes, Coaches when coaches are
 approved, Fees), **Timetable** (Timetable, Officials, Simulate, and once the
 timetable is planned the two "what if" pages), **On the day** (once the
 timetable is published: On the day, Desk messages, Venue screen) and
@@ -56,6 +56,61 @@ replacing the admin link or deleting. Each form posts to its own route, which
 comes back to the Settings page with a notice; the history records them as
 before. The entries page keeps the **Go live now** box while the competition
 is private.
+
+## People (roadmap: all people, 2026-10-14)
+
+`GET /competitions/admin/{token}/people` (`web/peoplepages.go`, in the Entries
+section of the menu) lists everyone at the competition **once**, sorted by
+name, with a count at the top: gymnasts and synchro partners, officials and
+coaches. A person is one of the keys the timetable already uses
+(`personKeys`: `m:<member>`, `i:<name>` for an individual, `p:<entry>` for a
+partner with no entry of their own; `officialKey`: `o:<official>` for someone
+the organiser added; `coachKey`: `c:<club>:<name>`), so a member who competes
+and judges is one row, and the coach's own member page, if they are also a
+member, is still a second person until the one-link work (roadmap 5).
+Coaches come from the coach named on live entries, and from coaches clubs have
+sent or individuals have named for approval, so the Coaches page's names all
+have a page. Withdrawn and waiting-list entries are left out, as on the
+timetable.
+
+Each row has the name (a link to their page), the club ("individual" for
+someone entering on their own), and what they do on one line, e.g.
+*Trampoline BUCS L7, Synchro BUCS L6/L7 · judge, can chair · coaches 6
+entries*. Each row also carries `data-name`, `data-club` and `data-roles`
+(`compete`, `official`, `coach`) for the search and filters that come next.
+
+`GET /competitions/admin/{token}/people/{key}` is one person's page, read-only,
+built by the same code as the member's own [My competition](#my-competition-roadmap-competitions-5)
+page (`dayPage` in `web/mypages.go`), without what is only for the person
+themselves (their timeline, calendar and Notify links, score sheets, and "I'm
+here for the rest"). The key is one path segment, escaped (`:` is allowed in a
+path; a space is `%20`; any `/` in a name is `%2F`, which the router matches
+as part of the one segment). It shows:
+
+- who they are: name, club and roles;
+- **Officiating**, if they offered or hold seats: what they offered, whether
+  they are marked qualified where the judging rule asks for it, and their
+  seats (planned, if the timetable is planned but not published; published
+  once it is), with their panel check-in as "here for 3 of 5 seats";
+- **Coaching**: the gymnasts they coach, each linking to the gymnast's page,
+  and the coach's approval status where coaches are approved;
+- **Entries**: each event with card status and a link to the entry
+  (`/entries/{id}`), and once published its flight, place in the running
+  order and rough times, and whether the gymnast has checked in or is
+  scratched;
+- once published: scratch warnings (scratched, and nobody has said whether
+  they're still here for their other events or officiating), the desk
+  messages that reach them, how late their flights' areas are running, and
+  the timetable with them picked out. A person with no events or seats (a
+  coach) gets no timetable.
+
+A key that isn't a person here gives the usual "not found". Everyone who can
+see the entries page can see People (it is in the same set of routes as the
+dashboard in `allowed`), but not the venue screen link. The names link here
+from the entries page (a small "person" link beside the gymnast's name, which
+already links to the entry; withdrawn rows have none, and a synchro pair's
+links to the first gymnast), from the Officials page (the name itself) and
+from the Coaches page (the name itself).
 
 ## Helpers' links, history and concerns (ADR 0009)
 

@@ -72,7 +72,7 @@ performed as written.
 under its title: **Entries**, **Timetable**, **On the day** (once the
 timetable is published) and **Settings**. Tap a section to open it; its own
 pages are listed under the bar, with the page you're on marked. **Entries** has
-Late changes, Coaches (when you approve coaches) and Fees, with a count beside
+People, Late changes, Coaches (when you approve coaches) and Fees, with a count beside
 Late changes and Coaches when something waits for you. **Timetable** has the
 timetable, Officials, Simulate and the two "what if" pages. **On the day** has
 the day's page, Desk messages and the Venue screen. **Settings** has the
@@ -185,6 +185,24 @@ timetabled, and are listed at the end under **Removed and on hold**, to
 An entry marked **Withdrawn** was withdrawn after the club sent it. It isn't
 counted or printed, and goes when the club sends again. A competition and its
 entries are deleted 120 days after the competition date.
+
+## People
+
+Tap **People** (under **Entries**) for everyone at the competition in one
+list: gymnasts and synchro partners, officials and coaches, each once, with
+how many there are at the top. For each person it shows their club and what
+they do, such as "Trampoline BUCS L7, Synchro BUCS L6/L7 · judge, can chair ·
+coaches 6 entries". A person who competes and judges is one row.
+
+Tap a name to see everything that person is doing, like the page they see
+themselves but only for you to look at: their entries (tap **Open the entry**
+for the card), what they offered to officiate and their seats (planned ones
+before you publish), the gymnasts they coach (tap one to go to that
+gymnast), and once the timetable is published their flights, whether they
+have checked in, a warning if they are scratched and nobody has said whether
+they are still here for the rest, and the messages from the desk that reached
+them. The same name links from the entries page (**person**, beside the
+gymnast's name), the Officials page and the Coaches page.
 
 ## Officials
 

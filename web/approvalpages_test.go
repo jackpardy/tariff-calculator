@@ -69,6 +69,11 @@ func TestCoachApprovalPages(t *testing.T) {
 	// The organiser sees Ann, her certificate and that she meets Level 3, and approves her.
 	coaches := do(t, h, http.MethodGet, admin+"/coaches", nil).Body.String()
 	cert := regexp.MustCompile(`href="(` + regexp.QuoteMeta(admin) + `/coaches/[^"]+/certificates/[^"]+)"`).FindStringSubmatch(coaches)
+	if link := personLink(t, coaches, "Ann"); !strings.HasPrefix(link, admin+"/people/c:") {
+		t.Errorf("the coaches page links Ann to her person page: %s", link)
+	} else if page := do(t, h, http.MethodGet, link, nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "Waiting for the organiser") {
+		t.Errorf("Ann's person page: %d", page.Code)
+	}
 	if !strings.Contains(coaches, "UCD") || !strings.Contains(coaches, "British Gymnastics Level 3 Trampoline Coach") || !strings.Contains(coaches, "Trampoline Level 3 ✓") || cert == nil {
 		t.Fatalf("the coaches page: %s", coaches)
 	}

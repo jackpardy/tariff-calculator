@@ -85,12 +85,12 @@ func personKeys(entries []store.Entry) map[string][]string {
 
 // individualKey is the person key of a gymnast entering on their own, by name.
 func individualKey(name string) string {
-	return "i:" + strings.ToLower(strings.Join(strings.Fields(name), " "))
+	return "i:" + nameKey(name)
 }
 
 // coachKey is the key of an entry's coach, if it has one: by club and name.
 func coachKey(e store.Entry) string {
-	name := strings.ToLower(strings.Join(strings.Fields(e.CoachName()), " "))
+	name := nameKey(e.CoachName())
 	if name == "" {
 		return ""
 	}

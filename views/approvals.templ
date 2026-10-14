@@ -35,6 +35,7 @@ type ApprovalClub struct {
 // ApprovalRow is one coach sent, to approve.
 type ApprovalRow struct {
 	ID, Name       string
+	Person         string // their page on People
 	Action         string // where deciding posts
 	Status         string // e.g. "Waiting", "Approved ✓"
 	Approved       bool
@@ -94,7 +95,11 @@ templ CompetitionApprovals(p ApprovalsPage) {
 				for _, k := range c.Coaches {
 					<div class="mb-4">
 						<p>
-							<strong>{ k.Name }</strong>
+							if k.Person != "" {
+								<strong><a href={ templ.SafeURL(k.Person) }>{ k.Name }</a></strong>
+							} else {
+								<strong>{ k.Name }</strong>
+							}
 							<span class={ "tag is-light ml-1", templ.KV("is-success", k.Approved), templ.KV("is-warning", !k.Approved) }>{ k.Status }</span>
 							if k.Changed {
 								<span class="is-size-7 has-text-grey">· the club has changed their qualifications since, not sent yet</span>

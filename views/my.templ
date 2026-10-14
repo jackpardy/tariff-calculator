@@ -24,6 +24,8 @@ type MyCompetitionPage struct {
 	Days        []DayView
 	Mine        map[string]bool // their entries, by id
 	Me          string          // their person key, for the seats they're in
+	Menu        []MenuSection   // the organiser's menu, when the organiser is looking (People)
+	Person      *PersonView     // set when the organiser is looking, and not the person
 }
 
 // MyHere is the box that lets someone scratched from an event tell the
@@ -36,6 +38,9 @@ type MyHere struct {
 
 // MyEvent is one of their events.
 type MyEvent struct {
+	ID          string
+	Link        string // the organiser's page for the entry, on the People page
+	Here        string // whether they've checked in, on the People page
 	Event, Gymnasts, Category string
 	Status                    string
 	Problems                  []string
@@ -50,6 +55,10 @@ templ MyCompetition(p MyCompetitionPage) {
 		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>{ p.BackLabel }</a></p>
 		<h1 class="title is-4">{ p.Competition.Name }</h1>
 		<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
+		@pageMenu(p.Menu)
+		if p.Person != nil {
+			@personAbout(*p.Person)
+		}
 		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
 		if p.Notice != "" {
 			<div class="notification is-info is-light">{ p.Notice }</div>
@@ -64,7 +73,10 @@ templ MyCompetition(p MyCompetitionPage) {
 				</form>
 			</div>
 		}
-		if len(p.Events) == 0 {
+		if p.Person != nil && len(p.Events) > 0 {
+			<h2 class="title is-5 mt-5">Entries</h2>
+		}
+		if len(p.Events) == 0 && p.Person == nil {
 			<div class="notification is-light">No entries for you have reached the competition yet. Once your club sends them (or you enter), they show here.</div>
 		}
 		for _, ev := range p.Events {
@@ -77,6 +89,12 @@ templ MyCompetition(p MyCompetitionPage) {
 				</p>
 				<p class="is-size-7 mb-2">{ ev.Gymnasts }</p>
 				<p class="is-size-7">{ ev.Status }</p>
+				if ev.Here != "" {
+					<p class="is-size-7">{ ev.Here }</p>
+				}
+				if ev.Link != "" {
+					<p class="is-size-7"><a href={ templ.SafeURL(ev.Link) }>Open the entry</a></p>
+				}
 				if len(ev.Problems) > 0 {
 					<ul class="is-size-7 has-text-danger mb-2">
 						for _, pr := range ev.Problems {
@@ -87,20 +105,22 @@ templ MyCompetition(p MyCompetitionPage) {
 				if ev.Flight != "" {
 					<div class="comp-my-flight mt-2">
 						<p><strong>{ ev.Flight }</strong> · { ev.Area } · { ev.Day }</p>
-						<p>Warm-up <strong>{ ev.WarmUp }</strong> · you're <strong>{ ordinal(ev.Position) }</strong> of { strconv.Itoa(ev.Of) }</p>
+						<p>Warm-up <strong>{ ev.WarmUp }</strong> · { youAre(p) } <strong>{ ordinal(ev.Position) }</strong> of { strconv.Itoa(ev.Of) }</p>
 						<p class="is-size-7 has-text-grey">Routines at about { ev.Turn } and { ev.Turn2 }, if the flight runs to time: a guide only.</p>
 					</div>
 				} else if p.Published {
-					<p class="is-size-7 has-text-grey mt-2">Not in a flight yet: ask the organiser.</p>
+					<p class="is-size-7 has-text-grey mt-2">Not in a flight yet{ notYet(p) }</p>
 				}
 			</div>
 		}
 		@dutiesBox(p.Duties, p.ScoreSheets)
-		if !p.Published {
+		if !p.Published && p.Person != nil {
+			<div class="notification is-light">The timetable isn't published yet. Their flights, times and check-in show here once it is.</div>
+		} else if !p.Published {
 			<div class="notification is-light">The timetable isn't published yet. Your flights, times and any judging show here once it is.</div>
-		} else {
+		} else if p.Person == nil || len(p.Events) > 0 || len(p.Person.Seats) > 0 {
 			<h2 class="title is-5 mt-5">The timetable</h2>
-			<p class="help mb-3">You're picked out in bold, and the panels you're on are marked.</p>
+			<p class="help mb-3">{ pickedOut(p) }</p>
 			for _, day := range p.Days {
 				<h3 class="title is-6 mt-4">{ day.Name }</h3>
 				<div class="columns is-multiline">
@@ -155,6 +175,31 @@ templ myFlight(p MyCompetitionPage, f ItemView) {
 			<p class="is-size-7 mt-2">{ panelLine(f.Seats) }</p>
 		}
 	</details>
+}
+
+// youAre is where the person is in a flight's running order, said to them or
+// of them.
+func youAre(p MyCompetitionPage) string {
+	if p.Person != nil {
+		return "they're"
+	}
+	return "you're"
+}
+
+// notYet is what follows "Not in a flight yet", to them or to the organiser.
+func notYet(p MyCompetitionPage) string {
+	if p.Person != nil {
+		return "."
+	}
+	return ": ask the organiser."
+}
+
+// pickedOut says who is in bold in the timetable.
+func pickedOut(p MyCompetitionPage) string {
+	if p.Person != nil {
+		return "They're picked out in bold, and the panels they're on are marked."
+	}
+	return "You're picked out in bold, and the panels you're on are marked."
 }
 
 // flightHas says whether the person competes in or officiates a flight.

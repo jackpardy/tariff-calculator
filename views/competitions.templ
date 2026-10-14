@@ -123,6 +123,7 @@ type DashboardLevel struct {
 // DashboardRow is one entry in a level's table.
 type DashboardRow struct {
 	ID, Gymnast, Club string
+	Person            string    // the gymnast's page on People; "" for none
 	Exercises         [2]string // a set routine's name, or a voluntary's difficulty
 	Met, Rules        int
 	Problems          []string
@@ -572,6 +573,9 @@ templ CompetitionDashboard(d Dashboard) {
 									}
 									<td>
 										<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID) }>{ r.Gymnast }</a>
+										if r.Person != "" {
+											<a class="is-size-7 ml-1" href={ templ.SafeURL(r.Person) }>person</a>
+										}
 										if r.Withdrawn {
 											<span class="tag is-warning is-light ml-1" title="Withdrawn since the club sent it; it goes when the club sends again">Withdrawn</span>
 										}

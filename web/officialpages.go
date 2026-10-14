@@ -163,6 +163,12 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	all, err := p.st.Entries(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	keys := personKeys(live(all))
 	page := views.OfficialsPage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuOfficials), Notice: r.URL.Query().Get("notice"),
 		Judge: c.Officials.Judge, RecordersChange: c.Officials.RecordersChange, MarshalsChange: c.Officials.MarshalsChange, Add: offerForm(c.Competition, competitions.Offer{}, ""),
@@ -188,7 +194,8 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		page.Cover = append(page.Cover, cover)
 	}
 	for _, o := range people {
-		row := views.OfficialRow{ID: o.ID, Name: o.Name, Club: o.ClubName, Offer: o.Offer.Describe(), Qualified: o.Qualified, Added: o.Added}
+		row := views.OfficialRow{ID: o.ID, Name: o.Name, Club: o.ClubName, Offer: o.Offer.Describe(), Qualified: o.Qualified, Added: o.Added,
+			Person: personPath(page.Base, officialKey(o, keys))}
 		switch {
 		case o.Added:
 			row.Source = "added by you"

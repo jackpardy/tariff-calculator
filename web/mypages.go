@@ -115,14 +115,30 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 		failed(w, r, err)
 		return
 	}
-	entries := live(all)
+	page, err := p.dayPage(r, c, live(all), key, club, name, true)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	page.Back, page.BackLabel = back, backLabel
+	render(w, r, views.MyCompetition(page))
+}
+
+// dayPage builds a person's competition page from the live entries: their
+// events, flights, duties and the timetable. own is the person's own view of
+// it, which has the links only they use (their timeline, calendar and Notify,
+// their score sheets, and "I'm here for the rest"); the organiser's view of
+// the same person (People) leaves them out.
+func (p *competitionPages) dayPage(r *http.Request, c store.Competition, entries []store.Entry, key, club, name string, own bool) (views.MyCompetitionPage, error) {
 	keys := personKeys(entries)
-	page := views.MyCompetitionPage{Competition: summary(c.Competition, p.now()), Name: name, Back: back, BackLabel: backLabel, Mine: map[string]bool{}, Me: key, Notice: r.URL.Query().Get("notice")}
-	if published(c) {
+	page := views.MyCompetitionPage{Competition: summary(c.Competition, p.now()), Name: name, Mine: map[string]bool{}, Me: key, Notice: r.URL.Query().Get("notice")}
+	if own && published(c) {
 		page.Timeline = strings.TrimSuffix(r.URL.Path, "/day") + "/timeline"
 		page.Calendar = strings.TrimSuffix(r.URL.Path, "/day") + "/calendar.ics"
 	}
-	page.Notify = p.notifyLink(strings.TrimSuffix(r.URL.Path, "/day") + "/notify")
+	if own {
+		page.Notify = p.notifyLink(strings.TrimSuffix(r.URL.Path, "/day") + "/notify")
+	}
 	page.Desk = p.deskNotes(r.Context(), c.ID, []string{key}, clubIDs(club), nil)
 	t := c.Published
 	published := t != nil
@@ -130,15 +146,14 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 	var mine []competitions.ScheduledFlight // the flights they're in
 	scratched, err := p.scratchedOf(r.Context(), c.ID)
 	if err != nil {
-		failed(w, r, err)
-		return
+		return page, err
 	}
 	for _, j := range judge(c.Competition, entries) {
 		if !slices.Contains(keys[j.ID], key) {
 			continue
 		}
 		page.Mine[j.ID] = true
-		ev := views.MyEvent{Event: j.Entry.Entry.Event(), Gymnasts: j.Entry.Entry.Gymnasts(), Category: j.Entry.Entry.Category}
+		ev := views.MyEvent{ID: j.ID, Event: j.Entry.Entry.Event(), Gymnasts: j.Entry.Entry.Gymnasts(), Category: j.Entry.Entry.Category}
 		switch {
 		case j.Checked():
 			ev.Status = "Checked by the organiser ✓"
@@ -175,37 +190,34 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 	}
 	if published {
 		if page.Lateness, err = p.lateNotes(r.Context(), c, mine); err != nil {
-			failed(w, r, err)
-			return
+			return page, err
 		}
 		officials, err := p.rotaOf(r, c, entries)
 		if err != nil {
-			failed(w, r, err)
-			return
+			return page, err
 		}
 		page.Duties = dutiesOf(c, key)
 		checkins, err := p.st.Checkins(r.Context(), c.ID)
 		if err != nil {
-			failed(w, r, err)
-			return
+			return page, err
 		}
 		official, err := p.st.OfficialCheckins(r.Context(), c.ID)
 		if err != nil {
-			failed(w, r, err)
-			return
+			return page, err
 		}
 		clears, err := p.st.ScratchClears(r.Context(), c.ID)
 		if err != nil {
-			failed(w, r, err)
-			return
+			return page, err
 		}
-		page.Here = hereBox(entries, keys, key, len(page.Duties) > 0, checkins, official, clears, strings.TrimSuffix(r.URL.Path, "/day")+"/here")
-		if len(page.Duties) > 0 {
+		if own {
+			page.Here = hereBox(entries, keys, key, len(page.Duties) > 0, checkins, official, clears, strings.TrimSuffix(r.URL.Path, "/day")+"/here")
+		}
+		if own && len(page.Duties) > 0 {
 			page.ScoreSheets = strings.TrimSuffix(r.URL.Path, "/day") + "/score-sheets"
 		}
 		page.Days = itemsOf(*t, entries, officials)
 	}
-	render(w, r, views.MyCompetition(page))
+	return page, nil
 }
 
 // dayPath is a member's My competition page, for a competition.

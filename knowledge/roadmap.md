@@ -220,7 +220,9 @@ features that show that, in this order:
    and down when open, from a single rule in `static/css/styles.css`;
    summaries styled as buttons, the routine menu and the inline "move"
    link opt out (see [rendering](architecture/rendering.md#dropdowns)).
-4. **All people, for the organiser**: a list of everyone at the
+4. **All people, for the organiser** (built 2026-10-14,
+   [People](features/competition-entries.md#people-roadmap-all-people-2026-10-14)):
+   a list of everyone at the
    competition, one row a person whatever their roles, which the coaches,
    officials and entries lists link to. Each person's page shows everything
    they're doing, like their own Your competition page, read-only.

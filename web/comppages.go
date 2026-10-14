@@ -114,6 +114,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerTimetable(handle)
 	p.registerPartners(handle)
 	p.registerOfficials(handle)
+	p.registerPeople(handle)
 	p.registerApprovals(handle)
 	p.registerMine(handle)
 	p.registerTimelines(handle)
@@ -647,6 +648,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		byLevel[name] = len(d.Levels)
 		d.Levels = append(d.Levels, views.DashboardLevel{Name: name})
 	}
+	people := personKeys(live(all)) // withdrawn entries have no page for their gymnast
 	filter := dashboardFilter(q)
 	d.Filter, d.Search, d.Coach, d.CheckedFilter, d.SignedFilter, d.VideoFilter, d.Category, d.Sort =
 		filter, filter.Get("q"), filter.Get("coach"), filter.Get("checked"), filter.Get("signedoff"), filter.Get("video"), filter.Get("category"), q.Get("sort")
@@ -678,8 +680,12 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		d.Shown++
 		sentAt[j.ID] = j.SentAt
+		person := ""
+		if k := people[j.ID]; len(k) > 0 {
+			person = personPath(d.Base, k[0])
+		}
 		row := views.DashboardRow{
-			ID: j.ID, Gymnast: j.Entry.Entry.Gymnasts(), Club: j.club, Problems: j.problems, Coach: j.CoachName(),
+			ID: j.ID, Gymnast: j.Entry.Entry.Gymnasts(), Person: person, Club: j.club, Problems: j.problems, Coach: j.CoachName(),
 			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note, Withdrawn: j.Withdrawn,
 			Video: videoStatus(c.Competition, j), Signoff: storedSignoff(c.Competition, j.Entry), Category: j.Entry.Entry.Category,
 		}

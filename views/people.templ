@@ -1,0 +1,141 @@
+package views
+
+import "strconv"
+
+// PeoplePage is the organiser's list of everyone at a competition: gymnasts,
+// officials and coaches, once each (roadmap: all people).
+type PeoplePage struct {
+	Base        string
+	Competition CompetitionSummary
+	Menu        []MenuSection
+	People      []PersonRow
+}
+
+// PersonRow is one person in the list.
+type PersonRow struct {
+	Name, Club string
+	Does       string // what they do, e.g. "Trampoline BUCS L7 · judge, can chair · coaches 6 entries"
+	Roles      string // the kinds of thing they do, for finding them later: "compete judge coach"
+	Href       string // their page
+}
+
+// PersonView is what the organiser's page for a person adds to the
+// competition page they would see themselves.
+type PersonView struct {
+	Club      string
+	Roles     []string // e.g. "Competes", "Judge", "Coach"
+	Offer     string   // what they offered to officiate, "" for nothing
+	Qualified string   // whether the organiser marked them qualified, where that matters
+	Seats     []string
+	SeatsNote string // says the seats are planned, not published
+	Panel     string // their panel check-in, once published
+	Coaching  []PersonCoached
+	Approval  string // a coach's approval, where the competition approves coaches
+	Warning   string // scratched, and the organisers haven't been told about the rest
+}
+
+// PersonCoached is a gymnast a person coaches, in one event.
+type PersonCoached struct {
+	Name, Event, Href string
+}
+
+// People is the organiser's list of everyone.
+templ People(p PeoplePage) {
+	@competitionLayout("People · " + p.Competition.Name) {
+		<h1 class="title is-4">People</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		@pageMenu(p.Menu)
+		<p class="mb-3"><strong>{ strconv.Itoa(len(p.People)) }</strong> { peopleWord(len(p.People)) }: gymnasts, officials and coaches, each once.</p>
+		if len(p.People) == 0 {
+			<p class="has-text-grey">Nobody yet. Gymnasts, officials and coaches show here once entries are sent.</p>
+		} else {
+			<div class="table-container">
+				<table class="table is-narrow is-hoverable comp-people">
+					<thead><tr><th>Name</th><th>Club</th><th>What they do</th></tr></thead>
+					<tbody>
+						for _, r := range p.People {
+							<tr data-name={ r.Name } data-club={ r.Club } data-roles={ r.Roles }>
+								<td><a href={ templ.SafeURL(r.Href) }>{ r.Name }</a></td>
+								<td>{ r.Club }</td>
+								<td class="comp-wrap">{ r.Does }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	}
+}
+
+func peopleWord(n int) string {
+	if n == 1 {
+		return "person"
+	}
+	return "people"
+}
+
+// personAbout is who the person is, and what they offer and coach, at the top
+// of the organiser's page for them.
+templ personAbout(v PersonView) {
+	<div class="box">
+		<p>
+			if v.Club != "" {
+				<strong>{ v.Club }</strong>
+			} else {
+				<span class="has-text-grey">No club</span>
+			}
+			for _, r := range v.Roles {
+				<span class="tag is-light ml-1">{ r }</span>
+			}
+		</p>
+	</div>
+	if v.Warning != "" {
+		<div class="notification is-warning is-light">{ v.Warning }</div>
+	}
+	if v.Offer != "" || len(v.Seats) > 0 {
+		<div class="box">
+			<h2 class="title is-5">Officiating</h2>
+			if v.Offer != "" {
+				<p class="is-size-7">Offered: { v.Offer }</p>
+			}
+			if v.Qualified != "" {
+				<p class="is-size-7">{ v.Qualified }</p>
+			}
+			if len(v.Seats) > 0 {
+				<p class="is-size-7 mt-2"><strong>Seats</strong> <span class="has-text-grey">{ v.SeatsNote }</span></p>
+				<ul class="is-size-7">
+					for _, s := range v.Seats {
+						<li>{ s }</li>
+					}
+				</ul>
+			} else if v.Offer != "" {
+				<p class="is-size-7 has-text-grey mt-2">No seats yet.</p>
+			}
+			if v.Panel != "" {
+				<p class="is-size-7 mt-1">{ v.Panel }</p>
+			}
+		</div>
+	}
+	if len(v.Coaching) > 0 || v.Approval != "" {
+		<div class="box">
+			<h2 class="title is-5">Coaching</h2>
+			if v.Approval != "" {
+				<p class="is-size-7">{ v.Approval }</p>
+			}
+			if len(v.Coaching) > 0 {
+				<ul class="is-size-7">
+					for _, g := range v.Coaching {
+						<li>
+							if g.Href != "" {
+								<a href={ templ.SafeURL(g.Href) }>{ g.Name }</a>
+							} else {
+								{ g.Name }
+							}
+							<span class="has-text-grey">· { g.Event }</span>
+						</li>
+					}
+				</ul>
+			}
+		</div>
+	}
+}
