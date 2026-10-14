@@ -89,12 +89,16 @@ func individualKey(name string) string {
 }
 
 // coachKey is the key of an entry's coach, if it has one: by club and name.
-func coachKey(e store.Entry) string {
-	name := strings.ToLower(strings.Join(strings.Fields(e.CoachName()), " "))
+func coachKey(e store.Entry) string { return coachKeyOf(e.ClubID, e.CoachName()) }
+
+// coachKeyOf is the key of a coach of a club ("" for an individual's), by
+// name; "" for no name.
+func coachKeyOf(clubID, name string) string {
+	name = strings.ToLower(strings.Join(strings.Fields(name), " "))
 	if name == "" {
 		return ""
 	}
-	return "c:" + e.ClubID + ":" + name
+	return "c:" + clubID + ":" + name
 }
 
 // schedEntries are entries as the scheduler needs them, with their people.

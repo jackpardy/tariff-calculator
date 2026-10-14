@@ -63,13 +63,13 @@ func TestOrgMenuByAccess(t *testing.T) {
 		}
 		return "-"
 	}
-	all := views.Access{Organiser: true, Settings: true, Timetable: true, Sheets: true, Officials: true, Coaches: true, Day: true, Desk: true, Screen: true}
+	all := views.Access{Organiser: true, Settings: true, Timetable: true, Sheets: true, Officials: true, Coaches: true, Day: true, Desk: true, Screen: true, People: true}
 	m := menuState{Published: true, Planned: true, ApproveCoaches: true, LateWaiting: 2, CoachesWaiting: 3}
 	menu := orgMenu(base, all, m, menuLate)
 	if got := labels(menu); got != "Entries, Timetable, On the day, Settings" {
 		t.Errorf("the organiser's sections: %s", got)
 	}
-	if got := items(menu, "Entries"); got != "Entries, Late changes, Coaches, Fees" {
+	if got := items(menu, "Entries"); got != "Entries, People, Late changes, Coaches, Fees" {
 		t.Errorf("entries: %s", got)
 	}
 	if got := items(menu, "Timetable"); got != "Timetable, Officials, Simulate, What if there's a delay, What if an official leaves" {
@@ -81,8 +81,15 @@ func TestOrgMenuByAccess(t *testing.T) {
 	if got := items(menu, "Settings"); got != "Settings, History" {
 		t.Errorf("settings: %s", got)
 	}
-	if !menu[0].Current || menu[0].Items[1].Badge != "2 to decide" || menu[0].Items[2].Badge != "3 waiting" {
+	if !menu[0].Current || menu[0].Items[2].Badge != "2 to decide" || menu[0].Items[3].Badge != "3 waiting" {
 		t.Errorf("the current section badges its pages: %+v", menu[0])
+	}
+	if people := orgMenu(base, all, m, menuPeople); !people[0].Current || !people[0].Items[1].Current || people[0].Items[1].Label != "People" {
+		t.Errorf("People is current on its pages: %+v", people[0])
+	}
+	// A link that can't see the dashboard (the venue screen) has no People.
+	if got := items(orgMenu(base, views.Access{Screen: true, Day: true}, m, menuScreen), "Entries"); strings.Contains(got, "People") {
+		t.Errorf("the venue screen's menu: %s", got)
 	}
 
 	// Not yet published, planned or approving coaches: those pages aren't offered.
@@ -90,7 +97,7 @@ func TestOrgMenuByAccess(t *testing.T) {
 	if got := labels(menu); got != "Entries, Timetable, Settings" {
 		t.Errorf("before the timetable is published: %s", got)
 	}
-	if got := items(menu, "Entries"); got != "Entries, Late changes, Fees" {
+	if got := items(menu, "Entries"); got != "Entries, People, Late changes, Fees" {
 		t.Errorf("entries without coach approval: %s", got)
 	}
 	if got := items(menu, "Timetable"); got != "Timetable, Officials, Simulate" {
@@ -109,18 +116,18 @@ func TestOrgMenuByAccess(t *testing.T) {
 	}
 
 	// A link for checking cards sees entries and history.
-	cards := views.Access{Check: true}
+	cards := views.Access{Check: true, People: true}
 	if got := labels(orgMenu(base, cards, m, menuEntries)); got != "Entries, History" {
 		t.Errorf("a cards link: %s", got)
 	}
 	// A chair of judges: the sheets are buttons on the entries page, not in the menu.
-	chair := views.Access{Sheets: true, Day: true, Desk: true, Screen: true}
+	chair := views.Access{Sheets: true, Day: true, Desk: true, Screen: true, People: true}
 	menu = orgMenu(base, chair, m, menuEntries)
 	if got := labels(menu); got != "Entries, On the day, History" {
 		t.Errorf("a chair's link: %s", got)
 	}
 	// Timetable team: the timetable and officials, not settings.
-	team := views.Access{Timetable: true, Sheets: true, Officials: true, Day: true, Desk: true, Screen: true}
+	team := views.Access{Timetable: true, Sheets: true, Officials: true, Day: true, Desk: true, Screen: true, People: true}
 	if got := labels(orgMenu(base, team, m, menuEntries)); got != "Entries, Timetable, On the day, History" {
 		t.Errorf("a timetable link: %s", got)
 	}

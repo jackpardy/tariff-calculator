@@ -72,7 +72,7 @@ performed as written.
 under its title: **Entries**, **Timetable**, **On the day** (once the
 timetable is published) and **Settings**. Tap a section to open it; its own
 pages are listed under the bar, with the page you're on marked. **Entries** has
-Late changes, Coaches (when you approve coaches) and Fees, with a count beside
+People, Late changes, Coaches (when you approve coaches) and Fees, with a count beside
 Late changes and Coaches when something waits for you. **Timetable** has the
 timetable, Officials, Simulate and the two "what if" pages. **On the day** has
 the day's page, Desk messages and the Venue screen. **Settings** has the
@@ -185,6 +185,27 @@ timetabled, and are listed at the end under **Removed and on hold**, to
 An entry marked **Withdrawn** was withdrawn after the club sent it. It isn't
 counted or printed, and goes when the club sends again. A competition and its
 entries are deleted 120 days after the competition date.
+
+## People
+
+Tap **People** under **Entries** to see everyone at the competition in one
+list, each person once: gymnasts (and synchro partners), officials and coaches.
+A member who competes and judges is one row. The list shows their name, club
+and what they do ("Trampoline BUCS L7, Synchro BUCS L6/L7 · judge, can chair ·
+coaches 6"), with the number of people at the top.
+
+Tap a name to see everything that person is doing, in one page for you to read
+(they can't be changed from it): their entries and the status of each card, with
+a link to the entry; what they offered to officiate, which events they may
+judge, whether they're marked qualified and their seats on the panels; the
+gymnasts they coach, each a link to that gymnast; and, once the timetable is
+published, their flight, where they are in it, whether they're here, any
+scratch warning and the desk messages sent to them. Names on the entries page,
+the **Officials** page and the **Coaches** page open the same page (on the
+entries page it's the small **person** link beside the name, and **partner** for
+a synchro pair). A coach who is also a member shows as two people for now.
+Helpers' links that can see the entries page can see People, but not the venue
+screen link.
 
 ## Officials
 

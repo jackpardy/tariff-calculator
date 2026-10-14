@@ -32,13 +32,13 @@ organiser's first need is an **overview of every entry with its problems**.
 
 Every page of the organiser's section has a **menu** under its title (the
 shared `pageMenu` in `views/menu.templ`, built by `orgMenu` in
-`web/menus.go`): **Entries** (Entries, Late changes, Coaches when coaches are
+`web/menus.go`): **Entries** (Entries, People, Late changes, Coaches when coaches are
 approved, Fees), **Timetable** (Timetable, Officials, Simulate, and once the
 timetable is planned the two "what if" pages), **On the day** (once the
 timetable is published: On the day, Desk messages, Venue screen) and
 **Settings** (Settings, History). Late changes and Coaches show a count of
 what waits; the menu works that out on every page. It shows only what the
-admin link may open (ADR 0009): a cards link sees Entries and History; a
+admin link may open (ADR 0009): a cards link sees Entries (with People) and History; a
 chair of judges adds the day's pages, and finds the printed sheets as buttons
 on the entries page; the timetable team adds Timetable and Officials. The
 menu is left off printouts, the CSV, invoices, cards and the venue screen. The
@@ -56,6 +56,61 @@ replacing the admin link or deleting. Each form posts to its own route, which
 comes back to the Settings page with a notice; the history records them as
 before. The entries page keeps the **Go live now** box while the competition
 is private.
+
+## All people (roadmap 2026-10-14)
+
+**People** (under Entries in the menu; `GET /competitions/admin/{token}/people`,
+`web/peoplepages.go`) lists everyone at the competition once, by name, under a
+count ("441 people"). A person is one **person key**, whatever they do: a
+member is `m:<member id>` whether they compete, judge or both; a gymnast
+entering on their own is `i:<lower-cased name>`; a synchro partner nobody has
+linked is `p:<entry id>`; an official the organiser added is `o:<official
+id>`; a coach is `c:<club id>:<lower-cased name>` (`c::<name>` for one an
+individual named). The list is built from the live entries (not withdrawn, not
+on the waiting list), the officials and the coaches (those entries name, those a
+club sent and those an individual named), so a coach with no entries yet is
+there too. A coach who is also a member is still two people until
+[one link for several roles](../roadmap.md#next-steps-2026-10-08) joins them.
+
+Each row has the name (a link), the club ("Individual" for someone entering on
+their own, nothing for an official with no club) and **what they do**: the
+events they compete in ("Trampoline BUCS L7, Synchro BUCS L6/L7"), what they
+offered ("judge, can chair, recorder, marshal") and "coaches 6" (the gymnasts
+they coach). The rows carry `data-name`, `data-club` and `data-roles`
+(gymnast, judge, chair, recorder, marshal, coach) for the search and filters
+still to come ([roadmap](../roadmap.md#next-steps-2026-10-08) item 6).
+
+Each name opens `GET /competitions/admin/{token}/people/{key}`. The key is
+escaped as one path segment (`url.PathEscape`, which leaves the colons and
+escapes a slash, a question mark, a percent sign and a hash in a name); Go's
+mux matches the escaped path and gives the handler the key unescaped. An
+unknown key is a 404 ("Person not found"). The page is read-only and is the
+person's own **Your competition** page (`views.MyCompetition`) built by the
+same code (`dayOf` in `web/mypages.go`, which the member's page and this one
+both call), with the parts that are only for the person left out (notify, the
+calendar, "I'm here for the rest", the score sheets link) and these added:
+
+- **Who they are**: name, club, and a tag for each role.
+- **Entries**: each event with its card status and a link to the entry, who
+  coaches it (linking to the coach's page), and once the timetable is
+  published their flight, place, rough times and check-in (here, scratched or
+  not marked yet).
+- **Officiating**: what they offered and who sent it, which events they may
+  judge under the judging rule (and can chair), whether they're marked
+  qualified where the rule asks, their seats (the published timetable's, or
+  the draft's once planned) and whether they're here for their panels.
+- **Coaching**: the entries they coach, each gymnast linking to their page,
+  and where the competition approves coaches, how the coach stands.
+- Scratch warnings (a scratched gymnast still down to officiate or compete),
+  and the desk messages that reached them (to them, to their club, and for a
+  coach, to the club's coaches and the gymnasts they coach).
+- The timetable with them picked out, for anyone competing or on a panel.
+
+Names link there from the dashboard's entry tables (a small "person" link
+beside the name, and "partner" for a pair, since the name already opens the
+entry), the Officials page's People table (the name) and the Coaches page (the
+name). Any admin link that can see the dashboard can open the list and the
+pages (`allowed` in `web/access.go`) except the venue screen link.
 
 ## Helpers' links, history and concerns (ADR 0009)
 

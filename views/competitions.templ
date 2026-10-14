@@ -134,6 +134,7 @@ type DashboardRow struct {
 	Category          string // Men or Women, where the level splits them
 	Signoff           SignoffView
 	Coach             string // who coaches them: who signed off, or else their coach
+	Person, Partner   string // the gymnast's page, and their partner's for a pair; "" for none (a withdrawn entry)
 }
 
 // EntryCard is an entry checked exactly as the builder checks a level.
@@ -572,6 +573,12 @@ templ CompetitionDashboard(d Dashboard) {
 									}
 									<td>
 										<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID) }>{ r.Gymnast }</a>
+										if r.Person != "" {
+											<a class="is-size-7 ml-1" href={ templ.SafeURL(r.Person) } title="Everything this person is doing">person</a>
+										}
+										if r.Partner != "" {
+											<a class="is-size-7 ml-1" href={ templ.SafeURL(r.Partner) } title="Everything the partner is doing">partner</a>
+										}
 										if r.Withdrawn {
 											<span class="tag is-warning is-light ml-1" title="Withdrawn since the club sent it; it goes when the club sends again">Withdrawn</span>
 										}

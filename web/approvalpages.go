@@ -136,7 +136,7 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 	}
 	page := views.ApprovalsPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuCoaches), Notice: r.URL.Query().Get("notice"), Asked: askedLevels(c.Competition)}
 	for _, s := range sent {
-		row := views.ApprovalRow{ID: s.CoachID, Name: s.Name, Action: base + "/coaches/" + s.CoachID, Status: coachStatus(s.Status), Approved: s.Approved(),
+		row := views.ApprovalRow{ID: s.CoachID, Name: s.Name, Person: personPath(base, coachKeyOf(s.ClubID, s.Name)), Action: base + "/coaches/" + s.CoachID, Status: coachStatus(s.Status), Approved: s.Approved(),
 			Withdrawn: s.Status == store.CoachWithdrawn, Note: s.Note, Changed: s.Changed}
 		if s.Status == store.CoachWaiting {
 			row.Status = "Waiting"
@@ -158,7 +158,7 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 	if len(named) > 0 {
 		individuals := views.ApprovalClub{Club: "Individuals"}
 		for _, n := range named {
-			row := views.ApprovalRow{ID: n.EntryID, Name: n.Name + ", coach of " + n.Gymnast, Action: base + "/entry-coaches/" + n.EntryID,
+			row := views.ApprovalRow{ID: n.EntryID, Name: n.Name + ", coach of " + n.Gymnast, Person: personPath(base, coachKeyOf("", n.Name)), Action: base + "/entry-coaches/" + n.EntryID,
 				Status: coachStatus(n.Status), Approved: n.Approved(), Withdrawn: n.Status == store.CoachWithdrawn, Note: n.Note,
 				Qualifications: []views.ApprovalQualification{{Name: qualificationName(n.Qualification), Certificate: base + "/entry-coaches/" + n.EntryID + "/certificate"}},
 				Meets:          meets(c.Competition, []string{n.Qualification})}

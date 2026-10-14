@@ -224,6 +224,11 @@ features that show that, in this order:
    competition, one row a person whatever their roles, which the coaches,
    officials and entries lists link to. Each person's page shows everything
    they're doing, like their own Your competition page, read-only.
+   **Built 2026-10-14**: People under Entries in the menu, a page for each
+   person, and links to it from the dashboard's tables, the Officials page
+   and the Coaches page. A coach who is also a member is still two people
+   until item 5 joins them. See
+   [competition entries](features/competition-entries.md#all-people-roadmap-2026-10-14).
 5. **One link for a person with several roles**: a member who also coaches
    or is comp sec gets one link, with tabs between their views. The comp
    sec can make a member a coach too, and anyone can add another of their
