@@ -50,6 +50,7 @@ type ScreenArea struct {
 // ScreenGymnast is a gymnast in a flight on the screen.
 type ScreenGymnast struct {
 	Name, Club string
+	No         int // their running number: their place in the flight
 	Scratched  bool
 }
 
@@ -242,6 +243,7 @@ templ screenNames(gymnasts []ScreenGymnast, more int) {
 		<ul class="screen-names">
 			for _, g := range gymnasts {
 				<li class={ templ.KV("comp-scratched", g.Scratched) }>
+					<span class="screen-no">{ strconv.Itoa(g.No) }</span>
 					<span class="screen-name">{ g.Name }</span>
 					if g.Club != "" {
 						<span class="screen-club">{ g.Club }</span>

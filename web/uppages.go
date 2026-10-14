@@ -27,7 +27,7 @@ func dayUp(c competitions.Competition, f competitions.ScheduledFlight, byID map[
 		return out
 	}
 	g := upGymnast(c, o, pos)
-	out.Name, out.Club, out.Routine = g.Name, g.Club, g.Routine
+	out.Name, out.No, out.Club, out.Routine = g.Name, g.No, g.Club, g.Routine
 	out.Scratched = !o.open[pos]
 	out.Last = tapped && len(o.after(pos, 1)) == 0
 	out.CanBack = tapped && slices.Contains(o.open[:min(pos, len(o.open))], true)

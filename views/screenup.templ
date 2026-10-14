@@ -1,5 +1,7 @@
 package views
 
+import "strconv"
+
 // ScreenUp is who's up now in the flight on an area, once the marshal has
 // tapped through to them: who's on, and the next to go.
 type ScreenUp struct {
@@ -10,6 +12,7 @@ type ScreenUp struct {
 // ScreenUpGymnast is a gymnast and the routine they're doing.
 type ScreenUpGymnast struct {
 	Name, Club string
+	No         int    // their running number: their place in the flight
 	Routine    string // e.g. "Set", "Voluntary" or "2nd routine"
 }
 
@@ -19,7 +22,7 @@ templ screenUp(u *ScreenUp) {
 	if u != nil {
 		<div class="screen-up">
 			<p class="screen-label">On now</p>
-			<p class="screen-up-name">{ u.On.Name }</p>
+			<p class="screen-up-name"><span class="screen-no">{ strconv.Itoa(u.On.No) }</span> { u.On.Name }</p>
 			<p class="screen-up-detail">
 				if u.On.Club != "" {
 					{ u.On.Club } ·
@@ -31,6 +34,7 @@ templ screenUp(u *ScreenUp) {
 				<ol class="screen-up-next">
 					for _, g := range u.Next {
 						<li>
+							<span class="screen-no">{ strconv.Itoa(g.No) }</span>
 							<span class="screen-up-next-name">{ g.Name }</span>
 							<span class="screen-up-detail">
 								if g.Club != "" {

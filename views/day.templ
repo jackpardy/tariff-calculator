@@ -69,6 +69,7 @@ type DayFlight struct {
 type DayUp struct {
 	Tapped    bool   // the marshal has tapped Next gymnast at least once
 	Name      string // "" when nobody is left to compete
+	No        int    // their running number
 	Club      string
 	Routine   string // e.g. "Set", "Voluntary" or "2nd routine"
 	Scratched bool   // scratched since the marshal reached them
@@ -99,6 +100,7 @@ type DaySeat struct {
 // DayGymnast is a gymnast in a flight's check-in.
 type DayGymnast struct {
 	Entry, Name string
+	No          int // their running number: their place in the flight
 	Club        string
 	State       string // "here", "scratched" or "" for not marked
 	Who         string // who marked them
@@ -255,6 +257,7 @@ templ dayArea(p DayPage, a DayArea) {
 						for _, g := range f.Gymnasts {
 							<div class="comp-checkin-row">
 								<span class="comp-checkin-name">
+									@runNo(g.No)
 									<span class={ templ.KV("comp-scratched", g.State == "scratched") }>{ g.Name }</span>
 									<span class="has-text-grey is-size-7">{ g.Club }</span>
 									if g.State == "here" {
@@ -347,6 +350,7 @@ templ dayUp(p DayPage, f DayFlight) {
 				}
 			</p>
 			<p class="is-size-4 has-text-weight-bold mb-0">
+				@runNo(f.Up.No)
 				<span class={ templ.KV("comp-scratched", f.Up.Scratched) }>{ f.Up.Name }</span>
 				if f.Up.Scratched {
 					<span class="tag is-danger is-light">Scratched</span>

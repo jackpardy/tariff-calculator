@@ -263,9 +263,13 @@ features that show that, in this order:
    organiser's Coaches, the desk's People I pick, the club's Members and
    Coaches, and a coach's own entries
    ([how](architecture/rendering.md#lists-of-people-search-and-filters)).
-7. **Venue screen changes** (to be gone through). Stretch goal: show
-   which gymnast is on now and what they're doing (set routine, then
-   voluntary) and who's up next, tapped through by the marshal.
+7. **Venue screen changes**: **built 2026-10-14.** Colours per area, cards
+   that fill the screen for up to seven busy areas (quiet ones as strips),
+   gymnasts with clubs and running numbers for now and next, lateness beside
+   the area's name with times kept to the timetable, announcements from the
+   desk, a screen per group of areas, and keeping the last update when the
+   wifi drops. Who's up now, tapped through by the marshal, shows who's on,
+   their routine and the next two. Refine after the dry run.
 
 **Ready for the dry run (decided 2026-10-09).** A dry run of the core tools,
 entries through to the day, with about 20 people from 3 clubs, is planned for

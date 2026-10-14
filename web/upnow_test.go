@@ -74,7 +74,7 @@ func TestScreenUp(t *testing.T) {
 // upOn is who the day page says is on in the flight, and their routine; ""
 // when nobody is.
 func upOn(page string) (name, routine string) {
-	m := regexp.MustCompile(`(?s)class="comp-up mb-3">.*?has-text-weight-bold mb-0">\s*<span[^>]*>([^<]+)</span>.*?<strong>([^<]+)</strong>`).FindStringSubmatch(page)
+	m := regexp.MustCompile(`(?s)class="comp-up mb-3">.*?has-text-weight-bold mb-0">\s*(?:<span class="comp-run-no"[^>]*>\d+</span>\s*)?<span[^>]*>([^<]+)</span>.*?<strong>([^<]+)</strong>`).FindStringSubmatch(page)
 	if m == nil {
 		return "", ""
 	}
@@ -84,6 +84,7 @@ func upOn(page string) (name, routine string) {
 // screenUpIn is who the venue screen says is on, and who's next, each as
 // "name · routine"; nil when it says nothing.
 func screenUpIn(body string) []string {
+	body = regexp.MustCompile(`<span class="screen-no">\d+</span>\s*`).ReplaceAllString(body, "")
 	var out []string
 	for _, m := range regexp.MustCompile(`class="screen-up-(?:next-)?name">([^<]+)</(?:p|span)>\s*<(?:p|span) class="screen-up-detail">([^<]+)<`).FindAllStringSubmatch(body, -1) {
 		detail := strings.Fields(html2text(m[2]))
@@ -128,7 +129,7 @@ func TestWhoIsUpNow(t *testing.T) {
 	}
 	flight := html2text(key[1])
 	var order, escaped []string // the running order, and as the page has it
-	for _, m := range regexp.MustCompile(`comp-checkin-name">\s*<span[^>]*>([^<]+)</span>`).FindAllStringSubmatch(page, -1) {
+	for _, m := range regexp.MustCompile(`comp-checkin-name">\s*(?:<span class="comp-run-no"[^>]*>\d+</span>\s*)?<span[^>]*>([^<]+)</span>`).FindAllStringSubmatch(page, -1) {
 		order, escaped = append(order, html2text(m[1])), append(escaped, m[1])
 	}
 	if len(order) != 4 {
@@ -182,6 +183,15 @@ func TestWhoIsUpNow(t *testing.T) {
 	}
 	tap(admin, "next")
 	on(order[2], "Set")
+	// Running numbers are places in the flight: scratching the 2nd doesn't
+	// make the 3rd a 2, on the screen or the day page.
+	if body := do(t, h, http.MethodGet, screen+"/screen?day=0", nil).Body.String(); !strings.Contains(body, `<p class="screen-up-name"><span class="screen-no">3</span> `+escaped[2]+`</p>`) {
+		t.Errorf("the screen numbers who's on by their place: %s", body)
+	}
+	if page := get(); !strings.Contains(page, `<span class="comp-run-no" title="Running number">3</span> <span class="">`+escaped[2]+`</span>`) &&
+		!regexp.MustCompile(`comp-run-no" title="Running number">3</span>\s*<span[^>]*>`+regexp.QuoteMeta(escaped[2])+`<`).MatchString(page) {
+		t.Errorf("the day page numbers them the same: %s", page)
+	}
 	tap(admin, "next")
 	on(order[3], "Set")
 	// Who's next crosses into the 2nd round.

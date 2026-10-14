@@ -892,6 +892,14 @@ Each card has:
   the area's times are being marked. "Finished for the day" when there's
   nothing more.
 
+**Running numbers.** Every gymnast has a running number: their place in the
+published flight (`No` on the views), shown before their name on the venue
+screen, in On now and Up next, in the On the day check-in and the marshal's
+box, on the member's published timetable and on the printed marshal and score
+sheets. It's their place in the flight as published, so it never changes when
+someone ahead of them is scratched or withdrawn: "5" means the same gymnast on
+every page.
+
 **Keeping it current.** The script fetches the page every 30 seconds and
 swaps in the new content. If a fetch fails (the venue's wifi drops), the last
 good screen stays up, and after 75 seconds a black line says "Not updated

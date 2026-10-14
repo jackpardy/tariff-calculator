@@ -103,7 +103,7 @@ func routineNames(c competitions.Competition, e competitions.Entry) [2]string {
 func upGymnast(c competitions.Competition, o upOrder, pos int) views.ScreenUpGymnast {
 	e, round, _ := o.at(pos)
 	// An individual has no club to name.
-	return views.ScreenUpGymnast{Name: e.Entry.Gymnasts(), Club: e.ClubName, Routine: routineNames(c, e.Entry)[round]}
+	return views.ScreenUpGymnast{Name: e.Entry.Gymnasts(), No: pos%len(o.entries) + 1, Club: e.ClubName, Routine: routineNames(c, e.Entry)[round]}
 }
 
 // screenUp is who's on in a flight at a position the marshal has tapped to,

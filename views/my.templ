@@ -317,7 +317,7 @@ templ myFlight(p MyCompetitionPage, f ItemView) {
 		</summary>
 		<ol class="comp-order mt-2">
 			for _, g := range f.Gymnasts {
-				<li>
+				<li value={ strconv.Itoa(g.No) }>
 					if p.Mine[g.ID] {
 						<strong>{ g.Name }</strong>
 					} else {

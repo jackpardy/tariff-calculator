@@ -193,9 +193,9 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 	}
 	gymnasts := func(f competitions.ScheduledFlight) []views.ScreenGymnast {
 		var out []views.ScreenGymnast
-		for _, id := range f.Entries {
+		for n, id := range f.Entries {
 			if g, ok := people[id]; ok {
-				g.Scratched = scratched[id]
+				g.No, g.Scratched = n+1, scratched[id]
 				out = append(out, g)
 			}
 		}

@@ -357,7 +357,9 @@ has a starting value you can change.
    link can open nothing else. Each area has its own colour. Its card shows
    the flight on now and the next one, each with its gymnasts and their
    clubs, the warm-up time from the timetable, and how late the area is
-   running. Once the marshal taps **Next gymnast**, the card shows who's on
+   running. Each gymnast's running number (their place in the flight) is
+   shown before their name, the same on every page and sheet, and it doesn't
+   change when someone ahead of them is scratched. Once the marshal taps **Next gymnast**, the card shows who's on
    now, in large type, and the next two. Areas with nothing on soon shrink to a strip along the bottom.
    With two TVs, show some areas on each by adding them to the link, for
    example `…/screen?area=Panel 1&area=Panel 2`. If the TV loses its
