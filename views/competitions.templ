@@ -14,20 +14,20 @@ import (
 // CompetitionSummary is what every competition page says about it, with dates
 // already written for Ireland and the UK.
 type CompetitionSummary struct {
-	Name        string
-	Date        string // e.g. "Saturday 13 March 2027"
-	Deadline    string // e.g. "Saturday 6 March 2027, 23:59"
-	DeleteAfter string // when it and its entries are deleted
-	Open        bool   // new entries can be made
-	ChangesOpen bool   // entries already made can be changed, withdrawn or sent again
-	SignoffsOpen bool  // coaches can sign off
+	Name          string
+	Date          string // e.g. "Saturday 13 March 2027"
+	Deadline      string // e.g. "Saturday 6 March 2027, 23:59"
+	DeleteAfter   string // when it and its entries are deleted
+	Open          bool   // new entries can be made
+	ChangesOpen   bool   // entries already made can be changed, withdrawn or sent again
+	SignoffsOpen  bool   // coaches can sign off
 	ChangesUntil  string // when changes close, if later than the deadline
 	SignoffsUntil string // when sign-offs close, if later than the deadline
-	Live        bool   // gone live: not private, being set up or paused
-	Opens       string // when it goes live, if it's due to, e.g. "Monday 1 February 2027, 09:00"
-	Individuals bool   // individuals can enter directly
-	Video       string // what video proof it asks for, "" for none
-	Signoff     bool   // entries need a coach's sign-off
+	Live          bool   // gone live: not private, being set up or paused
+	Opens         string // when it goes live, if it's due to, e.g. "Monday 1 February 2027, 09:00"
+	Individuals   bool   // individuals can enter directly
+	Video         string // what video proof it asks for, "" for none
+	Signoff       bool   // entries need a coach's sign-off
 }
 
 // CompetitionForm is the form that creates a competition. Levels are the
@@ -200,7 +200,7 @@ type EntryForm struct {
 	Unchecked   bool
 	PartnerName string
 	PartnerClub string
-	Note        bool   // ask for a note for the organiser (a late change)
+	Note        bool // ask for a note for the organiser (a late change)
 	NoteText    string
 	// As asks who's entering on their own, by the link of their page (ADR
 	// 0010): nil where the page already says who.
@@ -258,18 +258,18 @@ type EntryPage struct {
 	Withdraw    string // where withdrawing posts
 	SignoffLink string // the link for their coach to sign it off, where the competition needs it
 	Partner     *PartnerView
-	Placement   *Placement // where they compete, once the timetable is published
-	Duties      []string   // their seats on panels, once the timetable is published
-	Day         string     // their My competition page
-	Offer       *OfferForm // what they offer to judge and help with
+	Placement   *Placement      // where they compete, once the timetable is published
+	Duties      []string        // their seats on panels, once the timetable is published
+	Day         string          // their My competition page
+	Offer       *OfferForm      // what they offer to judge and help with
 	Coach       *EntryCoachView // their coach, where the competition approves coaches
 	Notice      string
-	Pairs       []PairView // synchro entries they're the partner in
-	Removal     string     // what the organiser did with it, and why, if anything
-	Timeline    string     // their timetable as the panel timeline, once published
-	Calendar    string     // their timetable as a calendar file, once published
-	Notify      string     // where they ask to hear about changes
-	ScoreSheets string     // the score sheets of the flights they officiate, if any
+	Pairs       []PairView   // synchro entries they're the partner in
+	Removal     string       // what the organiser did with it, and why, if anything
+	Timeline    string       // their timetable as the panel timeline, once published
+	Calendar    string       // their timetable as a calendar file, once published
+	Notify      string       // where they ask to hear about changes
+	ScoreSheets string       // the score sheets of the flights they officiate, if any
 	Fees        *FeesSummary // what they owe, if the competition charges
 	Desk        []DeskNote   // messages from the organisers that reach them
 	// Menu and Back are the person's pages it's one of (ADR 0010); Personal
@@ -543,121 +543,123 @@ templ CompetitionDashboard(d Dashboard) {
 				<button class="button is-small" type="button" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = false)">Collapse all</button>
 			</div>
 		}
-		for _, l := range d.Levels {
-			<details class="comp-dash-level" id={ l.Anchor } data-level={ l.Name } data-remember?={ !filtered(d) } open?={ filtered(d) && len(l.Rows) > 0 }>
-			<summary class="title is-5 mt-5">
-				{ l.Name } <span class="has-text-grey is-size-6">({ shownCount(d, l) })</span>
-				if l.Places != "" {
-					<span class="tag is-light is-size-7 has-text-weight-normal ml-1">{ l.Places }</span>
-				}
-				if len(l.Rows) > 0 {
-					<a class="is-size-7 has-text-weight-normal ml-2" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) }>Print this level</a>
-				}
-			</summary>
-			if len(l.Rows) == 0 {
-				<p class="has-text-grey is-size-7">None</p>
-			} else {
-				<div class="table-container">
-					<table class="table is-fullwidth is-narrow comp-table comp-entries">
-						<thead>
-							<tr>
-								if d.Access.Remove {
-									<th><input type="checkbox" aria-label={ "Tick all of " + l.Name } onchange="this.closest('table').querySelectorAll('input[name=entry]').forEach(c => c.checked = this.checked)"/></th>
-								}
-								<th>Gymnast</th>
-								<th>Club</th>
-								<th>1st exercise</th>
-								<th>2nd exercise</th>
-								<th>Requirements</th>
-								<th>Problems</th>
-								<th>Sent</th>
-								if d.Competition.Video != "" {
-									<th>Video</th>
-								}
-								if d.Competition.Signoff {
-									<th>Coach</th>
-								}
-								<th>Checked</th>
-							</tr>
-						</thead>
-						<tbody>
-							for _, r := range l.Rows {
-								<tr class={ templ.KV("has-problems", len(r.Problems) > 0 && !r.Withdrawn), templ.KV("is-withdrawn", r.Withdrawn) }>
-									if d.Access.Remove {
-										<td><input type="checkbox" name="entry" value={ r.ID } form="remove-form" aria-label={ "Tick " + r.Gymnast }/></td>
-									}
-									<td>
-										<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID) }>{ r.Gymnast }</a>
-										if r.Person != "" {
-											<a class="is-size-7 ml-1" href={ templ.SafeURL(r.Person) } title="Everything this person is doing">person</a>
+		<div id="entries">
+			for _, l := range d.Levels {
+				<details class="comp-dash-level" id={ l.Anchor } data-level={ l.Name } data-remember?={ !filtered(d) } open?={ filtered(d) && len(l.Rows) > 0 } data-list-group>
+					<summary class="title is-5 mt-5">
+						{ l.Name } <span class="has-text-grey is-size-6">({ shownCount(d, l) })</span>
+						if l.Places != "" {
+							<span class="tag is-light is-size-7 has-text-weight-normal ml-1">{ l.Places }</span>
+						}
+						if len(l.Rows) > 0 {
+							<a class="is-size-7 has-text-weight-normal ml-2" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) } data-list-carry>Print this level</a>
+						}
+					</summary>
+					if len(l.Rows) == 0 {
+						<p class="has-text-grey is-size-7">None</p>
+					} else {
+						<div class="table-container">
+							<table class="table is-fullwidth is-narrow comp-table comp-entries">
+								<thead>
+									<tr>
+										if d.Access.Remove {
+											<th><input type="checkbox" aria-label={ "Tick all of " + l.Name } onchange="this.closest('table').querySelectorAll('input[name=entry]').forEach(c => c.checked = this.checked)"/></th>
 										}
-										if r.Partner != "" {
-											<a class="is-size-7 ml-1" href={ templ.SafeURL(r.Partner) } title="Everything the partner is doing">partner</a>
+										<th>Gymnast</th>
+										<th>Club</th>
+										<th>1st exercise</th>
+										<th>2nd exercise</th>
+										<th>Requirements</th>
+										<th>Problems</th>
+										<th>Sent</th>
+										if d.Competition.Video != "" {
+											<th>Video</th>
 										}
-										if r.Withdrawn {
-											<span class="tag is-warning is-light ml-1" title="Withdrawn since the club sent it; it goes when the club sends again">Withdrawn</span>
+										if d.Competition.Signoff {
+											<th>Coach</th>
 										}
-									</td>
-									<td>
-										{ r.Club }
-										if r.Category != "" {
-											<span class="tag is-light ml-1">{ r.Category }</span>
-										}
-									</td>
-									<td>{ r.Exercises[0] }</td>
-									<td>{ r.Exercises[1] }</td>
-									<td>
-										if r.Rules > 0 {
-											{ fmt.Sprintf("%d/%d %s", r.Met, r.Rules, markFor(r.Met == r.Rules)) }
-										}
-									</td>
-									<td class="comp-problem-cell">
-										if len(r.Problems) == 0 {
-											–
-										} else {
-											{ r.Problems[0] }
-											if len(r.Problems) > 1 {
-												<span class="has-text-grey">{ fmt.Sprintf(" +%d more", len(r.Problems)-1) }</span>
+										<th>Checked</th>
+									</tr>
+								</thead>
+								<tbody>
+									for _, r := range l.Rows {
+										<tr class={ templ.KV("has-problems", len(r.Problems) > 0 && !r.Withdrawn), templ.KV("is-withdrawn", r.Withdrawn) } { ListRow{Name: r.Gymnast}.Attrs()... }>
+											if d.Access.Remove {
+												<td><input type="checkbox" name="entry" value={ r.ID } form="remove-form" aria-label={ "Tick " + r.Gymnast }/></td>
 											}
-										}
-									</td>
-									<td>{ r.Sent }</td>
-									if d.Competition.Video != "" {
-										<td class={ templ.KV("has-text-danger", r.Video == "missing" || r.Video == "need more") }>
-											if r.Video == "" {
-												–
-											} else {
-												{ r.Video }
+											<td>
+												<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID) }>{ r.Gymnast }</a>
+												if r.Person != "" {
+													<a class="is-size-7 ml-1" href={ templ.SafeURL(r.Person) } title="Everything this person is doing">person</a>
+												}
+												if r.Partner != "" {
+													<a class="is-size-7 ml-1" href={ templ.SafeURL(r.Partner) } title="Everything the partner is doing">partner</a>
+												}
+												if r.Withdrawn {
+													<span class="tag is-warning is-light ml-1" title="Withdrawn since the club sent it; it goes when the club sends again">Withdrawn</span>
+												}
+											</td>
+											<td>
+												{ r.Club }
+												if r.Category != "" {
+													<span class="tag is-light ml-1">{ r.Category }</span>
+												}
+											</td>
+											<td>{ r.Exercises[0] }</td>
+											<td>{ r.Exercises[1] }</td>
+											<td>
+												if r.Rules > 0 {
+													{ fmt.Sprintf("%d/%d %s", r.Met, r.Rules, markFor(r.Met == r.Rules)) }
+												}
+											</td>
+											<td class="comp-problem-cell">
+												if len(r.Problems) == 0 {
+													–
+												} else {
+													{ r.Problems[0] }
+													if len(r.Problems) > 1 {
+														<span class="has-text-grey">{ fmt.Sprintf(" +%d more", len(r.Problems)-1) }</span>
+													}
+												}
+											</td>
+											<td>{ r.Sent }</td>
+											if d.Competition.Video != "" {
+												<td class={ templ.KV("has-text-danger", r.Video == "missing" || r.Video == "need more") }>
+													if r.Video == "" {
+														–
+													} else {
+														{ r.Video }
+													}
+												</td>
 											}
-										</td>
-									}
-									if d.Competition.Signoff {
-										<td class={ templ.KV("has-text-success", r.Signoff.Signed), templ.KV("has-text-danger", !r.Signoff.Signed && !r.Withdrawn) } title={ r.Signoff.Note }>
-											if r.Signoff.Signed {
-												✓ { r.Signoff.By }
-											} else {
-												not signed off
+											if d.Competition.Signoff {
+												<td class={ templ.KV("has-text-success", r.Signoff.Signed), templ.KV("has-text-danger", !r.Signoff.Signed && !r.Withdrawn) } title={ r.Signoff.Note }>
+													if r.Signoff.Signed {
+														✓ { r.Signoff.By }
+													} else {
+														not signed off
+													}
+												</td>
 											}
-										</td>
+											<td title={ r.Note }>
+												if r.Checked {
+													✓
+												} else {
+													–
+												}
+												if r.Note != "" {
+													<span class="has-text-grey" aria-label="Has a note">✎</span>
+												}
+											</td>
+										</tr>
 									}
-									<td title={ r.Note }>
-										if r.Checked {
-											✓
-										} else {
-											–
-										}
-										if r.Note != "" {
-											<span class="has-text-grey" aria-label="Has a note">✎</span>
-										}
-									</td>
-								</tr>
-							}
-						</tbody>
-					</table>
-				</div>
+								</tbody>
+							</table>
+						</div>
+					}
+				</details>
 			}
-			</details>
-		}
+		</div>
 		@waitingBox(d.Base, d.Waiting, d.Access.Settings)
 		if d.Access.Remove {
 			@removedList(d.Base, d.Removed)
@@ -800,28 +802,28 @@ templ CompetitionEntry(d EntryDetail) {
 		}
 		@concernForm(d.Base, d.ID, "Flag a concern about this entry")
 		if d.Access.Check {
-		<div class="box mt-4">
-			<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/check") }>
-				if d.Checked != "" {
-					<p class="mb-2"><strong>✓ Checked</strong> <span class="has-text-grey is-size-7">{ d.Checked }</span></p>
-				}
-				<div class="field">
-					<label class="label is-small" for="check-note">Note for the club or gymnast</label>
-					<textarea class="textarea is-small" id="check-note" name="note" rows="2" maxlength="500" placeholder="e.g. Element 7 repeats element 3: please change it">{ d.Note }</textarea>
-				</div>
-				<div class="buttons">
-					if d.Checked == "" {
-						<button class="button is-primary is-small" type="submit" name="checked" value="1">Mark checked</button>
-						<button class="button is-small" type="submit" name="checked" value="0">Save the note</button>
-					} else {
-						<button class="button is-small" type="submit" name="checked" value="1">Save the note</button>
-						<button class="button is-small" type="submit" name="checked" value="0">Unmark</button>
+			<div class="box mt-4">
+				<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/check") }>
+					if d.Checked != "" {
+						<p class="mb-2"><strong>✓ Checked</strong> <span class="has-text-grey is-size-7">{ d.Checked }</span></p>
 					}
-					<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards?entry=" + d.ID) }>Print card</a>
-				</div>
-				<p class="help">If the entry changes after you check it, it needs checking again. The note stays.</p>
-			</form>
-		</div>
+					<div class="field">
+						<label class="label is-small" for="check-note">Note for the club or gymnast</label>
+						<textarea class="textarea is-small" id="check-note" name="note" rows="2" maxlength="500" placeholder="e.g. Element 7 repeats element 3: please change it">{ d.Note }</textarea>
+					</div>
+					<div class="buttons">
+						if d.Checked == "" {
+							<button class="button is-primary is-small" type="submit" name="checked" value="1">Mark checked</button>
+							<button class="button is-small" type="submit" name="checked" value="0">Save the note</button>
+						} else {
+							<button class="button is-small" type="submit" name="checked" value="1">Save the note</button>
+							<button class="button is-small" type="submit" name="checked" value="0">Unmark</button>
+						}
+						<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards?entry=" + d.ID) }>Print card</a>
+					</div>
+					<p class="help">If the entry changes after you check it, it needs checking again. The note stays.</p>
+				</form>
+			</div>
 		}
 		if d.Competition.Video != "" && d.Access.Check {
 			<div class="box mt-4">
@@ -1632,103 +1634,86 @@ templ removedList(base string, rows []RemovedRow) {
 // dashboardFilters are the ways to find entries: search, filters, sorting,
 // a list of the levels to jump to, and printing or downloading what's shown.
 templ dashboardFilters(d Dashboard) {
-	<form method="get" class="box comp-filters">
-		<div class="comp-setup-row">
-			<input class="input is-small" type="search" name="q" value={ d.Search } placeholder="Search for a gymnast" aria-label="Search for a gymnast"/>
-			<div class="select is-small">
-				<select name="club" aria-label="Club" onchange="this.form.submit()">
-					<option value="" selected?={ d.Club == "" }>All clubs</option>
-					for _, c := range d.Clubs {
-						<option value={ c } selected?={ d.Club == c }>{ c }</option>
-					}
-					if d.Competition.Individuals || hasIndividuals(d) {
-						<option value="individual" selected?={ d.Club == "individual" }>Individuals</option>
-					}
-				</select>
-			</div>
-			if len(d.Coaches) > 0 {
-				<div class="select is-small">
-					<select name="coach" aria-label="Coach" onchange="this.form.submit()">
-						<option value="" selected?={ d.Coach == "" }>Any coach</option>
-						for _, c := range d.Coaches {
-							<option value={ c } selected?={ d.Coach == c }>{ c }</option>
-						}
-						<option value="none" selected?={ d.Coach == "none" }>No coach</option>
-					</select>
-				</div>
-			}
-			@yesNoFilter("checked", "Checked", d.CheckedFilter, "Checked or not", "Checked", "Not checked")
-			if d.Competition.Signoff {
-				@yesNoFilter("signedoff", "Signed off", d.SignedFilter, "Signed off or not", "Signed off", "Not signed off")
-			}
-			if d.Competition.Video != "" {
-				<div class="select is-small">
-					<select name="video" aria-label="Video" onchange="this.form.submit()">
-						<option value="" selected?={ d.VideoFilter == "" }>Any video</option>
-						<option value="missing" selected?={ d.VideoFilter == "missing" }>Video missing</option>
-						<option value="provided" selected?={ d.VideoFilter == "provided" }>Video to review</option>
-						<option value="need more" selected?={ d.VideoFilter == "need more" }>Video: need more</option>
-						<option value="OK" selected?={ d.VideoFilter == "OK" }>Video OK</option>
-					</select>
-				</div>
-			}
-			if d.CanSplit {
-				<div class="select is-small">
-					<select name="category" aria-label="Men or women" onchange="this.form.submit()">
-						<option value="" selected?={ d.Category == "" }>Men and women</option>
-						<option value="Men" selected?={ d.Category == "Men" }>Men</option>
-						<option value="Women" selected?={ d.Category == "Women" }>Women</option>
-					</select>
-				</div>
-			}
-			<label class="checkbox is-size-7">
-				<input type="checkbox" name="problems" value="1" checked?={ d.ProblemsOnly } onchange="this.form.submit()"/>
-				Problems only
-			</label>
-			<div class="select is-small">
-				<select name="sort" aria-label="Sort by" onchange="this.form.submit()">
-					<option value="" selected?={ d.Sort == "" }>By club</option>
-					<option value="gymnast" selected?={ d.Sort == "gymnast" }>By gymnast</option>
-					<option value="sent" selected?={ d.Sort == "sent" }>Latest sent first</option>
-					if d.Competition.Signoff {
-						<option value="coach" selected?={ d.Sort == "coach" }>By coach</option>
-					}
-				</select>
-			</div>
-			<button class="button is-small" type="submit">Show</button>
-			if filtered(d) || d.Sort != "" {
-				<a class="button is-small is-text" href={ templ.SafeURL(d.Base) }>Clear</a>
-			}
-		</div>
-		<p class="is-size-7 mt-2">
-			if filtered(d) {
-				<strong>{ strconv.Itoa(d.Shown) } of { strconv.Itoa(d.Entries) } shown.</strong>
-				<a href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) }>Print what's shown</a> ·
-				<a href={ templ.SafeURL(d.Base + "/entries.csv" + filterQuery(d, "")) } download>CSV of what's shown</a> ·
-			}
-			Jump to:
-			for i, l := range d.Levels {
-				if i > 0 {
-					·
+	@listTools(dashboardTools(d)) {
+		<div class="select is-small">
+			<select name="sort" aria-label="Sort by" onchange="this.form.submit()">
+				<option value="" selected?={ d.Sort == "" }>By club</option>
+				<option value="gymnast" selected?={ d.Sort == "gymnast" }>By gymnast</option>
+				<option value="sent" selected?={ d.Sort == "sent" }>Latest sent first</option>
+				if d.Competition.Signoff {
+					<option value="coach" selected?={ d.Sort == "coach" }>By coach</option>
 				}
-				<a href={ templ.SafeURL("#" + l.Anchor) } onclick={ openLevel(l.Anchor) }>{ l.Name } ({ shownCount(d, l) })</a>
+			</select>
+		</div>
+	}
+	<p class="is-size-7 mb-3">
+		<a href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) } data-list-carry>Print what's shown</a> ·
+		<a href={ templ.SafeURL(d.Base + "/entries.csv" + filterQuery(d, "")) } download data-list-carry>CSV of what's shown</a> ·
+		Jump to:
+		for i, l := range d.Levels {
+			if i > 0 {
+				·
 			}
-		</p>
-	</form>
+			<a href={ templ.SafeURL("#" + l.Anchor) } onclick={ openLevel(l.Anchor) }>{ l.Name } ({ shownCount(d, l) })</a>
+		}
+	</p>
 }
 
-// yesNoFilter is a filter that's on, off or either.
-templ yesNoFilter(name, label, value, either, yes, no string) {
-	<div class="select is-small">
-		<select name={ name } aria-label={ label } onchange="this.form.submit()">
-			<option value="" selected?={ value == "" }>{ either }</option>
-			<option value="yes" selected?={ value == "yes" }>{ yes }</option>
-			<option value="no" selected?={ value == "no" }>{ no }</option>
-		</select>
-	</div>
+// dashboardTools are the entries' search and filters, sent to the server so
+// printing and the CSV follow them (views/lists.templ).
+func dashboardTools(d Dashboard) ListTools {
+	t := ListTools{ID: "entries", Noun: "entries", Total: d.Entries, Shown: d.Shown, Form: true, Search: d.Search, Clear: d.Base}
+	club := ListFilter{Key: "club", Label: "Club", Any: "Every club", Value: d.Club}
+	for _, c := range d.Clubs {
+		club.Options = append(club.Options, ListOption{Value: c, Label: c})
+	}
+	if d.Competition.Individuals || hasIndividuals(d) {
+		club.Options = append(club.Options, ListOption{Value: "individual", Label: "Entering on their own"})
+	}
+	t.Filters = append(t.Filters, club)
+	if len(d.Coaches) > 0 {
+		coach := ListFilter{Key: "coach", Label: "Coach", Any: "Any coach", Value: d.Coach}
+		for _, c := range d.Coaches {
+			coach.Options = append(coach.Options, ListOption{Value: c, Label: c})
+		}
+		coach.Options = append(coach.Options, ListOption{Value: "none", Label: "No coach"})
+		t.Filters = append(t.Filters, coach)
+	}
+	t.Filters = append(t.Filters, ListFilter{Key: "problems", Label: "Problems", Any: "Problems or not", Value: problemsValue(d.ProblemsOnly),
+		Options: []ListOption{{Value: "1", Label: "Problems only"}}})
+	t.Filters = append(t.Filters, yesNo("checked", "Checked", d.CheckedFilter, "Checked or not", "Checked", "Not checked"))
+	if d.Competition.Signoff {
+		t.Filters = append(t.Filters, yesNo("signedoff", "Signed off", d.SignedFilter, "Signed off or not", "Signed off", "Not signed off"))
+	}
+	if d.Competition.Video != "" {
+		t.Filters = append(t.Filters, ListFilter{Key: "video", Label: "Video", Any: "Any video", Value: d.VideoFilter, Options: []ListOption{
+			{Value: "missing", Label: "Video missing"}, {Value: "provided", Label: "Video to review"},
+			{Value: "need more", Label: "Video: need more"}, {Value: "OK", Label: "Video OK"},
+		}})
+	}
+	if d.CanSplit {
+		t.Filters = append(t.Filters, ListFilter{Key: "category", Label: "Men or women", Any: "Men and women", Value: d.Category, Options: []ListOption{
+			{Value: "Men", Label: "Men"}, {Value: "Women", Label: "Women"},
+		}})
+	}
+	return t
+}
+
+// yesNo is a dashboard filter that's on, off or either.
+func yesNo(key, label, value, either, yes, no string) ListFilter {
+	return ListFilter{Key: key, Label: label, Any: either, Value: value, Options: []ListOption{{Value: "yes", Label: yes}, {Value: "no", Label: no}}}
+}
+
+// problemsValue is the problems filter's value: "1" for problems only.
+func problemsValue(only bool) string {
+	if only {
+		return "1"
+	}
+	return ""
 }
 
 // openLevel opens a level's table when jumping to it.
+
 script openLevel(id string) {
 	const d = document.getElementById(id);
 	if (d) { d.open = true; }

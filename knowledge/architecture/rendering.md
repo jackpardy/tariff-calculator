@@ -101,6 +101,20 @@ page's People list is the example to copy.
   The tools stay hidden without JavaScript, and the whole list shows. Don't
   add Alpine or any other script for a list.
 
+**A list the server filters.** The dashboard's entries are filtered on the
+server, because printing, the CSV and each level's count follow the filters.
+`ListTools.Form` draws the same tools as a GET form: each filter is a field
+named by its key, the search is `q`, and `ListFilter.Value`, `Search`, `Shown`
+and `Clear` come from the server.
+- A filter reloads the page.
+- The search narrows the rows already on the page as it's typed, as on every
+  other list. It also keeps the page's address and every link marked
+  `data-list-carry` (Print, CSV) in step, and Enter sends it to the server.
+- Groups that are dropdowns (the levels) open while a search finds a match
+  in them. They close again when the search is cleared, and are never
+  remembered as opened.
+- Extra controls that aren't filters (the sort) go in the tools' children.
+
 Test a list with `listRows` in `web/lists_test.go`, which reads each row's
 name and values from the page.
 

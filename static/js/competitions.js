@@ -233,7 +233,8 @@
         }
         levels.forEach((d) => { if (open.includes(d.dataset.level)) { d.open = true; } });
         const save = () => {
-            const now = Array.from(levels).filter((d) => d.open).map((d) => d.dataset.level);
+            // A level opened only because a search found a match in it isn't remembered.
+            const now = Array.from(levels).filter((d) => d.open && !('listOpened' in d.dataset)).map((d) => d.dataset.level);
             try { localStorage.setItem(key, JSON.stringify(now)); } catch (e) { /* not remembered */ }
         };
         levels.forEach((d) => d.addEventListener('toggle', save));
@@ -396,25 +397,31 @@
         }
     }
 
-    // fold makes text searchable: lower case, without accents or apostrophes,
-    // so "o briain" finds "Ó Briain" and "oneill" finds "O'Neill".
+    // fold makes text searchable as the server's NameMatches does: lower case,
+    // without accents or punctuation, so "o briain" finds "Ó Briain" and
+    // "oneill" finds "O'Neill".
     function fold(text) {
-        return text.normalize('NFD').replace(/[\p{M}'’]/gu, '').toLowerCase();
+        return text.normalize('NFD').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}\s]/gu, '').toLowerCase();
     }
 
     // listTools searches and filters each list of people (views/lists.templ):
     // a row shows when its name has every word searched for and it matches
     // every filter chosen. The search and filters are kept for the tab, so a
-    // page that reloads after a change comes back the same.
+    // page that reloads after a change comes back the same. A list the server
+    // filters (data-form, the dashboard) sends its filters to the server
+    // instead; its search narrows the rows here as it's typed, and the page's
+    // address and links marked data-list-carry follow it.
     function listTools() {
         for (const tools of document.querySelectorAll('[data-list-tools]')) {
             const list = document.getElementById(tools.dataset.listTools);
             if (!list) { continue; }
+            const form = tools.hasAttribute('data-form');
             const rows = [...list.querySelectorAll('[data-list-row]')].map((el) => {
                 let values = {};
                 try { values = JSON.parse(el.dataset.values || '{}'); } catch (e) { /* no values: matches no filter */ }
                 return { el, name: fold(el.dataset.name || ''), values };
             });
+            const total = form ? Number(tools.dataset.total) : rows.length;
             const search = tools.querySelector('[data-list-search]');
             const filters = [...tools.querySelectorAll('[data-list-filter]')];
             const count = tools.querySelector('[data-list-count]');
@@ -425,13 +432,22 @@
 
             // matches says whether a row has a filter's chosen value: for an
             // "at least" filter, a value with the same prefix and as high a number.
+            // The server has already filtered a form's rows.
             const matches = (row, filter) => {
+                if (form) { return true; }
                 const have = row.values[filter.dataset.listFilter] || [];
                 if (!filter.hasAttribute('data-at-least')) { return have.includes(filter.value); }
                 const at = filter.value.lastIndexOf(':');
                 const prefix = filter.value.slice(0, at + 1);
                 const need = Number(filter.value.slice(at + 1));
                 return have.some((v) => v.startsWith(prefix) && Number(v.slice(prefix.length)) >= need);
+            };
+
+            // carry puts the search in a URL's q, for the server.
+            const carry = (href) => {
+                const u = new URL(href, location.href);
+                if (search.value.trim() === '') { u.searchParams.delete('q'); } else { u.searchParams.set('q', search.value.trim()); }
+                return u.pathname + u.search + u.hash;
             };
 
             const apply = () => {
@@ -443,40 +459,65 @@
                     row.el.hidden = !show;
                     if (show) { shown++; }
                 }
-                // A group of rows (a club's box) shows while any of its rows do.
-                for (const group of list.querySelectorAll('[data-list-group]')) {
-                    group.hidden = !group.querySelector('[data-list-row]:not([hidden])');
-                }
                 const filtered = words.length > 0 || chosen.length > 0;
-                count.textContent = filtered ? `${shown} of ${rows.length} ${noun}` : `${rows.length} ${noun}`;
+                // A group of rows (a club's box, a level) hides while filtering
+                // finds none of its rows. While searching, a closed group with a
+                // match opens, and closes again when the search is cleared.
+                for (const group of list.querySelectorAll('[data-list-group]')) {
+                    const any = !!group.querySelector('[data-list-row]:not([hidden])');
+                    group.hidden = filtered && !any;
+                    if (group.tagName !== 'DETAILS') { continue; }
+                    if (words.length > 0 && any && !group.open) {
+                        group.dataset.listOpened = '';
+                        group.open = true;
+                    } else if ((words.length === 0 || !any) && 'listOpened' in group.dataset) {
+                        delete group.dataset.listOpened;
+                        group.open = false;
+                    }
+                }
+                count.textContent = shown !== total ? `${shown} of ${total} ${noun}` : `${total} ${noun}`;
                 clear.hidden = !filtered;
                 none.hidden = shown > 0;
                 list.hidden = shown === 0;
+                if (form) {
+                    try { history.replaceState(history.state, '', carry(location.href)); } catch (e) { /* the address keeps the old search */ }
+                    for (const a of document.querySelectorAll('a[data-list-carry]')) { a.setAttribute('href', carry(a.getAttribute('href'))); }
+                    return;
+                }
                 try {
                     sessionStorage.setItem(stateKey, JSON.stringify({ q: search.value, f: filters.map((f) => f.value) }));
                 } catch (e) { /* not kept: the page starts unfiltered next time */ }
             };
 
-            try {
-                const saved = JSON.parse(sessionStorage.getItem(stateKey) || 'null');
-                if (saved) {
-                    search.value = saved.q || '';
-                    filters.forEach((f, i) => {
-                        // A choice the page no longer offers is dropped.
-                        if ([...f.options].some((o) => o.value === saved.f?.[i])) { f.value = saved.f[i]; }
-                    });
-                }
-            } catch (e) { /* nothing kept */ }
+            if (!form) {
+                try {
+                    const saved = JSON.parse(sessionStorage.getItem(stateKey) || 'null');
+                    if (saved) {
+                        search.value = saved.q || '';
+                        filters.forEach((f, i) => {
+                            // A choice the page no longer offers is dropped.
+                            if ([...f.options].some((o) => o.value === saved.f?.[i])) { f.value = saved.f[i]; }
+                        });
+                    }
+                } catch (e) { /* nothing kept */ }
+            }
             search.addEventListener('input', apply);
-            // Enter in the search must not send a form the list sits in (the desk's).
-            search.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); } });
-            for (const f of filters) { f.addEventListener('change', apply); }
-            clear.addEventListener('click', () => {
-                search.value = '';
-                for (const f of filters) { f.value = ''; }
-                apply();
-                search.focus();
+            // Enter sends a form's search to the server, but must not send a
+            // form the list sits in (the desk's).
+            search.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !form) { e.preventDefault(); } });
+            for (const f of filters) { f.addEventListener('change', form ? () => tools.submit() : apply); }
+            // A form sends only the filters chosen, keeping the address short.
+            tools.addEventListener('formdata', (e) => {
+                for (const [k, v] of [...e.formData]) { if (v === '') { e.formData.delete(k); } }
             });
+            if (!form) {
+                clear.addEventListener('click', () => {
+                    search.value = '';
+                    for (const f of filters) { f.value = ''; }
+                    apply();
+                    search.focus();
+                });
+            }
             tools.hidden = false;
             apply();
         }

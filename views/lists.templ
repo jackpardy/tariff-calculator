@@ -19,7 +19,9 @@ import (
 //
 // static/js/competitions.js (listTools) does the filtering on the phone, and
 // keeps the search and filters while the tab is open, so a page that reloads
-// after a change (ticking someone qualified) comes back filtered the same.
+// after a change (ticking someone qualified) comes back filtered the same. A
+// list the server filters (ListTools.Form) looks and works the same, but its
+// filters reload the page.
 
 // ListTools is a list's search and filters.
 type ListTools struct {
@@ -27,6 +29,15 @@ type ListTools struct {
 	Noun    string // what the list is of, plural, e.g. "people"
 	Total   int
 	Filters []ListFilter
+	// Form sends the filters to the server, which shows only the rows that
+	// match (the dashboard, whose printing and CSV follow its filters): each
+	// filter is a field named by its key, and the search is q. The search
+	// still narrows the rows on the page as it's typed, and the page's
+	// address and links marked data-list-carry follow it.
+	Form   bool
+	Search string // the search the server filtered by
+	Shown  int    // how many rows the server shows
+	Clear  string // where Clear goes: the list unfiltered
 }
 
 // ListFilter is one filter: a select whose choices each match rows with
@@ -41,6 +52,7 @@ type ListFilter struct {
 	// with "trampoline:7". Used for levels, ranked easiest first. Otherwise
 	// a row matches when it has the option's value.
 	AtLeast bool
+	Value   string // the choice the server filtered by (ListTools.Form)
 }
 
 // ListOption is one choice of a filter, in a group of choices if Group is
@@ -87,35 +99,86 @@ templ listSection(title string, count int, closed bool) {
 }
 
 // listTools is the search and filters of the list with element id t.ID.
+// Its children are more controls, after the filters (the dashboard's sort).
+// On the page, they're hidden until the script runs. Sent to the server
+// (t.Form), they're a form that works without it.
 templ listTools(t ListTools) {
-	<div class="comp-list-tools mb-3" data-list-tools={ t.ID } data-noun={ t.Noun } hidden>
-		<div class="comp-list-controls">
-			<input class="input is-small comp-list-search" type="search" placeholder="Find a name" aria-label="Find a name" data-list-search autocomplete="off"/>
-			for _, f := range t.Filters {
-				<div class="select is-small">
-					<select aria-label={ f.Label } data-list-filter={ f.Key } data-at-least?={ f.AtLeast }>
-						<option value="">{ f.Any }</option>
-						for _, group := range listGroups(f.Options) {
-							if group[0].Group != "" {
-								<optgroup label={ group[0].Group }>
-									for _, o := range group {
-										<option value={ o.Value }>{ o.Label }</option>
-									}
-								</optgroup>
-							} else {
-								for _, o := range group {
-									<option value={ o.Value }>{ o.Label }</option>
-								}
-							}
-						}
-					</select>
-				</div>
+	if t.Form {
+		<form method="get" class="comp-list-tools mb-3" data-list-tools={ t.ID } data-noun={ t.Noun } data-total={ strconv.Itoa(t.Total) } data-form>
+			@listControls(t) {
+				{ children... }
+			}
+		</form>
+	} else {
+		<div class="comp-list-tools mb-3" data-list-tools={ t.ID } data-noun={ t.Noun } hidden>
+			@listControls(t) {
+				{ children... }
 			}
 		</div>
-		<p class="comp-list-count is-size-7 has-text-grey mt-1" aria-live="polite">
-			<span data-list-count>{ strconv.Itoa(t.Total) } { t.Noun }</span>
-			<button class="button is-small is-text comp-list-clear" type="button" data-list-clear hidden>Clear</button>
-		</p>
-		<p class="has-text-grey is-size-7" data-list-none hidden>Nobody matches.</p>
+	}
+}
+
+// listControls are the search, the filters, any more controls, the count
+// and Clear.
+templ listControls(t ListTools) {
+	<div class="comp-list-controls">
+		<input class="input is-small comp-list-search" type="search" placeholder="Find a name" aria-label="Find a name" data-list-search autocomplete="off" { searchAttrs(t)... }/>
+		for _, f := range t.Filters {
+			<div class="select is-small">
+				<select aria-label={ f.Label } data-list-filter={ f.Key } data-at-least?={ f.AtLeast } { filterAttrs(t, f)... }>
+					<option value="">{ f.Any }</option>
+					for _, group := range listGroups(f.Options) {
+						if group[0].Group != "" {
+							<optgroup label={ group[0].Group }>
+								for _, o := range group {
+									<option value={ o.Value } selected?={ o.Value == f.Value }>{ o.Label }</option>
+								}
+							</optgroup>
+						} else {
+							for _, o := range group {
+								<option value={ o.Value } selected?={ o.Value == f.Value }>{ o.Label }</option>
+							}
+						}
+					}
+				</select>
+			</div>
+		}
+		{ children... }
+		if t.Form {
+			<noscript><button class="button is-small" type="submit">Show</button></noscript>
+		}
 	</div>
+	<p class="comp-list-count is-size-7 has-text-grey mt-1" aria-live="polite">
+		<span data-list-count>{ listCount(t) }</span>
+		if t.Form {
+			<a class="button is-small is-text comp-list-clear" href={ templ.SafeURL(t.Clear) } data-list-clear hidden?={ t.Shown == t.Total && t.Search == "" }>Clear</a>
+		} else {
+			<button class="button is-small is-text comp-list-clear" type="button" data-list-clear hidden>Clear</button>
+		}
+	</p>
+	<p class="has-text-grey is-size-7" data-list-none hidden?={ !t.Form || t.Shown > 0 }>Nobody matches.</p>
+}
+
+// searchAttrs are the search's form field, when the server filters.
+func searchAttrs(t ListTools) templ.Attributes {
+	if !t.Form {
+		return nil
+	}
+	return templ.Attributes{"name": "q", "value": t.Search}
+}
+
+// filterAttrs are a filter's form field, when the server filters.
+func filterAttrs(t ListTools, f ListFilter) templ.Attributes {
+	if !t.Form {
+		return nil
+	}
+	return templ.Attributes{"name": f.Key}
+}
+
+// listCount is how many of the list are shown, as the page first shows it.
+func listCount(t ListTools) string {
+	if t.Form && t.Shown != t.Total {
+		return strconv.Itoa(t.Shown) + " of " + strconv.Itoa(t.Total) + " " + t.Noun
+	}
+	return strconv.Itoa(t.Total) + " " + t.Noun
 }

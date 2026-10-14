@@ -386,6 +386,18 @@ A competition offers **events**: a discipline at a level.
   problems ("A (BUCS L3) and B (BUCS L4) compete individually, so as a pair
   they do BUCS L4 in synchro, not BUCS L3").
 
+# Searching lists of people (roadmap item 6)
+
+Every list of people has the same search and filters, from one set of shared
+pieces ([how](../architecture/rendering.md#lists-of-people-search-and-filters)).
+"Find a name" ignores case, accents and punctuation, the count says how many
+are shown, and Clear shows everyone again. The lists are the dashboard's
+entries, All people, Officials, the organiser's Coaches, the desk's People I
+pick, the club's Members and Coaches, and a coach's own entries. On the
+dashboard the filters work on the server, so Print what's shown and the CSV
+follow them, and the search also narrows the entries as it's typed and opens
+the levels it finds them in.
+
 # Officials (ADR 0005, step 3)
 
 **Officials** (under Timetable in the menu) lists everyone who can judge or help, and what
