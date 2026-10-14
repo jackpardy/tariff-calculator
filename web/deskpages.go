@@ -34,7 +34,7 @@ const maxDeskShown = 10
 
 // deskPerson is someone a message can be sent to.
 type deskPerson struct {
-	key, name, detail string
+	key, name, club, detail string // club is the first they have, if any
 }
 
 // deskPeople are every gymnast and official of a competition, by name.
@@ -51,6 +51,9 @@ func (p *competitionPages) deskPeople(r *http.Request, c store.Competition, entr
 			d = &deskPerson{key: key, name: name}
 			byKey[key] = d
 			out = append(out, d)
+		}
+		if d.club == "" {
+			d.club = club
 		}
 		for _, part := range []string{club, role} {
 			if part != "" && !strings.Contains(d.detail, part) {
@@ -323,9 +326,13 @@ func (p *competitionPages) desk(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	var peopleClubs []string
 	for _, d := range people {
-		page.People = append(page.People, views.DeskPersonOption{Key: d.key, Name: d.name, Detail: d.detail})
+		peopleClubs = append(peopleClubs, d.club)
+		page.People = append(page.People, views.DeskPersonOption{Key: d.key, Name: d.name, Detail: d.detail,
+			List: views.ListRow{Name: d.name, Values: map[string][]string{"club": {clubValue(d.club)}}}})
 	}
+	page.PeopleTools = views.ListTools{ID: "desk-people", Noun: "people", Total: len(people), Filters: []views.ListFilter{clubFilter(peopleClubs)}}
 	for _, m := range sent {
 		page.Sent = append(page.Sent, views.DeskSent{
 			At: m.At.In(local).Format("Mon 2 Jan, 15:04"), Who: m.Who, To: m.Audience, Text: m.Full(), Come: m.Come,

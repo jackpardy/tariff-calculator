@@ -117,6 +117,10 @@ func (p *competitionPages) setApproveCoaches(w http.ResponseWriter, r *http.Requ
 	backToSettings(w, r, notice)
 }
 
+// individualsClub is the heading of the coaches individuals name, who have
+// no club.
+const individualsClub = "Individuals"
+
 // approvals is the page of coaches clubs have sent, by club.
 func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
@@ -135,6 +139,7 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := views.ApprovalsPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuCoaches), Notice: r.URL.Query().Get("notice"), Asked: askedLevels(c.Competition)}
+	var clubs []string
 	for _, s := range sent {
 		row := views.ApprovalRow{ID: s.CoachID, Name: s.Name, Person: personPath(base, coachKeyOf(s.ClubID, s.Name)), Action: base + "/coaches/" + s.CoachID, Status: coachStatus(s.Status), Approved: s.Approved(),
 			Withdrawn: s.Status == store.CoachWithdrawn, Note: s.Note, Changed: s.Changed}
@@ -148,6 +153,8 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 			keys = append(keys, q.Qualification)
 		}
 		row.Meets = meets(c.Competition, keys)
+		row.List = views.ListRow{Name: s.Name, Values: map[string][]string{"club": {clubValue(s.ClubName)}, "status": {coachStatusValue(s.Status)}}}
+		clubs = append(clubs, s.ClubName)
 		club := s.ClubName
 		if i := len(page.Clubs) - 1; i >= 0 && page.Clubs[i].Club == club {
 			page.Clubs[i].Coaches = append(page.Clubs[i].Coaches, row)
@@ -156,12 +163,14 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(named) > 0 {
-		individuals := views.ApprovalClub{Club: "Individuals"}
+		individuals := views.ApprovalClub{Club: individualsClub}
+		clubs = append(clubs, individualsClub)
 		for _, n := range named {
 			row := views.ApprovalRow{ID: n.EntryID, Name: n.Name + ", coach of " + n.Gymnast, Person: personPath(base, coachKeyOf("", n.Name)), Action: base + "/entry-coaches/" + n.EntryID,
 				Status: coachStatus(n.Status), Approved: n.Approved(), Withdrawn: n.Status == store.CoachWithdrawn, Note: n.Note,
 				Qualifications: []views.ApprovalQualification{{Name: qualificationName(n.Qualification), Certificate: base + "/entry-coaches/" + n.EntryID + "/certificate"}},
 				Meets:          meets(c.Competition, []string{n.Qualification})}
+			row.List = views.ListRow{Name: row.Name, Values: map[string][]string{"club": {individualsClub}, "status": {coachStatusValue(n.Status)}}}
 			if n.Status == store.CoachWaiting {
 				row.Status = "Waiting"
 			}
@@ -169,6 +178,10 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 		}
 		page.Clubs = append(page.Clubs, individuals)
 	}
+	for _, club := range page.Clubs {
+		page.Total += len(club.Coaches)
+	}
+	page.Tools = views.ListTools{ID: "coaches", Noun: "coaches", Total: page.Total, Filters: []views.ListFilter{clubFilter(clubs), coachStatusFilter()}}
 	render(w, r, views.CompetitionApprovals(page))
 }
 

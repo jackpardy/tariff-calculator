@@ -93,6 +93,8 @@ page's People list is the example to copy.
   - it searches ignoring case, accents and apostrophes, so "oneill" finds
     "O'Neill" and "o briain" finds "Ó Briain";
   - it shows "12 of 323 people", a Clear button, and "Nobody matches";
+  - it ignores Enter in the search, so a list inside a form (the desk's
+    "People I pick", which isn't a `listSection`) never sends it;
   - it keeps the search and filters for the tab, so a page that reloads after
     a change comes back filtered the same.
 

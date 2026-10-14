@@ -211,6 +211,8 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	var levels []string
+	var competitionOptions []views.ListOption
 	for _, c := range comps {
 		cc := views.CoachCompetition{Competition: summary(c.Competition, p.now()), Cannot: notApproved(c, sentTo), Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
 		cc.Desk = p.deskNotes(ctx, c.ID, memberKeys(coached), clubIDs(coach.ClubID), clubIDs(coach.ClubID))
@@ -248,10 +250,18 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 			if !e.SignedOff() {
 				cc.Waiting++
 			}
+			row.List = views.ListRow{Name: e.MemberName, Values: map[string][]string{
+				"competition": {c.ID}, "level": {row.Level}, "problems": {hasValue(row.Problems > 0)}, "signoff": {coachSignoffValue(row.Signoff)},
+			}}
 			cc.Rows = append(cc.Rows, row)
+			levels = append(levels, row.Level)
 		}
+		page.Tools.Total += len(cc.Rows)
+		competitionOptions = append(competitionOptions, views.ListOption{Value: c.ID, Label: c.Name})
 		page.Competitions = append(page.Competitions, cc)
 	}
+	page.Tools.ID, page.Tools.Noun = "coach-entries", "entries"
+	page.Tools.Filters = coachEntryFilters(competitionOptions, levels)
 	pairs, err := p.st.CoachPairEntries(ctx, coach)
 	if err != nil {
 		failed(w, r, err)

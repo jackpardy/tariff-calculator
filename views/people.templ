@@ -7,6 +7,7 @@ type PeoplePage struct {
 	Menu        []MenuSection
 	Count       string // how many, e.g. "12 people"
 	People      []PersonRow
+	Tools       ListTools // the list's search and filters
 }
 
 // PersonRow is one person in the list.
@@ -14,7 +15,7 @@ type PersonRow struct {
 	Name, Club string
 	Href       string // their page
 	Does       string // what they do, e.g. "Trampoline BUCS L7 · judge, can chair · coaches 6"
-	Roles      string // the same as words to filter by: gymnast, judge, chair, recorder, marshal, coach
+	List       ListRow // what the list's search and filters see
 }
 
 // People is the list of everyone.
@@ -24,23 +25,26 @@ templ People(p PeoplePage) {
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
 		<p class="mb-3"><strong>{ p.Count }</strong> at this competition: gymnasts, officials and coaches, each once. Open a name to see everything they're doing.</p>
-		if len(p.People) == 0 {
-			<p class="has-text-grey">Nobody yet. Gymnasts, officials and coaches show here once entries are sent.</p>
-		} else {
-			<div class="table-container">
-				<table class="table is-fullwidth is-narrow">
-					<thead><tr><th>Name</th><th>Club</th><th>What they do</th></tr></thead>
-					<tbody>
-						for _, r := range p.People {
-							<tr data-name={ r.Name } data-club={ r.Club } data-roles={ r.Roles }>
-								<td><a href={ templ.SafeURL(r.Href) }>{ r.Name }</a></td>
-								<td>{ r.Club }</td>
-								<td>{ r.Does }</td>
-							</tr>
-						}
-					</tbody>
-				</table>
-			</div>
+		@listSection("People", len(p.People), false) {
+			if len(p.People) == 0 {
+				<p class="has-text-grey">Nobody yet. Gymnasts, officials and coaches show here once entries are sent.</p>
+			} else {
+				@listTools(p.Tools)
+				<div class="table-container">
+					<table class="table is-fullwidth is-narrow" id={ p.Tools.ID }>
+						<thead><tr><th>Name</th><th>Club</th><th>What they do</th></tr></thead>
+						<tbody>
+							for _, r := range p.People {
+								<tr { r.List.Attrs()... }>
+									<td><a href={ templ.SafeURL(r.Href) }>{ r.Name }</a></td>
+									<td>{ r.Club }</td>
+									<td>{ r.Does }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
 		}
 	}
 }

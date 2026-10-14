@@ -468,6 +468,8 @@
                 }
             } catch (e) { /* nothing kept */ }
             search.addEventListener('input', apply);
+            // Enter in the search must not send a form the list sits in (the desk's).
+            search.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); } });
             for (const f of filters) { f.addEventListener('change', apply); }
             clear.addEventListener('click', () => {
                 search.value = '';

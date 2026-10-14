@@ -89,6 +89,7 @@ type CoachPage struct {
 	Competitions []CoachCompetition
 	Pairs        []PairView  // synchro entries others made with members they see
 	Other        *OtherLinks // their other links (ADR 0010)
+	Tools        ListTools   // search and filters on the entries, over every competition
 }
 
 // CoachCompetition is one competition's entries a coach sees.
@@ -110,6 +111,7 @@ type CoachRow struct {
 	Problems      int
 	Signoff       SignoffView
 	Open          string // the entry's page
+	List          ListRow // what the list's search and filters see
 }
 
 // CoachHome is a coach's page.
@@ -139,8 +141,12 @@ templ CoachHome(p CoachPage) {
 			<p class="has-text-grey">The club isn't entered in any competitions yet.</p>
 		}
 		@pairEntries(p.Pairs)
+		if p.Tools.Total > 0 {
+			@listTools(p.Tools)
+		}
+		<div id={ p.Tools.ID }>
 		for _, c := range p.Competitions {
-			<div class="box">
+			<div class="box" data-list-group>
 				<h2 class="title is-6 mb-1">
 					{ c.Competition.Name }
 					if c.Waiting > 0 && p.SignsOff && c.Cannot == "" {
@@ -164,7 +170,7 @@ templ CoachHome(p CoachPage) {
 							</thead>
 							<tbody>
 								for _, r := range c.Rows {
-									<tr>
+									<tr { r.List.Attrs()... }>
 										<td><a href={ templ.SafeURL(r.Open) }>{ r.Member }</a></td>
 										<td>{ r.Level }</td>
 										<td class={ templ.KV("has-text-danger", r.Problems > 0) }>
@@ -191,6 +197,7 @@ templ CoachHome(p CoachPage) {
 				}
 			</div>
 		}
+		</div>
 		if p.Other != nil {
 			@otherLinksBox(*p.Other)
 		}
