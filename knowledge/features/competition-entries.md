@@ -63,14 +63,18 @@ is private.
 `web/peoplepages.go`) lists everyone at the competition once, by name, under a
 count ("441 people"). A person is one **person key**, whatever they do: a
 member is `m:<member id>` whether they compete, judge or both; a gymnast
-entering on their own is `i:<lower-cased name>`; a synchro partner nobody has
+entering on their own is `i:<id>` for the person, kept on each entry (entries
+from before [one link a person](#one-link-several-roles-adr-0010) keep
+`i:<lower-cased name>`); a synchro partner nobody has
 linked is `p:<entry id>`; an official the organiser added is `o:<official
 id>`; a coach is `c:<club id>:<lower-cased name>` (`c::<name>` for one an
 individual named). The list is built from the live entries (not withdrawn, not
 on the waiting list), the officials and the coaches (those entries name, those a
 club sent and those an individual named), so a coach with no entries yet is
-there too. A coach who is also a member is still two people until
-[one link for several roles](../roadmap.md#next-steps-2026-10-08) joins them.
+there too. Keys of one person (a member who is a coach too, or who also
+enters on their own) are one row and one page, with all their roles
+([one link, several roles](#one-link-several-roles-adr-0010)); the page is at
+the first key found, and another of their keys redirects to it.
 
 Each row has the name (a link), the club ("Individual" for someone entering on
 their own, nothing for an official with no club) and **what they do**: the
@@ -501,8 +505,8 @@ are then filled flight by flight.
   their last, they go early in the first flight's running order and late in
   the second's (also when a flight is redrawn).
   A person is a member (by their member link) or, for individuals entering
-  several disciplines, by name; a confirmed synchro partner is the same
-  person as their own entries.
+  several disciplines, the person they entered as (ADR 0010); a confirmed
+  synchro partner is the same person as their own entries.
 - **The report:** for each day, when its flights end, when it finishes
   (blocked time such as awards included) against its end, and the time free
   after the last flight that isn't blocked off for the whole venue (room for
@@ -838,8 +842,8 @@ holding a seat on that area's flights that day); or **people I pick** (a
 searchable list of every gymnast and official). The **Message** is up to 500
 characters, and **Ask them to come to the organisers' desk** starts it with
 "Please come to the organisers' desk." (the message can then be empty). The
-form is resolved to person keys (members `m:<id>`, individuals by name
-`i:<name>`, organiser-added officials `o:<id>`) and, for a club, the club's
+form is resolved to person keys (members `m:<id>`, individuals by person
+`i:...`, organiser-added officials `o:<id>`) and, for a club, the club's
 id; nothing is sent if there is no one to send it to.
 
 **Who is told** (`notifier.tellDesk`, in `desk.go`): every confirmed
@@ -996,7 +1000,14 @@ your way round; the menu is `views/menu.templ`, built for each page in
 - **Coaches** (`/coaches`): adding and removing coaches, their links,
   qualifications and whether they sign off, and whether every coach sees every
   member.
-- **Settings** (`/settings`): replacing the admin link and deleting the club.
+- **Settings** (`/settings`): replacing the admin link and deleting the club,
+  and who opens these pages from their own link, each with **Remove**
+  ([one link, several roles](#one-link-several-roles-adr-0010)).
+
+On Members, **Make a coach too** beside a member (and on Coaches, a member to
+choose) makes them a coach of the club as well: no coach link, their member
+link opens the coach's page. Members shows them as "Coach too", Coaches as
+"A member too: opens from their member link".
 
 Each form returns to the section it's on, with its notice. The exceptions are
 replacing the admin link, which shows the new link on Competitions (where it's
@@ -1027,8 +1038,10 @@ coach's view will be more tabs):
   a save or withdrawal carries `discipline`). Saving, withdrawing and offering
   go back to this page; so do the late-change and timetable pages, and Your
   competition links back to it.
-- **Your details** (`/clubs/member/{token}/details`): their personal link and
-  their coach, and choosing a coach returns here.
+- **Your details** (`/clubs/member/{token}/details`): their personal link,
+  their coach, and **Your other links**
+  ([one link, several roles](#one-link-several-roles-adr-0010)); choosing a
+  coach and adding or undoing a link return here.
 
 Each of their entries per competition: the level, the routine(s), the check
 result, and whether it has been **sent** or **changed since sent**. Where the
@@ -1037,13 +1050,98 @@ for: Triple Back") and has a field for a link per exercise, with a reminder to
 make a YouTube video unlisted, not private. They can replace the level or
 routine at any time until the deadline.
 
+# One link, several roles (ADR 0010)
+
+Roadmap item 5, built 2026-10-14. A person's **records** are their club
+memberships, their coaching for a club, and their entering on their own;
+records with the same `person_id` are one person, and **whichever of their
+personal links they open, tabs above the page** (Member, Coach, Comp sec,
+On your own, Organiser · competition, or a helper link's name · competition)
+switch between their roles, each keeping its own menu. With one role there
+are no tabs. The tabs are worked out for any page a personal link opens
+(`withRoles` in `web/roles.go`, shown by the shared layout), so every page of
+each role has them.
+
+- **How the other roles open.** Links are kept only as hashes, so a page
+  can't link to another of the person's links. Each role opens at its own
+  paths with `{personal token}~{id}` in place of its token: the member, coach,
+  individual or entry's id, the club's id for the comp sec's pages, the
+  competition's or helper link's id for an admin link. Every lookup by token
+  (`MemberByLink`, `CoachByLink`, `ClubByAdmin`, `AdminLink`,
+  `IndividualEntry`, `IndividualByLink`) also accepts this, so all their
+  pages and forms work unchanged. Such a page never shows itself as a link to
+  keep or share; the personal link is the one to keep.
+- **Adding a link.** On Your details (a member's or individual's) or at the
+  foot of a coach's page, **Your other links** takes a pasted link: a member,
+  coach or individual's page, an entry link, a club's admin link or a
+  competition's admin or helper link. Pasting it proves they hold it, so
+  there's nothing to approve. Their own link, one already there, a link that
+  leads nowhere, and a join or entry link each get a plain notice. The box
+  lists the other roles, each with **Undo**; it is only on the page of the
+  link they hold, not one opened through it.
+- **Personal links tie both ways; shared links one way.** Two personal links
+  become one person, so each opens both. A club's admin link, or a
+  competition's admin or helper link, may be held by several people: added to
+  a personal page, it opens from there (with no more than it can do: a chair's
+  link is still a chair's), but it never opens anyone's personal pages, and
+  its pages have no tabs. It's kept against the record whose page it was added
+  on, by the link's hash, so replacing or removing the link ends it; the comp
+  sec (club Settings) and the organiser (Settings, under Links) see who has it
+  and can **Remove** it.
+- **Undo.** Undoing a personal role makes it a person of its own again; a
+  shared link added on that record goes with it. Removing a member or coach
+  ends what came through them. Replacing a member's or coach's own link keeps
+  their ties: they're the same person.
+- **The comp sec makes a member a coach too** (above): a coach record that is
+  the same person, whose own link is never shown.
+
+## Entering on your own: one page
+
+A gymnast entering on their own has one personal page,
+`/competitions/gymnast/{token}` (`web/gymnastpages.go`), like a member's
+without the club: **Competitions** (each competition entered, with how many
+entries), each competition's page (a row per discipline, with its status, that
+opens to its card and **Open this entry**, the Your competition link, and
+**Enter another discipline** while entries are open) and **Your details** (the
+link, and Your other links).
+
+- **Entering.** The competition's individual entry link asks for **your
+  page's link, if you have one**, offering the pages saved in this browser
+  (own pages, member pages, entry links). Given, the entry joins that person
+  (a member's link makes them a person who also enters on their own); blank,
+  it makes someone new with a personal link of their own. The entry opens at
+  `/competitions/entry/{personal}~{entry id}`, on their page, with the
+  personal link to keep (saved in the browser as `trampolineGymnastLinks`).
+  Another discipline of the same competition is entered from their page,
+  under the same link.
+- **Entry links from before** still work: each opens its entry, now on its
+  person's page (the menu, and back to the competition), and the same token
+  opens that person's page at `/competitions/gymnast/{token}`. Migration 30
+  made each existing individual entry an individual of its own, so no one
+  gains access to anyone else's entries; the person joins their entries with
+  **Your other links**.
+- **Grouped by the person.** Each entry keeps its person's key for its
+  competition (`entries.person_key`): new people get `i:<individual id>`,
+  entries from before keep `i:<lower-cased name>`, so keys saved in
+  timetables, desk messages, scratch warnings cleared and officials'
+  check-ins still find them. A person's later entries in a competition take
+  the key they already have there. When two people's links are joined and
+  both have entries in one competition, they keep the key entered first, and
+  what was saved under the other moves to it (unless someone else of that name
+  from before still has it). Undoing gives the one leaving a new key. Your
+  competition, the rota and seats, check-in, desk messages, calendars and All
+  people group by this key, so a misspelling no longer splits someone and two
+  people of one name stay apart (those from before stay as they were until
+  joined).
+- Individuals with no entries left are deleted with the retention of clubs.
+
 # My competition (roadmap: competitions 5)
 
 From a member's page for a competition or an individual's entry, **Your
 competition** opens one page for the day:
 
 - Every event they're in that has reached the competition (a member's sent
-  entries; an individual's entries, matched by name; synchro as either
+  entries; an individual's entries, as one person; synchro as either
   partner), with its card's status: checked, problems to sort out (listed),
   or not checked yet.
 - Once the timetable is published: each flight, area, day and warm-up, where

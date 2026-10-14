@@ -41,6 +41,15 @@ pages send `Referrer-Policy: no-referrer`, `Cache-Control: no-store` and
 `X-Robots-Tag: noindex`. A wrong or replaced link gets 404, and without storage
 every page answers 503.
 
+**One link, several roles** (ADR 0010): wherever `{token}` is a member's,
+coach's, club admin, individual entry or admin link, it may also be
+`{personal}~{id}`: a personal link (a member's, coach's or individual's, or
+an entry link) opening another of the person's roles by its id (the member,
+coach, individual or entry; the club, for its comp sec's pages; the
+competition or helper link, for an admin link). Every route takes it, and it
+works only while the role is the person's. A GET on a personal link's page
+gets tabs for the person's roles.
+
 | Method and path | Input | Returns |
 |---|---|---|
 | `GET /competitions/new` | — | The form that creates a competition, and the competitions saved in this browser |
@@ -83,6 +92,7 @@ every page answers 503.
 | `GET /clubs/admin/{token}/competitions/{id}/invoice`, `/competitions/entry/{token}/invoice` | — | The club's, or an individual's, invoice |
 | `POST /competitions/admin/{token}/links` | `name`, `kind` (`cards`, `chair`, `timetable`, `everything`) | Makes a helper's link (ADR 0009) and shows it once |
 | `POST /competitions/admin/{token}/links/{id}/remove` | — | Stops a helper's link working |
+| `POST /competitions/admin/{token}/ties/remove` | `id` (the tie) | Stops someone's own link opening these pages through the admin link or a helper's (organiser only) |
 | `GET /competitions/admin/{token}/history` | — | Every change, when and by which link |
 | `POST /competitions/admin/{token}/concerns` | `text`, optional `entry` | Flags a concern for the organiser (any admin link) |
 | `POST /competitions/admin/{token}/concerns/{id}/resolve` | `note` | Marks a concern resolved |
@@ -90,8 +100,14 @@ every page answers 503.
 Every `/competitions/admin/{token}` route takes the admin link or a helper's
 link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST /competitions/admin/{token}/delete` | `confirm=1` | Deletes the competition and its entries |
-| `GET`, `POST /competitions/enter/{token}` | `gymnast`, `level`, `ex1Option`, `ex1Skills`, `ex2Option`, `ex2Skills`, and where video is asked for `ex1Video`, `ex1VideoNote`, `ex2Video`, `ex2VideoNote` | The individual entry form; entering redirects to the personal link |
-| `GET`, `POST /competitions/entry/{token}` | as entering | An individual's own entry, and changing it until the deadline |
+| `GET`, `POST /competitions/enter/{token}` | `gymnast`, `level`, `ex1Option`, `ex1Skills`, `ex2Option`, `ex2Skills`, and where video is asked for `ex1Video`, `ex1VideoNote`, `ex2Video`, `ex2VideoNote`; optional `as`, the link of the person's page (a member's, coach's or individual's, or an entry link) | The individual entry form; entering redirects to the entry, `/competitions/entry/{personal}~{entry id}?saved=1`, as that person or someone new; 422 for an `as` that isn't a page's link |
+| `GET`, `POST /competitions/entry/{token}` | as entering | An individual's own entry, on their page, and changing it until the deadline; `{token}` an entry link from before or a personal link's way to the entry |
+| `GET /competitions/gymnast/{token}` | optional `notice` | An individual's page: the competitions they entered. `{token}` their personal link or an entry link from before |
+| `GET /competitions/gymnast/{token}/details` | optional `notice` | Their link and their other links |
+| `GET /competitions/gymnast/{token}/competitions/{id}` | — | Their page for a competition: a row per discipline; 404 for one they haven't entered |
+| `GET`, `POST /competitions/gymnast/{token}/competitions/{id}/enter` | as entering, without `as` | Enters another discipline of a competition they've entered, under the same link |
+| `POST /clubs/member/{token}/links`, `/clubs/coach/{token}/links`, `/competitions/gymnast/{token}/links` | `link` | Adds another of the person's links to their page; back to their details (the coach's page) with a notice |
+| `POST /clubs/member/{token}/links/remove`, `/clubs/coach/{token}/links/remove`, `/competitions/gymnast/{token}/links/remove` | `kind` (`member`, `coach`, `individual`, or a shared link's), `id` (the record, or the tie) | Takes a role off their page |
 | `POST /competitions/entry/{token}/withdraw` | `confirm=1` | Withdraws and deletes the entry |
 | `GET /competitions/entry/{token}/day` | `notice` | My competition, for someone entering on their own (all their entries, matched by name) |
 | `POST /competitions/entry/{token}/here` | — | "I'm here for the rest": a scratched individual clears both scratch warnings for themselves, then goes back to My competition with a notice; only once the timetable is published |
@@ -108,13 +124,15 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET`, `POST /clubs/join/{token}` | `name` | Joining a club: 303 to the member's page with `?new=joined` |
 | `GET /clubs/member/{token}` | optional `new`, `notice` | A member's Competitions tab (the default): a row for each competition the club is in, with its date and status |
 | `GET /clubs/member/{token}/competitions/{id}` | optional `notice`, `discipline` (the row to open) | A member's page for one competition: facts, links, each discipline's entry as a row that opens to its card and forms, officiating, and the judging offer; 404 if the club isn't entered |
-| `GET /clubs/member/{token}/details` | optional `notice` | A member's personal link and their coach |
+| `GET /clubs/member/{token}/details` | optional `notice` | A member's personal link, their coach and their other links |
 | `GET /clubs/member/{token}/competitions/{id}/day` | `notice` | My competition: their events, cards, flights and times, duties, and the published timetable; a box to say "I'm here for the rest" if they're scratched from something |
 | `POST /clubs/member/{token}/competitions/{id}/here` | — | "I'm here for the rest": a scratched member clears both scratch warnings for themselves, then goes back to My competition with a notice; only once the timetable is published |
 | `POST /clubs/member/{token}/competitions/{id}` | as entering, without `gymnast` | Saves the member's entry (their club sends it) |
 | `POST /clubs/member/{token}/competitions/{id}/withdraw` | `confirm=1` | Withdraws it |
 | `POST /clubs/member/{token}/coach`, `POST /clubs/admin/{token}/members/{member}/coach` | `coach` (an id, `""` for none) | A member's coach, chosen by them or the comp sec |
 | `POST /clubs/admin/{token}/coaches` | `name` | Adds a coach: the club page with their coach link, shown once |
+| `POST /clubs/admin/{token}/coaches/from-member` | `member` | Makes a member a coach too; their member link opens the coach's page. Back to Coaches |
+| `POST /clubs/admin/{token}/ties/remove` | `id` (the tie) | Stops someone's own link opening the comp sec's pages. Back to Settings |
 | `POST /clubs/admin/{token}/coaches/{coach}/new-link`, `/remove` | — | A coach's new link (shown once), or removing them |
 | `POST /clubs/admin/{token}/coaches-see-all` | `on` (`1`/`""`) | Whether every coach sees every member |
 | `GET /clubs/coach/{token}` | — | A coach's page: each competition's entries they see, and their sign-off |
