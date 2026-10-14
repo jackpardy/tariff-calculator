@@ -211,7 +211,7 @@ func hasValue(has bool) string {
 }
 
 // coachEntryFilters are the filters on a coach's entries: the competition
-// (when there is more than one), each level once in the order first seen,
+// (when there is more than one), each level once, by name,
 // whether the entry has problems, and where its sign-off stands.
 func coachEntryFilters(competitionOptions []views.ListOption, levels []string) []views.ListFilter {
 	var out []views.ListFilter
@@ -224,6 +224,7 @@ func coachEntryFilters(competitionOptions []views.ListOption, levels []string) [
 			level.Options = append(level.Options, views.ListOption{Value: l, Label: l})
 		}
 	}
+	slices.SortFunc(level.Options, func(a, b views.ListOption) int { return cmp.Compare(a.Label, b.Label) })
 	return append(out, level, hasFilter("problems", "Problems", "With or without problems", "Has problems", "No problems"),
 		views.ListFilter{Key: "signoff", Label: "Sign-off", Any: "Any sign-off", Options: []views.ListOption{
 			{Value: "signed", Label: "Signed off"}, {Value: "not-yet", Label: "Not yet"}, {Value: "waiting", Label: "Waiting"},

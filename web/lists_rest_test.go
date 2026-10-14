@@ -267,8 +267,8 @@ func TestCoachEntryFilters(t *testing.T) {
 	for _, o := range f[1].Options {
 		levels = append(levels, o.Value)
 	}
-	if !slices.Equal(keys, []string{"competition", "level", "problems", "signoff"}) || !slices.Equal(levels, []string{"BUCS L3", "BUCS L2"}) {
-		t.Errorf("competition when there are two; each level once, in order: %v %v", keys, levels)
+	if !slices.Equal(keys, []string{"competition", "level", "problems", "signoff"}) || !slices.Equal(levels, []string{"BUCS L2", "BUCS L3"}) {
+		t.Errorf("competition when there are two; each level once, by name: %v %v", keys, levels)
 	}
 	if f := coachEntryFilters(two[:1], nil); f[0].Key != "level" {
 		t.Error("no competition filter for one competition")
