@@ -115,6 +115,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerPartners(handle)
 	p.registerOfficials(handle)
 	p.registerApprovals(handle)
+	p.registerPeople(handle)
 	p.registerMine(handle)
 	p.registerTimelines(handle)
 	p.registerCalendars(handle)
@@ -653,6 +654,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	d.CanSplit = c.Split.Any()
 	coaches := map[string]bool{}
 	sentAt := map[string]time.Time{}
+	people := personKeys(live(entries)) // whose page each live entry links to
 	for _, j := range judge(c.Competition, entries) {
 		if name := j.CoachName(); name != "" && !coaches[name] {
 			coaches[name] = true
@@ -682,6 +684,12 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 			ID: j.ID, Gymnast: j.Entry.Entry.Gymnasts(), Club: j.club, Problems: j.problems, Coach: j.CoachName(),
 			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note, Withdrawn: j.Withdrawn,
 			Video: videoStatus(c.Competition, j), Signoff: storedSignoff(c.Competition, j.Entry), Category: j.Entry.Entry.Category,
+		}
+		if ks := people[j.ID]; len(ks) > 0 {
+			row.Person = personPath(d.Base, ks[0])
+			if len(ks) > 1 {
+				row.Partner = personPath(d.Base, ks[1])
+			}
 		}
 		if j.err == nil && !j.card.Unchecked {
 			for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
