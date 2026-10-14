@@ -697,6 +697,34 @@ lists are open is also kept in `sessionStorage` (per path and `?day`), so a
 reload keeps them. The service worker only handles GET navigations, so these
 posts go straight to the network.
 
+**Who's up now** (roadmap item 7, built 2026-10-14): on a flight marked
+started and not finished, the box shows who's on now in large type (name,
+club for a club's gymnast, and the routine), with a big **Next gymnast** and a
+small **Back**. Before the first tap it shows who's first up; the marshal taps
+Next gymnast as each gymnast starts. The position runs from 0 (the first
+gymnast's 1st routine) to 2n-1 (the last gymnast's 2nd) for a flight of n in
+the published running order: everyone's 1st routine in order, then everyone's
+2nd in the same order, synchro pairs and tumbling and DMT passes alike. It is
+stored per flight key in `up_now` (migration 31, `store/upnow.go`: `UpNext`,
+`UpBack`, `ClearUp`, `UpNow`), with who tapped and when; `UpNext` and `UpBack`
+read and write in one transaction, so two taps at once each move one step.
+Scratched gymnasts, and entries no longer in the competition, are skipped both
+ways (`upOrderOf` in `web/screenup.go`); one scratched after being reached is
+shown struck through until the next tap. The routine is named from the level
+(`routineNames`): "Set" for an exercise whose options are all set routines and
+"Voluntary" for one whose options are all requirements, when the two
+exercises differ; otherwise "1st routine" and "2nd routine" (two voluntaries,
+mixed options, synchro, or a level that can't be read), and "1st pass" and
+"2nd pass" for tumbling and DMT. Next gymnast at the last routine changes
+nothing and says "That was the last routine in … Tap Finished once it's
+done."; the box also says it's the flight's last routine. It never finishes
+the flight. Back at the first gymnast (or before the first tap), and either tap
+on a flight that isn't running, are ignored with a notice. **Undo** that takes
+back the start clears the position (`ClearUp`), so starting again starts from
+the first; undoing a finish keeps it. Taps post to `/day/up` (organiser,
+"everything", chair and timetable links), update in place like the other day
+buttons, and aren't put in the history (one per routine would bury the rest).
+
 **Check-in and scratches** (built 2026-10-09): under each flight on the day
 page, a folded **Check-in · 8 of 10 here, 1 scratched** lists the flight's
 gymnasts in running order (entries since withdrawn are left out), each with
@@ -809,37 +837,86 @@ be at Panel 1" (or "Notified Ann's club: …" for the club alone). Organiser,
 
 ## The venue screen
 
-Built 2026-10-09. `GET /competitions/admin/{token}/screen?day=N` (default:
-today's index by `todayIndex`, else the first day) is a page for a screen at
-the venue, from the published timetable (`screenpages.go`,
-`views/screen.templ`). With no published timetable it just says "The
-timetable isn't published yet". It has no navigation: the competition name
-(and the day's name when there are several) and the local time ("10:42") at
-the top, then a card per area that has flights that day, side by side on a
-wide screen (CSS grid, `auto-fit`, at least 18rem each) and stacked on a
-narrow one, in large dark-on-light type. Its own layout (`screenLayout`)
-carries `<meta http-equiv="refresh" content="30">`, so it reloads itself on
-any browser without JavaScript, and `noindex`.
+Built 2026-10-09, reworked 2026-10-14 for a TV across a hall (roadmap item
+7). `GET /competitions/admin/{token}/screen?day=N` (default: today's index
+by `todayIndex`, else the first day; `area=` any number of times for a screen
+showing only those areas) is a page for a screen at the venue, from the
+published timetable (`screenpages.go`, `views/screen.templ`,
+`static/js/screen.js`). With no published timetable it says so. It has no
+navigation: the competition name (and the day's name when there are several)
+and a clock at the top, then any announcements, then the areas.
+
+**Layout.** Each area has its own colour, by its place in the setup, the
+same on every day and every screen (eight colours, taken in turn). An area
+with nothing on and nothing starting within 30 minutes (or nothing more
+today) is a slim strip along the bottom in its colour: "Next: … · warm-up
+14:00" or "Finished for the day". The rest are cards that share the screen:
+one row of up to four, else two rows (seven busy areas, as at ISTO, are two
+rows of four). If every area is quiet they all keep their cards. Text scales
+with the screen's width, and fewer cards get bigger text. In two rows, Now
+and Next sit side by side in each card. The script then shrinks every card's
+text alike until nothing in any card overflows, down to a size still readable
+across a hall; past that it shows fewer names and counts the rest in "+N
+more", so no name is ever cut off unseen.
 
 Each card has:
 
+- **Its band:** the area's name and, when `Lateness` measures one, "Running
+  15 min late" (hours and minutes from an hour: "Running 1 h 5 min late"),
+  "On time" or "5 min early". The lateness is information only: every time
+  on the screen is the timetable's, so a late or mistaken Started tap never
+  moves a warm-up time.
 - **Now:** chosen by `nowOn`, a pure function of the schedule, the recorded
-  times and a moment. In order: the flight on that area that has been marked
-  started and not finished (the latest started, if several); else the
-  planned flight whose time window (its warm-up start to its end) contains
-  now and that hasn't been marked at all, labelled "(planned)"; else the name
-  of a block covering now on that area (a block with no areas is on all of
-  them); else "—". Planned windows and blocks only count when now is on the
-  day shown; times marked on another date still count, so the screen can be
-  tried out before the day. Under it, the flight's gymnasts in running order,
-  names only in a smaller font, scratched ones struck through, at most 12 and
-  then "+N more".
-- **Next:** the following flight on that area in start order that hasn't
-  been started or finished, with its planned warm-up time; when nothing is
-  on, the first that starts after now (the first of the day when now isn't on
-  that day).
-- The area's lateness line ("Running 15 min late", "On time", "5 min early")
-  when `Lateness` measures one (it ignores times marked on another date).
+  times and a moment. In order: the flight on that area marked started and
+  not finished (the latest started, if several); else a flight that hasn't
+  been marked at all and whose time has come, labelled "not started yet".
+  With nothing marked on the area that day, that's the flight whose time
+  window contains now (the plan, exactly). Once the area's times are being
+  marked, it's the earliest unmarked flight whose time has come, however
+  late, so an area running late never goes blank while it has flights left.
+  Else the name of a block covering now (a block with no areas is on all of
+  them); else "—". Planned windows and blocks only count on the day shown;
+  times marked on another date don't count. Under it, the flight's gymnasts
+  in running order with their clubs (none for those entering on their own),
+  scratched ones struck through.
+- **On now** and **Up next**, only for a flight marked started and only
+  once the marshal has tapped **Next gymnast** for it: who's on (name, club,
+  routine) in large type and the next two to go, skipping the scratched and
+  running on from the 1st routines into the 2nd (`screenUp` in
+  `web/screenup.go`, `views/screenup.templ`). They take the place of the
+  flight's list of names. Before the first tap, or if the gymnast reached
+  has since been scratched, the card shows the list instead: the screen
+  doesn't guess.
+- **Next:** the following flight that hasn't been started or finished, with
+  its warm-up time from the timetable and its gymnasts and clubs; with
+  nothing on, the first that starts after now, or the first unmarked one once
+  the area's times are being marked. "Finished for the day" when there's
+  nothing more.
+
+**Running numbers.** Every gymnast has a running number: their place in the
+published flight (`No` on the views), shown before their name on the venue
+screen, in On now and Up next, in the On the day check-in and the marshal's
+box, on the member's published timetable and on the printed marshal and score
+sheets. It's their place in the flight as published, so it never changes when
+someone ahead of them is scratched or withdrawn: "5" means the same gymnast on
+every page.
+
+**Keeping it current.** The script fetches the page every 30 seconds and
+swaps in the new content. If a fetch fails (the venue's wifi drops), the last
+good screen stays up, and after 75 seconds a black line says "Not updated
+since 10:42: check the screen's connection". The clock ticks every second
+from the server's time, in Irish time, whatever the TV's own clock says. A
+new version of the app reloads the page once. Without JavaScript, the page
+reloads itself every 30 seconds.
+
+**Announcements.** On the Desk messages page, **On the venue screen** puts
+a line across the top of every venue screen ("Lunch extended by 15 minutes",
+up to 160 characters) for 15 or 30 minutes, an hour, or until someone takes
+it down. Phones aren't told. The page lists what's up, by whom and until
+when, each with **Take down**. They show even before the timetable is
+published, latest first. The history records each one put up and taken
+down. The links that can send desk messages can do this too
+(`store/screennotices.go`, `web/screennotices.go`).
 
 A new kind of link, **venue screen** (`store.LinkScreen`), can `GET` this
 route and nothing else. Organiser, "everything", chair and timetable links

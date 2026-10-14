@@ -204,12 +204,12 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 				}
 				it := views.ItemView{Flight: true, Index: i, Name: f.Name(), Start: competitions.Clock(f.Start), End: competitions.Clock(f.End), Seats: seatsOf(f, people, names),
 					Pairs: f.Discipline == competitions.Synchro, InRun: f.Of > 1, Earlier: f.Number > 1}
-				for _, id := range f.Entries {
+				for n, id := range f.Entries {
 					e, ok := byID[id]
 					if !ok {
 						continue // withdrawn since
 					}
-					g := views.TimetableGymnast{ID: id, Name: e.Entry.Gymnasts(), Club: clubOf(e), Category: e.Entry.Category}
+					g := views.TimetableGymnast{ID: id, No: n + 1, Name: e.Entry.Gymnasts(), Club: clubOf(e), Category: e.Entry.Category}
 					if e.Entry.Event() != f.Level || (f.Category != "" && e.Entry.Category != f.Category) {
 						g.Moved = strings.TrimSpace(e.Entry.Event() + " " + e.Entry.Category)
 					}
@@ -929,7 +929,7 @@ func scoreSheets(c store.Competition, s competitions.Schedule, entries []store.E
 				f := views.ScoreFlight{Name: it.Name, Day: day.Name, Area: area.Name, Start: it.Start, Seats: it.Seats,
 					Marks: scoreMarks(c.Officials.Panel(s.Flights[it.Index].Discipline))}
 				for _, g := range it.Gymnasts {
-					f.Rows = append(f.Rows, views.ScoreRow{Name: g.Name, Club: g.Club, Scratched: scratched[g.ID]})
+					f.Rows = append(f.Rows, views.ScoreRow{Name: g.Name, No: g.No, Club: g.Club, Scratched: scratched[g.ID]})
 				}
 				out.Flights = append(out.Flights, f)
 			}

@@ -584,6 +584,28 @@ var migrations = []string{
 		UNIQUE (record_id, kind, target_id)
 	);
 	CREATE INDEX shared_ties_target ON shared_ties (kind, target_id);`,
+
+	// 31: announcements on the venue screen (roadmap item 7).
+	`CREATE TABLE screen_notices (
+		id             TEXT PRIMARY KEY,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		text           TEXT NOT NULL,
+		until          TEXT NOT NULL DEFAULT '',
+		who            TEXT NOT NULL,
+		at             TEXT NOT NULL
+	);
+	CREATE INDEX screen_notices_competition ON screen_notices (competition_id, at);`,
+
+	// 32: who's up now (roadmap item 7): how far the marshal has got through
+	// each flight's routines on the day.
+	`CREATE TABLE up_now (
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		flight         TEXT NOT NULL,
+		position       INTEGER NOT NULL,
+		who            TEXT NOT NULL,
+		at             TEXT NOT NULL,
+		PRIMARY KEY (competition_id, flight)
+	);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

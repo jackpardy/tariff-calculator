@@ -138,6 +138,7 @@ type ItemView struct {
 // TimetableGymnast is a gymnast in a running order.
 type TimetableGymnast struct {
 	ID, Name, Club, Category string
+	No                       int    // their running number: their place in the flight, the same on every page and sheet
 	Moved                    string // the event they're entered at now, if not the flight's
 	Scratched                bool   // a no-show on the day: struck through on the printed sheets
 }
@@ -620,7 +621,7 @@ templ flightBox(p TimetablePage, f ItemView) {
 		<p class="is-size-7 has-text-grey mb-2">Warm-up { f.Start } · finishes about { f.End } · { flightCount(len(f.Gymnasts), f.Pairs) }</p>
 		<ol class="comp-order">
 			for _, g := range f.Gymnasts {
-				<li>
+				<li value={ strconv.Itoa(g.No) }>
 					{ g.Name }
 					<span class="has-text-grey is-size-7">{ g.Club }</span>
 					if g.Moved != "" {
@@ -827,9 +828,9 @@ templ TimetablePrint(s TimetableSheets) {
 							</tr>
 						</thead>
 						<tbody>
-							for i, g := range f.Gymnasts {
+							for _, g := range f.Gymnasts {
 								<tr>
-									<td>{ strconv.Itoa(i + 1) }</td>
+									<td>{ strconv.Itoa(g.No) }</td>
 									<td>
 										if g.Scratched {
 											<s class="comp-scratched">{ g.Name }</s> (scratched)
@@ -1150,6 +1151,7 @@ type ScoreFlight struct {
 // ScoreRow is a gymnast (or synchro pair) on a score sheet.
 type ScoreRow struct {
 	Name, Club string
+	No         int  // their running number
 	Scratched  bool // a no-show on the day: struck through
 }
 
@@ -1198,9 +1200,9 @@ templ ScorePrint(s ScoreSheets) {
 						</tr>
 					</thead>
 					<tbody>
-						for i, g := range f.Rows {
+						for _, g := range f.Rows {
 							<tr>
-								<td>{ strconv.Itoa(i + 1) }</td>
+								<td>{ strconv.Itoa(g.No) }</td>
 								<td>
 									if g.Scratched {
 										<s class="comp-scratched">{ g.Name }</s> (scratched)
@@ -1223,5 +1225,13 @@ templ ScorePrint(s ScoreSheets) {
 				</div>
 			</section>
 		}
+	}
+}
+
+// runNo is a gymnast's running number, their place in the flight, as every
+// page shows it before their name.
+templ runNo(n int) {
+	if n > 0 {
+		<span class="comp-run-no" title="Running number">{ strconv.Itoa(n) }</span>
 	}
 }

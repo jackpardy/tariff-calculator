@@ -42,7 +42,7 @@ func (p *competitionPages) scratchedOf(ctx context.Context, competitionID string
 func checkinOf(f competitions.ScheduledFlight, byID map[string]store.Entry, checkins map[string]store.Checkin, keys map[string][]string, notify bool) (string, []views.DayGymnast) {
 	var out []views.DayGymnast
 	here, scratched := 0, 0
-	for _, id := range f.Entries {
+	for n, id := range f.Entries {
 		e, ok := byID[id]
 		if !ok {
 			continue
@@ -55,7 +55,7 @@ func checkinOf(f competitions.ScheduledFlight, byID map[string]store.Entry, chec
 			scratched++
 		}
 		g := views.DayGymnast{
-			Entry: id, Name: e.Entry.Gymnasts(), Club: clubOf(e), State: c.Status, Who: c.Who,
+			Entry: id, No: n + 1, Name: e.Entry.Gymnasts(), Club: clubOf(e), State: c.Status, Who: c.Who,
 			CanHere: c.Status != store.CheckedIn, CanScratch: c.Status != store.Scratched, CanClear: c.Status != "",
 		}
 		if notify && c.Status == "" && len(keys[id]) > 0 {

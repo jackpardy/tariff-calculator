@@ -622,6 +622,8 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-plan-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0 1rem; }
 .comp-flight { padding: 0.9rem 1rem; }
 .comp-order { margin: 0 0 0.5rem 1.4rem; }
+/* A gymnast's running number, their place in the flight: the same on every page. */
+.comp-run-no { display: inline-block; min-width: 1.6em; padding: 0 0.3em; margin-right: 0.35em; border-radius: 0.3em; background: #eef0f4; color: #333; font-weight: 700; font-size: 0.9em; text-align: center; font-variant-numeric: tabular-nums; }
 .comp-order li { margin: 0.15rem 0; }
 .comp-move summary { color: #485fc7; margin-left: 0.4rem; display: inline; }
 .comp-move[open] .comp-move-form { display: flex; margin: 0.3rem 0; }
@@ -717,22 +719,77 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-notify { flex: 1 1 100%; }
 .comp-checkin-row .comp-notify form { flex-wrap: wrap; align-items: center; margin-top: 0.3rem; }
 .comp-notify .input { width: 14rem; max-width: 100%; }
-/* The venue screen (views/screen.templ): dark on light, readable across a hall. */
-.screen-body { background: #fff; color: #111; margin: 0; padding: 1.25rem 1.5rem; font-size: 1.25rem; }
-.screen-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.25rem 1.5rem; border-bottom: 4px solid #111; padding-bottom: 0.5rem; margin-bottom: 1.25rem; }
-.screen-title { font-size: 2.25rem; font-weight: 700; line-height: 1.15; }
-.screen-clock { font-size: 3.5rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-.screen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.25rem; }
-.screen-card { border: 3px solid #111; border-radius: 0.5rem; padding: 1rem 1.25rem; }
-.screen-area { font-size: 2rem; font-weight: 700; margin: 0 0 0.5rem; }
-.screen-label { font-size: 1rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #444; margin: 0.75rem 0 0.15rem; }
-.screen-now { font-size: 2.1rem; font-weight: 700; line-height: 1.15; margin: 0; }
-.screen-sub { font-size: 1.1rem; font-weight: 400; color: #444; margin: 0.15rem 0 0; }
-.screen-late { display: inline-block; font-size: 1.25rem; font-weight: 700; border: 2px solid #111; border-radius: 0.3rem; padding: 0.1rem 0.6rem; margin: 0.5rem 0 0; }
+/* The venue screen (views/screen.templ), for a TV across a hall: black on white, each
+   area in its own colour (the same on every screen and day), filling the screen. Text
+   scales with the screen's width, and the cards share the height left by the header. */
+.screen-html { font-size: clamp(14px, 1.05vw, 40px); }
+.screen-body { background: #fff; color: #111; margin: 0; }
+.screen-main { box-sizing: border-box; height: 100vh; overflow: hidden; display: flex; flex-direction: column; gap: 0.75rem; padding: 0.9rem 1.2rem; }
+.screen-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.25rem 1.5rem; border-bottom: 4px solid #111; padding-bottom: 0.4rem; }
+.screen-title { font-size: 2rem; font-weight: 700; line-height: 1.15; }
+.screen-clock { font-size: 3.2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.screen-notice { font-size: 1.8rem; font-weight: 700; background: #ffe08a; border: 3px solid #111; border-radius: 0.5rem; padding: 0.4rem 0.9rem; margin: 0; }
+.screen-stale { font-size: 1.3rem; font-weight: 700; background: #111; color: #fff; border-radius: 0.4rem; padding: 0.3rem 0.8rem; margin: 0; }
+.screen-grid { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(var(--screen-columns), minmax(0, 1fr)); grid-template-rows: repeat(var(--screen-rows), minmax(0, 1fr)); gap: 0.9rem; }
+.screen-card { display: flex; flex-direction: column; border: 3px solid var(--screen-band); border-radius: 0.6rem; overflow: hidden; min-height: 0; }
+.screen-band { background: var(--screen-band); color: var(--screen-ink); }
+.screen-card > .screen-band { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.3rem 0.8rem; padding: 0.35rem 0.9rem; }
+.screen-area { font-size: 2em; font-weight: 800; line-height: 1.1; margin: 0; color: inherit; }
+.screen-late { font-size: 1.1em; font-weight: 700; background: #fff; color: #111; border-radius: 0.3rem; padding: 0.05rem 0.5rem; }
 .screen-late.is-behind { background: #ffe08a; }
-.screen-gymnasts { font-size: 1.1rem; line-height: 1.35; margin: 0.5rem 0 0; padding: 0; list-style: none; }
-.screen-gymnasts .comp-scratched { color: #666; }
+.screen-part { padding: 0.5rem 0.9rem 0.6rem; min-height: 0; overflow: hidden; }
+.screen-next { border-top: 2px solid #ddd; background: #f6f6f6; flex: 0 1 auto; }
+.screen-card > .screen-part:first-of-type { flex: 1 1 auto; }
+.screen-card > .screen-part { flex-basis: auto; }
+.screen-label { font-size: 0.9em; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #444; margin: 0 0 0.1rem; }
+.screen-flight { font-size: 1.6em; font-weight: 800; line-height: 1.15; margin: 0; }
+.screen-sub { font-size: 1em; color: #444; margin: 0.1rem 0 0; }
+.screen-names { list-style: none; margin: 0.4rem 0 0; padding: 0; column-gap: 1.2rem; font-size: 1.15em; line-height: 1.3; }
+/* A name never wraps or shortens; its club takes what room is left. */
+.screen-names li { break-inside: avoid; display: flex; align-items: baseline; gap: 0.4em; white-space: nowrap; }
+.screen-name { flex: 0 0 auto; }
+.screen-names li[hidden] { display: none; }
+.screen-no { flex: 0 0 auto; display: inline-block; min-width: 1.5em; text-align: right; font-weight: 800; color: #555; font-variant-numeric: tabular-nums; }
+.screen-names .comp-scratched { color: #777; }
+.screen-club { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 0.75em; color: #555; }
+.screen-more { color: #555; }
+.screen-next .screen-names { font-size: 1em; }
+/* Fewer areas, bigger text: the cards' text scales together. */
+.screen-size-1 .screen-card { font-size: 1.5rem; }
+.screen-size-2 .screen-card { font-size: 1.2rem; }
+.screen-size-3 .screen-card { font-size: 1.05rem; }
+.screen-size-4 .screen-card { font-size: 0.95rem; }
+.screen-size-1 .screen-names { columns: 2; }
+/* In two rows the cards are wide and short: Now and Next sit side by side, each with
+   the card's full height. */
+.screen-rows-2 .screen-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+.screen-rows-2 .screen-card > .screen-band { grid-column: 1 / -1; }
+.screen-rows-2 .screen-next { border-top: 0; border-left: 2px solid #ddd; }
+.screen-strips { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.screen-strip { display: flex; align-items: center; gap: 0.8rem; font-size: 1.3rem; border: 3px solid var(--screen-band); border-radius: 0.5rem; overflow: hidden; padding-right: 0.9rem; }
+.screen-strip > .screen-band { padding: 0.3rem 0.8rem; align-self: stretch; display: flex; align-items: center; }
+/* The areas' colours: strong enough to tell apart across a hall, each with text that
+   reads on it. */
+.screen-colour-0 { --screen-band: #0b5cad; --screen-ink: #fff; }
+.screen-colour-1 { --screen-band: #c2410c; --screen-ink: #fff; }
+.screen-colour-2 { --screen-band: #047857; --screen-ink: #fff; }
+.screen-colour-3 { --screen-band: #7e22ce; --screen-ink: #fff; }
+.screen-colour-4 { --screen-band: #f2b705; --screen-ink: #111; }
+.screen-colour-5 { --screen-band: #be185d; --screen-ink: #fff; }
+.screen-colour-6 { --screen-band: #38bdf8; --screen-ink: #111; }
+.screen-colour-7 { --screen-band: #3f3f46; --screen-ink: #fff; }
 .screen-empty { font-size: 2rem; text-align: center; margin-top: 3rem; }
+/* Who's on now, once the marshal taps through: the biggest thing on the card, on a
+   light wash of the area's colour, then the next two. Sizes are in em, so the card's
+   fitting scales them with everything else. */
+.screen-up { margin: 0.5rem 0 0; }
+.screen-up > .screen-label:first-child { margin-bottom: 0.15rem; }
+.screen-up-name { font-size: 1.9em; font-weight: 800; line-height: 1.1; margin: 0; padding: 0.15em 0.35em; border-left: 0.3em solid var(--screen-band); background: #f3f4f6; border-radius: 0.2em; }
+.screen-up-detail { font-size: 1em; color: #444; margin: 0.15rem 0 0.5rem; }
+.screen-up-next { font-size: 1.3em; line-height: 1.35; margin: 0; padding: 0; list-style: none; }
+.screen-up-next li { display: flex; align-items: baseline; gap: 0.5em; white-space: nowrap; }
+.screen-up-next .screen-up-next-name { flex: 0 0 auto; font-weight: 700; }
+.screen-up-next .screen-up-detail { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 0.75em; margin: 0; }
 /* The menu at the top of competition and club pages (views/menu.templ): the
    sections, then the current section's pages. Bulma's tabs scroll sideways
    on a narrow screen. */

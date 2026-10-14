@@ -27,6 +27,7 @@ func (p *competitionPages) registerDay(handle func(string, http.HandlerFunc)) {
 	handle("POST /competitions/admin/{token}/day/clear", p.clearScratch)
 	handle("POST /competitions/admin/{token}/day/officials", p.markOfficial)
 	handle("POST /competitions/admin/{token}/day/notify", p.notifyOne)
+	handle("POST /competitions/admin/{token}/day/up", p.markUp)
 }
 
 // idPart makes text safe to use in an id (and so in a link's #fragment):
@@ -110,16 +111,28 @@ func (p *competitionPages) latenessOf(ctx context.Context, c store.Competition, 
 	return competitions.Lateness(*c.Published, day, first, local, actualOf(times)), nil
 }
 
-// lateText says how an area is running, e.g. "Running 15 min late", "On time"
-// or "5 min early".
+// lateText says how an area is running, e.g. "Running 15 min late",
+// "Running 1 h 5 min late", "On time" or "5 min early".
 func lateText(l competitions.AreaLateness) string {
 	switch {
 	case l.Minutes > 0:
-		return fmt.Sprintf("Running %d min late", l.Minutes)
+		return "Running " + minutesText(l.Minutes) + " late"
 	case l.Minutes < 0:
-		return fmt.Sprintf("%d min early", -l.Minutes)
+		return minutesText(-l.Minutes) + " early"
 	}
 	return "On time"
+}
+
+// minutesText is a number of minutes, in hours and minutes from an hour:
+// "45 min", "1 h", "1 h 5 min".
+func minutesText(m int) string {
+	switch {
+	case m < 60:
+		return fmt.Sprintf("%d min", m)
+	case m%60 == 0:
+		return fmt.Sprintf("%d h", m/60)
+	}
+	return fmt.Sprintf("%d h %d min", m/60, m%60)
 }
 
 // day is the on-the-day page for a day (default: today, if it's one of the
@@ -159,6 +172,15 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		byID[e.ID] = e
 	}
 	checkins, err := p.st.Checkins(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	scratched := map[string]bool{}
+	for id, ch := range checkins {
+		scratched[id] = ch.Status == store.Scratched
+	}
+	ups, err := p.st.UpNow(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -230,6 +252,10 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 				CanUndo: !t.Started.IsZero() || !t.Finished.IsZero(),
 			}
 			df.Checkin, df.Gymnasts = checkinOf(f, byID, checkins, keys, notify)
+			if df.CanFinish {
+				up, tapped := ups[df.Key]
+				df.Up = dayUp(c.Competition, f, byID, scratched, up, tapped)
+			}
 			df.Panel, df.Seats = panelOf(f, day, nameOf, inClub, official[competitions.FlightKey(f)], whatIf, notify)
 			area.Flights = append(area.Flights, df)
 		}
@@ -307,6 +333,17 @@ func (p *competitionPages) markFlight(w http.ResponseWriter, r *http.Request) {
 		if err := p.st.MarkFlight(r.Context(), c.ID, key, what, linkOf(r).Name); err != nil {
 			failed(w, r, err)
 			return
+		}
+		if what == "undo" {
+			// Undoing the start clears how far the marshal had got (uppages.go).
+			times, err := p.st.FlightTimes(r.Context(), c.ID)
+			if err == nil && times[key].Started.IsZero() {
+				err = p.st.ClearUp(r.Context(), c.ID, key)
+			}
+			if err != nil {
+				failed(w, r, err)
+				return
+			}
 		}
 		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
 	}

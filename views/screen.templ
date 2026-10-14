@@ -11,46 +11,131 @@ import (
 type ScreenPage struct {
 	Competition string
 	Time        string // now, e.g. "10:42"
+	At          int64  // now, in Unix milliseconds, for the clock to tick on from
+	Zone        string // the clock's time zone, e.g. "Europe/Dublin"
 	Day         string // the day's name, when the timetable has more than one
 	Published   bool   // there is a published timetable
+	Notices     []string // announcements from the organisers' desk, latest first
 	Areas       []ScreenArea
+	// Set by Fit: how the busy areas are laid out.
+	Rows, Columns int
+	Size          int // 1 (few areas, biggest text) to 4 (seven or more)
 }
+
+// ScreenColours is how many colours the areas take in turn.
+const ScreenColours = 8
 
 // ScreenArea is an area's card on the venue screen.
 type ScreenArea struct {
-	Name       string
-	Now        string // the flight on now, or the break's name; "" for nothing
-	NowTimes   string // the flight's planned time, e.g. "09:30–10:40"
-	Planned    bool   // Now is on by the plan only: nobody has marked it started
-	Break      bool   // Now is a break
-	Gymnasts   []ScreenGymnast
-	More       int    // gymnasts not named
-	Next       string // the next flight; "" for none
-	NextWarmUp string // when its warm-up starts, e.g. "10:45"
-	Late       string // e.g. "Running 15 min late"; "" when not measured
-	Behind     bool   // running late
-	Ahead      bool   // running early
+	Name         string
+	Colour       int    // 0 to ScreenColours-1, by the area's place in the setup
+	Now          string // the flight on now, or the break's name; "" for nothing
+	NowTimes     string // the flight's time in the timetable, e.g. "09:30–10:40"
+	Planned      bool   // Now is on by the plan only: nobody has marked it started
+	Break        bool   // Now is a break
+	Gymnasts     []ScreenGymnast
+	More         int    // gymnasts on now not named
+	Next         string // the next flight; "" for none
+	NextWarmUp   string // when its warm-up starts in the timetable, e.g. "10:45"
+	NextGymnasts []ScreenGymnast
+	NextMore     int    // gymnasts next not named
+	Idle         bool   // nothing on and nothing soon: shown as a strip
+	Finished     bool   // nothing more today
+	Late         string // e.g. "Running 15 min late"; "" when not measured
+	Behind       bool   // running late
+	Ahead        bool   // running early
+	Up           *ScreenUp // who's on in the flight on now, and next; nil until the marshal taps
 }
 
-// ScreenGymnast is a gymnast in the flight on now.
+// ScreenGymnast is a gymnast in a flight on the screen.
 type ScreenGymnast struct {
-	Name      string
-	Scratched bool
+	Name, Club string
+	No         int // their running number: their place in the flight
+	Scratched  bool
 }
 
-// screenLayout is a page for a screen at the venue: no navigation, and it
-// reloads itself every 30 seconds, so it needs no JavaScript.
+// Fit lays the busy areas out to fill the screen: one row of up to four,
+// else two rows, with as many names as each card has room for. Areas with
+// nothing on and nothing soon become strips along the bottom, unless every
+// area is quiet, when they all keep their cards.
+func (p *ScreenPage) Fit() {
+	busy := 0
+	for _, a := range p.Areas {
+		if !a.Idle {
+			busy++
+		}
+	}
+	if busy == 0 {
+		for i := range p.Areas {
+			p.Areas[i].Idle = false
+		}
+		busy = len(p.Areas)
+	}
+	p.Rows, p.Columns = 1, busy
+	if busy > 4 {
+		p.Rows, p.Columns = 2, (busy+1)/2
+	}
+	switch {
+	case busy <= 2:
+		p.Size = 1
+	case busy <= 4:
+		p.Size = 2
+	case busy <= 6:
+		p.Size = 3
+	default:
+		p.Size = 4
+	}
+	now, next := 8, 6
+	switch {
+	case p.Size == 1:
+		now, next = 16, 10 // two columns of names
+	case p.Rows == 2:
+		now, next = 5, 4
+	}
+	for i := range p.Areas {
+		a := &p.Areas[i]
+		if more := len(a.Gymnasts) - now; more > 0 {
+			a.Gymnasts, a.More = a.Gymnasts[:now], more
+		}
+		if more := len(a.NextGymnasts) - next; more > 0 {
+			a.NextGymnasts, a.NextMore = a.NextGymnasts[:next], more
+		}
+	}
+}
+
+// busyAreas and quietAreas are the areas with cards, and those shown as strips.
+func (p ScreenPage) busyAreas() []ScreenArea  { return p.areas(false) }
+func (p ScreenPage) quietAreas() []ScreenArea { return p.areas(true) }
+
+func (p ScreenPage) areas(idle bool) []ScreenArea {
+	var out []ScreenArea
+	for _, a := range p.Areas {
+		if a.Idle == idle {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
+// screenColour is an area's colour class.
+func screenColour(a ScreenArea) string { return "screen-colour-" + strconv.Itoa(a.Colour) }
+
+// screenLayout is a page for a screen at the venue: no navigation. Its
+// script (static/js/screen.js) fetches it again every 30 seconds and keeps
+// the last one that loaded, saying when it can't get a newer one; without
+// JavaScript it reloads itself.
 templ screenLayout(title string) {
 	<!DOCTYPE html>
-	<html lang="en">
+	<html lang="en" class="screen-html">
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<meta name="robots" content="noindex"/>
-			<meta http-equiv="refresh" content="30"/>
+			<noscript><meta http-equiv="refresh" content="30"/></noscript>
 			<title>{ title }</title>
 			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
 			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
+			<script defer src={ static.URL("js/screen.js") }></script>
 		</head>
 		<body class="screen-body">
 			{ children... }
@@ -61,61 +146,113 @@ templ screenLayout(title string) {
 // Screen is the venue screen.
 templ Screen(p ScreenPage) {
 	@screenLayout("Now on · " + p.Competition) {
-		<header class="screen-head">
-			<div class="screen-title">
-				{ p.Competition }
-				if p.Day != "" {
-					<span>· { p.Day }</span>
+		<div class="screen-main" data-screen data-at={ strconv.FormatInt(p.At, 10) } data-zone={ p.Zone }>
+			<header class="screen-head">
+				<div class="screen-title">
+					{ p.Competition }
+					if p.Day != "" {
+						<span>· { p.Day }</span>
+					}
+				</div>
+				<div class="screen-clock" data-clock>{ p.Time }</div>
+			</header>
+			for _, n := range p.Notices {
+				<p class="screen-notice">{ n }</p>
+			}
+			<p class="screen-stale" data-stale hidden>Not updated since <span data-stale-since></span>: check the screen's connection.</p>
+			if !p.Published {
+				<p class="screen-empty">The timetable isn't published yet</p>
+			} else if len(p.Areas) == 0 {
+				<p class="screen-empty">No flights on this day</p>
+			} else {
+				<div class={ "screen-grid", "screen-size-" + strconv.Itoa(p.Size), "screen-rows-" + strconv.Itoa(p.Rows) } style={ "--screen-columns: " + strconv.Itoa(p.Columns) + "; --screen-rows: " + strconv.Itoa(p.Rows) }>
+					for _, a := range p.busyAreas() {
+						@screenCard(a)
+					}
+				</div>
+				if quiet := p.quietAreas(); len(quiet) > 0 {
+					<div class="screen-strips">
+						for _, a := range quiet {
+							<div class={ "screen-strip", screenColour(a) }>
+								<strong class="screen-band">{ a.Name }</strong>
+								if a.Finished {
+									<span>Finished for the day</span>
+								} else {
+									<span>Next: { a.Next } · warm-up { a.NextWarmUp }</span>
+								}
+							</div>
+						}
+					</div>
 				}
-			</div>
-			<div class="screen-clock">{ p.Time }</div>
+			}
+		</div>
+	}
+}
+
+// screenCard is a busy area's card: its name and lateness in its colour,
+// what's on now with its gymnasts, and what's next with theirs.
+templ screenCard(a ScreenArea) {
+	<section class={ "screen-card", screenColour(a) }>
+		<header class="screen-band">
+			<h2 class="screen-area">{ a.Name }</h2>
+			if a.Late != "" {
+				<span class={ "screen-late", templ.KV("is-behind", a.Behind) }>{ a.Late }</span>
+			}
 		</header>
-		if !p.Published {
-			<p class="screen-empty">The timetable isn't published yet</p>
-		} else if len(p.Areas) == 0 {
-			<p class="screen-empty">No flights on this day</p>
-		} else {
-			<div class="screen-grid">
-				for _, a := range p.Areas {
-					<section class="screen-card">
-						<h2 class="screen-area">{ a.Name }</h2>
-						<p class="screen-label">Now</p>
-						if a.Now == "" {
-							<p class="screen-now">—</p>
-						} else {
-							<p class="screen-now">
-								{ a.Now }
-								if a.Planned {
-									<span class="screen-sub">(planned)</span>
-								}
-							</p>
-							if a.NowTimes != "" {
-								<p class="screen-sub">{ a.NowTimes }</p>
-							}
+		<div class="screen-part">
+			<p class="screen-label">Now</p>
+			if a.Now == "" {
+				<p class="screen-flight">—</p>
+			} else {
+				<p class="screen-flight">{ a.Now }</p>
+				if a.NowTimes != "" {
+					<p class="screen-sub">
+						{ a.NowTimes }
+						if a.Planned {
+							· not started yet
 						}
-						if len(a.Gymnasts) > 0 {
-							<ul class="screen-gymnasts">
-								for _, g := range a.Gymnasts {
-									<li class={ templ.KV("comp-scratched", g.Scratched) }>{ g.Name }</li>
-								}
-								if a.More > 0 {
-									<li>+{ strconv.Itoa(a.More) } more</li>
-								}
-							</ul>
-						}
-						<p class="screen-label">Next</p>
-						if a.Next == "" {
-							<p class="screen-now">—</p>
-						} else {
-							<p class="screen-now">{ a.Next }</p>
-							<p class="screen-sub">Warm-up { a.NextWarmUp }</p>
-						}
-						if a.Late != "" {
-							<p class={ "screen-late", templ.KV("is-behind", a.Behind) }>{ a.Late }</p>
-						}
-					</section>
+					</p>
 				}
-			</div>
-		}
+			}
+			// Once the marshal taps through, who's on and next take the
+			// space the flight's list had.
+			if a.Up != nil {
+				@screenUp(a.Up)
+			} else {
+				@screenNames(a.Gymnasts, a.More)
+			}
+		</div>
+		<div class="screen-part screen-next">
+			if a.Finished {
+				<p class="screen-label">Finished for the day</p>
+			} else if a.Next == "" {
+				<p class="screen-label">Next</p>
+				<p class="screen-flight">—</p>
+			} else {
+				<p class="screen-label">Next · warm-up { a.NextWarmUp }</p>
+				<p class="screen-flight">{ a.Next }</p>
+				@screenNames(a.NextGymnasts, a.NextMore)
+			}
+		</div>
+	</section>
+}
+
+// screenNames are a flight's gymnasts in running order, with their clubs.
+templ screenNames(gymnasts []ScreenGymnast, more int) {
+	if len(gymnasts) > 0 {
+		<ul class="screen-names">
+			for _, g := range gymnasts {
+				<li class={ templ.KV("comp-scratched", g.Scratched) }>
+					<span class="screen-no">{ strconv.Itoa(g.No) }</span>
+					<span class="screen-name">{ g.Name }</span>
+					if g.Club != "" {
+						<span class="screen-club">{ g.Club }</span>
+					}
+				</li>
+			}
+			if more > 0 {
+				<li class="screen-more" data-more={ strconv.Itoa(more) }>+{ strconv.Itoa(more) } more</li>
+			}
+		</ul>
 	}
 }

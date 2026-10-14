@@ -75,6 +75,10 @@ func TestNowOn(t *testing.T) {
 		{what: "a break for every area", now: at(16, 13, 30), area: "Floor 2", on: "-", brk: "Awards", next: "-"},
 		{what: "not the day: nothing planned, the first flight is next", now: at(17, 9, 30), area: "Floor 1", on: "-", next: "A"},
 		{what: "not the day: no break", now: at(17, 12, 30), area: "Floor 1", on: "-", next: "A"},
+		{what: "running late: B's time has passed but it hasn't started, so it's still to come", now: at(16, 11, 30), area: "Floor 1", on: "B", planned: true, next: "C",
+			actual: map[string]competitions.Actual{key(a): {Started: at(16, 9, 0), Finished: at(16, 10, 40)}}},
+		{what: "running late past the end of the plan: never blank while flights are left", now: at(16, 15, 0), area: "Floor 1", on: "C", planned: true, next: "-",
+			actual: map[string]competitions.Actual{key(a): {Started: at(16, 9, 0), Finished: at(16, 10, 0)}, key(b): {Started: at(16, 10, 0), Finished: at(16, 14, 50)}}},
 		{what: "marked on another date doesn't count", now: at(16, 9, 30), area: "Floor 1", on: "A", planned: true, next: "B",
 			actual: map[string]competitions.Actual{key(a): {Started: at(15, 9, 0)}}},
 	} {
@@ -129,7 +133,7 @@ func TestVenueScreen(t *testing.T) {
 			t.Errorf("the screen has a card for %s", a[1])
 		}
 	}
-	for _, want := range []string{">Next<", ">Now<", `<meta http-equiv="refresh" content="30">`, `<meta name="robots" content="noindex">`} {
+	for _, want := range []string{`class="screen-part screen-next"`, ">Now<", `<meta http-equiv="refresh" content="30">`, `<meta name="robots" content="noindex">`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the screen has %q", want)
 		}
@@ -180,11 +184,11 @@ func TestVenueScreen(t *testing.T) {
 	}
 	redirected(t, h, admin+"/day/flight", url.Values{"flight": {html2text(key[1])}, "what": {"start"}, "day": {"0"}})
 	body = do(t, h, http.MethodGet, screen+"/screen?day=0", nil).Body.String()
-	if !regexp.MustCompile(`Now</p>\s*<p class="screen-now">\s*BUCS L3`).MatchString(body) || strings.Contains(body, "(planned)") {
+	if !regexp.MustCompile(`Now</p>\s*<p class="screen-flight">\s*BUCS L3`).MatchString(body) || strings.Contains(body, "not started yet") {
 		t.Errorf("the started flight is on now: %s", body)
 	}
 	for _, name := range []string{"Ann", "Bea", "Cal"} {
-		if !strings.Contains(body, ">"+name+"<") {
+		if !regexp.MustCompile(`>\s*` + name + `\s*<`).MatchString(body) {
 			t.Errorf("the flight's gymnasts are named: %s", name)
 		}
 	}

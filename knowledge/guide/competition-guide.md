@@ -342,15 +342,30 @@ has a starting value you can change.
    **Missing**, which links to "what if they leave". Next to anyone who isn't
    here, **Notify** sends them, their club's comp sec and coaches, or both,
    a message saying where they should be.
+   **Marshals: who's up now.** Once a flight is **Started**, its box shows who's
+   first up. Tap **Next gymnast** as each gymnast starts their routine: the
+   box shows who's on, their club and which routine it is (such as Set or
+   Voluntary), and the venue screen shows them with the next two. Everyone
+   does their 1st routine in running order, then everyone their 2nd, and
+   scratched gymnasts are skipped. **Back** puts it right if you tapped too
+   soon. After the last routine, tap **Finished** as usual: Next gymnast won't
+   finish the flight for you.
    <a id="on-the-day-venue-screen"></a>**Venue screen** (a link at the top of
-   the On the day page): what's on each area now and what's next, in big type
-   for a screen at the venue. On the **Settings** page make a **Venue
-   screen** link, open it on the screen's browser and leave it: it refreshes
-   itself every 30 seconds, and that link can open nothing else. Each area
-   shows the flight that has been tapped **Started** (or, if none, the one
-   the plan says should be on, marked "(planned)", or the break), its
-   gymnasts in running order with scratched ones struck through, the next
-   flight with its warm-up time, and how late the area is running.
+   the On the day page): what's on each area now and what's next, for a TV
+   at the venue. On the **Settings** page make a **Venue screen** link, open
+   it on the TV's browser and leave it: it keeps itself up to date, and that
+   link can open nothing else. Each area has its own colour. Its card shows
+   the flight on now and the next one, each with its gymnasts and their
+   clubs, the warm-up time from the timetable, and how late the area is
+   running. Each gymnast's running number (their place in the flight) is
+   shown before their name, the same on every page and sheet, and it doesn't
+   change when someone ahead of them is scratched. Once the marshal taps **Next gymnast**, the card shows who's on
+   now, in large type, and the next two. Areas with nothing on soon shrink to a strip along the bottom.
+   With two TVs, show some areas on each by adding them to the link, for
+   example `…/screen?area=Panel 1&area=Panel 2`. If the TV loses its
+   connection, it keeps showing the last update and says how old it is.
+   To put a line across the top of every screen, use **On the venue
+   screen** on the Desk messages page.
 12. **Desk messages** (a button on the entries page, and a link at the top of
    On the day; chairs of judges' and timetable links get it too): send a
    message at once to a club, a flight (its gymnasts, its officials or both), all officials, one

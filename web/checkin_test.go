@@ -11,7 +11,7 @@ import (
 // checkinEntry finds a gymnast's entry id in the day page's check-in lists.
 func checkinEntry(t *testing.T, page, name string) string {
 	t.Helper()
-	m := regexp.MustCompile(`(?s)comp-checkin-name">\s*<span[^>]*>` + regexp.QuoteMeta(name) + `</span>.*?name="entry" value="([^"]+)"`).FindStringSubmatch(page)
+	m := regexp.MustCompile(`(?s)comp-checkin-name">\s*(?:<span class="comp-run-no"[^>]*>\d+</span>\s*)?<span[^>]*>` + regexp.QuoteMeta(name) + `</span>.*?name="entry" value="([^"]+)"`).FindStringSubmatch(page)
 	if m == nil {
 		t.Fatalf("no check-in row for %s: %s", name, page)
 	}
@@ -221,7 +221,7 @@ func TestScratchedOfficial(t *testing.T) {
 // checkinEntryIn finds a gymnast's entry id in one flight's check-in list.
 func checkinEntryIn(t *testing.T, page, flight, name string) string {
 	t.Helper()
-	m := regexp.MustCompile(`(?s)<strong>` + regexp.QuoteMeta(flight) + `</strong>.*?comp-checkin-name">\s*<span[^>]*>` + regexp.QuoteMeta(name) + `</span>.*?name="entry" value="([^"]+)"`).FindStringSubmatch(page)
+	m := regexp.MustCompile(`(?s)<strong>` + regexp.QuoteMeta(flight) + `</strong>.*?comp-checkin-name">\s*(?:<span class="comp-run-no"[^>]*>\d+</span>\s*)?<span[^>]*>` + regexp.QuoteMeta(name) + `</span>.*?name="entry" value="([^"]+)"`).FindStringSubmatch(page)
 	if m == nil {
 		t.Fatalf("no check-in row for %s in %s: %s", name, flight, page)
 	}
