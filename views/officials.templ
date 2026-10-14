@@ -110,6 +110,7 @@ type Cover struct {
 // OfficialRow is one of the competition's officials.
 type OfficialRow struct {
 	ID, Name, Club, Source, Offer string
+	Person                        string // their page
 	Qualified, Added              bool
 }
 
@@ -192,7 +193,7 @@ templ CompetitionOfficials(p OfficialsPage) {
 						for _, o := range p.Officials {
 							<tr>
 								<td>
-									{ o.Name }
+									<a href={ templ.SafeURL(o.Person) }>{ o.Name }</a>
 									<span class="has-text-grey is-size-7">· { o.Source }</span>
 								</td>
 								<td>{ o.Club }</td>

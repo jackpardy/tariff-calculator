@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-14
+* **Update**: [All people](features/competition-entries.md#all-people-roadmap-2026-10-14): a People page under Entries lists everyone at a competition once (gymnasts, partners, officials, coaches) with what they do, and each name opens a read-only page for the organiser with their entries, officiating, coaching, check-in and desk messages; the dashboard, Officials and Coaches pages link to it, and the member's own page is built by the same code. Roadmap item 4 built.
 * **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): item 5 also gives gymnasts entering on their own one personal page for all their entries, grouped by the person rather than by the name typed.
 * **Update**: [Dropdowns](architecture/rendering.md#dropdowns): every `<summary>` shows the same arrow (right when closed, down when open) from one CSS rule, so Limits and waiting lists and the dashboard's level headings read as dropdowns; buttons, the routine menu and the "move" link opt out. [Roadmap](roadmap.md#next-steps-2026-10-08) item marked built.
 * **Update**: [On the day](features/competition-entries.md#on-the-day-flights-started-and-finished): tapping Here, Scratched, Started, Notify and the rest no longer reloads the page: it updates in place, with the check-in lists still open and the page where it was; without JavaScript the browser goes back to the flight. Roadmap item 1 built.

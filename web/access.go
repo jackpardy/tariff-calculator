@@ -46,7 +46,7 @@ func allowed(kind, pattern string) bool {
 	if post && path == "/concerns" {
 		return true // anyone can flag a concern
 	}
-	viewing := get && (path == "" || path == "/entries/{id}" || path == "/cards" || path == "/entries.csv" || path == "/history")
+	viewing := get && (path == "" || path == "/entries/{id}" || path == "/cards" || path == "/entries.csv" || path == "/history" || path == "/people" || path == "/people/{key}")
 	switch kind {
 	case store.LinkCards:
 		return viewing || post && (path == "/entries/{id}/check" || path == "/entries/{id}/video")
@@ -82,6 +82,7 @@ func access(r *http.Request) views.Access {
 		Day:       can(r, "GET", "/day"),
 		Desk:      can(r, "GET", "/desk"),
 		Screen:    can(r, "GET", "/screen"),
+		People:    can(r, "GET", "/people"),
 	}
 }
 

@@ -17,6 +17,7 @@ import (
 // belongs to.
 const (
 	menuEntries   = ""
+	menuPeople    = "/people"
 	menuLate      = "/late"
 	menuCoaches   = "/coaches"
 	menuFees      = "/fees"
@@ -98,6 +99,9 @@ func orgMenu(base string, a views.Access, m menuState, current string) []views.M
 	}
 
 	entries := []views.MenuItem{item("Entries", menuEntries, "")}
+	if a.People {
+		entries = append(entries, item("People", menuPeople, ""))
+	}
 	if a.Settings {
 		entries = append(entries, item("Late changes", menuLate, badge(m.LateWaiting, "to decide")))
 	}

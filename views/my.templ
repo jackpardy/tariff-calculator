@@ -24,6 +24,8 @@ type MyCompetitionPage struct {
 	Days        []DayView
 	Mine        map[string]bool // their entries, by id
 	Me          string          // their person key, for the seats they're in
+	Menu        []MenuSection   // the organiser's menu, on the organiser's page of a person
+	Admin       *PersonAdmin    // what the organiser's page of a person adds; nil on their own page
 }
 
 // MyHere is the box that lets someone scratched from an event tell the
@@ -36,6 +38,10 @@ type MyHere struct {
 
 // MyEvent is one of their events.
 type MyEvent struct {
+	ID                        string // the entry's id
+	Link                      string // the organiser's page for the entry: organiser's page of a person only
+	Checkin                   string // whether they're here, once published: organiser's page only
+	Coach, CoachLink          string // who coaches them, and their page: organiser's page only
 	Event, Gymnasts, Category string
 	Status                    string
 	Problems                  []string
@@ -44,12 +50,69 @@ type MyEvent struct {
 	Turn, Turn2               string // about when each of their routines is
 }
 
+// PersonAdmin is what the organiser's page of a person adds to their
+// competition (roadmap: all people): who they are, what they offered and
+// coach, and anything to watch on the day.
+type PersonAdmin struct {
+	Club        string
+	Roles       []string // e.g. "Gymnast", "Judge", "Coach"
+	Officiating *PersonOfficiating
+	Coaching    *PersonCoaching
+	Scratch     []string // scratch warnings that still stand for them
+}
+
+// PersonOfficiating is what someone offered to do, and where the timetable
+// has them.
+type PersonOfficiating struct {
+	Offers    []string // what they offered, and who sent it
+	Judges    string   // the events they may judge under the judging rule, "" for none
+	Rule      string   // the judging rule, in words
+	Qualified string   // whether the organiser marked them qualified, where the rule asks
+	Seats     []string // their seats on the timetable
+	SeatsNote string   // which timetable the seats are from
+	Panel     string   // whether they're here for their panels, once published
+}
+
+// PersonCoaching is the gymnasts someone coaches.
+type PersonCoaching struct {
+	Approval string // where the competition approves coaches: how they stand
+	Entries  []PersonCoached
+}
+
+// PersonCoached is one entry someone coaches.
+type PersonCoached struct {
+	People []PersonLink // the gymnast, or the pair
+	Event  string
+	Entry  string // the entry's page
+}
+
+// PersonLink is a person and their page.
+type PersonLink struct {
+	Name, Href string
+}
+
 // MyCompetition is the person's page for a competition.
 templ MyCompetition(p MyCompetitionPage) {
 	@competitionLayout(p.Competition.Name + " · " + p.Name) {
 		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>{ p.BackLabel }</a></p>
-		<h1 class="title is-4">{ p.Competition.Name }</h1>
-		<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
+		if p.Admin != nil {
+			<h1 class="title is-4">{ p.Name }</h1>
+			<p class="subtitle is-6">
+				if p.Admin.Club != "" {
+					{ p.Admin.Club } ·
+				}
+				{ p.Competition.Name } · { p.Competition.Date }
+			</p>
+			@pageMenu(p.Menu)
+			<p class="tags mb-4">
+				for _, r := range p.Admin.Roles {
+					<span class="tag is-info is-light">{ r }</span>
+				}
+			</p>
+		} else {
+			<h1 class="title is-4">{ p.Competition.Name }</h1>
+			<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
+		}
 		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
 		if p.Notice != "" {
 			<div class="notification is-info is-light">{ p.Notice }</div>
@@ -64,19 +127,36 @@ templ MyCompetition(p MyCompetitionPage) {
 				</form>
 			</div>
 		}
-		if len(p.Events) == 0 {
+		if p.Admin != nil && len(p.Events) > 0 {
+			<h2 class="title is-5 mt-5">Entries</h2>
+		}
+		if len(p.Events) == 0 && p.Admin == nil {
 			<div class="notification is-light">No entries for you have reached the competition yet. Once your club sends them (or you enter), they show here.</div>
 		}
 		for _, ev := range p.Events {
 			<div class="box comp-my-event">
 				<p class="mb-1">
-					<strong>{ ev.Event }</strong>
+					if ev.Link != "" {
+						<strong><a href={ templ.SafeURL(ev.Link) }>{ ev.Event }</a></strong>
+					} else {
+						<strong>{ ev.Event }</strong>
+					}
 					if ev.Category != "" {
 						<span class="has-text-grey"> · { ev.Category }</span>
 					}
 				</p>
 				<p class="is-size-7 mb-2">{ ev.Gymnasts }</p>
 				<p class="is-size-7">{ ev.Status }</p>
+				if ev.Coach != "" {
+					<p class="is-size-7">
+						Coach:
+						if ev.CoachLink != "" {
+							<a href={ templ.SafeURL(ev.CoachLink) }>{ ev.Coach }</a>
+						} else {
+							{ ev.Coach }
+						}
+					</p>
+				}
 				if len(ev.Problems) > 0 {
 					<ul class="is-size-7 has-text-danger mb-2">
 						for _, pr := range ev.Problems {
@@ -87,20 +167,43 @@ templ MyCompetition(p MyCompetitionPage) {
 				if ev.Flight != "" {
 					<div class="comp-my-flight mt-2">
 						<p><strong>{ ev.Flight }</strong> · { ev.Area } · { ev.Day }</p>
-						<p>Warm-up <strong>{ ev.WarmUp }</strong> · you're <strong>{ ordinal(ev.Position) }</strong> of { strconv.Itoa(ev.Of) }</p>
+						if p.Admin != nil {
+							<p>Warm-up <strong>{ ev.WarmUp }</strong> · <strong>{ ordinal(ev.Position) }</strong> of { strconv.Itoa(ev.Of) }</p>
+						} else {
+							<p>Warm-up <strong>{ ev.WarmUp }</strong> · you're <strong>{ ordinal(ev.Position) }</strong> of { strconv.Itoa(ev.Of) }</p>
+						}
 						<p class="is-size-7 has-text-grey">Routines at about { ev.Turn } and { ev.Turn2 }, if the flight runs to time: a guide only.</p>
+						if ev.Checkin != "" {
+							<p class="is-size-7">Check-in: <strong>{ ev.Checkin }</strong></p>
+						}
 					</div>
+				} else if p.Published && p.Admin != nil {
+					<p class="is-size-7 has-text-grey mt-2">Not in a flight yet.</p>
 				} else if p.Published {
 					<p class="is-size-7 has-text-grey mt-2">Not in a flight yet: ask the organiser.</p>
 				}
 			</div>
 		}
-		@dutiesBox(p.Duties, p.ScoreSheets)
-		if !p.Published {
-			<div class="notification is-light">The timetable isn't published yet. Your flights, times and any judging show here once it is.</div>
+		if p.Admin != nil {
+			@personOfficiating(p.Admin.Officiating)
+			@personCoaching(p.Admin.Coaching)
+			for _, s := range p.Admin.Scratch {
+				<div class="notification is-warning is-light py-2">{ s }</div>
+			}
 		} else {
+			@dutiesBox(p.Duties, p.ScoreSheets)
+		}
+		if !p.Published && p.Admin == nil {
+			<div class="notification is-light">The timetable isn't published yet. Your flights, times and any judging show here once it is.</div>
+		} else if !p.Published && showsTimetable(p) {
+			<div class="notification is-light">The timetable isn't published yet. Their flights, times and check-in show here once it is.</div>
+		} else if p.Published && showsTimetable(p) {
 			<h2 class="title is-5 mt-5">The timetable</h2>
-			<p class="help mb-3">You're picked out in bold, and the panels you're on are marked.</p>
+			if p.Admin != nil {
+				<p class="help mb-3">{ p.Name } is picked out in bold, and the panels they're on are marked.</p>
+			} else {
+				<p class="help mb-3">You're picked out in bold, and the panels you're on are marked.</p>
+			}
 			for _, day := range p.Days {
 				<h3 class="title is-6 mt-4">{ day.Name }</h3>
 				<div class="columns is-multiline">
@@ -127,6 +230,79 @@ templ MyCompetition(p MyCompetitionPage) {
 				</div>
 			}
 		}
+	}
+}
+
+// showsTimetable says whether a page shows the timetable: always on a person's
+// own page, and on the organiser's only for someone in it, competing or on a
+// panel (not a coach).
+func showsTimetable(p MyCompetitionPage) bool {
+	return p.Admin == nil || len(p.Events) > 0 || len(p.Duties) > 0
+}
+
+// personOfficiating is what someone offered to do, who may judge what, and
+// their seats: on the organiser's page of them.
+templ personOfficiating(o *PersonOfficiating) {
+	if o != nil {
+		<div class="box">
+			<h2 class="title is-5">Officiating</h2>
+			<ul class="is-size-7 mb-2">
+				for _, offer := range o.Offers {
+					<li>{ offer }</li>
+				}
+			</ul>
+			if o.Judges != "" {
+				<p class="is-size-7 mb-1"><strong>Can judge:</strong> { o.Judges }</p>
+			} else {
+				<p class="is-size-7 mb-1"><strong>Can judge:</strong> <span class="has-text-grey">no events, under the judging rule</span></p>
+			}
+			<p class="is-size-7 has-text-grey mb-1">Judging rule: { o.Rule }.</p>
+			if o.Qualified != "" {
+				<p class="is-size-7 mb-1">{ o.Qualified }</p>
+			}
+			if len(o.Seats) > 0 {
+				<p class="is-size-7 mt-2"><strong>Seats</strong> <span class="has-text-grey">({ o.SeatsNote })</span></p>
+				<ul class="is-size-7">
+					for _, s := range o.Seats {
+						<li>{ s }</li>
+					}
+				</ul>
+			} else {
+				<p class="is-size-7 has-text-grey mt-2">{ o.SeatsNote }</p>
+			}
+			if o.Panel != "" {
+				<p class="is-size-7 mt-1">Panel check-in: <strong>{ o.Panel }</strong></p>
+			}
+		</div>
+	}
+}
+
+// personCoaching is the gymnasts someone coaches: on the organiser's page of
+// them.
+templ personCoaching(k *PersonCoaching) {
+	if k != nil {
+		<div class="box">
+			<h2 class="title is-5">Coaching</h2>
+			if k.Approval != "" {
+				<p class="is-size-7 mb-2">{ k.Approval }</p>
+			}
+			if len(k.Entries) == 0 {
+				<p class="is-size-7 has-text-grey">No entries yet.</p>
+			}
+			<ul class="is-size-7">
+				for _, e := range k.Entries {
+					<li>
+						for i, g := range e.People {
+							if i > 0 {
+								{ "&" }
+							}
+							<a href={ templ.SafeURL(g.Href) }>{ g.Name }</a>
+						}
+						· <a href={ templ.SafeURL(e.Entry) }>{ e.Event }</a>
+					</li>
+				}
+			</ul>
+		</div>
 	}
 }
 
