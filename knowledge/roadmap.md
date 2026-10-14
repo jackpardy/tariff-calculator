@@ -228,6 +228,19 @@ features that show that, in this order:
    or is comp sec gets one link, with tabs between their views. The comp
    sec can make a member a coach too, and anyone can add another of their
    links to their page to join them. A join can be undone.
+   **Gymnasts entering on their own too** (asked 2026-10-14). Today each
+   discipline and each competition entered on your own gets its own link,
+   and Your competition groups them by the name typed, so a misspelling
+   splits them and two people with one name are merged. Instead they get
+   a personal page like a club member's, without the club: Competitions
+   (each competition's page with a row per discipline) and Your details.
+   Another discipline is entered from that page under the same link; a
+   new competition's individual entry link offers to enter as the person
+   whose link is saved in this browser (or whose link they paste).
+   Existing entries join their page with the same "add your other link"
+   step. Entries are grouped by the person, not the name, and every
+   entry link already sent keeps working, opening that entry on their
+   page.
 6. **Search and filter every list of people**: a name search on each, and
    filters that suit the list (for officials: club, role, event, level,
    qualified). Long lists can be collapsed too, starting with the club's
