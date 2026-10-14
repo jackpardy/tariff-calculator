@@ -87,7 +87,7 @@ func (p *competitionPages) saveOwnOffer(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	notice := "Saved what you offer at " + c.Name + ". Your club sends it with its entries."
-	http.Redirect(w, r, memberPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	http.Redirect(w, r, memberCompetitionPath(r.PathValue("token"), c.ID)+"?notice="+urlQuery(notice), http.StatusSeeOther)
 }
 
 func (p *competitionPages) editMemberOffer(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +106,7 @@ func (p *competitionPages) editMemberOffer(w http.ResponseWriter, r *http.Reques
 	}
 	render(w, r, views.ClubOfferEditPage(views.ClubOfferEdit{
 		Base: clubPath(r.PathValue("token")), Club: club.Name, Member: m.Name, Competition: summary(c.Competition, p.now()),
-		Form: offerForm(c.Competition, o, r.URL.Path),
+		Menu: clubMenu(r.PathValue("token"), clubCompetitions), Form: offerForm(c.Competition, o, r.URL.Path),
 	}))
 }
 

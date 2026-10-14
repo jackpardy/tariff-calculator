@@ -308,7 +308,7 @@ func (s *seeder) run(out io.Writer) error {
 		club := s.post("/clubs", url.Values{"name": {cl.name}})
 		clubAdmins = append(clubAdmins, cl.name+": "+club)
 		s.post(clubLink, url.Values{"clubAdmin": {club}})
-		page := s.get(club)
+		page := s.get(club + "/members")
 		join := s.link(page, "/clubs/join/")
 		// Coaches.
 		coachLinks := map[string]string{}
@@ -337,7 +337,7 @@ func (s *seeder) run(out io.Writer) error {
 				firstMember = m.name + " (" + cl.name + "): " + m.link
 			}
 			m.coach = cl.coaches[s.rng.IntN(len(cl.coaches))]
-			if id := regexp.MustCompile(`<option value="([^"]+)">` + regexp.QuoteMeta(m.coach) + `</option>`).FindStringSubmatch(page); id != nil {
+			if id := regexp.MustCompile(`<option value="([^"]+)">` + regexp.QuoteMeta(m.coach) + `</option>`).FindStringSubmatch(s.get(m.link + "/details")); id != nil {
 				s.post(m.link+"/coach", url.Values{"coach": {id[1]}})
 			}
 			save := m.link + "/competitions/" + compID
@@ -426,7 +426,7 @@ func (s *seeder) run(out io.Writer) error {
 			entry := url.Values{"discipline": {"synchro"}, "partnerName": {b.name}, "partnerClub": {b.club}}
 			s.routine(entry, levels[min(levelIndex(a.level), levelIndex(b.level))].name, false)
 			s.post(a.link+"/competitions/"+compID, entry)
-			partner := s.link(s.get(a.link), "/competitions/partner/")
+			partner := s.link(s.get(a.link+"/competitions/"+compID), "/competitions/partner/")
 			s.post(partner, url.Values{"link": {"http://example.com" + b.link}})
 		}
 	}

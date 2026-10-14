@@ -97,14 +97,17 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET /competitions` | — | The competitions, clubs and entries this browser has links to |
 | `GET`, `POST /competitions/club/{token}` | `clubAdmin` (a club's admin link, or its token) | A competition's club link: a comp sec enters their club |
 | `GET /clubs/new`, `POST /clubs` | `name` | Creates a club: 303 to its page with `?new=created`; 429 after 5 an hour from one address |
-| `GET /clubs/admin/{token}` | optional `new`, `notice` | The comp sec's page: join link, each competition's entries, members |
+| `GET /clubs/admin/{token}` | optional `new`, `notice` | The comp sec's Competitions section (the default): each competition the club is in, with its members' entries |
+| `GET /clubs/admin/{token}/members`, `/coaches`, `/settings` | optional `notice` | The comp sec's other sections: the join link, members and synchro entries made with them; the coaches; replacing the admin link and deleting the club. Each has the section menu |
 | `POST /clubs/admin/{token}/competitions/{id}/send` | `which` (`changed` or `all`) | Sends new and changed entries, or all again (taking back withdrawn ones) |
 | `GET`, `POST /clubs/admin/{token}/members/{member}/competitions/{id}` | as entering, without `gymnast` | Changes a member's entry on their behalf |
 | `POST /clubs/admin/{token}/members/{member}/new-link` | — | The page with the member's new link, shown once |
 | `POST /clubs/admin/{token}/members/{member}/remove` | — | Removes the member and their entries |
 | `POST /clubs/admin/{token}/replace-link`, `/delete` | `confirm=1` to delete | As for a competition |
 | `GET`, `POST /clubs/join/{token}` | `name` | Joining a club: 303 to the member's page with `?new=joined` |
-| `GET /clubs/member/{token}` | — | A member's page: their entry for each competition the club is in |
+| `GET /clubs/member/{token}` | optional `new`, `notice` | A member's Competitions tab (the default): a row for each competition the club is in, with its date and status |
+| `GET /clubs/member/{token}/competitions/{id}` | optional `notice`, `discipline` (the row to open) | A member's page for one competition: facts, links, each discipline's entry as a row that opens to its card and forms, officiating, and the judging offer; 404 if the club isn't entered |
+| `GET /clubs/member/{token}/details` | optional `notice` | A member's personal link and their coach |
 | `GET /clubs/member/{token}/competitions/{id}/day` | `notice` | My competition: their events, cards, flights and times, duties, and the published timetable; a box to say "I'm here for the rest" if they're scratched from something |
 | `POST /clubs/member/{token}/competitions/{id}/here` | — | "I'm here for the rest": a scratched member clears both scratch warnings for themselves, then goes back to My competition with a notice; only once the timetable is published |
 | `POST /clubs/member/{token}/competitions/{id}` | as entering, without `gymnast` | Saves the member's entry (their club sends it) |

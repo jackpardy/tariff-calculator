@@ -197,12 +197,18 @@ features that show that, in this order:
    - **Links and settings on a page of their own**, not a section of
      the entries page.
    - **The same for clubs and gymnasts entering on their own**, with a
-     menu in place of one long page.
+     menu in place of one long page. **Built 2026-10-14 for clubs:** a
+     comp sec's page is Competitions, Members, Coaches and Settings.
+     Gymnasts entering on their own have one competition, so no menu
+     yet.
    - **Individuals: a Competitions tab** listing their competitions, each
      opening that competition's page. Within it, each entry is collapsed
      by default and the list view comes first. Other tabs come later,
      such as routines, or a coach's view once one link covers several
-     roles.
+     roles. **Built 2026-10-14 for club members:** Competitions (a row
+     for each, opening its page, with each discipline a collapsed row)
+     and Your details; more tabs go in `memberMenu`
+     (`web/menus_club.go`). Still to do: the coach's page.
 3. **Make dropdowns look like dropdowns** (asked 2026-10-13). **Limits
    and waiting lists**, under Links and settings, opens when tapped but
    shows no arrow, so it reads as a plain heading. Bulma's `label` class

@@ -732,3 +732,13 @@ details > * { box-sizing: border-box; }
 .comp-menu .comp-submenu { margin-top: 0.5rem; }
 .comp-menu .comp-submenu ul { border-bottom: none; }
 .comp-menu .comp-submenu li.is-active a { border-bottom-color: #485fc7; color: #485fc7; font-weight: 600; }
+/* A member's pages (views/clubs.templ): the competitions as rows to open, and
+   each discipline's entry as a one-line row that opens to its card. */
+.comp-member-row { display: block; margin-bottom: 0.75rem; }
+.comp-member-row:hover { box-shadow: 0 0.5em 1em -0.125em rgba(10, 10, 10, 0.15), 0 0 0 1px #485fc7; }
+.comp-event-row { margin-bottom: 0.75rem; }
+.comp-event-row > summary { cursor: pointer; }
+/* On a phone, tighter tabs so four sections fit without scrolling sideways. */
+@media (max-width: 480px) {
+    .comp-menu .tabs:not(.comp-submenu) a { padding: 0.5em 0.55em; font-size: 0.92rem; }
+}

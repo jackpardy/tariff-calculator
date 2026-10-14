@@ -14,12 +14,12 @@ func TestMyCompetition(t *testing.T) {
 	clubLink := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	member := withoutQuery(redirected(t, h, join, url.Values{"name": {"Mo"}}))
-	save := formAction(t, do(t, h, http.MethodGet, member, nil).Body.String(), member+"/competitions/")
+	save := formAction(t, memberCompetitionPage(t, h, member), member+"/competitions/")
 	redirected(t, h, save, url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
 
-	m := regexp.MustCompile(`href="(` + regexp.QuoteMeta(member) + `/competitions/[^"/]+/day)"`).FindStringSubmatch(do(t, h, http.MethodGet, member, nil).Body.String())
+	m := regexp.MustCompile(`href="(` + regexp.QuoteMeta(member) + `/competitions/[^"/]+/day)"`).FindStringSubmatch(memberCompetitionPage(t, h, member))
 	if m == nil {
 		t.Fatal("the member page links to their competition")
 	}

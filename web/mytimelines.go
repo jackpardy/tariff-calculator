@@ -33,7 +33,7 @@ func (p *competitionPages) memberTimeline(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	p.personalTimeline(w, r, c, "m:"+m.ID, memberPath(r.PathValue("token")))
+	p.personalTimeline(w, r, c, "m:"+m.ID, memberCompetitionPath(r.PathValue("token"), c.ID))
 }
 
 func (p *competitionPages) individualTimeline(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +53,7 @@ func (p *competitionPages) memberClubTimeline(w http.ResponseWriter, r *http.Req
 	if !ok {
 		return
 	}
-	p.clubTimeline(w, r, c, m.ClubID, memberPath(r.PathValue("token")))
+	p.clubTimeline(w, r, c, m.ClubID, memberCompetitionPath(r.PathValue("token"), c.ID))
 }
 
 func (p *competitionPages) adminClubTimeline(w http.ResponseWriter, r *http.Request) {

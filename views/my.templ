@@ -9,6 +9,7 @@ type MyCompetitionPage struct {
 	Competition CompetitionSummary
 	Name        string
 	Back        string // their own page
+	BackLabel   string // says where Back goes, e.g. "← Your page"
 	Timeline    string // their timetable as the panel timeline, once published
 	Calendar    string // their timetable as a calendar file, once published
 	Notify      string // where they ask to hear about changes
@@ -46,7 +47,7 @@ type MyEvent struct {
 // MyCompetition is the person's page for a competition.
 templ MyCompetition(p MyCompetitionPage) {
 	@competitionLayout(p.Competition.Name + " · " + p.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Your page</a></p>
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>{ p.BackLabel }</a></p>
 		<h1 class="title is-4">{ p.Competition.Name }</h1>
 		<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
 		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")

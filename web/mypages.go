@@ -36,7 +36,7 @@ func (p *competitionPages) memberDay(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	p.renderDay(w, r, c, "m:"+m.ID, m.ClubID, m.Name, memberPath(r.PathValue("token")))
+	p.renderDay(w, r, c, "m:"+m.ID, m.ClubID, m.Name, memberCompetitionPath(r.PathValue("token"), c.ID), "← Your entries")
 }
 
 func (p *competitionPages) individualDay(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +44,7 @@ func (p *competitionPages) individualDay(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	p.renderDay(w, r, c, individualKey(e.Entry.Gymnast), "", e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token"))
+	p.renderDay(w, r, c, individualKey(e.Entry.Gymnast), "", e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token"), "← Your page")
 }
 
 // memberHere is a scratched member saying they're still here for the rest.
@@ -108,7 +108,8 @@ func hereBox(entries []store.Entry, keys map[string][]string, key string, offici
 
 // renderDay shows a person's competition: key is who they are, as the
 // timetable knows them, and club is their club's id ("" for an individual).
-func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c store.Competition, key, club, name, back string) {
+// back is the page of theirs it came from, and backLabel says so.
+func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c store.Competition, key, club, name, back, backLabel string) {
 	all, err := p.st.Entries(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
@@ -116,7 +117,7 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 	}
 	entries := live(all)
 	keys := personKeys(entries)
-	page := views.MyCompetitionPage{Competition: summary(c.Competition, p.now()), Name: name, Back: back, Mine: map[string]bool{}, Me: key, Notice: r.URL.Query().Get("notice")}
+	page := views.MyCompetitionPage{Competition: summary(c.Competition, p.now()), Name: name, Back: back, BackLabel: backLabel, Mine: map[string]bool{}, Me: key, Notice: r.URL.Query().Get("notice")}
 	if published(c) {
 		page.Timeline = strings.TrimSuffix(r.URL.Path, "/day") + "/timeline"
 		page.Calendar = strings.TrimSuffix(r.URL.Path, "/day") + "/calendar.ics"

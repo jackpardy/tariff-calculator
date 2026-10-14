@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-14
+* **Update**: [Club and member menus](features/competition-entries.md#the-clubs-comp-sec-club-admin-link): a comp sec's page is four sections (Competitions, Members, Coaches, Settings) and a member's is tabs (Competitions, Your details), where each competition has a page of its own with its disciplines as collapsed rows; the guide's sections 2 and 3, the [routes](architecture/http-routes.md) and the roadmap are updated.
 * **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): the menus and dropdowns move up to second and third, after the check-in fix, so the people pages are built into the new layout.
 
 ## 2026-10-13
