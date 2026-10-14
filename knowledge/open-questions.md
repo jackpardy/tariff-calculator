@@ -53,8 +53,9 @@ parent's email"; anyone younger can still use push (decided 2026-10-07).
 Designed in [ADR 0008](../docs/adr/0008-notifications.md) (2026-10-08):
 opting in per competition, emails confirmed, a ten-minute grace period by
 default, no quiet hours, and email by SMTP (Amazon SES in its Ireland
-region is the leaning). Still to do on the server: an email provider, with
-SPF and DKIM for `tariff.pardy.ie`.
+region, decided 2026-10-09). Still to do on the server: setting up SES,
+with DKIM, SPF and DMARC for `tariff.pardy.ie` (steps in
+[deploy](operations/deploy.md#notifications)).
 
 # Removing entries
 

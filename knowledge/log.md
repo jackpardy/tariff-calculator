@@ -1,5 +1,13 @@
 # Update log
 
+## 2026-10-14
+* **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): the menus and dropdowns move up to second and third, after the check-in fix, so the people pages are built into the new layout.
+
+## 2026-10-13
+* **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): finding your way round: a menu for organisers, Links and settings on their own page, menus for clubs and individuals, a Competitions tab for individuals, and collapsible lists of people.
+* **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): dropdowns that don't look like dropdowns (Limits and waiting lists first), and a review of them all.
+* **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): sending desk messages and notifications in the background, before the dry run; email decided as Amazon SES in Ireland, with the setup steps in [deploy](operations/deploy.md#notifications).
+
 ## 2026-10-09
 * **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): ready for a late-2026 dry run: faster pages, compressed pages, a Feedback button, email on the server, taps without signal, a load test; and for ISTO, staff wifi, the server scaled up for the weekend, and a March rehearsal on a copy of the real competition.
 * **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): next are check-in keeping the flight open, an All people list, one link for several roles, search and filters on lists of people, and venue screen changes (stretch: who's on, which routine, and who's next).

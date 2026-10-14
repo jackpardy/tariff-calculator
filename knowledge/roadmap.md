@@ -184,23 +184,46 @@ features that show that, in this order:
    [offline](features/competition-entries.md#offline): a person's opened
    pages open without a connection, as last seen), add to calendar.
 
-**Next (asked 2026-10-09), before the rest:**
+**Next (asked 2026-10-09 and 2026-10-13), before the rest.** The menus come early because they touch every page, so the new people pages go straight into the new layout.
 
 1. **Check-in keeps the flight open**: marking someone Here, Scratched or
    Clear on the On the day page updates just their row, so the flight's
    check-in list doesn't close.
-2. **All people, for the organiser**: a list of everyone at the
+2. **Finding your way round (asked 2026-10-13):**
+   - **A menu for the organiser**, with sections and subsections:
+     entries, timetable, coaches, panels and officials, routines and
+     competition settings. Today it's a row of buttons on the entries
+     page.
+   - **Links and settings on a page of their own**, not a section of
+     the entries page.
+   - **The same for clubs and gymnasts entering on their own**, with a
+     menu in place of one long page.
+   - **Individuals: a Competitions tab** listing their competitions, each
+     opening that competition's page. Within it, each entry is collapsed
+     by default and the list view comes first. Other tabs come later,
+     such as routines, or a coach's view once one link covers several
+     roles.
+3. **Make dropdowns look like dropdowns** (asked 2026-10-13). **Limits
+   and waiting lists**, under Links and settings, opens when tapped but
+   shows no arrow, so it reads as a plain heading. Bulma's `label` class
+   on its `<summary>` makes it a block and hides the marker
+   (`views/limits.templ`). This isn't the first time, so review all 52
+   dropdowns: the dashboard's level headings (`title` on the summary in
+   `views/competitions.templ`) look like the same problem. Give every
+   dropdown one look, with an arrow that turns when open.
+4. **All people, for the organiser**: a list of everyone at the
    competition, one row a person whatever their roles, which the coaches,
    officials and entries lists link to. Each person's page shows everything
    they're doing, like their own Your competition page, read-only.
-3. **One link for a person with several roles**: a member who also coaches
+5. **One link for a person with several roles**: a member who also coaches
    or is comp sec gets one link, with tabs between their views. The comp
    sec can make a member a coach too, and anyone can add another of their
    links to their page to join them. A join can be undone.
-4. **Search and filter every list of people**: a name search on each, and
+6. **Search and filter every list of people**: a name search on each, and
    filters that suit the list (for officials: club, role, event, level,
-   qualified).
-5. **Venue screen changes** (to be gone through). Stretch goal: show
+   qualified). Long lists can be collapsed too, starting with the club's
+   Members list (asked 2026-10-13).
+7. **Venue screen changes** (to be gone through). Stretch goal: show
    which gymnast is on now and what they're doing (set routine, then
    voluntary) and who's up next, tapped through by the marshal.
 
@@ -222,8 +245,19 @@ December. Before it:
 - **A Feedback button** on every competition page while the dry run is on,
   saving the words, the page, the role and the time for the maintainer.
   Helper links already have Flag a concern; this is for everyone.
-- **Email on the server**: a provider (Amazon SES in Ireland is the
-  leaning) and the SPF and DKIM records.
+- **Send in the background.** A desk message, or a round of change
+  notifications, emails and pushes each person one at a time before the
+  organiser's page answers: about half a second to a second an email, so
+  a message to 300 people hangs for minutes and may time out part way
+  through. Send a few at a time in the background, and say at once how
+  many it's going to.
+- **Email on the server**: Amazon SES in Ireland (decided 2026-10-09:
+  pennies a competition and no daily cap that matters, unlike the free
+  tiers of Resend or Brevo; Postmark is the fallback if SES refuses
+  production access). Sending from `tariff.pardy.ie`, with DKIM, SPF on a
+  MAIL FROM subdomain and a DMARC record starting at `p=none`; apply for
+  production access early. The steps are in
+  [deploy](operations/deploy.md#notifications).
 - **Taps without signal**: Started, Finished, Here and Scratched saved on
   the phone with the time they were tapped, and sent when the signal
   comes back; and a way to correct a start or finish time afterwards,

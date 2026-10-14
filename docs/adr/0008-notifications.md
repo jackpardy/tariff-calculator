@@ -107,7 +107,7 @@ expired competitions.
 7. **Email goes by SMTP, configured on the server.** `SMTP_HOST`,
    `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` and `MAIL_FROM` set the
    sender: any provider that offers SMTP with STARTTLS (Amazon SES's
-   Ireland region is the leaning).
+   Ireland region, chosen 2026-10-09; Postmark if SES refuses).
    Without them, email isn't offered and only push is; nothing else
    changes. Push needs no configuration. Both use Go's standard library
    only (`net/smtp`; ECDH, HKDF and AES-GCM for push's encryption), so no
