@@ -35,8 +35,13 @@ type Link struct {
 var organiser = Link{Name: "Organiser", Kind: LinkOrganiser}
 
 // AdminLink is the competition an admin link opens, with which link it is:
-// the organiser's or an extra one.
+// the organiser's or an extra one. A personal link's Via to the competition
+// (for the organiser's) or to the extra link opens it while the person has
+// that link, as it is now, on their page (ADR 0010).
 func (s *Store) AdminLink(ctx context.Context, token string) (Competition, Link, error) {
+	if personal, id, ok := splitVia(token); ok {
+		return s.adminVia(ctx, personal, id)
+	}
 	c, err := s.CompetitionByAdmin(ctx, token)
 	if err == nil {
 		return c, organiser, nil
@@ -52,6 +57,31 @@ func (s *Store) AdminLink(ctx context.Context, token string) (Competition, Link,
 	}
 	l.CreatedAt = parseTime(created)
 	c, err = s.Competition(ctx, competitionID)
+	return c, l, err
+}
+
+// adminVia is the admin link a personal link's Via opens: the organiser's,
+// by the competition's id, or an extra one, by its id.
+func (s *Store) adminVia(ctx context.Context, personal, id string) (Competition, Link, error) {
+	h, err := holderOf(ctx, s.db, personal)
+	if err != nil {
+		return Competition{}, Link{}, err
+	}
+	var kind, competitionID, created string
+	var l Link
+	err = s.db.QueryRowContext(ctx, `SELECT 'organiser', c.id, '', '', '', '' FROM shared_ties t JOIN competitions c ON c.id = t.target_id AND c.admin_hash = t.link_hash
+			WHERE t.kind = 'organiser' AND t.target_id = $1 AND t.record_id IN (`+personRecords("2")+`)
+		UNION ALL SELECT 'helper', l.competition_id, l.id, l.name, l.kind, l.created_at FROM shared_ties t JOIN competition_links l ON l.id = t.target_id AND l.token_hash = t.link_hash
+			WHERE t.kind = 'helper' AND t.target_id = $1 AND t.record_id IN (`+personRecords("2")+`)
+		LIMIT 1`, id, h.PersonID).Scan(&kind, &competitionID, &l.ID, &l.Name, &l.Kind, &created)
+	if err != nil {
+		return Competition{}, Link{}, notFound(err)
+	}
+	c, err := s.Competition(ctx, competitionID)
+	if kind == RoleOrganiser {
+		return c, organiser, err
+	}
+	l.CreatedAt = parseTime(created)
 	return c, l, err
 }
 

@@ -98,7 +98,7 @@ func TestPanelCheckinRun(t *testing.T) {
 	if leave == nil || strings.Count(page, "What if they leave") != 2 {
 		t.Fatalf("a what-if link under each of her seats: %s", page)
 	}
-	if to := html2text(leave[1]); !strings.HasPrefix(to, tt+"/leave?") || !strings.Contains(to, "person=i%3Adara") || !strings.Contains(to, "day=0") {
+	if to := html2text(leave[1]); !strings.HasPrefix(to, tt+"/leave?") || !strings.Contains(to, "person=i%3A") || !strings.Contains(to, "day=0") {
 		t.Errorf("the link is for Dara on that day: %s", to)
 	}
 	if !notifyForm(page, dara, flight1, "official") || !notifyForm(page, dara, flight2, "official") {

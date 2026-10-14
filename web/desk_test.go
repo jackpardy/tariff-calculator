@@ -253,8 +253,8 @@ func TestDeskCome(t *testing.T) {
 	desk := admin + "/desk"
 	page := do(t, h, http.MethodGet, desk, nil).Body.String()
 	key := personOnDesk(t, page, "Ann Ryan")
-	if key != "i:ann ryan" {
-		t.Errorf("an individual is picked by name: %s", key)
+	if !strings.HasPrefix(key, "i:") || key == personOnDesk(t, page, "Bea Walsh") {
+		t.Errorf("an individual is picked as a person: %s", key)
 	}
 	redirected(t, h, desk, url.Values{"to": {"people"}, "person": {key}, "come": {"1"}})
 	if len(mail.sent) != 1 || mail.sent[0].to != "ann@example.com" {
@@ -297,7 +297,7 @@ func TestDeskLinks(t *testing.T) {
 	table := madeLink(t, h, admin, "Timetable", "timetable")
 	co := madeLink(t, h, admin, "Co-organiser", "everything")
 
-	form := url.Values{"to": {"people"}, "person": {"i:ann ryan"}, "come": {"1"}}
+	form := url.Values{"to": {"people"}, "person": {personOnDesk(t, do(t, h, http.MethodGet, admin+"/desk", nil).Body.String(), "Ann Ryan")}, "come": {"1"}}
 	if rec := do(t, h, http.MethodGet, cards+"/desk", nil); rec.Code != http.StatusForbidden {
 		t.Errorf("a cards link can't see the desk: %d", rec.Code)
 	}

@@ -57,14 +57,13 @@ func live(entries []store.Entry) []store.Entry {
 }
 
 // personKeys are each entry's people, by entry id, matched across entries:
-// members by member, and individuals by name, since an individual enters each
-// discipline separately (ADR 0005 Decision 4). Two different individuals with
-// the same name are treated as one: kept apart, never put in two places.
+// members by member, and individuals by person (ADR 0005 Decision 4, ADR
+// 0010), their entries all keyed alike in a competition.
 func personKeys(entries []store.Entry) map[string][]string {
 	individual := map[string]string{} // entry id → key
 	for _, e := range entries {
 		if e.Individual {
-			individual[e.ID] = individualKey(e.Entry.Gymnast)
+			individual[e.ID] = personKeyOf(e)
 		}
 	}
 	out := map[string][]string{}
@@ -83,9 +82,13 @@ func personKeys(entries []store.Entry) map[string][]string {
 	return out
 }
 
-// individualKey is the person key of a gymnast entering on their own, by name.
-func individualKey(name string) string {
-	return "i:" + strings.ToLower(strings.Join(strings.Fields(name), " "))
+// personKeyOf is the person key of an individual's entry: their person's in
+// its competition (ADR 0010).
+func personKeyOf(e store.Entry) string {
+	if e.PersonKey != "" {
+		return e.PersonKey
+	}
+	return store.IndividualKey(e.Entry.Gymnast)
 }
 
 // coachKey is the key of an entry's coach, if it has one: by club and name.
@@ -94,7 +97,7 @@ func coachKey(e store.Entry) string { return coachKeyOf(e.ClubID, e.CoachName())
 // coachKeyOf is the key of a coach of a club ("" for an individual's), by
 // name; "" for no name.
 func coachKeyOf(clubID, name string) string {
-	name = strings.ToLower(strings.Join(strings.Fields(name), " "))
+	name = store.NameKey(name)
 	if name == "" {
 		return ""
 	}

@@ -116,6 +116,8 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerOfficials(handle)
 	p.registerApprovals(handle)
 	p.registerPeople(handle)
+	p.registerRoles(handle)
+	p.registerGymnasts(handle)
 	p.registerMine(handle)
 	p.registerTimelines(handle)
 	p.registerCalendars(handle)
@@ -133,7 +135,7 @@ func (p *competitionPages) secret(h http.HandlerFunc) http.Handler {
 			message(w, r, http.StatusServiceUnavailable, "Not available yet", "Competition entries aren't available on this server yet.")
 			return
 		}
-		h(w, r)
+		h(w, p.withRoles(r))
 	})
 }
 
@@ -636,7 +638,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		d.Removed = append(d.Removed, views.RemovedRow{ID: e.ID, Gymnast: e.Entry.Gymnasts(), Club: clubOf(e), Level: e.Entry.Event(),
 			Held: e.Removal == store.Held, Resent: e.Resent, Note: e.RemovalNote, To: reasonTo(e)})
 	}
-	if d.New != "" {
+	if d.New != "" && !store.IsVia(r.PathValue("token")) {
 		d.Links.Admin = origin(r) + adminPath(r.PathValue("token"))
 	}
 	seen := map[string]bool{}
@@ -1294,7 +1296,9 @@ func (p *competitionPages) enterForm(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	render(w, r, views.CompetitionEnter(enterPage(c, competitions.Entry{Discipline: chosenDiscipline(c.Competition, r.URL.Query().Get("discipline"))}, r.URL.Path, p.now())))
+	page := enterPage(c, competitions.Entry{Discipline: chosenDiscipline(c.Competition, r.URL.Query().Get("discipline"))}, r.URL.Path, p.now())
+	page.Form.As = &views.EnterAs{}
+	render(w, r, views.CompetitionEnter(page))
 }
 
 // chosenDiscipline is the discipline asked for, if the competition offers
@@ -1325,19 +1329,35 @@ func (p *competitionPages) enter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	e, problems := postedEntry(r, c.Competition, "")
-	if len(problems) > 0 {
+	as, problem := enterAs(r)
+	if problem != "" {
+		problems = append(problems, problem)
+	}
+	again := func(problems []string) {
 		page := enterPage(c, e, r.URL.Path, p.now())
-		page.Form.Problems = problems
+		page.Form.Problems, page.Form.As = problems, &views.EnterAs{Link: r.FormValue("as")}
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		render(w, r, views.CompetitionEnter(page))
+	}
+	if len(problems) > 0 {
+		again(problems)
 		return
 	}
-	_, token, err := p.st.AddIndividualEntry(r.Context(), c.ID, e)
+	// As the person whose page's link was given, or someone new, with a
+	// personal link of their own (ADR 0010).
+	added, personal, err := p.st.AddIndividualEntry(r.Context(), c.ID, as, e)
+	if problem := asProblem(err); problem != "" {
+		again([]string{problem})
+		return
+	}
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/competitions/entry/"+token+"?saved=1", http.StatusSeeOther)
+	if personal == "" {
+		personal = store.Personal(as)
+	}
+	http.Redirect(w, r, "/competitions/entry/"+store.Via(personal, added.ID)+"?saved=1", http.StatusSeeOther)
 }
 
 // own is the entry a personal link opens, with its competition.
@@ -1372,14 +1392,15 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		return
 	}
 	withSignoff(&shown, storedSignoff(c.Competition, e))
-	path := "/competitions/entry/" + r.PathValue("token")
+	token := r.PathValue("token")
+	path := "/competitions/entry/" + token
 	page := views.EntryPage{
 		Competition: summary(c.Competition, p.now()), Link: origin(r) + path, JustSaved: r.URL.Query().Get("saved") == "1",
 		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
 		Placement:   placement(c, e.ID),
 		Waiting:     waitingText(p.waitingOf(r.Context(), c.ID, e.ID)),
 		Late:        p.lateStatusOf(r.Context(), c, e.ID),
-		Duties:      dutiesOf(c, individualKey(e.Entry.Gymnast)),
+		Duties:      dutiesOf(c, personKeyOf(e)),
 		Day:         path + "/day",
 		VideoReview: e.VideoReview, VideoNote: e.VideoNote,
 		Form: entryForm(c.Competition, form, path, "Save changes"), Withdraw: path + "/withdraw",
@@ -1387,12 +1408,26 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	if c.Signoff {
 		page.SignoffLink = origin(r) + signoffPath(e.SignoffLink)
 	}
+	// The entry is on its person's page (ADR 0010): opened through their
+	// personal link, that's the link to keep; through an entry link from
+	// before, that entry link.
+	base := token
+	if store.IsVia(token) {
+		page.Link, base = "", store.Via(store.Personal(token), e.IndividualID)
+		if h, err := p.st.HolderOf(r.Context(), token); err == nil && h.Kind == store.RoleIndividual {
+			base = store.Personal(token)
+			page.Link, page.Personal = origin(r)+gymnastPath(base), true
+		}
+	}
+	if e.IndividualID != "" {
+		page.Menu, page.Back = gymnastMenu(base, gymnastCompetitions), gymnastCompetitionPath(base, c.ID)
+	}
 	page.Notice = r.URL.Query().Get("notice")
 	if published(c) {
 		page.Timeline, page.Calendar = path+"/timeline", path+"/calendar.ics"
 	}
 	page.Notify = p.notifyLink(path + "/notify")
-	page.Desk = p.deskNotes(r.Context(), c.ID, []string{individualKey(e.Entry.Gymnast)}, nil, nil)
+	page.Desk = p.deskNotes(r.Context(), c.ID, []string{personKeyOf(e)}, nil, nil)
 	page.Fees = p.feesSummary(r.Context(), c, entryPayer(e.ID), path+"/invoice")
 	if lateOpen(c, p.now()) {
 		page.LateAsk = path + "/late"

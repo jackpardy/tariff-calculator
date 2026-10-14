@@ -41,7 +41,7 @@ func (p *competitionPages) individualTimeline(w http.ResponseWriter, r *http.Req
 	if !ok {
 		return
 	}
-	p.personalTimeline(w, r, c, individualKey(e.Entry.Gymnast), "/competitions/entry/"+r.PathValue("token"))
+	p.personalTimeline(w, r, c, personKeyOf(e), "/competitions/entry/"+r.PathValue("token"))
 }
 
 func (p *competitionPages) memberClubTimeline(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +222,7 @@ func (p *competitionPages) individualScoreSheets(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
-	p.officialScoreSheets(w, r, c, individualKey(e.Entry.Gymnast), "/competitions/entry/"+r.PathValue("token"))
+	p.officialScoreSheets(w, r, c, personKeyOf(e), "/competitions/entry/"+r.PathValue("token"))
 }
 
 // officialScoreSheets are the score sheets of the flights a person (by key)

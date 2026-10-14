@@ -39,6 +39,16 @@ func entry(gymnast string) competitions.Entry {
 	return competitions.Entry{Gymnast: gymnast, Level: "BUCS L3", Exercises: [2]competitions.Exercise{{Option: "builtin:bucs-l3-option-1"}, {Option: "builtin:bucs-l3-second"}}}
 }
 
+// enter enters on one's own as someone new, returning the entry and a link
+// that opens it, as its entry link did before ADR 0010.
+func enter(s *Store, competitionID string, e competitions.Entry) (Entry, string, error) {
+	got, personal, err := s.AddIndividualEntry(ctx, competitionID, "", e)
+	if err != nil {
+		return got, "", err
+	}
+	return got, Via(personal, got.ID), nil
+}
+
 func must(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
@@ -125,7 +135,7 @@ func TestIndividualEntries(t *testing.T) {
 	c, _, err := s.CreateCompetition(ctx, competition())
 	must(t, err)
 
-	e, token, err := s.AddIndividualEntry(ctx, c.ID, entry("C. Ryan"))
+	e, token, err := enter(s, c.ID, entry("C. Ryan"))
 	must(t, err)
 	if !e.Individual {
 		t.Error("marked individual")
@@ -164,7 +174,7 @@ func TestIndividualEntries(t *testing.T) {
 	if err := s.ReplaceIndividualEntry(ctx, token, entry("C. Ryan")); !errors.Is(err, ErrClosed) {
 		t.Errorf("no changes after the deadline: %v", err)
 	}
-	if _, _, err := s.AddIndividualEntry(ctx, c.ID, entry("D")); !errors.Is(err, ErrClosed) {
+	if _, _, err := enter(s, c.ID, entry("D")); !errors.Is(err, ErrClosed) {
 		t.Errorf("no entries after the deadline: %v", err)
 	}
 	if err := s.WithdrawIndividualEntry(ctx, token); !errors.Is(err, ErrClosed) {
@@ -358,7 +368,7 @@ func TestLimits(t *testing.T) {
 		INSERT INTO entries (id, competition_id, club_name, individual, gymnast, entry, sent_at)
 		SELECT 'e' || i, $2, '', TRUE, 'G', '{}', '2027-01-01T00:00:00Z' FROM n`, MaxEntries, c.ID)
 	must(t, err)
-	if _, _, err := s.AddIndividualEntry(ctx, c.ID, entry("One more")); !errors.Is(err, ErrLimit) {
+	if _, _, err := enter(s, c.ID, entry("One more")); !errors.Is(err, ErrLimit) {
 		t.Errorf("a full competition: %v", err)
 	}
 }
@@ -416,7 +426,7 @@ func TestChecking(t *testing.T) {
 	must(t, s.SaveMemberEntry(ctx, m.ID, c.ID, entry("A")))
 	_, err := s.Send(ctx, club.ID, c.ID, nil)
 	must(t, err)
-	_, token, err := s.AddIndividualEntry(ctx, c.ID, entry("I"))
+	_, token, err := enter(s, c.ID, entry("I"))
 	must(t, err)
 	list, _ := s.Entries(ctx, c.ID)
 
@@ -520,7 +530,7 @@ func TestWithdrawnEntries(t *testing.T) {
 	must(t, s.SaveMemberEntry(ctx, b.ID, c.ID, entry("B")))
 	_, err := s.Send(ctx, club.ID, c.ID, nil)
 	must(t, err)
-	_, _, err = s.AddIndividualEntry(ctx, c.ID, entry("I"))
+	_, _, err = enter(s, c.ID, entry("I"))
 	must(t, err)
 
 	withdrawn := func() map[string]bool {
@@ -663,7 +673,7 @@ func TestCoaches(t *testing.T) {
 	}
 
 	// An individual's coach signs off through the entry's sign-off link.
-	ind, token, err := s.AddIndividualEntry(ctx, c.ID, entry("I"))
+	ind, token, err := enter(s, c.ID, entry("I"))
 	must(t, err)
 	if ind.SignoffLink == "" {
 		t.Fatal("an individual entry has a sign-off link")
@@ -799,7 +809,7 @@ func TestDisciplines(t *testing.T) {
 	}
 
 	// An individual's synchro entry has its own partner link.
-	ind, token, err := s.AddIndividualEntry(ctx, c.ID, competitions.Entry{Gymnast: "I", Discipline: competitions.Synchro, Level: "BUCS L3", Partner: &competitions.Partner{Name: "J"}})
+	ind, token, err := enter(s, c.ID, competitions.Entry{Gymnast: "I", Discipline: competitions.Synchro, Level: "BUCS L3", Partner: &competitions.Partner{Name: "J"}})
 	must(t, err)
 	if ind.PartnerLink == "" {
 		t.Fatal("an individual's synchro entry has a partner link")
@@ -943,7 +953,7 @@ func TestOfficials(t *testing.T) {
 	}
 
 	// An individual offers on their entry; the organiser adds a judge with no club.
-	ind, token, err := s.AddIndividualEntry(ctx, c.ID, entry("I"))
+	ind, token, err := enter(s, c.ID, entry("I"))
 	must(t, err)
 	must(t, s.SetIndividualOffer(ctx, token, competitions.Offer{Recorder: true}))
 	if o, _ := s.IndividualOffer(ctx, ind.ID); !o.Recorder {
@@ -1155,7 +1165,7 @@ func TestEntryCoaches(t *testing.T) {
 	comp.Signoff, comp.Individuals = true, true
 	c, _, _ := s.CreateCompetition(ctx, comp)
 	must(t, s.SetApproveCoaches(ctx, c.ID, true, nil))
-	e, token, err := s.AddIndividualEntry(ctx, c.ID, entry("Mary"))
+	e, token, err := enter(s, c.ID, entry("Mary"))
 	must(t, err)
 	got, _ := s.IndividualEntry(ctx, token)
 	signed := func() bool {
@@ -1210,7 +1220,7 @@ func TestEntryCoaches(t *testing.T) {
 		t.Errorf("gone with the entry: %+v", list)
 	}
 	// After the deadline, no coach can be named.
-	_, token, _ = s.AddIndividualEntry(ctx, c.ID, entry("Nell"))
+	_, token, _ = enter(s, c.ID, entry("Nell"))
 	now = comp.Deadline.Add(time.Hour)
 	if err := s.SetEntryCoach(ctx, token, "Ann", "gi-trampoline-2", "image/png", []byte("png")); !errors.Is(err, ErrClosed) {
 		t.Errorf("closed: %v", err)
@@ -1261,13 +1271,13 @@ func TestPairEntries(t *testing.T) {
 	}
 
 	// An individual enters with B too; and an individual partner of A's.
-	ind, _, _ := s.AddIndividualEntry(ctx, c.ID, competitions.Entry{Gymnast: "I", Discipline: competitions.Synchro, Level: "BUCS L3", Partner: &competitions.Partner{Name: "B"}})
+	ind, _, _ := enter(s, c.ID, competitions.Entry{Gymnast: "I", Discipline: competitions.Synchro, Level: "BUCS L3", Partner: &competitions.Partner{Name: "B"}})
 	must(t, s.ConfirmPartner(ctx, ind.PartnerLink, b.ID, ""))
 	if got, _ := s.MemberPairEntries(ctx, b.ID); len(got) != 2 || got[1].Club != "" || got[1].CopyID != ind.ID {
 		t.Errorf("an individual's pair entry: %+v", got)
 	}
-	j, _, _ := s.AddIndividualEntry(ctx, c.ID, competitions.Entry{Gymnast: "J", Discipline: competitions.Synchro, Level: "BUCS L3", Partner: &competitions.Partner{Name: "K"}})
-	k, _, _ := s.AddIndividualEntry(ctx, c.ID, entry("K"))
+	j, _, _ := enter(s, c.ID, competitions.Entry{Gymnast: "J", Discipline: competitions.Synchro, Level: "BUCS L3", Partner: &competitions.Partner{Name: "K"}})
+	k, _, _ := enter(s, c.ID, entry("K"))
 	must(t, s.ConfirmPartner(ctx, j.PartnerLink, "", k.ID))
 	if got, _ := s.IndividualPairEntries(ctx, k.ID); len(got) != 1 || got[0].Entry.Gymnast != "J" {
 		t.Errorf("K, an individual, sees J's: %+v", got)
@@ -1289,7 +1299,7 @@ func TestRemovingEntries(t *testing.T) {
 	}
 	_, err := s.Send(ctx, club.ID, c.ID, nil)
 	must(t, err)
-	ind, token, _ := s.AddIndividualEntry(ctx, c.ID, entry("I"))
+	ind, token, _ := enter(s, c.ID, entry("I"))
 	all, _ := s.Entries(ctx, c.ID)
 	id := map[string]string{}
 	for _, e := range all {
@@ -1423,17 +1433,17 @@ func TestGoingLive(t *testing.T) {
 	comp := competition()
 	comp.LiveAt = time.Time{}
 	c, admin, _ := s.CreateCompetition(ctx, comp)
-	if _, _, err := s.AddIndividualEntry(ctx, c.ID, entry("Ann")); !errors.Is(err, ErrNotOpen) {
+	if _, _, err := enter(s, c.ID, entry("Ann")); !errors.Is(err, ErrNotOpen) {
 		t.Errorf("a private competition takes no entries: %v", err)
 	}
 
 	// Going live later: not open until then.
 	must(t, s.SetLive(ctx, c.ID, now.Add(time.Hour)))
-	if _, _, err := s.AddIndividualEntry(ctx, c.ID, entry("Ann")); !errors.Is(err, ErrNotOpen) {
+	if _, _, err := enter(s, c.ID, entry("Ann")); !errors.Is(err, ErrNotOpen) {
 		t.Errorf("not live yet: %v", err)
 	}
 	now = now.Add(time.Hour)
-	_, token, err := s.AddIndividualEntry(ctx, c.ID, entry("Ann"))
+	_, token, err := enter(s, c.ID, entry("Ann"))
 	must(t, err)
 	if got, _ := s.CompetitionByAdmin(ctx, admin); !got.LiveAt.Equal(now) || !got.Open(now) {
 		t.Errorf("live from then: %v", got.LiveAt)
@@ -1551,7 +1561,7 @@ func TestWaitingLists(t *testing.T) {
 	c, _, _ := s.CreateCompetition(ctx, comp)
 	var tokens []string
 	for _, name := range []string{"Ann", "Bea", "Cat", "Dee"} {
-		_, token, err := s.AddIndividualEntry(ctx, c.ID, entry(name))
+		_, token, err := enter(s, c.ID, entry(name))
 		must(t, err)
 		tokens = append(tokens, token)
 		now = now.Add(time.Minute)
@@ -1602,11 +1612,11 @@ func TestLaterDeadlines(t *testing.T) {
 	s := open(t, &now)
 	comp := competition()
 	c, _, _ := s.CreateCompetition(ctx, comp)
-	_, token, err := s.AddIndividualEntry(ctx, c.ID, entry("Ann"))
+	_, token, err := enter(s, c.ID, entry("Ann"))
 	must(t, err)
 	must(t, s.SetChangesAndSignoffs(ctx, c.ID, comp.Deadline.Add(48*time.Hour), comp.Deadline.Add(72*time.Hour)))
 	now = comp.Deadline.Add(time.Hour)
-	if _, _, err := s.AddIndividualEntry(ctx, c.ID, entry("Bea")); !errors.Is(err, ErrClosed) {
+	if _, _, err := enter(s, c.ID, entry("Bea")); !errors.Is(err, ErrClosed) {
 		t.Errorf("no new entries after the deadline: %v", err)
 	}
 	must(t, s.ReplaceIndividualEntry(ctx, token, entry("Ann")))

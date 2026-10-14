@@ -202,6 +202,15 @@ type EntryForm struct {
 	PartnerClub string
 	Note        bool   // ask for a note for the organiser (a late change)
 	NoteText    string
+	// As asks who's entering on their own, by the link of their page (ADR
+	// 0010): nil where the page already says who.
+	As *EnterAs
+}
+
+// EnterAs is the link of the page someone entering on their own already has,
+// as posted.
+type EnterAs struct {
+	Link string
 }
 
 // EntryLevel is a level an entry can choose, with its two exercises.
@@ -263,6 +272,11 @@ type EntryPage struct {
 	ScoreSheets string     // the score sheets of the flights they officiate, if any
 	Fees        *FeesSummary // what they owe, if the competition charges
 	Desk        []DeskNote   // messages from the organisers that reach them
+	// Menu and Back are the person's pages it's one of (ADR 0010); Personal
+	// says Link is their personal page's link, not the entry's own.
+	Menu     []MenuSection
+	Back     string
+	Personal bool
 }
 
 // EntryCoachView is the coach an individual names, for the organiser to
@@ -313,6 +327,7 @@ templ competitionLayout(title string) {
 			<section class="section comp-page">
 				<div class="container">
 					<div class="notification is-warning is-light comp-offline" hidden>You're offline: this is the page as it was when last opened (<span data-offline-when></span>).</div>
+					@roleTabs(rolesOf(ctx))
 					{ children... }
 				</div>
 			</section>
@@ -469,7 +484,7 @@ templ CompetitionDashboard(d Dashboard) {
 	@competitionLayout(d.Competition.Name) {
 		<h1 class="title is-4">{ d.Competition.Name }</h1>
 		@pageMenu(d.Menu)
-		if d.New != "" {
+		if d.New != "" && d.Links.Admin != "" {
 			@newAdminLink(d.Competition, d.Links.Admin, d.New)
 		}
 		if d.Notice != "" {
@@ -979,7 +994,7 @@ templ CompetitionEnter(p EnterPage) {
 						}
 					</ul>
 				</div>
-				<p class="help mb-3">Enter each discipline separately; each entry gets its own link.</p>
+				<p class="help mb-3">Enter each discipline separately; each joins your page.</p>
 			}
 			@entryForm(p.Form)
 			@privacyNote(p.Competition)
@@ -998,6 +1013,18 @@ templ entryForm(f EntryForm) {
 	@problemList(f.Problems)
 	<form method="post" action={ templ.SafeURL(f.Action) } class="comp-entry-form">
 		<input type="hidden" name="discipline" value={ f.Discipline }/>
+		if f.As != nil {
+			// The pages saved in this browser (static/js/competitions.js).
+			<div class="field" data-saved-as hidden>
+				<label class="label" for="saved-as">Who's entering?</label>
+				<div class="select is-fullwidth"><select id="saved-as"></select></div>
+			</div>
+			<div class="field">
+				<label class="label" for="enter-as">Your page's link, if you have one</label>
+				<input class="input" id="enter-as" name="as" value={ f.As.Link } placeholder="Leave it blank the first time" autocomplete="off"/>
+				<p class="help">Entered a competition on your own before, or a club member? Give that page's link and this entry joins it, under the same link. Leave it blank to start a page of your own.</p>
+			</div>
+		}
 		if !f.Member {
 			<div class="field">
 				<label class="label" for={ "entry-gymnast" + f.Key }>Gymnast</label>
@@ -1109,14 +1136,28 @@ templ CompetitionEntryPage(p EntryPage) {
 	@competitionLayout(p.Card.Gymnast + " · " + p.Competition.Name) {
 		<p class="has-text-grey mb-1">{ p.Competition.Name }</p>
 		@competitionFacts(p.Competition)
+		@pageMenu(p.Menu)
+		if p.Back != "" {
+			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.Competition.Name }</a></p>
+		}
 		if p.JustSaved {
 			<div class="notification is-success is-light">
-				<p><strong>Entry saved.</strong> This is your personal link: keep it to change or withdraw the entry. It's saved in this browser too.</p>
+				if p.Personal {
+					<p><strong>Entry saved.</strong> Your personal link below opens this entry and every other you make with it: keep it to change or withdraw them. It's saved in this browser too.</p>
+				} else {
+					<p><strong>Entry saved.</strong> It's on your page with your other entries.</p>
+				}
 			</div>
 		}
-		<div data-entry-link={ p.Link } data-entry-name={ p.Card.Gymnast + " · " + p.Competition.Name }>
-			@linkBox("Your personal link (keep it to yourself)", p.Link, "")
-		</div>
+		if p.Personal {
+			<div data-gymnast-link={ p.Link } data-gymnast-name={ p.Card.Gymnast }>
+				@linkBox("Your personal link (keep it to yourself)", p.Link, "")
+			</div>
+		} else if p.Link != "" {
+			<div data-entry-link={ p.Link } data-entry-name={ p.Card.Gymnast + " · " + p.Competition.Name }>
+				@linkBox("Your personal link (keep it to yourself)", p.Link, "")
+			</div>
+		}
 		@partnerBox(p.Partner)
 		if p.Notice != "" {
 			<div class="notification is-success is-light">{ p.Notice }</div>

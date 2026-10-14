@@ -48,15 +48,26 @@ type directory struct {
 
 // newDirectory finds everyone in a competition's live entries, officials and
 // coaches, each once under their person key. A member who competes and judges
-// is one person; a coach is one by club and name.
-func newDirectory(entries []store.Entry, officials []store.Official, sent []store.SentCoach, named []store.EntryCoach) *directory {
+// is one person; a coach is one by club and name. Keys of one person (ADR
+// 0010: groups, key to person), such as a member who is a coach too, are one
+// row, under the first key found, and each key finds it.
+func newDirectory(entries []store.Entry, officials []store.Official, sent []store.SentCoach, named []store.EntryCoach, groups map[string]string) *directory {
 	d := &directory{byKey: map[string]*dirPerson{}, keys: personKeys(entries)}
+	byPerson := map[string]*dirPerson{}
 	get := func(key string) *dirPerson {
-		dp := d.byKey[key]
-		if dp == nil {
-			dp = &dirPerson{key: key}
+		if dp := d.byKey[key]; dp != nil {
+			return dp
+		}
+		person, known := groups[key]
+		if dp := byPerson[person]; known && dp != nil {
 			d.byKey[key] = dp
-			d.list = append(d.list, dp)
+			return dp
+		}
+		dp := &dirPerson{key: key}
+		d.byKey[key] = dp
+		d.list = append(d.list, dp)
+		if known {
+			byPerson[person] = dp
 		}
 		return dp
 	}
@@ -157,7 +168,11 @@ func (p *competitionPages) directoryOf(r *http.Request, c store.Competition, ent
 	if err != nil {
 		return nil, err
 	}
-	return newDirectory(entries, officials, sent, named), nil
+	groups, err := p.st.PersonGroups(r.Context(), c.ID)
+	if err != nil {
+		return nil, err
+	}
+	return newDirectory(entries, officials, sent, named, groups), nil
 }
 
 // events are the events someone competes in, each once, e.g. "Trampoline
@@ -306,6 +321,10 @@ func (p *competitionPages) person(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	base := adminPath(r.PathValue("token"))
+	if dp.key != key { // another of their keys, such as a member's coach (ADR 0010)
+		http.Redirect(w, r, personPath(base, dp.key), http.StatusFound)
+		return
+	}
 	page.Name, page.Back, page.BackLabel, page.Menu = dp.name, base+"/people", "← People", p.menuFor(r, c, menuPeople)
 	_, tags := dp.roles()
 	page.Admin = &views.PersonAdmin{Club: dp.club, Roles: tags}
