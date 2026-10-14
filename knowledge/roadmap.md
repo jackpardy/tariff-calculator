@@ -184,24 +184,12 @@ features that show that, in this order:
    [offline](features/competition-entries.md#offline): a person's opened
    pages open without a connection, as last seen), add to calendar.
 
-**Next (asked 2026-10-09), before the rest:**
+**Next (asked 2026-10-09 and 2026-10-13), before the rest.** The menus come early because they touch every page, so the new people pages go straight into the new layout.
 
 1. **Check-in keeps the flight open**: marking someone Here, Scratched or
    Clear on the On the day page updates just their row, so the flight's
    check-in list doesn't close.
-2. **All people, for the organiser**: a list of everyone at the
-   competition, one row a person whatever their roles, which the coaches,
-   officials and entries lists link to. Each person's page shows everything
-   they're doing, like their own Your competition page, read-only.
-3. **One link for a person with several roles**: a member who also coaches
-   or is comp sec gets one link, with tabs between their views. The comp
-   sec can make a member a coach too, and anyone can add another of their
-   links to their page to join them. A join can be undone.
-4. **Search and filter every list of people**: a name search on each, and
-   filters that suit the list (for officials: club, role, event, level,
-   qualified). Long lists can be collapsed too, starting with the club's
-   Members list (asked 2026-10-13).
-5. **Finding your way round (asked 2026-10-13):**
+2. **Finding your way round (asked 2026-10-13):**
    - **A menu for the organiser**, with sections and subsections:
      entries, timetable, coaches, panels and officials, routines and
      competition settings. Today it's a row of buttons on the entries
@@ -215,7 +203,7 @@ features that show that, in this order:
      by default and the list view comes first. Other tabs come later,
      such as routines, or a coach's view once one link covers several
      roles.
-6. **Make dropdowns look like dropdowns** (asked 2026-10-13). **Limits
+3. **Make dropdowns look like dropdowns** (asked 2026-10-13). **Limits
    and waiting lists**, under Links and settings, opens when tapped but
    shows no arrow, so it reads as a plain heading. Bulma's `label` class
    on its `<summary>` makes it a block and hides the marker
@@ -223,6 +211,18 @@ features that show that, in this order:
    dropdowns: the dashboard's level headings (`title` on the summary in
    `views/competitions.templ`) look like the same problem. Give every
    dropdown one look, with an arrow that turns when open.
+4. **All people, for the organiser**: a list of everyone at the
+   competition, one row a person whatever their roles, which the coaches,
+   officials and entries lists link to. Each person's page shows everything
+   they're doing, like their own Your competition page, read-only.
+5. **One link for a person with several roles**: a member who also coaches
+   or is comp sec gets one link, with tabs between their views. The comp
+   sec can make a member a coach too, and anyone can add another of their
+   links to their page to join them. A join can be undone.
+6. **Search and filter every list of people**: a name search on each, and
+   filters that suit the list (for officials: club, role, event, level,
+   qualified). Long lists can be collapsed too, starting with the club's
+   Members list (asked 2026-10-13).
 7. **Venue screen changes** (to be gone through). Stretch goal: show
    which gymnast is on now and what they're doing (set routine, then
    voluntary) and who's up next, tapped through by the marshal.
