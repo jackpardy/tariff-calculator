@@ -207,12 +207,10 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 	if store.IsVia(r.PathValue("token")) {
 		page.Link = "" // opened through another of their links, which is the one to keep
 	}
-	other, err := p.otherLinks(r, path)
-	if err != nil {
+	if page.Other, err = p.otherLinks(r, path); err != nil {
 		failed(w, r, err)
 		return
 	}
-	page.Other = &other
 	for _, c := range comps {
 		cc := views.CoachCompetition{Competition: summary(c.Competition, p.now()), Cannot: notApproved(c, sentTo), Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
 		cc.Desk = p.deskNotes(ctx, c.ID, memberKeys(coached), clubIDs(coach.ClubID), clubIDs(coach.ClubID))

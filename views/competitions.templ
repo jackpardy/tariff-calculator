@@ -1134,12 +1134,16 @@ templ entryExercise(n int, ex EntryExercise, video string) {
 // CompetitionEntryPage is an individual's own entry, through their personal link.
 templ CompetitionEntryPage(p EntryPage) {
 	@competitionLayout(p.Card.Gymnast + " · " + p.Competition.Name) {
-		<p class="has-text-grey mb-1">{ p.Competition.Name }</p>
-		@competitionFacts(p.Competition)
-		@pageMenu(p.Menu)
-		if p.Back != "" {
+		if len(p.Menu) > 0 {
+			// On the person's own page (ADR 0010): who, their tabs, and back to the competition.
+			<p class="has-text-grey mb-1">Entered on your own</p>
+			<h1 class="title is-4">{ p.Card.Gymnast }</h1>
+			@pageMenu(p.Menu)
 			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.Competition.Name }</a></p>
+		} else {
+			<p class="has-text-grey mb-1">{ p.Competition.Name }</p>
 		}
+		@competitionFacts(p.Competition)
 		if p.JustSaved {
 			<div class="notification is-success is-light">
 				if p.Personal {

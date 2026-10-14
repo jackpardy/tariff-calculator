@@ -145,9 +145,13 @@ func roleDescription(role store.Role) string {
 }
 
 // otherLinks are the person's other roles, for their details, posting to
-// base's links.
-func (p *competitionPages) otherLinks(r *http.Request, base string) (views.OtherLinks, error) {
-	o := views.OtherLinks{Add: base + "/links", Remove: base + "/links/remove"}
+// base's links. They're on the page of the link the person has, so nil on
+// one opened through another of their links, where "other" would be unclear.
+func (p *competitionPages) otherLinks(r *http.Request, base string) (*views.OtherLinks, error) {
+	if store.IsVia(r.PathValue("token")) {
+		return nil, nil
+	}
+	o := &views.OtherLinks{Add: base + "/links", Remove: base + "/links/remove"}
 	_, roles, err := p.st.Roles(r.Context(), r.PathValue("token"))
 	for _, role := range roles {
 		if role.Own {

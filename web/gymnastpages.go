@@ -122,12 +122,11 @@ func (p *competitionPages) gymnastDetails(w http.ResponseWriter, r *http.Request
 		return
 	}
 	page := p.gymnastPage(r, ind, gymnastDetails)
-	other, err := p.otherLinks(r, gymnastPath(r.PathValue("token")))
-	if err != nil {
+	var err error
+	if page.Other, err = p.otherLinks(r, gymnastPath(r.PathValue("token"))); err != nil {
 		failed(w, r, err)
 		return
 	}
-	page.Other = &other
 	render(w, r, views.GymnastDetails(page))
 }
 
@@ -179,7 +178,7 @@ func (p *competitionPages) gymnastCompetition(w http.ResponseWriter, r *http.Req
 		waiting := p.waitingOf(r.Context(), c.ID, e.ID)
 		brief, class := individualBrief(e, len(shown.Problems), waiting.Waiting)
 		gc.Events = append(gc.Events, views.GymnastEvent{
-			Row:     views.MemberEvent{Discipline: e.Entry.Discipline, Name: competitions.DisciplineName(e.Entry.Discipline), Level: e.Entry.Event(), Brief: brief, BriefClass: class, Status: "Entered " + e.SentAt.In(local).Format("2 January, 15:04")},
+			Row:     views.MemberEvent{Discipline: e.Entry.Discipline, Name: competitions.DisciplineName(e.Entry.Discipline), Level: e.Entry.Level, Brief: brief, BriefClass: class, Status: "Entered " + e.SentAt.In(local).Format("2 January, 15:04")},
 			Gymnast: e.Entry.Gymnast, Open: entryPath(token, e), Placement: placement(c, e.ID), Card: &shown,
 		})
 	}

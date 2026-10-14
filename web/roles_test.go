@@ -117,8 +117,8 @@ func TestRoleTabs(t *testing.T) {
 		t.Errorf("the coach's page is the member link's way to it, never the coach link: %s", asCoach)
 	}
 	page := get(asCoach)
-	if currentRole(t, page) != "Coach" || !strings.Contains(page, "A. Murphy") || strings.Contains(page, "Your coach link") || strings.Contains(page, "data-coach-link") {
-		t.Errorf("the coach's page, with no link of its own to keep: %s", page)
+	if currentRole(t, page) != "Coach" || !strings.Contains(page, "A. Murphy") || strings.Contains(page, "Your coach link") || strings.Contains(page, "data-coach-link") || strings.Contains(page, "Your other links") {
+		t.Errorf("the coach's page, with no link of its own to keep and no other links to add there: %s", page)
 	}
 	// The member's details list it; the coach's page lists the member.
 	if !strings.Contains(get(member+"/details"), "Coach at UCD, as A. Murphy") {

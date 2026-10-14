@@ -797,12 +797,10 @@ func (p *competitionPages) memberDetails(w http.ResponseWriter, r *http.Request)
 	for _, c := range coaches {
 		page.Coaches = append(page.Coaches, views.CoachOption{ID: c.ID, Name: c.Name})
 	}
-	other, err := p.otherLinks(r, memberPath(r.PathValue("token")))
-	if err != nil {
+	if page.Other, err = p.otherLinks(r, memberPath(r.PathValue("token"))); err != nil {
 		failed(w, r, err)
 		return
 	}
-	page.Other = &other
 	render(w, r, views.MemberDetails(page))
 }
 
