@@ -145,7 +145,7 @@ func (p *competitionPages) fees(w http.ResponseWriter, r *http.Request) {
 	}
 	base := adminPath(r.PathValue("token"))
 	f := c.Fees
-	page := views.FeesPage{Base: base, Competition: summary(c.Competition, p.now()), Notice: r.URL.Query().Get("notice"), On: f.On(),
+	page := views.FeesPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuFees), Notice: r.URL.Query().Get("notice"), On: f.On(),
 		GBP: f.Currency == competitions.CurrencyGBP, PerClub: amountField(f.PerClub), Instructions: f.Instructions}
 	for _, d := range c.Disciplines() {
 		page.PerEntry = append(page.PerEntry, views.FeeField{Key: d, Name: competitions.DisciplineName(d), Amount: amountField(f.PerEntry[d])})

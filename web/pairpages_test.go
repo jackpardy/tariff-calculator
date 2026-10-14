@@ -12,7 +12,7 @@ import (
 func TestPartnerSeesThePair(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, eventsCompetition())
-	clubLink := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/club/")
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	ucd := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {ucd}})
 	a := withoutQuery(redirected(t, h, pathIn(t, do(t, h, http.MethodGet, ucd, nil).Body.String(), "/clubs/join/"), url.Values{"name": {"A"}}))

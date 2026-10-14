@@ -13,10 +13,10 @@ func TestOfficialPages(t *testing.T) {
 	form := newCompetition()
 	form.Set("tumbling", "Novice\nElite")
 	admin := created(t, h, form)
-	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	dash := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
 	officials := admin + "/officials"
-	if !strings.Contains(dash, `href="`+officials+`"`) {
-		t.Error("the dashboard links to the officials")
+	if !strings.Contains(do(t, h, http.MethodGet, admin+"/timetable", nil).Body.String(), `href="`+officials+`"`) {
+		t.Error("the timetable's menu links to the officials")
 	}
 	page := do(t, h, http.MethodGet, officials, nil).Body.String()
 	if !strings.Contains(page, `name="panel-trampoline-execution" value="6"`) || !strings.Contains(page, `name="panel-tumbling-chair" value="1"`) || !strings.Contains(page, "Nobody yet.") {

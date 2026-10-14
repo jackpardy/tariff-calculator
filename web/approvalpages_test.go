@@ -15,19 +15,20 @@ func TestCoachApprovalPages(t *testing.T) {
 	admin := created(t, h, form)
 
 	// The organiser asks for approved coaches, trampoline at Level 3.
-	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, "Coaches must be approved") {
+	if dash := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(); !strings.Contains(dash, "Coaches must be approved") {
 		t.Fatal("the setting is offered where entries need sign-off")
 	}
 	if location := redirected(t, h, admin+"/approve-coaches", url.Values{"on": {"1"}, "level-trampoline": {"3"}}); !strings.Contains(location, "Only+coaches+you+approve") {
 		t.Errorf("saved: %s", location)
 	}
 	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
-	if !strings.Contains(dash, `href="`+admin+`/coaches"`) || !strings.Contains(dash, `<option value="3" selected>Level 3</option>`) {
-		t.Error("the dashboard links to the coaches, and keeps the level")
+	settings := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
+	if !strings.Contains(dash, `href="`+admin+`/coaches"`) || !strings.Contains(settings, `<option value="3" selected>Level 3</option>`) {
+		t.Error("the menu links to the coaches, and the settings keep the level")
 	}
 
 	// A club with Ann (Level 3, X's coach) and Bob (who doesn't sign off).
-	clubLink := pathIn(t, dash, "/competitions/club/")
+	clubLink := pathIn(t, settings, "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	ann := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
@@ -76,6 +77,9 @@ func TestCoachApprovalPages(t *testing.T) {
 	}
 	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, "1 waiting") {
 		t.Error("the dashboard counts her waiting")
+	}
+	if page := do(t, h, http.MethodGet, admin+"/history", nil).Body.String(); !strings.Contains(page, "1 waiting") {
+		t.Error("every page's menu says a coach is waiting")
 	}
 	redirected(t, h, admin+"/coaches/"+annID, url.Values{"action": {"approve"}})
 
@@ -129,7 +133,7 @@ func TestIndividualCoachPages(t *testing.T) {
 	form.Set("signoff", "1")
 	admin := created(t, h, form)
 	redirected(t, h, admin+"/approve-coaches", url.Values{"on": {"1"}})
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Mary"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
 
 	// Mary's page asks for her coach; until she names one, the sign-off link

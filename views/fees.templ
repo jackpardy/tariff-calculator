@@ -6,6 +6,7 @@ import "strconv"
 type FeesPage struct {
 	Base, Notice string
 	Competition  CompetitionSummary
+	Menu []MenuSection
 	On           bool // anything is charged
 	GBP          bool
 	PerEntry     []FeeField
@@ -39,9 +40,9 @@ type PaymentView struct {
 // FeesAdmin is the organiser's fees page.
 templ FeesAdmin(p FeesPage) {
 	@competitionLayout("Fees · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
 		<h1 class="title is-4">Fees</h1>
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			<div class="notification is-success is-light">{ p.Notice }</div>
 		}

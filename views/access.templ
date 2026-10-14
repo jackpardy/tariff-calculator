@@ -16,6 +16,7 @@ type Access struct {
 	Resolve   bool // resolving concerns
 	Day       bool // the on-the-day page: flights started and finished
 	Desk      bool // messages from the organisers' desk
+	Screen    bool // the venue screen
 }
 
 // LinkView is an extra admin link, for the organiser.
@@ -74,15 +75,15 @@ templ linksBox(base string, links []LinkView) {
 // NewLinkPage shows a link just made, once.
 type NewLinkPage struct {
 	Competition      CompetitionSummary
-	Back             string
+	Menu             []MenuSection
 	Name, Kind, Link string
 }
 
 // NewLink shows a link just made: it isn't kept, so it's copied now.
 templ NewLink(p NewLinkPage) {
 	@competitionLayout("New link · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← All entries</a></p>
 		<h1 class="title is-4">A link for { p.Name }</h1>
+		@pageMenu(p.Menu)
 		<p class="mb-3">It can do: { p.Kind }. Copy it now and send it to them: it's only shown this once. If it's lost, remove it and make another.</p>
 		@linkBox("Link for "+p.Name, p.Link, "Anyone with it can do this, until you remove it.")
 	}
@@ -91,7 +92,7 @@ templ NewLink(p NewLinkPage) {
 // HistoryPage is a competition's changes.
 type HistoryPage struct {
 	Competition CompetitionSummary
-	Back        string
+	Menu        []MenuSection
 	Changes     []HistoryChange
 }
 
@@ -103,9 +104,9 @@ type HistoryChange struct {
 // History lists the latest changes, and which link made each.
 templ History(p HistoryPage) {
 	@competitionLayout("History · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← All entries</a></p>
 		<h1 class="title is-4">History</h1>
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		@pageMenu(p.Menu)
 		if len(p.Changes) == 0 {
 			<p class="has-text-grey">No changes yet.</p>
 		} else {

@@ -28,9 +28,38 @@ competitions, the organiser's dashboard and each entry, and individual entry
 The tariff sheet is only one of the organiser's views: the printable one. The
 organiser's first need is an **overview of every entry with its problems**.
 
+## The menu and the Settings page (roadmap 2026-10-14)
+
+Every page of the organiser's section has a **menu** under its title (the
+shared `pageMenu` in `views/menu.templ`, built by `orgMenu` in
+`web/menus.go`): **Entries** (Entries, Late changes, Coaches when coaches are
+approved, Fees), **Timetable** (Timetable, Officials, Simulate, and once the
+timetable is planned the two "what if" pages), **On the day** (once the
+timetable is published: On the day, Desk messages, Venue screen) and
+**Settings** (Settings, History). Late changes and Coaches show a count of
+what waits; the menu works that out on every page. It shows only what the
+admin link may open (ADR 0009): a cards link sees Entries and History; a
+chair of judges adds the day's pages, and finds the printed sheets as buttons
+on the entries page; the timetable team adds Timetable and Officials. The
+menu is left off printouts, the CSV, invoices, cards and the venue screen. The
+bar scrolls sideways on a phone.
+
+**Settings** (`GET /competitions/admin/{token}/settings`, in `web/settingspages.go`)
+holds what used to fold away on the entries page, in groups with a list of
+jump links at the top: Links (helpers' links for the organiser, the club
+link, the individual entry link), Entries and deadlines, Limits and waiting
+lists, Events and levels (events, order of levels, men and women), Sign-off
+and coaches, Video, Going live, Telling people about changes (when people
+can ask to hear), Individual entry, and Admin link and deleting (the
+organiser only). A co-organiser's link opens it without the links box,
+replacing the admin link or deleting. Each form posts to its own route, which
+comes back to the Settings page with a notice; the history records them as
+before. The entries page keeps the **Go live now** box while the competition
+is private.
+
 ## Helpers' links, history and concerns (ADR 0009)
 
-Under Links and settings the organiser makes **links for helpers**, each
+On the Settings page the organiser makes **links for helpers**, each
 named (who it's for) and of a kind: **checking cards** (see the entries,
 mark cards checked with notes, review videos), **chairs of judges** (see
 the entries, print the chair of judges, score and marshal sheets and the
@@ -56,7 +85,7 @@ three cards checked and two concerns.
 
 ## When entries, changes and sign-offs close
 
-Three times (roadmap 2026-10-08), set under Links and settings: **entries
+Three times (roadmap 2026-10-08), set on the Settings page: **entries
 close** (the deadline: no new entries after it), **changes to entries
 close** (changing, withdrawing or sending again entries already made,
 offers to officiate) and **coaches' sign-off closes** (signing off, naming
@@ -74,7 +103,7 @@ once changes close.
 
 Once changes to entries close (the competition live), clubs and
 individuals can ask for the changes the organiser allows (roadmap
-2026-10-08). On **Late changes** (the dashboard's button, which counts
+2026-10-08). On **Late changes** (under Entries in the menu, which counts
 those to decide) the organiser ticks which kinds can be asked for, each
 with a fee charged only if accepted: a **level change** (a different
 level, with its routines) or a **routine change** (new routines at the
@@ -109,7 +138,7 @@ notifications (cards) tell them.
 
 ## Limits and waiting lists
 
-Under Links and settings, **Limits and waiting lists** sets how many
+On the Settings page, **Limits and waiting lists** sets how many
 entries each event takes (empty: no limit), showing how many have entered
 (roadmap 2026-10-08). Once an event is full, later entries wait, in the
 order they first came in (`entered_at`: kept when an entry is sent or
@@ -128,7 +157,7 @@ BUCS L1 to 12 and DMT Advanced to 17.
 
 ## Entry fees
 
-**Fees** (the dashboard's button, for the organiser and co-organisers;
+**Fees** (under Entries in the menu, for the organiser and co-organisers;
 roadmap 2026-10-08) sets what's charged: euro or sterling, an amount per
 entry for each discipline offered (a synchro pair is one entry), an
 optional fee once per club, and how to pay (printed on every invoice).
@@ -153,7 +182,7 @@ when entries open ("Entries open Monday 1 February 2027, 09:00", or
 nothing can be entered, sent, changed, withdrawn or signed off
 (`store.ErrNotOpen`). The dashboard's **Go live now** opens entries, or a
 date and time opens them then (before the deadline); **Make private (pause
-entries)**, under Links and settings, stops them again, keeping the entries
+entries)**, on the Settings page, stops them again, keeping the entries
 already made. Entries are open while the competition is live and before
 its deadline (`Competition.Open`); the time is `live_at`, empty while
 private. Competitions made before this went live when they were made.
@@ -263,7 +292,7 @@ A competition offers **events**: a discipline at a level.
   checked like a trampoline routine; and **tumbling** and **DMT**
   levels the organiser names, which are a level only, not checked yet. The
   organiser picks them when creating the competition and can change synchro,
-  tumbling and DMT under Links and settings.
+  tumbling and DMT on the Settings page.
 - A gymnast can enter **several events**: a member's page has a section per
   discipline (enter, change, withdraw each on its own), the club page and
   dashboard list each entry under its event ("Synchro BUCS L3", "Tumbling
@@ -285,7 +314,7 @@ A competition offers **events**: a discipline at a level.
   flighted, ranked, judged and timetabled as one. Each pair says which level
   they're doing ("BUCS L1/L2 (doing BUCS L1)", kept as the entry's
   `choice`), and their routine is checked against it. Pairings are set when
-  creating the competition or under Links and settings; entries made before
+  creating the competition or on the Settings page; entries made before
   a level was paired need re-entering in its event.
 - **A pair's level:** a pair does the level they both compete at
   individually, or the easier of two a level apart (by the competition's
@@ -297,7 +326,7 @@ A competition offers **events**: a discipline at a level.
 
 # Officials (ADR 0005, step 3)
 
-**Officials** on the dashboard lists everyone who can judge or help, and what
+**Officials** (under Timetable in the menu) lists everyone who can judge or help, and what
 each discipline's panel needs.
 
 - **Offers.** On their page, a member says what they can do at each
@@ -318,7 +347,7 @@ each discipline's panel needs.
   qualified. Both go by the **order of levels**, easiest first: built-in
   levels by their rank (BUCS lists its levels hardest first, so they're
   turned round), a coach's own levels after them, and tumbling and DMT's as
-  typed. The organiser moves any level up or down under Links and settings;
+  typed. The organiser moves any level up or down on the Settings page;
   competitions from before the order (migration 8) are put in order when read
   until a level is moved. The page shows how many can judge and chair each discipline.
 - The [officials rota](#officials-rota-adr-0005-step-5) puts them on panels
@@ -379,7 +408,7 @@ are then filled flight by flight.
 
 # Timetable (ADR 0005, step 4)
 
-From the dashboard, **Timetable** plans the competition over the venue's days
+**Timetable**, in the menu, plans the competition over the venue's days
 (roadmap: competitions 3).
 
 - **Days:** each with a name, start and strict end time, and the areas in use
@@ -705,7 +734,7 @@ Each card has:
 A new kind of link, **venue screen** (`store.LinkScreen`), can `GET` this
 route and nothing else. Organiser, "everything", chair and timetable links
 can open it too, and their On the day page has a **Venue screen** link at the
-top. The organiser makes the link under Links and settings.
+top. The organiser makes the link on the Settings page.
 ## Messages from the organisers' desk
 
 Built 2026-10-09. **Desk messages** (a button on the entries page, a link at
@@ -949,7 +978,7 @@ members they coach. It's per competition, and deleted with it.
   card or changes its note, or removes, holds or restores an entry, what's
   live is kept as a **baseline** (unless changes are already waiting), due
   **10 minutes** later. The dashboard says when, with **Notify now**; **No
-  wait on the competition's days** (Links and settings) makes them due at
+  wait on the competition's days** (Settings page) makes them due at
   once on those days.
 - Every half minute the server compares each due baseline with what's live
   (`changes`): each entry's flight, area and warm-up time, each person's

@@ -283,7 +283,7 @@ func (s *seeder) run(out io.Writer) error {
 		split.Add("splitLevel", ev)
 	}
 	s.post(admin+"/split", split)
-	dash := s.get(admin)
+	dash := s.get(admin + "/settings")
 	clubLink := s.link(dash, "/competitions/club/")
 	enter := s.link(dash, "/competitions/enter/")
 	if s.err != nil {

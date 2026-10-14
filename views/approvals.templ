@@ -20,6 +20,7 @@ type CoachLevelField struct {
 type ApprovalsPage struct {
 	Base        string // the admin link's path
 	Competition CompetitionSummary
+	Menu []MenuSection
 	Notice      string
 	Asked       string // the levels asked for, e.g. "Trampoline Level 2, Tumbling Level 1"
 	Clubs       []ApprovalClub
@@ -77,9 +78,9 @@ templ coachApprovalFields(base string, f CoachApprovalForm) {
 // CompetitionApprovals is the organiser's page of coaches to approve.
 templ CompetitionApprovals(p ApprovalsPage) {
 	@competitionLayout("Coaches · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
 		<h1 class="title is-4">Coaches</h1>
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			<div class="notification is-success is-light">{ p.Notice }</div>
 		}

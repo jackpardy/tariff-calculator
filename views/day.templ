@@ -8,6 +8,7 @@ import "strconv"
 type DayPage struct {
 	Base        string
 	Competition CompetitionSummary
+	Menu []MenuSection
 	Notice      string
 	Screen      string // the venue screen for this day; "" if this link can't open it
 	Day         int    // the day shown, by index
@@ -95,13 +96,13 @@ type DayGymnast struct {
 // Day is the on-the-day page.
 templ Day(p DayPage) {
 	@competitionLayout("On the day · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
 		<h1 class="title is-4">On the day</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		@pageMenu(p.Menu)
 		if p.Screen != "" {
 			<p class="mb-3">
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(p.Screen) }>Venue screen</a>
-				<span class="help is-inline ml-2">What's on each area now and next, for a screen at the venue. The organiser makes a Venue screen link under Links and settings.</span>
+				<span class="help is-inline ml-2">What's on each area now and next, for a screen at the venue. The organiser makes a Venue screen link under Settings.</span>
 			</p>
 		}
 		if p.Desk != "" {

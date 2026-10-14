@@ -60,13 +60,24 @@ performed as written.
 6. Tap **Create competition**. You land on the entries page with your **admin
    link**. Save it: it's the only way back, and anyone who has it can manage
    the competition.
-7. Open **Links and settings** for the **club link** (give it to each club's
+7. Open **Settings** (in the menu at the top) for the **club link** (give it to each club's
    comp sec) and the **individual entry link** (give it to gymnasts without a
    club). You can share them while the competition is private: they show its
    name, date and when entries open, but nobody can enter yet.
 8. When you're ready, tap **Go live now**, or set a date and time for it to go
-   live by itself. **Make private (pause entries)** under **Links and
-   settings** stops entries again; the entries already made are kept.
+   live by itself. **Make private (pause entries)** under **Going live** on the
+   **Settings** page stops entries again; the entries already made are kept.
+
+**Finding your way round.** Every page of the organiser's section has a menu
+under its title: **Entries**, **Timetable**, **On the day** (once the
+timetable is published) and **Settings**. Tap a section to open it; its own
+pages are listed under the bar, with the page you're on marked. **Entries** has
+Late changes, Coaches (when you approve coaches) and Fees, with a count beside
+Late changes and Coaches when something waits for you. **Timetable** has the
+timetable, Officials, Simulate and the two "what if" pages. **On the day** has
+the day's page, Desk messages and the Venue screen. **Settings** has the
+Settings page and History. On a phone the bar scrolls sideways. A helper's link
+shows only the sections it can open.
 
 The entries page shows the counts, then a table for each event (a level, or
 "Synchro BUCS L3", "Tumbling Novice"): gymnast (both names for a synchro pair), club,
@@ -94,14 +105,15 @@ pair's one routine), checked as the Routine Builder checks them.
   or one gymnast (**Print card**). Save as PDF from the print dialog for one
   file.
 - **Download CSV** gives every entry for a spreadsheet or scoring system.
-- Under **Links and settings** you can change when entries close or **Close
+- On the **Settings** page (a page of its own, with a list at the top to jump to
+  each group) you can change when entries close or **Close
   entries now**, change the synchro, tumbling and DMT levels, put the levels
   in order (**Order of levels**, easiest first: built-in levels start in
   order, so check where your own levels sit), choose which
   levels rank men and women separately, turn individual entry, video proof or
   coach sign-off on or off, **Replace the admin link** if it's been shared too
   widely, or delete the competition.
-- **Links for your helpers** (under **Links and settings**): name a link
+- **Links for your helpers** (under **Links** on the Settings page): name a link
   (who it's for) and choose what it can do: **Checking cards** (for
   difficulty judges: check cards, add notes, review videos), **Chairs of
   judges** (see the entries and print the chair of judges, score and
@@ -111,8 +123,8 @@ pair's one routine), checked as the Routine Builder checks them.
   and deleting** (a co-organiser). Copy the link straight away: it's shown
   only once. **Remove** stops it working. **History** lists every change,
   when, and which link made it.
-- **Changes and sign-off after entries close** (under **Links and
-  settings**): entries closing stops new entries; give **Changes to
+- **Changes and sign-off after entries close** (under **Entries and
+  deadlines** on the Settings page): entries closing stops new entries; give **Changes to
   entries close** and **Coaches' sign-off closes** later dates to let clubs
   and gymnasts keep changing, withdrawing or sending again the entries
   they've made, and coaches keep signing off, until then.
@@ -129,7 +141,7 @@ pair's one routine), checked as the Routine Builder checks them.
   it comes to you**: the coach signs off the new card first (on their coach
   page, or an individual's coach through the sign-off link), and accepting
   carries that sign-off onto the entry.
-- **Limits and waiting lists** (under **Links and settings**): give an
+- **Limits and waiting lists** (on the Settings page): give an
   event a limit and, once it's full, later entries go on its waiting list
   in the order they came in. The next one moves up by itself when an entry
   is withdrawn or removed, or you raise the limit; **Let in** takes someone
@@ -197,7 +209,7 @@ and anyone you add.
   Choose who may
   judge: anyone up to the level they say, only levels below their own, or only
   people you mark qualified. "Up to" and "below" go by the **Order of levels**
-  under Links and settings.
+  on the Settings page.
 
 ## Plan the timetable
 
@@ -304,7 +316,7 @@ has a starting value you can change.
    a message saying where they should be.
    <a id="on-the-day-venue-screen"></a>**Venue screen** (a link at the top of
    the On the day page): what's on each area now and what's next, in big type
-   for a screen at the venue. Under **Links and settings** make a **Venue
+   for a screen at the venue. On the **Settings** page make a **Venue
    screen** link, open it on the screen's browser and leave it: it refreshes
    itself every 30 seconds, and that link can open nothing else. Each area
    shows the flight that has been tapped **Started** (or, if none, the one

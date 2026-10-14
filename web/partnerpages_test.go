@@ -26,12 +26,13 @@ func TestEvents(t *testing.T) {
 			t.Errorf("the dashboard has a table for %q", want)
 		}
 	}
-	if !strings.Contains(dash, "Novice\nElite</textarea>") {
+	settings := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
+	if !strings.Contains(settings, "Novice\nElite</textarea>") {
 		t.Error("the settings show the tumbling levels to change")
 	}
 
 	// Individuals choose a discipline.
-	enter := pathIn(t, dash, "/competitions/enter/")
+	enter := pathIn(t, settings, "/competitions/enter/")
 	page := do(t, h, http.MethodGet, enter, nil).Body.String()
 	for _, want := range []string{">Trampoline</a>", ">Synchro</a>", ">Tumbling</a>", ">DMT</a>"} {
 		if !strings.Contains(page, want) {
@@ -96,7 +97,7 @@ func TestEvents(t *testing.T) {
 func TestMemberDisciplines(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, eventsCompetition())
-	clubLink := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/club/")
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
@@ -158,7 +159,7 @@ func TestMemberDisciplines(t *testing.T) {
 func TestTumblingFormHasNoRoutines(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, eventsCompetition())
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	if page := do(t, h, http.MethodGet, enter+"?discipline=dmt", nil).Body.String(); strings.Contains(page, "First exercise") || strings.Contains(page, "data-routine-for") {
 		t.Error("a DMT entry asks for a level only, no routines")
 	}

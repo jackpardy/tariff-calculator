@@ -192,10 +192,10 @@ features that show that, in this order:
 2. **Finding your way round (asked 2026-10-13):**
    - **A menu for the organiser**, with sections and subsections:
      entries, timetable, coaches, panels and officials, routines and
-     competition settings. Today it's a row of buttons on the entries
-     page.
+     competition settings. **Built 2026-10-14**: Entries, Timetable, On
+     the day and Settings, each with its pages, on every organiser page.
    - **Links and settings on a page of their own**, not a section of
-     the entries page.
+     the entries page. **Built 2026-10-14**: the Settings page.
    - **The same for clubs and gymnasts entering on their own**, with a
      menu in place of one long page.
    - **Individuals: a Competitions tab** listing their competitions, each
@@ -204,10 +204,10 @@ features that show that, in this order:
      such as routines, or a coach's view once one link covers several
      roles.
 3. **Make dropdowns look like dropdowns** (asked 2026-10-13). **Limits
-   and waiting lists**, under Links and settings, opens when tapped but
-   shows no arrow, so it reads as a plain heading. Bulma's `label` class
-   on its `<summary>` makes it a block and hides the marker
-   (`views/limits.templ`). This isn't the first time, so review all 52
+   and waiting lists** opened when tapped but showed no arrow, so it read
+   as a plain heading (it's now a plain group on the Settings page, built
+   2026-10-14). Bulma's `label` class on a `<summary>` makes it a block and
+   hides the marker. This isn't the first time, so review all 52
    dropdowns: the dashboard's level headings (`title` on the summary in
    `views/competitions.templ`) look like the same problem. Give every
    dropdown one look, with an arrow that turns when open.

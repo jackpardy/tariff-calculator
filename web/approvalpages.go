@@ -114,7 +114,7 @@ func (p *competitionPages) setApproveCoaches(w http.ResponseWriter, r *http.Requ
 	if on {
 		notice = "Only coaches you approve can sign off: clubs send theirs, and you approve them on the Coaches page."
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	backToSettings(w, r, notice)
 }
 
 // approvals is the page of coaches clubs have sent, by club.
@@ -134,7 +134,7 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	page := views.ApprovalsPage{Base: base, Competition: summary(c.Competition, p.now()), Notice: r.URL.Query().Get("notice"), Asked: askedLevels(c.Competition)}
+	page := views.ApprovalsPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuCoaches), Notice: r.URL.Query().Get("notice"), Asked: askedLevels(c.Competition)}
 	for _, s := range sent {
 		row := views.ApprovalRow{ID: s.CoachID, Name: s.Name, Action: base + "/coaches/" + s.CoachID, Status: coachStatus(s.Status), Approved: s.Approved(),
 			Withdrawn: s.Status == store.CoachWithdrawn, Note: s.Note, Changed: s.Changed}

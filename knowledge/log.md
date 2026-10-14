@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-14
+* **Update**: [Competition entries](features/competition-entries.md#the-menu-and-the-settings-page-roadmap-2026-10-14): the organiser's pages have a menu (Entries, Timetable, On the day, Settings) in place of the row of buttons and the back links, and the links and settings have a Settings page of their own.
 * **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): the menus and dropdowns move up to second and third, after the check-in fix, so the people pages are built into the new layout.
 
 ## 2026-10-13

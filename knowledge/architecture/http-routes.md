@@ -46,6 +46,7 @@ every page answers 503.
 | `GET /competitions/new` | — | The form that creates a competition, and the competitions saved in this browser |
 | `POST /competitions` | `name`, `date`, `deadlineDate`, `deadlineTime` (Irish and UK time), `individuals`, `opens` (`later`, the default, for private; `now`; or `at` with `liveDate` and `liveTime`), each built-in `level`, each of the browser's own levels as `custom` (`{level, sets}`) | 303 to the dashboard with `?new=created`; 422 with the problems; 429 after 5 an hour from one address |
 | `GET /competitions/admin/{token}` | optional `club` (a club's name or `individual`), `problems=1`, `new` | The organiser's dashboard |
+| `GET /competitions/admin/{token}/settings` | optional `notice`, `new=replaced` | The Settings page: links and every setting, in groups (organiser and "everything" links only). The settings forms below come back to it |
 | `GET /competitions/admin/{token}/entries/{id}` | — | One entry, checked |
 | `POST /competitions/admin/{token}/entries/{id}/check` | `checked` (`1`/`0`), `note` | Marks the entry checked or not, with a note the club or gymnast sees |
 | `GET /competitions/admin/{token}/cards` | optional `club`, `problems=1`, `unchecked=1`, `level`, `entry` | Printable competition cards (the [tariff sheet](../features/tariff-sheet.md), filled in), one exercise per page |
@@ -61,11 +62,11 @@ every page answers 503.
 | `GET`, `POST /notify/off/{token}` | — (or `List-Unsubscribe=One-Click`) | Stops an email |
 | `POST /competitions/admin/{token}/notify-now` | — | Sends the changes waiting at once |
 | `POST /competitions/admin/{token}/no-wait` | `on` (`1`/`0`) | No wait before telling changes on the competition's days |
-| `POST /competitions/admin/{token}/live` | `opens`: `now`, `at` (with `liveDate` and `liveTime`, before the deadline) or `private` | Goes live now or then, or makes the competition private, pausing entries and keeping those made |
+| `POST /competitions/admin/{token}/live` | `opens`: `now`, `at` (with `liveDate` and `liveTime`, before the deadline) or `private`; `back=settings` to come back to Settings rather than the entries page | Goes live now or then, or makes the competition private, pausing entries and keeping those made |
 | `POST /competitions/admin/{token}/video` | `video` (`""`, `skills`, `routine`), `videoTriples`, `videoDoubles`, `videoTariff` | Changes what video proof the competition asks for (also taken by `POST /competitions`) |
 | `POST /competitions/admin/{token}/entries/{id}/video` | `review` (`ok`, `more`, `""`), `note` | The organiser's review of an entry's videos |
 | `POST /competitions/admin/{token}/individuals` | `on` (`1`/`0`) | Turns individual entry on or off |
-| `POST /competitions/admin/{token}/replace-link` | — | 303 to the new admin link, `?new=replaced` |
+| `POST /competitions/admin/{token}/replace-link` | — | 303 to the new admin link's Settings page, `?new=replaced` |
 | `GET`, `POST /clubs/member/{token}/competitions/{id}/late`, `/clubs/admin/{token}/members/{member}/competitions/{id}/late`, `/competitions/entry/{token}/late` | `discipline` (query), the entry form, `note` | Asking for a late change, once entries close |
 | `GET /competitions/admin/{token}/late` | — | Late changes: what's allowed and each request, with whether it fits |
 | `POST /competitions/admin/{token}/late/settings` | `late-<kind>=1`, `fee-<kind>` (`level`, `routines`) | Which late changes can be asked for, and their fees |

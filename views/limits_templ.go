@@ -97,20 +97,20 @@ func limitsForm(base string, fields []LimitField) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<details class=\"mb-3\"><summary class=\"label is-small\">Limits and waiting lists</summary><form method=\"post\" action=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<form method=\"post\" action=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 templ.SafeURL
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(base + "/limits"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 36, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 34, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"mt-2\"><div class=\"comp-sim-grid\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"mb-3\"><div class=\"comp-sim-grid\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -122,7 +122,7 @@ func limitsForm(base string, fields []LimitField) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(f.Event)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 40, Col: 21}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 38, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -135,7 +135,7 @@ func limitsForm(base string, fields []LimitField) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(f.Entered))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 40, Col: 88}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 38, Col: 87}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -148,7 +148,7 @@ func limitsForm(base string, fields []LimitField) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue("limit-" + strconv.Itoa(i))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 41, Col: 78}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 39, Col: 77}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 			if templ_7745c5c3_Err != nil {
@@ -161,7 +161,7 @@ func limitsForm(base string, fields []LimitField) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(f.Limit)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 41, Col: 129}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 39, Col: 128}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 			if templ_7745c5c3_Err != nil {
@@ -174,7 +174,7 @@ func limitsForm(base string, fields []LimitField) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue("Limit for " + f.Event)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 41, Col: 186}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 39, Col: 185}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 			if templ_7745c5c3_Err != nil {
@@ -185,7 +185,7 @@ func limitsForm(base string, fields []LimitField) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div><p class=\"help\">Once an event is full, later entries go on its waiting list in the order they came in, and move up as places free: when one is withdrawn or removed, or you raise the limit. Empty: no limit.</p><button class=\"button is-small\" type=\"submit\">Save limits</button></form></details>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div><p class=\"help\">Once an event is full, later entries go on its waiting list in the order they came in, and move up as places free: when one is withdrawn or removed, or you raise the limit. Empty: no limit.</p><button class=\"button is-small\" type=\"submit\">Save limits</button></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -228,7 +228,7 @@ func waitingBox(base string, lists []WaitingList, letIn bool) templ.Component {
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(wl.Event)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 58, Col: 47}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 55, Col: 47}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -241,7 +241,7 @@ func waitingBox(base string, lists []WaitingList, letIn bool) templ.Component {
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(wl.Limit))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 58, Col: 146}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 55, Col: 146}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -259,7 +259,7 @@ func waitingBox(base string, lists []WaitingList, letIn bool) templ.Component {
 					var templ_7745c5c3_Var13 string
 					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(row.Place))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 63, Col: 59}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 60, Col: 59}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 					if templ_7745c5c3_Err != nil {
@@ -272,7 +272,7 @@ func waitingBox(base string, lists []WaitingList, letIn bool) templ.Component {
 					var templ_7745c5c3_Var14 templ.SafeURL
 					templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(row.Link))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 64, Col: 45}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 61, Col: 45}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 					if templ_7745c5c3_Err != nil {
@@ -285,7 +285,7 @@ func waitingBox(base string, lists []WaitingList, letIn bool) templ.Component {
 					var templ_7745c5c3_Var15 string
 					templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(row.Gymnast)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 64, Col: 61}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 61, Col: 61}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 					if templ_7745c5c3_Err != nil {
@@ -298,7 +298,7 @@ func waitingBox(base string, lists []WaitingList, letIn bool) templ.Component {
 					var templ_7745c5c3_Var16 string
 					templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(row.Club)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 65, Col: 22}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 62, Col: 22}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 					if templ_7745c5c3_Err != nil {
@@ -311,7 +311,7 @@ func waitingBox(base string, lists []WaitingList, letIn bool) templ.Component {
 					var templ_7745c5c3_Var17 string
 					templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(row.Entered)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 66, Col: 65}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 63, Col: 65}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 					if templ_7745c5c3_Err != nil {
@@ -329,7 +329,7 @@ func waitingBox(base string, lists []WaitingList, letIn bool) templ.Component {
 						var templ_7745c5c3_Var18 templ.SafeURL
 						templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(base + "/entries/" + row.ID + "/let-in"))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 69, Col: 93}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 66, Col: 93}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 						if templ_7745c5c3_Err != nil {
@@ -342,7 +342,7 @@ func waitingBox(base string, lists []WaitingList, letIn bool) templ.Component {
 						var templ_7745c5c3_Var19 string
 						templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.ResolveAttributeValue("Let in " + row.Gymnast)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 70, Col: 93}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/limits.templ`, Line: 67, Col: 93}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var19)
 						if templ_7745c5c3_Err != nil {

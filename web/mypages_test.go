@@ -11,7 +11,7 @@ import (
 func TestMyCompetition(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	clubLink := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/club/")
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
@@ -30,7 +30,7 @@ func TestMyCompetition(t *testing.T) {
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
 
 	// An individual who judges, in the same event.
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Ivy"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
 	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
 

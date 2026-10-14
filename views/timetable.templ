@@ -12,6 +12,7 @@ import (
 type TimetablePage struct {
 	Base        string
 	Competition CompetitionSummary
+	Menu []MenuSection
 	Notice      string
 	Setup       SetupForm
 	Planned     bool
@@ -149,9 +150,9 @@ type FlightOption struct {
 // CompetitionTimetable is the organiser's timetable page.
 templ CompetitionTimetable(p TimetablePage) {
 	@competitionLayout("Timetable · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
 		<h1 class="title is-4">Timetable</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			<div class="notification is-info is-light">{ p.Notice }</div>
 		}

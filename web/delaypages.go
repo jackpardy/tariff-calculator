@@ -27,7 +27,7 @@ func (p *competitionPages) delay(w http.ResponseWriter, r *http.Request) {
 	}
 	q := r.URL.Query()
 	page := views.DelayPage{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
+		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuDelay),
 		Day: q.Get("day"), Areas: q["area"], From: q.Get("from"), Minutes: q.Get("minutes"),
 		Breaks: q.Get("breaks"), Shorten: q.Get("shorten"), Between: q.Get("between"), Quicker: q.Get("quicker"),
 		MaxFlight: q.Get("maxFlight"), Overrun: q.Get("overrun"),

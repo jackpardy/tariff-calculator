@@ -16,10 +16,11 @@ func TestPairedSynchro(t *testing.T) {
 	form.Set("synchroPairs", "BUCS L3 + BUCS L4")
 	admin := created(t, h, form)
 	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
-	if !strings.Contains(dash, ">Synchro BUCS L3/L4 ") || !strings.Contains(dash, "BUCS L3 + BUCS L4</textarea>") {
+	settings := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
+	if !strings.Contains(dash, ">Synchro BUCS L3/L4 ") || !strings.Contains(settings, "BUCS L3 + BUCS L4</textarea>") {
 		t.Error("one synchro event for both levels, and the pairing to change")
 	}
-	enter := pathIn(t, dash, "/competitions/enter/")
+	enter := pathIn(t, settings, "/competitions/enter/")
 	page := do(t, h, http.MethodGet, enter+"?discipline=synchro", nil).Body.String()
 	if !strings.Contains(page, ">BUCS L3/L4 (doing BUCS L3)</option>") || !strings.Contains(page, ">BUCS L3/L4 (doing BUCS L4)</option>") {
 		t.Error("a pair chooses which level of the event they do")
