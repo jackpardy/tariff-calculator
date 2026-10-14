@@ -224,6 +224,19 @@
         levels.forEach((d) => d.addEventListener('toggle', save));
     }
 
+    // menuInView scrolls each row of the page's menu sideways so its current
+    // tab shows: on a phone the rows are wider than the screen.
+    function menuInView() {
+        document.querySelectorAll('.comp-menu .tabs').forEach((row) => {
+            const active = row.querySelector('li.is-active');
+            if (active && row.scrollWidth > row.clientWidth) {
+                const a = active.getBoundingClientRect();
+                const r = row.getBoundingClientRect();
+                row.scrollLeft += a.left - r.left - (r.width - a.width) / 2;
+            }
+        });
+    }
+
     // dayPage keeps the On the day page where it is when a button on it is
     // tapped (Here, Scratched, Started, Notify...). The form is sent in the
     // background, then the notice, the scratch warnings and the areas are
@@ -372,6 +385,7 @@
         keepOffline();
         offlineBanner();
         openLevels();
+        menuInView();
         dayPage();
         copyButtons();
         saveLinks();
