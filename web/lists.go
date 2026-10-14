@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"tariffCalculator/competitions"
+	"tariffCalculator/store"
 	"tariffCalculator/views"
 )
 
@@ -137,4 +138,131 @@ func qualifiedValue(on bool) string {
 		return "yes"
 	}
 	return "no"
+}
+
+// The values of the "What they do" filter on all people.
+const (
+	doesGymnast  = "gymnast"
+	doesOfficial = "official"
+	doesCoach    = "coach"
+)
+
+// peopleDoFilter is a filter by what someone does at the competition.
+func peopleDoFilter() views.ListFilter {
+	return views.ListFilter{Key: "does", Label: "What they do", Any: "Anything", Options: []views.ListOption{
+		{Value: doesGymnast, Label: "Gymnast"}, {Value: doesOfficial, Label: "Official"}, {Value: doesCoach, Label: "Coach"},
+	}}
+}
+
+// peopleDo is what someone does, as peopleDoFilter's values, from their
+// roles (gymnast, judge, chair, recorder, marshal, coach): judging,
+// chairing, recording and marshalling all make an official.
+func peopleDo(roles []string) []string {
+	var out []string
+	if slices.Contains(roles, "gymnast") {
+		out = append(out, doesGymnast)
+	}
+	if slices.ContainsFunc(roles, func(r string) bool { return r != "gymnast" && r != "coach" }) {
+		out = append(out, doesOfficial)
+	}
+	if slices.Contains(roles, "coach") {
+		out = append(out, doesCoach)
+	}
+	return out
+}
+
+// noCoach is the coach filter's value for a member with no coach.
+const noCoach = "-"
+
+// memberCoachFilter is a filter by a club member's coach: each of the club's
+// coaches, then "No coach".
+func memberCoachFilter(coaches []views.CoachOption) views.ListFilter {
+	f := views.ListFilter{Key: "coach", Label: "Coach", Any: "Any coach"}
+	for _, c := range coaches {
+		f.Options = append(f.Options, views.ListOption{Value: c.ID, Label: c.Name})
+	}
+	f.Options = append(f.Options, views.ListOption{Value: noCoach, Label: "No coach"})
+	return f
+}
+
+// memberCoachValue is a member's value for the coach filter.
+func memberCoachValue(coachID string) string {
+	if coachID == "" {
+		return noCoach
+	}
+	return coachID
+}
+
+// hasFilter is a filter by whether a row has something (entries,
+// qualifications): has is the label of the rows that do, none of those that
+// don't.
+func hasFilter(key, label, any, has, none string) views.ListFilter {
+	return views.ListFilter{Key: key, Label: label, Any: any, Options: []views.ListOption{
+		{Value: "yes", Label: has}, {Value: "no", Label: none},
+	}}
+}
+
+// hasValue is a row's value for a hasFilter.
+func hasValue(has bool) string {
+	if has {
+		return "yes"
+	}
+	return "no"
+}
+
+// coachEntryFilters are the filters on a coach's entries: the competition
+// (when there is more than one), each level once, by name,
+// whether the entry has problems, and where its sign-off stands.
+func coachEntryFilters(competitionOptions []views.ListOption, levels []string) []views.ListFilter {
+	var out []views.ListFilter
+	if len(competitionOptions) > 1 {
+		out = append(out, views.ListFilter{Key: "competition", Label: "Competition", Any: "Every competition", Options: competitionOptions})
+	}
+	level := views.ListFilter{Key: "level", Label: "Level", Any: "Every level"}
+	for _, l := range levels {
+		if !slices.ContainsFunc(level.Options, func(o views.ListOption) bool { return o.Value == l }) {
+			level.Options = append(level.Options, views.ListOption{Value: l, Label: l})
+		}
+	}
+	slices.SortFunc(level.Options, func(a, b views.ListOption) int { return cmp.Compare(a.Label, b.Label) })
+	return append(out, level, hasFilter("problems", "Problems", "With or without problems", "Has problems", "No problems"),
+		views.ListFilter{Key: "signoff", Label: "Sign-off", Any: "Any sign-off", Options: []views.ListOption{
+			{Value: "signed", Label: "Signed off"}, {Value: "not-yet", Label: "Not yet"}, {Value: "waiting", Label: "Waiting"},
+		}})
+}
+
+// coachSignoffValue is an entry's value for the sign-off filter, matching
+// what the coach's table says: signed off, not yet (the coach asked for
+// changes) or waiting.
+func coachSignoffValue(s views.SignoffView) string {
+	switch {
+	case s.Signed:
+		return "signed"
+	case s.By != "":
+		return "not-yet"
+	}
+	return "waiting"
+}
+
+// coachStatusFilter is a filter by where a coach stands with the organiser's
+// approval.
+func coachStatusFilter() views.ListFilter {
+	return views.ListFilter{Key: "status", Label: "Status", Any: "Any status", Options: []views.ListOption{
+		{Value: "approved", Label: "Approved"}, {Value: "waiting", Label: "Waiting"},
+		{Value: "refused", Label: "Not approved"}, {Value: "withdrawn", Label: "Approval withdrawn"},
+	}}
+}
+
+// coachStatusValue is a coach's value for the status filter, from their
+// store status.
+func coachStatusValue(status string) string {
+	switch status {
+	case store.CoachApproved:
+		return "approved"
+	case store.CoachRefused:
+		return "refused"
+	case store.CoachWithdrawn:
+		return "withdrawn"
+	}
+	return "waiting"
 }

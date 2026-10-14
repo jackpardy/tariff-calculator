@@ -26,6 +26,9 @@ type ClubPage struct {
 	// Ties the people whose own link opens these pages (ADR 0010).
 	MemberOptions []CoachOption
 	Ties          []TieView
+	// MembersTools and CoachesTools are the search and filters of the
+	// Members and Coaches lists.
+	MembersTools, CoachesTools ListTools
 }
 
 // ClubCoach is one of the club's coaches.
@@ -35,6 +38,7 @@ type ClubCoach struct {
 	SignsOff       bool // they sign off routines
 	Qualifications []QualificationView
 	Member         string // the member who is the same person, whose link opens their page; "" for none
+	List           ListRow // what the list's search and filters see
 }
 
 // QualificationView is one of a coach's qualifications.
@@ -55,6 +59,7 @@ type ClubMember struct {
 	Entries   int
 	CoachID   string
 	AlsoCoach bool // a coach of the club too
+	List      ListRow // what the list's search and filters see
 }
 
 // ClubCompetition is a competition the club is entered in, with its members' entries.
@@ -425,46 +430,48 @@ templ ClubAdmin(c ClubPage) {
 templ ClubMembers(c ClubPage) {
 	@clubFrame(c) {
 		@linkBox("Join link", c.JoinLink, "Share it in the club's chat: members join with it and keep their own entries.")
-		<h2 class="title is-5 mt-5">Members <span class="has-text-grey is-size-6">({ strconv.Itoa(len(c.Members)) })</span></h2>
-		if len(c.Members) == 0 {
-			<p class="has-text-grey">No members yet. Share the join link.</p>
-		} else {
-			<div class="table-container">
-				<table class="table is-fullwidth is-narrow">
-					<tbody>
-						for _, m := range c.Members {
-							<tr>
-								<td>
-									{ m.Name }
-									if m.AlsoCoach {
-										<span class="tag is-info is-light ml-1">Coach too</span>
-									}
-								</td>
-								<td class="has-text-grey is-size-7">{ entriesCount(m.Entries) }</td>
-								if len(c.CoachOptions) > 0 {
+		@listSection("Members", len(c.Members), false) {
+			if len(c.Members) == 0 {
+				<p class="has-text-grey">No members yet. Share the join link.</p>
+			} else {
+				@listTools(c.MembersTools)
+				<div class="table-container">
+					<table class="table is-fullwidth is-narrow" id={ c.MembersTools.ID }>
+						<tbody>
+							for _, m := range c.Members {
+								<tr { m.List.Attrs()... }>
 									<td>
-										@coachSelect(c.Base+"/members/"+m.ID+"/coach", c.CoachOptions, m.CoachID, m.Name+"'s coach")
+										{ m.Name }
+										if m.AlsoCoach {
+											<span class="tag is-info is-light ml-1">Coach too</span>
+										}
 									</td>
-								}
-								<td class="has-text-right">
-									if !m.AlsoCoach {
-										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/from-member") } class="is-inline">
-											<input type="hidden" name="member" value={ m.ID }/>
-											<button class="button is-small is-text" type="submit" title="Their member link opens the coach's page too">Make a coach too</button>
-										</form>
+									<td class="has-text-grey is-size-7">{ entriesCount(m.Entries) }</td>
+									if len(c.CoachOptions) > 0 {
+										<td>
+											@coachSelect(c.Base+"/members/"+m.ID+"/coach", c.CoachOptions, m.CoachID, m.Name+"'s coach")
+										</td>
 									}
-									<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/new-link") } class="is-inline">
-										<button class="button is-small is-text" type="submit" title="For a member who lost their link: their old one stops working">New link</button>
-									</form>
-									<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/remove") } class="is-inline" onsubmit={ confirmRemove(m.Name) }>
-										<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
-									</form>
-								</td>
-							</tr>
-						}
-					</tbody>
-				</table>
-			</div>
+									<td class="has-text-right">
+										if !m.AlsoCoach {
+											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/from-member") } class="is-inline">
+												<input type="hidden" name="member" value={ m.ID }/>
+												<button class="button is-small is-text" type="submit" title="Their member link opens the coach's page too">Make a coach too</button>
+											</form>
+										}
+										<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/new-link") } class="is-inline">
+											<button class="button is-small is-text" type="submit" title="For a member who lost their link: their old one stops working">New link</button>
+										</form>
+										<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/remove") } class="is-inline" onsubmit={ confirmRemove(m.Name) }>
+											<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+										</form>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
 		}
 		@pairEntries(c.Pairs)
 	}
@@ -473,71 +480,75 @@ templ ClubMembers(c ClubPage) {
 // ClubCoaches is the comp sec's Coaches section.
 templ ClubCoaches(c ClubPage) {
 	@clubFrame(c) {
-		<h2 class="title is-5 mt-5">Coaches <span class="has-text-grey is-size-6">({ strconv.Itoa(len(c.Coaches)) })</span></h2>
-		<p class="help mb-3">Coaches sign off members' routines on their own page. A member chooses their coach, or you do on the Members page; a coach sees their members and those without a coach. A competition can ask for coaches with qualifications: add each coach's, with a photo or PDF of the certificate. Only you, and organisers you send the coach to, can open it.</p>
-		if len(c.Coaches) > 0 {
-			<div class="table-container">
-				<table class="table is-fullwidth is-narrow">
-					<tbody>
+		@listSection("Coaches", len(c.Coaches), false) {
+			if len(c.Coaches) == 0 {
+				<p class="has-text-grey">No coaches yet. Add one below.</p>
+			} else {
+				@listTools(c.CoachesTools)
+				<div class="table-container">
+					<table class="table is-fullwidth is-narrow" id={ c.CoachesTools.ID }>
 						for _, coach := range c.Coaches {
-							<tr>
-								<td>
-									{ coach.Name }
-									if coach.Member != "" {
-										<span class="is-block has-text-grey is-size-7">A member too: opens from their member link</span>
-									}
-								</td>
-								<td class="has-text-grey is-size-7">{ coachedCount(coach.Members) }</td>
-								<td class="has-text-right">
-									<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") } class="is-inline">
-										<button class="button is-small is-text" type="submit" title="Their old link stops working">New link</button>
-									</form>
-									<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/remove") } class="is-inline" onsubmit={ confirmRemoveCoach(coach.Name) }>
-										<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
-									</form>
-								</td>
-							</tr>
-							<tr>
-								<td colspan="3" class="is-size-7">
-									<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/signs-off") } class="mb-1">
-										<input type="hidden" name="on" value={ boolValue(!coach.SignsOff) }/>
-										<label class="checkbox">
-											<input type="checkbox" checked?={ coach.SignsOff } onchange="this.form.submit()"/>
-											Signs off routines
-										</label>
-										<noscript><button class="button is-small" type="submit">Change</button></noscript>
-									</form>
-									for _, q := range coach.Qualifications {
-										<div>
-											{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a>
-											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/qualifications/" + q.ID + "/remove") } class="is-inline">
-												<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
-											</form>
-										</div>
-									}
-									<details>
-										<summary>Add a qualification</summary>
-										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/qualifications") } enctype="multipart/form-data" class="comp-flight-actions mt-1">
-											<div class="select is-small">
-												<select name="qualification" required aria-label={ coach.Name + "'s qualification" }>
-													<option value="">Qualification…</option>
-													for _, o := range c.QualificationOptions {
-														<option value={ o.ID }>{ o.Name }</option>
-													}
-												</select>
-											</div>
-											<input class="input is-small" type="file" name="certificate" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label={ coach.Name + "'s certificate" }/>
-											<button class="button is-small" type="submit">Add</button>
+							<tbody { coach.List.Attrs()... }>
+								<tr>
+									<td>
+										{ coach.Name }
+										if coach.Member != "" {
+											<span class="is-block has-text-grey is-size-7">A member too: opens from their member link</span>
+										}
+									</td>
+									<td class="has-text-grey is-size-7">{ coachedCount(coach.Members) }</td>
+									<td class="has-text-right">
+										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") } class="is-inline">
+											<button class="button is-small is-text" type="submit" title="Their old link stops working">New link</button>
 										</form>
-										<p class="help">The certificate: a photo or PDF, up to 10 MB. It's kept until you remove it or the coach.</p>
-									</details>
-								</td>
-							</tr>
+										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/remove") } class="is-inline" onsubmit={ confirmRemoveCoach(coach.Name) }>
+											<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+										</form>
+									</td>
+								</tr>
+								<tr>
+									<td colspan="3" class="is-size-7">
+										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/signs-off") } class="mb-1">
+											<input type="hidden" name="on" value={ boolValue(!coach.SignsOff) }/>
+											<label class="checkbox">
+												<input type="checkbox" checked?={ coach.SignsOff } onchange="this.form.submit()"/>
+												Signs off routines
+											</label>
+											<noscript><button class="button is-small" type="submit">Change</button></noscript>
+										</form>
+										for _, q := range coach.Qualifications {
+											<div>
+												{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a>
+												<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/qualifications/" + q.ID + "/remove") } class="is-inline">
+													<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+												</form>
+											</div>
+										}
+										<details>
+											<summary>Add a qualification</summary>
+											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/qualifications") } enctype="multipart/form-data" class="comp-flight-actions mt-1">
+												<div class="select is-small">
+													<select name="qualification" required aria-label={ coach.Name + "'s qualification" }>
+														<option value="">Qualification…</option>
+														for _, o := range c.QualificationOptions {
+															<option value={ o.ID }>{ o.Name }</option>
+														}
+													</select>
+												</div>
+												<input class="input is-small" type="file" name="certificate" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label={ coach.Name + "'s certificate" }/>
+												<button class="button is-small" type="submit">Add</button>
+											</form>
+											<p class="help">The certificate: a photo or PDF, up to 10 MB. It's kept until you remove it or the coach.</p>
+										</details>
+									</td>
+								</tr>
+							</tbody>
 						}
-					</tbody>
-				</table>
-			</div>
+					</table>
+				</div>
+			}
 		}
+		<p class="help mb-3">Coaches sign off members' routines on their own page. A member chooses their coach, or you do on the Members page; a coach sees their members and those without a coach. A competition can ask for coaches with qualifications: add each coach's, with a photo or PDF of the certificate. Only you, and organisers you send the coach to, can open it.</p>
 		<form method="post" action={ templ.SafeURL(c.Base + "/coaches") } class="field has-addons">
 			<div class="control is-expanded">
 				<input class="input is-small" name="name" required maxlength="80" placeholder="Coach's name" aria-label="Coach's name"/>

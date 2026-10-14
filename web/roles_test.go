@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -464,8 +465,8 @@ func TestAllPeopleJoinsRoles(t *testing.T) {
 	if n := strings.Count(people, `data-name="Ann O&#39;Neill / Jr?"`); n != 1 {
 		t.Fatalf("one row for Ann, listed %d times: %s", n, people)
 	}
-	row := regexp.MustCompile(`(?s)<tr data-name="Ann O&#39;Neill / Jr\?"[^>]*>.*?</tr>`).FindString(people)
-	if !strings.Contains(row, `data-roles="gymnast coach"`) || !strings.Contains(row, "coaches 1") {
+	row := regexp.MustCompile(`(?s)<tr data-list-row="" data-name="Ann O&#39;Neill / Jr\?"[^>]*>.*?</tr>`).FindString(people)
+	if !slices.Equal(listRows(t, people, "people")[name]["does"], []string{"gymnast", "coach"}) || !strings.Contains(row, "coaches 1") {
 		t.Errorf("competing and coaching: %s", row)
 	}
 	// Her page, from the list or by her coach's key, is one page.

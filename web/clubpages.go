@@ -234,11 +234,18 @@ func (p *competitionPages) clubMembersPart(r *http.Request, club store.Club, pag
 		}
 	}
 	for _, m := range members {
-		page.Members = append(page.Members, views.ClubMember{ID: m.ID, Name: m.Name, Entries: entered[m.ID], CoachID: m.CoachID, AlsoCoach: m.AlsoCoach != ""})
+		page.Members = append(page.Members, views.ClubMember{ID: m.ID, Name: m.Name, Entries: entered[m.ID], CoachID: m.CoachID, AlsoCoach: m.AlsoCoach != "",
+			List: views.ListRow{Name: m.Name, Values: map[string][]string{
+				"coach": {memberCoachValue(m.CoachID)}, "entries": {hasValue(entered[m.ID] > 0)}, "coachtoo": {hasValue(m.AlsoCoach != "")},
+			}}})
 	}
 	for _, c := range coaches {
 		page.CoachOptions = append(page.CoachOptions, views.CoachOption{ID: c.ID, Name: c.Name})
 	}
+	page.MembersTools = views.ListTools{ID: "members", Noun: "members", Total: len(members), Filters: []views.ListFilter{
+		memberCoachFilter(page.CoachOptions), hasFilter("entries", "Entries", "Any entries", "Has entries", "No entries"),
+		hasFilter("coachtoo", "Coach too", "Coach or not", "Coach too", "Not a coach"),
+	}}
 	pairs, err := p.st.ClubPairEntries(ctx, club.ID)
 	if err != nil {
 		return err
@@ -279,8 +286,13 @@ func (p *competitionPages) clubCoachesPart(r *http.Request, club store.Club, pag
 			cv.Qualifications = append(cv.Qualifications, views.QualificationView{ID: q.ID, Name: qualificationName(q.Qualification),
 				Certificate: page.Base + "/coaches/" + c.ID + "/qualifications/" + q.ID + "/certificate"})
 		}
+		cv.List = views.ListRow{Name: c.Name, Values: map[string][]string{"signs": {hasValue(c.SignsOff)}, "quals": {hasValue(len(cv.Qualifications) > 0)}}}
 		page.Coaches = append(page.Coaches, cv)
 	}
+	page.CoachesTools = views.ListTools{ID: "coaches", Noun: "coaches", Total: len(coaches), Filters: []views.ListFilter{
+		hasFilter("signs", "Signs off", "Signs off or not", "Signs off routines", "Doesn't sign off"),
+		hasFilter("quals", "Qualifications", "Any qualifications", "Has qualifications", "None"),
+	}}
 	for _, m := range members {
 		if m.AlsoCoach == "" {
 			page.MemberOptions = append(page.MemberOptions, views.CoachOption{ID: m.ID, Name: m.Name})
