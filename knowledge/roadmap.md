@@ -186,9 +186,11 @@ features that show that, in this order:
 
 **Next (asked 2026-10-09 and 2026-10-13), before the rest.** The menus come early because they touch every page, so the new people pages go straight into the new layout.
 
-1. **Check-in keeps the flight open**: marking someone Here, Scratched or
-   Clear on the On the day page updates just their row, so the flight's
-   check-in list doesn't close.
+1. **Check-in keeps the flight open** (built 2026-10-14): marking someone
+   Here, Scratched or Clear on the On the day page updates the page in place,
+   so the flight's check-in list stays open and the page doesn't move; without
+   JavaScript the page reloads at that flight's box. See
+   [competition entries](features/competition-entries.md#on-the-day-flights-started-and-finished).
 2. **Finding your way round (asked 2026-10-13):**
    - **A menu for the organiser**, with sections and subsections:
      entries, timetable, coaches, panels and officials, routines and

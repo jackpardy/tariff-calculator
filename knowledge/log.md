@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-14
+* **Update**: [On the day](features/competition-entries.md#on-the-day-flights-started-and-finished): tapping Here, Scratched, Started, Notify and the rest no longer reloads the page: it updates in place, with the check-in lists still open and the page where it was; without JavaScript the browser goes back to the flight. Roadmap item 1 built.
 * **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): the menus and dropdowns move up to second and third, after the check-in fix, so the people pages are built into the new layout.
 
 ## 2026-10-13

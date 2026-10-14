@@ -153,7 +153,7 @@ func (p *competitionPages) markOfficial(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	person, status := r.FormValue("person"), r.FormValue("status")
-	back := adminPath(r.PathValue("token")) + "/day?day=" + url.QueryEscape(r.FormValue("day"))
+	anchor := flightID(r.FormValue("flight"))
 	ch, err := p.officialAction(r, c, person, r.FormValue("flight"), status)
 	switch {
 	case err != nil:
@@ -161,13 +161,13 @@ func (p *competitionPages) markOfficial(w http.ResponseWriter, r *http.Request) 
 	case !ch.found:
 		message(w, r, http.StatusBadRequest, "Not an official on that panel", "That person doesn't have a seat on that flight of the published timetable. It may have been changed: go back and try again.")
 	case !ch.applies:
-		http.Redirect(w, r, back+"&notice="+url.QueryEscape("Someone has already done that for "+ch.name+"."), http.StatusSeeOther)
+		http.Redirect(w, r, backToDay(r, "Someone has already done that for "+ch.name+".", anchor), http.StatusSeeOther)
 	default:
 		if err := p.st.SetOfficialCheckin(r.Context(), c.ID, person, ch.flights, status, linkOf(r).Name); err != nil {
 			failed(w, r, err)
 			return
 		}
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
 	}
 }
 
@@ -330,7 +330,7 @@ func (p *competitionPages) notifyOne(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	back := adminPath(r.PathValue("token")) + "/day?day=" + url.QueryEscape(r.FormValue("day"))
+	anchor := flightID(r.FormValue("flight"))
 	d, err := p.notifyFormOf(r, c)
 	if err != nil {
 		failed(w, r, err)
@@ -341,12 +341,12 @@ func (p *competitionPages) notifyOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if d.problem != "" {
-		http.Redirect(w, r, back+"&notice="+url.QueryEscape(d.problem+" Nothing was sent."), http.StatusSeeOther)
+		http.Redirect(w, r, backToDay(r, d.problem+" Nothing was sent.", anchor), http.StatusSeeOther)
 		return
 	}
 	m, err := p.st.SendDeskMessage(r.Context(), c.ID, d.msg)
 	if err == store.ErrLimit {
-		http.Redirect(w, r, back+"&notice="+url.QueryEscape(fmt.Sprintf("A competition can keep %d messages. Nothing was sent.", store.MaxDeskMessages)), http.StatusSeeOther)
+		http.Redirect(w, r, backToDay(r, fmt.Sprintf("A competition can keep %d messages. Nothing was sent.", store.MaxDeskMessages), anchor), http.StatusSeeOther)
 		return
 	}
 	if err != nil {
@@ -358,7 +358,7 @@ func (p *competitionPages) notifyOne(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Desk: %s: %v", c.ID, err)
 	}
 	notice := fmt.Sprintf("Sent to %s. Told %d by push and %d by email.", m.Audience, pushed, emailed)
-	http.Redirect(w, r, back+"&notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	http.Redirect(w, r, backToDay(r, notice, anchor), http.StatusSeeOther)
 }
 
 // describeNotify says what a Notify message does, for the history; "" if it
