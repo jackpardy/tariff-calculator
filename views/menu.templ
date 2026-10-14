@@ -1,0 +1,63 @@
+package views
+
+// The menu at the top of the competition and club pages (roadmap 2026-10-13):
+// a row of sections, and under it the current section's own pages. The web
+// layer builds it for each page from what the link may open, so a helper's
+// link shows only what it can do.
+
+// MenuSection is a top-level section of a page's menu, with its own pages.
+type MenuSection struct {
+	Label, Href string
+	Current     bool       // the page shown is in this section
+	Badge       string     // e.g. "3 to decide"; "" for none
+	Items       []MenuItem // the section's pages, shown under the bar when it's current
+}
+
+// MenuItem is one page of a section.
+type MenuItem struct {
+	Label, Href string
+	Current     bool
+	Badge       string
+}
+
+// pageMenu is the menu: the sections, then the current section's pages when
+// it has more than one. Nothing when there's only one section with one page.
+templ pageMenu(sections []MenuSection) {
+	if len(sections) > 1 || (len(sections) == 1 && len(sections[0].Items) > 1) {
+		<nav class="comp-menu mb-4" aria-label="Sections">
+			<div class="tabs is-boxed mb-0">
+				<ul>
+					for _, s := range sections {
+						<li class={ templ.KV("is-active", s.Current) }>
+							<a href={ templ.SafeURL(s.Href) } aria-current?={ s.Current }>
+								{ s.Label }
+								if s.Badge != "" {
+									<span class="tag is-warning is-rounded ml-1">{ s.Badge }</span>
+								}
+							</a>
+						</li>
+					}
+				</ul>
+			</div>
+			for _, s := range sections {
+				if s.Current && len(s.Items) > 1 {
+					<div class="tabs is-small comp-submenu">
+						<ul>
+							for _, it := range s.Items {
+								<li class={ templ.KV("is-active", it.Current) }>
+									<a href={ templ.SafeURL(it.Href) } aria-current?={ it.Current }>
+										{ it.Label }
+										if it.Badge != "" {
+											<span class="tag is-warning is-rounded ml-1">{ it.Badge }</span>
+										}
+									</a>
+								</li>
+							}
+						</ul>
+					</div>
+				}
+			}
+		</nav>
+	}
+}
+
