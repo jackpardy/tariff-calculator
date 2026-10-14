@@ -15,6 +15,16 @@ type DeskPage struct {
 	People       []DeskPersonOption // every gymnast and official
 	PeopleTools  ListTools          // the search and filters on People
 	Sent         []DeskSent
+	Screen       []DeskNotice // announcements on the venue screen now
+	ScreenFor    []DeskOption // how long an announcement can show
+	ScreenMax    int          // the longest announcement, in characters
+}
+
+// DeskNotice is an announcement on the venue screen.
+type DeskNotice struct {
+	ID, Text, Who string
+	At            string // when it went up, e.g. "10:42"
+	Until         string // when it comes down; "" for when someone takes it down
 }
 
 // DeskOption is a choice in a list.
@@ -152,6 +162,7 @@ templ Desk(p DeskPage) {
 			<button class="button is-primary" type="submit">Send now</button>
 			<p class="help">It goes at once by push and email to those who asked to hear about this competition, and shows on each person's own page for those who didn't.</p>
 		</form>
+		@deskScreen(p)
 		<h2 class="title is-5">Sent</h2>
 		if len(p.Sent) == 0 {
 			<p class="has-text-grey">Nothing sent yet.</p>
@@ -185,4 +196,48 @@ templ deskMessages(notes []DeskNote) {
 			}
 		</div>
 	}
+}
+
+// deskScreen puts announcements on the venue screen and takes them down.
+templ deskScreen(p DeskPage) {
+	<div class="box">
+		<h2 class="title is-5 mb-2">On the venue screen</h2>
+		<p class="help mb-3">A line across the top of every venue screen, such as "Lunch extended by 15 minutes". It shows within 30 seconds; phones aren't told.</p>
+		for _, n := range p.Screen {
+			<div class="notification is-warning is-light py-2 px-3 mb-2">
+				<form method="post" action={ templ.SafeURL(p.Base + "/desk/screen/" + n.ID + "/remove") } class="is-pulled-right ml-2">
+					<button class="button is-small" type="submit">Take down</button>
+				</form>
+				<strong>{ n.Text }</strong>
+				<span class="is-block is-size-7 has-text-grey">
+					Up since { n.At } by { n.Who }
+					if n.Until != "" {
+						· until { n.Until }
+					} else {
+						· until it's taken down
+					}
+				</span>
+			</div>
+		}
+		<form method="post" action={ templ.SafeURL(p.Base + "/desk/screen") }>
+			<div class="field">
+				<label class="label is-small" for="screen-text">Announcement</label>
+				<input class="input" id="screen-text" name="text" maxlength={ strconv.Itoa(p.ScreenMax) } required/>
+			</div>
+			<div class="field is-grouped is-grouped-multiline">
+				<div class="control">
+					<div class="select is-small">
+						<select name="for" aria-label="How long it shows">
+							for _, o := range p.ScreenFor {
+								<option value={ o.Value }>Show { o.Label }</option>
+							}
+						</select>
+					</div>
+				</div>
+				<div class="control">
+					<button class="button is-small is-link" type="submit">Put it on the screen</button>
+				</div>
+			</div>
+		</form>
+	</div>
 }

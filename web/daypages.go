@@ -110,16 +110,28 @@ func (p *competitionPages) latenessOf(ctx context.Context, c store.Competition, 
 	return competitions.Lateness(*c.Published, day, first, local, actualOf(times)), nil
 }
 
-// lateText says how an area is running, e.g. "Running 15 min late", "On time"
-// or "5 min early".
+// lateText says how an area is running, e.g. "Running 15 min late",
+// "Running 1 h 5 min late", "On time" or "5 min early".
 func lateText(l competitions.AreaLateness) string {
 	switch {
 	case l.Minutes > 0:
-		return fmt.Sprintf("Running %d min late", l.Minutes)
+		return "Running " + minutesText(l.Minutes) + " late"
 	case l.Minutes < 0:
-		return fmt.Sprintf("%d min early", -l.Minutes)
+		return minutesText(-l.Minutes) + " early"
 	}
 	return "On time"
+}
+
+// minutesText is a number of minutes, in hours and minutes from an hour:
+// "45 min", "1 h", "1 h 5 min".
+func minutesText(m int) string {
+	switch {
+	case m < 60:
+		return fmt.Sprintf("%d min", m)
+	case m%60 == 0:
+		return fmt.Sprintf("%d h", m/60)
+	}
+	return fmt.Sprintf("%d h %d min", m/60, m%60)
 }
 
 // day is the on-the-day page for a day (default: today, if it's one of the

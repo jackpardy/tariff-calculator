@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"tariffCalculator/competitions"
+	"tariffCalculator/store"
 	"tariffCalculator/views"
 )
 
@@ -19,16 +20,28 @@ func (p *competitionPages) registerScreen(handle func(string, http.HandlerFunc))
 	handle("GET /competitions/admin/{token}/screen", p.screen)
 }
 
-// screenGymnasts is how many gymnasts the screen names under Now before it
-// says "+N more".
-const screenGymnasts = 12
-
 // areaNow is what's on an area at a moment, and what's next.
 type areaNow struct {
 	Flight  *competitions.ScheduledFlight // on now; nil if none
 	Planned bool                          // Flight is only there by the plan: nobody has marked it started
 	Break   string                        // a block's name, when no flight is on and one covers now
 	Next    *competitions.ScheduledFlight // the next flight that hasn't started; nil if none
+	// Idle is an area with nothing on and nothing starting in the next
+	// screenSoon minutes (or nothing more today), so the screen can shrink it.
+	Idle bool
+}
+
+// screenSoon is how many minutes ahead of its warm-up an area's next flight
+// keeps its card full size on the screen.
+const screenSoon = 30
+
+// screenClub is the club the screen shows beside a gymnast: none for one
+// entering on their own.
+func screenClub(e store.Entry) string {
+	if e.Individual {
+		return ""
+	}
+	return e.ClubName
 }
 
 // nowOn chooses what's on an area of a day at a moment: the flight that has
@@ -37,6 +50,10 @@ type areaNow struct {
 // block covering now. The next flight is the first in start order after that
 // which hasn't started or finished (when nothing is on, the first that
 // starts after now, or the first of the day when now isn't on that day).
+// Once the area's times are being marked that day, the earliest flight that
+// hasn't started is on (by the plan) once its time has come, however late,
+// so the area never goes blank while it has flights to run; with nothing
+// marked, the screen goes by the plan.
 // Planned times and blocks only count when now is on the day (firstDay plus
 // day, in local time); recorded times count whatever date they were marked.
 func nowOn(s competitions.Schedule, day int, area string, firstDay time.Time, actual map[string]competitions.Actual, now time.Time) areaNow {
@@ -74,6 +91,7 @@ func nowOn(s competitions.Schedule, day int, area string, firstDay time.Time, ac
 		return a.Started.IsZero() && a.Finished.IsZero()
 	}
 
+	tapped := slices.ContainsFunc(flights, func(f competitions.ScheduledFlight) bool { return !untouched(f) })
 	var out areaNow
 	on := -1 // index in flights of the one on now
 	for i, f := range flights {
@@ -87,7 +105,9 @@ func nowOn(s competitions.Schedule, day int, area string, firstDay time.Time, ac
 	}
 	if on < 0 && onDay {
 		for i, f := range flights {
-			if untouched(f) && f.Start <= minute && minute < f.End {
+			// Once the area's times are being marked, a flight whose time has
+			// come but that hasn't started is still to come, however late.
+			if untouched(f) && f.Start <= minute && (minute < f.End || tapped) {
 				on, out.Planned = i, true
 				break
 			}
@@ -107,11 +127,12 @@ func nowOn(s competitions.Schedule, day int, area string, firstDay time.Time, ac
 		if !untouched(f) {
 			continue
 		}
-		if on >= 0 && i > on || on < 0 && (!onDay || f.Start > minute) {
+		if on >= 0 && i > on || on < 0 && (!onDay || f.Start > minute || tapped) {
 			out.Next = &flights[i]
 			break
 		}
 	}
+	out.Idle = on < 0 && out.Break == "" && (out.Next == nil || onDay && out.Next.Start-minute > screenSoon)
 	return out
 }
 
@@ -123,7 +144,15 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := p.now()
-	page := views.ScreenPage{Competition: c.Name, Time: now.In(local).Format("15:04")}
+	page := views.ScreenPage{Competition: c.Name, Time: now.In(local).Format("15:04"), At: now.UnixMilli(), Zone: local.String()}
+	notices, err := p.st.ScreenNotices(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	for _, n := range notices {
+		page.Notices = append(page.Notices, n.Text)
+	}
 	first, err := c.Day()
 	s := c.Published
 	if err != nil || s == nil {
@@ -153,45 +182,57 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	names := map[string]string{}
+	people := map[string]views.ScreenGymnast{}
 	for _, e := range live(all) {
-		names[e.ID] = e.Entry.Gymnasts()
+		people[e.ID] = views.ScreenGymnast{Name: e.Entry.Gymnasts(), Club: screenClub(e)}
 	}
 	scratched, err := p.scratchedOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
+	gymnasts := func(f competitions.ScheduledFlight) []views.ScreenGymnast {
+		var out []views.ScreenGymnast
+		for _, id := range f.Entries {
+			if g, ok := people[id]; ok {
+				g.Scratched = scratched[id]
+				out = append(out, g)
+			}
+		}
+		return out
+	}
+	// Only the areas asked for (a screen for some of them), each in the
+	// colour of its place in the setup, the same on every screen and day.
+	chosen := r.URL.Query()["area"]
 	actual := actualOf(times)
-	for _, a := range s.Setup.Areas {
+	for i, a := range s.Setup.Areas {
 		if !slices.ContainsFunc(s.Flights, func(f competitions.ScheduledFlight) bool { return f.Day == day && f.Area == a.Name }) {
 			continue
 		}
-		v := views.ScreenArea{Name: a.Name}
+		if len(chosen) > 0 && !slices.Contains(chosen, a.Name) {
+			continue
+		}
+		v := views.ScreenArea{Name: a.Name, Colour: i % views.ScreenColours}
 		n := nowOn(*s, day, a.Name, first, actual, now)
 		switch {
 		case n.Flight != nil:
 			f := *n.Flight
 			v.Now, v.Planned = f.Name(), n.Planned
 			v.NowTimes = competitions.Clock(f.Start) + "–" + competitions.Clock(f.End)
-			for _, id := range f.Entries {
-				if name, ok := names[id]; ok {
-					v.Gymnasts = append(v.Gymnasts, views.ScreenGymnast{Name: name, Scratched: scratched[id]})
-				}
-			}
-			if more := len(v.Gymnasts) - screenGymnasts; more > 0 {
-				v.Gymnasts, v.More = v.Gymnasts[:screenGymnasts], more
-			}
+			v.Gymnasts = gymnasts(f)
 		case n.Break != "":
 			v.Now, v.Break = n.Break, true
 		}
 		if n.Next != nil {
 			v.Next, v.NextWarmUp = n.Next.Name(), competitions.Clock(n.Next.Start)
+			v.NextGymnasts = gymnasts(*n.Next)
 		}
+		v.Idle, v.Finished = n.Idle, n.Flight == nil && n.Break == "" && n.Next == nil
 		if l, ok := late[a.Name]; ok {
 			v.Late, v.Behind, v.Ahead = lateText(l), l.Minutes > 0, l.Minutes < 0
 		}
 		page.Areas = append(page.Areas, v)
 	}
+	page.Fit()
 	render(w, r, views.Screen(page))
 }

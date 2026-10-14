@@ -809,37 +809,69 @@ be at Panel 1" (or "Notified Ann's club: …" for the club alone). Organiser,
 
 ## The venue screen
 
-Built 2026-10-09. `GET /competitions/admin/{token}/screen?day=N` (default:
-today's index by `todayIndex`, else the first day) is a page for a screen at
-the venue, from the published timetable (`screenpages.go`,
-`views/screen.templ`). With no published timetable it just says "The
-timetable isn't published yet". It has no navigation: the competition name
-(and the day's name when there are several) and the local time ("10:42") at
-the top, then a card per area that has flights that day, side by side on a
-wide screen (CSS grid, `auto-fit`, at least 18rem each) and stacked on a
-narrow one, in large dark-on-light type. Its own layout (`screenLayout`)
-carries `<meta http-equiv="refresh" content="30">`, so it reloads itself on
-any browser without JavaScript, and `noindex`.
+Built 2026-10-09, reworked 2026-10-14 for a TV across a hall (roadmap item
+7). `GET /competitions/admin/{token}/screen?day=N` (default: today's index
+by `todayIndex`, else the first day; `area=` any number of times for a screen
+showing only those areas) is a page for a screen at the venue, from the
+published timetable (`screenpages.go`, `views/screen.templ`,
+`static/js/screen.js`). With no published timetable it says so. It has no
+navigation: the competition name (and the day's name when there are several)
+and a clock at the top, then any announcements, then the areas.
+
+**Layout.** Each area has its own colour, by its place in the setup, the
+same on every day and every screen (eight colours, taken in turn). An area
+with nothing on and nothing starting within 30 minutes (or nothing more
+today) is a slim strip along the bottom in its colour: "Next: … · warm-up
+14:00" or "Finished for the day". The rest are cards that share the screen:
+one row of up to four, else two rows (seven busy areas, as at ISTO, are two
+rows of four). If every area is quiet they all keep their cards. Text scales
+with the screen's width, and fewer cards get bigger text; the script then
+shrinks every card's text alike until nothing in any card overflows, so no
+name is ever cut off unseen. Each card shows a set number of names (fewer
+with more cards) and then "+N more".
 
 Each card has:
 
+- **Its band:** the area's name and, when `Lateness` measures one, "Running
+  15 min late" (hours and minutes from an hour: "Running 1 h 5 min late"),
+  "On time" or "5 min early". The lateness is information only: every time
+  on the screen is the timetable's, so a late or mistaken Started tap never
+  moves a warm-up time.
 - **Now:** chosen by `nowOn`, a pure function of the schedule, the recorded
-  times and a moment. In order: the flight on that area that has been marked
-  started and not finished (the latest started, if several); else the
-  planned flight whose time window (its warm-up start to its end) contains
-  now and that hasn't been marked at all, labelled "(planned)"; else the name
-  of a block covering now on that area (a block with no areas is on all of
-  them); else "—". Planned windows and blocks only count when now is on the
-  day shown; times marked on another date still count, so the screen can be
-  tried out before the day. Under it, the flight's gymnasts in running order,
-  names only in a smaller font, scratched ones struck through, at most 12 and
-  then "+N more".
-- **Next:** the following flight on that area in start order that hasn't
-  been started or finished, with its planned warm-up time; when nothing is
-  on, the first that starts after now (the first of the day when now isn't on
-  that day).
-- The area's lateness line ("Running 15 min late", "On time", "5 min early")
-  when `Lateness` measures one (it ignores times marked on another date).
+  times and a moment. In order: the flight on that area marked started and
+  not finished (the latest started, if several); else a flight that hasn't
+  been marked at all and whose time has come, labelled "not started yet".
+  With nothing marked on the area that day, that's the flight whose time
+  window contains now (the plan, exactly). Once the area's times are being
+  marked, it's the earliest unmarked flight whose time has come, however
+  late, so an area running late never goes blank while it has flights left.
+  Else the name of a block covering now (a block with no areas is on all of
+  them); else "—". Planned windows and blocks only count on the day shown;
+  times marked on another date don't count. Under it, the flight's gymnasts
+  in running order with their clubs (none for those entering on their own),
+  scratched ones struck through.
+- **Next:** the following flight that hasn't been started or finished, with
+  its warm-up time from the timetable and its gymnasts and clubs; with
+  nothing on, the first that starts after now, or the first unmarked one once
+  the area's times are being marked. "Finished for the day" when there's
+  nothing more.
+
+**Keeping it current.** The script fetches the page every 30 seconds and
+swaps in the new content. If a fetch fails (the venue's wifi drops), the last
+good screen stays up, and after 75 seconds a black line says "Not updated
+since 10:42: check the screen's connection". The clock ticks every second
+from the server's time, in Irish time, whatever the TV's own clock says. A
+new version of the app reloads the page once. Without JavaScript, the page
+reloads itself every 30 seconds.
+
+**Announcements.** On the Desk messages page, **On the venue screen** puts
+a line across the top of every venue screen ("Lunch extended by 15 minutes",
+up to 160 characters) for 15 or 30 minutes, an hour, or until someone takes
+it down. Phones aren't told. The page lists what's up, by whom and until
+when, each with **Take down**. They show even before the timetable is
+published, latest first. The history records each one put up and taken
+down. The links that can send desk messages can do this too
+(`store/screennotices.go`, `web/screennotices.go`).
 
 A new kind of link, **venue screen** (`store.LinkScreen`), can `GET` this
 route and nothing else. Organiser, "everything", chair and timetable links
