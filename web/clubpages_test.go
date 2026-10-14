@@ -24,6 +24,18 @@ func withoutQuery(path string) string {
 	return p
 }
 
+// memberCompetitionPage is a member's page for the first competition their
+// club is in, which they find through their list of competitions.
+func memberCompetitionPage(t *testing.T, h http.Handler, member string) string {
+	t.Helper()
+	list := do(t, h, http.MethodGet, member, nil).Body.String()
+	m := regexp.MustCompile(`href="(` + regexp.QuoteMeta(member) + `/competitions/[A-Za-z0-9_-]+)"`).FindStringSubmatch(list)
+	if m == nil {
+		t.Fatalf("no competition in %s's list", member)
+	}
+	return do(t, h, http.MethodGet, m[1], nil).Body.String()
+}
+
 // formAction finds a form's action in a page by its path prefix.
 func formAction(t *testing.T, html, prefix string) string {
 	t.Helper()
@@ -37,7 +49,7 @@ func formAction(t *testing.T, html, prefix string) string {
 func TestClubs(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	clubLink := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/club/")
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 
 	// A comp sec creates a club.
 	if rec := do(t, h, http.MethodPost, "/clubs", url.Values{"name": {" "}}); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "The club needs a name.") {
@@ -49,7 +61,7 @@ func TestClubs(t *testing.T) {
 	if !strings.Contains(page, "Club created.") || !strings.Contains(page, "http://example.com"+club) || !strings.Contains(page, "Not entered in any yet") {
 		t.Error("the new club's page shows its admin link once")
 	}
-	join := pathIn(t, page, "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 
 	// They enter it in the competition through its club link.
 	if page := do(t, h, http.MethodGet, clubLink, nil).Body.String(); !strings.Contains(page, "Enter your club in Student Open") {
@@ -76,7 +88,7 @@ func TestClubs(t *testing.T) {
 	if !strings.Contains(page, "You've joined.") || !strings.Contains(page, "Student Open") || !strings.Contains(page, "Not entered") || strings.Contains(page, `name="gymnast"`) {
 		t.Error("the member's page lists the competition to enter, under their own name")
 	}
-	save := formAction(t, page, member+"/competitions/")
+	save := formAction(t, memberCompetitionPage(t, h, member), member+"/competitions/")
 	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}}
 	if rec := do(t, h, http.MethodPost, save, entry); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Choose a routine for the second exercise.") {
 		t.Errorf("problems are shown: %d", rec.Code)
@@ -106,7 +118,7 @@ func TestClubs(t *testing.T) {
 	if page := do(t, h, http.MethodGet, member, nil).Body.String(); !strings.Contains(page, "Sent by your club") {
 		t.Error("the member sees it's sent")
 	}
-	if page := do(t, h, http.MethodGet, member, nil).Body.String(); !strings.Contains(page, `<details class="box mt-4 comp-change"><summary><strong>Change your entry</strong>`) {
+	if page := memberCompetitionPage(t, h, member); !strings.Contains(page, `<details class="box mt-4 comp-change"><summary><strong>Change your entry</strong>`) {
 		t.Error("with an entry, the form to change it starts closed")
 	}
 
@@ -126,7 +138,7 @@ func TestClubs(t *testing.T) {
 	if edit == nil {
 		t.Fatal("no link to change the member's entry")
 	}
-	if page := do(t, h, http.MethodGet, edit[1], nil).Body.String(); !strings.Contains(page, "Change the entry") || !strings.Contains(page, "← UCD") {
+	if page := do(t, h, http.MethodGet, edit[1], nil).Body.String(); !strings.Contains(page, "Change the entry") || !strings.Contains(page, "← Competitions") {
 		t.Error("the comp sec's edit page")
 	}
 	location = redirected(t, h, edit[1], entry)
@@ -135,7 +147,7 @@ func TestClubs(t *testing.T) {
 	}
 
 	// A member who lost their link gets a new one.
-	newLink := formAction(t, page, club+"/members/")
+	newLink := formAction(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), club+"/members/")
 	rec := do(t, h, http.MethodPost, newLink, url.Values{})
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "A. Murphy&#39;s new link") {
 		t.Fatalf("new member link: %d", rec.Code)
@@ -146,7 +158,7 @@ func TestClubs(t *testing.T) {
 	}
 
 	// Withdrawing: the sent copy stays until the club sends all again.
-	withdraw := formAction(t, do(t, h, http.MethodGet, fresh, nil).Body.String(), fresh+"/competitions/")
+	withdraw := formAction(t, memberCompetitionPage(t, h, fresh), fresh+"/competitions/")
 	if !strings.HasSuffix(withdraw, "/withdraw") {
 		withdraw += "/withdraw"
 	}

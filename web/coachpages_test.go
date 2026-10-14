@@ -20,7 +20,7 @@ func TestCoachSignoff(t *testing.T) {
 	if !strings.Contains(dash, "Entries need a coach&#39;s sign-off.") && !strings.Contains(dash, "Entries need a coach's sign-off.") {
 		t.Error("the competition says it needs sign-off")
 	}
-	clubLink := pathIn(t, dash, "/competitions/club/")
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 
@@ -36,23 +36,23 @@ func TestCoachSignoff(t *testing.T) {
 	}
 
 	// Two members join: X chooses Bob, Y chooses nobody.
-	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	x := withoutQuery(redirected(t, h, join, url.Values{"name": {"X"}}))
 	y := withoutQuery(redirected(t, h, join, url.Values{"name": {"Y"}}))
-	page := do(t, h, http.MethodGet, x, nil).Body.String()
+	page := do(t, h, http.MethodGet, x+"/details", nil).Body.String()
 	if !strings.Contains(page, "Your coach") || !strings.Contains(page, ">Ann</option>") {
 		t.Error("a member can choose their coach")
 	}
 	bobID := regexp.MustCompile(`<option value="([^"]+)">Bob</option>`).FindStringSubmatch(page)[1]
 	redirected(t, h, x+"/coach", url.Values{"coach": {bobID}})
-	if page := do(t, h, http.MethodGet, x, nil).Body.String(); !strings.Contains(page, `<option value="`+bobID+`" selected>Bob</option>`) {
+	if page := do(t, h, http.MethodGet, x+"/details", nil).Body.String(); !strings.Contains(page, `<option value="`+bobID+`" selected>Bob</option>`) {
 		t.Error("X's coach is Bob")
 	}
 	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
 	for _, m := range []string{x, y} {
-		redirected(t, h, formAction(t, do(t, h, http.MethodGet, m, nil).Body.String(), m+"/competitions/"), entry)
+		redirected(t, h, formAction(t, memberCompetitionPage(t, h, m), m+"/competitions/"), entry)
 	}
-	if page := do(t, h, http.MethodGet, y, nil).Body.String(); !strings.Contains(page, "Waiting for a coach&#39;s sign-off") && !strings.Contains(page, "Waiting for a coach's sign-off") {
+	if page := memberCompetitionPage(t, h, y); !strings.Contains(page, "Waiting for a coach&#39;s sign-off") && !strings.Contains(page, "Waiting for a coach's sign-off") {
 		t.Error("the member sees their entry waiting for sign-off")
 	}
 
@@ -83,7 +83,7 @@ func TestCoachSignoff(t *testing.T) {
 	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Signed off X&#39;s BUCS L3 entry") {
 		t.Error("signed off")
 	}
-	if page := do(t, h, http.MethodGet, x, nil).Body.String(); !strings.Contains(page, "Signed off by Bob") || !strings.Contains(page, "Ready") {
+	if page := memberCompetitionPage(t, h, x); !strings.Contains(page, "Signed off by Bob") || !strings.Contains(page, "Ready") {
 		t.Error("the member sees who signed it off")
 	}
 	clubPage := do(t, h, http.MethodGet, club, nil).Body.String()
@@ -105,14 +105,14 @@ func TestCoachSignoff(t *testing.T) {
 	}
 
 	// The comp sec assigns Y to Ann from the club page's members list.
-	clubPage = do(t, h, http.MethodGet, club, nil).Body.String()
+	clubPage = do(t, h, http.MethodGet, club+"/members", nil).Body.String()
 	assign := regexp.MustCompile(`action="(`+regexp.QuoteMeta(club)+`/members/[^"]+/coach)"`).FindAllStringSubmatch(clubPage, -1)
 	if len(assign) != 2 {
 		t.Fatalf("each member has a coach choice on the club page: %d", len(assign))
 	}
 	annID := regexp.MustCompile(`<option value="([^"]+)">Ann</option>`).FindStringSubmatch(clubPage)[1]
 	redirected(t, h, assign[1][1], url.Values{"coach": {annID}}) // members are by name: X, then Y
-	if page := do(t, h, http.MethodGet, y, nil).Body.String(); !strings.Contains(page, `<option value="`+annID+`" selected>Ann</option>`) {
+	if page := do(t, h, http.MethodGet, y+"/details", nil).Body.String(); !strings.Contains(page, `<option value="`+annID+`" selected>Ann</option>`) {
 		t.Error("Y's page shows the coach the comp sec assigned")
 	}
 	redirected(t, h, club+"/coaches-see-all", url.Values{"on": {""}})
@@ -128,13 +128,13 @@ func TestCoachSignoff(t *testing.T) {
 
 	// A change needs signing off again.
 	entry.Set("ex1Option", "builtin:bucs-l3-option-2")
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, x, nil).Body.String(), x+"/competitions/"), entry)
-	if page := do(t, h, http.MethodGet, x, nil).Body.String(); strings.Contains(page, "Signed off by Bob") {
+	redirected(t, h, formAction(t, memberCompetitionPage(t, h, x), x+"/competitions/"), entry)
+	if page := memberCompetitionPage(t, h, x); strings.Contains(page, "Signed off by Bob") {
 		t.Error("a changed entry isn't signed off any more")
 	}
 
 	// Removing a coach ends their link.
-	page = do(t, h, http.MethodGet, club, nil).Body.String()
+	page = do(t, h, http.MethodGet, club+"/coaches", nil).Body.String()
 	remove := regexp.MustCompile(`action="(` + regexp.QuoteMeta(club) + `/coaches/[^"]+/remove)"`).FindStringSubmatch(page)[1]
 	redirected(t, h, remove, url.Values{})
 	if do(t, h, http.MethodGet, ann, nil).Code != http.StatusNotFound {
@@ -147,7 +147,7 @@ func TestIndividualSignoff(t *testing.T) {
 	form := newCompetition()
 	form.Set("signoff", "1")
 	admin := created(t, h, form)
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"I"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
 	page := do(t, h, http.MethodGet, own, nil).Body.String()
 	if !strings.Contains(page, "Sign-off link for your coach") {
@@ -201,16 +201,16 @@ func TestCoachQualificationsPages(t *testing.T) {
 	form := newCompetition()
 	form.Set("signoff", "1")
 	admin := created(t, h, form)
-	clubLink := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/club/")
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	ann := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
-	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	x := withoutQuery(redirected(t, h, join, url.Values{"name": {"X"}}))
 	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, x, nil).Body.String(), x+"/competitions/"), entry)
+	redirected(t, h, formAction(t, memberCompetitionPage(t, h, x), x+"/competitions/"), entry)
 
-	page := do(t, h, http.MethodGet, club, nil).Body.String()
+	page := do(t, h, http.MethodGet, club+"/coaches", nil).Body.String()
 	coach := regexp.MustCompile(regexp.QuoteMeta(club) + `/coaches/([^/"]+)/signs-off`).FindStringSubmatch(page)
 	if coach == nil || !strings.Contains(page, "British Gymnastics Level 2 Trampoline Coach") {
 		t.Fatal("each coach can sign off or not, and be given qualifications from the list")
@@ -244,7 +244,7 @@ func TestCoachQualificationsPages(t *testing.T) {
 	if location := rec.Header().Get("Location"); !strings.Contains(location, "Added+British+Gymnastics+Level+2+Trampoline+Coach+for+Ann") {
 		t.Fatalf("added: %d %s", rec.Code, location)
 	}
-	page = do(t, h, http.MethodGet, club, nil).Body.String()
+	page = do(t, h, http.MethodGet, club+"/coaches", nil).Body.String()
 	cert := regexp.MustCompile(`href="(` + regexp.QuoteMeta(base) + `/qualifications/[^"]+/certificate)"`).FindStringSubmatch(page)
 	if cert == nil {
 		t.Fatal("the certificate is listed")

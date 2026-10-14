@@ -43,7 +43,7 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 	}
 	q := r.URL.Query()
 	page := views.LeavePage{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
+		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuLeave),
 		Person: q.Get("person"), Day: q.Get("day"), From: q.Get("from"), ForGood: q.Get("forgood") == "1", Prefer: q.Get("prefer"),
 	}
 	for i, d := range s.Setup.Days {

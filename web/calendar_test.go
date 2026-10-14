@@ -44,21 +44,21 @@ func icsField(event []string, name string) string {
 func TestCalendars(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	dash := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
 	clubLink, enter := pathIn(t, dash, "/competitions/club/"), pathIn(t, dash, "/competitions/enter/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
 	ann := withoutQuery(redirected(t, h, join, url.Values{"name": {"Ann"}}))
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, ann, nil).Body.String(), ann+"/competitions/"), entry)
+	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ann), ann+"/competitions/"), entry)
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
 	ind := url.Values{"gymnast": {"Ivy"}}
 	for k, v := range entry {
 		ind[k] = v
 	}
 	ivy := withoutQuery(redirected(t, h, enter, ind))
-	compID := strings.Split(strings.Split(do(t, h, http.MethodGet, ann, nil).Body.String(), ann+"/competitions/")[1], "/")[0]
+	compID := strings.Split(strings.Split(memberCompetitionPage(t, h, ann), ann+"/competitions/")[1], "/")[0]
 
 	// Not published: no link, but a valid empty calendar, to subscribe to.
 	if strings.Contains(do(t, h, http.MethodGet, ivy, nil).Body.String(), "Add to calendar") {
@@ -130,7 +130,7 @@ func TestCalendars(t *testing.T) {
 	}
 
 	// Ann's links, and her own and the club's calendars.
-	page := do(t, h, http.MethodGet, ann, nil).Body.String()
+	page := memberCompetitionPage(t, h, ann)
 	if !strings.Contains(page, ">Add to calendar</a>") || !strings.Contains(page, ">Club calendar</a>") {
 		t.Fatal("Ann's page links to her calendar and the club's")
 	}

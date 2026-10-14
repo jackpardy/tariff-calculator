@@ -31,21 +31,18 @@ templ waitingLine(text string) {
 
 // limitsForm sets how many entries each event takes.
 templ limitsForm(base string, fields []LimitField) {
-	<details class="mb-3">
-		<summary class="label is-small">Limits and waiting lists</summary>
-		<form method="post" action={ templ.SafeURL(base + "/limits") } class="mt-2">
-			<div class="comp-sim-grid">
-				for i, f := range fields {
-					<label class="comp-sim-row">
-						<span>{ f.Event } <span class="is-size-7 has-text-grey">({ strconv.Itoa(f.Entered) } entered)</span></span>
-						<input class="input is-small comp-num" name={ "limit-" + strconv.Itoa(i) } type="number" min="0" max="2000" value={ f.Limit } placeholder="none" aria-label={ "Limit for " + f.Event }/>
-					</label>
-				}
-			</div>
-			<p class="help">Once an event is full, later entries go on its waiting list in the order they came in, and move up as places free: when one is withdrawn or removed, or you raise the limit. Empty: no limit.</p>
-			<button class="button is-small" type="submit">Save limits</button>
-		</form>
-	</details>
+	<form method="post" action={ templ.SafeURL(base + "/limits") } class="mb-3">
+		<div class="comp-sim-grid">
+			for i, f := range fields {
+				<label class="comp-sim-row">
+					<span>{ f.Event } <span class="is-size-7 has-text-grey">({ strconv.Itoa(f.Entered) } entered)</span></span>
+					<input class="input is-small comp-num" name={ "limit-" + strconv.Itoa(i) } type="number" min="0" max="2000" value={ f.Limit } placeholder="none" aria-label={ "Limit for " + f.Event }/>
+				</label>
+			}
+		</div>
+		<p class="help">Once an event is full, later entries go on its waiting list in the order they came in, and move up as places free: when one is withdrawn or removed, or you raise the limit. Empty: no limit.</p>
+		<button class="button is-small" type="submit">Save limits</button>
+	</form>
 }
 
 // waitingBox lists each event's waiting list.

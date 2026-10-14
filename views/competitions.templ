@@ -63,52 +63,36 @@ type CompetitionLinks struct {
 
 // Dashboard is the organiser's overview of every entry.
 type Dashboard struct {
-	Base          string // the admin link's path, which the dashboard's own links extend
-	New           string // "created" or "replaced" just after the admin link was made, to say to save it
-	Notice        string // what just happened
-	DeadlineDate  string // the closing time, for changing it
-	DeadlineTime  string
-	ChangesDate   string // when changes and sign-offs close, if later, for changing them
-	ChangesTime   string
-	SignoffsDate  string
-	SignoffsTime  string
-	LiveDate      string // when it's due to go live, for changing it
-	NotifyOn      bool   // people can ask to hear about changes (ADR 0008)
-	Access        Access // what the link it was opened by can do (ADR 0009)
-	LinkList      []LinkView
-	Concerns      []ConcernView
-	OpenConcerns  int
-	Waiting       []WaitingList // each limited event's waiting list
-	LateWaiting   int           // late changes to decide
-	Published     bool          // the timetable is published
-	Limits        []LimitField
-	NotifyAt      string // when the changes waiting are told, e.g. "14:32"; "" for none
-	NoWait        bool   // no wait on the competition's days
-	LiveTime      string
-	Unchecked     int // entries not checked yet
-	Withdrawn     int // entries withdrawn since their club sent them
-	Video         VideoForm
-	CoachApproval CoachApprovalForm
-	Split         SplitForm
-	Events        EventsForm
-	LevelOrder    []LevelOrder
-	Competition   CompetitionSummary
-	Links         CompetitionLinks
-	Clubs         []string // the clubs entered, by name
-	Club          string   // the club the table is filtered to ("" for all, "individual" for individuals)
-	ProblemsOnly  bool
-	Entries       int // every entry, before filtering
-	WithProblems  int
-	Levels        []DashboardLevel
-	Removed       []RemovedRow // entries removed or held
+	Base         string // the admin link's path, which the dashboard's own links extend
+	New          string // "created" just after the competition was made, to say to save the admin link
+	Notice       string // what just happened
+	Menu         []MenuSection
+	LiveDate     string // when it's due to go live, for changing it
+	LiveTime     string
+	NotifyAt     string // when the changes waiting are told, e.g. "14:32"; "" for none
+	Access       Access // what the link it was opened by can do (ADR 0009)
+	Concerns     []ConcernView
+	OpenConcerns int
+	Waiting      []WaitingList // each limited event's waiting list
+	Unchecked    int           // entries not checked yet
+	Withdrawn    int           // entries withdrawn since their club sent them
+	Competition  CompetitionSummary
+	Links        CompetitionLinks
+	Clubs        []string // the clubs entered, by name
+	Club         string   // the club the table is filtered to ("" for all, "individual" for individuals)
+	ProblemsOnly bool
+	Entries      int // every entry, before filtering
+	WithProblems int
+	Levels       []DashboardLevel
+	Removed      []RemovedRow // entries removed or held
 	// The filters (roadmap 2026-10-08): as given, and each.
-	Filter                                    url.Values
-	Search, Coach                             string
+	Filter                                   url.Values
+	Search, Coach                            string
 	CheckedFilter, SignedFilter, VideoFilter string // "", yes or no; a video status
-	Category, Sort                            string
-	CanSplit                                  bool     // some levels rank men and women apart
-	Coaches                                   []string // the coaches entries have, to filter by
-	Shown                                     int      // entries the filters show
+	Category, Sort                           string
+	CanSplit                                 bool     // some levels rank men and women apart
+	Coaches                                  []string // the coaches entries have, to filter by
+	Shown                                    int      // entries the filters show
 }
 
 // RemovedRow is an entry the organiser removed or holds.
@@ -180,6 +164,7 @@ type ExerciseCard struct {
 // EntryDetail is the organiser's view of one entry.
 type EntryDetail struct {
 	Base        string
+	Menu        []MenuSection
 	Access      Access
 	Notice      string
 	ID          string
@@ -443,7 +428,7 @@ templ NewCompetition(f CompetitionForm) {
 					<input type="checkbox" name="split" value="all" checked?={ f.SplitAll }/>
 					Rank men and women separately
 				</label>
-				<p class="help">Gymnasts say which when entering. Afterwards, under Links and settings, you can split only some levels; the timetable can still run them in mixed flights.</p>
+				<p class="help">Gymnasts say which when entering. Afterwards, under Settings, you can split only some levels; the timetable can still run them in mixed flights.</p>
 			</div>
 			<button class="button is-primary is-fullwidth" type="submit">Create competition</button>
 		</form>
@@ -482,6 +467,7 @@ templ newAdminLink(c CompetitionSummary, link, which string) {
 templ CompetitionDashboard(d Dashboard) {
 	@competitionLayout(d.Competition.Name) {
 		<h1 class="title is-4">{ d.Competition.Name }</h1>
+		@pageMenu(d.Menu)
 		if d.New != "" {
 			@newAdminLink(d.Competition, d.Links.Admin, d.New)
 		}
@@ -499,7 +485,7 @@ templ CompetitionDashboard(d Dashboard) {
 			</form>
 		}
 		if d.Access.Settings {
-			@liveBox(d)
+			@liveBox(d.Base, d.Competition, d.LiveDate, d.LiveTime, "")
 		}
 		<nav class="level is-mobile comp-counts">
 			@count(d.Entries, "entries")
@@ -514,156 +500,15 @@ templ CompetitionDashboard(d Dashboard) {
 		if !d.Access.Organiser {
 			@concernForm(d.Base, "", "Flag a concern for the organiser")
 		}
-		if d.Access.Settings {
-		<details class="box comp-manage">
-			<summary><strong>Links and settings</strong></summary>
-			if d.Access.Organiser {
-				@linksBox(d.Base, d.LinkList)
-			}
-			if d.Links.Club != "" {
-				@linkBox("Club link", d.Links.Club, "Give it to clubs' competition secretaries: they enter their club and send its members' entries.")
-			}
-			if d.Competition.Individuals {
-				@linkBox("Individual entry link", d.Links.Individual, "Anyone with it can enter on their own.")
-			}
-			<form method="post" action={ templ.SafeURL(d.Base + "/deadline") } class="mb-3">
-				<label class="label is-small">Entries close</label>
-				<div class="comp-deadline mb-2">
-					<input class="input is-small" name="deadlineDate" type="date" required value={ d.DeadlineDate } aria-label="Closing date"/>
-					<input class="input is-small" name="deadlineTime" type="time" required value={ d.DeadlineTime } aria-label="Closing time"/>
-					<button class="button is-small" type="submit">Change</button>
-				</div>
-			</form>
-			<form method="post" action={ templ.SafeURL(d.Base + "/later-deadlines") } class="mb-3">
-				<label class="label is-small">Changes to entries close (empty: with entries)</label>
-				<div class="comp-deadline mb-2">
-					<input class="input is-small" name="changesDate" type="date" value={ d.ChangesDate } aria-label="Changes closing date"/>
-					<input class="input is-small" name="changesTime" type="time" value={ d.ChangesTime } aria-label="Changes closing time"/>
-				</div>
-				if d.Competition.Signoff {
-					<label class="label is-small">Coaches' sign-off closes (empty: with entries)</label>
-					<div class="comp-deadline mb-2">
-						<input class="input is-small" name="signoffsDate" type="date" value={ d.SignoffsDate } aria-label="Sign-off closing date"/>
-						<input class="input is-small" name="signoffsTime" type="time" value={ d.SignoffsTime } aria-label="Sign-off closing time"/>
-					</div>
-				}
-				<button class="button is-small" type="submit">Change</button>
-				<p class="help">After entries close, no new entries; clubs and gymnasts can still change, withdraw or send again the entries they've made until changes close, and coaches can sign off until sign-off closes. Either can be later than entries closing, by the end of the competition date. After changes close, late changes are by request.</p>
-			</form>
-			@limitsForm(d.Base, d.Limits)
-			<form method="post" action={ templ.SafeURL(d.Base + "/events") } class="mb-3">
-				@otherEvents(d.Events)
-				<button class="button is-small" type="submit">Change events</button>
-			</form>
-			@levelOrderForm(d.Base, d.LevelOrder)
-			<form method="post" action={ templ.SafeURL(d.Base + "/split") } class="mb-3">
-				@splitFields("split", "splitLevel", "Men and women", "Which levels rank men and women separately. Their gymnasts say which when entering.", d.Split)
-				<button class="button is-small" type="submit">Change</button>
-			</form>
-			<form method="post" action={ templ.SafeURL(d.Base + "/signoff") } class="mb-3">
-				if d.Competition.Signoff {
-					<input type="hidden" name="on" value="0"/>
-					<button class="button is-small" type="submit">Stop requiring coach sign-off</button>
-				} else {
-					<input type="hidden" name="on" value="1"/>
-					<button class="button is-small" type="submit">Require coach sign-off</button>
-				}
-			</form>
-			if d.Competition.Signoff {
-				@coachApprovalFields(d.Base, d.CoachApproval)
-			}
-			<form method="post" action={ templ.SafeURL(d.Base + "/video") } class="mb-3">
-				@videoFields(d.Video)
-				<button class="button is-small" type="submit">Change video proof</button>
-			</form>
-			if d.Competition.Live {
-				<form method="post" action={ templ.SafeURL(d.Base + "/live") } class="mb-3">
-					<input type="hidden" name="opens" value="private"/>
-					<button class="button is-small" type="submit">Make private (pause entries)</button>
-					<p class="help">Nobody can send or change entries until you go live again. Entries already made are kept.</p>
-				</form>
-			}
-			if d.Competition.Open {
-				<form method="post" action={ templ.SafeURL(d.Base + "/deadline") } class="mb-3">
-					<input type="hidden" name="close" value="1"/>
-					<button class="button is-small" type="submit">Close entries now</button>
-					<p class="help">Nobody can send or change entries after that, unless you change the closing time again.</p>
-				</form>
-			}
-			if d.NotifyOn {
-				<form method="post" action={ templ.SafeURL(d.Base + "/no-wait") } class="mb-3">
-					if d.NoWait {
-						<input type="hidden" name="on" value="0"/>
-						<button class="button is-small" type="submit">Wait 10 minutes before telling changes, on the competition's days too</button>
-					} else {
-						<input type="hidden" name="on" value="1"/>
-						<button class="button is-small" type="submit">No wait on the competition's days</button>
-					}
-					<p class="help">Changes you publish, and cards you check, go to those who asked after 10 minutes, so a mistake put right tells no one. On the competition's days, news may not wait.</p>
-				</form>
-			}
-			<form method="post" action={ templ.SafeURL(d.Base + "/individuals") } class="mb-3">
-				if d.Competition.Individuals {
-					<input type="hidden" name="on" value="0"/>
-					<button class="button is-small" type="submit">Stop individual entries</button>
-				} else {
-					<input type="hidden" name="on" value="1"/>
-					<button class="button is-small" type="submit">Let gymnasts enter on their own</button>
-				}
-			</form>
-			if d.Access.Organiser {
-				<form method="post" action={ templ.SafeURL(d.Base + "/replace-link") } class="mb-3">
-					<button class="button is-small" type="submit">Replace the admin link</button>
-					<p class="help">If the admin link has been shared too widely. The old one stops working.</p>
-				</form>
-				<form method="post" action={ templ.SafeURL(d.Base + "/delete") }>
-					<label class="checkbox is-size-7">
-						<input type="checkbox" name="confirm" value="1" required/>
-						Delete the competition and every entry, now
-					</label>
-					<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
-				</form>
-			}
-		</details>
-		}
 		@dashboardFilters(d)
-		<div class="buttons">
-			if d.Access.Timetable {
-				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable") }>Timetable</a>
-			} else if d.Access.Sheets {
+		if d.Access.Sheets && !d.Access.Timetable {
+			<div class="buttons">
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable/print?sheet=judges") }>Chair of judges sheets</a>
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable/print?sheet=scores") }>Score sheets</a>
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable/print?sheet=marshal") }>Marshal sheets</a>
 				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable/print?sheet=timeline-officials") }>Panel timeline</a>
-			}
-			if d.Access.Officials {
-				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/officials") }>Officials</a>
-			}
-			if d.Published && d.Access.Day {
-				<a class="button is-small is-success is-light" href={ templ.SafeURL(d.Base + "/day") }>On the day</a>
-			}
-			if d.Access.Desk {
-				<a class="button is-small is-success is-light" href={ templ.SafeURL(d.Base + "/desk") }>Desk messages</a>
-			}
-			if d.Access.Settings {
-				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/fees") }>Fees</a>
-				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/late") }>
-					Late changes
-					if d.LateWaiting > 0 {
-						<span class="tag is-warning ml-1">{ strconv.Itoa(d.LateWaiting) } to decide</span>
-					}
-				</a>
-			}
-			<a class="button is-small is-light" href={ templ.SafeURL(d.Base + "/history") }>History</a>
-			if d.CoachApproval.On && d.Access.Coaches {
-				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/coaches") }>
-					Coaches
-					if d.CoachApproval.Waiting > 0 {
-						<span class="tag is-warning ml-1">{ strconv.Itoa(d.CoachApproval.Waiting) } waiting</span>
-					}
-				</a>
-			}
-		</div>
+			</div>
+		}
 		if d.Entries > 0 {
 			<div class="buttons">
 				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) }>Print cards</a>
@@ -855,42 +700,45 @@ templ competitionFacts(c CompetitionSummary) {
 
 // liveBox is the organiser's way to go live, while the competition is
 // private or due to go live.
-templ liveBox(d Dashboard) {
-	if !d.Competition.Live {
+templ liveBox(base string, c CompetitionSummary, liveDate, liveTime, from string) {
+	if !c.Live {
 		<div class="box comp-live">
 			<p class="mb-2">
 				<strong>Private.</strong>
-				if d.Competition.Opens != "" {
-					It goes live { d.Competition.Opens }.
+				if c.Opens != "" {
+					It goes live { c.Opens }.
 				}
 				The club and individual links show the competition's name and date, and when entries open, but nobody can enter until it's live.
 			</p>
-			<form method="post" action={ templ.SafeURL(d.Base + "/live") } class="mb-2">
+			<form method="post" action={ templ.SafeURL(base + "/live") } class="mb-2">
 				<input type="hidden" name="opens" value="now"/>
+				@backField(from)
 				<button class="button is-small is-success" type="submit">Go live now</button>
 			</form>
 			<p class="is-size-7 mb-1">
-				if d.Competition.Opens != "" {
+				if c.Opens != "" {
 					Or change when:
 				} else {
 					Or go live at a set time:
 				}
 			</p>
-			<form method="post" action={ templ.SafeURL(d.Base + "/live") } class="comp-deadline">
+			<form method="post" action={ templ.SafeURL(base + "/live") } class="comp-deadline">
 				<input type="hidden" name="opens" value="at"/>
-				<input class="input is-small" name="liveDate" type="date" required value={ d.LiveDate } aria-label="Opening date"/>
-				<input class="input is-small" name="liveTime" type="time" required value={ d.LiveTime } aria-label="Opening time"/>
+				@backField(from)
+				<input class="input is-small" name="liveDate" type="date" required value={ liveDate } aria-label="Opening date"/>
+				<input class="input is-small" name="liveTime" type="time" required value={ liveTime } aria-label="Opening time"/>
 				<button class="button is-small" type="submit">
-					if d.Competition.Opens != "" {
+					if c.Opens != "" {
 						Change
 					} else {
 						Go live then
 					}
 				</button>
 			</form>
-			if d.Competition.Opens != "" {
-				<form method="post" action={ templ.SafeURL(d.Base + "/live") } class="mt-2">
+			if c.Opens != "" {
+				<form method="post" action={ templ.SafeURL(base + "/live") } class="mt-2">
 					<input type="hidden" name="opens" value="private"/>
+					@backField(from)
 					<button class="button is-small is-text" type="submit">Don't go live then: stay private</button>
 				</form>
 			}
@@ -899,9 +747,16 @@ templ liveBox(d Dashboard) {
 }
 
 // CompetitionEntry is the organiser's view of one entry.
+// backField says which page a form came from, so the answer goes back to it.
+templ backField(from string) {
+	if from != "" {
+		<input type="hidden" name="back" value={ from }/>
+	}
+}
+
 templ CompetitionEntry(d EntryDetail) {
 	@competitionLayout(d.Card.Gymnast + " · " + d.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(d.Base) }>← All entries</a></p>
+		@pageMenu(d.Menu)
 		if d.Withdrawn {
 			<div class="notification is-warning is-light">
 				<p><strong>Withdrawn.</strong> { d.Card.Gymnast } has withdrawn this entry, or left the club, since { d.Card.Club } sent it. It goes when the club sends its entries again; until then it isn't counted or printed.</p>
@@ -980,6 +835,12 @@ templ CompetitionEntry(d EntryDetail) {
 templ entryCard(c EntryCard) {
 	<h1 class="title is-4">{ c.Gymnast }</h1>
 	<p class="subtitle is-6">{ c.Club } · { c.Level }</p>
+	@entryCardChecks(c)
+}
+
+// entryCardChecks is an entry card without the gymnast's name, club and level
+// at its head, for a page that already says them (a member's own entry row).
+templ entryCardChecks(c EntryCard) {
 	@signoffBox(c.Signoff)
 	if c.Unchecked && len(c.Problems) == 0 {
 	} else if len(c.Problems) == 0 {

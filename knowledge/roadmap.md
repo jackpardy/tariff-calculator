@@ -186,31 +186,40 @@ features that show that, in this order:
 
 **Next (asked 2026-10-09 and 2026-10-13), before the rest.** The menus come early because they touch every page, so the new people pages go straight into the new layout.
 
-1. **Check-in keeps the flight open**: marking someone Here, Scratched or
-   Clear on the On the day page updates just their row, so the flight's
-   check-in list doesn't close.
+1. **Check-in keeps the flight open** (built 2026-10-14): marking someone
+   Here, Scratched or Clear on the On the day page updates the page in place,
+   so the flight's check-in list stays open and the page doesn't move; without
+   JavaScript the page reloads at that flight's box. See
+   [competition entries](features/competition-entries.md#on-the-day-flights-started-and-finished).
 2. **Finding your way round (asked 2026-10-13):**
    - **A menu for the organiser**, with sections and subsections:
      entries, timetable, coaches, panels and officials, routines and
-     competition settings. Today it's a row of buttons on the entries
-     page.
+     competition settings. **Built 2026-10-14**: Entries, Timetable, On
+     the day and Settings, each with its pages, on every organiser page.
    - **Links and settings on a page of their own**, not a section of
-     the entries page.
+     the entries page. **Built 2026-10-14**: the Settings page.
    - **The same for clubs and gymnasts entering on their own**, with a
-     menu in place of one long page.
+     menu in place of one long page. **Built 2026-10-14 for clubs:** a
+     comp sec's page is Competitions, Members, Coaches and Settings.
+     Gymnasts entering on their own have one competition, so no menu
+     yet.
    - **Individuals: a Competitions tab** listing their competitions, each
      opening that competition's page. Within it, each entry is collapsed
      by default and the list view comes first. Other tabs come later,
      such as routines, or a coach's view once one link covers several
-     roles.
-3. **Make dropdowns look like dropdowns** (asked 2026-10-13). **Limits
-   and waiting lists**, under Links and settings, opens when tapped but
-   shows no arrow, so it reads as a plain heading. Bulma's `label` class
-   on its `<summary>` makes it a block and hides the marker
-   (`views/limits.templ`). This isn't the first time, so review all 52
-   dropdowns: the dashboard's level headings (`title` on the summary in
-   `views/competitions.templ`) look like the same problem. Give every
-   dropdown one look, with an arrow that turns when open.
+     roles. **Built 2026-10-14 for club members:** Competitions (a row
+     for each, opening its page, with each discipline a collapsed row)
+     and Your details; more tabs go in `memberMenu`
+     (`web/menus_club.go`). Still to do: the coach's page.
+3. **Make dropdowns look like dropdowns** (asked 2026-10-13, built
+   2026-10-14). **Limits and waiting lists** (now a plain group on the Settings page)
+   opened when tapped but showed no arrow, because Bulma's `label` class
+   on its `<summary>` makes it a block and hides the marker; the
+   dashboard's level headings (`title`) had the same problem. Every
+   `<summary>` in all 52 places now shows one arrow, right when closed
+   and down when open, from a single rule in `static/css/styles.css`;
+   summaries styled as buttons, the routine menu and the inline "move"
+   link opt out (see [rendering](architecture/rendering.md#dropdowns)).
 4. **All people, for the organiser**: a list of everyone at the
    competition, one row a person whatever their roles, which the coaches,
    officials and entries lists link to. Each person's page shows everything
@@ -219,6 +228,19 @@ features that show that, in this order:
    or is comp sec gets one link, with tabs between their views. The comp
    sec can make a member a coach too, and anyone can add another of their
    links to their page to join them. A join can be undone.
+   **Gymnasts entering on their own too** (asked 2026-10-14). Today each
+   discipline and each competition entered on your own gets its own link,
+   and Your competition groups them by the name typed, so a misspelling
+   splits them and two people with one name are merged. Instead they get
+   a personal page like a club member's, without the club: Competitions
+   (each competition's page with a row per discipline) and Your details.
+   Another discipline is entered from that page under the same link; a
+   new competition's individual entry link offers to enter as the person
+   whose link is saved in this browser (or whose link they paste).
+   Existing entries join their page with the same "add your other link"
+   step. Entries are grouped by the person, not the name, and every
+   entry link already sent keeps working, opening that entry on their
+   page.
 6. **Search and filter every list of people**: a name search on each, and
    filters that suit the list (for officials: club, role, event, level,
    qualified). Long lists can be collapsed too, starting with the club's

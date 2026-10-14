@@ -13,10 +13,10 @@ func TestOfficialPages(t *testing.T) {
 	form := newCompetition()
 	form.Set("tumbling", "Novice\nElite")
 	admin := created(t, h, form)
-	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	dash := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
 	officials := admin + "/officials"
-	if !strings.Contains(dash, `href="`+officials+`"`) {
-		t.Error("the dashboard links to the officials")
+	if !strings.Contains(do(t, h, http.MethodGet, admin+"/timetable", nil).Body.String(), `href="`+officials+`"`) {
+		t.Error("the timetable's menu links to the officials")
 	}
 	page := do(t, h, http.MethodGet, officials, nil).Body.String()
 	if !strings.Contains(page, `name="panel-trampoline-execution" value="6"`) || !strings.Contains(page, `name="panel-tumbling-chair" value="1"`) || !strings.Contains(page, "Nobody yet.") {
@@ -27,15 +27,15 @@ func TestOfficialPages(t *testing.T) {
 	clubLink := pathIn(t, dash, "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	a := withoutQuery(redirected(t, h, join, url.Values{"name": {"A"}}))
-	page = do(t, h, http.MethodGet, a, nil).Body.String()
+	page = memberCompetitionPage(t, h, a)
 	if !strings.Contains(page, "nothing offered") || !strings.Contains(page, `name="judge-tumbling"`) {
 		t.Error("the member page asks what they can judge and help with")
 	}
 	offer := regexp.MustCompile(`action="(` + regexp.QuoteMeta(a) + `/competitions/[^"]+/offer)"`).FindStringSubmatch(page)[1]
 	redirected(t, h, offer, url.Values{"judge-trampoline": {"1"}, "upto-trampoline": {"BUCS L3"}, "chair-trampoline": {"1"}, "recorder": {"1"}})
-	if page := do(t, h, http.MethodGet, a, nil).Body.String(); !strings.Contains(page, "Judge Trampoline up to BUCS L3 (can chair); recorder") {
+	if page := memberCompetitionPage(t, h, a); !strings.Contains(page, "Judge Trampoline up to BUCS L3 (can chair); recorder") {
 		t.Error("the member sees what they offer")
 	}
 	if rec := do(t, h, http.MethodPost, offer, url.Values{"judge-tumbling": {"1"}, "upto-tumbling": {"Master"}}); rec.Code != http.StatusBadRequest {

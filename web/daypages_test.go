@@ -19,7 +19,7 @@ func TestOnTheDay(t *testing.T) {
 	if rec := do(t, h, http.MethodGet, admin+"/day", nil); rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "Publish the timetable first") {
 		t.Errorf("nothing to run until the timetable is published: %d", rec.Code)
 	}
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	for _, name := range []string{"Ann", "Bea", "Cal"} {
 		redirected(t, h, enter, url.Values{"gymnast": {name}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
 	}

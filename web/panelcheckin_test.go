@@ -346,10 +346,10 @@ func TestNotifyAClub(t *testing.T) {
 	if len(mail.sent) != 3 || !strings.HasPrefix(got["ann@example.com"].body, text) || !strings.Contains(got["ann@example.com"].body, "Hall 2.\n") || got["bea@example.com"].body != "" {
 		t.Errorf("Ann, the comp sec and the coach, once each: %+v", mail.sent)
 	}
-	if body := do(t, h, http.MethodGet, members["Ann"], nil).Body.String(); !strings.Contains(body, text) {
+	if body := memberCompetitionPage(t, h, members["Ann"]); !strings.Contains(body, text) {
 		t.Error("Ann is shown what went to her")
 	}
-	if body := do(t, h, http.MethodGet, members["Bea"], nil).Body.String(); strings.Contains(body, text) {
+	if body := memberCompetitionPage(t, h, members["Bea"]); strings.Contains(body, text) {
 		t.Error("Bea isn't")
 	}
 

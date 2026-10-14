@@ -11,7 +11,7 @@ import (
 func TestDraftTimetable(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	ann := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Ann"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
 	tt := admin + "/timetable"
 	redirected(t, h, tt+"/setup/areas", url.Values{"area-0-name": {"Panel 1"}, "area-0-discipline": {"trampoline"}, "add": {"1"}})

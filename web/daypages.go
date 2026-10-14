@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"tariffCalculator/competitions"
@@ -26,6 +27,43 @@ func (p *competitionPages) registerDay(handle func(string, http.HandlerFunc)) {
 	handle("POST /competitions/admin/{token}/day/clear", p.clearScratch)
 	handle("POST /competitions/admin/{token}/day/officials", p.markOfficial)
 	handle("POST /competitions/admin/{token}/day/notify", p.notifyOne)
+}
+
+// idPart makes text safe to use in an id (and so in a link's #fragment):
+// letters, digits and "-" stay, and every other byte becomes "_" and its two
+// hex digits, so different text never gives the same id.
+func idPart(s string) string {
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' {
+			b.WriteByte(c)
+		} else {
+			fmt.Fprintf(&b, "_%02x", c)
+		}
+	}
+	return b.String()
+}
+
+// areaID is the id of an area's block on the day page.
+func areaID(name string) string { return "area-" + idPart(name) }
+
+// flightID is the id of a flight's box on the day page, from its key.
+func flightID(key string) string { return "flight-" + idPart(key) }
+
+// warningsID is the id of the day page's block of scratch warnings, which is
+// always there, though it may be empty.
+const warningsID = "day-warnings"
+
+// backToDay is where a button on the day page sends the person afterwards: the
+// day, the notice if there is one, and the #fragment that puts the page back
+// where they were (a flight's box, or the warnings).
+func backToDay(r *http.Request, notice, anchor string) string {
+	to := adminPath(r.PathValue("token")) + "/day?day=" + url.QueryEscape(r.FormValue("day"))
+	if notice != "" {
+		to += "&notice=" + url.QueryEscape(notice)
+	}
+	return to + "#" + anchor
 }
 
 // lateEnough is how many minutes late or early an area has to run before
@@ -126,7 +164,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	base := adminPath(r.PathValue("token"))
-	page := views.DayPage{Base: base, Competition: summary(c.Competition, p.now()), Notice: r.URL.Query().Get("notice"), Day: day}
+	page := views.DayPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuDay), Notice: r.URL.Query().Get("notice"), Day: day}
 	if can(r, "GET", "/screen") {
 		page.Screen = base + "/screen?day=" + strconv.Itoa(day)
 	}
@@ -165,7 +203,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		page.Days = append(page.Days, views.DayTab{Name: d.Name, Link: base + "/day?day=" + strconv.Itoa(i), Active: i == day})
 	}
 	for _, a := range s.Setup.Areas {
-		area := views.DayArea{Name: a.Name}
+		area := views.DayArea{Name: a.Name, ID: areaID(a.Name)}
 		var flights []competitions.ScheduledFlight
 		for _, f := range s.Flights {
 			if f.Day == day && f.Area == a.Name {
@@ -185,7 +223,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		for _, f := range flights {
 			t := times[competitions.FlightKey(f)]
 			df := views.DayFlight{
-				Key: competitions.FlightKey(f), Name: f.Name(),
+				Key: competitions.FlightKey(f), ID: flightID(competitions.FlightKey(f)), Name: f.Name(),
 				Planned: competitions.Clock(f.Start) + "–" + competitions.Clock(f.End),
 				Started: clock(t.Started), Finished: clock(t.Finished), Who: t.Who,
 				CanStart: t.Started.IsZero(), CanFinish: !t.Started.IsZero() && t.Finished.IsZero(),
@@ -256,7 +294,7 @@ func (p *competitionPages) markFlight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key, what := r.FormValue("flight"), r.FormValue("what")
-	back := adminPath(r.PathValue("token")) + "/day?day=" + url.QueryEscape(r.FormValue("day"))
+	anchor := flightID(key)
 	f, applies, found, err := p.flightAction(r.Context(), c, key, what)
 	switch {
 	case err != nil:
@@ -264,13 +302,13 @@ func (p *competitionPages) markFlight(w http.ResponseWriter, r *http.Request) {
 	case !found || !slices.Contains([]string{"start", "finish", "undo"}, what):
 		message(w, r, http.StatusBadRequest, "Not a flight", "That flight isn't in the published timetable. It may have been changed: go back and try again.")
 	case !applies:
-		http.Redirect(w, r, back+"&notice="+url.QueryEscape("Someone has already done that for "+f.Name()+"."), http.StatusSeeOther)
+		http.Redirect(w, r, backToDay(r, "Someone has already done that for "+f.Name()+".", anchor), http.StatusSeeOther)
 	default:
 		if err := p.st.MarkFlight(r.Context(), c.ID, key, what, linkOf(r).Name); err != nil {
 			failed(w, r, err)
 			return
 		}
-		http.Redirect(w, r, back, http.StatusSeeOther)
+		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
 	}
 }
 

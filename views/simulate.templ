@@ -10,6 +10,7 @@ import (
 type SimulationPage struct {
 	Base          string
 	Competition   CompetitionSummary
+	Menu []MenuSection
 	Notice        string
 	SetupProblems []string // what's wrong with the venue setup, which simulating needs
 	Entries       int      // real entries so far
@@ -73,9 +74,9 @@ type SimDay struct {
 // Simulation is the simulation page.
 templ Simulation(p SimulationPage) {
 	@competitionLayout("Simulate · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Base + "/timetable") }>← Timetable</a></p>
 		<h1 class="title is-4">Simulate</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			<div class="notification is-info is-light">{ p.Notice }</div>
 		}

@@ -46,6 +46,7 @@ every page answers 503.
 | `GET /competitions/new` | — | The form that creates a competition, and the competitions saved in this browser |
 | `POST /competitions` | `name`, `date`, `deadlineDate`, `deadlineTime` (Irish and UK time), `individuals`, `opens` (`later`, the default, for private; `now`; or `at` with `liveDate` and `liveTime`), each built-in `level`, each of the browser's own levels as `custom` (`{level, sets}`) | 303 to the dashboard with `?new=created`; 422 with the problems; 429 after 5 an hour from one address |
 | `GET /competitions/admin/{token}` | optional `club` (a club's name or `individual`), `problems=1`, `new` | The organiser's dashboard |
+| `GET /competitions/admin/{token}/settings` | optional `notice`, `new=replaced` | The Settings page: links and every setting, in groups (organiser and "everything" links only). The settings forms below come back to it |
 | `GET /competitions/admin/{token}/entries/{id}` | — | One entry, checked |
 | `POST /competitions/admin/{token}/entries/{id}/check` | `checked` (`1`/`0`), `note` | Marks the entry checked or not, with a note the club or gymnast sees |
 | `GET /competitions/admin/{token}/cards` | optional `club`, `problems=1`, `unchecked=1`, `level`, `entry` | Printable competition cards (the [tariff sheet](../features/tariff-sheet.md), filled in), one exercise per page |
@@ -61,11 +62,11 @@ every page answers 503.
 | `GET`, `POST /notify/off/{token}` | — (or `List-Unsubscribe=One-Click`) | Stops an email |
 | `POST /competitions/admin/{token}/notify-now` | — | Sends the changes waiting at once |
 | `POST /competitions/admin/{token}/no-wait` | `on` (`1`/`0`) | No wait before telling changes on the competition's days |
-| `POST /competitions/admin/{token}/live` | `opens`: `now`, `at` (with `liveDate` and `liveTime`, before the deadline) or `private` | Goes live now or then, or makes the competition private, pausing entries and keeping those made |
+| `POST /competitions/admin/{token}/live` | `opens`: `now`, `at` (with `liveDate` and `liveTime`, before the deadline) or `private`; `back=settings` to come back to Settings rather than the entries page | Goes live now or then, or makes the competition private, pausing entries and keeping those made |
 | `POST /competitions/admin/{token}/video` | `video` (`""`, `skills`, `routine`), `videoTriples`, `videoDoubles`, `videoTariff` | Changes what video proof the competition asks for (also taken by `POST /competitions`) |
 | `POST /competitions/admin/{token}/entries/{id}/video` | `review` (`ok`, `more`, `""`), `note` | The organiser's review of an entry's videos |
 | `POST /competitions/admin/{token}/individuals` | `on` (`1`/`0`) | Turns individual entry on or off |
-| `POST /competitions/admin/{token}/replace-link` | — | 303 to the new admin link, `?new=replaced` |
+| `POST /competitions/admin/{token}/replace-link` | — | 303 to the new admin link's Settings page, `?new=replaced` |
 | `GET`, `POST /clubs/member/{token}/competitions/{id}/late`, `/clubs/admin/{token}/members/{member}/competitions/{id}/late`, `/competitions/entry/{token}/late` | `discipline` (query), the entry form, `note` | Asking for a late change, once entries close |
 | `GET /competitions/admin/{token}/late` | — | Late changes: what's allowed and each request, with whether it fits |
 | `POST /competitions/admin/{token}/late/settings` | `late-<kind>=1`, `fee-<kind>` (`level`, `routines`) | Which late changes can be asked for, and their fees |
@@ -97,14 +98,17 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET /competitions` | — | The competitions, clubs and entries this browser has links to |
 | `GET`, `POST /competitions/club/{token}` | `clubAdmin` (a club's admin link, or its token) | A competition's club link: a comp sec enters their club |
 | `GET /clubs/new`, `POST /clubs` | `name` | Creates a club: 303 to its page with `?new=created`; 429 after 5 an hour from one address |
-| `GET /clubs/admin/{token}` | optional `new`, `notice` | The comp sec's page: join link, each competition's entries, members |
+| `GET /clubs/admin/{token}` | optional `new`, `notice` | The comp sec's Competitions section (the default): each competition the club is in, with its members' entries |
+| `GET /clubs/admin/{token}/members`, `/coaches`, `/settings` | optional `notice` | The comp sec's other sections: the join link, members and synchro entries made with them; the coaches; replacing the admin link and deleting the club. Each has the section menu |
 | `POST /clubs/admin/{token}/competitions/{id}/send` | `which` (`changed` or `all`) | Sends new and changed entries, or all again (taking back withdrawn ones) |
 | `GET`, `POST /clubs/admin/{token}/members/{member}/competitions/{id}` | as entering, without `gymnast` | Changes a member's entry on their behalf |
 | `POST /clubs/admin/{token}/members/{member}/new-link` | — | The page with the member's new link, shown once |
 | `POST /clubs/admin/{token}/members/{member}/remove` | — | Removes the member and their entries |
 | `POST /clubs/admin/{token}/replace-link`, `/delete` | `confirm=1` to delete | As for a competition |
 | `GET`, `POST /clubs/join/{token}` | `name` | Joining a club: 303 to the member's page with `?new=joined` |
-| `GET /clubs/member/{token}` | — | A member's page: their entry for each competition the club is in |
+| `GET /clubs/member/{token}` | optional `new`, `notice` | A member's Competitions tab (the default): a row for each competition the club is in, with its date and status |
+| `GET /clubs/member/{token}/competitions/{id}` | optional `notice`, `discipline` (the row to open) | A member's page for one competition: facts, links, each discipline's entry as a row that opens to its card and forms, officiating, and the judging offer; 404 if the club isn't entered |
+| `GET /clubs/member/{token}/details` | optional `notice` | A member's personal link and their coach |
 | `GET /clubs/member/{token}/competitions/{id}/day` | `notice` | My competition: their events, cards, flights and times, duties, and the published timetable; a box to say "I'm here for the rest" if they're scratched from something |
 | `POST /clubs/member/{token}/competitions/{id}/here` | — | "I'm here for the rest": a scratched member clears both scratch warnings for themselves, then goes back to My competition with a notice; only once the timetable is published |
 | `POST /clubs/member/{token}/competitions/{id}` | as entering, without `gymnast` | Saves the member's entry (their club sends it) |

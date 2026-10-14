@@ -11,16 +11,16 @@ import (
 func TestRemovingEntriesPages(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	dash := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
 	clubLink, enter := pathIn(t, dash, "/competitions/club/"), pathIn(t, dash, "/competitions/enter/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
 	members := map[string]string{}
 	for _, name := range []string{"X", "Y"} {
 		m := withoutQuery(redirected(t, h, join, url.Values{"name": {name}}))
-		redirected(t, h, formAction(t, do(t, h, http.MethodGet, m, nil).Body.String(), m+"/competitions/"), entry)
+		redirected(t, h, formAction(t, memberCompetitionPage(t, h, m), m+"/competitions/"), entry)
 		members[name] = m
 	}
 	send := regexp.MustCompile(`action="(` + regexp.QuoteMeta(club) + `/competitions/[^"]+/send)"`).FindStringSubmatch(do(t, h, http.MethodGet, club, nil).Body.String())[1]
@@ -59,11 +59,11 @@ func TestRemovingEntriesPages(t *testing.T) {
 
 	// Y held for changes: Y changes it, the club sends it, the organiser accepts it.
 	redirected(t, h, admin+"/remove", url.Values{"entry": {ids["Y"]}, "action": {"hold"}, "note": {"Fix the voluntary"}, "to": {"both"}})
-	if page := do(t, h, http.MethodGet, members["Y"], nil).Body.String(); !strings.Contains(page, "On hold: the organiser asks for changes") || !strings.Contains(page, "Fix the voluntary") {
+	if page := memberCompetitionPage(t, h, members["Y"]); !strings.Contains(page, "On hold: the organiser asks for changes") || !strings.Contains(page, "Fix the voluntary") {
 		t.Error("Y sees the hold and why")
 	}
 	changed := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-2"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, members["Y"], nil).Body.String(), members["Y"]+"/competitions/"), changed)
+	redirected(t, h, formAction(t, memberCompetitionPage(t, h, members["Y"]), members["Y"]+"/competitions/"), changed)
 	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, "On hold: changed, send it again") {
 		t.Error("the club sees Y changed, to send")
 	}

@@ -248,7 +248,7 @@ func (p *competitionPages) lateTargetOf(w http.ResponseWriter, r *http.Request) 
 		if !ok {
 			return t, false
 		}
-		t, memberID = lateTarget{c: c, who: m.Name, gymnast: m.Name, back: memberPath(token)}, m.ID
+		t, memberID = lateTarget{c: c, who: m.Name, gymnast: m.Name, back: memberCompetitionPath(token, c.ID)}, m.ID
 	}
 	if memberID != "" {
 		entries, err := p.st.Entries(ctx, t.c.ID)
@@ -412,7 +412,7 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 		byID[e.ID] = e
 	}
 	base := adminPath(r.PathValue("token"))
-	page := views.LateAdminPage{Base: base, Competition: summary(c.Competition, p.now()), Notice: r.URL.Query().Get("notice"),
+	page := views.LateAdminPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuLate), Notice: r.URL.Query().Get("notice"),
 		Signoff: c.Signoff, SignoffFirst: c.Late.SignoffFirst}
 	for _, kind := range competitions.LateKinds {
 		rule := c.Late.Rule(kind)

@@ -21,7 +21,7 @@ func madeLink(t *testing.T, h http.Handler, admin, name, kind string) string {
 func TestAdminLinks(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	redirected(t, h, enter, url.Values{"gymnast": {"Ann Ryan"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
 	entry := strings.TrimPrefix(entryLink(t, h, admin), admin)
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
@@ -30,7 +30,7 @@ func TestAdminLinks(t *testing.T) {
 	chair := madeLink(t, h, admin, "Chairs", "chair")
 	timetable := madeLink(t, h, admin, "Timetable team", "timetable")
 	co := madeLink(t, h, admin, "Mary", "everything")
-	if page := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(page, "<strong>Difficulty judges</strong> · checking cards") {
+	if page := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(); !strings.Contains(page, "<strong>Difficulty judges</strong> · checking cards") {
 		t.Error("the organiser sees the links")
 	}
 
@@ -50,10 +50,12 @@ func TestAdminLinks(t *testing.T) {
 		{cards, "GET", "/timetable", 403},
 		{cards, "POST", "/deadline", 403},
 		{cards, "POST", "/links", 403},
+		{cards, "GET", "/settings", 403},
 		// Chairs: see, and print the sheets.
 		{chair, "GET", "/timetable/print?sheet=scores", 200},
 		{chair, "GET", "/timetable/print?sheet=judges", 200},
 		{chair, "GET", "/timetable", 403},
+		{chair, "GET", "/settings", 403},
 		{chair, "POST", entry + "/check", 403},
 		// Timetable and officials.
 		{timetable, "GET", "/timetable", 200},
@@ -61,7 +63,9 @@ func TestAdminLinks(t *testing.T) {
 		{timetable, "POST", "/timetable/plan", 303},
 		{timetable, "POST", entry + "/check", 403},
 		{timetable, "POST", "/deadline", 403},
+		{timetable, "GET", "/settings", 403},
 		// Everything but links and deleting.
+		{co, "GET", "/settings", 200},
 		{co, "POST", "/deadline", 303},
 		{co, "POST", "/links", 403},
 		{co, "POST", "/replace-link", 403},
@@ -78,7 +82,7 @@ func TestAdminLinks(t *testing.T) {
 
 	// The checker's dashboard offers only what they can do.
 	page := do(t, h, http.MethodGet, cards, nil).Body.String()
-	if !strings.Contains(page, "You're using the link for <strong>Difficulty judges</strong>") || strings.Contains(page, "Links and settings") ||
+	if !strings.Contains(page, "You're using the link for <strong>Difficulty judges</strong>") || strings.Contains(page, ">Settings</a>") ||
 		strings.Contains(page, `aria-label="Tick Ann Ryan"`) || strings.Contains(page, ">Timetable</a>") {
 		t.Error("no settings, removing or timetable for checking cards")
 	}
@@ -119,7 +123,7 @@ func TestAdminLinks(t *testing.T) {
 	}
 
 	// Removed, a link stops working.
-	linkID := regexp.MustCompile(`/links/([^/"]+)/remove`).FindStringSubmatch(do(t, h, http.MethodGet, admin, nil).Body.String())[1]
+	linkID := regexp.MustCompile(`/links/([^/"]+)/remove`).FindStringSubmatch(do(t, h, http.MethodGet, admin+"/settings", nil).Body.String())[1]
 	redirected(t, h, admin+"/links/"+linkID+"/remove", nil)
 	if got := code("GET", cards, nil); got != http.StatusNotFound {
 		t.Errorf("a removed link: %d", got)

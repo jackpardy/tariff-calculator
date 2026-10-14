@@ -10,14 +10,14 @@ import (
 func TestPersonalAndClubTimetables(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	dash := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
 	clubLink, enter := pathIn(t, dash, "/competitions/club/"), pathIn(t, dash, "/competitions/enter/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
 	ann := withoutQuery(redirected(t, h, join, url.Values{"name": {"Ann"}}))
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, ann, nil).Body.String(), ann+"/competitions/"), entry)
+	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ann), ann+"/competitions/"), entry)
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
 	ind := url.Values{"gymnast": {"Ivy"}}
 	for k, v := range entry {
@@ -26,7 +26,7 @@ func TestPersonalAndClubTimetables(t *testing.T) {
 	ivy := withoutQuery(redirected(t, h, enter, ind))
 
 	// Not published: nothing to show, and no links.
-	if strings.Contains(do(t, h, http.MethodGet, ann, nil).Body.String(), "Your timetable") {
+	if strings.Contains(memberCompetitionPage(t, h, ann), "Your timetable") || strings.Contains(do(t, h, http.MethodGet, ann, nil).Body.String(), "Timetable published") {
 		t.Error("no link before the timetable is published")
 	}
 	tt := admin + "/timetable"
@@ -34,7 +34,10 @@ func TestPersonalAndClubTimetables(t *testing.T) {
 	redirected(t, h, tt+"/publish", url.Values{"on": {"1"}})
 
 	// Ann's page links to hers and the club's; hers picks out her flight.
-	page := do(t, h, http.MethodGet, ann, nil).Body.String()
+	if !strings.Contains(do(t, h, http.MethodGet, ann, nil).Body.String(), "Timetable published") {
+		t.Error("Ann's list of competitions says the timetable is published")
+	}
+	page := memberCompetitionPage(t, h, ann)
 	if !strings.Contains(page, ">Your timetable</a>") || !strings.Contains(page, ">Club timetable</a>") {
 		t.Fatal("Ann's page links to her timetable and the club's")
 	}

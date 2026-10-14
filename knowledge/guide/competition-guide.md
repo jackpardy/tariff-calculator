@@ -60,13 +60,24 @@ performed as written.
 6. Tap **Create competition**. You land on the entries page with your **admin
    link**. Save it: it's the only way back, and anyone who has it can manage
    the competition.
-7. Open **Links and settings** for the **club link** (give it to each club's
+7. Open **Settings** (in the menu at the top) for the **club link** (give it to each club's
    comp sec) and the **individual entry link** (give it to gymnasts without a
    club). You can share them while the competition is private: they show its
    name, date and when entries open, but nobody can enter yet.
 8. When you're ready, tap **Go live now**, or set a date and time for it to go
-   live by itself. **Make private (pause entries)** under **Links and
-   settings** stops entries again; the entries already made are kept.
+   live by itself. **Make private (pause entries)** under **Going live** on the
+   **Settings** page stops entries again; the entries already made are kept.
+
+**Finding your way round.** Every page of the organiser's section has a menu
+under its title: **Entries**, **Timetable**, **On the day** (once the
+timetable is published) and **Settings**. Tap a section to open it; its own
+pages are listed under the bar, with the page you're on marked. **Entries** has
+Late changes, Coaches (when you approve coaches) and Fees, with a count beside
+Late changes and Coaches when something waits for you. **Timetable** has the
+timetable, Officials, Simulate and the two "what if" pages. **On the day** has
+the day's page, Desk messages and the Venue screen. **Settings** has the
+Settings page and History. On a phone the bar scrolls sideways. A helper's link
+shows only the sections it can open.
 
 The entries page shows the counts, then a table for each event (a level, or
 "Synchro BUCS L3", "Tumbling Novice"): gymnast (both names for a synchro pair), club,
@@ -94,14 +105,15 @@ pair's one routine), checked as the Routine Builder checks them.
   or one gymnast (**Print card**). Save as PDF from the print dialog for one
   file.
 - **Download CSV** gives every entry for a spreadsheet or scoring system.
-- Under **Links and settings** you can change when entries close or **Close
+- On the **Settings** page (a page of its own, with a list at the top to jump to
+  each group) you can change when entries close or **Close
   entries now**, change the synchro, tumbling and DMT levels, put the levels
   in order (**Order of levels**, easiest first: built-in levels start in
   order, so check where your own levels sit), choose which
   levels rank men and women separately, turn individual entry, video proof or
   coach sign-off on or off, **Replace the admin link** if it's been shared too
   widely, or delete the competition.
-- **Links for your helpers** (under **Links and settings**): name a link
+- **Links for your helpers** (under **Links** on the Settings page): name a link
   (who it's for) and choose what it can do: **Checking cards** (for
   difficulty judges: check cards, add notes, review videos), **Chairs of
   judges** (see the entries and print the chair of judges, score and
@@ -111,8 +123,8 @@ pair's one routine), checked as the Routine Builder checks them.
   and deleting** (a co-organiser). Copy the link straight away: it's shown
   only once. **Remove** stops it working. **History** lists every change,
   when, and which link made it.
-- **Changes and sign-off after entries close** (under **Links and
-  settings**): entries closing stops new entries; give **Changes to
+- **Changes and sign-off after entries close** (under **Entries and
+  deadlines** on the Settings page): entries closing stops new entries; give **Changes to
   entries close** and **Coaches' sign-off closes** later dates to let clubs
   and gymnasts keep changing, withdrawing or sending again the entries
   they've made, and coaches keep signing off, until then.
@@ -129,7 +141,7 @@ pair's one routine), checked as the Routine Builder checks them.
   it comes to you**: the coach signs off the new card first (on their coach
   page, or an individual's coach through the sign-off link), and accepting
   carries that sign-off onto the entry.
-- **Limits and waiting lists** (under **Links and settings**): give an
+- **Limits and waiting lists** (on the Settings page): give an
   event a limit and, once it's full, later entries go on its waiting list
   in the order they came in. The next one moves up by itself when an entry
   is withdrawn or removed, or you raise the limit; **Let in** takes someone
@@ -197,7 +209,7 @@ and anyone you add.
   Choose who may
   judge: anyone up to the level they say, only levels below their own, or only
   people you mark qualified. "Up to" and "below" go by the **Order of levels**
-  under Links and settings.
+  on the Settings page.
 
 ## Plan the timetable
 
@@ -304,7 +316,7 @@ has a starting value you can change.
    a message saying where they should be.
    <a id="on-the-day-venue-screen"></a>**Venue screen** (a link at the top of
    the On the day page): what's on each area now and what's next, in big type
-   for a screen at the venue. Under **Links and settings** make a **Venue
+   for a screen at the venue. On the **Settings** page make a **Venue
    screen** link, open it on the screen's browser and leave it: it refreshes
    itself every 30 seconds, and that link can open nothing else. Each area
    shows the flight that has been tapped **Started** (or, if none, the one
@@ -365,16 +377,18 @@ venue setup, **Run again**.
 
 1. Go to **tariff.pardy.ie/competitions** and tap **New club**. Give its name
    and tap **Create club**. Save the **admin link** you're given.
-2. Share the **Join link** in the club's chat. Members join with it.
+2. Open **Members** and share the **Join link** in the club's chat. Members
+   join with it.
 3. To enter a competition, open the **club link** the organiser gave you,
    choose your club (or paste its admin link) and tap **Enter the club**.
    Members can then add their entries.
 
-Your club page lists each competition with every member's entry (one per
-discipline they enter): its event,
-problems and status (**Not sent**, **Sent**, **Changed since sent**, or
-withdrawn), plus any note from the organiser, and missing videos and coach
-sign-off.
+Your club page is in four sections, in a menu at the top: **Competitions**,
+**Members**, **Coaches** and **Settings**. It opens on **Competitions**, which
+lists each competition with every member's entry (one per discipline they
+enter): its event, problems and status (**Not sent**, **Sent**, **Changed since
+sent**, or withdrawn), plus any note from the organiser, and missing videos and
+coach sign-off. Changing a member's entry is part of Competitions too.
 
 - **Coaches for this competition** (where it approves coaches): tick the
   coaches who'll sign off its entries (your members' coaches start ticked)
@@ -386,9 +400,11 @@ sign-off.
   takes back withdrawn ones. The organiser only sees what you send, until
   entries close.
 - **Change** edits a member's entry for them.
-- **Members**: choose each member's coach from the list, give a member who lost
-  their link a **New link** (their old one stops working), or **Remove** them.
-- **Coaches**: type a name and tap **Add coach**, then send them the coach link
+- **Members** (its own section): the **Join link**, then each member: choose
+  their coach from the list, give a member who lost their link a **New link**
+  (their old one stops working), or **Remove** them. Synchro entries that
+  gymnasts from other clubs made with your members are listed here too.
+- **Coaches** (its own section): type a name and tap **Add coach**, then send them the coach link
   shown (it's shown only then; **New link** makes another). Tick **Every coach
   sees every member** if your coaches share everyone. Untick a coach's
   **Signs off routines** if they shouldn't sign off: they still see their
@@ -397,38 +413,45 @@ sign-off.
   certificate (up to 10 MB, four per coach), for competitions that ask for
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
-- **Settings**: replace the admin link, or delete the club. A club is deleted
-  120 days after it was last used.
+- **Settings** (its own section): replace the admin link, or delete the club. A
+  club is deleted 120 days after it was last used.
 
 # 3. Enter through your club (members)
 
 1. Open your club's **Join link**, type your name and tap **Join**. Your own
    page opens; it's saved in this browser, so on this phone your entries are
    simply there.
-2. If your club has coaches, choose **Your coach**.
-3. Under each competition there's a section for each discipline it offers.
-   Open **Enter Trampoline** (or Synchro, Tumbling, DMT), choose your
-   **Level**, and Men or Women if asked. For trampoline, choose which set
+2. Your page has two tabs. **Competitions** (the one it opens on) lists the
+   competitions your club is in, each with its date and where your entries
+   stand (for example **Not entered**, **Saved, not sent yet**, or **Timetable
+   published**); tap one to open it. **Your details** has your personal link,
+   to keep, and, if your club has coaches, **Your coach** to choose.
+3. A competition's page has a row for each discipline it offers, closed until
+   you tap it: the discipline, your level and its status (for example **Not
+   entered**, **Checked**, **2 problems**, or **Waiting list, 3rd**). Open
+   **Trampoline** (or Synchro, Tumbling, DMT), choose your **Level**, and Men
+   or Women if asked. For trampoline, choose which set
    routine you're doing where there's a choice, and the routine for each
    voluntary from the routines saved in this browser; for synchro, just the
    pair's one routine, the level's voluntary. Add a **video link**
    if the competition asks (a YouTube video must be **unlisted, not private**;
    a Google Drive file shared with **anyone with the link**). Tap **Save**.
    Tumbling and DMT need only the level.
-4. Your entry shows checked, with any problems. Your comp sec sends it to the
-   competition: the status says whether it's been sent, or changed since.
+4. Your entry shows checked, with any problems; a row with problems to fix opens
+   by itself when you save. Your comp sec sends it to the competition: the
+   status says whether it's been sent, or changed since.
 
 Under **Judging and helping**, say what you can do at the competition: judge a
 discipline (up to a level, and whether you can chair), or help as a recorder
 or marshal. Your comp sec can correct it, and sends it with the entries.
 
-To change it, open **Change your entry**. To pull out of one discipline, tick
+To change it, open the discipline's row, then **Change your entry**. To pull out of one discipline, tick
 **Withdraw this entry** under it and tap **Withdraw**. Notes from the organiser
 and your coach show on your entry, and once the organiser publishes the
 timetable, your flight, area and warm-up time, and under **Officiating**
 when and where you judge or help.
 
-**Your competition** (under each competition) is the page for the day: each
+**Your competition** (a link on the competition's page) is the page for the day: each
 of your events and its card's status, and once the timetable is published,
 your flight, where you are in the running order, about when each routine is,
 what you officiate, and the whole timetable with you picked out. Once it's

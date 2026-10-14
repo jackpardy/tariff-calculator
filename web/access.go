@@ -81,6 +81,7 @@ func access(r *http.Request) views.Access {
 		Resolve:   can(r, "POST", "/concerns/{id}/resolve"),
 		Day:       can(r, "GET", "/day"),
 		Desk:      can(r, "GET", "/desk"),
+		Screen:    can(r, "GET", "/screen"),
 	}
 }
 
@@ -281,20 +282,20 @@ func (p *competitionPages) addLink(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" || len([]rune(name)) > 60 || linkKinds[r.FormValue("kind")] == "" {
-		backToDashboard(w, r, "Give the link a name (who it's for) and say what it can do.")
+		backToSettings(w, r, "Give the link a name (who it's for) and say what it can do.")
 		return
 	}
 	l, token, err := p.st.AddLink(r.Context(), c.ID, name, r.FormValue("kind"))
 	if err != nil {
 		if err == store.ErrLimit {
-			backToDashboard(w, r, fmt.Sprintf("A competition can have %d links: remove one first.", store.MaxLinks))
+			backToSettings(w, r, fmt.Sprintf("A competition can have %d links: remove one first.", store.MaxLinks))
 			return
 		}
 		failed(w, r, err)
 		return
 	}
 	render(w, r, views.NewLink(views.NewLinkPage{
-		Competition: summary(c.Competition, p.now()), Back: adminPath(r.PathValue("token")),
+		Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuSettings),
 		Name: l.Name, Kind: linkKinds[l.Kind], Link: origin(r) + adminPath(token),
 	}))
 }
@@ -309,7 +310,7 @@ func (p *competitionPages) removeLink(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	backToDashboard(w, r, "The link has stopped working.")
+	backToSettings(w, r, "The link has stopped working.")
 }
 
 // backToDashboard goes back to the dashboard, saying what happened.
@@ -328,7 +329,7 @@ func (p *competitionPages) history(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	page := views.HistoryPage{Competition: summary(c.Competition, p.now()), Back: adminPath(r.PathValue("token"))}
+	page := views.HistoryPage{Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuHistory)}
 	for _, ch := range changes {
 		page.Changes = append(page.Changes, views.HistoryChange{At: ch.At.In(local).Format("Mon 2 Jan, 15:04"), Who: ch.Who, What: ch.What})
 	}

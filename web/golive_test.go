@@ -16,7 +16,7 @@ func TestGoingLive(t *testing.T) {
 	if !strings.Contains(page, "<strong>Private.</strong>") || !strings.Contains(page, "Go live now") || !strings.Contains(page, "Entries aren't open at the moment.") {
 		t.Error("a new competition starts private, with a way to go live")
 	}
-	enter := pathIn(t, page, "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	ann := url.Values{"gymnast": {"Ann Ryan"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
 
 	// The entry link shows the competition, and takes no entries.
@@ -44,7 +44,10 @@ func TestGoingLive(t *testing.T) {
 	if rec := do(t, h, http.MethodPost, enter, ann); rec.Code != http.StatusSeeOther {
 		t.Fatalf("entering once live: %d", rec.Code)
 	}
-	if got := do(t, h, http.MethodGet, admin, nil).Body.String(); strings.Contains(got, "Go live now") || !strings.Contains(got, "Make private (pause entries)") {
+	if got := do(t, h, http.MethodGet, admin, nil).Body.String(); strings.Contains(got, "Go live now") {
+		t.Error("once live, the entries page has no way to go live")
+	}
+	if got := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(); strings.Contains(got, "Go live now") || !strings.Contains(got, "Make private (pause entries)") {
 		t.Error("once live, the organiser can make it private again")
 	}
 

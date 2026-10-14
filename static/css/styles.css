@@ -260,8 +260,7 @@
     .routine-switcher > .select:first-child select { max-width: none; }
 }
 .routine-menu { position: relative; }
-.routine-menu > summary { list-style: none; display: inline-flex; box-sizing: border-box; margin-bottom: 0; }
-.routine-menu > summary::-webkit-details-marker { display: none; }
+.routine-menu > summary { display: inline-flex; box-sizing: border-box; margin-bottom: 0; }
 .routine-menu-panel {
     position: absolute; top: calc(100% + 0.3rem); right: 0; z-index: 20; display: flex; flex-direction: column; align-items: stretch;
     min-width: 10rem; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 0.3rem; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
@@ -307,7 +306,7 @@
 .level-structure-choice span { display: flex; flex-direction: column; }
 .level-option-label { font-size: 0.85rem; font-weight: 600; min-width: 4rem; }
 .level-details { margin: 0.5rem 0 1rem; font-size: 0.9rem; }
-.level-details > summary { cursor: pointer; color: #485fc7; margin-bottom: 0.5rem; }
+.level-details > summary { color: #485fc7; margin-bottom: 0.5rem; }
 /* Requirements page: making a set routine from a routine already built. */
 .set-routine-from { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .set-routine-from .input { max-width: 14rem; }
@@ -374,7 +373,7 @@
 .stepper .button { width: 2.5rem; padding: 0; font-size: 1.1rem; }
 
 .skill-builder { border: 1px solid #eee; border-radius: 6px; padding: 0.5rem 0.75rem; margin-bottom: 1rem; }
-.skill-builder > summary { cursor: pointer; font-weight: 600; }
+.skill-builder > summary { font-weight: 600; }
 .builder-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-top: 0.75rem; }
 .builder-label { min-width: 8.5rem; font-weight: 600; font-size: 0.9rem; }
 .builder-readout { color: #555; font-size: 0.9rem; }
@@ -415,7 +414,7 @@
 .shape-segment { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; }
 .segment-modifier { font-size: 0.7rem; font-weight: 700; color: #485fc7; }
 .skill-card-label { margin: 0.35rem 0 0; font-size: 0.85rem; }
-.skill-card-label > summary { cursor: pointer; color: #485fc7; }
+.skill-card-label > summary { color: #485fc7; }
 .skill-card-label .input { margin-top: 0.4rem; }
 
 
@@ -445,9 +444,9 @@
 .set-rules { font-size: 0.85rem; margin-top: 0.3rem; }
 .set-description { font-size: 0.85rem; color: #555; }
 .builtin-group { border-top: 1px solid #f0f0f0; }
-.builtin-group > summary { cursor: pointer; font-weight: 600; padding: 0.6rem 0; }
+.builtin-group > summary { font-weight: 600; padding: 0.6rem 0; }
 .builtin-group[open] > summary { color: #485fc7; }
-.set-rules summary { cursor: pointer; color: #485fc7; }
+.set-rules summary { color: #485fc7; }
 .set-rules ul { list-style: disc; padding-left: 1.2rem; margin-top: 0.3rem; }
 .set-rules ol { list-style: decimal; padding-left: 1.4rem; margin-top: 0.3rem; }
 .import-panel { margin-bottom: 1rem; }
@@ -471,6 +470,21 @@
 /* Content inside <details> sits in a slot that resets box-sizing to content-box,
    making Bulma inputs wider than their column; restore Bulma's border-box. */
 details > * { box-sizing: border-box; }
+/* Every dropdown (<details>) shows the same arrow before its summary: pointing right
+   when closed, down when open. It is an inline-block triangle in the text colour, sized
+   in em, so it sits on the first line whatever the summary is (label, title, small text,
+   <strong> inside) and block-display summaries do not lose it. The native marker is
+   hidden so there is never a double arrow. Summaries that are something else (a button,
+   the routine menu, the inline "move" link) opt out below; add `no-arrow` to any other. */
+details > summary { cursor: pointer; list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before {
+    content: ""; display: inline-block; width: 0.6em; height: 0.6em; margin-right: 0.5em; vertical-align: -0.02em;
+    background: currentColor; clip-path: polygon(15% 0, 100% 50%, 15% 100%); transition: transform 0.15s ease;
+}
+details[open] > summary::before { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { details > summary::before { transition: none; } }
+details > summary.button::before, details > summary.no-arrow::before, .routine-menu > summary::before, .comp-move > summary::before { content: none; }
 /* Fieldsets default to min-width: min-content, which lets nested grids overflow. */
 .matcher, .option-group { min-width: 0; }
 @media screen and (max-width: 768px) {
@@ -483,7 +497,7 @@ details > * { box-sizing: border-box; }
 .matcher-choices .checkbox { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.7rem; border: 1px solid #dbdbdb; border-radius: 999px; font-size: 0.85rem; background: #fff; margin: 0; }
 .matcher-choices .checkbox:has(input:checked) { border-color: #485fc7; background: #eff1fa; color: #3850b7; font-weight: 600; }
 .matcher-more { margin: 0.25rem 0 0.5rem; }
-.matcher-more > summary { cursor: pointer; color: #485fc7; font-size: 0.85rem; padding: 0.35rem 0; }
+.matcher-more > summary { color: #485fc7; font-size: 0.85rem; padding: 0.35rem 0; }
 .matcher-hint { color: #888; font-size: 0.75rem; }
 .set-problems ul, .set-conflicts ul { list-style: disc; padding-left: 1.2rem; }
 
@@ -574,14 +588,13 @@ details > * { box-sizing: border-box; }
 .comp-page [hidden] { display: none !important; }
 .comp-deadline { display: flex; gap: 0.5rem; }
 .comp-level-group { margin-bottom: 0.4rem; }
-.comp-level-group summary { cursor: pointer; font-weight: 600; padding: 0.2rem 0; }
+.comp-level-group summary { font-weight: 600; padding: 0.2rem 0; }
 .comp-level-order { margin: 0 0 0.4rem 0.75rem; }
 .comp-level-order li { display: flex; align-items: center; gap: 0.3rem; padding: 0.1rem 0; }
 .comp-level-name { flex: 1; min-width: 0; }
 .comp-level-gap { width: 2.25em; flex: none; }
 .comp-level { display: flex; align-items: center; gap: 0.4rem; padding: 0.15rem 0 0.15rem 1rem; }
 .comp-counts { margin: 1rem 0; }
-.comp-manage summary { cursor: pointer; }
 .comp-manage[open] summary { margin-bottom: 0.75rem; }
 .comp-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin: 1rem 0; }
 .comp-table td, .comp-table th { white-space: nowrap; }
@@ -592,7 +605,6 @@ details > * { box-sizing: border-box; }
 .comp-entries tr.has-problems td:nth-child(6) { color: inherit; }
 .comp-entries td.comp-problem-cell { white-space: normal; min-width: 12rem; }
 .comp-entries tr.has-problems td.comp-problem-cell { color: #cc0f35; }
-.comp-dash-level > summary { cursor: pointer; }
 .comp-filters .input[type=search] { width: 14rem; }
 .comp-skills tr.not-counted td { color: #999; text-decoration: line-through; }
 .comp-results { list-style: none; margin: 0; font-size: 0.9rem; }
@@ -605,14 +617,13 @@ details > * { box-sizing: border-box; }
 .comp-video-box { border-top: 1px solid #eee; padding-top: 0.5rem; }
 .comp-table tr.is-withdrawn td { color: #999; }
 .comp-table tr.is-withdrawn td a { color: #7a7a7a; text-decoration: line-through; }
-.comp-change summary { cursor: pointer; }
 
 /* --- Timetable (views/timetable.templ) --- */
 .comp-plan-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0 1rem; }
 .comp-flight { padding: 0.9rem 1rem; }
 .comp-order { margin: 0 0 0.5rem 1.4rem; }
 .comp-order li { margin: 0.15rem 0; }
-.comp-move summary { cursor: pointer; color: #485fc7; margin-left: 0.4rem; list-style: none; display: inline; }
+.comp-move summary { color: #485fc7; margin-left: 0.4rem; display: inline; }
 .comp-move[open] .comp-move-form { display: flex; margin: 0.3rem 0; }
 .comp-move-form { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
 .comp-flight-actions { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
@@ -683,11 +694,8 @@ details > * { box-sizing: border-box; }
 
 /* --- My competition (views/my.templ) --- */
 .comp-my-flight { border-left: 3px solid #485fc7; padding-left: 0.75rem; }
-.comp-flight > summary { cursor: pointer; }
 .comp-mine { box-shadow: 0 0 0 2px #485fc7; }
 
-/* The delay's "Ease it" options fold away: show it can be opened. */
-.comp-ease { cursor: pointer; }
 /* Recorders' score sheets (views/timetable.templ ScorePrint): room to write. */
 .comp-score-table td, .comp-score-table th { font-size: 0.8rem; padding: 0.35rem 0.3rem; vertical-align: middle; }
 .comp-score-table tbody td { height: 2.2rem; }
@@ -700,13 +708,13 @@ details > * { box-sizing: border-box; }
 .comp-pay-form input[name="note"] { width: 9rem; }
 /* Check-in and scratches on the day (views/day.templ, the printed sheets). */
 .comp-scratched { text-decoration: line-through; color: #7a7a7a; }
-.comp-checkin summary { cursor: pointer; }
+/* The day page's notice stays in view, as the page no longer jumps to the top to show it. */
+.comp-day-notice { position: sticky; top: 0; z-index: 20; }
 .comp-checkin-row { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; align-items: center; padding: 0.35rem 0; border-top: 1px solid #eee; }
 .comp-checkin-row .comp-checkin-name { flex: 1 1 8rem; }
 .comp-checkin-row form { display: flex; gap: 0.3rem; margin: 0; }
 .comp-checkin-row .comp-panel-name { flex: 1 1 8rem; }
 .comp-notify { flex: 1 1 100%; }
-.comp-notify summary { cursor: pointer; }
 .comp-checkin-row .comp-notify form { flex-wrap: wrap; align-items: center; margin-top: 0.3rem; }
 .comp-notify .input { width: 14rem; max-width: 100%; }
 /* The venue screen (views/screen.templ): dark on light, readable across a hall. */
@@ -725,3 +733,20 @@ details > * { box-sizing: border-box; }
 .screen-gymnasts { font-size: 1.1rem; line-height: 1.35; margin: 0.5rem 0 0; padding: 0; list-style: none; }
 .screen-gymnasts .comp-scratched { color: #666; }
 .screen-empty { font-size: 2rem; text-align: center; margin-top: 3rem; }
+/* The menu at the top of competition and club pages (views/menu.templ): the
+   sections, then the current section's pages. Bulma's tabs scroll sideways
+   on a narrow screen. */
+.comp-menu .tabs a { white-space: nowrap; }
+.comp-menu .comp-submenu { margin-top: 0.5rem; }
+.comp-menu .comp-submenu ul { border-bottom: none; }
+.comp-menu .comp-submenu li.is-active a { border-bottom-color: #485fc7; color: #485fc7; font-weight: 600; }
+/* A member's pages (views/clubs.templ): the competitions as rows to open, and
+   each discipline's entry as a one-line row that opens to its card. */
+.comp-member-row { display: block; margin-bottom: 0.75rem; }
+.comp-member-row:hover { box-shadow: 0 0.5em 1em -0.125em rgba(10, 10, 10, 0.15), 0 0 0 1px #485fc7; }
+.comp-event-row { margin-bottom: 0.75rem; }
+.comp-event-row > summary { cursor: pointer; }
+/* On a phone, tighter tabs so four sections fit without scrolling sideways. */
+@media (max-width: 480px) {
+    .comp-menu .tabs:not(.comp-submenu) a { padding: 0.5em 0.55em; font-size: 0.92rem; }
+}

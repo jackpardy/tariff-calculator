@@ -45,7 +45,9 @@ func browser(t *testing.T) context.Context {
 	if chrome == "" {
 		t.Skip("no Chrome or Chromium to run browser tests (set CHROME_PATH)")
 	}
-	opts := append(chromedp.DefaultExecAllocatorOptions[:], chromedp.ExecPath(chrome), chromedp.NoSandbox)
+	// Chrome can take longer than chromedp's 20 seconds to start on a busy CI
+	// runner, which failed the tests now and then; give it a minute.
+	opts := append(chromedp.DefaultExecAllocatorOptions[:], chromedp.ExecPath(chrome), chromedp.NoSandbox, chromedp.WSURLReadTimeout(time.Minute))
 	alloc, cancelAlloc := chromedp.NewExecAllocator(context.Background(), opts...)
 	ctx, cancelCtx := chromedp.NewContext(alloc)
 	ctx, cancelTimeout := context.WithTimeout(ctx, 60*time.Second)

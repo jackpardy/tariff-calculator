@@ -307,7 +307,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := views.TimetablePage{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Notice: r.URL.Query().Get("notice"),
+		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuTimetable), Notice: r.URL.Query().Get("notice"),
 		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Published: c.Published != nil, Changes: c.Published != nil && !sameTimetable(s, *c.Published), Entries: len(entries),
 	}
 	if s.Planned {
