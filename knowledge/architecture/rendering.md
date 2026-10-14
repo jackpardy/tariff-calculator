@@ -76,7 +76,10 @@ page's People list is the example to copy.
 - **The rows.** Each row (`<tr>`, `<li>`, `<label>`) spreads
   `{ row.List.Attrs()... }`, from a `views.ListRow{Name, Values}`. `Name` is
   what "Find a name" searches. `Values` holds the row's values for each
-  filter key; a row can have several values for a key, or none.
+  filter key; a row can have several values for a key, or none. A row that
+  spans two table rows is one `<tbody>` (a table can have several). Where
+  rows sit in groups (a box per club), give each group `data-list-group`:
+  it hides when none of its rows match.
 - **The filters.** Build them in Go, in `web/lists.go`, so lists share
   them: `clubFilter` and `clubValue` (with "No club"), `canDoFilter` and
   `canDo`, `judgesFilter` and `judges` (discipline and level, `AtLeast`:

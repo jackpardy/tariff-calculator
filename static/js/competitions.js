@@ -443,6 +443,10 @@
                     row.el.hidden = !show;
                     if (show) { shown++; }
                 }
+                // A group of rows (a club's box) shows while any of its rows do.
+                for (const group of list.querySelectorAll('[data-list-group]')) {
+                    group.hidden = !group.querySelector('[data-list-row]:not([hidden])');
+                }
                 const filtered = words.length > 0 || chosen.length > 0;
                 count.textContent = filtered ? `${shown} of ${rows.length} ${noun}` : `${rows.length} ${noun}`;
                 clear.hidden = !filtered;
