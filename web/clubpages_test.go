@@ -37,7 +37,7 @@ func formAction(t *testing.T, html, prefix string) string {
 func TestClubs(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	clubLink := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/club/")
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 
 	// A comp sec creates a club.
 	if rec := do(t, h, http.MethodPost, "/clubs", url.Values{"name": {" "}}); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "The club needs a name.") {

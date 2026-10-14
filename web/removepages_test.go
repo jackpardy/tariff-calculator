@@ -11,7 +11,7 @@ import (
 func TestRemovingEntriesPages(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	dash := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
 	clubLink, enter := pathIn(t, dash, "/competitions/club/"), pathIn(t, dash, "/competitions/enter/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})

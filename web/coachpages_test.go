@@ -20,7 +20,7 @@ func TestCoachSignoff(t *testing.T) {
 	if !strings.Contains(dash, "Entries need a coach&#39;s sign-off.") && !strings.Contains(dash, "Entries need a coach's sign-off.") {
 		t.Error("the competition says it needs sign-off")
 	}
-	clubLink := pathIn(t, dash, "/competitions/club/")
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 
@@ -147,7 +147,7 @@ func TestIndividualSignoff(t *testing.T) {
 	form := newCompetition()
 	form.Set("signoff", "1")
 	admin := created(t, h, form)
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"I"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
 	page := do(t, h, http.MethodGet, own, nil).Body.String()
 	if !strings.Contains(page, "Sign-off link for your coach") {
@@ -201,7 +201,7 @@ func TestCoachQualificationsPages(t *testing.T) {
 	form := newCompetition()
 	form.Set("signoff", "1")
 	admin := created(t, h, form)
-	clubLink := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/club/")
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	ann := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")

@@ -5,6 +5,7 @@ package views
 type LeavePage struct {
 	Base        string
 	Competition CompetitionSummary
+	Menu []MenuSection
 	People      []FlightOption // officials with seats, by key
 	Days        []FlightOption
 	// As asked.
@@ -35,9 +36,9 @@ type SeatFillView struct {
 // Leave is the page.
 templ Leave(p LeavePage) {
 	@competitionLayout("What if an official leaves · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Base + "/timetable") }>← Timetable</a></p>
 		<h1 class="title is-4">What if an official has to leave?</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		@pageMenu(p.Menu)
 		<p class="mb-4">Choose who leaves and when. Each seat they'd have had from then is filled again by someone free (not competing, not on another panel, and allowed by your rules), or by moving others round where it helps: someone on that panel up a role, or someone across from a panel at the same time, their seat filled in turn (three moves at most). Nothing is saved: the rota stays as it is.</p>
 		@problemList(p.Problems)
 		<form method="get" action={ templ.SafeURL(p.Base + "/timetable/leave") } class="box">

@@ -13,7 +13,7 @@ func TestDashboardNavigation(t *testing.T) {
 	form := newCompetition()
 	form.Set("signoff", "1")
 	admin := created(t, h, form)
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	for _, name := range []string{"Dara O'Néill", "Ann Ryan", "Bea Kelly"} {
 		redirected(t, h, enter, url.Values{"gymnast": {name}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
 	}

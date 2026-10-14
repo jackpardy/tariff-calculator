@@ -7,6 +7,7 @@ import "strconv"
 type DeskPage struct {
 	Base, Notice string
 	Competition  CompetitionSummary
+	Menu []MenuSection
 	Published    bool              // there's a timetable to pick flights and panels from
 	Clubs        []DeskOption      // the clubs entered
 	Flights      []DeskGroup       // the published flights, by day and area
@@ -47,9 +48,9 @@ type DeskNote struct {
 // Desk is the organisers' desk.
 templ Desk(p DeskPage) {
 	@competitionLayout("Desk messages · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
 		<h1 class="title is-4">Desk messages</h1>
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			<div class="notification is-info is-light">{ p.Notice }</div>
 		}

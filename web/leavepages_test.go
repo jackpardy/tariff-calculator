@@ -20,7 +20,7 @@ func TestLeavePage(t *testing.T) {
 	redirected(t, h, officials+"/add", url.Values{"name": {"Rory"}, "recorder": {"1"}, "judge-trampoline": {"1"}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "recorder": {"1"}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Bea"}, "recorder": {"1"}})
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	redirected(t, h, enter, url.Values{"gymnast": {"Eve"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
 	tt := admin + "/timetable"
 	if loc := do(t, h, http.MethodGet, tt+"/leave", nil).Header().Get("Location"); !strings.Contains(loc, "Plan+the+timetable+first") {

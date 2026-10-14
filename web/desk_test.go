@@ -36,7 +36,7 @@ func subscribeByEmail(t *testing.T, h http.Handler, mail *fakeMailer, notify, ad
 // members' pages.
 func aClubWithMembers(t *testing.T, h http.Handler, admin string, names ...string) (string, map[string]string) {
 	t.Helper()
-	clubLink := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/club/")
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
@@ -74,7 +74,7 @@ func personOnDesk(t *testing.T, page, name string) string {
 // anIndividual enters a gymnast on their own and returns their page.
 func anIndividual(t *testing.T, h http.Handler, admin, name string) string {
 	t.Helper()
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	return withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {name}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
 }
 
@@ -93,8 +93,8 @@ func TestDeskMessageToAClub(t *testing.T) {
 	if clubID == nil || !strings.Contains(page, "Nothing sent yet") {
 		t.Fatalf("the desk lists the club: %s", page)
 	}
-	if !strings.Contains(do(t, h, http.MethodGet, admin, nil).Body.String(), desk) {
-		t.Error("the dashboard links to the desk")
+	if section, item := menuCurrent(page); section != "On the day" || item != "Desk messages" {
+		t.Errorf("the desk's menu shows it as the current page: %q, %q", section, item)
 	}
 
 	// Nothing to say, or no one to say it to: nothing is sent.
@@ -301,7 +301,7 @@ func TestDeskLinks(t *testing.T) {
 		if rec := do(t, h, http.MethodGet, link+"/desk", nil); rec.Code != http.StatusOK {
 			t.Errorf("%s sees the desk: %d", link, rec.Code)
 		}
-		if page := do(t, h, http.MethodGet, link, nil).Body.String(); !strings.Contains(page, ">Desk messages<") {
+		if page := do(t, h, http.MethodGet, link+"/desk", nil).Body.String(); !strings.Contains(page, ">Desk messages") {
 			t.Errorf("%s is offered the desk", link)
 		}
 	}
@@ -374,7 +374,7 @@ func TestDeskToOfficials(t *testing.T) {
 	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}})
 	eve := anIndividual(t, h, admin, "Eve")
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	// Dara competes in tumbling and judges trampoline.
 	dara := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "discipline": {"tumbling"}, "level": {"Novice"}}))
 	redirected(t, h, dara+"/offer", url.Values{"judge-trampoline": {"1"}})

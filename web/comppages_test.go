@@ -118,7 +118,7 @@ func TestCreateCompetition(t *testing.T) {
 
 	// Replacing the admin link ends the old one.
 	rec = do(t, h, http.MethodPost, admin+"/replace-link", url.Values{})
-	fresh := strings.TrimSuffix(rec.Header().Get("Location"), "?new=replaced")
+	fresh := strings.TrimSuffix(rec.Header().Get("Location"), "/settings?new=replaced")
 	if page := do(t, h, http.MethodGet, rec.Header().Get("Location"), nil).Body.String(); !strings.Contains(page, "Your new admin link.") {
 		t.Error("the new link is shown")
 	}
@@ -127,7 +127,9 @@ func TestCreateCompetition(t *testing.T) {
 	}
 
 	// Deleting needs the box ticked.
-	do(t, h, http.MethodPost, fresh+"/delete", url.Values{})
+	if got := redirected(t, h, fresh+"/delete", url.Values{}); !strings.HasPrefix(got, fresh+"/settings") {
+		t.Errorf("unconfirmed, it goes back to the settings: %s", got)
+	}
 	if do(t, h, http.MethodGet, fresh, nil).Code != http.StatusOK {
 		t.Error("not deleted without confirming")
 	}
@@ -160,7 +162,7 @@ func TestCompetitionRateLimit(t *testing.T) {
 func TestIndividualEntry(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 
 	form := do(t, h, http.MethodGet, enter, nil).Body.String()
 	for _, want := range []string{"Enter Student Open", `value="builtin:bucs-l3-option-1"`, `data-set-routine="true"`, "deleted 14 July 2030"} {
@@ -205,7 +207,7 @@ func TestIndividualEntry(t *testing.T) {
 	if entry == nil {
 		t.Fatal("no link to the entry")
 	}
-	if detail := do(t, h, http.MethodGet, entry[1], nil).Body.String(); !strings.Contains(detail, "First exercise") || !strings.Contains(detail, "Second exercise") || !strings.Contains(detail, "← All entries") {
+	if detail := do(t, h, http.MethodGet, entry[1], nil).Body.String(); !strings.Contains(detail, "First exercise") || !strings.Contains(detail, "Second exercise") || !strings.Contains(detail, `aria-label="Sections"`) {
 		t.Error("the organiser sees both exercises")
 	}
 
@@ -235,7 +237,7 @@ func TestIndividualEntry(t *testing.T) {
 func TestOrganiserTools(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	entry := url.Values{
 		"gymnast": {"=SUM(A1)"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"},
 		"ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary},
@@ -292,8 +294,11 @@ func TestOrganiserTools(t *testing.T) {
 
 	// Closing entries, and changing when they close.
 	location := redirected(t, h, admin+"/deadline", url.Values{"close": {"1"}})
-	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Entries are closed.") || !strings.Contains(page, "Entries closed") {
-		t.Error("closed")
+	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.HasPrefix(location, admin+"/settings") || !strings.Contains(page, "Entries are closed.") {
+		t.Error("closed, and back to the settings")
+	}
+	if page := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(page, "Entries closed") {
+		t.Error("the entries page says entries are closed")
 	}
 	if rec := do(t, h, http.MethodPost, own, entry); rec.Code != http.StatusConflict {
 		t.Errorf("no changes once closed: %d", rec.Code)
@@ -320,10 +325,11 @@ func TestVideoProof(t *testing.T) {
 	form.Set("videoDoubles", "1")
 	admin := created(t, h, form)
 	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
-	if !strings.Contains(dash, "Video of any double somersault or more, as a link.") || !strings.Contains(dash, `name="videoDoubles" value="1" checked`) {
-		t.Error("the dashboard says what video is asked for, and offers to change it")
+	settings := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
+	if !strings.Contains(dash, "Video of any double somersault or more, as a link.") || !strings.Contains(settings, `name="videoDoubles" value="1" checked`) {
+		t.Error("the dashboard says what video is asked for; the settings offer to change it")
 	}
-	enter := pathIn(t, dash, "/competitions/enter/")
+	enter := pathIn(t, settings, "/competitions/enter/")
 	if page := do(t, h, http.MethodGet, enter, nil).Body.String(); !strings.Contains(page, `name="ex1Video"`) || !strings.Contains(page, "unlisted, not private") {
 		t.Error("the entry form asks for video links, with the YouTube hint")
 	}
@@ -375,11 +381,14 @@ func TestVideoProof(t *testing.T) {
 
 	// The organiser can change what's asked for.
 	location := redirected(t, h, admin+"/video", url.Values{"video": {"routine"}})
-	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Video proof changed.") || !strings.Contains(page, "Video of each whole routine") {
-		t.Error("changed to the whole routine")
+	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.HasPrefix(location, admin+"/settings") || !strings.Contains(page, "Video proof changed.") {
+		t.Error("changed to the whole routine, back on the settings")
+	}
+	if page := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(page, "Video of each whole routine") {
+		t.Error("the entries page says so")
 	}
 	location = redirected(t, h, admin+"/video", url.Values{"video": {"skills"}, "videoTariff": {"lots"}})
-	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Video proof wasn") || !strings.Contains(page, "Video of each whole routine") {
+	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Video proof wasn") || !strings.Contains(page, `name="video" value="routine" checked`) {
 		t.Error("a bad tariff changes nothing")
 	}
 }
@@ -392,10 +401,10 @@ func TestLevelOrderPages(t *testing.T) {
 	admin := created(t, h, form)
 	order := func() string {
 		t.Helper()
-		page := do(t, h, http.MethodGet, admin, nil).Body.String()
+		page := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
 		start := strings.Index(page, `id="level-order"`)
 		if start < 0 {
-			t.Fatal("no order of levels on the dashboard")
+			t.Fatal("no order of levels on the settings")
 		}
 		section := page[start:]
 		section = section[:strings.Index(section, "</form>")]

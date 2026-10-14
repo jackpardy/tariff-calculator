@@ -84,6 +84,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("GET /competitions/new", p.newForm)
 	handle("POST /competitions", p.create)
 	handle("GET /competitions/admin/{token}", p.dashboard)
+	handle("GET /competitions/admin/{token}/settings", p.settings)
 	handle("GET /competitions/admin/{token}/entries/{id}", p.entry)
 	handle("POST /competitions/admin/{token}/entries/{id}/check", p.check)
 	handle("GET /competitions/admin/{token}/cards", p.cards)
@@ -366,7 +367,7 @@ func (p *competitionPages) video(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	backToSettings(w, r, notice)
 }
 
 // reviewVideo records the organiser's review of an entry's videos (review:
@@ -609,45 +610,18 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
-	deadline := c.Deadline.In(local)
-	liveAt := c.LiveAt.In(local)
-	if c.LiveAt.IsZero() {
-		today := p.now().In(local) // suggest tomorrow morning
-		liveAt = time.Date(today.Year(), today.Month(), today.Day()+1, 9, 0, 0, 0, local)
-	}
+	liveDate, liveTime := p.liveFields(c)
 	d := views.Dashboard{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
-		Links: views.CompetitionLinks{Club: origin(r) + "/competitions/club/" + c.ClubLink, Individual: origin(r) + "/competitions/enter/" + c.IndividualLink},
-		Club:  q.Get("club"), ProblemsOnly: q.Get("problems") == "1",
+		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuEntries),
+		Club: q.Get("club"), ProblemsOnly: q.Get("problems") == "1",
 		Entries: len(entries), New: q.Get("new"), Notice: q.Get("notice"),
-		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
-		LiveDate: liveAt.Format("2006-01-02"), LiveTime: liveAt.Format("15:04"),
-		ChangesDate: dateField(c.ChangesUntil, c.Deadline), ChangesTime: timeField(c.ChangesUntil, c.Deadline),
-		SignoffsDate: dateField(c.SignoffsUntil, c.Deadline), SignoffsTime: timeField(c.SignoffsUntil, c.Deadline),
-		NotifyOn: p.notifyLink("/") != "", NoWait: c.NoWait,
-		Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()), Events: eventsForm(c.Competition),
-		LevelOrder: levelOrderForm(c.Competition), Published: published(c),
+		LiveDate: liveDate, LiveTime: liveTime,
 	}
 	if !c.NotifyDue.IsZero() {
 		d.NotifyAt = c.NotifyDue.In(local).Format("15:04")
 	}
-	d.Waiting, d.Limits = waitingLists(c, waiting, d.Base), limitFields(c, all)
-	if late, err := p.st.LateRequests(r.Context(), c.ID); err == nil {
-		for _, l := range late {
-			if l.Status == store.LateWaiting {
-				d.LateWaiting++
-			}
-		}
-	}
+	d.Waiting = waitingLists(c, waiting, d.Base)
 	d.Access = access(r)
-	if d.Access.Organiser {
-		links, err := p.st.Links(r.Context(), c.ID)
-		if err != nil {
-			failed(w, r, err)
-			return
-		}
-		d.LinkList = linkViews(links)
-	}
 	if d.Concerns, d.OpenConcerns, err = p.concernViews(r.Context(), c, d.Base); err != nil {
 		failed(w, r, err)
 		return
@@ -660,19 +634,6 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	for _, e := range removed {
 		d.Removed = append(d.Removed, views.RemovedRow{ID: e.ID, Gymnast: e.Entry.Gymnasts(), Club: clubOf(e), Level: e.Entry.Event(),
 			Held: e.Removal == store.Held, Resent: e.Resent, Note: e.RemovalNote, To: reasonTo(e)})
-	}
-	if c.Signoff {
-		sentCoaches, err := p.st.CompetitionCoaches(r.Context(), c.ID)
-		if err != nil {
-			failed(w, r, err)
-			return
-		}
-		named, err := p.st.CompetitionEntryCoaches(r.Context(), c.ID)
-		if err != nil {
-			failed(w, r, err)
-			return
-		}
-		d.CoachApproval = coachApprovalForm(c.Competition, sentCoaches, named)
 	}
 	if d.New != "" {
 		d.Links.Admin = origin(r) + adminPath(r.PathValue("token"))
@@ -951,7 +912,11 @@ func (p *competitionPages) live(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	back := func(notice string) {
-		http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+		to := adminPath(r.PathValue("token"))
+		if r.FormValue("back") == "settings" {
+			to = settingsPath(r.PathValue("token"))
+		}
+		http.Redirect(w, r, to+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
 	}
 	at, err := postedLiveAt(r, p.now())
 	if err != nil {
@@ -993,7 +958,7 @@ func (p *competitionPages) deadline(w http.ResponseWriter, r *http.Request) {
 		changed := c.Competition
 		changed.Deadline = deadline
 		if err != nil || changed.Validate() != nil {
-			http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Entries must close by the end of the competition date; the closing time wasn't changed."), http.StatusSeeOther)
+			backToSettings(w, r, "Entries must close by the end of the competition date; the closing time wasn't changed.")
 			return
 		}
 		notice = "Entries now close " + deadline.Format("Monday 2 January 2006, 15:04") + "."
@@ -1002,7 +967,7 @@ func (p *competitionPages) deadline(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	backToSettings(w, r, notice)
 }
 
 // laterDeadlines sets when changes to entries (changesDate, changesTime)
@@ -1029,20 +994,20 @@ func (p *competitionPages) laterDeadlines(w http.ResponseWriter, r *http.Request
 	changed.ChangesUntil, changed.SignoffsUntil = changes, signoffs
 	switch {
 	case !ok1 || !ok2:
-		backToDashboard(w, r, "Give each date as a date and time; nothing was changed.")
+		backToSettings(w, r, "Give each date as a date and time; nothing was changed.")
 		return
 	case !changes.IsZero() && changes.Before(c.Deadline), !signoffs.IsZero() && signoffs.Before(c.Deadline):
-		backToDashboard(w, r, "Changes and sign-offs can't close before entries do; nothing was changed.")
+		backToSettings(w, r, "Changes and sign-offs can't close before entries do; nothing was changed.")
 		return
 	case changed.Validate() != nil:
-		backToDashboard(w, r, "Changes and sign-offs must close by the end of the competition date; nothing was changed.")
+		backToSettings(w, r, "Changes and sign-offs must close by the end of the competition date; nothing was changed.")
 		return
 	}
 	if err := p.st.SetChangesAndSignoffs(r.Context(), c.ID, changes, signoffs); err != nil {
 		failed(w, r, err)
 		return
 	}
-	backToDashboard(w, r, "Saved.")
+	backToSettings(w, r, "Saved.")
 }
 
 // exerciseSummary is an exercise in a dashboard row: a set routine performed as
@@ -1075,7 +1040,7 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 	}
 	withSignoff(&shown, storedSignoff(c.Competition, e))
 	render(w, r, views.CompetitionEntry(views.EntryDetail{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
+		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuEntries),
 		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
 		ID: e.ID, Checked: checkedText(e), Note: e.Note, VideoReview: e.VideoReview, VideoNote: e.VideoNote,
 		Withdrawn: e.Withdrawn, Access: access(r), Notice: r.URL.Query().Get("notice"),
@@ -1152,7 +1117,11 @@ func (p *competitionPages) individuals(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token")), http.StatusSeeOther)
+	notice := "Gymnasts can no longer enter on their own."
+	if r.FormValue("on") == "1" {
+		notice = "Gymnasts can now enter on their own, with the individual entry link."
+	}
+	backToSettings(w, r, notice)
 }
 
 func (p *competitionPages) replaceLink(w http.ResponseWriter, r *http.Request) {
@@ -1165,7 +1134,7 @@ func (p *competitionPages) replaceLink(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(admin)+"?new=replaced", http.StatusSeeOther)
+	http.Redirect(w, r, settingsPath(admin)+"?new=replaced", http.StatusSeeOther)
 }
 
 func (p *competitionPages) delete(w http.ResponseWriter, r *http.Request) {
@@ -1174,7 +1143,7 @@ func (p *competitionPages) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.FormValue("confirm") != "1" {
-		http.Redirect(w, r, adminPath(r.PathValue("token")), http.StatusSeeOther)
+		backToSettings(w, r, "Tick the box to delete the competition; nothing was deleted.")
 		return
 	}
 	if err := p.st.DeleteCompetition(r.Context(), c.ID); err != nil {
@@ -1597,7 +1566,7 @@ func (p *competitionPages) setEvents(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	backToSettings(w, r, notice)
 }
 
 // levelOrderForm is each offered discipline's levels in order, to move.
@@ -1634,7 +1603,7 @@ func (p *competitionPages) moveLevel(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Order of levels changed.")+"#level-order", http.StatusSeeOther)
+	http.Redirect(w, r, settingsPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Order of levels changed.")+"#level-order", http.StatusSeeOther)
 }
 
 // --- Men and women ---
@@ -1679,7 +1648,7 @@ func (p *competitionPages) setSplit(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	backToSettings(w, r, notice)
 }
 
 // --- Coach sign-off (ADR 0004 Decision 11) ---
@@ -1706,7 +1675,7 @@ func (p *competitionPages) setSignoff(w http.ResponseWriter, r *http.Request) {
 	if on {
 		notice = "Entries now need a coach's sign-off: those without one are flagged."
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	backToSettings(w, r, notice)
 }
 
 // signoffEntry is the individual's entry a sign-off link opens, with its competition.

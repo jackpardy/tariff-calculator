@@ -164,7 +164,7 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := views.OfficialsPage{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Notice: r.URL.Query().Get("notice"),
+		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuOfficials), Notice: r.URL.Query().Get("notice"),
 		Judge: c.Officials.Judge, RecordersChange: c.Officials.RecordersChange, MarshalsChange: c.Officials.MarshalsChange, Add: offerForm(c.Competition, competitions.Offer{}, ""),
 	}
 	for _, d := range c.Disciplines() {

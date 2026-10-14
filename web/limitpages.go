@@ -132,7 +132,7 @@ func (p *competitionPages) setLimits(w http.ResponseWriter, r *http.Request) {
 		}
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 0 || n > store.MaxEntries {
-			backToDashboard(w, r, fmt.Sprintf("%s: a limit should be a number of entries, or empty for none. Nothing was changed.", event))
+			backToSettings(w, r, fmt.Sprintf("%s: a limit should be a number of entries, or empty for none. Nothing was changed.", event))
 			return
 		}
 		if n > 0 {
@@ -154,7 +154,7 @@ func (p *competitionPages) setLimits(w http.ResponseWriter, r *http.Request) {
 	if len(waiting) > 0 {
 		notice += fmt.Sprintf(" %s on a waiting list.", entriesWord(len(waiting)))
 	}
-	backToDashboard(w, r, notice)
+	backToSettings(w, r, notice)
 }
 
 // letIn lets an entry in over its event's limit (on=1), or takes that back.

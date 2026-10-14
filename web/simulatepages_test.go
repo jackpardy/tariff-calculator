@@ -15,7 +15,7 @@ func TestSimulation(t *testing.T) {
 	admin := created(t, h, form)
 	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}, "judge-tumbling": {"1"}})
 	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Rory"}, "recorder": {"1"}})
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	redirected(t, h, enter, url.Values{"gymnast": {"Eve"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
 	redirected(t, h, enter, url.Values{"gymnast": {"Eve"}, "discipline": {"tumbling"}, "level": {"Novice"}})
 	tt := admin + "/timetable"

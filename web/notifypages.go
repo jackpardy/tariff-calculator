@@ -354,5 +354,5 @@ func (p *competitionPages) noWait(w http.ResponseWriter, r *http.Request) {
 	if on {
 		notice = "On the competition's days, changes are told as soon as they're published."
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	backToSettings(w, r, notice)
 }

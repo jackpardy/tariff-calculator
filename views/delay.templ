@@ -10,6 +10,7 @@ import (
 type DelayPage struct {
 	Base        string
 	Competition CompetitionSummary
+	Menu []MenuSection
 	Days        []FlightOption // value: the day's index
 	AllAreas    []string
 	// The delay asked about, as given.
@@ -52,9 +53,9 @@ type DelayChangeView struct {
 // Delay is the delay page.
 templ Delay(p DelayPage) {
 	@competitionLayout("What if there's a delay · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Base + "/timetable") }>← Timetable</a></p>
 		<h1 class="title is-4">What if there's a delay?</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		@pageMenu(p.Menu)
 		<p class="mb-4">Say which areas are held up, from when and for how long. Their later flights shift back as little as they can (any slack takes some of it), around blocked time; a flight that would then run past the end of the day, or need someone in two places, moves to another area if one is free. Nothing is saved: the timetable stays as it is.</p>
 		@problemList(p.Problems)
 		<form method="get" action={ templ.SafeURL(p.Base + "/timetable/delay") } class="box">

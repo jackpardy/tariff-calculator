@@ -164,7 +164,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	base := adminPath(r.PathValue("token"))
-	page := views.DayPage{Base: base, Competition: summary(c.Competition, p.now()), Notice: r.URL.Query().Get("notice"), Day: day}
+	page := views.DayPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuDay), Notice: r.URL.Query().Get("notice"), Day: day}
 	if can(r, "GET", "/screen") {
 		page.Screen = base + "/screen?day=" + strconv.Itoa(day)
 	}

@@ -194,10 +194,10 @@ features that show that, in this order:
 2. **Finding your way round (asked 2026-10-13):**
    - **A menu for the organiser**, with sections and subsections:
      entries, timetable, coaches, panels and officials, routines and
-     competition settings. Today it's a row of buttons on the entries
-     page.
+     competition settings. **Built 2026-10-14**: Entries, Timetable, On
+     the day and Settings, each with its pages, on every organiser page.
    - **Links and settings on a page of their own**, not a section of
-     the entries page.
+     the entries page. **Built 2026-10-14**: the Settings page.
    - **The same for clubs and gymnasts entering on their own**, with a
      menu in place of one long page.
    - **Individuals: a Competitions tab** listing their competitions, each
@@ -206,7 +206,7 @@ features that show that, in this order:
      such as routines, or a coach's view once one link covers several
      roles.
 3. **Make dropdowns look like dropdowns** (asked 2026-10-13, built
-   2026-10-14). **Limits and waiting lists**, under Links and settings,
+   2026-10-14). **Limits and waiting lists** (now a plain group on the Settings page)
    opened when tapped but showed no arrow, because Bulma's `label` class
    on its `<summary>` makes it a block and hides the marker; the
    dashboard's level headings (`title`) had the same problem. Every

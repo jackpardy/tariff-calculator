@@ -102,7 +102,7 @@ func TestVenueScreen(t *testing.T) {
 	if rec := do(t, h, http.MethodGet, screen+"/screen", nil); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "The timetable isn&#39;t published yet") && !strings.Contains(rec.Body.String(), "The timetable isn't published yet") {
 		t.Errorf("nothing to show before publishing: %d %s", rec.Code, rec.Body.String())
 	}
-	enter := pathIn(t, do(t, h, http.MethodGet, admin, nil).Body.String(), "/competitions/enter/")
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	for _, name := range []string{"Ann", "Bea", "Cal"} {
 		redirected(t, h, enter, url.Values{"gymnast": {name}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
 	}
@@ -168,7 +168,7 @@ func TestVenueScreen(t *testing.T) {
 	if rec := do(t, h, http.MethodGet, "/competitions/admin/nonsense/screen", nil); rec.Code != http.StatusNotFound {
 		t.Errorf("no such link: %d", rec.Code)
 	}
-	if page := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(page, "Venue screen") {
+	if page := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(); !strings.Contains(page, "Venue screen") {
 		t.Error("the organiser can choose the kind of link")
 	}
 

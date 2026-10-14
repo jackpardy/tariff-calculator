@@ -45,6 +45,7 @@ templ LateRequest(p LateRequestPage) {
 type LateAdminPage struct {
 	Base, Notice string
 	Competition  CompetitionSummary
+	Menu []MenuSection
 	Signoff      bool // entries need a coach's sign-off
 	SignoffFirst bool
 	Kinds        []LateKindField
@@ -68,9 +69,9 @@ type LateRequestView struct {
 // LateAdmin is the organiser's page of late changes.
 templ LateAdmin(p LateAdminPage) {
 	@competitionLayout("Late changes · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Base) }>← All entries</a></p>
 		<h1 class="title is-4">Late changes</h1>
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			<div class="notification is-success is-light">{ p.Notice }</div>
 		}

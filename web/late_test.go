@@ -13,7 +13,7 @@ func TestLateChanges(t *testing.T) {
 	form := newCompetition()
 	form["level"] = append(form["level"], "builtin-level:bucs-l4")
 	admin := created(t, h, form)
-	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	dash := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
 	clubLink, enter := pathIn(t, dash, "/competitions/club/"), pathIn(t, dash, "/competitions/enter/")
 	l3 := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
 	l4 := url.Values{"level": {"BUCS L4"}, "ex1Option": {"builtin:bucs-l4-option-1"}, "ex2Option": {"builtin:bucs-l4-second"}, "ex2Skills": {voluntary}}
@@ -72,6 +72,9 @@ func TestLateChanges(t *testing.T) {
 	if !strings.Contains(page, "2 to decide") {
 		t.Error("the dashboard says there are late changes to decide")
 	}
+	if page := do(t, h, http.MethodGet, admin+"/timetable", nil).Body.String(); !strings.Contains(page, "2 to decide") {
+		t.Error("every page's menu says there are late changes to decide")
+	}
 	late := do(t, h, http.MethodGet, admin+"/late", nil).Body.String()
 	if !strings.Contains(late, "BUCS L3 → <strong>BUCS L4</strong>") || !strings.Contains(late, "Moved up by her coach") || !strings.Contains(late, "In the draft timetable: into BUCS L4") {
 		t.Fatalf("the requests and checks: %s", late)
@@ -113,7 +116,7 @@ func TestLateChangeSignoff(t *testing.T) {
 	form.Set("signoff", "1")
 	form["level"] = append(form["level"], "builtin-level:bucs-l4")
 	admin := created(t, h, form)
-	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	dash := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
 	clubLink, enter := pathIn(t, dash, "/competitions/club/"), pathIn(t, dash, "/competitions/enter/")
 	l3 := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
 	l4 := url.Values{"level": {"BUCS L4"}, "ex1Option": {"builtin:bucs-l4-option-1"}, "ex2Option": {"builtin:bucs-l4-second"}, "ex2Skills": {voluntary}}
