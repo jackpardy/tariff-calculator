@@ -740,7 +740,7 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 				@videoReviewNote(ev.VideoReview, ev.VideoNote)
 				@partnerBox(ev.Partner)
 				if ev.Card != nil {
-					@entryCard(*ev.Card)
+					@entryCardChecks(*ev.Card)
 				}
 				if comp.ChangesOpen {
 					if ev.Card != nil {

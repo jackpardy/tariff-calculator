@@ -835,6 +835,12 @@ templ CompetitionEntry(d EntryDetail) {
 templ entryCard(c EntryCard) {
 	<h1 class="title is-4">{ c.Gymnast }</h1>
 	<p class="subtitle is-6">{ c.Club } · { c.Level }</p>
+	@entryCardChecks(c)
+}
+
+// entryCardChecks is an entry card without the gymnast's name, club and level
+// at its head, for a page that already says them (a member's own entry row).
+templ entryCardChecks(c EntryCard) {
 	@signoffBox(c.Signoff)
 	if c.Unchecked && len(c.Problems) == 0 {
 	} else if len(c.Problems) == 0 {

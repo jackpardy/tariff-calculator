@@ -2762,7 +2762,7 @@ func memberEvent(comp CompetitionSummary, ev MemberEvent) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if ev.Card != nil {
-				templ_7745c5c3_Err = entryCard(*ev.Card).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = entryCardChecks(*ev.Card).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
