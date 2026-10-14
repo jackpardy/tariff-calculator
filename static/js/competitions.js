@@ -13,6 +13,7 @@
         clubs: 'trampolineClubs',
         members: 'trampolineMemberLinks',
         coaches: 'trampolineCoachLinks',
+        gymnasts: 'trampolineGymnastLinks',
         entries: 'trampolineEntryLinks',
     };
 
@@ -57,6 +58,8 @@
         if (member) { keepLink(linkKeys.members, member.dataset.memberName, member.dataset.memberLink); }
         const coach = document.querySelector('[data-coach-link]');
         if (coach) { keepLink(linkKeys.coaches, coach.dataset.coachName, coach.dataset.coachLink); }
+        const gymnast = document.querySelector('[data-gymnast-link]');
+        if (gymnast) { keepLink(linkKeys.gymnasts, gymnast.dataset.gymnastName, gymnast.dataset.gymnastLink); }
     }
 
     // linkItem is a list item linking to a saved link.
@@ -173,16 +176,14 @@
         }
     }
 
-    // partnerLink offers the member pages and entries saved in this browser for
-    // a synchro partner to say who they are.
-    function partnerLink() {
-        const field = document.querySelector('[data-saved-people]');
-        const input = document.getElementById('partner-link');
-        const people = [...loadLinks(linkKeys.members), ...loadLinks(linkKeys.entries)];
+    // savedPeople offers the people's pages saved in this browser in a field's
+    // select, filling in the input with the one chosen, or showing it to paste
+    // another when the last option (other) is.
+    function savedPeople(field, input, people, other) {
         if (!field || !input || people.length === 0) { return; }
         const select = field.querySelector('select');
         for (const p of people) { select.append(new Option(p.name, p.url)); }
-        select.append(new Option('Someone else, or no other entry', ''));
+        select.append(new Option(other, ''));
         const choose = () => {
             input.value = select.value;
             input.closest('.field').hidden = select.value !== '';
@@ -190,6 +191,20 @@
         select.addEventListener('change', choose);
         field.hidden = false;
         choose();
+    }
+
+    // partnerLink offers the member pages, own pages and entries saved in this
+    // browser for a synchro partner to say who they are.
+    function partnerLink() {
+        savedPeople(document.querySelector('[data-saved-people]'), document.getElementById('partner-link'),
+            [...loadLinks(linkKeys.members), ...loadLinks(linkKeys.gymnasts), ...loadLinks(linkKeys.entries)], 'Someone else, or no other entry');
+    }
+
+    // enterAs offers the own pages, member pages and entries saved in this
+    // browser for entering a competition as someone who has a page already.
+    function enterAs() {
+        savedPeople(document.querySelector('[data-saved-as]'), document.getElementById('enter-as'),
+            [...loadLinks(linkKeys.gymnasts), ...loadLinks(linkKeys.members), ...loadLinks(linkKeys.entries)], 'Someone new, or another page (paste its link)');
     }
 
     // videoChoices select "Video of some skills" when one of its skills is chosen.
@@ -393,6 +408,7 @@
         hub();
         clubLink();
         partnerLink();
+        enterAs();
         videoChoices();
         entryForms();
     });

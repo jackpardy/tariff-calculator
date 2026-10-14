@@ -141,6 +141,10 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
 - **Coach sign-off**: clubs add their coaches, and each coach signs off their
   members' routines on their own page.
 - **No accounts**: everyone gets a private link, saved in their browser.
+- **One link for all your roles**: a member who coaches, a comp sec, a
+  gymnast entering on their own: add your other links to your page and one
+  link opens them all, with a tab for each. Entering on your own, all your
+  entries are on one page.
 
 # Good to know
 

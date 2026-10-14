@@ -191,15 +191,16 @@ func TestClubsSeeTheirFlights(t *testing.T) {
 	}
 }
 
-func TestIndividualsMatchedByName(t *testing.T) {
+func TestIndividualsMatchedByPerson(t *testing.T) {
 	h := competitionServer(t)
 	form := newCompetition()
 	form.Set("tumbling", "Novice")
 	admin := created(t, h, form)
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	// Dara enters trampoline and, separately, tumbling: the same person.
-	redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
-	redirected(t, h, enter, url.Values{"gymnast": {" dara "}, "discipline": {"tumbling"}, "level": {"Novice"}})
+	// Dara enters trampoline and then, as herself, tumbling: the same person,
+	// though she typed her name differently.
+	dara := redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	redirected(t, h, enter, url.Values{"gymnast": {"Dara Ní Bhriain"}, "discipline": {"tumbling"}, "level": {"Novice"}, "as": {"http://example.com" + dara}})
 	tt := admin + "/timetable"
 	page := do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
 	times := regexp.MustCompile(`Warm-up (\d\d:\d\d) · finishes about (\d\d:\d\d)`).FindAllStringSubmatch(page, -1)

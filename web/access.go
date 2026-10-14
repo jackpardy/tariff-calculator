@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -39,7 +40,7 @@ func allowed(kind, pattern string) bool {
 	case store.LinkOrganiser:
 		return true
 	case store.LinkEverything:
-		return !post || !(path == "/links" || path == "/links/{id}/remove" || path == "/replace-link" || path == "/delete")
+		return !post || !(path == "/links" || path == "/links/{id}/remove" || path == "/ties/remove" || path == "/replace-link" || path == "/delete")
 	case store.LinkScreen:
 		return get && path == "/screen" // nothing else, not even flagging a concern
 	}
@@ -270,6 +271,7 @@ var linkKinds = map[string]string{
 func (p *competitionPages) registerAccess(handle func(string, http.HandlerFunc)) {
 	handle("POST /competitions/admin/{token}/links", p.addLink)
 	handle("POST /competitions/admin/{token}/links/{id}/remove", p.removeLink)
+	handle("POST /competitions/admin/{token}/ties/remove", p.removeTie)
 	handle("GET /competitions/admin/{token}/history", p.history)
 	handle("POST /competitions/admin/{token}/concerns", p.flagConcern)
 	handle("POST /competitions/admin/{token}/concerns/{id}/resolve", p.resolveConcern)
@@ -312,6 +314,23 @@ func (p *competitionPages) removeLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	backToSettings(w, r, "The link has stopped working.")
+}
+
+// removeTie stops someone's own link opening the competition's admin pages
+// through the admin link or a helper's (ADR 0010).
+func (p *competitionPages) removeTie(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	notice := "Removed: their own link no longer opens these pages."
+	if err := p.st.RemoveCompetitionTie(r.Context(), c.ID, r.FormValue("id")); errors.Is(err, store.ErrNotFound) {
+		notice = "That was removed already."
+	} else if err != nil {
+		failed(w, r, err)
+		return
+	}
+	backToSettings(w, r, notice)
 }
 
 // backToDashboard goes back to the dashboard, saying what happened.

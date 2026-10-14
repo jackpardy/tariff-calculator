@@ -545,6 +545,51 @@ var migrations = []string{
 	// 29: desk messages that reach only a club's comp sec and coaches, not
 	// its members.
 	`ALTER TABLE desk_messages ADD COLUMN staff TEXT NOT NULL DEFAULT '[]';`,
+
+	// 30: one link for a person with several roles (ADR 0010). Members,
+	// coaches and gymnasts entering on their own are each a record of a
+	// person: records with the same person_id are one person, and a personal
+	// link opens all of them. Each member and coach so far is a person of
+	// their own. A gymnast entering on their own is an individual, with a
+	// personal link and their entries under it; each entry from before
+	// becomes an individual of its own, reached by its entry link, and keeps
+	// the person key it had (individualsFromEntries). shared_ties are
+	// personal records holding a shared link (a club's admin link, or a
+	// competition's admin or helper link), by the link's hash when tied, so a
+	// link replaced since no longer matches.
+	`ALTER TABLE members ADD COLUMN person_id TEXT;
+	UPDATE members SET person_id = id;
+	CREATE INDEX members_person ON members (person_id);
+	ALTER TABLE coaches ADD COLUMN person_id TEXT;
+	UPDATE coaches SET person_id = id;
+	CREATE INDEX coaches_person ON coaches (person_id);
+	CREATE TABLE individuals (
+		id         TEXT PRIMARY KEY,
+		person_id  TEXT NOT NULL,
+		token_hash TEXT UNIQUE,
+		name       TEXT NOT NULL,
+		created_at TEXT NOT NULL
+	);
+	CREATE INDEX individuals_person ON individuals (person_id);
+	ALTER TABLE entries ADD COLUMN individual_id TEXT REFERENCES individuals (id) ON DELETE SET NULL;
+	ALTER TABLE entries ADD COLUMN person_key TEXT NOT NULL DEFAULT '';
+	CREATE INDEX entries_individual ON entries (individual_id);
+	CREATE TABLE shared_ties (
+		id         TEXT PRIMARY KEY,
+		record_id  TEXT NOT NULL,
+		kind       TEXT NOT NULL,
+		target_id  TEXT NOT NULL,
+		link_hash  TEXT NOT NULL,
+		created_at TEXT NOT NULL,
+		UNIQUE (record_id, kind, target_id)
+	);
+	CREATE INDEX shared_ties_target ON shared_ties (kind, target_id);`,
+}
+
+// migrationSteps are the parts of migrations that need Go, by version: run
+// after that migration's SQL, in its transaction.
+var migrationSteps = map[int]func(context.Context, *sql.Tx) error{
+	30: individualsFromEntries,
 }
 
 // migrate runs the migrations the database hasn't had yet.
@@ -563,6 +608,11 @@ func (s *Store) migrate(ctx context.Context) error {
 		err := s.tx(ctx, func(tx *sql.Tx) error {
 			if _, err := tx.ExecContext(ctx, migrations[v-1]); err != nil {
 				return err
+			}
+			if step := migrationSteps[v]; step != nil {
+				if err := step(ctx, tx); err != nil {
+					return err
+				}
 			}
 			_, err := tx.ExecContext(ctx, `INSERT INTO migrations (version, applied_at) VALUES ($1, $2)`, v, s.stamp())
 			return err

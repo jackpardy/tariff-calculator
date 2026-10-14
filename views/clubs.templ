@@ -22,6 +22,10 @@ type ClubPage struct {
 	QualificationOptions []CoachOption // every qualification, to give a coach
 	Pairs                []PairView    // synchro entries other clubs' gymnasts made with members
 	Menu                 []MenuSection // the sections of the comp sec's pages
+	// MemberOptions are the members who aren't coaches too, to make one;
+	// Ties the people whose own link opens these pages (ADR 0010).
+	MemberOptions []CoachOption
+	Ties          []TieView
 }
 
 // ClubCoach is one of the club's coaches.
@@ -30,6 +34,7 @@ type ClubCoach struct {
 	Members        int  // members who chose them
 	SignsOff       bool // they sign off routines
 	Qualifications []QualificationView
+	Member         string // the member who is the same person, whose link opens their page; "" for none
 }
 
 // QualificationView is one of a coach's qualifications.
@@ -46,9 +51,10 @@ type MemberLink struct {
 
 // ClubMember is one of the club's members.
 type ClubMember struct {
-	ID, Name string
-	Entries  int
-	CoachID  string
+	ID, Name  string
+	Entries   int
+	CoachID   string
+	AlsoCoach bool // a coach of the club too
 }
 
 // ClubCompetition is a competition the club is entered in, with its members' entries.
@@ -132,6 +138,7 @@ type MemberPage struct {
 	Competitions []MemberCompetition // the list
 	Competition  *MemberCompetition  // the one competition's page shows
 	Pairs        []PairView          // synchro entries they're the partner in
+	Other        *OtherLinks         // their other links, on their details (ADR 0010)
 }
 
 // MemberCompetition is a member's entry for one competition, and the form to
@@ -209,7 +216,8 @@ var hubLists = []struct{ Key, Title string }{
 	{"trampolineClubs", "Clubs you run"},
 	{"trampolineMemberLinks", "Your clubs"},
 	{"trampolineCoachLinks", "Clubs you coach"},
-	{"trampolineEntryLinks", "Your own entries"},
+	{"trampolineGymnastLinks", "Entered on your own"},
+	{"trampolineEntryLinks", "Your own entries, from before"},
 }
 
 // NewClub is the form that creates a club.
@@ -235,7 +243,7 @@ templ clubFrame(c ClubPage) {
 	@competitionLayout(c.Name) {
 		<h1 class="title is-4">{ c.Name }</h1>
 		@pageMenu(c.Menu)
-		if c.New != "" {
+		if c.New != "" && c.AdminLink != "" {
 			<div class="notification is-warning is-light">
 				<p class="mb-2">
 					<strong>
@@ -426,7 +434,12 @@ templ ClubMembers(c ClubPage) {
 					<tbody>
 						for _, m := range c.Members {
 							<tr>
-								<td>{ m.Name }</td>
+								<td>
+									{ m.Name }
+									if m.AlsoCoach {
+										<span class="tag is-info is-light ml-1">Coach too</span>
+									}
+								</td>
 								<td class="has-text-grey is-size-7">{ entriesCount(m.Entries) }</td>
 								if len(c.CoachOptions) > 0 {
 									<td>
@@ -434,6 +447,12 @@ templ ClubMembers(c ClubPage) {
 									</td>
 								}
 								<td class="has-text-right">
+									if !m.AlsoCoach {
+										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/from-member") } class="is-inline">
+											<input type="hidden" name="member" value={ m.ID }/>
+											<button class="button is-small is-text" type="submit" title="Their member link opens the coach's page too">Make a coach too</button>
+										</form>
+									}
 									<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/new-link") } class="is-inline">
 										<button class="button is-small is-text" type="submit" title="For a member who lost their link: their old one stops working">New link</button>
 									</form>
@@ -462,7 +481,12 @@ templ ClubCoaches(c ClubPage) {
 					<tbody>
 						for _, coach := range c.Coaches {
 							<tr>
-								<td>{ coach.Name }</td>
+								<td>
+									{ coach.Name }
+									if coach.Member != "" {
+										<span class="is-block has-text-grey is-size-7">A member too: opens from their member link</span>
+									}
+								</td>
 								<td class="has-text-grey is-size-7">{ coachedCount(coach.Members) }</td>
 								<td class="has-text-right">
 									<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") } class="is-inline">
@@ -520,6 +544,22 @@ templ ClubCoaches(c ClubPage) {
 			</div>
 			<div class="control"><button class="button is-small" type="submit">Add coach</button></div>
 		</form>
+		if len(c.MemberOptions) > 0 {
+			<form method="post" action={ templ.SafeURL(c.Base + "/coaches/from-member") } class="field has-addons">
+				<div class="control is-expanded">
+					<div class="select is-small is-fullwidth">
+						<select name="member" required aria-label="Member to make a coach">
+							<option value="">A member who coaches…</option>
+							for _, m := range c.MemberOptions {
+								<option value={ m.ID }>{ m.Name }</option>
+							}
+						</select>
+					</div>
+				</div>
+				<div class="control"><button class="button is-small" type="submit">Make a coach too</button></div>
+			</form>
+			<p class="help mt-0 mb-3">A member who coaches needs no coach link: their member link opens the coach's page too, with a tab for each.</p>
+		}
 		if len(c.Coaches) > 0 {
 			<form method="post" action={ templ.SafeURL(c.Base + "/coaches-see-all") } class="mb-3">
 				<input type="hidden" name="on" value={ boolValue(!c.CoachesSeeAll) }/>
@@ -552,6 +592,7 @@ templ ClubSettings(c ClubPage) {
 			<p class="help">Entries already sent stay with each competition.</p>
 		</form>
 		</div>
+		@tiesBox(c.Base+"/ties/remove", c.Ties, "Someone who adds this admin link to their own page (a member's or coach's, say) opens these pages from there, with a tab for each.")
 	}
 }
 
@@ -624,8 +665,10 @@ templ memberFrame(p MemberPage) {
 		<p class="has-text-grey mb-1">{ p.Club }</p>
 		<h1 class="title is-4">{ p.Member }</h1>
 		@pageMenu(p.Menu)
-		// Saves their link in this browser (static/js/competitions.js), whichever page they open first.
-		<span hidden data-member-link={ p.Link } data-member-name={ p.Member + " · " + p.Club }></span>
+		if p.Link != "" {
+			// Saves their link in this browser (static/js/competitions.js), whichever page they open first.
+			<span hidden data-member-link={ p.Link } data-member-name={ p.Member + " · " + p.Club }></span>
+		}
 		if p.New {
 			<div class="notification is-success is-light">
 				<p><strong>You've joined.</strong> This page is yours: its link is saved in this browser, so on this phone your entries are simply here. Keep the link to open them anywhere else.</p>
@@ -696,13 +739,18 @@ templ memberCompetitionBody(c MemberCompetition) {
 // MemberDetails is a member's details: their personal link and their coach.
 templ MemberDetails(p MemberPage) {
 	@memberFrame(p) {
-		@linkBox("Your personal link (keep it to yourself)", p.Link, "Open it on any phone or computer to see your entries. Anyone who has it can change them.")
+		if p.Link != "" {
+			@linkBox("Your personal link (keep it to yourself)", p.Link, "Open it on any phone or computer to see your entries. Anyone who has it can change them.")
+		}
 		if len(p.Coaches) > 0 {
 			<div class="field mb-4">
 				<label class="label is-small">Your coach</label>
 				@coachSelect(p.CoachAction, p.Coaches, p.CoachID, "Your coach")
 				<p class="help">They sign off your routines. Without one chosen, any of the club's coaches can.</p>
 			</div>
+		}
+		if p.Other != nil {
+			@otherLinksBox(*p.Other)
 		}
 	}
 }

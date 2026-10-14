@@ -1,0 +1,117 @@
+package views
+
+// A gymnast entering on their own (ADR 0010): one personal page, like a club
+// member's without the club. Competitions lists the competitions they've
+// entered, each with a page that has a row per discipline; Your details has
+// their link and their other links.
+
+// GymnastPage is one of an individual's own pages.
+type GymnastPage struct {
+	Name         string
+	Menu         []MenuSection
+	Home         string // the competitions list, their default page
+	Link         string // their personal link, as a full URL; "" when opened through another of their links
+	Notice       string
+	Competitions []GymnastCompetition // the list
+	Competition  *GymnastCompetition  // the one competition's page shows
+	Other        *OtherLinks          // on their details
+}
+
+// GymnastCompetition is one competition an individual entered, with their
+// entry for each discipline.
+type GymnastCompetition struct {
+	Page        string // their page for it
+	Competition CompetitionSummary
+	Status      string // e.g. "2 entries"
+	Events      []GymnastEvent
+	Day         string // their My competition page
+	Enter       string // where to enter another discipline, while entries are open
+}
+
+// GymnastEvent is an individual's entry for one discipline, as a row that
+// opens to its card and a link to the entry's own page.
+type GymnastEvent struct {
+	Row       MemberEvent // the row: discipline, level and status
+	Gymnast   string      // as entered
+	Open      string      // the entry's page: its card, changes, coach and officiating
+	Placement *Placement
+	Card      *EntryCard
+}
+
+// gymnastFrame is the top of each of an individual's pages.
+templ gymnastFrame(p GymnastPage) {
+	@competitionLayout(p.Name + " · entered on their own") {
+		<p class="has-text-grey mb-1">Entered on your own</p>
+		<h1 class="title is-4">{ p.Name }</h1>
+		@pageMenu(p.Menu)
+		if p.Link != "" {
+			// Saves their link in this browser (static/js/competitions.js).
+			<span hidden data-gymnast-link={ p.Link } data-gymnast-name={ p.Name }></span>
+		}
+		if p.Notice != "" {
+			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		{ children... }
+	}
+}
+
+// GymnastHome is an individual's default page: the competitions they entered.
+templ GymnastHome(p GymnastPage) {
+	@gymnastFrame(p) {
+		if len(p.Competitions) == 0 {
+			<p class="has-text-grey">No entries now. To enter a competition, open the entry link its organiser shared and give this page's link there.</p>
+		}
+		for _, c := range p.Competitions {
+			<a class="box comp-member-row" href={ templ.SafeURL(c.Page) }>
+				<strong>{ c.Competition.Name }</strong>
+				<span class="is-block has-text-grey is-size-7">{ c.Competition.Date }</span>
+				<span class="is-block is-size-7">{ c.Status }</span>
+			</a>
+		}
+		<p class="help">Entering another competition? Open its entry link and give this page's link there, so the entry joins this page.</p>
+	}
+}
+
+// GymnastCompetitionPage is an individual's page for one competition: a row
+// for each discipline they entered.
+templ GymnastCompetitionPage(p GymnastPage) {
+	@gymnastFrame(p) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Home) }>← Competitions</a></p>
+		if c := p.Competition; c != nil {
+			<h2 class="title is-5">{ c.Competition.Name }</h2>
+			@competitionFacts(c.Competition)
+			@dayLink(c.Day)
+			for _, ev := range c.Events {
+				<details class="box comp-event-row" open?={ len(c.Events) == 1 }>
+					<summary>
+						@memberEventRow(ev.Row)
+					</summary>
+					<div class="mt-3">
+						<p class="mb-2"><strong>{ ev.Gymnast }</strong> · { ev.Row.Status }</p>
+						@placementLine(ev.Placement)
+						if ev.Card != nil {
+							@entryCardChecks(*ev.Card)
+						}
+						<a class="button is-small is-link is-light" href={ templ.SafeURL(ev.Open) }>Open this entry</a>
+						<p class="help">To change or withdraw it, name your coach, or offer to judge or help.</p>
+					</div>
+				</details>
+			}
+			if c.Enter != "" {
+				<a class="button is-primary is-outlined" href={ templ.SafeURL(c.Enter) }>Enter another discipline</a>
+			}
+		}
+	}
+}
+
+// GymnastDetails is an individual's details: their link and their other links.
+templ GymnastDetails(p GymnastPage) {
+	@gymnastFrame(p) {
+		if p.Link != "" {
+			@linkBox("Your personal link (keep it to yourself)", p.Link, "Open it on any phone or computer to see your entries. Anyone who has it can change them.")
+		}
+		if p.Other != nil {
+			@otherLinksBox(*p.Other)
+		}
+	}
+}

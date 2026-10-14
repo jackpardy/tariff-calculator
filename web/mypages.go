@@ -44,7 +44,7 @@ func (p *competitionPages) individualDay(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	p.renderDay(w, r, c, individualKey(e.Entry.Gymnast), "", e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token"), "← Your page")
+	p.renderDay(w, r, c, personKeyOf(e), "", e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token"), "← Your page")
 }
 
 // memberHere is a scratched member saying they're still here for the rest.
@@ -67,7 +67,7 @@ func (p *competitionPages) individualHere(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	p.stillHere(w, r, c, individualKey(e.Entry.Gymnast), e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token")+"/day")
+	p.stillHere(w, r, c, personKeyOf(e), e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token")+"/day")
 }
 
 // hereBox is the box for someone scratched from some events who may still be

@@ -19,6 +19,10 @@ type Coach struct {
 	Name      string
 	SignsOff  bool // the club lets them sign off routines (ADR 0007 Decision 3)
 	CreatedAt time.Time
+	PersonID  string // who they are, with their other roles (ADR 0010)
+	// Member is the club's member who is the same person, whose link opens
+	// the coach's page too (ADR 0010); "" for none. Only Coaches fills it in.
+	Member string
 }
 
 // CreateCoach adds a coach to a club and returns them with their link. The
@@ -35,7 +39,7 @@ func (s *Store) CreateCoach(ctx context.Context, clubID, name string) (Coach, st
 		if n >= MaxCoaches {
 			return ErrLimit
 		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO coaches (id, club_id, token_hash, name, created_at) VALUES ($1, $2, $3, $4, $5)`,
+		if _, err := tx.ExecContext(ctx, `INSERT INTO coaches (id, club_id, token_hash, name, created_at, person_id) VALUES ($1, $2, $3, $4, $5, $1)`,
 			c.ID, clubID, hash(token), name, now); err != nil {
 			return err
 		}
@@ -52,7 +56,9 @@ const MaxCoaches = 50
 
 // Coaches are a club's coaches, by name.
 func (s *Store) Coaches(ctx context.Context, clubID string) ([]Coach, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, club_id, name, signs_off, created_at FROM coaches WHERE club_id = $1 ORDER BY name, created_at`, clubID)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, club_id, name, signs_off, created_at, COALESCE(person_id, id),
+		COALESCE((SELECT m.name FROM members m WHERE m.club_id = coaches.club_id AND m.person_id = coaches.person_id ORDER BY m.created_at LIMIT 1), '')
+		FROM coaches WHERE club_id = $1 ORDER BY name, created_at`, clubID)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +67,7 @@ func (s *Store) Coaches(ctx context.Context, clubID string) ([]Coach, error) {
 	for rows.Next() {
 		var c Coach
 		var created string
-		if err := rows.Scan(&c.ID, &c.ClubID, &c.Name, &c.SignsOff, &created); err != nil {
+		if err := rows.Scan(&c.ID, &c.ClubID, &c.Name, &c.SignsOff, &created, &c.PersonID, &c.Member); err != nil {
 			return nil, err
 		}
 		c.CreatedAt = parseTime(created)
@@ -70,13 +76,18 @@ func (s *Store) Coaches(ctx context.Context, clubID string) ([]Coach, error) {
 	return out, rows.Err()
 }
 
-// CoachByLink is the coach a link belongs to. It marks their club used.
+// CoachByLink is the coach a link belongs to, or a personal link's Via to
+// them opens (ADR 0010). It marks their club used.
 func (s *Store) CoachByLink(ctx context.Context, token string) (Coach, error) {
 	var c Coach
 	var created string
 	err := s.tx(ctx, func(tx *sql.Tx) error {
-		err := tx.QueryRowContext(ctx, `SELECT id, club_id, name, signs_off, created_at FROM coaches WHERE token_hash = $1`, hash(token)).
-			Scan(&c.ID, &c.ClubID, &c.Name, &c.SignsOff, &created)
+		where, args, err := recordWhere(ctx, tx, token)
+		if err != nil {
+			return err
+		}
+		err = tx.QueryRowContext(ctx, `SELECT id, club_id, name, signs_off, created_at, COALESCE(person_id, id) FROM coaches WHERE `+where, args...).
+			Scan(&c.ID, &c.ClubID, &c.Name, &c.SignsOff, &created, &c.PersonID)
 		if err != nil {
 			return notFound(err)
 		}
@@ -86,16 +97,23 @@ func (s *Store) CoachByLink(ctx context.Context, token string) (Coach, error) {
 	return c, err
 }
 
-// ReplaceCoachLink gives a coach a new link, which ends the old one.
+// ReplaceCoachLink gives a coach a new link, which ends the old one. They're
+// the same person, with the same other roles.
 func (s *Store) ReplaceCoachLink(ctx context.Context, clubID, coachID string) (string, error) {
 	token := newToken()
 	return token, affected(s.db.ExecContext(ctx, `UPDATE coaches SET token_hash = $1 WHERE id = $2 AND club_id = $3`, hash(token), coachID, clubID))
 }
 
-// RemoveCoach removes a coach. Their members have no coach until one is
-// chosen; sign-offs they gave stay.
+// RemoveCoach removes a coach, and the shared links added on their page.
+// Their members have no coach until one is chosen; sign-offs they gave stay.
 func (s *Store) RemoveCoach(ctx context.Context, clubID, coachID string) error {
-	return affected(s.db.ExecContext(ctx, `DELETE FROM coaches WHERE id = $1 AND club_id = $2`, coachID, clubID))
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		if err := affected(tx.ExecContext(ctx, `DELETE FROM coaches WHERE id = $1 AND club_id = $2`, coachID, clubID)); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, coachID)
+		return err
+	})
 }
 
 // SetCoachesSeeAll says whether every coach sees every member of the club.

@@ -210,7 +210,8 @@ features that show that, in this order:
      roles. **Built 2026-10-14 for club members:** Competitions (a row
      for each, opening its page, with each discipline a collapsed row)
      and Your details; more tabs go in `memberMenu`
-     (`web/menus_club.go`). Still to do: the coach's page.
+     (`web/menus_club.go`). Still to do: the coach's page. Gymnasts
+     entering on their own got the same with item 5.
 3. **Make dropdowns look like dropdowns** (asked 2026-10-13, built
    2026-10-14). **Limits and waiting lists** (now a plain group on the Settings page)
    opened when tapped but showed no arrow, because Bulma's `label` class
@@ -226,8 +227,8 @@ features that show that, in this order:
    they're doing, like their own Your competition page, read-only.
    **Built 2026-10-14**: People under Entries in the menu, a page for each
    person, and links to it from the dashboard's tables, the Officials page
-   and the Coaches page. A coach who is also a member is still two people
-   until item 5 joins them. See
+   and the Coaches page. A coach who is also a member was two people
+   until item 5 joined them (built 2026-10-14). See
    [competition entries](features/competition-entries.md#all-people-roadmap-2026-10-14).
 5. **One link for a person with several roles**: a member who also coaches
    or is comp sec gets one link, with tabs between their views. The comp
@@ -245,7 +246,14 @@ features that show that, in this order:
    Existing entries join their page with the same "add your other link"
    step. Entries are grouped by the person, not the name, and every
    entry link already sent keeps working, opening that entry on their
-   page.
+   page. **Built 2026-10-14** (ADR 0010): tabs for each role above every
+   page a personal link opens; Your other links to add a link and undo
+   it; Make a coach too for the comp sec; a personal page for gymnasts
+   entering on their own, which a competition's entry link offers to
+   enter as; All people shows a person's roles as one row. Shared links
+   (a club's or competition's admin link, a helper's) open from a
+   personal page but never the other way. See
+   [competition entries](features/competition-entries.md#one-link-several-roles-adr-0010).
 6. **Search and filter every list of people**: a name search on each, and
    filters that suit the list (for officials: club, role, event, level,
    qualified). Long lists can be collapsed too, starting with the club's
