@@ -61,6 +61,19 @@ type DayFlight struct {
 	Gymnasts  []DayGymnast
 	Panel     string // e.g. "4 of 6 here, 1 missing"; "" if no one has a seat
 	Seats     []DaySeat
+	Up        *DayUp // who's up now, for the marshal to tap on; nil unless it's running
+}
+
+// DayUp is who's up now in a flight that's running: who's on (or, before the
+// marshal's first tap, who's first), for Next gymnast and Back.
+type DayUp struct {
+	Tapped    bool   // the marshal has tapped Next gymnast at least once
+	Name      string // "" when nobody is left to compete
+	Club      string
+	Routine   string // e.g. "Set", "Voluntary" or "2nd routine"
+	Scratched bool   // scratched since the marshal reached them
+	Last      bool   // the flight's last routine: Finished comes next
+	CanBack   bool
 }
 
 // DayNotify is the Notify form beside someone who isn't here; Person is ""
@@ -218,6 +231,9 @@ templ dayArea(p DayPage, a DayArea) {
 						<span class="has-text-grey"> · { f.Who }</span>
 					}
 				</p>
+				if f.Up != nil {
+					@dayUp(p, f)
+				}
 				if f.CanStart || f.CanFinish || f.CanUndo {
 					<form method="post" action={ templ.SafeURL(p.Base + "/day/flight") } class="buttons mb-0">
 						<input type="hidden" name="flight" value={ f.Key }/>
@@ -312,6 +328,47 @@ templ dayArea(p DayPage, a DayArea) {
 					</details>
 				}
 			</div>
+		}
+	</div>
+}
+
+// dayUp is who's on in a running flight, big enough to read at arm's length,
+// with Next gymnast to tap as each one starts, and Back.
+templ dayUp(p DayPage, f DayFlight) {
+	<div class="comp-up mb-3">
+		if f.Up.Name == "" {
+			<p class="mb-2">No one left to compete: everyone is scratched.</p>
+		} else {
+			<p class="is-size-7 has-text-grey mb-0">
+				if f.Up.Tapped {
+					On now
+				} else {
+					First up: tap Next gymnast as they start
+				}
+			</p>
+			<p class="is-size-4 has-text-weight-bold mb-0">
+				<span class={ templ.KV("comp-scratched", f.Up.Scratched) }>{ f.Up.Name }</span>
+				if f.Up.Scratched {
+					<span class="tag is-danger is-light">Scratched</span>
+				}
+			</p>
+			<p class="mb-2">
+				if f.Up.Club != "" {
+					<span class="has-text-grey">{ f.Up.Club } · </span>
+				}
+				<strong>{ f.Up.Routine }</strong>
+			</p>
+		}
+		<form method="post" action={ templ.SafeURL(p.Base + "/day/up") } class="buttons mb-0">
+			<input type="hidden" name="flight" value={ f.Key }/>
+			<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+			<button class="button is-link is-medium" type="submit" name="what" value="next">Next gymnast</button>
+			if f.Up.CanBack {
+				<button class="button is-light is-small" type="submit" name="what" value="back">Back</button>
+			}
+		</form>
+		if f.Up.Last {
+			<p class="is-size-7 mt-2">The flight's last routine: tap Finished once it's done.</p>
 		}
 	</div>
 }

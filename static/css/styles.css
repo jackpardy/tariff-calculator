@@ -733,6 +733,10 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .screen-gymnasts { font-size: 1.1rem; line-height: 1.35; margin: 0.5rem 0 0; padding: 0; list-style: none; }
 .screen-gymnasts .comp-scratched { color: #666; }
 .screen-empty { font-size: 2rem; text-align: center; margin-top: 3rem; }
+.screen-up-name { font-size: 1.8rem; font-weight: 700; line-height: 1.15; margin: 0; }
+.screen-up-detail { font-size: 1.1rem; color: #444; margin: 0; }
+.screen-up-next { font-size: 1.25rem; line-height: 1.35; margin: 0; padding: 0; list-style: none; }
+.screen-up-next .screen-up-detail { margin-left: 0.5rem; }
 /* The menu at the top of competition and club pages (views/menu.templ): the
    sections, then the current section's pages. Bulma's tabs scroll sideways
    on a narrow screen. */

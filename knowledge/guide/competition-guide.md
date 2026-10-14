@@ -342,6 +342,14 @@ has a starting value you can change.
    **Missing**, which links to "what if they leave". Next to anyone who isn't
    here, **Notify** sends them, their club's comp sec and coaches, or both,
    a message saying where they should be.
+   **Marshals: who's up now.** Once a flight is **Started**, its box shows who's
+   first up. Tap **Next gymnast** as each gymnast starts their routine: the
+   box shows who's on, their club and which routine it is (such as Set or
+   Voluntary), and the venue screen shows them with the next two. Everyone
+   does their 1st routine in running order, then everyone their 2nd, and
+   scratched gymnasts are skipped. **Back** puts it right if you tapped too
+   soon. After the last routine, tap **Finished** as usual: Next gymnast won't
+   finish the flight for you.
    <a id="on-the-day-venue-screen"></a>**Venue screen** (a link at the top of
    the On the day page): what's on each area now and what's next, in big type
    for a screen at the venue. On the **Settings** page make a **Venue
@@ -350,7 +358,8 @@ has a starting value you can change.
    shows the flight that has been tapped **Started** (or, if none, the one
    the plan says should be on, marked "(planned)", or the break), its
    gymnasts in running order with scratched ones struck through, the next
-   flight with its warm-up time, and how late the area is running.
+   flight with its warm-up time, and how late the area is running. Once the
+   marshal taps **Next gymnast**, it also shows who's on now and who's next.
 12. **Desk messages** (a button on the entries page, and a link at the top of
    On the day; chairs of judges' and timetable links get it too): send a
    message at once to a club, a flight (its gymnasts, its officials or both), all officials, one

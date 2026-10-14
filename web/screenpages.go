@@ -169,6 +169,7 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 		}
 		v := views.ScreenArea{Name: a.Name}
 		n := nowOn(*s, day, a.Name, first, actual, now)
+		v.Up = p.screenUpOf(r.Context(), c, n, all, scratched)
 		switch {
 		case n.Flight != nil:
 			f := *n.Flight

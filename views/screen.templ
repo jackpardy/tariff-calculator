@@ -30,6 +30,7 @@ type ScreenArea struct {
 	Late       string // e.g. "Running 15 min late"; "" when not measured
 	Behind     bool   // running late
 	Ahead      bool   // running early
+	Up         *ScreenUp // who's on in the flight on now, and next; nil until the marshal taps
 }
 
 // ScreenGymnast is a gymnast in the flight on now.
@@ -92,6 +93,7 @@ templ Screen(p ScreenPage) {
 							if a.NowTimes != "" {
 								<p class="screen-sub">{ a.NowTimes }</p>
 							}
+							@screenUp(a.Up)
 						}
 						if len(a.Gymnasts) > 0 {
 							<ul class="screen-gymnasts">
