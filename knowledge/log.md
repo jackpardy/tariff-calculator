@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-14
+* **Update**: [Dropdowns](architecture/rendering.md#dropdowns): every `<summary>` shows the same arrow (right when closed, down when open) from one CSS rule, so Limits and waiting lists and the dashboard's level headings read as dropdowns; buttons, the routine menu and the "move" link opt out. [Roadmap](roadmap.md#next-steps-2026-10-08) item marked built.
 * **Update**: [Roadmap](roadmap.md#next-steps-2026-10-08): the menus and dropdowns move up to second and third, after the check-in fix, so the people pages are built into the new layout.
 
 ## 2026-10-13
