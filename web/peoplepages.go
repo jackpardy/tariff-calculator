@@ -280,9 +280,15 @@ func (p *competitionPages) people(w http.ResponseWriter, r *http.Request) {
 	}
 	base := adminPath(r.PathValue("token"))
 	page := views.PeoplePage{Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuPeople), Count: peopleWord(len(dir.list))}
+	var clubs []string
+	for _, dp := range dir.list {
+		clubs = append(clubs, dp.club)
+	}
+	page.Tools = views.ListTools{ID: "people", Noun: "people", Total: len(dir.list), Filters: []views.ListFilter{clubFilter(clubs), peopleDoFilter()}}
 	for _, dp := range dir.list {
 		words, _ := dp.roles()
-		page.People = append(page.People, views.PersonRow{Name: dp.name, Club: dp.club, Href: personPath(base, dp.key), Does: dp.does(), Roles: strings.Join(words, " ")})
+		page.People = append(page.People, views.PersonRow{Name: dp.name, Club: dp.club, Href: personPath(base, dp.key), Does: dp.does(),
+			List: views.ListRow{Name: dp.name, Values: map[string][]string{"club": {clubValue(dp.club)}, "does": peopleDo(words)}}})
 	}
 	render(w, r, views.People(page))
 }

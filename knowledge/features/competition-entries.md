@@ -80,9 +80,12 @@ Each row has the name (a link), the club ("Individual" for someone entering on
 their own, nothing for an official with no club) and **what they do**: the
 events they compete in ("Trampoline BUCS L7, Synchro BUCS L6/L7"), what they
 offered ("judge, can chair, recorder, marshal") and "coaches 6" (the gymnasts
-they coach). The rows carry `data-name`, `data-club` and `data-roles`
-(gymnast, judge, chair, recorder, marshal, coach) for the search and filters
-still to come ([roadmap](../roadmap.md#next-steps-2026-10-08) item 6).
+they coach). The list can be searched by name and filtered by club and by what
+they do (gymnast, official, coach; judging, chairing, recording or marshalling
+makes an official), from the same pieces as the Officials list
+([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
+Its rows carry the shared row attributes, with the roles from `dirPerson.roles`
+as the "does" values; the list is `id="people"`.
 
 Each name opens `GET /competitions/admin/{token}/people/{key}`. The key is
 escaped as one path segment (`url.PathEscape`, which leaves the colons and
@@ -383,10 +386,27 @@ A competition offers **events**: a discipline at a level.
   problems ("A (BUCS L3) and B (BUCS L4) compete individually, so as a pair
   they do BUCS L4 in synchro, not BUCS L3").
 
+# Searching lists of people (roadmap item 6)
+
+Every list of people has the same search and filters, from one set of shared
+pieces ([how](../architecture/rendering.md#lists-of-people-search-and-filters)).
+"Find a name" ignores case, accents and punctuation, the count says how many
+are shown, and Clear shows everyone again. The lists are the dashboard's
+entries, All people, Officials, the organiser's Coaches, the desk's People I
+pick, the club's Members and Coaches, and a coach's own entries. On the
+dashboard the filters work on the server, so Print what's shown and the CSV
+follow them, and the search also narrows the entries as it's typed and opens
+the levels it finds them in.
+
 # Officials (ADR 0005, step 3)
 
 **Officials** (under Timetable in the menu) lists everyone who can judge or help, and what
-each discipline's panel needs.
+each discipline's panel needs. The People list can be searched by name and
+filtered by club, what they can do (judge, chair, recorder, marshal), the
+discipline and level they can judge (a level shows everyone who judges it or
+a harder one), and qualified or not. The search and filters stay while the tab
+is open, so ticking someone qualified keeps the list as it was
+([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
 
 - **Offers.** On their page, a member says what they can do at each
   competition: judge a discipline (up to a level, perhaps chairing), and help
@@ -839,7 +859,11 @@ grouped by day and area, with **Its gymnasts** and **Its officials** to
 tick, either or both: the gymnasts in it, with a synchro pair's partner,
 and the people holding a seat on its panel); **all officials**; **one panel's officials** on a day (the people
 holding a seat on that area's flights that day); or **people I pick** (a
-searchable list of every gymnast and official). The **Message** is up to 500
+list of every gymnast and official, searchable by name and filterable by club with
+the shared search and filters, `id="desk-people"`; it sits inside the form, so
+Enter in the search doesn't send the message, Clear is a plain button, and a
+person hidden by the search stays ticked and is still sent;
+[lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)). The **Message** is up to 500
 characters, and **Ask them to come to the organisers' desk** starts it with
 "Please come to the organisers' desk." (the message can then be empty). The
 form is resolved to person keys (members `m:<id>`, individuals by person
@@ -981,6 +1005,18 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   waits for approval again.
 - Printed cards fill in the **Coach** field: the coach who signed the entry
   off, or else the member's chosen or assigned coach.
+- The coach's own page has one search and filters (`id="coach-entries"`, noun
+  "entries") over the entries of every competition: by member's name, and by
+  competition (only when there is more than one), level, problems, and
+  sign-off (signed off, not yet, waiting). Each competition is a group that
+  hides when none of its entries match. The page isn't a section, as each
+  competition has its own heading
+  ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
+- The organiser's Coaches page (coaches sent for approval) has the same
+  search and filters (`id="coaches"`): by coach's name, club (or
+  "Individuals") and status (approved, waiting, not approved, approval
+  withdrawn). Each club's box is a group that hides when none of its coaches
+  match.
 
 # The club's comp sec (club admin link)
 
@@ -1000,6 +1036,13 @@ your way round; the menu is `views/menu.templ`, built for each page in
 - **Coaches** (`/coaches`): adding and removing coaches, their links,
   qualifications and whether they sign off, and whether every coach sees every
   member.
+- The Members list (`id="members"`) can be searched by name and filtered by
+  coach (each of the club's coaches, or no coach), by whether the member has
+  entries, and by whether they are a coach too. The Coaches list
+  (`id="coaches"`; each coach's two table rows are one `<tbody>`) can be
+  searched by name and filtered by whether they sign off routines and whether
+  they have qualifications. Both are sections that can be collapsed and start
+  open ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
 - **Settings** (`/settings`): replacing the admin link and deleting the club,
   and who opens these pages from their own link, each with **Remove**
   ([one link, several roles](#one-link-several-roles-adr-0010)).

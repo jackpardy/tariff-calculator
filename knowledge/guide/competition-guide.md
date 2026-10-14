@@ -167,7 +167,8 @@ pair's one routine), checked as the Routine Builder checks them.
   waiting) lists them by club: open each certificate, see whether they meet
   your level, and **Approve** or say **Not approved**, with a note the club
   sees. Coaches named by gymnasts entering on their own are listed under
-  **Individuals**. Only approved coaches can sign off, and only their
+  **Individuals**. Find a coach by name, club or status (approved, waiting,
+  not approved, withdrawn) with the search above the list. Only approved coaches can sign off, and only their
   sign-offs count:
   an entry signed off by anyone else says so. **Withdraw approval** stops a
   coach's sign-offs counting; approving them again, choose whether the
@@ -192,7 +193,9 @@ Tap **People** under **Entries** to see everyone at the competition in one
 list, each person once: gymnasts (and synchro partners), officials and coaches.
 A member who competes and judges is one row. The list shows their name, club
 and what they do ("Trampoline BUCS L7, Synchro BUCS L6/L7 · judge, can chair ·
-coaches 6"), with the number of people at the top.
+coaches 6"), with the number of people at the top. Type part of a name in
+**Find a name**, or narrow the list by club or by what they do (gymnast,
+official or coach). **Clear** shows everyone again.
 
 Tap a name to see everything that person is doing, in one page for you to read
 (they can't be changed from it): their entries and the status of each card, with
@@ -231,6 +234,10 @@ and anyone you add.
   judge: anyone up to the level they say, only levels below their own, or only
   people you mark qualified. "Up to" and "below" go by the **Order of levels**
   on the Settings page.
+  To find people in a long list, type part of a name in **Find a name**, or
+  narrow it by club, what they can do, the level they can judge (a level
+  shows everyone who can judge it or a harder one) or qualified. **Clear**
+  shows everyone again.
 
 ## Plan the timetable
 
@@ -347,7 +354,8 @@ has a starting value you can change.
 12. **Desk messages** (a button on the entries page, and a link at the top of
    On the day; chairs of judges' and timetable links get it too): send a
    message at once to a club, a flight (its gymnasts, its officials or both), all officials, one
-   panel's officials, or people you pick, and tick **Ask them to come to the
+   panel's officials, or people you pick (search by name or club to find them;
+   people you've ticked stay ticked), and tick **Ask them to come to the
    organisers' desk** to call someone over. It is pushed and emailed straight
    away to those who asked to hear about changes, and shown in a "Messages
    from the organisers" box on each person's own page, so those who didn't
@@ -426,8 +434,10 @@ coach sign-off. Changing a member's entry is part of Competitions too.
   (their old one stops working), or **Remove** them. A member who also coaches
   needs no coach link: tap **Make a coach too** beside them, and their member
   link opens their coach's page as well. Synchro entries that gymnasts from
-  other clubs made with your members are listed here too.
-- **Coaches** (its own section): type a name and tap **Add coach**, then send them the coach link
+  other clubs made with your members are listed here too. To find a member,
+  search by name or narrow the list by coach, entries, or coach too.
+- **Coaches** (its own section; search by name, or narrow by who signs off
+  and who has qualifications): type a name and tap **Add coach**, then send them the coach link
   shown (it's shown only then; **New link** makes another). Tick **Every coach
   sees every member** if your coaches share everyone. Untick a coach's
   **Signs off routines** if they shouldn't sign off: they still see their
@@ -535,6 +545,9 @@ set you to sign off routines, you see the entries but can't sign them off. A
 competition that approves coaches says if you're waiting for its organiser
 to approve you (or why they haven't): until they do, you can't sign off its
 entries.
+
+To find an entry, type part of a member's name in **Find a name**, or narrow
+the list by competition, level, problems or sign-off.
 
 1. Tap a member to see their entry, checked.
 2. Tap **Sign off** if you've seen them perform it safely and it's ready, or

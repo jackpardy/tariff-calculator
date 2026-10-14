@@ -13,6 +13,7 @@ type DeskPage struct {
 	Flights      []DeskGroup       // the published flights, by day and area
 	Panels       []DeskOption      // each day's area whose panel has officials
 	People       []DeskPersonOption // every gymnast and official
+	PeopleTools  ListTools          // the search and filters on People
 	Sent         []DeskSent
 }
 
@@ -30,6 +31,7 @@ type DeskGroup struct {
 // DeskPersonOption is a person to pick.
 type DeskPersonOption struct {
 	Key, Name, Detail string
+	List              ListRow // what the list's search and filters see
 }
 
 // DeskSent is a message sent.
@@ -126,19 +128,17 @@ templ Desk(p DeskPage) {
 				if len(p.People) == 0 {
 					<p class="is-size-7 has-text-grey">No one has entered or offered to officiate yet.</p>
 				} else {
-					<div x-data="{ q: '' }">
-						<input class="input is-small mb-2" type="search" x-model="q" placeholder="Find a name" aria-label="Find a name"/>
-						<div class="comp-desk-people" style="max-height: 14rem; overflow-y: auto">
-							for _, d := range p.People {
-								<label class="checkbox is-block" data-name={ d.Name } x-show="q === '' || $el.dataset.name.toLowerCase().includes(q.toLowerCase())">
-									<input type="checkbox" name="person" value={ d.Key }/>
-									{ d.Name }
-									if d.Detail != "" {
-										<span class="is-size-7 has-text-grey">· { d.Detail }</span>
-									}
-								</label>
-							}
-						</div>
+					@listTools(p.PeopleTools)
+					<div class="comp-desk-people" id={ p.PeopleTools.ID } style="max-height: 14rem; overflow-y: auto">
+						for _, d := range p.People {
+							<label class="checkbox is-block" { d.List.Attrs()... }>
+								<input type="checkbox" name="person" value={ d.Key }/>
+								{ d.Name }
+								if d.Detail != "" {
+									<span class="is-size-7 has-text-grey">· { d.Detail }</span>
+								}
+							</label>
+						}
 					</div>
 				}
 			</div>

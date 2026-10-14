@@ -24,7 +24,7 @@ func TestDashboardNavigation(t *testing.T) {
 
 	// Levels start collapsed, with buttons to expand or collapse them all;
 	// filtering opens the levels with something shown.
-	if page := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(page, `data-level="BUCS L3" data-remember>`) || !strings.Contains(page, "Expand all") || !strings.Contains(page, "Collapse all") {
+	if page := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(page, `data-level="BUCS L3" data-remember data-list-group>`) || !strings.Contains(page, "Expand all") || !strings.Contains(page, "Collapse all") {
 		t.Error("levels start collapsed")
 	}
 	if !strings.Contains(shows("q=oneill"), `data-level="BUCS L3" open`) {
@@ -33,11 +33,21 @@ func TestDashboardNavigation(t *testing.T) {
 
 	// Search ignores accents and case.
 	page := shows("q=oneill")
-	if !strings.Contains(page, `aria-label="Tick Dara O&#39;Néill"`) || strings.Contains(page, `aria-label="Tick Ann Ryan"`) || !strings.Contains(page, "1 of 3 shown") {
+	if !strings.Contains(page, `aria-label="Tick Dara O&#39;Néill"`) || strings.Contains(page, `aria-label="Tick Ann Ryan"`) || !strings.Contains(page, "1 of 3 entries") {
 		t.Error("searching finds Dara only")
 	}
 	if !strings.Contains(page, "(1 of 3)") || !strings.Contains(page, `href="#level-0"`) || !strings.Contains(page, `id="level-0"`) {
 		t.Error("each level says how many are shown, and can be jumped to")
+	}
+	// The search and filters are the shared list tools, sent to the server.
+	for _, want := range []string{`data-list-tools="entries" data-noun="entries" data-total="3" data-form`, `placeholder="Find a name"`, `name="q" value="oneill"`,
+		`<select aria-label="Club" data-list-filter="club" name="club">`, `<div id="entries">`, `data-list-carry>Print what's shown</a>`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the dashboard's tools have %s", want)
+		}
+	}
+	if rows := listRows(t, page, "entries"); len(rows) != 1 || rows["Dara O'Néill"] == nil {
+		t.Errorf("one row, Dara's, searchable by name: %v", rows)
 	}
 	// Print and CSV what's shown.
 	if !strings.Contains(page, admin+"/cards?q=oneill") {

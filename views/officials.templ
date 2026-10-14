@@ -80,7 +80,7 @@ templ offerBox(f OfferForm) {
 type OfficialsPage struct {
 	Base            string
 	Competition     CompetitionSummary
-	Menu []MenuSection
+	Menu            []MenuSection
 	Notice          string
 	Judge           string // the judging rule
 	RecordersChange bool   // recorders can change between an event's flights
@@ -88,6 +88,7 @@ type OfficialsPage struct {
 	Panels          []PanelSetting
 	Cover           []Cover
 	Officials       []OfficialRow
+	Tools           ListTools // the People list's search and filters
 	Add             OfferForm // for adding a person
 }
 
@@ -112,6 +113,7 @@ type OfficialRow struct {
 	ID, Name, Club, Source, Offer string
 	Person                        string // their page
 	Qualified, Added              bool
+	List                          ListRow // what the People list's search and filters see
 }
 
 // CompetitionOfficials is the organiser's officials page.
@@ -182,43 +184,45 @@ templ CompetitionOfficials(p OfficialsPage) {
 				<button class="button is-small" type="submit">Save</button>
 			</form>
 		</details>
-		<h2 class="title is-5 mt-5">People <span class="has-text-grey is-size-6">({ strconv.Itoa(len(p.Officials)) })</span></h2>
-		if len(p.Officials) == 0 {
-			<p class="has-text-grey">Nobody yet. Gymnasts offer when they enter (clubs send members' offers with their entries); add anyone else below.</p>
-		} else {
-			<div class="table-container">
-				<table class="table is-fullwidth is-narrow comp-table">
-					<thead><tr><th>Name</th><th>Club</th><th>Can do</th><th>Qualified</th><th></th></tr></thead>
-					<tbody>
-						for _, o := range p.Officials {
-							<tr>
-								<td>
-									<a href={ templ.SafeURL(o.Person) }>{ o.Name }</a>
-									<span class="has-text-grey is-size-7">· { o.Source }</span>
-								</td>
-								<td>{ o.Club }</td>
-								<td class="comp-wrap">{ o.Offer }</td>
-								<td>
-									<form method="post" action={ templ.SafeURL(p.Base + "/officials/" + o.ID + "/qualified") }>
-										<input type="hidden" name="on" value={ boolValue(!o.Qualified) }/>
-										<label class="checkbox">
-											<input type="checkbox" checked?={ o.Qualified } onchange="this.form.submit()" aria-label={ o.Name + " qualified" }/>
-										</label>
-										<noscript><button class="button is-small" type="submit">Change</button></noscript>
-									</form>
-								</td>
-								<td>
-									if o.Added {
-										<form method="post" action={ templ.SafeURL(p.Base + "/officials/" + o.ID + "/remove") } class="is-inline">
-											<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+		@listSection("People", len(p.Officials), false) {
+			if len(p.Officials) == 0 {
+				<p class="has-text-grey">Nobody yet. Gymnasts offer when they enter (clubs send members' offers with their entries); add anyone else below.</p>
+			} else {
+				@listTools(p.Tools)
+				<div class="table-container">
+					<table class="table is-fullwidth is-narrow comp-table" id={ p.Tools.ID }>
+						<thead><tr><th>Name</th><th>Club</th><th>Can do</th><th>Qualified</th><th></th></tr></thead>
+						<tbody>
+							for _, o := range p.Officials {
+								<tr { o.List.Attrs()... }>
+									<td>
+										<a href={ templ.SafeURL(o.Person) }>{ o.Name }</a>
+										<span class="has-text-grey is-size-7">· { o.Source }</span>
+									</td>
+									<td>{ o.Club }</td>
+									<td class="comp-wrap">{ o.Offer }</td>
+									<td>
+										<form method="post" action={ templ.SafeURL(p.Base + "/officials/" + o.ID + "/qualified") }>
+											<input type="hidden" name="on" value={ boolValue(!o.Qualified) }/>
+											<label class="checkbox">
+												<input type="checkbox" checked?={ o.Qualified } onchange="this.form.submit()" aria-label={ o.Name + " qualified" }/>
+											</label>
+											<noscript><button class="button is-small" type="submit">Change</button></noscript>
 										</form>
-									}
-								</td>
-							</tr>
-						}
-					</tbody>
-				</table>
-			</div>
+									</td>
+									<td>
+										if o.Added {
+											<form method="post" action={ templ.SafeURL(p.Base + "/officials/" + o.ID + "/remove") } class="is-inline">
+												<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+											</form>
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
 		}
 		<details class="box mt-4 comp-change">
 			<summary><strong>Add someone</strong> <span class="has-text-grey is-size-7">· a judge or helper who isn't entering, perhaps with no club</span></summary>

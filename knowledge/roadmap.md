@@ -257,7 +257,12 @@ features that show that, in this order:
 6. **Search and filter every list of people**: a name search on each, and
    filters that suit the list (for officials: club, role, event, level,
    qualified). Long lists can be collapsed too, starting with the club's
-   Members list (asked 2026-10-13).
+   Members list (asked 2026-10-13). **Built 2026-10-14:** one shared search
+   and filters on every list of people: the dashboard's entries (still
+   filtered on the server, for printing), All people, Officials, the
+   organiser's Coaches, the desk's People I pick, the club's Members and
+   Coaches, and a coach's own entries
+   ([how](architecture/rendering.md#lists-of-people-search-and-filters)).
 7. **Venue screen changes** (to be gone through). Stretch goal: show
    which gymnast is on now and what they're doing (set routine, then
    voluntary) and who's up next, tapped through by the marshal.

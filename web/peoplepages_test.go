@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -102,27 +103,40 @@ func TestPeople(t *testing.T) {
 		}
 	}
 	row := func(name string) string {
-		m := regexp.MustCompile(`(?s)<tr data-name="` + name + `"[^>]*>.*?</tr>`).FindString(list)
+		m := regexp.MustCompile(`(?s)<tr data-list-row="" data-name="` + name + `"[^>]*>.*?</tr>`).FindString(list)
 		if m == "" {
 			t.Fatalf("no row for %s", name)
 		}
 		return m
 	}
-	if r := row("Mo"); !strings.Contains(r, `data-club="UCD"`) || !strings.Contains(r, `data-roles="gymnast judge chair"`) ||
-		!strings.Contains(r, "Trampoline BUCS L3 · judge, can chair") {
-		t.Errorf("Mo's row: %s", r)
+	values := listRows(t, list, "people")
+	is := func(name, key string, want ...string) bool { return slices.Equal(values[name][key], want) }
+	if r := row("Mo"); !is("Mo", "club", "UCD") || !is("Mo", "does", "gymnast", "official") || !strings.Contains(r, "Trampoline BUCS L3 · judge, can chair") {
+		t.Errorf("Mo's row: %s, %v", r, values["Mo"])
 	}
-	if r := row("Ivy"); !strings.Contains(r, `data-club="Individual"`) || !strings.Contains(r, "Trampoline BUCS L3 · judge") {
+	if r := row("Ivy"); !is("Ivy", "club", "Individual") || !strings.Contains(r, "Trampoline BUCS L3 · judge") {
 		t.Errorf("Ivy's row: %s", r)
 	}
-	if r := row("Pat"); !strings.Contains(r, "Synchro BUCS L3") || !strings.Contains(r, `data-roles="gymnast"`) {
+	if r := row("Pat"); !strings.Contains(r, "Synchro BUCS L3") || !is("Pat", "does", "gymnast") {
 		t.Errorf("the partner's row: %s", r)
 	}
-	if r := row("Mary"); !strings.Contains(r, `data-roles="judge chair"`) || strings.Contains(r, "BUCS L3 ·") {
+	if r := row("Mary"); !is("Mary", "does", "official") || strings.Contains(r, "BUCS L3 ·") {
 		t.Errorf("the added official's row: %s", r)
 	}
-	if r := row("Ann"); !strings.Contains(r, `data-roles="coach"`) || !strings.Contains(r, "coaches 1") || !strings.Contains(r, `data-club="UCD"`) {
+	if r := row("Ann"); !is("Ann", "does", "coach") || !strings.Contains(r, "coaches 1") || !is("Ann", "club", "UCD") {
 		t.Errorf("the coach's row: %s", r)
+	}
+	for _, want := range []string{`data-list-tools="people"`, `data-noun="people"`, `data-list-filter="club"`, `data-list-filter="does"`,
+		`<option value="gymnast">Gymnast</option><option value="official">Official</option><option value="coach">Coach</option>`, `<option value="Individual">Individual</option>`} {
+		if !strings.Contains(list, want) {
+			t.Errorf("the tools have %s", want)
+		}
+	}
+	if !regexp.MustCompile(`<details class="comp-list mt-5" open><summary class="title is-5 mb-3">People <span[^>]*>\(7\)</span>`).MatchString(list) {
+		t.Error("the list is a dropdown under its heading and count")
+	}
+	if kit := values["Kit O/Neil? 100% #1"]; !slices.Equal(kit["club"], []string{"Individual"}) {
+		t.Errorf("an awkward name's values: %v", kit)
 	}
 	if a, b := strings.Index(list, `data-name="Ann"`), strings.Index(list, `data-name="Mo"`); a < 0 || b < a {
 		t.Error("sorted by name")

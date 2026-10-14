@@ -60,6 +60,64 @@ something else opts out by `content: none` on its `::before`, in the same block:
 (`.comp-move`), or any summary given the class `no-arrow`. The tariff sheet and
 the view page have their own stylesheets and menus, so the rule doesn't reach them.
 
+# Lists of people: search and filters
+
+Every list of people has the same search and filters (roadmap item 6), from
+one set of pieces, so they look and work alike. The organiser's Officials
+page's People list is the example to copy.
+
+- **The section.** `@listSection(title, count, closed)` in `views/lists.templ`
+  draws the heading and count as a dropdown, open unless `closed`. Put the
+  list, and its "nobody yet" message, inside it.
+- **The tools.** `@listTools(views.ListTools{ID, Noun, Total, Filters})`
+  goes above the list, which gets `id={ ID }`. `ID` is unique on the page and
+  also keys the saved search, so keep it stable. `Noun` is plural ("people",
+  "members"). Leave the tools out when the list is empty.
+- **The rows.** Each row (`<tr>`, `<li>`, `<label>`) spreads
+  `{ row.List.Attrs()... }`, from a `views.ListRow{Name, Values}`. `Name` is
+  what "Find a name" searches. `Values` holds the row's values for each
+  filter key; a row can have several values for a key, or none. A row that
+  spans two table rows is one `<tbody>` (a table can have several). Where
+  rows sit in groups (a box per club), give each group `data-list-group`:
+  it hides when none of its rows match.
+- **The filters.** Build them in Go, in `web/lists.go`, so lists share
+  them: `clubFilter` and `clubValue` (with "No club"), `canDoFilter` and
+  `canDo`, `judgesFilter` and `judges` (discipline and level, `AtLeast`:
+  "BUCS L6" matches anyone judging L6 or harder), and `qualifiedFilter` and
+  `qualifiedValue`. Add a new filter there, next to its row values, as a
+  `views.ListFilter{Key, Label, Any, Options}`. `Any` is the first choice,
+  which matches everyone (for example "Every club"). Group long choices with
+  `ListOption.Group`.
+- **The script.** `listTools` in `static/js/competitions.js` does the rest
+  on the phone:
+  - it searches ignoring case, accents and apostrophes, so "oneill" finds
+    "O'Neill" and "o briain" finds "Ó Briain";
+  - it shows "12 of 323 people", a Clear button, and "Nobody matches";
+  - it ignores Enter in the search, so a list inside a form (the desk's
+    "People I pick", which isn't a `listSection`) never sends it;
+  - it keeps the search and filters for the tab, so a page that reloads after
+    a change comes back filtered the same.
+
+  The tools stay hidden without JavaScript, and the whole list shows. Don't
+  add Alpine or any other script for a list.
+
+**A list the server filters.** The dashboard's entries are filtered on the
+server, because printing, the CSV and each level's count follow the filters.
+`ListTools.Form` draws the same tools as a GET form: each filter is a field
+named by its key, the search is `q`, and `ListFilter.Value`, `Search`, `Shown`
+and `Clear` come from the server.
+- A filter reloads the page.
+- The search narrows the rows already on the page as it's typed, as on every
+  other list. It also keeps the page's address and every link marked
+  `data-list-carry` (Print, CSV) in step, and Enter sends it to the server.
+- Groups that are dropdowns (the levels) open while a search finds a match
+  in them. They close again when the search is cleared, and are never
+  remembered as opened.
+- Extra controls that aren't filters (the sort) go in the tools' children.
+
+Test a list with `listRows` in `web/lists_test.go`, which reads each row's
+name and values from the page.
+
 # JavaScript's job
 
 Only what must run in the browser: keeping `localStorage` in sync, expanding
