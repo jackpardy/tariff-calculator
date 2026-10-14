@@ -203,14 +203,15 @@ features that show that, in this order:
      by default and the list view comes first. Other tabs come later,
      such as routines, or a coach's view once one link covers several
      roles.
-3. **Make dropdowns look like dropdowns** (asked 2026-10-13). **Limits
-   and waiting lists**, under Links and settings, opens when tapped but
-   shows no arrow, so it reads as a plain heading. Bulma's `label` class
-   on its `<summary>` makes it a block and hides the marker
-   (`views/limits.templ`). This isn't the first time, so review all 52
-   dropdowns: the dashboard's level headings (`title` on the summary in
-   `views/competitions.templ`) look like the same problem. Give every
-   dropdown one look, with an arrow that turns when open.
+3. **Make dropdowns look like dropdowns** (asked 2026-10-13, built
+   2026-10-14). **Limits and waiting lists**, under Links and settings,
+   opened when tapped but showed no arrow, because Bulma's `label` class
+   on its `<summary>` makes it a block and hides the marker; the
+   dashboard's level headings (`title`) had the same problem. Every
+   `<summary>` in all 52 places now shows one arrow, right when closed
+   and down when open, from a single rule in `static/css/styles.css`;
+   summaries styled as buttons, the routine menu and the inline "move"
+   link opt out (see [rendering](architecture/rendering.md#dropdowns)).
 4. **All people, for the organiser**: a list of everyone at the
    competition, one row a person whatever their roles, which the coaches,
    officials and entries lists link to. Each person's page shows everything
