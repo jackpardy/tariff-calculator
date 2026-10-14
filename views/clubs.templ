@@ -289,58 +289,60 @@ templ ClubAdmin(c ClubPage) {
 					<p class="has-text-grey is-size-7">No member has entered yet.</p>
 				} else {
 					<div class="table-container">
-						<table class="table is-fullwidth is-narrow comp-table">
-							<thead>
-								<tr><th>Member</th><th>Level</th><th>Problems</th><th>Status</th><th></th></tr>
-							</thead>
-							<tbody>
-								for _, row := range comp.Rows {
-									<tr>
-										<td>{ row.Member }</td>
-										<td>{ row.Level }</td>
-										<td class={ templ.KV("has-text-danger", row.Problems > 0) }>
-											if row.Problems == 0 {
-												–
-											} else {
-												{ strconv.Itoa(row.Problems) }
-											}
-										</td>
-										<td>
-											{ row.Status }
-											if row.Video != "" {
-												<br/>
-												<span class="is-size-7 has-text-danger">Video { row.Video }</span>
-											}
-											if row.Flight != "" {
-												<br/>
-												<span class="is-size-7 has-text-info-dark">{ row.Flight }</span>
-											}
-											if row.Late != "" {
-												<br/>
-												<span class="is-size-7">Late change: { row.Late }</span>
-											}
-											if row.LateAsk != "" {
-												<br/>
-												<a class="is-size-7" href={ templ.SafeURL(row.LateAsk) }>Ask for a late change</a>
-											}
-											if s := row.Signoff.Status(); s != "" {
-												<br/>
-												<span class={ "is-size-7", templ.KV("has-text-success", row.Signoff.Signed), templ.KV("has-text-warning-dark", !row.Signoff.Signed) } title={ row.Signoff.Note }>{ s }</span>
-											}
-											if row.Note != "" {
-												<br/>
-												<span class="is-size-7 has-text-info-dark">Organiser: { row.Note }</span>
-											}
-										</td>
-										<td>
-											if row.Edit != "" {
-												<a href={ templ.SafeURL(row.Edit) }>Change</a>
-											}
-										</td>
-									</tr>
-								}
-							</tbody>
-						</table>
+						<div class="table-container">
+							<table class="table is-fullwidth is-narrow comp-table">
+								<thead>
+									<tr><th>Member</th><th>Level</th><th>Problems</th><th>Status</th><th></th></tr>
+								</thead>
+								<tbody>
+									for _, row := range comp.Rows {
+										<tr>
+											<td>{ row.Member }</td>
+											<td>{ row.Level }</td>
+											<td class={ templ.KV("has-text-danger", row.Problems > 0) }>
+												if row.Problems == 0 {
+													–
+												} else {
+													{ strconv.Itoa(row.Problems) }
+												}
+											</td>
+											<td>
+												{ row.Status }
+												if row.Video != "" {
+													<br/>
+													<span class="is-size-7 has-text-danger">Video { row.Video }</span>
+												}
+												if row.Flight != "" {
+													<br/>
+													<span class="is-size-7 has-text-info-dark">{ row.Flight }</span>
+												}
+												if row.Late != "" {
+													<br/>
+													<span class="is-size-7">Late change: { row.Late }</span>
+												}
+												if row.LateAsk != "" {
+													<br/>
+													<a class="is-size-7" href={ templ.SafeURL(row.LateAsk) }>Ask for a late change</a>
+												}
+												if s := row.Signoff.Status(); s != "" {
+													<br/>
+													<span class={ "is-size-7", templ.KV("has-text-success", row.Signoff.Signed), templ.KV("has-text-warning-dark", !row.Signoff.Signed) } title={ row.Signoff.Note }>{ s }</span>
+												}
+												if row.Note != "" {
+													<br/>
+													<span class="is-size-7 has-text-info-dark">Organiser: { row.Note }</span>
+												}
+											</td>
+											<td>
+												if row.Edit != "" {
+													<a href={ templ.SafeURL(row.Edit) }>Change</a>
+												}
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						</div>
 					</div>
 				}
 				if comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
@@ -387,21 +389,23 @@ templ ClubAdmin(c ClubPage) {
 				if len(comp.Offers) > 0 {
 					<details class="mt-3">
 						<summary class="is-size-7">Judging and helping ({ strconv.Itoa(len(comp.Offers)) }), sent with the entries</summary>
-						<table class="table is-fullwidth is-narrow mt-2">
-							<tbody>
-								for _, o := range comp.Offers {
-									<tr>
-										<td>{ o.Member }</td>
-										<td class="is-size-7">{ o.Offer }</td>
-										<td>
-											if o.Edit != "" {
-												<a href={ templ.SafeURL(o.Edit) }>Change</a>
-											}
-										</td>
-									</tr>
-								}
-							</tbody>
-						</table>
+						<div class="table-container">
+							<table class="table is-fullwidth is-narrow mt-2">
+								<tbody>
+									for _, o := range comp.Offers {
+										<tr>
+											<td>{ o.Member }</td>
+											<td class="is-size-7">{ o.Offer }</td>
+											<td>
+												if o.Edit != "" {
+													<a href={ templ.SafeURL(o.Edit) }>Change</a>
+												}
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						</div>
 					</details>
 				}
 			</div>
@@ -417,29 +421,31 @@ templ ClubMembers(c ClubPage) {
 		if len(c.Members) == 0 {
 			<p class="has-text-grey">No members yet. Share the join link.</p>
 		} else {
-			<table class="table is-fullwidth is-narrow">
-				<tbody>
-					for _, m := range c.Members {
-						<tr>
-							<td>{ m.Name }</td>
-							<td class="has-text-grey is-size-7">{ entriesCount(m.Entries) }</td>
-							if len(c.CoachOptions) > 0 {
-								<td>
-									@coachSelect(c.Base+"/members/"+m.ID+"/coach", c.CoachOptions, m.CoachID, m.Name+"'s coach")
+			<div class="table-container">
+				<table class="table is-fullwidth is-narrow">
+					<tbody>
+						for _, m := range c.Members {
+							<tr>
+								<td>{ m.Name }</td>
+								<td class="has-text-grey is-size-7">{ entriesCount(m.Entries) }</td>
+								if len(c.CoachOptions) > 0 {
+									<td>
+										@coachSelect(c.Base+"/members/"+m.ID+"/coach", c.CoachOptions, m.CoachID, m.Name+"'s coach")
+									</td>
+								}
+								<td class="has-text-right">
+									<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/new-link") } class="is-inline">
+										<button class="button is-small is-text" type="submit" title="For a member who lost their link: their old one stops working">New link</button>
+									</form>
+									<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/remove") } class="is-inline" onsubmit={ confirmRemove(m.Name) }>
+										<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+									</form>
 								</td>
-							}
-							<td class="has-text-right">
-								<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/new-link") } class="is-inline">
-									<button class="button is-small is-text" type="submit" title="For a member who lost their link: their old one stops working">New link</button>
-								</form>
-								<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/remove") } class="is-inline" onsubmit={ confirmRemove(m.Name) }>
-									<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
-								</form>
-							</td>
-						</tr>
-					}
-				</tbody>
-			</table>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
 		}
 		@pairEntries(c.Pairs)
 	}
@@ -451,60 +457,62 @@ templ ClubCoaches(c ClubPage) {
 		<h2 class="title is-5 mt-5">Coaches <span class="has-text-grey is-size-6">({ strconv.Itoa(len(c.Coaches)) })</span></h2>
 		<p class="help mb-3">Coaches sign off members' routines on their own page. A member chooses their coach, or you do on the Members page; a coach sees their members and those without a coach. A competition can ask for coaches with qualifications: add each coach's, with a photo or PDF of the certificate. Only you, and organisers you send the coach to, can open it.</p>
 		if len(c.Coaches) > 0 {
-			<table class="table is-fullwidth is-narrow">
-				<tbody>
-					for _, coach := range c.Coaches {
-						<tr>
-							<td>{ coach.Name }</td>
-							<td class="has-text-grey is-size-7">{ coachedCount(coach.Members) }</td>
-							<td class="has-text-right">
-								<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") } class="is-inline">
-									<button class="button is-small is-text" type="submit" title="Their old link stops working">New link</button>
-								</form>
-								<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/remove") } class="is-inline" onsubmit={ confirmRemoveCoach(coach.Name) }>
-									<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
-								</form>
-							</td>
-						</tr>
-						<tr>
-							<td colspan="3" class="is-size-7">
-								<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/signs-off") } class="mb-1">
-									<input type="hidden" name="on" value={ boolValue(!coach.SignsOff) }/>
-									<label class="checkbox">
-										<input type="checkbox" checked?={ coach.SignsOff } onchange="this.form.submit()"/>
-										Signs off routines
-									</label>
-									<noscript><button class="button is-small" type="submit">Change</button></noscript>
-								</form>
-								for _, q := range coach.Qualifications {
-									<div>
-										{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a>
-										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/qualifications/" + q.ID + "/remove") } class="is-inline">
-											<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
-										</form>
-									</div>
-								}
-								<details>
-									<summary>Add a qualification</summary>
-									<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/qualifications") } enctype="multipart/form-data" class="comp-flight-actions mt-1">
-										<div class="select is-small">
-											<select name="qualification" required aria-label={ coach.Name + "'s qualification" }>
-												<option value="">Qualification…</option>
-												for _, o := range c.QualificationOptions {
-													<option value={ o.ID }>{ o.Name }</option>
-												}
-											</select>
-										</div>
-										<input class="input is-small" type="file" name="certificate" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label={ coach.Name + "'s certificate" }/>
-										<button class="button is-small" type="submit">Add</button>
+			<div class="table-container">
+				<table class="table is-fullwidth is-narrow">
+					<tbody>
+						for _, coach := range c.Coaches {
+							<tr>
+								<td>{ coach.Name }</td>
+								<td class="has-text-grey is-size-7">{ coachedCount(coach.Members) }</td>
+								<td class="has-text-right">
+									<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") } class="is-inline">
+										<button class="button is-small is-text" type="submit" title="Their old link stops working">New link</button>
 									</form>
-									<p class="help">The certificate: a photo or PDF, up to 10 MB. It's kept until you remove it or the coach.</p>
-								</details>
-							</td>
-						</tr>
-					}
-				</tbody>
-			</table>
+									<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/remove") } class="is-inline" onsubmit={ confirmRemoveCoach(coach.Name) }>
+										<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+									</form>
+								</td>
+							</tr>
+							<tr>
+								<td colspan="3" class="is-size-7">
+									<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/signs-off") } class="mb-1">
+										<input type="hidden" name="on" value={ boolValue(!coach.SignsOff) }/>
+										<label class="checkbox">
+											<input type="checkbox" checked?={ coach.SignsOff } onchange="this.form.submit()"/>
+											Signs off routines
+										</label>
+										<noscript><button class="button is-small" type="submit">Change</button></noscript>
+									</form>
+									for _, q := range coach.Qualifications {
+										<div>
+											{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a>
+											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/qualifications/" + q.ID + "/remove") } class="is-inline">
+												<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+											</form>
+										</div>
+									}
+									<details>
+										<summary>Add a qualification</summary>
+										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/qualifications") } enctype="multipart/form-data" class="comp-flight-actions mt-1">
+											<div class="select is-small">
+												<select name="qualification" required aria-label={ coach.Name + "'s qualification" }>
+													<option value="">Qualification…</option>
+													for _, o := range c.QualificationOptions {
+														<option value={ o.ID }>{ o.Name }</option>
+													}
+												</select>
+											</div>
+											<input class="input is-small" type="file" name="certificate" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label={ coach.Name + "'s certificate" }/>
+											<button class="button is-small" type="submit">Add</button>
+										</form>
+										<p class="help">The certificate: a photo or PDF, up to 10 MB. It's kept until you remove it or the coach.</p>
+									</details>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
 		}
 		<form method="post" action={ templ.SafeURL(c.Base + "/coaches") } class="field has-addons">
 			<div class="control is-expanded">
