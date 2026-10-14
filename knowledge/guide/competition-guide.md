@@ -342,6 +342,14 @@ has a starting value you can change.
    **Missing**, which links to "what if they leave". Next to anyone who isn't
    here, **Notify** sends them, their club's comp sec and coaches, or both,
    a message saying where they should be.
+   **Marshals: who's up now.** Once a flight is **Started**, its box shows who's
+   first up. Tap **Next gymnast** as each gymnast starts their routine: the
+   box shows who's on, their club and which routine it is (such as Set or
+   Voluntary), and the venue screen shows them with the next two. Everyone
+   does their 1st routine in running order, then everyone their 2nd, and
+   scratched gymnasts are skipped. **Back** puts it right if you tapped too
+   soon. After the last routine, tap **Finished** as usual: Next gymnast won't
+   finish the flight for you.
    <a id="on-the-day-venue-screen"></a>**Venue screen** (a link at the top of
    the On the day page): what's on each area now and what's next, for a TV
    at the venue. On the **Settings** page make a **Venue screen** link, open
@@ -349,7 +357,8 @@ has a starting value you can change.
    link can open nothing else. Each area has its own colour. Its card shows
    the flight on now and the next one, each with its gymnasts and their
    clubs, the warm-up time from the timetable, and how late the area is
-   running. Areas with nothing on soon shrink to a strip along the bottom.
+   running. Once the marshal taps **Next gymnast**, the card shows who's on
+   now, in large type, and the next two. Areas with nothing on soon shrink to a strip along the bottom.
    With two TVs, show some areas on each by adding them to the link, for
    example `…/screen?area=Panel 1&area=Panel 2`. If the TV loses its
    connection, it keeps showing the last update and says how old it is.

@@ -44,6 +44,7 @@ type ScreenArea struct {
 	Late         string // e.g. "Running 15 min late"; "" when not measured
 	Behind       bool   // running late
 	Ahead        bool   // running early
+	Up           *ScreenUp // who's on in the flight on now, and next; nil until the marshal taps
 }
 
 // ScreenGymnast is a gymnast in a flight on the screen.
@@ -212,7 +213,13 @@ templ screenCard(a ScreenArea) {
 					</p>
 				}
 			}
-			@screenNames(a.Gymnasts, a.More)
+			// Once the marshal taps through, who's on and next take the
+			// space the flight's list had.
+			if a.Up != nil {
+				@screenUp(a.Up)
+			} else {
+				@screenNames(a.Gymnasts, a.More)
+			}
 		</div>
 		<div class="screen-part screen-next">
 			if a.Finished {

@@ -697,6 +697,34 @@ lists are open is also kept in `sessionStorage` (per path and `?day`), so a
 reload keeps them. The service worker only handles GET navigations, so these
 posts go straight to the network.
 
+**Who's up now** (roadmap item 7, built 2026-10-14): on a flight marked
+started and not finished, the box shows who's on now in large type (name,
+club for a club's gymnast, and the routine), with a big **Next gymnast** and a
+small **Back**. Before the first tap it shows who's first up; the marshal taps
+Next gymnast as each gymnast starts. The position runs from 0 (the first
+gymnast's 1st routine) to 2n-1 (the last gymnast's 2nd) for a flight of n in
+the published running order: everyone's 1st routine in order, then everyone's
+2nd in the same order, synchro pairs and tumbling and DMT passes alike. It is
+stored per flight key in `up_now` (migration 31, `store/upnow.go`: `UpNext`,
+`UpBack`, `ClearUp`, `UpNow`), with who tapped and when; `UpNext` and `UpBack`
+read and write in one transaction, so two taps at once each move one step.
+Scratched gymnasts, and entries no longer in the competition, are skipped both
+ways (`upOrderOf` in `web/screenup.go`); one scratched after being reached is
+shown struck through until the next tap. The routine is named from the level
+(`routineNames`): "Set" for an exercise whose options are all set routines and
+"Voluntary" for one whose options are all requirements, when the two
+exercises differ; otherwise "1st routine" and "2nd routine" (two voluntaries,
+mixed options, synchro, or a level that can't be read), and "1st pass" and
+"2nd pass" for tumbling and DMT. Next gymnast at the last routine changes
+nothing and says "That was the last routine in … Tap Finished once it's
+done."; the box also says it's the flight's last routine. It never finishes
+the flight. Back at the first gymnast (or before the first tap), and either tap
+on a flight that isn't running, are ignored with a notice. **Undo** that takes
+back the start clears the position (`ClearUp`), so starting again starts from
+the first; undoing a finish keeps it. Taps post to `/day/up` (organiser,
+"everything", chair and timetable links), update in place like the other day
+buttons, and aren't put in the history (one per routine would bury the rest).
+
 **Check-in and scratches** (built 2026-10-09): under each flight on the day
 page, a folded **Check-in · 8 of 10 here, 1 scratched** lists the flight's
 gymnasts in running order (entries since withdrawn are left out), each with
@@ -850,6 +878,14 @@ Each card has:
   times marked on another date don't count. Under it, the flight's gymnasts
   in running order with their clubs (none for those entering on their own),
   scratched ones struck through.
+- **On now** and **Up next**, only for a flight marked started and only
+  once the marshal has tapped **Next gymnast** for it: who's on (name, club,
+  routine) in large type and the next two to go, skipping the scratched and
+  running on from the 1st routines into the 2nd (`screenUp` in
+  `web/screenup.go`, `views/screenup.templ`). They take the place of the
+  flight's list of names. Before the first tap, or if the gymnast reached
+  has since been scratched, the card shows the list instead: the screen
+  doesn't guess.
 - **Next:** the following flight that hasn't been started or finished, with
   its warm-up time from the timetable and its gymnasts and clubs; with
   nothing on, the first that starts after now, or the first unmarked one once
