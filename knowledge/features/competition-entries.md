@@ -853,10 +853,11 @@ today) is a slim strip along the bottom in its colour: "Next: … · warm-up
 14:00" or "Finished for the day". The rest are cards that share the screen:
 one row of up to four, else two rows (seven busy areas, as at ISTO, are two
 rows of four). If every area is quiet they all keep their cards. Text scales
-with the screen's width, and fewer cards get bigger text; the script then
-shrinks every card's text alike until nothing in any card overflows, so no
-name is ever cut off unseen. Each card shows a set number of names (fewer
-with more cards) and then "+N more".
+with the screen's width, and fewer cards get bigger text. In two rows, Now
+and Next sit side by side in each card. The script then shrinks every card's
+text alike until nothing in any card overflows, down to a size still readable
+across a hall; past that it shows fewer names and counts the rest in "+N
+more", so no name is ever cut off unseen.
 
 Each card has:
 

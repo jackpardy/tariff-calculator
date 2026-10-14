@@ -3,7 +3,8 @@
 // loaded when the connection drops, and says so once it's more than a minute
 // old. The clock ticks on from the server's time, in the competition's time
 // zone, whatever the screen's own clock says. The cards' text shrinks until
-// everything fits, so no name is ever cut off unseen.
+// everything fits, down to a size readable across a hall, then shows fewer
+// names, so no name is ever cut off unseen.
 (function () {
     const every = 30 * 1000;
     const staleAfter = 75 * 1000;
@@ -31,16 +32,44 @@
 
     // fit shrinks the cards' text, a step at a time, until none of their
     // parts overflows, and gives every card the size the fullest one needed,
-    // so they look alike.
+    // so they look alike. It stops at a size still readable across a hall;
+    // past that, a card shows fewer names and counts the rest in "+N more".
+    const floor = () => 0.85 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const overflows = (part) => part.scrollHeight > part.clientHeight + 1;
+
     function fit() {
         const cards = [...main.querySelectorAll('.screen-card')];
         if (cards.length === 0) { return; }
         cards.forEach((c) => { c.style.fontSize = ''; });
         let size = parseFloat(getComputedStyle(cards[0]).fontSize);
-        const over = () => cards.some((c) => [...c.querySelectorAll('.screen-part')].some((p) => p.scrollHeight > p.clientHeight + 1));
-        while (over() && size > 10) {
+        const over = () => cards.some((c) => [...c.querySelectorAll('.screen-part')].some(overflows));
+        while (over() && size * 0.95 >= floor()) {
             size *= 0.95;
             cards.forEach((c) => { c.style.fontSize = size + 'px'; });
+        }
+        cards.forEach(trim);
+    }
+
+    // trim hides names from the end of an overflowing part's list until it
+    // fits, adding them to its "+N more".
+    function trim(card) {
+        for (const part of card.querySelectorAll('.screen-part')) {
+            const list = part.querySelector('.screen-names');
+            if (!list) { continue; }
+            let more = list.querySelector('.screen-more');
+            while (overflows(part)) {
+                const shown = [...list.querySelectorAll('li:not(.screen-more):not([hidden])')];
+                if (shown.length <= 1) { break; }
+                shown[shown.length - 1].hidden = true;
+                if (!more) {
+                    more = document.createElement('li');
+                    more.className = 'screen-more';
+                    more.dataset.more = '0';
+                    list.append(more);
+                }
+                more.dataset.more = String(Number(more.dataset.more) + 1);
+                more.textContent = `+${more.dataset.more} more`;
+            }
         }
     }
 

@@ -165,7 +165,7 @@ templ Screen(p ScreenPage) {
 			} else if len(p.Areas) == 0 {
 				<p class="screen-empty">No flights on this day</p>
 			} else {
-				<div class={ "screen-grid", "screen-size-" + strconv.Itoa(p.Size) } style={ "--screen-columns: " + strconv.Itoa(p.Columns) + "; --screen-rows: " + strconv.Itoa(p.Rows) }>
+				<div class={ "screen-grid", "screen-size-" + strconv.Itoa(p.Size), "screen-rows-" + strconv.Itoa(p.Rows) } style={ "--screen-columns: " + strconv.Itoa(p.Columns) + "; --screen-rows: " + strconv.Itoa(p.Rows) }>
 					for _, a := range p.busyAreas() {
 						@screenCard(a)
 					}
@@ -251,7 +251,7 @@ templ screenNames(gymnasts []ScreenGymnast, more int) {
 				</li>
 			}
 			if more > 0 {
-				<li class="screen-more">+{ strconv.Itoa(more) } more</li>
+				<li class="screen-more" data-more={ strconv.Itoa(more) }>+{ strconv.Itoa(more) } more</li>
 			}
 		</ul>
 	}
