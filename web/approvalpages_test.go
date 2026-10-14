@@ -33,16 +33,16 @@ func TestCoachApprovalPages(t *testing.T) {
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	ann := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
 	do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}})
-	page := do(t, h, http.MethodGet, club, nil).Body.String()
+	page := do(t, h, http.MethodGet, club+"/coaches", nil).Body.String()
 	ids := regexp.MustCompile(regexp.QuoteMeta(club)+`/coaches/([^/"]+)/signs-off`).FindAllStringSubmatch(page, -1)
 	annID, bobID := ids[0][1], ids[1][1]
 	redirected(t, h, club+"/coaches/"+bobID+"/signs-off", url.Values{"on": {""}})
 	upload(t, h, club+"/coaches/"+annID+"/qualifications", map[string]string{"qualification": "bg-trampoline-3"}, "certificate", []byte("%PDF-1.4 Ann"))
-	join := pathIn(t, page, "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	x := withoutQuery(redirected(t, h, join, url.Values{"name": {"X"}}))
 	redirected(t, h, x+"/coach", url.Values{"coach": {annID}})
 	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
-	sendX := formAction(t, do(t, h, http.MethodGet, x, nil).Body.String(), x+"/competitions/")
+	sendX := formAction(t, memberCompetitionPage(t, h, x), x+"/competitions/")
 	redirected(t, h, sendX, entry)
 
 	// Not sent yet: Ann can't sign off.

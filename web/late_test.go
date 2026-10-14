@@ -20,9 +20,9 @@ func TestLateChanges(t *testing.T) {
 	// A club's member, Ann, and Ivy on her own, both BUCS L3; Bea in L4.
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	ann := withoutQuery(redirected(t, h, join, url.Values{"name": {"Ann"}}))
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, ann, nil).Body.String(), ann+"/competitions/"), l3)
+	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ann), ann+"/competitions/"), l3)
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
 	with := func(name string, v url.Values) url.Values {
 		out := url.Values{"gymnast": {name}}
@@ -123,9 +123,9 @@ func TestLateChangeSignoff(t *testing.T) {
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	ann := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
-	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	x := withoutQuery(redirected(t, h, join, url.Values{"name": {"X"}}))
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, x, nil).Body.String(), x+"/competitions/"), l3)
+	redirected(t, h, formAction(t, memberCompetitionPage(t, h, x), x+"/competitions/"), l3)
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
 	ind := url.Values{"gymnast": {"Ivy"}}
 	for k, v := range l3 {
@@ -138,7 +138,7 @@ func TestLateChangeSignoff(t *testing.T) {
 	redirected(t, h, admin+"/late/settings", url.Values{"late-level": {"1"}, "signoffFirst": {"1"}})
 
 	// X asks; it waits for a coach.
-	ask := regexp.MustCompile(regexp.QuoteMeta(x) + `/competitions/[^/"]+/late\?discipline=`).FindString(do(t, h, http.MethodGet, x, nil).Body.String())
+	ask := regexp.MustCompile(regexp.QuoteMeta(x) + `/competitions/[^/"]+/late\?discipline=`).FindString(memberCompetitionPage(t, h, x))
 	if ask == "" {
 		t.Fatal("X can ask")
 	}
@@ -189,7 +189,7 @@ func TestLateChangeSignoff(t *testing.T) {
 	if strings.Contains(page, "Not signed off by a coach") {
 		t.Errorf("the changed entries are signed off: %s", page)
 	}
-	if !strings.Contains(do(t, h, http.MethodGet, x, nil).Body.String(), "Ann") {
+	if !strings.Contains(memberCompetitionPage(t, h, x), "Ann") {
 		t.Error("X's entry shows Ann's sign-off")
 	}
 }

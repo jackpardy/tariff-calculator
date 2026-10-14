@@ -377,16 +377,18 @@ venue setup, **Run again**.
 
 1. Go to **tariff.pardy.ie/competitions** and tap **New club**. Give its name
    and tap **Create club**. Save the **admin link** you're given.
-2. Share the **Join link** in the club's chat. Members join with it.
+2. Open **Members** and share the **Join link** in the club's chat. Members
+   join with it.
 3. To enter a competition, open the **club link** the organiser gave you,
    choose your club (or paste its admin link) and tap **Enter the club**.
    Members can then add their entries.
 
-Your club page lists each competition with every member's entry (one per
-discipline they enter): its event,
-problems and status (**Not sent**, **Sent**, **Changed since sent**, or
-withdrawn), plus any note from the organiser, and missing videos and coach
-sign-off.
+Your club page is in four sections, in a menu at the top: **Competitions**,
+**Members**, **Coaches** and **Settings**. It opens on **Competitions**, which
+lists each competition with every member's entry (one per discipline they
+enter): its event, problems and status (**Not sent**, **Sent**, **Changed since
+sent**, or withdrawn), plus any note from the organiser, and missing videos and
+coach sign-off. Changing a member's entry is part of Competitions too.
 
 - **Coaches for this competition** (where it approves coaches): tick the
   coaches who'll sign off its entries (your members' coaches start ticked)
@@ -398,9 +400,11 @@ sign-off.
   takes back withdrawn ones. The organiser only sees what you send, until
   entries close.
 - **Change** edits a member's entry for them.
-- **Members**: choose each member's coach from the list, give a member who lost
-  their link a **New link** (their old one stops working), or **Remove** them.
-- **Coaches**: type a name and tap **Add coach**, then send them the coach link
+- **Members** (its own section): the **Join link**, then each member: choose
+  their coach from the list, give a member who lost their link a **New link**
+  (their old one stops working), or **Remove** them. Synchro entries that
+  gymnasts from other clubs made with your members are listed here too.
+- **Coaches** (its own section): type a name and tap **Add coach**, then send them the coach link
   shown (it's shown only then; **New link** makes another). Tick **Every coach
   sees every member** if your coaches share everyone. Untick a coach's
   **Signs off routines** if they shouldn't sign off: they still see their
@@ -409,38 +413,45 @@ sign-off.
   certificate (up to 10 MB, four per coach), for competitions that ask for
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
-- **Settings**: replace the admin link, or delete the club. A club is deleted
-  120 days after it was last used.
+- **Settings** (its own section): replace the admin link, or delete the club. A
+  club is deleted 120 days after it was last used.
 
 # 3. Enter through your club (members)
 
 1. Open your club's **Join link**, type your name and tap **Join**. Your own
    page opens; it's saved in this browser, so on this phone your entries are
    simply there.
-2. If your club has coaches, choose **Your coach**.
-3. Under each competition there's a section for each discipline it offers.
-   Open **Enter Trampoline** (or Synchro, Tumbling, DMT), choose your
-   **Level**, and Men or Women if asked. For trampoline, choose which set
+2. Your page has two tabs. **Competitions** (the one it opens on) lists the
+   competitions your club is in, each with its date and where your entries
+   stand (for example **Not entered**, **Saved, not sent yet**, or **Timetable
+   published**); tap one to open it. **Your details** has your personal link,
+   to keep, and, if your club has coaches, **Your coach** to choose.
+3. A competition's page has a row for each discipline it offers, closed until
+   you tap it: the discipline, your level and its status (for example **Not
+   entered**, **Checked**, **2 problems**, or **Waiting list, 3rd**). Open
+   **Trampoline** (or Synchro, Tumbling, DMT), choose your **Level**, and Men
+   or Women if asked. For trampoline, choose which set
    routine you're doing where there's a choice, and the routine for each
    voluntary from the routines saved in this browser; for synchro, just the
    pair's one routine, the level's voluntary. Add a **video link**
    if the competition asks (a YouTube video must be **unlisted, not private**;
    a Google Drive file shared with **anyone with the link**). Tap **Save**.
    Tumbling and DMT need only the level.
-4. Your entry shows checked, with any problems. Your comp sec sends it to the
-   competition: the status says whether it's been sent, or changed since.
+4. Your entry shows checked, with any problems; a row with problems to fix opens
+   by itself when you save. Your comp sec sends it to the competition: the
+   status says whether it's been sent, or changed since.
 
 Under **Judging and helping**, say what you can do at the competition: judge a
 discipline (up to a level, and whether you can chair), or help as a recorder
 or marshal. Your comp sec can correct it, and sends it with the entries.
 
-To change it, open **Change your entry**. To pull out of one discipline, tick
+To change it, open the discipline's row, then **Change your entry**. To pull out of one discipline, tick
 **Withdraw this entry** under it and tap **Withdraw**. Notes from the organiser
 and your coach show on your entry, and once the organiser publishes the
 timetable, your flight, area and warm-up time, and under **Officiating**
 when and where you judge or help.
 
-**Your competition** (under each competition) is the page for the day: each
+**Your competition** (a link on the competition's page) is the page for the day: each
 of your events and its card's status, and once the timetable is published,
 your flight, where you are in the running order, about when each routine is,
 what you officiate, and the whole timetable with you picked out. Once it's

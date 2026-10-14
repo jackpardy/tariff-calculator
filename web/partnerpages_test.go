@@ -100,22 +100,25 @@ func TestMemberDisciplines(t *testing.T) {
 	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	a := withoutQuery(redirected(t, h, join, url.Values{"name": {"A"}}))
 	b := withoutQuery(redirected(t, h, join, url.Values{"name": {"B"}}))
 
-	page := do(t, h, http.MethodGet, a, nil).Body.String()
-	for _, want := range []string{"Enter Trampoline", "Enter Synchro", "Enter Tumbling", "Enter DMT"} {
-		if !strings.Contains(page, want) {
+	page := memberCompetitionPage(t, h, a)
+	for _, want := range []string{"Trampoline", "Synchro", "Tumbling", "DMT"} {
+		if !strings.Contains(page, "<strong>"+want+"</strong>") {
 			t.Errorf("the member page offers %q", want)
 		}
+	}
+	if strings.Count(page, ">Not entered</span>") != 4 {
+		t.Error("each discipline is a row saying it's not entered")
 	}
 	save := formAction(t, page, a+"/competitions/")
 	redirected(t, h, save, url.Values{"discipline": {""}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
 	redirected(t, h, save, url.Values{"discipline": {"tumbling"}, "level": {"Novice"}})
 	redirected(t, h, save, url.Values{"discipline": {"synchro"}, "level": {"BUCS L3"}, "partnerName": {"B"}, "partnerClub": {"UCD"},
 		"ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
-	page = do(t, h, http.MethodGet, a, nil).Body.String()
+	page = memberCompetitionPage(t, h, a)
 	if strings.Count(page, "Saved, not sent yet") < 3 || !strings.Contains(page, "B hasn't confirmed the pair yet.") {
 		t.Error("three entries saved, the pair waiting for B")
 	}
@@ -123,7 +126,7 @@ func TestMemberDisciplines(t *testing.T) {
 	// B confirms with their own member link.
 	partner := pathIn(t, page, "/competitions/partner/")
 	redirected(t, h, partner, url.Values{"link": {"http://example.com" + b}})
-	if page := do(t, h, http.MethodGet, a, nil).Body.String(); !strings.Contains(page, "B has confirmed the pair.") {
+	if page := memberCompetitionPage(t, h, a); !strings.Contains(page, "B has confirmed the pair.") {
 		t.Error("B confirmed")
 	}
 
@@ -138,7 +141,7 @@ func TestMemberDisciplines(t *testing.T) {
 		t.Fatal("a withdraw form")
 	}
 	redirected(t, h, withdraw[1], url.Values{"discipline": {"tumbling"}, "confirm": {"1"}})
-	if page := do(t, h, http.MethodGet, a, nil).Body.String(); strings.Count(page, "Sent by your club") != 2 {
+	if page := memberCompetitionPage(t, h, a); strings.Count(page, "Sent by your club") != 2 {
 		t.Error("only tumbling is withdrawn")
 	}
 	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, ">Withdrawn</span>") {

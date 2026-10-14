@@ -41,7 +41,7 @@ func (p *competitionPages) addCoach(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	if err := competitions.CheckName("coach", name); err != nil {
-		http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(strings.Join(sentences(err), " ")), http.StatusSeeOther)
+		http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery(strings.Join(sentences(err), " ")), http.StatusSeeOther)
 		return
 	}
 	coach, token, err := p.st.CreateCoach(r.Context(), club.ID, name)
@@ -50,7 +50,7 @@ func (p *competitionPages) addCoach(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Shown on this response only: it isn't kept, so it can't go in a redirect's URL.
-	p.renderClub(w, r, club, &views.MemberLink{Name: coach.Name, Link: origin(r) + coachPath(token), Coach: true})
+	p.renderClub(w, r, club, clubCoaches, &views.MemberLink{Name: coach.Name, Link: origin(r) + coachPath(token), Coach: true})
 }
 
 func (p *competitionPages) newCoachLink(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +68,7 @@ func (p *competitionPages) newCoachLink(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return
 	}
-	p.renderClub(w, r, club, &views.MemberLink{Name: coach.Name, Link: origin(r) + coachPath(token), Coach: true})
+	p.renderClub(w, r, club, clubCoaches, &views.MemberLink{Name: coach.Name, Link: origin(r) + coachPath(token), Coach: true})
 }
 
 // clubCoach is the club's coach the URL names.
@@ -99,7 +99,7 @@ func (p *competitionPages) removeCoach(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery("Removed "+coach.Name+" as a coach."), http.StatusSeeOther)
+	http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery("Removed "+coach.Name+" as a coach."), http.StatusSeeOther)
 }
 
 func (p *competitionPages) coachesSeeAll(w http.ResponseWriter, r *http.Request) {
@@ -116,7 +116,7 @@ func (p *competitionPages) coachesSeeAll(w http.ResponseWriter, r *http.Request)
 	if on {
 		notice = "Every coach now sees every member."
 	}
-	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
 }
 
 // assignCoach chooses a member's coach for them (coach: an id, "" for none).
@@ -129,7 +129,7 @@ func (p *competitionPages) assignCoach(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, clubPath(r.PathValue("token")), http.StatusSeeOther)
+	http.Redirect(w, r, clubMembersPath(r.PathValue("token")), http.StatusSeeOther)
 }
 
 // --- Members ---
@@ -144,7 +144,7 @@ func (p *competitionPages) chooseOwnCoach(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, memberPath(r.PathValue("token"))+"?notice="+urlQuery("Coach saved."), http.StatusSeeOther)
+	http.Redirect(w, r, memberDetailsPath(r.PathValue("token"))+"?notice="+urlQuery("Coach saved."), http.StatusSeeOther)
 }
 
 // --- Coaches ---
@@ -398,7 +398,7 @@ func (p *competitionPages) coachSignsOff(w http.ResponseWriter, r *http.Request)
 	if !on {
 		notice = coach.Name + " doesn't sign off routines, but still sees their members' entries."
 	}
-	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
 }
 
 // addQualification gives a coach a qualification (qualification: its key)
@@ -414,7 +414,7 @@ func (p *competitionPages) addQualification(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	back := func(notice string) {
-		http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+		http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
 	}
 	q, data, certType, problem := postedCertificate(r)
 	if problem != "" {
@@ -475,7 +475,7 @@ func (p *competitionPages) removeQualification(w http.ResponseWriter, r *http.Re
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery("Removed a qualification of "+coach.Name+"'s, and its certificate."), http.StatusSeeOther)
+	http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery("Removed a qualification of "+coach.Name+"'s, and its certificate."), http.StatusSeeOther)
 }
 
 // clubCertificate shows the comp sec a coach's certificate.

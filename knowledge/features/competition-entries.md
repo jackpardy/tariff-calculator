@@ -293,7 +293,7 @@ A competition offers **events**: a discipline at a level.
   levels the organiser names, which are a level only, not checked yet. The
   organiser picks them when creating the competition and can change synchro,
   tumbling and DMT on the Settings page.
-- A gymnast can enter **several events**: a member's page has a section per
+- A gymnast can enter **several events**: a member's competition page has a row per
   discipline (enter, change, withdraw each on its own), the club page and
   dashboard list each entry under its event ("Synchro BUCS L3", "Tumbling
   Novice"), and an individual enters each discipline separately.
@@ -867,7 +867,7 @@ judge any level, so a real day can be tighter.
 Where a competition requires it, each entry needs a coach's **sign-off**
 (ADR 0004 Decision 11).[^adr-0004]
 
-- The comp sec adds the club's coaches on the club page; each gets a coach
+- The comp sec adds the club's coaches on the club's Coaches section; each gets a coach
   link (shown once; **New link** replaces it). Each coach **signs off
   routines** or not (ADR 0007 Decision 3; new coaches do): one who doesn't
   sees their members' entries, checked, but has no sign-off buttons, and a
@@ -899,8 +899,8 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   the club's coaches, it's theirs (migration 18) and counts once they're
   approved; otherwise it doesn't count at a competition that approves
   coaches.
-- A member chooses their coach on their own page, or the comp sec does on
-  the club page. A coach sees their own members and every member without a
+- A member chooses their coach under Your details, or the comp sec does on
+  the club's Members section. A coach sees their own members and every member without a
   coach; the club can let **every coach see every member**.
 - The coach's page lists each competition's entries they see, with problems
   and sign-off, and how many are waiting. Opening one shows it checked, with
@@ -925,14 +925,55 @@ Where a competition requires it, each entry needs a coach's **sign-off**
 
 # The club's comp sec (club admin link)
 
-The same table, but for the club's members only, by competition. It has
-**Send** and **Re-send changed** buttons, shows the organiser's notes, lists
-the members (with **New link** for one who lost theirs, which ends the old
-one), shows which members are
-still missing a required video, and lets the comp sec edit an entry on a
-member's behalf.
+The comp sec's page has a menu of four sections (roadmap 2026-10-13, finding
+your way round; the menu is `views/menu.templ`, built for each page in
+`web/menus_club.go`), each a page of its own:
+
+- **Competitions** (`/clubs/admin/{token}`, the default): the same table as
+  the organiser's, but for the club's members only, by competition. It has
+  **Send** and **Re-send changed** buttons, shows the organiser's notes,
+  shows which members are still missing a required video, and lets the comp
+  sec edit an entry on a member's behalf. The pages for editing a member's
+  entry or offer are in this section.
+- **Members** (`/members`): the join link, the members (with **New link** for
+  one who lost theirs, which ends the old one, a coach to choose, and
+  **Remove**) and the synchro entries other clubs' gymnasts made with them.
+- **Coaches** (`/coaches`): adding and removing coaches, their links,
+  qualifications and whether they sign off, and whether every coach sees every
+  member.
+- **Settings** (`/settings`): replacing the admin link and deleting the club.
+
+Each form returns to the section it's on, with its notice. The exceptions are
+replacing the admin link, which shows the new link on Competitions (where it's
+saved in the browser), and the new link made for a member or coach, which is
+shown on that response only. The default page is also where the club's admin
+link is saved in the browser (`data-club-admin`, when the club is new or the
+link was replaced).
 
 # A member (personal link)
+
+A member's pages are tabs (`memberMenu` in `web/menus_club.go`; routines and a
+coach's view will be more tabs):
+
+- **Competitions** (`/clubs/member/{token}`, the default): one row for each
+  competition the club is in, with its date, the status line (for example
+  "Not entered", "Saved, not sent yet", "2 entries"), a tag for problems on
+  their cards, "Timetable published" and "Message from the organisers", each
+  linking to the competition's page. Synchro entries others made with them stay
+  here, above the list, because the competition may not be one their club is
+  entered in. The page also holds a hidden `data-member-link`, so the link is
+  saved in the browser on the first visit (as it is on every member page).
+- **A competition's page** (`/clubs/member/{token}/competitions/{id}`): the
+  facts, the Your competition link, desk messages, timetable links, each
+  discipline's entry, officiating, and the judging offer. Each discipline is a
+  row (discipline, level, status such as "Checked", "2 problems", "Not entered"
+  or "Waiting list, 3rd") that opens to its card and forms. It's closed unless
+  a form just posted had problems, or the notice is about it (the redirect after
+  a save or withdrawal carries `discipline`). Saving, withdrawing and offering
+  go back to this page; so do the late-change and timetable pages, and Your
+  competition links back to it.
+- **Your details** (`/clubs/member/{token}/details`): their personal link and
+  their coach, and choosing a coach returns here.
 
 Each of their entries per competition: the level, the routine(s), the check
 result, and whether it has been **sent** or **changed since sent**. Where the
@@ -943,7 +984,7 @@ routine at any time until the deadline.
 
 # My competition (roadmap: competitions 5)
 
-From a member's page (each competition) or an individual's entry, **Your
+From a member's page for a competition or an individual's entry, **Your
 competition** opens one page for the day:
 
 - Every event they're in that has reached the competition (a member's sent

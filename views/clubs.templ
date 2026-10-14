@@ -21,6 +21,7 @@ type ClubPage struct {
 	CoachesSeeAll        bool
 	QualificationOptions []CoachOption // every qualification, to give a coach
 	Pairs                []PairView    // synchro entries other clubs' gymnasts made with members
+	Menu                 []MenuSection // the sections of the comp sec's pages
 }
 
 // ClubCoach is one of the club's coaches.
@@ -105,6 +106,7 @@ type ClubEntryEdit struct {
 	Competition CompetitionSummary
 	Card        *EntryCard // nil if they haven't entered
 	Form        EntryForm
+	Menu        []MenuSection
 }
 
 // JoinPage is where a club's members join it.
@@ -114,27 +116,32 @@ type JoinPage struct {
 	Problems []string
 }
 
-// MemberPage is a member's own page: their entries for each competition the
-// club is entered in.
+// MemberPage is a member's own pages: the list of the competitions their club
+// is entered in, one competition with their entries, and their details.
 type MemberPage struct {
 	Club         string
 	Member       string
+	Menu         []MenuSection
+	Home         string // the competitions list, their default page
 	Coaches      []CoachOption
 	CoachID      string
 	CoachAction  string // where choosing a coach posts
 	Link         string // their personal link, as a full URL
 	New          bool   // just joined
 	Notice       string
-	Competitions []MemberCompetition
-	Pairs        []PairView // synchro entries they're the partner in
+	Competitions []MemberCompetition // the list
+	Competition  *MemberCompetition  // the one competition's page shows
+	Pairs        []PairView          // synchro entries they're the partner in
 }
 
 // MemberCompetition is a member's entry for one competition, and the form to
 // make or change it.
 type MemberCompetition struct {
 	ID           string
+	Page         string // their page for it
 	Competition  CompetitionSummary
 	Status       string        // e.g. "2 entries"
+	Problems     int           // on their entries' cards
 	Events       []MemberEvent // one per discipline the competition offers
 	Offer        *OfferForm    // what they offer to judge and help with
 	Duties       []string      // their seats on panels, once the timetable is published
@@ -143,17 +150,20 @@ type MemberCompetition struct {
 	ClubTimeline string
 	Calendar     string // their timetable as a calendar file, and their club's
 	ClubCalendar string
-	Notify       string // where they ask to hear about changes
-	ScoreSheets  string // the score sheets of the flights they officiate, if any
+	Notify       string     // where they ask to hear about changes
+	ScoreSheets  string     // the score sheets of the flights they officiate, if any
 	Desk         []DeskNote // messages from the organisers that reach them
-	Open         bool // shown open on the page
 }
 
 // MemberEvent is a member's entry for one of a competition's disciplines.
 type MemberEvent struct {
 	Discipline  string
 	Name        string // the discipline's, e.g. "Synchro"
+	Level       string // the entry's, e.g. "BUCS L3"; "" before they enter
 	Status      string
+	Brief       string // the status in a word or two, for the list: "Checked", "2 problems"
+	BriefClass  string // the Bulma colour of Brief, e.g. "is-success"
+	Open        bool   // shown open: it has problems to fix, or the notice is about it
 	Waiting     string // on a waiting list, and where
 	Late        string // a late change, where it stands
 	LateAsk     string // where to ask for a late change, once entries close
@@ -165,7 +175,6 @@ type MemberEvent struct {
 	Card        *EntryCard
 	Form        EntryForm
 	Withdraw    string
-	Several     bool // the competition offers several disciplines, so each is headed
 }
 
 // ClubLinkPage is a competition's club link: a comp sec enters their club.
@@ -220,10 +229,12 @@ templ NewClub(name string, problems []string) {
 	}
 }
 
-// ClubAdmin is the comp sec's page.
-templ ClubAdmin(c ClubPage) {
+// clubFrame is the top of each of a comp sec's pages: the club's name, the menu
+// and what just happened. The page's own part is its children.
+templ clubFrame(c ClubPage) {
 	@competitionLayout(c.Name) {
 		<h1 class="title is-4">{ c.Name }</h1>
+		@pageMenu(c.Menu)
 		if c.New != "" {
 			<div class="notification is-warning is-light">
 				<p class="mb-2">
@@ -239,6 +250,9 @@ templ ClubAdmin(c ClubPage) {
 				<div data-club-admin={ c.AdminLink } data-club-name={ c.Name }>
 					@linkBox("Admin link (keep it secret)", c.AdminLink, "Saved in this browser too.")
 				</div>
+				if c.New == "created" {
+					<p class="mt-2">Next, share the join link from <a href={ templ.SafeURL(c.Base + "/members") }>Members</a> so your club can join.</p>
+				}
 			</div>
 		}
 		if c.Notice != "" {
@@ -253,8 +267,14 @@ templ ClubAdmin(c ClubPage) {
 				}
 			</div>
 		}
-		@linkBox("Join link", c.JoinLink, "Share it in the club's chat: members join with it and keep their own entries.")
-		<h2 class="title is-5 mt-5">Competitions</h2>
+		{ children... }
+	}
+}
+
+// ClubAdmin is the comp sec's page: the Competitions section, where the club's
+// entries are sent.
+templ ClubAdmin(c ClubPage) {
+	@clubFrame(c) {
 		if len(c.Competitions) == 0 {
 			<p class="has-text-grey">Not entered in any yet. Open the club link a competition's organiser gave you to enter the club.</p>
 		}
@@ -336,7 +356,7 @@ templ ClubAdmin(c ClubPage) {
 					<div class="mt-3">
 						<p class="is-size-7 mb-1"><strong>Coaches for this competition.</strong> It approves coaches from their qualifications: only those it approves can sign off. Tick who to send.</p>
 						if len(comp.Coaches) == 0 {
-							<p class="is-size-7 has-text-grey">None of your coaches signs off routines yet (see Coaches below).</p>
+							<p class="is-size-7 has-text-grey">None of your coaches signs off routines yet (see <a href={ templ.SafeURL(c.Base + "/coaches") }>Coaches</a>).</p>
 						} else {
 							<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/coaches") }>
 								for _, k := range comp.Coaches {
@@ -386,6 +406,13 @@ templ ClubAdmin(c ClubPage) {
 				}
 			</div>
 		}
+	}
+}
+
+// ClubMembers is the comp sec's Members section: the join link and the members.
+templ ClubMembers(c ClubPage) {
+	@clubFrame(c) {
+		@linkBox("Join link", c.JoinLink, "Share it in the club's chat: members join with it and keep their own entries.")
 		<h2 class="title is-5 mt-5">Members <span class="has-text-grey is-size-6">({ strconv.Itoa(len(c.Members)) })</span></h2>
 		if len(c.Members) == 0 {
 			<p class="has-text-grey">No members yet. Share the join link.</p>
@@ -415,8 +442,14 @@ templ ClubAdmin(c ClubPage) {
 			</table>
 		}
 		@pairEntries(c.Pairs)
+	}
+}
+
+// ClubCoaches is the comp sec's Coaches section.
+templ ClubCoaches(c ClubPage) {
+	@clubFrame(c) {
 		<h2 class="title is-5 mt-5">Coaches <span class="has-text-grey is-size-6">({ strconv.Itoa(len(c.Coaches)) })</span></h2>
-		<p class="help mb-3">Coaches sign off members' routines on their own page. A member chooses their coach, or you do above; a coach sees their members and those without a coach. A competition can ask for coaches with qualifications: add each coach's, with a photo or PDF of the certificate. Only you, and organisers you send the coach to, can open it.</p>
+		<p class="help mb-3">Coaches sign off members' routines on their own page. A member chooses their coach, or you do on the Members page; a coach sees their members and those without a coach. A competition can ask for coaches with qualifications: add each coach's, with a photo or PDF of the certificate. Only you, and organisers you send the coach to, can open it.</p>
 		if len(c.Coaches) > 0 {
 			<table class="table is-fullwidth is-narrow">
 				<tbody>
@@ -489,21 +522,28 @@ templ ClubAdmin(c ClubPage) {
 				<noscript><button class="button is-small" type="submit">Change</button></noscript>
 			</form>
 		}
-		<details class="box mt-5 comp-manage">
-			<summary><strong>Settings</strong></summary>
-			<form method="post" action={ templ.SafeURL(c.Base + "/replace-link") } class="mb-3">
-				<button class="button is-small" type="submit">Replace the admin link</button>
-				<p class="help">If the admin link has been shared too widely. The old one stops working.</p>
-			</form>
-			<form method="post" action={ templ.SafeURL(c.Base + "/delete") }>
-				<label class="checkbox is-size-7">
-					<input type="checkbox" name="confirm" value="1" required/>
-					Delete the club, its members and their entries, now
-				</label>
-				<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
-				<p class="help">Entries already sent stay with each competition.</p>
-			</form>
-		</details>
+	}
+}
+
+// ClubSettings is the comp sec's Settings section: replacing the admin link and
+// deleting the club.
+templ ClubSettings(c ClubPage) {
+	@clubFrame(c) {
+		<h2 class="title is-5 mt-5">Settings</h2>
+		<div class="box">
+		<form method="post" action={ templ.SafeURL(c.Base + "/replace-link") } class="mb-3">
+			<button class="button is-small" type="submit">Replace the admin link</button>
+			<p class="help">If the admin link has been shared too widely. The old one stops working.</p>
+		</form>
+		<form method="post" action={ templ.SafeURL(c.Base + "/delete") }>
+			<label class="checkbox is-size-7">
+				<input type="checkbox" name="confirm" value="1" required/>
+				Delete the club, its members and their entries, now
+			</label>
+			<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
+			<p class="help">Entries already sent stay with each competition.</p>
+		</form>
+		</div>
 	}
 }
 
@@ -532,7 +572,8 @@ script confirmRemove(name string) {
 // ClubEntryEditPage is the comp sec changing a member's entry.
 templ ClubEntryEditPage(e ClubEntryEdit) {
 	@competitionLayout(e.Member + " · " + e.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(e.Base) }>← { e.Club }</a></p>
+		@pageMenu(e.Menu)
+		<p class="mb-3"><a href={ templ.SafeURL(e.Base) }>← Competitions</a></p>
 		<h1 class="title is-4">{ e.Member }</h1>
 		<p class="subtitle is-6">{ e.Competition.Name }</p>
 		if e.Card != nil {
@@ -568,11 +609,15 @@ templ ClubJoin(p JoinPage) {
 	}
 }
 
-// MemberHome is a member's own page.
-templ MemberHome(p MemberPage) {
+// memberFrame is the top of each of a member's pages: who they are, the menu
+// and what just happened. The page's own part is its children.
+templ memberFrame(p MemberPage) {
 	@competitionLayout(p.Member + " · " + p.Club) {
 		<p class="has-text-grey mb-1">{ p.Club }</p>
 		<h1 class="title is-4">{ p.Member }</h1>
+		@pageMenu(p.Menu)
+		// Saves their link in this browser (static/js/competitions.js), whichever page they open first.
+		<span hidden data-member-link={ p.Link } data-member-name={ p.Member + " · " + p.Club }></span>
 		if p.New {
 			<div class="notification is-success is-light">
 				<p><strong>You've joined.</strong> This page is yours: its link is saved in this browser, so on this phone your entries are simply here. Keep the link to open them anywhere else.</p>
@@ -581,40 +626,75 @@ templ MemberHome(p MemberPage) {
 		if p.Notice != "" {
 			<div class="notification is-success is-light">{ p.Notice }</div>
 		}
-		<div data-member-link={ p.Link } data-member-name={ p.Member + " · " + p.Club }>
-			@linkBox("Your personal link (keep it to yourself)", p.Link, "")
-		</div>
+		{ children... }
+	}
+}
+
+// MemberHome is a member's default page: the competitions their club is in.
+templ MemberHome(p MemberPage) {
+	@memberFrame(p) {
+		if len(p.Competitions) == 0 {
+			<p class="has-text-grey">Your club isn't entered in any competitions yet. When it is, you'll enter here.</p>
+		}
+		@pairEntries(p.Pairs)
+		for _, c := range p.Competitions {
+			<a class="box comp-member-row" href={ templ.SafeURL(c.Page) }>
+				<strong>{ c.Competition.Name }</strong>
+				<span class="is-block has-text-grey is-size-7">{ c.Competition.Date }</span>
+				<span class="is-block is-size-7">
+					{ c.Status }
+					if c.Problems > 0 {
+						<span class="tag is-danger is-light ml-1">{ problemCount(c.Problems) }</span>
+					}
+					if c.Timeline != "" {
+						<span class="tag is-success is-light ml-1">Timetable published</span>
+					}
+					if len(c.Desk) > 0 {
+						<span class="tag is-warning is-light ml-1">Message from the organisers</span>
+					}
+				</span>
+			</a>
+		}
+	}
+}
+
+// MemberCompetitionPage is a member's page for one competition: its facts and
+// links, each discipline's entry as a list row that opens to its card and
+// forms, what they officiate and what they offer to judge and help with.
+templ MemberCompetitionPage(p MemberPage) {
+	@memberFrame(p) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Home) }>← Competitions</a></p>
+		if p.Competition != nil {
+			@memberCompetitionBody(*p.Competition)
+		}
+	}
+}
+
+templ memberCompetitionBody(c MemberCompetition) {
+	<h2 class="title is-5">{ c.Competition.Name }</h2>
+	@competitionFacts(c.Competition)
+	@dayLink(c.Day)
+	@deskMessages(c.Desk)
+	@timelineLinks(c.Timeline, c.ClubTimeline, c.Notify, c.Calendar, c.ClubCalendar)
+	for _, ev := range c.Events {
+		@memberEvent(c.Competition, ev)
+	}
+	@dutiesBox(c.Duties, c.ScoreSheets)
+	if c.Offer != nil && c.Competition.ChangesOpen {
+		@offerBox(*c.Offer)
+	}
+}
+
+// MemberDetails is a member's details: their personal link and their coach.
+templ MemberDetails(p MemberPage) {
+	@memberFrame(p) {
+		@linkBox("Your personal link (keep it to yourself)", p.Link, "Open it on any phone or computer to see your entries. Anyone who has it can change them.")
 		if len(p.Coaches) > 0 {
 			<div class="field mb-4">
 				<label class="label is-small">Your coach</label>
 				@coachSelect(p.CoachAction, p.Coaches, p.CoachID, "Your coach")
 				<p class="help">They sign off your routines. Without one chosen, any of the club's coaches can.</p>
 			</div>
-		}
-		if len(p.Competitions) == 0 {
-			<p class="has-text-grey">Your club isn't entered in any competitions yet. When it is, you'll enter here.</p>
-		}
-		@pairEntries(p.Pairs)
-		for _, c := range p.Competitions {
-			<details class="box" open?={ c.Open }>
-				<summary>
-					<strong>{ c.Competition.Name }</strong>
-					<span class="has-text-grey is-size-7">· { c.Status }</span>
-				</summary>
-				<div class="mt-3">
-					@competitionFacts(c.Competition)
-					@dayLink(c.Day)
-					@deskMessages(c.Desk)
-					@timelineLinks(c.Timeline, c.ClubTimeline, c.Notify, c.Calendar, c.ClubCalendar)
-					for _, ev := range c.Events {
-						@memberEvent(c.Competition, ev)
-					}
-					@dutiesBox(c.Duties, c.ScoreSheets)
-					if c.Offer != nil && c.Competition.ChangesOpen {
-						@offerBox(*c.Offer)
-					}
-				</div>
-			</details>
 		}
 	}
 }
@@ -641,55 +721,65 @@ templ ClubLink(p ClubLinkPage) {
 	}
 }
 
-// memberEvent is a member's entry for one discipline, and the form to make
-// or change it.
+// memberEvent is a member's entry for one discipline: a list row (discipline,
+// level, status) that opens to its card and the forms to make or change it.
 templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
-	<div class={ templ.KV("comp-event", ev.Several) }>
-		if ev.Several {
-			<h2 class="title is-6 mb-2">
-				{ ev.Name }
-				<span class="has-text-grey is-size-7 has-text-weight-normal">· { ev.Status }</span>
-			</h2>
-		}
-		@waitingLine(ev.Waiting)
-		@lateLine(ev.Late, ev.LateAsk)
-		@placementLine(ev.Placement)
-		@organiserNote(ev.Note)
-		@videoReviewNote(ev.VideoReview, ev.VideoNote)
-		@partnerBox(ev.Partner)
-		if ev.Card != nil {
-			@entryCard(*ev.Card)
-		}
-		if comp.ChangesOpen {
-			if ev.Card != nil {
-				// Collapsed under the card; open when a save had problems.
-				<details class="box mt-4 comp-change" open?={ len(ev.Form.Problems) > 0 }>
-					<summary><strong>Change your entry</strong></summary>
-					<div class="mt-3">
+	if ev.Card != nil || comp.ChangesOpen {
+		<details class="box comp-event-row" open?={ ev.Open }>
+			<summary>
+				@memberEventRow(ev)
+			</summary>
+			<div class="mt-3">
+				if ev.Card != nil {
+					<p class="mb-2"><strong>{ ev.Status }</strong></p>
+				}
+				@waitingLine(ev.Waiting)
+				@lateLine(ev.Late, ev.LateAsk)
+				@placementLine(ev.Placement)
+				@organiserNote(ev.Note)
+				@videoReviewNote(ev.VideoReview, ev.VideoNote)
+				@partnerBox(ev.Partner)
+				if ev.Card != nil {
+					@entryCard(*ev.Card)
+				}
+				if comp.ChangesOpen {
+					if ev.Card != nil {
+						// Collapsed under the card; open when a save had problems.
+						<details class="box mt-4 comp-change" open?={ len(ev.Form.Problems) > 0 }>
+							<summary><strong>Change your entry</strong></summary>
+							<div class="mt-3">
+								@entryForm(ev.Form)
+							</div>
+						</details>
+						<form method="post" action={ templ.SafeURL(ev.Withdraw) } class="mt-4 mb-4">
+							<input type="hidden" name="discipline" value={ ev.Discipline }/>
+							<label class="checkbox is-size-7">
+								<input type="checkbox" name="confirm" value="1" required/>
+								Withdraw this entry
+							</label>
+							<button class="button is-small is-danger is-outlined ml-2" type="submit">Withdraw</button>
+						</form>
+					} else {
 						@entryForm(ev.Form)
-					</div>
-				</details>
-				<form method="post" action={ templ.SafeURL(ev.Withdraw) } class="mt-4 mb-4">
-					<input type="hidden" name="discipline" value={ ev.Discipline }/>
-					<label class="checkbox is-size-7">
-						<input type="checkbox" name="confirm" value="1" required/>
-						Withdraw this entry
-					</label>
-					<button class="button is-small is-danger is-outlined ml-2" type="submit">Withdraw</button>
-				</form>
-			} else if ev.Several {
-				<details class="comp-change mb-4" open?={ len(ev.Form.Problems) > 0 }>
-					<summary>Enter { ev.Name }</summary>
-					<div class="mt-3">
-						@entryForm(ev.Form)
-					</div>
-				</details>
-			} else {
-				<h2 class="title is-6 mt-4">Enter</h2>
-				@entryForm(ev.Form)
-			}
-		}
-	</div>
+					}
+				}
+			</div>
+		</details>
+	} else {
+		// Nothing to open: entries are closed and there is no entry.
+		<div class="box comp-event-row">
+			@memberEventRow(ev)
+		</div>
+	}
+}
+
+// memberEventRow is the one line a discipline's entry takes in the list.
+templ memberEventRow(ev MemberEvent) {
+	<strong>{ ev.Name }</strong>
+	if ev.Level != "" {
+		<span class="has-text-grey is-size-7">· { ev.Level }</span>
+	}
+	<span class={ "tag ml-2", ev.BriefClass }>{ ev.Brief }</span>
 }
 
 // ClubOfferEdit is the comp sec changing what a member offers.
@@ -697,12 +787,14 @@ type ClubOfferEdit struct {
 	Base, Club, Member string
 	Competition        CompetitionSummary
 	Form               OfferForm
+	Menu               []MenuSection
 }
 
 // ClubOfferEditPage is the comp sec changing a member's offer.
 templ ClubOfferEditPage(e ClubOfferEdit) {
 	@competitionLayout(e.Member + " · judging and helping") {
-		<p class="mb-3"><a href={ templ.SafeURL(e.Base) }>← { e.Club }</a></p>
+		@pageMenu(e.Menu)
+		<p class="mb-3"><a href={ templ.SafeURL(e.Base) }>← Competitions</a></p>
 		<h1 class="title is-4">{ e.Member }</h1>
 		<p class="subtitle is-6">Judging and helping at { e.Competition.Name }</p>
 		@offerForm(e.Form)

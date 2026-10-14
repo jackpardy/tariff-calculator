@@ -248,7 +248,7 @@ func (p *competitionPages) lateTargetOf(w http.ResponseWriter, r *http.Request) 
 		if !ok {
 			return t, false
 		}
-		t, memberID = lateTarget{c: c, who: m.Name, gymnast: m.Name, back: memberPath(token)}, m.ID
+		t, memberID = lateTarget{c: c, who: m.Name, gymnast: m.Name, back: memberCompetitionPath(token, c.ID)}, m.ID
 	}
 	if memberID != "" {
 		entries, err := p.st.Entries(ctx, t.c.ID)

@@ -39,22 +39,29 @@ func aClubWithMembers(t *testing.T, h http.Handler, admin string, names ...strin
 	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
 	members := map[string]string{}
 	for _, name := range names {
 		m := withoutQuery(redirected(t, h, join, url.Values{"name": {name}}))
-		redirected(t, h, formAction(t, do(t, h, http.MethodGet, m, nil).Body.String(), m+"/competitions/"), entry)
+		redirected(t, h, formAction(t, memberCompetitionPage(t, h, m), m+"/competitions/"), entry)
 		members[name] = m
 	}
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
 	return club, members
 }
 
-// notifyPageOf is the notify page a page links to, under a path prefix.
+// notifyPageOf is the notify page a page links to, under a path prefix. A
+// member's is linked from their page for the competition.
 func notifyPageOf(t *testing.T, h http.Handler, page, prefix string) string {
 	t.Helper()
-	found := regexp.MustCompile(regexp.QuoteMeta(prefix) + `/competitions/[^/"]+/notify`).FindString(do(t, h, http.MethodGet, page, nil).Body.String())
+	body := ""
+	if strings.HasPrefix(page, "/clubs/member/") {
+		body = memberCompetitionPage(t, h, page)
+	} else {
+		body = do(t, h, http.MethodGet, page, nil).Body.String()
+	}
+	found := regexp.MustCompile(regexp.QuoteMeta(prefix) + `/competitions/[^/"]+/notify`).FindString(body)
 	if found == "" {
 		t.Fatalf("%s links to hearing about changes", page)
 	}
@@ -139,8 +146,11 @@ func TestDeskMessageToAClub(t *testing.T) {
 
 	// Every member and the club see it on their pages, subscribed or not.
 	for name, m := range members {
-		day := regexp.MustCompile(`/competitions/[^/"]+/day`).FindString(do(t, h, http.MethodGet, m, nil).Body.String())
-		for _, p := range []string{m, m + day} {
+		day := regexp.MustCompile(`/competitions/[^/"]+/day`).FindString(memberCompetitionPage(t, h, m))
+		if list := do(t, h, http.MethodGet, m, nil).Body.String(); !strings.Contains(list, "Message from the organisers") {
+			t.Errorf("%s's list of competitions says there is a message", name)
+		}
+		for _, p := range []string{m + strings.TrimSuffix(day, "/day"), m + day} {
 			if body := do(t, h, http.MethodGet, p, nil).Body.String(); !strings.Contains(body, deskBox) || !strings.Contains(body, "Warm-up is moved to hall 2") {
 				t.Errorf("%s's page %s shows the message: %s", name, p, body)
 			}
@@ -165,7 +175,7 @@ func TestDeskMessageToAClub(t *testing.T) {
 	if len(mail.sent) != 2 {
 		t.Errorf("Ann and the comp sec: %+v", mail.sent)
 	}
-	if body := do(t, h, http.MethodGet, members["Bea"], nil).Body.String(); strings.Contains(body, "Your coach is looking for you") {
+	if body := memberCompetitionPage(t, h, members["Bea"]); strings.Contains(body, "Your coach is looking for you") {
 		t.Error("Bea isn't shown what is for Ann")
 	}
 	if body := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(body, "Your coach is looking for you") {
@@ -333,7 +343,7 @@ func TestDeskToACoach(t *testing.T) {
 	admin := created(t, h, newCompetition())
 	club, members := aClubWithMembers(t, h, admin, "Ann", "Bea")
 	bob := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
-	bobID := regexp.MustCompile(`<option value="([^"]+)">Bob</option>`).FindStringSubmatch(do(t, h, http.MethodGet, members["Ann"], nil).Body.String())[1]
+	bobID := regexp.MustCompile(`<option value="([^"]+)">Bob</option>`).FindStringSubmatch(do(t, h, http.MethodGet, members["Ann"]+"/details", nil).Body.String())[1]
 	redirected(t, h, members["Ann"]+"/coach", url.Values{"coach": {bobID}})
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, bob, bob), "bob@example.com")
 

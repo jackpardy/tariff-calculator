@@ -173,9 +173,9 @@ func TestClubsSeeTheirFlights(t *testing.T) {
 	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club, nil).Body.String(), "/clubs/join/")
+	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	member := withoutQuery(redirected(t, h, join, url.Values{"name": {"M"}}))
-	save := formAction(t, do(t, h, http.MethodGet, member, nil).Body.String(), member+"/competitions/")
+	save := formAction(t, memberCompetitionPage(t, h, member), member+"/competitions/")
 	redirected(t, h, save, url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
 
@@ -186,7 +186,7 @@ func TestClubsSeeTheirFlights(t *testing.T) {
 	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, "BUCS L3 · Panel 1 · warm-up Saturday 08:30") {
 		t.Error("the comp sec sees each member's flight")
 	}
-	if page := do(t, h, http.MethodGet, member, nil).Body.String(); !strings.Contains(page, "Panel 1 · warm-up Saturday 08:30") {
+	if page := memberCompetitionPage(t, h, member); !strings.Contains(page, "Panel 1 · warm-up Saturday 08:30") {
 		t.Error("the member sees their flight")
 	}
 }
