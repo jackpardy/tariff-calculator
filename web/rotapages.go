@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
 	"slices"
 	"strconv"
@@ -81,6 +82,51 @@ func rotaPeople(c competitions.Competition, officials []store.Official, entries 
 	return out
 }
 
+// rotaFacts are a competition's people as its pages read them: the live
+// entries, the officials as the rota needs them, and who is who.
+type rotaFacts struct {
+	entries   []store.Entry             // the live entries
+	officials []competitions.RotaPerson // as the rota needs them
+	same      samePeople                // who's the same person among them (newSamePeople)
+	people    map[string][]string       // each entry's people, by id (peopleOf)
+	names     map[string]string         // each person's name, by key (peopleOf)
+	one       map[string][]string       // each entry's people, each keyed as one person (clashPeople)
+	oneNames  map[string]string         // names for those keys too (clashPeople)
+}
+
+// liveRota reads a competition's live entries and its officials: the one
+// way the pages get them.
+func (p *competitionPages) liveRota(ctx context.Context, c store.Competition) (rotaFacts, error) {
+	all, err := p.st.Entries(ctx, c.ID)
+	if err != nil {
+		return rotaFacts{}, err
+	}
+	f := rotaFacts{entries: live(all)}
+	if f.officials, f.same, err = p.rotaAndSame(ctx, c, f.entries); err != nil {
+		return rotaFacts{}, err
+	}
+	f.people, f.names = peopleOf(f.entries)
+	f.one, f.oneNames = clashPeople(f.entries, f.same)
+	return f, nil
+}
+
+// name names people by key (officialNames): the officials first, then
+// anyone competing, with an official's club if withClub.
+func (f rotaFacts) name(withClub bool) func(string) string {
+	return officialNames(f.officials, f.names, withClub)
+}
+
+// clashNames are oneNames with the officials not competing named too.
+func (f rotaFacts) clashNames() map[string]string {
+	names := maps.Clone(f.oneNames)
+	for _, o := range f.officials {
+		if names[o.Key] == "" {
+			names[o.Key] = o.Name
+		}
+	}
+	return names
+}
+
 // rotaOf is the competition's officials as the rota needs them.
 func (p *competitionPages) rotaOf(r *http.Request, c store.Competition, entries []store.Entry) ([]competitions.RotaPerson, error) {
 	rota, _, err := p.rotaAndSame(r.Context(), c, entries)
@@ -128,11 +174,11 @@ func (p *competitionPages) staff(s *competitions.Schedule, c store.Competition, 
 // editRota assigns every panel again (action=rota), or gives one seat to a
 // person (action=seat: flight, seat, person; "" empties it).
 func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
-	c, _, entries, ok := p.timetableOf(w, r)
+	c, _, _, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
-	people, same, err := p.rotaAndSame(r.Context(), c, entries)
+	f, err := p.liveRota(r.Context(), c)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -157,12 +203,12 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 			return refused("Plan the timetable first.")
 		}
 		if r.FormValue("action") == "rota" {
-			p.staff(s, c, entries, people, same)
+			p.staff(s, c, f.entries, f.officials, f.same)
 			return nil
 		}
 		seat, err2 := strconv.Atoi(r.FormValue("seat"))
 		person := r.FormValue("person")
-		known := person == "" || slices.ContainsFunc(people, func(o competitions.RotaPerson) bool { return o.Key == person })
+		known := person == "" || slices.ContainsFunc(f.officials, func(o competitions.RotaPerson) bool { return o.Key == person })
 		set := false
 		if block, err := strconv.Atoi(r.FormValue("block")); err == nil {
 			set = s.SetBlockDuty(block, seat, person)

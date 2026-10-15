@@ -16,7 +16,7 @@ import (
 // seats as can be. Nothing is saved.
 
 func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, s, _, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -24,17 +24,12 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 		back(w, r, "Plan the timetable first.")
 		return
 	}
-	officials, same, err := p.rotaAndSame(r.Context(), c, entries)
+	f, err := p.liveRota(r.Context(), c)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	people, names := clashPeople(entries, same)
-	for _, o := range officials {
-		if names[o.Key] == "" {
-			names[o.Key] = o.Name
-		}
-	}
+	people, names := f.one, f.clashNames()
 	name := func(k string) string {
 		if n := names[k]; n != "" {
 			return n
@@ -71,12 +66,12 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 			page.Problems = []string{"Give the day and the time they leave (e.g. 13:00)."}
 		} else {
 			l := competitions.Leave{Person: page.Person, Day: day, From: from, ForGood: page.ForGood, Prefer: page.Prefer}
-			_, fills, err := s.Left(l, people, officials)
+			_, fills, err := s.Left(l, people, f.officials)
 			if err != nil {
 				page.Problems = sentences(err)
 			} else if r.Method == http.MethodPost {
 				p.keepWhatIf(w, r, c, func(s competitions.Schedule) (competitions.Schedule, error) {
-					out, _, err := s.Left(l, people, officials)
+					out, _, err := s.Left(l, people, f.officials)
 					return out, err
 				}, name(page.Person)+"'s seats are filled in the draft.")
 				return

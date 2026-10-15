@@ -274,7 +274,7 @@ func printTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, 
 // timelineCSV is the panel timeline as CSV: a row per flight or blocked time
 // on each area, in time order, with who officiates it, by role.
 func (p *competitionPages) timelineCSV(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, s, _, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -282,13 +282,12 @@ func (p *competitionPages) timelineCSV(w http.ResponseWriter, r *http.Request) {
 		back(w, r, "Plan the timetable first.")
 		return
 	}
-	people, err := p.rotaOf(r, c, entries)
+	f, err := p.liveRota(r.Context(), c)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	_, names := peopleOf(entries)
-	name := officialNames(people, names, true)
+	name := f.name(true)
 	items := timelineItems(s)
 	areaAt := map[string]int{}
 	for i, a := range s.Setup.Areas {

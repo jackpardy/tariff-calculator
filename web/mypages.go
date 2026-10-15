@@ -99,11 +99,11 @@ func hereBox(entries []store.Entry, keys map[string][]string, key string, offici
 }
 
 // dayFacts are what a person's competition page reads from the store, kept
-// for what a page adds to it: the live entries, who is in each, and the
-// check-ins (the panel check-ins and cleared warnings only once published).
+// for what a page adds to it: the live entries, who is in each, the
+// officials, and the check-ins (the panel check-ins and cleared warnings
+// only once published).
 type dayFacts struct {
-	entries  []store.Entry
-	keys     map[string][]string
+	rotaFacts
 	checkins map[string]store.Checkin
 	official map[string]map[string]store.Checkin
 	clears   map[string]map[string]store.ScratchClear
@@ -115,12 +115,10 @@ type dayFacts struct {
 // and the timetable with them picked out. The pages add the rest.
 func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name string) (views.MyCompetitionPage, dayFacts, error) {
 	var f dayFacts
-	all, err := p.st.Entries(r.Context(), c.ID)
-	if err != nil {
+	var err error
+	if f.rotaFacts, err = p.liveRota(r.Context(), c); err != nil {
 		return views.MyCompetitionPage{}, f, err
 	}
-	f.entries = live(all)
-	f.keys = personKeys(f.entries)
 	page := views.MyCompetitionPage{Competition: summary(c.Competition, p.now()), Name: name, Mine: map[string]bool{}, Me: key}
 	t := c.Published
 	published := t != nil
@@ -131,7 +129,7 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		return page, f, err
 	}
 	for _, j := range judge(c.Competition, f.entries) {
-		if !slices.Contains(f.keys[j.ID], key) {
+		if !slices.Contains(f.people[j.ID], key) {
 			continue
 		}
 		page.Mine[j.ID] = true
@@ -176,10 +174,6 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		if page.Lateness, err = p.lateNotes(r.Context(), c, mine); err != nil {
 			return page, f, err
 		}
-		officials, err := p.rotaOf(r, c, f.entries)
-		if err != nil {
-			return page, f, err
-		}
 		page.Duties = dutiesOf(c, key)
 		if f.official, err = p.st.OfficialCheckins(r.Context(), c.ID); err != nil {
 			return page, f, err
@@ -187,7 +181,7 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		if f.clears, err = p.st.ScratchClears(r.Context(), c.ID); err != nil {
 			return page, f, err
 		}
-		page.Days = itemsOf(*t, f.entries, officials)
+		page.Days = itemsOf(*t, f.entries, f.officials)
 	}
 	return page, f, nil
 }
@@ -222,7 +216,7 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 	if page.Published {
 		page.Timeline = own + "/timeline"
 		page.Calendar = own + "/calendar.ics"
-		page.Here = hereBox(f.entries, f.keys, key, len(page.Duties) > 0, f.checkins, f.official, f.clears, own+"/here")
+		page.Here = hereBox(f.entries, f.people, key, len(page.Duties) > 0, f.checkins, f.official, f.clears, own+"/here")
 		if len(page.Duties) > 0 {
 			page.ScoreSheets = own + "/score-sheets"
 		}

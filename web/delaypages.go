@@ -17,7 +17,7 @@ import (
 // delay is the delay page: the form (day, area, from, minutes) and, once
 // asked, what the delay does.
 func (p *competitionPages) delay(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, s, _, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -50,17 +50,12 @@ func (p *competitionPages) delay(w http.ResponseWriter, r *http.Request) {
 		} else if err4 != nil {
 			page.Problems = []string{err4.Error()}
 		} else {
-			officials, same, err := p.rotaAndSame(r.Context(), c, entries)
+			f, err := p.liveRota(r.Context(), c)
 			if err != nil {
 				failed(w, r, err)
 				return
 			}
-			people, names := clashPeople(entries, same)
-			for _, o := range officials {
-				if names[o.Key] == "" {
-					names[o.Key] = o.Name
-				}
-			}
+			people, names := f.one, f.clashNames()
 			_, report, err := s.Delayed(d, people)
 			if err != nil {
 				page.Problems = sentences(err)

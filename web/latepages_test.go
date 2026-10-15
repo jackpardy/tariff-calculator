@@ -104,6 +104,10 @@ func TestLateChecks(t *testing.T) {
 	}
 	ivy, ann := entryOf(t, entries, "Ivy"), entryOf(t, entries, "Ann")
 	clubs, _ := st.CompetitionClubs(ctx, c.ID)
+	f, err := p.liveRota(ctx, c)
+	if err != nil {
+		t.Fatal(err)
+	}
 	coach, _, err := st.CreateCoach(ctx, clubs[0].ID, "Coach C")
 	if err != nil {
 		t.Fatal(err)
@@ -158,7 +162,7 @@ func TestLateChecks(t *testing.T) {
 		{what: "new routines: no limit or timetable to check", c: c, req: routines, e: ivy, want: []string{
 			"Not signed off by a coach: accepted, it would need signing off."}},
 	} {
-		got := p.lateChecks(ctx, tc.c, tc.req, tc.e, entries)
+		got := p.lateChecks(ctx, tc.c, tc.req, tc.e, entries, f)
 		if len(got) == 0 || !strings.HasPrefix(got[0], "The new card ") {
 			t.Errorf("%s: the card's line first: %q", tc.what, got)
 			continue
@@ -183,7 +187,7 @@ func TestLateChecks(t *testing.T) {
 	if err := st.DecideCoach(ctx, c.ID, coach.ID, store.CoachApproved, "", false); err != nil {
 		t.Fatal(err)
 	}
-	if got := p.lateChecks(ctx, approving, signed, ann, entries); !slices.Contains(got, "Signed off by Coach C.") {
+	if got := p.lateChecks(ctx, approving, signed, ann, entries, f); !slices.Contains(got, "Signed off by Coach C.") {
 		t.Errorf("an approved coach's sign-off: %q", got)
 	}
 }

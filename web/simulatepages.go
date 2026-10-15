@@ -219,7 +219,7 @@ func unplacedByEvent(flights []string) []string {
 // competition as it stands, or from=<i> a scenario to change) and the
 // scenarios so far, side by side.
 func (p *competitionPages) simulation(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, s, _, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -228,19 +228,19 @@ func (p *competitionPages) simulation(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	people, same, err := p.rotaAndSame(r.Context(), c, entries)
+	f, err := p.liveRota(r.Context(), c)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	start := actualScenario(c.Competition, entries, people, same)
+	start := actualScenario(c.Competition, f.entries, f.officials, f.same)
 	if i, err := strconv.Atoi(r.URL.Query().Get("from")); err == nil && i >= 0 && i < len(scenarios) {
 		start = scenarios[i]
 	}
 	start.Name = competitions.SimName(scenarios)
 	page := views.SimulationPage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuSimulate), Notice: r.URL.Query().Get("notice"),
-		Form: scenarioForm(c.Competition, start), Entries: len(entries), Max: competitions.MaxScenarios,
+		Form: scenarioForm(c.Competition, start), Entries: len(f.entries), Max: competitions.MaxScenarios,
 	}
 	if err := s.Setup.Check(c.EventNames()); err != nil {
 		page.SetupProblems = sentences(err)

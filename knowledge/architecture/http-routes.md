@@ -56,6 +56,12 @@ member's, an individual's entry, a comp sec's or a coach's link. One
 resolver, `whose` in `web/whose.go`, works out from the link who is asking
 and which competition, and each feature has one handler for all of them.
 
+Pages that read a competition's people (calendars, timelines, score sheets,
+My competition, the desk, late changes, delays, leaving, simulation, the
+rota) get them through one helper, `liveRota` in `web/rotapages.go`: the live
+entries, the officials as the rota needs them, who's the same person, each
+entry's people and their names, keyed by person or as one person each.
+
 | Method and path | Input | Returns |
 |---|---|---|
 | `GET /competitions/new` | — | The form that creates a competition, and the competitions saved in this browser |

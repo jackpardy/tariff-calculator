@@ -230,19 +230,12 @@ func (p *competitionPages) serveCalendar(w http.ResponseWriter, r *http.Request,
 	claims func(entries []store.Entry, officials []competitions.RotaPerson, name func(string) string) func(calendarSlot) []calendarClaim) {
 	var events []calendarEvent
 	if t := c.Published; t != nil {
-		all, err := p.st.Entries(r.Context(), c.ID)
+		f, err := p.liveRota(r.Context(), c)
 		if err != nil {
 			failed(w, r, err)
 			return
 		}
-		entries := live(all)
-		officials, err := p.rotaOf(r, c, entries)
-		if err != nil {
-			failed(w, r, err)
-			return
-		}
-		_, names := peopleOf(entries)
-		events = calendarEventsOf(c, *t, whose, claims(entries, officials, officialNames(officials, names, false)))
+		events = calendarEventsOf(c, *t, whose, claims(f.entries, f.officials, f.name(false)))
 	}
 	name := c.Name + " · " + label
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")

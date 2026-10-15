@@ -397,6 +397,11 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 	for _, e := range entries {
 		byID[e.ID] = e
 	}
+	f, err := p.liveRota(ctx, c)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	base := adminPath(r.PathValue("token"))
 	page := views.LateAdminPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuLate), Notice: r.URL.Query().Get("notice"),
 		Signoff: c.Signoff, SignoffFirst: c.Late.SignoffFirst}
@@ -413,7 +418,7 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 			v.Fee = c.Fees.Money(fee)
 		}
 		if v.Waiting {
-			v.Checks = p.lateChecks(ctx, c, req, e, entries)
+			v.Checks = p.lateChecks(ctx, c, req, e, entries, f)
 		}
 		page.Requests = append(page.Requests, v)
 	}
@@ -423,7 +428,7 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 // lateChecks say whether a change can be fitted in: the new card's
 // problems, the new level's limit, and where it would go in the draft
 // timetable and what that does.
-func (p *competitionPages) lateChecks(ctx context.Context, c store.Competition, req store.LateRequest, e store.Entry, entries []store.Entry) []string {
+func (p *competitionPages) lateChecks(ctx context.Context, c store.Competition, req store.LateRequest, e store.Entry, entries []store.Entry, f rotaFacts) []string {
 	var out []string
 	shown, err := card(c.Competition, req.Entry, clubOf(e))
 	switch {
@@ -468,10 +473,7 @@ func (p *competitionPages) lateChecks(ctx context.Context, c store.Competition, 
 	if c.Timetable == nil || !c.Timetable.Planned {
 		return out
 	}
-	// Without who's the same person, clashes are worked out by key alone.
-	_, same, _ := p.rotaAndSame(ctx, c, live(entries))
-	people, names := clashPeople(live(entries), same)
-	_, place := c.Timetable.PlaceChange(e.ID, event, req.Entry.Category, people, coachesOf(live(entries), same), names)
+	_, place := c.Timetable.PlaceChange(e.ID, event, req.Entry.Category, f.one, coachesOf(f.entries, f.same), f.oneNames)
 	if place.Flight < 0 {
 		return append(out, "The draft timetable has no flight of "+event+" yet: accepted, they'd be out of the timetable until you place them.")
 	}
@@ -560,13 +562,12 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 				notice = fmt.Sprintf("Accepted: %s is %s on %s's waiting list.", accepted.Entry.Gymnasts(), waitingWord(e.Waiting), accepted.Entry.Event())
 			}
 		}
-		_, same, err := p.rotaAndSame(ctx, c, live(entries))
+		f, err := p.liveRota(ctx, c)
 		if err != nil {
 			failed(w, r, err)
 			return
 		}
-		people, names := clashPeople(live(entries), same)
-		coaches := coachesOf(live(entries), same)
+		people, names, coaches := f.one, f.oneNames, coachesOf(f.entries, f.same)
 		// The draft as it is now, not as it was when the page was read: an
 		// edit made since stays.
 		err = p.st.UpdateTimetable(ctx, c.ID, func(draft *competitions.Schedule) error {

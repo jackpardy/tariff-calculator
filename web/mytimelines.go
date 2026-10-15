@@ -50,21 +50,14 @@ func (p *competitionPages) focusedTimeline(w http.ResponseWriter, r *http.Reques
 		message(w, r, http.StatusNotFound, "No timetable yet", "The organiser hasn't published the timetable yet. It shows here once they do.")
 		return views.Timeline{}, false
 	}
-	all, err := p.st.Entries(r.Context(), c.ID)
+	f, err := p.liveRota(r.Context(), c)
 	if err != nil {
 		failed(w, r, err)
 		return views.Timeline{}, false
 	}
-	entries := live(all)
-	officials, err := p.rotaOf(r, c, entries)
-	if err != nil {
-		failed(w, r, err)
-		return views.Timeline{}, false
-	}
-	_, names := peopleOf(entries)
-	name := officialNames(officials, names, false)
+	name := f.name(false)
 	only := r.URL.Query().Get("only") == "1"
-	out := timeline(*t, name, false, &timelineFocus{mark: mark(entries, officials, name), only: only})
+	out := timeline(*t, name, false, &timelineFocus{mark: mark(f.entries, f.officials, name), only: only})
 	out.Competition, out.Back, out.BackLabel = summary(c.Competition, p.now()), back, "← Back"
 	out.Other, out.OtherLabel = r.URL.Path+"?only=1", "Only these"
 	if only {
@@ -183,13 +176,7 @@ func (p *competitionPages) officialScoreSheets(w http.ResponseWriter, r *http.Re
 		message(w, r, http.StatusNotFound, "No timetable yet", "The organiser hasn't published the timetable yet. Score sheets show here once they do.")
 		return
 	}
-	all, err := p.st.Entries(r.Context(), c.ID)
-	if err != nil {
-		failed(w, r, err)
-		return
-	}
-	entries := live(all)
-	officials, err := p.rotaOf(r, c, entries)
+	f, err := p.liveRota(r.Context(), c)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -199,7 +186,7 @@ func (p *competitionPages) officialScoreSheets(w http.ResponseWriter, r *http.Re
 		failed(w, r, err)
 		return
 	}
-	sheets := scoreSheets(c, *t, entries, officials, scratched, back, p.now(), key)
+	sheets := scoreSheets(c, *t, f.entries, f.officials, scratched, back, p.now(), key)
 	sheets.BackLabel = "← Back"
 	sheets.Intro = "The score sheets of the flights you're on the panel for. The organiser prints them for the day; you don't need to."
 	render(w, r, views.ScorePrint(sheets))
