@@ -98,6 +98,13 @@ stays consistent while the app writes, and `scripts/restore.md` puts it back.
 These are in the server repository (CONTRACT.md "Tariff calculator storage",
 GUIDE.md section m).
 
+**Rolling back.** The app won't open a database that a newer version has
+migrated further than it knows: it stops at start with an error saying so,
+rather than write rows without the newer columns. To roll back past a
+migration, restore the backup taken before the newer version ran. Uploads
+of coaches' certificates are refused while the data directory's disk has
+less than 1 GB free.
+
 # Notifications
 
 [Notifications](../features/competition-entries.md#notifications-adr-0008)

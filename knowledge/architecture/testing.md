@@ -31,6 +31,8 @@ approved by the maintainer first.
 | `requirements/check_test.go` | Which checks apply to a routine, resolving references, and checking a level's two exercises together (carry-over and repeats) |
 | `competitions/competitions_test.go` | Validating competitions and entries, and checking an entry as the builder does (set routines as prescribed, AG3 carry-over, a coach's own level) |
 | `store/store_test.go` | Migrations, every kind of link (hashed, replaced, wrong), individual and club entries, sending and re-sending, deadlines, limits and deletion after 120 days, each on a fresh SQLite file |
+| `store/migrations_test.go` | Refusing a database migrated further than the app knows, a table rebuild run with foreign keys off (and refused if a reference breaks), and migration 33 clearing notifications' page paths |
+| `store/certificates_test.go` | Certificates' limits: 3 MB each, 60 MB a club and a competition's individuals, none on a nearly full disk |
 | `catalog/*_test.go` | Picker categories, shape options, search by name, alias and notation |
 | `static/static_test.go` | Hashed URLs and caching headers |
 | `web/main_test.go` | Handlers end to end, asserting on rendered HTML: flags, custom names, checks, sheet, compare, requirements, side by side, QR, sharing, oversize bodies; every template's `js:` `hx-vals` being an object literal (htmx wraps anything else in braces, which broke the sheet) |

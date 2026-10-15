@@ -84,6 +84,18 @@ func (s *Store) Close() error {
 
 // migrations upgrade the schema, in order. Each runs once, in a transaction;
 // never edit one that has shipped, add another.
+//
+// They run with foreign keys on, and SQLite ignores PRAGMA foreign_keys
+// inside a transaction. A migration that rebuilds a table (create the new
+// one, copy the rows, drop the old, rename the new) needs them off: with
+// them on, dropping the old table deletes, or fails on, the rows that refer
+// to it. Give its version in rebuilds: it then runs on a connection of its
+// own with foreign keys off, and commits only if PRAGMA foreign_key_check
+// finds every reference still holds. No migration so far needs it.
+//
+// A database migrated further than the app knows isn't opened (migrate):
+// after a rollback, an older app would write rows without the newer
+// columns.
 var migrations = []string{
 	`CREATE TABLE competitions (
 		id               TEXT PRIMARY KEY,
@@ -622,6 +634,10 @@ var migrationSteps = map[int]func(context.Context, *sql.Tx) error{
 	30: individualsFromEntries,
 }
 
+// rebuilds are the migrations, by version, that rebuild a table, so run
+// with foreign keys off (see migrations).
+var rebuilds = map[int]bool{}
+
 // migrate runs the migrations the database hasn't had yet.
 func (s *Store) migrate(ctx context.Context) error {
 	if _, err := s.db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS migrations (
@@ -634,8 +650,16 @@ func (s *Store) migrate(ctx context.Context) error {
 	if err := s.db.QueryRowContext(ctx, `SELECT COALESCE(MAX(version), 0) FROM migrations`).Scan(&done); err != nil {
 		return fmt.Errorf("reading the schema version: %w", err)
 	}
+	if done > len(migrations) {
+		return fmt.Errorf("the database's schema is at version %d, but this version of the app knows only up to %d: "+
+			"it was used by a newer version. Run that version again, or restore a backup taken before it", done, len(migrations))
+	}
 	for v := done + 1; v <= len(migrations); v++ {
-		err := s.tx(ctx, func(tx *sql.Tx) error {
+		run := s.tx
+		if rebuilds[v] {
+			run = s.rebuildTx
+		}
+		err := run(ctx, func(tx *sql.Tx) error {
 			if _, err := tx.ExecContext(ctx, migrations[v-1]); err != nil {
 				return err
 			}
@@ -652,6 +676,40 @@ func (s *Store) migrate(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// rebuildTx runs fn in a transaction with foreign keys off, for a migration
+// that rebuilds a table, committing if it returns nil and every reference
+// still holds. It has a connection of its own, which gets its foreign keys
+// back before it goes back to the pool.
+func (s *Store) rebuildTx(ctx context.Context, fn func(*sql.Tx) error) error {
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	if _, err := conn.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+		return err
+	}
+	defer conn.ExecContext(context.WithoutCancel(ctx), `PRAGMA foreign_keys = ON`)
+	tx, err := conn.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	if err := fn(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	var table string
+	switch err := tx.QueryRowContext(ctx, `SELECT "table" FROM pragma_foreign_key_check`).Scan(&table); {
+	case err == nil:
+		tx.Rollback()
+		return fmt.Errorf("rows in %s refer to rows that are gone", table)
+	case !errors.Is(err, sql.ErrNoRows):
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }
 
 // tx runs fn in a transaction, committing if it returns nil.
