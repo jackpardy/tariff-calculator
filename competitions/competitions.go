@@ -237,16 +237,6 @@ func (c Competition) Validate() error {
 	return errors.Join(errs...)
 }
 
-// Level is the offered level with this name.
-func (c Competition) Level(name string) (Level, requirements.Level, bool) {
-	for _, l := range c.Levels {
-		if level, err := l.Resolve(); err == nil && level.Name == name {
-			return l, level, true
-		}
-	}
-	return Level{}, requirements.Level{}, false
-}
-
 // Entry is one gymnast's entry: a level and a routine for each of its two
 // exercises. A member keeps one with their club for each competition, and the
 // competition keeps a copy of what the club sent.
@@ -504,17 +494,6 @@ func (s Split) validate(levels []string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown split %q", s.Mode)
-}
-
-// names are the names of the levels a competition offers, in order.
-func names(c Competition) []string {
-	var out []string
-	for _, l := range c.Levels {
-		if level, err := l.Resolve(); err == nil {
-			out = append(out, level.Name)
-		}
-	}
-	return out
 }
 
 // CoachLevel is the lowest coaching qualification level accepted in a

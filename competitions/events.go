@@ -188,6 +188,3 @@ func (c Competition) validateEvents() []error {
 	}
 	return errs
 }
-
-// LevelsOf are a checked discipline's levels: trampoline's or synchro's.
-func (c Competition) LevelsOf(discipline string) []Level { return c.levels(discipline) }

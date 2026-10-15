@@ -30,11 +30,6 @@ const maxRequestBytes = 64 << 10
 // Decision 9): the file and the form around it.
 const maxUploadBytes = maxCertificateBytes + 64<<10
 
-// routes builds the application's handler without competition storage.
-func routes() http.Handler {
-	return routesWith(nil)
-}
-
 // routesWith builds the application's handler, with every request body
 // size-limited. st is the competition storage, nil when it's off.
 func routesWith(st *store.Store) http.Handler {

@@ -59,9 +59,17 @@ func Lateness(s Schedule, day int, firstDay time.Time, loc *time.Location, actua
 			continue
 		}
 		out[f.Area] = AreaLateness{
-			Minutes: int(at.In(loc).Sub(midnight).Round(time.Minute).Minutes()) - planned,
+			Minutes: clockMinutes(at.In(loc)) - planned,
 			Flight:  f.Name(), As: as, At: at,
 		}
 	}
 	return out
+}
+
+// clockMinutes is a time's minutes since midnight by the clock, as the
+// timetable counts them: on the day the clocks change, the time since
+// midnight would be an hour out.
+func clockMinutes(t time.Time) int {
+	t = t.Round(time.Minute)
+	return t.Hour()*60 + t.Minute()
 }

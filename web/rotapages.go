@@ -125,6 +125,12 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 		p.staff(&s, c, entries, people)
 		notice = "Officials assigned again."
 	case "seat":
+		if !r.Form.Has("person") {
+			// The dropdown was left on "Choose a person", which sends
+			// nothing: not the same as choosing No one.
+			back(w, r, "Choose who takes the seat; nothing was changed.")
+			return
+		}
 		seat, err2 := strconv.Atoi(r.FormValue("seat"))
 		person := r.FormValue("person")
 		known := person == "" || slices.ContainsFunc(people, func(o competitions.RotaPerson) bool { return o.Key == person })

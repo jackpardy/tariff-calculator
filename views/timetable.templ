@@ -1,6 +1,7 @@
 package views
 
 import (
+	"tariffCalculator/static"
 	"strings"
 	"fmt"
 	"strconv"
@@ -151,6 +152,9 @@ type FlightOption struct {
 // CompetitionTimetable is the organiser's timetable page.
 templ CompetitionTimetable(p TimetablePage) {
 	@competitionLayout("Timetable · " + p.Competition.Name) {
+		@fillOptions("move-options", p.Moves)
+		@fillOptions("seat-options", p.Rota.Options)
+		<script defer src={ static.URL("js/fill.js") }></script>
 		<h1 class="title is-4">Timetable</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		@pageMenu(p.Menu)
@@ -696,11 +700,9 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 				</select>
 			</div>
 			<div class="select is-small">
-				<select name="person" aria-label={ "Person for " + it.Name }>
+				<select name="person" aria-label={ "Person for " + it.Name } data-fill="seat-options">
+					<option value="" disabled selected>Choose a person</option>
 					<option value="">No one</option>
-					for _, o := range p.Rota.Options {
-						<option value={ o.Value }>{ o.Label }</option>
-					}
 				</select>
 			</div>
 			<button class="button is-small" type="submit">Set</button>
@@ -711,7 +713,21 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 	</details>
 }
 
-// moveGymnast moves a gymnast to another flight, or out of the timetable.
+// fillOptions is a long list of choices, once for the page: the flights a
+// gymnast can move to, and the people who can take a seat. Each dropdown
+// marked data-fill with its id fills from it when opened
+// (static/js/fill.js), where repeating the lists in every dropdown made the
+// timetable page several megabytes.
+templ fillOptions(id string, options []FlightOption) {
+	<template id={ id }>
+		for _, o := range options {
+			<option value={ o.Value }>{ o.Label }</option>
+		}
+	</template>
+}
+
+// moveGymnast moves a gymnast to another flight, or out of the timetable. Its
+// list of flights is filled from fillOptions when the dropdown opens.
 templ moveGymnast(p TimetablePage, g TimetableGymnast, named bool) {
 	<form method="post" action={ templ.SafeURL(p.Base + "/timetable/entry") } class="comp-move-form">
 		<input type="hidden" name="entry" value={ g.ID }/>
@@ -719,10 +735,8 @@ templ moveGymnast(p TimetablePage, g TimetableGymnast, named bool) {
 			<span class="is-size-7">{ g.Name } <span class="has-text-grey">{ g.Club } { g.Category }</span></span>
 		}
 		<div class="select is-small">
-			<select name="to" aria-label={ "Flight for " + g.Name }>
-				for _, o := range p.Moves {
-					<option value={ o.Value }>{ o.Label }</option>
-				}
+			<select name="to" aria-label={ "Flight for " + g.Name } data-fill="move-options">
+				<option value="" disabled selected>Choose a flight</option>
 				<option value="">Take out of the timetable</option>
 			</select>
 		</div>

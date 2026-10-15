@@ -348,10 +348,6 @@ var CommonSkills = map[string]TrampolineSkill{
 	"miller":          {Name: "Miller", Rotation: 8, TwistDistribution: []int{3, 3}, TakeoffPosition: Feet, Backward: true, Shape: Straight, SeatLanding: false},
 }
 
-func GetCommonSkill(name string) (TrampolineSkill, bool) {
-	skill, exists := CommonSkills[name]
-	return skill, exists
-}
 func CalculatePhases(rotation int) int {
 	absRotation := rotation
 	if absRotation < 0 {
