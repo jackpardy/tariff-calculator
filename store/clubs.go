@@ -172,11 +172,34 @@ func (s *Store) Members(ctx context.Context, clubID string) ([]Member, error) {
 
 // ReplaceMemberLink gives a club's member a new personal link, which ends the
 // old one: for the comp sec to send to a member who lost theirs. Only hashes
-// are kept, so the old link can't be shown again. They're the same person,
-// with the same other roles.
+// are kept, so the old link can't be shown again. The comp sec holds the new
+// link too, so it opens only what the club already has: the member becomes a
+// person of their own, with the club's coach who is the same person (made
+// with Make a coach too, whose page they open), and without the shared links
+// added on either's page (ADR 0010). The member ties their other links again
+// by pasting them.
 func (s *Store) ReplaceMemberLink(ctx context.Context, clubID, memberID string) (string, error) {
 	token := newToken()
-	return token, affected(s.db.ExecContext(ctx, `UPDATE members SET token_hash = $1 WHERE id = $2 AND club_id = $3`, hash(token), memberID, clubID))
+	err := s.tx(ctx, func(tx *sql.Tx) error {
+		var was string
+		if err := tx.QueryRowContext(ctx, `SELECT COALESCE(person_id, id) FROM members WHERE id = $1 AND club_id = $2`, memberID, clubID).Scan(&was); err != nil {
+			return notFound(err)
+		}
+		person := newID()
+		if _, err := tx.ExecContext(ctx, `UPDATE members SET token_hash = $1, person_id = $2 WHERE id = $3`, hash(token), person, memberID); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1
+			OR record_id IN (SELECT id FROM coaches WHERE club_id = $2 AND person_id = $3)`, memberID, clubID, was); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `UPDATE coaches SET person_id = $1 WHERE club_id = $2 AND person_id = $3`, person, clubID, was)
+		return err
+	})
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }
 
 // RemoveMember removes a member from their club, with their entries and the

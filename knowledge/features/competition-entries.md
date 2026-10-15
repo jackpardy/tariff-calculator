@@ -1210,10 +1210,16 @@ each role has them.
   and can **Remove** it.
 - **Undo.** Undoing a personal role makes it a person of its own again; a
   shared link added on that record goes with it. Removing a member or coach
-  ends what came through them. Replacing a member's or coach's own link keeps
-  their ties: they're the same person.
+  ends what came through them.
+- **A new link from the comp sec opens only the club's records** (ADR 0010
+  Decision 8, 2026-10-15). The comp sec sees the links it makes, so **New
+  link** for a coach makes the coach a person of their own; for a member,
+  the member and the club's coach who is the same person become a person of
+  their own. The shared links added on those pages go. The person pastes
+  their other links again to tie them.
 - **The comp sec makes a member a coach too** (above): a coach record that is
-  the same person, whose own link is never shown.
+  the same person, whose own link is never shown. Making that coach a link
+  of their own (New link) takes them apart from the member first.
 
 ## Entering on your own: one page
 

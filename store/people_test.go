@@ -75,7 +75,8 @@ func TestTieBothWays(t *testing.T) {
 		t.Errorf("a wrong link: %v", err)
 	}
 
-	// A replaced personal link is the same person: it keeps the tie.
+	// A replaced member link keeps the club's coach who is the same person
+	// (TestNewMemberLinkOpensOnlyTheClub has the rest).
 	newLink, err := s.ReplaceMemberLink(ctx, club.ID, m.ID)
 	must(t, err)
 	if _, err := s.CoachByLink(ctx, Via(mLink, c.ID)); !errors.Is(err, ErrNotFound) {
@@ -266,6 +267,112 @@ func TestMakeCoach(t *testing.T) {
 	other, _, _ := s.CreateClub(ctx, "TCD")
 	if _, err := s.MakeCoach(ctx, other.ID, m.ID); !errors.Is(err, ErrNotFound) {
 		t.Errorf("only a club's own member: %v", err)
+	}
+}
+
+// A coach link the comp sec makes opens only the coach: making a member a
+// coach too, then making that coach a link, doesn't open the member's other
+// roles.
+func TestCoachLinkOpensOnlyTheCoach(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp, organiser, _ := s.CreateCompetition(ctx, competition())
+	club, clubAdmin, _ := s.CreateClub(ctx, "UCD")
+	other, _, _ := s.CreateClub(ctx, "TCD")
+	m, mLink, _ := s.Join(ctx, club.ID, "Fiona")
+	elsewhere, eLink, _ := s.Join(ctx, other.ID, "Fiona")
+	must2(s.Tie(ctx, mLink, RoleOrganiser, organiser))
+	must2(s.Tie(ctx, mLink, RoleMember, eLink))
+
+	// What the club's admin link can do: make the member a coach, then make
+	// the coach a link.
+	c, err := s.MakeCoach(ctx, club.ID, m.ID)
+	must(t, err)
+	if _, err := s.CoachByLink(ctx, Via(mLink, c.ID)); err != nil {
+		t.Fatalf("the member's link opens the coach made from them: %v", err)
+	}
+	cLink, err := s.ReplaceCoachLink(ctx, club.ID, c.ID)
+	must(t, err)
+	if _, _, err := s.AdminLink(ctx, Via(cLink, comp.ID)); !errors.Is(err, ErrNotFound) {
+		t.Errorf("the coach link opens the member's organiser link: %v", err)
+	}
+	if _, err := s.MemberByLink(ctx, Via(cLink, m.ID)); !errors.Is(err, ErrNotFound) {
+		t.Errorf("the coach link opens the member: %v", err)
+	}
+	if _, err := s.MemberByLink(ctx, Via(cLink, elsewhere.ID)); !errors.Is(err, ErrNotFound) {
+		t.Errorf("the coach link opens the member at another club: %v", err)
+	}
+	if got := roleKinds(t, s, cLink); !slices.Equal(got, []string{RoleCoach}) {
+		t.Errorf("the coach link opens only the coach: %v", got)
+	}
+	// The member keeps the rest; the coach is apart now.
+	if got := roleKinds(t, s, mLink); !slices.Equal(got, []string{RoleMember, RoleMember, RoleOrganiser}) {
+		t.Errorf("the member keeps their roles: %v", got)
+	}
+	coaches, _ := s.Coaches(ctx, club.ID)
+	if len(coaches) != 1 || coaches[0].Member != "" {
+		t.Errorf("the coach is no longer the member: %+v", coaches)
+	}
+
+	// A coach with shared links added on their page loses them too.
+	co, coLink, _ := s.CreateCoach(ctx, club.ID, "Gráinne")
+	must2(s.Tie(ctx, coLink, RoleClub, clubAdmin))
+	if _, err := s.ReplaceCoachLink(ctx, club.ID, co.ID); err != nil {
+		t.Fatal(err)
+	}
+	if ties, _ := s.ClubTies(ctx, club.ID); len(ties) != 0 {
+		t.Errorf("the tie added on the coach's page goes: %+v", ties)
+	}
+}
+
+// A member link the comp sec replaces opens only the club's records: the
+// member, and the club's coach who is the same person, without the shared
+// links added on either's page. Pasting their other links ties them again.
+func TestNewMemberLinkOpensOnlyTheClub(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	comp, organiser, _ := s.CreateCompetition(ctx, competition())
+	club, clubAdmin, _ := s.CreateClub(ctx, "UCD")
+	other, otherAdmin, _ := s.CreateClub(ctx, "TCD")
+	m, mLink, _ := s.Join(ctx, club.ID, "Fiona")
+	elsewhere, eLink, _ := s.Join(ctx, other.ID, "Fiona")
+	must2(s.Tie(ctx, eLink, RoleOrganiser, organiser))
+	must2(s.Tie(ctx, mLink, RoleMember, eLink))
+	must2(s.Tie(ctx, mLink, RoleClub, clubAdmin))
+	co, coLink, _ := s.CreateCoach(ctx, club.ID, "Fiona")
+	must2(s.Tie(ctx, coLink, RoleMember, mLink))
+	must2(s.Tie(ctx, coLink, RoleClub, otherAdmin))
+
+	newLink, err := s.ReplaceMemberLink(ctx, club.ID, m.ID)
+	must(t, err)
+	if got := roleKinds(t, s, newLink); !slices.Equal(got, []string{RoleMember, RoleCoach}) {
+		t.Errorf("only the club's records: %v", got)
+	}
+	if got, err := s.CoachByLink(ctx, Via(newLink, co.ID)); err != nil || got.ID != co.ID {
+		t.Errorf("the new link opens the club's coach who is the same person: %+v, %v", got, err)
+	}
+	if _, _, err := s.AdminLink(ctx, Via(newLink, comp.ID)); !errors.Is(err, ErrNotFound) {
+		t.Errorf("the new link opens the organiser link: %v", err)
+	}
+	if _, err := s.MemberByLink(ctx, Via(newLink, elsewhere.ID)); !errors.Is(err, ErrNotFound) {
+		t.Errorf("the new link opens the member at another club: %v", err)
+	}
+	for _, id := range []string{club.ID, other.ID} {
+		if _, err := s.ClubByAdmin(ctx, Via(newLink, id)); !errors.Is(err, ErrNotFound) {
+			t.Errorf("the new link opens a club added on the member's or coach's page: %v", err)
+		}
+	}
+	// The member at the other club keeps what was added on their own page.
+	if _, _, err := s.AdminLink(ctx, Via(eLink, comp.ID)); err != nil {
+		t.Errorf("the other club's member keeps the organiser link: %v", err)
+	}
+
+	must2(s.Tie(ctx, newLink, RoleMember, eLink))
+	if _, _, err := s.AdminLink(ctx, Via(newLink, comp.ID)); err != nil {
+		t.Errorf("tied again: %v", err)
+	}
+	if _, err := s.ReplaceMemberLink(ctx, other.ID, m.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("only the club's own member: %v", err)
 	}
 }
 

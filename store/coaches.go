@@ -97,11 +97,26 @@ func (s *Store) CoachByLink(ctx context.Context, token string) (Coach, error) {
 	return c, err
 }
 
-// ReplaceCoachLink gives a coach a new link, which ends the old one. They're
-// the same person, with the same other roles.
+// ReplaceCoachLink gives a coach a new link, which ends the old one. The comp
+// sec holds the new link too, so it opens only the coach: they become a
+// person of their own, without the shared links added on their page (ADR
+// 0010). A coach made with Make a coach too leaves the member this way, so
+// the member's link no longer opens them. The coach ties their other links
+// again by pasting them.
 func (s *Store) ReplaceCoachLink(ctx context.Context, clubID, coachID string) (string, error) {
 	token := newToken()
-	return token, affected(s.db.ExecContext(ctx, `UPDATE coaches SET token_hash = $1 WHERE id = $2 AND club_id = $3`, hash(token), coachID, clubID))
+	err := s.tx(ctx, func(tx *sql.Tx) error {
+		if err := affected(tx.ExecContext(ctx, `UPDATE coaches SET token_hash = $1, person_id = $2 WHERE id = $3 AND club_id = $4`,
+			hash(token), newID(), coachID, clubID)); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, coachID)
+		return err
+	})
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }
 
 // RemoveCoach removes a coach, and the shared links added on their page.

@@ -446,9 +446,11 @@ coach sign-off. Changing a member's entry is part of Competitions too.
 - **Change** edits a member's entry for them.
 - **Members** (its own section): the **Join link**, then each member: choose
   their coach from the list, give a member who lost their link a **New link**
-  (their old one stops working), or **Remove** them. A member who also coaches
-  needs no coach link: tap **Make a coach too** beside them, and their member
-  link opens their coach's page as well. Synchro entries that gymnasts from
+  (their old one stops working, and the new one opens only their pages at
+  your club: they add their other links again), or **Remove** them. A member
+  who also coaches needs no coach link: tap **Make a coach too** beside them,
+  and their member link opens their coach's page as well. Making that coach a
+  link of their own (**New link**) parts it from the member. Synchro entries that gymnasts from
   other clubs made with your members are listed here too. To find a member,
   search by name or narrow the list by coach, entries, or coach too.
 - **Coaches** (its own section; search by name, or narrow by who signs off
@@ -622,6 +624,9 @@ link listed has **Undo**.
   sees who added it, and can remove it; replacing it ends it for everyone.
 - If your comp sec makes you a coach too, there's no coach link: your member
   link opens your coach's page.
+- If your comp sec gives you a **New link**, it opens only your pages at
+  that club: add your other links to it again. The comp sec sees the links
+  they make, so a link they make never opens your roles elsewhere.
 
 # What's kept
 
