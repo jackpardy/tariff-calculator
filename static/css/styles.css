@@ -915,6 +915,7 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 /* On a phone, tighter tabs so four sections fit without scrolling sideways. */
 @media (max-width: 480px) {
     .comp-menu .tabs:not(.comp-submenu) a { padding: 0.5em 0.55em; font-size: 0.92rem; }
+    .comp-menu .tabs:not(.comp-submenu) .comp-badge-word { display: none; }
 }
 /* One link, several roles (views/roles.templ): a person's roles as toggle
    tabs above the page's own menu, scrolling sideways on a narrow screen; and
@@ -1029,6 +1030,12 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .comp-day-card .title a { color: inherit; }
 .comp-day-card-flight { border-top: 1px solid #ededed; padding-top: 0.75rem; margin-top: 0.5rem; }
 .comp-day-card .comp-day-flight-taps, .comp-day-card .comp-up .buttons { margin-bottom: 0; }
+/* Cards side by side are as tall as the row, with each one's tap and Open at the
+   foot, so they line up however long a flight's name is. */
+#day-areas > .column { display: flex; flex-direction: column; }
+#day-areas .comp-day-card { flex: 1 0 auto; display: flex; flex-direction: column; }
+#day-areas .comp-day-card-flight { flex: 1 0 auto; display: flex; flex-direction: column; }
+#day-areas .comp-day-card-flight > :last-child:not(:first-child) { margin-top: auto; }
 .comp-day-people > summary { display: none; }
 .comp-day-people[open] { margin-top: 0.75rem; border-top: 1px solid #ededed; padding-top: 0.5rem; }
 .comp-day-person { display: block; padding: 0.2rem 0; }

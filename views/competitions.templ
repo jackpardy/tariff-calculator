@@ -133,10 +133,6 @@ templ NewCompetition(f CompetitionForm) {
 	@competitionLayout("New competition") {
 		<h1 class="title is-4">New competition</h1>
 		<p class="mb-4">Collect gymnasts' competition cards before the day, each checked against its level. There are no accounts: you get an admin link to keep, and links to give clubs and gymnasts.</p>
-		<div id="saved-competitions" class="box" hidden>
-			<h2 class="title is-6">Your competitions in this browser</h2>
-			<ul></ul>
-		</div>
 		@problemList(f.Problems)
 		<form method="post" action="/competitions" id="new-competition">
 			<div class="field">
@@ -195,7 +191,7 @@ templ NewCompetition(f CompetitionForm) {
 			@videoFields(f.Video)
 			@signoffField(f.Signoff)
 			<div class="field">
-				<label class="checkbox">
+				<label class="checkbox comp-check">
 					<input type="checkbox" name="split" value="all" checked?={ f.SplitAll }/>
 					Rank men and women separately
 				</label>
@@ -203,6 +199,12 @@ templ NewCompetition(f CompetitionForm) {
 			</div>
 			<button class="button is-primary is-fullwidth" type="submit">Create competition</button>
 		</form>
+		// The competitions already saved here, after the form this page is
+		// for (Competitions and clubs lists them too).
+		<div id="saved-competitions" class="mt-5" hidden>
+			<h2 class="title is-6 mb-2">Your competitions in this browser</h2>
+			<ul></ul>
+		</div>
 	}
 }
 
@@ -371,7 +373,7 @@ templ videoReviewNote(review, note string) {
 // Decision 11).
 templ signoffField(on bool) {
 	<div class="field">
-		<label class="checkbox">
+		<label class="checkbox comp-check">
 			<input type="checkbox" name="signoff" value="1" checked?={ on }/>
 			Entries need a coach's sign-off
 		</label>

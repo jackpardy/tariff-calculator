@@ -5,7 +5,6 @@ package views
 type PeoplePage struct {
 	Competition CompetitionSummary
 	Menu        []MenuSection
-	Count       string // how many, e.g. "12 people"
 	People      []PersonRow
 	Tools       ListTools // the list's search and filters
 }
@@ -24,7 +23,7 @@ templ People(p PeoplePage) {
 		<h1 class="title is-4">People</h1>
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
-		<p class="mb-3"><strong>{ p.Count }</strong> at this competition: gymnasts, officials and coaches, each once. Open a name to see everything they're doing.</p>
+		<p class="mb-3">Everyone at this competition, once: gymnasts, officials and coaches. Open a name to see everything they're doing.</p>
 		@listSection("People", len(p.People)) {
 			if len(p.People) == 0 {
 				<p class="has-text-grey">Nobody yet. Gymnasts, officials and coaches show here once entries are sent.</p>

@@ -72,7 +72,7 @@ func TestLateChanges(t *testing.T) {
 	if !strings.Contains(page, "2 to decide") {
 		t.Error("the dashboard says there are late changes to decide")
 	}
-	if page := do(t, h, http.MethodGet, admin+"/timetable", nil).Body.String(); !strings.Contains(page, "2 to decide") {
+	if page := do(t, h, http.MethodGet, admin+"/timetable", nil).Body.String(); !strings.Contains(page, `2<span class="comp-badge-word">&nbsp;to decide</span>`) {
 		t.Error("every page's menu says there are late changes to decide")
 	}
 	late := do(t, h, http.MethodGet, admin+"/late", nil).Body.String()
