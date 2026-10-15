@@ -303,6 +303,9 @@ func TestFindCommonSkillName(t *testing.T) {
 		want string
 	}{
 		// Shape relevant -> always clarified, including straight.
+		// No somersault: the direction is ignored.
+		{"half twist to seat, backward", skill(0, []int{1}, Feet, Straight, true, true), "Half Twist To Seat"},
+		{"full twist, backward", skill(0, []int{2}, Feet, Straight, true, false), "Full Twist"},
 		{"front tuck", skill(4, []int{0}, Feet, Tuck, false, false), "Tuck Front"},
 		{"front straight", skill(4, []int{0}, Feet, Straight, false, false), "Straight Front"},
 		{"barani tuck", skill(4, []int{1}, Feet, Tuck, false, false), "Tuck Barani"},
@@ -319,6 +322,13 @@ func TestFindCommonSkillName(t *testing.T) {
 		{"seat half twist to seat", skill(0, []int{1}, Seat, Straight, false, true), "Seat Half Twist To Seat"},
 		// No match.
 		{"custom", skill(9, []int{0, 0}, Feet, Tuck, false, false), "Custom Skill"},
+		// No common name, but simple: described from its parts.
+		{"full twist to back drop", skill(1, []int{2}, Feet, Straight, true, false), "Full Twist To Back"},
+		{"full twist to front drop", skill(1, []int{2}, Feet, Straight, false, false), "Full Twist To Front"},
+		{"seat full twist to feet", skill(0, []int{2}, Seat, Straight, false, false), "Seat Full Twist To Feet"},
+		{"double twist jump", skill(0, []int{4}, Feet, Straight, false, false), "Double Twist"},
+		// A somersault with no common name is too much to describe.
+		{"three-quarter back from seat", skill(3, []int{0}, Seat, Tuck, true, false), "Custom Skill"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

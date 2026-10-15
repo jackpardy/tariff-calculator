@@ -168,8 +168,8 @@ templ sheetRow(i int, sv skills.SkillValidation, required bool) {
 	<tr class={ templ.KV("not-counted", !sv.Counted && !sv.Unscored) }>
 		<td class="num">{ strconv.Itoa(i + 1) }</td>
 		<td class="col-name">
-			if sv.Skill.Name != skills.UnnamedSkill {
-				{ sv.Skill.Name }
+			if name := skills.NameOf(sv.Skill); name != skills.UnnamedSkill || sv.Skill.CustomName == "" {
+				{ name }
 			}
 			if sv.Skill.CustomName != "" {
 				<span class="custom">{ sv.Skill.CustomName }</span>

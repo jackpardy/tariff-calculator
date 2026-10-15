@@ -31,12 +31,21 @@ var pool = func() map[skills.BodyPosition][]skills.TrampolineSkill {
 							if s.Validate() != nil {
 								continue
 							}
+							// Each skill once, as the Routine Builder makes it: no
+							// direction without a somersault, a shape only where it
+							// counts (straddle only for a jump), and only skills
+							// with a name, as gymnasts' routines have.
+							if rot == 0 && back || !s.IsBasicJump() && (shape == skills.Straddle || !s.ShapeIsRelevant() && shape != skills.Straight) {
+								continue
+							}
 							land := s.LandingPosition()
 							if land != skills.Feet && land != skills.Seat && land != skills.Front && land != skills.Back {
 								continue
 							}
 							s.Tariff = s.SetTariff()
-							s.Name = skills.FindCommonSkillName(s)
+							if s.Name = skills.FindCommonSkillName(s); s.Name == skills.UnnamedSkill {
+								continue
+							}
 							out[from] = append(out[from], s)
 						}
 					}

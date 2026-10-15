@@ -558,7 +558,8 @@ func FindCommonSkillName(parsedSkill TrampolineSkill) string {
 		// Match on core parameters; shape is handled separately below.
 		if compareSkill.Rotation == tempCommon.Rotation &&
 			compareSkill.TakeoffPosition == tempCommon.TakeoffPosition &&
-			compareSkill.Backward == tempCommon.Backward &&
+			// Without a somersault, forwards or backwards means nothing.
+			(compareSkill.Backward == tempCommon.Backward || compareSkill.Rotation == 0) &&
 			compareSkill.SeatLanding == tempCommon.SeatLanding &&
 			slices.Equal(compareSkill.TwistDistribution, tempCommon.TwistDistribution) {
 
@@ -586,11 +587,49 @@ func FindCommonSkillName(parsedSkill TrampolineSkill) string {
 		}
 	}
 
-	return UnnamedSkill
+	return describe(parsedSkill)
 }
 
 // UnnamedSkill is FindCommonSkillName's name for a skill it has no name for.
 const UnnamedSkill = "Custom Skill"
+
+// NameOf is a skill's name as shown: as saved, or worked out again for one
+// saved without a name, as the names have grown since (described from its
+// parts, say); UnnamedSkill if there's still none.
+func NameOf(s TrampolineSkill) string {
+	if s.Name == "" || s.Name == UnnamedSkill {
+		return FindCommonSkillName(s)
+	}
+	return s.Name
+}
+
+// describe names a skill with no common name from its parts, in the same
+// style ("Full Twist To Back", "Seat Full Twist To Feet"): where it takes
+// off from, its twist and where it lands. Only for skills with no somersault
+// (a drop's quarter or half turn at most) and at most a double twist; anything
+// more complicated is UnnamedSkill.
+func describe(s TrampolineSkill) string {
+	twist := s.TotalTwist()
+	twists := [...]string{"", "Half Twist", "Full Twist", "1½ Twist", "Double Twist"}
+	if s.Rotation > 2 || len(s.TwistDistribution) > 1 || twist >= len(twists) || s.Validate() != nil {
+		return UnnamedSkill
+	}
+	from, to := s.TakeoffPosition, s.LandingPosition()
+	var parts []string
+	if from != Feet {
+		parts = append(parts, from.String())
+	}
+	if twists[twist] != "" {
+		parts = append(parts, twists[twist])
+	}
+	if len(parts) == 0 {
+		return UnnamedSkill // from the feet, untwisted: a drop, which has a name
+	}
+	if from != Feet || to != Feet {
+		parts = append(parts, "To", to.String())
+	}
+	return strings.Join(parts, " ")
+}
 
 // shapeLeads are the common skills named shape first: the single somersaults.
 var shapeLeads = map[string]bool{"Front": true, "Back": true, "Barani": true}
