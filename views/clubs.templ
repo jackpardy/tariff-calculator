@@ -298,7 +298,7 @@ templ ClubAdmin(c ClubPage) {
 					@listSection("Entries", len(comp.Rows), false) {
 						@listTools(comp.Tools)
 						<div class="table-container">
-							<table class="table is-fullwidth is-narrow comp-table comp-club-entries" id={ comp.Tools.ID }>
+							<table class="table is-fullwidth is-narrow comp-table comp-club-entries comp-stack" id={ comp.Tools.ID }>
 								<thead>
 									<tr><th>Member</th><th>Level</th><th>Problems</th><th>Status</th></tr>
 								</thead>
@@ -312,15 +312,15 @@ templ ClubAdmin(c ClubPage) {
 													<a class="is-size-7" href={ templ.SafeURL(row.Edit) }>Change</a>
 												}
 											</td>
-											<td>{ row.Level }</td>
-											<td class={ templ.KV("has-text-danger", row.Problems > 0) }>
+											<td data-label="Level">{ row.Level }</td>
+											<td class={ templ.KV("has-text-danger", row.Problems > 0) } data-label="Problems">
 												if row.Problems == 0 {
 													–
 												} else {
 													{ strconv.Itoa(row.Problems) }
 												}
 											</td>
-											<td>
+											<td data-label="Status">
 												{ row.Status }
 												if row.Video != "" {
 													<br/>
@@ -432,7 +432,7 @@ templ ClubMembers(c ClubPage) {
 			} else {
 				@listTools(c.MembersTools)
 				<div class="table-container">
-					<table class="table is-fullwidth is-narrow" id={ c.MembersTools.ID }>
+					<table class="table is-fullwidth is-narrow comp-stack" id={ c.MembersTools.ID }>
 						<tbody>
 							for _, m := range c.Members {
 								<tr { m.List.Attrs()... }>
@@ -444,7 +444,7 @@ templ ClubMembers(c ClubPage) {
 									</td>
 									<td class="has-text-grey is-size-7">{ Count(m.Entries, "entry", "entries") }</td>
 									if len(c.CoachOptions) > 0 {
-										<td>
+										<td data-label="Coach">
 											@coachSelect(c.Base+"/members/"+m.ID+"/coach", c.CoachOptions, m.CoachID, m.Name+"'s coach")
 										</td>
 									}
