@@ -188,13 +188,6 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 	}
 	base := adminPath(r.PathValue("token"))
 	page := views.DayPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuDay), Notice: r.URL.Query().Get("notice"), Day: day}
-	if can(r, "GET", "/screen") {
-		page.Screen = base + "/screen?day=" + strconv.Itoa(day)
-	}
-	if can(r, "GET", "/desk") {
-		page.Desk = base + "/desk"
-	}
-	page.Links = can(r, "POST", "/links")
 	page.Correct = can(r, "POST", "/day/times")
 	if day < len(s.Setup.Days) {
 		page.DayName = s.Setup.Days[day].Name

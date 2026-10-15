@@ -70,7 +70,7 @@ func TestOfficialsRota(t *testing.T) {
 	if !strings.Contains(page, "Tumbling Novice flight 1 on Track 1: no one for 1 execution judge") && !strings.Contains(page, "Tumbling Novice on Track 1: no one for 1 execution judge") {
 		t.Error("a seat no one can take is reported")
 	}
-	if !strings.Contains(page, "<strong>Seats no one could take:</strong> 1, on 1 panel</summary>") || strings.Count(page, chip(t, views.Attention, "No one")) != 1 {
+	if !strings.Contains(page, chip(t, views.Attention, "1 seat empty, on 1 panel")) || !strings.Contains(page, "<strong>Seats no one could take</strong> (1)") || strings.Count(page, chip(t, views.Attention, "No one")) != 1 {
 		t.Error("the empty seats are counted, with the panels they're on, and shown")
 	}
 	l3 := page[strings.Index(page, "<strong>BUCS L3"):]
@@ -91,7 +91,10 @@ func TestOfficialsRota(t *testing.T) {
 	}
 	redirected(t, h, tt+"/setup/rules", url.Values{"add": {"1"}, "kind": {"off"}, "must": {"1"}, "person": {tom[1]}, "event": {""}})
 	page = do(t, h, http.MethodGet, redirected(t, h, tt+"/officials", url.Values{"action": {"rota"}}), nil).Body.String()
-	if !strings.Contains(page, "Tom doesn&#39;t officiate (must)") || !strings.Contains(page, "· 2 of 3 seats filled") || strings.Contains(page, "The setup has changed") {
+	if setup := do(t, h, http.MethodGet, tt+"/setup", nil).Body.String(); !strings.Contains(setup, "Tom doesn&#39;t officiate (must)") {
+		t.Error("Tom's rule is in the setup")
+	}
+	if !strings.Contains(page, "· 2 of 3 seats filled") || strings.Contains(page, "The setup has changed") {
 		t.Errorf("Tom is off the panels: %s", page)
 	}
 	// Put back by hand, the rule is reported as not kept.
