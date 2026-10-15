@@ -156,7 +156,7 @@ func Desk(p DeskPage) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"box\"><p class=\"label is-small\">To</p><div class=\"field\"><label class=\"radio is-block mb-2 ml-0\"><input type=\"radio\" name=\"to\" value=\"club\" checked> A club: its comp sec, coaches and members</label><div class=\"select is-small mb-3\"><select name=\"club\" aria-label=\"Club\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"box\"><p class=\"label is-small\">To</p><div class=\"field\"><label class=\"radio is-block mb-2 ml-0\"><input type=\"radio\" name=\"to\" value=\"club\" checked> A club: its competition secretary, coaches and members</label><div class=\"select is-small mb-3\"><select name=\"club\" aria-label=\"Club\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

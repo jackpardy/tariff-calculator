@@ -54,7 +54,7 @@ func (p *competitionPages) accounts(ctx context.Context, c store.Competition) ([
 	var out []account
 	index := map[string]int{}
 	for _, e := range live(all) {
-		key, name, club := entryPayer(e.ID), e.Entry.Gymnast+" (individual)", false
+		key, name, club := entryPayer(e.ID), e.Entry.Gymnast+" (on their own)", false
 		if !e.Individual {
 			key, name, club = clubPayer(e.ClubID), e.ClubName, true
 		}

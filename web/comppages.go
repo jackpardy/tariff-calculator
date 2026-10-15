@@ -203,8 +203,8 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 	c := competitions.Competition{Name: form.Name, Date: form.Date, Individuals: form.Individuals}
 	var problems []string
 	c.Video, form.Video, problems = postedVideo(r)
-	if at, err := postedLiveAt(r, p.now()); err != nil {
-		problems = append(problems, err.Error())
+	if at, problem := postedLiveAt(r, p.now()); problem != "" {
+		problems = append(problems, problem)
 	} else {
 		c.LiveAt = at
 	}
@@ -824,7 +824,7 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 			}
 			club := j.ClubName
 			if j.Individual {
-				club = "Individual"
+				club = onTheirOwn
 			}
 			row := []string{j.Entry.Entry.Gymnasts(), club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), "", "", j.Entry.Entry.Category}
 			if j.err == nil && !j.card.Unchecked {
@@ -902,21 +902,22 @@ func (p *competitionPages) check(w http.ResponseWriter, r *http.Request) {
 
 // postedLiveAt is when a form says entries open: opens=now, opens=at with
 // liveDate and liveTime still to come, or anything else for private (zero).
-func postedLiveAt(r *http.Request, now time.Time) (time.Time, error) {
+// problem says what's wrong with it, as a sentence to show, if anything.
+func postedLiveAt(r *http.Request, now time.Time) (at time.Time, problem string) {
 	switch r.FormValue("opens") {
 	case "now":
-		return now, nil
+		return now, ""
 	case "at":
 		at, err := time.ParseInLocation("2006-01-02 15:04", r.FormValue("liveDate")+" "+r.FormValue("liveTime"), local)
 		switch {
 		case err != nil:
-			return time.Time{}, errors.New("Say the date and time entries open.")
+			return time.Time{}, "Say the date and time entries open."
 		case !at.After(now):
-			return time.Time{}, errors.New("The time entries open has already passed: go live now instead.")
+			return time.Time{}, "The time entries open has already passed: go live now instead."
 		}
-		return at.UTC(), nil
+		return at.UTC(), ""
 	}
-	return time.Time{}, nil
+	return time.Time{}, ""
 }
 
 // live takes a competition live now (opens=now) or at a time (opens=at,
@@ -934,9 +935,9 @@ func (p *competitionPages) live(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Redirect(w, r, to+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
 	}
-	at, err := postedLiveAt(r, p.now())
-	if err != nil {
-		back(err.Error())
+	at, problem := postedLiveAt(r, p.now())
+	if problem != "" {
+		back(problem)
 		return
 	}
 	changed := c.Competition
@@ -1074,10 +1075,14 @@ func checkedText(e store.Entry) string {
 // clubOf is who sent a stored entry, as the pages say it.
 func clubOf(e store.Entry) string {
 	if e.Individual {
-		return "Individual"
+		return onTheirOwn
 	}
 	return e.ClubName
 }
+
+// onTheirOwn is what pages call a gymnast's club when they entered without
+// one: the same words everywhere, never "individual".
+const onTheirOwn = "On their own"
 
 // card is an entry checked, as the pages show it.
 func card(c competitions.Competition, e competitions.Entry, club string) (views.EntryCard, error) {
@@ -1135,7 +1140,7 @@ func (p *competitionPages) individuals(w http.ResponseWriter, r *http.Request) {
 	}
 	notice := "Gymnasts can no longer enter on their own."
 	if r.FormValue("on") == "1" {
-		notice = "Gymnasts can now enter on their own, with the individual entry link."
+		notice = "Gymnasts can now enter on their own, with the link for entering on their own."
 	}
 	backToSettings(w, r, notice)
 }

@@ -854,7 +854,7 @@ func NewCompetition(f CompetitionForm) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "> Now</label><p class=\"help\">Until then, the club and individual links show the competition's name and date, and when entries open, so you can share them early.</p></fieldset><div class=\"field\"><label class=\"checkbox comp-check\"><input type=\"checkbox\" name=\"individuals\" value=\"1\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "> Now</label><p class=\"help\">Until then, the club link and the link for entering on their own show the competition's name and date, and when entries open, so you can share them early.</p></fieldset><div class=\"field\"><label class=\"checkbox comp-check\"><input type=\"checkbox\" name=\"individuals\" value=\"1\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1399,7 +1399,7 @@ func CompetitionDashboard(d Dashboard) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if d.Entries == 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 95, "<p class=\"has-text-grey\">No entries yet. Clubs send theirs through the club link; individuals enter through theirs.</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 95, "<p class=\"has-text-grey\">No entries yet. Clubs send theirs through the club link; gymnasts on their own enter through theirs.</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -2449,7 +2449,7 @@ func liveBox(base string, c CompetitionSummary, liveDate, liveTime, from string)
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 203, "The club and individual links show the competition's name and date, and when entries open, but nobody can enter until it's live.</p><form method=\"post\" action=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 203, "The club link and the link for entering on their own show the competition's name and date, and when entries open, but nobody can enter until it's live.</p><form method=\"post\" action=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -6962,7 +6962,7 @@ func dashboardTools(d Dashboard) ListTools {
 		club.Options = append(club.Options, ListOption{Value: c, Label: c})
 	}
 	if d.Competition.Individuals || hasIndividuals(d) {
-		club.Options = append(club.Options, ListOption{Value: "individual", Label: "Entering on their own"})
+		club.Options = append(club.Options, ListOption{Value: "individual", Label: "On their own"})
 	}
 	t.Filters = append(t.Filters, club)
 	if len(d.Coaches) > 0 {

@@ -264,7 +264,7 @@ func TestOrganiserTools(t *testing.T) {
 		t.Errorf("a CSV download: %v", rec.Header())
 	}
 	if !strings.HasPrefix(csv, "Gymnast,Club,Level,1st exercise,1st difficulty,2nd exercise,2nd difficulty,Problems,Checked,Note,Sent,Video,Withdrawn,Signed off by,Category\n") ||
-		!strings.Contains(csv, "'=SUM(A1),Individual,BUCS L3,BUCS L3 · option 1,,BUCS L3 · second exercise,1.1,2,,,") {
+		!strings.Contains(csv, "'=SUM(A1),On their own,BUCS L3,BUCS L3 · option 1,,BUCS L3 · second exercise,1.1,2,,,") {
 		t.Errorf("CSV:\n%s", csv)
 	}
 

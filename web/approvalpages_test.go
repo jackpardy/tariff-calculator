@@ -166,7 +166,7 @@ func TestIndividualCoachPages(t *testing.T) {
 	coaches := do(t, h, http.MethodGet, admin+"/coaches", nil).Body.String()
 	cert := regexp.MustCompile(`href="(` + regexp.QuoteMeta(admin) + `/entry-coaches/[^"]+/certificate)"`).FindStringSubmatch(coaches)
 	action := regexp.MustCompile(`action="(` + regexp.QuoteMeta(admin) + `/entry-coaches/[^"]+)"`).FindStringSubmatch(coaches)
-	if !strings.Contains(coaches, "Individuals") || !strings.Contains(coaches, "Ann, coach of Mary") || !strings.Contains(coaches, "Trampoline Level 2 ✓") || cert == nil || action == nil {
+	if !strings.Contains(coaches, "Gymnasts on their own") || !strings.Contains(coaches, "Ann, coach of Mary") || !strings.Contains(coaches, "Trampoline Level 2 ✓") || cert == nil || action == nil {
 		t.Fatalf("the coaches page: %s", coaches)
 	}
 	if got := do(t, h, http.MethodGet, cert[1], nil); got.Body.String() != "%PDF-1.4 Ann" {

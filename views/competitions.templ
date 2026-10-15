@@ -420,7 +420,7 @@ templ NewCompetition(f CompetitionForm) {
 					<input type="radio" name="opens" value="now" checked?={ f.Opens == "now" }/>
 					Now
 				</label>
-				<p class="help">Until then, the club and individual links show the competition's name and date, and when entries open, so you can share them early.</p>
+				<p class="help">Until then, the club link and the link for entering on their own show the competition's name and date, and when entries open, so you can share them early.</p>
 			</fieldset>
 			<div class="field">
 				<label class="checkbox comp-check">
@@ -551,7 +551,7 @@ templ CompetitionDashboard(d Dashboard) {
 			</div>
 		}
 		if d.Entries == 0 {
-			<p class="has-text-grey">No entries yet. Clubs send theirs through the club link; individuals enter through theirs.</p>
+			<p class="has-text-grey">No entries yet. Clubs send theirs through the club link; gymnasts on their own enter through theirs.</p>
 		} else if d.Access.Remove {
 			@removeForm(d.Base)
 		}
@@ -750,7 +750,7 @@ templ liveBox(base string, c CompetitionSummary, liveDate, liveTime, from string
 				if c.Opens != "" {
 					It goes live { c.Opens }.
 				}
-				The club and individual links show the competition's name and date, and when entries open, but nobody can enter until it's live.
+				The club link and the link for entering on their own show the competition's name and date, and when entries open, but nobody can enter until it's live.
 			</p>
 			<form method="post" action={ templ.SafeURL(base + "/live") } class="mb-2">
 				<input type="hidden" name="opens" value="now"/>
@@ -1720,7 +1720,7 @@ func dashboardTools(d Dashboard) ListTools {
 		club.Options = append(club.Options, ListOption{Value: c, Label: c})
 	}
 	if d.Competition.Individuals || hasIndividuals(d) {
-		club.Options = append(club.Options, ListOption{Value: "individual", Label: "Entering on their own"})
+		club.Options = append(club.Options, ListOption{Value: "individual", Label: "On their own"})
 	}
 	t.Filters = append(t.Filters, club)
 	if len(d.Coaches) > 0 {

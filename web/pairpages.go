@@ -95,7 +95,7 @@ func (cs *competitionsSeen) pairViews(pairs []store.PairEntry, skip func(store.P
 		}
 		club := pe.Club
 		if club == "" {
-			club = "Individual"
+			club = onTheirOwn
 		}
 		shown, err := card(s.c.Competition, pe.Entry, club)
 		if err != nil {
