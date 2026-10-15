@@ -1382,7 +1382,10 @@ page when the connection answers within about four seconds, else the copy
 last opened, else a short page saying this one hasn't been opened on this
 phone before. Static files are kept as first fetched (their addresses change
 with each version). Only successful pages are kept, never what a form
-posted, and at most 60 pages per phone, the oldest dropped first. The
+posted, and at most 60 pages per phone, the oldest dropped first.
+A copy is dropped after 30 days (by the date the server sent it), and when
+the server answers 404 or 410 for its page (a link replaced or deleted), so
+a phone doesn't keep an admin or helper page for good. The
 calculator's own pages and the rest of the site are left to the network.
 
 While the phone is offline, a banner at the top of each page says "You're

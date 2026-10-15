@@ -646,6 +646,6 @@ browser, so copy any you'd hate to lose: clearing the browser's data, or using
 a private window, loses the saved links (not the entries). With all your roles
 on one page, keeping that one link is enough.
 
-Pages you've opened on your phone still open without a connection, as they were when last loaded.
+Pages you've opened on your phone still open without a connection, as they were when last loaded, for up to 30 days. A page whose link has been replaced or deleted is dropped from the phone the next time it's opened online.
 
 If a bar says **The app has been updated**, tap **Refresh**.
