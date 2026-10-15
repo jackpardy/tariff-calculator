@@ -778,6 +778,12 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .comp-pay-form { display: flex; gap: 0.3rem; align-items: center; }
 .comp-pay-form .comp-num { width: 5.5rem; }
 .comp-pay-form input[name="note"] { width: 9rem; }
+/* Fees: Record a payment opens under the row's Invoice, and a payment's Remove sits on
+   its line of text rather than dropping below it. An invoice's amounts never wrap. */
+.comp-pay-cell .comp-opens { margin: 0.25rem 0 0; }
+.comp-pay-cell .comp-opens-form { margin-bottom: 0.25rem; }
+.comp-inline-button { height: auto; vertical-align: baseline; }
+.comp-nowrap { white-space: nowrap; }
 /* Check-in and scratches on the day (views/day.templ, the printed sheets). */
 .comp-scratched { text-decoration: line-through; color: #7a7a7a; }
 /* The day page's notice stays in view, as the page no longer jumps to the top to show it. */
