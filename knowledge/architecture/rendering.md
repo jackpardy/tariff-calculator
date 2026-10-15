@@ -56,8 +56,7 @@ the summary carries (`label`, `title`, `is-size-7`, a `<strong>` inside), so a
 new dropdown needs no extra markup or CSS. Don't set `cursor`, `list-style` or
 the marker on a summary: the rule does. A summary that is deliberately
 something else opts out by `content: none` on its `::before`, in the same block:
-`summary.button`, the routine menu (`.routine-menu`), the inline "move" link
-(`.comp-move`), or any summary given the class `no-arrow`. The tariff sheet and
+`summary.button`, the routine menu (`.routine-menu`), or any summary given the class `no-arrow`. The tariff sheet and
 the view page have their own stylesheets and menus, so the rule doesn't reach them.
 
 # Settings and forms on a page

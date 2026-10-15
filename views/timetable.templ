@@ -732,24 +732,23 @@ templ flightBox(p TimetablePage, f ItemView) {
 		<ol class="comp-order">
 			for _, g := range f.Gymnasts {
 				<li value={ strconv.Itoa(g.No) } { ListRow{Name: g.Name}.Attrs()... }>
-					<div class="comp-order-row">
-						<span class="comp-order-name">
-							{ g.Name }
-							<span class="has-text-grey is-size-7">{ g.Club }</span>
-							if g.Moved != "" {
-								@StateChip(Attention, "Now "+g.Moved)
-							}
-						</span>
-						<details class="comp-move">
-							<summary class="button is-small is-light" aria-label={ "Move " + g.Name }>Move</summary>
-							@moveGymnast(p, g, false)
-						</details>
-					</div>
+					{ g.Name }
+					<span class="has-text-grey is-size-7">{ g.Club }</span>
+					if g.Moved != "" {
+						@StateChip(Attention, "Now "+g.Moved)
+					}
 				</li>
 			}
 		</ol>
 		if len(f.Seats) > 0 {
 			@seatsEditor(p, f, "flight")
+		}
+		if len(f.Gymnasts) > 0 {
+			// One form for the flight, choosing who, rather than a Move on
+			// every gymnast.
+			@opens("", "", "Move a gymnast", false) {
+				@moveFromFlight(p, f)
+			}
 		}
 		// The flight's own changes, rarer than a gymnast's, under one button.
 		@opens("", "", "Move or redraw", false) {
@@ -853,8 +852,8 @@ templ fillOptions(id string, options []FlightOption) {
 	</template>
 }
 
-// moveGymnast moves a gymnast to another flight, or out of the timetable. Its
-// list of flights is filled from fillOptions when the dropdown opens.
+// moveGymnast moves a gymnast not in a flight into one. Its list of flights
+// is filled from fillOptions when the dropdown is opened.
 templ moveGymnast(p TimetablePage, g TimetableGymnast, named bool) {
 	<form method="post" action={ templ.SafeURL(p.Base + "/timetable/entry") } class="comp-move-form">
 		@versionField(p.Version)
@@ -864,6 +863,30 @@ templ moveGymnast(p TimetablePage, g TimetableGymnast, named bool) {
 		}
 		<div class="select is-small">
 			<select name="to" aria-label={ "Flight for " + g.Name } data-fill="move-options">
+				<option value="" disabled selected>Choose a flight</option>
+				<option value="">Take out of the timetable</option>
+			</select>
+		</div>
+		<button class="button is-small" type="submit">Move</button>
+	</form>
+}
+
+// moveFromFlight moves one of a flight's gymnasts (chosen) to another flight,
+// or out of the timetable, posting as moveGymnast does. Its list of flights is
+// filled from fillOptions when it opens.
+templ moveFromFlight(p TimetablePage, f ItemView) {
+	<form method="post" action={ templ.SafeURL(p.Base + "/timetable/entry") } class="comp-move-form">
+		@versionField(p.Version)
+		<div class="select is-small">
+			<select name="entry" aria-label={ "Who to move from " + f.Name }>
+				<option value="" disabled selected>Choose a gymnast</option>
+				for _, g := range f.Gymnasts {
+					<option value={ g.ID }>{ strconv.Itoa(g.No) }. { g.Name }</option>
+				}
+			</select>
+		</div>
+		<div class="select is-small">
+			<select name="to" aria-label={ "Flight to move them to, from " + f.Name } data-fill="move-options">
 				<option value="" disabled selected>Choose a flight</option>
 				<option value="">Take out of the timetable</option>
 			</select>

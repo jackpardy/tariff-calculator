@@ -349,6 +349,11 @@ func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := r.FormValue("entry")
+	if id == "" {
+		// A flight's Move a gymnast left on "Choose a gymnast".
+		back(w, r, "Choose a gymnast to move; nothing was changed.")
+		return
+	}
 	known := slices.ContainsFunc(entries, func(e store.Entry) bool { return e.ID == id })
 	if !r.Form.Has("to") {
 		// The dropdown was left on "Choose a flight", which sends nothing:

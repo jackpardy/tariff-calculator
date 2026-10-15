@@ -720,9 +720,10 @@ are then filled flight by flight.
   them); **Earlier** swaps a flight with the one before it in its event;
   redraw a flight's order, move a gymnast to another flight or take them
   out, and place entries made since planning. On a flight's card these are
-  buttons at least 40px tall: **Move** beside each gymnast (its flights
-  filled in by `static/js/fill.js` when it opens), and one **Move or
-  redraw** button opening **Redraw order**, **Earlier**, and a dropdown
+  buttons at least 40px tall: **Move a gymnast**, one a flight, opening who
+  (the flight's gymnasts by running number) and where to (its flights
+  filled in by `static/js/fill.js` when it opens; left on "Choose a gymnast"
+  or "Choose a flight", nothing changes), and **Move or redraw** opening **Redraw order**, **Earlier**, and a dropdown
   labelled **Move to** ("Move the event to") with **Move** or **Move
   event**. At the top of the timetable, **Jump to** links
   to each day and its areas and to **Find a name**, which searches the

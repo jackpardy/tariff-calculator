@@ -306,8 +306,9 @@ a **Change** button to open it.
 7. Adjust manually: a flight's **Move or redraw** opens **Move event**,
    which moves all of an event's flights together to another day or area,
    **Earlier**, which swaps a flight with the one before it in its event, and
-   **Redraw order**, which draws its running order again; **Move** beside a
-   gymnast puts them in another flight. To find someone
+   **Redraw order**, which draws its running order again; a flight's **Move
+   a gymnast** puts one of its gymnasts (choose who) in another flight, or
+   takes them out. To find someone
    on a long timetable, type part of their name in **Find a name**: only
    the flights with them show. The day and area links beside it go
    straight to a day or an area. If an event's flights end up
