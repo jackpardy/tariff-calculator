@@ -356,6 +356,11 @@ type SetEditorData struct {
 	// Club is set when the editor writes one of a club's levels, on the
 	// coach's page; nil on the Requirements page.
 	Club *ClubEditor
+	// Routine is the routine on screen, when the editor is beside it in the
+	// Routine Builder (its skills' JSON, posted back each time); Results are
+	// how it does against each rule, by index, while the set can be read.
+	Routine string
+	Results map[int]requirements.Result
 }
 
 // ClubEditor is what the editor needs to write a club's level (ADR 0011
@@ -439,6 +444,9 @@ templ SetEditor(e SetEditorData) {
 		</div>
 		}
 		<input type="hidden" name="rules" value={ strconv.Itoa(len(e.Set.Rules)) }/>
+		if e.Routine != "" {
+			<input type="hidden" name="routineData" value={ e.Routine }/>
+		}
 		for i, rule := range e.Set.Rules {
 			@ruleCard(&e, i, rule, len(e.Set.Rules))
 		}
@@ -488,7 +496,20 @@ templ ruleCard(e *SetEditorData, i int, rule requirements.Rule, total int) {
 	{{ kind := requirements.KindOfRule(rule) }}
 	<div class="rule-card">
 		<div class="rule-card-head">
-			<p class="rule-card-title">{ fmt.Sprintf("%d. ", i+1) }{ describeSafely(rule) }</p>
+			<p class="rule-card-title">
+				{ fmt.Sprintf("%d. ", i+1) }{ describeSafely(rule) }
+				// Beside the routine: whether it meets this rule as it stands.
+				if res, ok := e.Results[i]; ok {
+					if res.Passed {
+						@StateChip(Done, "Met")
+					} else {
+						@StateChip(Attention, "Not met")
+					}
+					if res.Detail != "" {
+						<span class="is-size-7 has-text-grey has-text-weight-normal">{ res.Detail }</span>
+					}
+				}
+			</p>
 			<div class="buttons are-small mb-0">
 				@editorAction(e, "↑", fmt.Sprintf("up:%d", i), i == 0)
 				@editorAction(e, "↓", fmt.Sprintf("down:%d", i), i == total-1)

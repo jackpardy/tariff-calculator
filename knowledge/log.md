@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-16
+* **Update**: [Write requirements beside the routine](features/routine-builder.md#requirements-and-checks): **+ Write your own requirements** (in Check against), **Copy and change** a built-in set, or **Change** one of yours opens the requirements editor under Check against; each rule says **Met** or **Not met** for the routine on screen as it's written, and **Save and check against these** saves it (on your page too if it's kept there). Step 4 of the requirements workflow.
 * **Update**: [The builder's Check against](features/routine-builder.md#requirements-and-checks) is a button showing what's chosen, opening a panel with a search (Enter takes the first match), **Yours** (kept on your page first), **Used lately**, then each organisation's levels, in place of a list of about 50; **Start from a set** works the same way. Step 5 of the [requirements workflow](roadmap.md#the-requirements-workflow-reviewed-2026-10-15-1-and-2-built-2026-10-15).
 
 ## 2026-10-15

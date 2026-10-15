@@ -305,7 +305,10 @@ levels, which are built on the same editor. 1 and 2 are built
 4. **Write requirements without leaving the builder.** At least, after
    saving, offer "Check the routine against these now". Better, edit them in
    a panel under Check against, each rule's ✓ or ✗ for the routine on screen
-   as it's written.
+   as it's written. *Built 2026-10-16:* Write your own, Copy and change, or
+   Change open the editor under Check against, each rule saying Met or Not
+   met for the routine on screen, saved to check against
+   ([routine builder](features/routine-builder.md#requirements-and-checks)).
 5. **A better Check against picker:** your own and recently used first,
    then by organisation and level, with a search like the skill picker's.
    The same picker would serve Start from a set…. *Built 2026-10-16:* Check

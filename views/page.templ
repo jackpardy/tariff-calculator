@@ -196,10 +196,34 @@ templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 		<div class="requirement-picker-row">
 			@chooserButton(chooseCheck, side, fmt.Sprintf("checkLabel('%s')", side))
 			if side == "a" {
+				// Change your own, or a copy of a built-in set, beside the routine.
+				<button class="button is-small" type="button" x-show="!writing && isYours(chosenRequirements('a'))" x-on:click="writeRequirements(chosenRequirements('a'))">Change</button>
+				<button class="button is-small" type="button" x-show="!writing && chosenRequirements('a').startsWith('builtin:')" x-on:click="writeRequirements(chosenRequirements('a'))">Copy and change</button>
 				<a class="button is-small is-text" href="/requirements" target="_blank" rel="noopener">Manage requirements</a>
 			}
 		</div>
 		@chooserPanel(chooseCheck, side, checkGroups(groups))
+		if side == "a" {
+			@requirementsWriter()
+		}
+	</div>
+}
+
+// requirementsWriter is the requirements editor beside the routine
+// (roadmap's requirements workflow, step 4): opened by Change, Copy and
+// change, or Write your own, it checks the routine on screen against the
+// requirements as they're written, and saves them to check against.
+templ requirementsWriter() {
+	<div class="box requirements-writer" x-show="writing" x-cloak>
+		<p class="requirements-writer-head">
+			<strong x-text="writing?.title"></strong>
+			<span class="is-size-7 has-text-grey">The routine below is checked against these as you write them.</span>
+		</p>
+		<div id="requirements-writer-editor"></div>
+		<div class="buttons mt-3 mb-0">
+			<button class="button is-primary is-small" type="button" x-on:click="saveWriting()">Save and check against these</button>
+			<button class="button is-small is-text" type="button" x-on:click="cancelWriting()">Cancel</button>
+		</div>
 	</div>
 }
 
