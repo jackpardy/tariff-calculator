@@ -9,7 +9,8 @@
   accounts ("accounts only when save routines forces it")
 - **Amended by:** ADR 0007 (approved coaches, 2026-10-08), for Decisions 6,
   7 and 11; ADR 0008 (notifications, 2026-10-08), for Decision 6; ADR 0009 (helpers' links,
-  2026-10-08), for Decision 3
+  2026-10-08), for Decision 3; ADR 0011 (club routines and skill tracking,
+  2026-10-15), for Decisions 2, 5 and 6
 
 ## Context
 

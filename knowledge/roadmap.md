@@ -125,10 +125,12 @@ build on:
      not the comp sec's browser's.
    - **Storage:** a routine per row, against the member (name, the routine
      as the builder saves it, updated), deleted with the member. A cap of
-     about 30 a member. No ADR needed: routines are already kept, with
-     entries.
-2. **Skill tracking** (clubs 2). Needs ADR 0011, amending 0004 for the
-   new personal data (progress, often of under-18s) and club retention.
+     30 a member ([ADR 0011](../docs/adr/0011-club-routines-and-skill-tracking.md)
+     Decision 1).
+2. **Skill tracking** (clubs 2). Designed with routines in
+   [ADR 0011](../docs/adr/0011-club-routines-and-skill-tracking.md)
+   (accepted 2026-10-15), amending 0004 for the new personal data
+   (progress, often of under-18s) and club retention.
    Built in steps, each usable on its own:
    1. **Clubs kept 13 months after last real use** (decided 2026-10-15),
       for every club, not 120 days. Any comp sec, coach or member opening
