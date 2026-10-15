@@ -439,9 +439,11 @@ December. Before it:
   the full demo a gymnast's own page went from 65 ms to 6 ms, the
   dashboard from 61 ms to 7 ms and a club's page from 58 ms to 18 ms
   ([how](architecture/http-routes.md)).
-- **Smaller pages.** Pages are sent uncompressed: the organiser's On the
-  day page is 875 KB (26 KB compressed), a gymnast's page 101 KB (10 KB).
-  Compress them, in the app or in the web server in front of it.
+- **Smaller pages** (built 2026-10-15). The app gzips its own text
+  responses and, once, its static files ([compression](architecture/static-assets.md#compression)):
+  on the demo the organiser's dashboard went from 674 KB to 57 KB, On the
+  day from 1.0 MB to 54 KB, the timetable from 1.0 MB to 67 KB, a
+  gymnast's page from 109 KB to 11 KB and a club's from 41 KB to 4 KB.
 - **A Feedback button** on every competition page while the dry run is on,
   saving the words, the page, the role and the time for the maintainer.
   Helper links already have Flag a concern; this is for everyone.

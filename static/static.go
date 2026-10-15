@@ -5,6 +5,7 @@ package static
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -13,6 +14,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -25,10 +27,50 @@ const Prefix = "/static/"
 type asset struct {
 	data []byte
 	hash string // first 12 hex digits of the content's SHA-256
+
+	gzOnce sync.Once
+	gz     []byte // the content gzipped, or nil where that doesn't help
+}
+
+// gzipped returns the content compressed, made on first use and kept, or nil
+// for a file that is too small to gain.
+func (a *asset) gzipped() []byte {
+	a.gzOnce.Do(func() {
+		var b bytes.Buffer
+		zw, _ := gzip.NewWriterLevel(&b, gzip.BestCompression)
+		zw.Write(a.data)
+		zw.Close()
+		if b.Len() < len(a.data) {
+			a.gz = b.Bytes()
+		}
+	})
+	return a.gz
+}
+
+// AcceptsGzip reports whether an Accept-Encoding header allows gzip,
+// honouring "gzip;q=0" and "*".
+func AcceptsGzip(header string) bool {
+	star := false
+	for _, part := range strings.Split(header, ",") {
+		name, params, _ := strings.Cut(strings.TrimSpace(part), ";")
+		name = strings.ToLower(strings.TrimSpace(name))
+		if name != "gzip" && name != "*" {
+			continue
+		}
+		q := 1.0
+		if _, v, found := strings.Cut(params, "q="); found {
+			q, _ = strconv.ParseFloat(strings.TrimSpace(v), 64)
+		}
+		if name == "gzip" {
+			return q > 0
+		}
+		star = q > 0
+	}
+	return star
 }
 
 // assets maps a path relative to this directory (e.g. "js/htmx.min.js") to its file.
-var assets = map[string]asset{}
+var assets = map[string]*asset{}
 
 func init() {
 	err := fs.WalkDir(files, ".", func(path string, d fs.DirEntry, err error) error {
@@ -40,7 +82,7 @@ func init() {
 			return err
 		}
 		sum := sha256.Sum256(data)
-		assets[path] = asset{data: data, hash: hex.EncodeToString(sum[:])[:12]}
+		assets[path] = &asset{data: data, hash: hex.EncodeToString(sum[:])[:12]}
 		return nil
 	})
 	if err != nil {
@@ -76,7 +118,18 @@ func Handler() http.Handler {
 		} else {
 			w.Header().Set("Cache-Control", "no-cache")
 		}
-		http.ServeContent(w, r, path, time.Time{}, bytes.NewReader(a.data))
+		body := a.data
+		if strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".css") {
+			w.Header().Add("Vary", "Accept-Encoding")
+			if gz := a.gzipped(); gz != nil && AcceptsGzip(r.Header.Get("Accept-Encoding")) {
+				// The gzipped bytes get their own ETag, so a cache never mixes
+				// the two up.
+				body = gz
+				w.Header().Set("Content-Encoding", "gzip")
+				w.Header().Set("ETag", `"`+a.hash+`-gz"`)
+			}
+		}
+		http.ServeContent(w, r, path, time.Time{}, bytes.NewReader(body))
 	})
 }
 
