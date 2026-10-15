@@ -18,6 +18,7 @@ import "context"
 type RoleTab struct {
 	Label, Href string
 	Current     bool
+	Kind        string // the role: store's RoleMember, RoleCoach and the rest
 }
 
 type rolesKey struct{}
@@ -87,7 +88,7 @@ func roleTabs(tabs []RoleTab) templ.Component {
 				var templ_7745c5c3_Var4 templ.SafeURL
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(t.Href))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 37, Col: 38}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 38, Col: 38}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -110,7 +111,7 @@ func roleTabs(tabs []RoleTab) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(t.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 37, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 38, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -187,7 +188,7 @@ func tiesBox(remove string, ties []TieView, none string) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(none)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 74, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 75, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -210,7 +211,7 @@ func tiesBox(remove string, ties []TieView, none string) templ.Component {
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(t.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 81, Col: 15}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 82, Col: 15}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -224,7 +225,7 @@ func tiesBox(remove string, ties []TieView, none string) templ.Component {
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(t.What)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 84, Col: 17}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 85, Col: 17}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -242,7 +243,7 @@ func tiesBox(remove string, ties []TieView, none string) templ.Component {
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(t.Since)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 86, Col: 23}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 87, Col: 23}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -255,7 +256,7 @@ func tiesBox(remove string, ties []TieView, none string) templ.Component {
 				var templ_7745c5c3_Var11 templ.SafeURL
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(remove))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 89, Col: 56}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 90, Col: 56}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -268,7 +269,7 @@ func tiesBox(remove string, ties []TieView, none string) templ.Component {
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.ID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 90, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 91, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 				if templ_7745c5c3_Err != nil {
@@ -336,7 +337,7 @@ func otherLinksBox(o OtherLinks) templ.Component {
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(r.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 111, Col: 21}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 112, Col: 21}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -349,7 +350,7 @@ func otherLinksBox(o OtherLinks) templ.Component {
 				var templ_7745c5c3_Var15 templ.SafeURL
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(o.Remove))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 112, Col: 58}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 113, Col: 58}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -362,7 +363,7 @@ func otherLinksBox(o OtherLinks) templ.Component {
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(r.Kind)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 113, Col: 54}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 114, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 				if templ_7745c5c3_Err != nil {
@@ -375,7 +376,7 @@ func otherLinksBox(o OtherLinks) templ.Component {
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(r.ID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 114, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 115, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 				if templ_7745c5c3_Err != nil {
@@ -398,7 +399,7 @@ func otherLinksBox(o OtherLinks) templ.Component {
 		var templ_7745c5c3_Var18 templ.SafeURL
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(o.Add))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 121, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 122, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
@@ -410,6 +411,16 @@ func otherLinksBox(o OtherLinks) templ.Component {
 		}
 		return nil
 	})
+}
+
+// coachesToo says the person whose page this is has a coach's role too.
+func coachesToo(ctx context.Context) bool {
+	for _, t := range rolesOf(ctx) {
+		if t.Kind == "coach" {
+			return true
+		}
+	}
+	return false
 }
 
 var _ = templruntime.GeneratedTemplate

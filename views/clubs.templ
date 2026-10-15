@@ -702,7 +702,9 @@ templ memberFrame(p MemberPage) {
 		@pageMenu(p.Menu)
 		if p.Link != "" {
 			// Saves their link in this browser (static/js/competitions.js), whichever page they open first.
-			<span hidden data-member-link={ p.Link } data-member-name={ p.Member + " · " + p.Club }></span>
+			// data-member-coach marks a member who coaches too, so tools for coaches
+			// offer this link (ADR 0010: their coach's pages open through it).
+			<span hidden data-member-link={ p.Link } data-member-name={ p.Member + " · " + p.Club } data-member-coach?={ coachesToo(ctx) }></span>
 		}
 		if p.New {
 			<div class="notification is-success is-light">

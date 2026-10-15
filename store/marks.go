@@ -52,7 +52,27 @@ type MarkIn struct {
 
 // MemberMarks are a member's marks, both sides, newest first.
 func (s *Store) MemberMarks(ctx context.Context, memberID string) ([]Mark, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT member_id, item, side, skill, state, by_coach, by_name, at FROM skill_marks WHERE member_id = $1 ORDER BY at DESC, item, side`, memberID)
+	return s.marks(ctx, `SELECT member_id, item, side, skill, state, by_coach, by_name, at FROM skill_marks WHERE member_id = $1 ORDER BY at DESC, item, side`, memberID)
+}
+
+// ClubMarks are the marks of each of a club's members with any, as
+// MemberMarks gives them, by member.
+func (s *Store) ClubMarks(ctx context.Context, clubID string) (map[string][]Mark, error) {
+	list, err := s.marks(ctx, `SELECT k.member_id, k.item, k.side, k.skill, k.state, k.by_coach, k.by_name, k.at
+		FROM skill_marks k JOIN members m ON m.id = k.member_id WHERE m.club_id = $1 ORDER BY k.at DESC, k.item, k.side`, clubID)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string][]Mark{}
+	for _, k := range list {
+		out[k.MemberID] = append(out[k.MemberID], k)
+	}
+	return out, nil
+}
+
+// marks are the marks a query gives.
+func (s *Store) marks(ctx context.Context, query string, args ...any) ([]Mark, error) {
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

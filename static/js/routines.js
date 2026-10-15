@@ -81,16 +81,24 @@ const RoutineStore = (() => {
         form.submit();
     }
 
-    // memberLinks are the member pages saved in this browser ({name, url}),
-    // as the competition pages save them (static/js/competitions.js).
-    function memberLinks() {
+    // savedLinks are the club pages of one kind saved in this browser ({name,
+    // url}), as the competition pages save them (static/js/competitions.js):
+    // under key, each a link to path.
+    function savedLinks(key, path) {
         try {
-            const links = JSON.parse(localStorage.getItem('trampolineMemberLinks') || '[]');
-            return Array.isArray(links) ? links.filter((l) => l && typeof l.url === 'string' && l.url.includes('/clubs/member/')) : [];
+            const links = JSON.parse(localStorage.getItem(key) || '[]');
+            return Array.isArray(links) ? links.filter((l) => l && typeof l.url === 'string' && l.url.includes(path)) : [];
         } catch (e) {
             return [];
         }
     }
 
-    return { load, save, current, newId, nextName, keepable, keep, memberLinks };
+    // memberLinks are the member pages saved in this browser.
+    const memberLinks = () => savedLinks('trampolineMemberLinks', '/clubs/member/');
+
+    // coachLinks are the pages saved in this browser that open a coach's
+    // pages: coaches' own, and members' who coach too (ADR 0010).
+    const coachLinks = () => [...savedLinks('trampolineCoachLinks', '/clubs/coach/'), ...memberLinks().filter((l) => l.coach)];
+
+    return { load, save, current, newId, nextName, keepable, keep, memberLinks, coachLinks };
 })();

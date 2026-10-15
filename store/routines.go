@@ -8,9 +8,10 @@ import (
 	"time"
 )
 
-// A member's routines, kept on their page (ADR 0011 Decision 1). Only the
-// member saves, renames and deletes them; the coaches who see the member and
-// the comp sec see them, and a coach writes a note on one.
+// A member's routines, kept on their page (ADR 0011 Decision 1). The member
+// saves, renames and deletes them; the coaches who see the member see them,
+// add their own to the member's page and write a note on one; the comp sec
+// sees them.
 
 const (
 	// MaxRoutines is the most routines a member keeps on their page.
@@ -36,6 +37,8 @@ type Routine struct {
 	Note, NoteBy string // a coach's note, and the coach's name
 	NoteAt       time.Time
 	UpdatedAt    time.Time
+	AddedBy      string // the coach who added it, by id; "" for the member's own
+	AddedName    string // that coach's name
 }
 
 // NoteBefore says the note was written before the routine last changed.
@@ -48,12 +51,12 @@ type RoutineIn struct {
 	Source, Name, Skills, Requirements, Checks string
 }
 
-const routineColumns = `id, member_id, source, name, skills, requirements, checks, note, note_by, note_at, updated_at`
+const routineColumns = `id, member_id, source, name, skills, requirements, checks, note, note_by, note_at, updated_at, added_by, added_name`
 
 func scanRoutine(row interface{ Scan(...any) error }) (Routine, error) {
 	var r Routine
 	var noteAt, updated string
-	err := row.Scan(&r.ID, &r.MemberID, &r.Source, &r.Name, &r.Skills, &r.Requirements, &r.Checks, &r.Note, &r.NoteBy, &noteAt, &updated)
+	err := row.Scan(&r.ID, &r.MemberID, &r.Source, &r.Name, &r.Skills, &r.Requirements, &r.Checks, &r.Note, &r.NoteBy, &noteAt, &updated, &r.AddedBy, &r.AddedName)
 	r.NoteAt, r.UpdatedAt = parseTime(noteAt), parseTime(updated)
 	return r, err
 }
@@ -82,10 +85,31 @@ func (s *Store) MemberRoutine(ctx context.Context, memberID, id string) (Routine
 	return r, notFound(err)
 }
 
-// SaveRoutines keeps routines on a member's page. One from a browser routine
-// already kept (the same source) changes it; any other is added, while there's
-// room. It gives how many were kept, and how many weren't for want of room.
+// SaveRoutines keeps the member's own routines on their page. One from a
+// browser routine already kept (the same source) changes it; any other is
+// added, while there's room. It gives how many were kept, and how many weren't
+// for want of room.
 func (s *Store) SaveRoutines(ctx context.Context, clubID, memberID string, in []RoutineIn) (saved, full int, err error) {
+	return s.saveRoutines(ctx, clubID, memberID, Coach{}, in)
+}
+
+// AddRoutinesAsCoach is a coach adding routines to the page of a member they
+// see, as SaveRoutines: one they added from the same browser routine changes;
+// the member's own are never changed by it.
+func (s *Store) AddRoutinesAsCoach(ctx context.Context, c Coach, memberID string, in []RoutineIn) (saved, full int, err error) {
+	var sees bool
+	if err := s.db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM members m WHERE m.id = $3 AND `+coachSees+`)`, c.ID, c.ClubID, memberID).Scan(&sees); err != nil {
+		return 0, 0, err
+	}
+	if !sees {
+		return 0, 0, ErrNotFound
+	}
+	return s.saveRoutines(ctx, c.ClubID, memberID, c, in)
+}
+
+// saveRoutines keeps routines on a member's page, the member's own or those
+// a coach (by) adds.
+func (s *Store) saveRoutines(ctx context.Context, clubID, memberID string, by Coach, in []RoutineIn) (saved, full int, err error) {
 	now := s.stamp()
 	err = s.tx(ctx, func(tx *sql.Tx) error {
 		saved, full = 0, 0
@@ -101,7 +125,7 @@ func (s *Store) SaveRoutines(ctx context.Context, clubID, memberID string, in []
 			name = clip(name, MaxRoutineName)
 			if r.Source != "" {
 				res, err := tx.ExecContext(ctx, `UPDATE member_routines SET name = $1, skills = $2, requirements = $3, checks = $4, updated_at = $5
-					WHERE member_id = $6 AND source = $7`, name, r.Skills, r.Requirements, r.Checks, now, memberID, r.Source)
+					WHERE member_id = $6 AND source = $7 AND added_by = $8`, name, r.Skills, r.Requirements, r.Checks, now, memberID, r.Source, by.ID)
 				if err != nil {
 					return err
 				}
@@ -116,8 +140,8 @@ func (s *Store) SaveRoutines(ctx context.Context, clubID, memberID string, in []
 				full++
 				continue
 			}
-			if _, err := tx.ExecContext(ctx, `INSERT INTO member_routines (id, member_id, source, name, skills, requirements, checks, updated_at)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, newID(), memberID, r.Source, name, r.Skills, r.Requirements, r.Checks, now); err != nil {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO member_routines (id, member_id, source, name, skills, requirements, checks, updated_at, added_by, added_name)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, newID(), memberID, r.Source, name, r.Skills, r.Requirements, r.Checks, now, by.ID, by.Name); err != nil {
 				return err
 			}
 			n++

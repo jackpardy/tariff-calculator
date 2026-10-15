@@ -1587,6 +1587,29 @@ own in the browser; nothing is copied unless the member asks.
   routines, checked, with **Your note** on each: the member sees it under
   the coach's role chip (`WhoChip(RoleCoach, name)`), and "written before the routine last changed" once it's
   older than the routine. A coach who doesn't see the member gets 404.
+  Also on each routine, for the coach (built 2026-10-15):
+  - **Skills not marked Can do.** The skills in it that no coach has marked
+    Can do (the gymnast's own marks don't count), each once, matched with
+    `TrampolineSkill.Equal` as marks are (`notMarkedCan`): an Attention chip
+    in the row ("1 skill not marked Can do") and their names, by the club's
+    name where it has one, with a link to the gymnast's Skills. The member
+    isn't shown this.
+  - **Check against a level the coach chooses.** A choice of the club's
+    levels and the built-in sets, by group (`checkChoices`), sent as `GET`
+    with `routine` and `against` (`club:<id>` or `builtin:<id>`): that
+    routine opens checked against it, as the routine builder checks one,
+    and its Open in the Routine Builder link carries it. Anything else
+    shows the routine as it was checked.
+- **A coach adding routines.** The coach's page for a gymnast has **Add
+  routines from this browser** (the same list as the member's, unticked to
+  start with, `data-keep-unticked`), posting to
+  `/clubs/coach/{token}/gymnasts/{member}/routines` (`AddRoutinesAsCoach`,
+  migration 43). The routine is the member's, kept with `added_by` (the
+  coach's id) and `added_name`, and shows "added it" under the coach's role
+  chip; the member renames or deletes it as their own. Adding the same
+  browser routine again changes only the one that coach added, never the
+  member's own (the update matches `added_by` as well as the source), and
+  the member saving theirs never changes a coach's.
 - **The comp sec.** Members shows "3 routines" beside a member who keeps
   any, opening them to look at (no note, no changes).
 - Routines go with the member when they're removed, and with the club.
@@ -1663,6 +1686,84 @@ the club's coaches keeps the club's own skills, up to 200
   marks; a name only stops showing, as the marks are the skill's.
 - On every Skills page, **Mark a skill** starts with **Your club's skills**,
   and a search finds them by their club name as well as the catalog.
+
+## Club levels (ADR 0011)
+
+Built 2026-10-15 ([ADR 0011](../../docs/adr/0011-club-routines-and-skill-tracking.md)
+Decision 5; `web/levelpages.go`, `store/levels.go`, migration 42). A club's
+levels to track gymnasts against ("Club Grade 1"), in order, up to 50.
+
+- **Written on the Requirements page.** A level is requirements in the usual
+  format, written in the Requirements page's editor, unchanged. Each saved set
+  of requirements there has **Save to club levels** for each coach's page
+  saved in the browser (`RoutineStore.coachLinks`: `trampolineCoachLinks`,
+  and the member links in `trampolineMemberLinks` saved with `coach: true`,
+  from a member page whose link opens a coach's role too, ADR 0010), which
+  posts it with the link to `POST /clubs/levels/save` (`saveToClub` in
+  `requirements.js`) and opens the coach's **Levels** section. The server
+  finds the coach's role from the link (`coachFromLink` in
+  `web/levelpages.go`): a coach's own link, or a member's or individual's
+  personal link with a coach's role, asking which club where there are
+  several. Saving the same
+  requirements again (the same browser id) changes the level. Rules that can
+  be tracked from skills are kept: `count`, `separate` and `includes` (a
+  skill, a kind of skill, a link), and `sequence` (a set routine); the rest
+  (the number of elements, difficulty and others about a single routine) are
+  left out, and the notice says how many.
+- **The coach's Levels section** (`/clubs/coach/{token}/levels`): each level
+  with its requirements in words (`requirements.Describe`), who saved it
+  (`WhoChip`), **Open in the Requirements page** (a share link,
+  `/requirements#share=j…`, to change it and save again), the club's own
+  skills to track too (ticked, kept after its requirements), **Earlier**,
+  **Later** and **Remove** (marks stay).
+- **Progress, on every Skills page** (the member's, a coach's for a gymnast,
+  the comp sec's and other members'): under **Levels**, each level with how
+  many items each side has done (a gymnast chip, "2 of 5"; a coach chip) and
+  its items, each worked out on each side apart:
+  - a skill, kind of skill or number of them is worked out from that side's
+    marks with the requirements engine (`requirements.Evaluate`, against the
+    skills marked Can do as a list with no order): **Can do** when they meet
+    it, **Learning** when they would with the skills being learnt too
+    ("From the skills marked", no buttons);
+  - a link or a set routine is marked as a whole, like a skill, under its
+    own item (`r:` and a hash of the rule without its wording, so the same
+    link in two levels is one item); a kept routine that already does it is
+    named beside it ("Done in Drops"), for the coach to mark;
+  - the club's own skills to track are their marks.
+- **Filtering lists by level** (built 2026-10-15). The comp sec's Members
+  and a coach's Gymnasts have a **Level** filter where the club has levels
+  (`levelFilter`): for each level, **completed** (every item Can do on a
+  coach's side) and **working on** (something marked on either side, not
+  completed), grouped by level. Each member's standing is worked out as
+  their Skills page does it (`levelStandings`: `store.ClubMarks`,
+  `trackingOf` and `levelsProgress`), only for members with marks.
+
+## Sharing club levels (ADR 0011)
+
+Built 2026-10-15 ([ADR 0011](../../docs/adr/0011-club-routines-and-skill-tracking.md)
+Decision 6; `web/levelshare.go`). Each level on a coach's Levels section has
+**Share with another club**: a link (`/clubs/levels/shared#share=j` and the
+level as base64url JSON: `{v: 1, level: {name, set, track: [{name, note}]}}`)
+carrying its requirements and the club skills it tracks. No marks or
+people's names go with it, and the fragment reaches the server only when
+someone opens it.
+
+- **Opening it.** The page (`GET /clubs/levels/shared`) has a script
+  (`sharedLevel` in `competitions.js`) that reads the fragment and posts it
+  (`POST /clubs/levels/shared`), which shows the level: its requirements in
+  words, how many about a single routine aren't tracked, and the club skills
+  it brings.
+- **Adding it.** The coach chooses one of the coach pages saved in the
+  browser (members' who coach too included), or pastes their link, and
+  taps **Add to my club's levels** (`POST /clubs/levels/import`). The coach
+  is found from the link by `coachFromLink`, as for Save to club levels: a
+  coach's own link, or a member's whose person coaches too (ADR 0010),
+  asking which club where there are several. The club
+  gets its own copy, last, with no tie to the original
+  (`store.ImportClubLevel`). Each club skill it tracks is the club's own of
+  that name where it has one, a new one otherwise; a name the club gives a
+  catalog skill isn't taken. It opens their Levels section, saying how many
+  club skills it added.
 
 # One link, several roles (ADR 0010)
 
