@@ -306,6 +306,7 @@ type dayFlight struct {
 	Last               bool              // the note to tap Finished
 	Checkin            string            // e.g. "3 of 3 here"
 	Gymnasts           map[string]string // name: "here", "scratched" or ""
+	Order              []string          // the gymnasts in running order
 }
 
 // dayPageAreas are the On the day page's areas, by name.
@@ -409,6 +410,7 @@ func dayFlightOf(box *html.Node) dayFlight {
 				state = strings.ToLower(textOf(tag))
 			}
 			f.Gymnasts[who] = state
+			f.Order = append(f.Order, who)
 		}
 	}
 	return f
@@ -521,4 +523,69 @@ func historyHas(t *testing.T, h http.Handler, admin, who, what string) bool {
 		}
 	}
 	return false
+}
+
+// Fees.
+
+// feeAccount is a club's or individual's row on the organiser's Fees page.
+type feeAccount struct {
+	Payer              string // what the Paid form posts
+	Entries            string
+	Due, Paid, Balance string // Balance is "Paid" once settled
+	Payments           []string
+	Invoice            string
+}
+
+// feeAccounts are the Fees page's rows, by club or individual.
+func feeAccounts(t *testing.T, page string) map[string]feeAccount {
+	t.Helper()
+	out := map[string]feeAccount{}
+	for _, body := range byTag(parsePage(t, page), "tbody") {
+		for _, tr := range byTag(body, "tr") {
+			tds := byTag(tr, "td")
+			if len(tds) != 6 {
+				continue
+			}
+			name := strings.TrimSpace(tds[0].FirstChild.Data)
+			a := feeAccount{Entries: textOf(tds[1]), Due: textOf(tds[2]), Paid: textOf(tds[3]), Balance: textOf(tds[4])}
+			for _, d := range byTag(tds[0], "div") {
+				a.Payments = append(a.Payments, strings.TrimSuffix(textOf(d), " remove"))
+			}
+			for _, in := range byTag(tds[5], "input") {
+				if attrOf(in, "name") == "payer" {
+					a.Payer = attrOf(in, "value")
+				}
+			}
+			if links := byTag(tds[5], "a"); len(links) > 0 {
+				a.Invoice = unescape(attrOf(links[0], "href"))
+			}
+			out[name] = a
+		}
+	}
+	return out
+}
+
+// invoice is an invoice's lines ("what: amount") and its last line, what's
+// left to pay ("To pay €5" or "Paid in full €0").
+type invoice struct {
+	Lines []string
+	ToPay string
+}
+
+func invoiceOf(t *testing.T, page string) invoice {
+	t.Helper()
+	var out invoice
+	doc := parsePage(t, page)
+	for _, body := range byTag(doc, "tbody") {
+		for _, tr := range byTag(body, "tr") {
+			if tds := byTag(tr, "td"); len(tds) == 2 {
+				out.Lines = append(out.Lines, textOf(tds[0])+": "+textOf(tds[1]))
+			}
+		}
+	}
+	if foots := byTag(doc, "tfoot"); len(foots) > 0 {
+		rows := byTag(foots[0], "tr")
+		out.ToPay = textOf(rows[len(rows)-1])
+	}
+	return out
 }
