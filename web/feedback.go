@@ -2,7 +2,6 @@ package web
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"slices"
 	"strings"
@@ -278,13 +277,12 @@ func (p *competitionPages) emailFeedback(c store.Competition, f store.Feedback) 
 	if p.feedbackTo == "" || p.notify == nil || p.notify.mail == nil {
 		return
 	}
-	mail, to := p.notify.mail, p.feedbackTo
 	subject, body, headers := feedbackEmail(c, f)
-	go func() {
-		if err := mail.send(to, subject, body, headers); err != nil {
-			log.Printf("Emailing feedback about competition %s: %v", c.ID, err)
-		}
-	}()
+	// The background sender, with the desk's messages and the
+	// notifications: the request doesn't wait for it, and it keeps to the
+	// cap on emails a second.
+	p.notify.send.send([]delivery{{about: "Emailing feedback about competition " + c.ID,
+		email: &email{to: p.feedbackTo, subject: subject, body: body, headers: headers}}})
 }
 
 // feedbackEmail is the email of a piece of feedback: what was said, who by
