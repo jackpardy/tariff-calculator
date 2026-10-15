@@ -2,14 +2,16 @@
 type: API Reference
 title: HTTP routes
 description: Every route the server exposes, what it takes and what it returns, along with the limits applied to all requests.
-resource: https://github.com/jackpardy/tariff-calculator/blob/master/web/calculator.go
+resource: https://github.com/jackpardy/tariff-calculator/tree/master/web
 tags: [architecture, http, routes]
 generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 ---
 
 # Routes
 
-All routes are defined in `routesWithPages()` in `web/calculator.go`. Forms are
+The calculator's routes are defined in `routesWithPages()` in `web/calculator.go`;
+the competition and club routes are registered by each page file in `web/`
+(each has a `register…` function calling `handle`). Forms are
 `application/x-www-form-urlencoded`. "Routine" means a JSON array of
 [skills](../domain/skill-model.md#schema).
 
@@ -23,6 +25,7 @@ All routes are defined in `routesWithPages()` in `web/calculator.go`. Forms are
 | `GET /judging` | the form's fields (query), optional `last=1` | The "How it's judged" pop-up ([execution judging](../domain/execution.md)); `last=1` adds the landing; 400 for a skill that can't land |
 | `POST /routine` | `routineData`, `requirementSet`, `checks`, `side` (`a`/`b`), optional `compareData` + `compareName`; for a [level](../requirements/levels.md)'s exercise, `level`, `exercise` and the other exercise's `pairData`, `pairSet`, `pairChecks`, `pairName` | The routine view: cards, flags, totals, requirement results, and the level panel |
 | `POST /set-routine` | `requirementSet`, optional `routineData` | JSON `{name, skills, matches}` ([set routines](../requirements/set-routines.md)) |
+| `POST /requirements/set-routine` | `routineData` | The set routine editor filled from a routine |
 | `POST /qr` | `text` | An SVG QR code ([sharing](../features/sharing.md)) |
 | `GET /compare`, `POST /compare` | `aData`, `aName`, `bData`, `bName` | The [compare page](../features/compare.md) and its comparison |
 | `GET /requirements` | — | The requirements page |
@@ -180,6 +183,24 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST /competitions/admin/{token}/timetable/simulate/delete` | `remove` (a scenario's index) | Removes a scenario |
 | `POST /competitions/admin/{token}/signoff` | `on` (`1`/`0`) | Whether entries need a coach's sign-off (also `signoff=1` on `POST /competitions`) |
 | `GET`, `POST /competitions/signoff/{token}` | `coach` (their name), `signed`, `note` | An individual's coach signing off their entry |
+| `GET`, `POST /competitions/signoff/{token}/late` | `coach` (their name), `note` | An individual's coach signing off their late change |
+| `POST /competitions/entry/{token}/coach` | `name`, plus a `qualification` and its `certificate` (multipart) where the competition approves coaches | An individual names their coach, with the certificate the organiser checks |
+| `GET /competitions/admin/{token}/coaches` | — | Coaches (ADR 0007): each club's coaches sent for approval and individuals' coaches, with their qualifications and certificates, to approve or not |
+| `POST /competitions/admin/{token}/approve-coaches` | `on` (`1`/`0`) | Whether only approved coaches' sign-offs count |
+| `POST /competitions/admin/{token}/coaches/{coach}` | `action` (`approve`, `afresh` for sign-offs from now on, `refuse`, `withdraw`), `note` | The organiser's decision on a club's coach, with a note the club sees |
+| `GET /competitions/admin/{token}/coaches/{coach}/certificates/{q}` | — | A club coach's certificate, as uploaded |
+| `POST /competitions/admin/{token}/entry-coaches/{entry}` | `action` (as above), `note` | The organiser's decision on an individual's coach |
+| `GET /competitions/admin/{token}/entry-coaches/{entry}/certificate` | — | An individual's coach's certificate |
+| `POST /competitions/admin/{token}/remove` | `entry` (repeated), `action` (`hold` to hold rather than remove), `note`, `to` (who the note is for: the club, the member or both) | Removes or holds the ticked entries, with a note |
+| `POST /competitions/admin/{token}/entries/{id}/restore` | — | Puts a removed or held entry back |
+| `POST /clubs/admin/{token}/competitions/{id}/coaches` | `coach` (ids, repeated) | Sends the ticked coaches to the competition for approval |
+| `POST /clubs/admin/{token}/coaches/{coach}/qualifications` | `qualification` (its key), `certificate` (a file, multipart, up to 3 MB) | Adds a qualification with its certificate to a coach |
+| `POST /clubs/admin/{token}/coaches/{coach}/qualifications/{q}/remove` | — | Removes a coach's qualification and its certificate |
+| `GET /clubs/admin/{token}/coaches/{coach}/qualifications/{q}/certificate` | — | A coach's certificate, for the comp sec |
+| `POST /clubs/admin/{token}/coaches/{coach}/signs-off` | `on` (`1`/`""`) | Whether the club lets that coach sign off routines |
+| `GET /clubs/member/{token}/competitions/{id}/timeline`, `/competitions/entry/{token}/timeline` | — | A person's own timeline: their flights and duties in time order (once published) |
+| `GET /clubs/member/{token}/competitions/{id}/club-timeline`, `/clubs/admin/{token}/competitions/{id}/timeline`, `/clubs/coach/{token}/competitions/{id}/timeline` | — | The club's timeline: every flight a club's gymnast competes in and every seat its people hold |
+| `GET`, `POST /clubs/coach/{token}/late/{id}` | `note` | A club's coach signing off a member's late change |
 
 `requirementSet` is either `builtin:<id>` or the custom requirements as JSON.
 If the requirements can't be used, the problem is reported in the rendered
@@ -187,7 +208,9 @@ check rather than failing the request.
 
 # Limits and hardening
 
-- Request bodies are capped at **64 KB** (`http.MaxBytesReader`), as are headers.
+- Request bodies are capped at **64 KB** (`http.MaxBytesReader`), as are headers,
+  except the two certificate uploads, which take a 3 MB certificate and the
+  form around it (ADR 0007).
   A full routine is a few kilobytes.
 - Timeouts: read header 5 s, read 10 s, write 10 s, idle 60 s.
 - Every incoming skill is normalised to its phase count and validated (rotation

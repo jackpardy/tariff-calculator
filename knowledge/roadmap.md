@@ -210,8 +210,8 @@ features that show that, in this order:
      roles. **Built 2026-10-14 for club members:** Competitions (a row
      for each, opening its page, with each discipline a collapsed row)
      and Your details; more tabs go in `memberMenu`
-     (`web/menus_club.go`). Still to do: the coach's page. Gymnasts
-     entering on their own got the same with item 5.
+     (`web/menus_club.go`). The coach's page and gymnasts entering on
+     their own got the same with item 5 (role tabs, Your details).
 3. **Make dropdowns look like dropdowns** (asked 2026-10-13, built
    2026-10-14). **Limits and waiting lists** (now a plain group on the Settings page)
    opened when tapped but showed no arrow, because Bulma's `label` class

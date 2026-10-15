@@ -1000,8 +1000,9 @@ up to 160 characters) for 15 or 30 minutes, an hour, or until someone takes
 it down. Phones aren't told. The page lists what's up, by whom and until
 when, each with **Take down**. They show even before the timetable is
 published, latest first. The history records each one put up and taken
-down. The links that can send desk messages can do this too
-(`store/screennotices.go`, `web/screennotices.go`).
+down. The links that can send desk messages can do this too. A competition
+keeps its latest 50 announcements, shown or not (`store.MaxScreenNotices`;
+`store/screennotices.go`, `web/screennotices.go`).
 
 A new kind of link, **venue screen** (`store.LinkScreen`), can `GET` this
 route and nothing else. Organiser, "everything", chair and timetable links
