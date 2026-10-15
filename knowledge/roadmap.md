@@ -271,6 +271,17 @@ features that show that, in this order:
    wifi drops. Who's up now, tapped through by the marshal, shows who's on,
    their routine and the next two. Refine after the dry run.
 
+**Review and cleanup stop: done 2026-10-15.** A full audit of the code,
+pages, tests, docs and running it ([the report](audits/2026-10-cleanup.md))
+and every finding fixed, apart from those left below for the dry-run work or
+after it. Among them: links a comp sec makes open only that club's records;
+certificate limits; no secret link stored or logged; timetable edits that
+can't overwrite each other; stable flight ids for the day's marks; one person
+across roles in the timetable; taps safe to repeat on poor wifi; Go 1.26 with
+govulncheck in CI; `/healthz` and a graceful shutdown; an end-to-end test on a
+fixed clock; the timetable page 6.1 MB to 0.8 MB; search on the day and
+timetable pages; wide tables as cards on a phone.
+
 **Ready for the dry run (decided 2026-10-09).** A dry run of the core tools,
 entries through to the day, with about 20 people from 3 clubs, is planned for
 late 2026: entries from mid November, the day in late November or early

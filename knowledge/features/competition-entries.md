@@ -1,7 +1,7 @@
 ---
 type: Feature
 title: Competition entries
-description: What organisers, club competition secretaries, members and coaches see when entries are collected for a competition. Organisers get an overview of every entry with its problems, a full view of any one entry, printed cards, an export, optional video proof by link, and optional coach sign-off.
+description: What organisers, club competition secretaries, members, coaches and gymnasts entering on their own see, from entering a competition to the day itself — entries and their problems, fees, limits, late changes, officials, the timetable and rota, helpers' links, notifications, one link for several roles, and on the day check-in, who's up, desk messages and the venue screen.
 tags: [feature, competitions, clubs, coaches]
 generated: { by: claude-code/cli, at: 2026-10-06T11:00:00Z }
 sources:
@@ -27,6 +27,44 @@ are `views/competitions.templ` (the layout and shared parts),
 `dashboard.templ`, `entry.templ`, `cards.templ` and `partner.templ`.
 `/competitions` lists the links a browser has. The pages are on only where
 `DATA_DIR` is set ([competition storage](../operations/deploy.md#competition-storage)).
+
+**Contents**
+
+- [The organiser (competition admin link)](#the-organiser-competition-admin-link)
+    - [The menu and the Settings page (roadmap 2026-10-14)](#the-menu-and-the-settings-page-roadmap-2026-10-14)
+    - [All people (roadmap 2026-10-14)](#all-people-roadmap-2026-10-14)
+    - [Helpers' links, history and concerns (ADR 0009)](#helpers-links-history-and-concerns-adr-0009)
+    - [When entries, changes and sign-offs close](#when-entries-changes-and-sign-offs-close)
+    - [Late changes](#late-changes)
+    - [Limits and waiting lists](#limits-and-waiting-lists)
+    - [Entry fees](#entry-fees)
+    - [Going live](#going-live)
+    - [Dashboard](#dashboard)
+    - [One entry](#one-entry)
+    - [Printing and export](#printing-and-export)
+    - [Removing and holding entries](#removing-and-holding-entries)
+    - [Video proof](#video-proof)
+- [Events and synchro (ADR 0005, step 2)](#events-and-synchro-adr-0005-step-2)
+- [Searching lists of people (roadmap item 6)](#searching-lists-of-people-roadmap-item-6)
+- [Officials (ADR 0005, step 3)](#officials-adr-0005-step-3)
+- [Officials rota (ADR 0005, step 5)](#officials-rota-adr-0005-step-5)
+- [Timetable (ADR 0005, step 4)](#timetable-adr-0005-step-4)
+    - [What if there's a delay](#what-if-theres-a-delay)
+    - [What if an official has to leave](#what-if-an-official-has-to-leave)
+    - [On the day: flights started and finished](#on-the-day-flights-started-and-finished)
+    - [The venue screen](#the-venue-screen)
+    - [Messages from the organisers' desk](#messages-from-the-organisers-desk)
+    - [Simulation (ADR 0005, step 6)](#simulation-adr-0005-step-6)
+- [Coaches (coach link)](#coaches-coach-link)
+- [The club's comp sec (club admin link)](#the-clubs-comp-sec-club-admin-link)
+- [A member (personal link)](#a-member-personal-link)
+- [One link, several roles (ADR 0010)](#one-link-several-roles-adr-0010)
+    - [Entering on your own: one page](#entering-on-your-own-one-page)
+- [My competition (roadmap: competitions 5)](#my-competition-roadmap-competitions-5)
+    - [Personal and club timetables](#personal-and-club-timetables)
+- [Notifications (ADR 0008)](#notifications-adr-0008)
+    - [Offline](#offline)
+- [Built from](#built-from)
 
 # The organiser (competition admin link)
 
