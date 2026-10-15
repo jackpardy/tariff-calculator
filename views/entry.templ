@@ -109,11 +109,6 @@ type EntryPage struct {
 	Pairs       []PairView   // synchro entries they're the partner in
 	Removal     string       // what the organiser did with it, and why, if anything
 	Fees        *FeesSummary // what they owe, if the competition charges
-	// Menu and Back are the person's pages it's one of (ADR 0010); Personal
-	// says Link is their personal page's link, not the entry's own.
-	Menu     []MenuSection
-	Back     string
-	Personal bool
 }
 
 // EntryCoachView is the coach an individual names, for the organiser to
@@ -328,88 +323,83 @@ templ entryExercise(n int, ex EntryExercise, f EntryForm) {
 // CompetitionEntryPage is an individual's own entry, through their personal link.
 templ CompetitionEntryPage(p EntryPage) {
 	@competitionLayout(p.Card.Gymnast + " · " + p.Competition.Name) {
-		if len(p.Menu) > 0 {
-			// On the person's own page (ADR 0010): who, their tabs, and back to the competition.
-			<p class="has-text-grey mb-1">Entered on your own</p>
-			<h1 class="title is-4">{ p.Card.Gymnast }</h1>
-			@pageMenu(p.Menu)
-			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.Competition.Name }</a></p>
-		} else {
-			<p class="has-text-grey mb-1">{ p.Competition.Name }</p>
-		}
+		// An entry not on anyone's page (entries from before ADR 0010 are on
+		// their person's page, which their entry links open instead).
+		<p class="has-text-grey mb-1">{ p.Competition.Name }</p>
 		@competitionFacts(p.Competition)
 		if p.JustSaved {
 			<div class="notification is-success is-light">
-				if p.Personal {
-					<p><strong>Entry saved.</strong> Your personal link below opens this entry and every other you make with it: keep it to change or withdraw them. It's saved in this browser too.</p>
-				} else {
-					<p><strong>Entry saved.</strong> It's on your page with your other entries.</p>
-				}
+				<p><strong>Entry saved.</strong></p>
 			</div>
 		}
-		if p.Personal && (p.JustSaved || len(p.Menu) == 0) {
-			<div data-gymnast-link={ p.Link } data-gymnast-name={ p.Name }>
-				@linkBox("Your personal link (keep it to yourself)", p.Link, "")
-			</div>
-		} else if p.Personal {
-			// Their link is under Your details; it's still saved in this browser.
-			<span hidden data-gymnast-link={ p.Link } data-gymnast-name={ p.Name }></span>
-		} else if p.Link != "" {
+		if p.Link != "" {
 			<div data-entry-link={ p.Link } data-entry-name={ p.Card.Gymnast + " · " + p.Competition.Name }>
 				@linkBox("Your personal link (keep it to yourself)", p.Link, "")
 			</div>
 		}
-		@partnerBox(p.Partner)
 		if p.Notice != "" {
 			<div class="notification is-success is-light">{ p.Notice }</div>
 		}
-		if p.Removal != "" {
-			<div class="notification is-warning is-light">{ p.Removal }</div>
+		@dayLink(p.Day)
+		@deskMessages(p.Desk)
+		@timelineLinks("", "", p.Notify, "", "")
+		@dutiesBox(p.Duties, p.ScoreSheets)
+		<h2 class="title is-5 mt-4">{ p.Card.Gymnast }</h2>
+		@entryBody(p)
+		@pairEntries(p.Pairs)
+		if p.Competition.ChangesOpen {
+			@privacyNote(p.Competition)
 		}
-		if p.Coach != nil {
-			@entryCoachBox(*p.Coach, p.Competition.SignoffsOpen)
+	}
+}
+
+// entryBody is one of an individual's entries, everything about it in the
+// order it's looked at: where it stands, where they compete, its card, then
+// changing or withdrawing it, their coach, what they owe and what they
+// offer. A row of their competition's page opens to it.
+templ entryBody(p EntryPage) {
+	if p.Partner != nil {
+		// A pair: who, as the row names only the discipline.
+		<p class="mb-1"><strong>{ p.Card.Gymnast }</strong></p>
+	}
+	<p class="mb-2">
+		if p.Checked {
+			@StateChip(Done, "Checked by the organiser")
 		}
-		if p.SignoffLink != "" {
+		<span class="has-text-grey is-size-7">Entered { p.Sent }.</span>
+	</p>
+	if p.Removal != "" {
+		<div class="notification is-warning is-light">{ p.Removal }</div>
+	}
+	@waitingLine(p.Waiting)
+	@lateLine(p.Late, p.LateAsk)
+	@placementLine(p.Placement)
+	@organiserNote(p.Note)
+	@videoReviewNote(p.VideoReview, p.VideoNote)
+	@partnerBox(p.Partner)
+	@entryCardChecks(p.Card)
+	if p.Competition.ChangesOpen {
+		<div class="mt-4">
+			@opens("", "", "Change the entry", len(p.Form.Problems) > 0) {
+				@entryForm(p.Form)
+			}
+			@withdrawForm(p.Withdraw, "")
+		</div>
+	}
+	if p.Coach != nil {
+		@entryCoachBox(*p.Coach, p.Competition.SignoffsOpen)
+	}
+	if p.SignoffLink != "" {
+		<div class="mt-4">
 			// Open until a coach signs it off: until then, sending it is what's left to do.
 			@opens("Sign-off link for your coach", "This competition needs a coach's sign-off. Send it to your coach: they see your entry and sign it off.", "Show", !p.Card.Signoff.Signed) {
 				@linkBox("Sign-off link for your coach", p.SignoffLink, "")
 			}
-		}
-		@dayLink(p.Day)
-		@feesLine(p.Fees)
-		@deskMessages(p.Desk)
-		// The timetables and calendars are on My competition; hearing about changes is here too.
-		@timelineLinks("", "", p.Notify, "", "")
-		@waitingLine(p.Waiting)
-		@lateLine(p.Late, p.LateAsk)
-		@placementLine(p.Placement)
-		@dutiesBox(p.Duties, p.ScoreSheets)
-		if p.Checked {
-			<p class="mb-2"><strong>✓ Checked by the organiser.</strong></p>
-		}
-		@organiserNote(p.Note)
-		@videoReviewNote(p.VideoReview, p.VideoNote)
-		if len(p.Menu) > 0 {
-			// Their name heads the page already.
-			<p class="subtitle is-6">{ p.Card.Level }</p>
-			@entryCardChecks(p.Card)
-		} else {
-			@entryCard(p.Card)
-		}
-		<p class="has-text-grey is-size-7">Entered { p.Sent }.</p>
-		@pairEntries(p.Pairs)
-		if p.Competition.ChangesOpen {
-			<div class="mt-4">
-				@opens("", "", "Change the entry", len(p.Form.Problems) > 0) {
-					@entryForm(p.Form)
-				}
-				@withdrawForm(p.Withdraw, "")
-			</div>
-			if p.Offer != nil {
-				@offerBox(*p.Offer)
-			}
-			@privacyNote(p.Competition)
-		}
+		</div>
+	}
+	@feesLine(p.Fees)
+	if p.Offer != nil && p.Competition.ChangesOpen {
+		@offerBox(*p.Offer)
 	}
 }
 

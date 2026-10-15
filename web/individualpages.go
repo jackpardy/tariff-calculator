@@ -111,9 +111,18 @@ func (p *competitionPages) own(w http.ResponseWriter, r *http.Request) (store.En
 	return e, c, true
 }
 
+// ownEntry opens an entry: on its person's page for the competition, at its
+// row (ADR 0010), carrying what the address says (just saved, a notice);
+// an entry on no one's page shows on its own.
 func (p *competitionPages) ownEntry(w http.ResponseWriter, r *http.Request) {
 	e, c, ok := p.own(w, r)
 	if !ok {
+		return
+	}
+	if e.IndividualID != "" {
+		q := r.URL.Query()
+		q.Set("entry", e.ID)
+		http.Redirect(w, r, gymnastCompetitionPath(p.gymnastBase(r, e), c.ID)+"?"+q.Encode(), http.StatusSeeOther)
 		return
 	}
 	p.renderOwn(w, r, e, c, e.Entry, nil)
@@ -134,20 +143,48 @@ func (p *competitionPages) gymnastBase(r *http.Request, e store.Entry) string {
 }
 
 // renderOwn shows an individual their entry, and the form to change it
-// (starting from form, with any problems).
+// (starting from form, with any problems): on their page for the
+// competition, the entry's row open, or on its own for an entry on no one's
+// page.
 func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e store.Entry, c store.Competition, form competitions.Entry, problems []string) {
-	shown, err := card(c.Competition, e.Entry, clubOf(e))
+	if e.IndividualID != "" {
+		p.renderGymnastCompetition(w, r, p.gymnastBase(r, e), c.ID, &postedOwn{entry: e.ID, form: form, problems: problems})
+		return
+	}
+	page, err := p.entryView(r, e, c, "/competitions/entry/"+r.PathValue("token"), form, problems)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
+	page.Link = origin(r) + "/competitions/entry/" + r.PathValue("token")
+	page.JustSaved = r.URL.Query().Get("saved") == "1"
+	if len(problems) > 0 {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+	}
+	render(w, r, views.CompetitionEntryPage(page))
+}
+
+// postedOwn is a change to one of an individual's entries that came back
+// with problems, to show in its row.
+type postedOwn struct {
+	entry    string
+	form     competitions.Entry
+	problems []string
+}
+
+// entryView is one of an individual's entries, as their pages show it, its
+// forms posting under path (the entry's own address), the change form
+// starting from form, with any problems.
+func (p *competitionPages) entryView(r *http.Request, e store.Entry, c store.Competition, path string, form competitions.Entry, problems []string) (views.EntryPage, error) {
+	shown, err := card(c.Competition, e.Entry, clubOf(e))
+	if err != nil {
+		return views.EntryPage{}, err
+	}
 	withSignoff(&shown, storedSignoff(c.Competition, e))
-	token := r.PathValue("token")
-	path := "/competitions/entry/" + token
 	page := views.EntryPage{
 		Name:        e.Entry.Gymnast,
-		Competition: summary(c.Competition, p.now()), Link: origin(r) + path, JustSaved: r.URL.Query().Get("saved") == "1",
-		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
+		Competition: summary(c.Competition, p.now()),
+		Sent:        e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
 		Placement:   placement(c, e.ID),
 		Waiting:     waitingText(p.waitingOf(r.Context(), c.ID, e.ID)),
 		Late:        p.lateStatusOf(r.Context(), c, e.ID),
@@ -157,19 +194,6 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	}
 	if c.Signoff {
 		page.SignoffLink = origin(r) + signoffPath(e.SignoffLink)
-	}
-	// The entry is on its person's page (ADR 0010): opened through their
-	// personal link, that's the link to keep; through an entry link from
-	// before, that entry link.
-	base := p.gymnastBase(r, e)
-	if store.IsVia(token) {
-		page.Link = ""
-		if base == store.Personal(token) {
-			page.Link, page.Personal = origin(r)+gymnastPath(base), true
-		}
-	}
-	if e.IndividualID != "" {
-		page.Menu, page.Back = gymnastMenu(base, gymnastCompetitions), gymnastCompetitionPath(base, c.ID)
 	}
 	page.Notice = r.URL.Query().Get("notice")
 	page.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: path, key: e.Key(), people: []string{e.Key()}})
@@ -187,24 +211,20 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		page.Removal = strings.TrimSpace("The organiser asks for changes before taking this entry back in: change it below. " + e.RemovalNote)
 	}
 	if page.Coach, err = p.entryCoachView(r, c, e, path); err != nil {
-		failed(w, r, err)
-		return
+		return page, err
 	}
 	seen := p.seenFor(r)
 	if warn, err := seen.pairWarning(c.ID, e.ID); err != nil {
-		failed(w, r, err)
-		return
+		return page, err
 	} else if warn != "" {
 		page.Card.Problems = append([]string{warn}, page.Card.Problems...)
 	}
 	pairs, err := p.st.IndividualPairEntries(r.Context(), e.ID)
 	if err != nil {
-		failed(w, r, err)
-		return
+		return page, err
 	}
 	if page.Pairs, err = seen.pairViews(pairs, nil); err != nil {
-		failed(w, r, err)
-		return
+		return page, err
 	}
 	if e.Entry.Partner != nil {
 		page.Partner = &views.PartnerView{Name: e.Entry.Partner.Name, Link: origin(r) + partnerPath(e.PartnerLink), Confirmed: e.PartnerConfirmed}
@@ -214,10 +234,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		page.Offer = &form
 	}
 	page.Form.Problems = problems
-	if len(problems) > 0 {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-	}
-	render(w, r, views.CompetitionEntryPage(page))
+	return page, nil
 }
 
 func (p *competitionPages) replaceEntry(w http.ResponseWriter, r *http.Request) {

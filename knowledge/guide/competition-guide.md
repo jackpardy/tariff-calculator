@@ -770,8 +770,9 @@ confirm.
 3. You get your own page and its **personal link**, saved in this browser.
    Keep it: it opens every entry you make with it. Your page has
    **Competitions** (each competition you entered: tap one for a row per
-   discipline, **Open this entry** to change or withdraw it, and **Enter
-   another discipline**, under the same link) and **Your details** (your link,
+   discipline, which opens to everything about that entry, with **Change the
+   entry** and **Withdraw**, and **Enter another discipline**, under the same
+   link) and **Your details** (your link,
    and your other links). On an entry, under **Judging and helping**, say what
    you can judge or help with. Once the timetable is published, your entry
    shows your flight and, under **Officiating**, when and where you judge or

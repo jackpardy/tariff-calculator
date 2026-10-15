@@ -30,6 +30,13 @@ func do(t *testing.T, h http.Handler, method, path string, form url.Values) *htt
 	}
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
+	// An entry's own link opens its person's page for the competition, at
+	// its row: the tests read that page, as a browser would land on it.
+	if method == http.MethodGet && rec.Code == http.StatusSeeOther && strings.HasPrefix(path, "/competitions/entry/") && !strings.Contains(strings.TrimPrefix(path, "/competitions/entry/"), "/") {
+		if to := rec.Header().Get("Location"); strings.HasPrefix(to, "/competitions/gymnast/") {
+			return do(t, h, method, to, nil)
+		}
+	}
 	return rec
 }
 
@@ -182,7 +189,7 @@ func TestIndividualEntry(t *testing.T) {
 	}
 	own := strings.TrimSuffix(rec.Header().Get("Location"), "?saved=1")
 	page := do(t, h, http.MethodGet, own+"?saved=1", nil).Body.String()
-	for _, want := range []string{"Entry saved.", "C. Ryan", `<p class="subtitle is-6">BUCS L3</p>`, "set routine as written", "Tuck Back", "Change the entry", "Keep the routine entered (2 skills)"} {
+	for _, want := range []string{"Entry saved.", "C. Ryan", `<span class="has-text-grey is-size-7">· BUCS L3</span>`, "set routine as written", "Tuck Back", "Change the entry", "Keep the routine entered (2 skills)"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the entry page should say %q", want)
 		}
@@ -219,6 +226,12 @@ func TestIndividualEntry(t *testing.T) {
 	}
 	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "option 2") {
 		t.Error("the change is saved")
+	}
+	// A change with problems comes back on their page, its row and form open.
+	rec = do(t, h, http.MethodPost, own, url.Values{"gymnast": {"C. Ryan"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-2"}})
+	if body := rec.Body.String(); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(body, `<details class="box comp-event-row" open>`) ||
+		!strings.Contains(body, `<details class="comp-opens comp-opens-action" open>`) || !strings.Contains(body, `aria-label="Sections"`) {
+		t.Errorf("a change with problems: %d %s", rec.Code, body)
 	}
 
 	// Individual entry can be turned off.
@@ -278,7 +291,7 @@ func TestOrganiserTools(t *testing.T) {
 	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, `title="Please add 8 elements"`) || !strings.Contains(dash, chip(t, views.Done, "Checked")) {
 		t.Error("the dashboard shows the check and note")
 	}
-	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Checked by the organiser.") || !strings.Contains(page, "Please add 8 elements") {
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, chip(t, views.Done, "Checked by the organiser")) || !strings.Contains(page, "Please add 8 elements") {
 		t.Error("the gymnast sees the check and the note")
 	}
 	if none := do(t, h, http.MethodGet, admin+"/cards?unchecked=1", nil).Body.String(); !strings.Contains(none, "No entries to print.") {
@@ -287,7 +300,7 @@ func TestOrganiserTools(t *testing.T) {
 	// Changing the entry means checking it again.
 	entry.Set("ex1Option", "builtin:bucs-l3-option-2")
 	redirected(t, h, own, entry)
-	if page := do(t, h, http.MethodGet, own, nil).Body.String(); strings.Contains(page, "Checked by the organiser.") || !strings.Contains(page, "Please add 8 elements") {
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); strings.Contains(page, chip(t, views.Done, "Checked by the organiser")) || !strings.Contains(page, "Please add 8 elements") {
 		t.Error("a changed entry is no longer checked; the note stays")
 	}
 

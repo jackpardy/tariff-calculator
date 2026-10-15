@@ -26,16 +26,18 @@ type GymnastCompetition struct {
 	Events      []GymnastEvent
 	Day         string // their My competition page
 	Enter       string // where to enter another discipline, while entries are open
+	MyLinks            // hearing about changes, desk messages and their duties
+	Pairs       []PairView // synchro entries they're the partner in
+	Saved       bool       // an entry was just saved
 }
 
 // GymnastEvent is an individual's entry for one discipline, as a row that
-// opens to its card and a link to the entry's own page.
+// opens to everything about it: its card, changing and withdrawing it, their
+// coach, fees and what they offer.
 type GymnastEvent struct {
-	Row       MemberEvent // the row: discipline, level and status
-	Gymnast   string      // as entered
-	Open      string      // the entry's page: its card, changes, coach and officiating
-	Placement *Placement
-	Card      *EntryCard
+	Row   MemberEvent // the row: discipline, level and status
+	Open  bool        // shown open: the one asked for, or a save had problems
+	Entry EntryPage
 }
 
 // gymnastFrame is the top of each of an individual's pages.
@@ -73,32 +75,43 @@ templ GymnastHome(p GymnastPage) {
 }
 
 // GymnastCompetitionPage is an individual's page for one competition: a row
-// for each discipline they entered.
+// for each discipline they entered, opening to all of that entry, as a
+// member's page has (an entry's own link opens this page at its row).
 templ GymnastCompetitionPage(p GymnastPage) {
 	@gymnastFrame(p) {
 		<p class="mb-3"><a href={ templ.SafeURL(p.Home) }>← Competitions</a></p>
 		if c := p.Competition; c != nil {
+			if c.Saved && p.Link != "" {
+				<div class="notification is-success is-light">
+					<p class="mb-2"><strong>Entry saved.</strong> Your personal link opens this entry and every other you make with it: keep it to change or withdraw them. It's saved in this browser too.</p>
+					@linkBox("Your personal link (keep it to yourself)", p.Link, "")
+				</div>
+			} else if c.Saved {
+				<div class="notification is-success is-light"><p><strong>Entry saved.</strong> It's on your page with your other entries.</p></div>
+			}
 			<h2 class="title is-5">{ c.Competition.Name }</h2>
 			@competitionFacts(c.Competition)
 			@dayLink(c.Day)
+			@deskMessages(c.Desk)
+			// The timetables and calendars are on My competition; hearing about changes is here too.
+			@timelineLinks("", "", c.Notify, "", "")
+			@dutiesBox(c.Duties, c.ScoreSheets)
 			for _, ev := range c.Events {
-				<details class="box comp-event-row" open?={ len(c.Events) == 1 }>
+				<details class="box comp-event-row" open?={ ev.Open }>
 					<summary>
 						@memberEventRow(ev.Row)
 					</summary>
 					<div class="mt-3">
-						<p class="mb-2"><strong>{ ev.Gymnast }</strong> · { ev.Row.Status }</p>
-						@placementLine(ev.Placement)
-						if ev.Card != nil {
-							@entryCardChecks(*ev.Card)
-						}
-						<a class="button is-small is-link is-light" href={ templ.SafeURL(ev.Open) }>Open this entry</a>
-						<p class="help">To change or withdraw it, name your coach, or offer to judge or help.</p>
+						@entryBody(ev.Entry)
 					</div>
 				</details>
 			}
+			@pairEntries(c.Pairs)
 			if c.Enter != "" {
 				<a class="button is-primary is-outlined" href={ templ.SafeURL(c.Enter) }>Enter another discipline</a>
+			}
+			if c.Competition.ChangesOpen {
+				@privacyNote(c.Competition)
 			}
 		}
 	}

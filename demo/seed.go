@@ -117,6 +117,11 @@ func (s *seeder) get(path string) string {
 		return ""
 	}
 	rec := s.do(http.MethodGet, path, nil)
+	if rec.Code == http.StatusSeeOther {
+		// Where the page now lives, as a browser would follow: an entry's
+		// link opens its person's page for the competition.
+		rec = s.do(http.MethodGet, rec.Header().Get("Location"), nil)
+	}
 	if rec.Code != http.StatusOK {
 		s.fail("GET %s: %d", path, rec.Code)
 	}

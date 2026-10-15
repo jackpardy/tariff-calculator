@@ -310,7 +310,7 @@ func TestIndividualPage(t *testing.T) {
 		t.Fatalf("their competitions: %s", home)
 	}
 	page = get(comp[1])
-	if !strings.Contains(page, "Trampoline") || !strings.Contains(page, `href="`+first+`"`) || !strings.Contains(page, "Enter another discipline") {
+	if !strings.Contains(page, "Trampoline") || !strings.Contains(page, `action="`+first+`"`) || !strings.Contains(page, "Enter another discipline") {
 		t.Fatalf("a row per discipline: %s", page)
 	}
 	// Another discipline from their page, under the same link.
@@ -421,8 +421,8 @@ func TestOldEntryLinks(t *testing.T) {
 	get := func(path string) string { return dayAll(t, h, path) }
 
 	page := get("/competitions/entry/oldLinkOne")
-	if !strings.Contains(page, "Una Ní Bhriain") || !strings.Contains(page, `data-entry-link="http://example.com/competitions/entry/oldLinkOne"`) {
-		t.Fatalf("the old link opens its entry, as its link to keep: %s", page)
+	if !strings.Contains(page, "Una Ní Bhriain") || !strings.Contains(page, `data-gymnast-link="http://example.com/competitions/gymnast/oldLinkOne"`) || !strings.Contains(page, `action="/competitions/entry/oldLinkOne~entryoldLinkOne"`) {
+		t.Fatalf("the old link opens its person's page at its entry, as their link to keep: %s", page)
 	}
 	if cur, _ := menuCurrent(page); cur != "Competitions" || !strings.Contains(page, `href="/competitions/gymnast/oldLinkOne/details"`) {
 		t.Errorf("on its person's page: %s", page)

@@ -1878,10 +1878,18 @@ each role has them.
 A gymnast entering on their own has one personal page,
 `/competitions/gymnast/{token}` (`web/gymnastpages.go`), like a member's
 without the club: **Competitions** (each competition entered, with how many
-entries), each competition's page (a row per discipline, with its status, that
-opens to its card and **Open this entry**, the My competition link, and
-**Enter another discipline** while entries are open) and **Your details** (the
-link, and Your other links).
+entries), each competition's page and **Your details** (the link, and Your
+other links). A competition's page (built 2026-10-15, as a member's) has the
+facts, the My competition link, messages, Tell me about changes and their
+officiating, then a row per discipline, with its status, that opens to all
+of that entry (`entryBody`): checked, the flight, the organiser's notes,
+the card, **Change the entry** and **Withdraw**, **Your coach** and the
+sign-off link for their coach, fees and Judging and helping; then
+**Enter another discipline** while entries are open. Each row's forms post
+to the entry's own address, `/competitions/entry/{token}`, whose GET now
+redirects here with `entry=<id>` to open that row, so every entry link
+already sent lands on this page; a change with problems shows this page with
+the row and its form open.
 
 - **Entering.** The competition's link for entering on their own asks for **your
   page's link, if you have one**, offering the pages saved in this browser

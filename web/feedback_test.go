@@ -98,7 +98,7 @@ func TestFeedbackFromEveryLink(t *testing.T) {
 		{"a member", annPage, "Member", "Their entries"},
 		{"a member's My competition", annPage + "/day", "Member", "My competition"},
 		{"a coach", unescape(coachEntry[1]), "Coach", "Signing off an entry"},
-		{"an individual", own, "Individual", "Their entry"},
+		{"an individual", own, "Individual", "Their entries"},
 	} {
 		if code, said := sendFeedbackFrom(t, h, tc.path, "From "+tc.from); code != http.StatusOK || said != "Thanks: your feedback is sent." {
 			t.Errorf("from %s: %d %q", tc.from, code, said)
@@ -333,7 +333,7 @@ func TestFeedbackEmailed(t *testing.T) {
 		if e.to != "maintainer@example.com" || e.subject != "Feedback: Student Open" || e.headers["Reply-To"] != "bea@example.com" {
 			t.Errorf("the email: %+v", e)
 		}
-		for _, want := range []string{"Where's my time?", "From: Individual", "Page: Their entry (/competitions/entry/{token})", "Reply to: bea@example.com"} {
+		for _, want := range []string{"Where's my time?", "From: Individual", "Page: Their entries (/competitions/gymnast/{token}/competitions/{id})", "Reply to: bea@example.com"} {
 			if !strings.Contains(e.body, want) {
 				t.Errorf("the email says %q: %s", want, e.body)
 			}

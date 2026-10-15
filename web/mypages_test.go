@@ -58,7 +58,7 @@ func TestMyCompetition(t *testing.T) {
 	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, own+"/day") {
 		t.Error("the individual's entry links to their competition")
 	}
-	if page := dayAll(t, h, own+"/day"); !strings.Contains(page, "<strong>Ivy</strong>") || !strings.Contains(page, ": your entry</a>") {
+	if page := dayAll(t, h, own+"/day"); !strings.Contains(page, "<strong>Ivy</strong>") || !strings.Contains(page, ": your entries</a>") {
 		t.Error("the individual's competition")
 	}
 }
