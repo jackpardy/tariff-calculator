@@ -60,3 +60,34 @@ func TestPrimaryAndSuccessContrast(t *testing.T) {
 		}
 	}
 }
+
+// The palette's state and role colours (views/status.templ) read at 4.5:1 or
+// better: each state's text on its background and on white, each role's
+// colour on white.
+func TestPaletteContrast(t *testing.T) {
+	css, err := files.ReadFile("css/styles.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := func(name string) string {
+		m := regexp.MustCompile(`--` + regexp.QuoteMeta(name) + `: (#[0-9a-f]{6});`).FindStringSubmatch(string(css))
+		if m == nil {
+			t.Fatalf("no colour --%s", name)
+		}
+		return m[1]
+	}
+	for _, s := range []string{"not-yet", "in-progress", "done", "attention", "stopped"} {
+		ink, bg := token("state-"+s+"-ink"), token("state-"+s+"-bg")
+		if c := contrast(ink, bg); c < 4.5 {
+			t.Errorf("%s: %s on %s is %.2f:1", s, ink, bg, c)
+		}
+		if c := contrast(ink, "#ffffff"); c < 4.5 {
+			t.Errorf("%s: %s on white is %.2f:1", s, ink, c)
+		}
+	}
+	for _, r := range []string{"gymnast", "coach", "club", "organiser"} {
+		if c := contrast(token("role-"+r), "#ffffff"); c < 4.5 {
+			t.Errorf("%s: %s on white is %.2f:1", r, token("role-"+r), c)
+		}
+	}
+}

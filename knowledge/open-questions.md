@@ -79,6 +79,18 @@ decide:
   coaching levels, by discipline, and their names.
 - **Uploads:** largest file, and which types (photo, PDF).
 
+# Code to restructure
+
+- **Finding a skill by its identity** (flagged 2026-10-15). The only rule for
+  "the same skill" is `TrampolineSkill.Equal` (`skills/skills.go`), which
+  compares two skills: repeats, carry-over, requirements and skill marks
+  all use it pairwise. Skill marks find a skill's mark by comparing it with
+  each of the member's (up to 500), which is fine at that size. Looking marks
+  up directly, or indexing them in the database, would need a canonical form
+  of a skill that `Equal` itself is built on, so the rule stays in one
+  place; a second copy of the rule was written and taken out the same day.
+  Worth doing if club levels make the comparisons many.
+
 # Decisions pending
 
 - Whether to mark [ADR 0003](../docs/adr/0003-requirements-framework.md)

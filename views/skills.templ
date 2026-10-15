@@ -3,36 +3,34 @@ package views
 import "strconv"
 
 // Skill tracking (ADR 0011 Decisions 2 and 3): what a member is learning or
-// can do, marked by them or by a coach, on the member's Skills tab, a coach's
-// page for each gymnast, and the comp sec's view. Who marked a skill and its
-// state are said in words, with classes for the colours the app's colour
-// standard will give them.
+// can do, on the member's Skills tab, a coach's page for each gymnast, and the
+// comp sec's view. The gymnast's mark and a coach's are kept apart and both
+// shown, each a role chip and a state chip (views/status.templ): Learning is
+// in progress, Can do is done.
 
-// MarkView is one skill a member is learning or can do.
+// SideMark is the gymnast's, or a coach's, mark on a skill.
+type SideMark struct {
+	State string // "learning" or "can"
+	By    string // their name, or "You"
+	At    string // when, e.g. "15 Oct"
+}
+
+// MarkView is one skill a member has marked, or a coach has for them.
 type MarkView struct {
-	Skill      string // the skill as JSON, posted to change the mark
-	Name, FIG  string
-	State      string // "learning" or "can"
-	ByGymnast  bool
-	By         string // who marked it, e.g. "you", "Ann (coach)", "Aoife"
-	At         string // when, e.g. "15 Oct"
-	ToConfirm  bool   // a coach looking at a mark only the gymnast made
-}
-
-// SkillChoice is a skill to mark: from a search, the member's routines or the
-// catalog, with its mark if it has one.
-type SkillChoice struct {
-	Skill     string // as JSON
+	Skill     string // the skill as JSON, posted to change a mark
 	Name, FIG string
-	Tariff    string
-	State     string // its mark's state, "" for none
-	ByGymnast bool
+	Tariff    string // in a list of skills to mark
+	Gymnast   *SideMark
+	Coach     *SideMark
+	Mine      string // the state of the viewer's own side's mark, "" for none
+	Confirm   string // for a coach: the gymnast's state, to confirm as theirs, "" for nothing to confirm
 }
 
-// SkillGroup is skills shown together, e.g. a catalog tab's, or "Singles".
+// SkillGroup is skills shown together: the marked ones by how they stand, or
+// skills to mark (a catalog tab's, say).
 type SkillGroup struct {
 	Title  string
-	Skills []SkillChoice
+	Skills []MarkView
 }
 
 // OtherMember is another member of the club, whose skills a member opens
@@ -45,107 +43,104 @@ type OtherMember struct {
 
 // SkillsPart is a member's skills on a page, and how to mark them.
 type SkillsPart struct {
-	Whose     string // "your", or the member's name
-	Can       []MarkView
-	Learning  []MarkView
-	Action    string // where a mark posts; "" when it's to look at
-	Coach     bool   // marking as a coach
-	ToConfirm int    // marks only the gymnast made, for a coach
-	Search    string // where searching goes
+	Whose     string       // "your", or the member's name and "'s"
+	Marked    []SkillGroup // Can do, Learning, and Marked differently
+	Action    string       // where a mark posts; "" when it's to look at
+	ToConfirm int          // the gymnast's marks no coach has made the same, for a coach
+	Search    string       // where searching goes
 	Query     string
-	Results   []SkillChoice
-	Routines  []SkillChoice // skills in their kept routines
-	Browse    []SkillGroup  // the catalog, by tab
-	Others    []OtherMember // the club's other members, when skills are open to all
-	Open      bool          // every member of the club sees everyone's skills
+	Results   []MarkView
+	Routines  []MarkView   // skills in their kept routines
+	Browse    []SkillGroup // the catalog, by tab
+	Others    []OtherMember
+	Open      bool // every member of the club sees everyone's skills
 }
 
-// markClass is a mark's row, by who marked it.
-func markClass(byGymnast bool) string {
-	if byGymnast {
-		return "skill-mark by-gymnast"
-	}
-	return "skill-mark by-coach"
-}
-
-// stateTag is a state's tag: Can do or Learning.
-templ stateTag(state string) {
+// markState is a mark's state for its chip.
+func markState(state string) State {
 	if state == "can" {
-		<span class="tag mark-state-can">Can do</span>
-	} else if state == "learning" {
-		<span class="tag mark-state-learning">Learning</span>
+		return Done
+	}
+	return InProgress
+}
+
+// markLabel is a mark's state in words.
+func markLabel(state string) string {
+	if state == "can" {
+		return "Can do"
+	}
+	return "Learning"
+}
+
+// sideMark is one side's mark: who, their state, and when.
+templ sideMark(r Role, m *SideMark) {
+	if m != nil {
+		<span class="skill-side">
+			@WhoChip(r, m.By)
+			@StateChip(markState(m.State), markLabel(m.State))
+			<span class="has-text-grey is-size-7">{ m.At }</span>
+		</span>
 	}
 }
 
-// byTag says who marked a skill.
-templ byTag(byGymnast bool, by string) {
-	if byGymnast {
-		<span class="tag mark-tag-gymnast">{ by }</span>
-	} else {
-		<span class="tag mark-tag-coach">{ by }</span>
-	}
-}
-
-// markButtons change a skill's mark: Learning, Can do, or take it off.
-templ markButtons(action, skill, state string, coach, confirm bool) {
+// markButtons change the viewer's own mark on a skill: Learning, Can do, or
+// take it off; for a coach, Confirm makes the gymnast's mark theirs too.
+templ markButtons(action string, m MarkView) {
 	<form method="post" action={ templ.SafeURL(action) } class="buttons are-small mb-0 skill-mark-buttons">
-		<input type="hidden" name="skill" value={ skill }/>
-		if confirm {
-			<button class="button" type="submit" name="state" value={ state }>Confirm</button>
+		<input type="hidden" name="skill" value={ m.Skill }/>
+		if m.Confirm != "" {
+			<button class="button" type="submit" name="state" value={ m.Confirm }>Confirm { markLabel(m.Confirm) }</button>
 		}
-		if state != "learning" {
+		if m.Mine != "learning" && m.Confirm != "learning" {
 			<button class="button" type="submit" name="state" value="learning">Learning</button>
 		}
-		if state != "can" {
+		if m.Mine != "can" && m.Confirm != "can" {
 			<button class="button" type="submit" name="state" value="can">Can do</button>
 		}
-		if state != "" {
+		if m.Mine != "" {
 			<button class="button is-text" type="submit" name="state" value="">Take off</button>
 		}
 	</form>
 }
 
-// skillMarks is a member's skills: what they can do and what they're learning.
-templ skillMarks(p SkillsPart) {
-	if p.Coach && p.ToConfirm > 0 {
-		<p class="notification is-light py-2 px-3">{ strconv.Itoa(p.ToConfirm) } marked by the gymnast alone: <strong>Confirm</strong> the ones you've seen.</p>
-	}
-	for _, list := range []struct{ title string; marks []MarkView }{{"Can do", p.Can}, {"Learning", p.Learning}} {
-		<h3 class="title is-6 mt-4 mb-2">{ list.title } <span class="has-text-grey">({ strconv.Itoa(len(list.marks)) })</span></h3>
-		if len(list.marks) == 0 {
-			<p class="has-text-grey is-size-7">None yet.</p>
-		}
-		for _, m := range list.marks {
-			<div class={ markClass(m.ByGymnast) }>
-				<div>
-					<strong>{ m.Name }</strong>
-					<span class="has-text-grey is-size-7 ml-1">{ m.FIG }</span>
-				</div>
-				<div class="is-size-7 mt-1">
-					@stateTag(m.State)
-					@byTag(m.ByGymnast, m.By)
-					<span class="has-text-grey">{ m.At }</span>
-				</div>
-				if p.Action != "" {
-					@markButtons(p.Action, m.Skill, m.State, p.Coach, m.ToConfirm)
-				}
+// skillRow is a skill with both sides' marks, and the viewer's buttons.
+templ skillRow(action string, m MarkView) {
+	<div class="skill-mark">
+		<div>
+			<strong>{ m.Name }</strong>
+			<span class="has-text-grey is-size-7 ml-1">{ m.FIG }</span>
+			if m.Tariff != "" {
+				<span class="has-text-grey is-size-7 ml-1">{ m.Tariff }</span>
+			}
+		</div>
+		if m.Gymnast != nil || m.Coach != nil {
+			<div class="skill-sides mt-1">
+				@sideMark(RoleGymnast, m.Gymnast)
+				@sideMark(RoleCoach, m.Coach)
 			</div>
 		}
-	}
+		if action != "" {
+			@markButtons(action, m)
+		}
+	</div>
 }
 
-// skillChoices are skills to mark, each with its mark if it has one.
-templ skillChoices(action string, coach bool, list []SkillChoice) {
-	for _, c := range list {
-		<div class={ "skill-choice", templ.KV("by-gymnast", c.State != "" && c.ByGymnast), templ.KV("by-coach", c.State != "" && !c.ByGymnast) }>
-			<div>
-				<strong>{ c.Name }</strong>
-				<span class="has-text-grey is-size-7 ml-1">{ c.FIG }</span>
-				<span class="has-text-grey is-size-7 ml-1">{ c.Tariff }</span>
-				@stateTag(c.State)
-			</div>
-			@markButtons(action, c.Skill, c.State, coach, false)
-		</div>
+// skillMarks is a member's marked skills, by how they stand.
+templ skillMarks(p SkillsPart) {
+	if p.ToConfirm > 0 {
+		<p class="mb-3">
+			@StateChip(Attention, strconv.Itoa(p.ToConfirm)+" to confirm")
+			<span class="is-size-7 ml-1">The gymnast marked these and no coach has yet: <strong>Confirm</strong> the ones you've seen.</span>
+		</p>
+	}
+	for _, g := range p.Marked {
+		<h3 class="title is-6 mt-4 mb-2">{ g.Title } <span class="has-text-grey">({ strconv.Itoa(len(g.Skills)) })</span></h3>
+		if len(g.Skills) == 0 {
+			<p class="has-text-grey is-size-7">None yet.</p>
+		}
+		for _, m := range g.Skills {
+			@skillRow(p.Action, m)
+		}
 	}
 }
 
@@ -164,18 +159,24 @@ templ skillsAdd(p SkillsPart) {
 			if len(p.Results) == 0 {
 				<p class="has-text-grey is-size-7 mb-3">No skill found for that.</p>
 			}
-			@skillChoices(p.Action, p.Coach, p.Results)
+			for _, m := range p.Results {
+				@skillRow(p.Action, m)
+			}
 		}
 		if len(p.Routines) > 0 {
 			<details class="mt-3" open?={ p.Query == "" }>
 				<summary class="has-text-weight-semibold">In { p.Whose } routines</summary>
-				@skillChoices(p.Action, p.Coach, p.Routines)
+				for _, m := range p.Routines {
+					@skillRow(p.Action, m)
+				}
 			</details>
 		}
 		for _, g := range p.Browse {
 			<details class="mt-3">
 				<summary class="has-text-weight-semibold">{ g.Title }</summary>
-				@skillChoices(p.Action, p.Coach, g.Skills)
+				for _, m := range g.Skills {
+					@skillRow(p.Action, m)
+				}
 			</details>
 		}
 	</div>
@@ -185,7 +186,7 @@ templ skillsAdd(p SkillsPart) {
 templ MemberSkills(p MemberPage) {
 	@memberFrame(p) {
 		<p class="mb-4 is-size-7 has-text-grey">
-			Mark the skills you're learning and the ones you can do. Your coaches see them and can mark them too; each mark says who made it.
+			Mark the skills you're learning and the ones you can do. Your coaches see them and mark them too: your mark and theirs both show.
 		</p>
 		@skillMarks(p.Skills)
 		if p.Skills.Action != "" {
@@ -215,7 +216,6 @@ func openNote(open bool) string {
 // SkillsViewPage is someone's skills to look at, or for a coach to mark: a
 // coach's page for a gymnast, the comp sec's, or another member's.
 type SkillsViewPage struct {
-	Title  string // the page's title
 	Back   string
 	BackTo string // e.g. "Gymnasts"
 	Name   string // whose skills

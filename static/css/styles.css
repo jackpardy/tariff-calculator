@@ -912,9 +912,38 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
   .table-container:has(> table.comp-stack) { overflow: visible; }
 }
 
-/* Skill tracking (ADR 0011): a row per skill. Who marked it (.by-gymnast,
-   .by-coach, .mark-tag-gymnast, .mark-tag-coach) and its state are in words
-   for now; their colours wait on the app's colour standard. */
-.skill-mark, .skill-choice { border-left: 4px solid #e5e5e5; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; background: #fafafa; border-radius: 4px; }
+/* One palette for states and roles (views/status.templ). Each state has a text colour
+   and a background, each role one colour; they're the only colours that mean a state or
+   a role, on every page. static/contrast_test.go checks each reads at 4.5:1 or better. */
+:root {
+  --state-not-yet-ink: #4a4a4a;     --state-not-yet-bg: #eeeeee;
+  --state-in-progress-ink: #1d4f91; --state-in-progress-bg: #e6effa;
+  --state-done-ink: #1d6b48;        --state-done-bg: #e3f3ea;
+  --state-attention-ink: #7a4a00;   --state-attention-bg: #fff1d1;
+  --state-stopped-ink: #9b1c1c;     --state-stopped-bg: #fde8e8;
+  --role-gymnast: #0f6b6b;
+  --role-coach: #6b3fa0;
+  --role-club: #5c5a1a;
+  --role-organiser: #3b4a5e;
+}
+.chip { display: inline-flex; align-items: baseline; gap: 0.3em; font-size: 0.8em; font-weight: 600; line-height: 1.4; padding: 0.1em 0.6em; border-radius: 999px; white-space: nowrap; vertical-align: baseline; }
+.chip-mark { font-weight: 700; }
+.chip-state-not-yet { color: var(--state-not-yet-ink); background: var(--state-not-yet-bg); }
+.chip-state-in-progress { color: var(--state-in-progress-ink); background: var(--state-in-progress-bg); }
+.chip-state-done { color: var(--state-done-ink); background: var(--state-done-bg); }
+.chip-state-attention { color: var(--state-attention-ink); background: var(--state-attention-bg); }
+.chip-state-stopped { color: var(--state-stopped-ink); background: var(--state-stopped-bg); }
+/* Role chips are outlined, so a role never looks like a state even without colour. */
+.chip-who { background: #fff; border: 1.5px solid currentColor; padding: 0.05em 0.55em; }
+.chip-who .chip-name { font-weight: 400; }
+.chip-who-gymnast { color: var(--role-gymnast); }
+.chip-who-coach { color: var(--role-coach); }
+.chip-who-club { color: var(--role-club); }
+.chip-who-organiser { color: var(--role-organiser); }
+/* Skill tracking (ADR 0011): a row per skill, with the gymnast's and a
+   coach's marks, each a role chip and a state chip (views/status.templ). */
+.skill-mark { border-left: 4px solid #e5e5e5; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; background: #fafafa; border-radius: 4px; }
+.skill-sides { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; }
+.skill-side { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 0.3rem; }
 .skill-mark-buttons { margin-top: 0.4rem; }
 .skill-mark-buttons .button { min-height: 2.5rem; }

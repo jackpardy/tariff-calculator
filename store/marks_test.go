@@ -16,81 +16,71 @@ func TestSkillMarks(t *testing.T) {
 	must(t, err)
 	ann, _, err := s.CreateCoach(ctx, club.ID, "Ann")
 	must(t, err)
+	backFull := `{"rotation":4,"twist_distribution":[2],"takeoff_position":"Feet","shape":"Straight","backward":true}`
+	backTuck := `{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}`
+	backPike := strings.Replace(backTuck, "Tuck", "Pike", 1)
 
-	// The gymnast marks two skills; one is theirs to change, as the coach's is.
-	must(t, s.MarkAsGymnast(ctx, m, MarkIn{Item: "s:back", Skill: "{}", State: Learning}))
+	// The gymnast says Can do; their coach says Learning: both are kept.
+	must(t, s.MarkAsGymnast(ctx, m, MarkIn{Skill: backFull, State: CanDo}))
 	now = now.Add(time.Minute)
-	must(t, s.MarkAsGymnast(ctx, m, MarkIn{Item: "s:front", Skill: "{}", State: CanDo}))
+	// The same skill, given in another shape: Equal calls it the same, so
+	// it's the same item.
+	must(t, s.MarkAsCoach(ctx, ann, m.ID, MarkIn{Skill: strings.Replace(backFull, "Straight", "Tuck", 1), State: Learning}))
 	marks, err := s.MemberMarks(ctx, m.ID)
 	must(t, err)
-	if len(marks) != 2 || marks[0].Item != "s:front" || !marks[0].ByGymnast() || marks[0].ByName != "A. Murphy" {
-		t.Fatalf("marks = %+v", marks)
+	if len(marks) != 2 || marks[0].Item != marks[1].Item {
+		t.Fatalf("one item, a mark on each side: %+v", marks)
 	}
-	can, byGymnast, err := s.MarkCounts(ctx, club.ID)
+	if c := marks[0]; c.Side != SideCoach || c.State != Learning || c.ByCoach != ann.ID || c.ByName != "Ann" || !c.At.Equal(now) {
+		t.Errorf("the coach's: %+v", c)
+	}
+	if g := marks[1]; g.Side != SideGymnast || g.State != CanDo || g.ByCoach != "" || g.ByName != "A. Murphy" {
+		t.Errorf("the gymnast's: %+v", g)
+	}
+	can, toConfirm, err := s.MarkCounts(ctx, club.ID)
 	must(t, err)
-	if can[m.ID] != 1 || byGymnast[m.ID] != 2 {
-		t.Errorf("counts: can %v, by the gymnast %v", can, byGymnast)
+	if can[m.ID] != 1 || toConfirm[m.ID] != 1 {
+		t.Errorf("counts: can %v, to confirm %v", can, toConfirm)
 	}
 
-	// A coach marking it makes it theirs.
-	now = now.Add(time.Minute)
-	must(t, s.MarkAsCoach(ctx, ann, m.ID, MarkIn{Item: "s:back", Skill: "{}", State: CanDo}))
-	marks, _ = s.MemberMarks(ctx, m.ID)
-	if len(marks) != 2 || marks[0].Item != "s:back" || marks[0].State != CanDo || marks[0].ByCoach != ann.ID || marks[0].ByName != "Ann" || !marks[0].At.Equal(now) {
-		t.Errorf("the coach's mark: %+v", marks[0])
+	// Once the coach agrees, there's nothing to confirm; a tuck back and a
+	// pike back are two skills.
+	must(t, s.MarkAsCoach(ctx, ann, m.ID, MarkIn{Skill: backFull, State: CanDo}))
+	must(t, s.MarkAsGymnast(ctx, m, MarkIn{Skill: backTuck, State: Learning}))
+	must(t, s.MarkAsGymnast(ctx, m, MarkIn{Skill: backPike, State: Learning}))
+	if can, toConfirm, _ = s.MarkCounts(ctx, club.ID); can[m.ID] != 1 || toConfirm[m.ID] != 2 {
+		t.Errorf("after the coach agrees: can %v, to confirm %v", can, toConfirm)
 	}
-	if _, byGymnast, _ = s.MarkCounts(ctx, club.ID); byGymnast[m.ID] != 1 {
-		t.Errorf("one left to confirm: %v", byGymnast)
+	if marks, _ = s.MemberMarks(ctx, m.ID); len(marks) != 4 {
+		t.Errorf("the full twisting back's two marks, and the tuck and pike backs': %d", len(marks))
 	}
 
-	// A skill's mark is found by the skill, as Equal compares them: a back
-	// somersault marked again, in another form of the same skill, is the same
-	// mark. A straight back with a full twist is the same skill whatever its
-	// shape is given as; a tuck back isn't a pike one.
-	backFull := `{"rotation":4,"twist_distribution":[2],"takeoff_position":"Feet","shape":"Straight","backward":true}`
-	must(t, s.MarkAsGymnast(ctx, m, MarkIn{Skill: backFull, State: Learning}))
-	now = now.Add(time.Minute)
-	must(t, s.MarkAsCoach(ctx, ann, m.ID, MarkIn{Skill: strings.Replace(backFull, "Straight", "Tuck", 1), State: CanDo}))
-	must(t, s.MarkAsGymnast(ctx, m, MarkIn{Skill: `{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}`, State: Learning}))
-	must(t, s.MarkAsGymnast(ctx, m, MarkIn{Skill: `{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Pike","backward":true}`, State: Learning}))
+	// Each side takes off only its own.
+	must(t, s.MarkAsGymnast(ctx, m, MarkIn{Skill: backFull}))
 	marks, _ = s.MemberMarks(ctx, m.ID)
-	full := 0
+	sides := map[string]int{}
 	for _, k := range marks {
 		if strings.Contains(k.Skill, `"twist_distribution":[2]`) {
-			full++
-			if k.State != CanDo || k.ByName != "Ann" {
-				t.Errorf("the full twisting back is the coach's Can do: %+v", k)
-			}
+			sides[k.Side]++
 		}
 	}
-	if full != 1 || len(marks) != 5 {
-		t.Errorf("one mark for the full twisting back, and the tuck and pike backs apart: %d of %d", full, len(marks))
+	if sides[SideGymnast] != 0 || sides[SideCoach] != 1 {
+		t.Errorf("the gymnast takes off theirs, and the coach's stays: %v", sides)
 	}
-	for _, k := range marks {
-		if strings.HasPrefix(k.Item, "s:") && strings.Contains(k.Skill, "rotation") {
-			must(t, s.MarkAsGymnast(ctx, m, MarkIn{Item: k.Item}))
-		}
-	}
-
-	// Clearing it takes it off; a state that isn't one is refused.
-	must(t, s.MarkAsGymnast(ctx, m, MarkIn{Item: "s:front"}))
-	if marks, _ = s.MemberMarks(ctx, m.ID); len(marks) != 1 {
-		t.Errorf("cleared: %+v", marks)
-	}
-	if err := s.MarkAsGymnast(ctx, m, MarkIn{Item: "s:x", State: "maybe"}); err == nil {
+	if err := s.MarkAsGymnast(ctx, m, MarkIn{Skill: backTuck, State: "maybe"}); err == nil {
 		t.Error("a state that isn't one")
 	}
 
 	// A coach who doesn't see the member can't mark.
 	bob, _, _ := s.CreateCoach(ctx, club.ID, "Bob")
 	must(t, s.SetMemberCoach(ctx, club.ID, m.ID, ann.ID))
-	if err := s.MarkAsCoach(ctx, bob, m.ID, MarkIn{Item: "s:x", State: CanDo}); !errors.Is(err, ErrNotFound) {
+	if err := s.MarkAsCoach(ctx, bob, m.ID, MarkIn{Skill: backTuck, State: CanDo}); !errors.Is(err, ErrNotFound) {
 		t.Errorf("another coach marks: %v", err)
 	}
 
 	// The club's setting, and the marks go with the member.
 	must(t, s.SetSkillsOpen(ctx, club.ID, true))
-	if c, _ := s.ClubByJoinLink(ctx, club.JoinLink); !c.SkillsOpen {
+	if c, _ := s.ClubByID(ctx, club.ID); !c.SkillsOpen {
 		t.Error("skills open")
 	}
 	must(t, s.RemoveMember(ctx, club.ID, m.ID))

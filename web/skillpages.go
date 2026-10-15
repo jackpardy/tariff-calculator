@@ -264,65 +264,111 @@ func skillName(s skills.TrampolineSkill) string {
 	return "Skill " + s.FIGNotation()
 }
 
-// skillsPart is a member's skills as viewer sees them: their marks, and, for
-// the gymnast and their coaches, skills to mark (action: where marks post;
-// search: where searching goes; q: the search).
+// skillsPart is a member's skills as viewer sees them: their marks, both
+// sides, by how they stand, and, for the gymnast and their coaches, skills to
+// mark (action: where marks post; search: where searching goes; q: the
+// search).
 func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer skillViewer, action, search, q string) (views.SkillsPart, error) {
 	ctx := r.Context()
 	marks, err := p.st.MemberMarks(ctx, m.ID)
 	if err != nil {
 		return views.SkillsPart{}, err
 	}
-	part := views.SkillsPart{Whose: m.Name + "'s", Action: action, Search: search, Query: q, Coach: viewer.coach != nil}
+	part := views.SkillsPart{Whose: m.Name + "'s", Action: action, Search: search, Query: q}
 	if viewer.gymnast {
 		part.Whose = "your"
 	}
-	type markedSkill struct {
+	// A skill's marks, both sides, in the order marks come (newest first).
+	type marked struct {
 		skill skills.TrampolineSkill
-		mark  store.Mark
+		data  string
+		sides map[string]store.Mark
 	}
-	var marked []markedSkill
+	var items []*marked
+	byItem := map[string]*marked{}
 	for _, k := range marks {
-		var s skills.TrampolineSkill
-		if json.Unmarshal([]byte(k.Skill), &s) != nil {
-			continue
+		it := byItem[k.Item]
+		if it == nil {
+			var s skills.TrampolineSkill
+			if json.Unmarshal([]byte(k.Skill), &s) != nil {
+				continue
+			}
+			it = &marked{skill: s, data: k.Skill, sides: map[string]store.Mark{}}
+			byItem[k.Item] = it
+			items = append(items, it)
 		}
-		marked = append(marked, markedSkill{s, k})
-		v := views.MarkView{Skill: k.Skill, Name: skillName(s), FIG: s.FIGNotation(), State: k.State, ByGymnast: k.ByGymnast(), At: k.At.In(local).Format("2 Jan")}
-		switch {
-		case k.ByGymnast() && viewer.gymnast:
+		it.sides[k.Side] = k
+	}
+	side := func(k store.Mark, ok bool) *views.SideMark {
+		if !ok {
+			return nil
+		}
+		v := &views.SideMark{State: k.State, By: k.ByName, At: k.At.In(local).Format("2 Jan")}
+		if (viewer.gymnast && k.Side == store.SideGymnast) || (viewer.coach != nil && k.ByCoach == viewer.coach.ID) {
 			v.By = "You"
-		case k.ByGymnast():
-			v.By = m.Name
-		case viewer.coach != nil && k.ByCoach == viewer.coach.ID:
-			v.By = "You (coach)"
-		default:
-			v.By = k.ByName + " (coach)"
 		}
-		if viewer.coach != nil && k.ByGymnast() {
-			v.ToConfirm = true
+		return v
+	}
+	// view is a skill as a row: its marks, the viewer's own, and for a coach
+	// the gymnast's to confirm.
+	view := func(s skills.TrampolineSkill, data string, sides map[string]store.Mark) views.MarkView {
+		v := views.MarkView{Skill: data, Name: skillName(s), FIG: s.FIGNotation()}
+		g, hasG := sides[store.SideGymnast]
+		c, hasC := sides[store.SideCoach]
+		v.Gymnast, v.Coach = side(g, hasG), side(c, hasC)
+		switch {
+		case viewer.gymnast && hasG:
+			v.Mine = g.State
+		case viewer.coach != nil && hasC:
+			v.Mine = c.State
+		}
+		if viewer.coach != nil && hasG && (!hasC || c.State != g.State) {
+			v.Confirm = g.State
+		}
+		return v
+	}
+	can, learning, differ := views.SkillGroup{Title: "Can do"}, views.SkillGroup{Title: "Learning"}, views.SkillGroup{Title: "Marked differently"}
+	for _, it := range items {
+		v := view(it.skill, it.data, it.sides)
+		if v.Confirm != "" {
 			part.ToConfirm++
 		}
-		if k.State == store.CanDo {
-			part.Can = append(part.Can, v)
-		} else {
-			part.Learning = append(part.Learning, v)
+		states := map[string]bool{}
+		for _, k := range it.sides {
+			states[k.State] = true
 		}
+		switch {
+		case len(states) > 1:
+			differ.Skills = append(differ.Skills, v)
+		case states[store.CanDo]:
+			can.Skills = append(can.Skills, v)
+		default:
+			learning.Skills = append(learning.Skills, v)
+		}
+	}
+	part.Marked = []views.SkillGroup{can, learning}
+	if len(differ.Skills) > 0 {
+		part.Marked = append(part.Marked, differ)
 	}
 	if action == "" {
 		return part, nil
 	}
-	choice := func(s skills.TrampolineSkill) views.SkillChoice {
+	// choice is a skill to mark, with its marks if it has any (found by
+	// TrampolineSkill.Equal, the one rule for the same skill).
+	choice := func(s skills.TrampolineSkill) views.MarkView {
 		s.SetTariff()
+		s.Name = skills.FindCommonSkillName(s)
 		data, _ := json.Marshal(s)
-		c := views.SkillChoice{Skill: string(data), Name: skillName(s), FIG: s.FIGNotation(), Tariff: fmt.Sprintf("%.1f", s.Tariff)}
-		for _, k := range marked {
-			if k.skill.Equal(&s) {
-				c.State, c.ByGymnast = k.mark.State, k.mark.ByGymnast()
+		var sides map[string]store.Mark
+		for _, it := range items {
+			if it.skill.Equal(&s) {
+				sides = it.sides
 				break
 			}
 		}
-		return c
+		v := view(s, string(data), sides)
+		v.Tariff = fmt.Sprintf("%.1f", s.Tariff)
+		return v
 	}
 	for _, res := range catalog.Search(q) {
 		part.Results = append(part.Results, choice(res.Skill))

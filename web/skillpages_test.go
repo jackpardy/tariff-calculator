@@ -19,9 +19,24 @@ func skillIn(t *testing.T, page, name string) string {
 	return html.UnescapeString(m[1])
 }
 
-// A gymnast marks what they're learning; their coach sees it, marks it Can
-// do, and the gymnast sees who did; the comp sec sees it too, and, where the
-// club shares skills, so do the other members.
+// sideIn is the role and state chips a page shows for a skill's mark on one
+// side ("gymnast" or "coach"), as text, e.g. "Coach · Ann ✓ Can do".
+func sideIn(page, name, side string) string {
+	m := regexp.MustCompile(`(?s)<strong>` + regexp.QuoteMeta(name) + `</strong>.*?<div class="skill-sides mt-1">(.*?)</div>`).FindStringSubmatch(page)
+	if m == nil {
+		return ""
+	}
+	s := regexp.MustCompile(`(?s)<span class="skill-side"><span class="chip chip-who chip-who-` + side + `">(.*?)</span>\s*<span class="has-text-grey`).FindStringSubmatch(m[1])
+	if s == nil {
+		return ""
+	}
+	text := regexp.MustCompile(`<[^>]+>`).ReplaceAllString(s[1], " ")
+	return strings.Join(strings.Fields(html.UnescapeString(text)), " ")
+}
+
+// A gymnast marks what they're learning, their coach marks it too, and both
+// marks show, each saying who; the comp sec sees them, and, where the club
+// shares skills, so do the other members.
 func TestMarkingSkills(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
@@ -39,32 +54,49 @@ func TestMarkingSkills(t *testing.T) {
 		}
 	}
 	barani := skillIn(t, page, "Tuck Barani")
-	location := redirected(t, h, member+"/skills?q=barani", url.Values{"skill": {barani}, "state": {"learning"}})
-	if noticeOf(t, location) != "Tuck Barani: Learning." || !strings.Contains(location, "q=barani") {
+	location := redirected(t, h, member+"/skills?q=barani", url.Values{"skill": {barani}, "state": {"can"}})
+	if noticeOf(t, location) != "Tuck Barani: Can do." || !strings.Contains(location, "q=barani") {
 		t.Errorf("marking: %s", location)
 	}
 	page = do(t, h, http.MethodGet, member+"/skills", nil).Body.String()
-	if !regexp.MustCompile(`(?s)class="skill-mark by-gymnast".*?Tuck Barani.*?Learning.*?mark-tag-gymnast">You<`).MatchString(page) {
-		t.Errorf("the gymnast's own mark, saying so: %s", page)
+	if got := sideIn(page, "Tuck Barani", "gymnast"); got != "Gymnast · You ✓ Can do" {
+		t.Errorf("the gymnast's own mark: %q", got)
 	}
 
-	// The coach sees it to confirm, and confirms it as Can do.
+	// The coach sees it to confirm, but says Learning: both marks show.
 	gymnasts := do(t, h, http.MethodGet, ann+"/gymnasts", nil).Body.String()
 	if !strings.Contains(gymnasts, "1 to confirm") {
 		t.Errorf("the coach's list says there's one to confirm: %s", gymnasts)
 	}
 	open := regexp.MustCompile(`href="(` + regexp.QuoteMeta(ann) + `/gymnasts/[^"]+)">A. Murphy</a>`).FindStringSubmatch(gymnasts)[1]
 	skills := do(t, h, http.MethodGet, open+"/skills", nil).Body.String()
-	if !strings.Contains(skills, "marked by the gymnast alone") || !strings.Contains(skills, `mark-tag-gymnast">A. Murphy<`) || !strings.Contains(skills, ">Confirm<") {
+	if !strings.Contains(skills, ">Confirm Can do<") || sideIn(skills, "Tuck Barani", "gymnast") != "Gymnast · A. Murphy ✓ Can do" {
 		t.Fatalf("the coach's page for the gymnast's skills: %s", skills)
 	}
+	redirected(t, h, open+"/skills", url.Values{"skill": {barani}, "state": {"learning"}})
+	page = do(t, h, http.MethodGet, member+"/skills", nil).Body.String()
+	if g, c := sideIn(page, "Tuck Barani", "gymnast"), sideIn(page, "Tuck Barani", "coach"); g != "Gymnast · You ✓ Can do" || c != "Coach · Ann ◐ Learning" {
+		t.Errorf("both marks show: %q and %q", g, c)
+	}
+	if !strings.Contains(page, "Marked differently") {
+		t.Error("a skill the two mark differently is listed as such")
+	}
+
+	// The coach confirms it: both say Can do, and nothing's left to confirm.
 	redirected(t, h, open+"/skills", url.Values{"skill": {barani}, "state": {"can"}})
 	page = do(t, h, http.MethodGet, member+"/skills", nil).Body.String()
-	if !regexp.MustCompile(`(?s)class="skill-mark by-coach".*?Tuck Barani.*?Can do.*?mark-tag-coach">Ann \(coach\)<`).MatchString(page) {
-		t.Errorf("the coach's mark, saying so: %s", page)
+	if g, c := sideIn(page, "Tuck Barani", "gymnast"), sideIn(page, "Tuck Barani", "coach"); g != "Gymnast · You ✓ Can do" || c != "Coach · Ann ✓ Can do" || strings.Contains(page, "Marked differently") {
+		t.Errorf("both say Can do: %q and %q", g, c)
 	}
 	if strings.Contains(do(t, h, http.MethodGet, ann+"/gymnasts", nil).Body.String(), "1 to confirm") {
 		t.Error("nothing left to confirm")
+	}
+
+	// The gymnast takes theirs off; the coach's stays.
+	redirected(t, h, member+"/skills", url.Values{"skill": {barani}, "state": {""}})
+	page = do(t, h, http.MethodGet, member+"/skills", nil).Body.String()
+	if sideIn(page, "Tuck Barani", "gymnast") != "" || sideIn(page, "Tuck Barani", "coach") != "Coach · Ann ✓ Can do" {
+		t.Errorf("the coach's mark stays: %s", page)
 	}
 
 	// The comp sec sees it, to look at.
@@ -93,11 +125,6 @@ func TestMarkingSkills(t *testing.T) {
 		t.Errorf("another member sees A. Murphy's skills, to look at: %s", page)
 	}
 
-	// Taking it off, and a skill that can't be read.
-	redirected(t, h, member+"/skills", url.Values{"skill": {barani}, "state": {""}})
-	if strings.Contains(do(t, h, http.MethodGet, member+"/skills", nil).Body.String(), `class="skill-mark`) {
-		t.Error("taken off")
-	}
 	if rec := do(t, h, http.MethodPost, member+"/skills", url.Values{"skill": {`{"rotation":99}`}, "state": {"can"}}); rec.Code != http.StatusBadRequest {
 		t.Errorf("an unreadable skill: %d", rec.Code)
 	}

@@ -59,11 +59,15 @@ Club levels should reuse it rather than add a second way to describe skills.
      in.
    - A coach writes a note on a routine for the member to see. Coaches
      adding routines to a gymnast's page is left for later.
-2. **Skill marks.** A mark is a member, an item, a state (**Learning** or
-   **Can do**), who made it (the gymnast, or which coach) and when. One mark
-   per member and item: marking again replaces it, and clearing it deletes
-   it. The gymnast and the coaches who see them can mark. A coach can
-   filter for marks made by the gymnast alone, to confirm. An item is:
+2. **Skill marks.** A mark is a member, an item, a side (the gymnast's or a
+   coach's), a state (**Learning** or **Can do**), who made it and when. The
+   gymnast's mark and a coach's are kept apart, so both show: a skill can be
+   Can do to the gymnast and Learning to their coach, and when both say Can
+   do, both marks say so (decided 2026-10-15). Each side marks again to
+   change its own, and takes off only its own; a coach's mark replaces
+   another coach's. The gymnast and the coaches who see them can mark. A
+   coach can filter for marks the gymnast made that no coach has made the
+   same, and **Confirm** them. An item is:
    - **a skill**, found by the skill: a member's mark on a skill is the one
      whose skill `TrampolineSkill.Equal` calls the same, the one rule the app
      has for that (repeats, carry-over and requirements use it too), so a

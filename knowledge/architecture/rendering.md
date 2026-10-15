@@ -135,6 +135,37 @@ hide, and a cell's form sits on its label's line. Rows the list search hides
 stay hidden. Give every cell after the first a `data-label` matching its
 column's heading; leave it off a cell that's only actions.
 
+# States and roles: one palette
+
+What state something is in, and who did it, are shown with two chips from
+`views/status.templ`, and with no other colour, so a colour means the same
+thing on every page (the plan is in the
+[cleanup audit](../audits/2026-10-cleanup.md#colour-and-status-added-16-october-2026)).
+
+- **`@views.StateChip(state, label)`**: a filled chip with a mark and a short
+  label. Pick the state by what it means for the reader, not by the word:
+
+  | State | Mark | Means | For example |
+  | --- | --- | --- | --- |
+  | `NotYet` | ○ | not started, not yet | Not checked in, Saved not sent, On the waiting list |
+  | `InProgress` | ◐ | under way, or waiting on someone else | Sent, Waiting for sign-off, Learning |
+  | `Done` | ✓ | finished, fine | Checked, Signed off, Here, Paid, Can do |
+  | `Attention` | ! | someone should look | Has problems, Changed since sent, Waiting for you |
+  | `Stopped` | ✕ | out, ended or refused | Withdrawn, Removed, Scratched, Missing, Not approved |
+
+- **`@views.WhoChip(role, name)`**: an outlined chip that always says the
+  role (Gymnast, Coach, Club, Organiser) and the name if there is one: who
+  marked, signed, checked or entered something, or whose a seat or entry is.
+  Use it beside the state it explains, for example a Can do chip and a
+  Coach chip together.
+
+The colours are tokens in `static/css/styles.css` (`--state-*`, `--role-*`)
+and `static/contrast_test.go` checks each reads at 4.5:1 or better. Don't
+use Bulma's colour classes (`tag is-success`, `has-text-danger` and the rest)
+to show a state or a role on a new page; the pages that still do move over
+in turn (the audit's rollout). Notices after an action and the venue
+screen's area colours aren't states and stay as they are.
+
 # JavaScript's job
 
 Only what must run in the browser: keeping `localStorage` in sync, expanding

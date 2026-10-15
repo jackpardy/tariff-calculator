@@ -143,17 +143,17 @@ build on:
       and join links as now. The comp sec's Settings says when the club
       would be deleted. Comes first, so no progress is lost over a summer.
    2. **Marking skills** (built 2026-10-15, with 3: [skills](features/competition-entries.md#skills-adr-0011)).
-      Who marked a skill and its state are in words for now; their colours
-      follow the app's colour standard once it's set (separate work).
+      The gymnast's mark and a coach's both show (decided 2026-10-15), as
+      role and state chips from the one palette.
       Any skill the catalog can describe, found with
       the routine builder's picker and search, can be marked **Learning** or
       **Can do**, by the gymnast or by a coach (decided 2026-10-15). Each
       mark says who made it and when ("Can do · marked by Declan (coach),
-      3 Oct", "Learning · marked by you"). A coach marking a skill the
-      gymnast already marked makes it theirs; the coach can filter for
-      gymnast-only marks, to confirm. The skills in the gymnast's routines
-      (from 1) are offered first, and a routine with a skill not yet marked
-      Can do says so to the coach.
+      3 Oct", "Learning · marked by you"). Each side keeps its own mark;
+      the coach can filter for the gymnast's marks they haven't made the
+      same, to confirm. The skills in the gymnast's routines (from 1) are
+      offered first. Still to do: a routine with a skill not yet marked Can
+      do saying so to the coach.
    3. **Who sees it** (decided 2026-10-15): the gymnast, the coaches who
       see them, and the comp sec, at least. The comp sec can open it to
       **every member of the club** (a setting, off to start with). The
@@ -421,6 +421,15 @@ across roles in the timetable; taps safe to repeat on poor wifi; Go 1.26 with
 govulncheck in CI; `/healthz` and a graceful shutdown; an end-to-end test on a
 fixed clock; the timetable page 6.1 MB to 0.8 MB; search on the day and
 timetable pages; wide tables as cards on a phone.
+
+**One palette for states and roles (planned 2026-10-16).** Fixed colours for
+states (grey not yet, blue in progress, green done, amber needs attention,
+red stopped) and for who did something (gymnast, coach, club, organiser),
+each always with a short label, used the same way on every page. The shared
+pieces come first, so skill tracking (ADR 0011) uses them from the start; the
+competition side's day check-in, entry rows and rota seats follow in the
+dry-run work, and the rest after it. The plan is in
+[the cleanup audit](audits/2026-10-cleanup.md#colour-and-status-added-16-october-2026).
 
 **Ready for the dry run (decided 2026-10-09).** A dry run of the core tools,
 entries through to the day, with about 20 people from 3 clubs, is planned for

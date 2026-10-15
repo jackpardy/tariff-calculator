@@ -202,7 +202,7 @@ templ CoachGymnasts(p CoachGymnastsPage) {
 								<td class="has-text-grey is-size-7">
 									{ routineCount(g.Routines) } · can do { strconv.Itoa(g.Can) }
 									if g.ToConfirm > 0 {
-										<span class="tag ml-1">{ strconv.Itoa(g.ToConfirm) } to confirm</span>
+										@StateChip(Attention, strconv.Itoa(g.ToConfirm)+" to confirm")
 									}
 								</td>
 							</tr>

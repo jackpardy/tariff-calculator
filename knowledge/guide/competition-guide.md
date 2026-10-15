@@ -577,8 +577,11 @@ like *barani*, or its FIG notation), or pick it from the skills in your
 routines or the lists by type, and tap **Learning** or **Can do**. Tap **Take
 off** to remove it.
 
-Your coaches see your skills and mark them too. Each mark says who made it.
-If your club shares skills, you can see everyone else's too.
+Your coaches see your skills and mark them too. Your mark and your coach's
+both show, each saying who made it: say you mark a skill **Can do** and your
+coach marks it **Learning**, you'll see both, under **Marked differently**.
+Tapping a button changes only your own mark. If your club shares skills, you
+can see everyone else's too.
 
 ## Keep your routines on your page
 
@@ -650,9 +653,10 @@ write **Your note** on any of them for them to see, such as what to work on.
 Leave it empty to take it off.
 
 From a gymnast's page, **Skills** shows what they're learning and can do. Mark
-skills for them the same way they do. Marks they made on their own have
-**Confirm**: tap it once you've seen them do it, and the mark becomes yours.
-Gymnasts lists how many each has to confirm.
+skills for them the same way they do: your mark and theirs both show. A skill
+they've marked that you haven't marked the same has **Confirm**: tap it once
+you've seen it, and you mark it the same. Gymnasts lists how many each has to
+confirm.
 
 # 5. Enter on your own
 
