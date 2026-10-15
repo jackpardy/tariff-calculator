@@ -1790,10 +1790,10 @@ func TestDeskMessages(t *testing.T) {
 	now = now.Add(time.Minute)
 	_, err = s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "Come", Come: true, Audience: "2 people", People: []string{"m:a", "i:bea"}, Who: "Chairs"})
 	must(t, err)
-	must(t, s.SetDeskTold(ctx, c.ID, first.ID, 1, 2))
+	must(t, s.SetDeskTold(ctx, c.ID, first.ID, 1, 2, 3))
 	got, err := s.DeskMessages(ctx, c.ID)
 	must(t, err)
-	if len(got) != 2 || got[0].Text != "Come" || got[1].Pushed != 1 || got[1].Emailed != 2 || got[1].Clubs[0] != "club1" || !slices.Equal(got[0].People, []string{"m:a", "i:bea"}) {
+	if len(got) != 2 || got[0].Text != "Come" || got[1].Pushed != 1 || got[1].Emailed != 2 || got[1].Failed != 3 || got[1].Clubs[0] != "club1" || !slices.Equal(got[0].People, []string{"m:a", "i:bea"}) {
 		t.Fatalf("latest first, with who it went to: %+v", got)
 	}
 	if got[0].Full() != "Please come to the organisers' desk. Come" || got[1].Full() != "Hello" || (DeskMessage{Come: true}).Full() != ComeToTheDesk {

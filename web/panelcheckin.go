@@ -2,7 +2,6 @@ package web
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"slices"
@@ -419,11 +418,8 @@ func (p *competitionPages) notifyOne(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	pushed, emailed := p.notify.tellDesk(r.Context(), c, m)
-	if err := p.st.SetDeskTold(r.Context(), c.ID, m.ID, pushed, emailed); err != nil {
-		log.Printf("Desk: %s: %v", c.ID, err)
-	}
-	notice := fmt.Sprintf("Sent to %s. Told %d by push and %d by email.", m.Audience, pushed, emailed)
+	pushes, emails := p.notify.tellDesk(r.Context(), c, m)
+	notice := "Sent to " + m.Audience + ". " + sendingNotice(pushes, emails)
 	http.Redirect(w, r, backToDay(r, notice, anchor), http.StatusSeeOther)
 }
 

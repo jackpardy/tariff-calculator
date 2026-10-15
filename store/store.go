@@ -663,6 +663,14 @@ var migrations = []string{
 		updated_at   TEXT NOT NULL
 	);
 	CREATE INDEX IF NOT EXISTS member_routines_member ON member_routines (member_id);`,
+
+	// 38: taken by the Feedback button, built alongside; this stands in for
+	// it until the two are merged, when its own migration replaces this.
+	`SELECT 1;`,
+
+	// 39: desk messages sent in the background (roadmap, ready for the dry
+	// run): how many addresses couldn't be told, once it's finished.
+	`ALTER TABLE desk_messages ADD COLUMN failed INTEGER NOT NULL DEFAULT 0;`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

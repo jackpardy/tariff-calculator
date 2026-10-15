@@ -21,7 +21,7 @@ The `Dockerfile` builds in two stages:
 1. `golang:1.26-alpine` downloads the modules, **runs `go test ./...`**, and
    builds a static binary (`CGO_ENABLED=0`, `-trimpath`, stripped).
 2. `alpine:3.20` gets that one binary, running as non-root `app` (uid 1000) on
-   `PORT=8080`, with a `HEALTHCHECK` that runs `wget` against `/healthz`. That answers 200 while the app is fit to serve, and 503 when `DATA_DIR` is set but competition storage didn't open or isn't answering (a migration that failed on deploy, say). The calculator still works then, as ADR 0004 Decision 8 has it, but the container shows as unhealthy and the deploy job fails. On SIGTERM the app lets requests under way finish (up to 15 seconds), then closes the database.
+   `PORT=8080`, with a `HEALTHCHECK` that runs `wget` against `/healthz`. That answers 200 while the app is fit to serve, and 503 when `DATA_DIR` is set but competition storage didn't open or isn't answering (a migration that failed on deploy, say). The calculator still works then, as ADR 0004 Decision 8 has it, but the container shows as unhealthy and the deploy job fails. On SIGTERM the app lets requests under way finish (up to 15 seconds), waits up to 20 seconds for emails and pushes still queued, then closes the database.
 
 Templates and assets are compiled or embedded into the binary, so nothing else
 is copied ([static assets](../architecture/static-assets.md)). The calculator
@@ -123,7 +123,17 @@ send email by SMTP with STARTTLS (ADR 0008 Decision 7), set by:
 - `SMTP_USERNAME` and `SMTP_PASSWORD`;
 - `MAIL_FROM`, the sender, e.g. `ISTO tools <notify@tariff.pardy.ie>`;
 - `PUBLIC_URL`, the site's address for links in emails (default
-  `https://tariff.pardy.ie`).
+  `https://tariff.pardy.ie`);
+- `MAIL_PER_SECOND`, the most emails sent a second (default 14, SES's
+  production rate; set `1` while SES is in its sandbox).
+
+Desk messages and change notifications are sent in the background, four at
+a time, emails no faster than that. On SIGTERM the app waits up to 20
+seconds more for what's queued, then logs how many were left unsent, so
+with the 15 seconds for requests a stop can take 35 seconds: give the
+`tariff` service a `stop_grace_period` of at least `40s` in the server's
+Compose file (Docker's default of 10 seconds kills it before the database is
+closed cleanly).
 
 Without `SMTP_HOST` and `MAIL_FROM`, email isn't offered. Phone push needs
 nothing set: the app makes its push (VAPID) keys on first use and keeps them

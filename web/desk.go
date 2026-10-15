@@ -2,7 +2,6 @@ package web
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"slices"
@@ -17,8 +16,9 @@ import (
 
 // tellDesk tells a message to every address whose subscription covers
 // someone it was sent to, once per address, on any topic: it's urgent. It
-// returns how many addresses were pushed and emailed.
-func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.DeskMessage) (pushed, emailed int) {
+// hands them to the sender and returns how many are to be pushed and
+// emailed; the sender keeps the counts with the message when it's done.
+func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.DeskMessage) (pushes, emails int) {
 	if n == nil {
 		return 0, 0
 	}
@@ -98,6 +98,8 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 		}
 		byAddress[key] = append(byAddress[key], sub)
 	}
+	t := &tally{competitionID: c.ID, messageID: m.ID}
+	var ds []delivery
 	for _, key := range addresses {
 		told := byAddress[key]
 		switch told[0].Channel {
@@ -106,26 +108,16 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 				continue
 			}
 			subject, body, headers := n.deskEmail(c, m, told)
-			if err := n.mail.send(told[0].Address, subject, body, headers); err != nil {
-				log.Printf("Desk: emailing about %s: %v", c.ID, err)
-				continue
-			}
-			emailed++
+			ds = append(ds, delivery{about: "Desk: emailing about " + c.ID, email: &email{told[0].Address, subject, body, headers}, tally: t})
+			t.emails++
 		case store.ByPush:
-			err := n.push(ctx, told[0], pushMessage{Title: c.Name, Body: m.Full(), URL: n.savedLinks()})
-			switch {
-			case errors.Is(err, errGone):
-				for _, s := range told {
-					n.st.DropSubscription(ctx, s.ID)
-				}
-			case err != nil:
-				log.Printf("Desk: pushing about %s: %v", c.ID, err)
-			default:
-				pushed++
-			}
+			ds = append(ds, delivery{about: "Desk: pushing about " + c.ID, sub: told[0], drop: told, tally: t,
+				push: pushMessage{Title: c.Name, Body: m.Full(), URL: n.savedLinks()}})
+			t.pushes++
 		}
 	}
-	return pushed, emailed
+	n.send.send(ds)
+	return t.pushes, t.emails
 }
 
 // deskEmail is the email telling one address a message from the desk.
@@ -142,4 +134,25 @@ func (n *notifier) deskEmail(c store.Competition, m store.DeskMessage, subs []st
 		"List-Unsubscribe":      "<" + n.offLink(subs[0].Token) + ">",
 		"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
 	}
+}
+
+// sendingNotice says how many a message is going to, by push and email,
+// e.g. "Sending to 214 people: 180 by email, 34 by push."
+func sendingNotice(pushes, emails int) string {
+	switch total := pushes + emails; total {
+	case 0:
+		return "No one it reaches has asked to hear by push or email."
+	case 1:
+		return fmt.Sprintf("Sending to 1 person: %d by email, %d by push.", emails, pushes)
+	default:
+		return fmt.Sprintf("Sending to %d people: %d by email, %d by push.", total, emails, pushes)
+	}
+}
+
+// deskProgress is how a desk message's sending is going, while it is.
+func (n *notifier) deskProgress(messageID string) (tally, bool) {
+	if n == nil {
+		return tally{}, false
+	}
+	return n.send.progress(messageID)
 }

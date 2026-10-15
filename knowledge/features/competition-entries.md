@@ -990,8 +990,9 @@ on that flight (a seat, or an entry in it) or it's a 400; with neither box
 ticked, or **Their club** only for someone with no club, nothing is sent and the
 notice says so. **Their club** reaches only the club's comp sec and coaches, not
 its members: the message's `staff` (below) holds the club, where `clubs` would
-reach everyone. The page comes back with "Sent to Ann and their club. Told 0 by
-push and 3 by email." and the history says "Notified Ann (and their club): should
+reach everyone. The page comes back with "Sent to Ann and their club. Sending to 3
+people: 3 by email, 0 by push." (sent in the background, like any desk
+message) and the history says "Notified Ann (and their club): should
 be at Panel 1" (or "Notified Ann's club: …" for the club alone). The same form
 (the same `once`) sent again within 10 minutes is a repeat: nothing is sent or
 recorded, and the page comes back without a notice. The ids sent are kept in
@@ -1093,7 +1094,7 @@ top. The organiser makes the link on the Settings page.
 Built 2026-10-09. **Desk messages** (a button on the entries page, a link at
 the top of the On the day page, and `/desk` under the admin link) lets the
 organiser, a co-organiser ("everything"), a chair of judges or a timetable
-link send a message at once, with no grace wait, or ask people to come to the
+link send a message straight away, with no grace wait, or ask people to come to the
 organisers' desk. Cards links can't use it.
 
 **To** is one of: a **club** (a select of the clubs entered: its comp sec,
@@ -1128,8 +1129,28 @@ organisers' desk · *Competition*"), the text, how to find their page (open
 it from the link they saved; Competitions lists the links saved in that
 browser) and the off link; push has the competition's name as the title,
 the text as the body and Competitions as the link. A push service that says the phone is gone
-drops it. It is sent while the organiser's request is handled (a handful of
-sends), and a mailer that is off simply sends none.
+drops it. A mailer that is off simply sends none.
+
+**Sent in the background** (built 2026-10-15): the request works out who is
+told, one delivery per address, hands them to the sender (`web/sender.go`)
+and answers at once: "Sent to UCD. Sending to 214 people: 180 by email, 34
+by push. Everyone sees it on their own page." (or "No one it reaches has
+asked to hear by push or email."). Four deliveries go at once, emails no
+faster than `MAIL_PER_SECOND` (default 14, Amazon SES's production rate;
+[deploy](../operations/deploy.md#notifications)); pushes aren't capped.
+A failed email is tried once more after 5 seconds, then counted as failed
+and logged (the competition's id and the error, never the address's token or
+a page path). Change notifications go through the same sender. Under each
+message the desk page shows "told 34 by push, 178 by email", then "· still
+sending to 2" while it's going and "· 2 failed" for those that couldn't be
+told (a gone phone counts as failed); reloading the page updates it. While
+sending, the counts are in memory; once a message's deliveries are all done,
+they're kept with it (`pushed`, `emailed` and `failed`, migration 39). The
+queue is in memory too: when the app stops it waits up to 20 seconds for
+what's queued, then logs how many were left unsent and keeps those as
+failed. The confirmation email when someone asks to hear by email is still
+sent in their request, outside the cap, so a failure can say so on the
+form.
 
 **On recipients' pages** (up to the latest 10, newest first, with when it was
 sent and, within the last day, how long ago, e.g. "Sat 27 Feb, 10:42 · 12
@@ -1147,7 +1168,8 @@ members' pages.
 Messages are kept in `desk_messages` (the text, whether it asks them to come,
 the audience in words such as "UCD" or "3 people", its person keys and club
 ids as JSON, who sent it, when, and how many addresses were pushed and
-emailed; the club ids of its staff as JSON, added in migration 29); a competition keeps up to 500. The page lists them, latest first.
+emailed; the club ids of its staff as JSON, added in migration 29; how many
+failed, added in migration 39); a competition keeps up to 500. The page lists them, latest first.
 Each is in the history: "Sent a message to UCD", "Called Panel 2's officials,
 Saturday to the desk".
 
@@ -1608,7 +1630,9 @@ made before).
   stops every email to that address for the competition. No email
   or push links to the person's page itself, and no notification keeps its
   path: it holds their secret link (ADR 0004; migration 33 cleared those
-  kept before 2026-10-15).
+  kept before 2026-10-15). The emails and pushes go through the same
+  background sender as [desk messages](#messages-from-the-organisers-desk),
+  sharing its four workers and its cap on emails a second.
 
 Email goes by SMTP when `SMTP_HOST` and `MAIL_FROM` are set
 ([deploy](../operations/deploy.md#notifications)); without them only push

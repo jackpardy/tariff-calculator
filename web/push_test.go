@@ -2,7 +2,6 @@ package web
 
 import (
 	"bytes"
-	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/ecdh"
@@ -17,6 +16,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -92,7 +92,9 @@ func TestPushEndpoints(t *testing.T) {
 }
 
 // fakePushService takes what's pushed instead of the network.
+// Pushes come from the sender's workers, so it's read once they're done.
 type fakePushService struct {
+	mu     sync.Mutex
 	got    []*http.Request
 	bodies [][]byte
 	status int
@@ -100,6 +102,8 @@ type fakePushService struct {
 
 func (f *fakePushService) RoundTrip(r *http.Request) (*http.Response, error) {
 	body, _ := io.ReadAll(r.Body)
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.got, f.bodies = append(f.got, r), append(f.bodies, body)
 	return &http.Response{StatusCode: f.status, Body: io.NopCloser(strings.NewReader("")), Header: http.Header{}, Request: r}, nil
 }
@@ -139,7 +143,7 @@ func TestPushNotifications(t *testing.T) {
 	entry := entryLink(t, h, admin)
 	redirected(t, h, entry+"/check", url.Values{"checked": {"1"}})
 	redirected(t, h, admin+"/notify-now", nil)
-	p.notify.tell(context.Background())
+	tellDue(p)
 	if len(service.got) != 1 {
 		t.Fatalf("one push: %d", len(service.got))
 	}
@@ -170,7 +174,7 @@ func TestPushNotifications(t *testing.T) {
 	service.status = http.StatusGone
 	redirected(t, h, entry+"/check", url.Values{"checked": {"1"}, "note": {"Fix element 7"}})
 	redirected(t, h, admin+"/notify-now", nil)
-	p.notify.tell(context.Background())
+	tellDue(p)
 	if page := do(t, h, http.MethodGet, notify, nil).Body.String(); strings.Contains(page, "A phone or browser added") {
 		t.Error("a gone phone is dropped")
 	}

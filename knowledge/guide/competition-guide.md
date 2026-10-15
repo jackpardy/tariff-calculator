@@ -388,8 +388,11 @@ has a starting value you can change.
    organisers' desk** to call someone over. It is pushed and emailed straight
    away to those who asked to hear about changes, and shown in a "Messages
    from the organisers" box on each person's own page, so those who didn't
-   still see it when they look. The page lists what you sent and how many
-   were told.
+   still see it when they look. The page answers at once and says how many
+   it's sending to; the sending carries on in the background (a message to
+   a few hundred people takes a minute or so). The page lists what you sent
+   and how many were told, are still to go, or failed: reload it to see how
+   the sending is going.
 
 **What if there's a delay?** (on the timetable page, once planned): choose the
 day, when the hold-up starts, how many minutes and which areas (none ticked

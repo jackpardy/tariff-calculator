@@ -132,9 +132,8 @@ func TestIndividualSubscriptionsMigrate(t *testing.T) {
 		_, _, err := s.Subscribe(ctx, Subscription{CompetitionID: c.ID, Kind: NotifyIndividual, OwnerID: owner, Channel: ByPush, Address: "https://push.example/" + owner, Keys: "{}", Topics: Topics})
 		must(t, err)
 	}
-	_, err = s.db.ExecContext(ctx, `DELETE FROM migrations WHERE version >= 35`)
+	_, err = s.db.ExecContext(ctx, individualSubscriptions) // the migration alone
 	must(t, err)
-	s = reopen(t, s, dir)
 	if mine, _ := s.Subscriptions(ctx, c.ID, NotifyIndividual, e.IndividualID); len(mine) != 1 {
 		t.Errorf("the individual's: %+v", mine)
 	}
