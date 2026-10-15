@@ -190,7 +190,7 @@ templ CompetitionOfficials(p OfficialsPage) {
 			} else {
 				@listTools(p.Tools)
 				<div class="table-container">
-					<table class="table is-fullwidth is-narrow comp-table" id={ p.Tools.ID }>
+					<table class="table is-fullwidth is-narrow comp-table comp-stack" id={ p.Tools.ID }>
 						<thead><tr><th>Name</th><th>Club</th><th>Can do</th><th>Qualified</th><th></th></tr></thead>
 						<tbody>
 							for _, o := range p.Officials {
@@ -199,9 +199,9 @@ templ CompetitionOfficials(p OfficialsPage) {
 										<a href={ templ.SafeURL(o.Person) }>{ o.Name }</a>
 										<span class="has-text-grey is-size-7">· { o.Source }</span>
 									</td>
-									<td>{ o.Club }</td>
-									<td class="comp-wrap">{ o.Offer }</td>
-									<td>
+									<td data-label="Club">{ o.Club }</td>
+									<td class="comp-wrap" data-label="Can do">{ o.Offer }</td>
+									<td data-label="Qualified">
 										<form method="post" action={ templ.SafeURL(p.Base + "/officials/" + o.ID + "/qualified") }>
 											<input type="hidden" name="on" value={ boolValue(!o.Qualified) }/>
 											<label class="checkbox">

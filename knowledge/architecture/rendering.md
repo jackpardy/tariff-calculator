@@ -120,6 +120,16 @@ and `Clear` come from the server.
 Test a list with `listRows` in `web/lists_test.go`, which reads each row's
 name and values from the page.
 
+# Wide tables on a phone
+
+A table too wide for a phone (Officials, Fees, and others as they're added)
+takes the class `comp-stack`. Below 769px each row becomes a card: the first
+cell is its title, and each other cell is a line labelled by its
+`data-label` attribute ("Club: UCD"). The header row hides, empty cells
+hide, and a cell's form sits on its label's line. Rows the list search hides
+stay hidden. Give every cell after the first a `data-label` matching its
+column's heading; leave it off a cell that's only actions.
+
 # JavaScript's job
 
 Only what must run in the browser: keeping `localStorage` in sync, expanding

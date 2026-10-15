@@ -38,7 +38,7 @@ func TestEntryFees(t *testing.T) {
 	redirected(t, h, fees+"/settings", url.Values{"fee-": {"12"}, "club": {"25"}, "instructions": {"Bank transfer, IBAN IE00 TEST"}})
 
 	page := do(t, h, http.MethodGet, fees, nil).Body.String()
-	if !strings.Contains(page, "<td>UCD</td>") && !strings.Contains(page, "UCD") || !strings.Contains(page, "<td>€49</td>") || !strings.Contains(page, "<td>€12</td>") {
+	if !strings.Contains(page, "<td>UCD</td>") && !strings.Contains(page, "UCD") || !strings.Contains(page, `data-label="Due">€49</td>`) || !strings.Contains(page, `data-label="Due">€12</td>`) {
 		t.Fatalf("UCD owes €49 (club €25 and two €12 entries), Ivy €12: %s", page)
 	}
 
