@@ -1624,7 +1624,11 @@ own in the browser; nothing is copied unless the member asks.
   routine's are. The comp sec changing a member's entry gets the member's
   ("Kept on their page"), not only the routines in their own browser.
 - **Coaches.** A coach's page has a menu, **Entries** (the page it always
-  was) and **Gymnasts** (`/clubs/coach/{token}/gymnasts`, a `comp-stack`
+  was, starting with the competitions), **Your details**
+  (`/clubs/coach/{token}/details`, built 2026-10-15: their coach link and
+  Your other links, as a member's and an individual's are; only on the
+  coach's own link, as a member who coaches too has them on their member
+  page) and **Gymnasts** (`/clubs/coach/{token}/gymnasts`, a `comp-stack`
   table): the members they see (their own and those without a coach, or everyone where the club says
   so), with how many routines each keeps, searchable and filtered by having
   routines and by whether they chose this coach. Each opens the gymnast's
@@ -1840,8 +1844,8 @@ each role has them.
   `IndividualEntry`, `IndividualByLink`) also accepts this, so all their
   pages and forms work unchanged. Such a page never shows itself as a link to
   keep or share; the personal link is the one to keep.
-- **Adding a link.** On Your details (a member's or individual's) or at the
-  foot of a coach's page, **Your other links** takes a pasted link: a member,
+- **Adding a link.** On Your details (a member's, a coach's or an
+  individual's), **Your other links** takes a pasted link: a member,
   coach or individual's page, an entry link, a club's admin link or a
   competition's admin or helper link. Pasting it proves they hold it, so
   there's nothing to approve. Their own link, one already there, a link that

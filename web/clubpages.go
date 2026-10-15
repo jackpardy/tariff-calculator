@@ -67,6 +67,7 @@ func (p *competitionPages) registerClubs(mux *http.ServeMux) {
 	handle("POST /clubs/admin/{token}/coaches-see-all", p.coachesSeeAll)
 	handle("POST /clubs/admin/{token}/members/{member}/coach", p.assignCoach)
 	handle("GET /clubs/coach/{token}", p.coachHome)
+	handle("GET /clubs/coach/{token}/details", p.coachDetails)
 	handle("GET /clubs/coach/{token}/members/{member}/competitions/{id}", p.coachEntry)
 	handle("POST /clubs/coach/{token}/members/{member}/competitions/{id}", p.signOff)
 	handle("GET /competitions/club/{token}", p.clubLink)

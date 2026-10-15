@@ -79,7 +79,7 @@ func TestCoachSignoff(t *testing.T) {
 
 	// The comp sec lets every coach see everyone.
 	redirected(t, h, club+"/coaches-see-all", url.Values{"on": {"1"}})
-	if page := do(t, h, http.MethodGet, ann, nil).Body.String(); !strings.Contains(page, ">X</a>") || !strings.Contains(page, "You see every member") {
+	if page := do(t, h, http.MethodGet, ann, nil).Body.String(); !strings.Contains(page, ">X</a>") || !strings.Contains(do(t, h, http.MethodGet, ann+"/gymnasts", nil).Body.String(), "You see every member") {
 		t.Error("with see-all, Ann sees X too")
 	}
 

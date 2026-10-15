@@ -155,7 +155,7 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET /competitions/gymnast/{token}/details` | optional `notice` | Their link and their other links |
 | `GET /competitions/gymnast/{token}/competitions/{id}` | optional `entry` (the row to open), `saved=1`, `notice` | Their page for a competition: a row per discipline, each opening to all of that entry (its card, changing and withdrawing it, their coach, the sign-off link, fees, what they offer), its forms posting to the entry's own address; 404 for one they haven't entered |
 | `GET`, `POST /competitions/gymnast/{token}/competitions/{id}/enter` | as entering, without `as` | Enters another discipline of a competition they've entered, under the same link |
-| `POST /clubs/member/{token}/links`, `/clubs/coach/{token}/links`, `/competitions/gymnast/{token}/links` | `link` | Adds another of the person's links to their page; back to their details (the coach's page) with a notice |
+| `POST /clubs/member/{token}/links`, `/clubs/coach/{token}/links`, `/competitions/gymnast/{token}/links` | `link` | Adds another of the person's links to their page; back to their details with a notice |
 | `POST /clubs/member/{token}/links/remove`, `/clubs/coach/{token}/links/remove`, `/competitions/gymnast/{token}/links/remove` | `kind` (`member`, `coach`, `individual`, or a shared link's), `id` (the record, or the tie) | Takes a role off their page |
 | `POST /competitions/entry/{token}/withdraw` | `confirm=1` | Withdraws and deletes the entry |
 | `GET /competitions/entry/{token}/day` | `notice` | My competition, for someone entering on their own (all their entries, matched by name) |
@@ -190,6 +190,7 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST /clubs/admin/{token}/coaches/{coach}/new-link`, `/remove` | — | A coach's new link (shown once), or removing them |
 | `POST /clubs/admin/{token}/coaches-see-all` | `on` (`1`/`""`) | Whether every coach sees every member |
 | `GET /clubs/coach/{token}` | — | A coach's page: each competition's entries they see, and their sign-off |
+| `GET /clubs/coach/{token}/details` | optional `notice` | A coach's Your details: their coach link and their other links; 404 through another of their links (a member's who coaches too), whose page has them |
 | `GET`, `POST /clubs/coach/{token}/members/{member}/competitions/{id}` | `signed` (`1`/`0`), `note` | One entry, checked, to sign off or say not yet |
 | `GET /clubs/coach/{token}/gymnasts` | optional `notice` | A coach's Gymnasts: the members they see, with how many routines each keeps |
 | `GET /clubs/coach/{token}/gymnasts/{member}` | optional `notice`; `routine` and `against` (`club:<level id>` or `builtin:<id>`) | One of them, with their kept routines, each checked, a note on each, the skills in each no coach has marked Can do, and a choice of level to check each against: `routine` opens checked against `against`; 404 for a member the coach doesn't see |

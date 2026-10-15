@@ -99,17 +99,27 @@ const (
 	coachGymnastsTab   = "gymnasts"
 	coachClubSkillsTab = "club-skills"
 	coachLevelsTab     = "levels"
+	coachDetailsTab    = "details"
 )
+
+// coachDetailsPath is a coach's details: their link and their other links.
+func coachDetailsPath(token string) string { return coachPath(token) + "/details" }
 
 // coachMenu is the menu of a coach's pages, with the section shown current:
 // the entries they see (their default page, where signing one off is too),
 // the gymnasts they see, with their routines and skills, the club's own
 // skills, and the club's levels.
 func coachMenu(token, current string) []views.MenuSection {
-	return []views.MenuSection{
+	menu := []views.MenuSection{
 		{Label: "Entries", Href: coachPath(token), Current: current == coachEntriesTab},
 		{Label: "Gymnasts", Href: coachGymnastsPath(token), Current: current == coachGymnastsTab},
 		{Label: "Club skills", Href: coachPath(token) + "/club-skills", Current: current == coachClubSkillsTab},
 		{Label: "Levels", Href: coachLevelsPath(token), Current: current == coachLevelsTab},
 	}
+	// Your details only for the coach's own link: opened through another of
+	// their links (a member's who coaches too), that link's page has them.
+	if !store.IsVia(token) {
+		menu = append(menu, views.MenuSection{Label: "Your details", Href: coachDetailsPath(token), Current: current == coachDetailsTab})
+	}
+	return menu
 }

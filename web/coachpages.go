@@ -183,6 +183,30 @@ func (p *competitionPages) coach(w http.ResponseWriter, r *http.Request) (store.
 	return c, club, true
 }
 
+// coachDetails is a coach's details: their link, and their other links to
+// add and take off; 404 through another of their links, whose own page has
+// them.
+func (p *competitionPages) coachDetails(w http.ResponseWriter, r *http.Request) {
+	coach, club, ok := p.coach(w, r)
+	if !ok {
+		return
+	}
+	token := r.PathValue("token")
+	if store.IsVia(token) {
+		failed(w, r, store.ErrNotFound)
+		return
+	}
+	other, err := p.otherLinks(r, coachPath(token))
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	render(w, r, views.CoachDetails(views.CoachDetailsPage{
+		Frame: views.CoachFrame{Club: club, Coach: coach.Name, Notice: r.URL.Query().Get("notice"), Menu: coachMenu(token, coachDetailsTab)},
+		Link:  origin(r) + coachPath(token), Other: other,
+	}))
+}
+
 // coachHome lists every entry a coach sees, by competition.
 func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 	coach, club, ok := p.coach(w, r)
@@ -226,10 +250,6 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 		Menu: coachMenu(r.PathValue("token"), coachEntriesTab)}
 	if store.IsVia(r.PathValue("token")) {
 		page.Link = "" // opened through another of their links, which is the one to keep
-	}
-	if page.Other, err = p.otherLinks(r, path); err != nil {
-		failed(w, r, err)
-		return
 	}
 	var levels []string
 	var competitionOptions []views.ListOption

@@ -692,8 +692,8 @@ The organiser sees a pair entered at another level flagged.
 
 # 4. Sign off routines (coaches)
 
-Your comp sec adds you and sends you your **coach link** (**Your coach link**,
-**Show**, at the top of your page shows it again). Your page lists each
+Your comp sec adds you and sends you your **coach link** (**Your details**
+shows it again, with your other links). Your page's **Entries** lists each
 competition with the entries you see: the members who chose you, those who
 haven't chosen a coach, or everyone if the club says so, each with the
 problems the organiser sees (a missing sign-off among them). If the club hasn't
@@ -796,8 +796,7 @@ confirm.
 
 If you're a member who also coaches, your club's comp sec, entering some
 competitions on your own, or helping run one, you can open all of it from
-one link. On your page's **Your details** (a coach's is at the foot of their
-page), under **Your other links**, tap **Add a link**, paste another of your
+one link. On your page's **Your details**, under **Your other links**, tap **Add a link**, paste another of your
 links and tap **Add**. Then tabs at the top (Member, Coach, Competition secretary, On your own, or the
 competition's) switch between them, whichever of your links you open. Each
 link listed has **Undo**.

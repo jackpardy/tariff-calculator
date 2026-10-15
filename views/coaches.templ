@@ -88,9 +88,29 @@ type CoachPage struct {
 	SeesAll      bool // they see every member, not just their own and those without a coach
 	SignsOff     bool // the club lets them sign off routines
 	Competitions []CoachCompetition
-	Pairs        []PairView  // synchro entries others made with members they see
-	Other        *OtherLinks // their other links (ADR 0010)
-	Tools        ListTools   // search and filters on the entries, over every competition
+	Pairs        []PairView // synchro entries others made with members they see
+	Tools        ListTools  // search and filters on the entries, over every competition
+}
+
+// CoachDetailsPage is a coach's Your details: their link and their other
+// links (ADR 0010), as a member's and an individual's are.
+type CoachDetailsPage struct {
+	Frame CoachFrame
+	Link  string // their coach link, as a full URL
+	Other *OtherLinks
+}
+
+// CoachDetails is a coach's Your details.
+templ CoachDetails(p CoachDetailsPage) {
+	@competitionLayout(p.Frame.Coach + " · " + p.Frame.Club) {
+		@coachFrame(p.Frame)
+		<div data-coach-link={ p.Link } data-coach-name={ p.Frame.Coach + " · " + p.Frame.Club }>
+			@linkBox("Your coach link (keep it to yourself)", p.Link, "Open it on any phone or computer to see your members' entries. It's saved in this browser too.")
+		</div>
+		if p.Other != nil {
+			@otherLinksBox(*p.Other)
+		}
+	}
 }
 
 // CoachCompetition is one competition's entries a coach sees.
@@ -117,24 +137,12 @@ templ CoachHome(p CoachPage) {
 	@competitionLayout(p.Coach + " · " + p.Club) {
 		@coachFrame(CoachFrame{Club: p.Club, Coach: p.Coach, Notice: p.Notice, Menu: p.Menu})
 		if p.Link != "" {
-			// Their link, out of the way above their entries: it's saved in this
-			// browser whether or not it's shown.
-			<div data-coach-link={ p.Link } data-coach-name={ p.Coach + " · " + p.Club }>
-				@opens("Your coach link", "Keep it to yourself. It's saved in this browser too.", "Show", false) {
-					@linkBox("Your coach link (keep it to yourself)", p.Link, "")
-				}
-			</div>
+			// Saves their link in this browser; it's shown on Your details.
+			<span hidden data-coach-link={ p.Link } data-coach-name={ p.Coach + " · " + p.Club }></span>
 		}
-		<p class="mb-4 has-text-grey is-size-7">
-			if p.SeesAll {
-				You see every member of the club.
-			} else {
-				You see the members who chose you, and those who haven't chosen a coach.
-			}
-			if !p.SignsOff {
-				Your club hasn't set you to sign off routines, so you can see their entries but not sign them off.
-			}
-		</p>
+		if !p.SignsOff {
+			<p class="mb-4 has-text-grey is-size-7">Your club hasn't set you to sign off routines, so you can see their entries but not sign them off.</p>
+		}
 		if len(p.Competitions) == 0 {
 			<p class="has-text-grey">The club isn't entered in any competitions yet.</p>
 		}
@@ -195,9 +203,6 @@ templ CoachHome(p CoachPage) {
 			</div>
 		}
 		</div>
-		if p.Other != nil {
-			@otherLinksBox(*p.Other)
-		}
 	}
 }
 

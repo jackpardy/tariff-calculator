@@ -123,11 +123,17 @@ func TestRoleTabs(t *testing.T) {
 	if currentRole(t, page) != "Coach" || !strings.Contains(page, "A. Murphy") || strings.Contains(page, "Your coach link") || strings.Contains(page, "data-coach-link") || strings.Contains(page, "Your other links") {
 		t.Errorf("the coach's page, with no link of its own to keep and no other links to add there: %s", page)
 	}
-	// The member's details list it; the coach's page lists the member.
+	// The member's details list it; the coach's details list the member.
 	if !strings.Contains(get(member+"/details"), "Coach at UCD, as A. Murphy") {
 		t.Error("the member's details list the coach")
 	}
-	coachPage := get(coach)
+	if home := get(coach); strings.Contains(home, "Your other links") || !strings.Contains(home, `href="`+coach+`/details"`) {
+		t.Error("the coach's Entries start with the competitions; their links are under Your details")
+	}
+	if rec := do(t, h, http.MethodGet, asCoach+"/details", nil); rec.Code != http.StatusNotFound || strings.Contains(page, asCoach+"/details") {
+		t.Errorf("no Your details through the member's link, whose own page has them: %d", rec.Code)
+	}
+	coachPage := get(coach + "/details")
 	if roleTabTo(t, coachPage, "Member") == member || !strings.Contains(coachPage, "Member of UCD, as A. Murphy") {
 		t.Errorf("the coach's page lists the member, opened through the coach's link: %v", roleTabsIn(coachPage))
 	}
