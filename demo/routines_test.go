@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"tariffCalculator/competitions"
+	"tariffCalculator/skills"
 )
 
 func TestVoluntariesPass(t *testing.T) {
@@ -18,6 +19,21 @@ func TestVoluntariesPass(t *testing.T) {
 		t.Logf("%s: %d", l, len(got))
 		if len(got) == 0 {
 			t.Errorf("no voluntary for %s", l)
+		}
+	}
+}
+
+// Every skill a demo routine can use has a name, as in gymnasts' routines:
+// none shows as a blank on a card.
+func TestPoolSkillsHaveNames(t *testing.T) {
+	for from, list := range pool {
+		if len(list) == 0 {
+			t.Errorf("no skills from %s", from)
+		}
+		for _, s := range list {
+			if s.Name == "" || s.Name == skills.UnnamedSkill {
+				t.Errorf("a skill from %s with no name: %s", from, s.FIGNotation())
+			}
 		}
 	}
 }

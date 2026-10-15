@@ -303,6 +303,9 @@ func TestFindCommonSkillName(t *testing.T) {
 		want string
 	}{
 		// Shape relevant -> always clarified, including straight.
+		// No somersault: the direction is ignored.
+		{"half twist to seat, backward", skill(0, []int{1}, Feet, Straight, true, true), "Half Twist To Seat"},
+		{"full twist, backward", skill(0, []int{2}, Feet, Straight, true, false), "Full Twist"},
 		{"front tuck", skill(4, []int{0}, Feet, Tuck, false, false), "Tuck Front"},
 		{"front straight", skill(4, []int{0}, Feet, Straight, false, false), "Straight Front"},
 		{"barani tuck", skill(4, []int{1}, Feet, Tuck, false, false), "Tuck Barani"},

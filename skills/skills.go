@@ -558,7 +558,8 @@ func FindCommonSkillName(parsedSkill TrampolineSkill) string {
 		// Match on core parameters; shape is handled separately below.
 		if compareSkill.Rotation == tempCommon.Rotation &&
 			compareSkill.TakeoffPosition == tempCommon.TakeoffPosition &&
-			compareSkill.Backward == tempCommon.Backward &&
+			// Without a somersault, forwards or backwards means nothing.
+			(compareSkill.Backward == tempCommon.Backward || compareSkill.Rotation == 0) &&
 			compareSkill.SeatLanding == tempCommon.SeatLanding &&
 			slices.Equal(compareSkill.TwistDistribution, tempCommon.TwistDistribution) {
 
