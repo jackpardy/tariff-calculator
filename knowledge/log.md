@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-15
+* **Update**: [Load test](operations/deploy.md#load-test): `cmd/loadtest` acts as the people at a competition (a burst of everyone opening their page, steady use, the On the day page, venue screens and check-in taps) against a test copy seeded by `demo -pages`; on two cores, 400 people within 2 seconds went from 191 of 343 failing before the cache to none.
 * **Update**: Faster pages, for the dry run: a competition's entries, officials rota and checked cards are kept between requests until anything is saved (`web/facts.go`, `Store.Writes`), and every web test checks the cache still matches the store. A gymnast's own page 65 ms to 6 ms, the dashboard 61 ms to 7 ms, a club's page 58 ms to 18 ms on the full demo ([routes](architecture/http-routes.md)).
 * **Update**: [Compressed pages](architecture/static-assets.md#compression), dry-run item: the app gzips its own text responses (pages, JSON, SVG, calendar files) for browsers that accept it, and the static files once. The demo's On the day page goes from 1.0 MB to 54 KB.
 * **Update**: [One palette for states and roles](architecture/rendering.md#states-and-roles-one-palette), step 1: the colour tokens, `views.StateChip` and `views.WhoChip`, a contrast test for every colour, and how to choose a state. New pages, starting with skill tracking, use them; the rest move over in turn.

@@ -172,3 +172,46 @@ people in the live database, deleted 120 days after the competition's date
 like any other): `docker compose exec tariff /app/tariffCalculator demo` from
 the server's compose directory, then open the printed paths on
 `https://tariff.pardy.ie`.
+
+# Load test
+
+`cmd/loadtest` acts as the people at a competition, to see how the app holds
+up before the dry run. It reads a list of pages, one person's a line, which
+`tariffCalculator demo -pages FILE` writes alongside the demo (every member's
+My competition page, the gymnasts entering on their own, every coach and
+club, the organiser's On the day page and the venue screen). Then, at once:
+
+- a **burst**: every person opens their page within `-burst` (as after a
+  desk message or a push to everyone);
+- **steady use** for `-steady`: each opens it again every `-think` or so,
+  `-staff` people reload On the day every 10 seconds, and `-screens` venue
+  screens refresh every 30 seconds;
+- **taps**: a gymnast checked in or cleared every `-taps`, so the pages'
+  cache is refreshed as it would be on the day.
+
+It ends with each kind of page's loads, failures, median, 90th and 99th
+percentile and slowest time. **Never point it at the live site**: the taps
+change the competition, and the demo's made-up people would sit in the live
+database. Run it against a test copy: its own `DATA_DIR`, seeded with the
+demo, on a port of its own.
+
+```
+DATA_DIR=/tmp/lt go run . demo -pages /tmp/lt/pages.txt
+PORT=8090 DATA_DIR=/tmp/lt GOMAXPROCS=2 go run .
+go run ./cmd/loadtest -base http://localhost:8090 -pages /tmp/lt/pages.txt -people 400 -burst 2s -steady 40s -think 10s -taps 2s
+```
+
+On an M2 laptop held to two cores (`GOMAXPROCS=2`, like the server's two
+shared processors), 15 October 2026, the full demo, 400 people all opening
+their page within 2 seconds:
+
+| | Before the cache (aa111e8) | After |
+|---|---|---|
+| Gymnasts' pages in the burst | 191 of 343 failed (timed out); median 4.8 s, slowest 28.6 s | none failed; median 171 ms, slowest 1.0 s |
+| Gymnasts' pages after it | median 3.3 s, 99% within 23 s | median 9 ms, 99% within 125 ms |
+| Taps | 1 of 4 failed; median 2.8 s | none failed; median 5 ms |
+
+The server is slower per processor than the laptop and shared with other
+services, so run it there too before the dry run, on a test copy: the steps
+above in a second container or on a spare port, with `-base` pointing at it
+from a laptop (through Caddy if it's to count the network and compression).
