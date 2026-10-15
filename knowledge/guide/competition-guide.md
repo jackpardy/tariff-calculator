@@ -363,6 +363,20 @@ has a starting value you can change.
    scratched gymnasts are skipped. **Back** puts it right if you tapped too
    soon. After the last routine, tap **Finished** as usual: Next gymnast won't
    finish the flight for you.
+   **No signal?** Keep tapping. Each tap is kept on your phone with the time
+   you tapped it and shows straight away, marked "waiting to send", with
+   "Waiting to send: 3 taps" at the top; once Started is tapped you can go on
+   with Next gymnast and Finished. They're sent by themselves when the signal
+   is back (keep the page open, or open it again), and recorded at the times
+   you tapped them, even if your phone's clock is wrong. If two people tapped
+   the same thing, the earliest Started and Finished count, and for Here or
+   Scratched the latest tap does; the page says when a tap wasn't used and
+   why. Taps more than 12 hours old aren't used.
+   **Correct the times** (under each flight): if the paper sheet was used, or
+   a tap was wrong, type when the flight really started and finished and tap
+   **Save times**. Leave Finished empty if it hasn't finished. How late the
+   area is running, the venue screen and everyone's pages follow, and the
+   history says who changed them.
    <a id="on-the-day-venue-screen"></a>**Venue screen** (in the menu, and a
    button at the top of the On the day page that opens it on the day you're
    looking at): what's on each area now and what's next, for a TV

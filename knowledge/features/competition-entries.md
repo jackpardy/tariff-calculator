@@ -759,7 +759,8 @@ finished, and who tapped it. **Started** (a flight not yet started),
 **Finished** (started, not finished) and **Undo** (takes back the finish, else
 the start: it posts `undo-finish` or `undo-start`, so the same tap sent twice
 takes back only the one, and the repeat quietly changes nothing) post to
-`/day/flight`, which stores the time now (`flight_times`,
+`/day/flight`, which stores the time it was tapped (now, or earlier for a
+tap kept without signal: see below) (`flight_times`,
 one row per published flight, keyed by the flight's ID; see
 `competitions.FlightKey`, and `PlaceKey` for a flight without one). A tap
 that changes nothing (someone else got there first) is ignored and says so.
@@ -816,7 +817,8 @@ name and value go; the history, which reads `r.Form`, would not see a
 multipart body). The page it is redirected to is parsed, and the notice,
 warnings and areas are swapped for the fresh ones, with the `<details>` that
 were open still open (a Notify list closes once sent), the flight kept at the
-same place on the screen, and the tapped button disabled meanwhile; taps are
+same place on the screen, and the tapped button disabled meanwhile (taps go
+through the phone's queue instead: see taps without signal, below); taps are
 sent one at a time. If the request fails or the answer isn't the day page, the
 form is submitted the usual way (with the tapped button added back as a hidden
 input) and the server's redirect brings the person back to the flight. So a
@@ -827,6 +829,79 @@ Back post the gymnast and routine shown, and Notify posts a one-off id. Which
 lists are open is also kept in `sessionStorage` (per path and `?day`), so a
 reload keeps them. The service worker only handles GET navigations, so these
 posts go straight to the network.
+
+**Taps without signal** (built 2026-10-15, ready for the dry run). The
+venue's wifi drops, so the day page's taps (the forms marked `data-tap`:
+Started, Finished, Undo, Next gymnast and Back, a gymnast's or official's
+check-in, Still officiating/competing) are first kept on the phone, in
+`localStorage` (`static/js/taps.js`), with the phone's clock when tapped.
+The page shows each at once as done but waiting ("Started at 10:02: waiting
+to send"), with the buttons as they'll be once it's sent: Started waiting
+offers Finished, and shows who's up, which is on the page hidden for every
+flight not yet started so the marshal can go on tapping **Next gymnast**;
+the phone works out who's next from the flight's check-in rows (which carry
+each gymnast's entry, running number, club, routine names and state),
+everyone's 1st routine then everyone's 2nd, skipping the scratched, as the
+server does. While any wait, "Waiting to send: 2 taps" shows at the top. They
+are sent one at a time, oldest first: straight away, on the browser's
+`online` event, when the page loads and every half minute; one phone's tabs
+take turns (`navigator.locks`). Each goes as the form it came from, plus
+`tapped` and `sent` (the phone's clock, in milliseconds). Without a signal
+the rest wait; a tap the server answers is dropped, whatever the answer (done,
+done already, or refused, with the notice saying why); one the server keeps
+failing on (a 500) is given up after 5 tries so it can't hold up the rest.
+When none are left the page shows the server's state (the last answer's page,
+or a fresh copy if the taps came from another day's page), with every notice.
+Without storage on the phone, a tap is sent at once as before.
+
+**The tap's time.** The server (`tapAt` in `web/taps.go`) takes the phone's
+`sent` minus `tapped` from its own clock, so a phone clock that's wrong
+doesn't matter, and records the tap at that time rather than when it arrived:
+a flight's start or finish, a check-in's time, who's up. A tap with no
+`tapped` (no JavaScript) is now, as before, and one sent as it's made is
+within milliseconds of it. Refused, with a notice and nothing changed: a time
+in the future (`sent` before `tapped`: the phone's clock went back), one more
+than 12 hours old, or one that can't be read. Taps before the competition's
+day aren't refused, so the page can be tried out (lateness leaves out times on
+another date anyway). The history says when a tap that waited a minute or
+more was made: "Marked a flight started: BUCS L3 (Panel 1) (tapped at 09:50)".
+
+**When taps clash.** Two phones can each keep a tap for the same thing:
+- **Started**: the earliest wins. A Started earlier than the one recorded
+  replaces it (if it's not after the finish); a later one changes nothing and
+  says someone has already done it, as a second tap always has.
+- **Finished**: the earliest wins too, and one before the flight's start is
+  refused ("Finished for BUCS L3 wasn't recorded: it's earlier than the start
+  (09:45)"); one for a flight not started is refused.
+- **Undo**: as before, it takes back what it names if it's there.
+- **Here, Scratched, Clear** (gymnasts) and **Here, Missing, Clear**
+  (officials, per flight of the run): the latest tap wins. One older than the
+  last mark changes nothing and says so ("they were marked again later, at
+  10:00"). A Clear removes the mark and its time, so an older tap arriving
+  after it still applies.
+- **Next gymnast and Back**: as before, by the entry and round the page
+  showed, so a tap from a routine the flight has moved on from (sent twice,
+  or after another phone moved it on) quietly changes nothing; a chain kept
+  on one phone goes through in order. If the order changed meanwhile (someone
+  scratched), the taps after that point change nothing and the page shows
+  where the flight is.
+- **Still officiating/competing**: once is enough; a repeat says so.
+
+A replayed tap that no longer applies is never an error page: the server
+redirects to the day with a notice, and the queue moves on.
+
+**Correct the times** (built 2026-10-15). Under each flight, for when the
+paper sheet was used or a tap was wrong, the organiser and the links that can
+mark flights (everything, chair, timetable) can set when it started and
+finished as clock times on its day (`POST /day/times`; Finished empty for not
+finished, both empty to clear, which also clears who's up as Undo does).
+Refused with a notice: a finish before the start, a finish without a start,
+a time that isn't a clock time, and, once the flight's day has come, a time
+later than now. The times replace those recorded (`who` becomes the link's
+name), and the history says who: "Corrected a flight's times: BUCS L3 ·
+flight 1 of 2 (Panel 1): started 09:10, finished 09:40". Everything reads the
+same `flight_times`, so lateness, the venue screen, the delay "what if" and
+the lines on attendees' pages follow the times put right.
 
 **Finding someone, and the layout** (2026-10-15). Under the day tabs, **Jump
 to** links to each area, and **Find a name** (the shared list search) looks
@@ -1652,6 +1727,10 @@ offline: this is the page as it was when last opened", with the day and time
 the server made it (Irish time, e.g. "Saturday 14:05"). It goes when the
 connection comes back; a page that is still the kept copy then needs a
 reload.
+
+Taps on the On the day page made without a connection are kept on the phone
+too, and sent when it's back, at the time they were tapped: see [taps without
+signal](#on-the-day-flights-started-and-finished).
 
 The copies stay on the phone, in its browser's cache for this site; nothing
 secret leaves it. The server still marks these pages `no-store`, which keeps
