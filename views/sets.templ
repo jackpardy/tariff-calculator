@@ -68,7 +68,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 							<template x-for="l in levels" x-bind:key="l.id">
 								<li class="set-item">
 									<div>
-										<p class="set-name" x-text="l.level.name"></p>
+										<p class="set-name"><span x-text="l.level.name"></span><span class="ml-1" x-show="l.kept" title="Kept on your page: on any phone, and safe if this browser forgets it">@StateChip(Done, "On your page")</span></p>
 										<p class="set-description" x-show="l.level.description" x-text="l.level.description"></p>
 										<ul class="level-exercises">
 											<template x-for="(line, i) in exerciseLines(l.level)" x-bind:key="i">
@@ -81,6 +81,10 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 										<button class="button is-small" type="button" x-on:click="editLevel(l.id)">Edit</button>
 										<button class="button is-small" type="button" x-on:click="duplicateLevel(l.level)">Duplicate</button>
 										<button class="button is-small" type="button" x-on:click="Share.open('sets', [l.id])">Share</button>
+										// A personal page saved in this browser keeps it (ADR 0013).
+										<template x-for="p in personLinks" x-bind:key="p.url">
+											<button class="button is-small" type="button" x-show="!l.kept" x-on:click="keepOnPage(p, 'level', l)" x-text="personLinks.length > 1 ? `Save to my page: ${p.name}` : 'Save to my page'"></button>
+										</template>
 										<button class="button is-small is-danger is-outlined" type="button" x-on:click="removeLevel(l.id)">Delete</button>
 									</div>
 								</li>
@@ -121,7 +125,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 							<template x-for="s in setRoutines()" x-bind:key="s.id">
 								<li class="set-item">
 									<div>
-										<p class="set-name" x-text="s.set.name"></p>
+										<p class="set-name"><span x-text="s.set.name"></span><span class="ml-1" x-show="s.kept" title="Kept on your page: on any phone, and safe if this browser forgets it">@StateChip(Done, "On your page")</span></p>
 										<p class="set-meta" x-show="s.set.source" x-text="s.set.source"></p>
 										<details class="set-rules">
 											<summary x-text="`${elementsOf(s.set).length} elements`"></summary>
@@ -135,6 +139,10 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 									<div class="buttons are-small mb-0">
 										<a class="button is-small" x-bind:href="`/?setRoutine=${s.id}`">Edit in the Routine Builder</a>
 										<button class="button is-small" type="button" x-on:click="Share.open('sets', [s.id])">Share</button>
+										// A personal page saved in this browser keeps it (ADR 0013).
+										<template x-for="p in personLinks" x-bind:key="p.url">
+											<button class="button is-small" type="button" x-show="!s.kept" x-on:click="keepOnPage(p, 'set', s)" x-text="personLinks.length > 1 ? `Save to my page: ${p.name}` : 'Save to my page'"></button>
+										</template>
 										<button class="button is-small is-danger is-outlined" type="button" x-on:click="remove(s.id)">Delete</button>
 									</div>
 								</li>
@@ -165,7 +173,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 							<template x-for="s in requirementSets()" x-bind:key="s.id">
 								<li class="set-item">
 									<div>
-										<p class="set-name" x-text="s.set.name"></p>
+										<p class="set-name"><span x-text="s.set.name"></span><span class="ml-1" x-show="s.kept" title="Kept on your page: on any phone, and safe if this browser forgets it">@StateChip(Done, "On your page")</span></p>
 										<p class="set-meta" x-show="s.set.source" x-text="s.set.source"></p>
 										<details class="set-rules" x-show="s.described?.length">
 											<summary x-text="rulesCount(s.set)"></summary>
@@ -185,6 +193,10 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 										// A coach's page saved in this browser takes them as a club level (ADR 0011).
 										<template x-for="c in coachLinks" x-bind:key="c.url">
 											<button class="button is-small" type="button" x-on:click="saveToClub(c, s)" x-text="coachLinks.length > 1 ? `Save to club levels: ${c.name}` : 'Save to club levels'"></button>
+										</template>
+										// A personal page saved in this browser keeps it (ADR 0013).
+										<template x-for="p in personLinks" x-bind:key="p.url">
+											<button class="button is-small" type="button" x-show="!s.kept" x-on:click="keepOnPage(p, 'set', s)" x-text="personLinks.length > 1 ? `Save to my page: ${p.name}` : 'Save to my page'"></button>
 										</template>
 										<button class="button is-small is-danger is-outlined" type="button" x-on:click="remove(s.id)">Delete</button>
 									</div>

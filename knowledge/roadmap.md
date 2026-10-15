@@ -309,7 +309,8 @@ levels, which are built on the same editor. 1 and 2 are built
 5. **A better Check against picker:** your own and recently used first,
    then by organisation and level, with a search like the skill picker's.
    The same picker would serve Start from a set….
-6. **Later:** keep requirements and levels with the person, as routines on a
+6. *Built 2026-10-15 ([ADR 0013](../docs/adr/0013-requirements-with-the-person.md)).*
+   Keep requirements and levels with the person, as routines on a
    club page are, rather than in one browser. *Suggested 2026-10-15:* build
    it with 3, as one change: the editor saving to where it's opened from,
    the person or the club. And sooner than later: Safari on an iPhone

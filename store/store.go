@@ -777,6 +777,23 @@ var migrations = []string{
 	// added_name the coach's name, to show.
 	`ALTER TABLE member_routines ADD COLUMN added_by TEXT NOT NULL DEFAULT '';
 	ALTER TABLE member_routines ADD COLUMN added_name TEXT NOT NULL DEFAULT '';`,
+
+	// 44: requirements kept with the person (ADR 0013): a person's own
+	// requirement sets and levels (kind), each as the JSON the browser keeps,
+	// by the browser's id for it (source), so saving it again changes it.
+	// They belong to the person (ADR 0010), whichever of their links saved
+	// them, and go with the person (Store.DeleteExpired).
+	`CREATE TABLE person_requirements (
+		id         TEXT PRIMARY KEY,
+		person_id  TEXT NOT NULL,
+		kind       TEXT NOT NULL,
+		source     TEXT NOT NULL,
+		name       TEXT NOT NULL,
+		data       TEXT NOT NULL,
+		updated_at TEXT NOT NULL,
+		UNIQUE (person_id, kind, source)
+	);
+	CREATE INDEX person_requirements_person ON person_requirements (person_id);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run
