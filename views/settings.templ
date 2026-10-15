@@ -1,35 +1,40 @@
 package views
 
+import (
+	"fmt"
+	"strings"
+)
+
 // SettingsPage is the organiser's page of links and settings (roadmap
 // 2026-10-14): everything that was under "Links and settings" on the entries
 // page.
 type SettingsPage struct {
-	Base          string // the admin link's path, which the page's own links extend
-	Notice        string // what just happened
-	New           string // "replaced" just after the admin link was replaced, to say to save it
-	Menu          []MenuSection
-	Access        Access // what the link it was opened by can do (ADR 0009)
-	Competition   CompetitionSummary
-	Links         CompetitionLinks
-	LinkList      []LinkView
-	Ties          []TieView // people whose own link opens these pages (ADR 0010)
-	DeadlineDate  string // the closing time, for changing it
-	DeadlineTime  string
-	ChangesDate   string // when changes and sign-offs close, if later, for changing them
-	ChangesTime   string
-	SignoffsDate  string
-	SignoffsTime  string
-	LiveDate      string // when it's due to go live, for changing it
-	LiveTime      string
-	NotifyOn      bool // people can ask to hear about changes (ADR 0008)
-	NoWait        bool // no wait on the competition's days
+	Base           string // the admin link's path, which the page's own links extend
+	Notice         string // what just happened
+	New            string // "replaced" just after the admin link was replaced, to say to save it
+	Menu           []MenuSection
+	Access         Access // what the link it was opened by can do (ADR 0009)
+	Competition    CompetitionSummary
+	Links          CompetitionLinks
+	LinkList       []LinkView
+	Ties           []TieView // people whose own link opens these pages (ADR 0010)
+	DeadlineDate   string    // the closing time, for changing it
+	DeadlineTime   string
+	ChangesDate    string // when changes and sign-offs close, if later, for changing them
+	ChangesTime    string
+	SignoffsDate   string
+	SignoffsTime   string
+	LiveDate       string // when it's due to go live, for changing it
+	LiveTime       string
+	NotifyOn       bool // people can ask to hear about changes (ADR 0008)
+	NoWait         bool // no wait on the competition's days
 	FeedbackButton bool // a Feedback button on every page
-	Limits        []LimitField
-	Video         VideoForm
-	CoachApproval CoachApprovalForm
-	Split         SplitForm
-	Events        EventsForm
-	LevelOrder    []LevelOrder
+	Limits         []LimitField
+	Video          VideoForm
+	CoachApproval  CoachApprovalForm
+	Split          SplitForm
+	Events         EventsForm
+	LevelOrder     []LevelOrder
 }
 
 // settingsGroup is a heading on the settings page, with the id its jump link
@@ -38,7 +43,10 @@ templ settingsGroup(id, title string) {
 	<h2 class="title is-5 mt-6 mb-3" id={ id }>{ title }</h2>
 }
 
-// CompetitionSettings is the page of links and settings.
+// CompetitionSettings is the page of links and settings. Each setting is a
+// row saying how it's set, with Change opening its form (rendering.md,
+// "Settings and forms on a page"); the rare and destructive ones, replacing
+// the admin link and deleting, open a step before they act.
 templ CompetitionSettings(p SettingsPage) {
 	@competitionLayout("Settings · " + p.Competition.Name) {
 		<h1 class="title is-4">Settings</h1>
@@ -80,125 +88,306 @@ templ CompetitionSettings(p SettingsPage) {
 			@linkBox("Link for entering on their own", p.Links.Individual, "Anyone with it can enter on their own, without a club.")
 		}
 		@settingsGroup("deadlines", "Entries and deadlines")
-		<form method="post" action={ templ.SafeURL(p.Base + "/deadline") } class="mb-3">
-			<label class="label is-small">Entries close</label>
-			<div class="comp-deadline mb-2">
-				<input class="input is-small" name="deadlineDate" type="date" required value={ p.DeadlineDate } aria-label="Closing date"/>
-				<input class="input is-small" name="deadlineTime" type="time" required value={ p.DeadlineTime } aria-label="Closing time"/>
-				<button class="button is-small" type="submit">Change</button>
-			</div>
-		</form>
-		<form method="post" action={ templ.SafeURL(p.Base + "/later-deadlines") } class="mb-3">
-			<label class="label is-small">Changes to entries close (empty: with entries)</label>
-			<div class="comp-deadline mb-2">
-				<input class="input is-small" name="changesDate" type="date" value={ p.ChangesDate } aria-label="Changes closing date"/>
-				<input class="input is-small" name="changesTime" type="time" value={ p.ChangesTime } aria-label="Changes closing time"/>
-			</div>
-			if p.Competition.Signoff {
-				<label class="label is-small">Coaches' sign-off closes (empty: with entries)</label>
-				<div class="comp-deadline mb-2">
-					<input class="input is-small" name="signoffsDate" type="date" value={ p.SignoffsDate } aria-label="Sign-off closing date"/>
-					<input class="input is-small" name="signoffsTime" type="time" value={ p.SignoffsTime } aria-label="Sign-off closing time"/>
-				</div>
-			}
-			<button class="button is-small" type="submit">Change</button>
-			<p class="help">After entries close, no new entries; clubs and gymnasts can still change, withdraw or send again the entries they've made until changes close, and coaches can sign off until sign-off closes. Either can be later than entries closing, by the end of the competition date. After changes close, late changes are by request.</p>
-		</form>
-		if p.Competition.Open {
+		@changeLine("Entries close", p.Competition.Deadline, false) {
 			<form method="post" action={ templ.SafeURL(p.Base + "/deadline") } class="mb-3">
-				<input type="hidden" name="close" value="1"/>
-				<button class="button is-small" type="submit">Close entries now</button>
-				<p class="help">Nobody can send or change entries after that, unless you change the closing time again.</p>
+				<div class="comp-deadline mb-2">
+					<input class="input is-small" name="deadlineDate" type="date" required value={ p.DeadlineDate } aria-label="Closing date"/>
+					<input class="input is-small" name="deadlineTime" type="time" required value={ p.DeadlineTime } aria-label="Closing time"/>
+					<button class="button is-small" type="submit">Change</button>
+				</div>
+			</form>
+			if p.Competition.Open {
+				<form method="post" action={ templ.SafeURL(p.Base + "/deadline") } class="mb-3">
+					<input type="hidden" name="close" value="1"/>
+					<button class="button is-small" type="submit">Close entries now</button>
+					<p class="help">Nobody can send or change entries after that, unless you change the closing time again.</p>
+				</form>
+			}
+		}
+		@changeLine(laterDeadlinesWhat(p), laterDeadlinesNow(p), false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/later-deadlines") } class="mb-3">
+				<label class="label is-small">Changes to entries close (empty: with entries)</label>
+				<div class="comp-deadline mb-2">
+					<input class="input is-small" name="changesDate" type="date" value={ p.ChangesDate } aria-label="Changes closing date"/>
+					<input class="input is-small" name="changesTime" type="time" value={ p.ChangesTime } aria-label="Changes closing time"/>
+				</div>
+				if p.Competition.Signoff {
+					<label class="label is-small">Coaches' sign-off closes (empty: with entries)</label>
+					<div class="comp-deadline mb-2">
+						<input class="input is-small" name="signoffsDate" type="date" value={ p.SignoffsDate } aria-label="Sign-off closing date"/>
+						<input class="input is-small" name="signoffsTime" type="time" value={ p.SignoffsTime } aria-label="Sign-off closing time"/>
+					</div>
+				}
+				<button class="button is-small" type="submit">Change</button>
+				<p class="help">After entries close, no new entries; clubs and gymnasts can still change, withdraw or send again the entries they've made until changes close, and coaches can sign off until sign-off closes. Either can be later than entries closing, by the end of the competition date. After changes close, late changes are by request.</p>
 			</form>
 		}
 		@settingsGroup("limits", "Limits and waiting lists")
-		@limitsForm(p.Base, p.Limits)
+		@changeLine("Limits", limitsNow(p.Limits), false) {
+			@limitsForm(p.Base, p.Limits)
+		}
 		@settingsGroup("events", "Events and levels")
-		<form method="post" action={ templ.SafeURL(p.Base + "/events") } class="mb-3">
-			@otherEvents(p.Events)
-			<button class="button is-small" type="submit">Change events</button>
-		</form>
-		@levelOrderForm(p.Base, p.LevelOrder)
-		<form method="post" action={ templ.SafeURL(p.Base + "/split") } class="mb-3">
-			@splitFields("split", "splitLevel", "Men and women", "Which levels rank men and women separately. Their gymnasts say which when entering.", p.Split)
-			<button class="button is-small" type="submit">Change</button>
-		</form>
+		@changeLine("Synchro, tumbling and DMT", eventsNow(p.Events), false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/events") } class="mb-3">
+				@otherEvents(p.Events)
+				<button class="button is-small" type="submit">Change events</button>
+			</form>
+		}
+		// Each move comes back to #level-order, which opens its row (the
+		// script below), so several moves in a row don't need Change each time.
+		@changeLine("Order of levels", levelOrderNow(p.LevelOrder), false) {
+			@levelOrderForm(p.Base, p.LevelOrder)
+		}
+		@changeLine("Men and women", splitNow(p.Split), false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/split") } class="mb-3">
+				@splitFields("split", "splitLevel", "Men and women", "Which levels rank men and women separately. Their gymnasts say which when entering.", p.Split)
+				<button class="button is-small" type="submit">Change</button>
+			</form>
+		}
 		@settingsGroup("signoff", "Sign-off and coaches")
-		<form method="post" action={ templ.SafeURL(p.Base + "/signoff") } class="mb-3">
-			if p.Competition.Signoff {
-				<input type="hidden" name="on" value="0"/>
-				<button class="button is-small" type="submit">Stop requiring coach sign-off</button>
-			} else {
-				<input type="hidden" name="on" value="1"/>
-				<button class="button is-small" type="submit">Require coach sign-off</button>
-			}
-		</form>
+		@changeLine("Coach sign-off", onOff(p.Competition.Signoff, "entries need a coach's sign-off", "not needed"), false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/signoff") } class="mb-3">
+				if p.Competition.Signoff {
+					<input type="hidden" name="on" value="0"/>
+					<button class="button is-small" type="submit">Stop requiring coach sign-off</button>
+				} else {
+					<input type="hidden" name="on" value="1"/>
+					<button class="button is-small" type="submit">Require coach sign-off</button>
+				}
+			</form>
+		}
 		if p.Competition.Signoff {
-			@coachApprovalFields(p.Base, p.CoachApproval)
+			@changeLine("Approving coaches", coachApprovalNow(p.CoachApproval), false) {
+				@coachApprovalFields(p.Base, p.CoachApproval)
+			}
 		}
 		@settingsGroup("video", "Video")
-		<form method="post" action={ templ.SafeURL(p.Base + "/video") } class="mb-3">
-			@videoFields(p.Video)
-			<button class="button is-small" type="submit">Change video proof</button>
-		</form>
+		@changeLine("Video proof", videoNow(p.Competition.Video), false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/video") } class="mb-3">
+				@videoFields(p.Video)
+				<button class="button is-small" type="submit">Change video proof</button>
+			</form>
+		}
 		@settingsGroup("live", "Going live")
 		if p.Competition.Live {
-			<p class="mb-2">The competition is live: clubs and gymnasts can enter, while entries are open.</p>
-			<form method="post" action={ templ.SafeURL(p.Base + "/live") } class="mb-3">
-				<input type="hidden" name="opens" value="private"/>
-				<input type="hidden" name="back" value="settings"/>
-				<button class="button is-small" type="submit">Make private (pause entries)</button>
-				<p class="help">Nobody can send or change entries until you go live again. Entries already made are kept.</p>
-			</form>
+			@changeLine("Live", "clubs and gymnasts can enter, while entries are open", false) {
+				<form method="post" action={ templ.SafeURL(p.Base + "/live") } class="mb-3">
+					<input type="hidden" name="opens" value="private"/>
+					<input type="hidden" name="back" value="settings"/>
+					<button class="button is-small" type="submit">Make private (pause entries)</button>
+					<p class="help">Nobody can send or change entries until you go live again. Entries already made are kept.</p>
+				</form>
+			}
 		} else {
 			@liveBox(p.Base, p.Competition, p.LiveDate, p.LiveTime, "settings")
 		}
 		if p.NotifyOn {
 			@settingsGroup("notify", "Telling people about changes")
-			<form method="post" action={ templ.SafeURL(p.Base + "/no-wait") } class="mb-3">
-				if p.NoWait {
-					<input type="hidden" name="on" value="0"/>
-					<button class="button is-small" type="submit">Wait 10 minutes before telling changes, on the competition's days too</button>
-				} else {
-					<input type="hidden" name="on" value="1"/>
-					<button class="button is-small" type="submit">No wait on the competition's days</button>
-				}
-				<p class="help">Changes you publish, and cards you check, go to those who asked after 10 minutes, so a mistake put right tells no one. On the competition's days, news may not wait.</p>
-			</form>
+			@changeLine("Wait before telling", onOff(p.NoWait, "10 minutes, but none on the competition's days", "10 minutes, on the competition's days too"), false) {
+				<form method="post" action={ templ.SafeURL(p.Base + "/no-wait") } class="mb-3">
+					if p.NoWait {
+						<input type="hidden" name="on" value="0"/>
+						<button class="button is-small" type="submit">Wait 10 minutes before telling changes, on the competition's days too</button>
+					} else {
+						<input type="hidden" name="on" value="1"/>
+						<button class="button is-small" type="submit">No wait on the competition's days</button>
+					}
+					<p class="help">Changes you publish, and cards you check, go to those who asked after 10 minutes, so a mistake put right tells no one. On the competition's days, news may not wait.</p>
+				</form>
+			}
 		}
 		@settingsGroup("individuals", "Entering on their own")
-		<form method="post" action={ templ.SafeURL(p.Base + "/individuals") } class="mb-3">
-			if p.Competition.Individuals {
-				<input type="hidden" name="on" value="0"/>
-				<button class="button is-small" type="submit">Stop entries on their own</button>
-			} else {
-				<input type="hidden" name="on" value="1"/>
-				<button class="button is-small" type="submit">Let gymnasts enter on their own</button>
-			}
-		</form>
-		@settingsGroup("feedback", "Feedback")
-		<form method="post" action={ templ.SafeURL(p.Base + "/feedback-button") } class="mb-3">
-			<input type="hidden" name="on" value={ boolValue(!p.FeedbackButton) }/>
-			<label class="checkbox is-size-7">
-				<input type="checkbox" checked?={ p.FeedbackButton } onchange="this.form.submit()"/>
-				Show a Feedback button on every page
-			</label>
-			<noscript><button class="button is-small" type="submit">Change</button></noscript>
-			<p class="help">For everyone using the competition's pages to tell the people who make the app what confused them. You read it under <a href={ templ.SafeURL(p.Base + "/feedback") }>Feedback</a>.</p>
-		</form>
-		if p.Access.Organiser {
-			@settingsGroup("admin-link", "Admin link and deleting")
-			<form method="post" action={ templ.SafeURL(p.Base + "/replace-link") } class="mb-3">
-				<button class="button is-small" type="submit">Replace the admin link</button>
-				<p class="help">If the admin link has been shared too widely. The old one stops working.</p>
-			</form>
-			<form method="post" action={ templ.SafeURL(p.Base + "/delete") }>
-				<label class="checkbox is-size-7">
-					<input type="checkbox" name="confirm" value="1" required/>
-					Delete the competition and every entry, now
-				</label>
-				<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
+		@changeLine("Gymnasts on their own", onOff(p.Competition.Individuals, "can enter without a club", "enter only through a club"), false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/individuals") } class="mb-3">
+				if p.Competition.Individuals {
+					<input type="hidden" name="on" value="0"/>
+					<button class="button is-small" type="submit">Stop entries on their own</button>
+				} else {
+					<input type="hidden" name="on" value="1"/>
+					<button class="button is-small" type="submit">Let gymnasts enter on their own</button>
+				}
 			</form>
 		}
+		@settingsGroup("feedback", "Feedback")
+		@changeLine("Feedback button", onOff(p.FeedbackButton, "on every page", "not shown"), false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/feedback-button") } class="mb-3">
+				<input type="hidden" name="on" value={ boolValue(!p.FeedbackButton) }/>
+				<label class="checkbox is-size-7">
+					<input type="checkbox" checked?={ p.FeedbackButton } onchange="this.form.submit()"/>
+					Show a Feedback button on every page
+				</label>
+				<noscript><button class="button is-small" type="submit">Change</button></noscript>
+				<p class="help">For everyone using the competition's pages to tell the people who make the app what confused them. You read it under <a href={ templ.SafeURL(p.Base + "/feedback") }>Feedback</a>.</p>
+			</form>
+		}
+		if p.Access.Organiser {
+			@settingsGroup("admin-link", "Admin link and deleting")
+			@opens("Replace the admin link", "if it's been shared too widely: the old one stops working", "Replace", false) {
+				<form method="post" action={ templ.SafeURL(p.Base + "/replace-link") } class="mb-3">
+					<button class="button is-small" type="submit">Replace the admin link</button>
+				</form>
+			}
+			@opens("Delete the competition", "and every entry, for good", "Delete", false) {
+				<form method="post" action={ templ.SafeURL(p.Base + "/delete") } class="mb-3">
+					<label class="checkbox is-size-7">
+						<input type="checkbox" name="confirm" value="1" required/>
+						Delete the competition and every entry, now
+					</label>
+					<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
+				</form>
+			}
+		}
+		<script>
+			// A change that comes back to a row's form (…#level-order) opens its row.
+			(function () {
+				const t = location.hash && document.getElementById(location.hash.slice(1));
+				const d = t && t.closest("details");
+				if (d) { d.open = true; t.scrollIntoView(); }
+			})();
+		</script>
 	}
+}
+
+// onOff is a setting's now, as it's on or off.
+func onOff(on bool, yes, no string) string {
+	if on {
+		return yes
+	}
+	return no
+}
+
+// laterDeadlinesWhat names the later deadlines' row: changes, and sign-off
+// where entries need it.
+func laterDeadlinesWhat(p SettingsPage) string {
+	if p.Competition.Signoff {
+		return "Changes and sign-off close"
+	}
+	return "Changes close"
+}
+
+// laterDeadlinesNow says when changes, and sign-off, close.
+func laterDeadlinesNow(p SettingsPage) string {
+	when := func(until string) string {
+		if until == "" {
+			return "with entries"
+		}
+		return until
+	}
+	if p.Competition.ChangesUntil == "" && (!p.Competition.Signoff || p.Competition.SignoffsUntil == "") {
+		return "when entries close"
+	}
+	now := "changes: " + when(p.Competition.ChangesUntil)
+	if p.Competition.Signoff {
+		now += "; sign-off: " + when(p.Competition.SignoffsUntil)
+	}
+	return now
+}
+
+// limitsNow lists the events with a limit, e.g. "BUCS L1 12, DMT Advanced 17".
+func limitsNow(fields []LimitField) string {
+	var each []string
+	for _, f := range fields {
+		if f.Limit != "" {
+			each = append(each, f.Event+" "+f.Limit)
+		}
+	}
+	if len(each) == 0 {
+		return "no event has a limit"
+	}
+	return strings.Join(each, ", ") + "; the others none"
+}
+
+// eventsNow says which events beyond trampoline the competition runs.
+func eventsNow(f EventsForm) string {
+	var each []string
+	synchro := 0
+	for _, on := range f.Synchro {
+		if on {
+			synchro++
+		}
+	}
+	if synchro > 0 {
+		each = append(each, Count(synchro, "synchro level", "synchro levels"))
+	}
+	if n := lineCount(f.Tumbling); n > 0 {
+		each = append(each, Count(n, "tumbling level", "tumbling levels"))
+	}
+	if n := lineCount(f.DMT); n > 0 {
+		each = append(each, Count(n, "DMT level", "DMT levels"))
+	}
+	if len(each) == 0 {
+		return "trampoline only"
+	}
+	return strings.Join(each, ", ")
+}
+
+// lineCount counts the lines of a list with something on them.
+func lineCount(s string) int {
+	n := 0
+	for _, l := range strings.Split(s, "\n") {
+		if strings.TrimSpace(l) != "" {
+			n++
+		}
+	}
+	return n
+}
+
+// levelOrderNow says each discipline's easiest and hardest level.
+func levelOrderNow(order []LevelOrder) string {
+	var each []string
+	for _, o := range order {
+		name := ""
+		if len(order) > 1 {
+			name = o.Name + " "
+		}
+		switch len(o.Levels) {
+		case 0:
+		case 1:
+			each = append(each, name+o.Levels[0])
+		default:
+			each = append(each, fmt.Sprintf("%s%s to %s", name, o.Levels[0], o.Levels[len(o.Levels)-1]))
+		}
+	}
+	return "easiest first: " + strings.Join(each, "; ")
+}
+
+// splitNow says which levels rank men and women separately.
+func splitNow(f SplitForm) string {
+	switch f.Mode {
+	case "all":
+		return "ranked separately at every level"
+	case "some":
+		var levels []string
+		for _, l := range f.Levels {
+			if f.Chosen[l] {
+				levels = append(levels, l)
+			}
+		}
+		if len(levels) > 4 {
+			return "ranked separately at " + Count(len(levels), "level", "levels")
+		}
+		return "ranked separately at " + strings.Join(levels, ", ")
+	}
+	return "ranked together"
+}
+
+// coachApprovalNow says whether coaches must be approved, and the lowest
+// level accepted in each discipline.
+func coachApprovalNow(f CoachApprovalForm) string {
+	if !f.On {
+		return "any coach's sign-off counts"
+	}
+	var each []string
+	for _, l := range f.Levels {
+		each = append(each, fmt.Sprintf("%s Level %d", l.Name, l.Level))
+	}
+	return "only approved coaches sign off; at least " + strings.Join(each, ", ")
+}
+
+// videoNow says what video proof is asked for.
+func videoNow(video string) string {
+	if video == "" {
+		return "none"
+	}
+	return video
 }

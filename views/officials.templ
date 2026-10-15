@@ -187,8 +187,9 @@ templ CompetitionOfficials(p OfficialsPage) {
 			</form>
 		}
 		@listSection("People", len(p.Officials)) {
+			@addOfficial(p)
 			if len(p.Officials) == 0 {
-				<p class="has-text-grey">Nobody yet. Gymnasts offer when they enter (clubs send members' offers with their entries); add anyone else below.</p>
+				<p class="has-text-grey">Nobody yet. Gymnasts offer when they enter (clubs send members' offers with their entries), or add someone above.</p>
 			} else {
 				@listTools(p.Tools)
 				<div class="table-container">
@@ -226,35 +227,38 @@ templ CompetitionOfficials(p OfficialsPage) {
 				</div>
 			}
 		}
-		<div class="mt-4">
-			@opens("", "A judge or helper who isn't entering, perhaps with no club:", "Add someone", false) {
-			<form method="post" action={ templ.SafeURL(p.Base + "/officials/add") }>
-				<div class="field">
-					<input class="input is-small" name="name" required maxlength="80" placeholder="Name" aria-label="Name"/>
-					<input class="input is-small mt-1" name="club" maxlength="80" placeholder="Club (leave blank if none)" aria-label="Club"/>
-				</div>
-				for _, d := range p.Add.Disciplines {
-					<div class="field comp-offer-row">
-						<label class="checkbox"><input type="checkbox" name={ "judge-" + d.Key } value="1"/> Judge { d.Name }</label>
-						<div class="select is-small">
-							<select name={ "upto-" + d.Key } aria-label={ "Highest " + d.Name + " level to judge" }>
-								<option value="">any level</option>
-								for _, l := range d.Levels {
-									<option value={ l }>up to { l }</option>
-								}
-							</select>
-						</div>
-						<label class="checkbox is-size-7"><input type="checkbox" name={ "chair-" + d.Key } value="1"/> can chair</label>
+	}
+}
+
+// addOfficial is the form for adding a judge or helper who isn't entering,
+// at the head of the People list it adds to.
+templ addOfficial(p OfficialsPage) {
+	@opens("", "A judge or helper who isn't entering, perhaps with no club", "Add someone", false) {
+		<form method="post" action={ templ.SafeURL(p.Base + "/officials/add") }>
+			<div class="field">
+				<input class="input is-small" name="name" required maxlength="80" placeholder="Name" aria-label="Name"/>
+				<input class="input is-small mt-1" name="club" maxlength="80" placeholder="Club (leave blank if none)" aria-label="Club"/>
+			</div>
+			for _, d := range p.Add.Disciplines {
+				<div class="field comp-offer-row">
+					<label class="checkbox"><input type="checkbox" name={ "judge-" + d.Key } value="1"/> Judge { d.Name }</label>
+					<div class="select is-small">
+						<select name={ "upto-" + d.Key } aria-label={ "Highest " + d.Name + " level to judge" }>
+							<option value="">any level</option>
+							for _, l := range d.Levels {
+								<option value={ l }>up to { l }</option>
+							}
+						</select>
 					</div>
-				}
-				<div class="field">
-					<label class="checkbox mr-4"><input type="checkbox" name="recorder" value="1"/> Recorder</label>
-					<label class="checkbox"><input type="checkbox" name="marshal" value="1"/> Marshal</label>
+					<label class="checkbox is-size-7"><input type="checkbox" name={ "chair-" + d.Key } value="1"/> can chair</label>
 				</div>
-				<button class="button is-small is-primary" type="submit">Add</button>
-			</form>
-		}
-		</div>
+			}
+			<div class="field">
+				<label class="checkbox mr-4"><input type="checkbox" name="recorder" value="1"/> Recorder</label>
+				<label class="checkbox"><input type="checkbox" name="marshal" value="1"/> Marshal</label>
+			</div>
+			<button class="button is-small is-primary" type="submit">Add</button>
+		</form>
 	}
 }
 

@@ -30,7 +30,7 @@ func TestAdminLinks(t *testing.T) {
 	chair := madeLink(t, h, admin, "Chairs", "chair")
 	timetable := madeLink(t, h, admin, "Timetable team", "timetable")
 	co := madeLink(t, h, admin, "Mary", "everything")
-	if page := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(); !strings.Contains(page, "<strong>Difficulty judges</strong> · checking cards") {
+	if page := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(); !strings.Contains(page, `<strong>Difficulty judges</strong> <span class="has-text-grey is-size-7">checking cards`) {
 		t.Error("the organiser sees the links")
 	}
 

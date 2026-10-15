@@ -6,7 +6,7 @@ import "strconv"
 type FeesPage struct {
 	Base, Notice string
 	Competition  CompetitionSummary
-	Menu []MenuSection
+	Menu         []MenuSection
 	On           bool // anything is charged
 	GBP          bool
 	PerEntry     []FeeField
@@ -106,7 +106,7 @@ templ FeesAdmin(p FeesPage) {
 											}
 											· { pay.Who }
 											<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments/" + pay.ID + "/remove") } class="is-inline">
-												<button class="button is-small is-text p-0 ml-1" type="submit">remove</button>
+												<button class="button is-small is-text has-text-danger p-0 ml-1 comp-inline-button" type="submit" aria-label={ "Remove the payment of " + pay.Amount }>Remove</button>
 											</form>
 										</div>
 									}
@@ -116,19 +116,22 @@ templ FeesAdmin(p FeesPage) {
 								<td data-label="Paid">{ a.Paid }</td>
 								<td data-label="Balance">
 									if a.Settled {
-										<span class="tag is-success is-light">Paid</span>
+										@StateChip(Done, "Paid")
 									} else {
 										<strong>{ a.Balance }</strong>
 									}
 								</td>
-								<td>
+								<td class="comp-pay-cell">
 									<a class="is-size-7" href={ templ.SafeURL(a.Invoice) }>Invoice</a>
-									<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments") } class="comp-pay-form mt-1">
-										<input type="hidden" name="payer" value={ a.Payer }/>
-										<input class="input is-small comp-num" name="amount" inputmode="decimal" required placeholder="Amount" aria-label={ "Amount paid by " + a.Name }/>
-										<input class="input is-small" name="note" maxlength="300" placeholder="Note" aria-label="Note"/>
-										<button class="button is-small" type="submit">Paid</button>
-									</form>
+									// Recording a payment is for one row at a time, so it opens from a button.
+									@opens("", "", "Record a payment", false) {
+										<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments") } class="comp-pay-form">
+											<input type="hidden" name="payer" value={ a.Payer }/>
+											<input class="input is-small comp-num" name="amount" inputmode="decimal" required placeholder="Amount" aria-label={ "Amount paid by " + a.Name }/>
+											<input class="input is-small" name="note" maxlength="300" placeholder="Note" aria-label="Note"/>
+											<button class="button is-small" type="submit">Record</button>
+										</form>
+									}
 								</td>
 							</tr>
 						}
@@ -209,7 +212,7 @@ templ invoiceTable(p InvoicePage) {
 		</thead>
 		<tbody>
 			for _, l := range p.Lines {
-				<tr><td>{ l.What }</td><td class="has-text-right">{ l.Amount }</td></tr>
+				<tr><td>{ l.What }</td><td class="has-text-right comp-nowrap">{ l.Amount }</td></tr>
 			}
 		</tbody>
 		<tfoot>
@@ -222,7 +225,7 @@ templ invoiceTable(p InvoicePage) {
 							· { pay.Note }
 						}
 					</td>
-					<td class="has-text-right">−{ pay.Amount }</td>
+					<td class="has-text-right comp-nowrap">−{ pay.Amount }</td>
 				</tr>
 			}
 			<tr>

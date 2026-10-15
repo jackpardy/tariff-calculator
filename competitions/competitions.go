@@ -422,10 +422,8 @@ func (c Card) Problems() []string {
 				out = append(out, prefix+r.Description)
 			}
 		}
-		for j, msg := range ex.Validation.Messages {
-			for _, note := range skills.ElementNotes(j, msg) {
-				out = append(out, prefix+note)
-			}
+		for _, note := range skills.RoutineNotes(ex.Validation.Messages) {
+			out = append(out, prefix+note)
 		}
 	}
 	return out

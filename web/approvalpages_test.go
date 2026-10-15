@@ -78,7 +78,8 @@ func TestCoachApprovalPages(t *testing.T) {
 	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, "1 waiting") {
 		t.Error("the dashboard counts her waiting")
 	}
-	if page := do(t, h, http.MethodGet, admin+"/history", nil).Body.String(); !strings.Contains(page, "1 waiting") {
+	// A section's badge is its number, with the words for wider screens.
+	if page := do(t, h, http.MethodGet, admin+"/history", nil).Body.String(); !strings.Contains(page, `1<span class="comp-badge-word">&nbsp;waiting</span>`) {
 		t.Error("every page's menu says a coach is waiting")
 	}
 	redirected(t, h, admin+"/coaches/"+annID, url.Values{"action": {"approve"}})

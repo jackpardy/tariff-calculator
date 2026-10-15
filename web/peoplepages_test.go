@@ -96,7 +96,7 @@ func TestPeople(t *testing.T) {
 	// One row per person: Mo competes and judges, and is listed once; the
 	// individual, the unconfirmed partner, the added official and the coach
 	// are there too.
-	if !strings.Contains(list, "<strong>7 people</strong>") {
+	if !strings.Contains(list, `People <span class="has-text-grey has-text-weight-normal">· 7</span>`) {
 		t.Errorf("Mo, Ivy, Sam, Pat, Kit, Mary and Ann: %s", list)
 	}
 	for _, name := range []string{"Mo", "Ivy", "Sam", "Pat", "Mary", "Ann", "Kit O/Neil? 100% #1"} {
