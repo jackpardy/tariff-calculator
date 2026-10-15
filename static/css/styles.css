@@ -88,6 +88,15 @@
 .checkbox {
     margin-right: 1.5rem;
 }
+/* A checkbox with a sentence: a space after the box, and a long label wraps
+   in line with its first word, not under the box. */
+.checkbox.comp-check {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.5em;
+}
+.checkbox.comp-check input { flex: none; margin-top: 0.3em; }
+.field .checkbox.comp-check { display: flex; }
 
 /* Styling for validation message area */
 .validation-messages {
@@ -600,6 +609,11 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-table td, .comp-table th { white-space: nowrap; }
 .comp-table td:nth-child(6) { white-space: normal; min-width: 12rem; }
 .comp-table tr.has-problems td:nth-child(6) { color: #cc0f35; }
+/* A comp sec's coaches: each coach's two rows read as one block, ruled off below. */
+.comp-coaches tbody tr:first-child td { border-bottom: 0; }
+.comp-coaches tbody tr:last-child td { padding-top: 0; padding-bottom: 0.75rem; border-bottom-width: 2px; }
+/* A comp sec's entries: the status says a lot, so it wraps rather than pushing the table wider. */
+.comp-club-entries td:nth-child(4) { white-space: normal; min-width: 10rem; }
 /* The entries table has a tick box first: its problems are marked by class. */
 .comp-entries td:nth-child(6) { white-space: nowrap; min-width: 0; }
 .comp-entries tr.has-problems td:nth-child(6) { color: inherit; }
@@ -765,6 +779,18 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .screen-rows-2 .screen-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
 .screen-rows-2 .screen-card > .screen-band { grid-column: 1 / -1; }
 .screen-rows-2 .screen-next { border-top: 0; border-left: 2px solid #ddd; }
+/* On a phone the screen is a page to scroll: one card under another, Now above Next,
+   an area's name on one line, and a club under its gymnast's name rather than cut off. */
+@media screen and (max-width: 600px) {
+    .screen-main { height: auto; overflow: visible; }
+    .screen-grid { flex: none; grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+    .screen-card, .screen-rows-2 .screen-card { display: flex; flex-direction: column; }
+    .screen-rows-2 .screen-next { border-left: 0; border-top: 2px solid #ddd; }
+    .screen-area { white-space: nowrap; }
+    .screen-grid .screen-names { columns: 1; }
+    .screen-names li { flex-wrap: wrap; white-space: normal; }
+    .screen-club { flex-basis: 100%; padding-left: 1.9em; overflow: visible; }
+}
 .screen-strips { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 0.6rem; }
 .screen-strip { display: flex; align-items: center; gap: 0.8rem; font-size: 1.3rem; border: 3px solid var(--screen-band); border-radius: 0.5rem; overflow: hidden; padding-right: 0.9rem; }
 .screen-strip > .screen-band { padding: 0.3rem 0.8rem; align-self: stretch; display: flex; align-items: center; }
@@ -796,6 +822,10 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-menu .tabs a { white-space: nowrap; }
 .comp-menu .comp-submenu { margin-top: 0.5rem; }
 .comp-menu .comp-submenu ul { border-bottom: none; }
+/* A section's pages wrap onto a second line rather than scroll, so none is
+   cut off on a phone (the timetable has seven). */
+.comp-menu .comp-submenu { overflow: visible; white-space: normal; }
+.comp-menu .comp-submenu ul { flex-wrap: wrap; flex-shrink: 1; justify-content: flex-start; }
 .comp-menu .comp-submenu li.is-active a { border-bottom-color: #485fc7; color: #485fc7; font-weight: 600; }
 /* A member's pages (views/clubs.templ): the competitions as rows to open, and
    each discipline's entry as a one-line row that opens to its card. */

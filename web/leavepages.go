@@ -61,7 +61,7 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 	for k := range seated {
 		page.People = append(page.People, views.FlightOption{Value: k, Label: name(k)})
 	}
-	slices.SortFunc(page.People, func(a, b views.FlightOption) int { return strings.Compare(a.Label, b.Label) })
+	slices.SortFunc(page.People, func(a, b views.FlightOption) int { return competitions.CompareNames(a.Label, b.Label) })
 
 	if page.Person != "" {
 		page.Asked = true

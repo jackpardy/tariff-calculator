@@ -184,7 +184,7 @@ func (p *competitionPages) individualCoachLate(w http.ResponseWriter, r *http.Re
 			return
 		}
 	}
-	p.renderLateSignoff(w, r, c, req, "Individual", back, true, problems)
+	p.renderLateSignoff(w, r, c, req, onTheirOwn, back, true, problems)
 }
 
 // renderLateSignoff shows a late change's new card, to sign off.
@@ -211,7 +211,7 @@ func lateOpen(c store.Competition, now time.Time) bool {
 type lateTarget struct {
 	c       store.Competition
 	entry   store.Entry // the competition's copy
-	who     string      // who's asking, e.g. "UCD (comp sec)"
+	who     string      // who's asking, e.g. "UCD (competition secretary)"
 	gymnast string      // fixed for a club's member
 	back    string
 }
@@ -238,7 +238,7 @@ func (p *competitionPages) lateTargetOf(w http.ResponseWriter, r *http.Request) 
 		if !ok {
 			return t, false
 		}
-		t, memberID = lateTarget{c: c, who: club.Name + " (comp sec)", gymnast: m.Name, back: clubPath(token)}, m.ID
+		t, memberID = lateTarget{c: c, who: club.Name + " (competition secretary)", gymnast: m.Name, back: clubPath(token)}, m.ID
 	default:
 		m, ok := p.member(w, r)
 		if !ok {

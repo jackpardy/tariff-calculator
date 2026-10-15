@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"context"
 	"encoding/csv"
 	"encoding/json"
@@ -202,8 +203,8 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 	c := competitions.Competition{Name: form.Name, Date: form.Date, Individuals: form.Individuals}
 	var problems []string
 	c.Video, form.Video, problems = postedVideo(r)
-	if at, err := postedLiveAt(r, p.now()); err != nil {
-		problems = append(problems, err.Error())
+	if at, problem := postedLiveAt(r, p.now()); problem != "" {
+		problems = append(problems, problem)
 	} else {
 		c.LiveAt = at
 	}
@@ -591,16 +592,18 @@ func dashboardFilter(q url.Values) url.Values {
 // sortRows orders a level's rows by gymnast, club, sent (latest first) or
 // coach; otherwise as they came (by club, then gymnast).
 func sortRows(rows []views.DashboardRow, sentAt map[string]time.Time, by string) {
-	key := map[string]func(r views.DashboardRow) string{
-		"gymnast": func(r views.DashboardRow) string { return strings.ToLower(r.Gymnast) },
-		"club":    func(r views.DashboardRow) string { return strings.ToLower(r.Club) },
-		"coach":   func(r views.DashboardRow) string { return strings.ToLower(r.Signoff.By + "\x00" + r.Coach) },
+	compare := map[string]func(a, b views.DashboardRow) int{
+		"gymnast": func(a, b views.DashboardRow) int { return competitions.CompareNames(a.Gymnast, b.Gymnast) },
+		"club":    func(a, b views.DashboardRow) int { return competitions.CompareNames(a.Club, b.Club) },
+		"coach": func(a, b views.DashboardRow) int {
+			return cmp.Or(competitions.CompareNames(a.Signoff.By, b.Signoff.By), competitions.CompareNames(a.Coach, b.Coach))
+		},
 	}[by]
 	switch {
 	case by == "sent":
 		slices.SortStableFunc(rows, func(a, b views.DashboardRow) int { return sentAt[b.ID].Compare(sentAt[a.ID]) })
-	case key != nil:
-		slices.SortStableFunc(rows, func(a, b views.DashboardRow) int { return strings.Compare(key(a), key(b)) })
+	case compare != nil:
+		slices.SortStableFunc(rows, compare)
 	}
 }
 
@@ -719,7 +722,8 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		d.Levels[n].Rows = append(d.Levels[n].Rows, row)
 	}
-	slices.Sort(d.Coaches)
+	slices.SortFunc(d.Coaches, competitions.CompareNames)
+	slices.SortFunc(d.Clubs, competitions.CompareNames)
 	totals := map[string]int{}
 	for _, e := range entries {
 		if !e.Withdrawn {
@@ -828,7 +832,7 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 			}
 			club := j.ClubName
 			if j.Individual {
-				club = "Individual"
+				club = onTheirOwn
 			}
 			row := []string{j.Entry.Entry.Gymnasts(), club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), "", "", j.Entry.Entry.Category}
 			if j.err == nil && !j.card.Unchecked {
@@ -906,21 +910,22 @@ func (p *competitionPages) check(w http.ResponseWriter, r *http.Request) {
 
 // postedLiveAt is when a form says entries open: opens=now, opens=at with
 // liveDate and liveTime still to come, or anything else for private (zero).
-func postedLiveAt(r *http.Request, now time.Time) (time.Time, error) {
+// problem says what's wrong with it, as a sentence to show, if anything.
+func postedLiveAt(r *http.Request, now time.Time) (at time.Time, problem string) {
 	switch r.FormValue("opens") {
 	case "now":
-		return now, nil
+		return now, ""
 	case "at":
 		at, err := time.ParseInLocation("2006-01-02 15:04", r.FormValue("liveDate")+" "+r.FormValue("liveTime"), local)
 		switch {
 		case err != nil:
-			return time.Time{}, errors.New("Say the date and time entries open.")
+			return time.Time{}, "Say the date and time entries open."
 		case !at.After(now):
-			return time.Time{}, errors.New("The time entries open has already passed: go live now instead.")
+			return time.Time{}, "The time entries open has already passed: go live now instead."
 		}
-		return at.UTC(), nil
+		return at.UTC(), ""
 	}
-	return time.Time{}, nil
+	return time.Time{}, ""
 }
 
 // live takes a competition live now (opens=now) or at a time (opens=at,
@@ -938,9 +943,9 @@ func (p *competitionPages) live(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Redirect(w, r, to+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
 	}
-	at, err := postedLiveAt(r, p.now())
-	if err != nil {
-		back(err.Error())
+	at, problem := postedLiveAt(r, p.now())
+	if problem != "" {
+		back(problem)
 		return
 	}
 	changed := c.Competition
@@ -1078,10 +1083,14 @@ func checkedText(e store.Entry) string {
 // clubOf is who sent a stored entry, as the pages say it.
 func clubOf(e store.Entry) string {
 	if e.Individual {
-		return "Individual"
+		return onTheirOwn
 	}
 	return e.ClubName
 }
+
+// onTheirOwn is what pages call a gymnast's club when they entered without
+// one: the same words everywhere, never "individual".
+const onTheirOwn = "On their own"
 
 // card is an entry checked, as the pages show it.
 func card(c competitions.Competition, e competitions.Entry, club string) (views.EntryCard, error) {
@@ -1139,7 +1148,7 @@ func (p *competitionPages) individuals(w http.ResponseWriter, r *http.Request) {
 	}
 	notice := "Gymnasts can no longer enter on their own."
 	if r.FormValue("on") == "1" {
-		notice = "Gymnasts can now enter on their own, with the individual entry link."
+		notice = "Gymnasts can now enter on their own, with the link for entering on their own."
 	}
 	backToSettings(w, r, notice)
 }
@@ -1393,6 +1402,20 @@ func (p *competitionPages) ownEntry(w http.ResponseWriter, r *http.Request) {
 	p.renderOwn(w, r, e, c, e.Entry, nil)
 }
 
+// gymnastBase is the token of the gymnast's own page an entry opened with
+// the request's token is on (ADR 0010): their personal link's, if it's
+// theirs; otherwise the entry's own.
+func (p *competitionPages) gymnastBase(r *http.Request, e store.Entry) string {
+	token := r.PathValue("token")
+	if !store.IsVia(token) {
+		return token
+	}
+	if h, err := p.st.HolderOf(r.Context(), token); err == nil && h.Kind == store.RoleIndividual {
+		return store.Personal(token)
+	}
+	return store.Via(store.Personal(token), e.IndividualID)
+}
+
 // renderOwn shows an individual their entry, and the form to change it
 // (starting from form, with any problems).
 func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e store.Entry, c store.Competition, form competitions.Entry, problems []string) {
@@ -1405,6 +1428,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	token := r.PathValue("token")
 	path := "/competitions/entry/" + token
 	page := views.EntryPage{
+		Name:        e.Entry.Gymnast,
 		Competition: summary(c.Competition, p.now()), Link: origin(r) + path, JustSaved: r.URL.Query().Get("saved") == "1",
 		Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
 		Placement:   placement(c, e.ID),
@@ -1421,11 +1445,10 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	// The entry is on its person's page (ADR 0010): opened through their
 	// personal link, that's the link to keep; through an entry link from
 	// before, that entry link.
-	base := token
+	base := p.gymnastBase(r, e)
 	if store.IsVia(token) {
-		page.Link, base = "", store.Via(store.Personal(token), e.IndividualID)
-		if h, err := p.st.HolderOf(r.Context(), token); err == nil && h.Kind == store.RoleIndividual {
-			base = store.Personal(token)
+		page.Link = ""
+		if base == store.Personal(token) {
 			page.Link, page.Personal = origin(r)+gymnastPath(base), true
 		}
 	}

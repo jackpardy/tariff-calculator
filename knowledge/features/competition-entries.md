@@ -47,10 +47,10 @@ bar scrolls sideways on a phone.
 **Settings** (`GET /competitions/admin/{token}/settings`, in `web/settingspages.go`)
 holds what used to fold away on the entries page, in groups with a list of
 jump links at the top: Links (helpers' links for the organiser, the club
-link, the individual entry link), Entries and deadlines, Limits and waiting
+link, the link for entering on their own), Entries and deadlines, Limits and waiting
 lists, Events and levels (events, order of levels, men and women), Sign-off
 and coaches, Video, Going live, Telling people about changes (when people
-can ask to hear), Individual entry, and Admin link and deleting (the
+can ask to hear), Entering on their own, and Admin link and deleting (the
 organiser only). A co-organiser's link opens it without the links box,
 replacing the admin link or deleting. Each form posts to its own route, which
 comes back to the Settings page with a notice; the history records them as
@@ -80,8 +80,8 @@ enters on their own) are one row and one page, with all their roles
 ([one link, several roles](#one-link-several-roles-adr-0010)); the page is at
 the first key found, and another of their keys redirects to it.
 
-Each row has the name (a link), the club ("Individual" for someone entering on
-their own, nothing for an official with no club) and **what they do**: the
+Each row has the name (a link), the club ("On their own" for someone entering
+without a club, nothing for an official with no club) and **what they do**: the
 events they compete in ("Trampoline BUCS L7, Synchro BUCS L6/L7"), what they
 offered ("judge, can chair, recorder, marshal") and "coaches 6" (the gymnasts
 they coach). The list can be searched by name and filtered by club and by what
@@ -96,7 +96,7 @@ escaped as one path segment (`url.PathEscape`, which leaves the colons and
 escapes a slash, a question mark, a percent sign and a hash in a name); Go's
 mux matches the escaped path and gives the handler the key unescaped. An
 unknown key is a 404 ("Person not found"). The page is read-only and is the
-person's own **Your competition** page (`views.MyCompetition`) built by the
+person's own **My competition** page (`views.MyCompetition`) built by the
 same code (`dayOf` in `web/mypages.go`, which the member's page and this one
 both call), with the parts that are only for the person left out (notify, the
 calendar, "I'm here for the rest", the score sheets link) and these added:
@@ -268,14 +268,16 @@ the page's address so a view can be kept or shared:
   none), checked, signed off, video (missing, to review, need more, OK),
   men or women, problems only;
 - **sort**: by club (as stored), gymnast, latest sent or coach;
-- **print and CSV what's shown**: the cards and the CSV take the same
-  filters.
+- **print and CSV what's shown**: one set of buttons (Print cards, Print
+  cards not checked, Download CSV) above the levels; Print cards and the CSV
+  take the same filters, and each open level has **Print this level's
+  cards**.
 
 | Gymnast | Club | 1st exercise | 2nd exercise | Requirements | Problems | Video | Sent | Checked |
 |---|---|---|---|---|---|---|---|---|
 | A. Murphy | UCD | Set 1 | 4.6 | 5/5 ✓ | – | not needed | 3 Mar, 21:04 | ✓ |
 | B. Kelly | DCU | Set 2 | 5.9 | 4/5 ✗ | Repeat (element 7) | missing | 4 Mar (changed since) | – |
-| C. Ryan | individual | 2.1 | 6.2 | 9/10 ✗ | 10th lands on back | provided | 5 Mar | – |
+| C. Ryan | On their own | 2.1 | 6.2 | 9/10 ✗ | Element 10 must land on feet. | provided | 5 Mar | – |
 
 - Counts at the top: entries per level and club, how many have problems, how
   many aren't checked yet, and any late ones.
@@ -289,7 +291,17 @@ the page's address so a view can be kept or shared:
 
 Both exercises are shown side by side, as in the builder's Levels mode: the
 elements, FIG notation, tariff, flags (repeats, transitions, interruptions,
-carry-over) and each requirement with ✓ or ✗. Two buttons:
+carry-over) and each requirement with ✓ or ✗. Two buttons follow.
+
+An element's name is the catalogue's, or the coach's own words; one the
+catalogue has no name for is left blank, as its FIG notation beside it says
+what it is (never "Custom Skill"). A * marks an element that meets one of the
+requirements, explained under the table. A set routine performed as written
+names each element in the set's own words ("Seat landing"), as its Set
+routine line does. The validation's flags read as sentences
+(`skills.ElementNotes`): "Element 10 must land on feet.", "Element 4 takes
+off from front, but element 3 lands on back.", on the card's rows and in the
+problem lists gymnasts, comp secs, coaches and the organiser see. The buttons:
 
 - **Mark checked**, with an optional note. The note is shown to the club's comp
   sec and the member.
@@ -397,13 +409,22 @@ A competition offers **events**: a discipline at a level.
 
 Every list of people has the same search and filters, from one set of shared
 pieces ([how](../architecture/rendering.md#lists-of-people-search-and-filters)).
-"Find a name" ignores case, accents and punctuation, the count says how many
-are shown, and Clear shows everyone again. The lists are the dashboard's
+"Find a name" looks at a name's letters only, ignoring case, accents, spaces
+and punctuation, the same in the browser as on the server, so "marykate"
+finds Mary Kate and "oneill" finds O'Néill; the count says how many are
+shown, and Clear shows everyone again. The lists are the dashboard's
 entries, All people, Officials, the organiser's Coaches, the desk's People I
-pick, the club's Members and Coaches, and a coach's own entries. On the
-dashboard the filters work on the server, so Print what's shown and the CSV
-follow them, and the search also narrows the entries as it's typed and opens
-the levels it finds them in.
+pick, the club's Members, Coaches and each competition's entries, and a
+coach's own entries. On the dashboard the filters work on the server, so its
+one set of Print cards and Download CSV buttons follows them (a level's own
+**Print this level's cards** button is inside the open level), and the search
+also narrows the entries as it's typed and opens the levels it finds them in.
+
+Names are listed in the order people expect, ignoring case and accents
+(`competitions.CompareNames`): Aberdeen before ATU Sligo, DCU before DkIT,
+Éabha before Tadhg. The store sorts members, coaches, officials, clubs and
+entries this way after reading them, and the pages' own sorts (club filters,
+the dashboard's sort, people) use the same compare.
 
 # Officials (ADR 0005, step 3)
 
@@ -1147,7 +1168,7 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   competition approves coaches (ADR 0007 Decision 8), the entry page first
   asks for **Your coach**: a name, a qualification from the list and a
   certificate, stored with the entry (deleted with it, or the competition).
-  The organiser's Coaches page lists them under **Individuals**, to approve
+  The organiser's Coaches page lists them under **Gymnasts on their own**, to approve
   as clubs' coaches are. Until approved, the sign-off link says why and
   can't be used; once approved, the coach signs off as the named coach,
   and the sign-off counts while they stay approved. Naming another coach
@@ -1163,7 +1184,7 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
 - The organiser's Coaches page (coaches sent for approval) has the same
   search and filters (`id="coaches"`): by coach's name, club (or
-  "Individuals") and status (approved, waiting, not approved, approval
+  "Gymnasts on their own") and status (approved, waiting, not approved, approval
   withdrawn). Each club's box is a group that hides when none of its coaches
   match.
 
@@ -1177,8 +1198,12 @@ your way round; the menu is `views/menu.templ`, built for each page in
   the organiser's, but for the club's members only, by competition. It has
   **Send** and **Re-send changed** buttons, shows the organiser's notes,
   shows which members are still missing a required video, and lets the comp
-  sec edit an entry on a member's behalf. The pages for editing a member's
-  entry or offer are in this section.
+  sec edit an entry on a member's behalf (**Change**, under the member's
+  name; the status wraps, so the table fits a laptop). Each competition's
+  entries are a list section (`id="entries-<competition id>"`) searched by
+  name and filtered by problems and by whether they're still to send. The
+  pages for editing a member's entry or offer are in this section; the edit
+  page names the member once, at its head.
 - **Members** (`/members`): the join link, the members (with **New link** for
   one who lost theirs, which ends the old one, a coach to choose, and
   **Remove**) and the synchro entries other clubs' gymnasts made with them.
@@ -1188,7 +1213,9 @@ your way round; the menu is `views/menu.templ`, built for each page in
 - The Members list (`id="members"`) can be searched by name and filtered by
   coach (each of the club's coaches, or no coach), by whether the member has
   entries, and by whether they are a coach too. The Coaches list
-  (`id="coaches"`; each coach's two table rows are one `<tbody>`) can be
+  (`id="coaches"`; each coach's two table rows are one `<tbody>`, ruled off
+  below, so "Signs off routines" and "Add a qualification" sit with their
+  coach) can be
   searched by name and filtered by whether they sign off routines and whether
   they have qualifications. Both are sections that can be collapsed and start
   open ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
@@ -1204,9 +1231,11 @@ link opens the coach's page. Members shows them as "Coach too", Coaches as
 Each form returns to the section it's on, with its notice. The exceptions are
 replacing the admin link, which shows the new link on Competitions (where it's
 saved in the browser), and the new link made for a member or coach, which is
-shown on that response only. The default page is also where the club's admin
-link is saved in the browser (`data-club-admin`, when the club is new or the
-link was replaced).
+shown on that response only. Every page of the club's saves its admin link in
+the browser when it's opened (`data-club-page`), as the organiser's dashboard
+does (`data-competition-page`) and members', coaches' and gymnasts' pages do;
+never on a page opened through someone's own link or a helper's link (a "~" in
+the path). The new or replaced link is shown and saved too (`data-club-admin`).
 
 # A member (personal link)
 
@@ -1222,14 +1251,16 @@ coach's view will be more tabs):
   entered in. The page also holds a hidden `data-member-link`, so the link is
   saved in the browser on the first visit (as it is on every member page).
 - **A competition's page** (`/clubs/member/{token}/competitions/{id}`): the
-  facts, the Your competition link, desk messages, timetable links, each
+  facts, the one **My competition →** link (their flights and times, the
+  timetables and calendars are all there), desk messages, Tell me about
+  changes, each
   discipline's entry, officiating, and the judging offer. Each discipline is a
   row (discipline, level, status such as "Checked", "2 problems", "Not entered"
   or "Waiting list, 3rd") that opens to its card and forms. It's closed unless
   a form just posted had problems, or the notice is about it (the redirect after
   a save or withdrawal carries `discipline`). Saving, withdrawing and offering
-  go back to this page; so do the late-change and timetable pages, and Your
-  competition links back to it.
+  go back to this page; so do the late-change and timetable pages, and My
+  competition links back to it ("← ISTO 2027: your entries").
 - **Your details** (`/clubs/member/{token}/details`): their personal link,
   their coach, and **Your other links**
   ([one link, several roles](#one-link-several-roles-adr-0010)); choosing a
@@ -1252,7 +1283,7 @@ existing entry opens with its own ticked.
 Roadmap item 5, built 2026-10-14. A person's **records** are their club
 memberships, their coaching for a club, and their entering on their own;
 records with the same `person_id` are one person, and **whichever of their
-personal links they open, tabs above the page** (Member, Coach, Comp sec,
+personal links they open, tabs above the page** (Member, Coach, Competition secretary,
 On your own, Organiser · competition, or a helper link's name · competition)
 switch between their roles, each keeping its own menu. With one role there
 are no tabs. The tabs are worked out for any page a personal link opens
@@ -1307,11 +1338,11 @@ A gymnast entering on their own has one personal page,
 `/competitions/gymnast/{token}` (`web/gymnastpages.go`), like a member's
 without the club: **Competitions** (each competition entered, with how many
 entries), each competition's page (a row per discipline, with its status, that
-opens to its card and **Open this entry**, the Your competition link, and
+opens to its card and **Open this entry**, the My competition link, and
 **Enter another discipline** while entries are open) and **Your details** (the
 link, and Your other links).
 
-- **Entering.** The competition's individual entry link asks for **your
+- **Entering.** The competition's link for entering on their own asks for **your
   page's link, if you have one**, offering the pages saved in this browser
   (own pages, member pages, entry links). Given, the entry joins that person
   (a member's link makes them a person who also enters on their own); blank,
@@ -1343,14 +1374,22 @@ link, and Your other links).
 
 # My competition (roadmap: competitions 5)
 
-From a member's page for a competition or an individual's entry, **Your
-competition** opens one page for the day:
+From a member's page for a competition or an individual's entry, **My
+competition** opens one page for the day. It's one of their pages: their club
+(or "Entered on your own") and name at the top, their tabs, a back link that
+names the competition ("← ISTO 2027: your entries"), then **My competition**
+with the competition's name and date, and their links: Your timetable, Club
+timetable (a member's), Add to calendar, Club calendar (a member's) and Tell
+me about changes. The page they came from has only the one link to it (and
+Tell me about changes), not the timetables and calendars as well.
 
 - Every event they're in that has reached the competition (a member's sent
   entries; an individual's entries, as one person; synchro as either
   partner), with its card's status: checked, problems to sort out (listed),
   or not checked yet.
-- Once the timetable is published: each flight, area, day and warm-up, where
+- Once the timetable is published, their events come in the order they warm
+  up (`byWarmUp`), any not in a flight last, each with its flight, area, day
+  and warm-up, where
   they are in the running order ("3rd of 12"), and about when each routine
   is, worked out from the flight's timings (a guide only).
 - What they officiate, and the whole timetable, every day and area, with
@@ -1363,10 +1402,10 @@ Once the timetable is published (roadmap 2026-10-08), the panel timeline
 (days side by side, a column per area, time running down evenly) is also
 shown focused (`timelineFocus`):
 
-- **Your timetable** (a member's page, an individual's entry, "My
-  competition"): the flights they compete in ("You compete") and the panels
+- **Your timetable** (on "My competition"): the flights they compete in ("You compete") and the panels
   they sit on ("You: Execution judge") picked out in green.
-- **Club timetable** (the comp sec's page, a coach's, a member's): every
+- **Club timetable** (the comp sec's page, a coach's, a member's My
+  competition): every
   flight with one of the club's gymnasts, named, or one of its people
   officiating ("Officials: Ann (E2)"; members, and the organiser's judges
   from the club), picked out.

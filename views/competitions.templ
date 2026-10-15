@@ -242,6 +242,7 @@ type EntryOption struct {
 
 // EntryPage is an individual's own entry, through their personal link.
 type EntryPage struct {
+	Name        string // the gymnast's own name, without a synchro partner's
 	Waiting     string // on a waiting list, and where
 	Late        string // a late change, where it stands
 	LateAsk     string // where to ask for a late change, once entries close
@@ -419,10 +420,10 @@ templ NewCompetition(f CompetitionForm) {
 					<input type="radio" name="opens" value="now" checked?={ f.Opens == "now" }/>
 					Now
 				</label>
-				<p class="help">Until then, the club and individual links show the competition's name and date, and when entries open, so you can share them early.</p>
+				<p class="help">Until then, the club link and the link for entering on their own show the competition's name and date, and when entries open, so you can share them early.</p>
 			</fieldset>
 			<div class="field">
-				<label class="checkbox">
+				<label class="checkbox comp-check">
 					<input type="checkbox" name="individuals" value="1" checked?={ f.Individuals }/>
 					Gymnasts can also enter on their own, not only through a club
 				</label>
@@ -484,6 +485,10 @@ templ CompetitionDashboard(d Dashboard) {
 	@competitionLayout(d.Competition.Name) {
 		<h1 class="title is-4">{ d.Competition.Name }</h1>
 		@pageMenu(d.Menu)
+		if d.Access.Organiser {
+			// Saves the admin link in this browser whenever it's opened (static/js/competitions.js).
+			<span hidden data-competition-page={ d.Base } data-competition-name={ d.Competition.Name }></span>
+		}
 		if d.New != "" && d.Links.Admin != "" {
 			@newAdminLink(d.Competition, d.Links.Admin, d.New)
 		}
@@ -526,14 +531,27 @@ templ CompetitionDashboard(d Dashboard) {
 			</div>
 		}
 		if d.Entries > 0 {
+			// Printing and the CSV follow the search and filters.
 			<div class="buttons">
-				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) }>Print cards</a>
+				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) } data-list-carry>
+					if filtered(d) {
+						Print cards shown
+					} else {
+						Print cards
+					}
+				</a>
 				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards?unchecked=1") }>Print cards not checked</a>
-				<a class="button is-small" href={ templ.SafeURL(d.Base + "/entries.csv") } download>Download CSV</a>
+				<a class="button is-small" href={ templ.SafeURL(d.Base + "/entries.csv" + filterQuery(d, "")) } download data-list-carry>
+					if filtered(d) {
+						Download CSV of those shown
+					} else {
+						Download CSV
+					}
+				</a>
 			</div>
 		}
 		if d.Entries == 0 {
-			<p class="has-text-grey">No entries yet. Clubs send theirs through the club link; individuals enter through theirs.</p>
+			<p class="has-text-grey">No entries yet. Clubs send theirs through the club link; gymnasts on their own enter through theirs.</p>
 		} else if d.Access.Remove {
 			@removeForm(d.Base)
 		}
@@ -551,13 +569,13 @@ templ CompetitionDashboard(d Dashboard) {
 						if l.Places != "" {
 							<span class="tag is-light is-size-7 has-text-weight-normal ml-1">{ l.Places }</span>
 						}
-						if len(l.Rows) > 0 {
-							<a class="is-size-7 has-text-weight-normal ml-2" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) } data-list-carry>Print this level</a>
-						}
 					</summary>
 					if len(l.Rows) == 0 {
 						<p class="has-text-grey is-size-7">None</p>
 					} else {
+						<div class="buttons mb-2">
+							<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) } data-list-carry>Print this level's cards</a>
+						</div>
 						<div class="table-container">
 							<table class="table is-fullwidth is-narrow comp-table comp-entries">
 								<thead>
@@ -732,7 +750,7 @@ templ liveBox(base string, c CompetitionSummary, liveDate, liveTime, from string
 				if c.Opens != "" {
 					It goes live { c.Opens }.
 				}
-				The club and individual links show the competition's name and date, and when entries open, but nobody can enter until it's live.
+				The club link and the link for entering on their own show the competition's name and date, and when entries open, but nobody can enter until it's live.
 			</p>
 			<form method="post" action={ templ.SafeURL(base + "/live") } class="mb-2">
 				<input type="hidden" name="opens" value="now"/>
@@ -894,6 +912,16 @@ templ entryCardChecks(c EntryCard) {
 	}
 }
 
+// cardName is an element's name on an entry card: its own name, or its
+// catalogue name; blank for an element the catalogue has no name for, as
+// its FIG notation beside it says what it is.
+func cardName(s skills.TrampolineSkill) string {
+	if s.CustomName == "" && s.Name == skills.UnnamedSkill {
+		return ""
+	}
+	return displayName(s)
+}
+
 func problemCount(n int) string {
 	if n == 1 {
 		return "1 problem"
@@ -922,13 +950,13 @@ templ exerciseCard(ex ExerciseCard) {
 						<tr class={ templ.KV("not-counted", !sv.Counted && !sv.Unscored) }>
 							<td class="has-text-grey">{ strconv.Itoa(i + 1) }</td>
 							<td>
-								{ displayName(sv.Skill) }
+								{ cardName(sv.Skill) }
 								if ex.Required[i+1] {
 									<span title="Meets a requirement">*</span>
 								}
 								if ex.Validation.Messages[i] != "" {
 									<br/>
-									<span class="is-size-7 has-text-danger">{ ex.Validation.Messages[i] }</span>
+									<span class="is-size-7 has-text-danger">{ skills.ElementNote(i, ex.Validation.Messages[i]) }</span>
 								}
 							</td>
 							<td class="has-text-grey">{ sv.FIGNotation }</td>
@@ -942,6 +970,9 @@ templ exerciseCard(ex ExerciseCard) {
 				</tbody>
 			</table>
 			<p class="has-text-right">
+				if len(ex.Required) > 0 {
+					<span class="is-size-7 has-text-grey mr-2">* meets one of the requirements</span>
+				}
 				if ex.Checks.ScoreDifficulty {
 					<strong>Difficulty { fmt.Sprintf("%.1f", ex.Validation.TotalTariff) }</strong>
 				} else {
@@ -1157,7 +1188,7 @@ templ CompetitionEntryPage(p EntryPage) {
 			</div>
 		}
 		if p.Personal {
-			<div data-gymnast-link={ p.Link } data-gymnast-name={ p.Card.Gymnast }>
+			<div data-gymnast-link={ p.Link } data-gymnast-name={ p.Name }>
 				@linkBox("Your personal link (keep it to yourself)", p.Link, "")
 			</div>
 		} else if p.Link != "" {
@@ -1181,7 +1212,8 @@ templ CompetitionEntryPage(p EntryPage) {
 		@dayLink(p.Day)
 		@feesLine(p.Fees)
 		@deskMessages(p.Desk)
-		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
+		// The timetables and calendars are on My competition; hearing about changes is here too.
+		@timelineLinks("", "", p.Notify, "", "")
 		@waitingLine(p.Waiting)
 		@lateLine(p.Late, p.LateAsk)
 		@placementLine(p.Placement)
@@ -1191,7 +1223,13 @@ templ CompetitionEntryPage(p EntryPage) {
 		}
 		@organiserNote(p.Note)
 		@videoReviewNote(p.VideoReview, p.VideoNote)
-		@entryCard(p.Card)
+		if len(p.Menu) > 0 {
+			// Their name heads the page already.
+			<p class="subtitle is-6">{ p.Card.Level }</p>
+			@entryCardChecks(p.Card)
+		} else {
+			@entryCard(p.Card)
+		}
 		<p class="has-text-grey is-size-7">Entered { p.Sent }.</p>
 		@pairEntries(p.Pairs)
 		if p.Competition.ChangesOpen {
@@ -1648,7 +1686,7 @@ templ removedList(base string, rows []RemovedRow) {
 }
 
 // dashboardFilters are the ways to find entries: search, filters, sorting,
-// a list of the levels to jump to, and printing or downloading what's shown.
+// and a list of the levels to jump to.
 templ dashboardFilters(d Dashboard) {
 	@listTools(dashboardTools(d)) {
 		<div class="select is-small">
@@ -1663,8 +1701,6 @@ templ dashboardFilters(d Dashboard) {
 		</div>
 	}
 	<p class="is-size-7 mb-3">
-		<a href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) } data-list-carry>Print what's shown</a> ·
-		<a href={ templ.SafeURL(d.Base + "/entries.csv" + filterQuery(d, "")) } download data-list-carry>CSV of what's shown</a> ·
 		Jump to:
 		for i, l := range d.Levels {
 			if i > 0 {
@@ -1684,7 +1720,7 @@ func dashboardTools(d Dashboard) ListTools {
 		club.Options = append(club.Options, ListOption{Value: c, Label: c})
 	}
 	if d.Competition.Individuals || hasIndividuals(d) {
-		club.Options = append(club.Options, ListOption{Value: "individual", Label: "Entering on their own"})
+		club.Options = append(club.Options, ListOption{Value: "individual", Label: "On their own"})
 	}
 	t.Filters = append(t.Filters, club)
 	if len(d.Coaches) > 0 {

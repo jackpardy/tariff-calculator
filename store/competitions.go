@@ -1,6 +1,7 @@
 package store
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -420,6 +421,15 @@ func (s *Store) entriesWhere(ctx context.Context, where string, args ...any) ([]
 		}
 		out = append(out, e)
 	}
+	slices.SortStableFunc(out, func(a, b Entry) int {
+		if a.Individual != b.Individual {
+			if a.Individual {
+				return 1
+			}
+			return -1
+		}
+		return cmp.Or(competitions.CompareNames(a.ClubName, b.ClubName), competitions.CompareNames(a.Entry.Gymnast, b.Entry.Gymnast))
+	})
 	return out, rows.Err()
 }
 

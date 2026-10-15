@@ -353,6 +353,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		has := map[string]bool{}
 		for _, e := range mine {
 			has[e.MemberID] = true
+			toSend := cc.ToSend // counted on, if this one is to send
 			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Event(), Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
 			rem, removed := removals[e.MemberID+"/"+e.Discipline]
 			switch {
@@ -396,14 +397,21 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			if at := placement(c, copyOf[e.MemberID+"/"+e.Discipline]); at != nil {
 				row.Flight = fmt.Sprintf("%s · %s · warm-up %s", at.Flight, at.Panel, at.Time)
 			}
+			row.List = views.ListRow{Name: row.Member, Values: map[string][]string{"problems": {hasValue(row.Problems > 0)}, "sent": {sentValue(cc.ToSend > toSend)}}}
 			cc.Rows = append(cc.Rows, row)
 		}
 		// Entries the club sent for members who've since withdrawn or left.
 		for _, e := range sent {
 			if e.ClubID == club.ID && !has[e.MemberID] {
-				cc.Rows = append(cc.Rows, views.ClubEntryRow{Member: e.Entry.Gymnasts(), Level: e.Entry.Event(), Status: "Withdrawn (still sent)"})
+				row := views.ClubEntryRow{Member: e.Entry.Gymnasts(), Level: e.Entry.Event(), Status: "Withdrawn (still sent)"}
+				row.List = views.ListRow{Name: row.Member, Values: map[string][]string{"problems": {hasValue(false)}, "sent": {"sent"}}}
+				cc.Rows = append(cc.Rows, row)
 			}
 		}
+		cc.Tools = views.ListTools{ID: "entries-" + c.ID, Noun: "entries", Total: len(cc.Rows), Filters: []views.ListFilter{
+			hasFilter("problems", "Problems", "Problems or not", "Has problems", "No problems"),
+			{Key: "sent", Label: "Sending", Any: "Sent or not", Options: []views.ListOption{{Value: "tosend", Label: "To send"}, {Value: "sent", Label: "Sent"}}},
+		}}
 		if cc.ApproveCoaches {
 			if cc.Coaches, err = p.clubSendCoaches(r, club, c.ID, coaches, quals, members, mine); err != nil {
 				return nil, err
@@ -415,6 +423,15 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		out = append(out, cc)
 	}
 	return out, nil
+}
+
+// sentValue is an entry row's value for the Sending filter: "tosend" for one
+// Send new and changed sends.
+func sentValue(toSend bool) string {
+	if toSend {
+		return "tosend"
+	}
+	return "sent"
 }
 
 // send sends the club's entries for a competition: which=changed sends those

@@ -118,7 +118,7 @@ func roleLabel(role store.Role) string {
 	case store.RoleCoach:
 		return "Coach"
 	case store.RoleClub:
-		return "Comp sec"
+		return "Competition secretary"
 	case store.RoleIndividual:
 		return "On your own"
 	case store.RoleOrganiser:
@@ -135,7 +135,7 @@ func roleDescription(role store.Role) string {
 	case store.RoleCoach:
 		return "Coach at " + role.Place + ", as " + role.Name
 	case store.RoleClub:
-		return "Comp sec of " + role.Place
+		return "Competition secretary of " + role.Place
 	case store.RoleIndividual:
 		return "Entering on your own, as " + role.Name
 	case store.RoleOrganiser:

@@ -1,9 +1,11 @@
 package store
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"slices"
 	"time"
 
 	"tariffCalculator/competitions"
@@ -181,6 +183,9 @@ func (s *Store) Officials(ctx context.Context, competitionID string) ([]Official
 		o.UpdatedAt = parseTime(updated)
 		out = append(out, o)
 	}
+	slices.SortStableFunc(out, func(a, b Official) int {
+		return cmp.Or(competitions.CompareNames(a.Name, b.Name), competitions.CompareNames(a.ClubName, b.ClubName))
+	})
 	return out, rows.Err()
 }
 

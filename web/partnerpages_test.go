@@ -74,6 +74,9 @@ func TestEvents(t *testing.T) {
 	// the name its own page gives it.
 	saved := regexp.MustCompile(`data-gymnast-name="([^"]+)"`).FindStringSubmatch(do(t, h, http.MethodGet, pair, nil).Body.String())
 	self := regexp.MustCompile(`data-saved-self="([^"]*)"`).FindStringSubmatch(do(t, h, http.MethodGet, partner, nil).Body.String())
+	if saved == nil || saved[1] != "S" {
+		t.Errorf("the entry saves its link under the gymnast's own name, not the pair's: %v", saved)
+	}
 	if saved == nil || self == nil || !slices.Contains(strings.Split(self[1], "\n"), saved[1]) {
 		t.Errorf("the partner page names the entry to leave out: %v in %v", saved, self)
 	}

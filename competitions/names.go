@@ -26,10 +26,44 @@ func fold(name string) string {
 	return b.String()
 }
 
+// plain is each accented letter's plain letter, for the letters of the
+// languages a club's members are likely to write their names in.
 var plain = map[rune]rune{
-	'á': 'a', 'à': 'a', 'â': 'a', 'ä': 'a', 'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
-	'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i', 'ó': 'o', 'ò': 'o', 'ô': 'o', 'ö': 'o',
-	'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u', 'ç': 'c', 'ñ': 'n',
+	'á': 'a', 'à': 'a', 'â': 'a', 'ä': 'a', 'ã': 'a', 'å': 'a', 'ą': 'a', 'ă': 'a', 'ā': 'a',
+	'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e', 'ę': 'e', 'ě': 'e', 'ė': 'e', 'ē': 'e',
+	'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i', 'ī': 'i', 'į': 'i', 'ı': 'i',
+	'ó': 'o', 'ò': 'o', 'ô': 'o', 'ö': 'o', 'õ': 'o', 'ø': 'o', 'ő': 'o', 'ō': 'o',
+	'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u', 'ů': 'u', 'ű': 'u', 'ū': 'u', 'ų': 'u',
+	'ý': 'y', 'ÿ': 'y', 'ç': 'c', 'ć': 'c', 'č': 'c', 'ď': 'd', 'đ': 'd', 'ğ': 'g',
+	'ł': 'l', 'ľ': 'l', 'ĺ': 'l', 'ñ': 'n', 'ń': 'n', 'ň': 'n', 'ř': 'r', 'ŕ': 'r',
+	'ś': 's', 'š': 's', 'ş': 's', 'ș': 's', 'ť': 't', 'ţ': 't', 'ț': 't',
+	'ź': 'z', 'ż': 'z', 'ž': 'z',
+}
+
+// sortKey is a name for sorting: lower case, without accents or
+// punctuation, but keeping its spaces and digits, so "Ó Briain" sorts
+// with the O's.
+func sortKey(name string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(name) {
+		if base, ok := plain[r]; ok {
+			r = base
+		}
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == ' ' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// CompareNames orders names as people expect to find them in a list,
+// ignoring case and accents: "Aberdeen" before "ATU Sligo", "Éabha" before
+// "Tadhg". Names that differ only in those come in byte order.
+func CompareNames(a, b string) int {
+	if c := strings.Compare(sortKey(a), sortKey(b)); c != 0 {
+		return c
+	}
+	return strings.Compare(a, b)
 }
 
 // distance is the edit distance between two strings, by rune.

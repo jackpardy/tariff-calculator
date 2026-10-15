@@ -8,10 +8,13 @@ import "strconv"
 type MyCompetitionPage struct {
 	Competition CompetitionSummary
 	Name        string
+	Over        string // on their own page, their club, or that they entered on their own
 	Back        string // their own page
 	BackLabel   string // says where Back goes, e.g. "← Your page"
 	Timeline    string // their timetable as the panel timeline, once published
 	Calendar    string // their timetable as a calendar file, once published
+	ClubTimeline string // a member's club's timetable, once published
+	ClubCalendar string // and as a calendar file
 	Notify      string // where they ask to hear about changes
 	ScoreSheets string // the score sheets of the flights they officiate, if any
 	Lateness    []string // how late the areas their flights are on are running today
@@ -24,7 +27,7 @@ type MyCompetitionPage struct {
 	Days        []DayView
 	Mine        map[string]bool // their entries, by id
 	Me          string          // their person key, for the seats they're in
-	Menu        []MenuSection   // the organiser's menu, on the organiser's page of a person
+	Menu        []MenuSection   // the organiser's menu, on the organiser's page of a person; their own tabs on theirs
 	Admin       *PersonAdmin    // what the organiser's page of a person adds; nil on their own page
 }
 
@@ -93,9 +96,9 @@ type PersonLink struct {
 
 // MyCompetition is the person's page for a competition.
 templ MyCompetition(p MyCompetitionPage) {
-	@competitionLayout(p.Competition.Name + " · " + p.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>{ p.BackLabel }</a></p>
+	@competitionLayout(myTitle(p)) {
 		if p.Admin != nil {
+			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>{ p.BackLabel }</a></p>
 			<h1 class="title is-4">{ p.Name }</h1>
 			<p class="subtitle is-6">
 				if p.Admin.Club != "" {
@@ -110,10 +113,18 @@ templ MyCompetition(p MyCompetitionPage) {
 				}
 			</p>
 		} else {
-			<h1 class="title is-4">{ p.Competition.Name }</h1>
-			<p class="subtitle is-6">{ p.Name } · { p.Competition.Date }</p>
+			// Their own page: who they are and their tabs, as on their other
+			// pages, then the way back to the competition.
+			if p.Over != "" {
+				<p class="has-text-grey mb-1">{ p.Over }</p>
+			}
+			<h1 class="title is-4">{ p.Name }</h1>
+			@pageMenu(p.Menu)
+			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>{ p.BackLabel }</a></p>
+			<h2 class="title is-5">My competition</h2>
+			<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		}
-		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
+		@timelineLinks(p.Timeline, p.ClubTimeline, p.Notify, p.Calendar, p.ClubCalendar)
 		if p.Notice != "" {
 			<div class="notification is-info is-light">{ p.Notice }</div>
 		}
@@ -231,6 +242,15 @@ templ MyCompetition(p MyCompetitionPage) {
 			}
 		}
 	}
+}
+
+// myTitle is the page's title: whose competition, on the organiser's page
+// of a person; My competition, on their own.
+func myTitle(p MyCompetitionPage) string {
+	if p.Admin != nil {
+		return p.Competition.Name + " · " + p.Name
+	}
+	return "My competition · " + p.Competition.Name
 }
 
 // showsTimetable says whether a page shows the timetable: always on a person's
@@ -372,7 +392,10 @@ func ordinal(n int) string {
 // dayLink links to a person's My competition page.
 templ dayLink(href string) {
 	if href != "" {
-		<p class="mb-3"><a class="button is-small is-info is-light" href={ templ.SafeURL(href) }>Your competition: flights, times and the timetable →</a></p>
+		<p class="mb-3">
+			<a class="button is-small is-info is-light" href={ templ.SafeURL(href) }>My competition →</a>
+			<span class="is-block help">Your flights and times, the timetable, your calendar and news of changes.</span>
+		</p>
 	}
 }
 
@@ -396,10 +419,10 @@ templ timelineLinks(mine, club, notify, calendar, clubCalendar string) {
 	if mine != "" || club != "" || notify != "" || calendar != "" || clubCalendar != "" {
 		<p class="mb-3 buttons">
 			if mine != "" {
-				<a class="button is-small is-success is-light" href={ templ.SafeURL(mine) }>Your timetable</a>
+				<a class="button is-small is-light" href={ templ.SafeURL(mine) }>Your timetable</a>
 			}
 			if club != "" {
-				<a class="button is-small is-success is-light" href={ templ.SafeURL(club) }>Club timetable</a>
+				<a class="button is-small is-light" href={ templ.SafeURL(club) }>Club timetable</a>
 			}
 			if calendar != "" {
 				<a class="button is-small is-light" href={ templ.SafeURL(calendar) } title="Subscribe to it to keep it up to date">Add to calendar</a>

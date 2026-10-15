@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"net/http"
@@ -36,7 +37,19 @@ func (p *competitionPages) memberDay(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	p.renderDay(w, r, c, store.MemberKey(m.ID), m.ClubID, m.Name, memberCompetitionPath(r.PathValue("token"), c.ID), "← Your entries")
+	club, err := p.memberClub(r, m)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	token := r.PathValue("token")
+	own := memberPath(token) + "/competitions/" + c.ID
+	frame := views.MyCompetitionPage{Over: club, Menu: memberMenu(token, memberCompetitions),
+		Back: memberCompetitionPath(token, c.ID), BackLabel: "← " + c.Name + ": your entries"}
+	if published(c) {
+		frame.ClubTimeline, frame.ClubCalendar = own+"/club-timeline", own+"/club-calendar.ics"
+	}
+	p.renderDay(w, r, c, store.MemberKey(m.ID), m.ClubID, m.Name, frame)
 }
 
 func (p *competitionPages) individualDay(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +57,11 @@ func (p *competitionPages) individualDay(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	p.renderDay(w, r, c, e.Key(), "", e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token"), "← Your page")
+	frame := views.MyCompetitionPage{Over: "Entered on your own", Back: "/competitions/entry/" + r.PathValue("token"), BackLabel: "← " + c.Name + ": your entry"}
+	if e.IndividualID != "" {
+		frame.Menu = gymnastMenu(p.gymnastBase(r, e), gymnastCompetitions)
+	}
+	p.renderDay(w, r, c, e.Key(), "", e.Entry.Gymnast, frame)
 }
 
 // memberHere is a scratched member saying they're still here for the rest.
@@ -134,6 +151,7 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 	published := t != nil
 	page.Published = published
 	var mine []competitions.ScheduledFlight // the flights they're in
+	warmUp := map[string]int{}              // when each event's warm-up starts, by entry, once published
 	if f.checkins, err = p.st.Checkins(r.Context(), c.ID); err != nil {
 		return page, f, err
 	}
@@ -159,6 +177,7 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 			if i, ok := t.Find(j.ID); ok {
 				fl := t.Flights[i]
 				mine = append(mine, fl)
+				warmUp[j.ID] = fl.Day*1440 + fl.Start
 				pos := slices.Index(fl.Entries, j.ID)
 				timing := t.Setup.TimingsFor(fl.Discipline)
 				ev.Flight, ev.Area = fl.Name(), fl.Area
@@ -177,6 +196,7 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		}
 		page.Events = append(page.Events, ev)
 	}
+	byWarmUp(page.Events, warmUp)
 	if published {
 		if page.Lateness, err = p.lateNotes(r.Context(), c, mine); err != nil {
 			return page, f, err
@@ -197,16 +217,32 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 	return page, f, nil
 }
 
+// byWarmUp orders someone's events by when they warm up (warmUp, by entry,
+// in minutes from the first day's start), any not in a flight last, as
+// they were.
+func byWarmUp(events []views.MyEvent, warmUp map[string]int) {
+	at := func(ev views.MyEvent) int {
+		if w, ok := warmUp[ev.ID]; ok {
+			return w
+		}
+		return math.MaxInt
+	}
+	slices.SortStableFunc(events, func(a, b views.MyEvent) int { return cmp.Compare(at(a), at(b)) })
+}
+
 // renderDay shows a person's competition: key is who they are, as the
 // timetable knows them, and club is their club's id ("" for an individual).
-// back is the page of theirs it came from, and backLabel says so.
-func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c store.Competition, key, club, name, back, backLabel string) {
+// frame has what the page of theirs it came from gives it: who they are
+// with (Over), their tabs, the way back and their club's timetable.
+func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c store.Competition, key, club, name string, frame views.MyCompetitionPage) {
 	page, f, err := p.dayOf(r, c, key, name)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	page.Back, page.BackLabel, page.Notice = back, backLabel, r.URL.Query().Get("notice")
+	page.Over, page.Menu, page.Back, page.BackLabel = frame.Over, frame.Menu, frame.Back, frame.BackLabel
+	page.ClubTimeline, page.ClubCalendar = frame.ClubTimeline, frame.ClubCalendar
+	page.Notice = r.URL.Query().Get("notice")
 	own := strings.TrimSuffix(r.URL.Path, "/day")
 	if page.Published {
 		page.Timeline = own + "/timeline"

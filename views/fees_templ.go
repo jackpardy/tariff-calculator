@@ -300,7 +300,7 @@ func FeesAdmin(p FeesPage) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			} else if p.On {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<div class=\"table-container\"><table class=\"table is-fullwidth is-narrow\"><thead><tr><th>Club or individual</th><th>Entries</th><th>Due</th><th>Paid</th><th>Balance</th><th></th></tr></thead> <tbody>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<div class=\"table-container\"><table class=\"table is-fullwidth is-narrow\"><thead><tr><th>Club, or gymnast on their own</th><th>Entries</th><th>Due</th><th>Paid</th><th>Balance</th><th></th></tr></thead> <tbody>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

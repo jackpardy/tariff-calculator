@@ -60,6 +60,14 @@
         if (coach) { keepLink(linkKeys.coaches, coach.dataset.coachName, coach.dataset.coachLink); }
         const gymnast = document.querySelector('[data-gymnast-link]');
         if (gymnast) { keepLink(linkKeys.gymnasts, gymnast.dataset.gymnastName, gymnast.dataset.gymnastLink); }
+        // An organiser's or comp sec's admin page saves its link whenever it's
+        // opened, as the other pages do; never a helper's link or a page opened
+        // through someone's own link (a "~" in the path), which isn't theirs to keep.
+        if (location.pathname.includes('~')) { return; }
+        const competition = document.querySelector('[data-competition-page]');
+        if (competition) { keepLink(linkKeys.competitions, competition.dataset.competitionName, location.origin + competition.dataset.competitionPage); }
+        const clubPage = document.querySelector('[data-club-page]');
+        if (clubPage) { keepLink(linkKeys.clubs, clubPage.dataset.clubName, location.origin + clubPage.dataset.clubPage); }
     }
 
     // linkItem is a list item linking to a saved link.
@@ -414,11 +422,17 @@
         }
     }
 
-    // fold makes text searchable as the server's NameMatches does: lower case,
-    // without accents or punctuation, so "o briain" finds "Ó Briain" and
-    // "oneill" finds "O'Neill".
+    // fold makes text searchable as the server's NameMatches does: only its
+    // letters, lower case, without accents, so "o briain" finds "Ó Briain",
+    // "oneill" finds "O'Neill" and "marykate" finds "Mary Kate".
     function fold(text) {
-        return text.normalize('NFD').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}\s]/gu, '').toLowerCase();
+        const plain = { 'ø': 'o', 'ł': 'l', 'đ': 'd', 'ı': 'i' }; // letters without a separate accent
+        return text.normalize('NFD').replace(/\p{M}/gu, '').replace(/\P{L}/gu, '').toLowerCase().replace(/[øłđı]/g, (c) => plain[c]);
+    }
+
+    // searchWords are a search's words, each folded, as NameMatches reads them.
+    function searchWords(text) {
+        return text.split(/\s+/).map(fold).filter(Boolean);
     }
 
     // listTools searches and filters each list of people (views/lists.templ):
@@ -468,7 +482,7 @@
             };
 
             const apply = () => {
-                const words = fold(search.value).split(/\s+/).filter(Boolean);
+                const words = searchWords(search.value);
                 const chosen = filters.filter((f) => f.value !== '');
                 let shown = 0;
                 for (const row of rows) {

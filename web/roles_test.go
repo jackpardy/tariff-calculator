@@ -197,12 +197,12 @@ func TestSharedLinkOneWay(t *testing.T) {
 	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
 	redirected(t, h, member+"/links", url.Values{"link": {"http://example.com" + club + "/settings"}})
 	home := get(member)
-	asCompSec := roleTabTo(t, home, "Comp sec")
+	asCompSec := roleTabTo(t, home, "Competition secretary")
 	if !strings.HasPrefix(asCompSec, "/clubs/admin/"+strings.TrimPrefix(member, "/clubs/member/")+"~") {
 		t.Fatalf("the comp sec's pages, through the member's link: %s", asCompSec)
 	}
 	page := get(asCompSec + "/members")
-	if currentRole(t, page) != "Comp sec" || !strings.Contains(page, "A. Murphy") {
+	if currentRole(t, page) != "Competition secretary" || !strings.Contains(page, "A. Murphy") {
 		t.Errorf("the Members section, with tabs: %s", page)
 	}
 	if page := get(asCompSec + "?new=created"); strings.Contains(page, "data-club-admin") || strings.Contains(page, "http://example.com"+asCompSec) {

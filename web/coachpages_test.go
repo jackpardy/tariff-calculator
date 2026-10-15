@@ -98,7 +98,8 @@ func TestCoachSignoff(t *testing.T) {
 	// has.
 	problems := func(page, member string) string {
 		for _, row := range tableRows(t, page) {
-			if len(row) > 2 && row[0] == member && row[1] == "BUCS L3" {
+			// The comp sec's name cell also holds Change, under the name.
+			if len(row) > 2 && (row[0] == member || strings.HasPrefix(row[0], member+" ")) && row[1] == "BUCS L3" {
 				return row[2]
 			}
 		}

@@ -586,8 +586,11 @@ func FindCommonSkillName(parsedSkill TrampolineSkill) string {
 		}
 	}
 
-	return "Custom Skill"
+	return UnnamedSkill
 }
+
+// UnnamedSkill is FindCommonSkillName's name for a skill it has no name for.
+const UnnamedSkill = "Custom Skill"
 
 // shapeLeads are the common skills named shape first: the single somersaults.
 var shapeLeads = map[string]bool{"Front": true, "Back": true, "Barani": true}

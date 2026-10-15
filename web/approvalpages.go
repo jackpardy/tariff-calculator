@@ -119,7 +119,7 @@ func (p *competitionPages) setApproveCoaches(w http.ResponseWriter, r *http.Requ
 
 // individualsClub is the heading of the coaches individuals name, who have
 // no club.
-const individualsClub = "Individuals"
+const individualsClub = "Gymnasts on their own"
 
 // approvals is the page of coaches clubs have sent, by club.
 func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {

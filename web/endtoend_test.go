@@ -241,7 +241,7 @@ func TestCompetitionEndToEnd(t *testing.T) {
 		// UCD owes €24 for two entries and €5 for the change; pays €24.
 		accounts := feeAccounts(t, do(t, h, http.MethodGet, admin+"/fees", nil).Body.String())
 		ucd := accounts["UCD"]
-		if ucd.Due != "€29" || ucd.Balance != "€29" || accounts["DCU"].Due != "€24" || accounts["Ivy (individual)"].Due != "€12" {
+		if ucd.Due != "€29" || ucd.Balance != "€29" || accounts["DCU"].Due != "€24" || accounts["Ivy (on their own)"].Due != "€12" {
 			t.Fatalf("what each owes: %+v", accounts)
 		}
 		redirected(t, h, admin+"/fees/payments", url.Values{"payer": {ucd.Payer}, "amount": {"24"}, "note": {"Transfer"}})

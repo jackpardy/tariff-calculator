@@ -136,7 +136,7 @@ func LateRequest(p LateRequestPage) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if p.CoachFirst {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "It goes to your coach to sign off first (a member's coach on their coach page; an individual's coach through your sign-off link), then to the organiser. ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "It goes to your coach to sign off first (a member's coach on their coach page; if you entered on your own, your coach through your sign-off link), then to the organiser. ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

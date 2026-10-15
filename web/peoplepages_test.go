@@ -114,7 +114,7 @@ func TestPeople(t *testing.T) {
 	if r := row("Mo"); !is("Mo", "club", "UCD") || !is("Mo", "does", "gymnast", "official") || !strings.Contains(r, "Trampoline BUCS L3 · judge, can chair") {
 		t.Errorf("Mo's row: %s, %v", r, values["Mo"])
 	}
-	if r := row("Ivy"); !is("Ivy", "club", "Individual") || !strings.Contains(r, "Trampoline BUCS L3 · judge") {
+	if r := row("Ivy"); !is("Ivy", "club", "On their own") || !strings.Contains(r, "Trampoline BUCS L3 · judge") {
 		t.Errorf("Ivy's row: %s", r)
 	}
 	if r := row("Pat"); !strings.Contains(r, "Synchro BUCS L3") || !is("Pat", "does", "gymnast") {
@@ -127,7 +127,7 @@ func TestPeople(t *testing.T) {
 		t.Errorf("the coach's row: %s", r)
 	}
 	for _, want := range []string{`data-list-tools="people"`, `data-noun="people"`, `data-list-filter="club"`, `data-list-filter="does"`,
-		`<option value="gymnast">Gymnast</option><option value="official">Official</option><option value="coach">Coach</option>`, `<option value="Individual">Individual</option>`} {
+		`<option value="gymnast">Gymnast</option><option value="official">Official</option><option value="coach">Coach</option>`, `<option value="On their own">On their own</option>`} {
 		if !strings.Contains(list, want) {
 			t.Errorf("the tools have %s", want)
 		}
@@ -135,7 +135,7 @@ func TestPeople(t *testing.T) {
 	if !regexp.MustCompile(`<details class="comp-list mt-5" open><summary class="title is-5 mb-3">People <span[^>]*>\(7\)</span>`).MatchString(list) {
 		t.Error("the list is a dropdown under its heading and count")
 	}
-	if kit := values["Kit O/Neil? 100% #1"]; !slices.Equal(kit["club"], []string{"Individual"}) {
+	if kit := values["Kit O/Neil? 100% #1"]; !slices.Equal(kit["club"], []string{"On their own"}) {
 		t.Errorf("an awkward name's values: %v", kit)
 	}
 	if a, b := strings.Index(list, `data-name="Ann"`), strings.Index(list, `data-name="Mo"`); a < 0 || b < a {
@@ -323,12 +323,12 @@ func TestMemberPageUnchangedByPeople(t *testing.T) {
 		t.Fatal("the member page links to their competition")
 	}
 	page := do(t, h, http.MethodGet, day[1], nil).Body.String()
-	for _, want := range []string{"← Your entries", "<h1 class=\"title is-4\">Student Open</h1>", "<p class=\"subtitle is-6\">Mo · ", "you're <strong>", "You're picked out in bold", "Your timetable", "Add to calendar"} {
+	for _, want := range []string{"← Student Open: your entries", "<h1 class=\"title is-4\">Mo</h1>", "My competition</h2>", "<p class=\"subtitle is-6\">Student Open · ", "Your details", "you're <strong>", "You're picked out in bold", "Your timetable", "Add to calendar"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the member's page has %q", want)
 		}
 	}
-	for _, not := range []string{"← People", "Judging rule", "Check-in:", "/people/", `class="comp-menu`, "Coach:"} {
+	for _, not := range []string{"← People", "Judging rule", "Check-in:", "/people/", "/timetable\"", "Coach:"} {
 		if strings.Contains(page, not) {
 			t.Errorf("the member's page has %q", not)
 		}

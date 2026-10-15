@@ -1,11 +1,14 @@
 package store
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"slices"
 	"time"
+
+	"tariffCalculator/competitions"
 )
 
 // Approving coaches (ADR 0007 Decisions 5 to 7): a club sends the coaches
@@ -172,6 +175,9 @@ func (s *Store) sentCoaches(ctx context.Context, where string, args ...any) ([]S
 		}
 		out[i].Changed = !slices.Equal(nowIDs, sentIDs[i])
 	}
+	slices.SortStableFunc(out, func(a, b SentCoach) int {
+		return cmp.Or(competitions.CompareNames(a.ClubName, b.ClubName), competitions.CompareNames(a.Name, b.Name))
+	})
 	return out, nil
 }
 
@@ -326,6 +332,9 @@ func (s *Store) entryCoaches(ctx context.Context, where string, args ...any) ([]
 		c.SentAt, c.DecidedAt, c.AllSignoffs = parseTime(sent), parseTime(decided), from == ""
 		out = append(out, c)
 	}
+	slices.SortStableFunc(out, func(a, b EntryCoach) int {
+		return cmp.Or(competitions.CompareNames(a.Gymnast, b.Gymnast), competitions.CompareNames(a.Name, b.Name))
+	})
 	return out, rows.Err()
 }
 

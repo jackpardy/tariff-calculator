@@ -67,7 +67,8 @@ type ClubCompetition struct {
 	ID          string
 	Competition CompetitionSummary
 	Rows        []ClubEntryRow
-	ToSend      int // entries never sent, or changed since
+	Tools       ListTools // the search and filters of its entries
+	ToSend      int       // entries never sent, or changed since
 	Offers      []ClubOfferRow
 	// ApproveCoaches says the competition approves coaches; Coaches are the
 	// club's who sign off, to send for approval (ADR 0007 Decision 5).
@@ -107,6 +108,7 @@ type ClubEntryRow struct {
 	Signoff       SignoffView
 	Flight        string // where they compete, once the timetable is published
 	Late, LateAsk string // a late change: where it stands, and where to ask for one
+	List          ListRow
 }
 
 // ClubEntryEdit is the comp sec changing a member's entry on their behalf.
@@ -248,6 +250,8 @@ templ clubFrame(c ClubPage) {
 	@competitionLayout(c.Name) {
 		<h1 class="title is-4">{ c.Name }</h1>
 		@pageMenu(c.Menu)
+		// Saves the admin link in this browser whenever it's opened (static/js/competitions.js).
+		<span hidden data-club-page={ c.Base } data-club-name={ c.Name }></span>
 		if c.New != "" && c.AdminLink != "" {
 			<div class="notification is-warning is-light">
 				<p class="mb-2">
@@ -301,16 +305,23 @@ templ ClubAdmin(c ClubPage) {
 				if len(comp.Rows) == 0 {
 					<p class="has-text-grey is-size-7">No member has entered yet.</p>
 				} else {
-					<div class="table-container">
+					@listSection("Entries", len(comp.Rows), false) {
+						@listTools(comp.Tools)
 						<div class="table-container">
-							<table class="table is-fullwidth is-narrow comp-table">
+							<table class="table is-fullwidth is-narrow comp-table comp-club-entries" id={ comp.Tools.ID }>
 								<thead>
-									<tr><th>Member</th><th>Level</th><th>Problems</th><th>Status</th><th></th></tr>
+									<tr><th>Member</th><th>Level</th><th>Problems</th><th>Status</th></tr>
 								</thead>
 								<tbody>
 									for _, row := range comp.Rows {
-										<tr>
-											<td>{ row.Member }</td>
+										<tr { row.List.Attrs()... }>
+											<td>
+												{ row.Member }
+												if row.Edit != "" {
+													<br/>
+													<a class="is-size-7" href={ templ.SafeURL(row.Edit) }>Change</a>
+												}
+											</td>
 											<td>{ row.Level }</td>
 											<td class={ templ.KV("has-text-danger", row.Problems > 0) }>
 												if row.Problems == 0 {
@@ -346,17 +357,12 @@ templ ClubAdmin(c ClubPage) {
 													<span class="is-size-7 has-text-info-dark">Organiser: { row.Note }</span>
 												}
 											</td>
-											<td>
-												if row.Edit != "" {
-													<a href={ templ.SafeURL(row.Edit) }>Change</a>
-												}
-											</td>
 										</tr>
 									}
 								</tbody>
 							</table>
 						</div>
-					</div>
+					}
 				}
 				if comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
 					<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/send") } class="buttons">
@@ -486,7 +492,7 @@ templ ClubCoaches(c ClubPage) {
 			} else {
 				@listTools(c.CoachesTools)
 				<div class="table-container">
-					<table class="table is-fullwidth is-narrow" id={ c.CoachesTools.ID }>
+					<table class="table is-fullwidth is-narrow comp-coaches" id={ c.CoachesTools.ID }>
 						for _, coach := range c.Coaches {
 							<tbody { coach.List.Attrs()... }>
 								<tr>
@@ -595,7 +601,7 @@ templ ClubSettings(c ClubPage) {
 			<p class="help">If the admin link has been shared too widely. The old one stops working.</p>
 		</form>
 		<form method="post" action={ templ.SafeURL(c.Base + "/delete") }>
-			<label class="checkbox is-size-7">
+			<label class="checkbox comp-check is-size-7">
 				<input type="checkbox" name="confirm" value="1" required/>
 				Delete the club, its members and their entries, now
 			</label>
@@ -635,9 +641,9 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 		@pageMenu(e.Menu)
 		<p class="mb-3"><a href={ templ.SafeURL(e.Base) }>← Competitions</a></p>
 		<h1 class="title is-4">{ e.Member }</h1>
-		<p class="subtitle is-6">{ e.Competition.Name }</p>
 		if e.Card != nil {
-			@entryCard(*e.Card)
+			<p class="subtitle is-6">{ e.Competition.Name } · { e.Card.Level }</p>
+			@entryCardChecks(*e.Card)
 			// Collapsed under the card, so the entry is what shows; open when a save had problems.
 			<details class="box mt-4 comp-change" open?={ len(e.Form.Problems) > 0 }>
 				<summary><strong>Change the entry</strong></summary>
@@ -646,6 +652,7 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 				</div>
 			</details>
 		} else {
+			<p class="subtitle is-6">{ e.Competition.Name }</p>
 			<h2 class="title is-5 mt-5">Enter them</h2>
 			@entryForm(e.Form)
 		}
@@ -737,7 +744,8 @@ templ memberCompetitionBody(c MemberCompetition) {
 	@competitionFacts(c.Competition)
 	@dayLink(c.Day)
 	@deskMessages(c.Desk)
-	@timelineLinks(c.Timeline, c.ClubTimeline, c.Notify, c.Calendar, c.ClubCalendar)
+	// The timetables and calendars are on My competition; hearing about changes is here too.
+	@timelineLinks("", "", c.Notify, "", "")
 	for _, ev := range c.Events {
 		@memberEvent(c.Competition, ev)
 	}
