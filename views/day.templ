@@ -105,9 +105,8 @@ type DaySeat struct {
 
 // DayGymnast is a gymnast in a flight's check-in.
 type DayGymnast struct {
-	Entry, Name string
-	No          int // their running number: their place in the flight
-	Club        string
+	FlightGymnast
+	Entry       string
 	State       string // "here", "scratched" or "" for not marked
 	Who         string // who marked them
 	CanHere     bool

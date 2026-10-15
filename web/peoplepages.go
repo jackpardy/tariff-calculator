@@ -133,9 +133,8 @@ func newDirectory(entries []store.Entry, officials []store.Official, sent []stor
 			coach(k, sent[i].Name, sent[i].ClubName).sent = &sent[i]
 		}
 	}
-	byID := map[string]store.Entry{}
+	byID := entriesByID(entries)
 	for _, e := range entries {
-		byID[e.ID] = e
 		if k := e.CoachKey(); k != "" {
 			coaching(coach(k, e.CoachName(), e.ClubName), e)
 		}
@@ -283,7 +282,7 @@ func (p *competitionPages) people(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	base := adminPath(r.PathValue("token"))
-	page := views.PeoplePage{Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuPeople), Count: peopleWord(len(dir.list))}
+	page := views.PeoplePage{Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuPeople), Count: views.Count(len(dir.list), "person", "people")}
 	var clubs []string
 	for _, dp := range dir.list {
 		clubs = append(clubs, dp.club)
@@ -295,14 +294,6 @@ func (p *competitionPages) people(w http.ResponseWriter, r *http.Request) {
 			List: views.ListRow{Name: dp.name, Values: map[string][]string{"club": {clubValue(dp.club)}, "does": peopleDo(words)}}})
 	}
 	render(w, r, views.People(page))
-}
-
-// peopleWord counts people, e.g. "1 person", "12 people".
-func peopleWord(n int) string {
-	if n == 1 {
-		return "1 person"
-	}
-	return fmt.Sprintf("%d people", n)
 }
 
 // person is one person's page for the organiser: everything on their own My
@@ -338,10 +329,7 @@ func (p *competitionPages) person(w http.ResponseWriter, r *http.Request) {
 	page.Name, page.Back, page.BackLabel, page.Menu = dp.name, base+"/people", "← People", p.menuFor(r, c, menuPeople)
 	_, tags := dp.roles()
 	page.Admin = &views.PersonAdmin{Club: dp.club, Roles: tags}
-	byID := map[string]store.Entry{}
-	for _, e := range f.entries {
-		byID[e.ID] = e
-	}
+	byID := entriesByID(f.entries)
 	for i, ev := range page.Events {
 		ev.Link = base + "/entries/" + ev.ID
 		if k := byID[ev.ID].CoachKey(); k != "" && dir.byKey[k] != nil {
@@ -491,19 +479,11 @@ func panelStatus(s competitions.Schedule, person string, official map[string]map
 	case here == 0 && missing == 0:
 		return "Not marked yet"
 	}
-	out := fmt.Sprintf("Here for %d of %s", here, flightsWord(total))
+	out := fmt.Sprintf("Here for %d of %s", here, views.Count(total, "flight", "flights"))
 	if missing > 0 {
 		out += fmt.Sprintf(", missing for %d", missing)
 	}
 	return out
-}
-
-// flightsWord counts flights, e.g. "1 flight", "3 flights".
-func flightsWord(n int) string {
-	if n == 1 {
-		return "1 flight"
-	}
-	return fmt.Sprintf("%d flights", n)
 }
 
 // coachingOf is who someone coaches, and whether the competition has approved

@@ -266,13 +266,10 @@ type CoachPage struct {
 type CoachCompetition struct {
 	Competition CompetitionSummary
 	Rows        []CoachRow
-	Waiting     int         // entries not signed off
-	Cannot      string      // why they can't sign off for it (not approved), if they can't
-	Timeline    string      // the club's timetable, once published
-	Calendar    string      // the club's timetable as a calendar file, once published
-	Notify      string      // where the coach asks to hear about changes
-	Late        []CoachLate // late changes to sign off
-	Desk        []DeskNote  // messages from the organisers that reach their members or club
+	Waiting     int    // entries not signed off
+	Cannot      string // why they can't sign off for it (not approved), if they can't
+	MyLinks
+	Late []CoachLate // late changes to sign off
 }
 
 // CoachRow is one member's entry, for their coach.
@@ -325,7 +322,7 @@ func CoachHome(p CoachPage) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(p.Club)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 120, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 117, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -338,7 +335,7 @@ func CoachHome(p CoachPage) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(p.Coach)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 121, Col: 34}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 118, Col: 34}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -356,7 +353,7 @@ func CoachHome(p CoachPage) templ.Component {
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(p.Notice)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 123, Col: 59}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 120, Col: 59}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -379,7 +376,7 @@ func CoachHome(p CoachPage) templ.Component {
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Link)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 126, Col: 32}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 123, Col: 32}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 				if templ_7745c5c3_Err != nil {
@@ -392,7 +389,7 @@ func CoachHome(p CoachPage) templ.Component {
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Coach + " · " + p.Club)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 126, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 123, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 				if templ_7745c5c3_Err != nil {
@@ -467,7 +464,7 @@ func CoachHome(p CoachPage) templ.Component {
 			var templ_7745c5c3_Var18 string
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Tools.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 147, Col: 22}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 144, Col: 22}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
 			if templ_7745c5c3_Err != nil {
@@ -485,7 +482,7 @@ func CoachHome(p CoachPage) templ.Component {
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(c.Competition.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 151, Col: 25}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 148, Col: 25}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {
@@ -503,7 +500,7 @@ func CoachHome(p CoachPage) templ.Component {
 					var templ_7745c5c3_Var20 string
 					templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(c.Waiting))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 153, Col: 74}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 150, Col: 74}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 					if templ_7745c5c3_Err != nil {
@@ -542,7 +539,7 @@ func CoachHome(p CoachPage) templ.Component {
 					var templ_7745c5c3_Var21 string
 					templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(c.Cannot)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 161, Col: 63}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 158, Col: 63}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 					if templ_7745c5c3_Err != nil {
@@ -579,7 +576,7 @@ func CoachHome(p CoachPage) templ.Component {
 						var templ_7745c5c3_Var22 templ.SafeURL
 						templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(r.Open))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 174, Col: 45}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 171, Col: 45}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 						if templ_7745c5c3_Err != nil {
@@ -592,7 +589,7 @@ func CoachHome(p CoachPage) templ.Component {
 						var templ_7745c5c3_Var23 string
 						templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(r.Member)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 174, Col: 58}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 171, Col: 58}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 						if templ_7745c5c3_Err != nil {
@@ -605,7 +602,7 @@ func CoachHome(p CoachPage) templ.Component {
 						var templ_7745c5c3_Var24 string
 						templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(r.Level)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 175, Col: 23}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 172, Col: 23}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 						if templ_7745c5c3_Err != nil {
@@ -646,7 +643,7 @@ func CoachHome(p CoachPage) templ.Component {
 							var templ_7745c5c3_Var27 string
 							templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(r.Problems))
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 180, Col: 38}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 177, Col: 38}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 							if templ_7745c5c3_Err != nil {
@@ -687,7 +684,7 @@ func CoachHome(p CoachPage) templ.Component {
 							var templ_7745c5c3_Var30 string
 							templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(r.Signoff.By)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 185, Col: 30}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 182, Col: 30}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 							if templ_7745c5c3_Err != nil {
@@ -701,7 +698,7 @@ func CoachHome(p CoachPage) templ.Component {
 							var templ_7745c5c3_Var31 string
 							templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(r.Signoff.By)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 187, Col: 35}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 184, Col: 35}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 							if templ_7745c5c3_Err != nil {
@@ -809,7 +806,7 @@ func SignoffEntry(p SignoffPage) templ.Component {
 				var templ_7745c5c3_Var34 templ.SafeURL
 				templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Back))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 226, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 223, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 				if templ_7745c5c3_Err != nil {
@@ -827,7 +824,7 @@ func SignoffEntry(p SignoffPage) templ.Component {
 			var templ_7745c5c3_Var35 string
 			templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(p.Competition.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 228, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 225, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 			if templ_7745c5c3_Err != nil {
@@ -869,7 +866,7 @@ func SignoffEntry(p SignoffPage) templ.Component {
 				var templ_7745c5c3_Var36 string
 				templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(p.Cannot)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 233, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 230, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 				if templ_7745c5c3_Err != nil {
@@ -895,7 +892,7 @@ func SignoffEntry(p SignoffPage) templ.Component {
 				var templ_7745c5c3_Var37 templ.SafeURL
 				templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Action))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 237, Col: 56}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 234, Col: 56}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 				if templ_7745c5c3_Err != nil {
@@ -908,7 +905,7 @@ func SignoffEntry(p SignoffPage) templ.Component {
 				var templ_7745c5c3_Var38 string
 				templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(p.Card.Gymnast)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 238, Col: 51}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 235, Col: 51}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 				if templ_7745c5c3_Err != nil {
@@ -926,7 +923,7 @@ func SignoffEntry(p SignoffPage) templ.Component {
 					var templ_7745c5c3_Var39 string
 					templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 242, Col: 104}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 239, Col: 104}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var39)
 					if templ_7745c5c3_Err != nil {
@@ -944,7 +941,7 @@ func SignoffEntry(p SignoffPage) templ.Component {
 				var templ_7745c5c3_Var40 string
 				templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Signoff.Note)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 247, Col: 104}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/coaches.templ`, Line: 244, Col: 104}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var40)
 				if templ_7745c5c3_Err != nil {

@@ -331,13 +331,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			return nil, err
 		}
 		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now()), ApproveCoaches: c.ApproveCoaches && c.Signoff,
-			Notify: p.notifyLink(base + "/competitions/" + c.ID + "/notify")}
+			MyLinks: p.competitionLinks(ctx, c, linksFor{base: base + "/competitions/" + c.ID,
+				people: memberKeys(members), clubs: clubIDs(club.ID), staff: clubIDs(club.ID)})}
 		cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
-		cc.Desk = p.deskNotes(ctx, c.ID, memberKeys(members), clubIDs(club.ID), clubIDs(club.ID))
-		if published(c) {
-			cc.Timeline = base + "/competitions/" + c.ID + "/timeline"
-			cc.Calendar = base + "/competitions/" + c.ID + "/calendar.ics"
-		}
 		waitingPlace := map[string]int{} // member and discipline → place on a waiting list
 		copyOf := map[string]string{}    // member and discipline → the competition's copy
 		for _, e := range sent {
@@ -356,8 +352,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			toSend := cc.ToSend // counted on, if this one is to send
 			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Event(), Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
 			rem, removed := removals[e.MemberID+"/"+e.Discipline]
-			switch {
-			case removed:
+			place := waitingPlace[e.MemberID+"/"+e.Discipline]
+			switch memberState(e, rem, removed, place) {
+			case entryRemoved, entryHeld:
 				row.Status = removalStatus(rem, e.ChangedSinceSent())
 				if rem.ForClub() && rem.RemovalNote != "" {
 					row.Note = strings.TrimSpace(row.Note + " " + rem.RemovalNote)
@@ -365,15 +362,15 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 				if rem.Removal == store.Held && e.ChangedSinceSent() && !rem.Resent {
 					cc.ToSend++
 				}
-			case !e.Sent():
+			case entryNotSent:
 				row.Status = "Not sent"
 				cc.ToSend++
-			case waitingPlace[e.MemberID+"/"+e.Discipline] > 0 && !e.ChangedSinceSent():
-				row.Status = "Sent · waiting list, " + waitingWord(waitingPlace[e.MemberID+"/"+e.Discipline])
-			case e.ChangedSinceSent():
+			case entryWaiting:
+				row.Status = "Sent · waiting list, " + waitingWord(place)
+			case entryChanged:
 				row.Status = "Changed since sent"
 				cc.ToSend++
-			case e.Checked:
+			case entryChecked:
 				row.Status = "Sent · checked ✓"
 			}
 			row.Problems = len(memberProblems(c.Competition, e, sent))
@@ -466,18 +463,8 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	notice := fmt.Sprintf("Sent %s to %s.", entriesWord(n), c.Name)
-	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
-}
-
-// urlQuery escapes a notice for a redirect's query.
-func urlQuery(s string) string { return url.QueryEscape(s) }
-
-func entriesWord(n int) string {
-	if n == 1 {
-		return "1 entry"
-	}
-	return fmt.Sprintf("%d entries", n)
+	notice := fmt.Sprintf("Sent %s to %s.", views.Count(n, "entry", "entries"), c.Name)
+	seeOther(w, r, clubPath(r.PathValue("token")), notice)
 }
 
 // memberOfClub is the member and competition a comp sec's member entry URL
@@ -597,7 +584,7 @@ func (p *competitionPages) saveMemberEntryForMember(w http.ResponseWriter, r *ht
 		return
 	}
 	notice := fmt.Sprintf("Saved %s's entry for %s. Send it when you're ready.", m.Name, c.Name)
-	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	seeOther(w, r, clubPath(r.PathValue("token")), notice)
 }
 
 func (p *competitionPages) newMemberLink(w http.ResponseWriter, r *http.Request) {
@@ -633,7 +620,7 @@ func (p *competitionPages) removeMember(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, clubMembersPath(r.PathValue("token"))+"?notice="+urlQuery("Removed "+m.Name+"."), http.StatusSeeOther)
+	seeOther(w, r, clubMembersPath(r.PathValue("token")), "Removed "+m.Name+".")
 }
 
 func (p *competitionPages) replaceClubLink(w http.ResponseWriter, r *http.Request) {
@@ -709,7 +696,7 @@ func (p *competitionPages) enterClub(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, clubPath(token)+"?notice="+urlQuery(club.Name+" is entered in "+c.Name+". Members can now add their entries."), http.StatusSeeOther)
+	seeOther(w, r, clubPath(token), club.Name+" is entered in "+c.Name+". Members can now add their entries.")
 }
 
 // --- Members ---
@@ -906,16 +893,10 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 	if err != nil {
 		return views.MemberCompetition{}, err
 	}
-	mc := views.MemberCompetition{ID: c.ID, Page: memberCompetitionPath(r.PathValue("token"), c.ID), Competition: summary(c.Competition, now),
-		Duties: dutiesOf(c, store.MemberKey(m.ID)), Day: dayPath(path, c.ID), Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
-	mc.Desk = p.deskNotes(ctx, c.ID, []string{store.MemberKey(m.ID)}, clubIDs(m.ClubID), nil)
-	if len(mc.Duties) > 0 {
-		mc.ScoreSheets = path + "/competitions/" + c.ID + "/score-sheets"
-	}
-	if published(c) {
-		mc.Timeline, mc.ClubTimeline = path+"/competitions/"+c.ID+"/timeline", path+"/competitions/"+c.ID+"/club-timeline"
-		mc.Calendar, mc.ClubCalendar = path+"/competitions/"+c.ID+"/calendar.ics", path+"/competitions/"+c.ID+"/club-calendar.ics"
-	}
+	own := memberCompetitionPath(r.PathValue("token"), c.ID)
+	mc := views.MemberCompetition{ID: c.ID, Page: own, Competition: summary(c.Competition, now), Day: dayPath(path, c.ID),
+		MyLinks: p.competitionLinks(ctx, c, linksFor{base: own, key: store.MemberKey(m.ID), member: true,
+			people: []string{store.MemberKey(m.ID)}, clubs: clubIDs(m.ClubID)})}
 	var sent []store.Entry
 	disciplines := c.Disciplines()
 	entered := 0
@@ -964,22 +945,12 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 				ev.Partner = &views.PartnerView{Name: e.Entry.Partner.Name, Link: origin(r) + partnerPath(e.PartnerLink), Confirmed: e.PartnerConfirmed}
 			}
 			rem, removed := removals[c.ID+"/"+d]
-			switch {
-			case removed:
-				ev.Status = removalStatus(rem, e.ChangedSinceSent())
-				if rem.ForMember() && rem.RemovalNote != "" {
-					ev.Note = strings.TrimSpace(ev.Note + " " + rem.RemovalNote)
-				}
-			case !e.Sent():
-				ev.Status = "Saved, not sent yet"
-			case e.ChangedSinceSent():
-				ev.Status = "Changed since your club sent it"
-			case e.Checked:
-				ev.Status = "Sent by your club · checked by the organiser ✓"
-			default:
-				ev.Status = "Sent by your club"
+			if removed && rem.ForMember() && rem.RemovalNote != "" {
+				ev.Note = strings.TrimSpace(ev.Note + " " + rem.RemovalNote)
 			}
-			ev.Brief, ev.BriefClass = entryBrief(e, rem, removed, len(shown.Problems), place)
+			state := memberState(e, rem, removed, place)
+			ev.Status = memberStatus(state, rem, e.ChangedSinceSent())
+			ev.Brief, ev.BriefClass = brief(state, len(shown.Problems), place, "Sent")
 			mc.Problems += len(shown.Problems)
 		}
 		key := c.ID + "/" + d
@@ -995,13 +966,9 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 		ev.Open = key == failedID || open[d]
 		mc.Events = append(mc.Events, ev)
 	}
-	switch {
-	case len(disciplines) == 1:
+	mc.Status = views.Count(entered, "entry", "entries")
+	if len(disciplines) == 1 {
 		mc.Status = mc.Events[0].Status
-	case entered == 1:
-		mc.Status = "1 entry"
-	default:
-		mc.Status = fmt.Sprintf("%d entries", entered)
 	}
 	offer, err := p.st.MemberOffer(ctx, m.ID, c.ID)
 	if err != nil {
@@ -1010,32 +977,6 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 	form := offerForm(c.Competition, offer, path+"/competitions/"+c.ID+"/offer")
 	mc.Offer = &form
 	return mc, nil
-}
-
-// entryBrief is where a member's entry stands in a word or two, for the list
-// of a competition's disciplines, and the Bulma colour of its tag. removal is
-// what the organiser did with it, if removed; problems are on its card and
-// place is its place on a waiting list (0: in).
-func entryBrief(e store.MemberEntry, removal store.Entry, removed bool, problems, place int) (string, string) {
-	switch {
-	case removed && removal.Removal == store.Removed:
-		return "Removed", "is-danger is-light"
-	case removed:
-		return "On hold", "is-warning is-light"
-	case problems == 1:
-		return "1 problem", "is-danger is-light"
-	case problems > 1:
-		return fmt.Sprintf("%d problems", problems), "is-danger is-light"
-	case place > 0 && !e.ChangedSinceSent():
-		return "Waiting list, " + waitingWord(place), "is-warning is-light"
-	case !e.Sent():
-		return "Saved, not sent", "is-info is-light"
-	case e.ChangedSinceSent():
-		return "Changed, send again", "is-warning is-light"
-	case e.Checked:
-		return "Checked", "is-success is-light"
-	}
-	return "Sent", "is-success is-light"
 }
 
 // memberClub is the name of a member's club.
@@ -1067,7 +1008,7 @@ func (p *competitionPages) saveOwnMemberEntry(w http.ResponseWriter, r *http.Req
 		return
 	}
 	notice := "Entry saved for " + c.Name + ". Your club's competition secretary sends it to the competition."
-	http.Redirect(w, r, memberCompetitionPath(r.PathValue("token"), c.ID)+"?notice="+urlQuery(notice)+"&discipline="+url.QueryEscape(e.Discipline), http.StatusSeeOther)
+	seeOther(w, r, memberCompetitionPath(r.PathValue("token"), c.ID)+"?discipline="+url.QueryEscape(e.Discipline), notice)
 }
 
 func (p *competitionPages) withdrawMemberEntry(w http.ResponseWriter, r *http.Request) {
@@ -1089,7 +1030,7 @@ func (p *competitionPages) withdrawMemberEntry(w http.ResponseWriter, r *http.Re
 		return
 	}
 	notice := "Withdrawn from " + c.Name + ". If your club already sent it, it stays with the competition until the club sends again."
-	http.Redirect(w, r, back+"?notice="+urlQuery(notice)+"&discipline="+url.QueryEscape(r.FormValue("discipline")), http.StatusSeeOther)
+	seeOther(w, r, back+"?discipline="+url.QueryEscape(r.FormValue("discipline")), notice)
 }
 
 // clubSendCoaches are the club's coaches who sign off, to send to a
@@ -1154,7 +1095,7 @@ func (p *competitionPages) sendCoaches(w http.ResponseWriter, r *http.Request) {
 	if len(r.Form["coach"]) == 0 {
 		notice = "No coaches sent."
 	}
-	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	seeOther(w, r, clubPath(r.PathValue("token")), notice)
 }
 
 // removalStatus says what the organiser did with an entry: removed, or held

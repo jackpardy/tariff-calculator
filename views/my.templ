@@ -11,24 +11,30 @@ type MyCompetitionPage struct {
 	Over        string // on their own page, their club, or that they entered on their own
 	Back        string // their own page
 	BackLabel   string // says where Back goes, e.g. "← Your page"
-	Timeline    string // their timetable as the panel timeline, once published
-	Calendar    string // their timetable as a calendar file, once published
-	ClubTimeline string // a member's club's timetable, once published
-	ClubCalendar string // and as a calendar file
-	Notify      string // where they ask to hear about changes
-	ScoreSheets string // the score sheets of the flights they officiate, if any
+	MyLinks
 	Lateness    []string // how late the areas their flights are on are running today
-	Desk        []DeskNote // messages from the organisers that reach them
 	Notice      string     // what just happened, e.g. after "I'm here for the rest"
 	Here        *MyHere    // the box for someone scratched who may still be here; nil for none
 	Published   bool
 	Events      []MyEvent
-	Duties      []string
 	Days        []DayView
 	Mine        map[string]bool // their entries, by id
 	Me          string          // their person key, for the seats they're in
 	Menu        []MenuSection   // the organiser's menu, on the organiser's page of a person; their own tabs on theirs
 	Admin       *PersonAdmin    // what the organiser's page of a person adds; nil on their own page
+}
+
+// MyLinks are the links on a person's or club's page for a
+// competition, and what reaches them there; each empty where there's none.
+type MyLinks struct {
+	Timeline     string     // their timetable as the panel timeline, once published
+	ClubTimeline string     // a member's club's, once published
+	Calendar     string     // their timetable as a calendar file, once published
+	ClubCalendar string     // a member's club's
+	Notify       string     // where they ask to hear about changes
+	ScoreSheets  string     // the score sheets of the flights they officiate, if any
+	Duties       []string   // their seats on panels, once published
+	Desk         []DeskNote // messages from the organisers that reach them
 }
 
 // MyHere is the box that lets someone scratched from an event tell the

@@ -79,7 +79,7 @@ func (c Competition) checkChoice(e *Entry) error {
 	}
 	names := MemberNames(l)
 	if !slices.Contains(names, e.Choice) {
-		return fmt.Errorf("%s pairs %s: choose which you're doing", e.Event(), joinList(names))
+		return fmt.Errorf("%s pairs %s: choose which you're doing", e.Event(), JoinList(names))
 	}
 	return nil
 }

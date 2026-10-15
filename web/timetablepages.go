@@ -152,7 +152,7 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 					if !ok {
 						continue // withdrawn since
 					}
-					g := views.TimetableGymnast{ID: id, No: n + 1, Name: e.Entry.Gymnasts(), Club: clubOf(e), Category: e.Entry.Category}
+					g := views.TimetableGymnast{ID: id, FlightGymnast: views.FlightGymnast{No: n + 1, Name: e.Entry.Gymnasts(), Club: clubOf(e)}, Category: e.Entry.Category}
 					if e.Entry.Event() != f.Event || (f.Category != "" && e.Entry.Category != f.Category) {
 						g.Moved = strings.TrimSpace(e.Entry.Event() + " " + e.Entry.Category)
 					}
@@ -234,7 +234,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 		for _, e := range entries {
 			if _, placed := s.Find(e.ID); !placed {
 				page.Unplaced = append(page.Unplaced, views.TimetableGymnast{
-					ID: e.ID, Name: e.Entry.Gymnasts(), Club: clubOf(e), Category: strings.TrimSpace(e.Entry.Event() + " " + e.Entry.Category),
+					ID: e.ID, FlightGymnast: views.FlightGymnast{Name: e.Entry.Gymnasts(), Club: clubOf(e)}, Category: strings.TrimSpace(e.Entry.Event() + " " + e.Entry.Category),
 				})
 			}
 		}

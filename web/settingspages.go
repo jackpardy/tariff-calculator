@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"net/url"
 	"time"
 
 	"tariffCalculator/store"
@@ -19,11 +18,7 @@ func settingsPath(token string) string { return adminPath(token) + "/settings" }
 // backToSettings goes back to the settings page, saying what happened ("" to
 // say nothing).
 func backToSettings(w http.ResponseWriter, r *http.Request, notice string) {
-	to := settingsPath(r.PathValue("token"))
-	if notice != "" {
-		to += "?notice=" + url.QueryEscape(notice)
-	}
-	http.Redirect(w, r, to, http.StatusSeeOther)
+	seeOther(w, r, settingsPath(r.PathValue("token")), notice)
 }
 
 // liveFields are the date and time to suggest for going live: when it's due

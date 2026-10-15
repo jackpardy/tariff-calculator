@@ -20,71 +20,43 @@ import (
 // timetable with them picked out.
 
 func (p *competitionPages) registerMine(handle func(string, http.HandlerFunc)) {
-	handle("GET /clubs/member/{token}/competitions/{id}/day", p.memberDay)
-	handle("GET /competitions/entry/{token}/day", p.individualDay)
-	handle("POST /clubs/member/{token}/competitions/{id}/here", p.memberHere)
-	handle("POST /competitions/entry/{token}/here", p.individualHere)
-	handle("GET /clubs/member/{token}/competitions/{id}/score-sheets", p.memberScoreSheets)
-	handle("GET /competitions/entry/{token}/score-sheets", p.individualScoreSheets)
+	for _, own := range []string{"/clubs/member/{token}/competitions/{id}", "/competitions/entry/{token}"} {
+		handle("GET "+own+"/day", p.myDay)
+		handle("POST "+own+"/here", p.here)
+		handle("GET "+own+"/score-sheets", p.scoreSheetsPage)
+	}
 }
 
-func (p *competitionPages) memberDay(w http.ResponseWriter, r *http.Request) {
-	m, ok := p.member(w, r)
+// myDay is a member's or individual's My competition.
+func (p *competitionPages) myDay(w http.ResponseWriter, r *http.Request) {
+	a, ok := p.whose(w, r)
 	if !ok {
 		return
 	}
-	c, ok := p.memberCompetition(w, r, m)
-	if !ok {
-		return
+	c, frame := a.c, views.MyCompetitionPage{Back: a.back}
+	if a.kind == store.NotifyMember {
+		club, err := p.st.ClubName(r.Context(), a.club)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		frame.Over, frame.Menu, frame.BackLabel = club, memberMenu(r.PathValue("token"), memberCompetitions), "← "+c.Name+": your entries"
+	} else {
+		frame.Over, frame.BackLabel = "Entered on your own", "← "+c.Name+": your entry"
+		if a.entry.IndividualID != "" {
+			frame.Menu = gymnastMenu(p.gymnastBase(r, a.entry), gymnastCompetitions)
+		}
 	}
-	club, err := p.memberClub(r, m)
-	if err != nil {
-		failed(w, r, err)
-		return
-	}
-	token := r.PathValue("token")
-	own := memberPath(token) + "/competitions/" + c.ID
-	frame := views.MyCompetitionPage{Over: club, Menu: memberMenu(token, memberCompetitions),
-		Back: memberCompetitionPath(token, c.ID), BackLabel: "← " + c.Name + ": your entries"}
-	if published(c) {
-		frame.ClubTimeline, frame.ClubCalendar = own+"/club-timeline", own+"/club-calendar.ics"
-	}
-	p.renderDay(w, r, c, store.MemberKey(m.ID), m.ClubID, m.Name, frame)
+	p.renderDay(w, r, c, a.key, a.club, a.name, frame)
 }
 
-func (p *competitionPages) individualDay(w http.ResponseWriter, r *http.Request) {
-	e, c, ok := p.own(w, r)
+// here is someone scratched saying they're still here for the rest.
+func (p *competitionPages) here(w http.ResponseWriter, r *http.Request) {
+	a, ok := p.whose(w, r)
 	if !ok {
 		return
 	}
-	frame := views.MyCompetitionPage{Over: "Entered on your own", Back: "/competitions/entry/" + r.PathValue("token"), BackLabel: "← " + c.Name + ": your entry"}
-	if e.IndividualID != "" {
-		frame.Menu = gymnastMenu(p.gymnastBase(r, e), gymnastCompetitions)
-	}
-	p.renderDay(w, r, c, e.Key(), "", e.Entry.Gymnast, frame)
-}
-
-// memberHere is a scratched member saying they're still here for the rest.
-func (p *competitionPages) memberHere(w http.ResponseWriter, r *http.Request) {
-	m, ok := p.member(w, r)
-	if !ok {
-		return
-	}
-	c, ok := p.memberCompetition(w, r, m)
-	if !ok {
-		return
-	}
-	p.stillHere(w, r, c, store.MemberKey(m.ID), m.Name, dayPath(memberPath(r.PathValue("token")), c.ID))
-}
-
-// individualHere is a scratched individual saying they're still here for the
-// rest.
-func (p *competitionPages) individualHere(w http.ResponseWriter, r *http.Request) {
-	e, c, ok := p.own(w, r)
-	if !ok {
-		return
-	}
-	p.stillHere(w, r, c, e.Key(), e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token")+"/day")
+	p.stillHere(w, r, a.c, a.key, a.name, a.day)
 }
 
 // hereBox is the box for someone scratched from some events who may still be
@@ -109,7 +81,7 @@ func hereBox(entries []store.Entry, keys map[string][]string, key string, offici
 	here := hereSomewhere(entries, checkins, official)
 	officiating := officiates && warned(key, store.ClearOfficiating, here, clears)
 	competing := others > 0 && warned(key, store.ClearCompeting, here, clears)
-	box := &views.MyHere{Scratched: joinAnd(scratched), Action: action}
+	box := &views.MyHere{Scratched: competitions.JoinList(scratched), Action: action}
 	switch {
 	case officiating && competing:
 		box.For = "both your other events and your officiating"
@@ -124,11 +96,11 @@ func hereBox(entries []store.Entry, keys map[string][]string, key string, offici
 }
 
 // dayFacts are what a person's competition page reads from the store, kept
-// for what a page adds to it: the live entries, who is in each, and the
-// check-ins (the panel check-ins and cleared warnings only once published).
+// for what a page adds to it: the live entries, who is in each, the
+// officials, and the check-ins (the panel check-ins and cleared warnings
+// only once published).
 type dayFacts struct {
-	entries  []store.Entry
-	keys     map[string][]string
+	rotaFacts
 	checkins map[string]store.Checkin
 	official map[string]map[string]store.Checkin
 	clears   map[string]map[string]store.ScratchClear
@@ -140,12 +112,10 @@ type dayFacts struct {
 // and the timetable with them picked out. The pages add the rest.
 func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name string) (views.MyCompetitionPage, dayFacts, error) {
 	var f dayFacts
-	all, err := p.st.Entries(r.Context(), c.ID)
-	if err != nil {
+	var err error
+	if f.rotaFacts, err = p.liveRota(r.Context(), c); err != nil {
 		return views.MyCompetitionPage{}, f, err
 	}
-	f.entries = live(all)
-	f.keys = personKeys(f.entries)
 	page := views.MyCompetitionPage{Competition: summary(c.Competition, p.now()), Name: name, Mine: map[string]bool{}, Me: key}
 	t := c.Published
 	published := t != nil
@@ -156,7 +126,7 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		return page, f, err
 	}
 	for _, j := range judge(c.Competition, f.entries) {
-		if !slices.Contains(f.keys[j.ID], key) {
+		if !slices.Contains(f.people[j.ID], key) {
 			continue
 		}
 		page.Mine[j.ID] = true
@@ -165,7 +135,7 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		case j.Checked():
 			ev.Status = "Checked by the organiser ✓"
 		case len(j.problems) > 0:
-			ev.Status = problemsWord(len(j.problems)) + " to sort out"
+			ev.Status = views.Count(len(j.problems), "problem", "problems") + " to sort out"
 			ev.Problems = j.problems
 		default:
 			ev.Status = "Sent, not checked yet"
@@ -201,10 +171,6 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		if page.Lateness, err = p.lateNotes(r.Context(), c, mine); err != nil {
 			return page, f, err
 		}
-		officials, err := p.rotaOf(r, c, f.entries)
-		if err != nil {
-			return page, f, err
-		}
 		page.Duties = dutiesOf(c, key)
 		if f.official, err = p.st.OfficialCheckins(r.Context(), c.ID); err != nil {
 			return page, f, err
@@ -212,7 +178,7 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		if f.clears, err = p.st.ScratchClears(r.Context(), c.ID); err != nil {
 			return page, f, err
 		}
-		page.Days = itemsOf(*t, f.entries, officials)
+		page.Days = itemsOf(*t, f.entries, f.officials)
 	}
 	return page, f, nil
 }
@@ -241,19 +207,12 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 		return
 	}
 	page.Over, page.Menu, page.Back, page.BackLabel = frame.Over, frame.Menu, frame.Back, frame.BackLabel
-	page.ClubTimeline, page.ClubCalendar = frame.ClubTimeline, frame.ClubCalendar
 	page.Notice = r.URL.Query().Get("notice")
 	own := strings.TrimSuffix(r.URL.Path, "/day")
+	page.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: own, key: key, member: club != "", people: []string{key}, clubs: clubIDs(club)})
 	if page.Published {
-		page.Timeline = own + "/timeline"
-		page.Calendar = own + "/calendar.ics"
-		page.Here = hereBox(f.entries, f.keys, key, len(page.Duties) > 0, f.checkins, f.official, f.clears, own+"/here")
-		if len(page.Duties) > 0 {
-			page.ScoreSheets = own + "/score-sheets"
-		}
+		page.Here = hereBox(f.entries, f.people, key, len(page.Duties) > 0, f.checkins, f.official, f.clears, own+"/here")
 	}
-	page.Notify = p.notifyLink(own + "/notify")
-	page.Desk = p.deskNotes(r.Context(), c.ID, []string{key}, clubIDs(club), nil)
 	render(w, r, views.MyCompetition(page))
 }
 

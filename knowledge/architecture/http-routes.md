@@ -37,8 +37,8 @@ the competition and club routes are registered by each page file in `web/`
 
 ## Competition pages
 
-[Competition entries](../features/competition-entries.md) (`web/comppages.go`,
-`web/clubpages.go`), reached at `/competitions`; the calculator doesn't link to
+[Competition entries](../features/competition-entries.md) (`web/comppages.go`
+and the files beside it, `web/clubpages.go`), reached at `/competitions`; the calculator doesn't link to
 them, for now. `{token}` is a secret link (ADR 0004). These
 pages send `Referrer-Policy: no-referrer`, `Cache-Control: no-store` and
 `X-Robots-Tag: noindex`. A wrong or replaced link gets 404, and without storage
@@ -52,6 +52,32 @@ coach, individual or entry; the club, for its comp sec's pages; the
 competition or helper link, for an admin link). Every route takes it, and it
 works only while the role is the person's. A GET on a personal link's page
 gets tabs for the person's roles.
+
+A form's POST answers 303 to the page to go back to, with what happened as
+`?notice=` (first in the query, before any `#part`): `seeOther` in
+`web/helpers.go`, which `back` (the timetable) and `backToDay` don't use
+yet.
+
+The pages for someone at a competition (My competition, "I'm here", score
+sheets, timelines, calendars, notifications and late changes) sit under a
+member's, an individual's entry, a comp sec's or a coach's link. One
+resolver, `whose` in `web/whose.go`, works out from the link who is asking
+and which competition, and each feature has one handler for all of them.
+The links on a person's or club's page for a competition (timetables and
+calendars, Tell me about changes, duties and score sheets, the desk's
+messages) are built in one place too, `competitionLinks` in the same file,
+as a `views.MyLinks` each page embeds.
+A person's or club's timetable and calendar pick out the same flights by
+one rule (`web/ourflights.go`): `inSlot` for a person (the entries they're
+in, a partner's too, and their seats), and `clubPeople` with `ourClub.inSlot`
+for a club (its entries, and seats held by its members or by the
+organiser's officials from it).
+
+Pages that read a competition's people (calendars, timelines, score sheets,
+My competition, the desk, late changes, delays, leaving, simulation, the
+rota) get them through one helper, `liveRota` in `web/rotapages.go`: the live
+entries, the officials as the rota needs them, who's the same person, each
+entry's people and their names, keyed by person or as one person each.
 
 | Method and path | Input | Returns |
 |---|---|---|

@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -55,7 +54,7 @@ func (p *competitionPages) showOnScreen(w http.ResponseWriter, r *http.Request) 
 	back := adminPath(r.PathValue("token")) + "/desk"
 	text, minutes, problem := noticeForm(r)
 	if problem != "" {
-		http.Redirect(w, r, back+"?notice="+url.QueryEscape(problem+" Nothing was shown."), http.StatusSeeOther)
+		seeOther(w, r, back, problem+" Nothing was shown.")
 		return
 	}
 	var until time.Time
@@ -66,7 +65,7 @@ func (p *competitionPages) showOnScreen(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, back+"?notice="+url.QueryEscape("It's on the venue screen within 30 seconds."), http.StatusSeeOther)
+	seeOther(w, r, back, "It's on the venue screen within 30 seconds.")
 }
 
 // takeDownNotice takes an announcement off the venue screen.
@@ -79,7 +78,7 @@ func (p *competitionPages) takeDownNotice(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/desk?notice="+url.QueryEscape("Taken off the venue screen."), http.StatusSeeOther)
+	seeOther(w, r, adminPath(r.PathValue("token"))+"/desk", "Taken off the venue screen.")
 }
 
 // describeNotice is an announcement for the history.

@@ -14,29 +14,35 @@ import "strconv"
 // their events, cards and flights, what they officiate, and the published
 // timetable with them picked out.
 type MyCompetitionPage struct {
-	Competition  CompetitionSummary
-	Name         string
-	Over         string     // on their own page, their club, or that they entered on their own
-	Back         string     // their own page
-	BackLabel    string     // says where Back goes, e.g. "← Your page"
+	Competition CompetitionSummary
+	Name        string
+	Over        string // on their own page, their club, or that they entered on their own
+	Back        string // their own page
+	BackLabel   string // says where Back goes, e.g. "← Your page"
+	MyLinks
+	Lateness  []string // how late the areas their flights are on are running today
+	Notice    string   // what just happened, e.g. after "I'm here for the rest"
+	Here      *MyHere  // the box for someone scratched who may still be here; nil for none
+	Published bool
+	Events    []MyEvent
+	Days      []DayView
+	Mine      map[string]bool // their entries, by id
+	Me        string          // their person key, for the seats they're in
+	Menu      []MenuSection   // the organiser's menu, on the organiser's page of a person; their own tabs on theirs
+	Admin     *PersonAdmin    // what the organiser's page of a person adds; nil on their own page
+}
+
+// MyLinks are the links on a person's or club's page for a
+// competition, and what reaches them there; each empty where there's none.
+type MyLinks struct {
 	Timeline     string     // their timetable as the panel timeline, once published
+	ClubTimeline string     // a member's club's, once published
 	Calendar     string     // their timetable as a calendar file, once published
-	ClubTimeline string     // a member's club's timetable, once published
-	ClubCalendar string     // and as a calendar file
+	ClubCalendar string     // a member's club's
 	Notify       string     // where they ask to hear about changes
 	ScoreSheets  string     // the score sheets of the flights they officiate, if any
-	Lateness     []string   // how late the areas their flights are on are running today
+	Duties       []string   // their seats on panels, once published
 	Desk         []DeskNote // messages from the organisers that reach them
-	Notice       string     // what just happened, e.g. after "I'm here for the rest"
-	Here         *MyHere    // the box for someone scratched who may still be here; nil for none
-	Published    bool
-	Events       []MyEvent
-	Duties       []string
-	Days         []DayView
-	Mine         map[string]bool // their entries, by id
-	Me           string          // their person key, for the seats they're in
-	Menu         []MenuSection   // the organiser's menu, on the organiser's page of a person; their own tabs on theirs
-	Admin        *PersonAdmin    // what the organiser's page of a person adds; nil on their own page
 }
 
 // MyHere is the box that lets someone scratched from an event tell the
@@ -144,7 +150,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var3 templ.SafeURL
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Back))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 101, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 107, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -157,7 +163,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(p.BackLabel)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 101, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 107, Col: 66}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -170,7 +176,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(p.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 102, Col: 34}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 108, Col: 34}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -184,7 +190,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var6 string
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(p.Admin.Club)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 105, Col: 19}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 111, Col: 19}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 					if templ_7745c5c3_Err != nil {
@@ -198,7 +204,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(p.Competition.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 107, Col: 24}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 113, Col: 24}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -211,7 +217,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(p.Competition.Date)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 107, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 113, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -237,7 +243,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(r)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 112, Col: 43}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 118, Col: 43}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -265,7 +271,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var10 string
 					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(p.Over)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 119, Col: 42}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 125, Col: 42}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 					if templ_7745c5c3_Err != nil {
@@ -283,7 +289,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(p.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 121, Col: 34}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 127, Col: 34}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -304,7 +310,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var12 templ.SafeURL
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Back))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 123, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 129, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -317,7 +323,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(p.BackLabel)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 123, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 129, Col: 66}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -330,7 +336,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(p.Competition.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 125, Col: 48}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 131, Col: 48}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -343,7 +349,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(p.Competition.Date)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 125, Col: 74}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 131, Col: 74}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -374,7 +380,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(p.Notice)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 129, Col: 56}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 135, Col: 56}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
@@ -413,7 +419,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(p.Here.Scratched)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 135, Col: 47}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 141, Col: 47}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -426,7 +432,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(p.Here.For)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 135, Col: 88}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 141, Col: 88}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
@@ -439,7 +445,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var19 templ.SafeURL
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Here.Action))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 136, Col: 61}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 142, Col: 61}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {
@@ -483,7 +489,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var20 templ.SafeURL
 					templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(ev.Link))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 151, Col: 46}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 157, Col: 46}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 					if templ_7745c5c3_Err != nil {
@@ -496,7 +502,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var21 string
 					templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Event)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 151, Col: 59}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 157, Col: 59}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 					if templ_7745c5c3_Err != nil {
@@ -514,7 +520,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var22 string
 					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Event)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 153, Col: 24}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 159, Col: 24}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 					if templ_7745c5c3_Err != nil {
@@ -533,7 +539,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var23 string
 					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Category)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 156, Col: 51}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 162, Col: 51}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 					if templ_7745c5c3_Err != nil {
@@ -551,7 +557,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var24 string
 				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Gymnasts)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 159, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 165, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 				if templ_7745c5c3_Err != nil {
@@ -564,7 +570,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 				var templ_7745c5c3_Var25 string
 				templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Status)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 160, Col: 36}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 166, Col: 36}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 				if templ_7745c5c3_Err != nil {
@@ -587,7 +593,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 						var templ_7745c5c3_Var26 templ.SafeURL
 						templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(ev.CoachLink))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 165, Col: 44}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 171, Col: 44}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 						if templ_7745c5c3_Err != nil {
@@ -600,7 +606,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 						var templ_7745c5c3_Var27 string
 						templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Coach)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 165, Col: 57}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 171, Col: 57}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 						if templ_7745c5c3_Err != nil {
@@ -614,7 +620,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 						var templ_7745c5c3_Var28 string
 						templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Coach)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 167, Col: 17}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 173, Col: 17}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 						if templ_7745c5c3_Err != nil {
@@ -639,7 +645,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 						var templ_7745c5c3_Var29 string
 						templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(pr)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 174, Col: 15}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 180, Col: 15}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 						if templ_7745c5c3_Err != nil {
@@ -663,7 +669,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var30 string
 					templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Flight)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 180, Col: 28}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 186, Col: 28}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 					if templ_7745c5c3_Err != nil {
@@ -676,7 +682,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var31 string
 					templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Area)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 180, Col: 52}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 186, Col: 52}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 					if templ_7745c5c3_Err != nil {
@@ -689,7 +695,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var32 string
 					templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Day)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 180, Col: 66}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 186, Col: 66}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 					if templ_7745c5c3_Err != nil {
@@ -707,7 +713,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 						var templ_7745c5c3_Var33 string
 						templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(ev.WarmUp)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 182, Col: 37}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 188, Col: 37}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 						if templ_7745c5c3_Err != nil {
@@ -720,7 +726,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 						var templ_7745c5c3_Var34 string
 						templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(ordinal(ev.Position))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 182, Col: 82}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 188, Col: 82}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 						if templ_7745c5c3_Err != nil {
@@ -733,7 +739,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 						var templ_7745c5c3_Var35 string
 						templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(ev.Of))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 182, Col: 118}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 188, Col: 118}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 						if templ_7745c5c3_Err != nil {
@@ -751,7 +757,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 						var templ_7745c5c3_Var36 string
 						templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(ev.WarmUp)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 184, Col: 37}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 190, Col: 37}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 						if templ_7745c5c3_Err != nil {
@@ -764,7 +770,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 						var templ_7745c5c3_Var37 string
 						templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(ordinal(ev.Position))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 184, Col: 89}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 190, Col: 89}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 						if templ_7745c5c3_Err != nil {
@@ -777,7 +783,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 						var templ_7745c5c3_Var38 string
 						templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(ev.Of))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 184, Col: 125}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 190, Col: 125}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 						if templ_7745c5c3_Err != nil {
@@ -795,7 +801,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var39 string
 					templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Turn)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 186, Col: 68}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 192, Col: 68}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 					if templ_7745c5c3_Err != nil {
@@ -808,7 +814,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var40 string
 					templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Turn2)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 186, Col: 85}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 192, Col: 85}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 					if templ_7745c5c3_Err != nil {
@@ -826,7 +832,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 						var templ_7745c5c3_Var41 string
 						templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(ev.Checkin)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 188, Col: 58}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 194, Col: 58}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 						if templ_7745c5c3_Err != nil {
@@ -882,7 +888,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var42 string
 					templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(s)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 202, Col: 58}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 208, Col: 58}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 					if templ_7745c5c3_Err != nil {
@@ -926,7 +932,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var43 string
 					templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(p.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 214, Col: 33}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 220, Col: 33}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 					if templ_7745c5c3_Err != nil {
@@ -950,7 +956,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 					var templ_7745c5c3_Var44 string
 					templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(day.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 219, Col: 42}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 225, Col: 42}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 					if templ_7745c5c3_Err != nil {
@@ -968,7 +974,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 						var templ_7745c5c3_Var45 string
 						templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(area.Name)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 223, Col: 59}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 229, Col: 59}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 						if templ_7745c5c3_Err != nil {
@@ -1010,7 +1016,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 								var templ_7745c5c3_Var48 string
 								templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.JoinStringErrs(it.Name)
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 229, Col: 27}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 235, Col: 27}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var48))
 								if templ_7745c5c3_Err != nil {
@@ -1023,7 +1029,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 								var templ_7745c5c3_Var49 string
 								templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(it.Start)
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 229, Col: 87}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 235, Col: 87}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 								if templ_7745c5c3_Err != nil {
@@ -1036,7 +1042,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 								var templ_7745c5c3_Var50 string
 								templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs(it.End)
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 229, Col: 100}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 235, Col: 100}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 								if templ_7745c5c3_Err != nil {
@@ -1054,7 +1060,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 									var templ_7745c5c3_Var51 string
 									templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.JoinStringErrs(seatOf(p, it))
 									if templ_7745c5c3_Err != nil {
-										return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 231, Col: 66}
+										return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 237, Col: 66}
 									}
 									_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var51))
 									if templ_7745c5c3_Err != nil {
@@ -1073,7 +1079,7 @@ func MyCompetition(p MyCompetitionPage) templ.Component {
 									var templ_7745c5c3_Var52 string
 									templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(panelLine(it.Seats))
 									if templ_7745c5c3_Err != nil {
-										return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 234, Col: 58}
+										return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 240, Col: 58}
 									}
 									_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 									if templ_7745c5c3_Err != nil {
@@ -1163,7 +1169,7 @@ func personOfficiating(o *PersonOfficiating) templ.Component {
 				var templ_7745c5c3_Var54 string
 				templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(offer)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 271, Col: 16}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 277, Col: 16}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 				if templ_7745c5c3_Err != nil {
@@ -1186,7 +1192,7 @@ func personOfficiating(o *PersonOfficiating) templ.Component {
 				var templ_7745c5c3_Var55 string
 				templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.JoinStringErrs(o.Judges)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 275, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 281, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var55))
 				if templ_7745c5c3_Err != nil {
@@ -1209,7 +1215,7 @@ func personOfficiating(o *PersonOfficiating) templ.Component {
 			var templ_7745c5c3_Var56 string
 			templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinStringErrs(o.Rule)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 279, Col: 65}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 285, Col: 65}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
 			if templ_7745c5c3_Err != nil {
@@ -1227,7 +1233,7 @@ func personOfficiating(o *PersonOfficiating) templ.Component {
 				var templ_7745c5c3_Var57 string
 				templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs(o.Qualified)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 281, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 287, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 				if templ_7745c5c3_Err != nil {
@@ -1246,7 +1252,7 @@ func personOfficiating(o *PersonOfficiating) templ.Component {
 				var templ_7745c5c3_Var58 string
 				templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(o.SeatsNote)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 284, Col: 95}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 290, Col: 95}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
 				if templ_7745c5c3_Err != nil {
@@ -1264,7 +1270,7 @@ func personOfficiating(o *PersonOfficiating) templ.Component {
 					var templ_7745c5c3_Var59 string
 					templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(s)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 287, Col: 13}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 293, Col: 13}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
 					if templ_7745c5c3_Err != nil {
@@ -1287,7 +1293,7 @@ func personOfficiating(o *PersonOfficiating) templ.Component {
 				var templ_7745c5c3_Var60 string
 				templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.JoinStringErrs(o.SeatsNote)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 291, Col: 57}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 297, Col: 57}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 				if templ_7745c5c3_Err != nil {
@@ -1306,7 +1312,7 @@ func personOfficiating(o *PersonOfficiating) templ.Component {
 				var templ_7745c5c3_Var61 string
 				templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.JoinStringErrs(o.Panel)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 294, Col: 63}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 300, Col: 63}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var61))
 				if templ_7745c5c3_Err != nil {
@@ -1362,7 +1368,7 @@ func personCoaching(k *PersonCoaching) templ.Component {
 				var templ_7745c5c3_Var63 string
 				templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(k.Approval)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 307, Col: 42}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 313, Col: 42}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 				if templ_7745c5c3_Err != nil {
@@ -1393,7 +1399,7 @@ func personCoaching(k *PersonCoaching) templ.Component {
 						var templ_7745c5c3_Var64 string
 						templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.JoinStringErrs("&")
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 317, Col: 13}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 323, Col: 13}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var64))
 						if templ_7745c5c3_Err != nil {
@@ -1407,7 +1413,7 @@ func personCoaching(k *PersonCoaching) templ.Component {
 					var templ_7745c5c3_Var65 templ.SafeURL
 					templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(g.Href))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 319, Col: 38}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 325, Col: 38}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var65))
 					if templ_7745c5c3_Err != nil {
@@ -1420,7 +1426,7 @@ func personCoaching(k *PersonCoaching) templ.Component {
 					var templ_7745c5c3_Var66 string
 					templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinStringErrs(g.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 319, Col: 49}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 325, Col: 49}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 					if templ_7745c5c3_Err != nil {
@@ -1438,7 +1444,7 @@ func personCoaching(k *PersonCoaching) templ.Component {
 				var templ_7745c5c3_Var67 templ.SafeURL
 				templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(e.Entry))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 321, Col: 41}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 327, Col: 41}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var67))
 				if templ_7745c5c3_Err != nil {
@@ -1451,7 +1457,7 @@ func personCoaching(k *PersonCoaching) templ.Component {
 				var templ_7745c5c3_Var68 string
 				templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.JoinStringErrs(e.Event)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 321, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 327, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var68))
 				if templ_7745c5c3_Err != nil {
@@ -1527,7 +1533,7 @@ func myFlight(p MyCompetitionPage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var72 string
 		templ_7745c5c3_Var72, templ_7745c5c3_Err = templ.JoinStringErrs(f.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 332, Col: 19}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 338, Col: 19}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var72))
 		if templ_7745c5c3_Err != nil {
@@ -1540,7 +1546,7 @@ func myFlight(p MyCompetitionPage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var73 string
 		templ_7745c5c3_Var73, templ_7745c5c3_Err = templ.JoinStringErrs(f.Start)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 333, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 339, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var73))
 		if templ_7745c5c3_Err != nil {
@@ -1553,7 +1559,7 @@ func myFlight(p MyCompetitionPage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var74 string
 		templ_7745c5c3_Var74, templ_7745c5c3_Err = templ.JoinStringErrs(f.End)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 333, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 339, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var74))
 		if templ_7745c5c3_Err != nil {
@@ -1566,7 +1572,7 @@ func myFlight(p MyCompetitionPage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var75 string
 		templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.JoinStringErrs(flightCount(len(f.Gymnasts), f.Pairs))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 333, Col: 107}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 339, Col: 107}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var75))
 		if templ_7745c5c3_Err != nil {
@@ -1584,7 +1590,7 @@ func myFlight(p MyCompetitionPage, f ItemView) templ.Component {
 			var templ_7745c5c3_Var76 string
 			templ_7745c5c3_Var76, templ_7745c5c3_Err = templ.JoinStringErrs(seatOf(p, f))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 335, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 341, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var76))
 			if templ_7745c5c3_Err != nil {
@@ -1607,7 +1613,7 @@ func myFlight(p MyCompetitionPage, f ItemView) templ.Component {
 			var templ_7745c5c3_Var77 string
 			templ_7745c5c3_Var77, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(g.No))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 340, Col: 34}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 346, Col: 34}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var77)
 			if templ_7745c5c3_Err != nil {
@@ -1625,7 +1631,7 @@ func myFlight(p MyCompetitionPage, f ItemView) templ.Component {
 				var templ_7745c5c3_Var78 string
 				templ_7745c5c3_Var78, templ_7745c5c3_Err = templ.JoinStringErrs(g.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 342, Col: 22}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 348, Col: 22}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var78))
 				if templ_7745c5c3_Err != nil {
@@ -1639,7 +1645,7 @@ func myFlight(p MyCompetitionPage, f ItemView) templ.Component {
 				var templ_7745c5c3_Var79 string
 				templ_7745c5c3_Var79, templ_7745c5c3_Err = templ.JoinStringErrs(g.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 344, Col: 14}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 350, Col: 14}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var79))
 				if templ_7745c5c3_Err != nil {
@@ -1657,7 +1663,7 @@ func myFlight(p MyCompetitionPage, f ItemView) templ.Component {
 			var templ_7745c5c3_Var80 string
 			templ_7745c5c3_Var80, templ_7745c5c3_Err = templ.JoinStringErrs(g.Club)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 346, Col: 51}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 352, Col: 51}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var80))
 			if templ_7745c5c3_Err != nil {
@@ -1680,7 +1686,7 @@ func myFlight(p MyCompetitionPage, f ItemView) templ.Component {
 			var templ_7745c5c3_Var81 string
 			templ_7745c5c3_Var81, templ_7745c5c3_Err = templ.JoinStringErrs(panelLine(f.Seats))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 351, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 357, Col: 49}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var81))
 			if templ_7745c5c3_Err != nil {
@@ -1765,7 +1771,7 @@ func dayLink(href string) templ.Component {
 			var templ_7745c5c3_Var83 templ.SafeURL
 			templ_7745c5c3_Var83, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 396, Col: 73}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 402, Col: 73}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var83))
 			if templ_7745c5c3_Err != nil {
@@ -1842,7 +1848,7 @@ func latenessLine(text string) templ.Component {
 		var templ_7745c5c3_Var86 string
 		templ_7745c5c3_Var86, templ_7745c5c3_Err = templ.JoinStringErrs(text)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 412, Col: 58}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 418, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var86))
 		if templ_7745c5c3_Err != nil {
@@ -1893,7 +1899,7 @@ func timelineLinks(mine, club, notify, calendar, clubCalendar string) templ.Comp
 				var templ_7745c5c3_Var88 templ.SafeURL
 				templ_7745c5c3_Var88, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(mine))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 422, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 428, Col: 66}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var88))
 				if templ_7745c5c3_Err != nil {
@@ -1912,7 +1918,7 @@ func timelineLinks(mine, club, notify, calendar, clubCalendar string) templ.Comp
 				var templ_7745c5c3_Var89 templ.SafeURL
 				templ_7745c5c3_Var89, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(club))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 425, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 431, Col: 66}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var89))
 				if templ_7745c5c3_Err != nil {
@@ -1931,7 +1937,7 @@ func timelineLinks(mine, club, notify, calendar, clubCalendar string) templ.Comp
 				var templ_7745c5c3_Var90 templ.SafeURL
 				templ_7745c5c3_Var90, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(calendar))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 428, Col: 70}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 434, Col: 70}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var90))
 				if templ_7745c5c3_Err != nil {
@@ -1950,7 +1956,7 @@ func timelineLinks(mine, club, notify, calendar, clubCalendar string) templ.Comp
 				var templ_7745c5c3_Var91 templ.SafeURL
 				templ_7745c5c3_Var91, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(clubCalendar))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 431, Col: 74}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 437, Col: 74}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var91))
 				if templ_7745c5c3_Err != nil {
@@ -1969,7 +1975,7 @@ func timelineLinks(mine, club, notify, calendar, clubCalendar string) templ.Comp
 				var templ_7745c5c3_Var92 templ.SafeURL
 				templ_7745c5c3_Var92, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(notify))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 434, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/my.templ`, Line: 440, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var92))
 				if templ_7745c5c3_Err != nil {

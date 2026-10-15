@@ -318,8 +318,51 @@ func TestEntryBrief(t *testing.T) {
 		{"on hold", sent, store.Entry{Removal: store.Held}, true, 0, 0, "On hold"},
 		{"removed", sent, store.Entry{Removal: store.Removed}, true, 0, 0, "Removed"},
 	} {
-		if got, _ := entryBrief(c.e, c.removal, c.removed, c.problems, c.place); got != c.want {
+		if got, _ := brief(memberState(c.e, c.removal, c.removed, c.place), c.problems, c.place, "Sent"); got != c.want {
 			t.Errorf("%s: %q, want %q", c.name, got, c.want)
 		}
+	}
+}
+
+// Where an entry stands, in the comp sec's order, for every page: removed,
+// held, not sent, waiting (unless changed since), changed, checked, sent.
+func TestEntryStanding(t *testing.T) {
+	for _, c := range []struct {
+		name          string
+		removal       string
+		sent, changed bool
+		place         int
+		checked       bool
+		want          standing
+	}{
+		{"removed", store.Removed, true, true, 2, true, entryRemoved},
+		{"held", store.Held, true, true, 2, true, entryHeld},
+		{"not sent", "", false, false, 0, false, entryNotSent},
+		{"not sent, though on a list", "", false, false, 2, false, entryNotSent},
+		{"waiting, though checked", "", true, false, 2, true, entryWaiting},
+		{"changed, though waiting", "", true, true, 2, true, entryChanged},
+		{"checked", "", true, false, 0, true, entryChecked},
+		{"sent", "", true, false, 0, false, entrySent},
+	} {
+		if got := stateOf(c.removal, c.sent, c.changed, c.place, c.checked); got != c.want {
+			t.Errorf("%s: %d, want %d", c.name, got, c.want)
+		}
+	}
+	// A member's checked entry on a waiting list reads as waiting, as on
+	// the comp sec's page: sent, not checked.
+	sent := store.MemberEntry{SentAt: time.Now().Add(-time.Hour), UpdatedAt: time.Now().Add(-2 * time.Hour), Checked: true}
+	if got := memberStatus(memberState(sent, store.Entry{}, false, 1), store.Entry{}, false); got != "Sent by your club" {
+		t.Errorf("a member's checked entry on a waiting list: %q", got)
+	}
+	if got := memberStatus(memberState(sent, store.Entry{}, false, 0), store.Entry{}, false); got != "Sent by your club · checked by the organiser ✓" {
+		t.Errorf("a member's checked entry: %q", got)
+	}
+	// An individual's: on a waiting list, and checked.
+	in := store.Entry{CheckedAt: time.Now()}
+	if got, _ := brief(individualState(in, 2), 0, 2, "Entered"); got != "Waiting list, 2nd" {
+		t.Errorf("an individual on a waiting list: %q", got)
+	}
+	if got, _ := brief(individualState(in, 0), 0, 0, "Entered"); got != "Checked" {
+		t.Errorf("an individual checked: %q", got)
 	}
 }

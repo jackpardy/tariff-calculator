@@ -136,7 +136,7 @@ func scoreSheets(c store.Competition, s competitions.Schedule, entries []store.E
 				f := views.ScoreFlight{Name: it.Name, Day: day.Name, Area: area.Name, Start: it.Start, Seats: it.Seats,
 					Marks: scoreMarks(c.Officials.Panel(s.Flights[it.Index].Discipline))}
 				for _, g := range it.Gymnasts {
-					f.Rows = append(f.Rows, views.ScoreRow{Name: g.Name, No: g.No, Club: g.Club, Scratched: scratched[g.ID]})
+					f.Rows = append(f.Rows, views.FlightGymnast{Name: g.Name, No: g.No, Club: g.Club, Scratched: scratched[g.ID]})
 				}
 				out.Flights = append(out.Flights, f)
 			}

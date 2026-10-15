@@ -182,17 +182,17 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	people := map[string]views.ScreenGymnast{}
+	people := map[string]views.FlightGymnast{}
 	for _, e := range live(all) {
-		people[e.ID] = views.ScreenGymnast{Name: e.Entry.Gymnasts(), Club: screenClub(e)}
+		people[e.ID] = views.FlightGymnast{Name: e.Entry.Gymnasts(), Club: screenClub(e)}
 	}
 	scratched, err := p.scratchedOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	gymnasts := func(f competitions.ScheduledFlight) []views.ScreenGymnast {
-		var out []views.ScreenGymnast
+	gymnasts := func(f competitions.ScheduledFlight) []views.FlightGymnast {
+		var out []views.FlightGymnast
 		for n, id := range f.Entries {
 			if g, ok := people[id]; ok {
 				g.No, g.Scratched = n+1, scratched[id]
@@ -222,7 +222,7 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 			v.NowTimes = competitions.Clock(f.Start) + "–" + competitions.Clock(f.End)
 			v.Gymnasts = gymnasts(f)
 		case n.Break != "":
-			v.Now, v.Break = n.Break, true
+			v.Now = n.Break
 		}
 		if n.Next != nil {
 			v.Next, v.NextWarmUp = n.Next.Name(), competitions.Clock(n.Next.Start)
@@ -230,7 +230,7 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 		}
 		v.Idle, v.Finished = n.Idle, n.Flight == nil && n.Break == "" && n.Next == nil
 		if l, ok := late[a.Name]; ok {
-			v.Late, v.Behind, v.Ahead = lateText(l), l.Minutes > 0, l.Minutes < 0
+			v.Late, v.Behind = lateText(l), l.Minutes > 0
 		}
 		page.Areas = append(page.Areas, v)
 	}

@@ -174,9 +174,8 @@ type Timeline struct {
 	Competition       CompetitionSummary
 	Header            int // rows above the minutes
 	Sheets            []TimelineSheet
-	// Focus picks out someone's (or a club's) flights, explained by Heading
-	// and Intro; BackLabel names where Back goes.
-	Focus                   bool
+	// Heading and Intro explain a timeline picking out someone's (or a
+	// club's) flights; BackLabel names where Back goes.
 	Heading, Intro, BackLabel string
 }
 
@@ -374,14 +373,7 @@ type ScoreFlight struct {
 	Name, Day, Area, Start string
 	Seats                  []SeatView // who's on its panel
 	Marks                  []string // each routine's columns: "E1"…, "D", "HD", "S1"…, "Pen", "Total"
-	Rows                   []ScoreRow
-}
-
-// ScoreRow is a gymnast (or synchro pair) on a score sheet.
-type ScoreRow struct {
-	Name, Club string
-	No         int  // their running number
-	Scratched  bool // a no-show on the day: struck through
+	Rows                   []FlightGymnast
 }
 
 // ScorePrint is the recorders' score sheets, to print landscape.

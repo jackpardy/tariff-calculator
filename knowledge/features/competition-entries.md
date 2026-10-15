@@ -17,9 +17,14 @@ the [roadmap](../roadmap.md). Storage, links, clubs, video proof and coach
 sign-off are decided in ADR 0004.[^adr-0004]
 
 It's built from storage (`store`), checking (`competitions`), and the pages:
-competitions, the organiser's dashboard and each entry, and individual entry
-(`comppages.go`); clubs, members and sending (`clubpages.go`); and coaches
-(`coachpages.go`) ([routes](../architecture/http-routes.md#competition-pages)).
+the routes, an entry's card and the entry form (`comppages.go`); creating a
+competition and its settings (`compsettings.go`); the organiser's dashboard
+and each entry (`dashboardpages.go`); individual entry and sign-off
+(`individualpages.go`); clubs, members and sending (`clubpages.go`); and
+coaches (`coachpages.go`), with shared helpers in `helpers.go`
+([routes](../architecture/http-routes.md#competition-pages)). Their views
+are `views/competitions.templ` (the layout and shared parts),
+`dashboard.templ`, `entry.templ`, `cards.templ` and `partner.templ`.
 `/competitions` lists the links a browser has. The pages are on only where
 `DATA_DIR` is set ([competition storage](../operations/deploy.md#competition-storage)).
 
@@ -218,7 +223,14 @@ without moving anyone else. The dashboard shows "88 of 90 places" beside a
 limited event and a **Waiting lists** box; the comp sec sees "Sent ·
 waiting list, 3rd", and a member or individual "On the waiting list for
 BUCS L1: 3rd". Notifications (cards) say when an entry goes on or comes
-off a waiting list, when the organiser's change does it. The demo limits
+off a waiting list, when the organiser's change does it.
+
+Every page says where an entry stands in the same order (`stateOf` in
+`web/entrystate.go`), the comp sec's: removed, on hold, not sent, on a
+waiting list (unless changed since), changed since sent, checked, sent.
+Each page words it for its reader. So a checked entry on a waiting list
+reads as waiting everywhere: a member's status line says "Sent by your
+club", not "checked by the organiser". The demo limits
 BUCS L1 to 12 and DMT Advanced to 17.
 
 ## Entry fees
@@ -502,7 +514,8 @@ are then filled flight by flight.
   penalty and total, then the total and place, all left to fill in. The
   organiser prints them; an official on a flight's panel can also open that
   flight's sheet on their phone (**Score sheets for your panels**, beside
-  their duties, once published). And the **officials rota**, each person's
+  their duties, once published), which goes back to My competition, for a
+  member and someone entered on their own alike. And the **officials rota**, each person's
   duties in time order, one line
   for an event ("Friday 09:30–15:15 · Panel 2 · BUCS L7 Men · all 5
   flights · Execution judge").
@@ -1303,7 +1316,7 @@ for: Triple Back") and has a field for a link per exercise, with a reminder to
 make a YouTube video unlisted, not private. They can replace the level or
 routine at any time until the deadline.
 
-The entry form (`entryForm` in `views/competitions.templ`, used by members, the
+The entry form (`entryForm` in `views/entry.templ`, used by members, the
 comp sec and individuals) has one Men or Women choice, shown only while the
 chosen level ranks them separately; changing level keeps what's ticked, and an
 existing entry opens with its own ticked.

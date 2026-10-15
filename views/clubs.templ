@@ -74,11 +74,8 @@ type ClubCompetition struct {
 	// club's who sign off, to send for approval (ADR 0007 Decision 5).
 	ApproveCoaches bool
 	Coaches        []ClubSendCoach
-	Timeline       string // the club's timetable, once published
-	Calendar       string // the club's timetable as a calendar file, once published
-	Notify         string // where the comp sec asks to hear about changes
+	MyLinks
 	Fees           *FeesSummary // what the club owes, if the competition charges
-	Desk           []DeskNote   // messages from the organisers that reach the club
 }
 
 // ClubSendCoach is one of the club's coaches, to send to a competition.
@@ -158,15 +155,8 @@ type MemberCompetition struct {
 	Problems     int           // on their entries' cards
 	Events       []MemberEvent // one per discipline the competition offers
 	Offer        *OfferForm    // what they offer to judge and help with
-	Duties       []string      // their seats on panels, once the timetable is published
+	MyLinks
 	Day          string        // their My competition page
-	Timeline     string        // their timetable, and their club's, once published
-	ClubTimeline string
-	Calendar     string // their timetable as a calendar file, and their club's
-	ClubCalendar string
-	Notify       string     // where they ask to hear about changes
-	ScoreSheets  string     // the score sheets of the flights they officiate, if any
-	Desk         []DeskNote // messages from the organisers that reach them
 }
 
 // MemberEvent is a member's entry for one of a competition's disciplines.
@@ -452,7 +442,7 @@ templ ClubMembers(c ClubPage) {
 											<span class="tag is-info is-light ml-1">Coach too</span>
 										}
 									</td>
-									<td class="has-text-grey is-size-7">{ entriesCount(m.Entries) }</td>
+									<td class="has-text-grey is-size-7">{ Count(m.Entries, "entry", "entries") }</td>
 									if len(c.CoachOptions) > 0 {
 										<td>
 											@coachSelect(c.Base+"/members/"+m.ID+"/coach", c.CoachOptions, m.CoachID, m.Name+"'s coach")
@@ -502,7 +492,7 @@ templ ClubCoaches(c ClubPage) {
 											<span class="is-block has-text-grey is-size-7">A member too: opens from their member link</span>
 										}
 									</td>
-									<td class="has-text-grey is-size-7">{ coachedCount(coach.Members) }</td>
+									<td class="has-text-grey is-size-7">{ Count(coach.Members, "member chose them", "members chose them") }</td>
 									<td class="has-text-right">
 										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") } class="is-inline">
 											<button class="button is-small is-text" type="submit" title="Their old link stops working">New link</button>
@@ -613,20 +603,6 @@ templ ClubSettings(c ClubPage) {
 	}
 }
 
-func entriesCount(n int) string {
-	if n == 1 {
-		return "1 entry"
-	}
-	return fmt.Sprintf("%d entries", n)
-}
-
-func coachedCount(n int) string {
-	if n == 1 {
-		return "1 member chose them"
-	}
-	return fmt.Sprintf("%d members chose them", n)
-}
-
 script confirmRemoveCoach(name string) {
 	if (!confirm("Remove " + name + " as a coach? Their members will have no coach until one is chosen.")) { event.preventDefault(); }
 }
@@ -713,7 +689,7 @@ templ MemberHome(p MemberPage) {
 				<span class="is-block is-size-7">
 					{ c.Status }
 					if c.Problems > 0 {
-						<span class="tag is-danger is-light ml-1">{ problemCount(c.Problems) }</span>
+						<span class="tag is-danger is-light ml-1">{ Count(c.Problems, "problem", "problems") }</span>
 					}
 					if c.Timeline != "" {
 						<span class="tag is-success is-light ml-1">Timetable published</span>

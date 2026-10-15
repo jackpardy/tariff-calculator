@@ -114,6 +114,10 @@ func TestOfficialsRota(t *testing.T) {
 	if !strings.Contains(sheets, "<h1 class=\"title is-5 mb-1\">BUCS L3") || strings.Contains(sheets, "Tumbling Novice</h1>") || !strings.Contains(sheets, "you don&#39;t need to") && !strings.Contains(sheets, "you don't need to") {
 		t.Errorf("BUCS L3's sheet, not tumbling's: %s", sheets)
 	}
+	// They go back to My competition, as a member's do.
+	if !strings.Contains(sheets, `href="`+dara+`/day"`) {
+		t.Error("an individual's score sheets go back to My competition")
+	}
 	if strings.Contains(do(t, h, http.MethodGet, withoutQuery(redirected(t, h, enter, bucsEntry("Fay"))), nil).Body.String(), "/score-sheets") {
 		t.Error("no link for someone who doesn't officiate")
 	}

@@ -201,14 +201,14 @@ func (p *competitionPages) setFees(w http.ResponseWriter, r *http.Request) {
 	f.PerClub = cents
 	back := adminPath(r.PathValue("token")) + "/fees"
 	if len(problems) > 0 {
-		http.Redirect(w, r, back+"?notice="+url.QueryEscape(strings.Join(problems, " ")+" Nothing was changed."), http.StatusSeeOther)
+		seeOther(w, r, back, strings.Join(problems, " ")+" Nothing was changed.")
 		return
 	}
 	if err := p.st.SetFees(r.Context(), c.ID, f); err != nil {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, back+"?notice="+url.QueryEscape("Fees saved."), http.StatusSeeOther)
+	seeOther(w, r, back, "Fees saved.")
 }
 
 // addPayment records a payment (payer, amount, note).
@@ -220,7 +220,7 @@ func (p *competitionPages) addPayment(w http.ResponseWriter, r *http.Request) {
 	back := adminPath(r.PathValue("token")) + "/fees"
 	cents, err := competitions.ParseMoney(r.FormValue("amount"))
 	if err != nil || cents == 0 {
-		http.Redirect(w, r, back+"?notice="+url.QueryEscape("Say how much was paid, like 12 or 12.50."), http.StatusSeeOther)
+		seeOther(w, r, back, "Say how much was paid, like 12 or 12.50.")
 		return
 	}
 	if _, ok, err := p.accountOf(r.Context(), c, r.FormValue("payer")); err != nil || !ok {
@@ -231,7 +231,7 @@ func (p *competitionPages) addPayment(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, back+"?notice="+url.QueryEscape(c.Fees.Money(cents)+" recorded."), http.StatusSeeOther)
+	seeOther(w, r, back, c.Fees.Money(cents)+" recorded.")
 }
 
 // removePayment takes back a payment recorded by mistake.
@@ -244,7 +244,7 @@ func (p *competitionPages) removePayment(w http.ResponseWriter, r *http.Request)
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/fees?notice="+url.QueryEscape("Payment removed."), http.StatusSeeOther)
+	seeOther(w, r, adminPath(r.PathValue("token"))+"/fees", "Payment removed.")
 }
 
 // adminInvoice is a payer's invoice, for the organiser.

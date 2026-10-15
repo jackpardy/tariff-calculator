@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -37,9 +36,8 @@ type deskPerson struct {
 	key, name, club, detail string // club is the first they have, if any
 }
 
-// deskPeople are every gymnast and official of a competition, by name.
-func (p *competitionPages) deskPeople(r *http.Request, c store.Competition, entries []store.Entry) ([]deskPerson, error) {
-	_, names := peopleOf(entries)
+// deskPeopleOf are every gymnast and official of a competition, by name.
+func deskPeopleOf(f rotaFacts) []deskPerson {
 	byKey := map[string]*deskPerson{}
 	var out []*deskPerson
 	add := func(key, name, club, role string) {
@@ -65,24 +63,19 @@ func (p *competitionPages) deskPeople(r *http.Request, c store.Competition, entr
 		}
 	}
 	clubs := map[string]string{} // person → their club
-	keys := personKeys(entries)
-	for _, e := range entries {
+	for _, e := range f.entries {
 		if !e.Individual {
-			for _, k := range keys[e.ID] {
+			for _, k := range f.people[e.ID] {
 				clubs[k] = e.ClubName
 			}
 		}
 	}
-	for key, name := range names {
+	for key, name := range f.names {
 		if kind, _ := store.KeyKind(key); kind != store.KindCoach { // not coaches
 			add(key, name, clubs[key], "gymnast")
 		}
 	}
-	officials, err := p.rotaOf(r, c, entries)
-	if err != nil {
-		return nil, err
-	}
-	for _, o := range officials {
+	for _, o := range f.officials {
 		add(o.Key, o.Name, o.Club, "official")
 	}
 	slices.SortStableFunc(out, func(a, b *deskPerson) int {
@@ -95,7 +88,7 @@ func (p *competitionPages) deskPeople(r *http.Request, c store.Competition, entr
 	for i, d := range out {
 		people[i] = *d
 	}
-	return people, nil
+	return people
 }
 
 // deskDraft is a message ready to send, or the problem with the form.
@@ -186,15 +179,11 @@ func (p *competitionPages) deskFormOf(r *http.Request, c store.Competition) (d d
 			d.problem = "No one is in that flight."
 		}
 	case "officials":
-		all, err := p.st.Entries(ctx, c.ID)
+		f, err := p.liveRota(ctx, c)
 		if err != nil {
 			return d, err
 		}
-		officials, err := p.rotaOf(r, c, live(all))
-		if err != nil {
-			return d, err
-		}
-		for _, o := range officials {
+		for _, o := range f.officials {
 			d.msg.People = append(d.msg.People, o.Key)
 		}
 		d.msg.Audience = "All officials"
@@ -223,14 +212,11 @@ func (p *competitionPages) deskFormOf(r *http.Request, c store.Competition) (d d
 			d.problem = "No officials have a seat on that panel yet."
 		}
 	case "people":
-		all, err := p.st.Entries(ctx, c.ID)
+		f, err := p.liveRota(ctx, c)
 		if err != nil {
 			return d, err
 		}
-		known, err := p.deskPeople(r, c, live(all))
-		if err != nil {
-			return d, err
-		}
+		known := deskPeopleOf(f)
 		var first string
 		for _, k := range r.Form["person"] {
 			i := slices.IndexFunc(known, func(x deskPerson) bool { return x.key == k })
@@ -277,17 +263,12 @@ func (p *competitionPages) desk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	all, err := p.st.Entries(ctx, c.ID)
+	f, err := p.liveRota(ctx, c)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	entries := live(all)
-	people, err := p.deskPeople(r, c, entries)
-	if err != nil {
-		failed(w, r, err)
-		return
-	}
+	people := deskPeopleOf(f)
 	clubs, err := p.st.CompetitionClubs(ctx, c.ID)
 	if err != nil {
 		failed(w, r, err)
@@ -341,7 +322,7 @@ func (p *competitionPages) desk(w http.ResponseWriter, r *http.Request) {
 	page.PeopleTools = views.ListTools{ID: "desk-people", Noun: "people", Total: len(people), Filters: []views.ListFilter{clubFilter(peopleClubs)}}
 	for _, m := range sent {
 		page.Sent = append(page.Sent, views.DeskSent{
-			At: m.At.In(local).Format("Mon 2 Jan, 15:04"), Who: m.Who, To: m.Audience, Text: m.Full(), Come: m.Come,
+			At: m.At.In(local).Format("Mon 2 Jan, 15:04"), Who: m.Who, To: m.Audience, Text: m.Full(),
 			Pushed: m.Pushed, Emailed: m.Emailed,
 		})
 	}
@@ -363,12 +344,12 @@ func (p *competitionPages) sendDesk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if d.problem != "" {
-		http.Redirect(w, r, back+"?notice="+url.QueryEscape(d.problem+" Nothing was sent."), http.StatusSeeOther)
+		seeOther(w, r, back, d.problem+" Nothing was sent.")
 		return
 	}
 	m, err := p.st.SendDeskMessage(r.Context(), c.ID, d.msg)
 	if err == store.ErrLimit {
-		http.Redirect(w, r, back+"?notice="+url.QueryEscape(fmt.Sprintf("A competition can keep %d messages. Nothing was sent.", store.MaxDeskMessages)), http.StatusSeeOther)
+		seeOther(w, r, back, fmt.Sprintf("A competition can keep %d messages. Nothing was sent.", store.MaxDeskMessages))
 		return
 	}
 	if err != nil {
@@ -380,7 +361,7 @@ func (p *competitionPages) sendDesk(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Desk: %s: %v", c.ID, err)
 	}
 	notice := fmt.Sprintf("Sent to %s. Told %d by push and %d by email; everyone else sees it on their page.", m.Audience, pushed, emailed)
-	http.Redirect(w, r, back+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	seeOther(w, r, back, notice)
 }
 
 // deskNotes are the messages that reach someone, newest first, at most
@@ -398,7 +379,7 @@ func (p *competitionPages) deskNotes(ctx context.Context, competitionID string, 
 			break
 		}
 		if m.Reaches(people, clubs, staff) {
-			out = append(out, views.DeskNote{Text: m.Full(), At: deskWhen(m.At, p.now()), Come: m.Come})
+			out = append(out, views.DeskNote{Text: m.Full(), At: deskWhen(m.At, p.now())})
 		}
 	}
 	return out

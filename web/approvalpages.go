@@ -3,7 +3,6 @@ package web
 import (
 	"errors"
 	"net/http"
-	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -69,7 +68,7 @@ func askedLevels(c competitions.Competition) string {
 	for _, d := range coachDisciplines(c) {
 		asked = append(asked, competitions.DisciplineName(d)+" Level "+strconv.Itoa(c.CoachLevel(d)))
 	}
-	return joinAnd(asked)
+	return competitions.JoinList(asked)
 }
 
 // meets says, for each discipline asked about, whether the qualifications
@@ -185,14 +184,6 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.CompetitionApprovals(page))
 }
 
-// joinAnd joins words as "a, b and c".
-func joinAnd(words []string) string {
-	if len(words) < 2 {
-		return strings.Join(words, "")
-	}
-	return strings.Join(words[:len(words)-1], ", ") + " and " + words[len(words)-1]
-}
-
 // decideCoach approves a coach (action=approve; afresh, counting only their
 // sign-offs from now on), says they're not approved (refuse), or withdraws
 // their approval (withdraw), with a note for the club.
@@ -221,7 +212,7 @@ func (p *competitionPages) decideCoach(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/coaches?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	seeOther(w, r, adminPath(r.PathValue("token"))+"/coaches", notice)
 }
 
 // competitionCertificate shows the organiser a certificate of a coach sent
@@ -275,7 +266,7 @@ func (p *competitionPages) decideEntryCoach(w http.ResponseWriter, r *http.Reque
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/coaches?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	seeOther(w, r, adminPath(r.PathValue("token"))+"/coaches", notice)
 }
 
 // entryCertificate shows the organiser the certificate of a coach an
@@ -321,7 +312,7 @@ func (p *competitionPages) nameEntryCoach(w http.ResponseWriter, r *http.Request
 	}
 	path := "/competitions/entry/" + r.PathValue("token")
 	back := func(notice string) {
-		http.Redirect(w, r, path+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+		seeOther(w, r, path, notice)
 	}
 	if !c.Signoff || !c.ApproveCoaches {
 		back("This competition doesn't approve coaches; nothing was changed.")

@@ -138,10 +138,9 @@ type ItemView struct {
 
 // TimetableGymnast is a gymnast in a running order.
 type TimetableGymnast struct {
-	ID, Name, Club, Category string
-	No                       int    // their running number: their place in the flight, the same on every page and sheet
-	Moved                    string // the event they're entered at now, if not the flight's
-	Scratched                bool   // a no-show on the day: struck through on the printed sheets
+	FlightGymnast
+	ID, Category string
+	Moved        string // the event they're entered at now, if not the flight's
 }
 
 // FlightOption is somewhere to move a gymnast or flight to.
