@@ -137,7 +137,7 @@ func TestCalendars(t *testing.T) {
 	if !strings.Contains(do(t, h, http.MethodGet, club, nil).Body.String(), ">Club calendar</a>") {
 		t.Error("the club page links to its calendar")
 	}
-	if !strings.Contains(do(t, h, http.MethodGet, ivy+"/day", nil).Body.String(), ">Add to calendar</a>") {
+	if !strings.Contains(dayAll(t, h, ivy+"/day"), ">Add to calendar</a>") {
 		t.Error("Ivy's My competition links to her calendar")
 	}
 	mine := icsEvents(do(t, h, http.MethodGet, ann+"/competitions/"+compID+"/calendar.ics", nil).Body.String())

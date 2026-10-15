@@ -62,6 +62,9 @@ const warningsID = "day-warnings"
 // where they were (a flight's box, or the warnings).
 func backToDay(r *http.Request, notice, anchor string) string {
 	to := adminPath(r.PathValue("token")) + "/day?day=" + url.QueryEscape(r.FormValue("day"))
+	if area := r.FormValue("area"); area != "" {
+		to += "&area=" + url.QueryEscape(area) // back to the area's own page
+	}
 	if notice != "" {
 		to += "&notice=" + url.QueryEscape(notice)
 	}
@@ -220,11 +223,31 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 	}
 	notify := can(r, "POST", "/day/notify")
 	keys := personKeys(entries)
+	// An area's own page, or the overview of them all.
+	focus := r.URL.Query().Get("area")
+	if !slices.ContainsFunc(s.Setup.Areas, func(a competitions.Area) bool { return a.Name == focus }) {
+		focus = ""
+	}
+	dayLink := func(day int, area string) string {
+		link := base + "/day?day=" + strconv.Itoa(day)
+		if area != "" {
+			link += "&area=" + url.QueryEscape(area)
+		}
+		return link
+	}
+	page.Area, page.AllAreas = focus, dayLink(day, "")
 	for i, d := range s.Setup.Days {
-		page.Days = append(page.Days, views.DayTab{Name: d.Name, Link: base + "/day?day=" + strconv.Itoa(i), Active: i == day})
+		tab := focus // the same area that day, if it's in use
+		if len(d.Areas) > 0 && !slices.Contains(d.Areas, focus) {
+			tab = ""
+		}
+		page.Days = append(page.Days, views.DayTab{Name: d.Name, Link: dayLink(i, tab), Active: i == day})
 	}
 	for _, a := range s.Setup.Areas {
-		area := views.DayArea{Name: a.Name, ID: areaID(a.Name)}
+		if focus != "" && a.Name != focus {
+			continue
+		}
+		area := views.DayArea{Name: a.Name, ID: areaID(a.Name), Link: dayLink(day, a.Name)}
 		var flights []competitions.ScheduledFlight
 		for _, f := range s.Flights {
 			if f.Day == day && f.Area == a.Name {

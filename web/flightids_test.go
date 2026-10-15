@@ -1,7 +1,6 @@
 package web
 
 import (
-	"net/http"
 	"net/url"
 	"regexp"
 	"slices"
@@ -15,7 +14,7 @@ import (
 func TestDayMarksFollowTheFlight(t *testing.T) {
 	s := newTestServer(t, atTime(dayBefore))
 	h := s.h
-	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
+	get := func(path string) string { return dayAll(t, h, path) }
 	admin := created(t, h, newCompetition())
 	officials := admin + "/officials"
 	redirected(t, h, officials+"/settings", url.Values{

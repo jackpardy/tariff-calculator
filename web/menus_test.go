@@ -334,7 +334,7 @@ func TestMenuOnOrganiserPages(t *testing.T) {
 	redirected(t, h, admin+"/timetable/setup/days", url.Values{"day-0-name": {"Saturday"}, "day-0-start": {"09:00"}, "day-0-end": {"18:00"}})
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"on": {"1"}})
-	if section, item := menuCurrent(do(t, h, http.MethodGet, admin+"/day", nil).Body.String()); section != "On the day" || item != "On the day" {
+	if section, item := menuCurrent(dayAll(t, h, admin+"/day")); section != "On the day" || item != "On the day" {
 		t.Errorf("the day: %q, %q", section, item)
 	}
 	if got := strings.Join(menuLabels(do(t, h, http.MethodGet, admin, nil).Body.String()), ", "); got != "Entries, Timetable, On the day, Settings" {

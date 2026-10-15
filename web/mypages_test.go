@@ -26,7 +26,7 @@ func TestMyCompetition(t *testing.T) {
 		t.Fatal("the member page links to their competition")
 	}
 	day := m[1]
-	if page := do(t, h, http.MethodGet, day, nil).Body.String(); !strings.Contains(page, "No entries for you have reached the competition yet") {
+	if page := dayAll(t, h, day); !strings.Contains(page, "No entries for you have reached the competition yet") {
 		t.Error("nothing sent yet")
 	}
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
@@ -36,7 +36,7 @@ func TestMyCompetition(t *testing.T) {
 	own := withoutQuery(redirected(t, h, enter, bucsEntry("Ivy")))
 	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
 
-	page := do(t, h, http.MethodGet, day, nil).Body.String()
+	page := dayAll(t, h, day)
 	if !strings.Contains(page, "2 problems to sort out") || !strings.Contains(page, "Second exercise: Exactly 10 elements") || !strings.Contains(page, "The timetable isn't published yet") {
 		i := strings.Index(page, "<h1")
 		t.Errorf("sent, not yet published: %s", page[i:min(len(page), i+1500)])
@@ -46,7 +46,7 @@ func TestMyCompetition(t *testing.T) {
 	redirected(t, h, tt+"/plan", url.Values{})
 	redirected(t, h, tt+"/publish", url.Values{"on": {"1"}})
 
-	page = do(t, h, http.MethodGet, day, nil).Body.String()
+	page = dayAll(t, h, day)
 	for _, want := range []string{"<strong>BUCS L3</strong> · Panel 1 · Saturday", "Warm-up <strong>09:00</strong>", "of 2", "Routines at about 09:1", "<strong>Mo</strong>", "Chair of judges: Mary"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the member's page has %q", want)
@@ -58,7 +58,7 @@ func TestMyCompetition(t *testing.T) {
 	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, own+"/day") {
 		t.Error("the individual's entry links to their competition")
 	}
-	if page := do(t, h, http.MethodGet, own+"/day", nil).Body.String(); !strings.Contains(page, "<strong>Ivy</strong>") || !strings.Contains(page, ": your entry</a>") {
+	if page := dayAll(t, h, own+"/day"); !strings.Contains(page, "<strong>Ivy</strong>") || !strings.Contains(page, ": your entry</a>") {
 		t.Error("the individual's competition")
 	}
 }

@@ -828,9 +828,20 @@ and officials on blocked time aren't considered.
 Once the timetable is published, **On the day** (a button on the entries
 page, and `/day` under the admin link) is where the marshal or chair of
 judges records what really happened. It shows one day at a time (today's if
-today is a day of the timetable, else the first; tabs switch), a section for
-each area with flights that day, and under each area its flights in start
-order: the planned time (warm-up start to end), when it actually started and
+today is a day of the timetable, else the first; tabs switch), as an
+**overview** of the areas with flights that day: a card for each, with how
+it's running, the flight it's on (the first not finished) with who's up and
+its check-in and panel counts, the next flight, the one tap that comes next
+(Started; Next gymnast; or Finished once the last routine is on, or no one
+is left), and **Open**, its own page (`/day?day=N&area=<name>`). An area's
+**own page** has that flight in full, in the order a marshal uses it:
+Started at the top, then who's up, Check-in and Panel as open sections,
+Finished and Undo at the bottom and Correct the times under them; then its
+later flights and those finished, each closed, opening to the same. Every
+form on an area's page posts the area too, and comes back to that page.
+**Find a name** on the overview searches everyone in each area's flights,
+shown only when found, each linking to their flight on its area's page; on
+an area's page it searches its check-in rows. Each flight shows the planned time (warm-up start to end), when it actually started and
 finished, and who tapped it. **Started** (a flight not yet started),
 **Finished** (started, not finished) and **Undo** (takes back the finish, else
 the start: it posts `undo-finish` or `undo-start`, so the same tap sent twice

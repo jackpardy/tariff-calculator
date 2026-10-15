@@ -337,9 +337,18 @@ a **Change** button to open it.
    says when there are changes not published yet; **Discard changes** goes
    back to what's published, and **Unpublish** takes it down.
 11. **On the day** (a button on the entries page once you've published; chairs
-   of judges' and timetable links get it too): pick the day, then for each
-   area tap **Started** when a flight begins its warm-up and **Finished**
-   when it's done (**Undo** takes back the latest tap). On poor wifi a tap may
+   of judges' and timetable links get it too): pick the day. Each area is a
+   card saying how it's running, the flight it's on, who's up, how many are
+   checked in, what's next, and the one tap that comes next (**Started**,
+   **Next gymnast**, or **Finished** once the last routine is on). Tap the
+   area's name or **Open** for its own page, where its marshal works: the
+   flight on now, with **Started** at the top when it begins its warm-up,
+   then who's up, **Check-in** and **Panel**, and **Finished** at the bottom
+   when it's done (**Undo** takes back the latest tap), and **Correct the
+   times** under that; then the area's later flights and those finished,
+   each opening to the same. A marshal with one panel can keep its page open
+   all day. **Find a name** on the overview shows who it finds and which
+   area they're in. On poor wifi a tap may
    be sent twice; the second changes nothing. Planned and actual
    times sit side by side, and each area says whether it's "Running 15 min
    late", "On time" or early. Where an area is late, **What if: see the rest

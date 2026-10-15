@@ -66,7 +66,7 @@ func TestStaleTimetableForm(t *testing.T) {
 	if after := do(t, h, http.MethodGet, tt, nil).Body.String(); versionIn(after) != versionIn(now) || strings.Contains(after, "Sunday") {
 		t.Error("nothing was changed by the refused forms")
 	}
-	if strings.Contains(do(t, h, http.MethodGet, admin+"/day", nil).Body.String(), "Ann") {
+	if strings.Contains(dayAll(t, h, admin+"/day"), "Ann") {
 		t.Error("nothing was published")
 	}
 

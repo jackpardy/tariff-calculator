@@ -123,7 +123,7 @@ func TestCheckinTapsKeptOnThePhone(t *testing.T) {
 	h, clock := competitionServerAt(t, dayBefore)
 	admin, _, _, _ := scratchSetupOn(t, h, twoFlights)
 	day := admin + "/day?day=0"
-	page := do(t, h, http.MethodGet, day, nil).Body.String()
+	page := dayAll(t, h, day)
 	eve := checkinEntry(t, page, "Eve")
 	checkin := func(status string, waited time.Duration) string {
 		t.Helper()
@@ -135,7 +135,7 @@ func TestCheckinTapsKeptOnThePhone(t *testing.T) {
 	}
 	state := func() string {
 		t.Helper()
-		for _, a := range dayPageAreas(t, do(t, h, http.MethodGet, day, nil).Body.String()) {
+		for _, a := range dayPageAreas(t, dayAll(t, h, day)) {
 			for _, f := range a.Flights {
 				if s, ok := f.Gymnasts["Eve"]; ok {
 					return s
@@ -220,7 +220,7 @@ func TestCorrectFlightTimes(t *testing.T) {
 		t.Helper()
 		return redirected(t, h, link+"/day/times", url.Values{"flight": {flight}, "started": {started}, "finished": {finished}, "day": {"0"}})
 	}
-	if page := do(t, h, http.MethodGet, day, nil).Body.String(); !strings.Contains(page, `action="`+admin+`/day/times"`) || !strings.Contains(page, ">Correct the times</summary>") {
+	if page := dayAll(t, h, day); !strings.Contains(page, `action="`+admin+`/day/times"`) || !strings.Contains(page, ">Correct the times</summary>") {
 		t.Error("the organiser can correct the times")
 	}
 
@@ -307,8 +307,8 @@ func TestTapsWithoutSignalInABrowser(t *testing.T) {
 
 	var waiting, next, onNow string
 	var finished bool
-	step(t, ctx, "opening the day page and losing the signal",
-		chromedp.Navigate(srv.URL+day),
+	step(t, ctx, "opening Panel 1's page and losing the signal",
+		chromedp.Navigate(srv.URL+day+"&area=Panel+1"),
 		chromedp.WaitVisible(`#day-areas`, chromedp.ByQuery),
 		// The phone's clock, stood still so the test says how long the taps wait.
 		chromedp.Evaluate(`window.phoneNow = Date.now(); Date.now = () => window.phoneNow; true`, nil),
