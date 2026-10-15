@@ -1434,6 +1434,10 @@ type PartnerPage struct {
 	Club        string
 	Partner     string // the partner's name, as entered
 	Event       string
+	// The names a browser saves this synchro entry under, to leave out of who
+	// they are: its page saves the entering gymnast's own page as the pair,
+	// and an entry link from before as the pair and the competition.
+	Saved []string
 	Confirmed   bool
 	Action      string
 	Problems    []string
@@ -1457,8 +1461,9 @@ templ PartnerConfirm(p PartnerPage) {
 			</p>
 			@problemList(p.Problems)
 			<form method="post" action={ templ.SafeURL(p.Action) } class="comp-partner">
-				// Links saved in this browser (static/js/competitions.js).
-				<div class="field" data-saved-people hidden>
+				// Links saved in this browser (static/js/competitions.js), but
+				// not this entry's own.
+				<div class="field" data-saved-people data-saved-self={ strings.Join(p.Saved, "\n") } hidden>
 					<label class="label is-small" for="partner-saved">You are</label>
 					<div class="select is-fullwidth"><select id="partner-saved"></select></div>
 				</div>

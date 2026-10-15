@@ -40,6 +40,8 @@ func (p *competitionPages) renderPartner(w http.ResponseWriter, r *http.Request,
 	page := views.PartnerPage{
 		Competition: summary(c.Competition, p.now()), Gymnast: inv.Entry.Gymnast, Club: inv.Club,
 		Event: inv.Entry.Event(), Confirmed: inv.Confirmed, Action: r.URL.Path, Problems: problems,
+		// As the entry's page saves it (data-gymnast-name, data-entry-name).
+		Saved: []string{inv.Entry.Gymnasts(), inv.Entry.Gymnasts() + " · " + c.Name},
 	}
 	if inv.Entry.Partner != nil {
 		page.Partner = inv.Entry.Partner.Name

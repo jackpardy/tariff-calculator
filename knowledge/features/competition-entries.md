@@ -362,7 +362,10 @@ A competition offers **events**: a discipline at a level.
 - **Synchro pairs** can be any two gymnasts. The entry names the partner and
   shows a **partner link** to send them; the partner confirms who they are
   with their own member page or entry link (or as having no other entry), so
-  the timetable can later check their clashes. Naming a different partner
+  the timetable can later check their clashes. Where links are saved in their
+  browser, the page offers them, starting on "Choose who you are" and leaving
+  out the synchro entry itself (saved under the pair's names, which the page
+  gives as `data-saved-self`). Naming a different partner
   needs a new confirmation. Once confirmed, the pair's entry shows under
   **Synchro as a partner** on the partner's page (member or individual),
   their coach's (unless they already see the entrant) and their club's comp

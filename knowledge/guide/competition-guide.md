@@ -538,7 +538,8 @@ if they have one): any gymnast, from your club, another, or none. A pair does
 one routine: the level's voluntary. Your entry then shows a **partner link**:
 send it to your partner. They open it and
 confirm who they are with their own member page or entry link (or that they
-have no other entry), so the timetable never puts either of you in two places
+have no other entry; if they've used the app on that phone before, they choose
+themselves from a list), so the timetable never puts either of you in two places
 at once. If you name a different partner, they confirm again. Once they've
 confirmed, the entry shows on their own page under **Synchro as a partner**,
 and to their coach and their club's comp sec, even if their club isn't
