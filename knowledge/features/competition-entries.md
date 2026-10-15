@@ -1621,7 +1621,7 @@ people with no record left).
 - **Reading them**: the Requirements page and the Routine Builder read each
   saved personal link's `<link>/requirements.json` on load and merge it into
   `SetStore` and `LevelStore`, the page's copy winning, each marked `kept`.
-  **Check against** lists kept ones first as **On your page**. Without a
+  **Check against** lists kept ones first under **Yours**, marked **On your page**. Without a
   signal, the browser's copies stand.
 - **The Requirements tab** on a member's, coach's and individual's pages
   lists them (a set's rules and a level's exercises in words), with **Take
