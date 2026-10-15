@@ -2,7 +2,6 @@ package web
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -35,26 +34,18 @@ func (p *competitionPages) scratchedOf(ctx context.Context, competitionID string
 	return out, nil
 }
 
-// checkinOf is a flight's check-in: how many are here and scratched, in words
-// ("8 of 10 here, 1 scratched"), and each gymnast in running order with their
-// state and what could be done about it. Entries no longer in the competition
-// are left out. keys are the people of each entry; notify says whether to
-// offer to Notify the gymnasts who aren't here.
-func checkinOf(f competitions.ScheduledFlight, byID map[string]store.Entry, checkins map[string]store.Checkin, keys map[string][]string, notify bool) (string, []views.DayGymnast) {
+// checkinOf is a flight's check-in: each gymnast in running order with their
+// state and what could be done about it (the page counts them). Entries no
+// longer in the competition are left out. keys are the people of each entry;
+// notify says whether to offer to Notify the gymnasts who aren't here.
+func checkinOf(f competitions.ScheduledFlight, byID map[string]store.Entry, checkins map[string]store.Checkin, keys map[string][]string, notify bool) []views.DayGymnast {
 	var out []views.DayGymnast
-	here, scratched := 0, 0
 	for n, id := range f.Entries {
 		e, ok := byID[id]
 		if !ok {
 			continue
 		}
 		c := checkins[id]
-		switch c.Status {
-		case store.CheckedIn:
-			here++
-		case store.Scratched:
-			scratched++
-		}
 		g := views.DayGymnast{
 			Entry: id, FlightGymnast: views.FlightGymnast{No: n + 1, Name: e.Entry.Gymnasts(), Club: clubOf(e)}, State: c.Status, Who: c.Who,
 			CanHere: c.Status != store.CheckedIn, CanScratch: c.Status != store.Scratched, CanClear: c.Status != "",
@@ -64,14 +55,7 @@ func checkinOf(f competitions.ScheduledFlight, byID map[string]store.Entry, chec
 		}
 		out = append(out, g)
 	}
-	if len(out) == 0 {
-		return "", nil
-	}
-	summary := fmt.Sprintf("%d of %d here", here, len(out))
-	if scratched > 0 {
-		summary += fmt.Sprintf(", %d scratched", scratched)
-	}
-	return summary, out
+	return out
 }
 
 // scratchedPeople are the people with an entry scratched (a synchro pair's

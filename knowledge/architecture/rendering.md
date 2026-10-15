@@ -163,8 +163,18 @@ The colours are tokens in `static/css/styles.css` (`--state-*`, `--role-*`)
 and `static/contrast_test.go` checks each reads at 4.5:1 or better. Don't
 use Bulma's colour classes (`tag is-success`, `has-text-danger` and the rest)
 to show a state or a role on a new page; the pages that still do move over
-in turn (the audit's rollout). Notices after an action and the venue
-screen's area colours aren't states and stay as they are.
+in turn (the audit's rollout). On the day, the dashboard, the club's pages,
+the timetable's rota and Officials have moved
+([what each shows](../features/competition-entries.md#states-and-roles-on-the-pages-one-palette-step-2)),
+and `TestStatesUseChips` (`views/status_test.go`) fails if one of their
+templates shows a state in Bulma's colours again: add a page to its list
+once it moves over. Buttons keep Bulma's colours, as they do something
+rather than show a state. Notices after an action and the venue screen's
+area colours aren't states and stay as they are.
+
+A chip placed after a name or another chip gets a small gap from the CSS.
+After text on the same line, templ reads `@StateChip(...)` as more text, so
+put the call on a line of its own (`Check-in ·`, then `@countChips(...)`).
 
 # JavaScript's job
 

@@ -49,26 +49,20 @@ func holdsSeat(f competitions.ScheduledFlight, person string) bool {
 	return person != "" && slices.ContainsFunc(f.Officials, func(d competitions.Duty) bool { return d.Person == person })
 }
 
-// panelOf is a flight's panel check-in: how many seats are here and missing,
-// in words ("4 of 6 here, 1 missing"), and each seated official with their
-// state and what could be done about it. names says who a key is; clubs, who
-// belongs to a club (by key); checks are the flight's check-ins by person;
-// whatIf is the "what if an official has to leave" page, or "" if the link
-// can't use it; notify says whether the link can send Notify messages.
-func panelOf(f competitions.ScheduledFlight, day int, names func(string) string, clubs map[string]bool, checks map[string]store.Checkin, whatIf string, notify bool) (string, []views.DaySeat) {
+// panelOf is a flight's panel check-in: each seat in order, with its official
+// and their state and what could be done about it, or no one in it (the page
+// counts them); none if no seat has anyone. names says who a key is; clubs, who belongs to a club (by
+// key); checks are the flight's check-ins by person; whatIf is the "what if
+// an official has to leave" page, or "" if the link can't use it; notify says
+// whether the link can send Notify messages.
+func panelOf(f competitions.ScheduledFlight, day int, names func(string) string, clubs map[string]bool, checks map[string]store.Checkin, whatIf string, notify bool) []views.DaySeat {
 	var out []views.DaySeat
-	here, missing := 0, 0
 	for _, d := range f.Officials {
 		if d.Person == "" {
+			out = append(out, views.DaySeat{Role: competitions.RoleName(d.Role)})
 			continue
 		}
 		c := checks[d.Person]
-		switch c.Status {
-		case store.OfficialHere:
-			here++
-		case store.OfficialMissing:
-			missing++
-		}
 		seat := views.DaySeat{
 			Person: d.Person, Name: names(d.Person), Role: competitions.RoleName(d.Role), State: c.Status, Who: c.Who,
 			CanHere: c.Status != store.OfficialHere, CanMissing: c.Status != store.OfficialMissing, CanClear: c.Status != "",
@@ -81,14 +75,10 @@ func panelOf(f competitions.ScheduledFlight, day int, names func(string) string,
 		}
 		out = append(out, seat)
 	}
-	if len(out) == 0 {
-		return "", nil
+	if !slices.ContainsFunc(out, func(s views.DaySeat) bool { return s.Person != "" }) {
+		return nil // no one has a seat: the rota isn't used
 	}
-	summary := fmt.Sprintf("%d of %d here", here, len(out))
-	if missing > 0 {
-		summary += fmt.Sprintf(", %d missing", missing)
-	}
-	return summary, out
+	return out
 }
 
 // officialChange is what setting a panel check-in would do: the official, the

@@ -73,6 +73,13 @@ func TestOfficialPages(t *testing.T) {
 	if !strings.Contains(page, "added by you") {
 		t.Fatal("added")
 	}
+	// Who each is, as a role chip: A's club sent them, I competes, the
+	// organiser added J.
+	for name, who := range map[string]string{"A": "Club · sent by their club", "I": "Gymnast · entering on their own", "Judge J": "Organiser · added by you"} {
+		if got := rowOf(t, page, name)[0]; got != name+" "+who {
+			t.Errorf("%s: %q, want %q", name, got, who)
+		}
+	}
 	// Trampoline: A and J can judge, J can chair; tumbling: A and I.
 	if !strings.Contains(page, "<td>Trampoline</td><td>2</td><td>1</td><td>9 judges, 1 chair</td>") || !strings.Contains(page, "<td>Tumbling</td><td>2</td><td>0</td>") {
 		t.Error("who can judge and chair each discipline, against a panel")

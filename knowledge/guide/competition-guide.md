@@ -360,6 +360,13 @@ has a starting value you can change.
    part of their name in **Find a name**: only the flights with them show,
    with their Check-in or Panel list open, and it stays that way as you tap
    Here. **Jump to** goes straight to an area.
+   **What the colours mean.** Each state is a small label with a mark, the
+   same on every page: grey ○ not yet (not started, not checked in), blue ◐
+   under way or waiting on someone, green ✓ done (finished, here), amber !
+   needs a look (running late, a seat no one is in) and red ✕ out
+   (scratched, missing). Each flight says Not started, Under way, Running late
+   or Finished; the Check-in and Panel headings count who's here and who's
+   out, and a Panel lists any seat that still needs someone.
    **Marshals: who's up now.** Once a flight is **Started**, its box shows who's
    first up. Tap **Next gymnast** as each gymnast starts their routine: the
    box shows who's on, their club and which routine it is (such as Set or

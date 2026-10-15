@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"tariffCalculator/views"
 )
 
 func TestRemovingEntriesPages(t *testing.T) {
@@ -44,13 +46,13 @@ func TestRemovingEntriesPages(t *testing.T) {
 		t.Errorf("removed: %s", location)
 	}
 	dash = do(t, h, http.MethodGet, admin, nil).Body.String()
-	if strings.Contains(dash, `aria-label="Tick X"`) || !strings.Contains(dash, "Removed and on hold") || !strings.Contains(dash, "Not paid (the club sees it)") {
+	if strings.Contains(dash, `aria-label="Tick X"`) || !strings.Contains(dash, "Removed and on hold") || !strings.Contains(dash, chip(t, views.Stopped, "Removed")) || !strings.Contains(dash, "Not paid (the club sees it)") {
 		t.Error("X is out of the tables, listed to restore")
 	}
 	if csv := do(t, h, http.MethodGet, admin+"/entries.csv", nil).Body.String(); strings.Contains(csv, "\nX,") {
 		t.Error("nor in the CSV")
 	}
-	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, "Removed by the organiser") || !strings.Contains(page, "Not paid") {
+	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, chip(t, views.Stopped, "Removed by the organiser")) || !strings.Contains(page, "Not paid") {
 		t.Error("the club sees X removed, and why")
 	}
 	if page := do(t, h, http.MethodGet, members["X"], nil).Body.String(); !strings.Contains(page, "Removed by the organiser") || strings.Contains(page, "Not paid") {
@@ -62,15 +64,21 @@ func TestRemovingEntriesPages(t *testing.T) {
 	if page := memberCompetitionPage(t, h, members["Y"]); !strings.Contains(page, "On hold: the organiser asks for changes") || !strings.Contains(page, "Fix the voluntary") {
 		t.Error("Y sees the hold and why")
 	}
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, chip(t, views.Attention, "On hold for changes")) {
+		t.Error("the organiser sees Y on hold")
+	}
 	changed := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-2"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, members["Y"]), members["Y"]+"/competitions/"), changed)
-	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, "On hold: changed, send it again") {
+	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, chip(t, views.Attention, "On hold: changed, send it again")) {
 		t.Error("the club sees Y changed, to send")
 	}
 	redirected(t, h, send, url.Values{"which": {"changed"}})
 	dash = do(t, h, http.MethodGet, admin, nil).Body.String()
-	if !strings.Contains(dash, "Changed and sent again: waiting for you") || !strings.Contains(dash, "Accept back in") {
+	if !strings.Contains(dash, chip(t, views.Attention, "Changed and sent again: waiting for you")) || !strings.Contains(dash, "Accept back in") {
 		t.Fatal("the organiser sees Y changed, to accept")
+	}
+	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, chip(t, views.InProgress, "Changed and sent again: waiting for the organiser")) {
+		t.Error("the club sees Y sent again, waiting")
 	}
 	redirected(t, h, admin+"/entries/"+ids["Y"]+"/restore", url.Values{})
 	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, `aria-label="Tick Y"`) {

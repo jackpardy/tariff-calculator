@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"tariffCalculator/store"
+	"tariffCalculator/views"
 )
 
 // currentTab is the label of the menu's current section in a page.
@@ -217,7 +218,7 @@ func TestMemberTabs(t *testing.T) {
 	if !strings.Contains(page, `href="`+member+`">← Competitions</a>`) || !strings.Contains(page, "Student Open") || !strings.Contains(page, "Entries close") {
 		t.Error("the competition's page has a way back and its facts")
 	}
-	if !strings.Contains(page, `<details class="box comp-event-row"><summary><strong>Trampoline</strong> <span class="tag ml-2 is-light">Not entered</span></summary>`) {
+	if !strings.Contains(page, `<details class="box comp-event-row"><summary><strong>Trampoline</strong> `+chip(t, views.NotYet, "Not entered")+`</summary>`) {
 		t.Errorf("an unentered discipline is a collapsed row saying so: %s", regexp.MustCompile(`<details class="box comp-event-row".{0,300}`).FindString(page))
 	}
 
@@ -238,7 +239,7 @@ func TestMemberTabs(t *testing.T) {
 		t.Error("the notice's entry is shown open")
 	}
 	page = do(t, h, http.MethodGet, compPath, nil).Body.String()
-	if !regexp.MustCompile(`<details class="box comp-event-row"><summary><strong>Trampoline</strong> <span class="has-text-grey is-size-7">· BUCS L3</span> <span class="tag ml-2 [^"]*">[^<]+</span></summary>`).MatchString(page) ||
+	if !strings.Contains(page, `<details class="box comp-event-row"><summary><strong>Trampoline</strong> <span class="has-text-grey is-size-7">· BUCS L3</span>`+chip(t, views.Attention, "2 problems")+`</summary>`) ||
 		!strings.Contains(page, "Saved, not sent yet") {
 		t.Errorf("an entered discipline is a collapsed row with its level and status, opening to its card: %s", regexp.MustCompile(`<details class="box comp-event-row".{0,300}`).FindString(page))
 	}
@@ -292,7 +293,7 @@ func TestMemberCompetitionPageNotFound(t *testing.T) {
 	}
 }
 
-// A discipline's status in a word or two, for its row.
+// A discipline's status in a word or two, for its row, and its state chip.
 func TestEntryBrief(t *testing.T) {
 	sent := store.MemberEntry{SentAt: time.Now().Add(-time.Hour), UpdatedAt: time.Now().Add(-2 * time.Hour)}
 	checked := sent
@@ -307,19 +308,20 @@ func TestEntryBrief(t *testing.T) {
 		problems int
 		place    int
 		want     string
+		state    views.State
 	}{
-		{"saved", store.MemberEntry{}, store.Entry{}, false, 0, 0, "Saved, not sent"},
-		{"sent", sent, store.Entry{}, false, 0, 0, "Sent"},
-		{"checked", checked, store.Entry{}, false, 0, 0, "Checked"},
-		{"changed", changed, store.Entry{}, false, 0, 0, "Changed, send again"},
-		{"one problem", checked, store.Entry{}, false, 1, 0, "1 problem"},
-		{"problems", checked, store.Entry{}, false, 2, 0, "2 problems"},
-		{"waiting", sent, store.Entry{}, false, 0, 3, "Waiting list, 3rd"},
-		{"on hold", sent, store.Entry{Removal: store.Held}, true, 0, 0, "On hold"},
-		{"removed", sent, store.Entry{Removal: store.Removed}, true, 0, 0, "Removed"},
+		{"saved", store.MemberEntry{}, store.Entry{}, false, 0, 0, "Saved, not sent", views.NotYet},
+		{"sent", sent, store.Entry{}, false, 0, 0, "Sent", views.InProgress},
+		{"checked", checked, store.Entry{}, false, 0, 0, "Checked", views.Done},
+		{"changed", changed, store.Entry{}, false, 0, 0, "Changed, send again", views.Attention},
+		{"one problem", checked, store.Entry{}, false, 1, 0, "1 problem", views.Attention},
+		{"problems", checked, store.Entry{}, false, 2, 0, "2 problems", views.Attention},
+		{"waiting", sent, store.Entry{}, false, 0, 3, "Waiting list, 3rd", views.InProgress},
+		{"on hold", sent, store.Entry{Removal: store.Held}, true, 0, 0, "On hold", views.Attention},
+		{"removed", sent, store.Entry{Removal: store.Removed}, true, 0, 0, "Removed", views.Stopped},
 	} {
-		if got, _ := brief(memberState(c.e, c.removal, c.removed, c.place), c.problems, c.place, "Sent"); got != c.want {
-			t.Errorf("%s: %q, want %q", c.name, got, c.want)
+		if got, state := brief(memberState(c.e, c.removal, c.removed, c.place), c.problems, c.place, "Sent"); got != c.want || state != c.state {
+			t.Errorf("%s: %q %s, want %q %s", c.name, got, state, c.want, c.state)
 		}
 	}
 }

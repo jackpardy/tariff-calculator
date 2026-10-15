@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"tariffCalculator/views"
 )
 
 // checkinEntry finds a gymnast's entry id in the day page's check-in lists.
@@ -31,8 +33,8 @@ func TestCheckinAndScratches(t *testing.T) {
 
 	day := admin + "/day?day=0"
 	page := do(t, h, http.MethodGet, day, nil).Body.String()
-	if !strings.Contains(page, "Check-in · 0 of 3 here</summary>") {
-		t.Errorf("nothing marked yet: %s", page)
+	if dayFlights(t, page)[0].Checkin != "0 of 3 here" || !strings.Contains(page, chip(t, views.NotYet, "0 of 3 here")) || strings.Count(page, chip(t, views.NotYet, "Not yet")) != 3 {
+		t.Errorf("nothing marked yet: %+v", dayFlights(t, page))
 	}
 	if !strings.Contains(page, ">Here</button>") || !strings.Contains(page, ">Scratched</button>") || strings.Contains(page, `value="">Clear</button>`) {
 		t.Error("Here and Scratched are offered, Clear isn't until something is marked")
@@ -48,11 +50,11 @@ func TestCheckinAndScratches(t *testing.T) {
 	}
 	mark(admin, bea, "scratched")
 	page = do(t, h, http.MethodGet, day, nil).Body.String()
-	if !strings.Contains(page, "Check-in · 1 of 3 here, 1 scratched</summary>") {
+	if dayFlights(t, page)[0].Checkin != "1 of 3 here, 1 scratched" {
 		t.Errorf("the counts: %s", page)
 	}
 	if !strings.Contains(page, `<span class="comp-scratched">Bea</span>`) || strings.Contains(page, `<span class="comp-scratched">Ann</span>`) ||
-		!strings.Contains(page, `<span class="tag is-success is-light">Here</span>`) || !strings.Contains(page, `<span class="tag is-danger is-light">Scratched</span>`) {
+		!strings.Contains(page, chip(t, views.Done, "Here")) || !strings.Contains(page, chip(t, views.Stopped, "Scratched")) {
 		t.Errorf("each gymnast's state: %s", page)
 	}
 	if !strings.Contains(page, `value="">Clear</button>`) {
@@ -84,7 +86,7 @@ func TestCheckinAndScratches(t *testing.T) {
 	// Clear takes it back.
 	mark(admin, bea, "")
 	page = do(t, h, http.MethodGet, day, nil).Body.String()
-	if !strings.Contains(page, "Check-in · 1 of 3 here</summary>") || strings.Contains(page, "comp-scratched") {
+	if dayFlights(t, page)[0].Checkin != "1 of 3 here" || strings.Contains(page, "comp-scratched") {
 		t.Errorf("cleared: %s", page)
 	}
 	if print := do(t, h, http.MethodGet, admin+"/timetable/print?sheet=scores", nil).Body.String(); strings.Contains(print, "(scratched)") {
@@ -120,7 +122,8 @@ func TestCheckinAndScratches(t *testing.T) {
 	if !historyHas(t, h, admin, "Chris", "Checked in: Cal") {
 		t.Error("the history says the chair checked Cal in")
 	}
-	if page := do(t, h, http.MethodGet, chair+"/day?day=0", nil).Body.String(); !strings.Contains(page, "Check-in · 2 of 3 here, 1 scratched</summary>") {
+	// Everyone here or scratched: the check-in is done.
+	if page := do(t, h, http.MethodGet, chair+"/day?day=0", nil).Body.String(); dayFlights(t, page)[0].Checkin != "2 of 3 here, 1 scratched" || !strings.Contains(page, chip(t, views.Done, "2 of 3 here")) {
 		t.Errorf("a chair sees the check-in: %s", page)
 	}
 	timetable := madeLink(t, h, admin, "Tina", "timetable")

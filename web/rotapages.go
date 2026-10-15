@@ -279,7 +279,8 @@ func hoursWord(minutes int) string {
 	return fmt.Sprintf("%dh %02dm", minutes/60, minutes%60)
 }
 
-// seatsOf are a flight's seats as the pages show them.
+// seatsOf are a flight's seats as the pages show them. names are the names
+// of the people in the entries, by key, so a seat says who competes.
 func seatsOf(f competitions.ScheduledFlight, people []competitions.RotaPerson, names map[string]string) []views.SeatView {
 	byKey := map[string]competitions.RotaPerson{}
 	for _, o := range people {
@@ -302,9 +303,26 @@ func seatsOf(f competitions.ScheduledFlight, people []competitions.RotaPerson, n
 		} else if d.Person != "" {
 			seat.Name = names[d.Person]
 		}
+		if d.Person != "" {
+			_, competes := names[d.Person]
+			seat.Who = seatRole(d.Person, competes)
+		}
 		out = append(out, seat)
 	}
 	return out
+}
+
+// seatRole is who fills a seat, for its role chip: a gymnast if they compete
+// here; else the organiser, for someone the organiser added (who has an
+// official's key); else their club, which sent their offer.
+func seatRole(person string, competes bool) views.Role {
+	if competes {
+		return views.RoleGymnast
+	}
+	if kind, _ := store.KeyKind(person); kind == store.KindOfficial {
+		return views.RoleOrganiser
+	}
+	return views.RoleClub
 }
 
 // dutiesOf are a person's seats on a published timetable, in time order,

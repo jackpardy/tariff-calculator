@@ -4,8 +4,11 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
+
+	"tariffCalculator/views"
 )
 
 // twoFlights are timings that put the two BUCS L3 gymnasts of scratchSetup in
@@ -41,11 +44,11 @@ func TestPanelCheckinRun(t *testing.T) {
 	const first, second = "BUCS L3 · flight 1 of 2", "BUCS L3 · flight 2 of 2"
 	// BUCS L3 is a run of two flights on Panel 1, with Mary, Tom and Dara
 	// sitting on both of them; tumbling is a flight of its own.
-	if n := strings.Count(page, "Panel · 0 of 3 here</summary>"); n != 2 {
+	if n := panelsShowing(t, page, "0 of 3 here"); n != 2 {
 		t.Fatalf("both flights of the run have a panel of three, none here: %d %s", n, page)
 	}
-	if !strings.Contains(page, "Panel · 0 of 1 here</summary>") {
-		t.Error("so does tumbling's, of one")
+	if panelsShowing(t, page, "0 of 1 here, 1 seat needs someone") != 1 || strings.Count(page, chip(t, views.Attention, "Needs someone")) != 1 {
+		t.Error("so does tumbling's, of one, with a seat no one fills")
 	}
 	if strings.Contains(page, `value="">Clear</button>`) {
 		t.Error("nothing to clear yet")
@@ -62,13 +65,13 @@ func TestPanelCheckinRun(t *testing.T) {
 		t.Errorf("back to the day: %s", to)
 	}
 	page = get(day)
-	if n := strings.Count(page, "Panel · 1 of 3 here</summary>"); n != 2 {
+	if n := panelsShowing(t, page, "1 of 3 here"); n != 2 {
 		t.Errorf("Dara is here for the run: %d %s", n, page)
 	}
-	if !strings.Contains(page, "Panel · 0 of 1 here</summary>") {
+	if panelsShowing(t, page, "0 of 1 here, 1 seat needs someone") != 1 {
 		t.Error("tumbling's panel isn't touched")
 	}
-	if !strings.Contains(page, `<span class="tag is-success is-light">Here</span>`) || !strings.Contains(page, `value="">Clear</button>`) {
+	if !strings.Contains(page, chip(t, views.Done, "Here")) || !strings.Contains(page, `value="">Clear</button>`) {
 		t.Errorf("her state, and Clear: %s", page)
 	}
 	if notifyForm(page, dara, flight1, "official") || notifyForm(page, dara, flight2, "official") {
@@ -91,7 +94,7 @@ func TestPanelCheckinRun(t *testing.T) {
 	// see what if she leaves, and she can be notified again.
 	mark(admin, dara, flight2, "missing")
 	page = get(day)
-	if n := strings.Count(page, "Panel · 0 of 3 here, 1 missing</summary>"); n != 2 {
+	if n := panelsShowing(t, page, "0 of 3 here, 1 missing"); n != 2 || strings.Count(page, chip(t, views.Stopped, "Missing")) != 2 {
 		t.Errorf("Dara is missing for the run: %d %s", n, page)
 	}
 	leave := regexp.MustCompile(`href="([^"]*timetable/leave\?[^"]*)">What if they leave`).FindStringSubmatch(page)
@@ -110,14 +113,14 @@ func TestPanelCheckinRun(t *testing.T) {
 
 	// A chair sees the state but isn't sent to the what-if page.
 	chair := madeLink(t, h, admin, "Chris", "chair")
-	if page := get(chair + "/day?day=0"); !strings.Contains(page, "Panel · 0 of 3 here, 1 missing</summary>") || strings.Contains(page, "What if they leave") {
+	if page := get(chair + "/day?day=0"); panelsShowing(t, page, "0 of 3 here, 1 missing") == 0 || strings.Contains(page, "What if they leave") {
 		t.Errorf("a chair sees Dara missing, without the link: %s", page)
 	}
 
 	// Clear takes it back on the whole run.
 	mark(admin, dara, flight1, "")
 	page = get(day)
-	if n := strings.Count(page, "Panel · 0 of 3 here</summary>"); n != 2 || strings.Contains(page, "What if they leave") || strings.Contains(page, `value="">Clear</button>`) {
+	if n := panelsShowing(t, page, "0 of 3 here"); n != 2 || strings.Contains(page, "What if they leave") || strings.Contains(page, `value="">Clear</button>`) {
 		t.Errorf("cleared on both flights: %s", page)
 	}
 	if to := mark(admin, dara, flight1, ""); !strings.Contains(to, "notice=") {
@@ -198,7 +201,7 @@ func TestPanelCheckinAccess(t *testing.T) {
 			t.Errorf("a cards link can't use %s: %d", path, rec.Code)
 		}
 	}
-	if page := do(t, h, http.MethodGet, admin+"/day?day=0", nil).Body.String(); strings.Contains(page, "Panel · 1 of") {
+	if page := do(t, h, http.MethodGet, admin+"/day?day=0", nil).Body.String(); slices.ContainsFunc(dayFlights(t, page), func(f dayFlight) bool { return strings.HasPrefix(f.Panel, "1 of") }) {
 		t.Error("nothing was checked in")
 	}
 

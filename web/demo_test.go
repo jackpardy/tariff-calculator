@@ -94,7 +94,7 @@ func TestDemoSeed(t *testing.T) {
 			}
 		})
 		page := do(t, s.h, http.MethodGet, tt, nil).Body.String()
-		for _, want := range []string{"Everything fits.", "HD judge"} {
+		for _, want := range []string{"Everything fits", "HD judge"} {
 			if !strings.Contains(page, want) {
 				t.Errorf("timetable doesn't say %q", want)
 			}
