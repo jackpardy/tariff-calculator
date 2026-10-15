@@ -1790,10 +1790,10 @@ func TestDeskMessages(t *testing.T) {
 	now = now.Add(time.Minute)
 	_, err = s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "Come", Come: true, Audience: "2 people", People: []string{"m:a", "i:bea"}, Who: "Chairs"})
 	must(t, err)
-	must(t, s.SetDeskTold(ctx, c.ID, first.ID, 1, 2))
+	must(t, s.SetDeskTold(ctx, c.ID, first.ID, 1, 2, 3))
 	got, err := s.DeskMessages(ctx, c.ID)
 	must(t, err)
-	if len(got) != 2 || got[0].Text != "Come" || got[1].Pushed != 1 || got[1].Emailed != 2 || got[1].Clubs[0] != "club1" || !slices.Equal(got[0].People, []string{"m:a", "i:bea"}) {
+	if len(got) != 2 || got[0].Text != "Come" || got[1].Pushed != 1 || got[1].Emailed != 2 || got[1].Failed != 3 || got[1].Clubs[0] != "club1" || !slices.Equal(got[0].People, []string{"m:a", "i:bea"}) {
 		t.Fatalf("latest first, with who it went to: %+v", got)
 	}
 	if got[0].Full() != "Please come to the organisers' desk. Come" || got[1].Full() != "Hello" || (DeskMessage{Come: true}).Full() != ComeToTheDesk {
@@ -1843,5 +1843,44 @@ func TestMembersByName(t *testing.T) {
 	}
 	if strings.Join(got, ", ") != "aoife Byrne, Ciara Daly, Éabha Kelly, Tadhg Ryan" {
 		t.Errorf("members: %v", got)
+	}
+}
+
+// The count of changes moves after each change saved, and not after a
+// lookup: the pages keep what they've worked out until it moves.
+func TestWrites(t *testing.T) {
+	now := time.Date(2030, 3, 1, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	was := s.Writes()
+	club, admin, err := s.CreateClub(ctx, "UCD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Writes() == was {
+		t.Fatal("making a club is a change")
+	}
+	was = s.Writes()
+	if _, err := s.ClubByAdmin(ctx, admin); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Members(ctx, club.ID); err != nil {
+		t.Fatal(err)
+	}
+	if s.Writes() != was {
+		t.Error("looking a club up, just after it was used, changes nothing")
+	}
+	now = now.Add(usedEvery + time.Hour)
+	if _, err := s.ClubByAdmin(ctx, admin); err != nil {
+		t.Fatal(err)
+	}
+	if s.Writes() == was {
+		t.Error("marking a club used again, after a while, is a change")
+	}
+	was = s.Writes()
+	if _, err := s.MemberByLink(ctx, "no-such-link"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("a wrong link: %v", err)
+	}
+	if s.Writes() != was {
+		t.Error("a lookup in a transaction that changes nothing isn't a change")
 	}
 }

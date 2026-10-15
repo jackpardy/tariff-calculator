@@ -188,7 +188,7 @@ func TestDaySearchInABrowser(t *testing.T) {
 		Open: document.querySelector('` + eve + `').closest('details').open,
 		Opened: 'listOpened' in document.querySelector('` + eve + `').closest('details').dataset,
 		Search: document.querySelector('[data-list-search]').value,
-		Here: !!document.querySelector('` + eve + ` .tag.is-success'),
+		Here: !!document.querySelector('` + eve + ` .chip-state-done'),
 		Same: window.sameDocument === true,
 	})`
 	var before, after, cleared view
@@ -203,7 +203,7 @@ func TestDaySearchInABrowser(t *testing.T) {
 	}
 	step(t, ctx, "tapping Here for Eve",
 		chromedp.Click(eve+` button[value="here"]`, chromedp.ByQuery),
-		chromedp.WaitVisible(eve+` .tag.is-success`, chromedp.ByQuery),
+		chromedp.WaitVisible(eve+` .chip-state-done`, chromedp.ByQuery),
 		chromedp.Evaluate(read, &after),
 	)
 	if after.Shown != "Eve" || after.Flights != 1 || !after.Open || !after.Opened || after.Search != "eve" || !after.Here || !after.Same {

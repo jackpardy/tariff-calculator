@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"tariffCalculator/views"
 )
 
 func TestTimetable(t *testing.T) {
@@ -62,7 +64,7 @@ func TestTimetable(t *testing.T) {
 	// Plan.
 	location = redirected(t, h, tt+"/plan", url.Values{})
 	page = do(t, h, http.MethodGet, location, nil).Body.String()
-	for _, want := range []string{"Planned 6 gymnasts.", "Everything fits.", "BUCS L3 Women", "BUCS L3 Men", "Tumbling Novice", "Not published"} {
+	for _, want := range []string{"Planned 6 gymnasts.", chip(t, views.Done, "Everything fits"), "BUCS L3 Women", "BUCS L3 Men", "Tumbling Novice", "Not published"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the plan should say %q", want)
 		}

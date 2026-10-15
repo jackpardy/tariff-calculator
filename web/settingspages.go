@@ -38,7 +38,7 @@ func (p *competitionPages) settings(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	entries, err := p.st.Entries(r.Context(), c.ID)
+	entries, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -54,7 +54,7 @@ func (p *competitionPages) settings(w http.ResponseWriter, r *http.Request) {
 		ChangesDate: dateField(c.ChangesUntil, c.Deadline), ChangesTime: timeField(c.ChangesUntil, c.Deadline),
 		SignoffsDate: dateField(c.SignoffsUntil, c.Deadline), SignoffsTime: timeField(c.SignoffsUntil, c.Deadline),
 		LiveDate: liveDate, LiveTime: liveTime,
-		NotifyOn: p.notifyLink("/") != "", NoWait: c.NoWait,
+		NotifyOn: p.notifyLink("/") != "", NoWait: c.NoWait, FeedbackButton: c.FeedbackButton,
 		Limits: limitFields(c, entries), Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()),
 		Events: eventsForm(c.Competition), LevelOrder: levelOrderForm(c.Competition),
 	}

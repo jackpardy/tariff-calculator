@@ -82,6 +82,7 @@ templ competitionLayout(title string) {
 					<div class="notification is-warning is-light comp-offline" hidden>You're offline: this is the page as it was when last opened (<span data-offline-when></span>).</div>
 					@roleTabs(rolesOf(ctx))
 					{ children... }
+					@feedbackButton(FeedbackFormOf(ctx))
 				</div>
 			</section>
 		</body>

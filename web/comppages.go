@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 	_ "time/tzdata" // the image has no zoneinfo; deadlines are Irish and UK time
@@ -45,6 +46,8 @@ type competitionPages struct {
 	emailLimiter                      *limiter // confirmation emails asked for, per address
 	now                               func() time.Time
 	notify                            *notifier // nil when storage is off
+	facts                             factCache // what the pages work out from each competition's entries
+	feedbackTo                        string    // where feedback is emailed (FEEDBACK_EMAIL); "" for nowhere
 }
 
 func newCompetitionPages(st *store.Store) *competitionPages {
@@ -55,6 +58,7 @@ func newCompetitionPages(st *store.Store) *competitionPages {
 		joinLimiter:  newLimiter(maxJoinsPerHour, time.Hour),
 		emailLimiter: newLimiter(maxEmailsPerHour, time.Hour),
 		now:          time.Now,
+		feedbackTo:   os.Getenv("FEEDBACK_EMAIL"),
 	}
 	if st != nil {
 		p.notify = newNotifier(st)
@@ -70,6 +74,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 		mux.Handle(pattern, p.secret(h))
 	}
 	p.registerAccess(handle)
+	p.registerFeedback(handle)
 	p.registerFees(handle)
 	p.registerLimits(handle)
 	p.registerLate(handle)
@@ -133,7 +138,7 @@ func (p *competitionPages) secret(h http.HandlerFunc) http.Handler {
 			message(w, r, http.StatusServiceUnavailable, "Not available yet", "Competition entries aren't available on this server yet.")
 			return
 		}
-		h(w, p.withRoles(r))
+		h(w, withFeedback(p.withRoles(r)))
 	})
 }
 

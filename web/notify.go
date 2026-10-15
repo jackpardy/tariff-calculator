@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"tariffCalculator/competitions"
@@ -32,8 +32,11 @@ type notifier struct {
 	mail mailer // nil: email isn't offered
 	now  func() time.Time
 	base string       // the site's address, for links in what's sent
-	keys *vapid       // the push keys, once read
+	send *sender      // sends emails and pushes in the background
 	http *http.Client // for pushes; nil for the usual one
+	// keys are the push keys, once read; the sender's workers share them.
+	keysMu sync.Mutex
+	keys   *vapid
 	// confirms are the confirmation emails sent, by competition, to allow
 	// maxConfirmsPerDay. Kept in memory: a restart forgets them.
 	confirms *limiter
@@ -44,8 +47,10 @@ func newNotifier(st *store.Store) *notifier {
 	if base == "" {
 		base = "https://tariff.pardy.ie"
 	}
-	return &notifier{st: st, mail: mailerFromEnv(), now: time.Now, base: strings.TrimSuffix(base, "/"),
+	n := &notifier{st: st, mail: mailerFromEnv(), now: time.Now, base: strings.TrimSuffix(base, "/"),
 		confirms: newLimiter(maxConfirmsPerDay, 24*time.Hour)}
+	n.send = newSender(n)
+	return n
 }
 
 // notifyState is what's live, as far as anyone can be told about it.
@@ -363,7 +368,7 @@ func (n *notifier) tell(ctx context.Context) {
 }
 
 // tellCompetition compares a competition's baseline with what's live and
-// tells each address its changes, at once.
+// hands each address's changes to the sender.
 func (n *notifier) tellCompetition(ctx context.Context, d store.Due) error {
 	c, err := n.st.Competition(ctx, d.CompetitionID)
 	if err != nil {
@@ -423,6 +428,7 @@ func (n *notifier) tellCompetition(ctx context.Context, d store.Due) error {
 			}
 		}
 	}
+	var ds []delivery
 	for _, key := range addresses {
 		t := byAddress[key]
 		var groups []changeGroup
@@ -435,20 +441,13 @@ func (n *notifier) tellCompetition(ctx context.Context, d store.Due) error {
 				continue
 			}
 			subject, body, headers := n.changesEmail(c, groups, t.subs)
-			if err := n.mail.send(t.subs[0].Address, subject, body, headers); err != nil {
-				log.Printf("Notifications: emailing about %s: %v", c.ID, err)
-			}
+			ds = append(ds, delivery{about: "Notifications: emailing about " + c.ID, email: &email{t.subs[0].Address, subject, body, headers}})
 		case store.ByPush:
-			err := n.push(ctx, t.subs[0], pushMessage{Title: c.Name, Body: pushSummary(groups), URL: n.savedLinks()})
-			if errors.Is(err, errGone) {
-				for _, s := range t.subs {
-					n.st.DropSubscription(ctx, s.ID)
-				}
-			} else if err != nil {
-				log.Printf("Notifications: pushing about %s: %v", c.ID, err)
-			}
+			ds = append(ds, delivery{about: "Notifications: pushing about " + c.ID, sub: t.subs[0], drop: t.subs,
+				push: pushMessage{Title: c.Name, Body: pushSummary(groups), URL: n.savedLinks()}})
 		}
 	}
+	n.send.send(ds)
 	return nil
 }
 

@@ -90,7 +90,12 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 		}
 	}
 	if judges {
-		for _, j := range judge(c.Competition, entries) {
+		cards, err := p.judgedOf(r.Context(), c.ID, true)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		for _, j := range cards {
 			if j.err != nil {
 				sheets.Notes[j.ID] = j.err.Error()
 				continue

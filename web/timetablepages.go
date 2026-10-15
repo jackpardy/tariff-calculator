@@ -112,7 +112,7 @@ func (p *competitionPages) timetableOf(w http.ResponseWriter, r *http.Request) (
 	if !ok {
 		return c, competitions.Schedule{}, nil, false
 	}
-	entries, err := p.st.Entries(r.Context(), c.ID)
+	entries, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return c, competitions.Schedule{}, nil, false

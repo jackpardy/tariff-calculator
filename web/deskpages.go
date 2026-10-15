@@ -17,8 +17,9 @@ import (
 
 // Messages from the organisers' desk (roadmap 2026-10-09): the organiser
 // sends a message, or asks people to come to the desk, to a club, a flight,
-// the officials or a group picked by hand. It is pushed and emailed at once
-// to whoever has asked to hear, and shown on each recipient's own page.
+// the officials or a group picked by hand. It is pushed and emailed in the
+// background to whoever has asked to hear, and shown on each recipient's
+// own page.
 
 func (p *competitionPages) registerDesk(handle func(string, http.HandlerFunc)) {
 	handle("GET /competitions/admin/{token}/desk", p.desk)
@@ -130,7 +131,7 @@ func (p *competitionPages) deskFormOf(r *http.Request, c store.Competition) (d d
 			d.problem = "Publish the timetable to message a flight."
 			return d, nil
 		}
-		all, err := p.st.Entries(ctx, c.ID)
+		all, err := p.entriesOf(ctx, c.ID)
 		if err != nil {
 			return d, err
 		}
@@ -321,10 +322,14 @@ func (p *competitionPages) desk(w http.ResponseWriter, r *http.Request) {
 	}
 	page.PeopleTools = views.ListTools{ID: "desk-people", Noun: "people", Total: len(people), Filters: []views.ListFilter{clubFilter(peopleClubs)}}
 	for _, m := range sent {
-		page.Sent = append(page.Sent, views.DeskSent{
+		s := views.DeskSent{
 			At: m.At.In(local).Format("Mon 2 Jan, 15:04"), Who: m.Who, To: m.Audience, Text: m.Full(),
-			Pushed: m.Pushed, Emailed: m.Emailed,
-		})
+			Pushed: m.Pushed, Emailed: m.Emailed, Failed: m.Failed,
+		}
+		if t, ok := p.notify.deskProgress(m.ID); ok {
+			s.Pushed, s.Emailed, s.Failed, s.ToGo = t.pushed, t.emailed, t.failed, t.toGo()
+		}
+		page.Sent = append(page.Sent, s)
 	}
 	render(w, r, views.Desk(page))
 }
@@ -356,12 +361,8 @@ func (p *competitionPages) sendDesk(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	pushed, emailed := p.notify.tellDesk(r.Context(), c, m)
-	if err := p.st.SetDeskTold(r.Context(), c.ID, m.ID, pushed, emailed); err != nil {
-		log.Printf("Desk: %s: %v", c.ID, err)
-	}
-	notice := fmt.Sprintf("Sent to %s. Told %d by push and %d by email; everyone else sees it on their page.", m.Audience, pushed, emailed)
-	seeOther(w, r, back, notice)
+	pushes, emails := p.notify.tellDesk(r.Context(), c, m)
+	seeOther(w, r, back, "Sent to "+m.Audience+". "+sendingNotice(pushes, emails)+" Everyone sees it on their own page.")
 }
 
 // deskNotes are the messages that reach someone, newest first, at most

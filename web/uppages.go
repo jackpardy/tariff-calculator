@@ -40,9 +40,11 @@ func dayUp(c competitions.Competition, f competitions.ScheduledFlight, byID map[
 
 // markUp moves a running flight on to the next gymnast, or back one (flight:
 // its key; what: next or back; entry and round: the gymnast and routine the
-// page showed, "" before the first tap; day: the page to go back to). A tap
-// from a routine the flight has moved on from, as when the same tap is sent
-// twice, quietly changes nothing. A tap that changes nothing otherwise says
+// page showed, "" before the first tap; day: the page to go back to; tapped
+// and sent: when a tap kept on the phone was made and sent, see tapAt). A
+// tap from a routine the flight has moved on from, as when the same tap is
+// sent twice, or one kept on a phone while another phone moved it on,
+// quietly changes nothing. A tap that changes nothing otherwise says
 // so, and the last routine leaves finishing the flight to the Finished
 // button.
 func (p *competitionPages) markUp(w http.ResponseWriter, r *http.Request) {
@@ -73,6 +75,11 @@ func (p *competitionPages) markUp(w http.ResponseWriter, r *http.Request) {
 		message(w, r, http.StatusBadRequest, "Not a flight", "That flight isn't in the published timetable. It may have been changed: go back and try again.")
 		return
 	}
+	at, late := p.tapAt(r)
+	if late != "" {
+		http.Redirect(w, r, backToDay(r, late, anchor), http.StatusSeeOther)
+		return
+	}
 	times, err := p.st.FlightTimes(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
@@ -82,7 +89,7 @@ func (p *competitionPages) markUp(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, backToDay(r, f.Name()+" isn't running: tap Started first, and Next gymnast before it's finished.", anchor), http.StatusSeeOther)
 		return
 	}
-	all, err := p.st.Entries(r.Context(), c.ID)
+	all, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -101,7 +108,7 @@ func (p *competitionPages) markUp(w http.ResponseWriter, r *http.Request) {
 	if what == "back" {
 		move = o.Back
 	}
-	_, moved, err := p.st.MoveUp(r.Context(), c.ID, key, from, move, linkOf(r).Name)
+	_, moved, err := p.st.MoveUpAt(r.Context(), c.ID, key, from, move, linkOf(r).Name, at)
 	_, anyone := o.First()
 	switch {
 	case errors.Is(err, store.ErrUpMoved):

@@ -3,11 +3,48 @@ package views
 import (
 	"bytes"
 	"context"
+	"os"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/a-h/templ"
 )
+
+// paletteOnly are the templates that show states and roles only with the
+// chips (the cleanup audit's roll-out, step 2): On the day, the dashboard,
+// the club's pages, the timetable's rota and the officials.
+var paletteOnly = []string{"day.templ", "dashboard.templ", "clubs.templ", "timetable.templ", "officials.templ"}
+
+// bulmaState is Bulma colour used to show a state: a coloured tag, or
+// coloured text.
+var bulmaState = regexp.MustCompile(`"tag\b.*\bis-(success|warning|danger)\b|\bhas-text-(success|warning|danger)(-dark)?\b`)
+
+// The converted templates don't go back to Bulma's colours for a state:
+// only buttons, which do something rather than show a state, keep them.
+func TestStatesUseChips(t *testing.T) {
+	for _, old := range []string{
+		`<span class="tag is-success is-light">Here</span>`,
+		`<span class={ "tag is-light ml-1", templ.KV("is-success", k.Approved), templ.KV("is-warning", !k.Approved) }>{ k.Status }</span>`,
+		`<td class={ templ.KV("has-text-danger", r.Video == "missing") } data-label="Video">`,
+		`<span class="is-size-7 has-text-warning-dark">{ s }</span>`,
+	} {
+		if !bulmaState.MatchString(old) {
+			t.Errorf("not caught: %s", old)
+		}
+	}
+	for _, name := range paletteOnly {
+		src, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, line := range strings.Split(string(src), "\n") {
+			if bulmaState.MatchString(line) && !strings.Contains(line, "<button") {
+				t.Errorf("%s:%d shows a state in Bulma's colours, not with StateChip or WhoChip: %s", name, i+1, strings.TrimSpace(line))
+			}
+		}
+	}
+}
 
 func render(t *testing.T, c templ.Component) string {
 	t.Helper()

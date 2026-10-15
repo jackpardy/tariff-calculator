@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -50,7 +51,7 @@ const (
 
 // Store is the database.
 type Store struct {
-	db  *sql.DB
+	db  *database
 	now func() time.Time
 	// free is the space free on the data directory's disk, to refuse
 	// certificates when it's nearly full.
@@ -69,7 +70,7 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("opening the database: %w", err)
 	}
-	s := &Store{db: db, now: func() time.Time { return time.Now().UTC() }, free: func() (uint64, error) { return diskFree(dir) }}
+	s := &Store{db: &database{DB: db}, now: func() time.Time { return time.Now().UTC() }, free: func() (uint64, error) { return diskFree(dir) }}
 	if err := s.migrate(ctx); err != nil {
 		db.Close()
 		return nil, err
@@ -80,6 +81,36 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 // Close closes the database.
 func (s *Store) Close() error {
 	return s.db.Close()
+}
+
+// database is the store's connection pool, counting the changes made
+// through it: each statement run outside a transaction, and each
+// transaction committed (Store.tx), that changed a row. The pages keep what they work out from a
+// competition's entries until the count moves (Writes).
+type database struct {
+	*sql.DB
+	writes atomic.Uint64
+}
+
+// ExecContext runs a statement, counting it as a change once it's done,
+// unless it changed no rows (as marking a link used does on most visits).
+func (d *database) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	res, err := d.DB.ExecContext(ctx, query, args...)
+	if err == nil {
+		if n, rerr := res.RowsAffected(); rerr == nil && n == 0 {
+			return res, nil
+		}
+	}
+	d.writes.Add(1)
+	return res, err
+}
+
+// Writes counts the changes made so far: it moves after each one is saved,
+// so what was read when it stood at a number is out of date once it moves.
+// It counts only this process's changes; the app is the database's only
+// writer while it runs.
+func (s *Store) Writes() uint64 {
+	return s.db.writes.Load()
 }
 
 // migrations upgrade the schema, in order. Each runs once, in a transaction;
@@ -697,6 +728,29 @@ var migrations = []string{
 		created_at TEXT NOT NULL
 	);
 	CREATE INDEX club_skills_club ON club_skills (club_id);`,
+
+	// 40: feedback about the app (roadmap, ready for the dry run), from any
+	// of a competition's pages, for the organiser and the maintainer: the
+	// words, a reply-to if given, the role and the page (its route pattern,
+	// never its path, which holds a secret link). The button is on for every
+	// competition, those already made too, until the organiser turns it off.
+	`ALTER TABLE competitions ADD COLUMN feedback BOOLEAN NOT NULL DEFAULT TRUE;
+	CREATE TABLE feedback (
+		id             TEXT PRIMARY KEY,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		text           TEXT NOT NULL,
+		reply_to       TEXT NOT NULL DEFAULT '',
+		role           TEXT NOT NULL,
+		page           TEXT NOT NULL,
+		at             TEXT NOT NULL,
+		done_at        TEXT NOT NULL DEFAULT '',
+		done_by        TEXT NOT NULL DEFAULT ''
+	);
+	CREATE INDEX feedback_competition ON feedback (competition_id, at);`,
+
+	// 41: desk messages sent in the background (roadmap, ready for the dry
+	// run): how many addresses couldn't be told, once it's finished.
+	`ALTER TABLE desk_messages ADD COLUMN failed INTEGER NOT NULL DEFAULT 0;`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run
@@ -816,9 +870,20 @@ func (s *Store) tx(ctx context.Context, fn func(*sql.Tx) error) error {
 	if err != nil {
 		return err
 	}
+	// Changes made on its connection before and after, to count it as a
+	// change only if it made one: most only look something up, now and then
+	// marking a link used.
+	var before, after int64
+	if err := tx.QueryRowContext(ctx, `SELECT total_changes()`).Scan(&before); err != nil {
+		tx.Rollback()
+		return err
+	}
 	if err := fn(tx); err != nil {
 		tx.Rollback()
 		return err
+	}
+	if err := tx.QueryRowContext(ctx, `SELECT total_changes()`).Scan(&after); err != nil || after != before {
+		defer s.db.writes.Add(1)
 	}
 	return tx.Commit()
 }

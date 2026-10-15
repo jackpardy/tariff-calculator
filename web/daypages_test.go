@@ -74,7 +74,7 @@ func TestOnTheDay(t *testing.T) {
 
 	day := admin + "/day?day=0"
 	area := panelOne(t, h, day)
-	if f := area.Flights[0]; f.Name != "BUCS L3" || f.Planned != "09:00–09:25" || !slices.Equal(f.Buttons, []string{"Started"}) || area.Status != "Nothing started yet" {
+	if f := area.Flights[0]; f.Name != "BUCS L3" || f.State != "Not started" || f.Planned != "09:00–09:25" || !slices.Equal(f.Buttons, []string{"Started"}) || area.Status != "Nothing started yet" {
 		t.Errorf("each flight has a Started button only, and its planned time: %+v", area)
 	}
 	flight := firstFlightKey(t, h, day)
@@ -88,7 +88,7 @@ func TestOnTheDay(t *testing.T) {
 		t.Errorf("back to the day: %s", to)
 	}
 	area = panelOne(t, h, day)
-	if f := area.Flights[0]; f.Started != "10:00" || f.Who != "Organiser" || !slices.Contains(f.Buttons, "Finished") || !slices.Contains(f.Buttons, "Undo") || slices.Contains(f.Buttons, "Started") {
+	if f := area.Flights[0]; f.Started != "10:00" || f.State != "Under way" || f.Who != "Organiser" || !slices.Contains(f.Buttons, "Finished") || !slices.Contains(f.Buttons, "Undo") || slices.Contains(f.Buttons, "Started") {
 		t.Errorf("started: Finished and Undo are offered, and who marked it: %+v", f)
 	}
 	if !strings.HasPrefix(area.Status, "Not measured: times marked on another date") || area.Late || area.WhatIf != "" {
@@ -107,18 +107,18 @@ func TestOnTheDay(t *testing.T) {
 	clock.set(onTheDay(9, 20))
 	mark("start")
 	area = panelOne(t, h, day)
-	if area.Status != "Running 20 min late" || !area.Late || area.Since != "measured from BUCS L3 started at 09:20" {
+	if area.Status != "Running 20 min late" || !area.Late || area.Since != "measured from BUCS L3 started at 09:20" || area.Flights[0].State != "Running late" {
 		t.Errorf("started at 09:20: %+v", area)
 	}
 	if u, err := url.Parse(area.WhatIf); err != nil || u.Path != admin+"/timetable/delay" ||
 		u.Query().Get("minutes") != "20" || u.Query().Get("from") != "09:20" || u.Query().Get("area") != "Panel 1" {
 		t.Errorf("the delay page, filled in: %q", area.WhatIf)
 	}
-	clock.set(onTheDay(9, 15)) // before its planned end, 09:25
+	clock.set(onTheDay(9, 22)) // before its planned end, 09:25
 	mark("finish")
 	area = panelOne(t, h, day)
-	if f := area.Flights[0]; area.Status != "10 min early" || !area.Early || area.Late || f.Started != "09:20" || f.Finished != "09:15" || slices.Contains(f.Buttons, "Finished") {
-		t.Errorf("finished at 09:15: %+v", area)
+	if f := area.Flights[0]; area.Status != "3 min early" || !area.Early || area.Late || f.State != "Finished" || f.Started != "09:20" || f.Finished != "09:22" || slices.Contains(f.Buttons, "Finished") {
+		t.Errorf("finished at 09:22: %+v", area)
 	}
 	// Doing it twice does nothing, and says so.
 	if to := mark("finish"); noticeOf(t, to) == "" {

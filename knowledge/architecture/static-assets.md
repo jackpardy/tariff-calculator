@@ -22,6 +22,21 @@ An unknown path panics, so a bad link fails the tests.
 Vendored libraries (htmx, Alpine, SortableJS, Bulma) live alongside the app's
 own files. Nothing loads from a CDN.
 
+# Compression
+
+The app compresses its own text responses, so it doesn't depend on the web
+server in front of it (`web/gzip.go`, wrapped round every route). Pages, JSON,
+SVG, CSV, calendar files and the manifest go out gzipped when the request's
+`Accept-Encoding` allows it, with `Vary: Accept-Encoding` and no
+`Content-Length`; a strong `ETag` is made weak. Left alone: responses under
+1 KB, `HEAD`, 204, 304 and partial content, anything already encoded, and
+binary types (images, PDFs, uploaded certificates). On the demo the
+organiser's On the day page falls from 1.0 MB to 54 KB.
+
+The CSS and JS files are gzipped once, on first request, and kept. The gzipped
+copy has its own `ETag` (`"<hash>-gz"`), so a revalidation never mixes the two.
+The service worker and push code only see decoded bytes, so they are unaffected.
+
 # Update notice
 
 `static.Version` is the first 12 hex digits of the SHA-256 of the running

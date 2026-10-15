@@ -22,6 +22,7 @@ func (p *competitionPages) individual(w http.ResponseWriter, r *http.Request) (s
 		failed(w, r, err)
 		return c, false
 	}
+	feedbackOn(r, c)
 	return c, true
 }
 
@@ -106,6 +107,7 @@ func (p *competitionPages) own(w http.ResponseWriter, r *http.Request) (store.En
 		failed(w, r, err)
 		return e, c, false
 	}
+	feedbackOn(r, c)
 	return e, c, true
 }
 
@@ -270,6 +272,7 @@ func (p *competitionPages) signoffEntry(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return e, c, false
 	}
+	feedbackOn(r, c)
 	return e, c, true
 }
 

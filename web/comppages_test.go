@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"tariffCalculator/views"
 )
 
 // competitionServer is the app with storage in a fresh directory, on the
@@ -191,7 +193,7 @@ func TestIndividualEntry(t *testing.T) {
 
 	// The organiser sees it, checked, with its problems.
 	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
-	if row := rowOf(t, dash, "C. Ryan"); !slices.Contains(row, "individual") || !slices.Contains(row, "Second exercise: Exactly 10 elements +1 more") {
+	if row := rowOf(t, dash, "C. Ryan"); !slices.Contains(row, "Gymnast · on their own") || !slices.Contains(row, "2 problems Second exercise: Exactly 10 elements") {
 		t.Errorf("the dashboard lists the entry as an individual's, with its problems: %q", row)
 	}
 	if problems := do(t, h, http.MethodGet, admin+"?problems=1", nil).Body.String(); !strings.Contains(problems, "C. Ryan") {
@@ -270,10 +272,10 @@ func TestOrganiserTools(t *testing.T) {
 
 	// Marking it checked, with a note the gymnast sees.
 	redirected(t, h, admin+"/entries/"+id+"/check", url.Values{"checked": {"1"}, "note": {"Please add 8 elements"}})
-	if page := do(t, h, http.MethodGet, admin+"/entries/"+id, nil).Body.String(); !strings.Contains(page, "✓ Checked") || !strings.Contains(page, "Please add 8 elements") {
+	if page := do(t, h, http.MethodGet, admin+"/entries/"+id, nil).Body.String(); !strings.Contains(page, chip(t, views.Done, "Checked")) || !strings.Contains(page, "Please add 8 elements") {
 		t.Error("the entry shows it's checked, with the note")
 	}
-	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, `title="Please add 8 elements"`) {
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, `title="Please add 8 elements"`) || !strings.Contains(dash, chip(t, views.Done, "Checked")) {
 		t.Error("the dashboard shows the check and note")
 	}
 	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Checked by the organiser.") || !strings.Contains(page, "Please add 8 elements") {
@@ -342,7 +344,7 @@ func TestVideoProof(t *testing.T) {
 		t.Error("the gymnast sees which skill needs video")
 	}
 	dash = do(t, h, http.MethodGet, admin, nil).Body.String()
-	if !strings.Contains(dash, "<th>Video</th>") || !strings.Contains(dash, ">missing</td>") {
+	if !strings.Contains(dash, "<th>Video</th>") || !slices.Contains(rowOf(t, dash, "D"), "Missing") {
 		t.Error("the dashboard shows the video missing")
 	}
 
@@ -357,7 +359,7 @@ func TestVideoProof(t *testing.T) {
 	if strings.Contains(detail, "<iframe") || strings.Contains(detail, "<video") {
 		t.Error("no video is embedded")
 	}
-	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, ">provided</td>") {
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, chip(t, views.InProgress, "Provided")) {
 		t.Error("provided")
 	}
 
@@ -365,7 +367,7 @@ func TestVideoProof(t *testing.T) {
 	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "The organiser needs more video:") || !strings.Contains(page, "The double isn&#39;t in it") {
 		t.Error("the gymnast sees what more is needed")
 	}
-	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, ">need more</td>") {
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, chip(t, views.Attention, "Need more")) {
 		t.Error("need more")
 	}
 	redirected(t, h, admin+"/entries/"+id+"/video", url.Values{"review": {"ok"}})

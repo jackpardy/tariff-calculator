@@ -28,6 +28,7 @@ func (p *competitionPages) registerDay(handle func(string, http.HandlerFunc)) {
 	handle("POST /competitions/admin/{token}/day/officials", p.markOfficial)
 	handle("POST /competitions/admin/{token}/day/notify", p.notifyOne)
 	handle("POST /competitions/admin/{token}/day/up", p.markUp)
+	handle("POST /competitions/admin/{token}/day/times", p.correctTimes)
 }
 
 // idPart makes text safe to use in an id (and so in a link's #fragment):
@@ -161,7 +162,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	all, err := p.st.Entries(r.Context(), c.ID)
+	all, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -194,6 +195,10 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		page.Desk = base + "/desk"
 	}
 	page.Links = can(r, "POST", "/links")
+	page.Correct = can(r, "POST", "/day/times")
+	if day < len(s.Setup.Days) {
+		page.DayName = s.Setup.Days[day].Name
+	}
 	whatIf := ""
 	if can(r, "GET", "/timetable/leave") {
 		whatIf = base + "/timetable/leave"
@@ -257,12 +262,22 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 			case !t.Started.IsZero():
 				df.Undo = "undo-start"
 			}
-			df.Checkin, df.Gymnasts = checkinOf(f, byID, checkins, keys, notify)
-			if df.CanFinish {
+			df.Gymnasts = checkinOf(f, byID, checkins, keys, notify)
+			for i, g := range df.Gymnasts {
+				names := competitions.RoutineNames(c.Competition, byID[g.Entry].Entry)
+				df.Gymnasts[i].Routines = names[0] + "|" + names[1]
+			}
+			switch {
+			case df.CanFinish:
 				up, tapped := ups[df.Key]
 				df.Up = dayUp(c.Competition, f, byID, scratched, up, tapped)
+			case df.CanStart:
+				// Hidden, for the marshal to go on with if Started is tapped
+				// without signal (static/js/taps.js).
+				df.Up = dayUp(c.Competition, f, byID, scratched, store.Up{}, false)
+				df.Up.Waiting = true
 			}
-			df.Panel, df.Seats = panelOf(f, day, nameOf, inClub, official[competitions.FlightKey(f)], whatIf, notify)
+			df.Seats = panelOf(f, day, nameOf, inClub, official[competitions.FlightKey(f)], whatIf, notify)
 			area.Flights = append(area.Flights, df)
 		}
 		marked := slices.ContainsFunc(area.Flights, func(f views.DayFlight) bool { return f.Started != "" || f.Finished != "" })
@@ -287,42 +302,66 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.Day(page))
 }
 
+// flightChange is what marking a flight would do.
+type flightChange struct {
+	flight  competitions.ScheduledFlight
+	found   bool   // the flight is in the published timetable
+	applies bool   // the mark changes something
+	why     string // why a start or finish doesn't apply, for the notice
+}
+
 // flightAction finds a published flight by its key, and says whether marking
-// it start, finish, undo-finish or undo-start would change anything.
-func (p *competitionPages) flightAction(ctx context.Context, c store.Competition, key, what string) (f competitions.ScheduledFlight, applies, found bool, err error) {
+// it start, finish, undo-finish or undo-start at the time at would change
+// anything. Two phones may both have kept a tap for the same flight while
+// without signal, so the earliest Started and the earliest Finished win, and
+// a Finished before its Started is refused. A tap sent as it's made is
+// always the latest, so it changes nothing once someone has marked it.
+func (p *competitionPages) flightAction(ctx context.Context, c store.Competition, key, what string, at time.Time) (ch flightChange, err error) {
 	if c.Published == nil {
-		return f, false, false, nil
+		return ch, nil
 	}
 	for _, g := range c.Published.Flights {
 		if competitions.FlightKey(g) == key {
-			f, found = g, true
+			ch.flight, ch.found = g, true
 		}
 	}
-	if !found {
-		return f, false, false, nil
+	if !ch.found {
+		return ch, nil
 	}
 	times, err := p.st.FlightTimes(ctx, c.ID)
 	if err != nil {
-		return f, false, true, err
+		return ch, err
 	}
 	t := times[key]
+	name := ch.flight.Name()
 	switch what {
 	case "start":
-		applies = t.Started.IsZero()
+		ch.applies = t.Started.IsZero() || at.Before(t.Started) && (t.Finished.IsZero() || !at.After(t.Finished))
 	case "finish":
-		applies = !t.Started.IsZero() && t.Finished.IsZero()
+		switch {
+		case t.Started.IsZero():
+			ch.why = name + " hasn't started, so Finished wasn't recorded."
+		case at.Before(t.Started):
+			ch.why = "Finished for " + name + " wasn't recorded: it's earlier than the start (" + t.Started.In(local).Format("15:04") + ")."
+		default:
+			ch.applies = t.Finished.IsZero() || at.Before(t.Finished)
+		}
 	case "undo-finish":
-		applies = !t.Finished.IsZero()
+		ch.applies = !t.Finished.IsZero()
 	case "undo-start":
-		applies = !t.Started.IsZero() && t.Finished.IsZero()
+		ch.applies = !t.Started.IsZero() && t.Finished.IsZero()
 	}
-	return f, applies, true, nil
+	if !ch.applies && ch.why == "" {
+		ch.why = "Someone has already done that for " + name + "."
+	}
+	return ch, nil
 }
 
-// markFlight records that a flight started or finished now, or takes one back
+// markFlight records that a flight started or finished, or takes one back
 // (flight: its key; what: start, finish, undo-finish or undo-start; day: the
-// page to go back to). An undo with nothing to take back is the same tap sent
-// again, so it quietly changes nothing.
+// page to go back to; tapped and sent: when a tap kept on the phone was made
+// and sent, see tapAt). An undo with nothing to take back is the same tap
+// sent again, so it quietly changes nothing.
 func (p *competitionPages) markFlight(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
 	if !ok {
@@ -330,18 +369,21 @@ func (p *competitionPages) markFlight(w http.ResponseWriter, r *http.Request) {
 	}
 	key, what := r.FormValue("flight"), r.FormValue("what")
 	anchor := flightID(key)
-	f, applies, found, err := p.flightAction(r.Context(), c, key, what)
+	at, late := p.tapAt(r)
+	ch, err := p.flightAction(r.Context(), c, key, what, at)
 	switch {
 	case err != nil:
 		failed(w, r, err)
-	case !found || !slices.Contains([]string{"start", "finish", "undo-finish", "undo-start"}, what):
+	case !ch.found || !slices.Contains([]string{"start", "finish", "undo-finish", "undo-start"}, what):
 		message(w, r, http.StatusBadRequest, "Not a flight", "That flight isn't in the published timetable. It may have been changed: go back and try again.")
-	case !applies && strings.HasPrefix(what, "undo-"):
+	case late != "":
+		http.Redirect(w, r, backToDay(r, late, anchor), http.StatusSeeOther)
+	case !ch.applies && strings.HasPrefix(what, "undo-"):
 		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
-	case !applies:
-		http.Redirect(w, r, backToDay(r, "Someone has already done that for "+f.Name()+".", anchor), http.StatusSeeOther)
+	case !ch.applies:
+		http.Redirect(w, r, backToDay(r, ch.why, anchor), http.StatusSeeOther)
 	default:
-		if err := p.st.MarkFlight(r.Context(), c.ID, key, what, linkOf(r).Name); err != nil {
+		if err := p.st.MarkFlightAt(r.Context(), c.ID, key, what, linkOf(r).Name, at); err != nil {
 			failed(w, r, err)
 			return
 		}
@@ -360,15 +402,20 @@ func (p *competitionPages) markFlight(w http.ResponseWriter, r *http.Request) {
 // it changes nothing.
 func (p *competitionPages) describeFlightMark(r *http.Request, c store.Competition) string {
 	key, what := r.Form.Get("flight"), r.Form.Get("what")
-	f, applies, found, err := p.flightAction(r.Context(), c, key, what)
-	if err != nil || !found || !applies {
+	at, late := p.tapAt(r)
+	if late != "" {
 		return ""
 	}
+	ch, err := p.flightAction(r.Context(), c, key, what, at)
+	if err != nil || !ch.found || !ch.applies {
+		return ""
+	}
+	f := ch.flight
 	switch what {
 	case "start":
-		return "Marked a flight started: " + f.Name() + " (" + f.Area + ")"
+		return "Marked a flight started: " + f.Name() + " (" + f.Area + ")" + p.tappedNote(at)
 	case "finish":
-		return "Marked a flight finished: " + f.Name() + " (" + f.Area + ")"
+		return "Marked a flight finished: " + f.Name() + " (" + f.Area + ")" + p.tappedNote(at)
 	}
 	return "Undid a flight time: " + f.Name() + " (" + f.Area + ")"
 }

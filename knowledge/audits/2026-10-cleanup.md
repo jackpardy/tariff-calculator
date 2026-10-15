@@ -144,10 +144,14 @@ chip that look different even without colour.
    colour tokens, the components `@state(kind, label)` and `@who(role, name)`, a
    section in rendering.md, and a contrast test.
 2. **In the dry-run work:** check-in and panels on the day, the dashboard's
-   and the club's entry rows, and who fills each seat on the rota.
+   and the club's entry rows, and who fills each seat on the rota. **Built
+   2026-10-15**, with the flights' states on the day and the Officials
+   list's roles too ([what each page shows](../features/competition-entries.md#states-and-roles-on-the-pages-one-palette-step-2)).
 3. **After the dry run:** the rest.
 4. **Keeping it:** a test that fails when a page uses Bulma's colour classes
-   for a state directly, instead of the components.
+   for a state directly, instead of the components. **Built 2026-10-15** for
+   the pages of step 2 (`TestStatesUseChips` in `views/status_test.go`);
+   each page moved over later joins its list.
 
 ## Left, and why
 

@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -20,9 +21,16 @@ type sentEmail struct {
 	headers           map[string]string
 }
 
-type fakeMailer struct{ sent []sentEmail }
+// fakeMailer keeps what it's sent. The sender's workers send at once, so
+// sent is read only once they're done (the test kit flushes the sender).
+type fakeMailer struct {
+	mu   sync.Mutex
+	sent []sentEmail
+}
 
 func (m *fakeMailer) send(to, subject, body string, headers map[string]string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.sent = append(m.sent, sentEmail{to, subject, body, headers})
 	return nil
 }
@@ -87,14 +95,14 @@ func TestNotifications(t *testing.T) {
 	redirected(t, h, entry+"/check", url.Values{"checked": {"1"}})
 	redirected(t, h, entry+"/check", url.Values{"checked": {"0"}})
 	redirected(t, h, admin+"/notify-now", nil)
-	p.notify.tell(context.Background())
+	tellDue(p)
 	if len(mail.sent) != 0 {
 		t.Errorf("a change put right tells no one: %+v", mail.sent)
 	}
 
 	// Checked with a note: told after the wait, or at once with Notify now.
 	redirected(t, h, entry+"/check", url.Values{"checked": {"1"}, "note": {"Element 7 repeats 3"}})
-	p.notify.tell(context.Background())
+	tellDue(p)
 	if len(mail.sent) != 0 {
 		t.Error("not before the wait")
 	}
@@ -102,7 +110,7 @@ func TestNotifications(t *testing.T) {
 		t.Error("the organiser sees changes waiting")
 	}
 	redirected(t, h, admin+"/notify-now", nil)
-	p.notify.tell(context.Background())
+	tellDue(p)
 	if len(mail.sent) != 1 {
 		t.Fatalf("one email: %+v", mail.sent)
 	}
@@ -151,7 +159,7 @@ func TestIndividualNotificationsOutliveAnEntry(t *testing.T) {
 	mail.sent = nil
 	redirected(t, h, entries[0][1]+"/check", url.Values{"checked": {"1"}, "note": {"Element 3 repeats"}})
 	redirected(t, h, admin+"/notify-now", nil)
-	p.notify.tell(context.Background())
+	tellDue(p)
 	if len(mail.sent) != 1 || !strings.Contains(mail.sent[0].body, "Novice: card checked, with a note: Element 3 repeats") {
 		t.Errorf("Ann still hears about her tumbling entry: %+v", mail.sent)
 	}
@@ -213,7 +221,7 @@ func TestNotifyingAClub(t *testing.T) {
 	redirected(t, h, tt+"/plan", url.Values{})
 	redirected(t, h, tt+"/publish", url.Values{"action": {"publish"}})
 	redirected(t, h, admin+"/notify-now", nil)
-	p.notify.tell(context.Background())
+	tellDue(p)
 	if len(mail.sent) != 1 {
 		t.Fatalf("one email: %d", len(mail.sent))
 	}
@@ -232,7 +240,7 @@ func TestNotifyingAClub(t *testing.T) {
 	mail.sent = nil
 	redirected(t, h, tt+"/publish", url.Values{"action": {"publish"}})
 	redirected(t, h, admin+"/notify-now", nil)
-	p.notify.tell(context.Background())
+	tellDue(p)
 	if len(mail.sent) != 0 {
 		t.Errorf("nothing changed: %+v", mail.sent)
 	}

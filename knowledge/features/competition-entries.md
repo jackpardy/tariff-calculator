@@ -34,6 +34,7 @@ are `views/competitions.templ` (the layout and shared parts),
     - [The menu and the Settings page (roadmap 2026-10-14)](#the-menu-and-the-settings-page-roadmap-2026-10-14)
     - [All people (roadmap 2026-10-14)](#all-people-roadmap-2026-10-14)
     - [Helpers' links, history and concerns (ADR 0009)](#helpers-links-history-and-concerns-adr-0009)
+    - [Feedback about the app (ready for the dry run)](#feedback-about-the-app-ready-for-the-dry-run)
     - [When entries, changes and sign-offs close](#when-entries-changes-and-sign-offs-close)
     - [Late changes](#late-changes)
     - [Limits and waiting lists](#limits-and-waiting-lists)
@@ -79,7 +80,7 @@ shared `pageMenu` in `views/menu.templ`, built by `orgMenu` in
 approved, Fees), **Timetable** (Timetable, Officials, Simulate, and once the
 timetable is planned the two "what if" pages), **On the day** (once the
 timetable is published: On the day, Desk messages, Venue screen) and
-**Settings** (Settings, History). Late changes and Coaches show a count of
+**Settings** (Settings, History, and Feedback for links that may read it). Late changes, Coaches and Feedback show a count of
 what waits; the menu works that out on every page. It shows only what the
 admin link may open (ADR 0009): a cards link sees Entries (with People) and History; a
 chair of judges adds the day's pages, and finds the printed sheets as buttons
@@ -93,7 +94,7 @@ jump links at the top: Links (helpers' links for the organiser, the club
 link, the link for entering on their own), Entries and deadlines, Limits and waiting
 lists, Events and levels (events, order of levels, men and women), Sign-off
 and coaches, Video, Going live, Telling people about changes (when people
-can ask to hear), Entering on their own, and Admin link and deleting (the
+can ask to hear), Entering on their own, Feedback, and Admin link and deleting (the
 organiser only). A co-organiser's link opens it without the links box,
 replacing the admin link or deleting. Each form posts to its own route, which
 comes back to the Settings page with a notice; the history records them as
@@ -191,6 +192,60 @@ or generally. The dashboard lists them (open first, with who and when), for
 the organisers only; the organiser and co-organisers mark each
 **Resolved**, with a note. The demo has helpers' links (printed by `demo`),
 three cards checked and two concerns.
+
+## Feedback about the app (ready for the dry run)
+
+For the dry run, everyone using a competition's pages can tell the people
+who make the app what confused them, at the moment it does. A small
+**Feedback** dropdown sits at the foot of every page someone uses for one
+competition: the organiser's and helpers' pages, the comp sec's pages for a
+member's entry, offers, late changes, notifications and the club's
+timetable, the club link's entering page, a member's and coach's pages for
+the competition, an individual's entry pages and My competition, entering on
+their own, the synchro partner's page and the individual's coach's sign-off.
+Not the venue screen, printouts, cards, downloads, or pages about several
+competitions (a club's, member's, coach's or individual's home page, and a
+coach's late change). It opens a short form: what happened or what they
+think (required, up to 2,000 characters) and, optionally, a name or email
+for a reply (up to 200). `static/js/feedback.js` sends it without leaving
+the page and says "Thanks: your feedback is sent." there; without
+JavaScript the page comes back at `#feedback-sent`, which shows the thanks.
+
+What's kept (migration 40, the `feedback` table, in `store/feedback.go`):
+the competition, the words, the reply-to, the role (Organiser, "Helper
+link: Chairs (chairs of judges)", Comp sec, Member, Coach, Individual,
+Synchro partner or An individual's coach, from the link it's posted under,
+never from the form), the page as its **route pattern**
+(`/clubs/member/{token}/competitions/{id}/day`, only one of those with the
+button; never the path, which holds the secret link) and the time. No
+token is kept. A competition takes 200 in any 24 hours; empty or overlong
+feedback is refused with a plain reason.
+
+How it works (`web/feedback.go`): `feedbackPages` lists the pages with the
+button by pattern. For those, the request gets an empty
+`views.FeedbackForm`; the loader that finds the page's competition
+(`gate` for the admin pages, `enteredCompetition`, `own`, `individual`,
+`clubLinkCompetition`, `invite`, `signoffEntry`, `gymnastEntered`,
+`coachSees`) fills in the competition and whether it shows the button, and
+the layout (`competitionLayout`) draws it. So no page loads the competition
+twice for it. The form posts to its link's own `/feedback` route; for a
+club's, member's, coach's or individual's link the posted competition must
+be one they're entered in.
+
+The organiser turns it off or on in **Settings** under Feedback ("Show a
+Feedback button on every page"); it's on for new competitions and, from the
+migration, for those already made. The **Feedback** page (in the Settings
+section of the menu, with a count of those not dealt with) lists it newest
+first: when, role, page, the words and the reply-to, with a **Dealt with**
+tick. Like resolving concerns, reading it needs the organiser's or a
+co-organiser's link; anyone with an admin link but the venue screen's can
+send it. Sending, marking and turning it on or off are in the history.
+
+With `FEEDBACK_EMAIL` set and email set up ([deploy](../operations/deploy.md#notifications)),
+each is emailed there too, with a `Reply-To` when the reply-to is an email
+address, sent in the background (`emailFeedback`, one call to move onto the
+background sender). The demo has two, from a member's My competition and the
+chairs of judges.
 
 ## When entries, changes and sign-offs close
 
@@ -336,6 +391,27 @@ the page's address so a view can be kept or shared:
   [routine builder](routine-builder.md): [routine validation](../domain/routine-validation.md),
   [requirements](../requirements/framework.md) and the
   [level](../requirements/levels.md) carry-over between exercises.
+
+## States and roles on the pages (one palette, step 2)
+
+The pages the dry run leans on show each state with `views.StateChip` and
+who did something, or whose it is, with `views.WhoChip`
+([one palette](../architecture/rendering.md#states-and-roles-one-palette)),
+and no Bulma colour for a state (buttons keep theirs):
+
+| Page | States | Roles |
+|---|---|---|
+| On the day | each area's lateness (amber late, green on time or early, grey not started or not measured); each flight not started, under way, running late (under way in an area running late) or finished; each gymnast not yet, Here or Scratched, and each official not yet, Here or Missing; the Check-in and Panel headings count who's here (green once everyone is here or out) and out; a panel's seat no one is in, "Needs someone" | |
+| Dashboard | Checked; problems (amber, with how many); video missing, provided, OK or need more; sign-off signed off, waiting, needs changes or coach not approved; Withdrawn; and under Removed and on hold, Removed, On hold, and changed and sent again | the coach who signed off; an individual's entry, "Gymnast · on their own" |
+| One entry | Checked; the video review | |
+| The comp sec's entries | not sent grey, sent or on a waiting list blue, changed since sent or on hold amber, checked green, withdrawn or removed red (sent again after a hold, blue); problems and missing video amber; the sign-off | the coach who signed off |
+| A member's or individual's disciplines, and their competitions list | the same states in a word or two; problems; timetable published; a message from the organisers | |
+| The rota (timetable) and Officials | a seat with no one; every seat filled; everything fits; a gymnast moved since | who fills a seat or offered: a gymnast if they compete, else the organiser's own (added on the Officials page) or a club's judge (`seatRole`) |
+
+On the day, a panel now lists its empty seats too, once anyone has a seat on
+it (`panelOf`); the counts are worked out on the page from the rows
+(`checkinCount`, `seatCount`). `views/status_test.go` fails if these
+templates show a state in Bulma's colours again.
 
 ## One entry
 
@@ -759,7 +835,8 @@ finished, and who tapped it. **Started** (a flight not yet started),
 **Finished** (started, not finished) and **Undo** (takes back the finish, else
 the start: it posts `undo-finish` or `undo-start`, so the same tap sent twice
 takes back only the one, and the repeat quietly changes nothing) post to
-`/day/flight`, which stores the time now (`flight_times`,
+`/day/flight`, which stores the time it was tapped (now, or earlier for a
+tap kept without signal: see below) (`flight_times`,
 one row per published flight, keyed by the flight's ID; see
 `competitions.FlightKey`, and `PlaceKey` for a flight without one). A tap
 that changes nothing (someone else got there first) is ignored and says so.
@@ -816,7 +893,8 @@ name and value go; the history, which reads `r.Form`, would not see a
 multipart body). The page it is redirected to is parsed, and the notice,
 warnings and areas are swapped for the fresh ones, with the `<details>` that
 were open still open (a Notify list closes once sent), the flight kept at the
-same place on the screen, and the tapped button disabled meanwhile; taps are
+same place on the screen, and the tapped button disabled meanwhile (taps go
+through the phone's queue instead: see taps without signal, below); taps are
 sent one at a time. If the request fails or the answer isn't the day page, the
 form is submitted the usual way (with the tapped button added back as a hidden
 input) and the server's redirect brings the person back to the flight. So a
@@ -827,6 +905,79 @@ Back post the gymnast and routine shown, and Notify posts a one-off id. Which
 lists are open is also kept in `sessionStorage` (per path and `?day`), so a
 reload keeps them. The service worker only handles GET navigations, so these
 posts go straight to the network.
+
+**Taps without signal** (built 2026-10-15, ready for the dry run). The
+venue's wifi drops, so the day page's taps (the forms marked `data-tap`:
+Started, Finished, Undo, Next gymnast and Back, a gymnast's or official's
+check-in, Still officiating/competing) are first kept on the phone, in
+`localStorage` (`static/js/taps.js`), with the phone's clock when tapped.
+The page shows each at once as done but waiting ("Started at 10:02: waiting
+to send"), with the buttons as they'll be once it's sent: Started waiting
+offers Finished, and shows who's up, which is on the page hidden for every
+flight not yet started so the marshal can go on tapping **Next gymnast**;
+the phone works out who's next from the flight's check-in rows (which carry
+each gymnast's entry, running number, club, routine names and state),
+everyone's 1st routine then everyone's 2nd, skipping the scratched, as the
+server does. While any wait, "Waiting to send: 2 taps" shows at the top. They
+are sent one at a time, oldest first: straight away, on the browser's
+`online` event, when the page loads and every half minute; one phone's tabs
+take turns (`navigator.locks`). Each goes as the form it came from, plus
+`tapped` and `sent` (the phone's clock, in milliseconds). Without a signal
+the rest wait; a tap the server answers is dropped, whatever the answer (done,
+done already, or refused, with the notice saying why); one the server keeps
+failing on (a 500) is given up after 5 tries so it can't hold up the rest.
+When none are left the page shows the server's state (the last answer's page,
+or a fresh copy if the taps came from another day's page), with every notice.
+Without storage on the phone, a tap is sent at once as before.
+
+**The tap's time.** The server (`tapAt` in `web/taps.go`) takes the phone's
+`sent` minus `tapped` from its own clock, so a phone clock that's wrong
+doesn't matter, and records the tap at that time rather than when it arrived:
+a flight's start or finish, a check-in's time, who's up. A tap with no
+`tapped` (no JavaScript) is now, as before, and one sent as it's made is
+within milliseconds of it. Refused, with a notice and nothing changed: a time
+in the future (`sent` before `tapped`: the phone's clock went back), one more
+than 12 hours old, or one that can't be read. Taps before the competition's
+day aren't refused, so the page can be tried out (lateness leaves out times on
+another date anyway). The history says when a tap that waited a minute or
+more was made: "Marked a flight started: BUCS L3 (Panel 1) (tapped at 09:50)".
+
+**When taps clash.** Two phones can each keep a tap for the same thing:
+- **Started**: the earliest wins. A Started earlier than the one recorded
+  replaces it (if it's not after the finish); a later one changes nothing and
+  says someone has already done it, as a second tap always has.
+- **Finished**: the earliest wins too, and one before the flight's start is
+  refused ("Finished for BUCS L3 wasn't recorded: it's earlier than the start
+  (09:45)"); one for a flight not started is refused.
+- **Undo**: as before, it takes back what it names if it's there.
+- **Here, Scratched, Clear** (gymnasts) and **Here, Missing, Clear**
+  (officials, per flight of the run): the latest tap wins. One older than the
+  last mark changes nothing and says so ("they were marked again later, at
+  10:00"). A Clear removes the mark and its time, so an older tap arriving
+  after it still applies.
+- **Next gymnast and Back**: as before, by the entry and round the page
+  showed, so a tap from a routine the flight has moved on from (sent twice,
+  or after another phone moved it on) quietly changes nothing; a chain kept
+  on one phone goes through in order. If the order changed meanwhile (someone
+  scratched), the taps after that point change nothing and the page shows
+  where the flight is.
+- **Still officiating/competing**: once is enough; a repeat says so.
+
+A replayed tap that no longer applies is never an error page: the server
+redirects to the day with a notice, and the queue moves on.
+
+**Correct the times** (built 2026-10-15). Under each flight, for when the
+paper sheet was used or a tap was wrong, the organiser and the links that can
+mark flights (everything, chair, timetable) can set when it started and
+finished as clock times on its day (`POST /day/times`; Finished empty for not
+finished, both empty to clear, which also clears who's up as Undo does).
+Refused with a notice: a finish before the start, a finish without a start,
+a time that isn't a clock time, and, once the flight's day has come, a time
+later than now. The times replace those recorded (`who` becomes the link's
+name), and the history says who: "Corrected a flight's times: BUCS L3 ·
+flight 1 of 2 (Panel 1): started 09:10, finished 09:40". Everything reads the
+same `flight_times`, so lateness, the venue screen, the delay "what if" and
+the lines on attendees' pages follow the times put right.
 
 **Finding someone, and the layout** (2026-10-15). Under the day tabs, **Jump
 to** links to each area, and **Find a name** (the shared list search) looks
@@ -990,8 +1141,9 @@ on that flight (a seat, or an entry in it) or it's a 400; with neither box
 ticked, or **Their club** only for someone with no club, nothing is sent and the
 notice says so. **Their club** reaches only the club's comp sec and coaches, not
 its members: the message's `staff` (below) holds the club, where `clubs` would
-reach everyone. The page comes back with "Sent to Ann and their club. Told 0 by
-push and 3 by email." and the history says "Notified Ann (and their club): should
+reach everyone. The page comes back with "Sent to Ann and their club. Sending to 3
+people: 3 by email, 0 by push." (sent in the background, like any desk
+message) and the history says "Notified Ann (and their club): should
 be at Panel 1" (or "Notified Ann's club: …" for the club alone). The same form
 (the same `once`) sent again within 10 minutes is a repeat: nothing is sent or
 recorded, and the page comes back without a notice. The ids sent are kept in
@@ -1093,7 +1245,7 @@ top. The organiser makes the link on the Settings page.
 Built 2026-10-09. **Desk messages** (a button on the entries page, a link at
 the top of the On the day page, and `/desk` under the admin link) lets the
 organiser, a co-organiser ("everything"), a chair of judges or a timetable
-link send a message at once, with no grace wait, or ask people to come to the
+link send a message straight away, with no grace wait, or ask people to come to the
 organisers' desk. Cards links can't use it.
 
 **To** is one of: a **club** (a select of the clubs entered: its comp sec,
@@ -1128,8 +1280,28 @@ organisers' desk · *Competition*"), the text, how to find their page (open
 it from the link they saved; Competitions lists the links saved in that
 browser) and the off link; push has the competition's name as the title,
 the text as the body and Competitions as the link. A push service that says the phone is gone
-drops it. It is sent while the organiser's request is handled (a handful of
-sends), and a mailer that is off simply sends none.
+drops it. A mailer that is off simply sends none.
+
+**Sent in the background** (built 2026-10-15): the request works out who is
+told, one delivery per address, hands them to the sender (`web/sender.go`)
+and answers at once: "Sent to UCD. Sending to 214 people: 180 by email, 34
+by push. Everyone sees it on their own page." (or "No one it reaches has
+asked to hear by push or email."). Four deliveries go at once, emails no
+faster than `MAIL_PER_SECOND` (default 14, Amazon SES's production rate;
+[deploy](../operations/deploy.md#notifications)); pushes aren't capped.
+A failed email is tried once more after 5 seconds, then counted as failed
+and logged (the competition's id and the error, never the address's token or
+a page path). Change notifications go through the same sender. Under each
+message the desk page shows "told 34 by push, 178 by email", then "· still
+sending to 2" while it's going and "· 2 failed" for those that couldn't be
+told (a gone phone counts as failed); reloading the page updates it. While
+sending, the counts are in memory; once a message's deliveries are all done,
+they're kept with it (`pushed`, `emailed` and `failed`, migration 41). The
+queue is in memory too: when the app stops it waits up to 20 seconds for
+what's queued, then logs how many were left unsent and keeps those as
+failed. The confirmation email when someone asks to hear by email is still
+sent in their request, outside the cap, so a failure can say so on the
+form.
 
 **On recipients' pages** (up to the latest 10, newest first, with when it was
 sent and, within the last day, how long ago, e.g. "Sat 27 Feb, 10:42 · 12
@@ -1147,7 +1319,8 @@ members' pages.
 Messages are kept in `desk_messages` (the text, whether it asks them to come,
 the audience in words such as "UCD" or "3 people", its person keys and club
 ids as JSON, who sent it, when, and how many addresses were pushed and
-emailed; the club ids of its staff as JSON, added in migration 29); a competition keeps up to 500. The page lists them, latest first.
+emailed; the club ids of its staff as JSON, added in migration 29; how many
+failed, added in migration 41); a competition keeps up to 500. The page lists them, latest first.
 Each is in the history: "Sent a message to UCD", "Called Panel 2's officials,
 Saturday to the desk".
 
@@ -1682,7 +1855,9 @@ made before).
   stops every email to that address for the competition. No email
   or push links to the person's page itself, and no notification keeps its
   path: it holds their secret link (ADR 0004; migration 33 cleared those
-  kept before 2026-10-15).
+  kept before 2026-10-15). The emails and pushes go through the same
+  background sender as [desk messages](#messages-from-the-organisers-desk),
+  sharing its four workers and its cap on emails a second.
 
 Email goes by SMTP when `SMTP_HOST` and `MAIL_FROM` are set
 ([deploy](../operations/deploy.md#notifications)); without them only push
@@ -1726,6 +1901,10 @@ offline: this is the page as it was when last opened", with the day and time
 the server made it (Irish time, e.g. "Saturday 14:05"). It goes when the
 connection comes back; a page that is still the kept copy then needs a
 reload.
+
+Taps on the On the day page made without a connection are kept on the phone
+too, and sent when it's back, at the time they were tapped: see [taps without
+signal](#on-the-day-flights-started-and-finished).
 
 The copies stay on the phone, in its browser's cache for this site; nothing
 secret leaves it. The server still marks these pages `no-store`, which keeps

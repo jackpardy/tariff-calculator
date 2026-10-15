@@ -4,7 +4,8 @@
 // here when creating a competition, and the clubs saved here when entering
 // one; fills each voluntary on an entry form from the routines saved here;
 // remembers which levels of the organiser's dashboard are open; updates the
-// On the day page in place as its buttons are tapped; and registers the
+// On the day page in place as its buttons are tapped, keeping taps made
+// without signal on the phone until they can be sent (taps.js); and registers the
 // service worker that keeps pages for offline, with a banner when offline.
 (function () {
     // Links saved in this browser: {name, url} lists under these keys.
@@ -366,22 +367,13 @@
             form.submit();
         };
 
-        // send posts the form, and swaps in the page it ends up at; shut is
-        // the data-key of a list to leave closed.
-        const send = async (form, submitter, body, shut) => {
-            let fresh;
-            try {
-                const response = await fetch(form.action, { method: 'POST', body, credentials: 'same-origin' });
-                if (!response.ok) { throw new Error('status ' + response.status); }
-                fresh = new DOMParser().parseFromString(await response.text(), 'text/html');
-                if (!fresh.getElementById('day-areas')?.hasAttribute('data-day-page')) { throw new Error('not the day page'); }
-            } catch (e) {
-                plainSubmit(form, submitter);
-                return;
-            }
+        // show swaps in a fresh copy of the page, keeping the box with the id
+        // anchor where it is on the screen; shut is the data-key of a list
+        // to leave closed.
+        const show = (fresh, anchor, shut) => {
             try {
                 // Keep the flight where it is on the screen, whatever changes above it.
-                const anchor = form.closest('.comp-flight')?.id || 'day-areas';
+                if (!document.getElementById(anchor)) { anchor = 'day-areas'; }
                 const before = document.getElementById(anchor).getBoundingClientRect().top;
                 const keys = openKeys(document);
                 keys.delete(shut);
@@ -410,8 +402,85 @@
             }
         };
 
+        // dayOf reads a page as the day page; null if it's something else.
+        const dayOf = (text) => {
+            const doc = new DOMParser().parseFromString(text, 'text/html');
+            return doc.getElementById('day-areas')?.hasAttribute('data-day-page') ? doc : null;
+        };
+
+        // send posts the form, and swaps in the page it ends up at.
+        const send = async (form, submitter, body, shut) => {
+            let fresh;
+            try {
+                const response = await fetch(form.action, { method: 'POST', body, credentials: 'same-origin' });
+                if (!response.ok) { throw new Error('status ' + response.status); }
+                fresh = dayOf(await response.text());
+                if (!fresh) { throw new Error('not the day page'); }
+            } catch (e) {
+                plainSubmit(form, submitter);
+                return;
+            }
+            show(fresh, form.closest('.comp-flight')?.id || 'day-areas', shut);
+        };
+
         // One at a time, so a slow answer can't undo a newer one.
         let queue = Promise.resolve();
+
+        // Taps (the forms marked data-tap) are kept on the phone first and
+        // sent from there (taps.js), so one made without signal isn't lost.
+        // Without storage on the phone they're sent as other forms are.
+        let storage = null;
+        try { storage = window.localStorage; } catch (e) { /* none: sent at once */ }
+        const taps = typeof DayTaps === 'undefined' || !storage ? null
+            : DayTaps.queue(storage, (url, body) => fetch(url, { method: 'POST', body, credentials: 'same-origin' }), () => Date.now());
+        // The flight of the last tap, kept where it is on the screen.
+        let tapAnchor = 'day-areas';
+        // shownDay is the day the page shows, as its forms post it.
+        const shownDay = () => document.querySelector('#day-areas input[name="day"], #day-warnings input[name="day"]')?.value;
+        const say = (notices) => {
+            const box = document.getElementById('day-notice');
+            if (!box || notices.length === 0) { return; }
+            box.replaceChildren(...[...new Set(notices)].map((n) => Object.assign(document.createElement('div'), { className: 'notification is-info is-light', textContent: n })));
+        };
+        const sendTaps = () => {
+            if (!taps) { return; }
+            queue = queue.then(async () => {
+                const flush = () => taps.flush();
+                const { answers } = navigator.locks ? await navigator.locks.request('trampolineTaps', flush) : await flush();
+                if (answers.length > 0) {
+                    // Each answer's notice: done already, refused and why, or
+                    // the page the server sent instead of the day's.
+                    const notices = [];
+                    let fresh = null;
+                    for (const a of answers) {
+                        const doc = dayOf(a.text);
+                        if (doc) {
+                            const n = doc.getElementById('day-notice')?.textContent.trim();
+                            if (n) { notices.push(n); }
+                            const u = new URL(a.url || location.href, location.href);
+                            fresh = u.pathname === location.pathname && u.searchParams.get('day') === shownDay() ? doc : null;
+                        } else {
+                            const page = new DOMParser().parseFromString(a.text, 'text/html');
+                            const why = [page.querySelector('h1')?.textContent.trim(), page.querySelector('h1 + p')?.textContent.trim()].filter(Boolean).join(': ');
+                            notices.push(`${a.tap.label} wasn't recorded. ${why}`);
+                        }
+                    }
+                    if (!fresh) {
+                        // Sent from another day's page: this one, as it is now.
+                        try {
+                            const response = await fetch(location.href, { credentials: 'same-origin' });
+                            fresh = response.ok ? dayOf(await response.text()) : null;
+                        } catch (e) { /* no signal again: the page stays as it is */ }
+                    }
+                    if (fresh) { show(fresh, tapAnchor); }
+                    say(notices);
+                }
+                const left = taps.load();
+                DayTaps.markWaiting(left);
+                DayTaps.count(left.length);
+            });
+        };
+
         document.addEventListener('submit', (event) => {
             const form = event.target;
             if (event.defaultPrevented || !form.closest('#day-areas, #day-warnings')) {
@@ -419,14 +488,33 @@
             }
             event.preventDefault();
             const submitter = event.submitter;
+            const tap = taps && DayTaps.tapOf(form, submitter, taps.load());
+            if (tap && taps.add(tap)) {
+                tapAnchor = form.closest('.comp-flight')?.id || (form.closest('#day-warnings') ? 'day-warnings' : 'day-areas');
+                // Shown as done at once; the count only once it's waiting.
+                DayTaps.markWaiting(taps.load());
+                if (!navigator.onLine) { DayTaps.count(taps.load().length); }
+                sendTaps();
+                return;
+            }
             // Sent as a plain form (not multipart), as the server expects, with
             // the button that was tapped.
             const body = new URLSearchParams(new FormData(form, submitter));
             if (submitter) { submitter.disabled = true; }
-            // A Notify list closes once it has been sent.
-            const shut = form.closest('details.comp-notify')?.dataset.key;
+            // A Notify list, or the times put right, close once sent.
+            const shut = form.closest('details.comp-notify, details.comp-correct')?.dataset.key;
             queue = queue.then(() => send(form, submitter, body, shut));
         });
+
+        if (taps) {
+            // Those kept from before: shown, and sent now, when the signal
+            // comes back, and every half minute while any are left.
+            DayTaps.markWaiting(taps.load());
+            DayTaps.count(taps.load().length);
+            sendTaps();
+            window.addEventListener('online', sendTaps);
+            setInterval(() => { if (taps.load().length > 0) { sendTaps(); } }, 30000);
+        }
     }
 
     // offlineBanner shows the "you're offline" banner while the phone has no

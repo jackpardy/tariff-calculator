@@ -71,28 +71,45 @@ func memberStatus(s standing, removal store.Entry, changed bool) string {
 	return "Sent by your club"
 }
 
+// stateOfStanding is the state chip for where an entry stands: removed is
+// stopped; held, or changed since sent, needs the club to look; not sent is
+// not yet; sent, or on a waiting list, waits on the organiser; checked is
+// done.
+func stateOfStanding(s standing) views.State {
+	switch s {
+	case entryRemoved:
+		return views.Stopped
+	case entryHeld, entryChanged:
+		return views.Attention
+	case entryNotSent:
+		return views.NotYet
+	case entryChecked:
+		return views.Done
+	}
+	return views.InProgress
+}
+
 // brief is where an entry stands in a word or two, for the list of a
-// competition's disciplines, and the Bulma colour of its tag: problems are on
-// its card, place is its place on a waiting list, and sent is how a sent
-// entry is put.
-func brief(s standing, problems, place int, sent string) (string, string) {
+// competition's disciplines, and its state: problems are on its card, place
+// is its place on a waiting list, and sent is how a sent entry is put.
+func brief(s standing, problems, place int, sent string) (string, views.State) {
 	switch {
 	case s == entryRemoved:
-		return "Removed", "is-danger is-light"
+		return "Removed", views.Stopped
 	case s == entryHeld:
-		return "On hold", "is-warning is-light"
+		return "On hold", views.Attention
 	case problems > 0:
-		return views.Count(problems, "problem", "problems"), "is-danger is-light"
+		return views.Count(problems, "problem", "problems"), views.Attention
 	}
 	switch s {
 	case entryNotSent:
-		return "Saved, not sent", "is-info is-light"
+		return "Saved, not sent", views.NotYet
 	case entryWaiting:
-		return "Waiting list, " + waitingWord(place), "is-warning is-light"
+		return "Waiting list, " + waitingWord(place), views.InProgress
 	case entryChanged:
-		return "Changed, send again", "is-warning is-light"
+		return "Changed, send again", views.Attention
 	case entryChecked:
-		return "Checked", "is-success is-light"
+		return "Checked", views.Done
 	}
-	return sent, "is-success is-light"
+	return sent, views.InProgress
 }

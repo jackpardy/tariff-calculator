@@ -78,6 +78,8 @@ type vapid struct {
 
 // vapidKeys are the app's VAPID keys, made the first time and kept.
 func (n *notifier) vapidKeys(ctx context.Context) (*vapid, error) {
+	n.keysMu.Lock()
+	defer n.keysMu.Unlock()
 	if n.keys != nil {
 		return n.keys, nil
 	}

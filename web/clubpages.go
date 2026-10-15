@@ -338,7 +338,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		if err != nil {
 			return nil, err
 		}
-		sent, err := p.st.Entries(ctx, c.ID)
+		sent, err := p.entriesOf(ctx, c.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -365,9 +365,14 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Event(), Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
 			rem, removed := removals[e.MemberID+"/"+e.Discipline]
 			place := waitingPlace[e.MemberID+"/"+e.Discipline]
-			switch memberState(e, rem, removed, place) {
+			state := memberState(e, rem, removed, place)
+			row.State = stateOfStanding(state)
+			switch state {
 			case entryRemoved, entryHeld:
 				row.Status = removalStatus(rem, e.ChangedSinceSent())
+				if rem.Resent {
+					row.State = views.InProgress // sent again, waiting for the organiser
+				}
 				if rem.ForClub() && rem.RemovalNote != "" {
 					row.Note = strings.TrimSpace(row.Note + " " + rem.RemovalNote)
 				}
@@ -383,7 +388,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 				row.Status = "Changed since sent"
 				cc.ToSend++
 			case entryChecked:
-				row.Status = "Sent · checked ✓"
+				row.Status = "Sent · checked"
 			}
 			row.Problems = len(memberProblems(c.Competition, e, sent))
 			if checked, err := c.Check(e.Entry); err == nil {
@@ -412,7 +417,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		// Entries the club sent for members who've since withdrawn or left.
 		for _, e := range sent {
 			if e.ClubID == club.ID && !has[e.MemberID] {
-				row := views.ClubEntryRow{Member: e.Entry.Gymnasts(), Level: e.Entry.Event(), Status: "Withdrawn (still sent)"}
+				row := views.ClubEntryRow{Member: e.Entry.Gymnasts(), Level: e.Entry.Event(), Status: "Withdrawn (still sent)", State: views.Stopped}
 				row.List = views.ListRow{Name: row.Member, Values: map[string][]string{"problems": {hasValue(false)}, "sent": {"sent"}}}
 				cc.Rows = append(cc.Rows, row)
 			}
@@ -503,6 +508,7 @@ func (p *competitionPages) enteredCompetition(w http.ResponseWriter, r *http.Req
 		failed(w, r, err)
 		return c, false
 	}
+	feedbackOn(r, c)
 	return c, true
 }
 
@@ -678,6 +684,7 @@ func (p *competitionPages) clubLinkCompetition(w http.ResponseWriter, r *http.Re
 		failed(w, r, err)
 		return c, false
 	}
+	feedbackOn(r, c)
 	return c, true
 }
 
@@ -924,7 +931,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 	entered := 0
 	for _, d := range disciplines {
 		ev := views.MemberEvent{
-			Discipline: d, Name: competitions.DisciplineName(d), Status: "Not entered", Brief: "Not entered", BriefClass: "is-light",
+			Discipline: d, Name: competitions.DisciplineName(d), Status: "Not entered", Brief: "Not entered", BriefState: views.NotYet,
 			Withdraw: path + "/competitions/" + c.ID + "/withdraw",
 		}
 		start := competitions.Entry{Gymnast: m.Name, Discipline: d}
@@ -937,7 +944,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 			ev.Level = e.Entry.Event()
 			if e.Sent() {
 				if sent == nil {
-					sent, _ = p.st.Entries(ctx, c.ID)
+					sent, _ = p.entriesOf(ctx, c.ID)
 				}
 			}
 			copyID, place := "", 0
@@ -972,7 +979,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 			}
 			state := memberState(e, rem, removed, place)
 			ev.Status = memberStatus(state, rem, e.ChangedSinceSent())
-			ev.Brief, ev.BriefClass = brief(state, len(shown.Problems), place, "Sent")
+			ev.Brief, ev.BriefState = brief(state, len(shown.Problems), place, "Sent")
 			mc.Problems += len(shown.Problems)
 		}
 		key := c.ID + "/" + d
@@ -1081,6 +1088,7 @@ func (p *competitionPages) clubSendCoaches(r *http.Request, club store.Club, com
 		k := views.ClubSendCoach{ID: c.ID, Name: c.Name, Ticked: entered[c.ID] && len(sent) == 0, NoQualifications: len(quals[c.ID]) == 0}
 		if s, ok := sent[c.ID]; ok {
 			k.Ticked, k.Status, k.Approved, k.Note, k.Changed = true, coachStatus(s.Status), s.Approved(), s.Note, s.Changed
+			k.Status, k.State = strings.TrimSuffix(k.Status, " ✓"), coachState(s.Status)
 		}
 		out = append(out, k)
 	}
@@ -1098,6 +1106,18 @@ func coachStatus(status string) string {
 		return "Approval withdrawn"
 	}
 	return "Waiting for the organiser"
+}
+
+// coachState is the state of what an organiser has decided about a coach:
+// approved, refused or withdrawn, or waiting.
+func coachState(status string) views.State {
+	switch status {
+	case store.CoachApproved:
+		return views.Done
+	case store.CoachRefused, store.CoachWithdrawn:
+		return views.Stopped
+	}
+	return views.InProgress
 }
 
 // sendCoaches sends the coaches ticked (coach: their ids) to a competition.

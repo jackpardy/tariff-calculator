@@ -2,7 +2,9 @@
 package web
 
 import (
+	"log"
 	"net/http"
+	"time"
 
 	"tariffCalculator/store"
 )
@@ -35,6 +37,18 @@ func (a *App) Handler() http.Handler {
 func (a *App) Notify() {
 	if a.pages.notify != nil {
 		go a.pages.notify.run()
+	}
+}
+
+// Finish waits up to wait for the emails and pushes still being sent, then
+// stops sending, logging how many were left unsent. Call it once the server
+// has stopped taking requests, before the store is closed.
+func (a *App) Finish(wait time.Duration) {
+	if a.pages.notify == nil {
+		return
+	}
+	if left := a.pages.notify.send.stop(wait); left > 0 {
+		log.Printf("Stopping: %d emails and pushes left unsent", left)
 	}
 }
 

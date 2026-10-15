@@ -8,7 +8,28 @@ import (
 	"testing"
 
 	"tariffCalculator/competitions"
+	"tariffCalculator/store"
+	"tariffCalculator/views"
 )
+
+// Who fills a seat: someone competing is a gymnast whatever sent them; else
+// the organiser's own, added on the Officials page, or a club's judge.
+func TestSeatRole(t *testing.T) {
+	for _, c := range []struct {
+		person   string
+		competes bool
+		want     views.Role
+	}{
+		{store.MemberKey("m1"), true, views.RoleGymnast},
+		{store.IndividualKey("i1"), true, views.RoleGymnast},
+		{store.MemberKey("m2"), false, views.RoleClub},
+		{store.OfficialKey("o1"), false, views.RoleOrganiser},
+	} {
+		if got := seatRole(c.person, c.competes); got != c.want {
+			t.Errorf("%s (competes %t): %s, want %s", c.person, c.competes, got, c.want)
+		}
+	}
+}
 
 func TestOfficialsRota(t *testing.T) {
 	h := competitionServer(t)
@@ -49,13 +70,16 @@ func TestOfficialsRota(t *testing.T) {
 	if !strings.Contains(page, "Tumbling Novice flight 1 on Track 1: no one for 1 execution judge") && !strings.Contains(page, "Tumbling Novice on Track 1: no one for 1 execution judge") {
 		t.Error("a seat no one can take is reported")
 	}
-	if !strings.Contains(page, "<strong>Seats no one could take:</strong> 1, on 1 panel</summary>") {
-		t.Error("the empty seats are counted, with the panels they're on")
+	if !strings.Contains(page, "<strong>Seats no one could take:</strong> 1, on 1 panel</summary>") || strings.Count(page, chip(t, views.Attention, "No one")) != 1 {
+		t.Error("the empty seats are counted, with the panels they're on, and shown")
 	}
 	l3 := page[strings.Index(page, "<strong>BUCS L3"):]
 	l3 = strings.Join(strings.Fields(l3[:strings.Index(l3, "Redraw order")]), " ")
-	for _, who := range []string{"Chair of judges: Mary", "Execution judge: Dara", "Execution judge: Tom"} {
-		if !strings.Contains(l3, who) {
+	// Each says who fills it, with a role chip: Dara competes, the organiser
+	// added Mary and Tom.
+	for _, who := range [][3]string{{"Chair of judges", "Mary", "organiser"}, {"Execution judge", "Dara", "gymnast"}, {"Execution judge", "Tom", "organiser"}} {
+		seat := regexp.QuoteMeta(who[0] + ": " + who[1])
+		if !regexp.MustCompile(seat + ` <span class="has-text-grey">[^<]*</span><span class="chip chip-who chip-who-` + who[2] + `">`).MatchString(l3) {
 			t.Errorf("BUCS L3's panel has %s: %s", who, l3)
 		}
 	}

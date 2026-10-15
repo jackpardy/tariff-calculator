@@ -66,7 +66,7 @@ func (p *competitionPages) coachLateRequests(ctx context.Context, c store.Compet
 	if err != nil {
 		return nil, err
 	}
-	entries, err := p.st.Entries(ctx, c.ID)
+	entries, err := p.entriesOf(ctx, c.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (p *competitionPages) lateTargetOf(w http.ResponseWriter, r *http.Request) 
 	default:
 		memberID = a.owner
 	}
-	entries, err := p.st.Entries(r.Context(), t.c.ID)
+	entries, err := p.entriesOf(r.Context(), t.c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return t, false
@@ -388,7 +388,7 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	entries, err := p.st.Entries(ctx, c.ID)
+	entries, err := p.entriesOf(ctx, c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -547,7 +547,7 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 	}
 	notice := "Accepted: " + accepted.Entry.Gymnasts() + " is in " + accepted.Entry.Event() + "."
 	if accepted.Kind == competitions.LateLevel && c.Timetable != nil && c.Timetable.Planned {
-		entries, err := p.st.Entries(ctx, c.ID)
+		entries, err := p.entriesOf(ctx, c.ID)
 		if err != nil {
 			failed(w, r, err)
 			return

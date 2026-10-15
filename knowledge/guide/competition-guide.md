@@ -160,6 +160,11 @@ pair's one routine), checked as the Routine Builder checks them.
   an entry or generally ("element 7 isn't on the card"). They're listed at
   the top of your entries page, for you alone; mark each **Resolved**, with
   a note of what was done.
+- **Feedback:** while the app is new, every page has a **Feedback** button
+  at the foot, for anyone to say what confused them. It goes to the people
+  who make the app, and you see it under **Settings**, **Feedback**: tick
+  **Dealt with** as you go. Turn the button off in **Settings**, under
+  Feedback.
 - **Approved coaches:** where entries need sign-off, tick **Coaches must be
   approved** and choose the lowest coaching level you accept in each
   discipline (Level 2 to start with; British Gymnastics and Gymnastics
@@ -355,6 +360,13 @@ has a starting value you can change.
    part of their name in **Find a name**: only the flights with them show,
    with their Check-in or Panel list open, and it stays that way as you tap
    Here. **Jump to** goes straight to an area.
+   **What the colours mean.** Each state is a small label with a mark, the
+   same on every page: grey ○ not yet (not started, not checked in), blue ◐
+   under way or waiting on someone, green ✓ done (finished, here), amber !
+   needs a look (running late, a seat no one is in) and red ✕ out
+   (scratched, missing). Each flight says Not started, Under way, Running late
+   or Finished; the Check-in and Panel headings count who's here and who's
+   out, and a Panel lists any seat that still needs someone.
    **Marshals: who's up now.** Once a flight is **Started**, its box shows who's
    first up. Tap **Next gymnast** as each gymnast starts their routine: the
    box shows who's on, their club and which routine it is (such as Set or
@@ -363,6 +375,20 @@ has a starting value you can change.
    scratched gymnasts are skipped. **Back** puts it right if you tapped too
    soon. After the last routine, tap **Finished** as usual: Next gymnast won't
    finish the flight for you.
+   **No signal?** Keep tapping. Each tap is kept on your phone with the time
+   you tapped it and shows straight away, marked "waiting to send", with
+   "Waiting to send: 3 taps" at the top; once Started is tapped you can go on
+   with Next gymnast and Finished. They're sent by themselves when the signal
+   is back (keep the page open, or open it again), and recorded at the times
+   you tapped them, even if your phone's clock is wrong. If two people tapped
+   the same thing, the earliest Started and Finished count, and for Here or
+   Scratched the latest tap does; the page says when a tap wasn't used and
+   why. Taps more than 12 hours old aren't used.
+   **Correct the times** (under each flight): if the paper sheet was used, or
+   a tap was wrong, type when the flight really started and finished and tap
+   **Save times**. Leave Finished empty if it hasn't finished. How late the
+   area is running, the venue screen and everyone's pages follow, and the
+   history says who changed them.
    <a id="on-the-day-venue-screen"></a>**Venue screen** (in the menu, and a
    button at the top of the On the day page that opens it on the day you're
    looking at): what's on each area now and what's next, for a TV
@@ -388,8 +414,11 @@ has a starting value you can change.
    organisers' desk** to call someone over. It is pushed and emailed straight
    away to those who asked to hear about changes, and shown in a "Messages
    from the organisers" box on each person's own page, so those who didn't
-   still see it when they look. The page lists what you sent and how many
-   were told.
+   still see it when they look. The page answers at once and says how many
+   it's sending to; the sending carries on in the background (a message to
+   a few hundred people takes a minute or so). The page lists what you sent
+   and how many were told, are still to go, or failed: reload it to see how
+   the sending is going.
 
 **What if there's a delay?** (on the timetable page, once planned): choose the
 day, when the hold-up starts, how many minutes and which areas (none ticked

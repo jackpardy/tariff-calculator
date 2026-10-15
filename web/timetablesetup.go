@@ -322,7 +322,7 @@ func (p *competitionPages) setupRules(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if kind := r.FormValue("kind"); kind == competitions.RuleRole || kind == competitions.RuleOff || kind == competitions.RuleHours {
-		entries, err := p.st.Entries(r.Context(), c.ID)
+		entries, err := p.entriesOf(r.Context(), c.ID)
 		if err != nil {
 			failed(w, r, err)
 			return
