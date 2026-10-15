@@ -643,6 +643,9 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-move[open] .comp-move-form { display: flex; margin: 0.3rem 0; }
 .comp-move-form { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
 .comp-flight-actions { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+/* "Jump to" a day or area (the timetable, On the day): links big enough to tap. */
+.comp-jump p, p.comp-jump { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.4rem; }
+.comp-jump a { display: inline-flex; align-items: center; min-height: 2.5rem; }
 .comp-print-bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
 .comp-sheet-table td, .comp-sheet-table th { font-size: 0.9rem; }
 .comp-sheet-table td:last-child { min-width: 4rem; }

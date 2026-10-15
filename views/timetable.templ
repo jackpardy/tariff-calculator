@@ -114,14 +114,14 @@ type FixView struct {
 
 // DayView is one day's areas, side by side.
 type DayView struct {
-	Name  string
-	Areas []AreaView
+	ID, Name string // ID: its heading's id on the page, to jump to
+	Areas    []AreaView
 }
 
 // AreaView is one area's flights and blocks, in time order.
 type AreaView struct {
-	Name  string
-	Items []ItemView
+	ID, Name string // ID: its column's id on the page, to jump to
+	Items    []ItemView
 }
 
 // ItemView is a flight or blocked time on an area.
@@ -161,6 +161,9 @@ templ CompetitionTimetable(p TimetablePage) {
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			<div class="notification is-info is-light">{ p.Notice }</div>
+		}
+		if p.Planned && len(p.Days) > 0 {
+			@timetableJump(p)
 		}
 		@setupSections(p)
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/plan") } class="my-4">
@@ -221,36 +224,93 @@ templ CompetitionTimetable(p TimetablePage) {
 					Not published: only you see it.
 				}
 			</p>
-			if len(p.Unplaced) > 0 {
-				<div class="box">
-					<p class="mb-2"><strong>{ gymnastCount(len(p.Unplaced)) } not in a flight</strong> (entered since you planned, or moved out).</p>
-					for _, g := range p.Unplaced {
-						@moveGymnast(p, g, true)
+			if n := timetableNames(p); n > 0 {
+				<div id="timetable-find">
+					@listTools(ListTools{ID: "timetable-flights", Noun: "names", Total: n})
+				</div>
+			}
+			<div id="timetable-flights">
+				if len(p.Unplaced) > 0 {
+					<div class="box" data-list-group>
+						<p class="mb-2"><strong>{ gymnastCount(len(p.Unplaced)) } not in a flight</strong> (entered since you planned, or moved out).</p>
+						for _, g := range p.Unplaced {
+							<div { ListRow{Name: g.Name}.Attrs()... }>
+								@moveGymnast(p, g, true)
+							</div>
+						}
+					</div>
+				}
+				for _, day := range p.Days {
+					@timetableDay(p, day)
+				}
+			</div>
+		}
+	}
+}
+
+// timetableDay is a day's areas side by side, each with its flights and
+// blocked time.
+templ timetableDay(p TimetablePage, day DayView) {
+	<section data-list-group>
+		<h2 class="title is-5 mt-5" id={ day.ID }>{ day.Name }</h2>
+		<div class="columns is-multiline">
+			for _, area := range day.Areas {
+				<div class="column is-half-tablet is-one-third-desktop" id={ area.ID } data-list-group>
+					<h3 class="title is-6">{ area.Name }</h3>
+					if len(area.Items) == 0 {
+						<p class="has-text-grey is-size-7">Nothing</p>
+					}
+					for _, it := range area.Items {
+						if it.Flight {
+							@flightBox(p, it)
+						} else {
+							@blockBox(p, it)
+						}
 					}
 				</div>
 			}
-			for _, day := range p.Days {
-				<h2 class="title is-5 mt-5">{ day.Name }</h2>
-				<div class="columns is-multiline">
-					for _, area := range day.Areas {
-						<div class="column is-half-tablet is-one-third-desktop">
-							<h3 class="title is-6">{ area.Name }</h3>
-							if len(area.Items) == 0 {
-								<p class="has-text-grey is-size-7">Nothing</p>
-							}
-							for _, it := range area.Items {
-								if it.Flight {
-									@flightBox(p, it)
-								} else {
-									@blockBox(p, it)
-								}
-							}
-						</div>
+		</div>
+	</section>
+}
+
+// timetableJump links to each day and its areas, and to "Find a name": on a
+// phone the flights are a long way down.
+templ timetableJump(p TimetablePage) {
+	<div class="comp-jump is-size-7 mb-4">
+		<p>
+			Jump to:
+			if timetableNames(p) > 0 {
+				<a href="#timetable-find">Find a name</a>
+			}
+		</p>
+		for _, d := range p.Days {
+			<p>
+				<a href={ templ.SafeURL("#" + d.ID) }><strong>{ d.Name }</strong></a>
+				for _, a := range d.Areas {
+					<span>·</span> <a href={ templ.SafeURL("#" + a.ID) }>{ a.Name }</a>
+				}
+			</p>
+		}
+	</div>
+}
+
+// timetableNames counts the rows "Find a name" searches: each gymnast in a
+// running order or not in a flight, and each official with a seat.
+func timetableNames(p TimetablePage) int {
+	n := len(p.Unplaced)
+	for _, d := range p.Days {
+		for _, a := range d.Areas {
+			for _, it := range a.Items {
+				n += len(it.Gymnasts)
+				for _, s := range it.Seats {
+					if s.Person != "" {
+						n++
 					}
-				</div>
+				}
 			}
 		}
 	}
+	return n
 }
 
 script confirmReplan(planned bool) {
@@ -638,12 +698,12 @@ func joinNames(names []string) string {
 }
 
 templ flightBox(p TimetablePage, f ItemView) {
-	<div class="box comp-flight">
+	<div class="box comp-flight" data-list-group>
 		<p class="mb-1"><strong>{ f.Name }</strong></p>
 		<p class="is-size-7 has-text-grey mb-2">Warm-up { f.Start } · finishes about { f.End } · { flightCount(len(f.Gymnasts), f.Pairs) }</p>
 		<ol class="comp-order">
 			for _, g := range f.Gymnasts {
-				<li value={ strconv.Itoa(g.No) }>
+				<li value={ strconv.Itoa(g.No) } { ListRow{Name: g.Name}.Attrs()... }>
 					{ g.Name }
 					<span class="has-text-grey is-size-7">{ g.Club }</span>
 					if g.Moved != "" {
@@ -684,7 +744,7 @@ templ flightBox(p TimetablePage, f ItemView) {
 
 // blockBox is blocked time on an area, with its panel if it needs one.
 templ blockBox(p TimetablePage, b ItemView) {
-	<div class="box comp-block">
+	<div class="box comp-block" data-list-group>
 		<strong>{ b.Name }</strong> <span class="has-text-grey is-size-7">{ b.Start }–{ b.End }</span>
 		if len(b.Seats) > 0 {
 			@seatsEditor(p, b, "block")
@@ -694,11 +754,11 @@ templ blockBox(p TimetablePage, b ItemView) {
 
 // seatsEditor lists a panel's seats, with a form to give one to someone.
 templ seatsEditor(p TimetablePage, it ItemView, field string) {
-	<details class="comp-panel mt-2">
+	<details class="comp-panel mt-2" data-list-group>
 		<summary class="is-size-7"><strong>Panel</strong> { seatsSummary(it.Seats) }</summary>
 		<ul class="is-size-7 mt-1">
 			for _, s := range it.Seats {
-				<li>
+				<li { seatRow(s)... }>
 					{ s.Role }:
 					if s.Person == "" {
 						<span class="has-text-danger">no one</span>
@@ -763,6 +823,14 @@ templ moveGymnast(p TimetablePage, g TimetableGymnast, named bool) {
 		</div>
 		<button class="button is-small" type="submit">Move</button>
 	</form>
+}
+
+// seatRow is a seat's row for "Find a name": none for an empty seat.
+func seatRow(s SeatView) templ.Attributes {
+	if s.Person == "" {
+		return nil
+	}
+	return ListRow{Name: s.Name}.Attrs()
 }
 
 // seatsSummary says how full a panel is, e.g. "· 9 of 11 seats filled".

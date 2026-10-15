@@ -291,8 +291,21 @@
             return;
         }
         const key = 'trampolineOpenDay:' + location.pathname + '?day=' + (new URLSearchParams(location.search).get('day') || '');
-        const openKeys = (root) => new Set(Array.from(root.querySelectorAll('details[data-key][open]'), (d) => d.dataset.key));
-        const reopen = (root, keys) => root.querySelectorAll('details[data-key]').forEach((d) => { d.open = keys.has(d.dataset.key); });
+        // The lists opened by hand, and those "Find a name" opened because
+        // they have someone it found (listTools marks them), which close
+        // again when the search is cleared and aren't remembered.
+        const openKeys = (root) => new Set(Array.from(root.querySelectorAll('details[data-key][open]:not([data-list-opened])'), (d) => d.dataset.key));
+        const searchKeys = (root) => new Set(Array.from(root.querySelectorAll('details[data-key][open][data-list-opened]'), (d) => d.dataset.key));
+        const reopen = (root, keys) => root.querySelectorAll('details[data-key]').forEach((d) => {
+            if ('listOpened' in d.dataset) {
+                // Opened by the search, and by hand before: it stays open after it.
+                if (keys.has(d.dataset.key)) { delete d.dataset.listOpened; }
+                return;
+            }
+            d.open = keys.has(d.dataset.key);
+        });
+        // research runs the page's search again, over a fresh copy of the areas.
+        const research = () => document.querySelectorAll('[data-list-tools="day-areas"] [data-list-search]').forEach((s) => s.dispatchEvent(new Event('input')));
         const save = () => {
             try { sessionStorage.setItem(key, JSON.stringify(Array.from(openKeys(document)))); } catch (e) { /* not remembered */ }
         };
@@ -361,8 +374,17 @@
                 const before = document.getElementById(anchor).getBoundingClientRect().top;
                 const keys = openKeys(document);
                 keys.delete(shut);
+                const searched = searchKeys(document);
                 reopen(fresh, keys);
+                fresh.querySelectorAll('details[data-key]').forEach((d) => {
+                    if (searched.has(d.dataset.key) && d.dataset.key !== shut) {
+                        d.open = true;
+                        d.dataset.listOpened = '';
+                    }
+                });
                 swap(fresh);
+                // Hide again whoever the search doesn't find.
+                research();
                 const after = document.getElementById(anchor)?.getBoundingClientRect().top;
                 if (after !== undefined && after !== before) { window.scrollBy(0, after - before); }
                 save();
@@ -444,15 +466,15 @@
     // address and links marked data-list-carry follow it.
     function listTools() {
         for (const tools of document.querySelectorAll('[data-list-tools]')) {
-            const list = document.getElementById(tools.dataset.listTools);
-            if (!list) { continue; }
+            if (!document.getElementById(tools.dataset.listTools)) { continue; }
             const form = tools.hasAttribute('data-form');
-            const rows = [...list.querySelectorAll('[data-list-row]')].map((el) => {
+            // The list and its rows are read afresh each time, as the On the
+            // day page swaps in new copies of them (dayPage).
+            const readRows = (list) => [...list.querySelectorAll('[data-list-row]')].map((el) => {
                 let values = {};
                 try { values = JSON.parse(el.dataset.values || '{}'); } catch (e) { /* no values: matches no filter */ }
                 return { el, name: fold(el.dataset.name || ''), values };
             });
-            const total = form ? Number(tools.dataset.total) : rows.length;
             const search = tools.querySelector('[data-list-search]');
             const filters = [...tools.querySelectorAll('[data-list-filter]')];
             const count = tools.querySelector('[data-list-count]');
@@ -482,6 +504,10 @@
             };
 
             const apply = () => {
+                const list = document.getElementById(tools.dataset.listTools);
+                if (!list) { return; }
+                const rows = readRows(list);
+                const total = form ? Number(tools.dataset.total) : rows.length;
                 const words = searchWords(search.value);
                 const chosen = filters.filter((f) => f.value !== '');
                 let shown = 0;

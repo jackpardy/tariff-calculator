@@ -47,7 +47,7 @@ func TestPanelCheckinRun(t *testing.T) {
 	if !strings.Contains(page, "Panel · 0 of 1 here</summary>") {
 		t.Error("so does tumbling's, of one")
 	}
-	if strings.Contains(page, ">Clear</button>") {
+	if strings.Contains(page, `value="">Clear</button>`) {
 		t.Error("nothing to clear yet")
 	}
 	dara, flight1 := panelSeat(t, page, first, "Dara")
@@ -68,7 +68,7 @@ func TestPanelCheckinRun(t *testing.T) {
 	if !strings.Contains(page, "Panel · 0 of 1 here</summary>") {
 		t.Error("tumbling's panel isn't touched")
 	}
-	if !strings.Contains(page, `<span class="tag is-success is-light">Here</span>`) || !strings.Contains(page, ">Clear</button>") {
+	if !strings.Contains(page, `<span class="tag is-success is-light">Here</span>`) || !strings.Contains(page, `value="">Clear</button>`) {
 		t.Errorf("her state, and Clear: %s", page)
 	}
 	if notifyForm(page, dara, flight1, "official") || notifyForm(page, dara, flight2, "official") {
@@ -117,7 +117,7 @@ func TestPanelCheckinRun(t *testing.T) {
 	// Clear takes it back on the whole run.
 	mark(admin, dara, flight1, "")
 	page = get(day)
-	if n := strings.Count(page, "Panel · 0 of 3 here</summary>"); n != 2 || strings.Contains(page, "What if they leave") || strings.Contains(page, ">Clear</button>") {
+	if n := strings.Count(page, "Panel · 0 of 3 here</summary>"); n != 2 || strings.Contains(page, "What if they leave") || strings.Contains(page, `value="">Clear</button>`) {
 		t.Errorf("cleared on both flights: %s", page)
 	}
 	if to := mark(admin, dara, flight1, ""); !strings.Contains(to, "notice=") {
