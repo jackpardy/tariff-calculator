@@ -118,12 +118,6 @@ templ Delay(p DelayPage) {
 			<button class="button is-primary is-small" type="submit">Show what happens</button>
 		</form>
 		if r := p.Result; r != nil {
-			<form method="post" action={ templ.SafeURL(p.Keep) } class="mb-4">
-				@versionField(p.Version)
-				<button class="button is-small is-success" type="submit">Keep this in the draft timetable</button>
-				<span class="help is-inline ml-2">Attendees see it once you publish the timetable again.</span>
-			</form>
-
 			<div class="box">
 				if len(r.Easing) > 0 {
 					<p class="mb-2"><strong>Easing it:</strong> { joinNames(r.Easing) }.</p>
@@ -132,7 +126,10 @@ templ Delay(p DelayPage) {
 					}
 				}
 				if len(r.Changes) == 0 {
-					<p class="has-text-success"><strong>Nothing changes:</strong> there's enough slack to take the delay.</p>
+					<p>
+						@StateChip(Done, "Nothing changes")
+						<span class="ml-1">There's enough slack to take the delay.</span>
+					</p>
 				} else {
 					if len(r.Days) > 0 {
 						<div class="table-container">
@@ -156,7 +153,9 @@ templ Delay(p DelayPage) {
 							<p><strong>No longer fits the day:</strong> { joinNames(r.Unplaced) }. Nowhere free before the end could take it.</p>
 						</div>
 					} else {
-						<p class="has-text-success mb-2"><strong>Everything still fits.</strong></p>
+						<p class="mb-2">
+							@StateChip(Done, "Everything still fits")
+						</p>
 					}
 					@problemsList("Needed in two places", r.Clashes)
 					@problemsList("Breaks", r.Breaks)
@@ -186,6 +185,12 @@ templ Delay(p DelayPage) {
 					</div>
 				}
 			</div>
+			// Kept once it's been read, so below what happens.
+			<form method="post" action={ templ.SafeURL(p.Keep) } class="mb-4">
+				@versionField(p.Version)
+				<button class="button is-small is-success" type="submit">Keep this in the draft timetable</button>
+				<span class="help is-inline ml-2">Attendees see it once you publish the timetable again.</span>
+			</form>
 		} else if !p.Asked {
 			<p class="help">e.g. Panel 2's trampoline needs a spring replaced: Saturday, from 10:30, for 25 minutes, Panel 2.</p>
 		}

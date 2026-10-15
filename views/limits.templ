@@ -48,8 +48,7 @@ templ limitsForm(base string, fields []LimitField) {
 // waitingBox lists each event's waiting list.
 templ waitingBox(base string, lists []WaitingList, letIn bool) {
 	if len(lists) > 0 {
-		<div class="box mt-5">
-			<h2 class="title is-5">Waiting lists</h2>
+		@listSection("Waiting lists", waitingCount(lists)) {
 			<p class="is-size-7 mb-3">They aren't counted, charged, printed or timetabled until they're in. Each moves up when a place frees.</p>
 			for _, wl := range lists {
 				<h3 class="title is-6 mt-3 mb-1">{ wl.Event } <span class="has-text-grey is-size-7 has-text-weight-normal">· full at { strconv.Itoa(wl.Limit) }</span></h3>
@@ -73,6 +72,15 @@ templ waitingBox(base string, lists []WaitingList, letIn bool) {
 					</tbody>
 				</table>
 			}
-		</div>
+		}
 	}
+}
+
+// waitingCount is how many entries are waiting, over every list.
+func waitingCount(lists []WaitingList) int {
+	n := 0
+	for _, wl := range lists {
+		n += len(wl.Rows)
+	}
+	return n
 }

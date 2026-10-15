@@ -143,33 +143,19 @@ templ CompetitionDashboard(d Dashboard) {
 		if !d.Access.Organiser {
 			@concernForm(d.Base, "", "Flag a concern for the organiser")
 		}
-		@dashboardFilters(d)
-		if d.Access.Sheets && !d.Access.Timetable {
-			<div class="buttons">
-				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable/print?sheet=judges") }>Chair of judges sheets</a>
-				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable/print?sheet=scores") }>Score sheets</a>
-				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable/print?sheet=marshal") }>Marshal sheets</a>
-				<a class="button is-small is-link is-light" href={ templ.SafeURL(d.Base + "/timetable/print?sheet=timeline-officials") }>Panel timeline</a>
-			</div>
-		}
-		if d.Entries > 0 {
-			// Printing and the CSV follow the search and filters.
-			<div class="buttons">
-				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) } data-list-carry>
-					if filtered(d) {
-						Print cards shown
-					} else {
-						Print cards
-					}
-				</a>
-				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards?unchecked=1") }>Print cards not checked</a>
-				<a class="button is-small" href={ templ.SafeURL(d.Base + "/entries.csv" + filterQuery(d, "")) } download data-list-carry>
-					if filtered(d) {
-						Download CSV of those shown
-					} else {
-						Download CSV
-					}
-				</a>
+		if d.Entries > 0 || (d.Access.Sheets && !d.Access.Timetable) {
+			<div class="comp-dash-actions">
+				@dashboardPrint(d)
+				if d.Entries > 0 {
+					// The CSV follows the search and filters, as printing does.
+					<a class="button is-small" href={ templ.SafeURL(d.Base + "/entries.csv" + filterQuery(d, "")) } download data-list-carry>
+						if filtered(d) {
+							Download CSV of those shown
+						} else {
+							Download CSV
+						}
+					</a>
+				}
 			</div>
 		}
 		if d.Entries == 0 {
@@ -177,6 +163,7 @@ templ CompetitionDashboard(d Dashboard) {
 		} else if d.Access.Remove {
 			@removeForm(d.Base)
 		}
+		@dashboardFilters(d)
 		if len(d.Levels) > 0 {
 			<div class="buttons mt-4 mb-0">
 				<button class="button is-small" type="button" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = true)">Expand all</button>
@@ -336,13 +323,17 @@ templ count(n int, label string) {
 
 templ CompetitionEntry(d EntryDetail) {
 	@competitionLayout(d.Card.Gymnast + " · " + d.Competition.Name) {
+		// Back, the name and the menu, in the order a person's page has them.
+		<p class="mb-3"><a href={ templ.SafeURL(d.Base) }>← Entries</a></p>
+		<h1 class="title is-4">{ d.Card.Gymnast }</h1>
+		<p class="subtitle is-6">{ d.Card.Club } · { d.Card.Level }</p>
 		@pageMenu(d.Menu)
 		if d.Withdrawn {
 			<div class="notification is-warning is-light">
 				<p><strong>Withdrawn.</strong> { d.Card.Gymnast } has withdrawn this entry, or left the club, since { d.Card.Club } sent it. It goes when the club sends its entries again; until then it isn't counted or printed.</p>
 			</div>
 		}
-		@entryCard(d.Card)
+		@entryCardChecks(d.Card)
 		<p class="has-text-grey is-size-7 mt-4">Sent { d.Sent }.</p>
 		if d.Notice != "" {
 			<div class="notification is-success is-light mt-3">{ d.Notice }</div>
@@ -466,6 +457,34 @@ func shownCount(d Dashboard, l DashboardLevel) string {
 	return strconv.Itoa(l.Total)
 }
 
+// dashboardPrint is the entries' printing under one Print button: the cards,
+// following the search and filters, those not checked yet, and for a link
+// that prints the timetable's sheets but has no timetable page (a chair of
+// judges), those sheets.
+templ dashboardPrint(d Dashboard) {
+	<details class="comp-popup comp-popup-start" data-menu>
+		<summary class="button is-small comp-opens-button">Print</summary>
+		<div class="comp-popup-panel">
+			if d.Entries > 0 {
+				<a href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) } data-list-carry>
+					if filtered(d) {
+						Cards shown
+					} else {
+						Cards
+					}
+				</a>
+				<a href={ templ.SafeURL(d.Base + "/cards?unchecked=1") }>Cards not checked</a>
+			}
+			if d.Access.Sheets && !d.Access.Timetable {
+				<a href={ templ.SafeURL(d.Base + "/timetable/print?sheet=judges") }>Chair of judges sheets</a>
+				<a href={ templ.SafeURL(d.Base + "/timetable/print?sheet=scores") }>Score sheets</a>
+				<a href={ templ.SafeURL(d.Base + "/timetable/print?sheet=marshal") }>Marshal sheets</a>
+				<a href={ templ.SafeURL(d.Base + "/timetable/print?sheet=timeline-officials") }>Panel timeline</a>
+			}
+		</div>
+	</details>
+}
+
 // removeForm removes or holds the entries ticked in the tables.
 templ removeForm(base string) {
 	@opens("", "", "Remove or hold entries", false) {
@@ -493,43 +512,44 @@ templ removeForm(base string) {
 // removedList is the entries removed or held, to restore or accept.
 templ removedList(base string, rows []RemovedRow) {
 	if len(rows) > 0 {
-		<h2 class="title is-5 mt-5">Removed and on hold <span class="has-text-grey is-size-6">({ strconv.Itoa(len(rows)) })</span></h2>
-		<div class="table-container">
-			<table class="table is-fullwidth is-narrow">
-				<tbody>
-					for _, r := range rows {
-						<tr>
-							<td><a href={ templ.SafeURL(base + "/entries/" + r.ID) }>{ r.Gymnast }</a></td>
-							<td>{ r.Club }</td>
-							<td>{ r.Level }</td>
-							<td>
-								if r.Resent {
-									@StateChip(Attention, "Changed and sent again: waiting for you")
-								} else if r.Held {
-									@StateChip(Attention, "On hold for changes")
-								} else {
-									@StateChip(Stopped, "Removed")
-								}
-								if r.Note != "" {
-									<span class="is-size-7 has-text-grey">{ r.Note } ({ r.To })</span>
-								}
-							</td>
-							<td class="has-text-right">
-								<form method="post" action={ templ.SafeURL(base + "/entries/" + r.ID + "/restore") }>
-									<button class="button is-small" type="submit">
-										if r.Resent {
-											Accept back in
-										} else {
-											Restore
-										}
-									</button>
-								</form>
-							</td>
-						</tr>
-					}
-				</tbody>
-			</table>
-		</div>
+		@listSection("Removed and on hold", len(rows)) {
+			<div class="table-container">
+				<table class="table is-fullwidth is-narrow">
+					<tbody>
+						for _, r := range rows {
+							<tr>
+								<td><a href={ templ.SafeURL(base + "/entries/" + r.ID) }>{ r.Gymnast }</a></td>
+								<td>{ r.Club }</td>
+								<td>{ r.Level }</td>
+								<td>
+									if r.Resent {
+										@StateChip(Attention, "Changed and sent again: waiting for you")
+									} else if r.Held {
+										@StateChip(Attention, "On hold for changes")
+									} else {
+										@StateChip(Stopped, "Removed")
+									}
+									if r.Note != "" {
+										<span class="is-size-7 has-text-grey">{ r.Note } ({ r.To })</span>
+									}
+								</td>
+								<td class="has-text-right">
+									<form method="post" action={ templ.SafeURL(base + "/entries/" + r.ID + "/restore") }>
+										<button class="button is-small" type="submit">
+											if r.Resent {
+												Accept back in
+											} else {
+												Restore
+											}
+										</button>
+									</form>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
 	}
 }
 

@@ -627,6 +627,15 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .comp-popup-panel { position: absolute; right: 0; top: calc(100% + 0.25rem); z-index: 30; min-width: 14rem; padding: 0.3rem 0; background: #fff; border: 1px solid #dbdbdb; border-radius: 6px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12); }
 .comp-popup-panel a { display: block; padding: 0.45rem 0.9rem; color: #363636; }
 .comp-popup-panel a:hover, .comp-popup-panel a:focus { background: #f5f5f5; }
+/* A menu from a button at the left of the page opens to the right, staying on screen. */
+.comp-popup-start .comp-popup-panel { left: 0; right: auto; }
+/* The entries page's concerns: the open ones a row each, a hairline between. */
+.comp-concerns h2 .chip { margin-left: 0.5rem; vertical-align: middle; }
+.comp-concern { padding: 0.6rem 0; border-top: 1px solid #ededed; }
+.comp-concern .comp-flight-actions .input { flex: 1 1 12rem; width: auto; max-width: 28rem; }
+.comp-concerns-resolved > summary { cursor: pointer; }
+/* The entries page's Print and Download, in a row above the search. */
+.comp-dash-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
 /* A menu at the left of a row of buttons (a person's Timetables and
    calendars) opens rightwards, so it stays on a phone's screen. */
 .comp-popup-left > .comp-popup-panel { left: 0; right: auto; }
@@ -792,6 +801,12 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .comp-pay-form { display: flex; gap: 0.3rem; align-items: center; }
 .comp-pay-form .comp-num { width: 5.5rem; }
 .comp-pay-form input[name="note"] { width: 9rem; }
+/* Fees: Record a payment opens under the row's Invoice, and a payment's Remove sits on
+   its line of text rather than dropping below it. An invoice's amounts never wrap. */
+.comp-pay-cell .comp-opens { margin: 0.25rem 0 0; }
+.comp-pay-cell .comp-opens-form { margin-bottom: 0.25rem; }
+.comp-inline-button { height: auto; vertical-align: baseline; }
+.comp-nowrap { white-space: nowrap; }
 /* Check-in and scratches on the day (views/day.templ, the printed sheets). */
 .comp-scratched { text-decoration: line-through; color: #7a7a7a; }
 /* The day page's notice stays in view, as the page no longer jumps to the top to show it. */
@@ -923,6 +938,7 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 /* On a phone, tighter tabs so four sections fit without scrolling sideways. */
 @media (max-width: 480px) {
     .comp-menu .tabs:not(.comp-submenu) a { padding: 0.5em 0.55em; font-size: 0.92rem; }
+    .comp-menu .tabs:not(.comp-submenu) .comp-badge-word { display: none; }
 }
 /* One link, several roles (views/roles.templ): a person's roles as toggle
    tabs above the page's own menu, scrolling sideways on a narrow screen; and
@@ -1037,6 +1053,12 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .comp-day-card .title a { color: inherit; }
 .comp-day-card-flight { border-top: 1px solid #ededed; padding-top: 0.75rem; margin-top: 0.5rem; }
 .comp-day-card .comp-day-flight-taps, .comp-day-card .comp-up .buttons { margin-bottom: 0; }
+/* Cards side by side are as tall as the row, with each one's tap and Open at the
+   foot, so they line up however long a flight's name is. */
+#day-areas > .column { display: flex; flex-direction: column; }
+#day-areas .comp-day-card { flex: 1 0 auto; display: flex; flex-direction: column; }
+#day-areas .comp-day-card-flight { flex: 1 0 auto; display: flex; flex-direction: column; }
+#day-areas .comp-day-card-flight > :last-child:not(:first-child) { margin-top: auto; }
 .comp-day-people > summary { display: none; }
 .comp-day-people[open] { margin-top: 0.75rem; border-top: 1px solid #ededed; padding-top: 0.5rem; }
 .comp-day-person { display: block; padding: 0.2rem 0; }

@@ -282,7 +282,7 @@ func (p *competitionPages) people(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	base := adminPath(r.PathValue("token"))
-	page := views.PeoplePage{Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuPeople), Count: views.Count(len(dir.list), "person", "people")}
+	page := views.PeoplePage{Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuPeople)}
 	var clubs []string
 	for _, dp := range dir.list {
 		clubs = append(clubs, dp.club)

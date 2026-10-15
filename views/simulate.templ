@@ -10,11 +10,12 @@ import (
 type SimulationPage struct {
 	Base          string
 	Competition   CompetitionSummary
-	Menu []MenuSection
+	Menu          []MenuSection
 	Notice        string
 	SetupProblems []string // what's wrong with the venue setup, which simulating needs
 	Entries       int      // real entries so far
 	Form          ScenarioForm
+	From          bool // the form starts from a scenario, to change it, so it's open
 	Scenarios     []ScenarioView
 	Max           int // how many scenarios are kept
 }
@@ -96,108 +97,112 @@ templ Simulation(p SimulationPage) {
 		if len(p.Scenarios) > 0 {
 			@scenarioTable(p)
 		}
-		@scenarioFormView(p)
+		<div class="mt-4">
+			@scenarioFormView(p)
+		</div>
 	}
 }
 
+// scenarioFormView is a new scenario's numbers, opening from a button once
+// there are scenarios to look at (open before the first, or to change one).
 templ scenarioFormView(p SimulationPage) {
-	<form method="post" action={ templ.SafeURL(p.Base + "/timetable/simulate") } class="box">
-		<h2 class="title is-6">New scenario</h2>
-		<p class="help mb-3">
-			if p.Entries > 0 {
-				Filled in from the entries and offers so far ({ Count(p.Entries, "entry", "entries") }); change any number.
-			} else {
-				Change any number. Leave a box empty for none.
-			}
-		</p>
-		<div class="field">
-			<label class="label is-small" for="sim-name">Name</label>
-			<input class="input is-small" id="sim-name" name="name" required maxlength="80" value={ p.Form.Name }/>
-		</div>
-		<fieldset class="field">
-			<legend class="label is-small">Entries per event</legend>
-			<p class="help mb-1">Synchro entries are pairs.</p>
+	@opens("", "", "New scenario", len(p.Scenarios) == 0 || p.From) {
+		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/simulate") }>
+			<p class="help mb-3">
+				if p.Entries > 0 {
+					Filled in from the entries and offers so far ({ Count(p.Entries, "entry", "entries") }); change any number.
+				} else {
+					Change any number. Leave a box empty for none.
+				}
+			</p>
+			<div class="field">
+				<label class="label is-small" for="sim-name">Name</label>
+				<input class="input is-small" id="sim-name" name="name" required maxlength="80" value={ p.Form.Name }/>
+			</div>
+			<fieldset class="field">
+				<legend class="label is-small">Entries per event</legend>
+				<p class="help mb-1">Synchro entries are pairs.</p>
+				<div class="comp-sim-grid">
+					for _, e := range p.Form.Events {
+						<label class="comp-sim-row">
+							<span>{ e.Name }</span>
+							<input class="input is-small comp-num" type="number" min="0" max="1000" name={ e.Field } value={ numberValue(e.Entries) }/>
+						</label>
+					}
+				</div>
+			</fieldset>
 			<div class="comp-sim-grid">
-				for _, e := range p.Form.Events {
+				<label class="comp-sim-row">
+					<span>Gymnasts in all (fewer than the entries' gymnasts together means some enter several disciplines; empty if no one does)</span>
+					<input class="input is-small comp-num" type="number" min="0" name="gymnasts" value={ numberValue(p.Form.Gymnasts) }/>
+				</label>
+				<label class="comp-sim-row">
+					<span>Clubs they come from</span>
+					<input class="input is-small comp-num" type="number" min="1" max="100" name="clubs" required value={ strconv.Itoa(p.Form.Clubs) }/>
+				</label>
+			</div>
+			<fieldset class="field mt-3">
+				<legend class="label is-small">Officials</legend>
+				<p class="help mb-1">People who can judge each discipline (any level), and how many of them can chair. If clubs must bring judges (below), these are only your own, with no club.</p>
+				<div class="comp-sim-grid">
+					for _, d := range p.Form.Disciplines {
+						<div class="comp-sim-row">
+							<span>{ d.Name }</span>
+							<span class="comp-sim-nums">
+								<input class="input is-small comp-num" type="number" min="0" name={ "judges-" + d.Key } value={ numberValue(d.Judges) } aria-label={ d.Name + " judges" }/>
+								<span class="is-size-7">chair</span>
+								<input class="input is-small comp-num" type="number" min="0" name={ "chairs-" + d.Key } value={ numberValue(d.Chairs) } aria-label={ d.Name + " judges who can chair" }/>
+							</span>
+						</div>
+					}
+				</div>
+				<p class="label is-small mt-3 mb-1">Judges each club must bring</p>
+				<p class="help mb-1">For every so many of a club's competitors in a discipline (or part of it: 9 at 1 per 8 is 2), so many judges, of whom so many can chair. A synchro pair is two competitors. Each discipline's judges are their own people, so a club needing 4 trampoline and 2 tumbling judges brings 6. Leave empty for none.</p>
+				<div class="comp-sim-grid">
+					for _, d := range p.Form.Disciplines {
+						<div class="comp-sim-row">
+							<span>{ d.Name }</span>
+							<span class="comp-sim-nums">
+								<input class="input is-small comp-num" type="number" min="0" max="20" name={ "quota-judges-" + d.Key } value={ numberValue(d.QuotaJudges) } aria-label={ d.Name + " judges each club brings" }/>
+								<span class="is-size-7">per</span>
+								<input class="input is-small comp-num" type="number" min="0" max="100" name={ "quota-per-" + d.Key } value={ numberValue(d.QuotaPer) } aria-label={ d.Name + " competitors per lot of judges" }/>
+								<span class="is-size-7">competitors; chair</span>
+								<input class="input is-small comp-num" type="number" min="0" max="20" name={ "quota-chairs-" + d.Key } value={ numberValue(d.QuotaChairs) } aria-label={ d.Name + " of those judges who can chair" }/>
+							</span>
+						</div>
+					}
+				</div>
+				<div class="comp-sim-grid mt-3">
 					<label class="comp-sim-row">
-						<span>{ e.Name }</span>
-						<input class="input is-small comp-num" type="number" min="0" max="1000" name={ e.Field } value={ numberValue(e.Entries) }/>
+						<span>Of the clubs' judges, the percent who can also judge any other discipline (as well as filling their own)</span>
+						<span class="comp-sim-nums">
+							<input class="input is-small comp-num" type="number" min="0" max="100" name="alsoJudge" value={ numberValue(p.Form.AlsoJudge) }/>
+							<span class="is-size-7">%</span>
+						</span>
 					</label>
-				}
-			</div>
-		</fieldset>
-		<div class="comp-sim-grid">
-			<label class="comp-sim-row">
-				<span>Gymnasts in all (fewer than the entries' gymnasts together means some enter several disciplines; empty if no one does)</span>
-				<input class="input is-small comp-num" type="number" min="0" name="gymnasts" value={ numberValue(p.Form.Gymnasts) }/>
-			</label>
-			<label class="comp-sim-row">
-				<span>Clubs they come from</span>
-				<input class="input is-small comp-num" type="number" min="1" max="100" name="clubs" required value={ strconv.Itoa(p.Form.Clubs) }/>
-			</label>
-		</div>
-		<fieldset class="field mt-3">
-			<legend class="label is-small">Officials</legend>
-			<p class="help mb-1">People who can judge each discipline (any level), and how many of them can chair. If clubs must bring judges (below), these are only your own, with no club.</p>
-			<div class="comp-sim-grid">
-				for _, d := range p.Form.Disciplines {
-					<div class="comp-sim-row">
-						<span>{ d.Name }</span>
-						<span class="comp-sim-nums">
-							<input class="input is-small comp-num" type="number" min="0" name={ "judges-" + d.Key } value={ numberValue(d.Judges) } aria-label={ d.Name + " judges" }/>
-							<span class="is-size-7">chair</span>
-							<input class="input is-small comp-num" type="number" min="0" name={ "chairs-" + d.Key } value={ numberValue(d.Chairs) } aria-label={ d.Name + " judges who can chair" }/>
-						</span>
-					</div>
-				}
-			</div>
-			<p class="label is-small mt-3 mb-1">Judges each club must bring</p>
-			<p class="help mb-1">For every so many of a club's competitors in a discipline (or part of it: 9 at 1 per 8 is 2), so many judges, of whom so many can chair. A synchro pair is two competitors. Each discipline's judges are their own people, so a club needing 4 trampoline and 2 tumbling judges brings 6. Leave empty for none.</p>
-			<div class="comp-sim-grid">
-				for _, d := range p.Form.Disciplines {
-					<div class="comp-sim-row">
-						<span>{ d.Name }</span>
-						<span class="comp-sim-nums">
-							<input class="input is-small comp-num" type="number" min="0" max="20" name={ "quota-judges-" + d.Key } value={ numberValue(d.QuotaJudges) } aria-label={ d.Name + " judges each club brings" }/>
-							<span class="is-size-7">per</span>
-							<input class="input is-small comp-num" type="number" min="0" max="100" name={ "quota-per-" + d.Key } value={ numberValue(d.QuotaPer) } aria-label={ d.Name + " competitors per lot of judges" }/>
-							<span class="is-size-7">competitors; chair</span>
-							<input class="input is-small comp-num" type="number" min="0" max="20" name={ "quota-chairs-" + d.Key } value={ numberValue(d.QuotaChairs) } aria-label={ d.Name + " of those judges who can chair" }/>
-						</span>
-					</div>
-				}
-			</div>
-			<div class="comp-sim-grid mt-3">
-				<label class="comp-sim-row">
-					<span>Of the clubs' judges, the percent who can also judge any other discipline (as well as filling their own)</span>
-					<span class="comp-sim-nums">
-						<input class="input is-small comp-num" type="number" min="0" max="100" name="alsoJudge" value={ numberValue(p.Form.AlsoJudge) }/>
-						<span class="is-size-7">%</span>
-					</span>
-				</label>
-				<label class="comp-sim-row">
-					<span>How many people those judges are (someone judging two disciplines counts once; empty if no one does)</span>
-					<input class="input is-small comp-num" type="number" min="0" name="judgePeople" value={ numberValue(p.Form.JudgePeople) }/>
-				</label>
-				<label class="comp-sim-row">
-					<span>Of the judges, how many also compete</span>
-					<input class="input is-small comp-num" type="number" min="0" name="competing" value={ numberValue(p.Form.Competing) }/>
-				</label>
-				<label class="comp-sim-row">
-					<span>Recorders and marshals (not judging)</span>
-					<input class="input is-small comp-num" type="number" min="0" name="helpers" value={ numberValue(p.Form.Helpers) }/>
-				</label>
-			</div>
-		</fieldset>
-		<button class="button is-primary" type="submit" disabled?={ len(p.SetupProblems) > 0 }>Simulate</button>
-		<p class="help">Keeps the last { strconv.Itoa(p.Max) } scenarios.</p>
-	</form>
+					<label class="comp-sim-row">
+						<span>How many people those judges are (someone judging two disciplines counts once; empty if no one does)</span>
+						<input class="input is-small comp-num" type="number" min="0" name="judgePeople" value={ numberValue(p.Form.JudgePeople) }/>
+					</label>
+					<label class="comp-sim-row">
+						<span>Of the judges, how many also compete</span>
+						<input class="input is-small comp-num" type="number" min="0" name="competing" value={ numberValue(p.Form.Competing) }/>
+					</label>
+					<label class="comp-sim-row">
+						<span>Recorders and marshals (not judging)</span>
+						<input class="input is-small comp-num" type="number" min="0" name="helpers" value={ numberValue(p.Form.Helpers) }/>
+					</label>
+				</div>
+			</fieldset>
+			<button class="button is-primary" type="submit" disabled?={ len(p.SetupProblems) > 0 }>Simulate</button>
+			<p class="help">Keeps the last { strconv.Itoa(p.Max) } scenarios.</p>
+		</form>
+	}
 }
 
 // scenarioTable compares the scenarios, one to a column.
 templ scenarioTable(p SimulationPage) {
-	<div class="box">
-		<h2 class="title is-6">Scenarios</h2>
+	@listSection("Scenarios", len(p.Scenarios)) {
 		<div class="table-container">
 			<table class="table is-narrow is-bordered comp-sim-table">
 				<thead>
@@ -273,9 +278,11 @@ templ scenarioTable(p SimulationPage) {
 							<td>
 								if !s.Run {
 								} else if len(s.Unplaced) == 0 {
-									<span class="has-text-success">Everything fits</span>
+									@StateChip(Done, "Everything fits")
 								} else {
-									<div class="has-text-danger">Doesn't fit:</div>
+									<div>
+										@StateChip(Attention, "Doesn't fit")
+									</div>
 									<ul class="is-size-7">
 										for _, u := range s.Unplaced {
 											<li>{ u }</li>
@@ -299,9 +306,9 @@ templ scenarioTable(p SimulationPage) {
 										<div class="is-size-7">Clubs bring { strconv.Itoa(s.ClubJudges) } judges</div>
 									}
 									if s.Empty == 0 {
-										Every seat filled ({ strconv.Itoa(s.Seats) })
+										@StateChip(Done, fmt.Sprintf("Every seat filled (%d)", s.Seats))
 									} else {
-										<span class="has-text-danger">{ strconv.Itoa(s.Empty) } of { strconv.Itoa(s.Seats) } seats empty</span>
+										@StateChip(Attention, fmt.Sprintf("%d of %d seats empty", s.Empty, s.Seats))
 									}
 								}
 							</td>
@@ -332,7 +339,7 @@ templ scenarioTable(p SimulationPage) {
 									<a class="button" href={ templ.SafeURL(fmt.Sprintf("%s/timetable/simulate?from=%d#sim-name", p.Base, s.Index)) }>Change</a>
 									<form method="post" action={ templ.SafeURL(p.Base + "/timetable/simulate/delete") }>
 										<input type="hidden" name="remove" value={ strconv.Itoa(s.Index) }/>
-										<button class="button is-light" type="submit">Remove</button>
+										<button class="button is-text" type="submit">Remove</button>
 									</form>
 								</div>
 							</td>
@@ -341,7 +348,7 @@ templ scenarioTable(p SimulationPage) {
 				</tbody>
 			</table>
 		</div>
-	</div>
+	}
 }
 
 func numberValue(n int) string {
