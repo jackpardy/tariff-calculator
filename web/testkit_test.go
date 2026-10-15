@@ -82,7 +82,7 @@ func newTestServer(t *testing.T, opts ...serverOption) *testServer {
 	for _, o := range opts {
 		o(s)
 	}
-	s.h = routesWithPages(s.p)
+	s.h = checkingFacts(t, s.p, routesWithPages(s.p))
 	return s
 }
 

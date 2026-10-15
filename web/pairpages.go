@@ -43,7 +43,7 @@ func (cs *competitionsSeen) of(id string) (*sentEntries, error) {
 	if err != nil {
 		return nil, err
 	}
-	entries, err := cs.p.st.Entries(cs.r.Context(), id)
+	entries, err := cs.p.entriesOf(cs.r.Context(), id)
 	if err != nil {
 		return nil, err
 	}

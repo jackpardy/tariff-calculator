@@ -190,7 +190,7 @@ func (p *competitionPages) checkinAction(ctx context.Context, c store.Competitio
 	if !ok {
 		return e, f, false, false, nil
 	}
-	all, err := p.st.Entries(ctx, c.ID)
+	all, err := p.entriesOf(ctx, c.ID)
 	if err != nil {
 		return e, f, false, false, err
 	}
@@ -258,7 +258,7 @@ func (p *competitionPages) clearAction(ctx context.Context, c store.Competition,
 	if c.Published == nil || kind != store.ClearOfficiating && kind != store.ClearCompeting {
 		return "", false, false, nil
 	}
-	all, err := p.st.Entries(ctx, c.ID)
+	all, err := p.entriesOf(ctx, c.ID)
 	if err != nil {
 		return "", false, false, err
 	}
@@ -328,7 +328,7 @@ func (p *competitionPages) stillHere(w http.ResponseWriter, r *http.Request, c s
 		message(w, r, http.StatusConflict, "Not published yet", "The timetable isn't published yet, so there's nothing to tell the organisers. Check back once it is.")
 		return
 	}
-	all, err := p.st.Entries(r.Context(), c.ID)
+	all, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return

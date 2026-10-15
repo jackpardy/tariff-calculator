@@ -105,7 +105,7 @@ func waitingText(e store.Entry) string {
 
 // waitingOf is an entry's place on its waiting list (0: in), by its id.
 func (p *competitionPages) waitingOf(ctx context.Context, competitionID, id string) store.Entry {
-	entries, err := p.st.Entries(ctx, competitionID)
+	entries, err := p.entriesOf(ctx, competitionID)
 	if err != nil {
 		return store.Entry{}
 	}
@@ -144,7 +144,7 @@ func (p *competitionPages) setLimits(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	entries, err := p.st.Entries(r.Context(), c.ID)
+	entries, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return

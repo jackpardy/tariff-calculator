@@ -79,6 +79,22 @@ rota) get them through one helper, `liveRota` in `web/rotapages.go`: the live
 entries, the officials as the rota needs them, who's the same person, each
 entry's people and their names, keyed by person or as one person each.
 
+**Kept between requests** (`web/facts.go`). A competition's entries
+(`entriesOf`, as `Store.Entries` has them), its `liveRota` and its checked
+cards (`judgedOf`: the entries not waiting, or only the live ones) are
+worked out by the first page that needs them and shared until anything is
+saved. The store counts its changes (`Store.Writes`: each statement, or
+each committed transaction, that changed a row), and a page that finds the
+count moved reads them again; one request does it while the others wait.
+What the cache hands out is shared: read it, never change it. Slices are
+copies, but the entries' own maps and pointers and `rotaFacts`' maps are
+not. Every web test checks, after each request, that the cache still
+matches the store read afresh (`checkingFacts` in `web/facts_test.go`). It
+counts only this process's changes: nothing else may write to the database
+while the app runs. On the full demo (700 entries) a gymnast's own page
+went from 65 ms and 88 MB allocated to 6 ms and 12 MB, the dashboard from
+61 ms to 7 ms, a club's page from 58 ms to 18 ms.
+
 | Method and path | Input | Returns |
 |---|---|---|
 | `GET /competitions/new` | — | The form that creates a competition, and the competitions saved in this browser |

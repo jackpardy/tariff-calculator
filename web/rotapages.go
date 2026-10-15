@@ -94,14 +94,11 @@ type rotaFacts struct {
 	oneNames  map[string]string         // names for those keys too (clashPeople)
 }
 
-// liveRota reads a competition's live entries and its officials: the one
-// way the pages get them.
-func (p *competitionPages) liveRota(ctx context.Context, c store.Competition) (rotaFacts, error) {
-	all, err := p.st.Entries(ctx, c.ID)
-	if err != nil {
-		return rotaFacts{}, err
-	}
+// readRota works out a competition's rotaFacts from its entries (all, as
+// Store.Entries has them), for the cache (liveRota).
+func (p *competitionPages) readRota(ctx context.Context, c store.Competition, all []store.Entry) (rotaFacts, error) {
 	f := rotaFacts{entries: live(all)}
+	var err error
 	if f.officials, f.same, err = p.rotaAndSame(ctx, c, f.entries); err != nil {
 		return rotaFacts{}, err
 	}

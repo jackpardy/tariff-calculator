@@ -161,7 +161,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	all, err := p.st.Entries(r.Context(), c.ID)
+	all, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return

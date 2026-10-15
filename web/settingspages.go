@@ -38,7 +38,7 @@ func (p *competitionPages) settings(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	entries, err := p.st.Entries(r.Context(), c.ID)
+	entries, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return

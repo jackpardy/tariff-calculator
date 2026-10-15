@@ -207,7 +207,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	all, err := p.st.Entries(r.Context(), c.ID)
+	all, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -263,7 +263,12 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	coaches := map[string]bool{}
 	sentAt := map[string]time.Time{}
 	people := personKeys(live(entries)) // whose page each live entry links to
-	for _, j := range judge(c.Competition, entries) {
+	judgedIn, err := p.judgedOf(r.Context(), c.ID, false)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	for _, j := range judgedIn {
 		if name := j.CoachName(); name != "" && !coaches[name] {
 			coaches[name] = true
 			d.Coaches = append(d.Coaches, name)
@@ -341,15 +346,13 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	stored, err := p.st.Entries(r.Context(), c.ID)
+	page := views.CardsPage{Title: "Cards · " + c.Name, Back: adminPath(r.PathValue("token"))}
+	q := r.URL.Query()
+	all, err := p.judgedOf(r.Context(), c.ID, false)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	entries, _ := splitWaiting(stored)
-	page := views.CardsPage{Title: "Cards · " + c.Name, Back: adminPath(r.PathValue("token"))}
-	q := r.URL.Query()
-	all := judge(c.Competition, entries)
 	for _, level := range levelOrder(c.Competition, all) {
 		for _, j := range all {
 			if j.Entry.Entry.Event() != level || !j.matches(q) || j.err != nil || j.card.Unchecked || (j.Withdrawn && q.Get("entry") == "") {
@@ -406,17 +409,15 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	stored, err := p.st.Entries(r.Context(), c.ID)
+	all, err := p.judgedOf(r.Context(), c.ID, false)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	entries, _ := splitWaiting(stored)
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", fileName(c.Name)+".csv"))
 	out := csv.NewWriter(w)
 	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent", "Video", "Withdrawn", "Signed off by", "Category"})
-	all := judge(c.Competition, entries)
 	q := r.URL.Query()
 	for _, level := range levelOrder(c.Competition, all) {
 		for _, j := range all {
