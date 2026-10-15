@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -1808,5 +1809,27 @@ func TestDeskMessages(t *testing.T) {
 	}
 	if _, err := s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "x", Audience: "UCD"}); !errors.Is(err, ErrLimit) {
 		t.Errorf("a full competition: %v", err)
+	}
+}
+
+// TestMembersByName: a club's members come by name, ignoring case and
+// accents, not in the database's byte order.
+func TestMembersByName(t *testing.T) {
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	club, _, err := s.CreateClub(ctx, "UCD")
+	must(t, err)
+	for _, name := range []string{"Tadhg Ryan", "Éabha Kelly", "aoife Byrne", "Ciara Daly"} {
+		_, _, err := s.Join(ctx, club.ID, name)
+		must(t, err)
+	}
+	members, err := s.Members(ctx, club.ID)
+	must(t, err)
+	var got []string
+	for _, m := range members {
+		got = append(got, m.Name)
+	}
+	if strings.Join(got, ", ") != "aoife Byrne, Ciara Daly, Éabha Kelly, Tadhg Ryan" {
+		t.Errorf("members: %v", got)
 	}
 }

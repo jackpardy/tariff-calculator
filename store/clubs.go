@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -174,6 +175,7 @@ func (s *Store) Members(ctx context.Context, clubID string) ([]Member, error) {
 		m.CreatedAt = parseTime(created)
 		out = append(out, m)
 	}
+	slices.SortStableFunc(out, func(a, b Member) int { return competitions.CompareNames(a.Name, b.Name) })
 	return out, rows.Err()
 }
 
@@ -279,6 +281,7 @@ func (s *Store) CompetitionClubs(ctx context.Context, competitionID string) ([]C
 		c.CreatedAt, c.LastUsed = parseTime(created), parseTime(used)
 		out = append(out, c)
 	}
+	slices.SortStableFunc(out, func(a, b Club) int { return competitions.CompareNames(a.Name, b.Name) })
 	return out, rows.Err()
 }
 
@@ -397,6 +400,7 @@ func (s *Store) memberEntries(ctx context.Context, where string, args ...any) ([
 		e.UpdatedAt, e.SentAt, e.SignedAt = parseTime(updated), parseTime(sent), parseTime(signed)
 		out = append(out, e)
 	}
+	slices.SortStableFunc(out, func(a, b MemberEntry) int { return competitions.CompareNames(a.MemberName, b.MemberName) })
 	return out, rows.Err()
 }
 

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"context"
 	"encoding/csv"
 	"encoding/json"
@@ -583,16 +584,18 @@ func dashboardFilter(q url.Values) url.Values {
 // sortRows orders a level's rows by gymnast, club, sent (latest first) or
 // coach; otherwise as they came (by club, then gymnast).
 func sortRows(rows []views.DashboardRow, sentAt map[string]time.Time, by string) {
-	key := map[string]func(r views.DashboardRow) string{
-		"gymnast": func(r views.DashboardRow) string { return strings.ToLower(r.Gymnast) },
-		"club":    func(r views.DashboardRow) string { return strings.ToLower(r.Club) },
-		"coach":   func(r views.DashboardRow) string { return strings.ToLower(r.Signoff.By + "\x00" + r.Coach) },
+	compare := map[string]func(a, b views.DashboardRow) int{
+		"gymnast": func(a, b views.DashboardRow) int { return competitions.CompareNames(a.Gymnast, b.Gymnast) },
+		"club":    func(a, b views.DashboardRow) int { return competitions.CompareNames(a.Club, b.Club) },
+		"coach": func(a, b views.DashboardRow) int {
+			return cmp.Or(competitions.CompareNames(a.Signoff.By, b.Signoff.By), competitions.CompareNames(a.Coach, b.Coach))
+		},
 	}[by]
 	switch {
 	case by == "sent":
 		slices.SortStableFunc(rows, func(a, b views.DashboardRow) int { return sentAt[b.ID].Compare(sentAt[a.ID]) })
-	case key != nil:
-		slices.SortStableFunc(rows, func(a, b views.DashboardRow) int { return strings.Compare(key(a), key(b)) })
+	case compare != nil:
+		slices.SortStableFunc(rows, compare)
 	}
 }
 
@@ -711,7 +714,8 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		d.Levels[n].Rows = append(d.Levels[n].Rows, row)
 	}
-	slices.Sort(d.Coaches)
+	slices.SortFunc(d.Coaches, competitions.CompareNames)
+	slices.SortFunc(d.Clubs, competitions.CompareNames)
 	totals := map[string]int{}
 	for _, e := range entries {
 		if !e.Withdrawn {

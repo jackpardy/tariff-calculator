@@ -414,11 +414,17 @@
         }
     }
 
-    // fold makes text searchable as the server's NameMatches does: lower case,
-    // without accents or punctuation, so "o briain" finds "Ó Briain" and
-    // "oneill" finds "O'Neill".
+    // fold makes text searchable as the server's NameMatches does: only its
+    // letters, lower case, without accents, so "o briain" finds "Ó Briain",
+    // "oneill" finds "O'Neill" and "marykate" finds "Mary Kate".
     function fold(text) {
-        return text.normalize('NFD').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}\s]/gu, '').toLowerCase();
+        const plain = { 'ø': 'o', 'ł': 'l', 'đ': 'd', 'ı': 'i' }; // letters without a separate accent
+        return text.normalize('NFD').replace(/\p{M}/gu, '').replace(/\P{L}/gu, '').toLowerCase().replace(/[øłđı]/g, (c) => plain[c]);
+    }
+
+    // searchWords are a search's words, each folded, as NameMatches reads them.
+    function searchWords(text) {
+        return text.split(/\s+/).map(fold).filter(Boolean);
     }
 
     // listTools searches and filters each list of people (views/lists.templ):
@@ -468,7 +474,7 @@
             };
 
             const apply = () => {
-                const words = fold(search.value).split(/\s+/).filter(Boolean);
+                const words = searchWords(search.value);
                 const chosen = filters.filter((f) => f.value !== '');
                 let shown = 0;
                 for (const row of rows) {

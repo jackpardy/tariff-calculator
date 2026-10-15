@@ -2,6 +2,7 @@ package competitions
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 )
 
@@ -27,9 +28,31 @@ func TestNameMatches(t *testing.T) {
 		{"Dara O'Néill & Ann Ryan", "ryan", true},
 		{"Dara O'Néill", "ryan", false},
 		{"Dara O'Néill", "", true},
+		{"Mary Kate Byrne", "marykate", true},
+		{"Tomáš Novák", "tomas novak", true},
+		{"Zuzana Rýdlová", "rydlova", true},
 	} {
 		if got := NameMatches(c.name, c.search); got != c.want {
 			t.Errorf("%q in %q: %v", c.search, c.name, got)
+		}
+	}
+}
+
+func TestCompareNames(t *testing.T) {
+	got := [][]string{
+		{"ATU Sligo", "Aberdeen", "DkIT", "DCU"},
+		{"TUS Athlone", "Trinity", "TU Dublin"},
+		{"Tadhg Ryan", "Éabha Kelly", "aoife Byrne", "Ó Briain"},
+	}
+	want := []string{
+		"[Aberdeen ATU Sligo DCU DkIT]",
+		"[Trinity TU Dublin TUS Athlone]",
+		"[aoife Byrne Éabha Kelly Ó Briain Tadhg Ryan]",
+	}
+	for i, names := range got {
+		slices.SortFunc(names, CompareNames)
+		if fmt.Sprint(names) != want[i] {
+			t.Errorf("sorted: %v, want %s", names, want[i])
 		}
 	}
 }

@@ -5,7 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
+
+	"tariffCalculator/competitions"
 )
 
 // Coaches sign off their members' routines (ADR 0004 Decision 11). The comp
@@ -74,6 +77,7 @@ func (s *Store) Coaches(ctx context.Context, clubID string) ([]Coach, error) {
 		c.CreatedAt = parseTime(created)
 		out = append(out, c)
 	}
+	slices.SortStableFunc(out, func(a, b Coach) int { return competitions.CompareNames(a.Name, b.Name) })
 	return out, rows.Err()
 }
 

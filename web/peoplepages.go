@@ -146,7 +146,7 @@ func newDirectory(entries []store.Entry, officials []store.Official, sent []stor
 		}
 	}
 	slices.SortStableFunc(d.list, func(a, b *dirPerson) int {
-		if x := strings.Compare(strings.ToLower(a.name), strings.ToLower(b.name)); x != 0 {
+		if x := competitions.CompareNames(a.name, b.name); x != 0 {
 			return x
 		}
 		return strings.Compare(a.key, b.key)
