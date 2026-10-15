@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -147,8 +148,23 @@ func (p *competitionPages) fees(w http.ResponseWriter, r *http.Request) {
 	f := c.Fees
 	page := views.FeesPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuFees), Notice: r.URL.Query().Get("notice"), On: f.On(),
 		GBP: f.Currency == competitions.CurrencyGBP, PerClub: amountField(f.PerClub), Instructions: f.Instructions}
+	var charged []string // what's charged, for the line saying so
 	for _, d := range c.Disciplines() {
 		page.PerEntry = append(page.PerEntry, views.FeeField{Key: d, Name: competitions.DisciplineName(d), Amount: amountField(f.PerEntry[d])})
+		if f.PerEntry[d] > 0 {
+			each := "an entry"
+			if d == competitions.Synchro {
+				each = "a pair"
+			}
+			charged = append(charged, fmt.Sprintf("%s %s %s", competitions.DisciplineName(d), f.Money(f.PerEntry[d]), each))
+		}
+	}
+	if f.PerClub > 0 {
+		charged = append(charged, "club fee "+f.Money(f.PerClub))
+	}
+	page.Now = "nothing charged yet"
+	if len(charged) > 0 {
+		page.Now = strings.Join(charged, ", ")
 	}
 	due, paid := 0, 0
 	for _, a := range accounts {

@@ -304,7 +304,7 @@ templ ClubAdmin(c ClubPage) {
 				if len(comp.Rows) == 0 {
 					<p class="has-text-grey is-size-7">No member has entered yet.</p>
 				} else {
-					@listSection("Entries", len(comp.Rows), false) {
+					@listSection("Entries", len(comp.Rows)) {
 						@listTools(comp.Tools)
 						<div class="table-container">
 							<table class="table is-fullwidth is-narrow comp-table comp-club-entries comp-stack" id={ comp.Tools.ID }>
@@ -440,7 +440,7 @@ templ ClubAdmin(c ClubPage) {
 templ ClubMembers(c ClubPage) {
 	@clubFrame(c) {
 		@linkBox("Join link", c.JoinLink, "Share it in the club's chat: members join with it and keep their own entries.")
-		@listSection("Members", len(c.Members), false) {
+		@listSection("Members", len(c.Members)) {
 			if len(c.Members) == 0 {
 				<p class="has-text-grey">No members yet. Share the join link.</p>
 			} else {
@@ -498,7 +498,7 @@ templ ClubMembers(c ClubPage) {
 // ClubCoaches is the comp sec's Coaches section.
 templ ClubCoaches(c ClubPage) {
 	@clubFrame(c) {
-		@listSection("Coaches", len(c.Coaches), false) {
+		@listSection("Coaches", len(c.Coaches)) {
 			if len(c.Coaches) == 0 {
 				<p class="has-text-grey">No coaches yet. Add one below.</p>
 			} else {
@@ -663,12 +663,11 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 			<p class="subtitle is-6">{ e.Competition.Name } · { e.Card.Level }</p>
 			@entryCardChecks(*e.Card)
 			// Collapsed under the card, so the entry is what shows; open when a save had problems.
-			<details class="box mt-4 comp-change" open?={ len(e.Form.Problems) > 0 }>
-				<summary><strong>Change the entry</strong></summary>
-				<div class="mt-3">
+			<div class="mt-4">
+				@opens("", "", "Change the entry", len(e.Form.Problems) > 0) {
 					@entryForm(e.Form)
-				</div>
-			</details>
+				}
+			</div>
 		} else {
 			<p class="subtitle is-6">{ e.Competition.Name }</p>
 			<h2 class="title is-5 mt-5">Enter them</h2>
@@ -838,12 +837,11 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 				if comp.ChangesOpen {
 					if ev.Card != nil {
 						// Collapsed under the card; open when a save had problems.
-						<details class="box mt-4 comp-change" open?={ len(ev.Form.Problems) > 0 }>
-							<summary><strong>Change your entry</strong></summary>
-							<div class="mt-3">
+						<div class="mt-4">
+							@opens("", "", "Change your entry", len(ev.Form.Problems) > 0) {
 								@entryForm(ev.Form)
-							</div>
-						</details>
+							}
+						</div>
 						<form method="post" action={ templ.SafeURL(ev.Withdraw) } class="mt-4 mb-4">
 							<input type="hidden" name="discipline" value={ ev.Discipline }/>
 							<label class="checkbox is-size-7">

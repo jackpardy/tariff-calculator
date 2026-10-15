@@ -25,7 +25,7 @@ templ People(p PeoplePage) {
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
 		<p class="mb-3"><strong>{ p.Count }</strong> at this competition: gymnasts, officials and coaches, each once. Open a name to see everything they're doing.</p>
-		@listSection("People", len(p.People), false) {
+		@listSection("People", len(p.People)) {
 			if len(p.People) == 0 {
 				<p class="has-text-grey">Nobody yet. Gymnasts, officials and coaches show here once entries are sent.</p>
 			} else {

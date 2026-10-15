@@ -1,0 +1,42 @@
+package views
+
+// A page's own settings, and forms for doing something to what it lists,
+// open in place from a small button (rendering.md, "Settings and forms on a
+// page"): the page is about what it lists, so they stay out of the way, as
+// one line, until asked for. Not a card with a heading of its own.
+
+// changeLine says how something is set now (what: its name, now: how it's
+// set) with a Change button opening its form, the children, beneath it.
+// open shows the form at first: when nothing is set yet, or a save had
+// problems.
+templ changeLine(what, now string, open bool) {
+	@opens(what, now, "Change", open) {
+		{ children... }
+	}
+}
+
+// opens is a button (label) opening a form, the children, beneath it, after
+// a line saying what it is (what, in bold, and now), if any. The button
+// reads Close while it's open.
+templ opens(what, now, label string, open bool) {
+	<details class="comp-opens" open?={ open }>
+		<summary>
+			if what != "" || now != "" {
+				<span class="comp-opens-now">
+					if what != "" {
+						<strong>{ what }</strong>
+					}
+					if what != "" && now != "" {
+						{ " · " + now }
+					} else {
+						{ now }
+					}
+				</span>
+			}
+			<span class="button is-small comp-opens-button"><span class="comp-opens-label">{ label }</span><span class="comp-opens-close">Close</span></span>
+		</summary>
+		<div class="comp-opens-form">
+			{ children... }
+		</div>
+	</details>
+}

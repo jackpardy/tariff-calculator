@@ -3,6 +3,8 @@ package views
 import (
 	"fmt"
 	"strconv"
+	"strings"
+
 	"tariffCalculator/static"
 )
 
@@ -324,8 +326,7 @@ templ versionField(version string) {
 }
 
 templ setupSections(p TimetablePage) {
-	<details class="box comp-manage" open?={ !p.Planned }>
-		<summary><strong>Days and areas</strong> <span class="has-text-grey is-size-7">· { strconv.Itoa(len(p.Setup.Days)) } days, { strconv.Itoa(len(p.Setup.Areas)) } areas</span></summary>
+	@changeLine("Days and areas", Count(len(p.Setup.Days), "day", "days")+", "+Count(len(p.Setup.Areas), "area", "areas"), !p.Planned) {
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/days") } class="mt-3">
 			@versionField(p.Version)
 			<p class="label is-small">Days: each finishes by its end, a strict end</p>
@@ -368,9 +369,8 @@ templ setupSections(p TimetablePage) {
 				<button class="button is-small" type="submit" name="add" value="1">Add an area</button>
 			</div>
 		</form>
-	</details>
-	<details class="box comp-manage">
-		<summary><strong>Timings and rest</strong></summary>
+	}
+	@changeLine("Timings and rest", timingsNow(p), false) {
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/timings") } class="mt-3">
 			@versionField(p.Version)
 			<div class="table-container">
@@ -401,9 +401,8 @@ templ setupSections(p TimetablePage) {
 			}
 			<button class="button is-small" type="submit">Save</button>
 		</form>
-	</details>
-	<details class="box comp-manage">
-		<summary><strong>Blocked time</strong> <span class="has-text-grey is-size-7">· lunch, awards, events taking entries on the day ({ strconv.Itoa(len(p.Setup.Blocks)) })</span></summary>
+	}
+	@changeLine("Blocked time", "lunch, awards, events taking entries on the day ("+strconv.Itoa(len(p.Setup.Blocks))+")", false) {
 		<div class="mt-3">
 			<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/blocks") } class="comp-setup-row mb-3">
 				@versionField(p.Version)
@@ -460,9 +459,8 @@ templ setupSections(p TimetablePage) {
 				<button class="button is-small" type="submit" name="add" value="1">Add</button>
 			</form>
 		</div>
-	</details>
-	<details class="box comp-manage">
-		<summary><strong>Your rules</strong> <span class="has-text-grey is-size-7">· what happens where ({ strconv.Itoa(len(p.Setup.Rules)) })</span></summary>
+	}
+	@changeLine("Your rules", "what happens where ("+strconv.Itoa(len(p.Setup.Rules))+")", false) {
 		<div class="mt-3">
 			for i, r := range p.Setup.Rules {
 				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/rules") } class="comp-setup-row">
@@ -577,7 +575,7 @@ templ setupSections(p TimetablePage) {
 				<p class="help mt-3">Rules about officials appear here once people have offered to officiate (see Officials).</p>
 			}
 		</div>
-	</details>
+	}
 }
 
 // rotaReport is how the officials rota went.
@@ -911,4 +909,18 @@ templ runNo(n int) {
 	if n > 0 {
 		<span class="comp-run-no" title="Running number">{ strconv.Itoa(n) }</span>
 	}
+}
+
+// timingsNow says, in a line, how long each discipline's competitors and
+// changeovers take, and the rest between a person's turns.
+func timingsNow(p TimetablePage) string {
+	var each []string
+	for _, t := range p.Setup.Timings {
+		each = append(each, fmt.Sprintf("%s %s min a competitor", t.Name, t.PerCompetitor))
+	}
+	rest := "preferred"
+	if p.Setup.RestMust {
+		rest = "a must"
+	}
+	return strings.Join(each, ", ") + fmt.Sprintf("; rest between turns %d min, %s", p.Setup.Rest, rest)
 }

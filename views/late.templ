@@ -49,6 +49,7 @@ type LateAdminPage struct {
 	Signoff      bool // entries need a coach's sign-off
 	SignoffFirst bool
 	Kinds        []LateKindField
+	Now          string // what can be asked for, in a line
 	Requests     []LateRequestView
 }
 
@@ -75,9 +76,8 @@ templ LateAdmin(p LateAdminPage) {
 		if p.Notice != "" {
 			<div class="notification is-success is-light">{ p.Notice }</div>
 		}
-		<details class="box">
-			<summary><strong>What can be asked for after the deadline</strong></summary>
-			<form method="post" action={ templ.SafeURL(p.Base + "/late/settings") } class="mt-3">
+		@changeLine("Late changes", p.Now, false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/late/settings") }>
 				for _, k := range p.Kinds {
 					<div class="comp-flight-actions mb-2">
 						<label class="checkbox">
@@ -97,7 +97,7 @@ templ LateAdmin(p LateAdminPage) {
 				<p class="help mb-2">Level change: a different level, with its routines. Routine change: new routines at the same level. Clubs and gymnasts ask from their pages once entries close; the fee goes on their invoice if you accept.</p>
 				<button class="button is-small is-primary" type="submit">Save</button>
 			</form>
-		</details>
+		}
 		if len(p.Requests) == 0 {
 			<p class="has-text-grey">No late changes asked for.</p>
 		}
