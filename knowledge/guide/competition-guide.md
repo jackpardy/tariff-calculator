@@ -503,7 +503,9 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
   other clubs made with your members are listed here too. To find a member,
   search by name or narrow the list by coach, entries, or coach too. A member
   who keeps routines on their page shows how many, and one with skills marked
-  how many they can do: tap either to see them.
+  how many they can do: tap either to see them. Once your coaches have made
+  levels, narrow the list by **Level** to see who has completed a level (by
+  a coach's marks) or is working on it.
 - **Coaches** (its own section; search by name, or narrow by who signs off
   and who has qualifications): type a name and tap **Add coach**, then send them the coach link
   shown (it's shown only then; **New link** makes another). Tick **Every coach
@@ -607,6 +609,11 @@ the skills in your routines or the lists by type, and tap **Learning** or
 **Can do**. Tap **Take
 off** to remove it.
 
+Under **Levels**, see how far you are through each of your club's levels:
+each part with your mark and your coach's. Parts about skills follow from the
+skills marked; a link of skills, or a set routine, you mark as a whole,
+and if one of your routines already does it, it says so.
+
 Your coaches see your skills and mark them too. Your mark and your coach's
 both show, each saying who made it: say you mark a skill **Can do** and your
 coach marks it **Learning**, you'll see both, under **Marked differently**.
@@ -626,6 +633,8 @@ change an entry for you.
   changes it there.
 - Or open **Routines** on your page: under **Add routines from this browser**,
   tick the ones to keep and tap **Add to my page**.
+- Your coach can add routines to your page too: they show as added by them,
+  and are yours to rename or delete.
 - Tap a routine to see it checked, with any note from your coach. **Open in
   the Routine Builder** adds a copy to the builder on the phone you're using,
   to change and save again. **Rename** or **Delete from your page** (the
@@ -678,9 +687,17 @@ sign-off, entries without it are flagged to the organiser.
 
 Your page has two sections: **Entries** (the entries above) and **Gymnasts**:
 the members you see, with how many routines each keeps on their page and how
-many skills they can do. Tap a gymnast to see their routines, checked, and
-write **Your note** on any of them for them to see, such as what to work on.
-Leave it empty to take it off.
+many skills they can do (narrow it by **Level** to see who has completed a
+club level, or is working on it). Tap a gymnast to see their routines,
+checked, and write **Your note** on any of them for them to see, such as
+what to work on. Leave it empty to take it off. A routine with skills no
+coach has marked Can do says how many, and names them: mark them on the
+gymnast's **Skills** once you've seen them. To check a routine against
+another level, one of your club's or a competition's, choose it above the
+routine and tap **Check**. To give a gymnast a routine, build it in the
+Routine Builder on your phone, then on their page tick it under **Add
+routines from this browser**: it shows on their page as added by you, and
+adding it again from your phone updates it.
 
 **Club skills** (the third section of your page) holds your club's own
 skills, for everyone to mark. To give a skill your club's name, find it
@@ -689,6 +706,23 @@ name**: your club's pages then show that name. For anything else you track,
 like a drill, give it a name (and a note if you like) under **Something else
 to track** and tap **Add**. Removing something to track removes its marks
 too.
+
+**Levels** (the fourth section) holds your club's levels, such as *Club
+Grade 1*, in order. Write a level on the **Requirements** page, as you would
+any requirements: a skill, a kind of skill (*any back somersault*), skills
+linked one after another (*back drop, then back to feet*), a number of them,
+or a set routine. Then tap **Save to club levels** beside it (it's there once
+you've opened your coach page on that phone, or your member page if you're a
+member who coaches too). Rules about a whole routine,
+like its difficulty, are left out. On **Levels**, tick any of your club's own
+skills the level tracks too, put the levels in order, or **Open in the
+Requirements page** to change one and save it again.
+
+To give a level to another club, open **Share with another club** under it
+and send the link to one of their coaches. They open it, choose their coach
+page (or paste its link, or their member page's if they're a member who
+coaches too) and tap **Add to my club's levels**: their club gets
+its own copy, with the club skills it tracks. No one's marks go with it.
 
 From a gymnast's page, **Skills** shows what they're learning and can do. Mark
 skills for them the same way they do: your mark and theirs both show. A skill

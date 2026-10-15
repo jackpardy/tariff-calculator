@@ -241,12 +241,21 @@ func (p *competitionPages) clubMembersPart(r *http.Request, club store.Club, pag
 	if err != nil {
 		return err
 	}
+	levels, err := p.st.ClubLevels(ctx, club.ID)
+	if err != nil {
+		return err
+	}
+	standing, err := p.levelStandings(r, club.ID, levels)
+	if err != nil {
+		return err
+	}
 	for _, m := range members {
 		_, marked := can[m.ID]
 		page.Members = append(page.Members, views.ClubMember{ID: m.ID, Name: m.Name, Entries: entered[m.ID], CoachID: m.CoachID, AlsoCoach: m.AlsoCoach != "", Routines: routines[m.ID],
 			Can: can[m.ID], Marks: marked,
 			List: views.ListRow{Name: m.Name, Values: map[string][]string{
 				"coach": {memberCoachValue(m.CoachID)}, "entries": {hasValue(entered[m.ID] > 0)}, "coachtoo": {hasValue(m.AlsoCoach != "")},
+				"level": standing[m.ID],
 			}}})
 	}
 	for _, c := range coaches {
@@ -256,6 +265,9 @@ func (p *competitionPages) clubMembersPart(r *http.Request, club store.Club, pag
 		memberCoachFilter(page.CoachOptions), hasFilter("entries", "Entries", "Any entries", "Has entries", "No entries"),
 		hasFilter("coachtoo", "Coach too", "Coach or not", "Coach too", "Not a coach"),
 	}}
+	if len(levels) > 0 {
+		page.MembersTools.Filters = append(page.MembersTools.Filters, levelFilter(levels))
+	}
 	pairs, err := p.st.ClubPairEntries(ctx, club.ID)
 	if err != nil {
 		return err

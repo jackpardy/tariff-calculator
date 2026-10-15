@@ -751,6 +751,32 @@ var migrations = []string{
 	// 41: desk messages sent in the background (roadmap, ready for the dry
 	// run): how many addresses couldn't be told, once it's finished.
 	`ALTER TABLE desk_messages ADD COLUMN failed INTEGER NOT NULL DEFAULT 0;`,
+
+	// 42: club levels (ADR 0011 Decision 5): a club's levels to track
+	// gymnasts against, in order (position): requirements in the usual format
+	// (set, as JSON), made in the requirements editor (source: the browser's
+	// id for them, so saving again changes the level), and the club's own
+	// skills to track that the requirements can't describe (club_items: a
+	// JSON list of club skill ids).
+	`CREATE TABLE club_levels (
+		id         TEXT PRIMARY KEY,
+		club_id    TEXT NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+		source     TEXT NOT NULL DEFAULT '',
+		name       TEXT NOT NULL,
+		set_json   TEXT NOT NULL,
+		club_items TEXT NOT NULL DEFAULT '[]',
+		position   INTEGER NOT NULL,
+		by_name    TEXT NOT NULL,
+		updated_at TEXT NOT NULL
+	);
+	CREATE INDEX club_levels_club ON club_levels (club_id, position);`,
+
+	// 43: a coach adds routines to a gymnast's page (ADR 0011 Decision 1, as
+	// built): added_by is the coach's id ('' for the member's own), so saving
+	// the same browser routine again changes only the one its adder kept, and
+	// added_name the coach's name, to show.
+	`ALTER TABLE member_routines ADD COLUMN added_by TEXT NOT NULL DEFAULT '';
+	ALTER TABLE member_routines ADD COLUMN added_name TEXT NOT NULL DEFAULT '';`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

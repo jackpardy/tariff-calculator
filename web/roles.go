@@ -80,7 +80,7 @@ func (p *competitionPages) roleTabs(r *http.Request, token string) []views.RoleT
 		if role.Kind == store.RoleIndividual {
 			current = strings.HasPrefix(r.URL.Path, "/competitions/gymnast/") || strings.HasPrefix(r.URL.Path, "/competitions/entry/")
 		}
-		tabs = append(tabs, views.RoleTab{Label: label, Href: href, Current: current})
+		tabs = append(tabs, views.RoleTab{Label: label, Href: href, Current: current, Kind: role.Kind})
 	}
 	return tabs
 }
