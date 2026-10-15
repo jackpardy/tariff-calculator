@@ -251,6 +251,7 @@ check rather than failing the request.
   `400 Bad Request: <message>`, which the page shows to the user.
 - Official names are always re-derived and never taken from input.
 - Every response carries `X-App-Version` ([static assets](static-assets.md#update-notice)).
+- Text responses are gzipped when the browser accepts it ([compression](static-assets.md#compression)).
 - `PORT` sets the port (default 8080). `DATA_DIR` turns on competition
   storage there (SQLite); unset, it's off. With storage on, competitions 120
   days past their date and clubs unused for 13 months (ADR 0011) are deleted

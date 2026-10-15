@@ -64,7 +64,7 @@ func routesWithPages(pages *competitionPages) http.Handler {
 	mux.HandleFunc("GET /manifest.webmanifest", handleManifest)
 	pages.register(mux)
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return withGzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limit := int64(maxRequestBytes)
 		if r.Method == http.MethodPost && uploads(r.URL.Path) {
 			limit = maxUploadBytes
@@ -74,7 +74,7 @@ func routesWithPages(pages *competitionPages) http.Handler {
 		r.Body = http.MaxBytesReader(w, r.Body, limit)
 		w.Header().Set(static.VersionHeader, static.Version)
 		mux.ServeHTTP(w, r)
-	})
+	}))
 }
 
 // --- Route Handlers ---
