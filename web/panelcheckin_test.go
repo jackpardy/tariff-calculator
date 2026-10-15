@@ -36,8 +36,10 @@ func notifyForm(page, person, flightKey, as string) bool {
 // Marking an official here or missing on one flight of a run does it for the
 // event's other flights where they sit, and is ticked on the chair's sheets.
 func TestPanelCheckinRun(t *testing.T) {
-	h := competitionServer(t)
+	s := newTestServer(t, atTime(dayBefore))
+	h := s.h
 	admin, tt, _, _ := scratchSetupOn(t, h, twoFlights)
+	s.clock.set(onTheDay(12, 0)) // both flights' warm-ups have begun
 	day := admin + "/day?day=0"
 	get := func(path string) string { return dayAll(t, h, path) }
 	page := get(day)
@@ -225,9 +227,11 @@ func TestPanelCheckinAccess(t *testing.T) {
 // Notify tells an official where to be, at once, with their own words added;
 // it needs someone to tell, and the history says who was told.
 func TestNotifyAnOfficial(t *testing.T) {
-	h, _, mail := notifyServer(t)
+	s := newTestServer(t, withMail(), atTime(dayBefore))
+	h, mail := s.h, s.mail
 	admin, _, _, dara := scratchSetupOn(t, h, nil)
 	subscribeByEmail(t, h, mail, dara+"/notify", "dara@example.com")
+	s.clock.set(onTheDay(12, 0))
 	day := admin + "/day?day=0"
 	page := dayAll(t, h, day)
 	person, flight := panelSeat(t, page, "BUCS L3", "Dara")
@@ -315,7 +319,8 @@ func TestNotifyAnOfficial(t *testing.T) {
 // other members; and it shows on the club's and its coaches' pages, not the
 // members'.
 func TestNotifyAClub(t *testing.T) {
-	h, _, mail := notifyServer(t)
+	s := newTestServer(t, withMail(), atTime(dayBefore))
+	h, mail := s.h, s.mail
 	admin := created(t, h, newCompetition())
 	ucd := aClub(t, h, admin, "UCD", true, "Ann", "Bea")
 	club, members := ucd.page, ucd.members
@@ -326,6 +331,7 @@ func TestNotifyAClub(t *testing.T) {
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, members["Bea"], members["Bea"]), "bea@example.com")
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
+	s.clock.set(onTheDay(12, 0))
 
 	day := admin + "/day?day=0"
 	page := dayAll(t, h, day)

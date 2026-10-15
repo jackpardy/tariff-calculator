@@ -68,10 +68,11 @@ func clubCompetitionMenu(token string, c store.Competition, current string) []vi
 
 // The tabs of a member's pages.
 const (
-	memberCompetitions = "competitions"
-	memberRoutinesTab  = "routines"
-	memberSkillsTab    = "skills"
-	memberDetails      = "details"
+	memberCompetitions    = "competitions"
+	memberRoutinesTab     = "routines"
+	memberSkillsTab       = "skills"
+	memberRequirementsTab = "requirements"
+	memberDetails         = "details"
 )
 
 // memberDetailsPath is a member's details: their link and their coach.
@@ -89,17 +90,19 @@ func memberMenu(token, current string) []views.MenuSection {
 		{Label: "Competitions", Href: memberPath(token), Current: current == memberCompetitions},
 		{Label: "Routines", Href: memberRoutinesPath(token), Current: current == memberRoutinesTab},
 		{Label: "Skills", Href: memberSkillsPath(token), Current: current == memberSkillsTab},
+		{Label: "Requirements", Href: memberPath(token) + "/requirements", Current: current == memberRequirementsTab},
 		{Label: "Your details", Href: memberDetailsPath(token), Current: current == memberDetails},
 	}
 }
 
 // The sections of a coach's pages.
 const (
-	coachEntriesTab    = "entries"
-	coachGymnastsTab   = "gymnasts"
-	coachClubSkillsTab = "club-skills"
-	coachLevelsTab     = "levels"
-	coachDetailsTab    = "details"
+	coachEntriesTab      = "entries"
+	coachGymnastsTab     = "gymnasts"
+	coachClubSkillsTab   = "club-skills"
+	coachLevelsTab       = "levels"
+	coachRequirementsTab = "requirements"
+	coachDetailsTab      = "details"
 )
 
 // coachDetailsPath is a coach's details: their link and their other links.
@@ -115,6 +118,7 @@ func coachMenu(token, current string) []views.MenuSection {
 		{Label: "Gymnasts", Href: coachGymnastsPath(token), Current: current == coachGymnastsTab},
 		{Label: "Club skills", Href: coachPath(token) + "/club-skills", Current: current == coachClubSkillsTab},
 		{Label: "Levels", Href: coachLevelsPath(token), Current: current == coachLevelsTab},
+		{Label: "Requirements", Href: coachPath(token) + "/requirements", Current: current == coachRequirementsTab},
 	}
 	// Your details only for the coach's own link: opened through another of
 	// their links (a member's who coaches too), that link's page has them.

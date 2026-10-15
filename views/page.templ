@@ -195,6 +195,14 @@ templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 			<div class="select is-small">
 				<select id={ id } x-on:change={ fmt.Sprintf("setRequirements($event.target.value, '%s')", side) }>
 					<option value="" x-bind:selected={ fmt.Sprintf("!routineFor('%s')?.requirements", side) }>No requirements</option>
+					// Your own, kept on your page (ADR 0013), first.
+					<template x-if="customSets.some((s) => s.kept && !isSetRoutine(s.set))">
+						<optgroup label="On your page">
+							<template x-for="s in customSets.filter((s) => s.kept && !isSetRoutine(s.set))" x-bind:key="s.id">
+								<option x-bind:value="s.id" x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === s.id", side) } x-text="s.set.name"></option>
+							</template>
+						</optgroup>
+					</template>
 					// Each level's voluntary requirements.
 					for _, g := range groups {
 						if options := CheckOptions(g); len(options) > 0 {
@@ -205,9 +213,9 @@ templ requirementPicker(groups []requirements.BuiltinGroup, side string) {
 							</optgroup>
 						}
 					}
-					<template x-if="customSets.some((s) => !isSetRoutine(s.set))">
+					<template x-if="customSets.some((s) => !s.kept && !isSetRoutine(s.set))">
 						<optgroup label="Your requirements">
-							<template x-for="s in customSets.filter((s) => !isSetRoutine(s.set))" x-bind:key="s.id">
+							<template x-for="s in customSets.filter((s) => !s.kept && !isSetRoutine(s.set))" x-bind:key="s.id">
 								<option x-bind:value="s.id" x-bind:selected={ fmt.Sprintf("routineFor('%s')?.requirements === s.id", side) } x-text="s.set.name"></option>
 							</template>
 						</optgroup>

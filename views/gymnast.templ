@@ -15,6 +15,7 @@ type GymnastPage struct {
 	Competitions []GymnastCompetition // the list
 	Competition  *GymnastCompetition  // the one competition's page shows
 	Other        *OtherLinks          // on their details
+	Kept         KeptPart             // their own requirements and levels, on Requirements (ADR 0013)
 }
 
 // GymnastCompetition is one competition an individual entered, with their

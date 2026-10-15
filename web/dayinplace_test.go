@@ -34,10 +34,16 @@ func TestIdPart(t *testing.T) {
 // page can swap them for fresh ones and open the same lists again; and each
 // button sends the browser back to the flight it was in.
 func TestDayPageKeepsPlace(t *testing.T) {
-	h := competitionServer(t)
+	s := newTestServer(t, atTime(dayBefore))
+	h := s.h
 	admin, _, _, _ := scratchSetupOn(t, h, twoFlights)
 	day := admin + "/day?day=0"
 	get := func() string { return dayAll(t, h, day) }
+	// Before a flight's warm-up, not being here yet isn't news: no Notify.
+	if strings.Contains(get(), `data-key="notify:`) {
+		t.Error("Notify is offered before the warm-up")
+	}
+	s.clock.set(onTheDay(12, 0)) // the flights' warm-ups have begun: Notify is offered
 	page := get()
 
 	for _, id := range []string{"day-notice", "day-warnings", "day-areas", areaID("Panel 1")} {

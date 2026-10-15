@@ -56,8 +56,7 @@ the summary carries (`label`, `title`, `is-size-7`, a `<strong>` inside), so a
 new dropdown needs no extra markup or CSS. Don't set `cursor`, `list-style` or
 the marker on a summary: the rule does. A summary that is deliberately
 something else opts out by `content: none` on its `::before`, in the same block:
-`summary.button`, the routine menu (`.routine-menu`), the inline "move" link
-(`.comp-move`), or any summary given the class `no-arrow`. The tariff sheet and
+`summary.button`, the routine menu (`.routine-menu`), or any summary given the class `no-arrow`. The tariff sheet and
 the view page have their own stylesheets and menus, so the rule doesn't reach them.
 
 # Settings and forms on a page
@@ -102,8 +101,9 @@ A page's several printouts go under one **Print** button, a small pop-up
 menu (`details.comp-popup[data-menu]`, which `static/js/menus.js` closes on a
 tap outside): `printMenu` for the timetable's sheets, `dashboardPrint` for
 the entries page's cards (and a chair of judges' sheets). A menu whose
-button sits at the left of the page adds `comp-popup-start`, so it opens to
-the right and stays on screen.
+button sits at the left of the page (the entries page's Print, a person's
+Timetables and calendars) adds `comp-popup-left`, so it opens to the right
+and stays on screen.
 
 # Lists of people: search and filters
 

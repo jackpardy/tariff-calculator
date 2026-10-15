@@ -306,8 +306,9 @@ a **Change** button to open it.
 7. Adjust manually: a flight's **Move or redraw** opens **Move event**,
    which moves all of an event's flights together to another day or area,
    **Earlier**, which swaps a flight with the one before it in its event, and
-   **Redraw order**, which draws its running order again; **Move** beside a
-   gymnast puts them in another flight. To find someone
+   **Redraw order**, which draws its running order again; a flight's **Move
+   a gymnast** puts one of its gymnasts (choose who) in another flight, or
+   takes them out. To find someone
    on a long timetable, type part of their name in **Find a name**: only
    the flights with them show. The day and area links beside it go
    straight to a day or an area. If an event's flights end up
@@ -369,8 +370,8 @@ a **Change** button to open it.
    page with **I'm here for the rest**. Under each flight, **Panel** does the
    same for the officials: tap **Here** as each arrives (it counts for the
    whole run of that event on the area, and clears a scratch warning), or
-   **Missing**, which links to "what if they leave". Next to anyone who isn't
-   here, **Notify** sends them, their club's comp sec and coaches, or both,
+   **Missing**, which links to "what if they leave". Once a flight's warm-up has begun, next to
+   anyone who isn't here, **Notify** sends them, their club's comp sec and coaches, or both,
    a message saying where they should be. To find someone at the desk, type
    part of their name in **Find a name**: only the flights with them show,
    with their Check-in or Panel list open, and it stays that way as you tap
@@ -671,6 +672,23 @@ change an entry for you.
   builder's copy stays).
 
 You can keep up to 30 routines.
+
+## Keep your requirements on your page
+
+Requirements, set routines and levels you write on the **Requirements** page
+are saved in that browser only, and an iPhone can forget them after a week
+without a visit. Keep them on your page (a member's, a coach's, or your own
+if you enter on your own) and they're safe, and open on any phone:
+
+- On the **Requirements** page, tap **Save to my page** beside one. (It's
+  there once you've opened your page on this phone.) It shows **On your
+  page** from then on, and saving it again there saves it on your page too.
+- Or open **Requirements** on your page: **Add from this browser** keeps all
+  of them in one go. **Take off** removes one from your page.
+- Wherever your page is saved, the Requirements page and the Routine
+  Builder's **Check against** list what's kept as **On your page**, first.
+
+You can keep up to 50 sets of requirements and 50 levels.
 
 ## Synchro
 

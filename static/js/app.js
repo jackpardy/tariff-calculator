@@ -56,6 +56,10 @@ function tariffCalculatorStore() {
             this.persist(); // settles a routine carried over from an older version
             this.customSets = SetStore.load();
             this.customLevels = LevelStore.load();
+            // Requirements kept on a person's page (ADR 0013), read in.
+            KeptRequirements.sync().then((changed) => {
+                if (changed) { this.customSets = SetStore.load(); this.customLevels = LevelStore.load(); }
+            });
             this.levelState = LevelEntries.load();
             try { this.mode = localStorage.getItem('builderMode') === 'levels' ? 'levels' : 'routines'; } catch (e) { /* routines */ }
             // Sets and levels edited in another tab (the requirements page) are picked up here.
