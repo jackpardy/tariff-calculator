@@ -1,7 +1,7 @@
 ---
 type: Report
 title: Cleanup audit, October 2026
-description: The full audit of the app before the dry run (14–15 October 2026), what it found in each area, what was fixed, and what was left for the dry-run work or after it, with the measurements before and after.
+description: The full audit of the app before the dry run (14–15 October 2026), what it found in each area, what was fixed, and what was left for the dry-run work or after it, with the measurements before and after; and the plan for one palette of colours for states and roles (16 October).
 tags: [audit, cleanup, quality]
 generated: { by: claude-code/cli, at: 2026-10-15T16:00:00Z }
 ---
@@ -102,6 +102,52 @@ holds; this is the record kept with the code.
   - ADR statuses;
   - the stack and features index;
   - a contents list for the features page.
+
+## Colour and status (added 16 October 2026)
+
+Most states are shown as plain text, and where colour is used it's chosen
+page by page:
+
+- **No fixed meanings:** Bulma's colour classes appear about 150 times across the 40 templates. Amber, for example, marks Withdrawn, On hold, Waiting for you to confirm, a message from the organisers, and a gymnast moved.
+- **One state, different colours:** a missing sign-off is red on the dashboard and amber on the club's page.
+- **Who did it is never shown in colour**, and which judge fills a seat isn't shown at all.
+- **Separate:** the venue screen's area colours are for telling areas apart, not states, and stay separate.
+
+**One palette, with fixed meanings, on every page.** It has two kinds of
+chip that look different even without colour.
+
+- **State chips** are filled and carry a mark and a short label:
+  - grey ○ not started or not yet;
+  - blue ◐ in progress or waiting on someone;
+  - green ✓ done;
+  - amber ! needs attention;
+  - red ✕ stopped or out.
+- **Role chips** are outlined and show the role's word:
+  - teal for a gymnast or member;
+  - purple for a coach;
+  - olive for the club (comp sec);
+  - slate for the organiser or a helper.
+- **Contrast:** every colour reaches 4.5:1 or better.
+
+| Example | State or role |
+| --- | --- |
+| Sent, changed since sent, withdrawn | blue, amber, red |
+| Checked, has problems, waiting for sign-off | green, amber, blue |
+| From a club, or on their own | role: club, or gymnast |
+| Here, scratched, not yet checked in | green, red, grey |
+| A seat filled by a competitor, a club's judge, the organiser's own judge | role: gymnast, club, organiser |
+| A skill marked Learning or Can do (ADR 0011), and by whom | blue or green, with a role chip for who marked it |
+
+**Rolling it out:**
+
+1. **The shared pieces** come first, so skill tracking's pages can use them:
+   colour tokens, the components `@state(kind, label)` and `@who(role, name)`, a
+   section in rendering.md, and a contrast test.
+2. **In the dry-run work:** check-in and panels on the day, the dashboard's
+   and the club's entry rows, and who fills each seat on the rota.
+3. **After the dry run:** the rest.
+4. **Keeping it:** a test that fails when a page uses Bulma's colour classes
+   for a state directly, instead of the components.
 
 ## Left, and why
 
