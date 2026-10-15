@@ -65,10 +65,10 @@ gets tabs for the person's roles.
 | `GET /clubs/member/{token}/competitions/{id}/score-sheets`, `/competitions/entry/{token}/score-sheets` | — | The published score sheets of the flights the person officiates |
 | `GET /clubs/member/{token}/competitions/{id}/calendar.ics`, `/competitions/entry/{token}/calendar.ics` | — | A person's published flights and duties as an iCalendar file to add or subscribe to; empty until published |
 | `GET /clubs/member/{token}/competitions/{id}/club-calendar.ics`, `/clubs/admin/{token}/competitions/{id}/calendar.ics`, `/clubs/coach/{token}/competitions/{id}/calendar.ics` | — | The club's: every flight one of its gymnasts competes in, and every seat one of its people holds, named |
-| `GET /sw.js` | — | The service worker, for push notifications |
+| `GET /sw.js` | — | The service worker, for push notifications and offline copies of pages (dropped after 30 days, or on a 404 or 410) |
 | `GET /manifest.webmanifest` | — | The web manifest, for adding a page to the home screen (no `start_url`) |
 | `GET`, `POST /notify/confirm/{token}` | — | Confirms an email (a button, then done) |
-| `GET`, `POST /notify/off/{token}` | — (or `List-Unsubscribe=One-Click`) | Stops an email |
+| `GET`, `POST /notify/off/{token}` | — (or `List-Unsubscribe=One-Click`) | Stops every email to that address for the competition |
 | `POST /competitions/admin/{token}/notify-now` | — | Sends the changes waiting at once |
 | `POST /competitions/admin/{token}/no-wait` | `on` (`1`/`0`) | No wait before telling changes on the competition's days |
 | `POST /competitions/admin/{token}/live` | `opens`: `now`, `at` (with `liveDate` and `liveTime`, before the deadline) or `private`; `back=settings` to come back to Settings rather than the entries page | Goes live now or then, or makes the competition private, pausing entries and keeping those made |
