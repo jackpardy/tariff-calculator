@@ -69,7 +69,9 @@ func noticeOf(t *testing.T, location string) string {
 // both, with a tab for each, and either side undoes it.
 func TestRoleTabs(t *testing.T) {
 	h := competitionServer(t)
-	_, club, member := aClubEntered(t, h)
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	club, member := ucd.page, ucd.members["A. Murphy"]
 	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
 	do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"A. Murphy"}})
 	// A coach's link is shown once, when made.
@@ -157,7 +159,9 @@ func undoFor(t *testing.T, page, label string) (string, string) {
 // the coach's page.
 func TestMakeACoachToo(t *testing.T) {
 	h := competitionServer(t)
-	_, club, member := aClubEntered(t, h)
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	club, member := ucd.page, ucd.members["A. Murphy"]
 	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
 	members := get(club + "/members")
 	id := regexp.MustCompile(`name="member" value="([^"]+)"`).FindStringSubmatch(members)
@@ -187,7 +191,9 @@ func TestMakeACoachToo(t *testing.T) {
 // A shared link added to a personal page opens from it, never the other way.
 func TestSharedLinkOneWay(t *testing.T) {
 	h := competitionServer(t)
-	_, club, member := aClubEntered(t, h)
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	club, member := ucd.page, ucd.members["A. Murphy"]
 	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
 	redirected(t, h, member+"/links", url.Values{"link": {"http://example.com" + club + "/settings"}})
 	home := get(member)
@@ -246,7 +252,9 @@ func TestSharedLinkOneWay(t *testing.T) {
 // A competition's admin and helper links open from a personal page too.
 func TestCompetitionLinksOnAPersonalPage(t *testing.T) {
 	h := competitionServer(t)
-	admin, _, member := aClubEntered(t, h)
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	_, member := ucd.page, ucd.members["A. Murphy"]
 	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
 	chair := madeLink(t, h, admin, "Chairs", "chair")
 	redirected(t, h, member+"/links", url.Values{"link": {"http://example.com" + chair}})
@@ -283,7 +291,7 @@ func TestIndividualPage(t *testing.T) {
 	if page := get(enter); !strings.Contains(page, `name="as"`) || !strings.Contains(page, "data-saved-as") {
 		t.Errorf("the entry form asks for their page's link: %s", page)
 	}
-	trampoline := url.Values{"gymnast": {"Róisín O'Neill"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	trampoline := bucsEntry("Róisín O'Neill")
 	saved := redirected(t, h, enter, trampoline)
 	first := withoutQuery(saved)
 	page := get(saved)
@@ -345,7 +353,7 @@ func TestSameNameTwoPeople(t *testing.T) {
 	enter := pathIn(t, get(admin+"/settings"), "/competitions/enter/")
 	name := "Sam O'Brien / Jr?"
 	one := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {name}, "discipline": {"tumbling"}, "level": {"Novice"}}))
-	two := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {name}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	two := withoutQuery(redirected(t, h, enter, bucsEntry(name)))
 	people := get(admin + "/people")
 	if n := strings.Count(people, `data-name="Sam O&#39;Brien / Jr?"`); n != 2 {
 		t.Errorf("two people, listed %d times: %s", n, people)
@@ -445,7 +453,8 @@ func TestAllPeopleJoinsRoles(t *testing.T) {
 	admin := created(t, h, newCompetition())
 	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
 	name := "Ann O'Neill / Jr?"
-	club, members := aClubWithMembers(t, h, admin, name, "Mo")
+	ucd := aClub(t, h, admin, "UCD", true, name, "Mo")
+	club, members := ucd.page, ucd.members
 	memberID := func(who string) string {
 		t.Helper()
 		page := get(club + "/members")

@@ -40,7 +40,7 @@ func peopleCompetition(t *testing.T) peopleSetup {
 	mo := withoutQuery(redirected(t, h, join, url.Values{"name": {"Mo"}}))
 	redirected(t, h, mo+"/coach", url.Values{"coach": {annID}})
 	save := formAction(t, memberCompetitionPage(t, h, mo), mo+"/competitions/")
-	redirected(t, h, save, url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	redirected(t, h, save, bucsEntry(""))
 	redirected(t, h, save+"/offer", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
 	comp := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/([^/"]+)/coaches`).FindStringSubmatch(do(t, h, http.MethodGet, club, nil).Body.String())[1]
 	redirected(t, h, club+"/competitions/"+comp+"/coaches", url.Values{"coach": {annID}})
@@ -48,7 +48,7 @@ func peopleCompetition(t *testing.T) peopleSetup {
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
 
 	enter := pathIn(t, settings, "/competitions/enter/")
-	entry := url.Values{"gymnast": {"Ivy"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("Ivy")
 	ivy := withoutQuery(redirected(t, h, enter, entry))
 	redirected(t, h, ivy+"/offer", url.Values{"judge-trampoline": {"1"}})
 	redirected(t, h, enter, url.Values{"gymnast": {"Sam"}, "discipline": {"synchro"}, "level": {"BUCS L3"}, "partnerName": {"Pat"},

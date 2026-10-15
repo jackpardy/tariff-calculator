@@ -41,7 +41,7 @@ func TestCoachApprovalPages(t *testing.T) {
 	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	x := withoutQuery(redirected(t, h, join, url.Values{"name": {"X"}}))
 	redirected(t, h, x+"/coach", url.Values{"coach": {annID}})
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("")
 	sendX := formAction(t, memberCompetitionPage(t, h, x), x+"/competitions/")
 	redirected(t, h, sendX, entry)
 
@@ -134,7 +134,7 @@ func TestIndividualCoachPages(t *testing.T) {
 	admin := created(t, h, form)
 	redirected(t, h, admin+"/approve-coaches", url.Values{"on": {"1"}})
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Mary"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	own := withoutQuery(redirected(t, h, enter, bucsEntry("Mary")))
 
 	// Mary's page asks for her coach; until she names one, the sign-off link
 	// can't be used.

@@ -31,26 +31,6 @@ func subscribeByEmail(t *testing.T, h http.Handler, mail *fakeMailer, notify, ad
 	mail.sent = nil
 }
 
-// aClubWithMembers makes a club entered in the competition, with a member
-// for each name who has entered, and returns the club's page and the
-// members' pages.
-func aClubWithMembers(t *testing.T, h http.Handler, admin string, names ...string) (string, map[string]string) {
-	t.Helper()
-	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
-	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
-	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
-	members := map[string]string{}
-	for _, name := range names {
-		m := withoutQuery(redirected(t, h, join, url.Values{"name": {name}}))
-		redirected(t, h, formAction(t, memberCompetitionPage(t, h, m), m+"/competitions/"), entry)
-		members[name] = m
-	}
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
-	return club, members
-}
-
 // notifyPageOf is the notify page a page links to, under a path prefix. A
 // member's is linked from their page for the competition.
 func notifyPageOf(t *testing.T, h http.Handler, page, prefix string) string {
@@ -82,7 +62,7 @@ func personOnDesk(t *testing.T, page, name string) string {
 func anIndividual(t *testing.T, h http.Handler, admin, name string) string {
 	t.Helper()
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	return withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {name}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	return withoutQuery(redirected(t, h, enter, bucsEntry(name)))
 }
 
 // A message to a club reaches its comp sec and members who asked, by email
@@ -90,7 +70,8 @@ func anIndividual(t *testing.T, h http.Handler, admin, name string) string {
 func TestDeskMessageToAClub(t *testing.T) {
 	h, _, mail := notifyServer(t)
 	admin := created(t, h, newCompetition())
-	club, members := aClubWithMembers(t, h, admin, "Ann", "Bea")
+	ucd := aClub(t, h, admin, "UCD", true, "Ann", "Bea")
+	club, members := ucd.page, ucd.members
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, members["Ann"], members["Ann"]), "ann@example.com")
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, club, club), "ucd@example.com")
 
@@ -340,7 +321,8 @@ func TestDeskLinks(t *testing.T) {
 func TestDeskToACoach(t *testing.T) {
 	h, _, mail := notifyServer(t)
 	admin := created(t, h, newCompetition())
-	club, members := aClubWithMembers(t, h, admin, "Ann", "Bea")
+	ucd := aClub(t, h, admin, "UCD", true, "Ann", "Bea")
+	club, members := ucd.page, ucd.members
 	bob := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
 	bobID := regexp.MustCompile(`<option value="([^"]+)">Bob</option>`).FindStringSubmatch(do(t, h, http.MethodGet, members["Ann"]+"/details", nil).Body.String())[1]
 	redirected(t, h, members["Ann"]+"/coach", url.Values{"coach": {bobID}})

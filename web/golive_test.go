@@ -17,7 +17,7 @@ func TestGoingLive(t *testing.T) {
 		t.Error("a new competition starts private, with a way to go live")
 	}
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	ann := url.Values{"gymnast": {"Ann Ryan"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	ann := bucsEntry("Ann Ryan")
 
 	// The entry link shows the competition, and takes no entries.
 	if got := do(t, h, http.MethodGet, enter, nil).Body.String(); !strings.Contains(got, "Student Open") || !strings.Contains(got, "Entries aren't open at the moment.") || strings.Contains(got, `name="gymnast"`) {

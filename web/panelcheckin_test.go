@@ -286,7 +286,8 @@ func TestNotifyAnOfficial(t *testing.T) {
 func TestNotifyAClub(t *testing.T) {
 	h, _, mail := notifyServer(t)
 	admin := created(t, h, newCompetition())
-	club, members := aClubWithMembers(t, h, admin, "Ann", "Bea")
+	ucd := aClub(t, h, admin, "UCD", true, "Ann", "Bea")
+	club, members := ucd.page, ucd.members
 	bob := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, club, club), "ucd@example.com")
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, bob, bob), "bob@example.com")

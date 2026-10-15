@@ -48,7 +48,7 @@ func TestCoachSignoff(t *testing.T) {
 	if page := do(t, h, http.MethodGet, x+"/details", nil).Body.String(); !strings.Contains(page, `<option value="`+bobID+`" selected>Bob</option>`) {
 		t.Error("X's coach is Bob")
 	}
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("")
 	for _, m := range []string{x, y} {
 		redirected(t, h, formAction(t, memberCompetitionPage(t, h, m), m+"/competitions/"), entry)
 	}
@@ -148,7 +148,7 @@ func TestIndividualSignoff(t *testing.T) {
 	form.Set("signoff", "1")
 	admin := created(t, h, form)
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"I"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	own := withoutQuery(redirected(t, h, enter, bucsEntry("I")))
 	page := do(t, h, http.MethodGet, own, nil).Body.String()
 	if !strings.Contains(page, "Sign-off link for your coach") {
 		t.Fatal("the individual gets a sign-off link to send")
@@ -207,7 +207,7 @@ func TestCoachQualificationsPages(t *testing.T) {
 	ann := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
 	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	x := withoutQuery(redirected(t, h, join, url.Values{"name": {"X"}}))
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("")
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, x), x+"/competitions/"), entry)
 
 	page := do(t, h, http.MethodGet, club+"/coaches", nil).Body.String()
