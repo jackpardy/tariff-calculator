@@ -301,6 +301,26 @@ templ ClubAdmin(c ClubPage) {
 				@feesLine(comp.Fees)
 				@deskMessages(comp.Desk)
 				@timelineLinks("", comp.Timeline, comp.Notify, "", comp.Calendar)
+				if comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
+					// Sending is what the page is for, so it's above the entries, with
+					// sending everything again (rarely needed) as a quiet button.
+					<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/send") } class="comp-send">
+						<div class="comp-send-state">
+							if comp.ToSend > 0 {
+								@StateChip(Attention, Count(comp.ToSend, "entry to send", "entries to send"))
+							} else {
+								@StateChip(Done, "All sent")
+							}
+							<span class="comp-send-note">The organiser sees only what you send, with what members offer to judge and help with. Sending all again also takes back withdrawn entries.</span>
+						</div>
+						<div class="comp-send-actions">
+							<button class="button is-primary is-small" type="submit" name="which" value="changed" disabled?={ comp.ToSend == 0 }>
+								{ fmt.Sprintf("Send new and changed (%d)", comp.ToSend) }
+							</button>
+							<button class="button is-small is-text" type="submit" name="which" value="all" title="Sends every entry again, and takes back withdrawn ones">Send all again</button>
+						</div>
+					</form>
+				}
 				if len(comp.Rows) == 0 {
 					<p class="has-text-grey is-size-7">No member has entered yet.</p>
 				} else {
@@ -323,9 +343,8 @@ templ ClubAdmin(c ClubPage) {
 											</td>
 											<td data-label="Level">{ row.Level }</td>
 											<td data-label="Problems">
-												if row.Problems == 0 {
-													–
-												} else {
+												// Empty when there are none, so a phone's card leaves the line out.
+												if row.Problems > 0 {
 													@StateChip(Attention, Count(row.Problems, "problem", "problems"))
 												}
 											</td>
@@ -368,52 +387,53 @@ templ ClubAdmin(c ClubPage) {
 						</div>
 					}
 				}
-				if comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
-					<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/send") } class="buttons">
-						<button class="button is-primary is-small" type="submit" name="which" value="changed" disabled?={ comp.ToSend == 0 }>
-							{ fmt.Sprintf("Send new and changed (%d)", comp.ToSend) }
-						</button>
-						<button class="button is-small" type="submit" name="which" value="all">Send all again</button>
-					</form>
-					<p class="help">The organiser sees only what you send. "Send all again" also takes back withdrawn entries. What members offer to judge and help with goes with every send.</p>
-				}
 				if comp.ApproveCoaches {
-					<div class="mt-3">
-						<p class="is-size-7 mb-1"><strong>Coaches for this competition.</strong> It approves coaches from their qualifications: only those it approves can sign off. Tick who to send.</p>
+					// A list with its count, each coach a row with their state in a
+					// column of its own, so the chips line up whatever the names.
+					@listSection("Coaches for this competition", len(comp.Coaches)) {
+						<p class="help mb-2">It approves coaches from their qualifications: only those it approves can sign off. Tick who to send.</p>
 						if len(comp.Coaches) == 0 {
 							<p class="is-size-7 has-text-grey">None of your coaches signs off routines yet (see <a href={ templ.SafeURL(c.Base + "/coaches") }>Coaches</a>).</p>
 						} else {
 							<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/coaches") }>
-								for _, k := range comp.Coaches {
-									<div class="is-size-7">
-										<label class="checkbox">
-											<input type="checkbox" name="coach" value={ k.ID } checked?={ k.Ticked }/>
-											{ k.Name }
-										</label>
-										if k.Status != "" {
-											@StateChip(k.State, k.Status)
+								<table class="table is-fullwidth is-narrow comp-stack">
+									<tbody>
+										for _, k := range comp.Coaches {
+											<tr>
+												<td>
+													<label class="checkbox">
+														<input type="checkbox" name="coach" value={ k.ID } checked?={ k.Ticked }/>
+														{ k.Name }
+													</label>
+												</td>
+												<td>
+													if k.Status != "" {
+														@StateChip(k.State, k.Status)
+													}
+													if k.Changed {
+														@StateChip(Attention, "Qualifications changed since sent: send again")
+													}
+													if k.NoQualifications {
+														@StateChip(Attention, "No qualifications added")
+													}
+													if k.Note != "" {
+														<span class="is-size-7 has-text-grey">· { k.Note }</span>
+													}
+												</td>
+											</tr>
 										}
-										if k.Changed {
-											@StateChip(Attention, "Qualifications changed since sent: send again")
-										}
-										if k.NoQualifications {
-											@StateChip(Attention, "No qualifications added")
-										}
-										if k.Note != "" {
-											<span class="has-text-grey">· { k.Note }</span>
-										}
-									</div>
-								}
-								<button class="button is-small mt-1" type="submit">Send coaches</button>
+									</tbody>
+								</table>
+								<button class="button is-small" type="submit">Send coaches</button>
 							</form>
 						}
-					</div>
+					}
 				}
 				if len(comp.Offers) > 0 {
-					<details class="mt-3">
-						<summary class="is-size-7">Judging and helping ({ strconv.Itoa(len(comp.Offers)) }), sent with the entries</summary>
+					@listSection("Judging and helping", len(comp.Offers)) {
+						<p class="help mb-2">What members offer, sent with the entries.</p>
 						<div class="table-container">
-							<table class="table is-fullwidth is-narrow mt-2">
+							<table class="table is-fullwidth is-narrow">
 								<tbody>
 									for _, o := range comp.Offers {
 										<tr>
@@ -429,7 +449,7 @@ templ ClubAdmin(c ClubPage) {
 								</tbody>
 							</table>
 						</div>
-					</details>
+					}
 				}
 			</div>
 		}
@@ -453,7 +473,7 @@ templ ClubMembers(c ClubPage) {
 									<td>
 										{ m.Name }
 										if m.AlsoCoach {
-											<span class="tag is-info is-light ml-1">Coach too</span>
+											@WhoChip(RoleCoach, "")
 										}
 									</td>
 									<td class="has-text-grey is-size-7">
@@ -470,19 +490,22 @@ templ ClubMembers(c ClubPage) {
 											@coachSelect(c.Base+"/members/"+m.ID+"/coach", c.CoachOptions, m.CoachID, m.Name+"'s coach")
 										</td>
 									}
-									<td class="has-text-right">
-										if !m.AlsoCoach {
-											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/from-member") } class="is-inline">
-												<input type="hidden" name="member" value={ m.ID }/>
-												<button class="button is-small is-text" type="submit" title="Their member link opens the coach's page too">Make a coach too</button>
+									<td class="comp-row-more">
+										// The rare things to do to a member, out of the way until asked for.
+										@opens("", "", "More", false) {
+											if !m.AlsoCoach {
+												<form method="post" action={ templ.SafeURL(c.Base + "/coaches/from-member") }>
+													<input type="hidden" name="member" value={ m.ID }/>
+													<button class="button is-small is-text" type="submit" title="Their member link opens the coach's page too">Make a coach too</button>
+												</form>
+											}
+											<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/new-link") }>
+												<button class="button is-small is-text" type="submit" title="For a member who lost their link: their old one stops working">New link</button>
+											</form>
+											<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/remove") } onsubmit={ confirmRemove(m.Name) }>
+												<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
 											</form>
 										}
-										<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/new-link") } class="is-inline">
-											<button class="button is-small is-text" type="submit" title="For a member who lost their link: their old one stops working">New link</button>
-										</form>
-										<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/remove") } class="is-inline" onsubmit={ confirmRemove(m.Name) }>
-											<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
-										</form>
 									</td>
 								</tr>
 							}
@@ -515,13 +538,15 @@ templ ClubCoaches(c ClubPage) {
 										}
 									</td>
 									<td class="has-text-grey is-size-7">{ Count(coach.Members, "member chose them", "members chose them") }</td>
-									<td class="has-text-right">
-										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") } class="is-inline">
-											<button class="button is-small is-text" type="submit" title="Their old link stops working">New link</button>
-										</form>
-										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/remove") } class="is-inline" onsubmit={ confirmRemoveCoach(coach.Name) }>
-											<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
-										</form>
+									<td class="comp-row-more">
+										@opens("", "", "More", false) {
+											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") }>
+												<button class="button is-small is-text" type="submit" title="Their old link stops working">New link</button>
+											</form>
+											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/remove") } onsubmit={ confirmRemoveCoach(coach.Name) }>
+												<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+											</form>
+										}
 									</td>
 								</tr>
 								<tr>
@@ -566,39 +591,46 @@ templ ClubCoaches(c ClubPage) {
 				</div>
 			}
 		}
-		<p class="help mb-3">Coaches sign off members' routines on their own page. A member chooses their coach, or you do on the Members page; a coach sees their members and those without a coach. A competition can ask for coaches with qualifications: add each coach's, with a photo or PDF of the certificate. Only you, and organisers you send the coach to, can open it.</p>
-		<form method="post" action={ templ.SafeURL(c.Base + "/coaches") } class="field has-addons">
-			<div class="control is-expanded">
-				<input class="input is-small" name="name" required maxlength="80" placeholder="Coach's name" aria-label="Coach's name"/>
-			</div>
-			<div class="control"><button class="button is-small" type="submit">Add coach</button></div>
-		</form>
-		if len(c.MemberOptions) > 0 {
-			<form method="post" action={ templ.SafeURL(c.Base + "/coaches/from-member") } class="field has-addons">
-				<div class="control is-expanded">
-					<div class="select is-small is-fullwidth">
-						<select name="member" required aria-label="Member to make a coach">
-							<option value="">A member who coaches…</option>
-							for _, m := range c.MemberOptions {
-								<option value={ m.ID }>{ m.Name }</option>
-							}
-						</select>
+		<div class="mt-4">
+			// Open at first while the club has no coaches: adding one is all there is to do.
+			@opens("", "", "Add a coach", len(c.Coaches) == 0) {
+				<form method="post" action={ templ.SafeURL(c.Base + "/coaches") } class="field has-addons">
+					<div class="control is-expanded">
+						<input class="input is-small" name="name" required maxlength="80" placeholder="Coach's name" aria-label="Coach's name"/>
 					</div>
-				</div>
-				<div class="control"><button class="button is-small" type="submit">Make a coach too</button></div>
-			</form>
-			<p class="help mt-0 mb-3">A member who coaches needs no coach link: their member link opens the coach's page too, with a tab for each.</p>
-		}
+					<div class="control"><button class="button is-small" type="submit">Add coach</button></div>
+				</form>
+				if len(c.MemberOptions) > 0 {
+					<form method="post" action={ templ.SafeURL(c.Base + "/coaches/from-member") } class="field has-addons mb-1">
+						<div class="control is-expanded">
+							<div class="select is-small is-fullwidth">
+								<select name="member" required aria-label="Member to make a coach">
+									<option value="">Or a member who coaches…</option>
+									for _, m := range c.MemberOptions {
+										<option value={ m.ID }>{ m.Name }</option>
+									}
+								</select>
+							</div>
+						</div>
+						<div class="control"><button class="button is-small" type="submit">Make a coach too</button></div>
+					</form>
+					<p class="help">A member who coaches needs no coach link: their member link opens the coach's page too, with a tab for each.</p>
+				}
+			}
+		</div>
 		if len(c.Coaches) > 0 {
-			<form method="post" action={ templ.SafeURL(c.Base + "/coaches-see-all") } class="mb-3">
-				<input type="hidden" name="on" value={ boolValue(!c.CoachesSeeAll) }/>
-				<label class="checkbox is-size-7">
-					<input type="checkbox" checked?={ c.CoachesSeeAll } onchange="this.form.submit()"/>
-					Every coach sees every member
-				</label>
-				<noscript><button class="button is-small" type="submit">Change</button></noscript>
-			</form>
+			@changeLine("Who coaches see", coachesSeeNow(c.CoachesSeeAll), false) {
+				<form method="post" action={ templ.SafeURL(c.Base + "/coaches-see-all") }>
+					<input type="hidden" name="on" value={ boolValue(!c.CoachesSeeAll) }/>
+					<label class="checkbox is-size-7">
+						<input type="checkbox" checked?={ c.CoachesSeeAll } onchange="this.form.submit()"/>
+						Every coach sees every member
+					</label>
+					<noscript><button class="button is-small" type="submit">Change</button></noscript>
+				</form>
+			}
 		}
+		<p class="help">Coaches sign off members' routines on their own page. A member chooses their coach, or you do on Members. A competition can ask for coaches' qualifications: add each one's with a photo or PDF of the certificate, which only you, and organisers you send the coach to, can open.</p>
 	}
 }
 
@@ -606,41 +638,37 @@ templ ClubCoaches(c ClubPage) {
 // deleting the club.
 templ ClubSettings(c ClubPage) {
 	@clubFrame(c) {
-		<h2 class="title is-5 mt-5">Settings</h2>
-		<div class="box">
-		<form method="post" action={ templ.SafeURL(c.Base + "/replace-link") } class="mb-3">
-			<button class="button is-small" type="submit">Replace the admin link</button>
-			<p class="help">If the admin link has been shared too widely. The old one stops working.</p>
-		</form>
-		<form method="post" action={ templ.SafeURL(c.Base + "/delete") }>
-			<label class="checkbox comp-check is-size-7">
-				<input type="checkbox" name="confirm" value="1" required/>
-				Delete the club, its members and their entries, now
-			</label>
-			<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
-			<p class="help">Entries already sent stay with each competition.</p>
-		</form>
-		<form method="post" action={ templ.SafeURL(c.Base + "/skills-open") } class="mt-4">
-			<input type="hidden" name="on" value={ onIfNot(c.SkillsOpen) }/>
-			<p class="is-size-7 mb-1">
-				if c.SkillsOpen {
-					<strong>Every member sees everyone's skills.</strong>
-				} else {
-					Each member's skills are seen by them, their coaches and you.
-				}
-			</p>
-			<button class="button is-small" type="submit">
-				if c.SkillsOpen {
-					Show each member only their own
-				} else {
-					Let every member see everyone's skills
-				}
-			</button>
-		</form>
-		if c.KeptUntil != "" {
-			<p class="help mt-3">{ "The club is kept until " + c.KeptUntil + ": 13 months after anyone last opened its pages, or a member's or coach's. Each time someone does, that moves on." }</p>
+		// The settings are rows, each opening its form (rendering.md, "Settings
+		// and forms on a page"); the tab says it's Settings already.
+		@changeLine("Members' skills", skillsNow(c.SkillsOpen), false) {
+			<form method="post" action={ templ.SafeURL(c.Base + "/skills-open") }>
+				<input type="hidden" name="on" value={ onIfNot(c.SkillsOpen) }/>
+				<button class="button is-small" type="submit">
+					if c.SkillsOpen {
+						Show each member only their own
+					} else {
+						Let every member see everyone's skills
+					}
+				</button>
+			</form>
 		}
-		</div>
+		@opens("Admin link", "If it's been shared too widely, replace it: the old one stops working.", "Replace", false) {
+			<form method="post" action={ templ.SafeURL(c.Base + "/replace-link") }>
+				<button class="button is-small" type="submit">Replace the admin link</button>
+			</form>
+		}
+		@opens("Delete the club", "Its members and their entries, now. Entries already sent stay with each competition.", "Delete", false) {
+			<form method="post" action={ templ.SafeURL(c.Base + "/delete") }>
+				<label class="checkbox comp-check is-size-7">
+					<input type="checkbox" name="confirm" value="1" required/>
+					Delete the club, its members and their entries, now
+				</label>
+				<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
+			</form>
+		}
+		if c.KeptUntil != "" {
+			<p class="help mb-5">{ "The club is kept until " + c.KeptUntil + ": 13 months after anyone last opened its pages, or a member's or coach's. Each time someone does, that moves on." }</p>
+		}
 		@tiesBox(c.Base+"/ties/remove", c.Ties, "Someone who adds this admin link to their own page (a member's or coach's, say) opens these pages from there, with a tab for each.")
 	}
 }
@@ -781,10 +809,11 @@ templ MemberDetails(p MemberPage) {
 			@linkBox("Your personal link (keep it to yourself)", p.Link, "Open it on any phone or computer to see your entries. Anyone who has it can change them.")
 		}
 		if len(p.Coaches) > 0 {
-			<div class="field mb-4">
-				<label class="label is-small">Your coach</label>
-				@coachSelect(p.CoachAction, p.Coaches, p.CoachID, "Your coach")
-				<p class="help">They sign off your routines. Without one chosen, any of the club's coaches can.</p>
+			<div class="mt-4">
+				@changeLine("Your coach", coachNow(p.Coaches, p.CoachID), false) {
+					@coachSelect(p.CoachAction, p.Coaches, p.CoachID, "Your coach")
+					<p class="help">They sign off your routines. Without one chosen, any of the club's coaches can.</p>
+				}
 			</div>
 		}
 		if p.Other != nil {
@@ -844,14 +873,7 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 								@entryForm(ev.Form)
 							}
 						</div>
-						<form method="post" action={ templ.SafeURL(ev.Withdraw) } class="mt-4 mb-4">
-							<input type="hidden" name="discipline" value={ ev.Discipline }/>
-							<label class="checkbox is-size-7">
-								<input type="checkbox" name="confirm" value="1" required/>
-								Withdraw this entry
-							</label>
-							<button class="button is-small is-danger is-outlined ml-2" type="submit">Withdraw</button>
-						</form>
+						@withdrawForm(ev.Withdraw, ev.Discipline)
 					} else {
 						@entryForm(ev.Form)
 					}
@@ -892,6 +914,32 @@ templ ClubOfferEditPage(e ClubOfferEdit) {
 		<p class="subtitle is-6">Judging and helping at { e.Competition.Name }</p>
 		@offerForm(e.Form)
 	}
+}
+
+// coachNow names a member's chosen coach, for Your details.
+func coachNow(coaches []CoachOption, chosen string) string {
+	for _, c := range coaches {
+		if c.ID == chosen {
+			return c.Name
+		}
+	}
+	return "None chosen: any of the club's coaches can sign off your routines"
+}
+
+// skillsNow says who sees members' skills, for Settings.
+func skillsNow(open bool) string {
+	if open {
+		return "Every member sees everyone's skills"
+	}
+	return "Each member's are seen by them, their coaches and you"
+}
+
+// coachesSeeNow says which members coaches see, for Coaches.
+func coachesSeeNow(all bool) string {
+	if all {
+		return "Every coach sees every member"
+	}
+	return "Each coach sees the members who chose them, and those who haven't chosen a coach"
 }
 
 // onIfNot is the "on" value that turns a setting the other way.

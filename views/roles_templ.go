@@ -293,7 +293,9 @@ func tiesBox(remove string, ties []TieView, none string) templ.Component {
 	})
 }
 
-// otherLinksBox lists the person's other roles and adds more.
+// otherLinksBox lists the person's other roles and adds more: a section
+// with a plain heading, the roles as rows, and the form to add another
+// opening from a button (rendering.md, "Settings and forms on a page").
 func otherLinksBox(o OtherLinks) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -315,12 +317,12 @@ func otherLinksBox(o OtherLinks) templ.Component {
 			templ_7745c5c3_Var13 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<div class=\"box comp-other-links\" id=\"other-links\"><h2 class=\"title is-6 mb-2\">Your other links</h2>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<section class=\"comp-other-links mt-5\" id=\"other-links\"><h2 class=\"title is-5 mb-2\">Your other links</h2>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if len(o.Roles) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<p class=\"is-size-7 mb-3\">If you have another link here, such as a coach's, your club's competition secretary (comp sec) link, a competition you entered on your own or one you help run, add it below. Then this link opens all of them, with a tab for each.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<p class=\"is-size-7 mb-3\">If you have another link here, such as a coach's, your club's competition secretary (comp sec) link, a competition you entered on your own or one you help run, add it. Then this link opens all of them, with a tab for each.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -337,7 +339,7 @@ func otherLinksBox(o OtherLinks) templ.Component {
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(r.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 112, Col: 21}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 114, Col: 21}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -350,7 +352,7 @@ func otherLinksBox(o OtherLinks) templ.Component {
 				var templ_7745c5c3_Var15 templ.SafeURL
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(o.Remove))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 113, Col: 58}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 115, Col: 58}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -363,7 +365,7 @@ func otherLinksBox(o OtherLinks) templ.Component {
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(r.Kind)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 114, Col: 54}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 116, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 				if templ_7745c5c3_Err != nil {
@@ -376,7 +378,7 @@ func otherLinksBox(o OtherLinks) templ.Component {
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(r.ID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 115, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 117, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 				if templ_7745c5c3_Err != nil {
@@ -392,20 +394,42 @@ func otherLinksBox(o OtherLinks) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<form method=\"post\" action=\"")
+		templ_7745c5c3_Var18 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+			if !templ_7745c5c3_IsBuffer {
+				defer func() {
+					templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err == nil {
+						templ_7745c5c3_Err = templ_7745c5c3_BufErr
+					}
+				}()
+			}
+			ctx = templ.InitializeContext(ctx)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<form method=\"post\" action=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var19 templ.SafeURL
+			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(o.Add))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 125, Col: 52}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\"><label class=\"label is-small\" for=\"other-link\">Your other link</label><div class=\"field has-addons\"><div class=\"control is-expanded\"><input class=\"input is-small\" id=\"other-link\" name=\"link\" required placeholder=\"Paste the link\" autocomplete=\"off\"></div><div class=\"control\"><button class=\"button is-small is-link\" type=\"submit\">Add</button></div></div><p class=\"help\">Only add links that are yours. A shared link, such as a club's comp sec link, opens from here, but never opens this page.</p></form>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			return nil
+		})
+		templ_7745c5c3_Err = opens("", "", "Add a link", false).Render(templ.WithChildren(ctx, templ_7745c5c3_Var18), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var18 templ.SafeURL
-		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(o.Add))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/roles.templ`, Line: 122, Col: 51}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\"><label class=\"label is-small\" for=\"other-link\">Add your other link</label><div class=\"field has-addons\"><div class=\"control is-expanded\"><input class=\"input is-small\" id=\"other-link\" name=\"link\" required placeholder=\"Paste the link\" autocomplete=\"off\"></div><div class=\"control\"><button class=\"button is-small is-link\" type=\"submit\">Add</button></div></div><p class=\"help\">Only add links that are yours. A shared link, such as a club's comp sec link, opens from here, but never opens this page.</p></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

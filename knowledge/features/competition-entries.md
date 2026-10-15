@@ -407,6 +407,9 @@ and no Bulma colour for a state (buttons keep theirs):
 | The comp sec's entries | not sent grey, sent or on a waiting list blue, changed since sent or on hold amber, checked green, withdrawn or removed red (sent again after a hold, blue); problems and missing video amber; the sign-off | the coach who signed off |
 | A member's or individual's disciplines, and their competitions list | the same states in a word or two; problems; timetable published; a message from the organisers | |
 | The rota (timetable) and Officials | a seat with no one; every seat filled; everything fits; a gymnast moved since | who fills a seat or offered: a gymnast if they compete, else the organiser's own (added on the Officials page) or a club's judge (`seatRole`) |
+| A coach's entries | how many to sign off; problems; the sign-off, as on the comp sec's; can't sign off (not approved) | the coach who signed off |
+| My competition (and the organiser's page of a person) | each event checked by the organiser, problems to sort out, or sent, not checked yet; Scratched | |
+| Tell me about changes | an email On, or waiting for you to confirm it | |
 
 On the day, a panel now lists its empty seats too, once anyone has a seat on
 it (`panelOf`); the counts are worked out on the page from the rows
@@ -1463,8 +1466,11 @@ your way round; the menu is `views/menu.templ`, built for each page in
 `web/menus_club.go`), each a page of its own:
 
 - **Competitions** (`/clubs/admin/{token}`, the default): the same table as
-  the organiser's, but for the club's members only, by competition. It has
-  **Send** and **Re-send changed** buttons, shows the organiser's notes,
+  the organiser's, but for the club's members only, by competition. Above
+  the entries, a row says how many are still to send (a state chip) with
+  **Send new and changed** and, quieter, **Send all again**; below them,
+  **Judging and helping** lists what members offer (a list section with its
+  count). It shows the organiser's notes,
   shows which members are still missing a required video, and lets the comp
   sec edit an entry on a member's behalf (**Change**, under the member's
   name; the status wraps, so the table fits a laptop). Each competition's
@@ -1472,12 +1478,14 @@ your way round; the menu is `views/menu.templ`, built for each page in
   name and filtered by problems and by whether they're still to send. The
   pages for editing a member's entry or offer are in this section; the edit
   page names the member once, at its head.
-- **Members** (`/members`): the join link, the members (with **New link** for
-  one who lost theirs, which ends the old one, a coach to choose, and
-  **Remove**) and the synchro entries other clubs' gymnasts made with them.
-- **Coaches** (`/coaches`): adding and removing coaches, their links,
-  qualifications and whether they sign off, and whether every coach sees every
-  member.
+- **Members** (`/members`): the join link, the members (a coach to choose,
+  and under each one's **More**: **Make a coach too**, **New link** for one
+  who lost theirs, which ends the old one, and **Remove**) and the synchro
+  entries other clubs' gymnasts made with them.
+- **Coaches** (`/coaches`): the coaches (each with **More** for New link and
+  Remove), their qualifications and whether they sign off; **Add a coach**
+  opens the forms to add one, by name or from the members; **Who coaches
+  see** is a setting row (every coach sees every member, or not).
 - The Members list (`id="members"`) can be searched by name and filtered by
   coach (each of the club's coaches, or no coach), by whether the member has
   entries, and by whether they are a coach too. The Coaches list
@@ -1487,7 +1495,9 @@ your way round; the menu is `views/menu.templ`, built for each page in
   searched by name and filtered by whether they sign off routines and whether
   they have qualifications. Both are sections that can be collapsed and start
   open ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
-- **Settings** (`/settings`): replacing the admin link and deleting the club,
+- **Settings** (`/settings`): setting rows (rendering.md, "Settings and forms
+  on a page"): who sees members' skills, replacing the admin link and
+  deleting the club, each opening its form,
   when the club would be deleted if no one uses it, and who opens these pages
   from their own link, each with **Remove**
   ([one link, several roles](#one-link-several-roles-adr-0010)).
@@ -1500,9 +1510,9 @@ join link, a member's or a coach's link marks it used, at most once a day
 (`touch`). Competitions keep their own retention (120 days after their date),
 and so do individuals.
 
-On Members, **Make a coach too** beside a member (and on Coaches, a member to
+On Members, **More**, **Make a coach too** beside a member (and on Coaches, a member to
 choose) makes them a coach of the club as well: no coach link, their member
-link opens the coach's page. Members shows them as "Coach too", Coaches as
+link opens the coach's page. Members shows them with a Coach chip, Coaches as
 "A member too: opens from their member link".
 
 Each form returns to the section it's on, with its notice. The exceptions are
@@ -1535,13 +1545,16 @@ another, ADR 0011):
   row (discipline, level, status such as "Checked", "2 problems", "Not entered"
   or "Waiting list, 3rd") that opens to its card and forms. It's closed unless
   a form just posted had problems, or the notice is about it (the redirect after
-  a save or withdrawal carries `discipline`). Saving, withdrawing and offering
+  a save or withdrawal carries `discipline`). An open row ends with **Change
+  your entry** and **Withdraw**, each a button opening its form (withdrawing
+  is ticked to be sure, `withdrawForm`, as on an individual's entry). Saving, withdrawing and offering
   go back to this page; so do the late-change and timetable pages, and My
   competition links back to it ("← ISTO 2027: your entries").
 - **Routines** (`/clubs/member/{token}/routines`; see
   [routines on your page](#routines-on-your-page-adr-0011)).
 - **Your details** (`/clubs/member/{token}/details`): their personal link,
-  their coach, and **Your other links**
+  their coach (a setting row, **Your coach**, with Change), and **Your other links**
+  (a section: the roles as rows, and **Add a link** opening the form)
   ([one link, several roles](#one-link-several-roles-adr-0010)); choosing a
   coach and adding or undoing a link return here.
 
@@ -1924,7 +1937,9 @@ shown focused (`timelineFocus`):
 
 The rest is faint, or with **Only these**, left out (blocked time stays).
 Each prints like the panel timeline; notes are in each cell's hover text
-too.
+too. Where a page has more than two of the timetables and calendars (a
+member's My competition has all four), they're in one menu, **Timetables
+and calendars** (`timelineLinks`), beside Tell me about changes.
 
 **Add to calendar** (roadmap 2026-10-09): next to those links, the same
 flights and duties as an iCalendar file (`calendar.ics`, `calendar.go`):

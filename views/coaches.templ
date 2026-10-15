@@ -117,8 +117,12 @@ templ CoachHome(p CoachPage) {
 	@competitionLayout(p.Coach + " · " + p.Club) {
 		@coachFrame(CoachFrame{Club: p.Club, Coach: p.Coach, Notice: p.Notice, Menu: p.Menu})
 		if p.Link != "" {
+			// Their link, out of the way above their entries: it's saved in this
+			// browser whether or not it's shown.
 			<div data-coach-link={ p.Link } data-coach-name={ p.Coach + " · " + p.Club }>
-				@linkBox("Your coach link (keep it to yourself)", p.Link, "Saved in this browser too.")
+				@opens("Your coach link", "Keep it to yourself. It's saved in this browser too.", "Show", false) {
+					@linkBox("Your coach link (keep it to yourself)", p.Link, "")
+				}
 			</div>
 		}
 		<p class="mb-4 has-text-grey is-size-7">
@@ -144,7 +148,7 @@ templ CoachHome(p CoachPage) {
 				<h2 class="title is-6 mb-1">
 					{ c.Competition.Name }
 					if c.Waiting > 0 && p.SignsOff && c.Cannot == "" {
-						<span class="tag is-warning is-light ml-1">{ strconv.Itoa(c.Waiting) } to sign off</span>
+						@StateChip(Attention, strconv.Itoa(c.Waiting)+" to sign off")
 					}
 				</h2>
 				@competitionFacts(c.Competition)
@@ -152,13 +156,16 @@ templ CoachHome(p CoachPage) {
 				@deskMessages(c.Desk)
 				@timelineLinks("", c.Timeline, c.Notify, "", c.Calendar)
 				if c.Cannot != "" && p.SignsOff {
-					<p class="is-size-7 has-text-warning-dark mb-2">{ c.Cannot }</p>
+					<p class="is-size-7 mb-2">
+						@StateChip(Attention, "Can't sign off")
+						<span class="has-text-grey">{ c.Cannot }</span>
+					</p>
 				}
 				if len(c.Rows) == 0 {
 					<p class="has-text-grey is-size-7">None of your members has entered yet.</p>
 				} else {
 					<div class="table-container">
-						<table class="table is-fullwidth is-narrow comp-table">
+						<table class="table is-fullwidth is-narrow comp-table comp-stack">
 							<thead>
 								<tr><th>Member</th><th>Level</th><th>Problems</th><th>Sign-off</th></tr>
 							</thead>
@@ -166,21 +173,17 @@ templ CoachHome(p CoachPage) {
 								for _, r := range c.Rows {
 									<tr { r.List.Attrs()... }>
 										<td><a href={ templ.SafeURL(r.Open) }>{ r.Member }</a></td>
-										<td>{ r.Level }</td>
-										<td class={ templ.KV("has-text-danger", r.Problems > 0) }>
-											if r.Problems == 0 {
-												–
-											} else {
-												{ strconv.Itoa(r.Problems) }
+										<td data-label="Level">{ r.Level }</td>
+										<td data-label="Problems">
+											// Empty when there are none, so a phone's card leaves the line out.
+											if r.Problems > 0 {
+												@StateChip(Attention, Count(r.Problems, "problem", "problems"))
 											}
 										</td>
-										<td class={ templ.KV("has-text-success", r.Signoff.Signed) }>
-											if r.Signoff.Signed {
-												✓ { r.Signoff.By }
-											} else if r.Signoff.By != "" {
-												Not yet ({ r.Signoff.By })
-											} else {
-												Waiting
+										<td data-label="Sign-off">
+											@StateChip(signoffState(r.Signoff))
+											if r.Signoff.By != "" {
+												@WhoChip(RoleCoach, r.Signoff.By)
 											}
 										</td>
 									</tr>

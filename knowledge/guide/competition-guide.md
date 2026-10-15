@@ -499,16 +499,20 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
   and tap **Send coaches**. Each shows whether the organiser has approved
   them, with their note. If you change a coach's qualifications, send them
   again for the organiser to approve again.
-- **Send new and changed** sends the entries the competition doesn't have yet,
-  or that changed since you sent them. **Send all again** sends everyone's and
-  takes back withdrawn ones. The organiser only sees what you send, until
-  entries close.
+- **Send new and changed**, above the entries with how many are still to
+  send, sends the entries the competition doesn't have yet, or that changed
+  since you sent them. **Send all again**, the quiet button beside it, sends
+  everyone's and takes back withdrawn ones. The organiser only sees what you
+  send, until entries close. What members offer to judge and help with is
+  listed under the entries, under **Judging and helping**, and goes with every
+  send.
 - **Change** edits a member's entry for them.
 - **Members** (its own section): the **Join link**, then each member: choose
-  their coach from the list, give a member who lost their link a **New link**
-  (their old one stops working, and the new one opens only their pages at
-  your club: they add their other links again), or **Remove** them. A member
-  who also coaches needs no coach link: tap **Make a coach too** beside them,
+  their coach from the list. Under **More** beside them, give a member who
+  lost their link a **New link** (their old one stops working, and the new
+  one opens only their pages at your club: they add their other links
+  again), or **Remove** them. A member who also coaches needs no coach link:
+  tap **More**, **Make a coach too**,
   and their member link opens their coach's page as well. Making that coach a
   link of their own (**New link**) parts it from the member. Synchro entries that gymnasts from
   other clubs made with your members are listed here too. To find a member,
@@ -518,19 +522,22 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
   levels, narrow the list by **Level** to see who has completed a level (by
   a coach's marks) or is working on it.
 - **Coaches** (its own section; search by name, or narrow by who signs off
-  and who has qualifications): type a name and tap **Add coach**, then send them the coach link
-  shown (it's shown only then; **New link** makes another). Tick **Every coach
-  sees every member** if your coaches share everyone. Untick a coach's
+  and who has qualifications): tap **Add a coach**, type a name and tap
+  **Add coach**, then send them the coach link shown (it's shown only then;
+  **More**, **New link** makes another, and **Remove** takes them off). **Who
+  coaches see**, **Change**: tick **Every coach sees every member** if your
+  coaches share everyone. Untick a coach's
   **Signs off routines** if they shouldn't sign off: they still see their
   members' entries. Under **Add a qualification**, choose each coach's
   coaching qualification from the list and add a photo or PDF of its
   certificate (up to 3 MB, four per coach, and 60 MB for the whole club), for competitions that ask for
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
-- **Settings** (its own section): replace the admin link, or delete the club.
-  **Let every member see everyone's skills** shares members' skills with the
-  whole club (otherwise each member's are seen by them, their coaches and
-  you). A
+- **Settings** (its own section): a row for each setting, with its button at
+  the right. **Members' skills**, **Change**: **Let every member see
+  everyone's skills** shares members' skills with the whole club (otherwise
+  each member's are seen by them, their coaches and you). **Admin link**,
+  **Replace**, and **Delete the club**, **Delete**, open to do it. A
   club is deleted 13 months after anyone last used it (you, a coach or a
   member opening their page); Settings says when. **Opened from people's own
   links** lists anyone who added the admin link to their own page (see
@@ -548,7 +555,7 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
    published**); tap one to open it. **Routines** has the routines you keep
    on your page (see [Keep your routines on your page](#keep-your-routines-on-your-page)).
    **Your details** has your personal link,
-   to keep, **Your coach** to choose if your club has coaches, and **Your other
+   to keep, **Your coach** to choose if your club has coaches (**Change**), and **Your other
    links** (see [One link for all your roles](#6-one-link-for-all-your-roles)).
 3. A competition's page has a row for each discipline it offers, closed until
    you tap it: the discipline, your level and its status (for example **Not
@@ -570,8 +577,8 @@ Under **Judging and helping**, say what you can do at the competition: judge a
 discipline (up to a level, and whether you can chair), or help as a recorder
 or marshal. Your comp sec can correct it, and sends it with the entries.
 
-To change it, open the discipline's row, then **Change your entry**. To pull out of one discipline, tick
-**Withdraw this entry** under it and tap **Withdraw**. Notes from the organiser
+To change it, open the discipline's row, then **Change your entry**. To pull out of one discipline, tap
+**Withdraw** under it, tick **Withdraw this entry** and tap **Withdraw**. Notes from the organiser
 and your coach show on your entry, and once the organiser publishes the
 timetable, your flight, area and warm-up time, and under **Officiating**
 when and where you judge or help.
@@ -589,7 +596,8 @@ these** hides the rest); **Club timetable** does the same for everyone in
 your club, naming who. The comp sec and coaches have **Club timetable** on
 their pages too. Each prints on A3. **Add to calendar** (and **Club
 calendar**) puts the same flights and duties in your phone's calendar; subscribe to it
-and it updates when the timetable is published again.
+and it updates when the timetable is published again. Where there are more than
+two of these, they're in one menu, **Timetables and calendars**.
 
 **Tell me about changes** tells you when the organiser changes something
 for you: when or where you compete, what you officiate, or your card
@@ -677,7 +685,8 @@ The organiser sees a pair entered at another level flagged.
 
 # 4. Sign off routines (coaches)
 
-Your comp sec adds you and sends you your **coach link**. Your page lists each
+Your comp sec adds you and sends you your **coach link** (**Your coach link**,
+**Show**, at the top of your page shows it again). Your page lists each
 competition with the entries you see: the members who chose you, those who
 haven't chosen a coach, or everyone if the club says so, each with the
 problems the organiser sees (a missing sign-off among them). If the club hasn't
@@ -766,8 +775,9 @@ confirm.
    its entry on your page. Add the others under **Your details**, **Your other
    links**, so they're all on one page.
 4. If the competition needs a coach's sign-off, send your coach the **Sign-off
-   link** shown on your entry. They open it, check it and sign off with their
-   name. If it approves coaches, first name your coach under **Your coach**,
+   link for your coach** on your entry (open until they've signed it off;
+   **Show** after that). They open it, check it and sign off with their
+   name. If it approves coaches, first tap **Name your coach** under **Your coach**,
    with their qualification and a photo or PDF of its certificate (up to 3 MB), and tap
    **Send to the organiser**. Once the organiser approves them, the link
    works and they sign off as themselves; your page shows the organiser's
@@ -779,8 +789,8 @@ confirm.
 If you're a member who also coaches, your club's comp sec, entering some
 competitions on your own, or helping run one, you can open all of it from
 one link. On your page's **Your details** (a coach's is at the foot of their
-page), under **Your other links**, paste another of your links and tap
-**Add**. Then tabs at the top (Member, Coach, Competition secretary, On your own, or the
+page), under **Your other links**, tap **Add a link**, paste another of your
+links and tap **Add**. Then tabs at the top (Member, Coach, Competition secretary, On your own, or the
 competition's) switch between them, whichever of your links you open. Each
 link listed has **Undo**.
 
