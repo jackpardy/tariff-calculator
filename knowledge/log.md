@@ -1,10 +1,8 @@
 # Update log
 
-## 2026-10-16
+## 2026-10-15
 * **Update**: [One palette for states and roles](architecture/rendering.md#states-and-roles-one-palette), step 1: the colour tokens, `views.StateChip` and `views.WhoChip`, a contrast test for every colour, and how to choose a state. New pages, starting with skill tracking, use them; the rest move over in turn.
 * **Update**: [Colour and status](audits/2026-10-cleanup.md#colour-and-status-added-16-october-2026): an audit of how states and roles are shown, and the plan for one palette with fixed meanings, added to the cleanup audit and the [roadmap](roadmap.md).
-
-## 2026-10-15
 * **Update**: [How long a club is kept](features/competition-entries.md#the-clubs-comp-sec-club-admin-link) ([ADR 0011](../docs/adr/0011-club-routines-and-skill-tracking.md) Decision 7): clubs are deleted 13 months after they were last used, not 120 days, so a summer break is safe; opening a club's, member's or coach's page marks it used at most once a day, and the comp sec's Settings says when it would be deleted. Competitions and individuals keep 120 days. First step of skill tracking.
 * **Update**: [Routines on your page](features/competition-entries.md#routines-on-your-page-adr-0011) ([ADR 0011](../docs/adr/0011-club-routines-and-skill-tracking.md) Decision 1): a member's **Routines** tab keeps routines on the server (the builder's **More**, **Save to my page**, or adding those saved in this browser), each checked, opening in the builder by a share link, renamed or deleted; entry forms offer them, to the member and to the comp sec changing their entry; a coach's page has **Entries** and **Gymnasts**, with each gymnast's routines and a note on each; the comp sec's Members links to a member's routines (migration 37, new [routes](architecture/http-routes.md)). First of the roadmap's next club features.
 * **Update**: [ADR 0011](../docs/adr/0011-club-routines-and-skill-tracking.md), club routines and skill tracking, accepted; the [roadmap](roadmap.md#next-for-clubs-proposed-2026-10-15) has the club review and the plan for routines and skill tracking.
