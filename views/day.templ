@@ -136,7 +136,7 @@ templ Day(p DayPage) {
 			}
 		</div>
 		if len(p.Days) > 1 {
-			<div class="tabs is-small">
+			<div class="tabs is-small comp-day-tabs">
 				<ul>
 					for _, d := range p.Days {
 						<li class={ templ.KV("is-active", d.Active) }><a href={ templ.SafeURL(d.Link) }>{ d.Name }</a></li>
@@ -168,7 +168,7 @@ templ Day(p DayPage) {
 							<p>{ d }</p>
 						}
 						if s.WhatIf != "" {
-							<p><a href={ templ.SafeURL(s.WhatIf) }>What if they leave</a></p>
+							<p><a class="comp-tap-link" href={ templ.SafeURL(s.WhatIf) }>What if they leave</a></p>
 						}
 						@stillHereForm(p, s, "officiating", "Still officiating")
 					}
@@ -242,7 +242,7 @@ templ dayArea(p DayPage, a DayArea) {
 			}
 		</p>
 		if a.WhatIf != "" {
-			<p class="is-size-7 mb-3"><a href={ templ.SafeURL(a.WhatIf) }>What if: see the rest of the day</a></p>
+			<p class="is-size-7 mb-3"><a class="comp-tap-link" href={ templ.SafeURL(a.WhatIf) }>What if: see the rest of the day</a></p>
 		}
 		for _, f := range a.Flights {
 			<div class="box comp-flight" id={ f.ID } data-list-group>
@@ -354,7 +354,7 @@ templ dayArea(p DayPage, a DayArea) {
 									}
 								</form>
 								if s.WhatIf != "" {
-									<a class="is-size-7" href={ templ.SafeURL(s.WhatIf) }>What if they leave</a>
+									<a class="is-size-7 comp-tap-link" href={ templ.SafeURL(s.WhatIf) }>What if they leave</a>
 								}
 								if s.Notify.Person != "" {
 									@dayNotify(p, f.Key, s.Notify)

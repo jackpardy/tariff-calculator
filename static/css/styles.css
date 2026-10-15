@@ -739,6 +739,15 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-notify { flex: 1 1 100%; }
 .comp-checkin-row .comp-notify form { flex-wrap: wrap; align-items: center; margin-top: 0.3rem; }
 .comp-notify .input { width: 14rem; max-width: 100%; }
+/* Everything to tap on On the day is at least 40px tall: it's tapped on a phone, in a
+   hurry, between rows of names. Notify is a box of its own, set apart from the row's
+   Here and Scratched so it isn't tapped by mistake. */
+.comp-day-tabs a, #day-areas .button, #day-warnings .button, .comp-tap-link { min-height: 2.5rem; }
+.comp-tap-link { display: inline-flex; align-items: center; }
+#day-areas .comp-checkin > summary { display: flex; align-items: center; min-height: 2.5rem; }
+.comp-notify > summary { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 0.75rem; margin: 0.5rem 0 0.25rem; border: 1px solid #dbdbdb; border-radius: 4px; }
+.comp-notify .input { min-height: 2.5rem; }
+.comp-notify .checkbox { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2.5rem; }
 /* The venue screen (views/screen.templ), for a TV across a hall: black on white, each
    area in its own colour (the same on every screen and day), filling the screen. Text
    scales with the screen's width, and the cards share the height left by the header. */
