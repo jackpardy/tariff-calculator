@@ -1664,6 +1664,50 @@ the club's coaches keeps the club's own skills, up to 200
 - On every Skills page, **Mark a skill** starts with **Your club's skills**,
   and a search finds them by their club name as well as the catalog.
 
+## Club levels (ADR 0011)
+
+Built 2026-10-15 ([ADR 0011](../../docs/adr/0011-club-routines-and-skill-tracking.md)
+Decision 5; `web/levelpages.go`, `store/levels.go`, migration 42). A club's
+levels to track gymnasts against ("Club Grade 1"), in order, up to 50.
+
+- **Written on the Requirements page.** A level is requirements in the usual
+  format, written in the Requirements page's editor, unchanged. Each saved set
+  of requirements there has **Save to club levels** for each coach's page
+  saved in the browser (`RoutineStore.coachLinks`: `trampolineCoachLinks`,
+  and the member links in `trampolineMemberLinks` saved with `coach: true`,
+  from a member page whose link opens a coach's role too, ADR 0010), which
+  posts it with the link to `POST /clubs/levels/save` (`saveToClub` in
+  `requirements.js`) and opens the coach's **Levels** section. The server
+  finds the coach's role from the link (`coachFromLink` in
+  `web/levelpages.go`): a coach's own link, or a member's or individual's
+  personal link with a coach's role, asking which club where there are
+  several. Saving the same
+  requirements again (the same browser id) changes the level. Rules that can
+  be tracked from skills are kept: `count`, `separate` and `includes` (a
+  skill, a kind of skill, a link), and `sequence` (a set routine); the rest
+  (the number of elements, difficulty and others about a single routine) are
+  left out, and the notice says how many.
+- **The coach's Levels section** (`/clubs/coach/{token}/levels`): each level
+  with its requirements in words (`requirements.Describe`), who saved it
+  (`WhoChip`), **Open in the Requirements page** (a share link,
+  `/requirements#share=j…`, to change it and save again), the club's own
+  skills to track too (ticked, kept after its requirements), **Earlier**,
+  **Later** and **Remove** (marks stay).
+- **Progress, on every Skills page** (the member's, a coach's for a gymnast,
+  the comp sec's and other members'): under **Levels**, each level with how
+  many items each side has done (a gymnast chip, "2 of 5"; a coach chip) and
+  its items, each worked out on each side apart:
+  - a skill, kind of skill or number of them is worked out from that side's
+    marks with the requirements engine (`requirements.Evaluate`, against the
+    skills marked Can do as a list with no order): **Can do** when they meet
+    it, **Learning** when they would with the skills being learnt too
+    ("From the skills marked", no buttons);
+  - a link or a set routine is marked as a whole, like a skill, under its
+    own item (`r:` and a hash of the rule without its wording, so the same
+    link in two levels is one item); a kept routine that already does it is
+    named beside it ("Done in Drops"), for the coach to mark;
+  - the club's own skills to track are their marks.
+
 # One link, several roles (ADR 0010)
 
 Roadmap item 5, built 2026-10-14. A person's **records** are their club
