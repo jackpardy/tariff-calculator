@@ -26,8 +26,9 @@ import (
 // tarmax, fig.
 
 // parseSetForm reads the editor's form into a set, collecting any number that
-// couldn't be read; validation of the set itself happens afterwards.
-func parseSetForm(r *http.Request) (requirements.Set, []string) {
+// couldn't be read; validation of the set itself happens afterwards. extra
+// are picks beyond requirements.Picks: a club's own named skills.
+func parseSetForm(r *http.Request, extra ...requirements.Pick) (requirements.Set, []string) {
 	var problems []string
 	intField := func(name string) *int {
 		v := strings.TrimSpace(r.FormValue(name))
@@ -78,9 +79,15 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 		// (picking nothing clears it); otherwise the fields say what it is.
 		if pick := r.FormValue(prefix + "pick"); r.Form.Has(prefix+"pick") && pick != r.FormValue(prefix+"picked") {
 			m = requirements.Matcher{}
-			if p, ok := requirements.PickByID(pick); ok {
+			if i := slices.IndexFunc(extra, func(p requirements.Pick) bool { return p.ID == pick }); i >= 0 {
+				m = extra[i].Match.Clone() // one of the club's own skills
+			} else if p, ok := requirements.PickByID(pick); ok {
 				m = p.Match.Clone()
 			}
+		}
+		// A club's own skill keeps the club's name for it.
+		if id := requirements.PickIn(extra, m); id != "" {
+			m.Label = extra[slices.IndexFunc(extra, func(p requirements.Pick) bool { return p.ID == id })].Label
 		}
 		return m
 	}
@@ -118,7 +125,9 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 			for j := range count(p + "seq") {
 				prefix := fmt.Sprintf("%ss%d.", p, j)
 				m := matcher(prefix)
-				m.Label = strings.TrimSpace(r.FormValue(prefix + "label"))
+				if label := strings.TrimSpace(r.FormValue(prefix + "label")); label != "" || requirements.PickIn(extra, m) == "" {
+					m.Label = label
+				}
 				items = append(items, m)
 			}
 			rule.Each = items
@@ -129,7 +138,9 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 				for j := range count(fmt.Sprintf("%so%d.seq", p, k)) {
 					prefix := fmt.Sprintf("%so%d.s%d.", p, k, j)
 					m := matcher(prefix)
-					m.Label = strings.TrimSpace(r.FormValue(prefix + "label"))
+					if label := strings.TrimSpace(r.FormValue(prefix + "label")); label != "" || requirements.PickIn(extra, m) == "" {
+						m.Label = label
+					}
 					steps = append(steps, m)
 				}
 				rule.Options = append(rule.Options, steps)

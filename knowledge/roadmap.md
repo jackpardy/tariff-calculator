@@ -291,6 +291,11 @@ levels, which are built on the same editor. 1 and 2 are built
      are unchanged. Common starters ("10 skills, no repeats, difficulty
      x–y") could be one tap.
 3. **Edit club levels on the club page, saved straight to the club.**
+   *Built 2026-10-15:* New level, Change and Copy as a new level on the
+   Levels section, the editor with the level kinds and the club's own
+   skills to pick, Save level straight to the club. Not yet: the club's
+   things to track as items among the rules (still a list after), and
+   starting from a competition level's set routine or a shared level.
    - The editor is a server-rendered form, so the coach's Levels page can
      host it, with the club-level kinds from 2: one copy, any phone, and a
      club skill as an item like any other, in order.
