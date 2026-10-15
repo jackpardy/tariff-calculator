@@ -779,6 +779,18 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .screen-rows-2 .screen-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
 .screen-rows-2 .screen-card > .screen-band { grid-column: 1 / -1; }
 .screen-rows-2 .screen-next { border-top: 0; border-left: 2px solid #ddd; }
+/* On a phone the screen is a page to scroll: one card under another, Now above Next,
+   an area's name on one line, and a club under its gymnast's name rather than cut off. */
+@media screen and (max-width: 600px) {
+    .screen-main { height: auto; overflow: visible; }
+    .screen-grid { flex: none; grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+    .screen-card, .screen-rows-2 .screen-card { display: flex; flex-direction: column; }
+    .screen-rows-2 .screen-next { border-left: 0; border-top: 2px solid #ddd; }
+    .screen-area { white-space: nowrap; }
+    .screen-grid .screen-names { columns: 1; }
+    .screen-names li { flex-wrap: wrap; white-space: normal; }
+    .screen-club { flex-basis: 100%; padding-left: 1.9em; overflow: visible; }
+}
 .screen-strips { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 0.6rem; }
 .screen-strip { display: flex; align-items: center; gap: 0.8rem; font-size: 1.3rem; border: 3px solid var(--screen-band); border-radius: 0.5rem; overflow: hidden; padding-right: 0.9rem; }
 .screen-strip > .screen-band { padding: 0.3rem 0.8rem; align-self: stretch; display: flex; align-items: center; }
@@ -810,6 +822,10 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-menu .tabs a { white-space: nowrap; }
 .comp-menu .comp-submenu { margin-top: 0.5rem; }
 .comp-menu .comp-submenu ul { border-bottom: none; }
+/* A section's pages wrap onto a second line rather than scroll, so none is
+   cut off on a phone (the timetable has seven). */
+.comp-menu .comp-submenu { overflow: visible; white-space: normal; }
+.comp-menu .comp-submenu ul { flex-wrap: wrap; flex-shrink: 1; justify-content: flex-start; }
 .comp-menu .comp-submenu li.is-active a { border-bottom-color: #485fc7; color: #485fc7; font-weight: 600; }
 /* A member's pages (views/clubs.templ): the competitions as rows to open, and
    each discipline's entry as a one-line row that opens to its card. */

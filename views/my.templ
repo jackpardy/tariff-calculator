@@ -121,7 +121,7 @@ templ MyCompetition(p MyCompetitionPage) {
 			<h1 class="title is-4">{ p.Name }</h1>
 			@pageMenu(p.Menu)
 			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>{ p.BackLabel }</a></p>
-			<h2 class="title is-5 mb-1">My competition</h2>
+			<h2 class="title is-5">My competition</h2>
 			<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		}
 		@timelineLinks(p.Timeline, p.ClubTimeline, p.Notify, p.Calendar, p.ClubCalendar)
