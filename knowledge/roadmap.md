@@ -81,6 +81,93 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 | 5 | Committee handover kit | Safety checks, incident log and policy templates (mostly documents) | — |
 | 6 | Routine suggester (low priority) | From the skills a gymnast can do and a chosen level, suggests legal routines (landing to take-off, no repeats, requirements, caps), highest tariff first. Hard to do well: a legal, high-tariff routine isn't necessarily one a gymnast should compete | skills, requirements, 2 |
 
+# Next for clubs (proposed 2026-10-15)
+
+**Where clubs stand.** Everything a club has today is there for
+competitions: members join to enter, coaches sign off entries, the comp sec
+sends them. Between competitions there's nothing to do on it. A member's
+page opens on Competitions, and is empty until the club enters one; a
+coach's page is only entries to sign off, with no menu. What's there to
+build on:
+
+- **People are already in place.** Members, coaches (with qualifications),
+  who coaches whom (a member's chosen coach, or every coach sees every
+  member), and one link for several roles (ADR 0010).
+- **Routines live only in the browser.** The routine builder keeps them in
+  `localStorage`; on the server a routine exists only inside a competition
+  entry. A coach can't see a gymnast's routine until it's entered. A comp
+  sec changing an entry for a member picks from routines saved in *their
+  own* browser. A new phone, or cleared data, loses them.
+- **Nothing records what a gymnast can do.** The catalog and the
+  requirements engine already know what each level's set routines and
+  voluntaries need.
+- **Clubs expire.** A club is deleted, with its members, 120 days after its
+  admin or join link was last used (`DeleteExpired`). Over a summer break
+  that would take a season's records with it. That's fine while a club holds
+  only entries, but not once it keeps anything for the long term.
+- **Personal data is names and clubs** (ADR 0004). Routines are already
+  stored, with entries. Skill progress, often of under-18s, is new.
+
+**The next two club features, in order:**
+
+1. **Routines on your page** (new; the foundation for 2 and for clubs 6).
+   - **Member:** a **Routines** tab (in `memberMenu`) with routines kept on
+     the server: open one in the routine builder, rename, delete. The
+     builder gets **Save to my page** when a member's link is saved in this
+     browser, and the tab has **Add routines from this browser** to bring
+     existing ones over once. Entering a competition offers these as well as
+     the browser's.
+   - **Coach:** the coach's page gets a menu: **Entries** (today's page) and
+     **Gymnasts**. Gymnasts lists each gymnast they see (by the same rule as
+     entries) with their routines, each checked against a level picked
+     there, and a note the gymnast sees.
+   - **Comp sec:** changing a member's entry offers that member's routines,
+     not the comp sec's browser's.
+   - **Storage:** a routine per row, against the member (name, the routine
+     as the builder saves it, updated), deleted with the member. A cap of
+     about 30 a member. No ADR needed: routines are already kept, with
+     entries.
+2. **Skill tracking** (clubs 2). Needs ADR 0011, amending 0004.
+   - **Coach:** on a gymnast's page, mark skills **Learning** or **Can do**,
+     with the date, found with the routine builder's picker and search. The
+     set routines' skills and the gymnast's routines' skills are offered
+     first.
+   - **Gymnast:** a **Skills** tab: what they can do, what they're learning,
+     and **Levels**: for each level in the systems the club picks (BUCS,
+     ISTO, British Gymnastics), whether every skill of its set routines is
+     ticked, and for its voluntary, each requirement with the ticked skills
+     that count towards it and roughly the highest difficulty those skills
+     give. It says "ready" only for set routines; a full "you can build a
+     legal voluntary" is the routine suggester (clubs 6).
+   - **Routines meet skills:** a routine on Routines (1) with a skill not
+     yet ticked as Can do is marked as such for the coach.
+   - **Comp sec:** a column on Members, "ready for" (the hardest level
+     whose set routines are covered), to help choose levels for a
+     competition.
+   - **Before it ships, change club retention:** count a member's or
+     coach's visit as using the club, show the comp sec when the club would
+     be deleted, and keep clubs that track skills longer (13 months, say,
+     so a summer break is safe).
+
+**To decide before 2 (skill tracking):**
+
+- **Who marks skills:** coaches only, or gymnasts mark Learning and coaches
+  confirm Can do?
+- **Who sees progress:** the gymnast and the coaches who see them, surely.
+  The comp sec too?
+- **How long clubs are kept** once they track skills, and whether a
+  member's progress goes with them if they move club. Not to start with: it
+  stays with the club.
+- **Which skills count:** any skill in the catalog, or a list per level
+  (each level's set routines plus the skills its voluntary rules name).
+
+**After these:** the session planner (clubs 3) needs no storage and can be
+built at any time, as a page that works like the calculator. Judge and coach
+practice (4) builds on the engine alone. The routine suggester (6) can now
+start from a gymnast's ticked skills. The TrampOnline entry export (clubs 1)
+waits on a sample of TrampOnline's entry file. The handover kit (5) is
+documents.
+
 # Decisions so far (2026-10-05)
 
 - Complement TrampOnline and TScore first, and keep replacement possible.
