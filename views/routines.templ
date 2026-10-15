@@ -1,0 +1,245 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+)
+
+// A member's routines, kept on their page (ADR 0011 Decision 1): the member's
+// Routines tab, a coach's Gymnasts, and the comp sec's view of a member's.
+
+// RoutineView is one kept routine, checked as the routine builder checks it.
+type RoutineView struct {
+	ID, Name   string
+	Count      int    // skills
+	Difficulty string // e.g. "4.2", "" when it isn't scored
+	Updated    string // when it last changed, e.g. "15 October 2026"
+	Card       ExerciseCard
+	Broken     string // why it couldn't be read, if it couldn't
+	Note       string // a coach's note
+	NoteBy     string
+	NoteBefore bool   // the note was written before the routine last changed
+	Open       string // the routine builder, with this routine to add
+	Rename     string // where renaming posts, for the member
+	Delete     string // where deleting posts, for the member
+	NoteAction string // where a coach's note posts
+}
+
+// RoutinesPart is the routines on a page, and what can be done with them.
+type RoutinesPart struct {
+	Routines []RoutineView
+	Add      string // where the member adds routines from this browser; "" for others
+	Max      int    // the most a member keeps
+	Empty    string // what to say when there are none
+}
+
+// routineSummary is a routine's one-line summary.
+func routineSummary(r RoutineView) string {
+	s := fmt.Sprintf("%d skills", r.Count)
+	if r.Count == 1 {
+		s = "1 skill"
+	}
+	if r.Difficulty != "" {
+		s += " · difficulty " + r.Difficulty
+	}
+	return s + " · changed " + r.Updated
+}
+
+// routinesList is the kept routines, each a row that opens to its card.
+templ routinesList(p RoutinesPart) {
+	if len(p.Routines) == 0 {
+		<p class="has-text-grey mb-4">{ p.Empty }</p>
+	}
+	for _, r := range p.Routines {
+		<details class="box comp-routine-row" id={ "routine-" + r.ID }>
+			<summary>
+				<strong>{ r.Name }</strong>
+				<span class="is-block is-size-7 has-text-grey">
+					{ routineSummary(r) }
+					if r.Note != "" {
+						<span class="tag is-info is-light ml-1">Note from { r.NoteBy }</span>
+					}
+				</span>
+			</summary>
+			<div class="mt-3">
+				if r.Note != "" {
+					<div class="notification is-info is-light py-2 px-3 mb-3">
+						<p class="is-size-7 has-text-grey mb-1">
+							{ r.NoteBy }, coach
+							if r.NoteBefore {
+								· written before the routine last changed
+							}
+						</p>
+						<p>{ r.Note }</p>
+					</div>
+				}
+				if r.Broken != "" {
+					<p class="has-text-danger">{ r.Broken }</p>
+				} else {
+					@exerciseCard(r.Card)
+				}
+				<div class="buttons mt-3">
+					if r.Open != "" {
+						<a class="button is-small" href={ templ.SafeURL(r.Open) }>Open in the Routine Builder</a>
+					}
+				</div>
+				if r.NoteAction != "" {
+					<form method="post" action={ templ.SafeURL(r.NoteAction) } class="mt-2">
+						<div class="field">
+							<label class="label is-small" for={ "note-" + r.ID }>Your note</label>
+							<textarea class="textarea is-small" id={ "note-" + r.ID } name="note" rows="2" maxlength="500" placeholder="What to work on, for them to see">{ r.Note }</textarea>
+							<p class="help">They see it on their page, with your name. Leave it empty to take it off.</p>
+						</div>
+						<button class="button is-small is-primary" type="submit">Save note</button>
+					</form>
+				}
+				if r.Rename != "" {
+					<form method="post" action={ templ.SafeURL(r.Rename) } class="field has-addons mt-2">
+						<div class="control is-expanded">
+							<input class="input is-small" name="name" value={ r.Name } maxlength="60" required aria-label={ "New name for " + r.Name }/>
+						</div>
+						<div class="control"><button class="button is-small" type="submit">Rename</button></div>
+					</form>
+				}
+				if r.Delete != "" {
+					<form method="post" action={ templ.SafeURL(r.Delete) } onsubmit={ confirmDelete(r.Name) }>
+						<button class="button is-small is-text has-text-danger" type="submit">Delete from your page</button>
+					</form>
+				}
+			</div>
+		</details>
+	}
+}
+
+// confirmDelete asks before a routine is deleted from a member's page.
+script confirmDelete(name string) {
+	return confirm('Delete ' + name + ' from your page? The routines saved in this browser stay.');
+}
+
+// MemberRoutines is a member's Routines tab: their kept routines, and adding
+// more from the routines saved in this browser.
+templ MemberRoutines(p MemberPage) {
+	@memberFrame(p) {
+		<p class="mb-4 is-size-7 has-text-grey">
+			Routines kept here open on any phone, and your coaches and comp sec see them. To keep one, use
+			<strong>More</strong>, <strong>Save to my page</strong> in the <a href="/">Routine Builder</a>, or add them below.
+		</p>
+		@routinesList(p.Routines)
+		if p.Routines.Add != "" {
+			// Filled with the routines saved in this browser (static/js/competitions.js, keepRoutines).
+			<form method="post" action={ templ.SafeURL(p.Routines.Add) } class="box comp-keep-routines" data-keep-routines hidden>
+				<h2 class="title is-6">Add routines from this browser</h2>
+				<div class="comp-keep-list mb-3"></div>
+				<input type="hidden" name="routines"/>
+				<p class="help mb-2">{ fmt.Sprintf("Up to %d routines. One kept already is changed to match.", p.Routines.Max) }</p>
+				<button class="button is-primary is-small" type="submit">Add to my page</button>
+			</form>
+		}
+		<p class="help mt-4">We keep each routine's name, its skills and what it's checked against, until you delete it or leave the club.</p>
+	}
+}
+
+// CoachFrame is the top of each of a coach's pages.
+type CoachFrame struct {
+	Club, Coach string
+	Notice      string
+	Menu        []MenuSection
+}
+
+templ coachFrame(f CoachFrame) {
+	<p class="has-text-grey mb-1">{ f.Club } · coach</p>
+	<h1 class="title is-4">{ f.Coach }</h1>
+	@pageMenu(f.Menu)
+	if f.Notice != "" {
+		<div class="notification is-success is-light">{ f.Notice }</div>
+	}
+}
+
+// CoachGymnast is a gymnast a coach sees, in their Gymnasts list.
+type CoachGymnast struct {
+	Name     string
+	Routines int
+	Open     string
+	List     ListRow
+}
+
+// CoachGymnastsPage is a coach's Gymnasts: everyone they see, or one of them
+// with their routines.
+type CoachGymnastsPage struct {
+	Frame    CoachFrame
+	SeesAll  bool
+	Gymnasts []CoachGymnast
+	Tools    ListTools
+	Gymnast  string // the one shown, with Routines
+	Back     string
+	Routines RoutinesPart
+}
+
+// CoachGymnasts is a coach's list of the gymnasts they see.
+templ CoachGymnasts(p CoachGymnastsPage) {
+	@competitionLayout("Gymnasts · " + p.Frame.Coach) {
+		@coachFrame(p.Frame)
+		<p class="mb-4 has-text-grey is-size-7">
+			if p.SeesAll {
+				You see every member of the club.
+			} else {
+				You see the members who chose you, and those who haven't chosen a coach.
+			}
+		</p>
+		if len(p.Gymnasts) == 0 {
+			<p class="has-text-grey">No members yet.</p>
+		} else {
+			@listTools(p.Tools)
+			<div class="table-container">
+				<table class="table is-fullwidth is-narrow" id={ p.Tools.ID }>
+					<tbody>
+						for _, g := range p.Gymnasts {
+							<tr { g.List.Attrs()... }>
+								<td><a href={ templ.SafeURL(g.Open) }>{ g.Name }</a></td>
+								<td class="has-text-grey is-size-7">{ routineCount(g.Routines) }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	}
+}
+
+// CoachGymnastPage is one gymnast a coach sees, with their routines.
+templ CoachGymnastPage(p CoachGymnastsPage) {
+	@competitionLayout(p.Gymnast + " · " + p.Frame.Coach) {
+		@coachFrame(p.Frame)
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Gymnasts</a></p>
+		<h2 class="title is-5">{ p.Gymnast }</h2>
+		@routinesList(p.Routines)
+	}
+}
+
+// ClubMemberRoutinesPage is the comp sec's view of a member's routines.
+type ClubMemberRoutinesPage struct {
+	Club     ClubPage
+	Member   string
+	Back     string
+	Routines RoutinesPart
+}
+
+// ClubMemberRoutines shows the comp sec a member's routines.
+templ ClubMemberRoutines(p ClubMemberRoutinesPage) {
+	@clubFrame(p.Club) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Members</a></p>
+		<h2 class="title is-5">{ p.Member }</h2>
+		@routinesList(p.Routines)
+	}
+}
+
+// routineCount is how many routines someone keeps, in words.
+func routineCount(n int) string {
+	switch n {
+	case 0:
+		return "No routines"
+	case 1:
+		return "1 routine"
+	}
+	return strconv.Itoa(n) + " routines"
+}

@@ -1138,8 +1138,8 @@ link was replaced).
 
 # A member (personal link)
 
-A member's pages are tabs (`memberMenu` in `web/menus_club.go`; routines and a
-coach's view will be more tabs):
+A member's pages are tabs (`memberMenu` in `web/menus_club.go`; skills will be
+another, ADR 0011):
 
 - **Competitions** (`/clubs/member/{token}`, the default): one row for each
   competition the club is in, with its date, the status line (for example
@@ -1158,6 +1158,8 @@ coach's view will be more tabs):
   a save or withdrawal carries `discipline`). Saving, withdrawing and offering
   go back to this page; so do the late-change and timetable pages, and Your
   competition links back to it.
+- **Routines** (`/clubs/member/{token}/routines`; see
+  [routines on your page](#routines-on-your-page-adr-0011)).
 - **Your details** (`/clubs/member/{token}/details`): their personal link,
   their coach, and **Your other links**
   ([one link, several roles](#one-link-several-roles-adr-0010)); choosing a
@@ -1169,6 +1171,53 @@ competition asks for video, the entry says which skills need it ("Video needed
 for: Triple Back") and has a field for a link per exercise, with a reminder to
 make a YouTube video unlisted, not private. They can replace the level or
 routine at any time until the deadline.
+
+## Routines on your page (ADR 0011)
+
+Built 2026-10-15 ([ADR 0011](../../docs/adr/0011-club-routines-and-skill-tracking.md)
+Decision 1; `web/routinepages.go`, `store/routines.go`, migration 33). A
+member keeps routines on their page, on the server, so they open on any phone
+and their coaches and comp sec see them. The routine builder still keeps its
+own in the browser; nothing is copied unless the member asks.
+
+- **Keeping one.** In the routine builder, **More** has **Save to my page**
+  for each member page saved in this browser (`RoutineStore.memberLinks`,
+  from `trampolineMemberLinks`; "Save to <name>" when there are several). It
+  posts the routine to the member's link and opens their Routines tab. The
+  Routines tab also lists the routines saved in this browser, ticked, to
+  **Add to my page** at once (`keepRoutines` in `competitions.js`; hidden
+  without the script or without routines). Each is posted as
+  `RoutineStore.keepable` gives it: its browser id, name, skills without names
+  or tariffs, what it's checked against (a built-in reference, or its own
+  requirements as JSON, `SetStore.payload`) and its checks. One with the same
+  browser id is changed rather than added. Empty routines are skipped, and
+  ones that can't be read are counted in the notice. A member keeps up to 30
+  (`store.MaxRoutines`), each up to 30 skills; past that the notice says how
+  many didn't fit. The request may be up to 512 KB (`keepsRoutines`), more
+  than other forms.
+- **The Routines tab** lists them by name, each a row (skills, difficulty
+  where it's scored, when it changed, a tag for a coach's note) that opens to
+  its card, checked as the builder checks it, against its requirements, or the
+  Code of Points only. **Open in the Routine Builder** is a share link
+  (`/#share=j…`, `builderLink`) with the routine and its own requirements, so
+  the builder's usual "Shared with you" adds a copy. **Rename** and **Delete
+  from your page** (asking first) are under it.
+- **Entering a competition.** Each voluntary's routine choice offers
+  **Kept on your page** (from the server, `EntryForm.Kept`) as well as
+  **Saved in this browser**; choosing a kept one posts its skills as a browser
+  routine's are. The comp sec changing a member's entry gets the member's
+  ("Kept on their page"), not only the routines in their own browser.
+- **Coaches.** A coach's page has a menu, **Entries** (the page it always
+  was) and **Gymnasts** (`/clubs/coach/{token}/gymnasts`): the members they
+  see (their own and those without a coach, or everyone where the club says
+  so), with how many routines each keeps, searchable and filtered by having
+  routines and by whether they chose this coach. Each opens the gymnast's
+  routines, checked, with **Your note** on each: the member sees it with the
+  coach's name, and "written before the routine last changed" once it's
+  older than the routine. A coach who doesn't see the member gets 404.
+- **The comp sec.** Members shows "3 routines" beside a member who keeps
+  any, opening them to look at (no note, no changes).
+- Routines go with the member when they're removed, and with the club.
 
 # One link, several roles (ADR 0010)
 

@@ -36,8 +36,10 @@ function tariffCalculatorStore() {
         pickedShape: null,  // the shape it was chosen in
         query: '',          // the picker's search text; results replace the tabs while it's set
         toast: { show: false, message: '', type: 'info' },
+        memberLinks: [], // club member pages saved in this browser, to keep routines on (ADR 0011)
 
         init() {
+            this.memberLinks = RoutineStore.memberLinks();
             const state = RoutineStore.load();
             LevelEntries.migrate(state); // routines that held a level's tabs become level entries
             // A set routine is a starting point now, not requirements to check against.
@@ -237,6 +239,12 @@ function tariffCalculatorStore() {
             routine.checks = { ...routine.checks, [check]: on };
             this.persist();
             this.renderRoutines();
+        },
+        // saveToPage keeps the current routine on a club member's page (one of
+        // memberLinks), which then opens; keeping it again changes it there.
+        saveToPage(member) {
+            this.persist();
+            RoutineStore.keep(member.url, [this.currentRoutine()]);
         },
         // saveAsSetRoutine saves the current routine as a set routine (one of the
         // coach's requirements): exactly its skills, scored like a set routine. A

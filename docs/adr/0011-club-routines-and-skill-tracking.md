@@ -1,6 +1,6 @@
 # ADR 0011 — Club routines and skill tracking
 
-- **Status:** Accepted; Decision 1 (routines) being built, the rest planned
+- **Status:** Accepted; Decision 1 (routines) built 2026-10-15, the rest planned
 - **Date:** 2026-10-15
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 2 (a club lasts beyond a season), Decision 5

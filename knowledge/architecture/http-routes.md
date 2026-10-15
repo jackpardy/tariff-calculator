@@ -125,6 +125,9 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET /clubs/member/{token}` | optional `new`, `notice` | A member's Competitions tab (the default): a row for each competition the club is in, with its date and status |
 | `GET /clubs/member/{token}/competitions/{id}` | optional `notice`, `discipline` (the row to open) | A member's page for one competition: facts, links, each discipline's entry as a row that opens to its card and forms, officiating, and the judging offer; 404 if the club isn't entered |
 | `GET /clubs/member/{token}/details` | optional `notice` | A member's personal link, their coach and their other links |
+| `GET /clubs/member/{token}/routines` | optional `notice` | A member's Routines tab (ADR 0011): their kept routines, each checked, with a link opening it in the routine builder (`/#share=j…`), and adding routines from this browser |
+| `POST /clubs/member/{token}/routines` | `routines` (a JSON list of `{id, name, skills, requirements, checks}`, as `RoutineStore.keepable` gives) | Keeps routines on the member's page (the builder's **Save to my page**, or adding from this browser); one with the same browser `id` is changed. Up to 512 KB. Back to Routines saying how many |
+| `POST /clubs/member/{token}/routines/{routine}/rename`, `/delete` | `name` to rename | Renames or deletes a kept routine; back to Routines |
 | `GET /clubs/member/{token}/competitions/{id}/day` | `notice` | My competition: their events, cards, flights and times, duties, and the published timetable; a box to say "I'm here for the rest" if they're scratched from something |
 | `POST /clubs/member/{token}/competitions/{id}/here` | — | "I'm here for the rest": a scratched member clears both scratch warnings for themselves, then goes back to My competition with a notice; only once the timetable is published |
 | `POST /clubs/member/{token}/competitions/{id}` | as entering, without `gymnast` | Saves the member's entry (their club sends it) |
@@ -137,6 +140,10 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST /clubs/admin/{token}/coaches-see-all` | `on` (`1`/`""`) | Whether every coach sees every member |
 | `GET /clubs/coach/{token}` | — | A coach's page: each competition's entries they see, and their sign-off |
 | `GET`, `POST /clubs/coach/{token}/members/{member}/competitions/{id}` | `signed` (`1`/`0`), `note` | One entry, checked, to sign off or say not yet |
+| `GET /clubs/coach/{token}/gymnasts` | optional `notice` | A coach's Gymnasts: the members they see, with how many routines each keeps |
+| `GET /clubs/coach/{token}/gymnasts/{member}` | optional `notice` | One of them, with their kept routines, each checked, and a note on each; 404 for a member the coach doesn't see |
+| `POST /clubs/coach/{token}/gymnasts/{member}/routines/{routine}/note` | `note` (`""` clears it) | The coach's note on a routine, which the member sees with the coach's name |
+| `GET /clubs/admin/{token}/members/{member}/routines` | — | The comp sec's view of a member's kept routines, from Members |
 | `POST /competitions/admin/{token}/events` | `synchroLevel`, `synchroPairs` (synchro levels to run as one event, one event a line, joined by `+`), `tumbling`, `dmt` (one level a line) | Changes the synchro, tumbling and DMT events (also on `POST /competitions`); entries then take `discipline` and, for synchro, `partnerName` and `partnerClub` |
 | `POST /competitions/admin/{token}/levels/move` | `move` (`<discipline>:<place>:<-1 or 1>`) | Moves a level one place easier or harder in its discipline's order (easiest first), which judging "up to" a level and "only levels below their own" go by |
 | `GET`, `POST /competitions/partner/{token}` | `link` (the partner's own member page or entry link, or blank) | A synchro partner confirming the pair |

@@ -111,6 +111,9 @@ build on:
 **The next two club features, in order:**
 
 1. **Routines on your page** (new; the foundation for 2 and for clubs 6).
+   **Built 2026-10-15** ([routines on your page](features/competition-entries.md#routines-on-your-page-adr-0011)).
+   Each routine is checked against what it was checked against in the
+   builder; checking it against a level the coach picks is left for later.
    - **Member:** a **Routines** tab (in `memberMenu`) with routines kept on
      the server: open one in the routine builder, rename, delete. The
      builder gets **Save to my page** when a member's link is saved in this
@@ -119,10 +122,10 @@ build on:
      the browser's.
    - **Coach:** the coach's page gets a menu: **Entries** (today's page) and
      **Gymnasts**. Gymnasts lists each gymnast they see (by the same rule as
-     entries) with their routines, each checked against a level picked
-     there, and a note the gymnast sees.
+     entries) with their routines, each checked, and a note the gymnast
+     sees.
    - **Comp sec:** changing a member's entry offers that member's routines,
-     not the comp sec's browser's.
+     not the comp sec's browser's; Members links to each member's routines.
    - **Storage:** a routine per row, against the member (name, the routine
      as the builder saves it, updated), deleted with the member. A cap of
      30 a member ([ADR 0011](../docs/adr/0011-club-routines-and-skill-tracking.md)

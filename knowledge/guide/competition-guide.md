@@ -450,7 +450,8 @@ coach sign-off. Changing a member's entry is part of Competitions too.
   needs no coach link: tap **Make a coach too** beside them, and their member
   link opens their coach's page as well. Synchro entries that gymnasts from
   other clubs made with your members are listed here too. To find a member,
-  search by name or narrow the list by coach, entries, or coach too.
+  search by name or narrow the list by coach, entries, or coach too. A member
+  who keeps routines on their page shows how many: tap it to see them.
 - **Coaches** (its own section; search by name, or narrow by who signs off
   and who has qualifications): type a name and tap **Add coach**, then send them the coach link
   shown (it's shown only then; **New link** makes another). Tick **Every coach
@@ -472,10 +473,12 @@ coach sign-off. Changing a member's entry is part of Competitions too.
 1. Open your club's **Join link**, type your name and tap **Join**. Your own
    page opens; it's saved in this browser, so on this phone your entries are
    simply there.
-2. Your page has two tabs. **Competitions** (the one it opens on) lists the
+2. Your page has three tabs. **Competitions** (the one it opens on) lists the
    competitions your club is in, each with its date and where your entries
    stand (for example **Not entered**, **Saved, not sent yet**, or **Timetable
-   published**); tap one to open it. **Your details** has your personal link,
+   published**); tap one to open it. **Routines** has the routines you keep
+   on your page (see [Keep your routines on your page](#keep-your-routines-on-your-page)).
+   **Your details** has your personal link,
    to keep, **Your coach** to choose if your club has coaches, and **Your other
    links** (see [One link for all your roles](#6-one-link-for-all-your-roles)).
 3. A competition's page has a row for each discipline it offers, closed until
@@ -484,7 +487,8 @@ coach sign-off. Changing a member's entry is part of Competitions too.
    **Trampoline** (or Synchro, Tumbling, DMT), choose your **Level**, and Men
    or Women if asked. For trampoline, choose which set
    routine you're doing where there's a choice, and the routine for each
-   voluntary from the routines saved in this browser; for synchro, just the
+   voluntary from the routines kept on your page or saved in this browser;
+   for synchro, just the
    pair's one routine, the level's voluntary. Add a **video link**
    if the competition asks (a YouTube video must be **unlisted, not private**;
    a Google Drive file shared with **anyone with the link**). Tap **Save**.
@@ -530,6 +534,26 @@ You get one message for each round of changes, a few minutes after the
 organiser publishes, saying what was and what is now. The comp sec hears about all the club's members, and
 a coach about the gymnasts they coach. Every email has a link to stop them.
 
+## Keep your routines on your page
+
+Routines you build in the Routine Builder are saved in that browser only. Keep
+them on your club page too, and they open on any phone, your coach sees them
+(and can leave you a note on each), and your comp sec can choose them if they
+change an entry for you.
+
+- In the **Routine Builder**, tap **More**, then **Save to my page**. (It's
+  there once you've opened your club page on this phone.) Your page opens on
+  **Routines**, with the routine kept. Saving it again from the same phone
+  changes it there.
+- Or open **Routines** on your page: under **Add routines from this browser**,
+  tick the ones to keep and tap **Add to my page**.
+- Tap a routine to see it checked, with any note from your coach. **Open in
+  the Routine Builder** adds a copy to the builder on the phone you're using,
+  to change and save again. **Rename** or **Delete from your page** (the
+  builder's copy stays).
+
+You can keep up to 30 routines.
+
 ## Synchro
 
 Enter synchro like any discipline, and give your **partner's name** (and club,
@@ -570,6 +594,11 @@ the list by competition, level, problems or sign-off.
 
 If they change the entry, it needs signing off again. Where a competition needs
 sign-off, entries without it are flagged to the organiser.
+
+Your page has two sections: **Entries** (the entries above) and **Gymnasts**:
+the members you see, with how many routines each keeps on their page. Tap a
+gymnast to see their routines, checked, and write **Your note** on any of
+them for them to see, such as what to work on. Leave it empty to take it off.
 
 # 5. Enter on your own
 
@@ -626,7 +655,8 @@ link listed has **Undo**.
 # What's kept
 
 Only names, clubs, levels and events, men or women where asked, synchro
-partners, routines, video links, and the organiser's and coaches' notes, and
+partners, routines (with entries, and those members keep on their page),
+video links, and the organiser's and coaches' notes, and
 coaches' qualifications with their certificates where the club adds them. No
 emails, birthdays or contact details. Videos are never uploaded: only their
 links.

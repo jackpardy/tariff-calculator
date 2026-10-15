@@ -233,8 +233,12 @@ func (p *competitionPages) clubMembersPart(r *http.Request, club store.Club, pag
 			entered[e.MemberID]++
 		}
 	}
+	routines, err := p.st.RoutineCounts(ctx, club.ID)
+	if err != nil {
+		return err
+	}
 	for _, m := range members {
-		page.Members = append(page.Members, views.ClubMember{ID: m.ID, Name: m.Name, Entries: entered[m.ID], CoachID: m.CoachID, AlsoCoach: m.AlsoCoach != "",
+		page.Members = append(page.Members, views.ClubMember{ID: m.ID, Name: m.Name, Entries: entered[m.ID], CoachID: m.CoachID, AlsoCoach: m.AlsoCoach != "", Routines: routines[m.ID],
 			List: views.ListRow{Name: m.Name, Values: map[string][]string{
 				"coach": {memberCoachValue(m.CoachID)}, "entries": {hasValue(entered[m.ID] > 0)}, "coachtoo": {hasValue(m.AlsoCoach != "")},
 			}}})
@@ -545,6 +549,12 @@ func (p *competitionPages) renderMemberEdit(w http.ResponseWriter, r *http.Reque
 		Menu: clubMenu(r.PathValue("token"), clubCompetitions), Form: entryForm(c.Competition, form, r.URL.Path, "Save"),
 	}
 	page.Form.Member, page.Form.Problems = true, problems
+	kept, err := p.keptForEntry(r, m.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	page.Form.Kept, page.Form.KeptOn = kept, "their page"
 	if existing != nil {
 		shown, err := card(c.Competition, existing.Entry, club.Name)
 		withSignoff(&shown, memberSignoff(c.Competition, *existing))
@@ -893,6 +903,10 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 	if err != nil {
 		return views.MemberCompetition{}, err
 	}
+	kept, err := p.keptForEntry(r, m.ID)
+	if err != nil {
+		return views.MemberCompetition{}, err
+	}
 	mc := views.MemberCompetition{ID: c.ID, Page: memberCompetitionPath(r.PathValue("token"), c.ID), Competition: summary(c.Competition, now),
 		Duties: dutiesOf(c, "m:"+m.ID), Day: dayPath(path, c.ID), Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
 	mc.Desk = p.deskNotes(ctx, c.ID, []string{"m:" + m.ID}, clubIDs(m.ClubID), nil)
@@ -975,6 +989,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 		}
 		ev.Form = entryForm(c.Competition, start, path+"/competitions/"+c.ID, "Save")
 		ev.Form.Member, ev.Form.Key = true, "-"+c.ID+"-"+d
+		ev.Form.Kept, ev.Form.KeptOn = kept, "your page"
 		if key == failedID {
 			ev.Form.Problems = problems
 		}

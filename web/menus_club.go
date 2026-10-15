@@ -37,6 +37,7 @@ func clubMenu(token, current string) []views.MenuSection {
 // The tabs of a member's pages.
 const (
 	memberCompetitions = "competitions"
+	memberRoutinesTab  = "routines"
 	memberDetails      = "details"
 )
 
@@ -49,11 +50,28 @@ func memberCompetitionPath(token, competitionID string) string {
 }
 
 // memberMenu is the menu of a member's pages, with the tab shown current. A
-// competition's page is in Competitions. Routines and the coach's view will be
-// more tabs here.
+// competition's page is in Competitions. Skills will be another tab here
+// (ADR 0011).
 func memberMenu(token, current string) []views.MenuSection {
 	return []views.MenuSection{
 		{Label: "Competitions", Href: memberPath(token), Current: current == memberCompetitions},
+		{Label: "Routines", Href: memberRoutinesPath(token), Current: current == memberRoutinesTab},
 		{Label: "Your details", Href: memberDetailsPath(token), Current: current == memberDetails},
+	}
+}
+
+// The sections of a coach's pages.
+const (
+	coachEntriesTab  = "entries"
+	coachGymnastsTab = "gymnasts"
+)
+
+// coachMenu is the menu of a coach's pages, with the section shown current:
+// the entries they see (their default page, where signing one off is too),
+// and the gymnasts they see, with their routines.
+func coachMenu(token, current string) []views.MenuSection {
+	return []views.MenuSection{
+		{Label: "Entries", Href: coachPath(token), Current: current == coachEntriesTab},
+		{Label: "Gymnasts", Href: coachGymnastsPath(token), Current: current == coachGymnastsTab},
 	}
 }

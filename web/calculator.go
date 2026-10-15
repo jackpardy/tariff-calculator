@@ -73,6 +73,8 @@ func routesWithPages(pages *competitionPages) http.Handler {
 		limit := int64(maxRequestBytes)
 		if r.Method == http.MethodPost && uploads(r.URL.Path) {
 			limit = maxUploadBytes
+		} else if r.Method == http.MethodPost && keepsRoutines(r.URL.Path) {
+			limit = maxKeepBytes
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, limit)
 		w.Header().Set(static.VersionHeader, static.Version)

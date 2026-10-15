@@ -58,7 +58,8 @@ type ClubMember struct {
 	ID, Name  string
 	Entries   int
 	CoachID   string
-	AlsoCoach bool // a coach of the club too
+	AlsoCoach bool    // a coach of the club too
+	Routines  int     // routines kept on their page (ADR 0011)
 	List      ListRow // what the list's search and filters see
 }
 
@@ -144,6 +145,7 @@ type MemberPage struct {
 	Competition  *MemberCompetition  // the one competition's page shows
 	Pairs        []PairView          // synchro entries they're the partner in
 	Other        *OtherLinks         // their other links, on their details (ADR 0010)
+	Routines     RoutinesPart        // their kept routines, on Routines (ADR 0011)
 }
 
 // MemberCompetition is a member's entry for one competition, and the form to
@@ -446,7 +448,12 @@ templ ClubMembers(c ClubPage) {
 											<span class="tag is-info is-light ml-1">Coach too</span>
 										}
 									</td>
-									<td class="has-text-grey is-size-7">{ entriesCount(m.Entries) }</td>
+									<td class="has-text-grey is-size-7">
+										{ entriesCount(m.Entries) }
+										if m.Routines > 0 {
+											· <a href={ templ.SafeURL(c.Base + "/members/" + m.ID + "/routines") }>{ routineCount(m.Routines) }</a>
+										}
+									</td>
 									if len(c.CoachOptions) > 0 {
 										<td>
 											@coachSelect(c.Base+"/members/"+m.ID+"/coach", c.CoachOptions, m.CoachID, m.Name+"'s coach")
@@ -665,7 +672,7 @@ templ ClubJoin(p JoinPage) {
 			</div>
 			<button class="button is-primary is-fullwidth" type="submit">Join</button>
 		</form>
-		<p class="help mt-4">We keep your name and your entries, which your club and the competitions you're sent to see. Nothing else, and no account.</p>
+		<p class="help mt-4">We keep your name, your entries and any routines you keep on your page, which your club sees, and your entries the competitions they're sent to. Nothing else, and no account.</p>
 	}
 }
 
