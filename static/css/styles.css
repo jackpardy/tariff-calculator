@@ -941,7 +941,8 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
   --role-club: #5c5a1a;
   --role-organiser: #3b4a5e;
 }
-.chip { display: inline-flex; align-items: baseline; gap: 0.3em; font-size: 0.8em; font-weight: 600; line-height: 1.4; padding: 0.1em 0.6em; border-radius: 999px; white-space: nowrap; vertical-align: baseline; }
+/* A long chip wraps inside the space it has rather than running off a phone's screen. */
+.chip { display: inline-flex; align-items: baseline; gap: 0.3em; max-width: 100%; font-size: 0.8em; font-weight: 600; line-height: 1.4; padding: 0.1em 0.6em; border-radius: 0.8em; overflow-wrap: anywhere; vertical-align: baseline; }
 .chip-mark { font-weight: 700; }
 /* A chip after a name or another chip keeps a gap from it; in a flex row, the row's gap
    does that instead. */
