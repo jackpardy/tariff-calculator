@@ -323,13 +323,17 @@ templ count(n int, label string) {
 
 templ CompetitionEntry(d EntryDetail) {
 	@competitionLayout(d.Card.Gymnast + " · " + d.Competition.Name) {
+		// Back, the name and the menu, in the order a person's page has them.
+		<p class="mb-3"><a href={ templ.SafeURL(d.Base) }>← Entries</a></p>
+		<h1 class="title is-4">{ d.Card.Gymnast }</h1>
+		<p class="subtitle is-6">{ d.Card.Club } · { d.Card.Level }</p>
 		@pageMenu(d.Menu)
 		if d.Withdrawn {
 			<div class="notification is-warning is-light">
 				<p><strong>Withdrawn.</strong> { d.Card.Gymnast } has withdrawn this entry, or left the club, since { d.Card.Club } sent it. It goes when the club sends its entries again; until then it isn't counted or printed.</p>
 			</div>
 		}
-		@entryCard(d.Card)
+		@entryCardChecks(d.Card)
 		<p class="has-text-grey is-size-7 mt-4">Sent { d.Sent }.</p>
 		if d.Notice != "" {
 			<div class="notification is-success is-light mt-3">{ d.Notice }</div>
