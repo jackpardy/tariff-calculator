@@ -1434,7 +1434,6 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		Placement:   placement(c, e.ID),
 		Waiting:     waitingText(p.waitingOf(r.Context(), c.ID, e.ID)),
 		Late:        p.lateStatusOf(r.Context(), c, e.ID),
-		Duties:      dutiesOf(c, e.Key()),
 		Day:         path + "/day",
 		VideoReview: e.VideoReview, VideoNote: e.VideoNote,
 		Form: entryForm(c.Competition, form, path, "Save changes"), Withdraw: path + "/withdraw",
@@ -1456,17 +1455,10 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		page.Menu, page.Back = gymnastMenu(base, gymnastCompetitions), gymnastCompetitionPath(base, c.ID)
 	}
 	page.Notice = r.URL.Query().Get("notice")
-	if published(c) {
-		page.Timeline, page.Calendar = path+"/timeline", path+"/calendar.ics"
-	}
-	page.Notify = p.notifyLink(path + "/notify")
-	page.Desk = p.deskNotes(r.Context(), c.ID, []string{e.Key()}, nil, nil)
+	page.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: path, key: e.Key(), people: []string{e.Key()}})
 	page.Fees = p.feesSummary(r.Context(), c, entryPayer(e.ID), path+"/invoice")
 	if lateOpen(c, p.now()) {
 		page.LateAsk = path + "/late"
-	}
-	if len(page.Duties) > 0 {
-		page.ScoreSheets = path + "/score-sheets"
 	}
 	switch {
 	case e.Removal == store.Removed:

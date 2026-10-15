@@ -260,19 +260,14 @@ type EntryPage struct {
 	SignoffLink string // the link for their coach to sign it off, where the competition needs it
 	Partner     *PartnerView
 	Placement   *Placement      // where they compete, once the timetable is published
-	Duties      []string        // their seats on panels, once the timetable is published
+	MyLinks
 	Day         string          // their My competition page
 	Offer       *OfferForm      // what they offer to judge and help with
 	Coach       *EntryCoachView // their coach, where the competition approves coaches
 	Notice      string
 	Pairs       []PairView   // synchro entries they're the partner in
 	Removal     string       // what the organiser did with it, and why, if anything
-	Timeline    string       // their timetable as the panel timeline, once published
-	Calendar    string       // their timetable as a calendar file, once published
-	Notify      string       // where they ask to hear about changes
-	ScoreSheets string       // the score sheets of the flights they officiate, if any
 	Fees        *FeesSummary // what they owe, if the competition charges
-	Desk        []DeskNote   // messages from the organisers that reach them
 	// Menu and Back are the person's pages it's one of (ADR 0010); Personal
 	// says Link is their personal page's link, not the entry's own.
 	Menu     []MenuSection

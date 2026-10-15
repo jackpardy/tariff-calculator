@@ -233,12 +233,9 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 	var levels []string
 	var competitionOptions []views.ListOption
 	for _, c := range comps {
-		cc := views.CoachCompetition{Competition: summary(c.Competition, p.now()), Cannot: notApproved(c, sentTo), Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
-		cc.Desk = p.deskNotes(ctx, c.ID, memberKeys(coached), clubIDs(coach.ClubID), clubIDs(coach.ClubID))
-		if published(c) {
-			cc.Timeline = path + "/competitions/" + c.ID + "/timeline"
-			cc.Calendar = path + "/competitions/" + c.ID + "/calendar.ics"
-		}
+		cc := views.CoachCompetition{Competition: summary(c.Competition, p.now()), Cannot: notApproved(c, sentTo),
+			MyLinks: p.competitionLinks(ctx, c, linksFor{base: path + "/competitions/" + c.ID,
+				people: memberKeys(coached), clubs: clubIDs(coach.ClubID), staff: clubIDs(coach.ClubID)})}
 		seen := map[string]bool{}
 		for _, e := range entries {
 			if e.CompetitionID == c.ID {

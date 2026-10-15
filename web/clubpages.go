@@ -331,13 +331,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			return nil, err
 		}
 		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now()), ApproveCoaches: c.ApproveCoaches && c.Signoff,
-			Notify: p.notifyLink(base + "/competitions/" + c.ID + "/notify")}
+			MyLinks: p.competitionLinks(ctx, c, linksFor{base: base + "/competitions/" + c.ID,
+				people: memberKeys(members), clubs: clubIDs(club.ID), staff: clubIDs(club.ID)})}
 		cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
-		cc.Desk = p.deskNotes(ctx, c.ID, memberKeys(members), clubIDs(club.ID), clubIDs(club.ID))
-		if published(c) {
-			cc.Timeline = base + "/competitions/" + c.ID + "/timeline"
-			cc.Calendar = base + "/competitions/" + c.ID + "/calendar.ics"
-		}
 		waitingPlace := map[string]int{} // member and discipline → place on a waiting list
 		copyOf := map[string]string{}    // member and discipline → the competition's copy
 		for _, e := range sent {
@@ -907,16 +903,10 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 	if err != nil {
 		return views.MemberCompetition{}, err
 	}
-	mc := views.MemberCompetition{ID: c.ID, Page: memberCompetitionPath(r.PathValue("token"), c.ID), Competition: summary(c.Competition, now),
-		Duties: dutiesOf(c, store.MemberKey(m.ID)), Day: dayPath(path, c.ID), Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
-	mc.Desk = p.deskNotes(ctx, c.ID, []string{store.MemberKey(m.ID)}, clubIDs(m.ClubID), nil)
-	if len(mc.Duties) > 0 {
-		mc.ScoreSheets = path + "/competitions/" + c.ID + "/score-sheets"
-	}
-	if published(c) {
-		mc.Timeline, mc.ClubTimeline = path+"/competitions/"+c.ID+"/timeline", path+"/competitions/"+c.ID+"/club-timeline"
-		mc.Calendar, mc.ClubCalendar = path+"/competitions/"+c.ID+"/calendar.ics", path+"/competitions/"+c.ID+"/club-calendar.ics"
-	}
+	own := memberCompetitionPath(r.PathValue("token"), c.ID)
+	mc := views.MemberCompetition{ID: c.ID, Page: own, Competition: summary(c.Competition, now), Day: dayPath(path, c.ID),
+		MyLinks: p.competitionLinks(ctx, c, linksFor{base: own, key: store.MemberKey(m.ID), member: true,
+			people: []string{store.MemberKey(m.ID)}, clubs: clubIDs(m.ClubID)})}
 	var sent []store.Entry
 	disciplines := c.Disciplines()
 	entered := 0

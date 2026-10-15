@@ -1,10 +1,12 @@
 package web
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	"tariffCalculator/store"
+	"tariffCalculator/views"
 )
 
 // Pages for someone at a competition (their timeline, calendar, score
@@ -69,4 +71,32 @@ func (p *competitionPages) whose(w http.ResponseWriter, r *http.Request) (asker,
 		c, ok := p.enteredCompetition(w, r, coach.ClubID)
 		return asker{c: c, kind: store.NotifyCoach, owner: coach.ID, name: clubName, club: coach.ClubID, back: coachPath(token)}, ok
 	}
+}
+
+// linksFor is whose page a competition's links are on.
+type linksFor struct {
+	base   string // their page for the competition, which the links are under
+	key    string // the person, for their duties; "" for a comp sec or coach
+	member bool   // a club's member, who has their club's timetable too
+	// Whose desk messages reach them (deskNotes): people, clubs (all their
+	// members) and staff (the comp sec and coaches of these clubs).
+	people, clubs, staff []string
+}
+
+// competitionLinks are the links on a person's or club's page for a
+// competition: the timetables and calendars once published, notifications,
+// their duties and score sheets, and the desk's messages.
+func (p *competitionPages) competitionLinks(ctx context.Context, c store.Competition, f linksFor) views.MyLinks {
+	l := views.MyLinks{Notify: p.notifyLink(f.base + "/notify"), Duties: dutiesOf(c, f.key),
+		Desk: p.deskNotes(ctx, c.ID, f.people, f.clubs, f.staff)}
+	if len(l.Duties) > 0 {
+		l.ScoreSheets = f.base + "/score-sheets"
+	}
+	if published(c) {
+		l.Timeline, l.Calendar = f.base+"/timeline", f.base+"/calendar.ics"
+		if f.member {
+			l.ClubTimeline, l.ClubCalendar = f.base+"/club-timeline", f.base+"/club-calendar.ics"
+		}
+	}
+	return l
 }

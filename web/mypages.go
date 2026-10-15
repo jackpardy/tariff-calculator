@@ -41,9 +41,6 @@ func (p *competitionPages) myDay(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		frame.Over, frame.Menu, frame.BackLabel = club, memberMenu(r.PathValue("token"), memberCompetitions), "← "+c.Name+": your entries"
-		if published(c) {
-			frame.ClubTimeline, frame.ClubCalendar = a.back+"/club-timeline", a.back+"/club-calendar.ics"
-		}
 	} else {
 		frame.Over, frame.BackLabel = "Entered on your own", "← "+c.Name+": your entry"
 		if a.entry.IndividualID != "" {
@@ -210,19 +207,12 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 		return
 	}
 	page.Over, page.Menu, page.Back, page.BackLabel = frame.Over, frame.Menu, frame.Back, frame.BackLabel
-	page.ClubTimeline, page.ClubCalendar = frame.ClubTimeline, frame.ClubCalendar
 	page.Notice = r.URL.Query().Get("notice")
 	own := strings.TrimSuffix(r.URL.Path, "/day")
+	page.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: own, key: key, member: club != "", people: []string{key}, clubs: clubIDs(club)})
 	if page.Published {
-		page.Timeline = own + "/timeline"
-		page.Calendar = own + "/calendar.ics"
 		page.Here = hereBox(f.entries, f.people, key, len(page.Duties) > 0, f.checkins, f.official, f.clears, own+"/here")
-		if len(page.Duties) > 0 {
-			page.ScoreSheets = own + "/score-sheets"
-		}
 	}
-	page.Notify = p.notifyLink(own + "/notify")
-	page.Desk = p.deskNotes(r.Context(), c.ID, []string{key}, clubIDs(club), nil)
 	render(w, r, views.MyCompetition(page))
 }
 

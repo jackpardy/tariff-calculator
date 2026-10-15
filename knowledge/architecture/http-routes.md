@@ -55,6 +55,10 @@ sheets, timelines, calendars, notifications and late changes) sit under a
 member's, an individual's entry, a comp sec's or a coach's link. One
 resolver, `whose` in `web/whose.go`, works out from the link who is asking
 and which competition, and each feature has one handler for all of them.
+The links on a person's or club's page for a competition (timetables and
+calendars, Tell me about changes, duties and score sheets, the desk's
+messages) are built in one place too, `competitionLinks` in the same file,
+as a `views.MyLinks` each page embeds.
 
 Pages that read a competition's people (calendars, timelines, score sheets,
 My competition, the desk, late changes, delays, leaving, simulation, the
