@@ -112,10 +112,10 @@ func TestCoachSignoff(t *testing.T) {
 	}
 	// Each chip opens what it's about: the problems the entry, Bob his row on
 	// the club's Coaches page.
-	if !regexp.MustCompile(`<a href="`+regexp.QuoteMeta(club)+`/members/[^"]+/competitions/[^"]+" title="See the problems">`).MatchString(clubPage) {
+	if !regexp.MustCompile(`<a href="` + regexp.QuoteMeta(club) + `/members/[^"]+/competitions/[^"]+" title="See the problems">`).MatchString(clubPage) {
 		t.Error("the problems chip opens the entry")
 	}
-	if m := regexp.MustCompile(`chip-link" href="(`+regexp.QuoteMeta(club)+`/coaches)#(coach-[^"]+)"><span class="chip-role">Coach</span> <span class="chip-name">· Bob`).FindStringSubmatch(clubPage); m == nil {
+	if m := regexp.MustCompile(`chip-link" href="(` + regexp.QuoteMeta(club) + `/coaches)#(coach-[^"]+)"><span class="chip-role">Coach</span> <span class="chip-name">· Bob`).FindStringSubmatch(clubPage); m == nil {
 		t.Error("Bob's chip opens his row on the Coaches page")
 	} else if !strings.Contains(do(t, h, http.MethodGet, m[1], nil).Body.String(), `id="`+m[2]+`"`) {
 		t.Error("and the Coaches page has it")
