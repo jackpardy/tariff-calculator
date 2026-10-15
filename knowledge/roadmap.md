@@ -207,7 +207,8 @@ build on:
       tracking levels, separate from the competition levels that check a
       single routine.
 
-   6. **Sharing club levels** (decided 2026-10-15). A club level can be
+   6. **Sharing club levels** (decided and built 2026-10-15,
+      [sharing club levels](features/competition-entries.md#sharing-club-levels-adr-0011)). A club level can be
       shared with other clubs by link, as requirements and levels are
       today ([sharing](features/sharing.md)), bringing the club skills it
       uses, so a regional scheme's grades are made once. The club that

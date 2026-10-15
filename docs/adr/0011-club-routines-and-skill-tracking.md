@@ -1,6 +1,6 @@
 # ADR 0011 — Club routines and skill tracking
 
-- **Status:** Accepted; Decisions 1 (routines), 2 and 3 (skill marks and who sees them), 4 (club skills), 5 (club levels) and 7 (retention) built 2026-10-15; 6 (sharing club levels) planned
+- **Status:** Accepted; Decisions 1 to 7 built 2026-10-15; 8 (moving club) left for later
 - **Date:** 2026-10-15
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 2 (a club lasts beyond a season), Decision 5
@@ -122,7 +122,11 @@ Club levels should reuse it rather than add a second way to describe skills.
    requirements and levels (`static/js/share.js`: the level in the link's
    fragment, never stored on the server), bringing the club skills it uses.
    The coach who opens it adds a copy to their club, to track against and
-   change. No marks or names travel with it.
+   change. No marks or names travel with it. As built (2026-10-15): the link
+   opens a page of its own (`/clubs/levels/shared`), whose script reads the
+   fragment and posts it to be shown, and the coach adds it by their coach
+   page's link (offered from the ones saved in the browser). Only the club
+   skills to track travel; a club's names for catalog skills are its own.
 7. **A club is kept until 13 months after it was last used** (was 120 days
    after its admin or join link). Any page opened from the comp sec's,
    a coach's or a member's link, or anything they change, counts as use.

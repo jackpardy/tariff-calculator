@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"tariffCalculator/skills"
 )
 
 // Club levels (ADR 0011 Decision 5): the levels a club tracks its gymnasts
@@ -146,4 +148,74 @@ func (s *Store) MoveClubLevel(ctx context.Context, c Coach, levelID string, by i
 // they're the gymnast's, and other levels may have the same items.
 func (s *Store) RemoveClubLevel(ctx context.Context, c Coach, levelID string) error {
 	return affected(s.db.ExecContext(ctx, `DELETE FROM club_levels WHERE id = $1 AND club_id = $2`, levelID, c.ClubID))
+}
+
+// SharedTrack is a club skill to track that comes with a shared level: its
+// name and note.
+type SharedTrack struct {
+	Name string `json:"name"`
+	Note string `json:"note,omitempty"`
+}
+
+// ImportClubLevel is a coach adding a level shared by another club (ADR 0011
+// Decision 6): its requirements (set, as JSON, already checked) as a new
+// level, last, tracking the club skills it came with. Each is the club's own
+// skill to track of that name if it has one, or a new one; a name the club
+// uses for a catalog skill isn't tracked. It gives the level's id, and how
+// many club skills it added.
+func (s *Store) ImportClubLevel(ctx context.Context, c Coach, name, set string, track []SharedTrack) (id string, added int, err error) {
+	name = clip(strings.TrimSpace(name), 80)
+	if name == "" {
+		name = "Level"
+	}
+	now := s.stamp()
+	err = s.tx(ctx, func(tx *sql.Tx) error {
+		var n, last int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*), COALESCE(MAX(position), 0) FROM club_levels WHERE club_id = $1`, c.ClubID).Scan(&n, &last); err != nil {
+			return err
+		}
+		if n >= MaxClubLevels {
+			return ErrLimit
+		}
+		own, err := clubSkillsIn(ctx, tx, c.ClubID)
+		if err != nil {
+			return err
+		}
+		items := []string{}
+		for _, t := range track {
+			t.Name = clip(strings.TrimSpace(t.Name), skills.MaxCustomNameLength)
+			if t.Name == "" {
+				continue
+			}
+			i := slices.IndexFunc(own, func(k ClubSkill) bool { return strings.EqualFold(k.Name, t.Name) })
+			switch {
+			case i >= 0 && own[i].Skill == "":
+				if !slices.Contains(items, own[i].ID) {
+					items = append(items, own[i].ID)
+				}
+				continue
+			case i >= 0, len(own) >= MaxClubSkills:
+				continue // a name for a catalog skill, or no room
+			}
+			k := ClubSkill{ID: newID(), Name: t.Name}
+			if _, err := tx.ExecContext(ctx, `INSERT INTO club_skills (id, club_id, name, note, skill, by_name, created_at) VALUES ($1, $2, $3, $4, '', $5, $6)`,
+				k.ID, c.ClubID, t.Name, clip(strings.TrimSpace(t.Note), MaxClubSkillNote), c.Name, now); err != nil {
+				return err
+			}
+			own = append(own, k)
+			items = append(items, k.ID)
+			added++
+		}
+		data, err := json.Marshal(items)
+		if err != nil {
+			return err
+		}
+		id = newID()
+		if _, err := tx.ExecContext(ctx, `INSERT INTO club_levels (id, club_id, source, name, set_json, club_items, position, by_name, updated_at) VALUES ($1, $2, '', $3, $4, $5, $6, $7, $8)`,
+			id, c.ClubID, name, set, string(data), last+1, c.Name, now); err != nil {
+			return err
+		}
+		return touch(ctx, tx, c.ClubID, now)
+	})
+	return id, added, err
 }

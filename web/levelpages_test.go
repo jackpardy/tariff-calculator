@@ -189,3 +189,73 @@ func TestSavingLevelsAsAMemberWhoCoaches(t *testing.T) {
 		t.Errorf("saved to DCU's levels: %s", location)
 	}
 }
+
+// A club level is shared by link with a coach of another club, who adds a
+// copy to theirs, with the club skills it tracks.
+func TestSharingClubLevels(t *testing.T) {
+	h := competitionServer(t)
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	ann := pathIn(t, do(t, h, http.MethodPost, ucd.page+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
+	redirected(t, h, ann+"/club-skills", url.Values{"name": {"Kaboom drill"}, "note": {"On the crash mat"}})
+	redirected(t, h, ann+"/levels", url.Values{"set": {`{"format":1,"name":"Grade 1","rules":[{"type":"count","label":"A back somersault","match":{"rotation":{"min":4,"max":4},"direction":"backward"},"min":1}]}`}, "id": {"b1"}})
+	page := do(t, h, http.MethodGet, ann+"/levels", nil).Body.String()
+	kaboom := regexp.MustCompile(`name="item" value="([^"]+)"`).FindStringSubmatch(page)[1]
+	redirected(t, h, regexp.MustCompile(`action="(` + regexp.QuoteMeta(ann) + `/levels/[^/"]+/items)"`).FindStringSubmatch(page)[1], url.Values{"item": {kaboom}})
+
+	// The link carries the level and its club skill, in its fragment.
+	page = do(t, h, http.MethodGet, ann+"/levels", nil).Body.String()
+	m := regexp.MustCompile(`data-copy="http://example.com/clubs/levels/shared#share=j([A-Za-z0-9_-]+)"`).FindStringSubmatch(page)
+	if m == nil {
+		t.Fatalf("no share link: %s", page)
+	}
+	data, err := base64.RawURLEncoding.DecodeString(m[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), `"name":"Kaboom drill","note":"On the crash mat"`) || strings.Contains(string(data), "A. Murphy") {
+		t.Errorf("the link carries the level and its club skill, and no one's name: %s", data)
+	}
+	if rec := do(t, h, http.MethodGet, "/clubs/levels/shared", nil); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "data-shared-level") {
+		t.Errorf("the page the link opens: %d", rec.Code)
+	}
+
+	// Shown, then added to another club by its coach's link.
+	preview := do(t, h, http.MethodPost, "/clubs/levels/shared", url.Values{"level": {string(data)}}).Body.String()
+	for _, want := range []string{"Grade 1", "A back somersault", "Kaboom drill", "Add to my club"} {
+		if !strings.Contains(preview, want) {
+			t.Errorf("the shared level should show %q", want)
+		}
+	}
+	dcu := aClub(t, h, admin, "DCU", false)
+	bob := pathIn(t, do(t, h, http.MethodPost, dcu.page+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
+	location := redirected(t, h, "/clubs/levels/import", url.Values{"level": {string(data)}, "link": {"http://example.com" + bob}})
+	if withoutQuery(location) != bob+"/levels" || noticeOf(t, location) != "Added Grade 1 to your club's levels. It brought 1 club skill to track, now on Club skills." {
+		t.Errorf("adding it: %s", location)
+	}
+	if page = do(t, h, http.MethodGet, bob+"/levels", nil).Body.String(); !strings.Contains(page, "Grade 1") || !strings.Contains(page, "A back somersault") || !strings.Contains(page, `checked>`) {
+		t.Errorf("DCU's copy, tracking Kaboom drill: %s", page)
+	}
+	if !strings.Contains(do(t, h, http.MethodGet, bob+"/club-skills", nil).Body.String(), "On the crash mat") {
+		t.Error("the club skill came with it")
+	}
+
+	// A member who coaches too adds it by their member link.
+	id := regexp.MustCompile(`/members/([^/"]+)/new-link"`).FindStringSubmatch(do(t, h, http.MethodGet, ucd.page+"/members", nil).Body.String())[1]
+	if rec := do(t, h, http.MethodPost, "/clubs/levels/import", url.Values{"level": {string(data)}, "link": {ucd.members["A. Murphy"]}}); rec.Code != http.StatusConflict {
+		t.Errorf("a member who doesn't coach: %d", rec.Code)
+	}
+	redirected(t, h, ucd.page+"/coaches/from-member", url.Values{"member": {id}})
+	location = redirected(t, h, "/clubs/levels/import", url.Values{"level": {string(data)}, "link": {ucd.members["A. Murphy"]}})
+	if !strings.HasPrefix(location, strings.Replace(ucd.members["A. Murphy"], "/clubs/member/", "/clubs/coach/", 1)+"~") || !strings.HasPrefix(noticeOf(t, location), "Added Grade 1") {
+		t.Errorf("added by a member who coaches too: %s", location)
+	}
+
+	// A link that isn't anyone's own, and a level that can't be read.
+	if rec := do(t, h, http.MethodPost, "/clubs/levels/import", url.Values{"level": {string(data)}, "link": {ucd.page}}); rec.Code != http.StatusBadRequest {
+		t.Errorf("a club's admin link: %d", rec.Code)
+	}
+	if rec := do(t, h, http.MethodPost, "/clubs/levels/shared", url.Values{"level": {"nope"}}); rec.Code != http.StatusBadRequest {
+		t.Errorf("a level that can't be read: %d", rec.Code)
+	}
+}

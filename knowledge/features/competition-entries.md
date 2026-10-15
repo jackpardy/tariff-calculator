@@ -1708,6 +1708,33 @@ levels to track gymnasts against ("Club Grade 1"), in order, up to 50.
     named beside it ("Done in Drops"), for the coach to mark;
   - the club's own skills to track are their marks.
 
+## Sharing club levels (ADR 0011)
+
+Built 2026-10-15 ([ADR 0011](../../docs/adr/0011-club-routines-and-skill-tracking.md)
+Decision 6; `web/levelshare.go`). Each level on a coach's Levels section has
+**Share with another club**: a link (`/clubs/levels/shared#share=j` and the
+level as base64url JSON: `{v: 1, level: {name, set, track: [{name, note}]}}`)
+carrying its requirements and the club skills it tracks. No marks or
+people's names go with it, and the fragment reaches the server only when
+someone opens it.
+
+- **Opening it.** The page (`GET /clubs/levels/shared`) has a script
+  (`sharedLevel` in `competitions.js`) that reads the fragment and posts it
+  (`POST /clubs/levels/shared`), which shows the level: its requirements in
+  words, how many about a single routine aren't tracked, and the club skills
+  it brings.
+- **Adding it.** The coach chooses one of the coach pages saved in the
+  browser (members' who coach too included), or pastes their link, and
+  taps **Add to my club's levels** (`POST /clubs/levels/import`). The coach
+  is found from the link by `coachFromLink`, as for Save to club levels: a
+  coach's own link, or a member's whose person coaches too (ADR 0010),
+  asking which club where there are several. The club
+  gets its own copy, last, with no tie to the original
+  (`store.ImportClubLevel`). Each club skill it tracks is the club's own of
+  that name where it has one, a new one otherwise; a name the club gives a
+  catalog skill isn't taken. It opens their Levels section, saying how many
+  club skills it added.
+
 # One link, several roles (ADR 0010)
 
 Roadmap item 5, built 2026-10-14. A person's **records** are their club

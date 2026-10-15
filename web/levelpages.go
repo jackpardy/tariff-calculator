@@ -205,6 +205,10 @@ func (p *competitionPages) coachLevels(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	own := map[string]store.ClubSkill{}
+	for _, c := range other {
+		own[c.ID] = c
+	}
 	base := coachLevelsPath(r.PathValue("token"))
 	page := views.ClubLevelsPage{Frame: coachFrame(r, coach, club, coachLevelsTab), Max: store.MaxClubLevels}
 	for i, l := range levels {
@@ -216,6 +220,7 @@ func (p *competitionPages) coachLevels(w http.ResponseWriter, r *http.Request) {
 				v.Rules = append(v.Rules, requirements.Describe(rule))
 			}
 			v.Open = requirementsLink(l.Set)
+			v.Share = levelShareLink(r, l, own)
 		} else {
 			v.Broken = "Its requirements couldn't be read."
 		}
