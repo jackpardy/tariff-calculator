@@ -1,6 +1,9 @@
 package competitions
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/rand/v2"
 	"slices"
@@ -9,6 +12,18 @@ import (
 // Manual changes to a schedule: the organiser moves gymnasts and flights; times
 // are worked out again, and anything the edits break is flagged rather than
 // refused.
+
+// Version identifies the timetable as it is: any change to it changes its
+// version, so a form can say which timetable it was made from, and one made
+// from another is refused rather than moving the wrong flight or seat.
+func (s Schedule) Version() string {
+	b, err := json.Marshal(s)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:8])
+}
 
 // Find is the flight an entry is in, by index, if it's in one.
 func (s Schedule) Find(entryID string) (int, bool) {

@@ -743,7 +743,8 @@ func (s *Store) PublishTimetable(ctx context.Context, id string, t *competitions
 }
 
 // SetTimetable saves the organiser's draft timetable and its setup (nil to
-// remove it); attendees see it only once it's published.
+// remove it), whatever the draft was; attendees see it only once it's
+// published. A change to the draft goes through UpdateTimetable.
 func (s *Store) SetTimetable(ctx context.Context, id string, t *competitions.Schedule) error {
 	data := ""
 	if t != nil {
@@ -754,6 +755,34 @@ func (s *Store) SetTimetable(ctx context.Context, id string, t *competitions.Sch
 		data = string(b)
 	}
 	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET timetable = $1 WHERE id = $2`, data, id))
+}
+
+// UpdateTimetable changes the organiser's draft timetable: it reads the
+// draft (or, before there is one, a new one with the default setup), changes
+// it with change and saves it, in one transaction, so two changes at once
+// (the organiser's, a helper's, an accepted late change) each build on the
+// other rather than one undoing the other. An error from change saves
+// nothing, and is returned.
+func (s *Store) UpdateTimetable(ctx context.Context, id string, change func(*competitions.Schedule) error) error {
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		c, err := scanCompetition(tx.QueryRowContext(ctx, `SELECT `+competitionColumns+` FROM competitions WHERE id = $1`, id))
+		if err != nil {
+			return err
+		}
+		t := competitions.Schedule{Setup: competitions.DefaultSetup(c.Disciplines())}
+		if c.Timetable != nil {
+			t = *c.Timetable
+		}
+		if err := change(&t); err != nil {
+			return err
+		}
+		b, err := json.Marshal(t)
+		if err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, `UPDATE competitions SET timetable = $1 WHERE id = $2`, string(b), id)
+		return err
+	})
 }
 
 // SetLevelOrder stores the order of a competition's levels, every discipline's,

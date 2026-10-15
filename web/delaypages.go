@@ -61,14 +61,17 @@ func (p *competitionPages) delay(w http.ResponseWriter, r *http.Request) {
 					names[o.Key] = o.Name
 				}
 			}
-			out, report, err := s.Delayed(d, people)
+			_, report, err := s.Delayed(d, people)
 			if err != nil {
 				page.Problems = sentences(err)
 			} else if r.Method == http.MethodPost {
-				p.keepWhatIf(w, r, c, out, "The delay's timetable is now the draft.")
+				p.keepWhatIf(w, r, c, func(s competitions.Schedule) (competitions.Schedule, error) {
+					out, _, err := s.Delayed(d, people)
+					return out, err
+				}, "The delay's timetable is now the draft.")
 				return
 			} else {
-				page.Keep = r.URL.RequestURI()
+				page.Keep, page.Version = r.URL.RequestURI(), s.Version()
 				page.Result = delayView(report, names)
 				page.Result.Easing = easing
 				if d.Eased() {

@@ -106,12 +106,8 @@ func (p *competitionPages) staff(s *competitions.Schedule, c store.Competition, 
 // editRota assigns every panel again (action=rota), or gives one seat to a
 // person (action=seat: flight, seat, person; "" empties it).
 func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, _, entries, ok := p.timetableOf(w, r)
 	if !ok {
-		return
-	}
-	if !s.Planned {
-		back(w, r, "Plan the timetable first.")
 		return
 	}
 	people, err := p.rotaOf(r, c, entries)
@@ -122,7 +118,6 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 	notice := ""
 	switch r.FormValue("action") {
 	case "rota":
-		p.staff(&s, c, entries, people)
 		notice = "Officials assigned again."
 	case "seat":
 		if !r.Form.Has("person") {
@@ -130,6 +125,18 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 			// nothing: not the same as choosing No one.
 			back(w, r, "Choose who takes the seat; nothing was changed.")
 			return
+		}
+	default:
+		back(w, r, "")
+		return
+	}
+	err = p.changeDraft(r, c, func(s *competitions.Schedule) error {
+		if !s.Planned {
+			return refused("Plan the timetable first.")
+		}
+		if r.FormValue("action") == "rota" {
+			p.staff(s, c, entries, people)
+			return nil
 		}
 		seat, err2 := strconv.Atoi(r.FormValue("seat"))
 		person := r.FormValue("person")
@@ -141,18 +148,11 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 			set = s.SetDuty(flight, seat, person)
 		}
 		if err2 != nil || !known || !set {
-			back(w, r, "That seat has changed since; nothing was changed.")
-			return
+			return refused("That seat has changed since; nothing was changed.")
 		}
-	default:
-		back(w, r, "")
-		return
-	}
-	if err := p.st.SetTimetable(r.Context(), c.ID, &s); err != nil {
-		failed(w, r, err)
-		return
-	}
-	back(w, r, notice)
+		return nil
+	})
+	changed(w, r, err, notice)
 }
 
 // personRule is a rule about an official from the rules form (kind role, off
