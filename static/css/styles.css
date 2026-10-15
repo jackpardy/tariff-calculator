@@ -827,3 +827,19 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
   .comp-list-controls .select { flex: 1 1 calc(50% - 0.25rem); }
   .comp-list-controls .select select { width: 100%; }
 }
+
+/* Contrast: Bulma's turquoise (primary) and green (success) are too light for
+   white text (1.95:1 and 2.1:1). Darker shades of the same hues reach 5.3:1
+   for white on them, and for them as text on white. */
+.button.is-primary:not(.is-light):not(.is-outlined), .tag.is-primary:not(.is-light), .notification.is-primary:not(.is-light) { background-color: #00796b; color: #fff; }
+.button.is-primary:not(.is-light):not(.is-outlined):hover, .button.is-primary:not(.is-light):not(.is-outlined).is-hovered { background-color: #006b5c; }
+.button.is-primary:not(.is-light):not(.is-outlined):active, .button.is-primary:not(.is-light):not(.is-outlined).is-active { background-color: #005f52; }
+.button.is-primary.is-outlined { border-color: #00796b; color: #00796b; }
+.button.is-primary.is-outlined:hover, .button.is-primary.is-outlined:focus { background-color: #00796b; border-color: #00796b; color: #fff; }
+.button.is-primary[disabled], fieldset[disabled] .button.is-primary { background-color: #00796b; }
+.button.is-success:not(.is-light):not(.is-outlined), .tag.is-success:not(.is-light), .notification.is-success:not(.is-light) { background-color: #257953; color: #fff; }
+.button.is-success:not(.is-light):not(.is-outlined):hover, .button.is-success:not(.is-light):not(.is-outlined).is-hovered { background-color: #1d6b48; }
+.button.is-success:not(.is-light):not(.is-outlined):active, .button.is-success:not(.is-light):not(.is-outlined).is-active { background-color: #185c3d; }
+.button.is-success[disabled], fieldset[disabled] .button.is-success { background-color: #257953; }
+.has-text-primary { color: #00796b !important; }
+.has-text-success { color: #257953 !important; }
