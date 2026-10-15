@@ -3,11 +3,13 @@ package web
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"tariffCalculator/store"
 )
@@ -59,6 +61,11 @@ func TestNotifications(t *testing.T) {
 	redirected(t, h, notify, url.Values{"email": {"ann@example.com"}, "adult": {"1"}, "topic": {"cards", "timetable"}})
 	if len(mail.sent) != 1 || mail.sent[0].to != "ann@example.com" || !strings.Contains(mail.sent[0].body, "https://tariff.example/notify/confirm/") {
 		t.Fatalf("a link to confirm it: %+v", mail.sent)
+	}
+	// It goes to any address typed in, so it carries no name anyone chose.
+	if got := mail.sent[0]; got.subject != "Confirm your email" || strings.Contains(got.body, "Student Open") ||
+		!strings.Contains(got.body, "a competition on tariff.example.") {
+		t.Errorf("no competition's name: %+v", got)
 	}
 	if page := do(t, h, http.MethodGet, notify, nil).Body.String(); !strings.Contains(page, "Waiting for you to confirm it") {
 		t.Error("waiting to be confirmed")
@@ -247,5 +254,34 @@ func TestChanges(t *testing.T) {
 	}
 	if len(changes(now, now)) != 0 {
 		t.Error("nothing changed")
+	}
+}
+
+// A competition sends at most 50 confirmation emails a day, from however
+// many addresses they're asked; then a plain notice. A club's name is never
+// in one.
+func TestConfirmationEmailsPerCompetition(t *testing.T) {
+	h, p, mail := notifyServer(t)
+	p.emailLimiter = newLimiter(1000, time.Hour) // as if from many places
+	admin := created(t, h, newCompetition())
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
+	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"Click here to win"}}))
+	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
+	notify := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/[^/"]+/notify`).FindString(do(t, h, http.MethodGet, club, nil).Body.String())
+	if notify == "" {
+		t.Fatal("the club page links to hearing about changes")
+	}
+	for i := range maxConfirmsPerDay {
+		redirected(t, h, notify, url.Values{"email": {fmt.Sprintf("a%d@example.com", i)}, "adult": {"1"}, "topic": {"timetable"}})
+	}
+	if len(mail.sent) != maxConfirmsPerDay {
+		t.Fatalf("sent: %d", len(mail.sent))
+	}
+	if strings.Contains(mail.sent[0].body, "Click here") {
+		t.Errorf("no club's name: %s", mail.sent[0].body)
+	}
+	rec := do(t, h, http.MethodPost, notify, url.Values{"email": {"one@example.com"}, "adult": {"1"}, "topic": {"timetable"}})
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Too many emails asked for at this competition today") || len(mail.sent) != maxConfirmsPerDay {
+		t.Errorf("the 51st is refused: %d, %d sent", rec.Code, len(mail.sent))
 	}
 }

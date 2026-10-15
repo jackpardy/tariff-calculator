@@ -62,7 +62,11 @@ expired competitions.
    notifications off at once, without the person's page. *Changed
    2026-10-15:* as one email covers every subscription of its address for
    the competition, an off link (and the one-click `List-Unsubscribe`
-   header, which carries one) stops them all. The form says what
+   header, which carries one) stops them all. The confirming email goes
+   to any address typed in, so it names no competition or club (names the
+   organiser and comp sec choose, which could carry a message): it says "a
+   competition on tariff.pardy.ie", and its page names the competition. A
+   competition sends at most 50 a day. The form says what
    is kept and when it's deleted, with the tick box "I'm 18 or over, or this
    is a parent's email", required for email.
 

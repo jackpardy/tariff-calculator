@@ -1331,7 +1331,10 @@ members they coach. It's per competition, and deleted with it.
 
 - An email is sent a link to confirm it first; nothing else is sent until
   it's tapped (a button, so link checkers don't). At most 10 confirmation
-  emails an hour from one address.
+  emails an hour from one address, and 50 a day for one competition (kept
+  in memory, so a restart forgets them). The email names no competition or
+  club, as it goes to any address typed in: it says "a competition on
+  tariff.pardy.ie", and the page its link opens names the competition.
 - Before the organiser publishes or unpublishes the timetable, checks a
   card or changes its note, or removes, holds or restores an entry, what's
   live is kept as a **baseline** (unless changes are already waiting), due

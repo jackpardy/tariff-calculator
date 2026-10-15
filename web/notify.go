@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"slices"
 	"strings"
@@ -33,6 +34,9 @@ type notifier struct {
 	base string       // the site's address, for links in what's sent
 	keys *vapid       // the push keys, once read
 	http *http.Client // for pushes; nil for the usual one
+	// confirms are the confirmation emails sent, by competition, to allow
+	// maxConfirmsPerDay. Kept in memory: a restart forgets them.
+	confirms *limiter
 }
 
 func newNotifier(st *store.Store) *notifier {
@@ -40,7 +44,8 @@ func newNotifier(st *store.Store) *notifier {
 	if base == "" {
 		base = "https://tariff.pardy.ie"
 	}
-	return &notifier{st: st, mail: mailerFromEnv(), now: time.Now, base: strings.TrimSuffix(base, "/")}
+	return &notifier{st: st, mail: mailerFromEnv(), now: time.Now, base: strings.TrimSuffix(base, "/"),
+		confirms: newLimiter(maxConfirmsPerDay, 24*time.Hour)}
 }
 
 // notifyState is what's live, as far as anyone can be told about it.
@@ -509,17 +514,31 @@ func (n *notifier) seeYourPage(what string) string {
 func (n *notifier) offLink(token string) string     { return n.base + "/notify/off/" + token }
 func (n *notifier) confirmLink(token string) string { return n.base + "/notify/confirm/" + token }
 
+// maxConfirmsPerDay is how many confirmation emails one competition can
+// send in a day, so its form can't be used to send many.
+const maxConfirmsPerDay = 50
+
 // confirmEmail asks an address to confirm it before anything else is sent.
-func (n *notifier) confirmEmail(c store.Competition, sub store.Subscription, about string) error {
+// It goes to any address typed in, so it names no competition or club, whose
+// names the organiser and comp sec choose: it can't carry someone's message.
+func (n *notifier) confirmEmail(sub store.Subscription) error {
 	if n.mail == nil {
 		return fmt.Errorf("email is off")
 	}
-	body := fmt.Sprintf(`Someone, we hope you, asked for this email address to be told about changes at %s, for %s.
+	body := fmt.Sprintf(`Someone, we hope you, asked for this email address to be told about changes at a competition on %s.
 
-To start, confirm it:
+To start, confirm it (the page says which competition):
 %s
 
 If it wasn't you, ignore this email: nothing more will be sent.
-`, c.Name, about, n.confirmLink(sub.Token))
-	return n.mail.send(sub.Address, "Confirm your email for "+c.Name, body, nil)
+`, n.site(), n.confirmLink(sub.Token))
+	return n.mail.send(sub.Address, "Confirm your email", body, nil)
+}
+
+// site is the site's name, e.g. "tariff.pardy.ie".
+func (n *notifier) site() string {
+	if u, err := url.Parse(n.base); err == nil && u.Host != "" {
+		return u.Host
+	}
+	return n.base
 }

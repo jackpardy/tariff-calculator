@@ -527,6 +527,8 @@ for you: when or where you compete, what you officiate, or your card
   to Home Screen**), open it from there and turn them on.
 - **By email** (where it's on): give your email, tick that you're 18 or over
   (or that it's a parent's email), then tap the link it sends to confirm.
+  The email says only "a competition on tariff.pardy.ie"; the page it opens
+  names the competition.
 
 You get one message for each round of changes, a few minutes after the
 organiser publishes, saying what was and what is now. The comp sec hears about all the club's members, and
