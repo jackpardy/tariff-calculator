@@ -127,39 +127,57 @@ build on:
      as the builder saves it, updated), deleted with the member. A cap of
      about 30 a member. No ADR needed: routines are already kept, with
      entries.
-2. **Skill tracking** (clubs 2). Needs ADR 0011, amending 0004.
-   - **Coach:** on a gymnast's page, mark skills **Learning** or **Can do**,
-     with the date, found with the routine builder's picker and search. The
-     set routines' skills and the gymnast's routines' skills are offered
-     first.
-   - **Gymnast:** a **Skills** tab: what they can do, what they're learning,
-     and **Levels**: for each level in the systems the club picks (BUCS,
-     ISTO, British Gymnastics), whether every skill of its set routines is
-     ticked, and for its voluntary, each requirement with the ticked skills
-     that count towards it and roughly the highest difficulty those skills
-     give. It says "ready" only for set routines; a full "you can build a
-     legal voluntary" is the routine suggester (clubs 6).
-   - **Routines meet skills:** a routine on Routines (1) with a skill not
-     yet ticked as Can do is marked as such for the coach.
-   - **Comp sec:** a column on Members, "ready for" (the hardest level
-     whose set routines are covered), to help choose levels for a
-     competition.
-   - **Before it ships, change club retention:** count a member's or
-     coach's visit as using the club, show the comp sec when the club would
-     be deleted, and keep clubs that track skills longer (13 months, say,
-     so a summer break is safe).
+2. **Skill tracking** (clubs 2). Needs ADR 0011, amending 0004 for the
+   new personal data (progress, often of under-18s) and club retention.
+   Built in steps, each usable on its own:
+   1. **Clubs kept 13 months after last real use** (decided 2026-10-15),
+      for every club, not 120 days. Any comp sec, coach or member opening
+      their pages or changing something counts as use, not only the admin
+      and join links as now. The comp sec's Settings says when the club
+      would be deleted. Comes first, so no progress is lost over a summer.
+   2. **Marking skills.** Any skill the catalog can describe, found with
+      the routine builder's picker and search, can be marked **Learning** or
+      **Can do**, by the gymnast or by a coach (decided 2026-10-15). Each
+      mark says who made it and when ("Can do · marked by Declan (coach),
+      3 Oct", "Learning · marked by you"). A coach marking a skill the
+      gymnast already marked makes it theirs; the coach can filter for
+      gymnast-only marks, to confirm. The skills in the gymnast's routines
+      (from 1) are offered first, and a routine with a skill not yet marked
+      Can do says so to the coach.
+   3. **Who sees it** (decided 2026-10-15): the gymnast, the coaches who
+      see them, and the comp sec, at least. The comp sec can open it to
+      **every member of the club** (a setting, off to start with). The
+      member's **Skills** tab, a **Skills** page per gymnast under the
+      coach's Gymnasts, and the comp sec's Members, each with the shared
+      search and filters (by skill, by level, marked by whom).
+   4. **The club's own skills** (decided 2026-10-15). Coaches add skills to
+      a **club catalogue**, used for tracking alongside the built-in one:
+      - **the club's name for a skill the catalog can describe**, one it
+        names already ("Swivel Hips" for Seat Half Twist To Seat) or one
+        that shows as "Custom Skill" today. It keeps its notation and
+        tariff, so it can be used in routines too, and the club's name is
+        shown to the club;
+      - **anything else to track** that isn't a trampoline skill in the
+        Code of Points (a drill, a skill on another apparatus, a
+        conditioning test): a name and an optional note, for tracking only,
+        not in routines.
+   5. **Club levels** (decided 2026-10-15). Coaches make levels out of
+      skills, built-in or the club's ("Club Grade 1: seat drop, front drop,
+      ½ twist to feet…"), in order, to track gymnasts against. Each
+      gymnast sees how far through each level they are and what's left;
+      the comp sec's Members can filter by level and show "completed" and
+      "working on". A club level can start from a competition level's set
+      routine (BUCS L5's, say), so "ready for BUCS L5's set" is a club
+      level like any other. These are tracking levels, separate from the
+      competition levels the requirements engine checks routines against.
 
-**To decide before 2 (skill tracking):**
+**Still to decide for 2:**
 
-- **Who marks skills:** coaches only, or gymnasts mark Learning and coaches
-  confirm Can do?
-- **Who sees progress:** the gymnast and the coaches who see them, surely.
-  The comp sec too?
-- **How long clubs are kept** once they track skills, and whether a
-  member's progress goes with them if they move club. Not to start with: it
-  stays with the club.
-- **Which skills count:** any skill in the catalog, or a list per level
-  (each level's set routines plus the skills its voluntary rules name).
+- Whether a member's progress goes with them if they move club. Not to
+  start with: it stays with the club.
+- Whether club levels can be shared between clubs (by link, as
+  requirements and levels are), so a regional scheme's grades are made
+  once.
 
 **After these:** the session planner (clubs 3) needs no storage and can be
 built at any time, as a page that works like the calculator. Judge and coach
