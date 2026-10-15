@@ -432,7 +432,20 @@ type ClubLevelsPage struct {
 	New    string // the level editor, for a new level
 	Levels []ClubLevelView
 	Max    int
+	// Sets are competitions' set routines to start a level from, by
+	// organisation (New with ?set=<reference>).
+	Sets []SetRoutineGroup
 }
+
+// SetRoutineGroup is an organisation's set routines, to start a level from.
+type SetRoutineGroup struct {
+	Name     string
+	Routines []SetRoutineChoice
+}
+
+// SetRoutineChoice is a set routine to start a level from: its name, and the
+// level editor opening with it.
+type SetRoutineChoice struct{ Name, Href string }
 
 // CoachClubLevels is the coaches' page for the club's levels, in order.
 templ CoachClubLevels(p ClubLevelsPage) {
@@ -441,7 +454,23 @@ templ CoachClubLevels(p ClubLevelsPage) {
 		<p class="mb-4 is-size-7 has-text-grey">
 			Your club's levels to track gymnasts against, in order: each a list of skills or kinds of skill, several of a kind, links of skills one after another, or a set routine. Each gymnast's Skills page shows how far through each level they are.
 		</p>
-		<p class="mb-4"><a class="button is-primary is-small" href={ templ.SafeURL(p.New) }>New level</a></p>
+		<div class="buttons mb-4">
+			<a class="button is-primary is-small" href={ templ.SafeURL(p.New) }>New level</a>
+			// Or a level that starts with a competition's set routine (step 3 of the requirements workflow).
+			if len(p.Sets) > 0 {
+				<details class="comp-popup comp-popup-left" data-menu>
+					<summary class="button is-small comp-opens-button">Start from a set routine</summary>
+					<div class="comp-popup-panel comp-level-sets">
+						for _, g := range p.Sets {
+							<p class="comp-level-sets-head">{ g.Name }</p>
+							for _, s := range g.Routines {
+								<a href={ templ.SafeURL(s.Href) }>{ s.Name }</a>
+							}
+						}
+					</div>
+				</details>
+			}
+		</div>
 		if len(p.Levels) == 0 {
 			<p class="has-text-grey mb-4">No levels yet.</p>
 		}
