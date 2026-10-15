@@ -174,9 +174,9 @@ func TestLateNotes(t *testing.T) {
 	// Two flights on Panel 1, planned an hour before now and then an hour on;
 	// the first only just started, so the panel is 60 minutes late; Panel 2
 	// has nothing recorded.
-	first := competitions.ScheduledFlight{Flight: competitions.Flight{Level: "BUCS L3", Number: 1, Of: 1}, Area: "Panel 1", Start: minutes - 60, End: minutes}
-	second := competitions.ScheduledFlight{Flight: competitions.Flight{Level: "FIG AG3", Number: 1, Of: 1}, Area: "Panel 1", Start: minutes, End: minutes + 60}
-	other := competitions.ScheduledFlight{Flight: competitions.Flight{Level: "Other", Number: 1, Of: 1}, Area: "Panel 2", Start: minutes - 60, End: minutes}
+	first := competitions.ScheduledFlight{Flight: competitions.Flight{Event: "BUCS L3", Number: 1, Of: 1}, Area: "Panel 1", Start: minutes - 60, End: minutes}
+	second := competitions.ScheduledFlight{Flight: competitions.Flight{Event: "FIG AG3", Number: 1, Of: 1}, Area: "Panel 1", Start: minutes, End: minutes + 60}
+	other := competitions.ScheduledFlight{Flight: competitions.Flight{Event: "Other", Number: 1, Of: 1}, Area: "Panel 2", Start: minutes - 60, End: minutes}
 	comp.Published = &competitions.Schedule{
 		Setup:   competitions.Setup{Days: []competitions.Day{{Name: "Today"}}, Areas: []competitions.Area{{Name: "Panel 1"}, {Name: "Panel 2"}}},
 		Flights: []competitions.ScheduledFlight{first, second, other},
@@ -197,7 +197,7 @@ func TestLateNotes(t *testing.T) {
 	// Early, in hours and minutes as on the day page: a flight planned 2 h 5 min
 	// on, started now.
 	if minutes+125 < 24*60 {
-		early := competitions.ScheduledFlight{Flight: competitions.Flight{Level: "Early", Number: 1, Of: 1}, Area: "Panel 3", Start: minutes + 125, End: minutes + 185}
+		early := competitions.ScheduledFlight{Flight: competitions.Flight{Event: "Early", Number: 1, Of: 1}, Area: "Panel 3", Start: minutes + 125, End: minutes + 185}
 		comp.Published.Flights = append(comp.Published.Flights, early)
 		comp.Published.Setup.Areas = append(comp.Published.Setup.Areas, competitions.Area{Name: "Panel 3"})
 		if err := st.MarkFlight(context.Background(), comp.ID, competitions.FlightKey(early), "start", "Marshal"); err != nil {

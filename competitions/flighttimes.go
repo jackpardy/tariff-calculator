@@ -13,7 +13,7 @@ import (
 // FlightKey identifies a published flight, for recording its times: its day,
 // area, event and flight number.
 func FlightKey(f ScheduledFlight) string {
-	return fmt.Sprintf("%d|%s|%s|%s|%d", f.Day, f.Area, f.Level, f.Category, f.Number)
+	return fmt.Sprintf("%d|%s|%s|%s|%d", f.Day, f.Area, f.Event, f.Category, f.Number)
 }
 
 // Actual is when a flight really started and finished (zero for not yet).

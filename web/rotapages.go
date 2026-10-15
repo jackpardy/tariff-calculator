@@ -271,7 +271,7 @@ func dutiesIn(s competitions.Schedule, key string) []string {
 			if d.Person != key {
 				continue
 			}
-			if k := len(held) - 1; k >= 0 && held[k].f.Of > 1 && held[k].f.Event() == f.Event() && held[k].f.Area == f.Area && held[k].f.Day == f.Day &&
+			if k := len(held) - 1; k >= 0 && held[k].f.Of > 1 && held[k].f.Group() == f.Group() && held[k].f.Area == f.Area && held[k].f.Day == f.Day &&
 				held[k].role == d.Role && held[k].last+1 == f.Number {
 				held[k].f.End, held[k].n, held[k].last = f.End, held[k].n+1, f.Number
 				continue
@@ -296,11 +296,11 @@ func dutyLine(s competitions.Schedule, f competitions.ScheduledFlight, role stri
 	name := f.Name()
 	switch {
 	case n == 2 && n == f.Of:
-		name = f.Event() + " · both flights"
+		name = f.Group() + " · both flights"
 	case n > 1 && n == f.Of:
-		name = fmt.Sprintf("%s · all %d flights", f.Event(), n)
+		name = fmt.Sprintf("%s · all %d flights", f.Group(), n)
 	case n > 1:
-		name = fmt.Sprintf("%s · flights %d–%d of %d", f.Event(), last-n+1, last, f.Of)
+		name = fmt.Sprintf("%s · flights %d–%d of %d", f.Group(), last-n+1, last, f.Of)
 	}
 	return fmt.Sprintf("%s%s–%s · %s · %s · %s", day, competitions.Clock(f.Start), competitions.Clock(f.End), f.Area, name, competitions.RoleName(role))
 }

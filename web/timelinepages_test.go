@@ -116,9 +116,9 @@ func TestTimelineLayout(t *testing.T) {
 			Days:  []competitions.Day{{Name: "Fri", Start: "18:00", End: "20:00", Areas: []string{"Panel 1"}}, {Name: "Sat", Start: "09:00", End: "12:00"}},
 		},
 		Flights: []competitions.ScheduledFlight{
-			{Flight: competitions.Flight{Level: "A"}, Day: 1, Area: "Panel 1", Start: 9 * 60, End: 10 * 60, Officials: duties},
-			{Flight: competitions.Flight{Level: "B", Entries: []string{"x", "y"}}, Discipline: competitions.Synchro, Day: 1, Area: "Panel 1", Start: 9*60 + 30, End: 10*60 + 30}, // moved by hand onto A
-			{Flight: competitions.Flight{Level: "C"}, Day: 0, Area: "Panel 1", Start: 18 * 60, End: 18*60 + 20},
+			{Flight: competitions.Flight{Event: "A"}, Day: 1, Area: "Panel 1", Start: 9 * 60, End: 10 * 60, Officials: duties},
+			{Flight: competitions.Flight{Event: "B", Entries: []string{"x", "y"}}, Discipline: competitions.Synchro, Day: 1, Area: "Panel 1", Start: 9*60 + 30, End: 10*60 + 30}, // moved by hand onto A
+			{Flight: competitions.Flight{Event: "C"}, Day: 0, Area: "Panel 1", Start: 18 * 60, End: 18*60 + 20},
 		},
 	}
 	name := func(k string) string { return strings.ToUpper(k) }

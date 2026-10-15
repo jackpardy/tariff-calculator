@@ -94,7 +94,7 @@ func TestScheduleBasics(t *testing.T) {
 	}
 	// L1: 10 minutes + 10 × 5 = 60 minutes, early on (two panels, little else).
 	for _, f := range s.Flights {
-		if f.Level == "L1" && (f.End-f.Start != 60 || f.Start > 10*60) {
+		if f.Event == "L1" && (f.End-f.Start != 60 || f.Start > 10*60) {
 			t.Errorf("L1 for an hour, starting by 10:00: %s–%s", Clock(f.Start), Clock(f.End))
 		}
 	}
@@ -133,7 +133,7 @@ func TestScheduleEndAndDays(t *testing.T) {
 	s := PlanSchedule(entries, []string{"L1", "L2", "L3"}, setup, 1)
 	check(t, s)
 	// Each level is 70 minutes; two panels fit two levels by 10:30.
-	if len(s.Unplaced) != 1 || s.Unplaced[0].Level != "L3" && s.Unplaced[0].Level != "L1" && s.Unplaced[0].Level != "L2" {
+	if len(s.Unplaced) != 1 || s.Unplaced[0].Event != "L3" && s.Unplaced[0].Event != "L1" && s.Unplaced[0].Event != "L2" {
 		t.Errorf("one level doesn't fit: %+v", s.Unplaced)
 	}
 	// A second day takes it.
@@ -192,7 +192,7 @@ func TestScheduleRules(t *testing.T) {
 	}
 	at := map[string]ScheduledFlight{}
 	for _, f := range s.Flights {
-		at[f.Level] = f
+		at[f.Event] = f
 	}
 	if at["Synchro L1"].Area != "Panel 2" {
 		t.Errorf("synchro on Panel 2: %+v", at["Synchro L1"])
@@ -379,11 +379,11 @@ func TestOrderForRest(t *testing.T) {
 	for seed := range uint64(8) {
 		s := PlanSchedule(entries, []string{"BUCS L3", "BUCS L5"}, setup, seed)
 		first, second := s.Flights[0], s.Flights[1]
-		if first.Entries[0] != first.Level+"#0" || second.Entries[len(second.Entries)-1] != second.Level+"#0" {
+		if first.Entries[0] != first.Event+"#0" || second.Entries[len(second.Entries)-1] != second.Event+"#0" {
 			t.Fatalf("seed %d: Dara should be first then last: %v, %v", seed, first.Entries, second.Entries)
 		}
 		s.Redraw(1, clubs, pp, rand.New(rand.NewPCG(seed, 2)))
-		if e := s.Flights[1].Entries; e[len(e)-1] != second.Level+"#0" {
+		if e := s.Flights[1].Entries; e[len(e)-1] != second.Event+"#0" {
 			t.Errorf("seed %d: a redraw keeps Dara last: %v", seed, e)
 		}
 	}
@@ -414,8 +414,8 @@ func TestFreeAfterFlights(t *testing.T) {
 	s := Schedule{
 		Setup: Setup{Areas: []Area{{Name: "P1"}, {Name: "P2"}}, Days: []Day{{Name: "Sun", Start: "09:00", End: "17:00"}, {Name: "Mon", Start: "09:00", End: "10:00"}}},
 		Flights: []ScheduledFlight{
-			{Flight: Flight{Level: "A"}, Day: 0, Area: "P1", Start: 9 * 60, End: 10 * 60},
-			{Flight: Flight{Level: "B"}, Day: 0, Area: "P2", Start: 9 * 60, End: 9*60 + 30},
+			{Flight: Flight{Event: "A"}, Day: 0, Area: "P1", Start: 9 * 60, End: 10 * 60},
+			{Flight: Flight{Event: "B"}, Day: 0, Area: "P2", Start: 9 * 60, End: 9*60 + 30},
 		},
 		Blocks: []ScheduledBlock{
 			{Name: "Lunch", Day: 0, Areas: []string{"P1", "P2"}, Start: 12 * 60, End: 12*60 + 45},

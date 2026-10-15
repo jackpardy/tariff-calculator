@@ -14,25 +14,25 @@ import (
 
 // Flight is gymnasts who warm up and compete together, in running order.
 type Flight struct {
-	Level    string   `json:"level"`
+	Event    string   `json:"level"`              // the event's name (saved as "level", as it was first called)
 	Category string   `json:"category,omitempty"` // Men or Women, where the level is split
 	Number   int      `json:"number"`             // which of the category's flights (1-based)
 	Of       int      `json:"of"`                 // how many flights the category has
 	Entries  []string `json:"entries"`            // entry ids, in running order
 }
 
-// Event is what the flight is part of for its panel: its level, and its
+// Group is what the flight is part of for its panel: its event, and its
 // category where men and women fly separately (ADR 0006 Decision 1).
-func (f Flight) Event() string {
+func (f Flight) Group() string {
 	if f.Category == "" {
-		return f.Level
+		return f.Event
 	}
-	return f.Level + " " + f.Category
+	return f.Event + " " + f.Category
 }
 
 // Name is the flight's name, e.g. "BUCS L3 Women · flight 2 of 3".
 func (f Flight) Name() string {
-	name := f.Level
+	name := f.Event
 	if f.Category != "" {
 		name += " " + f.Category
 	}
@@ -92,7 +92,7 @@ func flightsFor(g group, max int, rng *rand.Rand) []Flight {
 	out := make([]Flight, k)
 	for i := range out {
 		lo, hi := i*len(order)/k, (i+1)*len(order)/k
-		out[i] = Flight{Level: g.level, Category: g.category, Number: i + 1, Of: k}
+		out[i] = Flight{Event: g.level, Category: g.category, Number: i + 1, Of: k}
 		for _, e := range order[lo:hi] {
 			out[i].Entries = append(out[i].Entries, e.ID)
 		}

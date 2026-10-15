@@ -707,7 +707,7 @@ func TestTimetableStorage(t *testing.T) {
 	}
 	must(t, s.SetSplit(ctx, c.ID, competitions.Split{Mode: competitions.SplitSome, Levels: []string{"BUCS L3"}}))
 	plan := competitions.Schedule{Setup: competitions.DefaultSetup([]string{""}), Published: true,
-		Flights: []competitions.ScheduledFlight{{Flight: competitions.Flight{Level: "BUCS L3", Number: 1, Of: 1, Entries: []string{"a", "b"}}, Area: "Panel 1", Start: 540, End: 560}}}
+		Flights: []competitions.ScheduledFlight{{Flight: competitions.Flight{Event: "BUCS L3", Number: 1, Of: 1, Entries: []string{"a", "b"}}, Area: "Panel 1", Start: 540, End: 560}}}
 	must(t, s.SetTimetable(ctx, c.ID, &plan))
 	got, _ = s.CompetitionByAdmin(ctx, admin)
 	if !got.Split.Splits("BUCS L3") || got.Timetable == nil || !got.Timetable.Published || got.Timetable.Flights[0].Entries[1] != "b" || got.Timetable.Flights[0].Start != 540 {
@@ -1411,7 +1411,7 @@ func TestDraftAndPublishedTimetables(t *testing.T) {
 	c, _ := s.Competition(ctx, "c2")
 	draft := *c.Timetable
 	must(t, s.PublishTimetable(ctx, "c2", &draft))
-	draft.Flights = []competitions.ScheduledFlight{{Flight: competitions.Flight{Level: "BUCS L3"}, Area: "Panel 1", Start: 540, End: 560}}
+	draft.Flights = []competitions.ScheduledFlight{{Flight: competitions.Flight{Event: "BUCS L3"}, Area: "Panel 1", Start: 540, End: 560}}
 	must(t, s.SetTimetable(ctx, "c2", &draft))
 	c, _ = s.Competition(ctx, "c2")
 	if len(c.Timetable.Flights) != 1 || c.Published == nil || len(c.Published.Flights) != 0 || !c.Published.Published {

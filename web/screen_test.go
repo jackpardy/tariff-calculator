@@ -19,7 +19,7 @@ func at(day, hour, minute int) time.Time {
 // flightAt is a one-flight event on an area, from start to end in minutes.
 func flightAt(area, level string, startH, endH int) competitions.ScheduledFlight {
 	return competitions.ScheduledFlight{
-		Flight: competitions.Flight{Level: level, Number: 1, Of: 1}, Area: area,
+		Flight: competitions.Flight{Event: level, Number: 1, Of: 1}, Area: area,
 		Start: startH * 60, End: endH * 60,
 	}
 }
@@ -40,7 +40,7 @@ func TestNowOn(t *testing.T) {
 		if f == nil {
 			return "-"
 		}
-		return f.Level
+		return f.Event
 	}
 	for _, tc := range []struct {
 		what    string

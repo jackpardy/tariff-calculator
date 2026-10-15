@@ -85,7 +85,7 @@ func (s Schedule) PlaceChange(entryID, event, category string, people map[string
 	}
 	best := -1
 	for i, f := range out.Flights {
-		if f.Event() != flightEvent(event, category) || slices.Contains(f.Entries, entryID) {
+		if f.Group() != (Flight{Event: event, Category: category}).Group() || slices.Contains(f.Entries, entryID) {
 			continue
 		}
 		if best < 0 || len(f.Entries) < len(out.Flights[best].Entries) {
@@ -115,7 +115,7 @@ func (s Schedule) PlaceChange(entryID, event, category string, people map[string
 	// entry aside); those that start later have moved.
 	key := func(f ScheduledFlight) string {
 		ids := slices.DeleteFunc(slices.Clone(f.Entries), func(id string) bool { return id == entryID })
-		return fmt.Sprint(f.Level, "|", f.Category, "|", ids)
+		return fmt.Sprint(f.Event, "|", f.Category, "|", ids)
 	}
 	starts := map[string]int{}
 	for _, f := range s.Flights {
@@ -132,13 +132,4 @@ func (s Schedule) PlaceChange(entryID, event, category string, people map[string
 		}
 	}
 	return out, place
-}
-
-// flightEvent is an event's name on its flights: the event, and its
-// category where men and women fly separately.
-func flightEvent(event, category string) string {
-	if category == "" {
-		return event
-	}
-	return fmt.Sprintf("%s %s", event, category)
 }

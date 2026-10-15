@@ -210,7 +210,7 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 						continue // withdrawn since
 					}
 					g := views.TimetableGymnast{ID: id, No: n + 1, Name: e.Entry.Gymnasts(), Club: clubOf(e), Category: e.Entry.Category}
-					if e.Entry.Event() != f.Level || (f.Category != "" && e.Entry.Category != f.Category) {
+					if e.Entry.Event() != f.Event || (f.Category != "" && e.Entry.Category != f.Category) {
 						g.Moved = strings.TrimSpace(e.Entry.Event() + " " + e.Entry.Category)
 					}
 					it.Gymnasts = append(it.Gymnasts, g)
