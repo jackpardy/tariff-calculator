@@ -663,6 +663,25 @@ var migrations = []string{
 		updated_at   TEXT NOT NULL
 	);
 	CREATE INDEX IF NOT EXISTS member_routines_member ON member_routines (member_id);`,
+
+	// 38: feedback about the app (roadmap, ready for the dry run), from any
+	// of a competition's pages, for the organiser and the maintainer: the
+	// words, a reply-to if given, the role and the page (its route pattern,
+	// never its path, which holds a secret link). The button is on for every
+	// competition, those already made too, until the organiser turns it off.
+	`ALTER TABLE competitions ADD COLUMN feedback BOOLEAN NOT NULL DEFAULT TRUE;
+	CREATE TABLE feedback (
+		id             TEXT PRIMARY KEY,
+		competition_id TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		text           TEXT NOT NULL,
+		reply_to       TEXT NOT NULL DEFAULT '',
+		role           TEXT NOT NULL,
+		page           TEXT NOT NULL,
+		at             TEXT NOT NULL,
+		done_at        TEXT NOT NULL DEFAULT '',
+		done_by        TEXT NOT NULL DEFAULT ''
+	);
+	CREATE INDEX feedback_competition ON feedback (competition_id, at);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

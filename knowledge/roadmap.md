@@ -445,7 +445,10 @@ December. Before it:
   Compress them, in the app or in the web server in front of it.
 - **A Feedback button** on every competition page while the dry run is on,
   saving the words, the page, the role and the time for the maintainer.
-  Helper links already have Flag a concern; this is for everyone.
+  Helper links already have Flag a concern; this is for everyone. *Built
+  2026-10-15*
+  ([feedback](features/competition-entries.md#feedback-about-the-app-ready-for-the-dry-run)):
+  the organiser reads it and can turn it off; `FEEDBACK_EMAIL` emails it.
 - **Send in the background.** A desk message, or a round of change
   notifications, emails and pushes each person one at a time before the
   organiser's page answers: about half a second to a second an email, so

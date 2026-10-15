@@ -34,6 +34,7 @@ are `views/competitions.templ` (the layout and shared parts),
     - [The menu and the Settings page (roadmap 2026-10-14)](#the-menu-and-the-settings-page-roadmap-2026-10-14)
     - [All people (roadmap 2026-10-14)](#all-people-roadmap-2026-10-14)
     - [Helpers' links, history and concerns (ADR 0009)](#helpers-links-history-and-concerns-adr-0009)
+    - [Feedback about the app (ready for the dry run)](#feedback-about-the-app-ready-for-the-dry-run)
     - [When entries, changes and sign-offs close](#when-entries-changes-and-sign-offs-close)
     - [Late changes](#late-changes)
     - [Limits and waiting lists](#limits-and-waiting-lists)
@@ -79,7 +80,7 @@ shared `pageMenu` in `views/menu.templ`, built by `orgMenu` in
 approved, Fees), **Timetable** (Timetable, Officials, Simulate, and once the
 timetable is planned the two "what if" pages), **On the day** (once the
 timetable is published: On the day, Desk messages, Venue screen) and
-**Settings** (Settings, History). Late changes and Coaches show a count of
+**Settings** (Settings, History, and Feedback for links that may read it). Late changes, Coaches and Feedback show a count of
 what waits; the menu works that out on every page. It shows only what the
 admin link may open (ADR 0009): a cards link sees Entries (with People) and History; a
 chair of judges adds the day's pages, and finds the printed sheets as buttons
@@ -93,7 +94,7 @@ jump links at the top: Links (helpers' links for the organiser, the club
 link, the link for entering on their own), Entries and deadlines, Limits and waiting
 lists, Events and levels (events, order of levels, men and women), Sign-off
 and coaches, Video, Going live, Telling people about changes (when people
-can ask to hear), Entering on their own, and Admin link and deleting (the
+can ask to hear), Entering on their own, Feedback, and Admin link and deleting (the
 organiser only). A co-organiser's link opens it without the links box,
 replacing the admin link or deleting. Each form posts to its own route, which
 comes back to the Settings page with a notice; the history records them as
@@ -191,6 +192,60 @@ or generally. The dashboard lists them (open first, with who and when), for
 the organisers only; the organiser and co-organisers mark each
 **Resolved**, with a note. The demo has helpers' links (printed by `demo`),
 three cards checked and two concerns.
+
+## Feedback about the app (ready for the dry run)
+
+For the dry run, everyone using a competition's pages can tell the people
+who make the app what confused them, at the moment it does. A small
+**Feedback** dropdown sits at the foot of every page someone uses for one
+competition: the organiser's and helpers' pages, the comp sec's pages for a
+member's entry, offers, late changes, notifications and the club's
+timetable, the club link's entering page, a member's and coach's pages for
+the competition, an individual's entry pages and My competition, entering on
+their own, the synchro partner's page and the individual's coach's sign-off.
+Not the venue screen, printouts, cards, downloads, or pages about several
+competitions (a club's, member's, coach's or individual's home page, and a
+coach's late change). It opens a short form: what happened or what they
+think (required, up to 2,000 characters) and, optionally, a name or email
+for a reply (up to 200). `static/js/feedback.js` sends it without leaving
+the page and says "Thanks: your feedback is sent." there; without
+JavaScript the page comes back at `#feedback-sent`, which shows the thanks.
+
+What's kept (migration 38, the `feedback` table, in `store/feedback.go`):
+the competition, the words, the reply-to, the role (Organiser, "Helper
+link: Chairs (chairs of judges)", Comp sec, Member, Coach, Individual,
+Synchro partner or An individual's coach, from the link it's posted under,
+never from the form), the page as its **route pattern**
+(`/clubs/member/{token}/competitions/{id}/day`, only one of those with the
+button; never the path, which holds the secret link) and the time. No
+token is kept. A competition takes 200 in any 24 hours; empty or overlong
+feedback is refused with a plain reason.
+
+How it works (`web/feedback.go`): `feedbackPages` lists the pages with the
+button by pattern. For those, the request gets an empty
+`views.FeedbackForm`; the loader that finds the page's competition
+(`gate` for the admin pages, `enteredCompetition`, `own`, `individual`,
+`clubLinkCompetition`, `invite`, `signoffEntry`, `gymnastEntered`,
+`coachSees`) fills in the competition and whether it shows the button, and
+the layout (`competitionLayout`) draws it. So no page loads the competition
+twice for it. The form posts to its link's own `/feedback` route; for a
+club's, member's, coach's or individual's link the posted competition must
+be one they're entered in.
+
+The organiser turns it off or on in **Settings** under Feedback ("Show a
+Feedback button on every page"); it's on for new competitions and, from the
+migration, for those already made. The **Feedback** page (in the Settings
+section of the menu, with a count of those not dealt with) lists it newest
+first: when, role, page, the words and the reply-to, with a **Dealt with**
+tick. Like resolving concerns, reading it needs the organiser's or a
+co-organiser's link; anyone with an admin link but the venue screen's can
+send it. Sending, marking and turning it on or off are in the history.
+
+With `FEEDBACK_EMAIL` set and email set up ([deploy](../operations/deploy.md#notifications)),
+each is emailed there too, with a `Reply-To` when the reply-to is an email
+address, sent in the background (`emailFeedback`, one call to move onto the
+background sender). The demo has two, from a member's My competition and the
+chairs of judges.
 
 ## When entries, changes and sign-offs close
 

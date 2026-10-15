@@ -139,6 +139,7 @@ func (p *competitionPages) gymnastEntered(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return c, nil, false
 	}
+	feedbackOn(r, c)
 	return c, mine, true
 }
 

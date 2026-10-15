@@ -23,6 +23,7 @@ type SettingsPage struct {
 	LiveTime      string
 	NotifyOn      bool // people can ask to hear about changes (ADR 0008)
 	NoWait        bool // no wait on the competition's days
+	FeedbackButton bool // a Feedback button on every page
 	Limits        []LimitField
 	Video         VideoForm
 	CoachApproval CoachApprovalForm
@@ -61,7 +62,8 @@ templ CompetitionSettings(p SettingsPage) {
 			if p.NotifyOn {
 				<a href="#notify">Telling people about changes</a> ·
 			}
-			<a href="#individuals">Entering on their own</a>
+			<a href="#individuals">Entering on their own</a> ·
+			<a href="#feedback">Feedback</a>
 			if p.Access.Organiser {
 				· <a href="#admin-link">Admin link and deleting</a>
 			}
@@ -173,6 +175,16 @@ templ CompetitionSettings(p SettingsPage) {
 				<input type="hidden" name="on" value="1"/>
 				<button class="button is-small" type="submit">Let gymnasts enter on their own</button>
 			}
+		</form>
+		@settingsGroup("feedback", "Feedback")
+		<form method="post" action={ templ.SafeURL(p.Base + "/feedback-button") } class="mb-3">
+			<input type="hidden" name="on" value={ boolValue(!p.FeedbackButton) }/>
+			<label class="checkbox is-size-7">
+				<input type="checkbox" checked?={ p.FeedbackButton } onchange="this.form.submit()"/>
+				Show a Feedback button on every page
+			</label>
+			<noscript><button class="button is-small" type="submit">Change</button></noscript>
+			<p class="help">For everyone using the competition's pages to tell the people who make the app what confused them. You read it under <a href={ templ.SafeURL(p.Base + "/feedback") }>Feedback</a>.</p>
 		</form>
 		if p.Access.Organiser {
 			@settingsGroup("admin-link", "Admin link and deleting")

@@ -160,6 +160,11 @@ pair's one routine), checked as the Routine Builder checks them.
   an entry or generally ("element 7 isn't on the card"). They're listed at
   the top of your entries page, for you alone; mark each **Resolved**, with
   a note of what was done.
+- **Feedback:** while the app is new, every page has a **Feedback** button
+  at the foot, for anyone to say what confused them. It goes to the people
+  who make the app, and you see it under **Settings**, **Feedback**: tick
+  **Dealt with** as you go. Turn the button off in **Settings**, under
+  Feedback.
 - **Approved coaches:** where entries need sign-off, tick **Coaches must be
   approved** and choose the lowest coaching level you accept in each
   discipline (Level 2 to start with; British Gymnastics and Gymnastics

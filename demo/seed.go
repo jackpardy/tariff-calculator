@@ -627,6 +627,13 @@ func (s *seeder) run(out io.Writer) error {
 	}
 	s.post(chairs+"/concerns", url.Values{"text": {"Panel 2's trampoline has a loose spring cover: can someone look at it at lunch?"}})
 
+	// Feedback about the app, from a member's My competition and a chair's
+	// page; the organiser has dealt with neither yet.
+	s.post(coached.link+"/feedback", url.Values{"competition": {compID}, "page": {"/clubs/member/{token}/competitions/{id}/day"},
+		"text": {"I couldn't find what time my warm-up is. Is it the time beside my flight?"}, "reply": {coached.name}})
+	s.post(chairs+"/feedback", url.Values{"page": {"/competitions/admin/{token}/day"},
+		"text": {"On a phone the Started button is right beside Finished: I nearly tapped the wrong one."}})
+
 	// Entry fees: some clubs have paid, some in part.
 	s.post(admin+"/fees/settings", url.Values{"fee-": {"12"}, "fee-synchro": {"15"}, "fee-tumbling": {"10"}, "fee-dmt": {"10"}, "club": {"25"},
 		"instructions": {"Bank transfer to ISTO 2027, IBAN IE00 DEMO 0000 0000 0000 00, with your club's name as the reference, by 20 February."}})

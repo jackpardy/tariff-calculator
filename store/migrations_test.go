@@ -117,7 +117,7 @@ func TestRebuildingNeedsForeignKeysOff(t *testing.T) {
 	}
 }
 
-// Migration 35 makes an individual's subscriptions the individual's, from the
+// Migration 36 makes an individual's subscriptions the individual's, from the
 // entry they were made on; one whose entry has gone stays as it was.
 func TestIndividualSubscriptionsMigrate(t *testing.T) {
 	dir := t.TempDir()
@@ -132,9 +132,9 @@ func TestIndividualSubscriptionsMigrate(t *testing.T) {
 		_, _, err := s.Subscribe(ctx, Subscription{CompetitionID: c.ID, Kind: NotifyIndividual, OwnerID: owner, Channel: ByPush, Address: "https://push.example/" + owner, Keys: "{}", Topics: Topics})
 		must(t, err)
 	}
-	_, err = s.db.ExecContext(ctx, `DELETE FROM migrations WHERE version >= 35`)
+	// The migration again, alone (later ones can't run twice).
+	_, err = s.db.ExecContext(ctx, migrations[36-1])
 	must(t, err)
-	s = reopen(t, s, dir)
 	if mine, _ := s.Subscriptions(ctx, c.ID, NotifyIndividual, e.IndividualID); len(mine) != 1 {
 		t.Errorf("the individual's: %+v", mine)
 	}
@@ -177,5 +177,30 @@ func TestNotificationsKeepNoPage(t *testing.T) {
 	must(t, s.db.QueryRowContext(ctx, `SELECT page FROM notify_subscriptions WHERE id = $1`, sub.ID).Scan(&page))
 	if page != "" {
 		t.Errorf("cleared: %q", page)
+	}
+}
+
+// Migration 38 adds feedback, with the button on for competitions already
+// made too.
+func TestFeedbackMigrates(t *testing.T) {
+	all := migrations
+	t.Cleanup(func() { migrations = all })
+	migrations = all[:38-1]
+	dir := t.TempDir()
+	s, err := Open(ctx, dir)
+	must(t, err)
+	c, _, err := s.CreateCompetition(ctx, competition())
+	must(t, err)
+	migrations = all
+	s = reopen(t, s, dir)
+	got, err := s.Competition(ctx, c.ID)
+	must(t, err)
+	if !got.FeedbackButton {
+		t.Error("the button is on for a competition made before")
+	}
+	f, err := s.AddFeedback(ctx, c.ID, Feedback{Text: "Hi", Role: "Member", Page: "/clubs/member/{token}/competitions/{id}"})
+	must(t, err)
+	if kept, err := s.FeedbackFor(ctx, c.ID); err != nil || len(kept) != 1 || kept[0].ID != f.ID || kept[0].Page != f.Page {
+		t.Errorf("feedback is kept: %+v %v", kept, err)
 	}
 }

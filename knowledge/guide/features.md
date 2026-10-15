@@ -123,6 +123,9 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
 - **Links for helpers**: give those checking cards, chairs of judges, the
   timetable team, a venue screen or a co-organiser a link of their own; every
   change is listed in a history, and anyone with a link can flag a concern.
+- **Feedback**: a button at the foot of every page of a competition, for
+  anyone to say what confused them; the organiser reads it, and can turn it
+  off.
 - **Score sheets**: printed for the recorders, a flight to a page, and on
   each official's phone for their own panels.
 - **Tell me about changes**: a push on your phone or an email when the

@@ -125,6 +125,12 @@ send email by SMTP with STARTTLS (ADR 0008 Decision 7), set by:
 - `PUBLIC_URL`, the site's address for links in emails (default
   `https://tariff.pardy.ie`).
 
+`FEEDBACK_EMAIL`, if set, is where each piece of
+[feedback about the app](../features/competition-entries.md#feedback-about-the-app-ready-for-the-dry-run)
+is emailed as it's sent (for the maintainer, during the dry run); it needs
+the email settings above too. Without it, feedback is only on each
+competition's Feedback page.
+
 Without `SMTP_HOST` and `MAIL_FROM`, email isn't offered. Phone push needs
 nothing set: the app makes its push (VAPID) keys on first use and keeps them
 in the database, so the nightly backup covers them (losing them stops push
