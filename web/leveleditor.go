@@ -1,0 +1,216 @@
+package web
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"slices"
+	"strings"
+
+	"tariffCalculator/requirements"
+	"tariffCalculator/store"
+	"tariffCalculator/views"
+)
+
+// The level editor on the club's page (ADR 0011 Decision 5, roadmap's
+// requirements workflow step 3): a coach writes one of the club's levels in
+// the requirements editor, with the kinds of rule a level tracks and the
+// club's own named skills to pick, and saves it straight to the club. One
+// copy, on any phone; the Requirements page's Save to club levels stays as
+// another way in.
+
+// clubPicks are the club's own named skills, for the editor to offer first:
+// each as its skill, in its shape where the shape counts, named as the club
+// names it.
+func (p *competitionPages) clubPicks(r *http.Request, clubID string) ([]requirements.Pick, error) {
+	named, _, err := p.clubSkillsOf(r, clubID)
+	if err != nil {
+		return nil, err
+	}
+	var out []requirements.Pick
+	for _, s := range named {
+		if s.CustomName == "" {
+			continue
+		}
+		m := requirements.SkillMatch(s)
+		if s.ShapeIsRelevant() {
+			m.Shapes = []string{strings.ToLower(s.Shape.String())}
+		}
+		m.Label = s.CustomName
+		out = append(out, requirements.Pick{ID: "club:" + s.CustomName, Label: s.CustomName, Group: "Your club's skills", Match: m})
+	}
+	slices.SortFunc(out, func(a, b requirements.Pick) int { return strings.Compare(a.Label, b.Label) })
+	return out, nil
+}
+
+// levelEditorData is the editor as it shows a level being written: the
+// set, its problems and the rules that can't be met together, and where it
+// posts on the coach's page (token) for the level (id, "" for a new one).
+func levelEditorData(set requirements.Set, problems []string, token, id string, picks []requirements.Pick) views.SetEditorData {
+	if set.Rules == nil {
+		set.Rules = []requirements.Rule{}
+	}
+	var conflicts []string
+	if err := set.Validate(); err != nil {
+		problems = append(problems, strings.Split(err.Error(), "\n")...)
+	} else {
+		conflicts = requirements.Conflicts(set)
+	}
+	data, _ := json.Marshal(set)
+	save := coachLevelsPath(token) + "/new"
+	if id != "" {
+		save = coachLevelsPath(token) + "/" + id + "/edit"
+	}
+	return views.SetEditorData{Set: set, JSON: string(data), Problems: problems, Conflicts: conflicts, Club: &views.ClubEditor{
+		Endpoint: coachLevelsPath(token) + "/editor?level=" + id, Save: save, Back: coachLevelsPath(token), Picks: picks,
+	}}
+}
+
+// newClubLevel is the editor for a new level: blank, or a copy of one of the
+// club's levels (from).
+func (p *competitionPages) newClubLevel(w http.ResponseWriter, r *http.Request) {
+	coach, club, ok := p.coach(w, r)
+	if !ok {
+		return
+	}
+	set := requirements.Set{Format: requirements.Format, Name: "New level", Rules: []requirements.Rule{newRule("include")}}
+	if from := r.URL.Query().Get("from"); from != "" {
+		level, found, err := p.clubLevel(r, coach, from)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		if found {
+			if copied, err := requirements.Parse([]byte(level.Set)); err == nil {
+				set, set.Name = copied, "Copy of "+level.Name
+			}
+		}
+	}
+	p.showLevelEditor(w, r, coach, club, "New level", set, nil, "")
+}
+
+// editClubLevel is the editor for one of the club's levels.
+func (p *competitionPages) editClubLevel(w http.ResponseWriter, r *http.Request) {
+	coach, club, ok := p.coach(w, r)
+	if !ok {
+		return
+	}
+	level, found, err := p.clubLevel(r, coach, r.PathValue("id"))
+	switch {
+	case err != nil:
+		failed(w, r, err)
+		return
+	case !found:
+		http.NotFound(w, r)
+		return
+	}
+	set, err := requirements.Parse([]byte(level.Set))
+	if err != nil {
+		badRequest(w, fmt.Errorf("that level's requirements couldn't be read: %w", err))
+		return
+	}
+	p.showLevelEditor(w, r, coach, club, level.Name, set, nil, level.ID)
+}
+
+// showLevelEditor shows the editor page for a level (id, "" for a new one).
+func (p *competitionPages) showLevelEditor(w http.ResponseWriter, r *http.Request, coach store.Coach, club, title string, set requirements.Set, problems []string, id string) {
+	picks, err := p.clubPicks(r, coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	render(w, r, views.ClubLevelEditor(views.LevelEditorPage{
+		Frame: coachFrame(r, coach, club, coachLevelsTab), Title: title,
+		Editor: levelEditorData(set, problems, r.PathValue("token"), id, picks),
+	}))
+}
+
+// clubLevelEditor draws the editor again as it changes (posted by htmx, as
+// the Requirements page's is, with level: the level's id, "" for a new one).
+func (p *competitionPages) clubLevelEditor(w http.ResponseWriter, r *http.Request) {
+	coach, _, ok := p.coach(w, r)
+	if !ok {
+		return
+	}
+	picks, err := p.clubPicks(r, coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	set, problems := parseSetForm(r, picks...)
+	applySetAction(&set, r.FormValue("action"), r.FormValue("add"))
+	render(w, r, views.SetEditor(levelEditorData(set, problems, r.PathValue("token"), r.URL.Query().Get("level"), picks)))
+}
+
+// saveNewClubLevel saves the editor's level as a new one of the club's,
+// last.
+func (p *competitionPages) saveNewClubLevel(w http.ResponseWriter, r *http.Request) {
+	p.saveLevelFromEditor(w, r, "")
+}
+
+// saveEditedClubLevel saves the editor's level in place of the one it was.
+func (p *competitionPages) saveEditedClubLevel(w http.ResponseWriter, r *http.Request) {
+	p.saveLevelFromEditor(w, r, r.PathValue("id"))
+}
+
+// saveLevelFromEditor saves the posted editor as a level (id, "" for a new
+// one); with problems, the editor shows again, saying what.
+func (p *competitionPages) saveLevelFromEditor(w http.ResponseWriter, r *http.Request, id string) {
+	coach, club, ok := p.coach(w, r)
+	if !ok {
+		return
+	}
+	picks, err := p.clubPicks(r, coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	set, problems := parseSetForm(r, picks...)
+	set.Rules = slices.DeleteFunc(set.Rules, func(rule requirements.Rule) bool { return !trackable(rule) })
+	if err := set.Validate(); err != nil || len(problems) > 0 {
+		title := "New level"
+		if id != "" {
+			title = set.Name
+		}
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		p.showLevelEditor(w, r, coach, club, title, set, problems, id)
+		return
+	}
+	data, err := json.Marshal(set)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	token := r.PathValue("token")
+	notice := set.Name + " saved."
+	if id == "" {
+		_, err = p.st.SaveClubLevel(r.Context(), coach, "", set.Name, string(data))
+	} else {
+		err = p.st.UpdateClubLevel(r.Context(), coach, id, set.Name, string(data))
+	}
+	switch {
+	case errors.Is(err, store.ErrLimit):
+		notice = fmt.Sprintf("The club has %d levels, the most there's room for: remove one first.", store.MaxClubLevels)
+	case errors.Is(err, store.ErrNotFound):
+		http.NotFound(w, r)
+		return
+	case err != nil:
+		failed(w, r, err)
+		return
+	}
+	seeOther(w, r, coachLevelsPath(token), notice)
+}
+
+// clubLevel is one of the coach's club's levels, by id.
+func (p *competitionPages) clubLevel(r *http.Request, coach store.Coach, id string) (store.ClubLevel, bool, error) {
+	levels, err := p.st.ClubLevels(r.Context(), coach.ClubID)
+	if err != nil {
+		return store.ClubLevel{}, false, err
+	}
+	i := slices.IndexFunc(levels, func(l store.ClubLevel) bool { return l.ID == id })
+	if i < 0 {
+		return store.ClubLevel{}, false, nil
+	}
+	return levels[i], true, nil
+}

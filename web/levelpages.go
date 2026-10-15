@@ -31,6 +31,12 @@ func (p *competitionPages) registerLevels(handle func(string, http.HandlerFunc))
 	handle("POST /clubs/coach/{token}/levels/{id}/items", p.clubLevelItems)
 	handle("POST /clubs/coach/{token}/levels/{id}/move", p.moveClubLevel)
 	handle("POST /clubs/coach/{token}/levels/{id}/remove", p.removeClubLevel)
+	// The level editor on the club's page (web/leveleditor.go).
+	handle("GET /clubs/coach/{token}/levels/new", p.newClubLevel)
+	handle("POST /clubs/coach/{token}/levels/new", p.saveNewClubLevel)
+	handle("GET /clubs/coach/{token}/levels/{id}/edit", p.editClubLevel)
+	handle("POST /clubs/coach/{token}/levels/{id}/edit", p.saveEditedClubLevel)
+	handle("POST /clubs/coach/{token}/levels/editor", p.clubLevelEditor)
 }
 
 // levelItemPrefix starts the item of a level's rule marked as a whole.
@@ -208,7 +214,7 @@ func (p *competitionPages) coachLevels(w http.ResponseWriter, r *http.Request) {
 		own[c.ID] = c
 	}
 	base := coachLevelsPath(r.PathValue("token"))
-	page := views.ClubLevelsPage{Frame: coachFrame(r, coach, club, coachLevelsTab), Max: store.MaxClubLevels}
+	page := views.ClubLevelsPage{Frame: coachFrame(r, coach, club, coachLevelsTab), Max: store.MaxClubLevels, New: base + "/new"}
 	for i, l := range levels {
 		v := views.ClubLevelView{Name: l.Name, By: l.ByName, Updated: l.UpdatedAt.In(local).Format("2 January 2006"),
 			Items: base + "/" + l.ID + "/items", Move: base + "/" + l.ID + "/move", Remove: base + "/" + l.ID + "/remove",
@@ -217,6 +223,7 @@ func (p *competitionPages) coachLevels(w http.ResponseWriter, r *http.Request) {
 			for _, rule := range set.Rules {
 				v.Rules = append(v.Rules, requirements.Describe(rule))
 			}
+			v.Edit, v.Copy = base+"/"+l.ID+"/edit", base+"/new?from="+l.ID
 			v.Open = requirementsLink(l.Set)
 			v.Share = levelShareLink(r, l, own)
 		} else {

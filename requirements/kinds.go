@@ -118,13 +118,7 @@ func SkillMatch(s skills.TrampolineSkill) Matcher {
 // PickOf is the pick a Matcher is, by ID; "" for a Matcher of the coach's
 // own (or none). Its wording doesn't count.
 func PickOf(m Matcher) string {
-	m.Label = ""
-	for _, p := range Picks() {
-		if sameMatcher(p.Match, m) {
-			return p.ID
-		}
-	}
-	return ""
+	return PickIn(Picks(), m)
 }
 
 // PickByID is a pick, by its ID.
@@ -242,4 +236,29 @@ func (m Matcher) Clone() Matcher {
 	}
 	out.Shapes, out.Takeoff, out.Landing = slices.Clone(m.Shapes), slices.Clone(m.Takeoff), slices.Clone(m.Landing)
 	return out
+}
+
+// LevelKinds are the kinds of rule a club's level tracks from skills (ADR
+// 0011 Decision 5): a skill or kind of skill, several of a kind, a link of
+// skills one after another, each by a different skill. Rules about a single
+// routine (how many skills, difficulty, repeats…) aren't among them.
+var LevelKinds = []RuleKind{
+	{"include", "A skill, or a kind of skill"},
+	{"count", "Several of a kind (at least, at most)"},
+	{"then", "A link: this, then this"},
+	{Separate, "Each by a different skill"},
+}
+
+// PickIn is PickOf over picks: the first that describes the same skills as
+// m, by ID; "" for none.
+func PickIn(picks []Pick, m Matcher) string {
+	m.Label = ""
+	for _, p := range picks {
+		pm := p.Match
+		pm.Label = ""
+		if sameMatcher(pm, m) {
+			return p.ID
+		}
+	}
+	return ""
 }

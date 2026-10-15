@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	nethtml "golang.org/x/net/html"
+
 	"tariffCalculator/skills"
 )
 
@@ -257,5 +259,88 @@ func TestSharingClubLevels(t *testing.T) {
 	}
 	if rec := do(t, h, http.MethodPost, "/clubs/levels/shared", url.Values{"level": {"nope"}}); rec.Code != http.StatusBadRequest {
 		t.Errorf("a level that can't be read: %d", rec.Code)
+	}
+}
+
+// A coach writes a level on the club's page: a new one, with the club's own
+// named skills to pick first, saved straight to the club; changed in place;
+// copied as a new one. Only the kinds of rule a level tracks are offered.
+func TestClubLevelEditor(t *testing.T) {
+	h := competitionServer(t)
+	club := aClub(t, h, created(t, h, newCompetition()), "UCD", false, "A. Murphy")
+	ann := pathIn(t, do(t, h, http.MethodPost, club.page+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
+	// The club names a back tuck "Back tuck (club)".
+	back := skillJSON(t, "backSomersault")
+	back["custom_name"] = "Back tuck (club)"
+	raw, _ := json.Marshal(back)
+	redirected(t, h, ann+"/club-skills", url.Values{"skill": {string(raw)}, "name": {"Back tuck (club)"}})
+
+	levels := do(t, h, http.MethodGet, ann+"/levels", nil).Body.String()
+	if !strings.Contains(levels, `href="`+ann+`/levels/new"`) {
+		t.Fatalf("the Levels page offers a new level: %s", levels)
+	}
+	page := do(t, h, http.MethodGet, ann+"/levels/new", nil).Body.String()
+	form := submitted(func() *nethtml.Node {
+		doc, err := nethtml.Parse(strings.NewReader(page))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return doc
+	}())
+	if !strings.Contains(page, `<optgroup label="Your club&#39;s skills">`) || !strings.Contains(page, `value="club:Back tuck (club)"`) {
+		t.Errorf("the club's own named skills come first: %s", page)
+	}
+	for _, kind := range []string{`value="include"`, `value="count"`, `value="then"`} {
+		if !strings.Contains(page, kind) {
+			t.Errorf("a level offers %s", kind)
+		}
+	}
+	if strings.Contains(page, `value="difficulty"`) || strings.Contains(page, `value="elements"`) {
+		t.Error("rules about a single routine aren't offered")
+	}
+
+	// Pick the club's back tuck, name it, and save.
+	form.Set("name", "Grade 1")
+	form.Set("r0.m.pick", "club:Back tuck (club)")
+	edited := do(t, h, http.MethodPost, ann+"/levels/editor", form)
+	if edited.Code != http.StatusOK || !strings.Contains(edited.Body.String(), "At least 1 element: Back tuck (club)") {
+		t.Fatalf("picking the club's skill: %d %s", edited.Code, edited.Body.String())
+	}
+	// Saved as the editor now shows it, as the browser does.
+	form = submitted(func() *nethtml.Node {
+		doc, _ := nethtml.Parse(strings.NewReader(edited.Body.String()))
+		return doc
+	}())
+	location := redirected(t, h, ann+"/levels/new", form)
+	if notice := noticeOf(t, location); notice != "Grade 1 saved." {
+		t.Errorf("saved: %q", notice)
+	}
+	levels = do(t, h, http.MethodGet, ann+"/levels", nil).Body.String()
+	edit := regexp.MustCompile(`href="(` + regexp.QuoteMeta(ann) + `/levels/[^/"]+/edit)"`).FindStringSubmatch(levels)
+	if !strings.Contains(levels, "Back tuck (club)") || edit == nil {
+		t.Fatalf("the level, with Change: %s", levels)
+	}
+
+	// Change it: renamed, and a second rule; saved in place.
+	page = do(t, h, http.MethodGet, edit[1], nil).Body.String()
+	form = submitted(func() *nethtml.Node {
+		doc, _ := nethtml.Parse(strings.NewReader(page))
+		return doc
+	}())
+	form.Set("name", "Grade 1A")
+	redirected(t, h, edit[1], form)
+	levels = do(t, h, http.MethodGet, ann+"/levels", nil).Body.String()
+	if !strings.Contains(levels, "Grade 1A") || strings.Contains(levels, ">Grade 1<") || strings.Count(levels, "/edit\"") != 1 {
+		t.Errorf("changed in place: %s", levels)
+	}
+
+	// Copy it as a new level.
+	copyLink := regexp.MustCompile(`href="(` + regexp.QuoteMeta(ann) + `/levels/new\?from=[^"]+)"`).FindStringSubmatch(levels)
+	if copyLink == nil {
+		t.Fatal("no Copy as a new level")
+	}
+	page = do(t, h, http.MethodGet, unescape(copyLink[1]), nil).Body.String()
+	if !strings.Contains(page, `value="Copy of Grade 1A"`) || !strings.Contains(page, "Back tuck (club)") {
+		t.Errorf("a copy starts from the level: %s", page)
 	}
 }
