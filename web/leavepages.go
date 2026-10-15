@@ -16,7 +16,7 @@ import (
 // seats as can be. Nothing is saved.
 
 func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, s, _, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -24,17 +24,12 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 		back(w, r, "Plan the timetable first.")
 		return
 	}
-	officials, err := p.rotaOf(r, c, entries)
+	f, err := p.liveRota(r.Context(), c)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	people, names := peopleOf(entries)
-	for _, o := range officials {
-		if names[o.Key] == "" {
-			names[o.Key] = o.Name
-		}
-	}
+	people, names := f.one, f.clashNames()
 	name := func(k string) string {
 		if n := names[k]; n != "" {
 			return n
@@ -61,7 +56,7 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 	for k := range seated {
 		page.People = append(page.People, views.FlightOption{Value: k, Label: name(k)})
 	}
-	slices.SortFunc(page.People, func(a, b views.FlightOption) int { return strings.Compare(a.Label, b.Label) })
+	slices.SortFunc(page.People, func(a, b views.FlightOption) int { return competitions.CompareNames(a.Label, b.Label) })
 
 	if page.Person != "" {
 		page.Asked = true
@@ -70,14 +65,18 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 		if err1 != nil || err2 != nil {
 			page.Problems = []string{"Give the day and the time they leave (e.g. 13:00)."}
 		} else {
-			out, fills, err := s.Left(competitions.Leave{Person: page.Person, Day: day, From: from, ForGood: page.ForGood, Prefer: page.Prefer}, people, officials)
+			l := competitions.Leave{Person: page.Person, Day: day, From: from, ForGood: page.ForGood, Prefer: page.Prefer}
+			_, fills, err := s.Left(l, people, f.officials)
 			if err != nil {
 				page.Problems = sentences(err)
 			} else if r.Method == http.MethodPost {
-				p.keepWhatIf(w, r, c, out, name(page.Person)+"'s seats are filled in the draft.")
+				p.keepWhatIf(w, r, c, func(s competitions.Schedule) (competitions.Schedule, error) {
+					out, _, err := s.Left(l, people, f.officials)
+					return out, err
+				}, name(page.Person)+"'s seats are filled in the draft.")
 				return
 			} else {
-				page.Keep = r.URL.RequestURI()
+				page.Keep, page.Version = r.URL.RequestURI(), s.Version()
 				page.Result = leaveView(s, fills, name, page.Person)
 			}
 		}
@@ -118,10 +117,6 @@ func leaveView(s competitions.Schedule, fills []competitions.SeatFill, name func
 	if v.Empty > 0 {
 		parts = append(parts, fmt.Sprintf("%d left empty", v.Empty))
 	}
-	seats := "seats"
-	if len(fills) == 1 {
-		seats = "seat"
-	}
-	v.Summary = fmt.Sprintf("%s's %d %s: %s.", v.Who, len(fills), seats, strings.Join(parts, ", "))
+	v.Summary = fmt.Sprintf("%s's %s: %s.", v.Who, views.Count(len(fills), "seat", "seats"), strings.Join(parts, ", "))
 	return v
 }

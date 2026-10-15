@@ -83,7 +83,7 @@ func TestRotaNeverTwoPlaces(t *testing.T) {
 	}
 	for _, f := range s.Flights {
 		for _, d := range f.Officials {
-			if d.Person == "J-0" && f.Level == "BUCS L3" {
+			if d.Person == "J-0" && f.Event == "BUCS L3" {
 				t.Errorf("J-0 competes in BUCS L3")
 			}
 		}
@@ -117,8 +117,8 @@ func TestRotaWhoCanDoWhat(t *testing.T) {
 
 	// Seats are counted, not flights: 3 empty on one, 1 on another.
 	empty := Schedule{Flights: []ScheduledFlight{
-		{Flight: Flight{Level: "A"}, Area: "P1", Officials: []Duty{{Role: RoleExecution}, {Role: RoleExecution}, {Role: RoleDifficulty}, {Role: RoleChair, Person: "x"}}},
-		{Flight: Flight{Level: "B"}, Area: "P1", Officials: []Duty{{Role: RoleExecution}}},
+		{Flight: Flight{Event: "A"}, Area: "P1", Officials: []Duty{{Role: RoleExecution}, {Role: RoleExecution}, {Role: RoleDifficulty}, {Role: RoleChair, Person: "x"}}},
+		{Flight: Flight{Event: "B"}, Area: "P1", Officials: []Duty{{Role: RoleExecution}}},
 	}}
 	if r := empty.RotaReport(nil, nil); r.Empty != 4 || len(r.Short) != 2 || r.Short[0] != "A on P1: no one for 1 difficulty judge and 2 execution judges" {
 		t.Errorf("4 empty seats on 2 flights: %d, %q", r.Empty, r.Short)
@@ -142,7 +142,7 @@ func TestRotaRules(t *testing.T) {
 			if d.Person == "J-1" || d.Person == "J-2" {
 				t.Errorf("%s sits on %s", d.Person, f.Name())
 			}
-			if f.Level == "BUCS L5" && d.Role == RoleChair && d.Person != "J-7" {
+			if f.Event == "BUCS L5" && d.Role == RoleChair && d.Person != "J-7" {
 				t.Errorf("Mary should chair BUCS L5, not %s", d.Person)
 			}
 		}
@@ -233,7 +233,7 @@ func TestPlacedWhereJudgesAreFree(t *testing.T) {
 	staff := &Staffing{Judges: map[string][]string{"L5": {"J-0", "J-1", "J-2", "J-3", "J-4", "J-5"}}, Need: map[string]int{Trampoline: 6}}
 	at := func(s Schedule, ev string) ScheduledFlight {
 		for _, f := range s.Flights {
-			if f.Level == ev {
+			if f.Event == ev {
 				return f
 			}
 		}

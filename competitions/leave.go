@@ -177,7 +177,7 @@ func (s Schedule) stretchName(st stretch) string {
 	if f := s.Flights[st.flights[0]]; len(st.flights) == 1 {
 		return f.Name()
 	} else {
-		return f.Event()
+		return f.Group()
 	}
 }
 
@@ -200,7 +200,7 @@ func (s Schedule) refill(first stretch, l Leave, people map[string][]string, byK
 		f := s.Flights[st.flights[0]]
 		var out []string
 		for _, o := range officials {
-			if o.Key != l.Person && o.Can(role, f.Level) && s.freeIgnoring(o.Key, st, ignore, people) {
+			if o.Key != l.Person && o.Can(role, f.Event) && s.freeIgnoring(o.Key, st, ignore, people) {
 				out = append(out, o.Key)
 			}
 		}
@@ -253,7 +253,7 @@ func (s Schedule) refill(first stretch, l Leave, people map[string][]string, byK
 			}
 			own := slices.Contains(st.flights, gj)
 			for other, d := range g.Officials {
-				if d.Person == "" || d.Person == l.Person || moved[d.Person] || (own && (other == st.seat || d.Role == role)) || !byKey[d.Person].Can(role, f.Level) {
+				if d.Person == "" || d.Person == l.Person || moved[d.Person] || (own && (other == st.seat || d.Role == role)) || !byKey[d.Person].Can(role, f.Event) {
 					continue
 				}
 				// Their seat from the first of its flights in this time on.

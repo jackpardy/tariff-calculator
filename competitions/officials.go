@@ -182,7 +182,7 @@ func (o Offer) Describe() string {
 	}
 	out := ""
 	if len(parts) > 0 {
-		out = "Judge " + joinList(parts)
+		out = "Judge " + JoinList(parts)
 	}
 	var help []string
 	if o.Recorder {
@@ -195,12 +195,13 @@ func (o Offer) Describe() string {
 		if out != "" {
 			out += "; "
 		}
-		out += joinList(help)
+		out += JoinList(help)
 	}
 	return out
 }
 
-func joinList(parts []string) string {
+// JoinList joins words as "a, b and c".
+func JoinList(parts []string) string {
 	switch len(parts) {
 	case 0:
 		return ""

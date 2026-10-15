@@ -1,26 +1,20 @@
 package web
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
-
-	"tariffCalculator/store"
 )
 
-// competitionServer is the app with storage in a fresh directory.
+// competitionServer is the app with storage in a fresh directory, on the
+// real clock.
 func competitionServer(t *testing.T) http.Handler {
 	t.Helper()
-	st, err := store.Open(context.Background(), t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { st.Close() })
-	return routesWith(st)
+	return newTestServer(t).h
 }
 
 func do(t *testing.T, h http.Handler, method, path string, form url.Values) *httptest.ResponseRecorder {
@@ -186,16 +180,19 @@ func TestIndividualEntry(t *testing.T) {
 	}
 	own := strings.TrimSuffix(rec.Header().Get("Location"), "?saved=1")
 	page := do(t, h, http.MethodGet, own+"?saved=1", nil).Body.String()
-	for _, want := range []string{"Entry saved.", "C. Ryan", "Individual · BUCS L3", "set routine as written", "Tuck Back", "Change the entry", "Keep the routine entered (2 skills)"} {
+	for _, want := range []string{"Entry saved.", "C. Ryan", `<p class="subtitle is-6">BUCS L3</p>`, "set routine as written", "Tuck Back", "Change the entry", "Keep the routine entered (2 skills)"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the entry page should say %q", want)
 		}
 	}
+	if n := len(byTag(parsePage(t, page), "h1")); n != 1 {
+		t.Errorf("the name heads the page once, not %d times", n)
+	}
 
 	// The organiser sees it, checked, with its problems.
 	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
-	if !strings.Contains(dash, "C. Ryan") || !strings.Contains(dash, "individual") || !strings.Contains(dash, "+") {
-		t.Errorf("the dashboard lists the entry with its problems")
+	if row := rowOf(t, dash, "C. Ryan"); !slices.Contains(row, "individual") || !slices.Contains(row, "Second exercise: Exactly 10 elements +1 more") {
+		t.Errorf("the dashboard lists the entry as an individual's, with its problems: %q", row)
 	}
 	if problems := do(t, h, http.MethodGet, admin+"?problems=1", nil).Body.String(); !strings.Contains(problems, "C. Ryan") {
 		t.Error("a two-skill voluntary has problems, so it's listed under problems only")
@@ -267,7 +264,7 @@ func TestOrganiserTools(t *testing.T) {
 		t.Errorf("a CSV download: %v", rec.Header())
 	}
 	if !strings.HasPrefix(csv, "Gymnast,Club,Level,1st exercise,1st difficulty,2nd exercise,2nd difficulty,Problems,Checked,Note,Sent,Video,Withdrawn,Signed off by,Category\n") ||
-		!strings.Contains(csv, "'=SUM(A1),Individual,BUCS L3,BUCS L3 · option 1,,BUCS L3 · second exercise,1.1,2,,,") {
+		!strings.Contains(csv, "'=SUM(A1),On their own,BUCS L3,BUCS L3 · option 1,,BUCS L3 · second exercise,1.1,2,,,") {
 		t.Errorf("CSV:\n%s", csv)
 	}
 

@@ -40,7 +40,7 @@ func peopleCompetition(t *testing.T) peopleSetup {
 	mo := withoutQuery(redirected(t, h, join, url.Values{"name": {"Mo"}}))
 	redirected(t, h, mo+"/coach", url.Values{"coach": {annID}})
 	save := formAction(t, memberCompetitionPage(t, h, mo), mo+"/competitions/")
-	redirected(t, h, save, url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	redirected(t, h, save, bucsEntry(""))
 	redirected(t, h, save+"/offer", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
 	comp := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/([^/"]+)/coaches`).FindStringSubmatch(do(t, h, http.MethodGet, club, nil).Body.String())[1]
 	redirected(t, h, club+"/competitions/"+comp+"/coaches", url.Values{"coach": {annID}})
@@ -48,7 +48,7 @@ func peopleCompetition(t *testing.T) peopleSetup {
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
 
 	enter := pathIn(t, settings, "/competitions/enter/")
-	entry := url.Values{"gymnast": {"Ivy"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("Ivy")
 	ivy := withoutQuery(redirected(t, h, enter, entry))
 	redirected(t, h, ivy+"/offer", url.Values{"judge-trampoline": {"1"}})
 	redirected(t, h, enter, url.Values{"gymnast": {"Sam"}, "discipline": {"synchro"}, "level": {"BUCS L3"}, "partnerName": {"Pat"},
@@ -83,7 +83,7 @@ func personLink(t *testing.T, page, admin, name string) string {
 	if m == nil {
 		t.Fatalf("no link to %s's page in: %s", name, page)
 	}
-	return html2text(m[1])
+	return unescape(m[1])
 }
 
 func TestPeople(t *testing.T) {
@@ -114,7 +114,7 @@ func TestPeople(t *testing.T) {
 	if r := row("Mo"); !is("Mo", "club", "UCD") || !is("Mo", "does", "gymnast", "official") || !strings.Contains(r, "Trampoline BUCS L3 · judge, can chair") {
 		t.Errorf("Mo's row: %s, %v", r, values["Mo"])
 	}
-	if r := row("Ivy"); !is("Ivy", "club", "Individual") || !strings.Contains(r, "Trampoline BUCS L3 · judge") {
+	if r := row("Ivy"); !is("Ivy", "club", "On their own") || !strings.Contains(r, "Trampoline BUCS L3 · judge") {
 		t.Errorf("Ivy's row: %s", r)
 	}
 	if r := row("Pat"); !strings.Contains(r, "Synchro BUCS L3") || !is("Pat", "does", "gymnast") {
@@ -127,7 +127,7 @@ func TestPeople(t *testing.T) {
 		t.Errorf("the coach's row: %s", r)
 	}
 	for _, want := range []string{`data-list-tools="people"`, `data-noun="people"`, `data-list-filter="club"`, `data-list-filter="does"`,
-		`<option value="gymnast">Gymnast</option><option value="official">Official</option><option value="coach">Coach</option>`, `<option value="Individual">Individual</option>`} {
+		`<option value="gymnast">Gymnast</option><option value="official">Official</option><option value="coach">Coach</option>`, `<option value="On their own">On their own</option>`} {
 		if !strings.Contains(list, want) {
 			t.Errorf("the tools have %s", want)
 		}
@@ -135,7 +135,7 @@ func TestPeople(t *testing.T) {
 	if !regexp.MustCompile(`<details class="comp-list mt-5" open><summary class="title is-5 mb-3">People <span[^>]*>\(7\)</span>`).MatchString(list) {
 		t.Error("the list is a dropdown under its heading and count")
 	}
-	if kit := values["Kit O/Neil? 100% #1"]; !slices.Equal(kit["club"], []string{"Individual"}) {
+	if kit := values["Kit O/Neil? 100% #1"]; !slices.Equal(kit["club"], []string{"On their own"}) {
 		t.Errorf("an awkward name's values: %v", kit)
 	}
 	if a, b := strings.Index(list, `data-name="Ann"`), strings.Index(list, `data-name="Mo"`); a < 0 || b < a {
@@ -175,8 +175,8 @@ func TestPeople(t *testing.T) {
 	if page := do(t, h, http.MethodGet, personLink(t, list, admin, "Pat"), nil).Body.String(); !strings.Contains(page, "Sam &amp; Pat") && !strings.Contains(page, "Sam & Pat") {
 		t.Errorf("Pat's page shows the pair: %s", page)
 	}
-	if page := do(t, h, http.MethodGet, personLink(t, list, admin, "Sam"), nil).Body.String(); !strings.Contains(page, "Sam") {
-		t.Error("Sam's page")
+	if got := myCompetitionOf(t, do(t, h, http.MethodGet, personLink(t, list, admin, "Sam"), nil).Body.String()); got.Name != "Sam" || len(got.Events) != 1 || got.Events[0].Gymnasts != "Sam & Pat" {
+		t.Errorf("Sam's page, with the pair: %+v", got)
 	}
 
 	// The links reach it: the dashboard's entry tables, the officials page and
@@ -197,7 +197,7 @@ func TestPeople(t *testing.T) {
 	// Every link on those pages is to a page that exists.
 	for _, from := range []string{"", "/officials", "/coaches", "/people"} {
 		for _, link := range regexp.MustCompile(`href="(`+regexp.QuoteMeta(admin)+`/people/[^"]+)"`).FindAllStringSubmatch(do(t, h, http.MethodGet, admin+from, nil).Body.String(), -1) {
-			if rec := do(t, h, http.MethodGet, html2text(link[1]), nil); rec.Code != http.StatusOK {
+			if rec := do(t, h, http.MethodGet, unescape(link[1]), nil); rec.Code != http.StatusOK {
 				t.Errorf("%s links to %s: %d", from, link[1], rec.Code)
 			}
 		}
@@ -323,12 +323,12 @@ func TestMemberPageUnchangedByPeople(t *testing.T) {
 		t.Fatal("the member page links to their competition")
 	}
 	page := do(t, h, http.MethodGet, day[1], nil).Body.String()
-	for _, want := range []string{"← Your entries", "<h1 class=\"title is-4\">Student Open</h1>", "<p class=\"subtitle is-6\">Mo · ", "you're <strong>", "You're picked out in bold", "Your timetable", "Add to calendar"} {
+	for _, want := range []string{"← Student Open: your entries", "<h1 class=\"title is-4\">Mo</h1>", "My competition</h2>", "<p class=\"subtitle is-6\">Student Open · ", "Your details", "you're <strong>", "You're picked out in bold", "Your timetable", "Add to calendar"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the member's page has %q", want)
 		}
 	}
-	for _, not := range []string{"← People", "Judging rule", "Check-in:", "/people/", `class="comp-menu`, "Coach:"} {
+	for _, not := range []string{"← People", "Judging rule", "Check-in:", "/people/", "/timetable\"", "Coach:"} {
 		if strings.Contains(page, not) {
 			t.Errorf("the member's page has %q", not)
 		}

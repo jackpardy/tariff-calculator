@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
@@ -9,6 +10,8 @@ import (
 	"time"
 
 	"tariffCalculator/store"
+
+	"github.com/chromedp/chromedp"
 )
 
 // redirected posts a form and returns where it redirects, failing otherwise.
@@ -235,5 +238,69 @@ func TestClubKeptUntil(t *testing.T) {
 	if !strings.Contains(strings.Join(strings.Fields(page), " "), "13 months after anyone last opened its pages") ||
 		!regexp.MustCompile(regexp.QuoteMeta("The club is kept until ")+`\d+ `+regexp.QuoteMeta(strings.TrimPrefix(want, "The club is kept until "))).MatchString(page) {
 		t.Errorf("Settings should say %q...: %s", want, page)
+	}
+}
+
+// The comp sec's Competitions page searches its entries as the other lists
+// do, and each entry's Change link sits under the member's name, where a
+// narrow table can't cut it off.
+func TestClubEntriesSearch(t *testing.T) {
+	s := newTestServer(t, atTime(dayBefore))
+	admin := created(t, s.h, newCompetition())
+	club := aClub(t, s.h, admin, "UCD", true, "Tadhg Ryan", "Éabha Kelly")
+	doc := parsePage(t, do(t, s.h, http.MethodGet, club.page, nil).Body.String())
+	tools := byClass(doc, "comp-list-tools")
+	if len(tools) != 1 || !strings.HasPrefix(attrOf(tools[0], "data-list-tools"), "entries-") {
+		t.Fatalf("the entries have search tools: %d", len(tools))
+	}
+	list := byID(doc, attrOf(tools[0], "data-list-tools"))
+	if list == nil {
+		t.Fatal("the tools name the entries' table")
+	}
+	var names []string
+	for _, tr := range byTag(list, "tr") {
+		if attrOf(tr, "data-name") == "" {
+			continue
+		}
+		names = append(names, attrOf(tr, "data-name"))
+		cells := byTag(tr, "td")
+		if links := byTag(cells[0], "a"); len(links) != 1 || textOf(links[0]) != "Change" {
+			t.Errorf("Change under %s's name: %s", attrOf(tr, "data-name"), textOf(cells[0]))
+		}
+	}
+	if strings.Join(names, ", ") != "Éabha Kelly, Tadhg Ryan" {
+		t.Errorf("the rows, by name: %v", names)
+	}
+}
+
+// The organiser's and comp sec's pages save their links in the browser when
+// they're opened, not only when they're made; a helper's link, or a page
+// opened through someone's own link, never.
+func TestAdminLinksSavedWhenOpened(t *testing.T) {
+	ctx := browser(t)
+	s := newTestServer(t, atTime(dayBefore))
+	admin := withoutQuery(created(t, s.h, newCompetition()))
+	helper := madeLink(t, s.h, admin, "Mary", "everything")
+	club := aClub(t, s.h, admin, "UCD", false)
+	srv := httptest.NewServer(s.h)
+	defer srv.Close()
+
+	saved := func(key string) string {
+		t.Helper()
+		var links string
+		step(t, ctx, "reading "+key, chromedp.Evaluate(`localStorage.getItem('`+key+`') || ''`, &links))
+		return links
+	}
+	step(t, ctx, "opening the helper's link", chromedp.Navigate(srv.URL+helper), chromedp.WaitReady(`body`, chromedp.ByQuery))
+	if got := saved("trampolineCompetitions"); got != "" {
+		t.Errorf("a helper's link isn't saved: %s", got)
+	}
+	step(t, ctx, "opening the organiser's page", chromedp.Navigate(srv.URL+admin), chromedp.WaitReady(`body`, chromedp.ByQuery))
+	if got := saved("trampolineCompetitions"); !strings.Contains(got, `"url":"`+srv.URL+admin+`"`) || !strings.Contains(got, `"name":"Student Open"`) {
+		t.Errorf("the organiser's link is saved: %s", got)
+	}
+	step(t, ctx, "opening the club's page", chromedp.Navigate(srv.URL+club.page+"/members"), chromedp.WaitReady(`body`, chromedp.ByQuery))
+	if got := saved("trampolineClubs"); !strings.Contains(got, `"url":"`+srv.URL+club.page+`"`) || !strings.Contains(got, `"name":"UCD"`) {
+		t.Errorf("the comp sec's link is saved: %s", got)
 	}
 }

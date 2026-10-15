@@ -2,7 +2,6 @@ package web
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"tariffCalculator/competitions"
@@ -100,18 +99,10 @@ func (p *competitionPages) gymnastHome(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		page.Competitions = append(page.Competitions, views.GymnastCompetition{
-			Page: gymnastCompetitionPath(token, id), Competition: summary(c.Competition, p.now()), Status: entryCount(count[id]),
+			Page: gymnastCompetitionPath(token, id), Competition: summary(c.Competition, p.now()), Status: views.Count(count[id], "entry", "entries"),
 		})
 	}
 	render(w, r, views.GymnastHome(page))
-}
-
-// entryCount is how many entries, in words.
-func entryCount(n int) string {
-	if n == 1 {
-		return "1 entry"
-	}
-	return fmt.Sprintf("%d entries", n)
 }
 
 // gymnastDetails is an individual's details: their link, and their other
@@ -164,7 +155,7 @@ func (p *competitionPages) gymnastCompetition(w http.ResponseWriter, r *http.Req
 	}
 	token := r.PathValue("token")
 	page := p.gymnastPage(r, ind, gymnastCompetitions)
-	gc := views.GymnastCompetition{Competition: summary(c.Competition, p.now()), Status: entryCount(len(mine)), Day: entryPath(token, mine[0]) + "/day"}
+	gc := views.GymnastCompetition{Competition: summary(c.Competition, p.now()), Status: views.Count(len(mine), "entry", "entries"), Day: entryPath(token, mine[0]) + "/day"}
 	if gc.Competition.Open && c.Individuals {
 		gc.Enter = gymnastCompetitionPath(token, c.ID) + "/enter"
 	}
@@ -176,34 +167,14 @@ func (p *competitionPages) gymnastCompetition(w http.ResponseWriter, r *http.Req
 		}
 		withSignoff(&shown, storedSignoff(c.Competition, e))
 		waiting := p.waitingOf(r.Context(), c.ID, e.ID)
-		brief, class := individualBrief(e, len(shown.Problems), waiting.Waiting)
+		word, class := brief(individualState(e, waiting.Waiting), len(shown.Problems), waiting.Waiting, "Entered")
 		gc.Events = append(gc.Events, views.GymnastEvent{
-			Row:     views.MemberEvent{Discipline: e.Entry.Discipline, Name: competitions.DisciplineName(e.Entry.Discipline), Level: e.Entry.Level, Brief: brief, BriefClass: class, Status: "Entered " + e.SentAt.In(local).Format("2 January, 15:04")},
+			Row:     views.MemberEvent{Discipline: e.Entry.Discipline, Name: competitions.DisciplineName(e.Entry.Discipline), Level: e.Entry.Level, Brief: word, BriefClass: class, Status: "Entered " + e.SentAt.In(local).Format("2 January, 15:04")},
 			Gymnast: e.Entry.Gymnast, Open: entryPath(token, e), Placement: placement(c, e.ID), Card: &shown,
 		})
 	}
 	page.Competition = &gc
 	render(w, r, views.GymnastCompetitionPage(page))
-}
-
-// individualBrief is where an individual's entry stands in a word or two, for
-// the list of a competition's disciplines, and the Bulma colour of its tag.
-func individualBrief(e store.Entry, problems, place int) (string, string) {
-	switch {
-	case e.Removal == store.Removed:
-		return "Removed", "is-danger is-light"
-	case e.Removal == store.Held:
-		return "On hold", "is-warning is-light"
-	case problems == 1:
-		return "1 problem", "is-danger is-light"
-	case problems > 1:
-		return fmt.Sprintf("%d problems", problems), "is-danger is-light"
-	case place > 0:
-		return "Waiting list, " + waitingWord(place), "is-warning is-light"
-	case e.Checked():
-		return "Checked", "is-success is-light"
-	}
-	return "Entered", "is-success is-light"
 }
 
 // gymnastEnter enters another discipline of a competition the individual has

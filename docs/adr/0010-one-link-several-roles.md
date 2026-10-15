@@ -1,7 +1,8 @@
 # ADR 0010 — One link for a person with several roles
 
 - **Status:** Accepted; built 2026-10-14
-- **Date:** 2026-10-14
+- **Date:** 2026-10-14 (Decision 8, links the comp sec makes, and Decision
+  9, person keys, added 2026-10-15)
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 3 (secret links: a personal link opens all
   of its person's roles); ADR 0005 Decision 4 (an individual is matched by
@@ -60,6 +61,8 @@ Asked on the roadmap (item 5, 2026-10-13 and 2026-10-14).
    shared layout shows them as tabs above the page's own menu.
 5. **The comp sec makes a member a coach too** by making a coach record that
    is the same person; its own link is made but never shown.
+   *Changed 2026-10-15:* if the comp sec later makes that coach a link of
+   its own, the coach first becomes a person of its own (Decision 8).
 6. **Individuals have one page.** A new individual gets a personal link
    (`/competitions/gymnast/{token}`); their entries have no link of their
    own. Migration 30 makes each existing individual entry an individual of
@@ -78,6 +81,42 @@ Asked on the roadmap (item 5, 2026-10-13 and 2026-10-14).
    check-ins), unless someone else of that name from before still has the
    key. Undoing gives the record leaving a new key; what was saved stays with
    the person.
+8. **A link the comp sec makes or replaces opens only the club's records**
+   (added 2026-10-15, replacing the first rule that a member's or coach's
+   replaced link kept their ties). **New link** for a coach makes the coach
+   a person of their own; for a member, the member and the club's coach who
+   is the same person (one made with Make a coach too, whose page their link
+   opens) become a person of their own. Either way the shared links added on
+   those records' pages are dropped. The person ties their other roles
+   again by pasting their other links.
+   *Why:* the comp sec sees every link it makes. Under the first rule it
+   could make a member a coach too, make that coach a link, and open
+   through it everything the member had tied: an organiser's or helper's
+   link, and their roles at other clubs. Replacing the club's admin link
+   didn't undo links it had already made. Now a link the comp sec holds
+   opens nothing the club's admin link doesn't already reach.
+9. **Person keys, and one person across them** (added 2026-10-15, from the
+   cleanup audit). A key is a kind and an id, made and read only in
+   `store/personkey.go`: `m:<member id>`, `i:<individual id>` (or
+   `i:<lower-cased name>` from before, Decision 7), `c:<coach id>` for a
+   club's coach, `c::<lower-cased name>` for a coach an individual named
+   (they have no record), `o:<official id>` for an official with neither,
+   and `p:<entry id>` for a synchro partner not yet confirmed. A club's
+   coach was keyed by club and name as typed, so renaming them or a sign-off
+   typed differently lost what was saved under them, and two coaches of one
+   name were one; migration 34 moved the saved keys (a key two coaches of
+   one name shared stays, as nothing says whose it was). Where keys are
+   saved is one list, which `renameKey` changes and a test checks against
+   the schema.
+   Records joined as one person are one person wherever the timetable works
+   out clashes and rest: the planner, the rota, the report's problems and
+   short rest, a delay, an official leaving, a late change's place and the
+   simulation's count. Each request maps the keys in use, from the ties, to
+   one standing for the person (their official's key if they officiate, as
+   seats are saved under it), and works out with those; the keys saved stay
+   as they were. Someone coaching while they compete is a problem, and the
+   planner avoids it. An individual's notifications belong to the
+   individual, not the entry they asked on (migration 35).
 
 ## Alternatives considered
 
@@ -97,12 +136,19 @@ Asked on the roadmap (item 5, 2026-10-13 and 2026-10-14).
   rewrite, and the rename on joining is rare and contained.
 - **Keying a tied member and their own entries alike in a competition.** A
   member who also enters on their own at the same competition still has two
-  keys there (`m:` and `i:`); All people joins them by person, but the rota
-  and Your competition treat them apart. Rare, and left for later.
+  keys there (`m:` and `i:`); All people joins them by person, and since
+  Decision 9 so do the timetable's clashes and rest, but Your competition,
+  check-in and the desk still treat them apart. Rare, and left for later.
+- **One key per person, saved** (rewriting every saved key to a person's).
+  Seats, rules, desk messages and check-ins would all move whenever people
+  joined or parted; mapping keys to people when working out (Decision 9)
+  leaves what was saved alone.
 
 ## Consequences
 
 - One link opens all of a person's roles; each other link still works.
+- A member or coach given a **New link** by their comp sec adds their other
+  links to their page again (Decision 8).
 - A personal link opened somewhere now carries the person's every role:
   losing it loses more, which the guide says.
 - Anyone holding a shared link can't reach anyone's personal pages through

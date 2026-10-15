@@ -348,10 +348,6 @@ var CommonSkills = map[string]TrampolineSkill{
 	"miller":          {Name: "Miller", Rotation: 8, TwistDistribution: []int{3, 3}, TakeoffPosition: Feet, Backward: true, Shape: Straight, SeatLanding: false},
 }
 
-func GetCommonSkill(name string) (TrampolineSkill, bool) {
-	skill, exists := CommonSkills[name]
-	return skill, exists
-}
 func CalculatePhases(rotation int) int {
 	absRotation := rotation
 	if absRotation < 0 {
@@ -590,8 +586,11 @@ func FindCommonSkillName(parsedSkill TrampolineSkill) string {
 		}
 	}
 
-	return "Custom Skill"
+	return UnnamedSkill
 }
+
+// UnnamedSkill is FindCommonSkillName's name for a skill it has no name for.
+const UnnamedSkill = "Custom Skill"
 
 // shapeLeads are the common skills named shape first: the single somersaults.
 var shapeLeads = map[string]bool{"Front": true, "Back": true, "Barani": true}

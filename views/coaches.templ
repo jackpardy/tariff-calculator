@@ -99,11 +99,8 @@ type CoachCompetition struct {
 	Rows        []CoachRow
 	Waiting     int    // entries not signed off
 	Cannot      string // why they can't sign off for it (not approved), if they can't
-	Timeline    string // the club's timetable, once published
-	Calendar    string // the club's timetable as a calendar file, once published
-	Notify      string // where the coach asks to hear about changes
+	MyLinks
 	Late        []CoachLate // late changes to sign off
-	Desk        []DeskNote  // messages from the organisers that reach their members or club
 }
 
 // CoachRow is one member's entry, for their coach.

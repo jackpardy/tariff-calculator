@@ -112,7 +112,7 @@ func (s Schedule) jobs() (jobs []ScheduledFlight, block []int) {
 		if len(s.blockSeats(b)) == 0 && len(b.Officials) == 0 {
 			continue
 		}
-		jobs = append(jobs, ScheduledFlight{Flight: Flight{Level: b.Name}, Day: b.Day, Area: strings.Join(b.Areas, ", "), Start: b.Start, End: b.End, Officials: b.Officials})
+		jobs = append(jobs, ScheduledFlight{Flight: Flight{Event: b.Name}, Day: b.Day, Area: strings.Join(b.Areas, ", "), Start: b.Start, End: b.End, Officials: b.Officials})
 		block = append(block, i)
 	}
 	return jobs, block
@@ -179,7 +179,7 @@ func (s Schedule) rotaJobs(settings OfficialSettings) ([]ScheduledFlight, []rota
 	var meta []rotaJob
 	for _, seg := range s.segments() {
 		first, last := s.Flights[seg[0]], s.Flights[seg[len(seg)-1]]
-		span := ScheduledFlight{Flight: Flight{Level: first.Level, Category: first.Category, Number: 1, Of: 1}, Discipline: first.Discipline, Day: first.Day, Area: first.Area, Start: first.Start, End: last.End}
+		span := ScheduledFlight{Flight: Flight{Event: first.Event, Category: first.Category, Number: 1, Of: 1}, Discipline: first.Discipline, Day: first.Day, Area: first.Area, Start: first.Start, End: last.End}
 		for _, i := range seg {
 			span.Entries = append(span.Entries, s.Flights[i].Entries...)
 		}
@@ -202,7 +202,7 @@ func (s Schedule) rotaJobs(settings OfficialSettings) ([]ScheduledFlight, []rota
 		if len(s.blockSeats(b)) == 0 && len(b.Officials) == 0 {
 			continue
 		}
-		jobs = append(jobs, ScheduledFlight{Flight: Flight{Level: b.Name}, Day: b.Day, Area: strings.Join(b.Areas, ", "), Start: b.Start, End: b.End})
+		jobs = append(jobs, ScheduledFlight{Flight: Flight{Event: b.Name}, Day: b.Day, Area: strings.Join(b.Areas, ", "), Start: b.Start, End: b.End})
 		meta = append(meta, rotaJob{block: i, roles: s.blockSeats(b)})
 	}
 	return jobs, meta
@@ -225,7 +225,7 @@ func (s Schedule) segments() [][]int {
 		seg := []int{idx[k]}
 		for k+len(seg) < len(idx) {
 			g := s.Flights[idx[k+len(seg)]]
-			if g.Day != f.Day || g.Area != f.Area || g.Event() != f.Event() {
+			if g.Day != f.Day || g.Area != f.Area || g.Group() != f.Group() {
 				break
 			}
 			seg = append(seg, idx[k+len(seg)])
@@ -336,7 +336,7 @@ func (r *rota) staff(i int, seats []string) {
 	}
 	// The organiser's musts: this person in this role, if they're free.
 	for _, rule := range r.s.Setup.Rules {
-		if rule.Kind != RuleRole || !rule.Must || rule.Event != f.Level || taken[rule.Person] || !r.free(rule.Person, i) {
+		if rule.Kind != RuleRole || !rule.Must || rule.Event != f.Event || taken[rule.Person] || !r.free(rule.Person, i) {
 			continue
 		}
 		for k := range duties {
@@ -373,7 +373,7 @@ func (r *rota) can(p RotaPerson, role string, i int) bool {
 	if i >= r.flights {
 		return p.CanAny(role)
 	}
-	return p.Can(role, r.jobs[i].Level)
+	return p.Can(role, r.jobs[i].Event)
 }
 
 func isJudge(role string) bool {
@@ -403,9 +403,9 @@ func (r *rota) free(key string, i int) bool {
 		if broken, _ := r.s.breaksPersonRule(rule, f, key); broken {
 			return false
 		}
-		if rule.Kind == RuleRole && rule.Event != f.Level {
+		if rule.Kind == RuleRole && rule.Event != f.Event {
 			for j, g := range r.jobs[:r.flights] {
-				if j != i && g.Level == rule.Event && overlaps(iv, interval{g.Day, g.Start, g.End}) {
+				if j != i && g.Event == rule.Event && overlaps(iv, interval{g.Day, g.Start, g.End}) {
 					return false
 				}
 			}
@@ -423,7 +423,7 @@ func (s *Schedule) breaksPersonRule(rule Rule, f ScheduledFlight, key string) (b
 	}
 	switch rule.Kind {
 	case RuleOff:
-		return rule.Event == "" || rule.Event == f.Level, true
+		return rule.Event == "" || rule.Event == f.Event, true
 	case RuleHours:
 		if f.Day != rule.Day {
 			return false, true
@@ -454,7 +454,7 @@ func (r *rota) costOf(p RotaPerson, role string, i int) float64 {
 		cost += 4 + 2*float64(r.own[p.Club])
 	}
 	// Helpers who could judge here are better kept for judging.
-	if !isJudge(role) && p.Judge[f.Level] {
+	if !isJudge(role) && p.Judge[f.Event] {
 		cost += 5
 	}
 	// Rest before (and, less, after) their own turn to compete.
@@ -476,7 +476,7 @@ func (r *rota) costOf(p RotaPerson, role string, i int) float64 {
 		if rule.Must || rule.Person != p.Key {
 			continue
 		}
-		if rule.Kind == RuleRole && rule.Event == f.Level {
+		if rule.Kind == RuleRole && rule.Event == f.Event {
 			if rule.Role == role {
 				cost -= 200
 			}
@@ -572,7 +572,7 @@ func (s Schedule) RotaReport(clubs map[string]string, officials []RotaPerson) Ro
 				parts = append(parts, fmt.Sprintf("%d %s", n, strings.ToLower(roleNames[role])+plural(n)))
 			}
 		}
-		rr.Short = append(rr.Short, fmt.Sprintf("%s: no one for %s", sh.label, joinList(parts)))
+		rr.Short = append(rr.Short, fmt.Sprintf("%s: no one for %s", sh.label, JoinList(parts)))
 	}
 	for c, n := range own {
 		rr.OwnClub = append(rr.OwnClub, ClubCount{c, n})
@@ -598,7 +598,7 @@ func (s Schedule) RotaReport(clubs map[string]string, officials []RotaPerson) Ro
 				}
 			}
 			if rule.Kind == RuleRole {
-				broken = broken || (f.Level == rule.Event && !inRole)
+				broken = broken || (f.Event == rule.Event && !inRole)
 				continue
 			}
 			if b, _ := s.breaksPersonRule(rule, f, rule.Person); has && b {
@@ -695,8 +695,8 @@ func (s Schedule) RotaProblems(people map[string][]string, officials []RotaPerso
 			seated[d.Person] = true
 			if p, ok := byKey[d.Person]; !ok {
 				add(fmt.Sprintf("%s isn't an official any more (%s, %s)", name(d.Person), strings.ToLower(roleNames[d.Role]), f.Name()))
-			} else if (i < len(s.Flights) && !p.Can(d.Role, f.Level)) || (i >= len(s.Flights) && !p.CanAny(d.Role)) {
-				add(fmt.Sprintf("%s can't be %s at %s", name(d.Person), strings.ToLower(roleNames[d.Role]), f.Level))
+			} else if (i < len(s.Flights) && !p.Can(d.Role, f.Event)) || (i >= len(s.Flights) && !p.CanAny(d.Role)) {
+				add(fmt.Sprintf("%s can't be %s at %s", name(d.Person), strings.ToLower(roleNames[d.Role]), f.Event))
 			}
 			for j, g := range jobs {
 				if !overlaps(iv, interval{g.Day, g.Start, g.End}) {

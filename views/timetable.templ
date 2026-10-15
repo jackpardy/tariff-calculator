@@ -1,9 +1,9 @@
 package views
 
 import (
-	"strings"
 	"fmt"
 	"strconv"
+	"tariffCalculator/static"
 )
 
 // TimetablePage is the organiser's timetable (ADR 0005 step 4): the setup
@@ -12,7 +12,7 @@ import (
 type TimetablePage struct {
 	Base        string
 	Competition CompetitionSummary
-	Menu []MenuSection
+	Menu        []MenuSection
 	Notice      string
 	Setup       SetupForm
 	Planned     bool
@@ -26,6 +26,7 @@ type TimetablePage struct {
 	Places      []FlightOption     // day and area a flight can move to
 	Entries     int
 	Rota        RotaView
+	Version     string // the draft timetable's version, which its forms post back (version)
 }
 
 // RotaView is the officials rota's report, and the people who can officiate.
@@ -112,14 +113,14 @@ type FixView struct {
 
 // DayView is one day's areas, side by side.
 type DayView struct {
-	Name  string
-	Areas []AreaView
+	ID, Name string // ID: its heading's id on the page, to jump to
+	Areas    []AreaView
 }
 
 // AreaView is one area's flights and blocks, in time order.
 type AreaView struct {
-	Name  string
-	Items []ItemView
+	ID, Name string // ID: its column's id on the page, to jump to
+	Items    []ItemView
 }
 
 // ItemView is a flight or blocked time on an area.
@@ -137,10 +138,9 @@ type ItemView struct {
 
 // TimetableGymnast is a gymnast in a running order.
 type TimetableGymnast struct {
-	ID, Name, Club, Category string
-	No                       int    // their running number: their place in the flight, the same on every page and sheet
-	Moved                    string // the event they're entered at now, if not the flight's
-	Scratched                bool   // a no-show on the day: struck through on the printed sheets
+	FlightGymnast
+	ID, Category string
+	Moved        string // the event they're entered at now, if not the flight's
 }
 
 // FlightOption is somewhere to move a gymnast or flight to.
@@ -151,11 +151,17 @@ type FlightOption struct {
 // CompetitionTimetable is the organiser's timetable page.
 templ CompetitionTimetable(p TimetablePage) {
 	@competitionLayout("Timetable · " + p.Competition.Name) {
+		@fillOptions("move-options", p.Moves)
+		@fillOptions("seat-options", p.Rota.Options)
+		<script defer src={ static.URL("js/fill.js") }></script>
 		<h1 class="title is-4">Timetable</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			<div class="notification is-info is-light">{ p.Notice }</div>
+		}
+		if p.Planned && len(p.Days) > 0 {
+			@timetableJump(p)
 		}
 		@setupSections(p)
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/plan") } class="my-4">
@@ -191,6 +197,7 @@ templ CompetitionTimetable(p TimetablePage) {
 			}
 			<div class="buttons">
 				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/publish") } class="buttons mb-0">
+					@versionField(p.Version)
 					if !p.Published {
 						<button class="button is-small is-success" type="submit" name="action" value="publish">Publish</button>
 					} else {
@@ -215,36 +222,93 @@ templ CompetitionTimetable(p TimetablePage) {
 					Not published: only you see it.
 				}
 			</p>
-			if len(p.Unplaced) > 0 {
-				<div class="box">
-					<p class="mb-2"><strong>{ gymnastCount(len(p.Unplaced)) } not in a flight</strong> (entered since you planned, or moved out).</p>
-					for _, g := range p.Unplaced {
-						@moveGymnast(p, g, true)
+			if n := timetableNames(p); n > 0 {
+				<div id="timetable-find">
+					@listTools(ListTools{ID: "timetable-flights", Noun: "names", Total: n})
+				</div>
+			}
+			<div id="timetable-flights">
+				if len(p.Unplaced) > 0 {
+					<div class="box" data-list-group>
+						<p class="mb-2"><strong>{ gymnastCount(len(p.Unplaced)) } not in a flight</strong> (entered since you planned, or moved out).</p>
+						for _, g := range p.Unplaced {
+							<div { ListRow{Name: g.Name}.Attrs()... }>
+								@moveGymnast(p, g, true)
+							</div>
+						}
+					</div>
+				}
+				for _, day := range p.Days {
+					@timetableDay(p, day)
+				}
+			</div>
+		}
+	}
+}
+
+// timetableDay is a day's areas side by side, each with its flights and
+// blocked time.
+templ timetableDay(p TimetablePage, day DayView) {
+	<section data-list-group>
+		<h2 class="title is-5 mt-5" id={ day.ID }>{ day.Name }</h2>
+		<div class="columns is-multiline">
+			for _, area := range day.Areas {
+				<div class="column is-half-tablet is-one-third-desktop" id={ area.ID } data-list-group>
+					<h3 class="title is-6">{ area.Name }</h3>
+					if len(area.Items) == 0 {
+						<p class="has-text-grey is-size-7">Nothing</p>
+					}
+					for _, it := range area.Items {
+						if it.Flight {
+							@flightBox(p, it)
+						} else {
+							@blockBox(p, it)
+						}
 					}
 				</div>
 			}
-			for _, day := range p.Days {
-				<h2 class="title is-5 mt-5">{ day.Name }</h2>
-				<div class="columns is-multiline">
-					for _, area := range day.Areas {
-						<div class="column is-half-tablet is-one-third-desktop">
-							<h3 class="title is-6">{ area.Name }</h3>
-							if len(area.Items) == 0 {
-								<p class="has-text-grey is-size-7">Nothing</p>
-							}
-							for _, it := range area.Items {
-								if it.Flight {
-									@flightBox(p, it)
-								} else {
-									@blockBox(p, it)
-								}
-							}
-						</div>
+		</div>
+	</section>
+}
+
+// timetableJump links to each day and its areas, and to "Find a name": on a
+// phone the flights are a long way down.
+templ timetableJump(p TimetablePage) {
+	<div class="comp-jump is-size-7 mb-4">
+		<p>
+			Jump to:
+			if timetableNames(p) > 0 {
+				<a href="#timetable-find">Find a name</a>
+			}
+		</p>
+		for _, d := range p.Days {
+			<p>
+				<a href={ templ.SafeURL("#" + d.ID) }><strong>{ d.Name }</strong></a>
+				for _, a := range d.Areas {
+					<span>·</span> <a href={ templ.SafeURL("#" + a.ID) }>{ a.Name }</a>
+				}
+			</p>
+		}
+	</div>
+}
+
+// timetableNames counts the rows "Find a name" searches: each gymnast in a
+// running order or not in a flight, and each official with a seat.
+func timetableNames(p TimetablePage) int {
+	n := len(p.Unplaced)
+	for _, d := range p.Days {
+		for _, a := range d.Areas {
+			for _, it := range a.Items {
+				n += len(it.Gymnasts)
+				for _, s := range it.Seats {
+					if s.Person != "" {
+						n++
 					}
-				</div>
+				}
 			}
 		}
 	}
+	return n
 }
 
 script confirmReplan(planned bool) {
@@ -252,10 +316,17 @@ script confirmReplan(planned bool) {
 }
 
 // setupSections are the setup's forms, each collapsed.
+// versionField carries the version of the draft timetable a form was made
+// from, so it's refused if the draft has changed since.
+templ versionField(version string) {
+	<input type="hidden" name="version" value={ version }/>
+}
+
 templ setupSections(p TimetablePage) {
 	<details class="box comp-manage" open?={ !p.Planned }>
 		<summary><strong>Days and areas</strong> <span class="has-text-grey is-size-7">· { strconv.Itoa(len(p.Setup.Days)) } days, { strconv.Itoa(len(p.Setup.Areas)) } areas</span></summary>
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/days") } class="mt-3">
+			@versionField(p.Version)
 			<p class="label is-small">Days: each finishes by its end, a strict end</p>
 			for i, d := range p.Setup.Days {
 				<div class="comp-setup-row">
@@ -276,6 +347,7 @@ templ setupSections(p TimetablePage) {
 			</div>
 		</form>
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/areas") } class="mt-4">
+			@versionField(p.Version)
 			<p class="label is-small">Areas: each named, as many of each as the venue has (trampoline panels also run synchro)</p>
 			for i, a := range p.Setup.Areas {
 				<div class="comp-setup-row">
@@ -299,6 +371,7 @@ templ setupSections(p TimetablePage) {
 	<details class="box comp-manage">
 		<summary><strong>Timings and rest</strong></summary>
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/timings") } class="mt-3">
+			@versionField(p.Version)
 			<div class="table-container">
 				<table class="table is-narrow">
 					<thead><tr><th></th><th>Minutes per competitor</th><th>Minutes between flights</th><th>Largest flight</th></tr></thead>
@@ -332,17 +405,20 @@ templ setupSections(p TimetablePage) {
 		<summary><strong>Blocked time</strong> <span class="has-text-grey is-size-7">· lunch, awards, events taking entries on the day ({ strconv.Itoa(len(p.Setup.Blocks)) })</span></summary>
 		<div class="mt-3">
 			<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/blocks") } class="comp-setup-row mb-3">
+				@versionField(p.Version)
 				<input type="hidden" name="breaks" value="1"/>
 				<label class="checkbox is-size-7"><input type="checkbox" name="across" value="1" checked?={ p.Setup.AcrossBreaks }/> Events can run across breaks: an event pauses for one on its area and finishes afterwards, its panel breaking too. Otherwise each event is all before a break or all after it.</label>
 				<button class="button is-small" type="submit">Save</button>
 			</form>
 			for i, b := range p.Setup.Blocks {
 				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/blocks") } class="comp-setup-row">
+					@versionField(p.Version)
 					<span>{ b }</span>
 					<button class="button is-small is-text has-text-danger" type="submit" name="remove" value={ strconv.Itoa(i) }>Remove</button>
 				</form>
 			}
 			<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/blocks") } class="mt-2">
+				@versionField(p.Version)
 				<div class="comp-setup-row">
 					<input class="input is-small" name="name" placeholder="e.g. Lunch" aria-label="Name" required/>
 					<input class="input is-small comp-num" type="number" min="5" name="minutes" placeholder="mins" aria-label="Minutes" required/>
@@ -389,11 +465,13 @@ templ setupSections(p TimetablePage) {
 		<div class="mt-3">
 			for i, r := range p.Setup.Rules {
 				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/rules") } class="comp-setup-row">
+					@versionField(p.Version)
 					<span>{ r }</span>
 					<button class="button is-small is-text has-text-danger" type="submit" name="remove" value={ strconv.Itoa(i) }>Remove</button>
 				</form>
 			}
 			<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/rules") } class="mt-2">
+				@versionField(p.Version)
 				<div class="comp-setup-row">
 					<div class="select is-small">
 						<select name="event" aria-label="Event">
@@ -441,6 +519,7 @@ templ setupSections(p TimetablePage) {
 			</form>
 			if len(p.Setup.People) > 0 {
 				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/rules") } class="mt-4">
+					@versionField(p.Version)
 					<p class="label is-small">Officials: who does what</p>
 					<div class="comp-setup-row">
 						<div class="select is-small">
@@ -506,6 +585,7 @@ templ rotaReport(p TimetablePage) {
 		<div class="is-flex is-justify-content-space-between is-align-items-center">
 			<p><strong>Officials</strong> <span class="has-text-grey is-size-7">· { strconv.Itoa(p.Rota.People) } can officiate</span></p>
 			<form method="post" action={ templ.SafeURL(p.Base + "/timetable/officials") }>
+				@versionField(p.Version)
 				<button class="button is-small" type="submit" name="action" value="rota" onclick={ confirmRota() }>Assign officials again</button>
 			</form>
 		</div>
@@ -616,52 +696,68 @@ func joinNames(names []string) string {
 }
 
 templ flightBox(p TimetablePage, f ItemView) {
-	<div class="box comp-flight">
+	<div class="box comp-flight" data-list-group>
 		<p class="mb-1"><strong>{ f.Name }</strong></p>
 		<p class="is-size-7 has-text-grey mb-2">Warm-up { f.Start } · finishes about { f.End } · { flightCount(len(f.Gymnasts), f.Pairs) }</p>
 		<ol class="comp-order">
 			for _, g := range f.Gymnasts {
-				<li value={ strconv.Itoa(g.No) }>
-					{ g.Name }
-					<span class="has-text-grey is-size-7">{ g.Club }</span>
-					if g.Moved != "" {
-						<span class="tag is-warning is-light">now { g.Moved }</span>
-					}
-					<details class="comp-move is-inline-block">
-						<summary class="is-size-7">move</summary>
-						@moveGymnast(p, g, false)
-					</details>
+				<li value={ strconv.Itoa(g.No) } { ListRow{Name: g.Name}.Attrs()... }>
+					<div class="comp-order-row">
+						<span class="comp-order-name">
+							{ g.Name }
+							<span class="has-text-grey is-size-7">{ g.Club }</span>
+							if g.Moved != "" {
+								<span class="tag is-warning is-light">now { g.Moved }</span>
+							}
+						</span>
+						<details class="comp-move">
+							<summary class="button is-small is-light" aria-label={ "Move " + g.Name }>Move</summary>
+							@moveGymnast(p, g, false)
+						</details>
+					</div>
 				</li>
 			}
 		</ol>
 		if len(f.Seats) > 0 {
 			@seatsEditor(p, f, "flight")
 		}
-		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/flight") } class="comp-flight-actions">
+		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/flight") } class="comp-tt-actions">
+			@versionField(p.Version)
 			<input type="hidden" name="flight" value={ strconv.Itoa(f.Index) }/>
-			<button class="button is-small is-text" type="submit" name="action" value="redraw">Redraw order</button>
-			if f.Earlier {
-				<button class="button is-small is-text" type="submit" name="action" value="earlier">Earlier</button>
-			}
-			<div class="select is-small">
-				<select name="to" aria-label={ "Move " + f.Name }>
-					for _, o := range p.Places {
-						<option value={ o.Value }>{ o.Label }</option>
-					}
-				</select>
+			<div class="buttons mb-2">
+				<button class="button is-small is-light" type="submit" name="action" value="redraw">Redraw order</button>
+				if f.Earlier {
+					<button class="button is-small is-light" type="submit" name="action" value="earlier">Earlier</button>
+				}
 			</div>
-			if f.InRun {
-				<button class="button is-small" type="submit" name="action" value="move">Move event</button>
-			} else {
-				<button class="button is-small" type="submit" name="action" value="move">Move</button>
-			}
+			<div class="comp-flight-actions">
+				<label class="is-size-7" for={ fmt.Sprintf("flight-%d-to", f.Index) }>
+					if f.InRun {
+						Move the event to
+					} else {
+						Move to
+					}
+				</label>
+				<div class="select is-small">
+					<select name="to" id={ fmt.Sprintf("flight-%d-to", f.Index) }>
+						for _, o := range p.Places {
+							<option value={ o.Value }>{ o.Label }</option>
+						}
+					</select>
+				</div>
+				if f.InRun {
+					<button class="button is-small" type="submit" name="action" value="move">Move event</button>
+				} else {
+					<button class="button is-small" type="submit" name="action" value="move">Move</button>
+				}
+			</div>
 		</form>
 	</div>
 }
 
 // blockBox is blocked time on an area, with its panel if it needs one.
 templ blockBox(p TimetablePage, b ItemView) {
-	<div class="box comp-block">
+	<div class="box comp-block" data-list-group>
 		<strong>{ b.Name }</strong> <span class="has-text-grey is-size-7">{ b.Start }–{ b.End }</span>
 		if len(b.Seats) > 0 {
 			@seatsEditor(p, b, "block")
@@ -671,11 +767,11 @@ templ blockBox(p TimetablePage, b ItemView) {
 
 // seatsEditor lists a panel's seats, with a form to give one to someone.
 templ seatsEditor(p TimetablePage, it ItemView, field string) {
-	<details class="comp-panel mt-2">
+	<details class="comp-panel mt-2" data-list-group>
 		<summary class="is-size-7"><strong>Panel</strong> { seatsSummary(it.Seats) }</summary>
 		<ul class="is-size-7 mt-1">
 			for _, s := range it.Seats {
-				<li>
+				<li { seatRow(s)... }>
 					{ s.Role }:
 					if s.Person == "" {
 						<span class="has-text-danger">no one</span>
@@ -686,6 +782,7 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 			}
 		</ul>
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/officials") } class="comp-flight-actions">
+			@versionField(p.Version)
 			<input type="hidden" name="action" value="seat"/>
 			<input type="hidden" name={ field } value={ strconv.Itoa(it.Index) }/>
 			<div class="select is-small">
@@ -696,11 +793,9 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 				</select>
 			</div>
 			<div class="select is-small">
-				<select name="person" aria-label={ "Person for " + it.Name }>
+				<select name="person" aria-label={ "Person for " + it.Name } data-fill="seat-options">
+					<option value="" disabled selected>Choose a person</option>
 					<option value="">No one</option>
-					for _, o := range p.Rota.Options {
-						<option value={ o.Value }>{ o.Label }</option>
-					}
 				</select>
 			</div>
 			<button class="button is-small" type="submit">Set</button>
@@ -711,23 +806,44 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 	</details>
 }
 
-// moveGymnast moves a gymnast to another flight, or out of the timetable.
+// fillOptions is a long list of choices, once for the page: the flights a
+// gymnast can move to, and the people who can take a seat. Each dropdown
+// marked data-fill with its id fills from it when opened
+// (static/js/fill.js), where repeating the lists in every dropdown made the
+// timetable page several megabytes.
+templ fillOptions(id string, options []FlightOption) {
+	<template id={ id }>
+		for _, o := range options {
+			<option value={ o.Value }>{ o.Label }</option>
+		}
+	</template>
+}
+
+// moveGymnast moves a gymnast to another flight, or out of the timetable. Its
+// list of flights is filled from fillOptions when the dropdown opens.
 templ moveGymnast(p TimetablePage, g TimetableGymnast, named bool) {
 	<form method="post" action={ templ.SafeURL(p.Base + "/timetable/entry") } class="comp-move-form">
+		@versionField(p.Version)
 		<input type="hidden" name="entry" value={ g.ID }/>
 		if named {
 			<span class="is-size-7">{ g.Name } <span class="has-text-grey">{ g.Club } { g.Category }</span></span>
 		}
 		<div class="select is-small">
-			<select name="to" aria-label={ "Flight for " + g.Name }>
-				for _, o := range p.Moves {
-					<option value={ o.Value }>{ o.Label }</option>
-				}
+			<select name="to" aria-label={ "Flight for " + g.Name } data-fill="move-options">
+				<option value="" disabled selected>Choose a flight</option>
 				<option value="">Take out of the timetable</option>
 			</select>
 		</div>
 		<button class="button is-small" type="submit">Move</button>
 	</form>
+}
+
+// seatRow is a seat's row for "Find a name": none for an empty seat.
+func seatRow(s SeatView) templ.Attributes {
+	if s.Person == "" {
+		return nil
+	}
+	return ListRow{Name: s.Name}.Attrs()
 }
 
 // seatsSummary says how full a panel is, e.g. "· 9 of 11 seats filled".
@@ -771,94 +887,6 @@ func gymnastCount(n int) string {
 	return fmt.Sprintf("%d gymnasts", n)
 }
 
-// TimetableSheets is the printable marshal or chair of judges sheets: one
-// page per area per day.
-type TimetableSheets struct {
-	Title       string
-	Back        string
-	Competition CompetitionSummary
-	Judges      bool
-	Sheets      []SheetView
-	Exercises   map[string][2]string
-	Notes       map[string]string
-}
-
-// SheetView is one area's day.
-type SheetView struct {
-	Day, Area string
-	Flights   []ItemView
-}
-
-// TimetablePrint prints the marshal or chair of judges sheets.
-templ TimetablePrint(s TimetableSheets) {
-	@competitionLayout(s.Title) {
-		<div class="comp-print-bar screen-only">
-			<a href={ templ.SafeURL(s.Back) }>← Timetable</a>
-			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
-		</div>
-		for _, sheet := range s.Sheets {
-			<section class="comp-sheet">
-				<h1 class="title is-5 mb-1">{ s.Competition.Name } · { sheet.Area } · { sheet.Day }</h1>
-				<p class="mb-3">
-					if s.Judges {
-						Chair of judges
-					} else {
-						Marshal
-					}
-				</p>
-				for _, f := range sheet.Flights {
-					<h2 class="title is-6 mt-4 mb-1">{ f.Name }</h2>
-					<p class="is-size-7 mb-1">Warm-up { f.Start } · finishes about { f.End }</p>
-					if len(f.Seats) > 0 {
-						<p class="is-size-7 mb-1">{ panelLine(f.Seats) }</p>
-					}
-					<table class="table is-fullwidth is-narrow is-bordered comp-sheet-table">
-						<thead>
-							<tr>
-								<th>#</th>
-								<th>Gymnast</th>
-								<th>Club</th>
-								if s.Judges {
-									<th>1st exercise</th>
-									<th>2nd exercise</th>
-									<th>Notes</th>
-								} else {
-									<th>Here</th>
-								}
-							</tr>
-						</thead>
-						<tbody>
-							for _, g := range f.Gymnasts {
-								<tr>
-									<td>{ strconv.Itoa(g.No) }</td>
-									<td>
-										if g.Scratched {
-											<s class="comp-scratched">{ g.Name }</s> (scratched)
-										} else {
-											{ g.Name }
-										}
-										if g.Category != "" {
-											<span class="is-size-7">({ g.Category })</span>
-										}
-									</td>
-									<td>{ g.Club }</td>
-									if s.Judges {
-										<td>{ s.Exercises[g.ID][0] }</td>
-										<td>{ s.Exercises[g.ID][1] }</td>
-										<td class="is-size-7">{ s.Notes[g.ID] }</td>
-									} else {
-										<td></td>
-									}
-								</tr>
-							}
-						</tbody>
-					</table>
-				}
-			</section>
-		}
-	}
-}
-
 // Placement is where an attendee competes, on a published timetable.
 type Placement struct {
 	Flight, Panel, Time string
@@ -873,363 +901,6 @@ templ placementLine(p *Placement) {
 	}
 }
 
-// RotaSheet is the printable officials rota: each person's duties.
-type RotaSheet struct {
-	Title       string
-	Back        string
-	Competition CompetitionSummary
-	People      []PersonDuties
-}
-
-// PersonDuties is one person's duties, in time order.
-type PersonDuties struct {
-	Name, Club string
-	Duties     []string
-}
-
-// RotaPrint prints the officials rota.
-templ RotaPrint(s RotaSheet) {
-	@competitionLayout(s.Title) {
-		<div class="comp-print-bar screen-only">
-			<a href={ templ.SafeURL(s.Back) }>← Timetable</a>
-			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
-		</div>
-		<h1 class="title is-5 mb-3">{ s.Competition.Name } · Officials rota</h1>
-		if len(s.People) == 0 {
-			<p>No one has a duty yet.</p>
-		}
-		<table class="table is-fullwidth is-narrow is-bordered comp-sheet-table">
-			<thead><tr><th>Name</th><th>Club</th><th>Duties</th></tr></thead>
-			<tbody>
-				for _, p := range s.People {
-					<tr>
-						<td>{ p.Name }</td>
-						<td>{ p.Club }</td>
-						<td class="is-size-7">
-							for _, d := range p.Duties {
-								<div>{ d }</div>
-							}
-						</td>
-					</tr>
-				}
-			</tbody>
-		</table>
-	}
-}
-
-// dutiesBox lists a person's duties as an official, once the timetable is
-// published.
-templ dutiesBox(duties []string, scoreSheets string) {
-	if len(duties) > 0 {
-		<div class="notification is-info is-light">
-			<p><strong>Officiating</strong></p>
-			<ul class="is-size-7">
-				for _, d := range duties {
-					<li>{ d }</li>
-				}
-			</ul>
-			if scoreSheets != "" {
-				<p class="is-size-7 mt-1"><a href={ templ.SafeURL(scoreSheets) }>Score sheets for your panels</a></p>
-			}
-		</div>
-	}
-}
-
-// Timeline is the panel timeline on a time scale: a row for every minute
-// from Header+1, in sheets side by side: a day each, or with officials a
-// day's area each.
-type Timeline struct {
-	Title, Back, CSV  string
-	Other, OtherLabel string // the other kind of timeline
-	Officials         bool   // a column for each seat
-	Competition       CompetitionSummary
-	Header            int // rows above the minutes
-	Sheets            []TimelineSheet
-	// Focus picks out someone's (or a club's) flights, explained by Heading
-	// and Intro; BackLabel names where Back goes.
-	Focus                   bool
-	Heading, Intro, BackLabel string
-}
-
-// TimelineSheet is a day, or a day's area, with its own time column.
-type TimelineSheet struct {
-	Day, Title string
-	Columns    string // grid-template-columns
-	Minutes    int    // rows of a minute
-	Areas      []TimelineArea
-	Hours      []TimelineHour
-	Off        []TimelineSpan // outside the day's hours
-}
-
-// TimelineArea is an area's columns from Column: what's on, then its seats.
-type TimelineArea struct {
-	Name            string
-	Column, Columns int
-	Seats           []TimelineSeat
-	Cells           []TimelineCell
-}
-
-// TimelineSeat is a seat's column heading.
-type TimelineSeat struct {
-	Label, Title string // "E3", "Execution judge"
-}
-
-// TimelineHour labels an hour's rows.
-type TimelineHour struct {
-	Row, Rows int
-	Label     string
-}
-
-// TimelineSpan is rows from Row.
-type TimelineSpan struct {
-	Row, Rows int
-}
-
-// TimelineCell is a flight or blocked time ("flight", "block"), or who has one
-// of its seats ("seat"), placed on the grid.
-type TimelineCell struct {
-	Row, Rows, Column, Columns int
-	Kind                       string
-	Name, Time                 string // for a seat: who, and the role, flight and time
-	Flight                     bool
-	Gymnasts                   int  // entries: pairs, for synchro
-	Pairs                      bool // synchro
-	Empty                      bool // a seat no one could take
-	Overlaps                   bool // moved manually onto another
-	Mine, Faint                bool     // picked out, or not, on a focused timeline
-	Notes                      []string // who, doing what, when picked out
-}
-
-func gridAt(row, rows, column, columns int) string {
-	return fmt.Sprintf("grid-row: %d / span %d; grid-column: %d / span %d", row, rows, column, columns)
-}
-
-func (t Timeline) rows(sh TimelineSheet) string {
-	return fmt.Sprintf("repeat(%d, auto) repeat(%d, var(--tl-min))", t.Header, sh.Minutes)
-}
-
-func (c TimelineCell) title() string {
-	if c.Empty {
-		return "No one · " + c.Time
-	}
-	if c.Kind == "seat" {
-		return c.Name + " · " + c.Time
-	}
-	if c.Flight {
-		return strings.Join(append([]string{c.Name + " · " + c.Time + " · " + flightCount(c.Gymnasts, c.Pairs)}, c.Notes...), "\n")
-	}
-	return c.Name + " · " + c.Time
-}
-
-// TimelinePrint prints the panel timeline.
-templ TimelinePrint(t Timeline) {
-	@competitionLayout(t.Title) {
-		<div class="comp-print-bar screen-only">
-			if t.BackLabel != "" {
-				<a href={ templ.SafeURL(t.Back) }>{ t.BackLabel }</a>
-			} else {
-				<a href={ templ.SafeURL(t.Back) }>← Timetable</a>
-			}
-			<a class="button is-small" href={ templ.SafeURL(t.Other) }>{ t.OtherLabel }</a>
-			if t.CSV != "" {
-				<a class="button is-small" href={ templ.SafeURL(t.CSV) }>Download CSV</a>
-			}
-			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
-		</div>
-		<section class={ "comp-timeline", templ.KV("comp-timeline-officials", t.Officials) }>
-			<h1 class="title is-5 mb-3">
-				{ t.Competition.Name } ·
-				if t.Heading != "" {
-					{ t.Heading }
-				} else if t.Officials {
-					Timeline with officials
-				} else {
-					Panel timeline
-				}
-			</h1>
-			if t.Intro != "" {
-				<p class="is-size-7 mb-3">{ t.Intro }</p>
-			}
-			<div class="comp-tl-sheets">
-				for _, sh := range t.Sheets {
-					<div class="comp-tl-sheet" style={ fmt.Sprintf("grid-template-columns: %s; grid-template-rows: %s; --tl-areas: %d", sh.Columns, t.rows(sh), len(sh.Areas)) }>
-						<div class="comp-tl-head comp-tl-timehead" style={ gridAt(1, t.Header, 1, 1) }>Time</div>
-						<div class="comp-tl-head comp-tl-day" style={ fmt.Sprintf("grid-row: 1; grid-column: 2 / -1") }>{ sh.Title }</div>
-						for _, a := range sh.Areas {
-							if !t.Officials {
-								<div class="comp-tl-head comp-tl-areahead" style={ gridAt(2, 1, a.Column, a.Columns) }>{ a.Name }</div>
-							} else {
-								<div class="comp-tl-head comp-tl-areahead" style={ gridAt(2, 1, a.Column, 1) }>Flight</div>
-								for i, seat := range a.Seats {
-									<div class="comp-tl-head comp-tl-areahead" style={ gridAt(2, 1, a.Column+1+i, 1) } title={ seat.Title }>{ seat.Label }</div>
-								}
-							}
-							<div class="comp-tl-area" style={ gridAt(t.Header+1, sh.Minutes, a.Column, a.Columns) }></div>
-						}
-						for _, o := range sh.Off {
-							<div class="comp-tl-off" style={ fmt.Sprintf("grid-row: %d / span %d; grid-column: 2 / -1", o.Row, o.Rows) }></div>
-						}
-						for _, h := range sh.Hours {
-							<div class="comp-tl-hour" style={ gridAt(h.Row, h.Rows, 1, 1) }>{ h.Label }</div>
-							<div class="comp-tl-line" style={ fmt.Sprintf("grid-row: %d / span 1; grid-column: 2 / -1", h.Row) }></div>
-						}
-						for _, a := range sh.Areas {
-							for _, c := range a.Cells {
-								<div class={ "comp-tl-cell", "comp-tl-" + c.Kind, templ.KV("comp-tl-empty", c.Empty), templ.KV("comp-tl-overlap", c.Overlaps), templ.KV("comp-tl-mine", c.Mine), templ.KV("comp-tl-faint", c.Faint) } style={ gridAt(c.Row, c.Rows, c.Column, c.Columns) } title={ c.title() }>
-									if c.Kind == "seat" {
-										{ c.Name }
-									} else {
-										<strong>{ c.Name }</strong>
-										<div>
-											{ c.Time }
-											if c.Flight {
-												· { strconv.Itoa(c.Gymnasts) }
-											}
-										</div>
-										for _, n := range c.Notes {
-											<div class="comp-tl-note">{ n }</div>
-										}
-									}
-								</div>
-							}
-						}
-					</div>
-				}
-			</div>
-		</section>
-	}
-}
-
-// emptySeats counts seats no one could take and the flights they're on, e.g.
-// "11, on 3 flights".
-func emptySeats(seats, panels int) string {
-	out := fmt.Sprintf("%d, on %d panels", seats, panels)
-	if panels == 1 {
-		out = fmt.Sprintf("%d, on 1 panel", seats)
-	}
-	return out
-}
-
-// durationWord is minutes as "45 min" or "5h 35m".
-func durationWord(minutes int) string {
-	if minutes < 60 {
-		return fmt.Sprintf("%d min", minutes)
-	}
-	return fmt.Sprintf("%dh %02dm", minutes/60, minutes%60)
-}
-
-// flightCount counts a flight's entries: gymnasts, or for synchro pairs.
-func flightCount(n int, pairs bool) string {
-	switch {
-	case !pairs:
-		return gymnastCount(n)
-	case n == 1:
-		return "1 pair"
-	}
-	return fmt.Sprintf("%d pairs", n)
-}
-
-// ScoreSheets are the recorders' score sheets: a page per flight, a row per
-// gymnast in running order, a column for each mark of each routine, to
-// write in as the paper copy of the scores.
-type ScoreSheets struct {
-	Title, Back string
-	BackLabel   string // e.g. "← Timetable"
-	Intro       string // for an official: whose flights these are
-	Competition CompetitionSummary
-	Flights     []ScoreFlight
-}
-
-// ScoreFlight is one flight's score sheet.
-type ScoreFlight struct {
-	Name, Day, Area, Start string
-	Seats                  []SeatView // who's on its panel
-	Marks                  []string // each routine's columns: "E1"…, "D", "HD", "S1"…, "Pen", "Total"
-	Rows                   []ScoreRow
-}
-
-// ScoreRow is a gymnast (or synchro pair) on a score sheet.
-type ScoreRow struct {
-	Name, Club string
-	No         int  // their running number
-	Scratched  bool // a no-show on the day: struck through
-}
-
-// ScorePrint is the recorders' score sheets, to print landscape.
-templ ScorePrint(s ScoreSheets) {
-	@competitionLayout(s.Title) {
-		<style>@page { size: A4 landscape; margin: 10mm; }</style>
-		<div class="comp-print-bar screen-only">
-			<a href={ templ.SafeURL(s.Back) }>{ s.BackLabel }</a>
-			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
-			<span class="is-size-7">Landscape, a page a flight.</span>
-		</div>
-		if s.Intro != "" {
-			<p class="mb-4 screen-only">{ s.Intro }</p>
-		}
-		if len(s.Flights) == 0 && s.Intro != "" {
-			<p class="has-text-grey">You're not on the panel for any flight.</p>
-		} else if len(s.Flights) == 0 {
-			<p class="has-text-grey">No flights.</p>
-		}
-		for _, f := range s.Flights {
-			<section class="comp-sheet">
-				<h1 class="title is-5 mb-1">{ f.Name }</h1>
-				<p class="mb-1">{ s.Competition.Name } · { f.Area } · { f.Day } · warm-up { f.Start } · Recorder's score sheet</p>
-				if len(f.Seats) > 0 {
-					<p class="is-size-7 mb-2">{ panelLine(f.Seats) }</p>
-				}
-				<div class="table-container">
-				<table class="table is-fullwidth is-bordered comp-score-table">
-					<thead>
-						<tr>
-							<th rowspan="2">#</th>
-							<th rowspan="2">Gymnast</th>
-							<th rowspan="2">Club</th>
-							<th colspan={ strconv.Itoa(len(f.Marks)) } class="has-text-centered">1st routine</th>
-							<th colspan={ strconv.Itoa(len(f.Marks)) } class="has-text-centered">2nd routine</th>
-							<th rowspan="2">Total</th>
-							<th rowspan="2">Place</th>
-						</tr>
-						<tr>
-							for range 2 {
-								for _, m := range f.Marks {
-									<th class={ "comp-score-mark", templ.KV("comp-score-total", m == "Total") }>{ m }</th>
-								}
-							}
-						</tr>
-					</thead>
-					<tbody>
-						for _, g := range f.Rows {
-							<tr>
-								<td>{ strconv.Itoa(g.No) }</td>
-								<td>
-									if g.Scratched {
-										<s class="comp-scratched">{ g.Name }</s> (scratched)
-									} else {
-										{ g.Name }
-									}
-								</td>
-								<td class="is-size-7">{ g.Club }</td>
-								for range 2 {
-									for _, m := range f.Marks {
-										<td class={ "comp-score-mark", templ.KV("comp-score-total", m == "Total") }></td>
-									}
-								}
-								<td class="comp-score-total"></td>
-								<td></td>
-							</tr>
-						}
-					</tbody>
-				</table>
-				</div>
-			</section>
-		}
-	}
-}
-
-// runNo is a gymnast's running number, their place in the flight, as every
-// page shows it before their name.
 templ runNo(n int) {
 	if n > 0 {
 		<span class="comp-run-no" title="Running number">{ strconv.Itoa(n) }</span>

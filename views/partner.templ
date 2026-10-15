@@ -1,0 +1,79 @@
+package views
+
+import "strings"
+
+// Synchro partners: the box on an entry, and the page a partner confirms
+// on.
+
+// PartnerView is a synchro entry's partner and their link to confirm.
+type PartnerView struct {
+	Name      string
+	Link      string // as a full URL
+	Confirmed bool
+}
+
+// partnerBox shows a synchro pair's partner, and until they confirm, the link
+// to send them.
+templ partnerBox(p *PartnerView) {
+	if p != nil {
+		if p.Confirmed {
+			<p class="mb-3"><strong>✓ { p.Name } has confirmed the pair.</strong></p>
+		} else {
+			<div class="notification is-warning is-light">
+				<p class="mb-2"><strong>{ p.Name } hasn't confirmed the pair yet.</strong> Send them this link.</p>
+				@linkBox("Partner link", p.Link, "")
+			</div>
+		}
+	}
+}
+
+// PartnerPage is a synchro partner confirming the pair.
+type PartnerPage struct {
+	Competition CompetitionSummary
+	Gymnast     string // who entered the pair
+	Club        string
+	Partner     string // the partner's name, as entered
+	Event       string
+	// The names a browser saves this synchro entry under, to leave out of who
+	// they are: its page saves the entering gymnast's own page as the pair,
+	// and an entry link from before as the pair and the competition.
+	Saved []string
+	Confirmed   bool
+	Action      string
+	Problems    []string
+}
+
+// PartnerConfirm is the partner link's page.
+templ PartnerConfirm(p PartnerPage) {
+	@competitionLayout("Synchro · " + p.Competition.Name) {
+		<h1 class="title is-4">{ p.Event } with { p.Gymnast }</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		@competitionFacts(p.Competition)
+		if p.Confirmed {
+			<div class="notification is-success is-light">The pair is confirmed. Thank you.</div>
+		} else {
+			<p class="mb-3">
+				{ p.Gymnast }
+				if p.Club != "" {
+					({ p.Club })
+				}
+				has entered { p.Event } with you, { p.Partner }. Confirm so the timetable knows it's you, and never puts you in two places at once.
+			</p>
+			@problemList(p.Problems)
+			<form method="post" action={ templ.SafeURL(p.Action) } class="comp-partner">
+				// Links saved in this browser (static/js/competitions.js), but
+				// not this entry's own.
+				<div class="field" data-saved-people data-saved-self={ strings.Join(p.Saved, "\n") } hidden>
+					<label class="label is-small" for="partner-saved">You are</label>
+					<div class="select is-fullwidth"><select id="partner-saved"></select></div>
+				</div>
+				<div class="field">
+					<label class="label is-small" for="partner-link">Your own link: your club member page, or your own entry</label>
+					<input class="input" id="partner-link" name="link" placeholder="https://.../clubs/member/... or .../competitions/entry/..."/>
+					<p class="help">Leave it blank if you have no other entry in this competition.</p>
+				</div>
+				<button class="button is-primary is-fullwidth" type="submit">Confirm the pair</button>
+			</form>
+		}
+	}
+}

@@ -229,3 +229,12 @@ func TestEntryOffersKeptRoutines(t *testing.T) {
 		t.Errorf("the option's skills: %q (%v)", kept[1], err)
 	}
 }
+
+// aClubEntered is a club entered in a new competition, with the comp sec's
+// path, one member (who has joined, not entered) and their path.
+func aClubEntered(t *testing.T, h http.Handler) (admin, club, member string) {
+	t.Helper()
+	admin = created(t, h, newCompetition())
+	c := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	return admin, c.page, c.members["A. Murphy"]
+}

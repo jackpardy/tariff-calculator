@@ -10,7 +10,7 @@ import (
 // (09:00, with h2 competing) on P2.
 func onePanelSchedule() (Schedule, []SchedEntry, []RotaPerson) {
 	flight := func(level, area string, n, of, start int, entries ...string) ScheduledFlight {
-		return ScheduledFlight{Flight: Flight{Level: level, Number: n, Of: of, Entries: entries}, Discipline: Trampoline, Area: area, Start: start, End: start + 20}
+		return ScheduledFlight{Flight: Flight{Event: level, Number: n, Of: of, Entries: entries}, Discipline: Trampoline, Area: area, Start: start, End: start + 20}
 	}
 	s := Schedule{
 		Setup: Setup{Areas: []Area{{Name: "P1", Discipline: Trampoline}, {Name: "P2", Discipline: Trampoline}}, Days: []Day{{Name: "Sat", Start: "09:00", End: "12:00"}}},

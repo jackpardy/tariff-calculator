@@ -41,18 +41,20 @@ type dirPerson struct {
 
 // directory is everyone at a competition, by name, with entries' people.
 type directory struct {
-	list  []*dirPerson
-	byKey map[string]*dirPerson
-	keys  map[string][]string // each entry's people, as personKeys
+	list   []*dirPerson
+	byKey  map[string]*dirPerson
+	keys   map[string][]string // each entry's people, as personKeys
+	groups map[string]string   // key to person (store.PersonGroups)
 }
 
 // newDirectory finds everyone in a competition's live entries, officials and
 // coaches, each once under their person key. A member who competes and judges
-// is one person; a coach is one by club and name. Keys of one person (ADR
+// is one person; a club's coach is one by their record, an individual's by
+// name. Keys of one person (ADR
 // 0010: groups, key to person), such as a member who is a coach too, are one
 // row, under the first key found, and each key finds it.
 func newDirectory(entries []store.Entry, officials []store.Official, sent []store.SentCoach, named []store.EntryCoach, groups map[string]string) *directory {
-	d := &directory{byKey: map[string]*dirPerson{}, keys: personKeys(entries)}
+	d := &directory{byKey: map[string]*dirPerson{}, keys: personKeys(entries), groups: groups}
 	byPerson := map[string]*dirPerson{}
 	get := func(key string) *dirPerson {
 		if dp := d.byKey[key]; dp != nil {
@@ -124,20 +126,21 @@ func newDirectory(entries []store.Entry, officials []store.Official, sent []stor
 			}
 		}
 	}
-	byID := map[string]store.Entry{}
-	for _, e := range entries {
-		byID[e.ID] = e
-		if k := coachKey(e); k != "" {
-			coaching(coach(k, e.CoachName(), e.ClubName), e)
-		}
-	}
+	// Coaches sent to the competition first, so they're named as their club
+	// names them, not as a sign-off was typed.
 	for i := range sent {
-		if k := coachKeyOf(sent[i].ClubID, sent[i].Name); k != "" {
+		if k := store.CoachKey(sent[i].CoachID); k != "" {
 			coach(k, sent[i].Name, sent[i].ClubName).sent = &sent[i]
 		}
 	}
+	byID := entriesByID(entries)
+	for _, e := range entries {
+		if k := e.CoachKey(); k != "" {
+			coaching(coach(k, e.CoachName(), e.ClubName), e)
+		}
+	}
 	for i := range named {
-		if k := coachKeyOf("", named[i].Name); k != "" {
+		if k := store.NamedCoachKey(named[i].Name); k != "" {
 			dp := coach(k, named[i].Name, "")
 			dp.named = &named[i]
 			if e, ok := byID[named[i].EntryID]; ok {
@@ -146,7 +149,7 @@ func newDirectory(entries []store.Entry, officials []store.Official, sent []stor
 		}
 	}
 	slices.SortStableFunc(d.list, func(a, b *dirPerson) int {
-		if x := strings.Compare(strings.ToLower(a.name), strings.ToLower(b.name)); x != 0 {
+		if x := competitions.CompareNames(a.name, b.name); x != 0 {
 			return x
 		}
 		return strings.Compare(a.key, b.key)
@@ -279,7 +282,7 @@ func (p *competitionPages) people(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	base := adminPath(r.PathValue("token"))
-	page := views.PeoplePage{Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuPeople), Count: peopleWord(len(dir.list))}
+	page := views.PeoplePage{Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuPeople), Count: views.Count(len(dir.list), "person", "people")}
 	var clubs []string
 	for _, dp := range dir.list {
 		clubs = append(clubs, dp.club)
@@ -291,14 +294,6 @@ func (p *competitionPages) people(w http.ResponseWriter, r *http.Request) {
 			List: views.ListRow{Name: dp.name, Values: map[string][]string{"club": {clubValue(dp.club)}, "does": peopleDo(words)}}})
 	}
 	render(w, r, views.People(page))
-}
-
-// peopleWord counts people, e.g. "1 person", "12 people".
-func peopleWord(n int) string {
-	if n == 1 {
-		return "1 person"
-	}
-	return fmt.Sprintf("%d people", n)
 }
 
 // person is one person's page for the organiser: everything on their own My
@@ -334,13 +329,10 @@ func (p *competitionPages) person(w http.ResponseWriter, r *http.Request) {
 	page.Name, page.Back, page.BackLabel, page.Menu = dp.name, base+"/people", "← People", p.menuFor(r, c, menuPeople)
 	_, tags := dp.roles()
 	page.Admin = &views.PersonAdmin{Club: dp.club, Roles: tags}
-	byID := map[string]store.Entry{}
-	for _, e := range f.entries {
-		byID[e.ID] = e
-	}
+	byID := entriesByID(f.entries)
 	for i, ev := range page.Events {
 		ev.Link = base + "/entries/" + ev.ID
-		if k := coachKey(byID[ev.ID]); k != "" && dir.byKey[k] != nil {
+		if k := byID[ev.ID].CoachKey(); k != "" && dir.byKey[k] != nil {
 			ev.Coach, ev.CoachLink = dir.byKey[k].name, personPath(base, k)
 		}
 		if ev.Flight != "" {
@@ -355,7 +347,7 @@ func (p *competitionPages) person(w http.ResponseWriter, r *http.Request) {
 		}
 		page.Events[i] = ev
 	}
-	page.Admin.Officiating = p.officiatingOf(c, dp, f)
+	page.Admin.Officiating = p.officiatingOf(c, dp, f, dir.groups)
 	if dp.coaches() {
 		page.Admin.Coaching = coachingOf(c, dp, dir, base)
 	}
@@ -396,7 +388,7 @@ func judgeRule(rule string) string {
 // officiatingOf is what someone offered to officiate, which events they may
 // judge, and their seats, planned or published; nil for someone who offered
 // nothing and has no seat.
-func (p *competitionPages) officiatingOf(c store.Competition, dp *dirPerson, f dayFacts) *views.PersonOfficiating {
+func (p *competitionPages) officiatingOf(c store.Competition, dp *dirPerson, f dayFacts, groups map[string]string) *views.PersonOfficiating {
 	var seats []string
 	note := "No timetable is planned yet."
 	switch s := schedule(c); {
@@ -440,7 +432,7 @@ func (p *competitionPages) officiatingOf(c store.Competition, dp *dirPerson, f d
 			o.Qualified = "Marked qualified."
 		}
 	}
-	for _, rp := range rotaPeople(c.Competition, dp.officials, f.entries) {
+	for _, rp := range rotaPeople(c.Competition, dp.officials, f.entries, groups) {
 		if rp.Key != dp.key {
 			continue
 		}
@@ -487,19 +479,11 @@ func panelStatus(s competitions.Schedule, person string, official map[string]map
 	case here == 0 && missing == 0:
 		return "Not marked yet"
 	}
-	out := fmt.Sprintf("Here for %d of %s", here, flightsWord(total))
+	out := fmt.Sprintf("Here for %d of %s", here, views.Count(total, "flight", "flights"))
 	if missing > 0 {
 		out += fmt.Sprintf(", missing for %d", missing)
 	}
 	return out
-}
-
-// flightsWord counts flights, e.g. "1 flight", "3 flights".
-func flightsWord(n int) string {
-	if n == 1 {
-		return "1 flight"
-	}
-	return fmt.Sprintf("%d flights", n)
 }
 
 // coachingOf is who someone coaches, and whether the competition has approved

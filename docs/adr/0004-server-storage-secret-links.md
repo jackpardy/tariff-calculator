@@ -109,6 +109,11 @@ Constraints:
    Hashes are compared in constant time. A wrong token gets **404**, exactly as
    a missing one does. A new admin link is shown once, with "save this link" and
    a copy button, and its holder can replace it, which ends the old one.
+   *Noted 2026-10-15:* nothing else may keep a token either. Notifications
+   had kept the path of each person's page, which holds their link
+   (migration 33 cleared them, ADR 0008), and an unexpected error was logged
+   with the request's path; it's now logged by its route pattern
+   (`GET /clubs/member/{token}`).
 
 4. **The domain stays framework-free.** A new `competitions` package holds the
    model (competition, club, member, entry), its validation and the checking

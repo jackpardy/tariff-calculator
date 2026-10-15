@@ -152,7 +152,7 @@ func (p *competitionPages) setLimits(w http.ResponseWriter, r *http.Request) {
 	_, waiting := splitWaiting(entries)
 	notice := "Limits saved."
 	if len(waiting) > 0 {
-		notice += fmt.Sprintf(" %s on a waiting list.", entriesWord(len(waiting)))
+		notice += fmt.Sprintf(" %s on a waiting list.", views.Count(len(waiting), "entry", "entries"))
 	}
 	backToSettings(w, r, notice)
 }

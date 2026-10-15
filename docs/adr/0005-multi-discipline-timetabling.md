@@ -1,6 +1,7 @@
 # ADR 0005 — Timetabling multi-discipline competitions (ISTO)
 
-- **Status:** Accepted
+- **Status:** Accepted; built (every step live by 2026-10-09; the DMT and tumbling
+  rules in the roadmap's possible additions are separate)
 - **Date:** 2026-10-06; settings and defaults (Decisions 5, 6 and 13) added
   2026-10-07
 - **Deciders:** jackpardy (solo maintainer)

@@ -18,10 +18,10 @@ change later.
 
 The `Dockerfile` builds in two stages:
 
-1. `golang:1.25-alpine` downloads the modules, **runs `go test ./...`**, and
+1. `golang:1.26-alpine` downloads the modules, **runs `go test ./...`**, and
    builds a static binary (`CGO_ENABLED=0`, `-trimpath`, stripped).
 2. `alpine:3.20` gets that one binary, running as non-root `app` (uid 1000) on
-   `PORT=8080`, with a `HEALTHCHECK` that runs `wget` against `/`.
+   `PORT=8080`, with a `HEALTHCHECK` that runs `wget` against `/healthz`. That answers 200 while the app is fit to serve, and 503 when `DATA_DIR` is set but competition storage didn't open or isn't answering (a migration that failed on deploy, say). The calculator still works then, as ADR 0004 Decision 8 has it, but the container shows as unhealthy and the deploy job fails. On SIGTERM the app lets requests under way finish (up to 15 seconds), then closes the database.
 
 Templates and assets are compiled or embedded into the binary, so nothing else
 is copied ([static assets](../architecture/static-assets.md)). The calculator
@@ -48,7 +48,14 @@ passes in seconds, so docs-only PRs can still merge, and nothing deploys
   `git diff --exit-code`),
 - `go vet ./...`,
 - `go test ./...`,
+- `govulncheck`, which fails on any known vulnerability our code can reach in
+  Go or a module (added 2026-10-15),
 - `docker build`, so a broken image is caught before deploy.
+
+The Go version is go.mod's `toolchain` line (Go 1.26.9 since 2026-10-15),
+which CI and local builds both use; the image builds with the newest Go 1.26.
+Go supports its two newest releases, so move up when a new one comes out and
+govulncheck starts failing.
 
 **deploy** job (after test, never for a pull request, nor for documents
 alone): SSH to the server with
@@ -56,6 +63,8 @@ a dedicated key. Deploys run one at a time in their own concurrency group, so a
 PR's tests never hold one up. The server
 forces the command `/srv/infra/scripts/deploy.sh tariff` whatever is asked for.
 If the `DEPLOY_HOST` secret is empty, the job **skips itself** with a notice.
+After deploying it checks `https://tariff.pardy.ie/healthz` for up to two
+minutes, and fails if the app isn't healthy by then.
 The secrets are set, so every push to `master` deploys. The others are
 `DEPLOY_USER`, `DEPLOY_SSH_KEY` and `DEPLOY_KNOWN_HOSTS`.
 
@@ -97,6 +106,13 @@ mode 700. The nightly backup copies the database with `sqlite3 .backup`, which
 stays consistent while the app writes, and `scripts/restore.md` puts it back.
 These are in the server repository (CONTRACT.md "Tariff calculator storage",
 GUIDE.md section m).
+
+**Rolling back.** The app won't open a database that a newer version has
+migrated further than it knows: it stops at start with an error saying so,
+rather than write rows without the newer columns. To roll back past a
+migration, restore the backup taken before the newer version ran. Uploads
+of coaches' certificates are refused while the data directory's disk has
+less than 1 GB free.
 
 # Notifications
 

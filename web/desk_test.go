@@ -31,26 +31,6 @@ func subscribeByEmail(t *testing.T, h http.Handler, mail *fakeMailer, notify, ad
 	mail.sent = nil
 }
 
-// aClubWithMembers makes a club entered in the competition, with a member
-// for each name who has entered, and returns the club's page and the
-// members' pages.
-func aClubWithMembers(t *testing.T, h http.Handler, admin string, names ...string) (string, map[string]string) {
-	t.Helper()
-	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
-	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
-	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
-	members := map[string]string{}
-	for _, name := range names {
-		m := withoutQuery(redirected(t, h, join, url.Values{"name": {name}}))
-		redirected(t, h, formAction(t, memberCompetitionPage(t, h, m), m+"/competitions/"), entry)
-		members[name] = m
-	}
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
-	return club, members
-}
-
 // notifyPageOf is the notify page a page links to, under a path prefix. A
 // member's is linked from their page for the competition.
 func notifyPageOf(t *testing.T, h http.Handler, page, prefix string) string {
@@ -75,14 +55,14 @@ func personOnDesk(t *testing.T, page, name string) string {
 	if m == nil {
 		t.Fatalf("%s isn't on the desk's list: %s", name, page)
 	}
-	return html2text(m[1])
+	return unescape(m[1])
 }
 
 // anIndividual enters a gymnast on their own and returns their page.
 func anIndividual(t *testing.T, h http.Handler, admin, name string) string {
 	t.Helper()
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	return withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {name}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	return withoutQuery(redirected(t, h, enter, bucsEntry(name)))
 }
 
 // A message to a club reaches its comp sec and members who asked, by email
@@ -90,7 +70,8 @@ func anIndividual(t *testing.T, h http.Handler, admin, name string) string {
 func TestDeskMessageToAClub(t *testing.T) {
 	h, _, mail := notifyServer(t)
 	admin := created(t, h, newCompetition())
-	club, members := aClubWithMembers(t, h, admin, "Ann", "Bea")
+	ucd := aClub(t, h, admin, "UCD", true, "Ann", "Bea")
+	club, members := ucd.page, ucd.members
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, members["Ann"], members["Ann"]), "ann@example.com")
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, club, club), "ucd@example.com")
 
@@ -137,10 +118,10 @@ func TestDeskMessageToAClub(t *testing.T) {
 	}
 	ann := got["ann@example.com"]
 	if ann.subject != "Message from the organisers of Student Open" || !strings.HasPrefix(ann.body, "Warm-up is moved to hall 2\n") ||
-		!strings.Contains(ann.body, "https://tariff.example"+members["Ann"]) || !strings.Contains(ann.body, "/notify/off/") || !strings.Contains(ann.headers["List-Unsubscribe"], "/notify/off/") {
+		!strings.Contains(ann.body, "https://tariff.example/competitions") || strings.Contains(ann.body, members["Ann"]) || !strings.Contains(ann.body, "/notify/off/") || !strings.Contains(ann.headers["List-Unsubscribe"], "/notify/off/") {
 		t.Errorf("Ann's email: %+v", ann)
 	}
-	if !strings.Contains(got["ucd@example.com"].body, "https://tariff.example"+club) {
+	if body := got["ucd@example.com"].body; !strings.Contains(body, "https://tariff.example/competitions") || strings.Contains(body, club) {
 		t.Errorf("the comp sec's email: %+v", got["ucd@example.com"])
 	}
 
@@ -205,12 +186,12 @@ func TestDeskMessageToAFlight(t *testing.T) {
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
 	page := do(t, h, http.MethodGet, desk, nil).Body.String()
-	flight := regexp.MustCompile(`<option value="(\d+\|[^"]+)">`).FindStringSubmatch(page)
+	flight := regexp.MustCompile(`<option value="([0-9a-f]{16})">`).FindStringSubmatch(page)
 	if flight == nil || !strings.Contains(page, "<optgroup") {
 		t.Fatalf("the published flights, by day and area: %s", page)
 	}
 
-	to := redirected(t, h, desk, url.Values{"to": {"flight"}, "flight": {html2text(flight[1])}, "text": {"Your flight starts in 10 minutes"}})
+	to := redirected(t, h, desk, url.Values{"to": {"flight"}, "flight": {unescape(flight[1])}, "text": {"Your flight starts in 10 minutes"}})
 	if !strings.Contains(to, "1+by+push") {
 		t.Errorf("the notice: %s", to)
 	}
@@ -221,7 +202,7 @@ func TestDeskMessageToAFlight(t *testing.T) {
 	if err := json.Unmarshal(openPush(t, ua, auth, service.bodies[0]), &m); err != nil {
 		t.Fatal(err)
 	}
-	if m.Title != "Student Open" || m.Body != "Your flight starts in 10 minutes" || m.URL != "https://tariff.example"+ann {
+	if m.Title != "Student Open" || m.Body != "Your flight starts in 10 minutes" || m.URL != "https://tariff.example/competitions" {
 		t.Errorf("the push: %+v", m)
 	}
 	// Bea hasn't asked to hear, but is in the flight: she sees it.
@@ -236,7 +217,7 @@ func TestDeskMessageToAFlight(t *testing.T) {
 
 	// A phone that's gone is dropped.
 	service.status = http.StatusGone
-	redirected(t, h, desk, url.Values{"to": {"flight"}, "flight": {html2text(flight[1])}, "text": {"Again"}})
+	redirected(t, h, desk, url.Values{"to": {"flight"}, "flight": {unescape(flight[1])}, "text": {"Again"}})
 	if page := do(t, h, http.MethodGet, ann+"/notify", nil).Body.String(); strings.Contains(page, "A phone or browser added") {
 		t.Error("a gone phone is dropped")
 	}
@@ -316,9 +297,8 @@ func TestDeskLinks(t *testing.T) {
 		}
 	}
 	redirected(t, h, chair+"/desk", form)
-	history := do(t, h, http.MethodGet, admin+"/history", nil).Body.String()
-	if !strings.Contains(history, "Called Ann Ryan to the desk") || !strings.Contains(history, "Chairs") {
-		t.Errorf("the chair is in the history: %s", history)
+	if !historyHas(t, h, admin, "Chairs", "Called Ann Ryan to the desk") {
+		t.Error("the chair is in the history")
 	}
 	// A message that wasn't sent isn't in the history.
 	redirected(t, h, table+"/desk", url.Values{"to": {"people"}, "text": {"Nobody"}})
@@ -341,7 +321,8 @@ func TestDeskLinks(t *testing.T) {
 func TestDeskToACoach(t *testing.T) {
 	h, _, mail := notifyServer(t)
 	admin := created(t, h, newCompetition())
-	club, members := aClubWithMembers(t, h, admin, "Ann", "Bea")
+	ucd := aClub(t, h, admin, "UCD", true, "Ann", "Bea")
+	club, members := ucd.page, ucd.members
 	bob := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
 	bobID := regexp.MustCompile(`<option value="([^"]+)">Bob</option>`).FindStringSubmatch(do(t, h, http.MethodGet, members["Ann"]+"/details", nil).Body.String())[1]
 	redirected(t, h, members["Ann"]+"/coach", url.Values{"coach": {bobID}})
@@ -357,7 +338,7 @@ func TestDeskToACoach(t *testing.T) {
 		t.Error("Bob isn't shown what is for Bea")
 	}
 	redirected(t, h, desk, url.Values{"to": {"people"}, "person": {personOnDesk(t, page, "Ann")}, "text": {"For Ann"}})
-	if len(mail.sent) != 1 || mail.sent[0].to != "bob@example.com" || !strings.Contains(mail.sent[0].body, "https://tariff.example"+bob) {
+	if len(mail.sent) != 1 || mail.sent[0].to != "bob@example.com" || strings.Contains(mail.sent[0].body, bob) {
 		t.Errorf("Ann is Bob's: %+v", mail.sent)
 	}
 	if body := do(t, h, http.MethodGet, bob, nil).Body.String(); !strings.Contains(body, deskBox) || !strings.Contains(body, "For Ann") {
@@ -399,8 +380,8 @@ func TestDeskToOfficials(t *testing.T) {
 	for _, name := range []string{"Mary", "Tom", "Dara", "Eve"} {
 		personOnDesk(t, page, name)
 	}
-	if !strings.Contains(page, "official") || !strings.Contains(page, "gymnast") {
-		t.Error("each person says what they are")
+	if got := deskPeople(t, page); got["Mary"] != "official" || got["Tom"] != "official" || got["Eve"] != "gymnast" || got["Dara"] != "gymnast · official" {
+		t.Errorf("each person says what they are: %q", got)
 	}
 
 	tt := admin + "/timetable"
@@ -427,11 +408,11 @@ func TestDeskToOfficials(t *testing.T) {
 	if panel == nil {
 		t.Fatalf("a panel with officials is offered: %s", page)
 	}
-	redirected(t, h, desk, url.Values{"to": {"panel"}, "panel": {html2text(panel[1])}, "text": {"Panel check"}, "come": {"1"}})
+	redirected(t, h, desk, url.Values{"to": {"panel"}, "panel": {unescape(panel[1])}, "text": {"Panel check"}, "come": {"1"}})
 	if len(mail.sent) != 1 || mail.sent[0].to != "dara@example.com" || !strings.HasPrefix(mail.sent[0].subject, "Please come to the organisers' desk") {
 		t.Errorf("Dara is on the panel: %+v", mail.sent)
 	}
-	if history := html2text(do(t, h, http.MethodGet, admin+"/history", nil).Body.String()); !strings.Contains(history, "Called "+html2text(panel[2])+" to the desk") {
+	if history := unescape(do(t, h, http.MethodGet, admin+"/history", nil).Body.String()); !strings.Contains(history, "Called "+unescape(panel[2])+" to the desk") {
 		t.Errorf("the history names the panel: %s", history)
 	}
 
@@ -442,7 +423,7 @@ func TestDeskToOfficials(t *testing.T) {
 	if flight == nil {
 		t.Fatalf("BUCS L3's flight is offered: %s", page)
 	}
-	key := html2text(flight[1])
+	key := unescape(flight[1])
 	send := func(extra url.Values) (string, []string) {
 		t.Helper()
 		mail.sent = nil

@@ -47,10 +47,7 @@ func (cs *competitionsSeen) of(id string) (*sentEntries, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &sentEntries{c: c, byID: map[string]store.Entry{}, warns: map[string]string{}}
-	for _, e := range entries {
-		s.byID[e.ID] = e
-	}
+	s := &sentEntries{c: c, byID: entriesByID(entries), warns: map[string]string{}}
 	for i, w := range synchroLevels(c.Competition, entries) {
 		s.warns[entries[i].ID] = w
 	}
@@ -95,7 +92,7 @@ func (cs *competitionsSeen) pairViews(pairs []store.PairEntry, skip func(store.P
 		}
 		club := pe.Club
 		if club == "" {
-			club = "Individual"
+			club = onTheirOwn
 		}
 		shown, err := card(s.c.Competition, pe.Entry, club)
 		if err != nil {

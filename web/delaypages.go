@@ -17,7 +17,7 @@ import (
 // delay is the delay page: the form (day, area, from, minutes) and, once
 // asked, what the delay does.
 func (p *competitionPages) delay(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, s, _, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -50,25 +50,23 @@ func (p *competitionPages) delay(w http.ResponseWriter, r *http.Request) {
 		} else if err4 != nil {
 			page.Problems = []string{err4.Error()}
 		} else {
-			people, names := peopleOf(entries)
-			officials, err := p.rotaOf(r, c, entries)
+			f, err := p.liveRota(r.Context(), c)
 			if err != nil {
 				failed(w, r, err)
 				return
 			}
-			for _, o := range officials {
-				if names[o.Key] == "" {
-					names[o.Key] = o.Name
-				}
-			}
-			out, report, err := s.Delayed(d, people)
+			people, names := f.one, f.clashNames()
+			_, report, err := s.Delayed(d, people)
 			if err != nil {
 				page.Problems = sentences(err)
 			} else if r.Method == http.MethodPost {
-				p.keepWhatIf(w, r, c, out, "The delay's timetable is now the draft.")
+				p.keepWhatIf(w, r, c, func(s competitions.Schedule) (competitions.Schedule, error) {
+					out, _, err := s.Delayed(d, people)
+					return out, err
+				}, "The delay's timetable is now the draft.")
 				return
 			} else {
-				page.Keep = r.URL.RequestURI()
+				page.Keep, page.Version = r.URL.RequestURI(), s.Version()
 				page.Result = delayView(report, names)
 				page.Result.Easing = easing
 				if d.Eased() {
@@ -193,7 +191,7 @@ func delayView(r competitions.DelayReport, names map[string]string) *views.Delay
 		ch := views.DelayChangeView{Flight: c.Flight,
 			Was:   fmt.Sprintf("%s %s–%s", c.Area, competitions.Clock(c.Start), competitions.Clock(c.End)),
 			Now:   fmt.Sprintf("%s %s–%s", c.NewArea, competitions.Clock(c.NewStart), competitions.Clock(c.NewEnd)),
-			Later: c.NewStart - c.Start, Moved: c.Moved}
+			Moved: c.Moved}
 		switch {
 		case c.Moved && c.PastEnd:
 			ch.Why = "moved: it would have run past the end of the day"

@@ -22,6 +22,7 @@ type DelayPage struct {
 	Problems           []string
 	Result             *DelayResult
 	Keep               string // where keeping the result posts
+	Version            string // the draft timetable's version, which keeping it posts back
 }
 
 // DelayResult is what a delay does.
@@ -46,7 +47,6 @@ type DelayDay struct {
 // DelayChangeView is a flight that starts later or moves.
 type DelayChangeView struct {
 	Flight, Was, Now, Why string
-	Later                 int // minutes
 	Moved                 bool
 }
 
@@ -119,6 +119,7 @@ templ Delay(p DelayPage) {
 		</form>
 		if r := p.Result; r != nil {
 			<form method="post" action={ templ.SafeURL(p.Keep) } class="mb-4">
+				@versionField(p.Version)
 				<button class="button is-small is-success" type="submit">Keep this in the draft timetable</button>
 				<span class="help is-inline ml-2">Attendees see it once you publish the timetable again.</span>
 			</form>

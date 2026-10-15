@@ -2,14 +2,16 @@
 type: API Reference
 title: HTTP routes
 description: Every route the server exposes, what it takes and what it returns, along with the limits applied to all requests.
-resource: https://github.com/jackpardy/tariff-calculator/blob/master/web/calculator.go
+resource: https://github.com/jackpardy/tariff-calculator/tree/master/web
 tags: [architecture, http, routes]
 generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 ---
 
 # Routes
 
-All routes are defined in `routesWithPages()` in `web/calculator.go`. Forms are
+The calculator's routes are defined in `routesWithPages()` in `web/calculator.go`;
+the competition and club routes are registered by each page file in `web/`
+(each has a `register…` function calling `handle`). Forms are
 `application/x-www-form-urlencoded`. "Routine" means a JSON array of
 [skills](../domain/skill-model.md#schema).
 
@@ -23,6 +25,7 @@ All routes are defined in `routesWithPages()` in `web/calculator.go`. Forms are
 | `GET /judging` | the form's fields (query), optional `last=1` | The "How it's judged" pop-up ([execution judging](../domain/execution.md)); `last=1` adds the landing; 400 for a skill that can't land |
 | `POST /routine` | `routineData`, `requirementSet`, `checks`, `side` (`a`/`b`), optional `compareData` + `compareName`; for a [level](../requirements/levels.md)'s exercise, `level`, `exercise` and the other exercise's `pairData`, `pairSet`, `pairChecks`, `pairName` | The routine view: cards, flags, totals, requirement results, and the level panel |
 | `POST /set-routine` | `requirementSet`, optional `routineData` | JSON `{name, skills, matches}` ([set routines](../requirements/set-routines.md)) |
+| `POST /requirements/set-routine` | `routineData` | The set routine editor filled from a routine |
 | `POST /qr` | `text` | An SVG QR code ([sharing](../features/sharing.md)) |
 | `GET /compare`, `POST /compare` | `aData`, `aName`, `bData`, `bName` | The [compare page](../features/compare.md) and its comparison |
 | `GET /requirements` | — | The requirements page |
@@ -34,8 +37,8 @@ All routes are defined in `routesWithPages()` in `web/calculator.go`. Forms are
 
 ## Competition pages
 
-[Competition entries](../features/competition-entries.md) (`web/comppages.go`,
-`web/clubpages.go`), reached at `/competitions`; the calculator doesn't link to
+[Competition entries](../features/competition-entries.md) (`web/comppages.go`
+and the files beside it, `web/clubpages.go`), reached at `/competitions`; the calculator doesn't link to
 them, for now. `{token}` is a secret link (ADR 0004). These
 pages send `Referrer-Policy: no-referrer`, `Cache-Control: no-store` and
 `X-Robots-Tag: noindex`. A wrong or replaced link gets 404, and without storage
@@ -49,6 +52,32 @@ coach, individual or entry; the club, for its comp sec's pages; the
 competition or helper link, for an admin link). Every route takes it, and it
 works only while the role is the person's. A GET on a personal link's page
 gets tabs for the person's roles.
+
+A form's POST answers 303 to the page to go back to, with what happened as
+`?notice=` (first in the query, before any `#part`): `seeOther` in
+`web/helpers.go`, which `back` (the timetable) and `backToDay` don't use
+yet.
+
+The pages for someone at a competition (My competition, "I'm here", score
+sheets, timelines, calendars, notifications and late changes) sit under a
+member's, an individual's entry, a comp sec's or a coach's link. One
+resolver, `whose` in `web/whose.go`, works out from the link who is asking
+and which competition, and each feature has one handler for all of them.
+The links on a person's or club's page for a competition (timetables and
+calendars, Tell me about changes, duties and score sheets, the desk's
+messages) are built in one place too, `competitionLinks` in the same file,
+as a `views.MyLinks` each page embeds.
+A person's or club's timetable and calendar pick out the same flights by
+one rule (`web/ourflights.go`): `inSlot` for a person (the entries they're
+in, a partner's too, and their seats), and `clubPeople` with `ourClub.inSlot`
+for a club (its entries, and seats held by its members or by the
+organiser's officials from it).
+
+Pages that read a competition's people (calendars, timelines, score sheets,
+My competition, the desk, late changes, delays, leaving, simulation, the
+rota) get them through one helper, `liveRota` in `web/rotapages.go`: the live
+entries, the officials as the rota needs them, who's the same person, each
+entry's people and their names, keyed by person or as one person each.
 
 | Method and path | Input | Returns |
 |---|---|---|
@@ -65,10 +94,10 @@ gets tabs for the person's roles.
 | `GET /clubs/member/{token}/competitions/{id}/score-sheets`, `/competitions/entry/{token}/score-sheets` | — | The published score sheets of the flights the person officiates |
 | `GET /clubs/member/{token}/competitions/{id}/calendar.ics`, `/competitions/entry/{token}/calendar.ics` | — | A person's published flights and duties as an iCalendar file to add or subscribe to; empty until published |
 | `GET /clubs/member/{token}/competitions/{id}/club-calendar.ics`, `/clubs/admin/{token}/competitions/{id}/calendar.ics`, `/clubs/coach/{token}/competitions/{id}/calendar.ics` | — | The club's: every flight one of its gymnasts competes in, and every seat one of its people holds, named |
-| `GET /sw.js` | — | The service worker, for push notifications |
+| `GET /sw.js` | — | The service worker, for push notifications and offline copies of pages (dropped after 30 days, or on a 404 or 410) |
 | `GET /manifest.webmanifest` | — | The web manifest, for adding a page to the home screen (no `start_url`) |
 | `GET`, `POST /notify/confirm/{token}` | — | Confirms an email (a button, then done) |
-| `GET`, `POST /notify/off/{token}` | — (or `List-Unsubscribe=One-Click`) | Stops an email |
+| `GET`, `POST /notify/off/{token}` | — (or `List-Unsubscribe=One-Click`) | Stops every email to that address for the competition |
 | `POST /competitions/admin/{token}/notify-now` | — | Sends the changes waiting at once |
 | `POST /competitions/admin/{token}/no-wait` | `on` (`1`/`0`) | No wait before telling changes on the competition's days |
 | `POST /competitions/admin/{token}/live` | `opens`: `now`, `at` (with `liveDate` and `liveTime`, before the deadline) or `private`; `back=settings` to come back to Settings rather than the entries page | Goes live now or then, or makes the competition private, pausing entries and keeping those made |
@@ -148,45 +177,63 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST /competitions/admin/{token}/levels/move` | `move` (`<discipline>:<place>:<-1 or 1>`) | Moves a level one place easier or harder in its discipline's order (easiest first), which judging "up to" a level and "only levels below their own" go by |
 | `GET`, `POST /competitions/partner/{token}` | `link` (the partner's own member page or entry link, or blank) | A synchro partner confirming the pair |
 | `GET /competitions/admin/{token}/people` | — | People: everyone at the competition once (gymnasts, partners, officials, coaches), with what they do. Any link that can see the entries page, not the venue screen link |
-| `GET /competitions/admin/{token}/people/{key}` | `key`: a person key, path-escaped as one segment (`m:<id>`, `i:<name>`, `p:<entry>`, `o:<id>`, `c:<club>:<name>`) | One person's read-only page for the organiser: entries, officiating, coaching, and once published their check-in and desk messages. 404 for a key nobody has |
+| `GET /competitions/admin/{token}/people/{key}` | `key`: a person key (`store/personkey.go`), path-escaped as one segment (`m:<id>`, `i:<id>` or `i:<name>`, `p:<entry>`, `o:<id>`, `c:<coach id>`, `c::<name>` for an individual's coach) | One person's read-only page for the organiser: entries, officiating, coaching, and once published their check-in and desk messages. 404 for a key nobody has |
 | `GET /competitions/admin/{token}/officials` | `notice` | The officials: who can judge and chair each discipline, the panels and judging rule, and everyone offered or added |
 | `POST /competitions/admin/{token}/officials/settings` | `judge` (`""`, `below`, `qualified`), `panel-<discipline>-<role>` | Panels per discipline and who may judge what |
 | `POST /competitions/admin/{token}/officials/add` | `name`, `club`, and an offer | Adds a judge or helper |
 | `POST /competitions/admin/{token}/officials/{id}/qualified`, `/remove` | `on` | Marks someone qualified; removes someone the organiser added |
 | `POST /clubs/member/{token}/competitions/{id}/offer`, `GET`/`POST /clubs/admin/{token}/members/{member}/competitions/{id}/offer`, `POST /competitions/entry/{token}/offer` | `judge-<discipline>`, `upto-<discipline>`, `chair-<discipline>`, `recorder`, `marshal` | What a member, the comp sec for a member, or an individual offers to judge and help with |
 | `POST /competitions/admin/{token}/split` | `split` (`""`, `all`, `some`), `splitLevel` | Which levels rank men and women separately (also `split=all` on `POST /competitions`); entries then take `category` |
-| `GET /competitions/admin/{token}/timetable` | `notice` | The timetable: setup, the report and fixes, each day's areas, unplaced entries |
+| `GET /competitions/admin/{token}/timetable` | `notice` | The timetable: setup, the report and fixes, each day's areas, unplaced entries. Each form on it also posts `version`, the draft's version as the page showed it: the posts below that carry it are refused with "The timetable changed since you opened this page; nothing was changed." if the draft has changed since, and every change to the draft is read and saved in one transaction |
 | `POST /competitions/admin/{token}/timetable/setup/days` | `day-{i}-name`, `-start`, `-end`, `-area`; `add`, `remove` | Saves, adds or removes days |
 | `POST /competitions/admin/{token}/timetable/setup/areas` | `area-{i}-name`, `-discipline`; `add`, `remove` | Saves, adds or removes areas (renames carry to days, blocks and rules) |
 | `POST /competitions/admin/{token}/timetable/setup/timings` | `per-`, `between-`, `max-` per discipline; `rest`, `restMust`, `separate`, `separateLevel` | Saves timings, rest and which levels fly men and women apart |
 | `POST /competitions/admin/{token}/timetable/setup/blocks` | `name`, `minutes`, `day`, `at` or `from`/`to`, `area`, and officials needed: `chair`, `judges`, `recorder`, `marshal`; or `remove` | Adds or removes blocked time |
 | `POST /competitions/admin/{token}/timetable/setup/rules` | `kind` (`area`, `day`, `before`, `apart`; about officials: `role`, `off`, `hours`), `must`, `event`, `event2`, `area`, `day`, `person`, `role`, `from`, `to`; or `remove` | Adds or removes a rule |
 | `POST /competitions/admin/{token}/timetable/plan` | | Plans afresh from the entries and setup |
-| `POST /competitions/admin/{token}/timetable/flight` | `flight`, `action` (`redraw`, `move` with `to` = `day:area`) | Redraws or moves a flight |
-| `POST /competitions/admin/{token}/timetable/entry` | `entry`, `to` (flight index, `""` to take out) | Moves or places a gymnast |
-| `POST /competitions/admin/{token}/timetable/publish` | `on` (`1`/`0`) | Shows clubs and gymnasts their flight, or hides it |
-| `POST /competitions/admin/{token}/timetable/officials` | `action` (`rota`, or `seat` with `flight` or `block`, `seat`, `person`) | Assigns every panel again, or gives one seat to someone (`""` empties it) |
+| `POST /competitions/admin/{token}/timetable/flight` | `flight` (index), `action` (`redraw`, `move` with `to` = `day:area`, `earlier`), `version` | Redraws or moves a flight; it keeps its ID |
+| `POST /competitions/admin/{token}/timetable/entry` | `entry`, `to` (flight index, `""` to take out), `version` | Moves or places a gymnast |
+| `POST /competitions/admin/{token}/timetable/publish` | `action` (`publish`, `unpublish`, `discard`; or `on` = `1`/`0`), `version` | Shows clubs and gymnasts their flight, or hides it; publishing a draft changed since the page was opened is refused |
+| `POST /competitions/admin/{token}/timetable/officials` | `action` (`rota`, or `seat` with `flight` or `block`, `seat`, `person`), `version` | Assigns every panel again, or gives one seat to someone (`""` empties it) |
 | `GET /competitions/admin/{token}/timetable/print` | `sheet` (`marshal`, `judges`, `scores`, `rota`, `timeline` or `timeline-officials`) | Printable sheets, one area to a page, with each flight's panel; the recorders' score sheets, a flight to a landscape page; each person's duties; the panel timeline, every day's areas side by side; or the timeline with a column for each seat, a day's area to a sheet |
 | `GET /competitions/admin/{token}/timetable/timeline.csv` | — | The panel timeline as CSV: a row per flight or block on each area, with its officials by role |
-| `GET /competitions/admin/{token}/timetable/delay` | `day` (index), `from` ("10:30"), `minutes`, `area` (any number; none for all); easing: `breaks` (`""`, `move`, `shorten`, `through`), `shorten`, `between`, `quicker` (%), `maxFlight`, `overrun` | What a delay does to the planned timetable, without saving: flights shifted or moved, what no longer fits, clashes |
+| `GET /competitions/admin/{token}/timetable/delay` | `day` (index), `from` ("10:30"), `minutes`, `area` (any number; none for all); easing: `breaks` (`""`, `move`, `shorten`, `through`), `shorten`, `between`, `quicker` (%), `maxFlight`, `overrun` | What a delay does to the planned timetable, without saving: flights shifted or moved, what no longer fits, clashes. `POST` to the same address, with `version`, keeps it in the draft, worked out again from the draft as it is (refused if the draft has changed since the page was opened) |
 | `GET /competitions/admin/{token}/day` | `day` (index; default today if it's a day of the timetable, else the first), `notice` | On the day: the published timetable's flights by area, planned against actual times, and how late each area is running (chair and timetable links too) |
-| `POST /competitions/admin/{token}/day/flight` | `flight` (key: `day\|area\|level\|category\|number`), `what` (`start`, `finish`, `undo`), `day` | Records a flight started or finished now, or takes the latest back; a mark that changes nothing is ignored with a notice (chair and timetable links too) |
+| `POST /competitions/admin/{token}/day/flight` | `flight` (key: the flight's ID, `competitions.FlightKey`), `what` (`start`, `finish`, `undo`), `day` | Records a flight started or finished now, or takes the latest back; a mark that changes nothing is ignored with a notice (chair and timetable links too) |
 | `POST /competitions/admin/{token}/day/checkin` | `entry` (an entry in a published flight), `status` (`here`, `scratched`, or empty to clear), `day` | Marks a gymnast here or scratched, or clears it; scratched gymnasts are struck through on the printed sheets; a mark that changes nothing is ignored with a notice (chair and timetable links too) |
 | `POST /competitions/admin/{token}/day/clear` | `person` (key of a scratched person), `kind` (`officiating` or `competing`), `day` | Clears a scratched person's warning of that kind ("still officiating" / "still competing") for the whole competition; refused with a 400 if the person isn't scratched or the kind is neither; clearing what is already cleared is ignored with a notice (chair and timetable links too) |
-| `POST /competitions/admin/{token}/day/officials` | `person` (key of an official with a seat on the flight), `flight` (key: `day\|area\|level\|category\|number`), `status` (`here`, `missing`, or empty to clear), `day` | Marks an official here or missing for the panel, on every flight of the flight's run (same event, area and day, back to back) where they hold a seat, or clears it; "here" clears their scratch warnings and ticks them on the printed chair of judges sheets; refused with a 400 if they hold no seat on that flight; a mark that changes nothing is ignored with a notice (chair and timetable links too) |
+| `POST /competitions/admin/{token}/day/officials` | `person` (key of an official with a seat on the flight), `flight` (key: the flight's ID, `competitions.FlightKey`), `status` (`here`, `missing`, or empty to clear), `day` | Marks an official here or missing for the panel, on every flight of the flight's run (same event, area and day, back to back) where they hold a seat, or clears it; "here" clears their scratch warnings and ticks them on the printed chair of judges sheets; refused with a 400 if they hold no seat on that flight; a mark that changes nothing is ignored with a notice (chair and timetable links too) |
 | `POST /competitions/admin/{token}/day/notify` | `person` (key), `flight` (key), `as` (`official` or `gymnast`), `them` (`1`), `club` (`1`), `note` (up to 300), `day` | Sends a desk message at once saying where they should be (the official's seat or the gymnast's flight and warm-up), to them and/or their club's comp sec and coaches (not its members); refused with a 400 if they aren't on that flight; with no one ticked, or a club for someone with none, nothing is sent and a notice says so (chair and timetable links too) |
-| `POST /competitions/admin/{token}/day/up` | `flight` (key: `day\|area\|level\|category\|number`), `what` (`next` or `back`), `day` | Who's up now: moves a running flight (started, not finished) on to the next gymnast's routine, or back one, skipping the scratched; a tap that changes nothing (Back at the first, Next after the last routine, a flight not running) is ignored with a notice, and Next never finishes the flight; refused with a 400 for a flight not in the published timetable or another `what`; not in the history (chair and timetable links too) |
+| `POST /competitions/admin/{token}/day/up` | `flight` (key: the flight's ID, `competitions.FlightKey`), `what` (`next` or `back`), `entry` and `round` (the gymnast and routine the page showed, empty before the first tap: a tap from anywhere else changes nothing), `day` | Who's up now: moves a running flight (started, not finished) on to the next gymnast's routine, or back one, skipping the scratched; a tap that changes nothing (Back at the first, Next after the last routine, a flight not running) is ignored with a notice, and Next never finishes the flight; refused with a 400 for a flight not in the published timetable or another `what`; not in the history (chair and timetable links too) |
 | `GET /competitions/admin/{token}/screen` | `day` (index; default today if it's a day of the timetable, else the first), `area` (any number; none for all) | The venue screen: each area in its own colour, busy ones as cards (the flight on now and the next, with gymnasts and clubs, and the area's lateness), quiet ones as strips; announcements across the top. Its script fetches it again every 30 seconds and keeps the last good one when that fails. The only route a "venue screen" link can use; organiser, "everything", chair and timetable links can open it too |
 | `POST /competitions/admin/{token}/desk/screen` | `text` (up to 160), `for` (minutes: `15`, `30`, `60`; `0` until taken down) | Puts an announcement across the top of the venue screen; nothing, with a notice, if there's no text (the links that can send desk messages) |
 | `POST /competitions/admin/{token}/desk/screen/{id}/remove` | — | Takes an announcement down |
 | `GET /competitions/admin/{token}/desk` | `notice` | Messages from the organisers' desk: the form (to a club, a flight, all officials, a panel's officials or picked people) and the messages sent, latest first (chair, timetable and "everything" links too) |
-| `POST /competitions/admin/{token}/desk` | `to` (`club`, `flight`, `officials`, `panel`, `people`), `club` (id), `flight` (key: `day\|area\|level\|category\|number`), `panel` (`day\|area`), `person` (keys, repeated), `text` (up to 500), `come` (`1`) | Sends the message at once by push and email to those who asked to hear it, and shows it on recipients' pages; nothing is sent, with a notice, if there is no text (unless `come`) or no one to send it to (chair, timetable and "everything" links too) |
-| `GET /competitions/admin/{token}/timetable/leave` | `person` (key), `day`, `from`, `forgood` (`1`), `prefer` (`""` easiest to fill, `fewest`) | How a leaving official's seats would be filled, without saving |
+| `POST /competitions/admin/{token}/desk` | `to` (`club`, `flight`, `officials`, `panel`, `people`), `club` (id), `flight` (key: the flight's ID, `competitions.FlightKey`), `panel` (`day\|area`), `person` (keys, repeated), `text` (up to 500), `come` (`1`) | Sends the message at once by push and email to those who asked to hear it, and shows it on recipients' pages; nothing is sent, with a notice, if there is no text (unless `come`) or no one to send it to (chair, timetable and "everything" links too) |
+| `GET /competitions/admin/{token}/timetable/leave` | `person` (key), `day`, `from`, `forgood` (`1`), `prefer` (`""` easiest to fill, `fewest`) | How a leaving official's seats would be filled, without saving. `POST` to the same address, with `version`, keeps it in the draft, as for a delay |
 | `GET /competitions/admin/{token}/timetable/simulate` | `from` (a scenario to start from), `notice` | The simulation: a scenario's numbers, filled in from the competition so far, and the scenarios side by side |
 | `POST /competitions/admin/{token}/timetable/simulate` | `name`, `entries-<i>` (by event), `gymnasts`, `clubs`, `judges-<discipline>`, `chairs-<discipline>`, `quota-judges-<discipline>`, `quota-per-<discipline>`, `quota-chairs-<discipline>` (judges each club brings per competitors), `alsoJudge` (percent of the clubs' judges who also judge other disciplines), `judgePeople`, `competing`, `helpers`; or `again` (a scenario's index) | Plans stand-ins with the venue setup and keeps the scenario with its result (the last 8), or runs one again with the current setup |
 | `POST /competitions/admin/{token}/timetable/simulate/delete` | `remove` (a scenario's index) | Removes a scenario |
 | `POST /competitions/admin/{token}/signoff` | `on` (`1`/`0`) | Whether entries need a coach's sign-off (also `signoff=1` on `POST /competitions`) |
 | `GET`, `POST /competitions/signoff/{token}` | `coach` (their name), `signed`, `note` | An individual's coach signing off their entry |
+| `GET`, `POST /competitions/signoff/{token}/late` | `coach` (their name), `note` | An individual's coach signing off their late change |
+| `POST /competitions/entry/{token}/coach` | `name`, plus a `qualification` and its `certificate` (multipart) where the competition approves coaches | An individual names their coach, with the certificate the organiser checks |
+| `GET /competitions/admin/{token}/coaches` | — | Coaches (ADR 0007): each club's coaches sent for approval and individuals' coaches, with their qualifications and certificates, to approve or not |
+| `POST /competitions/admin/{token}/approve-coaches` | `on` (`1`/`0`) | Whether only approved coaches' sign-offs count |
+| `POST /competitions/admin/{token}/coaches/{coach}` | `action` (`approve`, `afresh` for sign-offs from now on, `refuse`, `withdraw`), `note` | The organiser's decision on a club's coach, with a note the club sees |
+| `GET /competitions/admin/{token}/coaches/{coach}/certificates/{q}` | — | A club coach's certificate, as uploaded |
+| `POST /competitions/admin/{token}/entry-coaches/{entry}` | `action` (as above), `note` | The organiser's decision on an individual's coach |
+| `GET /competitions/admin/{token}/entry-coaches/{entry}/certificate` | — | An individual's coach's certificate |
+| `POST /competitions/admin/{token}/remove` | `entry` (repeated), `action` (`hold` to hold rather than remove), `note`, `to` (who the note is for: the club, the member or both) | Removes or holds the ticked entries, with a note |
+| `POST /competitions/admin/{token}/entries/{id}/restore` | — | Puts a removed or held entry back |
+| `POST /clubs/admin/{token}/competitions/{id}/coaches` | `coach` (ids, repeated) | Sends the ticked coaches to the competition for approval |
+| `POST /clubs/admin/{token}/coaches/{coach}/qualifications` | `qualification` (its key), `certificate` (a file, multipart, up to 3 MB) | Adds a qualification with its certificate to a coach |
+| `POST /clubs/admin/{token}/coaches/{coach}/qualifications/{q}/remove` | — | Removes a coach's qualification and its certificate |
+| `GET /clubs/admin/{token}/coaches/{coach}/qualifications/{q}/certificate` | — | A coach's certificate, for the comp sec |
+| `POST /clubs/admin/{token}/coaches/{coach}/signs-off` | `on` (`1`/`""`) | Whether the club lets that coach sign off routines |
+| `GET /clubs/member/{token}/competitions/{id}/timeline`, `/competitions/entry/{token}/timeline` | — | A person's own timeline: their flights and duties in time order (once published) |
+| `GET /clubs/member/{token}/competitions/{id}/club-timeline`, `/clubs/admin/{token}/competitions/{id}/timeline`, `/clubs/coach/{token}/competitions/{id}/timeline` | — | The club's timeline: every flight a club's gymnast competes in and every seat its people hold |
+| `GET`, `POST /clubs/coach/{token}/late/{id}` | `note` | A club's coach signing off a member's late change |
 
 `requirementSet` is either `builtin:<id>` or the custom requirements as JSON.
 If the requirements can't be used, the problem is reported in the rendered
@@ -194,7 +241,9 @@ check rather than failing the request.
 
 # Limits and hardening
 
-- Request bodies are capped at **64 KB** (`http.MaxBytesReader`), as are headers.
+- Request bodies are capped at **64 KB** (`http.MaxBytesReader`), as are headers,
+  except the two certificate uploads, which take a 3 MB certificate and the
+  form around it (ADR 0007).
   A full routine is a few kilobytes.
 - Timeouts: read header 5 s, read 10 s, write 10 s, idle 60 s.
 - Every incoming skill is normalised to its phase count and validated (rotation

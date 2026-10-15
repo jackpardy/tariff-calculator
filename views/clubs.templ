@@ -69,17 +69,15 @@ type ClubCompetition struct {
 	ID          string
 	Competition CompetitionSummary
 	Rows        []ClubEntryRow
-	ToSend      int // entries never sent, or changed since
+	Tools       ListTools // the search and filters of its entries
+	ToSend      int       // entries never sent, or changed since
 	Offers      []ClubOfferRow
 	// ApproveCoaches says the competition approves coaches; Coaches are the
 	// club's who sign off, to send for approval (ADR 0007 Decision 5).
 	ApproveCoaches bool
 	Coaches        []ClubSendCoach
-	Timeline       string // the club's timetable, once published
-	Calendar       string // the club's timetable as a calendar file, once published
-	Notify         string // where the comp sec asks to hear about changes
+	MyLinks
 	Fees           *FeesSummary // what the club owes, if the competition charges
-	Desk           []DeskNote   // messages from the organisers that reach the club
 }
 
 // ClubSendCoach is one of the club's coaches, to send to a competition.
@@ -109,6 +107,7 @@ type ClubEntryRow struct {
 	Signoff       SignoffView
 	Flight        string // where they compete, once the timetable is published
 	Late, LateAsk string // a late change: where it stands, and where to ask for one
+	List          ListRow
 }
 
 // ClubEntryEdit is the comp sec changing a member's entry on their behalf.
@@ -159,15 +158,8 @@ type MemberCompetition struct {
 	Problems     int           // on their entries' cards
 	Events       []MemberEvent // one per discipline the competition offers
 	Offer        *OfferForm    // what they offer to judge and help with
-	Duties       []string      // their seats on panels, once the timetable is published
+	MyLinks
 	Day          string        // their My competition page
-	Timeline     string        // their timetable, and their club's, once published
-	ClubTimeline string
-	Calendar     string // their timetable as a calendar file, and their club's
-	ClubCalendar string
-	Notify       string     // where they ask to hear about changes
-	ScoreSheets  string     // the score sheets of the flights they officiate, if any
-	Desk         []DeskNote // messages from the organisers that reach them
 }
 
 // MemberEvent is a member's entry for one of a competition's disciplines.
@@ -251,6 +243,8 @@ templ clubFrame(c ClubPage) {
 	@competitionLayout(c.Name) {
 		<h1 class="title is-4">{ c.Name }</h1>
 		@pageMenu(c.Menu)
+		// Saves the admin link in this browser whenever it's opened (static/js/competitions.js).
+		<span hidden data-club-page={ c.Base } data-club-name={ c.Name }></span>
 		if c.New != "" && c.AdminLink != "" {
 			<div class="notification is-warning is-light">
 				<p class="mb-2">
@@ -304,25 +298,32 @@ templ ClubAdmin(c ClubPage) {
 				if len(comp.Rows) == 0 {
 					<p class="has-text-grey is-size-7">No member has entered yet.</p>
 				} else {
-					<div class="table-container">
+					@listSection("Entries", len(comp.Rows), false) {
+						@listTools(comp.Tools)
 						<div class="table-container">
-							<table class="table is-fullwidth is-narrow comp-table">
+							<table class="table is-fullwidth is-narrow comp-table comp-club-entries comp-stack" id={ comp.Tools.ID }>
 								<thead>
-									<tr><th>Member</th><th>Level</th><th>Problems</th><th>Status</th><th></th></tr>
+									<tr><th>Member</th><th>Level</th><th>Problems</th><th>Status</th></tr>
 								</thead>
 								<tbody>
 									for _, row := range comp.Rows {
-										<tr>
-											<td>{ row.Member }</td>
-											<td>{ row.Level }</td>
-											<td class={ templ.KV("has-text-danger", row.Problems > 0) }>
+										<tr { row.List.Attrs()... }>
+											<td>
+												{ row.Member }
+												if row.Edit != "" {
+													<br/>
+													<a class="is-size-7" href={ templ.SafeURL(row.Edit) }>Change</a>
+												}
+											</td>
+											<td data-label="Level">{ row.Level }</td>
+											<td class={ templ.KV("has-text-danger", row.Problems > 0) } data-label="Problems">
 												if row.Problems == 0 {
 													–
 												} else {
 													{ strconv.Itoa(row.Problems) }
 												}
 											</td>
-											<td>
+											<td data-label="Status">
 												{ row.Status }
 												if row.Video != "" {
 													<br/>
@@ -349,17 +350,12 @@ templ ClubAdmin(c ClubPage) {
 													<span class="is-size-7 has-text-info-dark">Organiser: { row.Note }</span>
 												}
 											</td>
-											<td>
-												if row.Edit != "" {
-													<a href={ templ.SafeURL(row.Edit) }>Change</a>
-												}
-											</td>
 										</tr>
 									}
 								</tbody>
 							</table>
 						</div>
-					</div>
+					}
 				}
 				if comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
 					<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/send") } class="buttons">
@@ -439,7 +435,7 @@ templ ClubMembers(c ClubPage) {
 			} else {
 				@listTools(c.MembersTools)
 				<div class="table-container">
-					<table class="table is-fullwidth is-narrow" id={ c.MembersTools.ID }>
+					<table class="table is-fullwidth is-narrow comp-stack" id={ c.MembersTools.ID }>
 						<tbody>
 							for _, m := range c.Members {
 								<tr { m.List.Attrs()... }>
@@ -450,13 +446,13 @@ templ ClubMembers(c ClubPage) {
 										}
 									</td>
 									<td class="has-text-grey is-size-7">
-										{ entriesCount(m.Entries) }
+										{ Count(m.Entries, "entry", "entries") }
 										if m.Routines > 0 {
-											· <a href={ templ.SafeURL(c.Base + "/members/" + m.ID + "/routines") }>{ routineCount(m.Routines) }</a>
+											· <a href={ templ.SafeURL(c.Base + "/members/" + m.ID + "/routines") }>{ Count(m.Routines, "routine", "routines") }</a>
 										}
 									</td>
 									if len(c.CoachOptions) > 0 {
-										<td>
+										<td data-label="Coach">
 											@coachSelect(c.Base+"/members/"+m.ID+"/coach", c.CoachOptions, m.CoachID, m.Name+"'s coach")
 										</td>
 									}
@@ -494,7 +490,7 @@ templ ClubCoaches(c ClubPage) {
 			} else {
 				@listTools(c.CoachesTools)
 				<div class="table-container">
-					<table class="table is-fullwidth is-narrow" id={ c.CoachesTools.ID }>
+					<table class="table is-fullwidth is-narrow comp-coaches" id={ c.CoachesTools.ID }>
 						for _, coach := range c.Coaches {
 							<tbody { coach.List.Attrs()... }>
 								<tr>
@@ -504,7 +500,7 @@ templ ClubCoaches(c ClubPage) {
 											<span class="is-block has-text-grey is-size-7">A member too: opens from their member link</span>
 										}
 									</td>
-									<td class="has-text-grey is-size-7">{ coachedCount(coach.Members) }</td>
+									<td class="has-text-grey is-size-7">{ Count(coach.Members, "member chose them", "members chose them") }</td>
 									<td class="has-text-right">
 										<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") } class="is-inline">
 											<button class="button is-small is-text" type="submit" title="Their old link stops working">New link</button>
@@ -546,7 +542,7 @@ templ ClubCoaches(c ClubPage) {
 												<input class="input is-small" type="file" name="certificate" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label={ coach.Name + "'s certificate" }/>
 												<button class="button is-small" type="submit">Add</button>
 											</form>
-											<p class="help">The certificate: a photo or PDF, up to 10 MB. It's kept until you remove it or the coach.</p>
+											<p class="help">The certificate: a photo or PDF, up to 3 MB. It's kept until you remove it or the coach.</p>
 										</details>
 									</td>
 								</tr>
@@ -603,7 +599,7 @@ templ ClubSettings(c ClubPage) {
 			<p class="help">If the admin link has been shared too widely. The old one stops working.</p>
 		</form>
 		<form method="post" action={ templ.SafeURL(c.Base + "/delete") }>
-			<label class="checkbox is-size-7">
+			<label class="checkbox comp-check is-size-7">
 				<input type="checkbox" name="confirm" value="1" required/>
 				Delete the club, its members and their entries, now
 			</label>
@@ -616,20 +612,6 @@ templ ClubSettings(c ClubPage) {
 		</div>
 		@tiesBox(c.Base+"/ties/remove", c.Ties, "Someone who adds this admin link to their own page (a member's or coach's, say) opens these pages from there, with a tab for each.")
 	}
-}
-
-func entriesCount(n int) string {
-	if n == 1 {
-		return "1 entry"
-	}
-	return fmt.Sprintf("%d entries", n)
-}
-
-func coachedCount(n int) string {
-	if n == 1 {
-		return "1 member chose them"
-	}
-	return fmt.Sprintf("%d members chose them", n)
 }
 
 script confirmRemoveCoach(name string) {
@@ -646,9 +628,9 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 		@pageMenu(e.Menu)
 		<p class="mb-3"><a href={ templ.SafeURL(e.Base) }>← Competitions</a></p>
 		<h1 class="title is-4">{ e.Member }</h1>
-		<p class="subtitle is-6">{ e.Competition.Name }</p>
 		if e.Card != nil {
-			@entryCard(*e.Card)
+			<p class="subtitle is-6">{ e.Competition.Name } · { e.Card.Level }</p>
+			@entryCardChecks(*e.Card)
 			// Collapsed under the card, so the entry is what shows; open when a save had problems.
 			<details class="box mt-4 comp-change" open?={ len(e.Form.Problems) > 0 }>
 				<summary><strong>Change the entry</strong></summary>
@@ -657,6 +639,7 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 				</div>
 			</details>
 		} else {
+			<p class="subtitle is-6">{ e.Competition.Name }</p>
 			<h2 class="title is-5 mt-5">Enter them</h2>
 			@entryForm(e.Form)
 		}
@@ -717,7 +700,7 @@ templ MemberHome(p MemberPage) {
 				<span class="is-block is-size-7">
 					{ c.Status }
 					if c.Problems > 0 {
-						<span class="tag is-danger is-light ml-1">{ problemCount(c.Problems) }</span>
+						<span class="tag is-danger is-light ml-1">{ Count(c.Problems, "problem", "problems") }</span>
 					}
 					if c.Timeline != "" {
 						<span class="tag is-success is-light ml-1">Timetable published</span>
@@ -748,7 +731,8 @@ templ memberCompetitionBody(c MemberCompetition) {
 	@competitionFacts(c.Competition)
 	@dayLink(c.Day)
 	@deskMessages(c.Desk)
-	@timelineLinks(c.Timeline, c.ClubTimeline, c.Notify, c.Calendar, c.ClubCalendar)
+	// The timetables and calendars are on My competition; hearing about changes is here too.
+	@timelineLinks("", "", c.Notify, "", "")
 	for _, ev := range c.Events {
 		@memberEvent(c.Competition, ev)
 	}

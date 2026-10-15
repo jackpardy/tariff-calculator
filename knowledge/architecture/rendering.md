@@ -78,8 +78,11 @@ page's People list is the example to copy.
   what "Find a name" searches. `Values` holds the row's values for each
   filter key; a row can have several values for a key, or none. A row that
   spans two table rows is one `<tbody>` (a table can have several). Where
-  rows sit in groups (a box per club), give each group `data-list-group`:
-  it hides when none of its rows match.
+  rows sit in groups (a box per club, an area's column, a flight), give each
+  group `data-list-group`: it hides when none of its rows match. A group that
+  is a dropdown (`<details>`: a dashboard level, a flight's check-in or panel)
+  opens while a search finds a match in it, closes again when the search is
+  cleared, and is never remembered as opened.
 - **The filters.** Build them in Go, in `web/lists.go`, so lists share
   them: `clubFilter` and `clubValue` (with "No club"), `canDoFilter` and
   `canDo`, `judgesFilter` and `judges` (discipline and level, `AtLeast`:
@@ -90,9 +93,14 @@ page's People list is the example to copy.
   `ListOption.Group`.
 - **The script.** `listTools` in `static/js/competitions.js` does the rest
   on the phone:
-  - it searches ignoring case, accents and apostrophes, so "oneill" finds
-    "O'Neill" and "o briain" finds "Ó Briain";
+  - it searches a name's letters only, ignoring case, accents, spaces and
+    punctuation, as the server's `competitions.NameMatches` does, so
+    "oneill" finds "O'Neill", "o briain" finds "Ó Briain" and "marykate"
+    finds "Mary Kate";
   - it shows "12 of 323 people", a Clear button, and "Nobody matches";
+  - it reads the list's rows each time it filters, so a page that swaps in
+    fresh content (On the day's in-place taps) keeps its search: `dayPage`
+    runs the search again after each swap;
   - it ignores Enter in the search, so a list inside a form (the desk's
     "People I pick", which isn't a `listSection`) never sends it;
   - it keeps the search and filters for the tab, so a page that reloads after
@@ -110,13 +118,22 @@ and `Clear` come from the server.
 - The search narrows the rows already on the page as it's typed, as on every
   other list. It also keeps the page's address and every link marked
   `data-list-carry` (Print, CSV) in step, and Enter sends it to the server.
-- Groups that are dropdowns (the levels) open while a search finds a match
-  in them. They close again when the search is cleared, and are never
-  remembered as opened.
+- Groups that are dropdowns (the levels) open while a search finds a match,
+  as on every list.
 - Extra controls that aren't filters (the sort) go in the tools' children.
 
 Test a list with `listRows` in `web/lists_test.go`, which reads each row's
 name and values from the page.
+
+# Wide tables on a phone
+
+A table too wide for a phone (Officials, Fees, and others as they're added)
+takes the class `comp-stack`. Below 769px each row becomes a card: the first
+cell is its title, and each other cell is a line labelled by its
+`data-label` attribute ("Club: UCD"). The header row hides, empty cells
+hide, and a cell's form sits on its label's line. Rows the list search hides
+stay hidden. Give every cell after the first a `data-label` matching its
+column's heading; leave it off a cell that's only actions.
 
 # JavaScript's job
 

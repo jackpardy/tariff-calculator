@@ -41,7 +41,7 @@ func TestCoachApprovalPages(t *testing.T) {
 	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	x := withoutQuery(redirected(t, h, join, url.Values{"name": {"X"}}))
 	redirected(t, h, x+"/coach", url.Values{"coach": {annID}})
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("")
 	sendX := formAction(t, memberCompetitionPage(t, h, x), x+"/competitions/")
 	redirected(t, h, sendX, entry)
 
@@ -134,7 +134,7 @@ func TestIndividualCoachPages(t *testing.T) {
 	admin := created(t, h, form)
 	redirected(t, h, admin+"/approve-coaches", url.Values{"on": {"1"}})
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Mary"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	own := withoutQuery(redirected(t, h, enter, bucsEntry("Mary")))
 
 	// Mary's page asks for her coach; until she names one, the sign-off link
 	// can't be used.
@@ -166,7 +166,7 @@ func TestIndividualCoachPages(t *testing.T) {
 	coaches := do(t, h, http.MethodGet, admin+"/coaches", nil).Body.String()
 	cert := regexp.MustCompile(`href="(` + regexp.QuoteMeta(admin) + `/entry-coaches/[^"]+/certificate)"`).FindStringSubmatch(coaches)
 	action := regexp.MustCompile(`action="(` + regexp.QuoteMeta(admin) + `/entry-coaches/[^"]+)"`).FindStringSubmatch(coaches)
-	if !strings.Contains(coaches, "Individuals") || !strings.Contains(coaches, "Ann, coach of Mary") || !strings.Contains(coaches, "Trampoline Level 2 ✓") || cert == nil || action == nil {
+	if !strings.Contains(coaches, "Gymnasts on their own") || !strings.Contains(coaches, "Ann, coach of Mary") || !strings.Contains(coaches, "Trampoline Level 2 ✓") || cert == nil || action == nil {
 		t.Fatalf("the coaches page: %s", coaches)
 	}
 	if got := do(t, h, http.MethodGet, cert[1], nil); got.Body.String() != "%PDF-1.4 Ann" {

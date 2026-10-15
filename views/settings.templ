@@ -61,7 +61,7 @@ templ CompetitionSettings(p SettingsPage) {
 			if p.NotifyOn {
 				<a href="#notify">Telling people about changes</a> ·
 			}
-			<a href="#individuals">Individual entry</a>
+			<a href="#individuals">Entering on their own</a>
 			if p.Access.Organiser {
 				· <a href="#admin-link">Admin link and deleting</a>
 			}
@@ -75,7 +75,7 @@ templ CompetitionSettings(p SettingsPage) {
 			@linkBox("Club link", p.Links.Club, "Give it to clubs' competition secretaries: they enter their club and send its members' entries.")
 		}
 		if p.Competition.Individuals {
-			@linkBox("Individual entry link", p.Links.Individual, "Anyone with it can enter on their own.")
+			@linkBox("Link for entering on their own", p.Links.Individual, "Anyone with it can enter on their own, without a club.")
 		}
 		@settingsGroup("deadlines", "Entries and deadlines")
 		<form method="post" action={ templ.SafeURL(p.Base + "/deadline") } class="mb-3">
@@ -164,11 +164,11 @@ templ CompetitionSettings(p SettingsPage) {
 				<p class="help">Changes you publish, and cards you check, go to those who asked after 10 minutes, so a mistake put right tells no one. On the competition's days, news may not wait.</p>
 			</form>
 		}
-		@settingsGroup("individuals", "Individual entry")
+		@settingsGroup("individuals", "Entering on their own")
 		<form method="post" action={ templ.SafeURL(p.Base + "/individuals") } class="mb-3">
 			if p.Competition.Individuals {
 				<input type="hidden" name="on" value="0"/>
-				<button class="button is-small" type="submit">Stop individual entries</button>
+				<button class="button is-small" type="submit">Stop entries on their own</button>
 			} else {
 				<input type="hidden" name="on" value="1"/>
 				<button class="button is-small" type="submit">Let gymnasts enter on their own</button>

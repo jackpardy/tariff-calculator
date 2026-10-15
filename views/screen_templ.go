@@ -40,26 +40,26 @@ type ScreenArea struct {
 	Now          string // the flight on now, or the break's name; "" for nothing
 	NowTimes     string // the flight's time in the timetable, e.g. "09:30–10:40"
 	Planned      bool   // Now is on by the plan only: nobody has marked it started
-	Break        bool   // Now is a break
-	Gymnasts     []ScreenGymnast
+	Gymnasts     []FlightGymnast
 	More         int    // gymnasts on now not named
 	Next         string // the next flight; "" for none
 	NextWarmUp   string // when its warm-up starts in the timetable, e.g. "10:45"
-	NextGymnasts []ScreenGymnast
+	NextGymnasts []FlightGymnast
 	NextMore     int       // gymnasts next not named
 	Idle         bool      // nothing on and nothing soon: shown as a strip
 	Finished     bool      // nothing more today
 	Late         string    // e.g. "Running 15 min late"; "" when not measured
 	Behind       bool      // running late
-	Ahead        bool      // running early
 	Up           *ScreenUp // who's on in the flight on now, and next; nil until the marshal taps
 }
 
-// ScreenGymnast is a gymnast in a flight on the screen.
-type ScreenGymnast struct {
-	Name, Club string
-	No         int // their running number: their place in the flight
-	Scratched  bool
+// FlightGymnast is a gymnast (or synchro pair) in a flight, as every page
+// and sheet of the flights shows them.
+type FlightGymnast struct {
+	No        int // their running number: their place in the flight, the same on every page and sheet
+	Name      string
+	Club      string
+	Scratched bool // a no-show on the day: struck through
 }
 
 // Fit lays the busy areas out to fill the screen: one row of up to four,
@@ -738,7 +738,7 @@ func screenCard(a ScreenArea) templ.Component {
 }
 
 // screenNames are a flight's gymnasts in running order, with their clubs.
-func screenNames(gymnasts []ScreenGymnast, more int) templ.Component {
+func screenNames(gymnasts []FlightGymnast, more int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {

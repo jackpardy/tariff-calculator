@@ -143,11 +143,11 @@ func TestSettingsPage(t *testing.T) {
 		"<h1 class=\"title is-4\">Settings</h1>",
 		`<h2 class="title is-5 mt-6 mb-3" id="links">Links</h2>`, `id="deadlines">Entries and deadlines`, `id="limits">Limits and waiting lists`,
 		`id="events">Events and levels`, `id="signoff">Sign-off and coaches`, `id="video">Video`, `id="live">Going live`,
-		`id="individuals">Individual entry`, `id="admin-link">Admin link and deleting`, `href="#deadlines"`,
+		`id="individuals">Entering on their own`, `id="admin-link">Admin link and deleting`, `href="#deadlines"`,
 		`action="` + admin + `/links"`, `action="` + admin + `/deadline"`, `action="` + admin + `/later-deadlines"`, `action="` + admin + `/limits"`,
 		`action="` + admin + `/events"`, `action="` + admin + `/levels/move"`, `action="` + admin + `/split"`, `action="` + admin + `/signoff"`,
 		`action="` + admin + `/approve-coaches"`, `action="` + admin + `/video"`, `action="` + admin + `/individuals"`,
-		`action="` + admin + `/replace-link"`, `action="` + admin + `/delete"`, "Club link", "Individual entry link", "Close entries now", "Make private (pause entries)",
+		`action="` + admin + `/replace-link"`, `action="` + admin + `/delete"`, "Club link", "Link for entering on their own", "Close entries now", "Make private (pause entries)",
 	} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the settings page has %q", want)
@@ -291,7 +291,7 @@ func TestMenuOnOrganiserPages(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	redirected(t, h, enter, url.Values{"gymnast": {"Ann Ryan"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	redirected(t, h, enter, bucsEntry("Ann Ryan"))
 	entry := entryLink(t, h, admin)
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 

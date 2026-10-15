@@ -49,7 +49,7 @@ func TestCalendars(t *testing.T) {
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("")
 	ann := withoutQuery(redirected(t, h, join, url.Values{"name": {"Ann"}}))
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ann), ann+"/competitions/"), entry)
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
@@ -129,16 +129,16 @@ func TestCalendars(t *testing.T) {
 		t.Error("the UID stays the same when the timetable is published again")
 	}
 
-	// Ann's links, and her own and the club's calendars.
-	page := memberCompetitionPage(t, h, ann)
+	// Ann's links, and her own and the club's calendars, on My competition.
+	page := do(t, h, http.MethodGet, myDayPath(t, h, ann), nil).Body.String()
 	if !strings.Contains(page, ">Add to calendar</a>") || !strings.Contains(page, ">Club calendar</a>") {
-		t.Fatal("Ann's page links to her calendar and the club's")
+		t.Fatal("Ann's My competition links to her calendar and the club's")
 	}
 	if !strings.Contains(do(t, h, http.MethodGet, club, nil).Body.String(), ">Club calendar</a>") {
 		t.Error("the club page links to its calendar")
 	}
-	if !strings.Contains(do(t, h, http.MethodGet, ivy, nil).Body.String(), ">Add to calendar</a>") {
-		t.Error("Ivy's page links to her calendar")
+	if !strings.Contains(do(t, h, http.MethodGet, ivy+"/day", nil).Body.String(), ">Add to calendar</a>") {
+		t.Error("Ivy's My competition links to her calendar")
 	}
 	mine := icsEvents(do(t, h, http.MethodGet, ann+"/competitions/"+compID+"/calendar.ics", nil).Body.String())
 	if len(mine) != 1 || !strings.HasPrefix(icsField(mine[0], "SUMMARY"), "Ann · BUCS L3") {
@@ -203,7 +203,7 @@ func TestCalendarEvents(t *testing.T) {
 	s := competitions.Schedule{
 		Setup: competitions.Setup{Days: []competitions.Day{{Name: "Saturday"}, {Name: "Sunday"}}},
 		Flights: []competitions.ScheduledFlight{
-			{Flight: competitions.Flight{Level: "BUCS L4", Number: 2, Of: 3, Entries: []string{"e1"}}, Day: 1, Area: "Panel 2", Start: 9*60 + 30, End: 10*60 + 40,
+			{Flight: competitions.Flight{Event: "BUCS L4", Number: 2, Of: 3, Entries: []string{"e1"}}, Day: 1, Area: "Panel 2", Start: 9*60 + 30, End: 10*60 + 40,
 				Officials: []competitions.Duty{{Role: competitions.RoleExecution, Person: "m:ann"}, {Role: competitions.RoleChair}}},
 		},
 	}

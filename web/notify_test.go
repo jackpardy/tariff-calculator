@@ -2,11 +2,14 @@ package web
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"tariffCalculator/store"
 )
@@ -27,22 +30,15 @@ func (m *fakeMailer) send(to, subject, body string, headers map[string]string) e
 // notifyServer is the competition pages with email on, to a fake mailer.
 func notifyServer(t *testing.T) (http.Handler, *competitionPages, *fakeMailer) {
 	t.Helper()
-	st, err := store.Open(context.Background(), t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { st.Close() })
-	p := newCompetitionPages(st)
-	mail := &fakeMailer{}
-	p.notify.mail, p.notify.base = mail, "https://tariff.example"
-	return routesWithPages(p), p, mail
+	s := newTestServer(t, withMail())
+	return s.h, s.p, s.mail
 }
 
 func TestNotifications(t *testing.T) {
 	h, p, mail := notifyServer(t)
 	admin := created(t, h, newCompetition())
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Ann Ryan"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	own := withoutQuery(redirected(t, h, enter, bucsEntry("Ann Ryan")))
 	if !strings.Contains(do(t, h, http.MethodGet, own, nil).Body.String(), own+"/notify") {
 		t.Fatal("the entry links to hearing about changes")
 	}
@@ -58,6 +54,11 @@ func TestNotifications(t *testing.T) {
 	redirected(t, h, notify, url.Values{"email": {"ann@example.com"}, "adult": {"1"}, "topic": {"cards", "timetable"}})
 	if len(mail.sent) != 1 || mail.sent[0].to != "ann@example.com" || !strings.Contains(mail.sent[0].body, "https://tariff.example/notify/confirm/") {
 		t.Fatalf("a link to confirm it: %+v", mail.sent)
+	}
+	// It goes to any address typed in, so it carries no name anyone chose.
+	if got := mail.sent[0]; got.subject != "Confirm your email" || strings.Contains(got.body, "Student Open") ||
+		!strings.Contains(got.body, "a competition on tariff.example.") {
+		t.Errorf("no competition's name: %+v", got)
 	}
 	if page := do(t, h, http.MethodGet, notify, nil).Body.String(); !strings.Contains(page, "Waiting for you to confirm it") {
 		t.Error("waiting to be confirmed")
@@ -107,7 +108,7 @@ func TestNotifications(t *testing.T) {
 	}
 	got := mail.sent[0]
 	if got.subject != "A change at Student Open" || !strings.Contains(got.body, "Ann Ryan\n- BUCS L3: card checked, with a note: Element 7 repeats 3") ||
-		!strings.Contains(got.body, "https://tariff.example"+own) || !strings.Contains(got.headers["List-Unsubscribe"], "/notify/off/") {
+		!strings.Contains(got.body, "https://tariff.example/competitions") || strings.Contains(got.body, own) || !strings.Contains(got.headers["List-Unsubscribe"], "/notify/off/") {
 		t.Errorf("the email: %+v", got)
 	}
 	if strings.Contains(do(t, h, http.MethodGet, admin, nil).Body.String(), "Notify now") {
@@ -125,11 +126,42 @@ func TestNotifications(t *testing.T) {
 	}
 }
 
+// An individual's notifications are theirs, not the entry's they signed up
+// on (ADR 0010): withdrawing that entry still leaves them hearing about the
+// other.
+func TestIndividualNotificationsOutliveAnEntry(t *testing.T) {
+	h, p, mail := notifyServer(t)
+	form := newCompetition()
+	form.Set("tumbling", "Novice")
+	admin := created(t, h, form)
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
+	own := withoutQuery(redirected(t, h, enter, bucsEntry("Ann Ryan")))
+	redirected(t, h, enter, url.Values{"gymnast": {"Ann Ryan"}, "discipline": {"tumbling"}, "level": {"Novice"}, "as": {"http://example.com" + own}})
+	redirected(t, h, own+"/notify", url.Values{"email": {"ann@example.com"}, "adult": {"1"}, "topic": {"cards"}})
+	confirm := strings.TrimPrefix(regexp.MustCompile(`https://tariff\.example(/notify/confirm/\S+)`).FindString(mail.sent[0].body), "https://tariff.example")
+	do(t, h, http.MethodPost, confirm, nil)
+
+	if rec := do(t, h, http.MethodPost, own+"/withdraw", url.Values{"confirm": {"1"}}); rec.Code != http.StatusOK {
+		t.Fatalf("withdrawn: %d", rec.Code)
+	}
+	entries := regexp.MustCompile(`href="(`+regexp.QuoteMeta(admin)+`/entries/[^"]+)"`).FindAllStringSubmatch(do(t, h, http.MethodGet, admin, nil).Body.String(), -1)
+	if len(entries) != 1 {
+		t.Fatalf("one entry left: %v", entries)
+	}
+	mail.sent = nil
+	redirected(t, h, entries[0][1]+"/check", url.Values{"checked": {"1"}, "note": {"Element 3 repeats"}})
+	redirected(t, h, admin+"/notify-now", nil)
+	p.notify.tell(context.Background())
+	if len(mail.sent) != 1 || !strings.Contains(mail.sent[0].body, "Novice: card checked, with a note: Element 3 repeats") {
+		t.Errorf("Ann still hears about her tumbling entry: %+v", mail.sent)
+	}
+}
+
 func TestNotificationsWithoutEmail(t *testing.T) {
 	h := competitionServer(t) // no email configured
 	admin := created(t, h, newCompetition())
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Ann Ryan"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	own := withoutQuery(redirected(t, h, enter, bucsEntry("Ann Ryan")))
 	if !strings.Contains(do(t, h, http.MethodGet, own, nil).Body.String(), own+"/notify") {
 		t.Fatal("push needs nothing set up, so the link is there")
 	}
@@ -147,7 +179,7 @@ func TestNotifyingAClub(t *testing.T) {
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("")
 	var ann string
 	for _, name := range []string{"Ann", "Bea"} {
 		m := withoutQuery(redirected(t, h, join, url.Values{"name": {name}}))
@@ -166,11 +198,13 @@ func TestNotifyingAClub(t *testing.T) {
 	if annNotify == "" {
 		t.Fatal("Ann's page links to hearing about changes")
 	}
+	var tokens []string
 	for _, page := range []string{notify, annNotify} {
 		mail.sent = nil
 		redirected(t, h, page, url.Values{"email": {"ucd@example.com"}, "adult": {"1"}, "topic": {"timetable"}})
 		confirm := strings.TrimPrefix(regexp.MustCompile(`https://tariff\.example(/notify/confirm/\S+)`).FindString(mail.sent[0].body), "https://tariff.example")
 		do(t, h, http.MethodPost, confirm, nil)
+		tokens = append(tokens, strings.TrimPrefix(confirm, "/notify/confirm/"))
 	}
 
 	// Publishing: one email, both members, both pages.
@@ -185,9 +219,14 @@ func TestNotifyingAClub(t *testing.T) {
 	}
 	body := mail.sent[0].body
 	if !strings.Contains(body, "Ann\n- BUCS L3") || !strings.Contains(body, "Bea\n- BUCS L3") || !strings.Contains(body, ": warm-up ") ||
-		!strings.Contains(body, "https://tariff.example"+club) || !strings.Contains(body, "https://tariff.example"+ann) {
-		t.Errorf("both members, both pages: %s", body)
+		strings.Contains(body, club) || strings.Contains(body, ann) {
+		t.Errorf("both members, and no page links: %s", body)
 	}
+	if n := strings.Count(body, "/notify/off/"); n != 1 {
+		t.Errorf("one off link, for both: %d", n)
+	}
+
+	off := strings.TrimPrefix(strings.Trim(mail.sent[0].headers["List-Unsubscribe"], "<>"), "https://tariff.example")
 
 	// Publishing again with nothing changed tells no one.
 	mail.sent = nil
@@ -196,6 +235,14 @@ func TestNotifyingAClub(t *testing.T) {
 	p.notify.tell(context.Background())
 	if len(mail.sent) != 0 {
 		t.Errorf("nothing changed: %+v", mail.sent)
+	}
+
+	// The one-click off link in the header stops both.
+	do(t, h, http.MethodPost, off, url.Values{"List-Unsubscribe": {"One-Click"}})
+	for _, token := range tokens {
+		if _, err := p.st.SubscriptionByToken(context.Background(), token); !errors.Is(err, store.ErrNotFound) {
+			t.Errorf("stopped, both: %v", err)
+		}
 	}
 }
 
@@ -231,5 +278,34 @@ func TestChanges(t *testing.T) {
 	}
 	if len(changes(now, now)) != 0 {
 		t.Error("nothing changed")
+	}
+}
+
+// A competition sends at most 50 confirmation emails a day, from however
+// many addresses they're asked; then a plain notice. A club's name is never
+// in one.
+func TestConfirmationEmailsPerCompetition(t *testing.T) {
+	h, p, mail := notifyServer(t)
+	p.emailLimiter = newLimiter(1000, time.Hour) // as if from many places
+	admin := created(t, h, newCompetition())
+	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
+	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"Click here to win"}}))
+	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
+	notify := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/[^/"]+/notify`).FindString(do(t, h, http.MethodGet, club, nil).Body.String())
+	if notify == "" {
+		t.Fatal("the club page links to hearing about changes")
+	}
+	for i := range maxConfirmsPerDay {
+		redirected(t, h, notify, url.Values{"email": {fmt.Sprintf("a%d@example.com", i)}, "adult": {"1"}, "topic": {"timetable"}})
+	}
+	if len(mail.sent) != maxConfirmsPerDay {
+		t.Fatalf("sent: %d", len(mail.sent))
+	}
+	if strings.Contains(mail.sent[0].body, "Click here") {
+		t.Errorf("no club's name: %s", mail.sent[0].body)
+	}
+	rec := do(t, h, http.MethodPost, notify, url.Values{"email": {"one@example.com"}, "adult": {"1"}, "topic": {"timetable"}})
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Too many emails asked for at this competition today") || len(mail.sent) != maxConfirmsPerDay {
+		t.Errorf("the 51st is refused: %d, %d sent", rec.Code, len(mail.sent))
 	}
 }

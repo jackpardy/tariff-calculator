@@ -123,7 +123,7 @@ func (p *competitionPages) keepRoutines(w http.ResponseWriter, r *http.Request) 
 	if unread > 0 {
 		notice += fmt.Sprintf(" %s couldn't be read.", plural(unread, "routine", "routines"))
 	}
-	http.Redirect(w, r, memberRoutinesPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	seeOther(w, r, memberRoutinesPath(r.PathValue("token")), notice)
 }
 
 // routineToKeep is a posted routine as it's kept: its skills read and checked
@@ -168,7 +168,7 @@ func (p *competitionPages) renameRoutine(w http.ResponseWriter, r *http.Request)
 	} else if err != nil {
 		notice = "A routine needs a name."
 	}
-	http.Redirect(w, r, memberRoutinesPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	seeOther(w, r, memberRoutinesPath(r.PathValue("token")), notice)
 }
 
 // deleteRoutine deletes one of a member's routines from their page.
@@ -181,7 +181,7 @@ func (p *competitionPages) deleteRoutine(w http.ResponseWriter, r *http.Request)
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, memberRoutinesPath(r.PathValue("token"))+"?notice="+urlQuery("Deleted from your page."), http.StatusSeeOther)
+	seeOther(w, r, memberRoutinesPath(r.PathValue("token")), "Deleted from your page.")
 }
 
 // coachFrame is the top of a coach's page, with the section shown current.
@@ -259,7 +259,7 @@ func (p *competitionPages) noteRoutine(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, coachGymnastsPath(r.PathValue("token"))+"/"+member+"?notice="+urlQuery("Note saved.")+"#routine-"+routine, http.StatusSeeOther)
+	seeOther(w, r, coachGymnastsPath(r.PathValue("token"))+"/"+member+"#routine-"+routine, "Note saved.")
 }
 
 // clubMemberRoutines shows the comp sec a member's routines.

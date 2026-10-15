@@ -62,7 +62,8 @@ approved.
 
 4. **A club's coaches have qualifications.** On the club page, the comp sec
    gives each coach their qualifications, each with its certificate: a
-   JPEG, PNG, WebP or PDF of up to 10 MB, at most 4 per coach. They're kept
+   JPEG, PNG, WebP or PDF of up to 3 MB (10 MB until 2026-10-15; see
+   Decision 9), at most 4 per coach. They're kept
    with the coach until the comp sec replaces or removes them, removes the
    coach, or the club is deleted (ADR 0004 Decision 6). Only the comp sec
    and the organisers the coach is sent to can open them.
@@ -113,6 +114,13 @@ approved.
    serves it only to the comp sec or an organiser it was sent to, with its
    type, `nosniff`, and no caching. The upload routes allow 10 MB; every
    other request keeps the 64 KB limit.
+   *Changed 2026-10-15:* a certificate is at most 3 MB (the upload routes
+   allow that and the form round it); a club's coaches' certificates take
+   60 MB at most together, and so do those of the coaches a competition's
+   individuals name; and none is taken while the data directory's disk has
+   less than 1 GB free. Each refusal says why. Without totals one visitor
+   could fill the disk: five clubs an hour, each with 50 coaches of four
+   10 MB certificates.
 
 ## Consequences
 
@@ -126,8 +134,9 @@ approved.
   show more (a membership number, a date of birth). The pages say who sees
   it and when it's deleted; only the comp sec and the organisers it's sent
   to can open it.
-- **Storage grows.** Up to 10 MB per certificate, 4 per coach and 50 coaches
-  a club; in practice a phone photo is 1–3 MB. The backup grows with it.
+- **Storage grows.** Up to 3 MB per certificate and 60 MB a club or a
+  competition's individuals (10 MB each with no total until 2026-10-15); in
+  practice a phone photo is 1–3 MB. The backup grows with it.
 - **The list needs checking.** The names and levels of the bodies'
   qualifications are from their published pathways (2026) and need
   confirming; a coach whose qualification isn't on the list can't be sent
