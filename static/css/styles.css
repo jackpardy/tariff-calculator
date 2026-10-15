@@ -600,6 +600,9 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-table td, .comp-table th { white-space: nowrap; }
 .comp-table td:nth-child(6) { white-space: normal; min-width: 12rem; }
 .comp-table tr.has-problems td:nth-child(6) { color: #cc0f35; }
+/* A comp sec's coaches: each coach's two rows read as one block, ruled off below. */
+.comp-coaches tbody tr:first-child td { border-bottom: 0; }
+.comp-coaches tbody tr:last-child td { padding-top: 0; padding-bottom: 0.75rem; border-bottom-width: 2px; }
 /* A comp sec's entries: the status says a lot, so it wraps rather than pushing the table wider. */
 .comp-club-entries td:nth-child(4) { white-space: normal; min-width: 10rem; }
 /* The entries table has a tick box first: its problems are marked by class. */

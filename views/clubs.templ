@@ -490,7 +490,7 @@ templ ClubCoaches(c ClubPage) {
 			} else {
 				@listTools(c.CoachesTools)
 				<div class="table-container">
-					<table class="table is-fullwidth is-narrow" id={ c.CoachesTools.ID }>
+					<table class="table is-fullwidth is-narrow comp-coaches" id={ c.CoachesTools.ID }>
 						for _, coach := range c.Coaches {
 							<tbody { coach.List.Attrs()... }>
 								<tr>
@@ -742,7 +742,8 @@ templ memberCompetitionBody(c MemberCompetition) {
 	@competitionFacts(c.Competition)
 	@dayLink(c.Day)
 	@deskMessages(c.Desk)
-	@timelineLinks(c.Timeline, c.ClubTimeline, c.Notify, c.Calendar, c.ClubCalendar)
+	// The timetables and calendars are on My competition; hearing about changes is here too.
+	@timelineLinks("", "", c.Notify, "", "")
 	for _, ev := range c.Events {
 		@memberEvent(c.Competition, ev)
 	}

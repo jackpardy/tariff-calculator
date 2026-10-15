@@ -1195,7 +1195,8 @@ templ CompetitionEntryPage(p EntryPage) {
 		@dayLink(p.Day)
 		@feesLine(p.Fees)
 		@deskMessages(p.Desk)
-		@timelineLinks(p.Timeline, "", p.Notify, p.Calendar, "")
+		// The timetables and calendars are on My competition; hearing about changes is here too.
+		@timelineLinks("", "", p.Notify, "", "")
 		@waitingLine(p.Waiting)
 		@lateLine(p.Late, p.LateAsk)
 		@placementLine(p.Placement)

@@ -1389,6 +1389,20 @@ func (p *competitionPages) ownEntry(w http.ResponseWriter, r *http.Request) {
 	p.renderOwn(w, r, e, c, e.Entry, nil)
 }
 
+// gymnastBase is the token of the gymnast's own page an entry opened with
+// the request's token is on (ADR 0010): their personal link's, if it's
+// theirs; otherwise the entry's own.
+func (p *competitionPages) gymnastBase(r *http.Request, e store.Entry) string {
+	token := r.PathValue("token")
+	if !store.IsVia(token) {
+		return token
+	}
+	if h, err := p.st.HolderOf(r.Context(), token); err == nil && h.Kind == store.RoleIndividual {
+		return store.Personal(token)
+	}
+	return store.Via(store.Personal(token), e.IndividualID)
+}
+
 // renderOwn shows an individual their entry, and the form to change it
 // (starting from form, with any problems).
 func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e store.Entry, c store.Competition, form competitions.Entry, problems []string) {
@@ -1418,11 +1432,10 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 	// The entry is on its person's page (ADR 0010): opened through their
 	// personal link, that's the link to keep; through an entry link from
 	// before, that entry link.
-	base := token
+	base := p.gymnastBase(r, e)
 	if store.IsVia(token) {
-		page.Link, base = "", store.Via(store.Personal(token), e.IndividualID)
-		if h, err := p.st.HolderOf(r.Context(), token); err == nil && h.Kind == store.RoleIndividual {
-			base = store.Personal(token)
+		page.Link = ""
+		if base == store.Personal(token) {
 			page.Link, page.Personal = origin(r)+gymnastPath(base), true
 		}
 	}
