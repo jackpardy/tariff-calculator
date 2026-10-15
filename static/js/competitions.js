@@ -28,10 +28,11 @@
     }
 
     // keepLink saves a link, replacing one with the same name (a replaced admin
-    // link) or URL.
-    function keepLink(key, name, url) {
+    // link) or URL, with anything more to know about it (extra: e.g. that a
+    // member coaches too).
+    function keepLink(key, name, url, extra = {}) {
         const links = loadLinks(key).filter((l) => l.url !== url && l.name !== name);
-        links.unshift({ name, url });
+        links.unshift({ name, url, ...extra });
         try { localStorage.setItem(key, JSON.stringify(links)); } catch (e) { /* not saved: the page says to copy it */ }
     }
 
@@ -56,7 +57,7 @@
         const club = document.querySelector('[data-club-admin]');
         if (club) { keepLink(linkKeys.clubs, club.dataset.clubName, club.dataset.clubAdmin); }
         const member = document.querySelector('[data-member-link]');
-        if (member) { keepLink(linkKeys.members, member.dataset.memberName, member.dataset.memberLink); }
+        if (member) { keepLink(linkKeys.members, member.dataset.memberName, member.dataset.memberLink, { coach: member.hasAttribute('data-member-coach') }); }
         const coach = document.querySelector('[data-coach-link]');
         if (coach) { keepLink(linkKeys.coaches, coach.dataset.coachName, coach.dataset.coachLink); }
         const gymnast = document.querySelector('[data-gymnast-link]');

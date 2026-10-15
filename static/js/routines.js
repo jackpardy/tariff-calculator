@@ -96,8 +96,9 @@ const RoutineStore = (() => {
     // memberLinks are the member pages saved in this browser.
     const memberLinks = () => savedLinks('trampolineMemberLinks', '/clubs/member/');
 
-    // coachLinks are the coach pages saved in this browser.
-    const coachLinks = () => savedLinks('trampolineCoachLinks', '/clubs/coach/');
+    // coachLinks are the pages saved in this browser that open a coach's
+    // pages: coaches' own, and members' who coach too (ADR 0010).
+    const coachLinks = () => [...savedLinks('trampolineCoachLinks', '/clubs/coach/'), ...memberLinks().filter((l) => l.coach)];
 
     return { load, save, current, newId, nextName, keepable, keep, memberLinks, coachLinks };
 })();

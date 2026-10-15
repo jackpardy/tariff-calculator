@@ -1673,9 +1673,15 @@ levels to track gymnasts against ("Club Grade 1"), in order, up to 50.
 - **Written on the Requirements page.** A level is requirements in the usual
   format, written in the Requirements page's editor, unchanged. Each saved set
   of requirements there has **Save to club levels** for each coach's page
-  saved in the browser (`RoutineStore.coachLinks`, from
-  `trampolineCoachLinks`), which posts it to the club (`saveToClub` in
-  `requirements.js`) and opens the coach's **Levels** section. Saving the same
+  saved in the browser (`RoutineStore.coachLinks`: `trampolineCoachLinks`,
+  and the member links in `trampolineMemberLinks` saved with `coach: true`,
+  from a member page whose link opens a coach's role too, ADR 0010), which
+  posts it with the link to `POST /clubs/levels/save` (`saveToClub` in
+  `requirements.js`) and opens the coach's **Levels** section. The server
+  finds the coach's role from the link (`coachFromLink` in
+  `web/levelpages.go`): a coach's own link, or a member's or individual's
+  personal link with a coach's role, asking which club where there are
+  several. Saving the same
   requirements again (the same browser id) changes the level. Rules that can
   be tracked from skills are kept: `count`, `separate` and `includes` (a
   skill, a kind of skill, a link), and `sequence` (a set routine); the rest

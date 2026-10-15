@@ -52,11 +52,12 @@ function requirementsPage() {
         },
         newSet() { this.open({ format: 1, name: '', rules: [] }, 'New requirements'); },
         // saveToClub posts saved requirements to a coach's club as one of its
-        // levels (coach: one of coachLinks), which then opens; saving the
-        // same requirements again changes the level.
+        // levels (coach: one of coachLinks, whose coach's role the server
+        // finds), which then opens; saving the same requirements again
+        // changes the level.
         saveToClub(coach, saved) {
-            const form = Object.assign(document.createElement('form'), { method: 'post', action: `${coach.url}/levels` });
-            for (const [name, value] of [['set', JSON.stringify(saved.set)], ['id', saved.id]]) {
+            const form = Object.assign(document.createElement('form'), { method: 'post', action: '/clubs/levels/save' });
+            for (const [name, value] of [['link', coach.url], ['set', JSON.stringify(saved.set)], ['id', saved.id]]) {
                 form.append(Object.assign(document.createElement('input'), { type: 'hidden', name, value }));
             }
             document.body.append(form);

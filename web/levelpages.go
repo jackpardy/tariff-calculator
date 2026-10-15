@@ -27,6 +27,7 @@ import (
 func (p *competitionPages) registerLevels(handle func(string, http.HandlerFunc)) {
 	handle("GET /clubs/coach/{token}/levels", p.coachLevels)
 	handle("POST /clubs/coach/{token}/levels", p.saveClubLevel)
+	handle("POST /clubs/levels/save", p.saveLevelFromLink)
 	handle("POST /clubs/coach/{token}/levels/{id}/items", p.clubLevelItems)
 	handle("POST /clubs/coach/{token}/levels/{id}/move", p.moveClubLevel)
 	handle("POST /clubs/coach/{token}/levels/{id}/remove", p.removeClubLevel)
@@ -246,6 +247,23 @@ func (p *competitionPages) saveClubLevel(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
+	p.saveLevelAs(w, r, coach, r.PathValue("token"))
+}
+
+// saveLevelFromLink is Save to club levels from the Requirements page by any
+// of a person's own links (link): a coach's, or a member's whose person
+// coaches too (ADR 0010), as coachFromLink finds the coach.
+func (p *competitionPages) saveLevelFromLink(w http.ResponseWriter, r *http.Request) {
+	coach, token, ok := p.coachFromLink(w, r, "/clubs/levels/save", []string{"set", "id"})
+	if !ok {
+		return
+	}
+	p.saveLevelAs(w, r, coach, token)
+}
+
+// saveLevelAs saves the posted requirements as one of the coach's club's
+// levels, and opens the Levels page their link (token) opens.
+func (p *competitionPages) saveLevelAs(w http.ResponseWriter, r *http.Request, coach store.Coach, token string) {
 	set, err := requirements.Parse([]byte(r.FormValue("set")))
 	if err != nil {
 		badRequest(w, fmt.Errorf("those requirements couldn't be read: %w", err))
@@ -270,7 +288,7 @@ func (p *competitionPages) saveClubLevel(w http.ResponseWriter, r *http.Request)
 	}
 	added, err := p.st.SaveClubLevel(r.Context(), coach, source, set.Name, string(data))
 	if errors.Is(err, store.ErrLimit) {
-		seeOther(w, r, coachLevelsPath(r.PathValue("token")), fmt.Sprintf("The club has %d levels, the most there's room for: remove one first.", store.MaxClubLevels))
+		seeOther(w, r, coachLevelsPath(token), fmt.Sprintf("The club has %d levels, the most there's room for: remove one first.", store.MaxClubLevels))
 		return
 	} else if err != nil {
 		failed(w, r, err)
@@ -283,7 +301,7 @@ func (p *competitionPages) saveClubLevel(w http.ResponseWriter, r *http.Request)
 	if left > 0 {
 		notice += fmt.Sprintf(" %s about a single routine (its length, difficulty or the like) can't be tracked from skills, so %s left out.", plural(left, "rule", "rules"), map[bool]string{true: "it was", false: "they were"}[left == 1])
 	}
-	seeOther(w, r, coachLevelsPath(r.PathValue("token")), notice)
+	seeOther(w, r, coachLevelsPath(token), notice)
 }
 
 // clubLevelItems are the club skills a level tracks besides its requirements
@@ -332,4 +350,65 @@ func (p *competitionPages) removeClubLevel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	seeOther(w, r, coachLevelsPath(r.PathValue("token")), "Removed.")
+}
+
+// coachFromLink is the coach a person's own link (the form's link) stands
+// for: a coach's link is theirs; a member's (or one entering on their own)
+// is the coach the same person is (ADR 0010), opened through it. Where the
+// person coaches in more than one club, a page asks which (the form's role,
+// a coach's id), posting the form's fields (keep) back to action. It gives
+// the coach and the link that opens their pages.
+func (p *competitionPages) coachFromLink(w http.ResponseWriter, r *http.Request, action string, keep []string) (store.Coach, string, bool) {
+	kind, token, ok := pastedLink(r.FormValue("link"))
+	if !ok || (kind != store.RoleCoach && kind != store.RoleMember && kind != store.RoleIndividual) {
+		message(w, r, http.StatusBadRequest, "That isn't your own link", "Give the link of your own page: a coach's, or a member's if you coach in the club too.")
+		return store.Coach{}, "", false
+	}
+	if kind == store.RoleCoach && !store.IsVia(token) {
+		c, err := p.st.CoachByLink(r.Context(), token)
+		if err != nil {
+			failed(w, r, err)
+			return c, "", false
+		}
+		return c, token, true
+	}
+	_, roles, err := p.st.Roles(r.Context(), token)
+	if err != nil {
+		failed(w, r, err)
+		return store.Coach{}, "", false
+	}
+	var coaches []store.Role
+	for _, role := range roles {
+		if role.Kind == store.RoleCoach {
+			coaches = append(coaches, role)
+		}
+	}
+	pick := slices.IndexFunc(coaches, func(role store.Role) bool { return role.ID == r.FormValue("role") })
+	switch {
+	case len(coaches) == 0:
+		message(w, r, http.StatusConflict, "You're not a coach here", "That link's page has no coach's role. Your club's comp sec can make you a coach too, or use your coach page's link.")
+		return store.Coach{}, "", false
+	case len(coaches) == 1:
+		pick = 0
+	case pick < 0:
+		page := views.ChooseCoachPage{Action: action, Link: r.FormValue("link")}
+		for _, name := range keep {
+			page.Keep = append(page.Keep, views.FormValue{Name: name, Value: r.FormValue(name)})
+		}
+		for _, role := range coaches {
+			page.Choices = append(page.Choices, views.FormValue{Name: role.Place, Value: role.ID})
+		}
+		render(w, r, views.ChooseCoach(page))
+		return store.Coach{}, "", false
+	}
+	via := store.Via(store.Personal(token), coaches[pick].ID)
+	if coaches[pick].Own {
+		via = store.Personal(token)
+	}
+	c, err := p.st.CoachByLink(r.Context(), via)
+	if err != nil {
+		failed(w, r, err)
+		return c, "", false
+	}
+	return c, via, true
 }

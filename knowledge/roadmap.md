@@ -257,7 +257,8 @@ levels, which are built on the same editor. Nothing is changed yet.
     The browser's copy drifts from the club's, and another phone can't
     change a level without that round trip.
   - **The save button depends on the browser.** Save to club levels only
-    shows where the coach's own link was opened in the same browser.
+    shows where the coach's link (or the link of a member who coaches) was
+    opened in the same browser.
   - **The rule kinds don't fit a club grade.** A grade is mostly a checklist
     (these skills, this link, any three singles, a set routine), but the
     editor offers rules about a whole routine, which are dropped when saved.

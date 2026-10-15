@@ -137,3 +137,55 @@ func TestClubLevels(t *testing.T) {
 		t.Errorf("requirements that can't be read: %d", rec.Code)
 	}
 }
+
+// A member who coaches too saves a club level by their member link (ADR
+// 0010): their member page marks the link so the Requirements page offers it,
+// and the server finds their coach's role; someone who coaches in two clubs
+// is asked which, and a member who doesn't coach is told so.
+func TestSavingLevelsAsAMemberWhoCoaches(t *testing.T) {
+	h := competitionServer(t)
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy", "B. Kelly")
+	murphy, kelly := ucd.members["A. Murphy"], ucd.members["B. Kelly"]
+	id := regexp.MustCompile(`/members/([^/"]+)/new-link"`).FindStringSubmatch(do(t, h, http.MethodGet, ucd.page+"/members", nil).Body.String())[1]
+	redirected(t, h, ucd.page+"/coaches/from-member", url.Values{"member": {id}})
+	set := `{"format":1,"name":"Grade 1","rules":[{"type":"count","label":"A back somersault","match":{"rotation":{"min":4,"max":4},"direction":"backward"},"min":1}]}`
+
+	// Only the member who coaches has their link marked for coaches' tools.
+	if page := do(t, h, http.MethodGet, murphy, nil).Body.String(); !strings.Contains(page, "data-member-coach") {
+		t.Error("A. Murphy coaches too: their link is marked")
+	}
+	if page := do(t, h, http.MethodGet, kelly, nil).Body.String(); strings.Contains(page, "data-member-coach") {
+		t.Error("B. Kelly doesn't coach")
+	}
+
+	// Saving by the member link opens their coach's Levels, through it.
+	location := redirected(t, h, "/clubs/levels/save", url.Values{"link": {"http://example.com" + murphy}, "set": {set}, "id": {"b1"}})
+	coachVia := strings.Replace(murphy, "/clubs/member/", "/clubs/coach/", 1) + "~"
+	if !strings.HasPrefix(location, coachVia) || !strings.HasSuffix(withoutQuery(location), "/levels") || !strings.HasPrefix(noticeOf(t, location), "Added Grade 1") {
+		t.Errorf("saved through the member link: %s", location)
+	}
+	if !strings.Contains(do(t, h, http.MethodGet, withoutQuery(location), nil).Body.String(), "Grade 1") {
+		t.Error("the level is the club's")
+	}
+	if rec := do(t, h, http.MethodPost, "/clubs/levels/save", url.Values{"link": {kelly}, "set": {set}}); rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "not a coach here") {
+		t.Errorf("a member who doesn't coach: %d", rec.Code)
+	}
+	if rec := do(t, h, http.MethodPost, "/clubs/levels/save", url.Values{"link": {ucd.page}, "set": {set}}); rec.Code != http.StatusBadRequest {
+		t.Errorf("a club's admin link isn't anyone's own: %d", rec.Code)
+	}
+
+	// Coaching in a second club too, they're asked which.
+	dcu := aClub(t, h, admin, "DCU", false)
+	bob := pathIn(t, do(t, h, http.MethodPost, dcu.page+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
+	redirected(t, h, murphy+"/links", url.Values{"link": {"http://example.com" + bob}})
+	page := do(t, h, http.MethodPost, "/clubs/levels/save", url.Values{"link": {murphy}, "set": {set}, "id": {"b2"}}).Body.String()
+	choice := regexp.MustCompile(`(?s)<input type="hidden" name="role" value="([^"]+)">\s*<button class="button is-fullwidth" type="submit">DCU</button>`).FindStringSubmatch(page)
+	if !strings.Contains(page, "Which club?") || choice == nil {
+		t.Fatalf("which club: %s", page)
+	}
+	location = redirected(t, h, "/clubs/levels/save", url.Values{"link": {murphy}, "set": {set}, "id": {"b2"}, "role": {choice[1]}})
+	if !strings.Contains(do(t, h, http.MethodGet, bob+"/levels", nil).Body.String(), "Grade 1") {
+		t.Errorf("saved to DCU's levels: %s", location)
+	}
+}

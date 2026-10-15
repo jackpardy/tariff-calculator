@@ -492,3 +492,37 @@ templ CoachClubLevels(p ClubLevelsPage) {
 script confirmRemoveLevel(name string) {
 	return confirm('Remove ' + name + '? Gymnasts\' marks stay.');
 }
+
+// FormValue is a named value: a form field to post on, or a choice.
+type FormValue struct {
+	Name, Value string
+}
+
+// ChooseCoachPage asks which club's coach someone is acting as, when their
+// link opens a coach's role in more than one: the choices are the clubs (Name)
+// and the coach records (Value); the form posts back to Action with the link,
+// the fields kept, and the choice as role.
+type ChooseCoachPage struct {
+	Action  string
+	Link    string
+	Keep    []FormValue
+	Choices []FormValue
+}
+
+// ChooseCoach asks which club, for someone who coaches in more than one.
+templ ChooseCoach(p ChooseCoachPage) {
+	@competitionLayout("Which club?") {
+		<h1 class="title is-4">Which club?</h1>
+		<p class="mb-4">You coach in more than one club. Which is this for?</p>
+		for _, c := range p.Choices {
+			<form method="post" action={ templ.SafeURL(p.Action) } class="mb-2">
+				<input type="hidden" name="link" value={ p.Link }/>
+				for _, k := range p.Keep {
+					<input type="hidden" name={ k.Name } value={ k.Value }/>
+				}
+				<input type="hidden" name="role" value={ c.Value }/>
+				<button class="button is-fullwidth" type="submit">{ c.Name }</button>
+			</form>
+		}
+	}
+}

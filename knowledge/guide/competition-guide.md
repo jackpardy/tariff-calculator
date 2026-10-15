@@ -700,7 +700,8 @@ Grade 1*, in order. Write a level on the **Requirements** page, as you would
 any requirements: a skill, a kind of skill (*any back somersault*), skills
 linked one after another (*back drop, then back to feet*), a number of them,
 or a set routine. Then tap **Save to club levels** beside it (it's there once
-you've opened your coach page on that phone). Rules about a whole routine,
+you've opened your coach page on that phone, or your member page if you're a
+member who coaches too). Rules about a whole routine,
 like its difficulty, are left out. On **Levels**, tick any of your club's own
 skills the level tracks too, put the levels in order, or **Open in the
 Requirements page** to change one and save it again.

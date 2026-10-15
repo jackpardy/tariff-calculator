@@ -10,6 +10,7 @@ import "context"
 type RoleTab struct {
 	Label, Href string
 	Current     bool
+	Kind        string // the role: store's RoleMember, RoleCoach and the rest
 }
 
 type rolesKey struct{}
@@ -131,4 +132,14 @@ templ otherLinksBox(o OtherLinks) {
 			<p class="help">Only add links that are yours. A shared link, such as a club's comp sec link, opens from here, but never opens this page.</p>
 		</form>
 	</div>
+}
+
+// coachesToo says the person whose page this is has a coach's role too.
+func coachesToo(ctx context.Context) bool {
+	for _, t := range rolesOf(ctx) {
+		if t.Kind == "coach" {
+			return true
+		}
+	}
+	return false
 }
