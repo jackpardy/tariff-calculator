@@ -68,7 +68,7 @@ func TestScreenCards(t *testing.T) {
 	}
 	page := b.String()
 	for _, want := range []string{
-		`<p class="screen-notice">Lunch extended by 15 minutes</p>`,
+		`<p class="screen-notice" data-notice><span class="screen-notice-text">Lunch extended by 15 minutes</span> </p>`, // one: no count
 		`<section class="screen-card screen-colour-0">`, `<h2 class="screen-area">Panel 1</h2>`,
 		`<span class="screen-late is-behind">Running 1 h 5 min late</span>`, "· not started yet",
 		`<span class="screen-club">UCD</span>`, `<li class="comp-scratched">`,
@@ -122,6 +122,11 @@ func TestScreenAnnouncements(t *testing.T) {
 	if i < 0 || j < 0 || i > j {
 		t.Errorf("both announcements, latest first: %s", page)
 	}
+	// One at a time: the latest shows, the other waits its turn, each counted.
+	if !strings.Contains(page, `<p class="screen-notice" data-notice><span class="screen-notice-text">Panel 2 judges`) || !strings.Contains(page, `<p class="screen-notice" data-notice hidden><span class="screen-notice-text">Lunch`) ||
+		!strings.Contains(page, `<span class="screen-notice-count">1 of 2</span>`) || !strings.Contains(page, `<span class="screen-notice-count">2 of 2</span>`) {
+		t.Errorf("the announcements take turns, counted: %s", page)
+	}
 	desk := do(t, h, http.MethodGet, admin+"/desk", nil).Body.String()
 	if !strings.Contains(desk, "by Chair") || !strings.Contains(desk, "until it's taken down") || !strings.Contains(desk, "· until ") {
 		t.Errorf("the desk lists what's up, by whom, and until when: %s", desk)
@@ -133,7 +138,7 @@ func TestScreenAnnouncements(t *testing.T) {
 	// Taking one down.
 	remove := formAction(t, desk, admin+"/desk/screen/")
 	redirected(t, h, remove, url.Values{})
-	if page := do(t, h, http.MethodGet, screen+"/screen", nil).Body.String(); strings.Count(page, `class="screen-notice"`) != 1 {
+	if page := do(t, h, http.MethodGet, screen+"/screen", nil).Body.String(); strings.Count(page, `class="screen-notice"`) != 1 || strings.Contains(page, "screen-notice-count") {
 		t.Error("one taken down, one left")
 	}
 }

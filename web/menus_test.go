@@ -72,7 +72,7 @@ func TestOrgMenuByAccess(t *testing.T) {
 	if got := items(menu, "Entries"); got != "Entries, People, Late changes, Coaches, Fees" {
 		t.Errorf("entries: %s", got)
 	}
-	if got := items(menu, "Timetable"); got != "Timetable, Setup, Officials, Simulate, What if there's a delay, What if an official leaves" {
+	if got := items(menu, "Timetable"); got != "Timetable, Setup, Officials, Panel timeline, Simulate, What if there's a delay, What if an official leaves" {
 		t.Errorf("timetable: %s", got)
 	}
 	if got := items(menu, "On the day"); got != "On the day, Desk messages, Venue screen" {

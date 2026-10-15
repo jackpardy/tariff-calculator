@@ -156,8 +156,15 @@ templ Screen(p ScreenPage) {
 				</div>
 				<div class="screen-clock" data-clock>{ p.Time }</div>
 			</header>
-			for _, n := range p.Notices {
-				<p class="screen-notice">{ n }</p>
+			// One announcement at a time, latest first, taking turns
+			// (screen.js), so several never push the areas down.
+			for i, n := range p.Notices {
+				<p class="screen-notice" data-notice hidden?={ i > 0 }>
+					<span class="screen-notice-text">{ n }</span>
+					if len(p.Notices) > 1 {
+						<span class="screen-notice-count">{ strconv.Itoa(i + 1) } of { strconv.Itoa(len(p.Notices)) }</span>
+					}
+				</p>
 			}
 			<p class="screen-stale" data-stale hidden>Not updated since <span data-stale-since></span>: check the screen's connection.</p>
 			if !p.Published {

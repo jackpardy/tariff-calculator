@@ -11,6 +11,9 @@ type SignoffView struct {
 	// Unapproved is a sign-off by a coach the competition hasn't approved, at
 	// one that approves coaches: it doesn't count.
 	Unapproved bool
+	// Link is the signing coach's page, for a link that has one (the
+	// organiser's People); "" for none.
+	Link string
 }
 
 // Problem is what's missing, as the organiser counts it, or "".
@@ -46,7 +49,7 @@ templ signoffBox(s SignoffView) {
 		<p class="mb-3">
 			@StateChip(signoffState(s))
 			if s.By != "" {
-				@WhoChip(RoleCoach, s.By)
+				@WhoLink(RoleCoach, s.By, s.Link)
 			}
 			if s.Unapproved {
 				<span class="is-size-7 has-text-grey ml-1">The competition hasn't approved them as a coach, so it doesn't count.</span>

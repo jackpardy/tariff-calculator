@@ -634,6 +634,11 @@
                     }
                 }
                 count.textContent = shown !== total ? `${shown} of ${total} ${noun}` : `${total} ${noun}`;
+                const on = tools.querySelector('[data-list-filters-on]');
+                if (on) {
+                    on.textContent = String(chosen.length);
+                    on.hidden = chosen.length === 0;
+                }
                 clear.hidden = !filtered;
                 none.hidden = shown > 0;
                 list.hidden = shown === 0;

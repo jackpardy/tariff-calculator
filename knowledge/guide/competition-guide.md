@@ -87,9 +87,8 @@ asked, when it was sent, and whether you've checked it. To find entries:
 "marykate" finds Mary Kate, and synchro partners count), filter by club, coach (or no coach), checked or not, signed off or
 not, video, men or women, or **Problems only**, and sort by club, gymnast,
 latest sent or coach. The filters stay in the page's address, so you can
-bookmark or share a view; **Print** and **Download CSV**, above the search, use them too. Each event's table starts folded (tap its heading to open it),
-says how many of its entries are shown ("12 of 96"), and the list at the top
-jumps to it; **Expand all** and **Collapse all** open or fold every one, and
+bookmark or share a view; **Print** and **Download CSV**, below the entries, use them too. The page opens on the entries; the competition's dates and counts are at the bottom. With many filters, they're under **Filters**, which says how many are on. Each event's table starts folded (tap its heading to open it) and
+says how many of its entries are shown ("12 of 96"); **Columns** chooses which columns show and can clip long text to one line, and dragging the edge of a heading makes a column wider or narrower; a line at a table's edge means there's more to scroll to. **Expand all** and **Collapse all** open or fold every one, and
 your browser remembers which you left open. A search or filter opens the
 events it finds people in. Tap a gymnast to see both exercises in full (a synchro
 pair's one routine), checked as the Routine Builder checks them.
@@ -329,7 +328,7 @@ a **Change** button to open it.
    also open their own panels' sheets on their phone from **Score sheets
    for your panels**, beside their duties), and **The officials rota** (each person's duties) for the
    noticeboard. On a phone, swipe a sheet's table sideways to see all of
-   it. **Panel timeline** shows every day
+   it. **Panel timeline** (in the Timetable menu, not under Print) shows every day
    side by side, a column per area, each flight and break with time running
    down evenly; **Timeline with officials** shows each area's day with a
    column for each seat on its panel and who has it. Print either (A3
@@ -389,8 +388,8 @@ a **Change** button to open it.
    Voluntary), and the venue screen shows them with the next two. Everyone
    does their 1st routine in running order, then everyone their 2nd, and
    scratched gymnasts are skipped. **Back** puts it right if you tapped too
-   soon. After the last routine, tap **Finished** as usual: Next gymnast won't
-   finish the flight for you.
+   soon. When the last routine is on, **Next gymnast** becomes **Finished**:
+   tap it once they're done.
    **No signal?** Keep tapping. Each tap is kept on your phone with the time
    you tapped it and shows straight away, marked "waiting to send", with
    "Waiting to send: 3 taps" at the top; once Started is tapped you can go on

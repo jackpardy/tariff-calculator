@@ -285,8 +285,6 @@ templ printMenu(base string) {
 			<a href={ templ.SafeURL(base + "/timetable/print?sheet=judges") }>Chair of judges sheets</a>
 			<a href={ templ.SafeURL(base + "/timetable/print?sheet=scores") }>Score sheets</a>
 			<a href={ templ.SafeURL(base + "/timetable/print?sheet=rota") }>The officials rota</a>
-			<a href={ templ.SafeURL(base + "/timetable/print?sheet=timeline") }>Panel timeline</a>
-			<a href={ templ.SafeURL(base + "/timetable/print?sheet=timeline-officials") }>Timeline with officials</a>
 		</div>
 	</details>
 }
@@ -295,7 +293,10 @@ templ printMenu(base string) {
 // blocked time.
 templ timetableDay(p TimetablePage, day DayView) {
 	<section data-list-group>
-		<h2 class="title is-5 mt-5" id={ day.ID }>{ day.Name }</h2>
+		<h2 class="title is-5 mt-5 mb-1" id={ day.ID }>{ day.Name }</h2>
+		if len(p.Days) > 1 && len(day.Areas) > 1 {
+			@areaJump(day)
+		}
 		<div class="columns is-multiline">
 			for _, area := range day.Areas {
 				<div class="column is-half-tablet is-one-third-desktop" id={ area.ID } data-list-group>
@@ -316,19 +317,35 @@ templ timetableDay(p TimetablePage, day DayView) {
 	</section>
 }
 
-// timetableJump links to each day and its areas, beside "Find a name": on a
-// phone the flights are a long way down.
+// timetableJump links to each day, on one line beside "Find a name": on a
+// phone the flights are a long way down. Each day's areas are linked under
+// its heading (areaJump), since days can use different areas; a competition
+// of one day links to its areas here instead.
 templ timetableJump(p TimetablePage) {
-	<div class="comp-jump is-size-7">
-		for _, d := range p.Days {
-			<p>
-				<a href={ templ.SafeURL("#" + d.ID) }><strong>{ d.Name }</strong></a>
-				for _, a := range d.Areas {
-					<span>·</span> <a href={ templ.SafeURL("#" + a.ID) }>{ a.Name }</a>
+	if len(p.Days) == 1 {
+		@areaJump(p.Days[0])
+	} else {
+		<p class="comp-jump is-size-7">
+			for i, d := range p.Days {
+				if i > 0 {
+					<span>·</span>
 				}
-			</p>
+				<a href={ templ.SafeURL("#" + d.ID) }>{ d.Name }</a>
+			}
+		</p>
+	}
+}
+
+// areaJump links to a day's areas, on one line.
+templ areaJump(d DayView) {
+	<p class="comp-jump is-size-7">
+		for i, a := range d.Areas {
+			if i > 0 {
+				<span>·</span>
+			}
+			<a href={ templ.SafeURL("#" + a.ID) }>{ a.Name }</a>
 		}
-	</div>
+	</p>
 }
 
 // timetableNames counts the rows "Find a name" searches: each gymnast in a

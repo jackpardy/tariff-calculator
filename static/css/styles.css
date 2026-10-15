@@ -836,7 +836,9 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .screen-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.25rem 1.5rem; border-bottom: 4px solid #111; padding-bottom: 0.4rem; }
 .screen-title { font-size: 2rem; font-weight: 700; line-height: 1.15; }
 .screen-clock { font-size: 3.2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-.screen-notice { font-size: 1.8rem; font-weight: 700; background: #ffe08a; border: 3px solid #111; border-radius: 0.5rem; padding: 0.4rem 0.9rem; margin: 0; }
+.screen-notice { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; font-size: 1.8rem; font-weight: 700; background: #ffe08a; border: 3px solid #111; border-radius: 0.5rem; padding: 0.4rem 0.9rem; margin: 0; }
+.screen-notice[hidden] { display: none; }
+.screen-notice-count { flex-shrink: 0; font-size: 1.1rem; font-weight: 600; white-space: nowrap; }
 .screen-stale { font-size: 1.3rem; font-weight: 700; background: #111; color: #fff; border-radius: 0.4rem; padding: 0.3rem 0.8rem; margin: 0; }
 .screen-grid { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(var(--screen-columns), minmax(0, 1fr)); grid-template-rows: repeat(var(--screen-rows), minmax(0, 1fr)); gap: 0.9rem; }
 .screen-card { display: flex; flex-direction: column; border: 3px solid var(--screen-band); border-radius: 0.6rem; overflow: hidden; min-height: 0; }
@@ -955,6 +957,9 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-list-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .comp-list-controls .comp-list-search { flex: 1 1 14rem; max-width: 22rem; }
 .comp-list-controls .select, .comp-list-controls .select select { max-width: 100%; }
+/* Filters under a button: a column of them in its panel, each full width. */
+.comp-list-filter-panel { display: grid; gap: 0.5rem; padding: 0.6rem; min-width: 15rem; }
+.comp-list-filter-panel .select, .comp-list-filter-panel .select select { width: 100%; }
 .comp-list-count { display: flex; align-items: center; gap: 0.5rem; min-height: 1.9rem; }
 .comp-list-clear { height: auto; padding: 0 0.25rem; }
 @media screen and (max-width: 768px) {
@@ -1027,6 +1032,9 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 /* Role chips are outlined, so a role never looks like a state even without colour. */
 .chip-who { background: #fff; border: 1.5px solid currentColor; padding: 0.05em 0.55em; }
 .chip-who .chip-name { font-weight: 400; }
+/* A chip that opens the person's page: the name underlined, as a link. */
+a.chip-link .chip-name { text-decoration: underline; text-underline-offset: 0.15em; }
+a.chip-link:hover { background: #f5f5ff; }
 .chip-who-gymnast { color: var(--role-gymnast); }
 .chip-who-coach { color: var(--role-coach); }
 .chip-who-club { color: var(--role-club); }
@@ -1067,3 +1075,28 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-kept { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; padding: 0.6rem 0; border-top: 1px solid #ededed; }
 .comp-kept-name { flex: 1 1 auto; }
 .comp-kept-name ul { list-style: disc; margin-left: 1.25rem; }
+/* The last routine on: Finished in Next gymnast's place, Back beside it. */
+.comp-up-last { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.comp-up-last .buttons, .comp-up-last .buttons .button { margin-bottom: 0; }
+/* Wide tables (static/js/tables.js): a line at an edge with more to scroll; a
+   column hidden, sized or clipped as the viewer set it with Columns. */
+.table-container { border-left: 3px solid transparent; border-right: 3px solid transparent; transition: border-color 0.15s ease; }
+.table-container.has-more-left { border-left-color: #8a8a8a; }
+.table-container.has-more-right { border-right-color: #8a8a8a; }
+@media (prefers-reduced-motion: reduce) { .table-container { transition: none; } }
+table [hidden] { display: none !important; }
+table[data-table-view] th { position: relative; }
+.comp-col-grip { position: absolute; top: 0; right: -4px; width: 9px; height: 100%; cursor: col-resize; z-index: 2; }
+.comp-col-grip::after { content: ""; position: absolute; top: 25%; bottom: 25%; left: 4px; width: 1px; background: #c8c8c8; }
+th:hover > .comp-col-grip::after { background: #485fc7; width: 2px; }
+@media screen and (max-width: 768px) { .comp-col-grip { display: none; } }
+@media screen and (min-width: 769px) {
+  table.is-sized-view { table-layout: fixed; max-width: none; }
+  table.is-clipped-view td, table.is-clipped-view th, .comp-table.is-clipped-view td:nth-child(n) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  table.is-sized-view td { overflow-wrap: anywhere; }
+}
+.comp-table-menu { min-width: 16rem; padding: 0.5rem 0.9rem; }
+.comp-table-menu-head { font-size: 0.75rem; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 0.25rem; }
+.comp-table-menu-row { display: flex; align-items: center; gap: 0.4rem; min-height: 2rem; }
+.comp-table-menu-clip { margin-top: 0.4rem; border-top: 1px solid #eee; padding-top: 0.4rem; }
+.comp-table-menu-help { font-size: 0.75rem; color: #555; margin: 0.3rem 0; }

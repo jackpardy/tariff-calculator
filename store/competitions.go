@@ -297,6 +297,19 @@ func (e Entry) CoachKey() string {
 	return ""
 }
 
+// SignerKey is the person key of the coach who signed the entry off, whether
+// or not the competition approved them; "" if no one has.
+func (e Entry) SignerKey() string {
+	if e.SignedAt.IsZero() || e.SignedBy == "" {
+		return ""
+	}
+	if e.Individual {
+		return NamedCoachKey(e.SignedBy)
+	}
+	e.Unapproved = false
+	return e.CoachKey()
+}
+
 // CoachName is who coaches the gymnast, for their card: the coach who signed
 // the entry off, or else the member's coach.
 func (e Entry) CoachName() string {

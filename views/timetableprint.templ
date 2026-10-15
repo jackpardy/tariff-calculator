@@ -177,6 +177,9 @@ type Timeline struct {
 	// Heading and Intro explain a timeline picking out someone's (or a
 	// club's) flights; BackLabel names where Back goes.
 	Heading, Intro, BackLabel string
+	// Menu is the organiser's menu, where the timeline is one of the
+	// Timetable's pages; Back stands in for it on a printout.
+	Menu []MenuSection
 }
 
 // TimelineSheet is a day, or a day's area, with its own time column.
@@ -252,11 +255,18 @@ func (c TimelineCell) title() string {
 // TimelinePrint prints the panel timeline.
 templ TimelinePrint(t Timeline) {
 	@competitionLayout(t.Title) {
+		if len(t.Menu) > 0 {
+			<div class="screen-only">
+				@pageMenu(t.Menu)
+			</div>
+		}
 		<div class="comp-print-bar screen-only">
-			if t.BackLabel != "" {
-				<a href={ templ.SafeURL(t.Back) }>{ t.BackLabel }</a>
-			} else {
-				<a href={ templ.SafeURL(t.Back) }>← Timetable</a>
+			switch {
+				case len(t.Menu) > 0:
+				case t.BackLabel != "":
+					<a href={ templ.SafeURL(t.Back) }>{ t.BackLabel }</a>
+				default:
+					<a href={ templ.SafeURL(t.Back) }>← Timetable</a>
 			}
 			<a class="button is-small" href={ templ.SafeURL(t.Other) }>{ t.OtherLabel }</a>
 			if t.CSV != "" {

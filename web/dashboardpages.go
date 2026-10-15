@@ -298,6 +298,9 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note, Withdrawn: j.Withdrawn,
 			Video: videoStatus(c.Competition, j), Signoff: storedSignoff(c.Competition, j.Entry), Category: j.Entry.Entry.Category,
 		}
+		if k := j.Entry.SignerKey(); k != "" {
+			row.Signoff.Link = personPath(d.Base, k)
+		}
 		if ks := people[j.ID]; len(ks) > 0 {
 			row.Person = personPath(d.Base, ks[0])
 			if len(ks) > 1 {
@@ -505,7 +508,11 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	withSignoff(&shown, storedSignoff(c.Competition, e))
+	signoff := storedSignoff(c.Competition, e)
+	if k := e.SignerKey(); k != "" {
+		signoff.Link = personPath(adminPath(r.PathValue("token")), k)
+	}
+	withSignoff(&shown, signoff)
 	render(w, r, views.CompetitionEntry(views.EntryDetail{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuEntries),
 		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
