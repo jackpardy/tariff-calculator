@@ -432,6 +432,12 @@ and no Bulma colour for a state (buttons keep theirs):
 | Late changes (an entry's row, the comp sec's rows, asking for one) | asked and waiting, accepted, or not accepted, as a "Late change" chip before what it is | |
 | An individual's competition page | checked by the organiser; fees paid | |
 
+A chip opens what it's about where the link has a page for it
+(`views.WhoLink`; 2026-10-16): on the organiser's entries a coach's chip
+opens their page in People, and on the comp sec's a problems chip opens the
+entry, with its problems, and a coach's chip their row on the club's Coaches
+page (`coach-<id>`, picked out for a moment).
+
 On the day, a panel now lists its empty seats too, once anyone has a seat on
 it (`panelOf`); the counts are worked out on the page from the rows
 (`checkinCount`, `seatCount`). `views/status_test.go` fails if these

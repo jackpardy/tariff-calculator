@@ -1100,3 +1100,9 @@ th:hover > .comp-col-grip::after { background: #485fc7; width: 2px; }
 .comp-table-menu-row { display: flex; align-items: center; gap: 0.4rem; min-height: 2rem; }
 .comp-table-menu-clip { margin-top: 0.4rem; border-top: 1px solid #eee; padding-top: 0.4rem; }
 .comp-table-menu-help { font-size: 0.75rem; color: #555; margin: 0.3rem 0; }
+/* A row a link opened (a coach from their chip): picked out for a moment. */
+.comp-target:target { animation: comp-target 2.5s ease-out; }
+@keyframes comp-target { from { background: #fff3c4; } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .comp-target:target { animation: none; background: #fff8dd; } }
+a > .chip { cursor: pointer; }
+a:hover > .chip { text-decoration: underline; }
