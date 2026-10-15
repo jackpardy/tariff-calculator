@@ -1,6 +1,6 @@
 # ADR 0013 — Requirements kept with the person
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-10-15)
 - **Date:** 2026-10-15
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0003 (requirements are kept in the browser) and ADR 0004
