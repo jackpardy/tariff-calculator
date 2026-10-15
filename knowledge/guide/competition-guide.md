@@ -499,16 +499,20 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
   and tap **Send coaches**. Each shows whether the organiser has approved
   them, with their note. If you change a coach's qualifications, send them
   again for the organiser to approve again.
-- **Send new and changed** sends the entries the competition doesn't have yet,
-  or that changed since you sent them. **Send all again** sends everyone's and
-  takes back withdrawn ones. The organiser only sees what you send, until
-  entries close.
+- **Send new and changed**, above the entries with how many are still to
+  send, sends the entries the competition doesn't have yet, or that changed
+  since you sent them. **Send all again**, the quiet button beside it, sends
+  everyone's and takes back withdrawn ones. The organiser only sees what you
+  send, until entries close. What members offer to judge and help with is
+  listed under the entries, under **Judging and helping**, and goes with every
+  send.
 - **Change** edits a member's entry for them.
 - **Members** (its own section): the **Join link**, then each member: choose
-  their coach from the list, give a member who lost their link a **New link**
-  (their old one stops working, and the new one opens only their pages at
-  your club: they add their other links again), or **Remove** them. A member
-  who also coaches needs no coach link: tap **Make a coach too** beside them,
+  their coach from the list. Under **More** beside them, give a member who
+  lost their link a **New link** (their old one stops working, and the new
+  one opens only their pages at your club: they add their other links
+  again), or **Remove** them. A member who also coaches needs no coach link:
+  tap **More**, **Make a coach too**,
   and their member link opens their coach's page as well. Making that coach a
   link of their own (**New link**) parts it from the member. Synchro entries that gymnasts from
   other clubs made with your members are listed here too. To find a member,
@@ -518,19 +522,22 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
   levels, narrow the list by **Level** to see who has completed a level (by
   a coach's marks) or is working on it.
 - **Coaches** (its own section; search by name, or narrow by who signs off
-  and who has qualifications): type a name and tap **Add coach**, then send them the coach link
-  shown (it's shown only then; **New link** makes another). Tick **Every coach
-  sees every member** if your coaches share everyone. Untick a coach's
+  and who has qualifications): tap **Add a coach**, type a name and tap
+  **Add coach**, then send them the coach link shown (it's shown only then;
+  **More**, **New link** makes another, and **Remove** takes them off). **Who
+  coaches see**, **Change**: tick **Every coach sees every member** if your
+  coaches share everyone. Untick a coach's
   **Signs off routines** if they shouldn't sign off: they still see their
   members' entries. Under **Add a qualification**, choose each coach's
   coaching qualification from the list and add a photo or PDF of its
   certificate (up to 3 MB, four per coach, and 60 MB for the whole club), for competitions that ask for
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
-- **Settings** (its own section): replace the admin link, or delete the club.
-  **Let every member see everyone's skills** shares members' skills with the
-  whole club (otherwise each member's are seen by them, their coaches and
-  you). A
+- **Settings** (its own section): a row for each setting, with its button at
+  the right. **Members' skills**, **Change**: **Let every member see
+  everyone's skills** shares members' skills with the whole club (otherwise
+  each member's are seen by them, their coaches and you). **Admin link**,
+  **Replace**, and **Delete the club**, **Delete**, open to do it. A
   club is deleted 13 months after anyone last used it (you, a coach or a
   member opening their page); Settings says when. **Opened from people's own
   links** lists anyone who added the admin link to their own page (see
