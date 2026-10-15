@@ -895,6 +895,16 @@ templ entryCardChecks(c EntryCard) {
 	}
 }
 
+// cardName is an element's name on an entry card: its own name, or its
+// catalogue name; blank for an element the catalogue has no name for, as
+// its FIG notation beside it says what it is.
+func cardName(s skills.TrampolineSkill) string {
+	if s.CustomName == "" && s.Name == skills.UnnamedSkill {
+		return ""
+	}
+	return displayName(s)
+}
+
 func problemCount(n int) string {
 	if n == 1 {
 		return "1 problem"
@@ -923,13 +933,13 @@ templ exerciseCard(ex ExerciseCard) {
 						<tr class={ templ.KV("not-counted", !sv.Counted && !sv.Unscored) }>
 							<td class="has-text-grey">{ strconv.Itoa(i + 1) }</td>
 							<td>
-								{ displayName(sv.Skill) }
+								{ cardName(sv.Skill) }
 								if ex.Required[i+1] {
 									<span title="Meets a requirement">*</span>
 								}
 								if ex.Validation.Messages[i] != "" {
 									<br/>
-									<span class="is-size-7 has-text-danger">{ ex.Validation.Messages[i] }</span>
+									<span class="is-size-7 has-text-danger">{ skills.ElementNote(i, ex.Validation.Messages[i]) }</span>
 								}
 							</td>
 							<td class="has-text-grey">{ sv.FIGNotation }</td>
@@ -943,6 +953,9 @@ templ exerciseCard(ex ExerciseCard) {
 				</tbody>
 			</table>
 			<p class="has-text-right">
+				if len(ex.Required) > 0 {
+					<span class="is-size-7 has-text-grey mr-2">* meets one of the requirements</span>
+				}
 				if ex.Checks.ScoreDifficulty {
 					<strong>Difficulty { fmt.Sprintf("%.1f", ex.Validation.TotalTariff) }</strong>
 				} else {

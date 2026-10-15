@@ -383,6 +383,7 @@ func (c Competition) Check(e Entry) (Card, error) {
 			// A set routine left empty is performed as prescribed.
 			if len(r.Skills) == 0 {
 				r.Skills, _ = requirements.SetRoutine(set)
+				namedAsSet(r.Skills, set)
 			}
 		}
 		routines[i] = r
@@ -422,12 +423,29 @@ func (c Card) Problems() []string {
 			}
 		}
 		for j, msg := range ex.Validation.Messages {
-			if msg != "" {
-				out = append(out, fmt.Sprintf("%selement %d: %s", prefix, j+1, msg))
+			for _, note := range skills.ElementNotes(j, msg) {
+				out = append(out, prefix+note)
 			}
 		}
 	}
 	return out
+}
+
+// namedAsSet names a set routine performed as written by the set's own
+// words for each element ("Seat landing"), so its card says the same as the
+// set routine it's checked against.
+func namedAsSet(routine []skills.TrampolineSkill, set requirements.Set) {
+	for _, rule := range set.Rules {
+		if rule.Type != requirements.Sequence {
+			continue
+		}
+		for i := range routine {
+			if i < len(rule.Sequence) && routine[i].CustomName == "" {
+				routine[i].CustomName = strings.TrimSpace(rule.Sequence[i].Label)
+			}
+		}
+		return
+	}
 }
 
 // CheckName reports a missing or too-long name of a competition, club or
