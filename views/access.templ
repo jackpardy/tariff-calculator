@@ -46,31 +46,37 @@ templ linksBox(base string, links []LinkView) {
 		<p class="label is-small mb-1">Links for your helpers</p>
 		<p class="help mb-2">Each can do only part of what your admin link can, and the history says which link made each change. Anyone can flag a concern for you.</p>
 		if len(links) > 0 {
-			<ul class="is-size-7 mb-2">
+			// A row each, Remove always at the right.
+			<ul class="mb-2">
 				for _, l := range links {
-					<li class="mb-1">
-						<strong>{ l.Name }</strong> · { l.Kind } · made { l.Made }
+					<li class="comp-other-link">
+						<span>
+							<strong>{ l.Name }</strong>
+							<span class="has-text-grey is-size-7">{ l.Kind } · made { l.Made }</span>
+						</span>
 						<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/remove") } class="is-inline">
-							<button class="button is-small is-text" type="submit">Remove</button>
+							<button class="button is-small is-text has-text-danger" type="submit" aria-label={ "Remove the link for " + l.Name }>Remove</button>
 						</form>
 					</li>
 				}
 			</ul>
 		}
-		<form method="post" action={ templ.SafeURL(base + "/links") }>
-			<div class="field">
-				<input class="input is-small" name="name" required maxlength="60" placeholder="Who it's for, e.g. Difficulty judges" aria-label="Who the link is for"/>
-			</div>
-			<div class="field">
-				for i, k := range LinkKinds {
-					<label class="radio is-block mb-1 ml-0">
-						<input type="radio" name="kind" value={ k.Value } checked?={ i == 0 }/>
-						<strong>{ k.Label }</strong> <span class="is-size-7 has-text-grey">{ k.Help }</span>
-					</label>
-				}
-			</div>
-			<button class="button is-small" type="submit">Make a link</button>
-		</form>
+		@opens("", "", "Make a link", len(links) == 0) {
+			<form method="post" action={ templ.SafeURL(base + "/links") }>
+				<div class="field">
+					<input class="input is-small" name="name" required maxlength="60" placeholder="Who it's for, e.g. Difficulty judges" aria-label="Who the link is for"/>
+				</div>
+				<div class="field">
+					for i, k := range LinkKinds {
+						<label class="radio is-block mb-1 ml-0">
+							<input type="radio" name="kind" value={ k.Value } checked?={ i == 0 }/>
+							<strong>{ k.Label }</strong> <span class="is-size-7 has-text-grey">{ k.Help }</span>
+						</label>
+					}
+				</div>
+				<button class="button is-small" type="submit">Make a link</button>
+			</form>
+		}
 	</div>
 }
 
