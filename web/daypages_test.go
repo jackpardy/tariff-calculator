@@ -114,11 +114,11 @@ func TestOnTheDay(t *testing.T) {
 		u.Query().Get("minutes") != "20" || u.Query().Get("from") != "09:20" || u.Query().Get("area") != "Panel 1" {
 		t.Errorf("the delay page, filled in: %q", area.WhatIf)
 	}
-	clock.set(onTheDay(9, 15)) // before its planned end, 09:25
+	clock.set(onTheDay(9, 22)) // before its planned end, 09:25
 	mark("finish")
 	area = panelOne(t, h, day)
-	if f := area.Flights[0]; area.Status != "10 min early" || !area.Early || area.Late || f.Started != "09:20" || f.Finished != "09:15" || slices.Contains(f.Buttons, "Finished") {
-		t.Errorf("finished at 09:15: %+v", area)
+	if f := area.Flights[0]; area.Status != "3 min early" || !area.Early || area.Late || f.Started != "09:20" || f.Finished != "09:22" || slices.Contains(f.Buttons, "Finished") {
+		t.Errorf("finished at 09:22: %+v", area)
 	}
 	// Doing it twice does nothing, and says so.
 	if to := mark("finish"); noticeOf(t, to) == "" {

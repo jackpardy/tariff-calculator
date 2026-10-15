@@ -34,14 +34,23 @@ var ErrUpMoved = errors.New("the flight has moved on since")
 // false, and nothing changes, if move has nowhere to go; it's ErrUpMoved if
 // the flight isn't at from.
 func (s *Store) MoveUp(ctx context.Context, competitionID, flight string, from competitions.Routine, move func(competitions.Routine) (competitions.Routine, bool), who string) (up Up, moved bool, err error) {
+	return s.MoveUpAt(ctx, competitionID, flight, from, move, who, time.Time{})
+}
+
+// MoveUpAt is MoveUp with when the marshal tapped: at, for a tap kept on a
+// phone without signal and sent later; now if at is zero.
+func (s *Store) MoveUpAt(ctx context.Context, competitionID, flight string, from competitions.Routine, move func(competitions.Routine) (competitions.Routine, bool), who string, at time.Time) (up Up, moved bool, err error) {
+	if at.IsZero() {
+		at = s.now()
+	}
 	err = s.tx(ctx, func(tx *sql.Tx) error {
-		var at string
+		var was string
 		err := tx.QueryRowContext(ctx, `SELECT entry, round, who, at FROM up_now WHERE competition_id = $1 AND flight = $2`, competitionID, flight).
-			Scan(&up.Entry, &up.Round, &up.Who, &at)
+			Scan(&up.Entry, &up.Round, &up.Who, &was)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
-		up.At = parseTime(at)
+		up.At = parseTime(was)
 		if up.Routine != from {
 			return ErrUpMoved
 		}
@@ -49,7 +58,7 @@ func (s *Store) MoveUp(ctx context.Context, competitionID, flight string, from c
 		if !ok {
 			return nil
 		}
-		up, moved = Up{Routine: to, Who: who, At: s.now().UTC()}, true
+		up, moved = Up{Routine: to, Who: who, At: at.UTC()}, true
 		_, err = tx.ExecContext(ctx, `INSERT INTO up_now (competition_id, flight, entry, round, who, at) VALUES ($1, $2, $3, $4, $5, $6)
 			ON CONFLICT (competition_id, flight) DO UPDATE SET entry = excluded.entry, round = excluded.round, who = excluded.who, at = excluded.at`,
 			competitionID, flight, to.Entry, to.Round, who, formatTime(up.At))

@@ -51,9 +51,9 @@ func allowed(kind, pattern string) bool {
 	case store.LinkCards:
 		return viewing || post && (path == "/entries/{id}/check" || path == "/entries/{id}/video")
 	case store.LinkChair:
-		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/day/officials" || path == "/day/notify" || path == "/day/up" || path == "/desk" || path == "/desk/screen" || path == "/desk/screen/{id}/remove")
+		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/day/officials" || path == "/day/notify" || path == "/day/up" || path == "/day/times" || path == "/desk" || path == "/desk/screen" || path == "/desk/screen/{id}/remove")
 	case store.LinkTimetable:
-		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/day/officials" || path == "/day/notify" || path == "/day/up" || path == "/desk" || path == "/desk/screen" || path == "/desk/screen/{id}/remove") ||
+		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/day/officials" || path == "/day/notify" || path == "/day/up" || path == "/day/times" || path == "/desk" || path == "/desk/screen" || path == "/desk/screen/{id}/remove") ||
 			post && (strings.HasPrefix(path, "/timetable/") || strings.HasPrefix(path, "/officials/") || path == "/notify-now")
 	}
 	return false
@@ -246,6 +246,8 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		return p.describeNotify(r, c)
 	case "/day/up":
 		return "" // a tap for every routine would bury the rest
+	case "/day/times":
+		return p.describeCorrection(r, c)
 	case "/desk":
 		return p.describeDesk(r, c)
 	case "/desk/screen":
