@@ -649,19 +649,21 @@ func rowOf(t *testing.T, page, name string) []string {
 }
 
 // tapUp taps a running flight's Next gymnast or Back (what) as the marshal
-// would: with the position the day page shows for that flight, so a repeat
+// would: with the gymnast and routine the day page shows for that flight, so a repeat
 // isn't taken for a second tap. It returns where the tap redirected.
 func tapUp(t *testing.T, h http.Handler, admin, flight, what string) string {
 	t.Helper()
 	page := do(t, h, http.MethodGet, admin+"/day?day=0", nil).Body.String()
-	at := ""
+	tap := url.Values{"flight": {flight}, "what": {what}, "day": {"0"}}
 	for _, form := range regexp.MustCompile(`(?s)<form[^>]*/day/up"[^>]*>.*?</form>`).FindAllString(page, -1) {
 		if strings.Contains(form, `name="flight" value="`+html.EscapeString(flight)+`"`) {
-			if m := regexp.MustCompile(`name="at" value="(\d*)"`).FindStringSubmatch(form); m != nil {
-				at = m[1]
+			for _, field := range []string{"entry", "round"} {
+				if m := regexp.MustCompile(`name="` + field + `" value="([^"]*)"`).FindStringSubmatch(form); m != nil {
+					tap.Set(field, html.UnescapeString(m[1]))
+				}
 			}
 			break
 		}
 	}
-	return redirected(t, h, admin+"/day/up", url.Values{"flight": {flight}, "what": {what}, "day": {"0"}, "at": {at}})
+	return redirected(t, h, admin+"/day/up", tap)
 }
