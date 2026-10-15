@@ -326,7 +326,7 @@ func (p *competitionPages) lateRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if has {
-		page.Status = lateStatusText(c, latest)
+		page.Status = views.LateStatus{Text: lateStatusText(c, latest), State: lateState(latest)}
 	}
 	page.CoachFirst = c.Signoff && c.Late.SignoffFirst
 	render(w, r, views.LateRequest(page))
@@ -362,17 +362,29 @@ func lateStatusText(c store.Competition, r store.LateRequest) string {
 	return s + ", waiting for the organiser."
 }
 
+// lateState is a late change request's state: accepted, not accepted, or
+// asked and waiting for a coach or the organiser.
+func lateState(r store.LateRequest) views.State {
+	switch r.Status {
+	case store.LateAccepted:
+		return views.Done
+	case store.LateRejected:
+		return views.Stopped
+	}
+	return views.InProgress
+}
+
 // lateStatusOf is where the latest late change for an entry stands, "" for
 // none.
-func (p *competitionPages) lateStatusOf(ctx context.Context, c store.Competition, entryID string) string {
+func (p *competitionPages) lateStatusOf(ctx context.Context, c store.Competition, entryID string) views.LateStatus {
 	if entryID == "" {
-		return ""
+		return views.LateStatus{}
 	}
 	r, ok, err := p.st.LatestLateRequest(ctx, c.ID, entryID)
 	if err != nil || !ok {
-		return ""
+		return views.LateStatus{}
 	}
-	return lateStatusText(c, r)
+	return views.LateStatus{Text: lateStatusText(c, r), State: lateState(r)}
 }
 
 // lateAdmin is the organiser's page: which late changes are allowed, and

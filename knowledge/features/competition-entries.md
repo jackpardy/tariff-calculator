@@ -410,6 +410,9 @@ and no Bulma colour for a state (buttons keep theirs):
 | A coach's entries | how many to sign off; problems; the sign-off, as on the comp sec's; can't sign off (not approved) | the coach who signed off |
 | My competition (and the organiser's page of a person) | each event checked by the organiser, problems to sort out, or sent, not checked yet; Scratched | |
 | Tell me about changes | an email On, or waiting for you to confirm it | |
+| Every entry card (step 3: the organiser's, the comp sec's, a member's, an individual's, a coach's sign-off page) | the sign-off, as on the rows (signed off, waiting, needs changes, coach not approved); No problems found | the coach who signed off |
+| Late changes (an entry's row, the comp sec's rows, asking for one) | asked and waiting, accepted, or not accepted, as a "Late change" chip before what it is | |
+| An individual's competition page | checked by the organiser; fees paid | |
 
 On the day, a panel now lists its empty seats too, once anyone has a seat on
 it (`panelOf`); the counts are worked out on the page from the rows

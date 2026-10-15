@@ -57,7 +57,7 @@ func TestLaterDeadlines(t *testing.T) {
 	if xEntry == nil {
 		t.Fatal("X's entry on the dashboard")
 	}
-	if page := do(t, h, http.MethodGet, xEntry[1], nil).Body.String(); !strings.Contains(page, "Signed off by Ann") {
+	if page := do(t, h, http.MethodGet, xEntry[1], nil).Body.String(); !signedOffBy(t, page, "Ann") {
 		t.Errorf("X is signed off at the competition: %s", page)
 	}
 }

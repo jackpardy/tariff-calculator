@@ -91,10 +91,10 @@ type EntryOption struct {
 
 // EntryPage is an individual's own entry, through their personal link.
 type EntryPage struct {
-	Name        string // the gymnast's own name, without a synchro partner's
-	Waiting     string // on a waiting list, and where
-	Late        string // a late change, where it stands
-	LateAsk     string // where to ask for a late change, once entries close
+	Name        string     // the gymnast's own name, without a synchro partner's
+	Waiting     string     // on a waiting list, and where
+	Late        LateStatus // a late change, where it stands
+	LateAsk     string     // where to ask for a late change, once entries close
 	Competition CompetitionSummary
 	Link        string // their personal link, as a full URL
 	JustSaved   bool

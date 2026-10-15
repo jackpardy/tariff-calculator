@@ -111,7 +111,8 @@ type ClubEntryRow struct {
 	Video         string // "missing" or "need more" when the club needs to act
 	Signoff       SignoffView
 	Flight        string // where they compete, once the timetable is published
-	Late, LateAsk string // a late change: where it stands, and where to ask for one
+	Late          LateStatus // a late change, where it stands
+	LateAsk       string     // where to ask for a late change, once entries close
 	List          ListRow
 }
 
@@ -178,7 +179,7 @@ type MemberEvent struct {
 	BriefState  State  // Brief's state
 	Open        bool   // shown open: it has problems to fix, or the notice is about it
 	Waiting     string // on a waiting list, and where
-	Late        string // a late change, where it stands
+	Late        LateStatus // a late change, where it stands
 	LateAsk     string // where to ask for a late change, once entries close
 	Note        string // the organiser's note
 	VideoReview string // the organiser's review of its videos
@@ -400,9 +401,12 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 											<br/>
 											<span class="is-size-7 has-text-info-dark">{ row.Flight }</span>
 										}
-										if row.Late != "" {
+										if row.Late.Text != "" {
 											<br/>
-											<span class="is-size-7">Late change: { row.Late }</span>
+											<span class="is-size-7">
+												@StateChip(row.Late.State, "Late change")
+												<span class="ml-1">{ row.Late.Text }</span>
+											</span>
 										}
 										if row.LateAsk != "" {
 											<br/>

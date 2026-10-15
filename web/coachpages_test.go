@@ -57,7 +57,7 @@ func TestCoachSignoff(t *testing.T) {
 	for _, m := range []string{x, y} {
 		redirected(t, h, formAction(t, memberCompetitionPage(t, h, m), m+"/competitions/"), entry)
 	}
-	if page := memberCompetitionPage(t, h, y); !strings.Contains(page, "Waiting for a coach&#39;s sign-off") && !strings.Contains(page, "Waiting for a coach's sign-off") {
+	if page := memberCompetitionPage(t, h, y); !strings.Contains(page, chip(t, views.InProgress, "Waiting for sign-off")) {
 		t.Error("the member sees their entry waiting for sign-off")
 	}
 
@@ -88,7 +88,7 @@ func TestCoachSignoff(t *testing.T) {
 	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Signed off X&#39;s BUCS L3 entry") {
 		t.Error("signed off")
 	}
-	if page := memberCompetitionPage(t, h, x); !strings.Contains(page, "Signed off by Bob") || !strings.Contains(page, "Ready") {
+	if page := memberCompetitionPage(t, h, x); !signedOffBy(t, page, "Bob") || !strings.Contains(page, "Ready") {
 		t.Error("the member sees who signed it off")
 	}
 	clubPage := clubEntriesPage(t, h, club)
@@ -152,7 +152,7 @@ func TestCoachSignoff(t *testing.T) {
 	// A change needs signing off again.
 	entry.Set("ex1Option", "builtin:bucs-l3-option-2")
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, x), x+"/competitions/"), entry)
-	if page := memberCompetitionPage(t, h, x); strings.Contains(page, "Signed off by Bob") {
+	if page := memberCompetitionPage(t, h, x); signedOffBy(t, page, "Bob") {
 		t.Error("a changed entry isn't signed off any more")
 	}
 
@@ -184,7 +184,7 @@ func TestIndividualSignoff(t *testing.T) {
 		t.Errorf("the coach must give their name: %d", rec.Code)
 	}
 	redirected(t, h, signoff, url.Values{"signed": {"1"}, "coach": {"Coach C"}})
-	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Signed off by Coach C") {
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !signedOffBy(t, page, "Coach C") {
 		t.Error("the individual sees it signed off")
 	}
 	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, chip(t, views.Done, "Signed off")) || !strings.Contains(dash, "· Coach C") {

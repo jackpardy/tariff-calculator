@@ -187,7 +187,7 @@ func TestIndividualCoachPages(t *testing.T) {
 		e := regexp.MustCompile(`href="(` + regexp.QuoteMeta(admin) + `/entries/[^"?]+)`).FindStringSubmatch(dash)
 		return do(t, h, http.MethodGet, e[1], nil).Body.String()
 	}
-	if p := entryPage(); strings.Contains(p, "Not signed off") || strings.Contains(p, "approved coach") || !strings.Contains(p, "Signed off by Ann") {
+	if p := entryPage(); strings.Contains(p, "Not signed off") || strings.Contains(p, "approved coach") || !signedOffBy(t, p, "Ann") {
 		t.Error("Ann's sign-off counts")
 	}
 	// Withdrawn: it doesn't.

@@ -337,6 +337,22 @@ type dayFlight struct {
 }
 
 // chip is a state chip as pages show it, to look for in one.
+// whoChip is a role chip as the pages show it, naming someone.
+func whoChip(t *testing.T, r views.Role, name string) string {
+	t.Helper()
+	var b strings.Builder
+	if err := views.WhoChip(r, name).Render(context.Background(), &b); err != nil {
+		t.Fatal(err)
+	}
+	return b.String()
+}
+
+// signedOffBy says a page shows an entry signed off by the coach named.
+func signedOffBy(t *testing.T, page, coach string) bool {
+	t.Helper()
+	return strings.Contains(page, chip(t, views.Done, "Signed off")) && strings.Contains(page, whoChip(t, views.RoleCoach, coach))
+}
+
 func chip(t *testing.T, s views.State, label string) string {
 	t.Helper()
 	var b strings.Builder

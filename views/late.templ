@@ -8,7 +8,7 @@ type LateRequestPage struct {
 	Gymnast     string
 	Current     string   // the entry's event now
 	Allowed     []string // the kinds of change allowed, with fees
-	Status      string   // the latest request, if any
+	Status      LateStatus // the latest request, if any
 	CoachFirst  bool     // a coach signs it off before the organiser sees it
 	Problems    []string
 	Form        EntryForm
@@ -33,9 +33,7 @@ templ LateRequest(p LateRequestPage) {
 			}
 			The organiser checks whether it can be fitted in, then accepts it (it replaces the entry, and needs checking again) or says why not. Until then, the entry stays as it is.
 		</p>
-		if p.Status != "" {
-			<div class="notification is-info is-light">{ p.Status }</div>
-		}
+		@lateStatusLine(p.Status, "mb-4")
 		@problemList(p.Problems)
 		@entryForm(p.Form)
 	}
@@ -150,11 +148,26 @@ templ LateAdmin(p LateAdminPage) {
 	}
 }
 
-// lateLine shows where a late change stands, and links to ask for one.
-templ lateLine(status, ask string) {
-	if status != "" {
-		<p class="is-size-7 mb-2"><strong>Late change:</strong> { status }</p>
+// LateStatus is where the latest late change asked for an entry stands:
+// in words, and as a state (asked and waiting, accepted, or not accepted).
+type LateStatus struct {
+	Text  string // "" for none
+	State State
+}
+
+// lateStatusLine is a late change's state as a chip, then what it is.
+templ lateStatusLine(s LateStatus, class string) {
+	if s.Text != "" {
+		<p class={ "is-size-7", class }>
+			@StateChip(s.State, "Late change")
+			<span class="ml-1">{ s.Text }</span>
+		</p>
 	}
+}
+
+// lateLine shows where a late change stands, and links to ask for one.
+templ lateLine(status LateStatus, ask string) {
+	@lateStatusLine(status, "mb-2")
 	if ask != "" {
 		<p class="is-size-7 mb-2"><a href={ templ.SafeURL(ask) }>Ask for a late change</a></p>
 	}

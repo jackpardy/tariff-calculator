@@ -39,22 +39,22 @@ func (s SignoffView) Status() string {
 	return ""
 }
 
-// signoffBox shows an entry's sign-off and the coach's note.
+// signoffBox shows an entry's sign-off as a state chip, with the coach's
+// chip and their note, as the comp sec's and the organiser's rows show it.
 templ signoffBox(s SignoffView) {
-	if status := s.Status(); status != "" {
-		<div class={ "notification is-light", templ.KV("is-success", s.Signed), templ.KV("is-warning", !s.Signed) }>
-			<p>
-				<strong>
-					if s.Signed {
-						✓
-					}
-					{ status }.
-				</strong>
-				if s.Note != "" {
-					{ s.Note }
-				}
-			</p>
-		</div>
+	if s.Status() != "" {
+		<p class="mb-3">
+			@StateChip(signoffState(s))
+			if s.By != "" {
+				@WhoChip(RoleCoach, s.By)
+			}
+			if s.Unapproved {
+				<span class="is-size-7 has-text-grey ml-1">The competition hasn't approved them as a coach, so it doesn't count.</span>
+			}
+			if s.Note != "" {
+				<span class="is-size-7 ml-1">{ s.Note }</span>
+			}
+		</p>
 	}
 }
 

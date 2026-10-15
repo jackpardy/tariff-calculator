@@ -191,7 +191,7 @@ templ feesLine(f *FeesSummary) {
 		<p class="is-size-7 mb-2">
 			<strong>Fees:</strong> { f.Due }
 			if f.Settled {
-				<span class="tag is-success is-light ml-1">Paid</span>
+				@StateChip(Done, "Paid")
 			} else {
 				· { f.Paid } paid · <strong>{ f.Balance } to pay</strong>
 			}
