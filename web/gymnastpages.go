@@ -30,6 +30,7 @@ func entryPath(token string, e store.Entry) string {
 // The tabs of an individual's pages.
 const (
 	gymnastCompetitions = "competitions"
+	gymnastRequirements = "requirements"
 	gymnastDetails      = "details"
 )
 
@@ -38,6 +39,7 @@ const (
 func gymnastMenu(token, current string) []views.MenuSection {
 	return []views.MenuSection{
 		{Label: "Competitions", Href: gymnastPath(token), Current: current == gymnastCompetitions},
+		{Label: "Requirements", Href: gymnastPath(token) + "/requirements", Current: current == gymnastRequirements},
 		{Label: "Your details", Href: gymnastDetailsPath(token), Current: current == gymnastDetails},
 	}
 }

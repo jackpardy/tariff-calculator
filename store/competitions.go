@@ -667,6 +667,9 @@ func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err erro
 		if err := dropTies(ctx, tx); err != nil {
 			return err
 		}
+		if err := dropOrphanedKept(ctx, tx); err != nil {
+			return err
+		}
 		return dropEntryRows(ctx, tx, "")
 	})
 	return comps, clubs, err
