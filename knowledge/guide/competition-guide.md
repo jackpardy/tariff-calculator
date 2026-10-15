@@ -666,6 +666,23 @@ change an entry for you.
 
 You can keep up to 30 routines.
 
+## Keep your requirements on your page
+
+Requirements, set routines and levels you write on the **Requirements** page
+are saved in that browser only, and an iPhone can forget them after a week
+without a visit. Keep them on your page (a member's, a coach's, or your own
+if you enter on your own) and they're safe, and open on any phone:
+
+- On the **Requirements** page, tap **Save to my page** beside one. (It's
+  there once you've opened your page on this phone.) It shows **On your
+  page** from then on, and saving it again there saves it on your page too.
+- Or open **Requirements** on your page: **Add from this browser** keeps all
+  of them in one go. **Take off** removes one from your page.
+- Wherever your page is saved, the Requirements page and the Routine
+  Builder's **Check against** list what's kept as **On your page**, first.
+
+You can keep up to 50 sets of requirements and 50 levels.
+
 ## Synchro
 
 Enter synchro like any discipline, and give your **partner's name** (and club,

@@ -1,0 +1,86 @@
+package views
+
+import "strconv"
+
+// KeptPart is a person's own requirements and levels, kept on their page
+// (ADR 0013), as their Requirements tab lists them.
+type KeptPart struct {
+	Sets, Levels []KeptView
+	Add          string // where requirements from this browser are posted to keep
+	Max          int    // the most of each kind a person keeps
+}
+
+// KeptView is one kept requirement set or level.
+type KeptView struct {
+	Name, Updated string
+	Lines         []string // a set's rules, or a level's exercises, in words
+	Remove        string   // where taking it off posts
+}
+
+// keptPart is the Requirements tab's list, Add from this browser, and what
+// it's for.
+templ keptPart(k KeptPart) {
+	<p class="mb-4 is-size-7 has-text-grey">
+		Your own requirements and levels, kept here so they open on any phone or computer, and aren't lost if this browser forgets them. On the <a href="/requirements">Requirements</a> page, <strong>Save to my page</strong> keeps one here; the Requirements page and the <a href="/">Routine Builder</a>'s <strong>Check against</strong> list them as <strong>On your page</strong> wherever this link is saved.
+	</p>
+	@keptList("Requirements", k.Sets, "No requirements kept here yet.")
+	@keptList("Levels", k.Levels, "No levels kept here yet.")
+	// Those saved in this browser and not kept here yet, posted in one go
+	// (KeptRequirements.addFrom in static/js/sets.js fills items and shows it).
+	<form method="post" action={ templ.SafeURL(k.Add) } class="mt-4" data-keep-from-browser hidden>
+		<input type="hidden" name="items" value=""/>
+		<input type="hidden" name="back" value="1"/>
+		<p class="mb-2" data-keep-count></p>
+		<button class="button is-primary is-small" type="submit">Add from this browser</button>
+	</form>
+	<p class="help mt-4">{ "Up to " + strconv.Itoa(k.Max) + " of each. We keep each one's name and rules, as written, until you take it off or leave." }</p>
+}
+
+templ keptList(title string, items []KeptView, none string) {
+	@listSection(title, len(items)) {
+		if len(items) == 0 {
+			<p class="has-text-grey">{ none }</p>
+		}
+		for _, it := range items {
+			<div class="comp-kept">
+				<div class="comp-kept-name">
+					<strong>{ it.Name }</strong>
+					<span class="has-text-grey is-size-7">saved { it.Updated }</span>
+					if len(it.Lines) > 0 {
+						<ul class="is-size-7 mt-1">
+							for _, line := range it.Lines {
+								<li>{ line }</li>
+							}
+						</ul>
+					}
+				</div>
+				<form method="post" action={ templ.SafeURL(it.Remove) }>
+					<input type="hidden" name="back" value="1"/>
+					<button class="button is-small is-text" type="submit">Take off</button>
+				</form>
+			</div>
+		}
+	}
+}
+
+// MemberRequirements is a member's Requirements tab.
+templ MemberRequirements(p MemberPage) {
+	@memberFrame(p) {
+		@keptPart(p.Kept)
+	}
+}
+
+// CoachRequirements is a coach's Requirements tab.
+templ CoachRequirements(f CoachFrame, k KeptPart) {
+	@competitionLayout("Requirements · " + f.Club) {
+		@coachFrame(f)
+		@keptPart(k)
+	}
+}
+
+// GymnastRequirements is an individual's Requirements tab.
+templ GymnastRequirements(p GymnastPage) {
+	@gymnastFrame(p) {
+		@keptPart(p.Kept)
+	}
+}

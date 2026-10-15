@@ -19,12 +19,18 @@ function requirementsPage() {
         importText: '',
         toast: '',
         coachLinks: [], // club coach pages saved in this browser, to save requirements to as a club level (ADR 0011)
+        personLinks: [], // personal pages saved in this browser, to keep requirements on (ADR 0013)
 
         init() {
             this.sets = SetStore.load();
             this.levels = LevelStore.load();
             this.routines = RoutineStore.load().routines;
             this.coachLinks = RoutineStore.coachLinks();
+            this.personLinks = KeptRequirements.links();
+            // Those kept on a person's page, read in; the page's copies win.
+            KeptRequirements.sync().then((changed) => {
+                if (changed) { this.sets = SetStore.load(); this.levels = LevelStore.load(); }
+            });
             this.$watch('fromRoutine', (id) => {
                 const routine = this.routines.find((r) => r.id === id);
                 if (routine && !this.setRoutineName) { this.setRoutineName = routine.name; }
@@ -63,6 +69,29 @@ function requirementsPage() {
             document.body.append(form);
             form.submit();
         },
+        // keepOnPage keeps a saved set or level (kind 'set' or 'level') on a
+        // person's page (link: one of personLinks), where it's kept from then
+        // on: on any phone, and safe if this browser forgets it.
+        async keepOnPage(link, kind, saved) {
+            try {
+                await KeptRequirements.save(link.url, kind, saved);
+            } catch (e) {
+                this.flash(`Couldn't keep it on your page: ${e.message}`);
+                return;
+            }
+            if (kind === 'set') { this.sets = SetStore.load(); } else { this.levels = LevelStore.load(); }
+            this.flash(`Kept ${kind === 'set' ? saved.set.name : saved.level.name} on your page.`);
+        },
+        // keepAgain saves a kept set or level back to its page after a change
+        // here, saying so if it couldn't (the browser's copy is saved anyway).
+        async keepAgain(kind, saved) {
+            if (!saved.kept) { return; }
+            try {
+                await KeptRequirements.save(saved.kept, kind, saved);
+            } catch (e) {
+                this.flash(`Saved here, but not on your page (${e.message}): try again when there's a signal.`);
+            }
+        },
         edit(id) {
             const saved = this.sets.find((s) => s.id === id);
             if (saved) { this.open(saved.set, `Edit ${saved.set.name}`, id); }
@@ -98,7 +127,8 @@ function requirementsPage() {
         duplicateBuiltinLevel(ref) { if (this.builtinLevels[ref]) { this.duplicateLevel(this.builtinLevels[ref]); } },
         removeLevel(id) {
             const saved = this.levels.find((l) => l.id === id);
-            if (!saved || !confirm(`Delete ${saved.level.name}? Routines doing its exercises will stop being paired by it.`)) { return; }
+            if (!saved || !confirm(`Delete ${saved.level.name}${saved.kept ? ', here and from your page' : ''}? Routines doing its exercises will stop being paired by it.`)) { return; }
+            KeptRequirements.drop('level', saved);
             this.levels = this.levels.filter((l) => l.id !== id);
             LevelStore.save(this.levels);
             if (this.editing?.id === id) { this.closeEditor(); }
@@ -141,6 +171,7 @@ function requirementsPage() {
             SetStore.save(this.sets);
             this.editing.title = `Edit ${set.name}`;
             this.flash(`Saved ${set.name}.`);
+            await this.keepAgain('set', this.sets.find((s) => s.id === this.editing.id));
         },
         async saveLevel() {
             const form = document.getElementById('level-editor');
@@ -164,6 +195,7 @@ function requirementsPage() {
             LevelStore.save(this.levels);
             this.editing.title = `Edit ${level.name}`;
             this.flash(`Saved ${level.name}.`);
+            await this.keepAgain('level', this.levels.find((l) => l.id === this.editing.id));
         },
         closeEditor() {
             this.editing = null;
@@ -171,7 +203,8 @@ function requirementsPage() {
         },
         remove(id) {
             const saved = this.sets.find((s) => s.id === id);
-            if (!saved || !confirm(`Delete ${saved.set.name}? Routines checked against it will stop being checked.`)) { return; }
+            if (!saved || !confirm(`Delete ${saved.set.name}${saved.kept ? ', here and from your page' : ''}? Routines checked against it will stop being checked.`)) { return; }
+            KeptRequirements.drop('set', saved);
             this.sets = this.sets.filter((s) => s.id !== id);
             SetStore.save(this.sets);
             if (this.editing?.id === id) { this.closeEditor(); }

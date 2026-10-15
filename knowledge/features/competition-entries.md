@@ -1582,6 +1582,32 @@ comp sec and individuals) has one Men or Women choice, shown only while the
 chosen level ranks them separately; changing level keeps what's ticked, and an
 existing entry opens with its own ticked.
 
+## Requirements on your page (ADR 0013)
+
+Built 2026-10-15 ([ADR 0013](../../docs/adr/0013-requirements-with-the-person.md);
+`web/keptpages.go`, `store/kept.go`, migration 44, `KeptRequirements` in
+`static/js/sets.js`). A person's own requirement sets (set routines among
+them) and levels are kept on their page, whichever personal link (member,
+coach, individual) they use: they belong to ADR 0010's person, up to 50 of
+each, 64 KB each, and go with the person (`DeleteExpired` drops those of
+people with no record left).
+
+- **Save to my page** on the Requirements page, beside each of your
+  requirements, set routines and levels, for each personal page saved in the
+  browser, posts it (`POST <link>/requirements`, `items` a JSON list) by its
+  id in the browser, so saving again changes it. It shows **On your page**
+  from then on; saving it in the editor saves it there too, and **Delete**
+  takes it off the page as well.
+- **Reading them**: the Requirements page and the Routine Builder read each
+  saved personal link's `<link>/requirements.json` on load and merge it into
+  `SetStore` and `LevelStore`, the page's copy winning, each marked `kept`.
+  **Check against** lists kept ones first as **On your page**. Without a
+  signal, the browser's copies stand.
+- **The Requirements tab** on a member's, coach's and individual's pages
+  lists them (a set's rules and a level's exercises in words), with **Take
+  off** and **Add from this browser** (those saved here not kept yet, in one
+  go).
+
 ## Routines on your page (ADR 0011)
 
 Built 2026-10-15 ([ADR 0011](../../docs/adr/0011-club-routines-and-skill-tracking.md)

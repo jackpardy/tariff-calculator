@@ -1061,3 +1061,9 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-day-flight-taps { margin-top: 1rem; }
 .comp-day-other > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; }
 .comp-day-other > summary .chip { margin-left: 0; }
+
+/* A person's kept requirements (ADR 0013): each a row, its rules beneath its
+   name, Take off at the right. */
+.comp-kept { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; padding: 0.6rem 0; border-top: 1px solid #ededed; }
+.comp-kept-name { flex: 1 1 auto; }
+.comp-kept-name ul { list-style: disc; margin-left: 1.25rem; }

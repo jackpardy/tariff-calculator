@@ -238,3 +238,131 @@ const LevelEntries = {
         return true;
     },
 };
+
+// KeptRequirements: requirements kept with the person (ADR 0013). Where a
+// personal link (a member's, coach's or individual's page) is saved in this
+// browser, that person's requirement sets and levels are kept on their page:
+// sync reads them into SetStore and LevelStore (the page's copy wins, and
+// each is marked kept: the link), save keeps one there, drop takes one off.
+// Without a personal link, nothing changes: the browser keeps them as ever.
+const KeptRequirements = (() => {
+    const keys = [['trampolineMemberLinks', '/clubs/member/'], ['trampolineCoachLinks', '/clubs/coach/'], ['trampolineGymnastLinks', '/competitions/gymnast/']];
+
+    // links are the personal pages saved in this browser ({name, url}), one
+    // each.
+    function links() {
+        const out = [];
+        for (const [key, path] of keys) {
+            let saved = [];
+            try { saved = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { /* none */ }
+            for (const l of Array.isArray(saved) ? saved : []) {
+                if (l && typeof l.url === 'string' && l.url.includes(path) && !out.some((o) => o.url === l.url)) {
+                    out.push({ name: l.name || 'My page', url: l.url.replace(/\/+$/, '') });
+                }
+            }
+        }
+        return out;
+    }
+
+    // merge puts a page's kept items into a store's list: the page's copy in
+    // place of the browser's, and new ones added; it says whether anything
+    // changed.
+    function merge(list, items, link, key) {
+        let changed = false;
+        for (const item of items) {
+            const existing = list.find((x) => x.id === item.id);
+            const fresh = { id: item.id, [key]: item.data, kept: link };
+            if (item.described) { fresh.described = item.described; }
+            if (!existing) {
+                list.push(fresh);
+                changed = true;
+            } else if (JSON.stringify(existing[key]) !== JSON.stringify(item.data) || existing.kept !== link) {
+                Object.assign(existing, fresh);
+                changed = true;
+            }
+        }
+        // Kept by this link before, and not now: taken off elsewhere, so the
+        // browser's copy is just the browser's again.
+        for (const x of list) {
+            if (x.kept === link && !items.some((i) => i.id === x.id)) {
+                delete x.kept;
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    // sync reads every saved personal link's kept requirements into the
+    // browser's stores; it resolves to whether anything changed. Without a
+    // signal it changes nothing: the browser's copies stand.
+    async function sync() {
+        let changed = false;
+        const sets = SetStore.load();
+        const levels = LevelStore.load();
+        for (const link of links()) {
+            try {
+                const response = await fetch(`${link.url}/requirements.json`, { credentials: 'same-origin', cache: 'no-store' });
+                if (!response.ok) { continue; }
+                const kept = await response.json();
+                if (merge(sets, kept.sets || [], link.url, 'set')) { changed = true; }
+                if (merge(levels, kept.levels || [], link.url, 'level')) { changed = true; }
+            } catch (e) { /* no signal: the browser's copies stand */ }
+        }
+        if (changed) {
+            SetStore.save(sets);
+            LevelStore.save(levels);
+        }
+        return changed;
+    }
+
+    // post sends items ({id, kind, data}) to keep on a link's page; it
+    // resolves to the server's answer ({kept, refused}).
+    async function post(link, items) {
+        const response = await fetch(`${link}/requirements`, {
+            method: 'POST', credentials: 'same-origin',
+            body: new URLSearchParams({ items: JSON.stringify(items) }),
+        });
+        if (!response.ok) { throw new Error((await response.text()).trim() || `status ${response.status}`); }
+        return response.json();
+    }
+
+    // save keeps a set or level (kind 'set' or 'level', saved: SetStore's or
+    // LevelStore's entry) on a link's page, and marks it kept.
+    async function save(link, kind, saved) {
+        const data = kind === 'set' ? saved.set : saved.level;
+        const answer = await post(link, [{ id: saved.id, kind, data }]);
+        if (answer.kept !== 1) { throw new Error((answer.refused || []).join('; ') || 'not kept'); }
+        const store = kind === 'set' ? SetStore : LevelStore;
+        const list = store.load();
+        const entry = list.find((x) => x.id === saved.id);
+        if (entry) { entry.kept = link; store.save(list); }
+        saved.kept = link;
+    }
+
+    // drop takes a kept set or level off its page.
+    async function drop(kind, saved) {
+        if (!saved.kept) { return; }
+        await fetch(`${saved.kept}/requirements/${kind}/${encodeURIComponent(saved.id)}/remove`, { method: 'POST', credentials: 'same-origin' });
+    }
+
+    // addFrom fills a person's Requirements tab's "Add from this browser"
+    // form (form[data-keep-from-browser]) with what's saved in this browser
+    // and isn't kept on a page yet, and shows it if there's any.
+    function addFrom() {
+        const form = document.querySelector('form[data-keep-from-browser]');
+        if (!form) { return; }
+        const items = [
+            ...SetStore.load().filter((s) => !s.kept).map((s) => ({ id: s.id, kind: 'set', data: s.set })),
+            ...LevelStore.load().filter((l) => !l.kept).map((l) => ({ id: l.id, kind: 'level', data: l.level })),
+        ];
+        if (items.length === 0) { return; }
+        form.querySelector('input[name="items"]').value = JSON.stringify(items);
+        form.querySelector('[data-keep-count]').textContent = items.length === 1
+            ? 'One set of requirements or level is saved in this browser and not kept here.'
+            : `${items.length} sets of requirements and levels are saved in this browser and not kept here.`;
+        form.hidden = false;
+    }
+    document.addEventListener('DOMContentLoaded', addFrom);
+
+    return { links, sync, save, drop, addFrom };
+})();
