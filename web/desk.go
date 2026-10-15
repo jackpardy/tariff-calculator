@@ -138,10 +138,8 @@ func (n *notifier) deskEmail(c store.Competition, m store.DeskMessage, subs []st
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s\n\n%s", m.Full(), n.seeYourPage("To see it"))
-	b.WriteString("\nTo stop these emails:\n")
-	for _, s := range subs {
-		fmt.Fprintf(&b, "%s\n", n.offLink(s.Token))
-	}
+	// Any one off link stops every email to the address for the competition.
+	fmt.Fprintf(&b, "\nTo stop these emails:\n%s\n", n.offLink(subs[0].Token))
 	return subject, b.String(), map[string]string{
 		"List-Unsubscribe":      "<" + n.offLink(subs[0].Token) + ">",
 		"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",

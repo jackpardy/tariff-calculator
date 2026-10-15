@@ -1346,7 +1346,8 @@ members they coach. It's per competition, and deleted with it.
   Saturday 10:20, Panel 2 (was Saturday 09:40, Panel 1)"), saying to open
   their page from the link they saved, with a link to Competitions
   (`/competitions`, which lists the links saved in that browser), and a
-  link to stop the emails (also as one-click `List-Unsubscribe`). No email
+  link to stop the emails (also as one-click `List-Unsubscribe`), which
+  stops every email to that address for the competition. No email
   or push links to the person's page itself, and no notification keeps its
   path: it holds their secret link (ADR 0004; migration 33 cleared those
   kept before 2026-10-15).

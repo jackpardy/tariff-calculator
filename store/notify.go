@@ -192,9 +192,13 @@ func (s *Store) ConfirmSubscription(ctx context.Context, token string) error {
 	return affected(s.db.ExecContext(ctx, `UPDATE notify_subscriptions SET confirmed = TRUE WHERE token = $1`, token))
 }
 
-// Unsubscribe turns a subscription off by its link's token.
+// Unsubscribe turns emails off by an off link's token: every email
+// subscription to its address for its competition, as one email covers them
+// all (and its List-Unsubscribe header carries one link).
 func (s *Store) Unsubscribe(ctx context.Context, token string) error {
-	return affected(s.db.ExecContext(ctx, `DELETE FROM notify_subscriptions WHERE token = $1`, token))
+	return affected(s.db.ExecContext(ctx, `DELETE FROM notify_subscriptions WHERE token = $1 OR (channel = $2 AND EXISTS (
+		SELECT 1 FROM notify_subscriptions o WHERE o.token = $1 AND o.channel = $2
+		AND o.competition_id = notify_subscriptions.competition_id AND lower(o.address) = lower(notify_subscriptions.address)))`, token, ByEmail))
 }
 
 // RemoveSubscription turns one of a person's subscriptions off, from their page.

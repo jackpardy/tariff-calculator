@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -166,11 +167,13 @@ func TestNotifyingAClub(t *testing.T) {
 	if annNotify == "" {
 		t.Fatal("Ann's page links to hearing about changes")
 	}
+	var tokens []string
 	for _, page := range []string{notify, annNotify} {
 		mail.sent = nil
 		redirected(t, h, page, url.Values{"email": {"ucd@example.com"}, "adult": {"1"}, "topic": {"timetable"}})
 		confirm := strings.TrimPrefix(regexp.MustCompile(`https://tariff\.example(/notify/confirm/\S+)`).FindString(mail.sent[0].body), "https://tariff.example")
 		do(t, h, http.MethodPost, confirm, nil)
+		tokens = append(tokens, strings.TrimPrefix(confirm, "/notify/confirm/"))
 	}
 
 	// Publishing: one email, both members, both pages.
@@ -188,6 +191,11 @@ func TestNotifyingAClub(t *testing.T) {
 		strings.Contains(body, club) || strings.Contains(body, ann) {
 		t.Errorf("both members, and no page links: %s", body)
 	}
+	if n := strings.Count(body, "/notify/off/"); n != 1 {
+		t.Errorf("one off link, for both: %d", n)
+	}
+
+	off := strings.TrimPrefix(strings.Trim(mail.sent[0].headers["List-Unsubscribe"], "<>"), "https://tariff.example")
 
 	// Publishing again with nothing changed tells no one.
 	mail.sent = nil
@@ -196,6 +204,14 @@ func TestNotifyingAClub(t *testing.T) {
 	p.notify.tell(context.Background())
 	if len(mail.sent) != 0 {
 		t.Errorf("nothing changed: %+v", mail.sent)
+	}
+
+	// The one-click off link in the header stops both.
+	do(t, h, http.MethodPost, off, url.Values{"List-Unsubscribe": {"One-Click"}})
+	for _, token := range tokens {
+		if _, err := p.st.SubscriptionByToken(context.Background(), token); !errors.Is(err, store.ErrNotFound) {
+			t.Errorf("stopped, both: %v", err)
+		}
 	}
 }
 

@@ -59,7 +59,10 @@ expired competitions.
 2. **Emails are confirmed.** An email is sent a link to confirm it before
    anything else is sent to it, so a mistyped or someone else's address
    gets one email and no more. Every email has a link that turns its
-   notifications off at once, without the person's page. The form says what
+   notifications off at once, without the person's page. *Changed
+   2026-10-15:* as one email covers every subscription of its address for
+   the competition, an off link (and the one-click `List-Unsubscribe`
+   header, which carries one) stops them all. The form says what
    is kept and when it's deleted, with the tick box "I'm 18 or over, or this
    is a parent's email", required for email.
 

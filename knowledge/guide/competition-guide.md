@@ -530,7 +530,8 @@ for you: when or where you compete, what you officiate, or your card
 
 You get one message for each round of changes, a few minutes after the
 organiser publishes, saying what was and what is now. The comp sec hears about all the club's members, and
-a coach about the gymnasts they coach. Every email has a link to stop them.
+a coach about the gymnasts they coach. Every email has a link to stop them:
+it stops all the emails to that address about that competition.
 To see it all, open your page from the link you saved: messages don't
 carry your link, so they can't be used to open your page. Tapping one
 opens **Competitions**, which lists the links saved on that phone.
