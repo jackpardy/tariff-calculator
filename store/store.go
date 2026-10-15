@@ -663,6 +663,22 @@ var migrations = []string{
 		updated_at   TEXT NOT NULL
 	);
 	CREATE INDEX IF NOT EXISTS member_routines_member ON member_routines (member_id);`,
+
+	// 38: skill marks (ADR 0011 Decision 2): what a member is learning or can
+	// do, one mark an item, with who marked it (by_coach: the coach's id, ""
+	// for the gymnast) and when; the skill itself is kept to show it. And
+	// whether every member of the club sees everyone's skills (Decision 3).
+	`CREATE TABLE skill_marks (
+		member_id TEXT NOT NULL REFERENCES members (id) ON DELETE CASCADE,
+		item      TEXT NOT NULL,
+		skill     TEXT NOT NULL DEFAULT '',
+		state     TEXT NOT NULL,
+		by_coach  TEXT NOT NULL DEFAULT '',
+		by_name   TEXT NOT NULL,
+		at        TEXT NOT NULL,
+		PRIMARY KEY (member_id, item)
+	);
+	ALTER TABLE clubs ADD COLUMN skills_open INTEGER NOT NULL DEFAULT 0;`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

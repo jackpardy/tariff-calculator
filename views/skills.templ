@@ -1,0 +1,252 @@
+package views
+
+import "strconv"
+
+// Skill tracking (ADR 0011 Decisions 2 and 3): what a member is learning or
+// can do, marked by them or by a coach, on the member's Skills tab, a coach's
+// page for each gymnast, and the comp sec's view. Who marked a skill and its
+// state are said in words, with classes for the colours the app's colour
+// standard will give them.
+
+// MarkView is one skill a member is learning or can do.
+type MarkView struct {
+	Skill      string // the skill as JSON, posted to change the mark
+	Name, FIG  string
+	State      string // "learning" or "can"
+	ByGymnast  bool
+	By         string // who marked it, e.g. "you", "Ann (coach)", "Aoife"
+	At         string // when, e.g. "15 Oct"
+	ToConfirm  bool   // a coach looking at a mark only the gymnast made
+}
+
+// SkillChoice is a skill to mark: from a search, the member's routines or the
+// catalog, with its mark if it has one.
+type SkillChoice struct {
+	Skill     string // as JSON
+	Name, FIG string
+	Tariff    string
+	State     string // its mark's state, "" for none
+	ByGymnast bool
+}
+
+// SkillGroup is skills shown together, e.g. a catalog tab's, or "Singles".
+type SkillGroup struct {
+	Title  string
+	Skills []SkillChoice
+}
+
+// OtherMember is another member of the club, whose skills a member opens
+// when the club lets everyone see everyone's.
+type OtherMember struct {
+	Name string
+	Open string
+	Can  int
+}
+
+// SkillsPart is a member's skills on a page, and how to mark them.
+type SkillsPart struct {
+	Whose     string // "your", or the member's name
+	Can       []MarkView
+	Learning  []MarkView
+	Action    string // where a mark posts; "" when it's to look at
+	Coach     bool   // marking as a coach
+	ToConfirm int    // marks only the gymnast made, for a coach
+	Search    string // where searching goes
+	Query     string
+	Results   []SkillChoice
+	Routines  []SkillChoice // skills in their kept routines
+	Browse    []SkillGroup  // the catalog, by tab
+	Others    []OtherMember // the club's other members, when skills are open to all
+	Open      bool          // every member of the club sees everyone's skills
+}
+
+// markClass is a mark's row, by who marked it.
+func markClass(byGymnast bool) string {
+	if byGymnast {
+		return "skill-mark by-gymnast"
+	}
+	return "skill-mark by-coach"
+}
+
+// stateTag is a state's tag: Can do or Learning.
+templ stateTag(state string) {
+	if state == "can" {
+		<span class="tag mark-state-can">Can do</span>
+	} else if state == "learning" {
+		<span class="tag mark-state-learning">Learning</span>
+	}
+}
+
+// byTag says who marked a skill.
+templ byTag(byGymnast bool, by string) {
+	if byGymnast {
+		<span class="tag mark-tag-gymnast">{ by }</span>
+	} else {
+		<span class="tag mark-tag-coach">{ by }</span>
+	}
+}
+
+// markButtons change a skill's mark: Learning, Can do, or take it off.
+templ markButtons(action, skill, state string, coach, confirm bool) {
+	<form method="post" action={ templ.SafeURL(action) } class="buttons are-small mb-0 skill-mark-buttons">
+		<input type="hidden" name="skill" value={ skill }/>
+		if confirm {
+			<button class="button" type="submit" name="state" value={ state }>Confirm</button>
+		}
+		if state != "learning" {
+			<button class="button" type="submit" name="state" value="learning">Learning</button>
+		}
+		if state != "can" {
+			<button class="button" type="submit" name="state" value="can">Can do</button>
+		}
+		if state != "" {
+			<button class="button is-text" type="submit" name="state" value="">Take off</button>
+		}
+	</form>
+}
+
+// skillMarks is a member's skills: what they can do and what they're learning.
+templ skillMarks(p SkillsPart) {
+	if p.Coach && p.ToConfirm > 0 {
+		<p class="notification is-light py-2 px-3">{ strconv.Itoa(p.ToConfirm) } marked by the gymnast alone: <strong>Confirm</strong> the ones you've seen.</p>
+	}
+	for _, list := range []struct{ title string; marks []MarkView }{{"Can do", p.Can}, {"Learning", p.Learning}} {
+		<h3 class="title is-6 mt-4 mb-2">{ list.title } <span class="has-text-grey">({ strconv.Itoa(len(list.marks)) })</span></h3>
+		if len(list.marks) == 0 {
+			<p class="has-text-grey is-size-7">None yet.</p>
+		}
+		for _, m := range list.marks {
+			<div class={ markClass(m.ByGymnast) }>
+				<div>
+					<strong>{ m.Name }</strong>
+					<span class="has-text-grey is-size-7 ml-1">{ m.FIG }</span>
+				</div>
+				<div class="is-size-7 mt-1">
+					@stateTag(m.State)
+					@byTag(m.ByGymnast, m.By)
+					<span class="has-text-grey">{ m.At }</span>
+				</div>
+				if p.Action != "" {
+					@markButtons(p.Action, m.Skill, m.State, p.Coach, m.ToConfirm)
+				}
+			</div>
+		}
+	}
+}
+
+// skillChoices are skills to mark, each with its mark if it has one.
+templ skillChoices(action string, coach bool, list []SkillChoice) {
+	for _, c := range list {
+		<div class={ "skill-choice", templ.KV("by-gymnast", c.State != "" && c.ByGymnast), templ.KV("by-coach", c.State != "" && !c.ByGymnast) }>
+			<div>
+				<strong>{ c.Name }</strong>
+				<span class="has-text-grey is-size-7 ml-1">{ c.FIG }</span>
+				<span class="has-text-grey is-size-7 ml-1">{ c.Tariff }</span>
+				@stateTag(c.State)
+			</div>
+			@markButtons(action, c.Skill, c.State, coach, false)
+		</div>
+	}
+}
+
+// skillsAdd is how to find a skill to mark: a search, the skills in their
+// routines, and the catalog by tab.
+templ skillsAdd(p SkillsPart) {
+	<div class="box mt-5">
+		<h3 class="title is-6">Mark a skill</h3>
+		<form method="get" action={ templ.SafeURL(p.Search) } class="field has-addons mb-3">
+			<div class="control is-expanded">
+				<input class="input" type="search" name="q" value={ p.Query } placeholder="A name or FIG notation, e.g. barani, 41/" aria-label="Find a skill"/>
+			</div>
+			<div class="control"><button class="button" type="submit">Find</button></div>
+		</form>
+		if p.Query != "" {
+			if len(p.Results) == 0 {
+				<p class="has-text-grey is-size-7 mb-3">No skill found for that.</p>
+			}
+			@skillChoices(p.Action, p.Coach, p.Results)
+		}
+		if len(p.Routines) > 0 {
+			<details class="mt-3" open?={ p.Query == "" }>
+				<summary class="has-text-weight-semibold">In { p.Whose } routines</summary>
+				@skillChoices(p.Action, p.Coach, p.Routines)
+			</details>
+		}
+		for _, g := range p.Browse {
+			<details class="mt-3">
+				<summary class="has-text-weight-semibold">{ g.Title }</summary>
+				@skillChoices(p.Action, p.Coach, g.Skills)
+			</details>
+		}
+	</div>
+}
+
+// MemberSkills is a member's Skills tab.
+templ MemberSkills(p MemberPage) {
+	@memberFrame(p) {
+		<p class="mb-4 is-size-7 has-text-grey">
+			Mark the skills you're learning and the ones you can do. Your coaches see them and can mark them too; each mark says who made it.
+		</p>
+		@skillMarks(p.Skills)
+		if p.Skills.Action != "" {
+			@skillsAdd(p.Skills)
+		}
+		if len(p.Skills.Others) > 0 {
+			<div class="box mt-5">
+				<h3 class="title is-6">Your club</h3>
+				<p class="is-size-7 has-text-grey mb-2">Your club shares everyone's skills.</p>
+				for _, o := range p.Skills.Others {
+					<a class="is-block py-1" href={ templ.SafeURL(o.Open) }>{ o.Name } <span class="has-text-grey is-size-7">· can do { strconv.Itoa(o.Can) }</span></a>
+				}
+			</div>
+		}
+		<p class="help mt-4">We keep each skill you or a coach mark, who marked it and when, until it's taken off or you leave the club. Your coaches and comp sec see them{ openNote(p.Skills.Open) }.</p>
+	}
+}
+
+// openNote adds who else sees a member's skills.
+func openNote(open bool) string {
+	if open {
+		return ", and so does everyone in your club"
+	}
+	return ""
+}
+
+// SkillsViewPage is someone's skills to look at, or for a coach to mark: a
+// coach's page for a gymnast, the comp sec's, or another member's.
+type SkillsViewPage struct {
+	Title  string // the page's title
+	Back   string
+	BackTo string // e.g. "Gymnasts"
+	Name   string // whose skills
+	Skills SkillsPart
+}
+
+// CoachGymnastSkills is a coach's page for a gymnast's skills.
+templ CoachGymnastSkills(f CoachFrame, p SkillsViewPage) {
+	@competitionLayout(p.Name + " · " + f.Coach) {
+		@coachFrame(f)
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a></p>
+		<h2 class="title is-5">{ p.Name }</h2>
+		@skillMarks(p.Skills)
+		@skillsAdd(p.Skills)
+	}
+}
+
+// ClubMemberSkills is the comp sec's view of a member's skills.
+templ ClubMemberSkills(c ClubPage, p SkillsViewPage) {
+	@clubFrame(c) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a></p>
+		<h2 class="title is-5">{ p.Name }</h2>
+		@skillMarks(p.Skills)
+	}
+}
+
+// OtherMemberSkills is another member's skills, where the club shares them.
+templ OtherMemberSkills(m MemberPage, p SkillsViewPage) {
+	@memberFrame(m) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a></p>
+		<h2 class="title is-5">{ p.Name }</h2>
+		@skillMarks(p.Skills)
+	}
+}

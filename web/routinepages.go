@@ -206,6 +206,11 @@ func (p *competitionPages) coachGymnasts(w http.ResponseWriter, r *http.Request)
 		failed(w, r, err)
 		return
 	}
+	can, toConfirm, err := p.st.MarkCounts(ctx, coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	seesAll, err := p.st.CoachesSeeAll(ctx, coach.ClubID)
 	if err != nil {
 		failed(w, r, err)
@@ -214,12 +219,14 @@ func (p *competitionPages) coachGymnasts(w http.ResponseWriter, r *http.Request)
 	base := coachGymnastsPath(r.PathValue("token"))
 	page := views.CoachGymnastsPage{Frame: coachFrame(r, coach, club, coachGymnastsTab), SeesAll: seesAll}
 	for _, m := range members {
-		page.Gymnasts = append(page.Gymnasts, views.CoachGymnast{Name: m.Name, Routines: counts[m.ID], Open: base + "/" + m.ID,
-			List: views.ListRow{Name: m.Name, Values: map[string][]string{"routines": {hasValue(counts[m.ID] > 0)}, "mine": {hasValue(m.CoachID == coach.ID)}}}})
+		page.Gymnasts = append(page.Gymnasts, views.CoachGymnast{Name: m.Name, Routines: counts[m.ID], Can: can[m.ID], ToConfirm: toConfirm[m.ID], Open: base + "/" + m.ID,
+			List: views.ListRow{Name: m.Name, Values: map[string][]string{"routines": {hasValue(counts[m.ID] > 0)}, "mine": {hasValue(m.CoachID == coach.ID)},
+				"confirm": {hasValue(toConfirm[m.ID] > 0)}}}})
 	}
 	page.Tools = views.ListTools{ID: "gymnasts", Noun: "gymnasts", Total: len(members), Filters: []views.ListFilter{
 		hasFilter("routines", "Routines", "Routines or not", "Has routines", "No routines"),
 		hasFilter("mine", "Coach", "Any coach", "Chose you", "Didn't choose you"),
+		hasFilter("confirm", "Skills", "Any skills", "Marks to confirm", "None to confirm"),
 	}}
 	render(w, r, views.CoachGymnasts(page))
 }
@@ -241,7 +248,7 @@ func (p *competitionPages) coachGymnast(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	base := coachGymnastsPath(r.PathValue("token"))
-	page := views.CoachGymnastsPage{Frame: coachFrame(r, coach, club, coachGymnastsTab), Gymnast: m.Name, Back: base}
+	page := views.CoachGymnastsPage{Frame: coachFrame(r, coach, club, coachGymnastsTab), Gymnast: m.Name, Back: base, Skills: base + "/" + m.ID + "/skills"}
 	page.Routines = routinesPart(list, m.Name+" hasn't kept any routines on their page yet.", func(v *views.RoutineView) {
 		v.NoteAction = base + "/" + m.ID + "/routines/" + v.ID + "/note"
 	})

@@ -1,6 +1,6 @@
 # ADR 0011 — Club routines and skill tracking
 
-- **Status:** Accepted; Decisions 1 (routines) and 7 (retention) built 2026-10-15, the rest planned
+- **Status:** Accepted; Decisions 1 (routines), 2 and 3 for skills (marks and who sees them) and 7 (retention) built 2026-10-15, the rest planned
 - **Date:** 2026-10-15
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 2 (a club lasts beyond a season), Decision 5
@@ -64,10 +64,12 @@ Club levels should reuse it rather than add a second way to describe skills.
    per member and item: marking again replaces it, and clearing it deletes
    it. The gymnast and the coaches who see them can mark. A coach can
    filter for marks made by the gymnast alone, to confirm. An item is:
-   - **a skill**, keyed by its canonical form (rotation, twist per phase,
-     shape where it's relevant, take-off, direction and seat landing, as
-     `TrampolineSkill.Equal` compares), so a skill marked once counts
-     everywhere it appears;
+   - **a skill**, found by the skill: a member's mark on a skill is the one
+     whose skill `TrampolineSkill.Equal` calls the same, the one rule the app
+     has for that (repeats, carry-over and requirements use it too), so a
+     skill marked once counts everywhere it appears. Matching is pairwise,
+     as `Equal` is; a canonical form of a skill, to look marks up by, would
+     have to come from `Equal` itself rather than repeat its rules;
    - **a club skill** that isn't a Code of Points skill (Decision 4), keyed
      by its id;
    - **a link or a set routine** from a club level (Decision 5), keyed by a
@@ -134,6 +136,10 @@ Club levels should reuse it rather than add a second way to describe skills.
   gymnast meant to do it, not that they can; it's evidence for the coach.
 - **Keying skill marks by FIG notation.** It doesn't say direction or
   take-off: a front and a back tuck are both `(4 - o)`.
+- **A key of its own for each skill**, written out from `Equal`'s rules, to
+  look marks up by. It would be a second copy of the rule for "the same
+  skill", which could drift from `Equal`; marks are matched with `Equal`
+  itself (2026-10-15).
 - **Keeping clubs that track skills longer than others.** Two rules where
   one does; 13 months suits every club over a summer.
 - **Keeping every mark's history.** One mark per item, with who and when,

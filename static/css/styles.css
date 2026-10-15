@@ -911,3 +911,10 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
   table.comp-stack > tbody > tr > td.has-text-right { text-align: left !important; }
   .table-container:has(> table.comp-stack) { overflow: visible; }
 }
+
+/* Skill tracking (ADR 0011): a row per skill. Who marked it (.by-gymnast,
+   .by-coach, .mark-tag-gymnast, .mark-tag-coach) and its state are in words
+   for now; their colours wait on the app's colour standard. */
+.skill-mark, .skill-choice { border-left: 4px solid #e5e5e5; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; background: #fafafa; border-radius: 4px; }
+.skill-mark-buttons { margin-top: 0.4rem; }
+.skill-mark-buttons .button { min-height: 2.5rem; }

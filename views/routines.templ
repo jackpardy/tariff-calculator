@@ -157,10 +157,12 @@ templ coachFrame(f CoachFrame) {
 
 // CoachGymnast is a gymnast a coach sees, in their Gymnasts list.
 type CoachGymnast struct {
-	Name     string
-	Routines int
-	Open     string
-	List     ListRow
+	Name      string
+	Routines  int
+	Can       int // skills marked Can do
+	ToConfirm int // marks only the gymnast made
+	Open      string
+	List      ListRow
 }
 
 // CoachGymnastsPage is a coach's Gymnasts: everyone they see, or one of them
@@ -171,6 +173,7 @@ type CoachGymnastsPage struct {
 	Gymnasts []CoachGymnast
 	Tools    ListTools
 	Gymnast  string // the one shown, with Routines
+	Skills   string // their skills
 	Back     string
 	Routines RoutinesPart
 }
@@ -196,7 +199,12 @@ templ CoachGymnasts(p CoachGymnastsPage) {
 						for _, g := range p.Gymnasts {
 							<tr { g.List.Attrs()... }>
 								<td><a href={ templ.SafeURL(g.Open) }>{ g.Name }</a></td>
-								<td class="has-text-grey is-size-7">{ routineCount(g.Routines) }</td>
+								<td class="has-text-grey is-size-7">
+									{ routineCount(g.Routines) } · can do { strconv.Itoa(g.Can) }
+									if g.ToConfirm > 0 {
+										<span class="tag ml-1">{ strconv.Itoa(g.ToConfirm) } to confirm</span>
+									}
+								</td>
 							</tr>
 						}
 					</tbody>
@@ -212,6 +220,7 @@ templ CoachGymnastPage(p CoachGymnastsPage) {
 		@coachFrame(p.Frame)
 		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Gymnasts</a></p>
 		<h2 class="title is-5">{ p.Gymnast }</h2>
+		<p class="mb-3"><a class="button is-small" href={ templ.SafeURL(p.Skills) }>Skills: what they're learning and can do →</a></p>
 		@routinesList(p.Routines)
 	}
 }

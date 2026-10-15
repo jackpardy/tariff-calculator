@@ -142,7 +142,10 @@ build on:
       their pages or changing something counts as use, not only the admin
       and join links as now. The comp sec's Settings says when the club
       would be deleted. Comes first, so no progress is lost over a summer.
-   2. **Marking skills.** Any skill the catalog can describe, found with
+   2. **Marking skills** (built 2026-10-15, with 3: [skills](features/competition-entries.md#skills-adr-0011)).
+      Who marked a skill and its state are in words for now; their colours
+      follow the app's colour standard once it's set (separate work).
+      Any skill the catalog can describe, found with
       the routine builder's picker and search, can be marked **Learning** or
       **Can do**, by the gymnast or by a coach (decided 2026-10-15). Each
       mark says who made it and when ("Can do · marked by Declan (coach),

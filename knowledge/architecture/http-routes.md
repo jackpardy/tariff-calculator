@@ -173,6 +173,12 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET /clubs/coach/{token}/gymnasts/{member}` | optional `notice` | One of them, with their kept routines, each checked, and a note on each; 404 for a member the coach doesn't see |
 | `POST /clubs/coach/{token}/gymnasts/{member}/routines/{routine}/note` | `note` (`""` clears it) | The coach's note on a routine, which the member sees with the coach's name |
 | `GET /clubs/admin/{token}/members/{member}/routines` | — | The comp sec's view of a member's kept routines, from Members |
+| `GET /clubs/member/{token}/skills` | optional `q` (a skill search), `notice` | A member's Skills tab (ADR 0011): what they can do and are learning, who marked each, and skills to mark: the search's, their routines', the catalog's |
+| `POST /clubs/member/{token}/skills`, `POST /clubs/coach/{token}/gymnasts/{member}/skills` | `skill` (a skill as JSON), `state` (`learning`, `can`, or `""` to take it off); `q` in the query is kept | The member, or a coach who sees them, marks a skill; back to the skills page with a notice. 400 for a skill that can't be read |
+| `GET /clubs/member/{token}/skills/{member}` | — | Another member's skills, to look at, where the club shares skills; otherwise 404 |
+| `GET /clubs/coach/{token}/gymnasts/{member}/skills` | optional `q`, `notice` | A coach's page for a gymnast's skills, to mark and confirm |
+| `GET /clubs/admin/{token}/members/{member}/skills` | — | The comp sec's view of a member's skills |
+| `POST /clubs/admin/{token}/skills-open` | `on` (`1`/`""`) | Whether every member sees everyone's skills. Back to Settings |
 | `POST /competitions/admin/{token}/events` | `synchroLevel`, `synchroPairs` (synchro levels to run as one event, one event a line, joined by `+`), `tumbling`, `dmt` (one level a line) | Changes the synchro, tumbling and DMT events (also on `POST /competitions`); entries then take `discipline` and, for synchro, `partnerName` and `partnerClub` |
 | `POST /competitions/admin/{token}/levels/move` | `move` (`<discipline>:<place>:<-1 or 1>`) | Moves a level one place easier or harder in its discipline's order (easiest first), which judging "up to" a level and "only levels below their own" go by |
 | `GET`, `POST /competitions/partner/{token}` | `link` (the partner's own member page or entry link, or blank) | A synchro partner confirming the pair |

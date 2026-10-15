@@ -38,6 +38,7 @@ func clubMenu(token, current string) []views.MenuSection {
 const (
 	memberCompetitions = "competitions"
 	memberRoutinesTab  = "routines"
+	memberSkillsTab    = "skills"
 	memberDetails      = "details"
 )
 
@@ -50,12 +51,12 @@ func memberCompetitionPath(token, competitionID string) string {
 }
 
 // memberMenu is the menu of a member's pages, with the tab shown current. A
-// competition's page is in Competitions. Skills will be another tab here
-// (ADR 0011).
+// competition's page is in Competitions.
 func memberMenu(token, current string) []views.MenuSection {
 	return []views.MenuSection{
 		{Label: "Competitions", Href: memberPath(token), Current: current == memberCompetitions},
 		{Label: "Routines", Href: memberRoutinesPath(token), Current: current == memberRoutinesTab},
+		{Label: "Skills", Href: memberSkillsPath(token), Current: current == memberSkillsTab},
 		{Label: "Your details", Href: memberDetailsPath(token), Current: current == memberDetails},
 	}
 }

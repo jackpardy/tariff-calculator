@@ -19,6 +19,7 @@ type Club struct {
 	Name          string
 	JoinLink      string
 	CoachesSeeAll bool // every coach sees every member, not just their own and those without a coach
+	SkillsOpen    bool // every member sees everyone's skills (ADR 0011 Decision 3)
 	CreatedAt     time.Time
 	LastUsed      time.Time
 }
@@ -41,8 +42,8 @@ func (s *Store) CreateClub(ctx context.Context, name string) (Club, string, erro
 func (s *Store) clubBy(ctx context.Context, where string, args ...any) (Club, error) {
 	var c Club
 	var created, used string
-	err := s.db.QueryRowContext(ctx, `SELECT id, name, join_token, coaches_see_all, created_at, last_used FROM clubs WHERE `+where, args...).
-		Scan(&c.ID, &c.Name, &c.JoinLink, &c.CoachesSeeAll, &created, &used)
+	err := s.db.QueryRowContext(ctx, `SELECT id, name, join_token, coaches_see_all, skills_open, created_at, last_used FROM clubs WHERE `+where, args...).
+		Scan(&c.ID, &c.Name, &c.JoinLink, &c.CoachesSeeAll, &c.SkillsOpen, &created, &used)
 	if err != nil {
 		return Club{}, notFound(err)
 	}
