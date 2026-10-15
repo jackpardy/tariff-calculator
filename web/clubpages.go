@@ -338,12 +338,10 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			cc.Timeline = base + "/competitions/" + c.ID + "/timeline"
 			cc.Calendar = base + "/competitions/" + c.ID + "/calendar.ics"
 		}
-		sentID := map[string]string{}    // member → the competition's copy of their entry
 		waitingPlace := map[string]int{} // member and discipline → place on a waiting list
 		copyOf := map[string]string{}    // member and discipline → the competition's copy
 		for _, e := range sent {
 			if e.ClubID == club.ID {
-				sentID[e.MemberID] = e.ID
 				waitingPlace[e.MemberID+"/"+e.Entry.Discipline] = e.Waiting
 				copyOf[e.MemberID+"/"+e.Entry.Discipline] = e.ID
 			}
@@ -397,7 +395,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 					row.LateAsk = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "/late?discipline=" + url.QueryEscape(e.Discipline)
 				}
 			}
-			if at := placement(c, sentID[e.MemberID]); at != nil {
+			if at := placement(c, copyOf[e.MemberID+"/"+e.Discipline]); at != nil {
 				row.Flight = fmt.Sprintf("%s · %s · warm-up %s", at.Flight, at.Panel, at.Time)
 			}
 			cc.Rows = append(cc.Rows, row)
