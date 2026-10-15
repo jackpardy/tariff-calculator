@@ -140,7 +140,7 @@ column's heading; leave it off a cell that's only actions.
 What state something is in, and who did it, are shown with two chips from
 `views/status.templ`, and with no other colour, so a colour means the same
 thing on every page (the plan is in the
-[cleanup audit](../audits/2026-10-cleanup.md#colour-and-status-added-16-october-2026)).
+[cleanup audit](../audits/2026-10-cleanup.md#colour-and-status-added-15-october-2026)).
 
 - **`@views.StateChip(state, label)`**: a filled chip with a mark and a short
   label. Pick the state by what it means for the reader, not by the word:

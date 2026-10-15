@@ -31,8 +31,8 @@ approved by the maintainer first.
 | `requirements/check_test.go` | Which checks apply to a routine, resolving references, and checking a level's two exercises together (carry-over and repeats) |
 | `competitions/competitions_test.go` | Validating competitions and entries, and checking an entry as the builder does (set routines as prescribed, AG3 carry-over, a coach's own level) |
 | `store/store_test.go` | Migrations, every kind of link (hashed, replaced, wrong), individual and club entries, sending and re-sending, deadlines, limits and deletion (competitions 120 days after, clubs 13 months unused), each on a fresh SQLite file |
-| `store/migrations_test.go` | Refusing a database migrated further than the app knows, a table rebuild run with foreign keys off (and refused if a reference breaks), and migration 33 clearing notifications' page paths, and 35 giving individuals' notifications to the individual |
-| `store/personkey_test.go`, `web/samepeople_test.go` | Person keys: each kind made and read back, an entry's coach keyed by record, every column holding keys covered by `renameKey` (a schema check), migration 34 moving saved coach keys, and one person across roles in the timetable: a member who coaches or enters on their own warned against themselves and kept apart by the planner |
+| `store/migrations_test.go` | Refusing a database migrated further than the app knows, a table rebuild run with foreign keys off (and refused if a reference breaks), and migration 33 clearing notifications' page paths, and 36 giving individuals' notifications to the individual |
+| `store/personkey_test.go`, `web/samepeople_test.go` | Person keys: each kind made and read back, an entry's coach keyed by record, every column holding keys covered by `renameKey` (a schema check), migration 35 moving saved coach keys, and one person across roles in the timetable: a member who coaches or enters on their own warned against themselves and kept apart by the planner |
 | `competitions/problems_test.go` | An entry's problems in one order (pair levels, card, sign-off), as the organiser's, club's and coach's pages count them |
 | `store/certificates_test.go` | Certificates' limits: 3 MB each, 60 MB a club and a competition's individuals, none on a nearly full disk |
 | `catalog/*_test.go` | Picker categories, shape options, search by name, alias and notation |
@@ -60,6 +60,27 @@ for short rest (early in the first flight, late in the next), and edits (moves, 
 | `web/endtoend_test.go` | The dry run's path in one test, stage by stage on a fixed clock: two clubs and an individual enter, coaches sign off, clubs send; plan and publish; the day (a late start, Next gymnast, a scratch, the finish); a desk message, a late change accepted and a payment. Each stage reads the venue screen, a member's My competition and the organiser's On the day |
 | `web/daypages_test.go`, `web/screen_test.go`, `web/upnow_test.go`, `web/daygaps_test.go`, `web/latepages_test.go` | The day on a fixed clock in 2030: before the day, morning, mid-flight and evening; planned Now, on time, running late and early; `?area=`; late notes; taps (tumbling passes, everyone scratched); payments, desk refusals, notifying a judge's club, changes told at once on the day; late changes after planning and what the organiser is told |
 | `web/setform_test.go`, `web/levelform_test.go` | Reading the requirements and level editors' forms back into JSON; the requirements page listing levels |
+
+# Testing a migration
+
+A migration test must keep passing when later migrations are added. Two
+shapes do:
+
+- **Run the one migration directly.** Set up the data it changes, then run
+  just that migration's SQL (`migrations[n-1]`) and its Go step
+  (`migrationSteps[n]`), if any, on the open store, and check the result.
+  Nothing else runs.
+- **Start from an older schema and open the store.** Set
+  `migrations = all[:n-1]` (restoring `all` with `t.Cleanup`), open a store
+  in a fresh directory, add rows in their old shape, then set
+  `migrations = all` and open it again. Every migration from `n` on runs
+  once, as it would on the server, so a later one just runs too.
+
+Never wind a database back by deleting rows from its `migrations` table and
+reopening it. That re-runs every migration from there on, not only the one
+under test, and the first later migration that can't run twice (a
+`CREATE TABLE`, an `ALTER TABLE … ADD COLUMN`) breaks the test. Never edit a
+migration once it has shipped.
 
 # The test kit
 
