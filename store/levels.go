@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -180,12 +181,54 @@ type SharedTrack struct {
 	Note string `json:"note,omitempty"`
 }
 
+// SharedItem is how a shared level's rule names one of the club skills it
+// brings: by its place in the shared list (the item of a track rule).
+func SharedItem(i int) string { return "shared:" + strconv.Itoa(i) }
+
+// placeSharedItems points a shared level's track rules (set: its
+// requirements' JSON) at the club skills here (resolved: by their place in
+// the shared list), dropping any with none, and says which places a rule used.
+func placeSharedItems(set string, resolved []string) (string, map[int]bool, error) {
+	var doc map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(set), &doc); err != nil {
+		return "", nil, err
+	}
+	var rules []map[string]any
+	if raw, ok := doc["rules"]; ok {
+		if err := json.Unmarshal(raw, &rules); err != nil {
+			return "", nil, err
+		}
+	}
+	used := map[int]bool{}
+	kept := rules[:0]
+	for _, rule := range rules {
+		item, _ := rule["item"].(string)
+		if rule["type"] == "track" {
+			j, err := strconv.Atoi(strings.TrimPrefix(item, "shared:"))
+			if !strings.HasPrefix(item, "shared:") || err != nil || j < 0 || j >= len(resolved) || resolved[j] == "" {
+				continue
+			}
+			rule["item"], used[j] = resolved[j], true
+		}
+		kept = append(kept, rule)
+	}
+	raw, err := json.Marshal(kept)
+	if err != nil {
+		return "", nil, err
+	}
+	doc["rules"] = raw
+	out, err := json.Marshal(doc)
+	return string(out), used, err
+}
+
 // ImportClubLevel is a coach adding a level shared by another club (ADR 0011
 // Decision 6): its requirements (set, as JSON, already checked) as a new
 // level, last, tracking the club skills it came with. Each is the club's own
 // skill to track of that name if it has one, or a new one; a name the club
-// uses for a catalog skill isn't tracked. It gives the level's id, and how
-// many club skills it added.
+// uses for a catalog skill isn't tracked. The level's rules of club skills
+// (pointing at the shared list, SharedItem) point at those here; any it only
+// lists after its rules stay a list. It gives the level's id, and how many
+// club skills it added.
 func (s *Store) ImportClubLevel(ctx context.Context, c Coach, name, set string, track []SharedTrack) (id string, added int, err error) {
 	name = clip(strings.TrimSpace(name), 80)
 	if name == "" {
@@ -204,8 +247,8 @@ func (s *Store) ImportClubLevel(ctx context.Context, c Coach, name, set string, 
 		if err != nil {
 			return err
 		}
-		items := []string{}
-		for _, t := range track {
+		resolved := make([]string, len(track)) // each shared skill's id here, "" for none
+		for j, t := range track {
 			t.Name = clip(strings.TrimSpace(t.Name), skills.MaxCustomNameLength)
 			if t.Name == "" {
 				continue
@@ -213,9 +256,7 @@ func (s *Store) ImportClubLevel(ctx context.Context, c Coach, name, set string, 
 			i := slices.IndexFunc(own, func(k ClubSkill) bool { return strings.EqualFold(k.Name, t.Name) })
 			switch {
 			case i >= 0 && own[i].Skill == "":
-				if !slices.Contains(items, own[i].ID) {
-					items = append(items, own[i].ID)
-				}
+				resolved[j] = own[i].ID
 				continue
 			case i >= 0, len(own) >= MaxClubSkills:
 				continue // a name for a catalog skill, or no room
@@ -226,8 +267,22 @@ func (s *Store) ImportClubLevel(ctx context.Context, c Coach, name, set string, 
 				return err
 			}
 			own = append(own, k)
-			items = append(items, k.ID)
+			resolved[j] = k.ID
 			added++
+		}
+		// The level's own skills among its rules point at the shared list
+		// (SharedItem); they point at this club's from now on. Those the
+		// level only listed after its rules (shared before) stay a list.
+		placed, used, err := placeSharedItems(set, resolved)
+		if err != nil {
+			return err
+		}
+		set = placed
+		items := []string{}
+		for j, id := range resolved {
+			if id != "" && !used[j] && !slices.Contains(items, id) {
+				items = append(items, id)
+			}
 		}
 		data, err := json.Marshal(items)
 		if err != nil {

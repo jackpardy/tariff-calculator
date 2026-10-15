@@ -762,9 +762,11 @@ linked one after another (*back drop, then back to feet*), a number of them,
 or a set routine. Then tap **Save to club levels** beside it (it's there once
 you've opened your coach page on that phone, or your member page if you're a
 member who coaches too). Rules about a whole routine,
-like its difficulty, are left out. On **Levels**, tick any of your club's own
-skills the level tracks too, put the levels in order, or **Open in the
-Requirements page** to change one and save it again.
+like its difficulty, are left out. In a level, **One of your club's own
+skills** adds something you track that isn't a trampoline skill (a drill, a
+handstand), in the order you want it among the rest. On **Levels**, put the
+levels in order, or **Open in the Requirements page** to change one and save
+it again.
 
 To give a level to another club, open **Share with another club** under it
 and send the link to one of their coaches. They open it, choose their coach
