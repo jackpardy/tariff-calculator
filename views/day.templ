@@ -3,6 +3,8 @@ package views
 import (
 	"crypto/rand"
 	"strconv"
+
+	"tariffCalculator/static"
 )
 
 // DayPage is the "On the day" page: for one day of the published timetable,
@@ -213,6 +215,9 @@ templ Day(p DayPage) {
 				</div>
 			}
 		</div>
+		// Keeps taps made without signal and sends them later; loaded by the
+		// time competitions.js runs dayPage, once the page has loaded.
+		<script defer src={ static.URL("js/taps.js") }></script>
 	}
 }
 

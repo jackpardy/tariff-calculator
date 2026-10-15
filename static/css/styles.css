@@ -748,7 +748,12 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
    Here and Scratched so it isn't tapped by mistake. */
 .comp-day-tabs a, .comp-day-links .button, #day-areas .button, #day-warnings .button, .comp-tap-link { min-height: 2.5rem; }
 .comp-tap-link { display: inline-flex; align-items: center; }
-#day-areas .comp-checkin > summary { display: flex; align-items: center; min-height: 2.5rem; }
+#day-areas .comp-checkin > summary, #day-areas .comp-correct > summary { display: flex; align-items: center; min-height: 2.5rem; }
+/* Correct the times: Started, Finished and Save in a row, wrapping on a phone. */
+.comp-correct-times { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem 0.75rem; }
+.comp-correct-times .input { min-height: 2.5rem; width: 8rem; }
+/* A tap kept on the phone until the signal is back (static/js/taps.js). */
+.comp-tap-note { flex-basis: 100%; margin-top: 0; }
 .comp-notify > summary { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 0.75rem; margin: 0.5rem 0 0.25rem; border: 1px solid #dbdbdb; border-radius: 4px; }
 .comp-notify .input { min-height: 2.5rem; }
 .comp-notify .checkbox { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2.5rem; }

@@ -2,11 +2,16 @@ package web
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"os/exec"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/chromedp/cdproto/network"
+	"github.com/chromedp/chromedp"
 )
 
 // sentAtOnce, as how long a tap waited, is one sent as it was made, without
@@ -269,5 +274,88 @@ func TestCorrectFlightTimes(t *testing.T) {
 	}
 	if rec := do(t, h, http.MethodPost, admin+"/day/times", url.Values{"flight": {"9|Nowhere|X||1"}, "started": {"09:00"}}); rec.Code != http.StatusBadRequest {
 		t.Errorf("not a flight: %d", rec.Code)
+	}
+}
+
+// The queue of taps on the phone keeps them in order, stops without a
+// signal, drops one the server answers or keeps failing on, and goes
+// through who's up as the server does, run in node against a fake phone
+// (testdata/tapstest.mjs). It skips without node.
+func TestTapQueue(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("no node to run the tap queue in")
+	}
+	out, err := exec.Command(node, "testdata/tapstest.mjs", "../static/js/taps.js").CombinedOutput()
+	if err != nil {
+		t.Errorf("%v\n%s", err, out)
+	}
+}
+
+// In a real browser, taps made without signal are kept on the phone, shown
+// as waiting with Finished and who's up ready to tap, and sent when the
+// signal is back, at the times they were tapped.
+func TestTapsWithoutSignalInABrowser(t *testing.T) {
+	ctx := browser(t)
+	h, clock := competitionServerAt(t, dayBefore)
+	admin := created(t, h, newCompetition())
+	publishedWith(t, h, admin, "Ann", "Bea", "Cal")
+	clock.set(onTheDay(10, 0))
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+	day := admin + "/day?day=0"
+
+	var waiting, next, onNow string
+	var finished bool
+	step(t, ctx, "opening the day page and losing the signal",
+		chromedp.Navigate(srv.URL+day),
+		chromedp.WaitVisible(`#day-areas`, chromedp.ByQuery),
+		// The phone's clock, stood still so the test says how long the taps wait.
+		chromedp.Evaluate(`window.phoneNow = Date.now(); Date.now = () => window.phoneNow; true`, nil),
+		network.Enable(),
+		network.EmulateNetworkConditions(true, 0, -1, -1),
+	)
+	step(t, ctx, "tapping Started and Next gymnast without signal",
+		chromedp.Click(`form[data-tap^="flight:"] button[value="start"]`, chromedp.ByQuery),
+		chromedp.WaitVisible(`#day-taps`, chromedp.ByQuery),
+		chromedp.WaitVisible(`.comp-up button[value="next"]`, chromedp.ByQuery),
+		chromedp.Evaluate(`!!document.querySelector('form[data-tap^="flight:"] button[value="finish"]:not([hidden])')`, &finished),
+		chromedp.Text(`.comp-up p`, &next, chromedp.ByQuery),
+		chromedp.Click(`.comp-up button[value="next"]`, chromedp.ByQuery),
+		chromedp.WaitVisible(`.comp-up + [data-tap-note], .comp-up [data-tap-note]`, chromedp.ByQuery),
+		chromedp.Text(`.comp-up`, &onNow, chromedp.ByQuery),
+		chromedp.Text(`#day-taps`, &waiting, chromedp.ByQuery),
+	)
+	if !finished {
+		t.Error("Finished is offered once Started is waiting")
+	}
+	if !strings.HasPrefix(next, "First up") || !strings.Contains(onNow, "On now") || !strings.Contains(onNow, "Cal") {
+		t.Errorf("who's up goes on without signal: %q, then %q", next, onNow)
+	}
+	if !strings.Contains(waiting, "Waiting to send: 2 taps") {
+		t.Errorf("the count of taps waiting: %q", waiting)
+	}
+	if f := panelOne(t, h, day).Flights[0]; f.Started != "" {
+		t.Errorf("nothing reached the server yet: %+v", f)
+	}
+
+	// Ten minutes later by the phone's clock, the signal comes back.
+	step(t, ctx, "the signal coming back, and the taps sent",
+		chromedp.Evaluate(`window.phoneNow += 10 * 60 * 1000; true`, nil),
+		network.EmulateNetworkConditions(false, 0, -1, -1),
+		chromedp.WaitNotVisible(`#day-taps`, chromedp.ByQuery),
+		chromedp.WaitNotPresent(`[data-tap-note]`, chromedp.ByQuery),
+	)
+	f := panelOne(t, h, day).Flights[0]
+	if f.Started != "09:50" || f.Up != "Cal" || f.UpLabel != "On now" {
+		t.Errorf("the taps landed at the time they were tapped, 09:50: %+v", f)
+	}
+	if !historyHas(t, h, admin, "Organiser", "Marked a flight started: BUCS L3 (Panel 1) (tapped at 09:50)") {
+		t.Error("the history says when it was tapped")
+	}
+	var started string
+	step(t, ctx, "reading the page", chromedp.Text(`.comp-flight p:nth-of-type(3)`, &started, chromedp.ByQuery))
+	if !strings.Contains(started, "09:50") {
+		t.Errorf("the page shows the server's times: %q", started)
 	}
 }
