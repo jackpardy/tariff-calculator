@@ -631,6 +631,10 @@ var migrations = []string{
 	// as typed (coachKeysByRecord): the keys saved under the old form move
 	// to the new. Nothing in the schema changes.
 	`SELECT 1;`,
+
+	// 35: an individual's notifications belong to the individual, not the
+	// entry they signed up on (individualSubscriptions).
+	individualSubscriptions,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

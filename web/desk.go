@@ -34,8 +34,6 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 		log.Printf("Desk: %s: %v", c.ID, err)
 		return 0, 0
 	}
-	keys := personKeys(entries)
-
 	// Who it reaches: its people, every member of its clubs, and the comp sec
 	// and coaches of its clubs and staff clubs.
 	members := map[string][]store.Member{}
@@ -71,7 +69,7 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 		case store.NotifyMember:
 			return reached[store.MemberKey(sub.OwnerID)]
 		case store.NotifyIndividual:
-			return len(keys[sub.OwnerID]) > 0 && reached[keys[sub.OwnerID][0]]
+			return slices.ContainsFunc(n.individualKeys(ctx, sub), func(k string) bool { return reached[k] })
 		case store.NotifyClub:
 			return slices.Contains(m.Clubs, sub.OwnerID) || slices.Contains(m.Staff, sub.OwnerID) || slices.ContainsFunc(n.members(ctx, sub.OwnerID, members), func(mem store.Member) bool { return reached[store.MemberKey(mem.ID)] })
 		case store.NotifyCoach:

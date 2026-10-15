@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 // A database migrated further than the app knows isn't opened, so an older
@@ -113,6 +114,32 @@ func TestRebuildingNeedsForeignKeysOff(t *testing.T) {
 	must(t, s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM children`).Scan(&n))
 	if n != 0 {
 		t.Errorf("with foreign keys on, dropping the table deletes what refers to it: %d", n)
+	}
+}
+
+// Migration 35 makes an individual's subscriptions the individual's, from the
+// entry they were made on; one whose entry has gone stays as it was.
+func TestIndividualSubscriptionsMigrate(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Open(ctx, dir)
+	must(t, err)
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	s.now = func() time.Time { return now }
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	e, _, err := enter(s, c.ID, entry("Ann"))
+	must(t, err)
+	for _, owner := range []string{e.ID, "gone"} {
+		_, _, err := s.Subscribe(ctx, Subscription{CompetitionID: c.ID, Kind: NotifyIndividual, OwnerID: owner, Channel: ByPush, Address: "https://push.example/" + owner, Keys: "{}", Topics: Topics})
+		must(t, err)
+	}
+	_, err = s.db.ExecContext(ctx, `DELETE FROM migrations WHERE version >= 35`)
+	must(t, err)
+	s = reopen(t, s, dir)
+	if mine, _ := s.Subscriptions(ctx, c.ID, NotifyIndividual, e.IndividualID); len(mine) != 1 {
+		t.Errorf("the individual's: %+v", mine)
+	}
+	if gone, _ := s.Subscriptions(ctx, c.ID, NotifyIndividual, "gone"); len(gone) != 1 {
+		t.Errorf("one whose entry has gone stays: %+v", gone)
 	}
 }
 

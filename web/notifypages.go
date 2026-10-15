@@ -70,7 +70,7 @@ func (p *competitionPages) target(w http.ResponseWriter, r *http.Request) (notif
 		return notifyTarget{c, store.NotifyMember, m.ID, dayPath(memberPath(token), c.ID), "you", true}, ok
 	case strings.HasPrefix(r.URL.Path, "/competitions/entry/"):
 		e, c, ok := p.own(w, r)
-		return notifyTarget{c, store.NotifyIndividual, e.ID, "/competitions/entry/" + token, "you", true}, ok
+		return notifyTarget{c, store.NotifyIndividual, e.IndividualID, "/competitions/entry/" + token, "you", true}, ok
 	case strings.HasPrefix(r.URL.Path, "/clubs/admin/"):
 		club, ok := p.clubAdmin(w, r)
 		if !ok {

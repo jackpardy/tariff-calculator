@@ -126,6 +126,37 @@ func TestNotifications(t *testing.T) {
 	}
 }
 
+// An individual's notifications are theirs, not the entry's they signed up
+// on (ADR 0010): withdrawing that entry still leaves them hearing about the
+// other.
+func TestIndividualNotificationsOutliveAnEntry(t *testing.T) {
+	h, p, mail := notifyServer(t)
+	form := newCompetition()
+	form.Set("tumbling", "Novice")
+	admin := created(t, h, form)
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
+	own := withoutQuery(redirected(t, h, enter, bucsEntry("Ann Ryan")))
+	redirected(t, h, enter, url.Values{"gymnast": {"Ann Ryan"}, "discipline": {"tumbling"}, "level": {"Novice"}, "as": {"http://example.com" + own}})
+	redirected(t, h, own+"/notify", url.Values{"email": {"ann@example.com"}, "adult": {"1"}, "topic": {"cards"}})
+	confirm := strings.TrimPrefix(regexp.MustCompile(`https://tariff\.example(/notify/confirm/\S+)`).FindString(mail.sent[0].body), "https://tariff.example")
+	do(t, h, http.MethodPost, confirm, nil)
+
+	if rec := do(t, h, http.MethodPost, own+"/withdraw", url.Values{"confirm": {"1"}}); rec.Code != http.StatusOK {
+		t.Fatalf("withdrawn: %d", rec.Code)
+	}
+	entries := regexp.MustCompile(`href="(`+regexp.QuoteMeta(admin)+`/entries/[^"]+)"`).FindAllStringSubmatch(do(t, h, http.MethodGet, admin, nil).Body.String(), -1)
+	if len(entries) != 1 {
+		t.Fatalf("one entry left: %v", entries)
+	}
+	mail.sent = nil
+	redirected(t, h, entries[0][1]+"/check", url.Values{"checked": {"1"}, "note": {"Element 3 repeats"}})
+	redirected(t, h, admin+"/notify-now", nil)
+	p.notify.tell(context.Background())
+	if len(mail.sent) != 1 || !strings.Contains(mail.sent[0].body, "Novice: card checked, with a note: Element 3 repeats") {
+		t.Errorf("Ann still hears about her tumbling entry: %+v", mail.sent)
+	}
+}
+
 func TestNotificationsWithoutEmail(t *testing.T) {
 	h := competitionServer(t) // no email configured
 	admin := created(t, h, newCompetition())

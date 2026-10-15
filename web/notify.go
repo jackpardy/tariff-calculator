@@ -297,8 +297,8 @@ func (n *notifier) audienceOf(ctx context.Context, sub store.Subscription, now n
 	case store.NotifyMember:
 		a.keys[store.MemberKey(sub.OwnerID)] = true
 	case store.NotifyIndividual:
-		if e, ok := now.Entries[sub.OwnerID]; ok && len(e.Keys) > 0 {
-			a.keys[e.Keys[0]] = true
+		for _, k := range n.individualKeys(ctx, sub) {
+			a.keys[k] = true
 		}
 	case store.NotifyClub:
 		a.club = sub.OwnerID
@@ -315,6 +315,16 @@ func (n *notifier) audienceOf(ctx context.Context, sub store.Subscription, now n
 		}
 	}
 	return a
+}
+
+// individualKeys are an individual's person keys in the competition a
+// subscription is for, from all their entries there.
+func (n *notifier) individualKeys(ctx context.Context, sub store.Subscription) []string {
+	keys, err := n.st.IndividualKeys(ctx, sub.CompetitionID, sub.OwnerID)
+	if err != nil {
+		log.Printf("Notifications: keys of %s: %v", sub.OwnerID, err)
+	}
+	return keys
 }
 
 // members are a club's members, read once per run.

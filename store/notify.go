@@ -16,7 +16,7 @@ import (
 // Who a subscription is for: the page it was made on.
 const (
 	NotifyMember     = "member"     // a club member, by member id
-	NotifyIndividual = "individual" // an individual's entry, by entry id
+	NotifyIndividual = "individual" // someone entering on their own, by individual id (ADR 0010)
 	NotifyClub       = "club"       // the comp sec, by club id
 	NotifyCoach      = "coach"      // a coach, by coach id
 )
@@ -175,6 +175,37 @@ func (s *Store) Subscribe(ctx context.Context, sub Subscription) (Subscription, 
 func (s *Store) Subscriptions(ctx context.Context, competitionID, kind, ownerID string) ([]Subscription, error) {
 	return s.subscriptions(ctx, `competition_id = $1 AND kind = $2 AND owner_id = $3`, competitionID, kind, ownerID)
 }
+
+// IndividualKeys are the person keys an individual's person has in a
+// competition, from their entries in it: those of all their records entering
+// on their own (ADR 0010), whichever entry they signed up on.
+func (s *Store) IndividualKeys(ctx context.Context, competitionID, individualID string) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT DISTINCT person_key FROM entries WHERE competition_id = $1 AND person_key <> ''
+		AND individual_id IN (SELECT id FROM individuals WHERE person_id = (SELECT person_id FROM individuals WHERE id = $2))
+		ORDER BY person_key`, competitionID, individualID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var k string
+		if err := rows.Scan(&k); err != nil {
+			return nil, err
+		}
+		out = append(out, k)
+	}
+	return out, rows.Err()
+}
+
+// individualSubscriptions makes each individual's subscription belong to the
+// individual, not the entry they signed up on (migration 35), so withdrawing
+// that entry doesn't stop what they hear about their others. One whose entry
+// has gone since stays as it was: whose it was isn't known.
+const individualSubscriptions = `UPDATE notify_subscriptions
+	SET owner_id = (SELECT individual_id FROM entries WHERE entries.id = notify_subscriptions.owner_id)
+	WHERE kind = 'individual' AND EXISTS (SELECT 1 FROM entries
+		WHERE entries.id = notify_subscriptions.owner_id AND entries.individual_id IS NOT NULL);`
 
 // CompetitionSubscriptions are everyone told about a competition: push,
 // and confirmed emails.
