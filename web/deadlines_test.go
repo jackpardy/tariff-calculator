@@ -15,7 +15,7 @@ func TestLaterDeadlines(t *testing.T) {
 	admin := created(t, h, form)
 	dash := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String()
 	clubLink, enter := pathIn(t, dash, "/competitions/club/"), pathIn(t, dash, "/competitions/enter/")
-	l3 := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	l3 := bucsEntry("")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	ann := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")

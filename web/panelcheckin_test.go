@@ -21,7 +21,7 @@ func panelSeat(t *testing.T, page, flight, name string) (person, key string) {
 	if m == nil {
 		t.Fatalf("no panel row for %s in %s: %s", name, flight, page)
 	}
-	return html2text(m[1]), html2text(m[2])
+	return unescape(m[1]), unescape(m[2])
 }
 
 // notifyForm says whether the day page offers to Notify a person in a flight,
@@ -98,7 +98,7 @@ func TestPanelCheckinRun(t *testing.T) {
 	if leave == nil || strings.Count(page, "What if they leave") != 2 {
 		t.Fatalf("a what-if link under each of her seats: %s", page)
 	}
-	if to := html2text(leave[1]); !strings.HasPrefix(to, tt+"/leave?") || !strings.Contains(to, "person=i%3A") || !strings.Contains(to, "day=0") {
+	if to := unescape(leave[1]); !strings.HasPrefix(to, tt+"/leave?") || !strings.Contains(to, "person=i%3A") || !strings.Contains(to, "day=0") {
 		t.Errorf("the link is for Dara on that day: %s", to)
 	}
 	if !notifyForm(page, dara, flight1, "official") || !notifyForm(page, dara, flight2, "official") {
@@ -314,7 +314,8 @@ func TestNotifyAnOfficial(t *testing.T) {
 func TestNotifyAClub(t *testing.T) {
 	h, _, mail := notifyServer(t)
 	admin := created(t, h, newCompetition())
-	club, members := aClubWithMembers(t, h, admin, "Ann", "Bea")
+	ucd := aClub(t, h, admin, "UCD", true, "Ann", "Bea")
+	club, members := ucd.page, ucd.members
 	bob := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, club, club), "ucd@example.com")
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, bob, bob), "bob@example.com")
@@ -329,7 +330,7 @@ func TestNotifyAClub(t *testing.T) {
 	if m == nil || !strings.Contains(page, `name="club" value="1"> Their club`) {
 		t.Fatalf("Ann can be notified, and so can her club: %s", page)
 	}
-	ann, flight := html2text(m[1]), html2text(m[2])
+	ann, flight := unescape(m[1]), unescape(m[2])
 	text := "Ann should be at Panel 1 now to compete in BUCS L3, warm-up "
 
 	// Their club only: the comp sec and the coach hear, no member.
@@ -384,7 +385,7 @@ func TestNotifyAClub(t *testing.T) {
 	// A gymnast who is here has nothing to be told.
 	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {checkinEntry(t, page, "Ann")}, "status": {"here"}, "day": {"0"}})
 	bea := regexp.MustCompile(`(?s)<span class="">Bea</span>.*?name="person" value="([^"]+)">`).FindStringSubmatch(page)[1]
-	if page := do(t, h, http.MethodGet, day, nil).Body.String(); notifyForm(page, ann, flight, "gymnast") || !notifyForm(page, html2text(bea), flight, "gymnast") {
+	if page := do(t, h, http.MethodGet, day, nil).Body.String(); notifyForm(page, ann, flight, "gymnast") || !notifyForm(page, unescape(bea), flight, "gymnast") {
 		t.Errorf("no Notify for Ann once she's here, still one for Bea: %s", page)
 	}
 

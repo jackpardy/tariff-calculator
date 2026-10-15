@@ -42,7 +42,7 @@ func listsCompetition(t *testing.T) listsSetup {
 	do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}})
 
 	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("")
 	members := map[string]string{}
 	for _, name := range []string{"Mo", zoeName} {
 		m := withoutQuery(redirected(t, h, join, url.Values{"name": {name}}))

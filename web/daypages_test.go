@@ -5,23 +5,63 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"tariffCalculator/competitions"
-	"tariffCalculator/store"
 )
 
+// onTheDay is a time on the competition's first day, 16 March 2030 (as
+// newCompetition has it); dayBefore is two weeks before, while entries are
+// open.
+func onTheDay(hour, minute int) time.Time { return inDublin(2030, time.March, 16, hour, minute) }
+
+var dayBefore = inDublin(2030, time.March, 1, 10, 0)
+
+// publishedWith enters each name on their own in BUCS L3, plans the
+// timetable and publishes it: up to six make one flight, 09:00–09:25 on
+// Panel 1 for three.
+func publishedWith(t *testing.T, h http.Handler, admin string, names ...string) {
+	t.Helper()
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
+	for _, name := range names {
+		redirected(t, h, enter, bucsEntry(name))
+	}
+	redirected(t, h, admin+"/timetable/plan", url.Values{})
+	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
+}
+
+// panelOne is Panel 1 on a day page, failing unless it has one flight.
+func panelOne(t *testing.T, h http.Handler, path string) dayArea {
+	t.Helper()
+	a, ok := dayPageAreas(t, do(t, h, http.MethodGet, path, nil).Body.String())["Panel 1"]
+	if !ok || len(a.Flights) != 1 {
+		t.Fatalf("Panel 1 with one flight on %s: %+v", path, a)
+	}
+	return a
+}
+
+// firstFlightKey is the key of the first flight on a day page.
+func firstFlightKey(t *testing.T, h http.Handler, path string) string {
+	t.Helper()
+	key := regexp.MustCompile(`name="flight" value="([^"]+)"`).FindStringSubmatch(do(t, h, http.MethodGet, path, nil).Body.String())
+	if key == nil {
+		t.Fatalf("no flight to mark on %s", path)
+	}
+	return unescape(key[1])
+}
+
 func TestOnTheDay(t *testing.T) {
-	h := competitionServer(t)
+	h, clock := competitionServerAt(t, dayBefore)
 	admin := created(t, h, newCompetition())
 	if rec := do(t, h, http.MethodGet, admin+"/day", nil); rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "Publish the timetable first") {
 		t.Errorf("nothing to run until the timetable is published: %d", rec.Code)
 	}
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	for _, name := range []string{"Ann", "Bea", "Cal"} {
-		redirected(t, h, enter, url.Values{"gymnast": {name}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+		redirected(t, h, enter, bucsEntry(name))
 	}
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	if page := do(t, h, http.MethodGet, admin, nil).Body.String(); strings.Contains(page, ">On the day<") {
@@ -33,44 +73,55 @@ func TestOnTheDay(t *testing.T) {
 	}
 
 	day := admin + "/day?day=0"
-	page := do(t, h, http.MethodGet, day, nil).Body.String()
-	if !strings.Contains(page, "BUCS L3") || !strings.Contains(page, ">Started</button>") || strings.Contains(page, ">Finished</button>") || strings.Contains(page, ">Undo</button>") {
-		t.Errorf("each flight has a Started button only: %s", page)
+	area := panelOne(t, h, day)
+	if f := area.Flights[0]; f.Name != "BUCS L3" || f.Planned != "09:00–09:25" || !slices.Equal(f.Buttons, []string{"Started"}) || area.Status != "Nothing started yet" {
+		t.Errorf("each flight has a Started button only, and its planned time: %+v", area)
 	}
-	if !strings.Contains(page, "Nothing started yet") || !strings.Contains(page, "Planned ") {
-		t.Error("planned times, and nothing started yet")
-	}
-	key := regexp.MustCompile(`name="flight" value="([^"]+)"`).FindStringSubmatch(page)
-	if key == nil {
-		t.Fatal("no flight to mark")
-	}
-	flight := html2text(key[1])
+	flight := firstFlightKey(t, h, day)
 	mark := func(what string) string {
 		t.Helper()
 		return redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {what}, "day": {"0"}})
 	}
 
+	// Before the day: tried out and marked, but not measured.
 	if to := mark("start"); !strings.HasPrefix(to, day) {
 		t.Errorf("back to the day: %s", to)
 	}
-	page = do(t, h, http.MethodGet, day, nil).Body.String()
-	if !strings.Contains(page, ">Finished</button>") || !strings.Contains(page, ">Undo</button>") || !strings.Contains(page, "Organiser") {
-		t.Error("started: Finished and Undo are offered, and who marked it")
+	area = panelOne(t, h, day)
+	if f := area.Flights[0]; f.Started != "10:00" || f.Who != "Organiser" || !slices.Contains(f.Buttons, "Finished") || !slices.Contains(f.Buttons, "Undo") || slices.Contains(f.Buttons, "Started") {
+		t.Errorf("started: Finished and Undo are offered, and who marked it: %+v", f)
 	}
-	// The competition is in 2030, so today's marks are on another date.
-	if !strings.Contains(page, "Not measured: times marked on another date") {
-		t.Errorf("the area says how it's running: %s", page)
+	if !strings.HasPrefix(area.Status, "Not measured: times marked on another date") || area.Late || area.WhatIf != "" {
+		t.Errorf("marked before the day isn't measured: %+v", area)
 	}
+	mark("undo-start")
+
+	// The morning of the day: on time, then late, then finished early.
+	clock.set(onTheDay(9, 0))
+	mark("start")
+	area = panelOne(t, h, day)
+	if area.Status != "On time" || area.Since != "measured from BUCS L3 started at 09:00" || area.Late || area.Early || area.WhatIf != "" {
+		t.Errorf("started at 09:00: %+v", area)
+	}
+	mark("undo-start")
+	clock.set(onTheDay(9, 20))
+	mark("start")
+	area = panelOne(t, h, day)
+	if area.Status != "Running 20 min late" || !area.Late || area.Since != "measured from BUCS L3 started at 09:20" {
+		t.Errorf("started at 09:20: %+v", area)
+	}
+	if u, err := url.Parse(area.WhatIf); err != nil || u.Path != admin+"/timetable/delay" ||
+		u.Query().Get("minutes") != "20" || u.Query().Get("from") != "09:20" || u.Query().Get("area") != "Panel 1" {
+		t.Errorf("the delay page, filled in: %q", area.WhatIf)
+	}
+	clock.set(onTheDay(9, 15)) // before its planned end, 09:25
 	mark("finish")
-	page = do(t, h, http.MethodGet, day, nil).Body.String()
-	if strings.Contains(page, "· finished —") {
-		t.Errorf("finished shows its time: %s", page)
-	}
-	if strings.Contains(page, ">Finished</button>") {
-		t.Error("a finished flight can't be finished again")
+	area = panelOne(t, h, day)
+	if f := area.Flights[0]; area.Status != "10 min early" || !area.Early || area.Late || f.Started != "09:20" || f.Finished != "09:15" || slices.Contains(f.Buttons, "Finished") {
+		t.Errorf("finished at 09:15: %+v", area)
 	}
 	// Doing it twice does nothing, and says so.
-	if to := mark("finish"); !strings.Contains(to, "notice=") {
+	if to := mark("finish"); noticeOf(t, to) == "" {
 		t.Errorf("already finished: %s", to)
 	}
 	// Undo says what it takes back, so the same tap sent twice (its answer
@@ -79,18 +130,16 @@ func TestOnTheDay(t *testing.T) {
 		if to := mark("undo-finish"); noticeOf(t, to) != "" {
 			t.Errorf("undo says nothing: %s", to)
 		}
-		page = do(t, h, http.MethodGet, day, nil).Body.String()
-		if !strings.Contains(page, ">Finished</button>") || !strings.Contains(page, "· finished —") || !strings.Contains(page, `value="undo-start"`) {
-			t.Error("undo takes back the finish, and only the finish")
+		if f := panelOne(t, h, day).Flights[0]; f.Finished != "" || !slices.Contains(f.Buttons, "Finished") {
+			t.Errorf("undo takes back the finish, and only the finish: %+v", f)
 		}
 	}
 	for range 2 {
 		if to := mark("undo-start"); noticeOf(t, to) != "" {
 			t.Errorf("undo says nothing: %s", to)
 		}
-		page = do(t, h, http.MethodGet, day, nil).Body.String()
-		if !strings.Contains(page, "Nothing started yet") || strings.Contains(page, ">Undo</button>") {
-			t.Error("undo again takes back the start")
+		if area := panelOne(t, h, day); area.Status != "Nothing started yet" || slices.Contains(area.Flights[0].Buttons, "Undo") {
+			t.Errorf("undo again takes back the start: %+v", area)
 		}
 	}
 	if rec := do(t, h, http.MethodPost, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo"}}); rec.Code != http.StatusBadRequest {
@@ -99,16 +148,16 @@ func TestOnTheDay(t *testing.T) {
 	if rec := do(t, h, http.MethodPost, admin+"/day/flight", url.Values{"flight": {"9|Nowhere|X||1"}, "what": {"start"}}); rec.Code != http.StatusBadRequest {
 		t.Errorf("not a flight: %d", rec.Code)
 	}
+	clock.set(onTheDay(9, 30))
 	mark("start")
 
 	// The history says what was marked, in words, once each.
-	history := do(t, h, http.MethodGet, admin+"/history", nil).Body.String()
 	for _, want := range []string{"Marked a flight started: BUCS L3", "Marked a flight finished: BUCS L3", "Undid a flight time: BUCS L3"} {
-		if !strings.Contains(history, want) {
-			t.Errorf("the history has %q", want)
+		if !historyHas(t, h, admin, "Organiser", want) {
+			t.Errorf("the history has %q by the organiser", want)
 		}
 	}
-	if n := strings.Count(history, "Marked a flight finished"); n != 1 {
+	if n := strings.Count(do(t, h, http.MethodGet, admin+"/history", nil).Body.String(), "Marked a flight finished"); n != 1 {
 		t.Errorf("the finish that did nothing isn't recorded again: %d", n)
 	}
 
@@ -120,15 +169,24 @@ func TestOnTheDay(t *testing.T) {
 	if page := do(t, h, http.MethodGet, chair, nil).Body.String(); !strings.Contains(page, chair+"/day") {
 		t.Error("a chair's dashboard offers On the day")
 	}
+	// Running 30 min late: the organiser is offered the delay page; a chair
+	// sees the lateness but isn't sent to a page they can't use.
+	if area := panelOne(t, h, day); area.WhatIf == "" {
+		t.Errorf("the organiser can plan for the delay: %+v", area)
+	}
+	if area := panelOne(t, h, chair+"/day?day=0"); area.Status != "Running 30 min late" || area.WhatIf != "" {
+		t.Errorf("a chair's view: %+v", area)
+	}
+	clock.set(onTheDay(9, 50))
 	redirected(t, h, chair+"/day/flight", url.Values{"flight": {flight}, "what": {"finish"}, "day": {"0"}})
-	if history := do(t, h, http.MethodGet, admin+"/history", nil).Body.String(); !strings.Contains(history, "Chris") {
+	if !historyHas(t, h, admin, "Chris", "Marked a flight finished: BUCS L3") {
 		t.Error("the history says the chair did it")
+	}
+	if f := panelOne(t, h, day).Flights[0]; f.Finished != "09:50" || f.Who != "Chris" {
+		t.Errorf("the day page says the chair finished it: %+v", f)
 	}
 	if rec := do(t, h, http.MethodGet, chair+"/timetable/delay", nil); rec.Code != http.StatusForbidden {
 		t.Errorf("a chair can't plan: %d", rec.Code)
-	}
-	if page := do(t, h, http.MethodGet, chair+"/day?day=0", nil).Body.String(); strings.Contains(page, "What if") {
-		t.Error("a chair isn't sent to a page they can't use")
 	}
 	timetable := madeLink(t, h, admin, "Tina", "timetable")
 	if rec := do(t, h, http.MethodGet, timetable+"/day", nil); rec.Code != http.StatusOK {
@@ -146,70 +204,56 @@ func TestOnTheDay(t *testing.T) {
 	}
 }
 
-// html2text undoes the escaping in an attribute.
-func html2text(s string) string {
-	return strings.NewReplacer("&#34;", `"`, "&amp;", "&", "&#39;", "'", "&lt;", "<", "&gt;", ">").Replace(s)
-}
-
-// A late area is told to attendees, and the day page links to the delay page
-// filled in.
+// An area running late or early is told to attendees, once, on the day
+// only, and not for a few minutes either way.
 func TestLateNotes(t *testing.T) {
-	now := time.Now().In(local)
-	minutes := now.Hour()*60 + now.Minute()
-	if minutes < 60 {
-		t.Skip("too soon after midnight to plan a flight an hour ago")
-	}
-	st, err := store.Open(context.Background(), t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { st.Close() })
-	p := newCompetitionPages(st)
-	comp, _, err := st.CreateCompetition(context.Background(), competitions.Competition{
-		Name: "Today", Date: now.Format(competitions.DateLayout), Deadline: now.Add(-time.Hour), LiveAt: now.Add(-time.Hour), Individuals: true,
+	s := newTestServer(t, atTime(onTheDay(11, 0)))
+	ctx := context.Background()
+	comp, _, err := s.st.CreateCompetition(ctx, competitions.Competition{
+		Name: "Today", Date: "2030-03-16", Deadline: onTheDay(8, 0), LiveAt: dayBefore, Individuals: true,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Two flights on Panel 1, planned an hour before now and then an hour on;
-	// the first only just started, so the panel is 60 minutes late; Panel 2
-	// has nothing recorded.
-	first := competitions.ScheduledFlight{Flight: competitions.Flight{Level: "BUCS L3", Number: 1, Of: 1}, Area: "Panel 1", Start: minutes - 60, End: minutes}
-	second := competitions.ScheduledFlight{Flight: competitions.Flight{Level: "FIG AG3", Number: 1, Of: 1}, Area: "Panel 1", Start: minutes, End: minutes + 60}
-	other := competitions.ScheduledFlight{Flight: competitions.Flight{Level: "Other", Number: 1, Of: 1}, Area: "Panel 2", Start: minutes - 60, End: minutes}
+	// Panel 1: two flights, 10:00–11:00 and 11:00–12:00; the first only
+	// just started, so it's 60 minutes late. Panel 2's flight finished at
+	// 10:50, 10 minutes early. Panel 3's started at 11:00, 2 minutes late:
+	// not enough to say. Panel 4 has nothing recorded.
+	at := func(area, level string, start, end int) competitions.ScheduledFlight {
+		return competitions.ScheduledFlight{Flight: competitions.Flight{Level: level, Number: 1, Of: 1}, Area: area, Start: start, End: end}
+	}
+	first, second := at("Panel 1", "BUCS L3", 600, 660), at("Panel 1", "FIG AG3", 660, 720)
+	early, nearly, none := at("Panel 2", "Early", 600, 660), at("Panel 3", "Close", 658, 700), at("Panel 4", "None", 600, 660)
 	comp.Published = &competitions.Schedule{
-		Setup:   competitions.Setup{Days: []competitions.Day{{Name: "Today"}}, Areas: []competitions.Area{{Name: "Panel 1"}, {Name: "Panel 2"}}},
-		Flights: []competitions.ScheduledFlight{first, second, other},
+		Setup: competitions.Setup{Days: []competitions.Day{{Name: "Saturday"}},
+			Areas: []competitions.Area{{Name: "Panel 1"}, {Name: "Panel 2"}, {Name: "Panel 3"}, {Name: "Panel 4"}}},
+		Flights: []competitions.ScheduledFlight{first, second, early, nearly, none},
 	}
-	if err := st.MarkFlight(context.Background(), comp.ID, competitions.FlightKey(first), "start", "Marshal"); err != nil {
-		t.Fatal(err)
+	markAt := func(f competitions.ScheduledFlight, what string, hour, minute int) {
+		t.Helper()
+		s.clock.set(onTheDay(hour, minute))
+		if err := s.st.MarkFlight(ctx, comp.ID, competitions.FlightKey(f), what, "Marshal"); err != nil {
+			t.Fatal(err)
+		}
 	}
-	notes, err := p.lateNotes(context.Background(), comp, []competitions.ScheduledFlight{second, first, other})
+	markAt(early, "start", 10, 0)
+	markAt(early, "finish", 10, 50)
+	markAt(first, "start", 11, 0)
+	markAt(nearly, "start", 11, 0)
+
+	notes, err := s.p.lateNotes(ctx, comp, []competitions.ScheduledFlight{second, first, early, nearly, none})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(notes) != 1 || !regexp.MustCompile(`^Panel 1 is running about 1 h( \d min)? late \(as of \d\d:\d\d\)$`).MatchString(notes[0]) {
-		t.Errorf("one line for Panel 1, once: %q", notes)
+	want := []string{"Panel 1 is running about 1 h late (as of 11:00)", "Panel 2 is running about 10 min early (as of 10:50)"}
+	if !slices.Equal(notes, want) {
+		t.Errorf("one line for Panel 1, once, and one for Panel 2: %q", notes)
 	}
-	if notes, _ := p.lateNotes(context.Background(), comp, []competitions.ScheduledFlight{other}); len(notes) != 0 {
-		t.Errorf("Panel 2 has nothing recorded: %q", notes)
+	if notes, _ := s.p.lateNotes(ctx, comp, []competitions.ScheduledFlight{nearly, none}); len(notes) != 0 {
+		t.Errorf("2 minutes late and nothing recorded say nothing: %q", notes)
 	}
-	// Early, in hours and minutes as on the day page: a flight planned 2 h 5 min
-	// on, started now.
-	if minutes+125 < 24*60 {
-		early := competitions.ScheduledFlight{Flight: competitions.Flight{Level: "Early", Number: 1, Of: 1}, Area: "Panel 3", Start: minutes + 125, End: minutes + 185}
-		comp.Published.Flights = append(comp.Published.Flights, early)
-		comp.Published.Setup.Areas = append(comp.Published.Setup.Areas, competitions.Area{Name: "Panel 3"})
-		if err := st.MarkFlight(context.Background(), comp.ID, competitions.FlightKey(early), "start", "Marshal"); err != nil {
-			t.Fatal(err)
-		}
-		notes, _ := p.lateNotes(context.Background(), comp, []competitions.ScheduledFlight{early})
-		if len(notes) != 1 || !regexp.MustCompile(`^Panel 3 is running about 2 h [45] min early \(as of \d\d:\d\d\)$`).MatchString(notes[0]) {
-			t.Errorf("early in hours and minutes: %q", notes)
-		}
-	}
-	comp.Date = now.AddDate(0, 0, 1).Format(competitions.DateLayout)
-	if notes, _ := p.lateNotes(context.Background(), comp, []competitions.ScheduledFlight{first}); len(notes) != 0 {
+	s.clock.set(onTheDay(11, 0).AddDate(0, 0, 1))
+	if notes, _ := s.p.lateNotes(ctx, comp, []competitions.ScheduledFlight{first}); len(notes) != 0 {
 		t.Errorf("only on the day: %q", notes)
 	}
 }

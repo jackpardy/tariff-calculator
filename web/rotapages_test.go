@@ -35,7 +35,7 @@ func TestOfficialsRota(t *testing.T) {
 	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "judge-tumbling": {"1"}, "chair-tumbling": {"1"}})
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	redirected(t, h, enter, url.Values{"gymnast": {"Eve"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	redirected(t, h, enter, bucsEntry("Eve"))
 	// Dara competes in tumbling and judges trampoline: tumbling goes first.
 	dara := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "discipline": {"tumbling"}, "level": {"Novice"}}))
 	redirected(t, h, dara+"/offer", url.Values{"judge-trampoline": {"1"}})
@@ -114,7 +114,7 @@ func TestOfficialsRota(t *testing.T) {
 	if !strings.Contains(sheets, "<h1 class=\"title is-5 mb-1\">BUCS L3") || strings.Contains(sheets, "Tumbling Novice</h1>") || !strings.Contains(sheets, "you don&#39;t need to") && !strings.Contains(sheets, "you don't need to") {
 		t.Errorf("BUCS L3's sheet, not tumbling's: %s", sheets)
 	}
-	if strings.Contains(do(t, h, http.MethodGet, withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Fay"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})), nil).Body.String(), "/score-sheets") {
+	if strings.Contains(do(t, h, http.MethodGet, withoutQuery(redirected(t, h, enter, bucsEntry("Fay"))), nil).Body.String(), "/score-sheets") {
 		t.Error("no link for someone who doesn't officiate")
 	}
 }
