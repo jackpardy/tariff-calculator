@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-15
+* **Update**: [Settings and forms on a page](architecture/rendering.md#settings-and-forms-on-a-page): a page's settings line up as rows of a list, the name with how it's set beneath and the Change button always at the right, rather than the button following each line's text.
 * **Update**: [Settings and forms on a page](architecture/rendering.md#settings-and-forms-on-a-page): a page's own settings are one line saying how they're set with a **Change** button (Late changes, What you charge, Panels and who may judge, the timetable's setup, Judging and helping), forms like Add someone, Remove or hold entries and Change the entry open from a small button, and lists have a plain heading with their count, in place of the big cards and dropdowns left from the one-page dashboard.
 * **Update**: [Load test](operations/deploy.md#load-test): `cmd/loadtest` acts as the people at a competition (a burst of everyone opening their page, steady use, the On the day page, venue screens and check-in taps) against a test copy seeded by `demo -pages`; on two cores, 400 people within 2 seconds went from 191 of 343 failing before the cache to none.
 * **Update**: Faster pages, for the dry run: a competition's entries, officials rota and checked cards are kept between requests until anything is saved (`web/facts.go`, `Store.Writes`), and every web test checks the cache still matches the store. A gymnast's own page 65 ms to 6 ms, the dashboard 61 ms to 7 ms, a club's page 58 ms to 18 ms on the full demo ([routes](architecture/http-routes.md)).

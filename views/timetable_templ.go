@@ -3651,13 +3651,13 @@ func runNo(n int) templ.Component {
 func timingsNow(p TimetablePage) string {
 	var each []string
 	for _, t := range p.Setup.Timings {
-		each = append(each, fmt.Sprintf("%s %s min a competitor", t.Name, t.PerCompetitor))
+		each = append(each, t.Name+" "+t.PerCompetitor)
 	}
 	rest := "preferred"
 	if p.Setup.RestMust {
 		rest = "a must"
 	}
-	return strings.Join(each, ", ") + fmt.Sprintf("; rest between turns %d min, %s", p.Setup.Rest, rest)
+	return strings.Join(each, ", ") + fmt.Sprintf(" min a competitor; %d min rest between turns, %s", p.Setup.Rest, rest)
 }
 
 var _ = templruntime.GeneratedTemplate
