@@ -627,6 +627,11 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .comp-popup-panel { position: absolute; right: 0; top: calc(100% + 0.25rem); z-index: 30; min-width: 14rem; padding: 0.3rem 0; background: #fff; border: 1px solid #dbdbdb; border-radius: 6px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12); }
 .comp-popup-panel a { display: block; padding: 0.45rem 0.9rem; color: #363636; }
 .comp-popup-panel a:hover, .comp-popup-panel a:focus { background: #f5f5f5; }
+/* A menu at the left of a row of buttons (a person's Timetables and
+   calendars) opens rightwards, so it stays on a phone's screen. */
+.comp-popup-left > .comp-popup-panel { left: 0; right: auto; }
+.buttons > .comp-popup { margin: 0 0.5rem 0.5rem 0; }
+.buttons > .comp-popup > .button { margin: 0; }
 /* A club's competition: where its entries stand, and sending them, above
    the entries (views/clubs.templ). */
 .comp-send { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem 1.5rem; border-top: 1px solid #ededed; border-bottom: 1px solid #ededed; padding: 0.75rem 0; margin: 1rem 0; }

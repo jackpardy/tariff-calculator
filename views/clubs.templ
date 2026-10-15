@@ -799,10 +799,11 @@ templ MemberDetails(p MemberPage) {
 			@linkBox("Your personal link (keep it to yourself)", p.Link, "Open it on any phone or computer to see your entries. Anyone who has it can change them.")
 		}
 		if len(p.Coaches) > 0 {
-			<div class="field mb-4">
-				<label class="label is-small">Your coach</label>
-				@coachSelect(p.CoachAction, p.Coaches, p.CoachID, "Your coach")
-				<p class="help">They sign off your routines. Without one chosen, any of the club's coaches can.</p>
+			<div class="mt-4">
+				@changeLine("Your coach", coachNow(p.Coaches, p.CoachID), false) {
+					@coachSelect(p.CoachAction, p.Coaches, p.CoachID, "Your coach")
+					<p class="help">They sign off your routines. Without one chosen, any of the club's coaches can.</p>
+				}
 			</div>
 		}
 		if p.Other != nil {
@@ -862,14 +863,7 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 								@entryForm(ev.Form)
 							}
 						</div>
-						<form method="post" action={ templ.SafeURL(ev.Withdraw) } class="mt-4 mb-4">
-							<input type="hidden" name="discipline" value={ ev.Discipline }/>
-							<label class="checkbox is-size-7">
-								<input type="checkbox" name="confirm" value="1" required/>
-								Withdraw this entry
-							</label>
-							<button class="button is-small is-danger is-outlined ml-2" type="submit">Withdraw</button>
-						</form>
+						@withdrawForm(ev.Withdraw, ev.Discipline)
 					} else {
 						@entryForm(ev.Form)
 					}
@@ -910,6 +904,16 @@ templ ClubOfferEditPage(e ClubOfferEdit) {
 		<p class="subtitle is-6">Judging and helping at { e.Competition.Name }</p>
 		@offerForm(e.Form)
 	}
+}
+
+// coachNow names a member's chosen coach, for Your details.
+func coachNow(coaches []CoachOption, chosen string) string {
+	for _, c := range coaches {
+		if c.ID == chosen {
+			return c.Name
+		}
+	}
+	return "None chosen: any of the club's coaches can sign off your routines"
 }
 
 // skillsNow says who sees members' skills, for Settings.

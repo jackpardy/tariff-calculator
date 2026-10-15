@@ -555,7 +555,7 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
    published**); tap one to open it. **Routines** has the routines you keep
    on your page (see [Keep your routines on your page](#keep-your-routines-on-your-page)).
    **Your details** has your personal link,
-   to keep, **Your coach** to choose if your club has coaches, and **Your other
+   to keep, **Your coach** to choose if your club has coaches (**Change**), and **Your other
    links** (see [One link for all your roles](#6-one-link-for-all-your-roles)).
 3. A competition's page has a row for each discipline it offers, closed until
    you tap it: the discipline, your level and its status (for example **Not
@@ -577,8 +577,8 @@ Under **Judging and helping**, say what you can do at the competition: judge a
 discipline (up to a level, and whether you can chair), or help as a recorder
 or marshal. Your comp sec can correct it, and sends it with the entries.
 
-To change it, open the discipline's row, then **Change your entry**. To pull out of one discipline, tick
-**Withdraw this entry** under it and tap **Withdraw**. Notes from the organiser
+To change it, open the discipline's row, then **Change your entry**. To pull out of one discipline, tap
+**Withdraw** under it, tick **Withdraw this entry** and tap **Withdraw**. Notes from the organiser
 and your coach show on your entry, and once the organiser publishes the
 timetable, your flight, area and warm-up time, and under **Officiating**
 when and where you judge or help.
@@ -596,7 +596,8 @@ these** hides the rest); **Club timetable** does the same for everyone in
 your club, naming who. The comp sec and coaches have **Club timetable** on
 their pages too. Each prints on A3. **Add to calendar** (and **Club
 calendar**) puts the same flights and duties in your phone's calendar; subscribe to it
-and it updates when the timetable is published again.
+and it updates when the timetable is published again. Where there are more than
+two of these, they're in one menu, **Timetables and calendars**.
 
 **Tell me about changes** tells you when the organiser changes something
 for you: when or where you compete, what you officiate, or your card
@@ -774,7 +775,8 @@ confirm.
    its entry on your page. Add the others under **Your details**, **Your other
    links**, so they're all on one page.
 4. If the competition needs a coach's sign-off, send your coach the **Sign-off
-   link** shown on your entry. They open it, check it and sign off with their
+   link for your coach** on your entry (open until they've signed it off;
+   **Show** after that). They open it, check it and sign off with their
    name. If it approves coaches, first name your coach under **Your coach**,
    with their qualification and a photo or PDF of its certificate (up to 3 MB), and tap
    **Send to the organiser**. Once the organiser approves them, the link
@@ -787,8 +789,8 @@ confirm.
 If you're a member who also coaches, your club's comp sec, entering some
 competitions on your own, or helping run one, you can open all of it from
 one link. On your page's **Your details** (a coach's is at the foot of their
-page), under **Your other links**, paste another of your links and tap
-**Add**. Then tabs at the top (Member, Coach, Competition secretary, On your own, or the
+page), under **Your other links**, tap **Add a link**, paste another of your
+links and tap **Add**. Then tabs at the top (Member, Coach, Competition secretary, On your own, or the
 competition's) switch between them, whichever of your links you open. Each
 link listed has **Undo**.
 

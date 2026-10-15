@@ -1545,13 +1545,16 @@ another, ADR 0011):
   row (discipline, level, status such as "Checked", "2 problems", "Not entered"
   or "Waiting list, 3rd") that opens to its card and forms. It's closed unless
   a form just posted had problems, or the notice is about it (the redirect after
-  a save or withdrawal carries `discipline`). Saving, withdrawing and offering
+  a save or withdrawal carries `discipline`). An open row ends with **Change
+  your entry** and **Withdraw**, each a button opening its form (withdrawing
+  is ticked to be sure, `withdrawForm`, as on an individual's entry). Saving, withdrawing and offering
   go back to this page; so do the late-change and timetable pages, and My
   competition links back to it ("← ISTO 2027: your entries").
 - **Routines** (`/clubs/member/{token}/routines`; see
   [routines on your page](#routines-on-your-page-adr-0011)).
 - **Your details** (`/clubs/member/{token}/details`): their personal link,
-  their coach, and **Your other links**
+  their coach (a setting row, **Your coach**, with Change), and **Your other links**
+  (a section: the roles as rows, and **Add a link** opening the form)
   ([one link, several roles](#one-link-several-roles-adr-0010)); choosing a
   coach and adding or undoing a link return here.
 
@@ -1924,7 +1927,9 @@ shown focused (`timelineFocus`):
 
 The rest is faint, or with **Only these**, left out (blocked time stays).
 Each prints like the panel timeline; notes are in each cell's hover text
-too.
+too. Where a page has more than two of the timetables and calendars (a
+member's My competition has all four), they're in one menu, **Timetables
+and calendars** (`timelineLinks`), beside Tell me about changes.
 
 **Add to calendar** (roadmap 2026-10-09): next to those links, the same
 flights and duties as an iCalendar file (`calendar.ics`, `calendar.go`):
