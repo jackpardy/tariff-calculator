@@ -1394,7 +1394,8 @@ own in the browser; nothing is copied unless the member asks.
   many didn't fit. The request may be up to 512 KB (`keepsRoutines`), more
   than other forms.
 - **The Routines tab** lists them by name, each a row (skills, difficulty
-  where it's scored, when it changed, a tag for a coach's note) that opens to
+  where it's scored, when it changed, and the coach's role chip, "left a
+  note", when there's a note) that opens to
   its card, checked as the builder checks it, against its requirements, or the
   Code of Points only. **Open in the Routine Builder** is a share link
   (`/#share=j…`, `builderLink`) with the routine and its own requirements, so
@@ -1406,12 +1407,12 @@ own in the browser; nothing is copied unless the member asks.
   routine's are. The comp sec changing a member's entry gets the member's
   ("Kept on their page"), not only the routines in their own browser.
 - **Coaches.** A coach's page has a menu, **Entries** (the page it always
-  was) and **Gymnasts** (`/clubs/coach/{token}/gymnasts`): the members they
-  see (their own and those without a coach, or everyone where the club says
+  was) and **Gymnasts** (`/clubs/coach/{token}/gymnasts`, a `comp-stack`
+  table): the members they see (their own and those without a coach, or everyone where the club says
   so), with how many routines each keeps, searchable and filtered by having
   routines and by whether they chose this coach. Each opens the gymnast's
-  routines, checked, with **Your note** on each: the member sees it with the
-  coach's name, and "written before the routine last changed" once it's
+  routines, checked, with **Your note** on each: the member sees it under
+  the coach's role chip (`WhoChip(RoleCoach, name)`), and "written before the routine last changed" once it's
   older than the routine. A coach who doesn't see the member gets 404.
 - **The comp sec.** Members shows "3 routines" beside a member who keeps
   any, opening them to look at (no note, no changes).

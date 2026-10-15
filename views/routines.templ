@@ -56,16 +56,16 @@ templ routinesList(p RoutinesPart) {
 				<strong>{ r.Name }</strong>
 				<span class="is-block is-size-7 has-text-grey">
 					{ routineSummary(r) }
-					if r.Note != "" {
-						<span class="tag is-info is-light ml-1">Note from { r.NoteBy }</span>
-					}
 				</span>
+				if r.Note != "" {
+					<span class="is-block mt-1">@WhoChip(RoleCoach, r.NoteBy) <span class="is-size-7">left a note</span></span>
+				}
 			</summary>
 			<div class="mt-3">
 				if r.Note != "" {
-					<div class="notification is-info is-light py-2 px-3 mb-3">
+					<div class="notification is-light py-2 px-3 mb-3">
 						<p class="is-size-7 has-text-grey mb-1">
-							{ r.NoteBy }, coach
+							@WhoChip(RoleCoach, r.NoteBy)
 							if r.NoteBefore {
 								· written before the routine last changed
 							}
@@ -74,7 +74,7 @@ templ routinesList(p RoutinesPart) {
 					</div>
 				}
 				if r.Broken != "" {
-					<p class="has-text-danger">{ r.Broken }</p>
+					<p>@StateChip(Attention, r.Broken)</p>
 				} else {
 					@exerciseCard(r.Card)
 				}
@@ -194,12 +194,12 @@ templ CoachGymnasts(p CoachGymnastsPage) {
 		} else {
 			@listTools(p.Tools)
 			<div class="table-container">
-				<table class="table is-fullwidth is-narrow" id={ p.Tools.ID }>
+				<table class="table is-fullwidth is-narrow comp-stack" id={ p.Tools.ID }>
 					<tbody>
 						for _, g := range p.Gymnasts {
 							<tr { g.List.Attrs()... }>
 								<td><a href={ templ.SafeURL(g.Open) }>{ g.Name }</a></td>
-								<td class="has-text-grey is-size-7">
+								<td class="has-text-grey is-size-7" data-label="Kept">
 									{ routineCount(g.Routines) } · can do { strconv.Itoa(g.Can) }
 									if g.ToConfirm > 0 {
 										@StateChip(Attention, strconv.Itoa(g.ToConfirm)+" to confirm")
