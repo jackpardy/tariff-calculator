@@ -205,11 +205,6 @@ func NameKey(name string) string {
 	return strings.ToLower(strings.Join(strings.Fields(name), " "))
 }
 
-// IndividualKey was an individual's person key before individuals had one
-// link: their name, so two with one name were one person. Their entries from
-// then keep it, so the keys a competition saved still find them.
-func IndividualKey(name string) string { return "i:" + NameKey(name) }
-
 // personKeyFor is the person key of an individual's new entry in a
 // competition: the one the person's entries there have, else one of its own.
 func personKeyFor(ctx context.Context, tx *sql.Tx, competitionID, individualID string) (string, error) {
@@ -218,7 +213,7 @@ func personKeyFor(ctx context.Context, tx *sql.Tx, competitionID, individualID s
 		AND individual_id IN (SELECT id FROM individuals WHERE person_id = (SELECT person_id FROM individuals WHERE id = $2))
 		ORDER BY entered_at, id LIMIT 1`, competitionID, individualID).Scan(&key)
 	if errors.Is(err, sql.ErrNoRows) {
-		return "i:" + individualID, nil
+		return IndividualKey(individualID), nil
 	}
 	return key, err
 }
@@ -252,7 +247,7 @@ func individualsFromEntries(ctx context.Context, tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO individuals (id, person_id, name, created_at) VALUES ($1, $1, $2, $3)`, id, o.name, o.at); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE entries SET individual_id = $1, person_key = $2 WHERE id = $3`, id, IndividualKey(o.name), o.id); err != nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE entries SET individual_id = $1, person_key = $2 WHERE id = $3`, id, IndividualNameKey(o.name), o.id); err != nil {
 			return err
 		}
 	}
@@ -438,9 +433,9 @@ func (s *Store) merge(ctx context.Context, tx *sql.Tx, into, from string) error 
 	return nil
 }
 
-// renameKey changes a person key wherever a competition saved it: its
-// timetables' seats and rules, its simulations, its desk messages, scratch
-// warnings cleared and officials' check-ins.
+// renameKey changes a person key wherever a competition saved it (keyedJSON
+// and keyedRows): its timetables' seats and rules, its simulations, its desk
+// messages, scratch warnings cleared and officials' check-ins.
 func renameKey(ctx context.Context, tx *sql.Tx, competitionID, from, to string) error {
 	// Keys are JSON strings in the saved JSON, quoted as Go quotes them; a
 	// quoted key can't be part of a longer string, whose quotes are escaped.
@@ -452,23 +447,20 @@ func renameKey(ctx context.Context, tx *sql.Tx, competitionID, from, to string) 
 	if err != nil {
 		return err
 	}
-	for _, q := range []string{
-		`UPDATE competitions SET timetable = replace(timetable, $2, $3), published_timetable = replace(published_timetable, $2, $3),
-			scenarios = replace(scenarios, $2, $3) WHERE id = $1`,
-		`UPDATE desk_messages SET people = replace(people, $2, $3) WHERE competition_id = $1`,
-	} {
-		if _, err := tx.ExecContext(ctx, q, competitionID, string(f), string(t)); err != nil {
+	for _, c := range keyedJSON {
+		if _, err := tx.ExecContext(ctx, `UPDATE `+c.table+` SET `+c.column+` = replace(`+c.column+`, $2, $3) WHERE `+c.competition+` = $1`,
+			competitionID, string(f), string(t)); err != nil {
 			return err
 		}
 	}
-	for _, table := range []struct{ name, also string }{{"scratch_clears", "kind"}, {"official_checkins", "flight"}} {
+	for _, table := range keyedRows {
 		// Where both keys have a row, the one the person had keeps it.
-		if _, err := tx.ExecContext(ctx, `DELETE FROM `+table.name+` WHERE competition_id = $1 AND person = $2 AND EXISTS (
-			SELECT 1 FROM `+table.name+` o WHERE o.competition_id = $1 AND o.person = $3 AND o.`+table.also+` = `+table.name+`.`+table.also+`)`,
+		if _, err := tx.ExecContext(ctx, `DELETE FROM `+table.table+` WHERE competition_id = $1 AND person = $2 AND EXISTS (
+			SELECT 1 FROM `+table.table+` o WHERE o.competition_id = $1 AND o.person = $3 AND o.`+table.also+` = `+table.table+`.`+table.also+`)`,
 			competitionID, from, to); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE `+table.name+` SET person = $3 WHERE competition_id = $1 AND person = $2`, competitionID, from, to); err != nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE `+table.table+` SET person = $3 WHERE competition_id = $1 AND person = $2`, competitionID, from, to); err != nil {
 			return err
 		}
 	}
@@ -529,7 +521,7 @@ func (s *Store) split(ctx context.Context, tx *sql.Tx, kind, id, personID string
 	}
 	for _, ck := range shared {
 		if _, err := tx.ExecContext(ctx, `UPDATE entries SET person_key = $1 WHERE competition_id = $2 AND person_key = $3 AND individual_id = $4`,
-			"i:"+newID(), ck[0], ck[1], id); err != nil {
+			IndividualKey(newID()), ck[0], ck[1], id); err != nil {
 			return err
 		}
 	}
@@ -632,14 +624,13 @@ func (s *Store) RemoveCompetitionTie(ctx context.Context, competitionID, id stri
 
 // PersonGroups are the people of a competition's clubs and individuals, by
 // person key, each with their person: so a member who also coaches, or also
-// enters on their own, is one person (ADR 0010). Coaches are keyed by club
-// and name, as the timetable keys them.
+// enters on their own, is one person (ADR 0010).
 func (s *Store) PersonGroups(ctx context.Context, competitionID string) (map[string]string, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT 'm', m.id, '', COALESCE(m.person_id, m.id) FROM members m
+	rows, err := s.db.QueryContext(ctx, `SELECT 'm', m.id, COALESCE(m.person_id, m.id) FROM members m
 			JOIN club_competitions cc ON cc.club_id = m.club_id WHERE cc.competition_id = $1
-		UNION ALL SELECT 'c', co.club_id, co.name, COALESCE(co.person_id, co.id) FROM coaches co
+		UNION ALL SELECT 'c', co.id, COALESCE(co.person_id, co.id) FROM coaches co
 			JOIN club_competitions cc ON cc.club_id = co.club_id WHERE cc.competition_id = $1
-		UNION ALL SELECT DISTINCT 'i', e.person_key, '', i.person_id FROM entries e JOIN individuals i ON i.id = e.individual_id
+		UNION ALL SELECT DISTINCT 'i', e.person_key, i.person_id FROM entries e JOIN individuals i ON i.id = e.individual_id
 			WHERE e.competition_id = $1 AND e.person_key <> ''`, competitionID)
 	if err != nil {
 		return nil, err
@@ -647,17 +638,17 @@ func (s *Store) PersonGroups(ctx context.Context, competitionID string) (map[str
 	defer rows.Close()
 	out := map[string]string{}
 	for rows.Next() {
-		var kind, a, b, person string
-		if err := rows.Scan(&kind, &a, &b, &person); err != nil {
+		var kind, id, person string
+		if err := rows.Scan(&kind, &id, &person); err != nil {
 			return nil, err
 		}
 		switch kind {
-		case "m":
-			out["m:"+a] = person
-		case "c":
-			out["c:"+a+":"+NameKey(b)] = person
+		case KindMember:
+			out[MemberKey(id)] = person
+		case KindCoach:
+			out[CoachKey(id)] = person
 		default:
-			out[a] = person
+			out[id] = person // already a key
 		}
 	}
 	return out, rows.Err()

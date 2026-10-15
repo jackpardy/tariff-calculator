@@ -201,8 +201,8 @@ func (p *competitionPages) clubOfPerson(r *http.Request, c store.Competition, en
 			return e.ClubID, nil
 		}
 	}
-	id, ok := strings.CutPrefix(person, "m:")
-	if !ok {
+	kind, id := store.KeyKind(person)
+	if kind != store.KindMember {
 		return "", nil
 	}
 	clubs, err := p.st.CompetitionClubs(r.Context(), c.ID)

@@ -45,7 +45,7 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 	}
 	for _, club := range m.Clubs {
 		for _, mem := range n.members(ctx, club, members) {
-			reached["m:"+mem.ID] = true
+			reached[store.MemberKey(mem.ID)] = true
 		}
 	}
 	for _, e := range entries {
@@ -69,17 +69,17 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 	covers := func(sub store.Subscription) bool {
 		switch sub.Kind {
 		case store.NotifyMember:
-			return reached["m:"+sub.OwnerID]
+			return reached[store.MemberKey(sub.OwnerID)]
 		case store.NotifyIndividual:
 			return len(keys[sub.OwnerID]) > 0 && reached[keys[sub.OwnerID][0]]
 		case store.NotifyClub:
-			return slices.Contains(m.Clubs, sub.OwnerID) || slices.Contains(m.Staff, sub.OwnerID) || slices.ContainsFunc(n.members(ctx, sub.OwnerID, members), func(mem store.Member) bool { return reached["m:"+mem.ID] })
+			return slices.Contains(m.Clubs, sub.OwnerID) || slices.Contains(m.Staff, sub.OwnerID) || slices.ContainsFunc(n.members(ctx, sub.OwnerID, members), func(mem store.Member) bool { return reached[store.MemberKey(mem.ID)] })
 		case store.NotifyCoach:
 			if clubCoach[sub.OwnerID] {
 				return true
 			}
 			for _, clubMembers := range members {
-				if slices.ContainsFunc(clubMembers, func(mem store.Member) bool { return mem.CoachID == sub.OwnerID && reached["m:"+mem.ID] }) {
+				if slices.ContainsFunc(clubMembers, func(mem store.Member) bool { return mem.CoachID == sub.OwnerID && reached[store.MemberKey(mem.ID)] }) {
 					return true
 				}
 			}

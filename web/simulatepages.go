@@ -24,8 +24,9 @@ func backToSimulation(w http.ResponseWriter, r *http.Request, notice string) {
 }
 
 // actualScenario is the competition as it stands: its entries per event, how
-// many gymnasts make them, its clubs, and who has offered to judge and help.
-func actualScenario(c competitions.Competition, entries []store.Entry, people []competitions.RotaPerson) competitions.Scenario {
+// many gymnasts make them (each person once: same), its clubs, and who has
+// offered to judge and help.
+func actualScenario(c competitions.Competition, entries []store.Entry, people []competitions.RotaPerson, same samePeople) competitions.Scenario {
 	sc := competitions.Scenario{Entries: map[string]int{}, Judges: map[string]int{}, Chairs: map[string]int{}}
 	clubs := map[string]bool{}
 	in := map[string]map[string]bool{} // person → disciplines
@@ -35,7 +36,7 @@ func actualScenario(c competitions.Competition, entries []store.Entry, people []
 		if !e.Individual {
 			clubs[e.ClubName] = true
 		}
-		for _, k := range keys[e.ID] {
+		for _, k := range same.all(keys[e.ID]) {
 			if in[k] == nil {
 				in[k] = map[string]bool{}
 			}
@@ -227,12 +228,12 @@ func (p *competitionPages) simulation(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	people, err := p.rotaOf(r, c, entries)
+	people, same, err := p.rotaAndSame(r.Context(), c, entries)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	start := actualScenario(c.Competition, entries, people)
+	start := actualScenario(c.Competition, entries, people, same)
 	if i, err := strconv.Atoi(r.URL.Query().Get("from")); err == nil && i >= 0 && i < len(scenarios) {
 		start = scenarios[i]
 	}

@@ -1402,7 +1402,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		Placement:   placement(c, e.ID),
 		Waiting:     waitingText(p.waitingOf(r.Context(), c.ID, e.ID)),
 		Late:        p.lateStatusOf(r.Context(), c, e.ID),
-		Duties:      dutiesOf(c, personKeyOf(e)),
+		Duties:      dutiesOf(c, e.Key()),
 		Day:         path + "/day",
 		VideoReview: e.VideoReview, VideoNote: e.VideoNote,
 		Form: entryForm(c.Competition, form, path, "Save changes"), Withdraw: path + "/withdraw",
@@ -1429,7 +1429,7 @@ func (p *competitionPages) renderOwn(w http.ResponseWriter, r *http.Request, e s
 		page.Timeline, page.Calendar = path+"/timeline", path+"/calendar.ics"
 	}
 	page.Notify = p.notifyLink(path + "/notify")
-	page.Desk = p.deskNotes(r.Context(), c.ID, []string{personKeyOf(e)}, nil, nil)
+	page.Desk = p.deskNotes(r.Context(), c.ID, []string{e.Key()}, nil, nil)
 	page.Fees = p.feesSummary(r.Context(), c, entryPayer(e.ID), path+"/invoice")
 	if lateOpen(c, p.now()) {
 		page.LateAsk = path + "/late"

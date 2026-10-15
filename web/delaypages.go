@@ -50,12 +50,12 @@ func (p *competitionPages) delay(w http.ResponseWriter, r *http.Request) {
 		} else if err4 != nil {
 			page.Problems = []string{err4.Error()}
 		} else {
-			people, names := peopleOf(entries)
-			officials, err := p.rotaOf(r, c, entries)
+			officials, same, err := p.rotaAndSame(r.Context(), c, entries)
 			if err != nil {
 				failed(w, r, err)
 				return
 			}
+			people, names := clashPeople(entries, same)
 			for _, o := range officials {
 				if names[o.Key] == "" {
 					names[o.Key] = o.Name

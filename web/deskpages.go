@@ -74,7 +74,7 @@ func (p *competitionPages) deskPeople(r *http.Request, c store.Competition, entr
 		}
 	}
 	for key, name := range names {
-		if !strings.HasPrefix(key, "c:") { // not coaches
+		if kind, _ := store.KeyKind(key); kind != store.KindCoach { // not coaches
 			add(key, name, clubs[key], "gymnast")
 		}
 	}
@@ -435,7 +435,7 @@ func clubIDs(id string) []string {
 func memberKeys(members []store.Member) []string {
 	out := make([]string, len(members))
 	for i, m := range members {
-		out[i] = "m:" + m.ID
+		out[i] = store.MemberKey(m.ID)
 	}
 	return out
 }

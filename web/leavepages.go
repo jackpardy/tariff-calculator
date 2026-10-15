@@ -24,12 +24,12 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 		back(w, r, "Plan the timetable first.")
 		return
 	}
-	officials, err := p.rotaOf(r, c, entries)
+	officials, same, err := p.rotaAndSame(r.Context(), c, entries)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	people, names := peopleOf(entries)
+	people, names := clashPeople(entries, same)
 	for _, o := range officials {
 		if names[o.Key] == "" {
 			names[o.Key] = o.Name

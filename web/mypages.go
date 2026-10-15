@@ -36,7 +36,7 @@ func (p *competitionPages) memberDay(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	p.renderDay(w, r, c, "m:"+m.ID, m.ClubID, m.Name, memberCompetitionPath(r.PathValue("token"), c.ID), "← Your entries")
+	p.renderDay(w, r, c, store.MemberKey(m.ID), m.ClubID, m.Name, memberCompetitionPath(r.PathValue("token"), c.ID), "← Your entries")
 }
 
 func (p *competitionPages) individualDay(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +44,7 @@ func (p *competitionPages) individualDay(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	p.renderDay(w, r, c, personKeyOf(e), "", e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token"), "← Your page")
+	p.renderDay(w, r, c, e.Key(), "", e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token"), "← Your page")
 }
 
 // memberHere is a scratched member saying they're still here for the rest.
@@ -57,7 +57,7 @@ func (p *competitionPages) memberHere(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	p.stillHere(w, r, c, "m:"+m.ID, m.Name, dayPath(memberPath(r.PathValue("token")), c.ID))
+	p.stillHere(w, r, c, store.MemberKey(m.ID), m.Name, dayPath(memberPath(r.PathValue("token")), c.ID))
 }
 
 // individualHere is a scratched individual saying they're still here for the
@@ -67,7 +67,7 @@ func (p *competitionPages) individualHere(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	p.stillHere(w, r, c, personKeyOf(e), e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token")+"/day")
+	p.stillHere(w, r, c, e.Key(), e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token")+"/day")
 }
 
 // hereBox is the box for someone scratched from some events who may still be
