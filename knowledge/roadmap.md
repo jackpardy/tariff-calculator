@@ -113,7 +113,8 @@ build on:
 1. **Routines on your page** (new; the foundation for 2 and for clubs 6).
    **Built 2026-10-15** ([routines on your page](features/competition-entries.md#routines-on-your-page-adr-0011)).
    Each routine is checked against what it was checked against in the
-   builder; checking it against a level the coach picks is left for later.
+   builder; a coach can check it against a level they pick, and add
+   routines to a gymnast's page (built 2026-10-15).
    - **Member:** a **Routines** tab (in `memberMenu`) with routines kept on
      the server: open one in the routine builder, rename, delete. The
      builder gets **Save to my page** when a member's link is saved in this
@@ -152,8 +153,8 @@ build on:
       3 Oct", "Learning · marked by you"). Each side keeps its own mark;
       the coach can filter for the gymnast's marks they haven't made the
       same, to confirm. The skills in the gymnast's routines (from 1) are
-      offered first. Still to do: a routine with a skill not yet marked Can
-      do saying so to the coach.
+      offered first. A routine with a skill no coach has marked Can do
+      says so to the coach (built 2026-10-15).
    3. **Who sees it** (decided 2026-10-15): the gymnast, the coaches who
       see them, and the comp sec, at least. The comp sec can open it to
       **every member of the club** (a setting, off to start with). The
@@ -172,7 +173,8 @@ build on:
         Code of Points (a drill, a skill on another apparatus, a
         conditioning test): a name and an optional note, for tracking only,
         not in routines.
-   5. **Club levels** (decided 2026-10-15). Coaches make levels to track
+   5. **Club levels** (decided and built 2026-10-15,
+      [club levels](features/competition-entries.md#club-levels-adr-0011)). Coaches make levels to track
       gymnasts against ("Club Grade 1"), in order, out of **skills and
       requirements** (decided 2026-10-15), so linking one skill into
       another is tracked as well as each skill. This reuses the
@@ -201,12 +203,14 @@ build on:
       one of the gymnast's routines (from 1) that already does it (the
       engine's `includes` or `sequence` check) is shown beside it as
       evidence for the coach to mark. Each gymnast sees how far through
-      each level they are and what's left. The comp sec's Members can
-      filter by level and show "completed" and "working on". These are
+      each level they are and what's left. The comp sec's Members, and a
+      coach's Gymnasts, filter by level, "completed" (by a coach's marks)
+      and "working on" (built 2026-10-15). These are
       tracking levels, separate from the competition levels that check a
       single routine.
 
-   6. **Sharing club levels** (decided 2026-10-15). A club level can be
+   6. **Sharing club levels** (decided and built 2026-10-15,
+      [sharing club levels](features/competition-entries.md#sharing-club-levels-adr-0011)). A club level can be
       shared with other clubs by link, as requirements and levels are
       today ([sharing](features/sharing.md)), bringing the club skills it
       uses, so a regional scheme's grades are made once. The club that
@@ -221,6 +225,87 @@ practice (4) builds on the engine alone. The routine suggester (6) can now
 start from a gymnast's ticked skills. The TrampOnline entry export (clubs 1)
 waits on a sample of TrampOnline's entry file. The handover kit (5) is
 documents.
+
+# The requirements workflow (reviewed 2026-10-15, not planned yet)
+
+A review of writing requirements, from the routine builder and from club
+levels, which are built on the same editor. Nothing is changed yet.
+
+**What's clunky today.**
+
+- **From the routine builder:**
+  - **Three places for one idea.** Requirements are written on the
+    Requirements page. Set routines are made in the builder (More, Save as a
+    set routine). Levels are made on the Requirements page but used in the
+    builder's Levels mode. Three nouns and two pages stand between a coach
+    and checking a routine against their own competition.
+  - **Editing means leaving the routine.** Manage requirements opens the
+    Requirements page in a new tab: rules are written without the routine in
+    sight, then the coach comes back and picks them under Check against.
+  - **Skills are described by numbers, not picked.** "A back somersault" or
+    "back drop, then back to feet" means somersault and twist ranges in
+    quarters and half twists, then direction, shape, take-off and landing
+    (the last two under More conditions). The builder's skill picker and
+    search, which everyone already knows, isn't there.
+  - **Rule kinds are named after the engine,** not what people mean:
+    "Elements that must (or mustn't) appear", "Includes one of…", "Special
+    requirements". A link of two skills is an "Includes one of…" rule with
+    one option of two steps.
+  - **Check against is one long list,** about 50 on a phone, with your own
+    requirements at the bottom.
+  - **Requirements and levels stay in one browser,** easily lost.
+- **From club levels:**
+  - **A round trip and two copies.** Requirements are written on the
+    Requirements page, saved to the club, and opened back there to change.
+    The browser's copy drifts from the club's, and another phone can't
+    change a level without that round trip.
+  - **The save button depends on the browser.** Save to club levels only
+    shows where the coach's link (or the link of a member who coaches) was
+    opened in the same browser.
+  - **The rule kinds don't fit a club grade.** A grade is mostly a checklist
+    (these skills, this link, any three singles, a set routine), but the
+    editor offers rules about a whole routine, which are dropped when saved.
+  - **Club skills sit outside the requirements,** so they're listed after
+    them, not in the order a coach would give.
+  - **No one-tap start** from a competition level's set routine, another
+    club level, or a shared one.
+
+**Recommended, in order.**
+
+1. **Pick a skill in the rule editor** (helps both). Use the builder's
+   picker and search, and the club's named skills on a club page. Picking a
+   skill fills in a matcher pinned to that skill (notation, direction,
+   take-off); the numeric fields become "or describe a kind of skill". Only
+   existing pieces.
+2. **Name rule kinds by what they mean, and offer only those that fit.**
+   - In the builder: Must include, Must not include, At least / at most N of
+     a kind, Linked (this, then this), No repeats, Number of skills,
+     Difficulty between, Skill at position.
+   - For club levels only: Skill, Any of these skills, Link, N skills of a
+     kind, Set routine, Club skill.
+   - Both map onto today's rule types, so the stored format and the engine
+     are unchanged. Common starters ("10 skills, no repeats, difficulty
+     x–y") could be one tap.
+3. **Edit club levels on the club page, saved straight to the club.**
+   - The editor is a server-rendered form, so the coach's Levels page can
+     host it, with the club-level kinds from 2: one copy, any phone, and a
+     club skill as an item like any other, in order.
+   - Start from a competition level's set routine, another club level, or a
+     shared one (with sharing, step 6 above).
+   - Save to club levels on the Requirements page stays as a way in.
+4. **Write requirements without leaving the builder.** At least, after
+   saving, offer "Check the routine against these now". Better, edit them in
+   a panel under Check against, each rule's ✓ or ✗ for the routine on screen
+   as it's written.
+5. **A better Check against picker:** your own and recently used first,
+   then by organisation and level, with a search like the skill picker's.
+   The same picker would serve Start from a set….
+6. **Later:** keep requirements and levels with the person, as routines on a
+   club page are, rather than in one browser.
+
+1 and 2 give the most for the least: rule writing gets easier in both
+places with no change to the engine or storage. 3 removes the club round
+trip.
 
 # Decisions so far (2026-10-05)
 

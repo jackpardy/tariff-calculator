@@ -182,6 +182,10 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 										<button class="button is-small" type="button" x-on:click="duplicate(s.set)">Duplicate</button>
 										<button class="button is-small" type="button" x-on:click="Share.open('sets', [s.id])">Share</button>
 										<button class="button is-small" type="button" x-on:click="exportSet(s.set)">Export</button>
+										// A coach's page saved in this browser takes them as a club level (ADR 0011).
+										<template x-for="c in coachLinks" x-bind:key="c.url">
+											<button class="button is-small" type="button" x-on:click="saveToClub(c, s)" x-text="coachLinks.length > 1 ? `Save to club levels: ${c.name}` : 'Save to club levels'"></button>
+										</template>
 										<button class="button is-small is-danger is-outlined" type="button" x-on:click="remove(s.id)">Delete</button>
 									</div>
 								</li>
