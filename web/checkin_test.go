@@ -117,7 +117,7 @@ func TestCheckinAndScratches(t *testing.T) {
 	// Who can: chairs and the timetable link, not the cards link.
 	chair := madeLink(t, h, admin, "Chris", "chair")
 	mark(chair, checkinEntry(t, page, "Cal"), "here")
-	if history := do(t, h, http.MethodGet, admin+"/history", nil).Body.String(); !strings.Contains(history, "Checked in: Cal") || !strings.Contains(history, "Chris") {
+	if !historyHas(t, h, admin, "Chris", "Checked in: Cal") {
 		t.Error("the history says the chair checked Cal in")
 	}
 	if page := do(t, h, http.MethodGet, chair+"/day?day=0", nil).Body.String(); !strings.Contains(page, "Check-in · 2 of 3 here, 1 scratched</summary>") {
@@ -259,7 +259,7 @@ func TestScratchClearing(t *testing.T) {
 		t.Errorf("already cleared: %s", to)
 	}
 	history := get(admin + "/history")
-	if !strings.Contains(history, "Cleared Dara&#39;s scratch warning (officiating)") || strings.Count(history, "Cleared Dara") != 1 || !strings.Contains(history, "Chris") {
+	if !historyHas(t, h, admin, "Chris", "Cleared Dara's scratch warning (officiating)") || strings.Count(history, "Cleared Dara") != 1 {
 		t.Errorf("the history says the chair cleared it, once: %s", history)
 	}
 

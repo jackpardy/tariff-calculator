@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -447,6 +448,9 @@ func firstChildTag(n *html.Node, tag string) *html.Node {
 
 // myPage is a person's My competition page.
 type myPage struct {
+	Name     string   // the heading: the person's name on the organiser's page of them
+	Roles    []string // on the organiser's page: "Gymnast", "Coach"…
+	Coaching []string // on the organiser's page: who they coach, "Mo · BUCS L3"
 	Lateness []string // the lines saying an area is running late or early
 	Desk     []string // messages from the organisers, newest first
 	Events   []myEvent
@@ -456,6 +460,7 @@ type myPage struct {
 // myEvent is one of their events.
 type myEvent struct {
 	Event, Status string
+	Gymnasts      string // e.g. "Sam & Pat"
 	Flight        string // e.g. "BUCS L3 · Panel 1 · Saturday", "" before publishing
 	WarmUp        string
 	Problems      []string
@@ -465,6 +470,21 @@ func myCompetitionOf(t *testing.T, page string) myPage {
 	t.Helper()
 	doc := parsePage(t, page)
 	var out myPage
+	if h1 := byTag(doc, "h1"); len(h1) > 0 {
+		out.Name = textOf(h1[0])
+	}
+	if tags := firstByClass(doc, "tags"); tags != nil {
+		for _, tag := range byClass(tags, "tag") {
+			out.Roles = append(out.Roles, textOf(tag))
+		}
+	}
+	for _, h2 := range byTag(doc, "h2") {
+		if textOf(h2) == "Coaching" {
+			for _, li := range byTag(h2.Parent, "li") {
+				out.Coaching = append(out.Coaching, textOf(li))
+			}
+		}
+	}
 	for _, n := range byClass(doc, "notification") {
 		switch {
 		case hasClass(n, "is-warning") && strings.Contains(textOf(n), " is running about "):
@@ -482,7 +502,7 @@ func myCompetitionOf(t *testing.T, page string) myPage {
 	}
 	for _, box := range byClass(doc, "comp-my-event") {
 		ps := byTag(box, "p")
-		ev := myEvent{Event: textOf(byTag(ps[0], "strong")[0]), Status: textOf(ps[2])}
+		ev := myEvent{Event: textOf(byTag(ps[0], "strong")[0]), Gymnasts: textOf(ps[1]), Status: textOf(ps[2])}
 		if fl := firstByClass(box, "comp-my-flight"); fl != nil {
 			fps := byTag(fl, "p")
 			ev.Flight = textOf(fps[0])
@@ -588,4 +608,41 @@ func invoiceOf(t *testing.T, page string) invoice {
 		out.ToPay = textOf(rows[len(rows)-1])
 	}
 	return out
+}
+
+// deskPeople are the people the desk can message one by one, with what
+// it says they are ("official", "gymnast"…), by name.
+func deskPeople(t *testing.T, page string) map[string]string {
+	t.Helper()
+	out := map[string]string{}
+	box := firstByClass(parsePage(t, page), "comp-desk-people")
+	if box == nil {
+		return out
+	}
+	for _, label := range byTag(box, "label") {
+		name, detail := "", ""
+		for c := label.FirstChild; c != nil; c = c.NextSibling {
+			switch {
+			case c.Type == html.TextNode && name == "":
+				name = strings.TrimSpace(c.Data)
+			case c.Type == html.ElementNode && c.Data == "span":
+				detail = strings.TrimPrefix(textOf(c), "· ")
+			}
+		}
+		out[name] = detail
+	}
+	return out
+}
+
+// rowOf is the cells of the first table row whose cells start with name,
+// failing if there's none.
+func rowOf(t *testing.T, page, name string) []string {
+	t.Helper()
+	for _, row := range tableRows(t, page) {
+		if slices.ContainsFunc(row, func(c string) bool { return c == name || strings.HasPrefix(c, name+" ") }) {
+			return row
+		}
+	}
+	t.Fatalf("no row for %s", name)
+	return nil
 }

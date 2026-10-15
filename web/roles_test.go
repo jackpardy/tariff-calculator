@@ -471,8 +471,8 @@ func TestAllPeopleJoinsRoles(t *testing.T) {
 	}
 	// Her page, from the list or by her coach's key, is one page.
 	page := get(personLink(t, people, admin, "Ann O&#39;Neill / Jr?"))
-	if !strings.Contains(page, "Gymnast") || !strings.Contains(page, "Coach") || !strings.Contains(page, "Mo") {
-		t.Errorf("everything she does: %s", page)
+	if got := myCompetitionOf(t, page); !slices.Equal(got.Roles, []string{"Gymnast", "Coach"}) || !slices.Equal(got.Coaching, []string{"Mo · Trampoline BUCS L3"}) || len(got.Events) != 1 {
+		t.Errorf("everything she does: %+v", got)
 	}
 	mo := get(personLink(t, people, admin, "Mo"))
 	coach := regexp.MustCompile(`href="(` + regexp.QuoteMeta(admin) + `/people/c[^"]+)"`).FindStringSubmatch(mo)

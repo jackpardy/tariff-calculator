@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -187,8 +188,8 @@ func TestIndividualEntry(t *testing.T) {
 
 	// The organiser sees it, checked, with its problems.
 	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
-	if !strings.Contains(dash, "C. Ryan") || !strings.Contains(dash, "individual") || !strings.Contains(dash, "+") {
-		t.Errorf("the dashboard lists the entry with its problems")
+	if row := rowOf(t, dash, "C. Ryan"); !slices.Contains(row, "individual") || !slices.Contains(row, "Second exercise: Exactly 10 elements +1 more") {
+		t.Errorf("the dashboard lists the entry as an individual's, with its problems: %q", row)
 	}
 	if problems := do(t, h, http.MethodGet, admin+"?problems=1", nil).Body.String(); !strings.Contains(problems, "C. Ryan") {
 		t.Error("a two-skill voluntary has problems, so it's listed under problems only")

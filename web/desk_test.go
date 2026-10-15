@@ -316,9 +316,8 @@ func TestDeskLinks(t *testing.T) {
 		}
 	}
 	redirected(t, h, chair+"/desk", form)
-	history := do(t, h, http.MethodGet, admin+"/history", nil).Body.String()
-	if !strings.Contains(history, "Called Ann Ryan to the desk") || !strings.Contains(history, "Chairs") {
-		t.Errorf("the chair is in the history: %s", history)
+	if !historyHas(t, h, admin, "Chairs", "Called Ann Ryan to the desk") {
+		t.Error("the chair is in the history")
 	}
 	// A message that wasn't sent isn't in the history.
 	redirected(t, h, table+"/desk", url.Values{"to": {"people"}, "text": {"Nobody"}})
@@ -399,8 +398,8 @@ func TestDeskToOfficials(t *testing.T) {
 	for _, name := range []string{"Mary", "Tom", "Dara", "Eve"} {
 		personOnDesk(t, page, name)
 	}
-	if !strings.Contains(page, "official") || !strings.Contains(page, "gymnast") {
-		t.Error("each person says what they are")
+	if got := deskPeople(t, page); got["Mary"] != "official" || got["Tom"] != "official" || got["Eve"] != "gymnast" || got["Dara"] != "gymnast · official" {
+		t.Errorf("each person says what they are: %q", got)
 	}
 
 	tt := admin + "/timetable"

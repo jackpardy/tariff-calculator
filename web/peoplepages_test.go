@@ -175,8 +175,8 @@ func TestPeople(t *testing.T) {
 	if page := do(t, h, http.MethodGet, personLink(t, list, admin, "Pat"), nil).Body.String(); !strings.Contains(page, "Sam &amp; Pat") && !strings.Contains(page, "Sam & Pat") {
 		t.Errorf("Pat's page shows the pair: %s", page)
 	}
-	if page := do(t, h, http.MethodGet, personLink(t, list, admin, "Sam"), nil).Body.String(); !strings.Contains(page, "Sam") {
-		t.Error("Sam's page")
+	if got := myCompetitionOf(t, do(t, h, http.MethodGet, personLink(t, list, admin, "Sam"), nil).Body.String()); got.Name != "Sam" || len(got.Events) != 1 || got.Events[0].Gymnasts != "Sam & Pat" {
+		t.Errorf("Sam's page, with the pair: %+v", got)
 	}
 
 	// The links reach it: the dashboard's entry tables, the officials page and
