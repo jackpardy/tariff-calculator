@@ -195,13 +195,14 @@ build on:
       tracking levels, separate from the competition levels that check a
       single routine.
 
-**Still to decide for 2:**
+   6. **Sharing club levels** (decided 2026-10-15). A club level can be
+      shared with other clubs by link, as requirements and levels are
+      today ([sharing](features/sharing.md)), bringing the club skills it
+      uses, so a regional scheme's grades are made once. The club that
+      opens the link gets its own copy to track against and change.
 
-- Whether a member's progress goes with them if they move club. Not to
-  start with: it stays with the club.
-- Whether club levels can be shared between clubs (by link, as
-  requirements and levels are), so a regional scheme's grades are made
-  once.
+**Later (decided 2026-10-15):** a member moving club takes their routines,
+marks and progress with them. Not to start with: they stay with the club.
 
 **After these:** the session planner (clubs 3) needs no storage and can be
 built at any time, as a page that works like the calculator. Judge and coach
