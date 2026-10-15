@@ -21,7 +21,7 @@ The `Dockerfile` builds in two stages:
 1. `golang:1.26-alpine` downloads the modules, **runs `go test ./...`**, and
    builds a static binary (`CGO_ENABLED=0`, `-trimpath`, stripped).
 2. `alpine:3.20` gets that one binary, running as non-root `app` (uid 1000) on
-   `PORT=8080`, with a `HEALTHCHECK` that runs `wget` against `/healthz`. That answers 200 while the app is fit to serve, and 503 when `DATA_DIR` is set but competition storage didn't open or isn't answering (a migration that failed on deploy, say). The calculator still works then, as ADR 0004 Decision 8 has it, but the container shows as unhealthy and the deploy job fails. On SIGTERM the app lets requests under way finish (up to 15 seconds), then closes the database.
+   `PORT=8080`, with a `HEALTHCHECK` that runs `wget` against `/healthz`. That answers 200 while the app is fit to serve, and 503 when `DATA_DIR` is set but competition storage didn't open or isn't answering (a migration that failed on deploy, say). The calculator still works then, as ADR 0004 Decision 8 has it, but the container shows as unhealthy and the deploy job fails. On SIGTERM the app lets requests under way finish (up to 15 seconds), waits up to 20 seconds for emails and pushes still queued, then closes the database.
 
 Templates and assets are compiled or embedded into the binary, so nothing else
 is copied ([static assets](../architecture/static-assets.md)). The calculator
@@ -123,7 +123,23 @@ send email by SMTP with STARTTLS (ADR 0008 Decision 7), set by:
 - `SMTP_USERNAME` and `SMTP_PASSWORD`;
 - `MAIL_FROM`, the sender, e.g. `ISTO tools <notify@tariff.pardy.ie>`;
 - `PUBLIC_URL`, the site's address for links in emails (default
-  `https://tariff.pardy.ie`).
+  `https://tariff.pardy.ie`);
+- `MAIL_PER_SECOND`, the most emails sent a second (default 14, SES's
+  production rate; set `1` while SES is in its sandbox).
+
+Desk messages and change notifications are sent in the background, four at
+a time, emails no faster than that. On SIGTERM the app waits up to 20
+seconds more for what's queued, then logs how many were left unsent, so
+with the 15 seconds for requests a stop can take 35 seconds: give the
+`tariff` service a `stop_grace_period` of at least `40s` in the server's
+Compose file (Docker's default of 10 seconds kills it before the database is
+closed cleanly).
+
+`FEEDBACK_EMAIL`, if set, is where each piece of
+[feedback about the app](../features/competition-entries.md#feedback-about-the-app-ready-for-the-dry-run)
+is emailed as it's sent (for the maintainer, during the dry run); it needs
+the email settings above too. Without it, feedback is only on each
+competition's Feedback page.
 
 Without `SMTP_HOST` and `MAIL_FROM`, email isn't offered. Phone push needs
 nothing set: the app makes its push (VAPID) keys on first use and keeps them
@@ -172,3 +188,46 @@ people in the live database, deleted 120 days after the competition's date
 like any other): `docker compose exec tariff /app/tariffCalculator demo` from
 the server's compose directory, then open the printed paths on
 `https://tariff.pardy.ie`.
+
+# Load test
+
+`cmd/loadtest` acts as the people at a competition, to see how the app holds
+up before the dry run. It reads a list of pages, one person's a line, which
+`tariffCalculator demo -pages FILE` writes alongside the demo (every member's
+My competition page, the gymnasts entering on their own, every coach and
+club, the organiser's On the day page and the venue screen). Then, at once:
+
+- a **burst**: every person opens their page within `-burst` (as after a
+  desk message or a push to everyone);
+- **steady use** for `-steady`: each opens it again every `-think` or so,
+  `-staff` people reload On the day every 10 seconds, and `-screens` venue
+  screens refresh every 30 seconds;
+- **taps**: a gymnast checked in or cleared every `-taps`, so the pages'
+  cache is refreshed as it would be on the day.
+
+It ends with each kind of page's loads, failures, median, 90th and 99th
+percentile and slowest time. **Never point it at the live site**: the taps
+change the competition, and the demo's made-up people would sit in the live
+database. Run it against a test copy: its own `DATA_DIR`, seeded with the
+demo, on a port of its own.
+
+```
+DATA_DIR=/tmp/lt go run . demo -pages /tmp/lt/pages.txt
+PORT=8090 DATA_DIR=/tmp/lt GOMAXPROCS=2 go run .
+go run ./cmd/loadtest -base http://localhost:8090 -pages /tmp/lt/pages.txt -people 400 -burst 2s -steady 40s -think 10s -taps 2s
+```
+
+On an M2 laptop held to two cores (`GOMAXPROCS=2`, like the server's two
+shared processors), 15 October 2026, the full demo, 400 people all opening
+their page within 2 seconds:
+
+| | Before the cache (aa111e8) | After |
+|---|---|---|
+| Gymnasts' pages in the burst | 191 of 343 failed (timed out); median 4.8 s, slowest 28.6 s | none failed; median 171 ms, slowest 1.0 s |
+| Gymnasts' pages after it | median 3.3 s, 99% within 23 s | median 9 ms, 99% within 125 ms |
+| Taps | 1 of 4 failed; median 2.8 s | none failed; median 5 ms |
+
+The server is slower per processor than the laptop and shared with other
+services, so run it there too before the dry run, on a test copy: the steps
+above in a second container or on a spare port, with `-base` pointing at it
+from a laptop (through Caddy if it's to count the network and compression).

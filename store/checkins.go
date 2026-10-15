@@ -26,6 +26,12 @@ type Checkin struct {
 // SetCheckin marks an entry here or scratched, by who; a status of "" takes
 // the mark away.
 func (s *Store) SetCheckin(ctx context.Context, competitionID, entryID, status, who string) error {
+	return s.SetCheckinAt(ctx, competitionID, entryID, status, who, time.Time{})
+}
+
+// SetCheckinAt is SetCheckin with when it was tapped: at, for a tap kept on
+// a phone without signal and sent later; now if at is zero.
+func (s *Store) SetCheckinAt(ctx context.Context, competitionID, entryID, status, who string, at time.Time) error {
 	switch status {
 	case "":
 		_, err := s.db.ExecContext(ctx, `DELETE FROM checkins WHERE competition_id = $1 AND entry_id = $2`, competitionID, entryID)
@@ -33,7 +39,7 @@ func (s *Store) SetCheckin(ctx context.Context, competitionID, entryID, status, 
 	case CheckedIn, Scratched:
 		_, err := s.db.ExecContext(ctx, `INSERT INTO checkins (competition_id, entry_id, status, at, who) VALUES ($1, $2, $3, $4, $5)
 			ON CONFLICT (competition_id, entry_id) DO UPDATE SET status = excluded.status, at = excluded.at, who = excluded.who`,
-			competitionID, entryID, status, s.stamp(), who)
+			competitionID, entryID, status, s.stampAt(at), who)
 		return err
 	}
 	return fmt.Errorf("unknown check-in status %q", status)
@@ -77,12 +83,18 @@ type ScratchClear struct {
 // ClearCompeting) for a person, by who, for the whole competition. Clearing
 // again replaces who and when.
 func (s *Store) ClearScratch(ctx context.Context, competitionID, person, kind, who string) error {
+	return s.ClearScratchAt(ctx, competitionID, person, kind, who, time.Time{})
+}
+
+// ClearScratchAt is ClearScratch with when it was tapped: at, for a tap kept
+// on a phone without signal and sent later; now if at is zero.
+func (s *Store) ClearScratchAt(ctx context.Context, competitionID, person, kind, who string, at time.Time) error {
 	if kind != ClearOfficiating && kind != ClearCompeting {
 		return fmt.Errorf("unknown scratch warning %q", kind)
 	}
 	_, err := s.db.ExecContext(ctx, `INSERT INTO scratch_clears (competition_id, person, kind, who, at) VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (competition_id, person, kind) DO UPDATE SET who = excluded.who, at = excluded.at`,
-		competitionID, person, kind, who, s.stamp())
+		competitionID, person, kind, who, s.stampAt(at))
 	return err
 }
 
@@ -119,6 +131,12 @@ const (
 // SetOfficialCheckin marks a person here or missing for each of these
 // flights (by key), by who, in one go; a status of "" takes the mark away.
 func (s *Store) SetOfficialCheckin(ctx context.Context, competitionID, person string, flights []string, status, who string) error {
+	return s.SetOfficialCheckinAt(ctx, competitionID, person, flights, status, who, time.Time{})
+}
+
+// SetOfficialCheckinAt is SetOfficialCheckin with when it was tapped: at,
+// for a tap kept on a phone without signal and sent later; now if at is zero.
+func (s *Store) SetOfficialCheckinAt(ctx context.Context, competitionID, person string, flights []string, status, who string, at time.Time) error {
 	if status != "" && status != OfficialHere && status != OfficialMissing {
 		return fmt.Errorf("unknown official check-in status %q", status)
 	}
@@ -132,7 +150,7 @@ func (s *Store) SetOfficialCheckin(ctx context.Context, competitionID, person st
 			}
 			if _, err := tx.ExecContext(ctx, `INSERT INTO official_checkins (competition_id, person, flight, status, who, at) VALUES ($1, $2, $3, $4, $5, $6)
 				ON CONFLICT (competition_id, person, flight) DO UPDATE SET status = excluded.status, who = excluded.who, at = excluded.at`,
-				competitionID, person, f, status, who, s.stamp()); err != nil {
+				competitionID, person, f, status, who, s.stampAt(at)); err != nil {
 				return err
 			}
 		}

@@ -42,7 +42,20 @@ func main() {
 		if st == nil {
 			log.Fatal("The demo needs competition storage: set DATA_DIR.")
 		}
-		err := demo.Seed(web.Routes(st), os.Stdout, uint64(time.Now().UnixNano()))
+		seed := uint64(time.Now().UnixNano())
+		var err error
+		if len(os.Args) > 3 && os.Args[2] == "-pages" {
+			// "demo -pages FILE" also lists every person's page, for cmd/loadtest.
+			var f *os.File
+			if f, err = os.Create(os.Args[3]); err == nil {
+				err = demo.SeedPages(web.Routes(st), os.Stdout, f, seed)
+				if cerr := f.Close(); err == nil {
+					err = cerr
+				}
+			}
+		} else {
+			err = demo.Seed(web.Routes(st), os.Stdout, seed)
+		}
 		st.Close()
 		if err != nil {
 			log.Fatalf("Demo: %v", err)
@@ -64,7 +77,7 @@ func main() {
 		MaxHeaderBytes:    web.MaxHeaderBytes,
 	}
 	// A deploy stops the app with SIGTERM: let the requests under way finish,
-	// then close the database cleanly.
+	// and the emails and pushes queued, then close the database cleanly.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer stop()
 	go func() {
@@ -79,6 +92,8 @@ func main() {
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}
+	// Then let what's being emailed and pushed go, for a while.
+	app.Finish(20 * time.Second)
 	if st != nil {
 		if err := st.Close(); err != nil {
 			log.Printf("Closing the database: %v", err)

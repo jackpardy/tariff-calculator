@@ -2,12 +2,12 @@ package web
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"slices"
 	"strconv"
+	"time"
 
 	"tariffCalculator/competitions"
 	"tariffCalculator/store"
@@ -34,26 +34,18 @@ func (p *competitionPages) scratchedOf(ctx context.Context, competitionID string
 	return out, nil
 }
 
-// checkinOf is a flight's check-in: how many are here and scratched, in words
-// ("8 of 10 here, 1 scratched"), and each gymnast in running order with their
-// state and what could be done about it. Entries no longer in the competition
-// are left out. keys are the people of each entry; notify says whether to
-// offer to Notify the gymnasts who aren't here.
-func checkinOf(f competitions.ScheduledFlight, byID map[string]store.Entry, checkins map[string]store.Checkin, keys map[string][]string, notify bool) (string, []views.DayGymnast) {
+// checkinOf is a flight's check-in: each gymnast in running order with their
+// state and what could be done about it (the page counts them). Entries no
+// longer in the competition are left out. keys are the people of each entry;
+// notify says whether to offer to Notify the gymnasts who aren't here.
+func checkinOf(f competitions.ScheduledFlight, byID map[string]store.Entry, checkins map[string]store.Checkin, keys map[string][]string, notify bool) []views.DayGymnast {
 	var out []views.DayGymnast
-	here, scratched := 0, 0
 	for n, id := range f.Entries {
 		e, ok := byID[id]
 		if !ok {
 			continue
 		}
 		c := checkins[id]
-		switch c.Status {
-		case store.CheckedIn:
-			here++
-		case store.Scratched:
-			scratched++
-		}
 		g := views.DayGymnast{
 			Entry: id, FlightGymnast: views.FlightGymnast{No: n + 1, Name: e.Entry.Gymnasts(), Club: clubOf(e)}, State: c.Status, Who: c.Who,
 			CanHere: c.Status != store.CheckedIn, CanScratch: c.Status != store.Scratched, CanClear: c.Status != "",
@@ -63,14 +55,7 @@ func checkinOf(f competitions.ScheduledFlight, byID map[string]store.Entry, chec
 		}
 		out = append(out, g)
 	}
-	if len(out) == 0 {
-		return "", nil
-	}
-	summary := fmt.Sprintf("%d of %d here", here, len(out))
-	if scratched > 0 {
-		summary += fmt.Sprintf(", %d scratched", scratched)
-	}
-	return summary, out
+	return out
 }
 
 // scratchedPeople are the people with an entry scratched (a synchro pair's
@@ -180,19 +165,22 @@ func scratchWarnings(s competitions.Schedule, day int, entries []store.Entry, ch
 
 // checkinAction finds a gymnast's entry in the published timetable, and the
 // flight it's in, and says whether setting its check-in to status ("here",
-// "scratched", or "" to clear) would change anything. found is false for a
-// status that's none of those, or an entry that isn't in a flight.
-func (p *competitionPages) checkinAction(ctx context.Context, c store.Competition, entryID, status string) (e store.Entry, f competitions.ScheduledFlight, applies, found bool, err error) {
+// "scratched", or "" to clear) at the time at would change anything. found
+// is false for a status that's none of those, or an entry that isn't in a
+// flight. Two phones may both have kept a tap for the same gymnast while
+// without signal, so the latest tap wins: one older than the gymnast's last
+// mark changes nothing, and why says so.
+func (p *competitionPages) checkinAction(ctx context.Context, c store.Competition, entryID, status string, at time.Time) (e store.Entry, f competitions.ScheduledFlight, applies, found bool, why string, err error) {
 	if c.Published == nil || !slices.Contains([]string{"", store.CheckedIn, store.Scratched}, status) {
-		return e, f, false, false, nil
+		return e, f, false, false, "", nil
 	}
 	i, ok := c.Published.Find(entryID)
 	if !ok {
-		return e, f, false, false, nil
+		return e, f, false, false, "", nil
 	}
-	all, err := p.st.Entries(ctx, c.ID)
+	all, err := p.entriesOf(ctx, c.ID)
 	if err != nil {
-		return e, f, false, false, err
+		return e, f, false, false, "", err
 	}
 	for _, g := range live(all) {
 		if g.ID == entryID {
@@ -200,34 +188,47 @@ func (p *competitionPages) checkinAction(ctx context.Context, c store.Competitio
 		}
 	}
 	if !found {
-		return e, f, false, false, nil
+		return e, f, false, false, "", nil
 	}
 	checkins, err := p.st.Checkins(ctx, c.ID)
 	if err != nil {
-		return e, f, false, true, err
+		return e, f, false, true, "", err
 	}
-	return e, c.Published.Flights[i], checkins[entryID].Status != status, true, nil
+	was := checkins[entryID]
+	switch {
+	case was.Status == status:
+		why = "Someone has already done that for " + e.Entry.Gymnasts() + "."
+	case at.Before(was.At):
+		why = "A tap from " + at.In(local).Format("15:04") + " for " + e.Entry.Gymnasts() + " wasn't recorded: they were marked again later, at " + was.At.In(local).Format("15:04") + "."
+	default:
+		applies = true
+	}
+	return e, c.Published.Flights[i], applies, true, why, nil
 }
 
 // markCheckin sets a gymnast's check-in (entry: its id; status: here,
-// scratched, or empty to clear; day: the page to go back to).
+// scratched, or empty to clear; day: the page to go back to; tapped and
+// sent: when a tap kept on the phone was made and sent, see tapAt).
 func (p *competitionPages) markCheckin(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
 	if !ok {
 		return
 	}
 	entryID, status := r.FormValue("entry"), r.FormValue("status")
-	e, f, applies, found, err := p.checkinAction(r.Context(), c, entryID, status)
+	at, late := p.tapAt(r)
+	_, f, applies, found, why, err := p.checkinAction(r.Context(), c, entryID, status, at)
 	anchor := flightID(competitions.FlightKey(f))
 	switch {
 	case err != nil:
 		failed(w, r, err)
 	case !found:
 		message(w, r, http.StatusBadRequest, "Not a gymnast in a flight", "That gymnast isn't in a flight of the published timetable. It may have been changed: go back and try again.")
+	case late != "":
+		http.Redirect(w, r, backToDay(r, late, anchor), http.StatusSeeOther)
 	case !applies:
-		http.Redirect(w, r, backToDay(r, "Someone has already done that for "+e.Entry.Gymnasts()+".", anchor), http.StatusSeeOther)
+		http.Redirect(w, r, backToDay(r, why, anchor), http.StatusSeeOther)
 	default:
-		if err := p.st.SetCheckin(r.Context(), c.ID, entryID, status, linkOf(r).Name); err != nil {
+		if err := p.st.SetCheckinAt(r.Context(), c.ID, entryID, status, linkOf(r).Name, at); err != nil {
 			failed(w, r, err)
 			return
 		}
@@ -238,17 +239,21 @@ func (p *competitionPages) markCheckin(w http.ResponseWriter, r *http.Request) {
 // describeCheckin says what a check-in does, for the history; "" if it
 // changes nothing.
 func (p *competitionPages) describeCheckin(r *http.Request, c store.Competition) string {
-	e, f, applies, found, err := p.checkinAction(r.Context(), c, r.Form.Get("entry"), r.Form.Get("status"))
+	at, late := p.tapAt(r)
+	if late != "" {
+		return ""
+	}
+	e, f, applies, found, _, err := p.checkinAction(r.Context(), c, r.Form.Get("entry"), r.Form.Get("status"), at)
 	if err != nil || !found || !applies {
 		return ""
 	}
 	switch r.Form.Get("status") {
 	case store.CheckedIn:
-		return "Checked in: " + e.Entry.Gymnasts() + " (" + f.Name() + ")"
+		return "Checked in: " + e.Entry.Gymnasts() + " (" + f.Name() + ")" + p.tappedNote(at)
 	case store.Scratched:
-		return "Scratched: " + e.Entry.Gymnasts() + " (" + f.Name() + ")"
+		return "Scratched: " + e.Entry.Gymnasts() + " (" + f.Name() + ")" + p.tappedNote(at)
 	}
-	return "Cleared check-in: " + e.Entry.Gymnasts()
+	return "Cleared check-in: " + e.Entry.Gymnasts() + p.tappedNote(at)
 }
 
 // clearAction finds a scratched person by key, and says whether clearing a
@@ -258,7 +263,7 @@ func (p *competitionPages) clearAction(ctx context.Context, c store.Competition,
 	if c.Published == nil || kind != store.ClearOfficiating && kind != store.ClearCompeting {
 		return "", false, false, nil
 	}
-	all, err := p.st.Entries(ctx, c.ID)
+	all, err := p.entriesOf(ctx, c.ID)
 	if err != nil {
 		return "", false, false, err
 	}
@@ -292,16 +297,19 @@ func (p *competitionPages) clearScratch(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	person, kind := r.FormValue("person"), r.FormValue("kind")
+	at, late := p.tapAt(r)
 	name, applies, found, err := p.clearAction(r.Context(), c, person, kind)
 	switch {
 	case err != nil:
 		failed(w, r, err)
 	case !found:
 		message(w, r, http.StatusBadRequest, "Not a scratched gymnast", "That person isn't scratched in the published timetable. It may have been changed: go back and try again.")
+	case late != "":
+		http.Redirect(w, r, backToDay(r, late, warningsID), http.StatusSeeOther)
 	case !applies:
 		http.Redirect(w, r, backToDay(r, "Someone has already done that for "+name+".", warningsID), http.StatusSeeOther)
 	default:
-		if err := p.st.ClearScratch(r.Context(), c.ID, person, kind, linkOf(r).Name); err != nil {
+		if err := p.st.ClearScratchAt(r.Context(), c.ID, person, kind, linkOf(r).Name, at); err != nil {
 			failed(w, r, err)
 			return
 		}
@@ -313,7 +321,7 @@ func (p *competitionPages) clearScratch(w http.ResponseWriter, r *http.Request) 
 // "" if it changes nothing.
 func (p *competitionPages) describeClear(r *http.Request, c store.Competition) string {
 	name, applies, found, err := p.clearAction(r.Context(), c, r.Form.Get("person"), r.Form.Get("kind"))
-	if err != nil || !found || !applies {
+	if _, late := p.tapAt(r); err != nil || !found || !applies || late != "" {
 		return ""
 	}
 	return "Cleared " + name + "'s scratch warning (" + r.Form.Get("kind") + ")"
@@ -328,7 +336,7 @@ func (p *competitionPages) stillHere(w http.ResponseWriter, r *http.Request, c s
 		message(w, r, http.StatusConflict, "Not published yet", "The timetable isn't published yet, so there's nothing to tell the organisers. Check back once it is.")
 		return
 	}
-	all, err := p.st.Entries(r.Context(), c.ID)
+	all, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return

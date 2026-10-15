@@ -2,7 +2,6 @@ package web
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"slices"
@@ -50,26 +49,20 @@ func holdsSeat(f competitions.ScheduledFlight, person string) bool {
 	return person != "" && slices.ContainsFunc(f.Officials, func(d competitions.Duty) bool { return d.Person == person })
 }
 
-// panelOf is a flight's panel check-in: how many seats are here and missing,
-// in words ("4 of 6 here, 1 missing"), and each seated official with their
-// state and what could be done about it. names says who a key is; clubs, who
-// belongs to a club (by key); checks are the flight's check-ins by person;
-// whatIf is the "what if an official has to leave" page, or "" if the link
-// can't use it; notify says whether the link can send Notify messages.
-func panelOf(f competitions.ScheduledFlight, day int, names func(string) string, clubs map[string]bool, checks map[string]store.Checkin, whatIf string, notify bool) (string, []views.DaySeat) {
+// panelOf is a flight's panel check-in: each seat in order, with its official
+// and their state and what could be done about it, or no one in it (the page
+// counts them); none if no seat has anyone. names says who a key is; clubs, who belongs to a club (by
+// key); checks are the flight's check-ins by person; whatIf is the "what if
+// an official has to leave" page, or "" if the link can't use it; notify says
+// whether the link can send Notify messages.
+func panelOf(f competitions.ScheduledFlight, day int, names func(string) string, clubs map[string]bool, checks map[string]store.Checkin, whatIf string, notify bool) []views.DaySeat {
 	var out []views.DaySeat
-	here, missing := 0, 0
 	for _, d := range f.Officials {
 		if d.Person == "" {
+			out = append(out, views.DaySeat{Role: competitions.RoleName(d.Role)})
 			continue
 		}
 		c := checks[d.Person]
-		switch c.Status {
-		case store.OfficialHere:
-			here++
-		case store.OfficialMissing:
-			missing++
-		}
 		seat := views.DaySeat{
 			Person: d.Person, Name: names(d.Person), Role: competitions.RoleName(d.Role), State: c.Status, Who: c.Who,
 			CanHere: c.Status != store.OfficialHere, CanMissing: c.Status != store.OfficialMissing, CanClear: c.Status != "",
@@ -82,33 +75,31 @@ func panelOf(f competitions.ScheduledFlight, day int, names func(string) string,
 		}
 		out = append(out, seat)
 	}
-	if len(out) == 0 {
-		return "", nil
+	if !slices.ContainsFunc(out, func(s views.DaySeat) bool { return s.Person != "" }) {
+		return nil // no one has a seat: the rota isn't used
 	}
-	summary := fmt.Sprintf("%d of %d here", here, len(out))
-	if missing > 0 {
-		summary += fmt.Sprintf(", %d missing", missing)
-	}
-	return summary, out
+	return out
 }
 
 // officialChange is what setting a panel check-in would do: the official, the
 // flight asked about, the keys of the flights of its run where they hold a
-// seat, and whether any of those would change.
+// seat and the check-in would change, and why nothing would change, if so.
 type officialChange struct {
 	name    string
 	flight  competitions.ScheduledFlight
 	flights []string
 	applies bool
 	found   bool
+	why     string
 }
 
 // officialAction finds an official's seat on a flight of the published
 // timetable, and the run it's in, and says whether setting their check-in to
-// status ("here", "missing", or "" to clear) would change anything. found is
-// false for a status that's none of those, a flight that isn't published, or a
-// person without a seat on it.
-func (p *competitionPages) officialAction(r *http.Request, c store.Competition, person, flight, status string) (ch officialChange, err error) {
+// status ("here", "missing", or "" to clear) at the time at would change
+// anything. found is false for a status that's none of those, a flight that
+// isn't published, or a person without a seat on it. As with gymnasts, the
+// latest tap wins: a flight marked after at keeps its mark.
+func (p *competitionPages) officialAction(r *http.Request, c store.Competition, person, flight, status string, at time.Time) (ch officialChange, err error) {
 	if c.Published == nil || !slices.Contains([]string{"", store.OfficialHere, store.OfficialMissing}, status) {
 		return ch, nil
 	}
@@ -118,12 +109,7 @@ func (p *competitionPages) officialAction(r *http.Request, c store.Competition, 
 		return ch, nil
 	}
 	ch.flight, ch.found = s.Flights[i], true
-	for _, g := range runOf(s, i) {
-		if holdsSeat(g, person) {
-			ch.flights = append(ch.flights, competitions.FlightKey(g))
-		}
-	}
-	all, err := p.st.Entries(r.Context(), c.ID)
+	all, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		return ch, err
 	}
@@ -138,17 +124,26 @@ func (p *competitionPages) officialAction(r *http.Request, c store.Competition, 
 	if err != nil {
 		return ch, err
 	}
-	for _, k := range ch.flights {
-		if checks[k][person].Status != status {
-			ch.applies = true
+	ch.why = "Someone has already done that for " + ch.name + "."
+	for _, g := range runOf(s, i) {
+		k := competitions.FlightKey(g)
+		was := checks[k][person]
+		switch {
+		case !holdsSeat(g, person) || was.Status == status:
+		case at.Before(was.At):
+			ch.why = "A tap from " + at.In(local).Format("15:04") + " for " + ch.name + " wasn't recorded: they were marked again later, at " + was.At.In(local).Format("15:04") + "."
+		default:
+			ch.flights = append(ch.flights, k)
 		}
 	}
+	ch.applies = len(ch.flights) > 0
 	return ch, nil
 }
 
 // markOfficial sets an official's panel check-in on every flight of the run
 // where they hold a seat (person: their key; flight: one of its flights' keys;
-// status: here, missing, or empty to clear; day: the page to go back to).
+// status: here, missing, or empty to clear; day: the page to go back to;
+// tapped and sent: when a tap kept on the phone was made and sent, see tapAt).
 func (p *competitionPages) markOfficial(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
 	if !ok {
@@ -156,16 +151,19 @@ func (p *competitionPages) markOfficial(w http.ResponseWriter, r *http.Request) 
 	}
 	person, status := r.FormValue("person"), r.FormValue("status")
 	anchor := flightID(r.FormValue("flight"))
-	ch, err := p.officialAction(r, c, person, r.FormValue("flight"), status)
+	at, late := p.tapAt(r)
+	ch, err := p.officialAction(r, c, person, r.FormValue("flight"), status, at)
 	switch {
 	case err != nil:
 		failed(w, r, err)
 	case !ch.found:
 		message(w, r, http.StatusBadRequest, "Not an official on that panel", "That person doesn't have a seat on that flight of the published timetable. It may have been changed: go back and try again.")
+	case late != "":
+		http.Redirect(w, r, backToDay(r, late, anchor), http.StatusSeeOther)
 	case !ch.applies:
-		http.Redirect(w, r, backToDay(r, "Someone has already done that for "+ch.name+".", anchor), http.StatusSeeOther)
+		http.Redirect(w, r, backToDay(r, ch.why, anchor), http.StatusSeeOther)
 	default:
-		if err := p.st.SetOfficialCheckin(r.Context(), c.ID, person, ch.flights, status, linkOf(r).Name); err != nil {
+		if err := p.st.SetOfficialCheckinAt(r.Context(), c.ID, person, ch.flights, status, linkOf(r).Name, at); err != nil {
 			failed(w, r, err)
 			return
 		}
@@ -177,11 +175,15 @@ func (p *competitionPages) markOfficial(w http.ResponseWriter, r *http.Request) 
 // changes nothing.
 func (p *competitionPages) describeOfficial(r *http.Request, c store.Competition) string {
 	status := r.Form.Get("status")
-	ch, err := p.officialAction(r, c, r.Form.Get("person"), r.Form.Get("flight"), status)
+	at, late := p.tapAt(r)
+	if late != "" {
+		return ""
+	}
+	ch, err := p.officialAction(r, c, r.Form.Get("person"), r.Form.Get("flight"), status, at)
 	if err != nil || !ch.found || !ch.applies {
 		return ""
 	}
-	where := ": " + ch.name + " (" + ch.flight.Group() + ", " + ch.flight.Area + ")"
+	where := ": " + ch.name + " (" + ch.flight.Group() + ", " + ch.flight.Area + ")" + p.tappedNote(at)
 	switch status {
 	case store.OfficialHere:
 		return "Checked in official" + where
@@ -249,7 +251,7 @@ func (p *competitionPages) notifyFormOf(r *http.Request, c store.Competition) (d
 		return d, nil
 	}
 	f := s.Flights[i]
-	all, err := p.st.Entries(ctx, c.ID)
+	all, err := p.entriesOf(ctx, c.ID)
 	if err != nil {
 		return d, err
 	}
@@ -419,11 +421,8 @@ func (p *competitionPages) notifyOne(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	pushed, emailed := p.notify.tellDesk(r.Context(), c, m)
-	if err := p.st.SetDeskTold(r.Context(), c.ID, m.ID, pushed, emailed); err != nil {
-		log.Printf("Desk: %s: %v", c.ID, err)
-	}
-	notice := fmt.Sprintf("Sent to %s. Told %d by push and %d by email.", m.Audience, pushed, emailed)
+	pushes, emails := p.notify.tellDesk(r.Context(), c, m)
+	notice := "Sent to " + m.Audience + ". " + sendingNotice(pushes, emails)
 	http.Redirect(w, r, backToDay(r, notice, anchor), http.StatusSeeOther)
 }
 

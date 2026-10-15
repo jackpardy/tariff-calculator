@@ -125,7 +125,11 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 	if f.checkins, err = p.st.Checkins(r.Context(), c.ID); err != nil {
 		return page, f, err
 	}
-	for _, j := range judge(c.Competition, f.entries) {
+	cards, err := p.judgedOf(r.Context(), c.ID, true)
+	if err != nil {
+		return page, f, err
+	}
+	for _, j := range cards {
 		if !slices.Contains(f.people[j.ID], key) {
 			continue
 		}

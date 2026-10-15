@@ -512,31 +512,37 @@ pieces come first, so skill tracking (ADR 0011) uses them from the start; the
 competition side's day check-in, entry rows and rota seats follow in the
 dry-run work, and the rest after it. The plan is in
 [the cleanup audit](audits/2026-10-cleanup.md#colour-and-status-added-15-october-2026).
+The shared pieces and the dry-run pages are **built 2026-10-15**.
 
 **Ready for the dry run (decided 2026-10-09).** A dry run of the core tools,
 entries through to the day, with about 20 people from 3 clubs, is planned for
 late 2026: entries from mid November, the day in late November or early
 December. Before it:
 
-- **Faster pages.** Measured on the demo, which has about 400 gymnasts: a
-  gymnast's own page manages about 25 loads a second on a fast laptop,
-  because every load reads all the entries again and works out the levels
-  and officials rota from scratch. Keep that per competition and
-  refresh it only when something changes. The server (a Hetzner CX23: 2
-  shared processors, 4 GB) is several times slower than the laptop, so
-  without this a desk message to everyone could stall it.
-- **Smaller pages.** Pages are sent uncompressed: the organiser's On the
-  day page is 875 KB (26 KB compressed), a gymnast's page 101 KB (10 KB).
-  Compress them, in the app or in the web server in front of it.
+- **Faster pages** (built 2026-10-15). Every load read all the entries
+  again and worked out the officials rota and every card's checks from
+  scratch; now each competition's are kept until something is saved. On
+  the full demo a gymnast's own page went from 65 ms to 6 ms, the
+  dashboard from 61 ms to 7 ms and a club's page from 58 ms to 18 ms
+  ([how](architecture/http-routes.md)).
+- **Smaller pages** (built 2026-10-15). The app gzips its own text
+  responses and, once, its static files ([compression](architecture/static-assets.md#compression)):
+  on the demo the organiser's dashboard went from 674 KB to 57 KB, On the
+  day from 1.0 MB to 54 KB, the timetable from 1.0 MB to 67 KB, a
+  gymnast's page from 109 KB to 11 KB and a club's from 41 KB to 4 KB.
 - **A Feedback button** on every competition page while the dry run is on,
   saving the words, the page, the role and the time for the maintainer.
-  Helper links already have Flag a concern; this is for everyone.
-- **Send in the background.** A desk message, or a round of change
-  notifications, emails and pushes each person one at a time before the
-  organiser's page answers: about half a second to a second an email, so
-  a message to 300 people hangs for minutes and may time out part way
-  through. Send a few at a time in the background, and say at once how
-  many it's going to.
+  Helper links already have Flag a concern; this is for everyone. *Built
+  2026-10-15*
+  ([feedback](features/competition-entries.md#feedback-about-the-app-ready-for-the-dry-run)):
+  the organiser reads it and can turn it off; `FEEDBACK_EMAIL` emails it.
+- **Send in the background** (built 2026-10-15). A desk message, or a round of change
+  notifications, emailed and pushed each person one at a time before the
+  organiser's page answered: about half a second to a second an email, so
+  a message to 300 people hung for minutes and might time out part way
+  through. Now four go at a time in the background, emails capped a
+  second, the page says at once how many it's going to, and the desk shows
+  sent, still sending and failed.
 - **Email on the server**: Amazon SES in Ireland (decided 2026-10-09:
   pennies a competition and no daily cap that matters, unlike the free
   tiers of Resend or Brevo; Postmark is the fallback if SES refuses
@@ -547,9 +553,22 @@ December. Before it:
 - **Taps without signal**: Started, Finished, Here and Scratched saved on
   the phone with the time they were tapped, and sent when the signal
   comes back; and a way to correct a start or finish time afterwards,
-  for when the paper sheet was used instead.
+  for when the paper sheet was used instead. *Built 2026-10-15*
+  ([taps without signal](features/competition-entries.md#on-the-day-flights-started-and-finished)):
+  every tap on On the day, who's up included, recorded at the time tapped
+  by the server's clock, with rules for two phones' taps, and **Correct the
+  times** under each flight.
+- **One palette on the day's pages**: **built 2026-10-15.** On the day
+  (flights, check-in, panels and their empty seats), the dashboard's and the
+  club's entry rows and who fills each rota seat show states and roles with
+  the shared chips, and a test keeps Bulma's colours off them
+  ([what each shows](features/competition-entries.md#states-and-roles-on-the-pages-one-palette-step-2)).
 - **A load test**: a script acting as 300 people against a test copy on
-  the server, to get real numbers before the dry run.
+  the server, to get real numbers before the dry run. The script is built
+  (2026-10-15, [load test](operations/deploy.md#load-test)): on a laptop
+  held to two cores, 400 people opening their pages within 2 seconds went
+  from 191 of 343 failing to none, with a median of 171 ms. Still to do: a
+  run on the server.
 
 For ISTO itself: a 4G/5G router for the organiser, marshals and chairs
 (and a cable for the venue screen); everyone's times by push and email

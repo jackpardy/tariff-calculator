@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
-	"strings"
 	"testing"
 )
 
@@ -70,7 +69,7 @@ func TestDayMarksFollowTheFlight(t *testing.T) {
 		if f.Key != flight || f.Started != "09:00" || f.Up != order[0] || f.Routine != "Voluntary" {
 			t.Errorf("%s: its start and who's on: %+v", when, f)
 		}
-		if !strings.Contains(page, "Panel · 1 of 2 here</summary>") {
+		if panelsShowing(t, page, "1 of 2 here") == 0 {
 			t.Errorf("%s: Mary is still here", when)
 		}
 		card := screenCards(t, get(screen+"/screen?day=0"))[area]

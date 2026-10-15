@@ -236,11 +236,17 @@ templ CompetitionDashboard(d Dashboard) {
 													<a class="is-size-7 ml-1" href={ templ.SafeURL(r.Partner) } title="Everything the partner is doing">partner</a>
 												}
 												if r.Withdrawn {
-													<span class="tag is-warning is-light ml-1" title="Withdrawn since the club sent it; it goes when the club sends again">Withdrawn</span>
+													<span class="ml-1" title="Withdrawn since the club sent it; it goes when the club sends again">
+														@StateChip(Stopped, "Withdrawn")
+													</span>
 												}
 											</td>
 											<td data-label="Club">
-												{ r.Club }
+												if r.Club == "individual" {
+													@WhoChip(RoleGymnast, "on their own")
+												} else {
+													{ r.Club }
+												}
 												if r.Category != "" {
 													<span class="tag is-light ml-1">{ r.Category }</span>
 												}
@@ -256,34 +262,35 @@ templ CompetitionDashboard(d Dashboard) {
 												if len(r.Problems) == 0 {
 													–
 												} else {
+													@StateChip(Attention, Count(len(r.Problems), "problem", "problems"))
 													{ r.Problems[0] }
-													if len(r.Problems) > 1 {
-														<span class="has-text-grey">{ fmt.Sprintf(" +%d more", len(r.Problems)-1) }</span>
-													}
 												}
 											</td>
 											<td data-label="Sent">{ r.Sent }</td>
 											if d.Competition.Video != "" {
-												<td class={ templ.KV("has-text-danger", r.Video == "missing" || r.Video == "need more") } data-label="Video">
+												<td data-label="Video">
 													if r.Video == "" {
 														–
 													} else {
-														{ r.Video }
+														@StateChip(videoState(r.Video))
 													}
 												</td>
 											}
 											if d.Competition.Signoff {
-												<td class={ templ.KV("has-text-success", r.Signoff.Signed), templ.KV("has-text-danger", !r.Signoff.Signed && !r.Withdrawn) } title={ r.Signoff.Note } data-label="Coach">
-													if r.Signoff.Signed {
-														✓ { r.Signoff.By }
+												<td title={ r.Signoff.Note } data-label="Coach">
+													if r.Withdrawn && !r.Signoff.Signed {
+														–
 													} else {
-														not signed off
+														@StateChip(signoffState(r.Signoff))
+														if r.Signoff.By != "" {
+															@WhoChip(RoleCoach, r.Signoff.By)
+														}
 													}
 												</td>
 											}
 											<td title={ r.Note } data-label="Checked">
 												if r.Checked {
-													✓
+													@StateChip(Done, "Checked")
 												} else {
 													–
 												}
@@ -342,7 +349,7 @@ templ CompetitionEntry(d EntryDetail) {
 		}
 		if !d.Access.Check {
 			if d.Checked != "" {
-				<p class="mt-3"><strong>✓ Checked</strong> <span class="has-text-grey is-size-7">{ d.Checked }</span></p>
+				<p class="mt-3">@StateChip(Done, "Checked") <span class="has-text-grey is-size-7 ml-1">{ d.Checked }</span></p>
 			}
 			if d.Note != "" {
 				<p class="is-size-7">The organiser's note: { d.Note }</p>
@@ -354,7 +361,7 @@ templ CompetitionEntry(d EntryDetail) {
 			<div class="box mt-4">
 				<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/check") }>
 					if d.Checked != "" {
-						<p class="mb-2"><strong>✓ Checked</strong> <span class="has-text-grey is-size-7">{ d.Checked }</span></p>
+						<p class="mb-2">@StateChip(Done, "Checked") <span class="has-text-grey is-size-7 ml-1">{ d.Checked }</span></p>
 					}
 					<div class="field">
 						<label class="label is-small" for="check-note">Note for the club or gymnast</label>
@@ -381,9 +388,9 @@ templ CompetitionEntry(d EntryDetail) {
 						<strong>Video</strong>
 						switch d.VideoReview {
 							case "ok":
-								<span class="has-text-success">✓ OK</span>
+								@StateChip(Done, "OK")
 							case "more":
-								<span class="has-text-danger">needs more</span>
+								@StateChip(Attention, "Needs more")
 						}
 					</p>
 					<div class="field">
@@ -418,6 +425,34 @@ func filterQuery(d Dashboard, level string) string {
 		return ""
 	}
 	return "?" + q.Encode()
+}
+
+// videoState is an entry's video on the dashboard (missing, provided, OK or
+// need more), and its label.
+func videoState(v string) (State, string) {
+	switch v {
+	case "OK":
+		return Done, "OK"
+	case "provided":
+		return InProgress, "Provided"
+	case "need more":
+		return Attention, "Need more"
+	}
+	return Attention, "Missing"
+}
+
+// signoffState is where an entry's sign-off stands, and its label: signed
+// off; a coach who isn't approved, or who asks for changes; or waiting.
+func signoffState(s SignoffView) (State, string) {
+	switch {
+	case s.Signed:
+		return Done, "Signed off"
+	case s.Unapproved:
+		return Attention, "Coach not approved"
+	case s.By != "":
+		return Attention, "Needs changes"
+	}
+	return InProgress, "Waiting for sign-off"
 }
 
 // filtered says whether any filter is on.
@@ -469,11 +504,11 @@ templ removedList(base string, rows []RemovedRow) {
 							<td>{ r.Level }</td>
 							<td>
 								if r.Resent {
-									<span class="tag is-info is-light">Changed and sent again: waiting for you</span>
+									@StateChip(Attention, "Changed and sent again: waiting for you")
 								} else if r.Held {
-									<span class="tag is-warning is-light">On hold for changes</span>
+									@StateChip(Attention, "On hold for changes")
 								} else {
-									<span class="tag is-danger is-light">Removed</span>
+									@StateChip(Stopped, "Removed")
 								}
 								if r.Note != "" {
 									<span class="is-size-7 has-text-grey">{ r.Note } ({ r.To })</span>

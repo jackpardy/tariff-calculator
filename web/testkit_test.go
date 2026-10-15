@@ -14,6 +14,7 @@ import (
 	"golang.org/x/net/html"
 
 	"tariffCalculator/store"
+	"tariffCalculator/views"
 )
 
 // The shared test kit: a server with a clock and mailer of the test's
@@ -82,8 +83,22 @@ func newTestServer(t *testing.T, opts ...serverOption) *testServer {
 	for _, o := range opts {
 		o(s)
 	}
-	s.h = routesWithPages(s.p)
+	t.Cleanup(func() { s.p.notify.send.stop(time.Second) }) // before the store closes
+	h := routesWithPages(s.p)
+	// Each request waits for what it sent, so a test sees it once the
+	// request answers.
+	// It checks the cache after (checkingFacts).
+	s.h = checkingFacts(t, s.p, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
+		s.p.notify.send.flush()
+	}))
 	return s
+}
+
+// tellDue tells the changes that are due, and waits until they're sent.
+func tellDue(p *competitionPages) {
+	p.notify.tell(context.Background())
+	p.notify.send.flush()
 }
 
 // competitionServerAt is the app on a clock set to now.
@@ -195,17 +210,25 @@ func byTag(n *html.Node, tag string) []*html.Node {
 	return out
 }
 
-// textOf is the text in n, with its spaces collapsed; "" for nil.
+// textOf is the text in n as it's read out, with its spaces collapsed: what's
+// aria-hidden, such as a chip's mark, is left out. "" for nil.
 func textOf(n *html.Node) string {
 	if n == nil {
 		return ""
 	}
 	var b strings.Builder
-	for d := range n.Descendants() {
-		if d.Type == html.TextNode {
-			b.WriteString(d.Data + " ")
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			switch {
+			case c.Type == html.TextNode:
+				b.WriteString(c.Data + " ")
+			case attrOf(c, "aria-hidden") != "true":
+				walk(c)
+			}
 		}
 	}
+	walk(n)
 	return strings.Join(strings.Fields(b.String()), " ")
 }
 
@@ -291,7 +314,7 @@ func renderNode(n *html.Node) string {
 type dayArea struct {
 	Status  string // "Nothing started yet", "On time", "Running 15 min late"…
 	Since   string // e.g. "measured from BUCS L3 started at 09:20"
-	Late    bool   // the warning tag
+	Late    bool   // its chip says it needs attention
 	Early   bool
 	WhatIf  string // the link to the delay page, "" for none
 	Flights []dayFlight
@@ -300,15 +323,60 @@ type dayArea struct {
 // dayFlight is a flight's box on On the day.
 type dayFlight struct {
 	Key, Name, Planned string // Key is what its forms post
+	State              string // its chip: "Not started", "Under way", "Running late" or "Finished"
 	Started, Finished  string // "" for not yet
 	Who                string
 	Buttons            []string          // the start/finish/undo and tap buttons
 	UpLabel            string            // "First up…", "On now", or the note that nobody is left
 	Up, Routine        string            // who's on and their routine
 	Last               bool              // the note to tap Finished
-	Checkin            string            // e.g. "3 of 3 here"
+	Checkin            string            // its chips, e.g. "3 of 3 here", "2 of 3 here, 1 scratched"
+	Panel              string            // its panel's chips, e.g. "0 of 3 here, 1 missing, 1 seat needs someone"
 	Gymnasts           map[string]string // name: "here", "scratched" or ""
 	Order              []string          // the gymnasts in running order
+}
+
+// chip is a state chip as pages show it, to look for in one.
+func chip(t *testing.T, s views.State, label string) string {
+	t.Helper()
+	var b strings.Builder
+	if err := views.StateChip(s, label).Render(context.Background(), &b); err != nil {
+		t.Fatal(err)
+	}
+	return b.String()
+}
+
+// panelsShowing counts the flights on the On the day page whose panel
+// shows these chips, e.g. "0 of 3 here, 1 missing".
+func panelsShowing(t *testing.T, page, chips string) int {
+	t.Helper()
+	n := 0
+	for _, f := range dayFlights(t, page) {
+		if f.Panel == chips {
+			n++
+		}
+	}
+	return n
+}
+
+// chipsOf are the labels of the chips under n, e.g. "2 of 3 here, 1 scratched".
+func chipsOf(n *html.Node) string {
+	var out []string
+	for _, c := range byClass(n, "chip") {
+		out = append(out, textOf(c))
+	}
+	return strings.Join(out, ", ")
+}
+
+// dayFlights are every flight on the On the day page, area by area in no
+// set order.
+func dayFlights(t *testing.T, page string) []dayFlight {
+	t.Helper()
+	var out []dayFlight
+	for _, a := range dayPageAreas(t, page) {
+		out = append(out, a.Flights...)
+	}
+	return out
 }
 
 // dayPageAreas are the On the day page's areas, by name.
@@ -327,9 +395,10 @@ func dayPageAreas(t *testing.T, page string) map[string]dayArea {
 		}
 		var a dayArea
 		name := textOf(firstByClass(block, "title"))
-		if tag := firstByClass(block, "tag"); tag != nil {
-			a.Status, a.Late, a.Early = textOf(tag), hasClass(tag, "is-warning"), hasClass(tag, "is-info")
-			if since := firstByClass(tag.Parent, "has-text-grey"); since != nil {
+		if chip := firstByClass(block, "chip"); chip != nil {
+			a.Status, a.Late = textOf(chip), hasClass(chip, "chip-state-attention")
+			a.Early = strings.HasSuffix(a.Status, " early")
+			if since := firstByClass(chip.Parent, "has-text-grey"); since != nil {
 				a.Since = textOf(since)
 			}
 		}
@@ -348,8 +417,12 @@ func dayPageAreas(t *testing.T, page string) map[string]dayArea {
 
 func dayFlightOf(box *html.Node) dayFlight {
 	f := dayFlight{Gymnasts: map[string]string{}}
+	if up := firstByClass(box, "comp-up"); up != nil && slices.ContainsFunc(up.Attr, func(a html.Attribute) bool { return a.Key == "hidden" }) {
+		// Who's up, hidden until the flight starts, isn't on the page.
+		up.Parent.RemoveChild(up)
+	}
 	ps := byTag(box, "p")
-	f.Name = textOf(ps[0])
+	f.Name, f.State = textOf(firstChildTag(ps[0], "strong")), textOf(firstByClass(ps[0], "chip"))
 	for _, in := range byTag(box, "input") {
 		if attrOf(in, "name") == "flight" {
 			f.Key = attrOf(in, "value")
@@ -384,7 +457,7 @@ func dayFlightOf(box *html.Node) dayFlight {
 		if len(ups) > 2 {
 			// The name is the span after the running number.
 			for _, s := range byTag(ups[1], "span") {
-				if !hasClass(s, "comp-run-no") && !hasClass(s, "tag") {
+				if !hasClass(s, "comp-run-no") && !hasClass(s, "chip") {
 					f.Up = textOf(s)
 					break
 				}
@@ -394,10 +467,13 @@ func dayFlightOf(box *html.Node) dayFlight {
 		f.Last = strings.Contains(textOf(up), "The flight's last routine")
 	}
 	for _, d := range byClass(box, "comp-checkin") {
+		if strings.HasPrefix(attrOf(d, "data-key"), "panel:") {
+			f.Panel = chipsOf(firstChildTag(d, "summary"))
+		}
 		if attr := attrOf(d, "data-key"); !strings.HasPrefix(attr, "checkin:") {
 			continue
 		}
-		f.Checkin = strings.TrimPrefix(textOf(firstChildTag(d, "summary")), "Check-in · ")
+		f.Checkin = chipsOf(firstChildTag(d, "summary"))
 		for _, row := range byClass(d, "comp-checkin-row") {
 			name := firstByClass(row, "comp-checkin-name")
 			who := ""
@@ -408,8 +484,8 @@ func dayFlightOf(box *html.Node) dayFlight {
 				}
 			}
 			state := ""
-			for _, tag := range byClass(name, "tag") {
-				state = strings.ToLower(textOf(tag))
+			if chip := firstByClass(name, "chip"); chip != nil && !hasClass(chip, "chip-state-not-yet") {
+				state = strings.ToLower(textOf(chip))
 			}
 			f.Gymnasts[who] = state
 			f.Order = append(f.Order, who)

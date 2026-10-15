@@ -253,7 +253,7 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 				cc.Late = append(cc.Late, views.CoachLate{Member: l.Entry.Gymnasts(), What: competitions.LateKindName(l.Kind) + " to " + l.Entry.Event(), Link: path + "/late/" + l.ID})
 			}
 		}
-		sent, err := p.st.Entries(ctx, c.ID)
+		sent, err := p.entriesOf(ctx, c.ID)
 		if err != nil {
 			failed(w, r, err)
 			return
@@ -310,6 +310,7 @@ func (p *competitionPages) coachSees(w http.ResponseWriter, r *http.Request, coa
 				failed(w, r, err)
 				return e, c, false
 			}
+			feedbackOn(r, c)
 			return e, c, true
 		}
 	}

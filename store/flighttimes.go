@@ -22,16 +22,22 @@ type FlightTime struct {
 // finished), by who. An undo that finds nothing to take back, as when the same
 // tap is sent twice, changes nothing.
 func (s *Store) MarkFlight(ctx context.Context, competitionID, flight, what, who string) error {
+	return s.MarkFlightAt(ctx, competitionID, flight, what, who, time.Time{})
+}
+
+// MarkFlightAt is MarkFlight with when it started or finished: at, for a tap
+// kept on a phone without signal and sent later; now if at is zero.
+func (s *Store) MarkFlightAt(ctx context.Context, competitionID, flight, what, who string, at time.Time) error {
 	switch what {
 	case "start":
 		_, err := s.db.ExecContext(ctx, `INSERT INTO flight_times (competition_id, flight, started_at, who) VALUES ($1, $2, $3, $4)
 			ON CONFLICT (competition_id, flight) DO UPDATE SET started_at = excluded.started_at, who = excluded.who`,
-			competitionID, flight, s.stamp(), who)
+			competitionID, flight, s.stampAt(at), who)
 		return err
 	case "finish":
 		_, err := s.db.ExecContext(ctx, `INSERT INTO flight_times (competition_id, flight, finished_at, who) VALUES ($1, $2, $3, $4)
 			ON CONFLICT (competition_id, flight) DO UPDATE SET finished_at = excluded.finished_at, who = excluded.who`,
-			competitionID, flight, s.stamp(), who)
+			competitionID, flight, s.stampAt(at), who)
 		return err
 	case "undo-finish":
 		_, err := s.db.ExecContext(ctx, `UPDATE flight_times SET finished_at = '', who = $3
@@ -43,6 +49,15 @@ func (s *Store) MarkFlight(ctx context.Context, competitionID, flight, what, who
 		return err
 	}
 	return fmt.Errorf("unknown flight mark %q", what)
+}
+
+// SetFlightTimes puts right when a flight started and finished, by who: for
+// when the paper sheet was used, or a tap was wrong. A zero time is not yet.
+func (s *Store) SetFlightTimes(ctx context.Context, competitionID, flight string, started, finished time.Time, who string) error {
+	_, err := s.db.ExecContext(ctx, `INSERT INTO flight_times (competition_id, flight, started_at, finished_at, who) VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (competition_id, flight) DO UPDATE SET started_at = excluded.started_at, finished_at = excluded.finished_at, who = excluded.who`,
+		competitionID, flight, formatTime(started), formatTime(finished), who)
+	return err
 }
 
 // FlightTimes are the times recorded for a competition's flights, by flight

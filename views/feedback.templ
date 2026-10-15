@@ -1,0 +1,130 @@
+package views
+
+import (
+	"context"
+
+	"tariffCalculator/static"
+)
+
+// Feedback about the app (roadmap, ready for the dry run): a Feedback button
+// at the foot of every page of a competition, for whoever is using it, and the
+// organiser's page listing what was sent.
+
+// FeedbackForm is the Feedback button of the page being shown. The web layer
+// keeps one for each page that can have it, and fills in the competition when
+// it finds it; the button shows only when the competition has it on.
+type FeedbackForm struct {
+	Action      string // where it posts: the link's own feedback route
+	Page        string // the page's route pattern, never its path
+	Back        string // the page, to come back to without JavaScript
+	Competition string // the competition's id
+	On          bool   // the competition shows the button
+}
+
+type feedbackKey struct{}
+
+// WithFeedback keeps the page's Feedback button for the layout.
+func WithFeedback(ctx context.Context, f *FeedbackForm) context.Context {
+	return context.WithValue(ctx, feedbackKey{}, f)
+}
+
+// FeedbackFormOf is the page's Feedback button, nil for a page without one.
+func FeedbackFormOf(ctx context.Context) *FeedbackForm {
+	f, _ := ctx.Value(feedbackKey{}).(*FeedbackForm)
+	return f
+}
+
+// feedbackButton is the Feedback button and its form, when the page has one.
+// static/js/feedback.js sends it without leaving the page; without
+// JavaScript it comes back to the page at #feedback-sent, which shows the
+// thanks.
+templ feedbackButton(f *FeedbackForm) {
+	if f != nil && f.On {
+		<div class="comp-feedback" id="feedback-sent">
+			<p class="comp-feedback-thanks is-size-7 mb-2">Thanks: your feedback is sent.</p>
+			<details>
+				<summary>Feedback</summary>
+				<form method="post" action={ templ.SafeURL(f.Action) } class="comp-feedback-form" data-feedback>
+					<input type="hidden" name="competition" value={ f.Competition }/>
+					<input type="hidden" name="page" value={ f.Page }/>
+					<input type="hidden" name="back" value={ f.Back }/>
+					<p class="is-size-7 mb-2">Something confusing, wrong or missing? Tell the people who make this app. The organiser sees it too.</p>
+					<textarea class="textarea is-small mb-2" name="text" required maxlength="2000" rows="3" placeholder="What happened, or what you think" aria-label="What happened, or what you think"></textarea>
+					<input class="input is-small mb-2" name="reply" maxlength="200" autocomplete="email" placeholder="Your name or email, for a reply (optional)" aria-label="Your name or email, for a reply (optional)"/>
+					<button class="button is-small is-link" type="submit">Send</button>
+					<p class="comp-feedback-said is-size-7 mt-2" role="status" data-feedback-said></p>
+				</form>
+			</details>
+		</div>
+		<script defer src={ static.URL("js/feedback.js") }></script>
+	}
+}
+
+// FeedbackPage is the feedback sent about the app from a competition's
+// pages, for the organiser.
+type FeedbackPage struct {
+	Competition CompetitionSummary
+	Menu        []MenuSection
+	Base        string
+	Notice      string
+	On          bool // the button is on
+	Items       []FeedbackItem
+	Waiting     int // not dealt with yet
+}
+
+// FeedbackItem is one piece of feedback.
+type FeedbackItem struct {
+	ID, At, Role, Page, Text, ReplyTo string
+	Done                              bool
+	DoneBy                            string
+}
+
+// Feedback lists the feedback, newest first, each to mark dealt with.
+templ Feedback(p FeedbackPage) {
+	@competitionLayout("Feedback · " + p.Competition.Name) {
+		<h1 class="title is-4">Feedback</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		@pageMenu(p.Menu)
+		if p.Notice != "" {
+			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		<p class="mb-3">
+			What people said with the Feedback button, about the app rather than the competition. It goes to the people who make the app too.
+			if p.On {
+				The button is on every page;
+			} else {
+				The button is off;
+			}
+			<a href={ templ.SafeURL(p.Base + "/settings#feedback") }>change it in Settings</a>.
+		</p>
+		if len(p.Items) == 0 {
+			<p class="has-text-grey">Nothing yet.</p>
+		} else {
+			<p class="is-size-7 has-text-grey mb-2">{ Count(len(p.Items), "message", "messages") }, { p.Waiting } not dealt with.</p>
+			<div class="comp-feedback-list">
+				for _, f := range p.Items {
+					<div class={ "box", "comp-feedback-item", templ.KV("is-done", f.Done) }>
+						<p class="comp-feedback-text">{ f.Text }</p>
+						<p class="is-size-7 has-text-grey mt-1">
+							<span class="comp-feedback-when">{ f.At }</span> · <span class="comp-feedback-role">{ f.Role }</span> · <span class="comp-feedback-page">{ f.Page }</span>
+						</p>
+						if f.ReplyTo != "" {
+							<p class="is-size-7">Reply to: <span class="comp-feedback-reply">{ f.ReplyTo }</span></p>
+						}
+						<form method="post" action={ templ.SafeURL(p.Base + "/feedback/" + f.ID + "/done") } class="mt-2">
+							<input type="hidden" name="done" value={ boolValue(!f.Done) }/>
+							<label class="checkbox is-size-7">
+								<input type="checkbox" checked?={ f.Done } onchange="this.form.submit()" aria-label="Dealt with"/>
+								Dealt with
+								if f.Done && f.DoneBy != "" {
+									<span class="has-text-grey">({ f.DoneBy })</span>
+								}
+							</label>
+							<noscript><button class="button is-small" type="submit">Change</button></noscript>
+						</form>
+					</div>
+				}
+			</div>
+		}
+	}
+}

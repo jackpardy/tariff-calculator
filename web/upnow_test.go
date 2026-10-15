@@ -133,8 +133,9 @@ func TestWhoIsUpNow(t *testing.T) {
 	}
 
 	// Not started: no taps, and a tap anyway changes nothing.
-	if strings.Contains(page, "Next gymnast") {
-		t.Error("a flight not started has no taps")
+	// (Its taps are there but hidden, for Started tapped without signal.)
+	if strings.Contains(page, `class="comp-up mb-3">`) || !strings.Contains(page, `class="comp-up mb-3" hidden>`) {
+		t.Error("a flight not started has no taps showing")
 	}
 	if to := tap(admin, "next"); !strings.Contains(noticeOf(t, to), "isn't running") || !strings.HasSuffix(to, "#"+flightID(flight)) {
 		t.Errorf("a tap before the start says so: %s", to)

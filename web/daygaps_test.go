@@ -200,7 +200,7 @@ func TestNotifyNoWaitOnTheDay(t *testing.T) {
 	check := func(checked, note string) {
 		t.Helper()
 		redirected(t, h, entry+"/check", url.Values{"checked": {checked}, "note": {note}})
-		s.p.notify.tell(context.Background())
+		tellDue(s.p)
 	}
 
 	check("1", "Element 7 repeats 3")
@@ -208,7 +208,7 @@ func TestNotifyNoWaitOnTheDay(t *testing.T) {
 		t.Errorf("before the day, changes wait: %+v", s.mail.sent)
 	}
 	s.clock.set(dayBefore.Add(11 * time.Minute))
-	s.p.notify.tell(context.Background())
+	tellDue(s.p)
 	if len(s.mail.sent) != 1 {
 		t.Fatalf("told after the wait: %+v", s.mail.sent)
 	}

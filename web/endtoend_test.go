@@ -97,7 +97,7 @@ func TestCompetitionEndToEnd(t *testing.T) {
 		redirected(t, h, pathIn(t, do(t, h, http.MethodGet, ivy, nil).Body.String(), "/competitions/signoff/"), url.Values{"coach": {"Own coach"}, "signed": {"1"}})
 
 		dash := do(t, h, http.MethodGet, admin, nil).Body.String()
-		if strings.Contains(dash, "not signed off") {
+		if strings.Contains(dash, "Waiting for sign-off") {
 			t.Error("every entry is signed off")
 		}
 		for _, name := range []string{"Ann", "Bea", "Cal", "Dee", "Ivy"} {

@@ -45,11 +45,20 @@ var (
 // SeedSize is Seed at a size: fewer clubs (at least two), or fewer
 // voluntaries to choose from.
 func SeedSize(h http.Handler, out io.Writer, seed uint64, size Size) error {
-	s := &seeder{h: h, rng: rand.New(rand.NewPCG(seed, 99)), size: size}
-	if err := s.run(out); err != nil {
-		return err
-	}
-	return nil
+	return seedTo(h, out, nil, seed, size)
+}
+
+// SeedPages is Seed, also writing to pages every page someone at the
+// competition opens on the day, one a line as "kind path" (kinds: member,
+// own, coach, club, organiser, day, screen), for a load test
+// (cmd/loadtest).
+func SeedPages(h http.Handler, out, pages io.Writer, seed uint64) error {
+	return seedTo(h, out, pages, seed, Full)
+}
+
+func seedTo(h http.Handler, out, pages io.Writer, seed uint64, size Size) error {
+	s := &seeder{h: h, rng: rand.New(rand.NewPCG(seed, 99)), size: size, pages: pages}
+	return s.run(out)
 }
 
 type seeder struct {
@@ -59,6 +68,9 @@ type seeder struct {
 	ip   int
 	err  error
 	vols map[string][]string // passing voluntaries, by level and exercise ("BUCS L3/2")
+	// pages, if set, has every page someone opens on the day written to it
+	// (SeedPages).
+	pages io.Writer
 }
 
 // fail keeps the first error.
@@ -489,12 +501,14 @@ func (s *seeder) run(out io.Writer) error {
 	// Gymnasts entering on their own, some offering to judge. The first
 	// enters tumbling too, from their own page, so it has two entries.
 	var firstOwn, firstOwnEntry string
+	var owns []string // their entries' pages
 	for i := range 6 {
 		cat := []string{"Women", "Men"}[i%2]
 		p := person{name: s.name(used, cat), category: cat, level: s.level()}
 		entry := url.Values{"gymnast": {p.name}, "category": {cat}}
 		s.routine(entry, p.level, false)
 		own := s.post(enter, entry)
+		owns = append(owns, own)
 		if firstOwn == "" {
 			page := s.link(s.get(own), "/competitions/gymnast/")
 			s.post(page+"/competitions/"+compID+"/enter", url.Values{"gymnast": {p.name}, "category": {cat}, "discipline": {"tumbling"}, "level": {"Intermediate"}})
@@ -627,6 +641,13 @@ func (s *seeder) run(out io.Writer) error {
 	}
 	s.post(chairs+"/concerns", url.Values{"text": {"Panel 2's trampoline has a loose spring cover: can someone look at it at lunch?"}})
 
+	// Feedback about the app, from a member's My competition and a chair's
+	// page; the organiser has dealt with neither yet.
+	s.post(coached.link+"/feedback", url.Values{"competition": {compID}, "page": {"/clubs/member/{token}/competitions/{id}/day"},
+		"text": {"I couldn't find what time my warm-up is. Is it the time beside my flight?"}, "reply": {coached.name}})
+	s.post(chairs+"/feedback", url.Values{"page": {"/competitions/admin/{token}/day"},
+		"text": {"On a phone the Started button is right beside Finished: I nearly tapped the wrong one."}})
+
 	// Entry fees: some clubs have paid, some in part.
 	s.post(admin+"/fees/settings", url.Values{"fee-": {"12"}, "fee-synchro": {"15"}, "fee-tumbling": {"10"}, "fee-dmt": {"10"}, "club": {"25"},
 		"instructions": {"Bank transfer to ISTO 2027, IBAN IE00 DEMO 0000 0000 0000 00, with your club's name as the reference, by 20 February."}})
@@ -664,5 +685,23 @@ func (s *seeder) run(out io.Writer) error {
 	fmt.Fprintf(out, "A member, comp sec too: %s (%s): %s\n", compSec.name, first.name, compSec.link)
 	fmt.Fprintf(out, "Entering on their own:  %s\n", firstOwn)
 	fmt.Fprintf(out, "Their trampoline entry: %s\n", firstOwnEntry)
+	if s.pages != nil {
+		page := func(kind, path string) { fmt.Fprintf(s.pages, "%s %s\n", kind, path) }
+		page("organiser", admin)
+		page("day", admin+"/day")
+		page("screen", admin+"/screen")
+		for _, run := range runs {
+			page("club", run.admin)
+			for _, link := range run.coaches {
+				page("coach", link)
+			}
+			for _, m := range run.members {
+				page("member", m.link+"/competitions/"+compID+"/day")
+			}
+		}
+		for _, own := range owns {
+			page("own", own+"/day")
+		}
+	}
 	return nil
 }
