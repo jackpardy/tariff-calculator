@@ -107,7 +107,7 @@ func TestNotifications(t *testing.T) {
 	}
 	got := mail.sent[0]
 	if got.subject != "A change at Student Open" || !strings.Contains(got.body, "Ann Ryan\n- BUCS L3: card checked, with a note: Element 7 repeats 3") ||
-		!strings.Contains(got.body, "https://tariff.example"+own) || !strings.Contains(got.headers["List-Unsubscribe"], "/notify/off/") {
+		!strings.Contains(got.body, "https://tariff.example/competitions") || strings.Contains(got.body, own) || !strings.Contains(got.headers["List-Unsubscribe"], "/notify/off/") {
 		t.Errorf("the email: %+v", got)
 	}
 	if strings.Contains(do(t, h, http.MethodGet, admin, nil).Body.String(), "Notify now") {
@@ -185,8 +185,8 @@ func TestNotifyingAClub(t *testing.T) {
 	}
 	body := mail.sent[0].body
 	if !strings.Contains(body, "Ann\n- BUCS L3") || !strings.Contains(body, "Bea\n- BUCS L3") || !strings.Contains(body, ": warm-up ") ||
-		!strings.Contains(body, "https://tariff.example"+club) || !strings.Contains(body, "https://tariff.example"+ann) {
-		t.Errorf("both members, both pages: %s", body)
+		strings.Contains(body, club) || strings.Contains(body, ann) {
+		t.Errorf("both members, and no page links: %s", body)
 	}
 
 	// Publishing again with nothing changed tells no one.

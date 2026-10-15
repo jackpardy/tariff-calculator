@@ -161,7 +161,8 @@ func failed(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, store.ErrRemoved):
 		message(w, r, http.StatusConflict, "Entry removed", "The organiser has removed this entry, so it can't be changed. Ask them if you think it should be back in.")
 	default:
-		log.Printf("Competition storage: %s %s: %v", r.Method, r.URL.Path, err)
+		// The route's pattern, not its path, which holds the secret link.
+		log.Printf("Competition storage: %s: %v", r.Pattern, err)
 		message(w, r, http.StatusInternalServerError, "Something went wrong", "That didn't work. Please try again in a minute.")
 	}
 }

@@ -424,7 +424,7 @@ func (n *notifier) tellCompetition(ctx context.Context, d store.Due) error {
 				log.Printf("Notifications: emailing about %s: %v", c.ID, err)
 			}
 		case store.ByPush:
-			err := n.push(ctx, t.subs[0], pushMessage{Title: c.Name, Body: pushSummary(groups), URL: n.base + t.subs[0].Page})
+			err := n.push(ctx, t.subs[0], pushMessage{Title: c.Name, Body: pushSummary(groups), URL: n.savedLinks()})
 			if errors.Is(err, errGone) {
 				for _, s := range t.subs {
 					n.st.DropSubscription(ctx, s.ID)
@@ -484,10 +484,7 @@ func (n *notifier) changesEmail(c store.Competition, groups []changeGroup, subs 
 		}
 		b.WriteString("\n")
 	}
-	b.WriteString("See it all:\n")
-	for _, s := range subs {
-		fmt.Fprintf(&b, "%s%s\n", n.base, s.Page)
-	}
+	b.WriteString(n.seeYourPage("To see it all"))
 	b.WriteString("\nTo stop these emails:\n")
 	for _, s := range subs {
 		fmt.Fprintf(&b, "%s\n", n.offLink(s.Token))
@@ -496,6 +493,19 @@ func (n *notifier) changesEmail(c store.Competition, groups []changeGroup, subs 
 		"List-Unsubscribe":      "<" + n.offLink(subs[0].Token) + ">",
 		"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
 	}
+}
+
+// savedLinks is where a notification sends someone to find their page: the
+// Competitions page, which lists the links saved in that browser. The path
+// of their own page holds their secret link, so it isn't kept to link to
+// (ADR 0004).
+func (n *notifier) savedLinks() string { return n.base + "/competitions" }
+
+// seeYourPage says, in an email, how to get to the person's page, after
+// what (e.g. "To see it all").
+func (n *notifier) seeYourPage(what string) string {
+	return what + ", open your page from the link you saved for it. On the phone or computer where you saved it, " +
+		"this page lists your saved links:\n" + n.savedLinks() + "\n"
 }
 
 func (n *notifier) offLink(token string) string     { return n.base + "/notify/off/" + token }

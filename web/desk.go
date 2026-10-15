@@ -114,7 +114,7 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 			}
 			emailed++
 		case store.ByPush:
-			err := n.push(ctx, told[0], pushMessage{Title: c.Name, Body: m.Full(), URL: n.base + told[0].Page})
+			err := n.push(ctx, told[0], pushMessage{Title: c.Name, Body: m.Full(), URL: n.savedLinks()})
 			switch {
 			case errors.Is(err, errGone):
 				for _, s := range told {
@@ -137,10 +137,7 @@ func (n *notifier) deskEmail(c store.Competition, m store.DeskMessage, subs []st
 		subject = "Please come to the organisers' desk · " + c.Name
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s\n\nSee it on your page:\n", m.Full())
-	for _, s := range subs {
-		fmt.Fprintf(&b, "%s%s\n", n.base, s.Page)
-	}
+	fmt.Fprintf(&b, "%s\n\n%s", m.Full(), n.seeYourPage("To see it"))
 	b.WriteString("\nTo stop these emails:\n")
 	for _, s := range subs {
 		fmt.Fprintf(&b, "%s\n", n.offLink(s.Token))

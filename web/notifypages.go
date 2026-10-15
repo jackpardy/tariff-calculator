@@ -208,7 +208,7 @@ func (p *competitionPages) saveEmail(r *http.Request, t notifyTarget, was *store
 		return "", []string{"Too many emails asked for from here just now. Try again in an hour."}
 	}
 	sub, token, err := p.st.Subscribe(r.Context(), store.Subscription{
-		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByEmail, Address: address, Topics: topics, Page: t.page,
+		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByEmail, Address: address, Topics: topics,
 	})
 	if err != nil {
 		return "", []string{"That didn't work. Please try again in a minute."}
@@ -237,7 +237,7 @@ func (p *competitionPages) savePush(r *http.Request, t notifyTarget) []string {
 	}
 	k, _ := json.Marshal(keys)
 	_, _, err := p.st.Subscribe(r.Context(), store.Subscription{
-		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByPush, Address: endpoint, Keys: string(k), Topics: topics, Page: t.page,
+		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByPush, Address: endpoint, Keys: string(k), Topics: topics,
 	})
 	switch {
 	case errors.Is(err, store.ErrLimit):

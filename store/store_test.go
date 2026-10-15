@@ -1466,7 +1466,7 @@ func TestSubscriptions(t *testing.T) {
 	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
 	s := open(t, &now)
 	c, _, _ := s.CreateCompetition(ctx, competition())
-	sub := Subscription{CompetitionID: c.ID, Kind: NotifyMember, OwnerID: "m1", Channel: ByEmail, Address: "ann@example.com", Topics: []string{AboutCards, "nonsense"}, Page: "/p"}
+	sub := Subscription{CompetitionID: c.ID, Kind: NotifyMember, OwnerID: "m1", Channel: ByEmail, Address: "ann@example.com", Topics: []string{AboutCards, "nonsense"}}
 	got, token, err := s.Subscribe(ctx, sub)
 	must(t, err)
 	if token == "" || got.Confirmed || len(got.Topics) != 1 {

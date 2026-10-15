@@ -609,6 +609,11 @@ var migrations = []string{
 		at             TEXT NOT NULL,
 		PRIMARY KEY (competition_id, flight)
 	);`,
+
+	// 33: a notification no longer keeps the path of the person's page: it
+	// holds their secret link, and only links' hashes are kept (ADR 0004).
+	// The column stays, empty, as dropping it means rebuilding the table.
+	`UPDATE notify_subscriptions SET page = '';`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run
