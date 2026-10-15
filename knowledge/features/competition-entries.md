@@ -83,10 +83,11 @@ timetable is published: On the day, Desk messages, Venue screen) and
 **Settings** (Settings, History, and Feedback for links that may read it). Late changes, Coaches and Feedback show a count of
 what waits; the menu works that out on every page. It shows only what the
 admin link may open (ADR 0009): a cards link sees Entries (with People) and History; a
-chair of judges adds the day's pages, and finds the printed sheets as buttons
-on the entries page; the timetable team adds Timetable and Officials. The
+chair of judges adds the day's pages, and finds the printed sheets in the
+entries page's **Print** menu; the timetable team adds Timetable and Officials. The
 menu is left off printouts, the CSV, invoices, cards and the venue screen. The
-bar scrolls sideways on a phone.
+bar scrolls sideways on a phone if it must; there a section's badge is only
+its number, so the four sections fit at 375px.
 
 **Settings** (`GET /competitions/admin/{token}/settings`, in `web/settingspages.go`)
 holds what used to fold away on the entries page, in groups with a list of
@@ -95,9 +96,13 @@ link, the link for entering on their own), Entries and deadlines, Limits and wai
 lists, Events and levels (events, order of levels, men and women), Sign-off
 and coaches, Video, Going live, Telling people about changes (when people
 can ask to hear), Entering on their own, Feedback, and Admin link and deleting (the
-organiser only). A co-organiser's link opens it without the links box,
-replacing the admin link or deleting. Each form posts to its own route, which
-comes back to the Settings page with a notice; the history records them as
+organiser only). Each setting is a row saying how it's set, with **Change**
+opening its form (`changeLine`, rendering.md "Settings and forms on a
+page"); replacing the admin link and deleting each open a step before they
+act, and **Make a link** opens the helpers' link form. A co-organiser's link
+opens it without the links box, replacing the admin link or deleting. Each
+form posts to its own route, which comes back to the Settings page with a
+notice (moving a level comes back to `#level-order`, which opens its row); the history records them as
 before. The entries page keeps the **Go live now** box while the competition
 is private.
 
@@ -188,9 +193,10 @@ and what ("Marked a card checked: Ann Ryan · BUCS L3"); the latest 2,000
 are kept.
 
 **Concerns:** anyone with an admin link can **flag a concern**, on an entry
-or generally. The dashboard lists them (open first, with who and when), for
-the organisers only; the organiser and co-organisers mark each
-**Resolved**, with a note. The demo has helpers' links (printed by `demo`),
+or generally (**Flag a concern**, a button opening the form). The dashboard
+lists the open ones under a Concerns heading with a count chip, with who and
+when, and those resolved closed beneath (with none open, one line opening to
+them); the organiser and co-organisers mark each **Resolved**, with a note. The demo has helpers' links (printed by `demo`),
 three cards checked and two concerns.
 
 ## Feedback about the app (ready for the dry run)
@@ -334,9 +340,9 @@ entry for each discipline offered (a synchro pair is one entry), an
 optional fee once per club, and how to pay (printed on every invoice).
 Removed, held and withdrawn entries aren't charged (`Fees.Invoice`). The
 page lists each club, and each individual's entry, with entries, due, paid
-and balance ("Paid" once settled), and totals; the organiser records each
-payment (amount and note, with who recorded it) and can remove one made by
-mistake. Each has an **invoice** to print: a line per entry and the club
+and balance (the Paid chip once settled), and totals; the organiser records
+each payment (**Record a payment**, opening the amount and note, with who
+recorded it) and can remove one made by mistake. Each has an **invoice** to print: a line per entry and the club
 fee, payments, what's left and how to pay. A club's comp sec sees "Fees:
 €49 · €25 paid · €24 to pay" on each competition, with the invoice; an
 individual on their entry. No money goes through the tools. The demo
@@ -373,10 +379,11 @@ the page's address so a view can be kept or shared:
   none), checked, signed off, video (missing, to review, need more, OK),
   men or women, problems only;
 - **sort**: by club (as stored), gymnast, latest sent or coach;
-- **print and CSV what's shown**: one set of buttons (Print cards, Print
-  cards not checked, Download CSV) above the levels; Print cards and the CSV
-  take the same filters, and each open level has **Print this level's
-  cards**.
+- **print and CSV what's shown**: a **Print** menu (Cards, Cards not
+  checked, and for a link with the sheets but no timetable page the
+  timetable's sheets) and **Download CSV**, above the search; the cards and
+  the CSV take the same filters, and each open level has **Print this
+  level's cards**.
 
 | Gymnast | Club | 1st exercise | 2nd exercise | Requirements | Problems | Video | Sent | Checked |
 |---|---|---|---|---|---|---|---|---|
@@ -545,7 +552,7 @@ shown, and Clear shows everyone again. The lists are the dashboard's
 entries, All people, Officials, the organiser's Coaches, the desk's People I
 pick, the club's Members, Coaches and each competition's entries, a
 coach's own entries, and the names on the timetable and On the day. On the dashboard the filters work on the server, so its
-one set of Print cards and Download CSV buttons follows them (a level's own
+Print menu's cards and Download CSV follow them (a level's own
 **Print this level's cards** button is inside the open level), and the search
 also narrows the entries as it's typed and opens the levels it finds them in.
 
@@ -711,9 +718,10 @@ are then filled flight by flight.
   redraw a flight's order, move a gymnast to another flight or take them
   out, and place entries made since planning. On a flight's card these are
   buttons at least 40px tall: **Move** beside each gymnast (its flights
-  filled in by `static/js/fill.js` when it opens), **Redraw order** and
-  **Earlier**, and a dropdown labelled **Move to** ("Move the event to") with
-  **Move** or **Move event**. At the top of the timetable, **Jump to** links
+  filled in by `static/js/fill.js` when it opens), and one **Move or
+  redraw** button opening **Redraw order**, **Earlier**, and a dropdown
+  labelled **Move to** ("Move the event to") with **Move** or **Move
+  event**. At the top of the timetable, **Jump to** links
   to each day and its areas and to **Find a name**, which searches the
   running orders, the gymnasts not in a flight and the seated officials,
   hiding days, areas, flights and blocked time with nobody it finds and
@@ -779,7 +787,7 @@ are then filled flight by flight.
 **What if there's a delay?**, linked from a planned timetable, takes a day,
 the areas held up (none for all), from when and for how long, and shows what
 follows without saving anything (`Schedule.Delayed`), unless the organiser
-taps **Keep this in the draft timetable**, which makes it the draft, to
+taps **Keep this in the draft timetable** (below what follows), which makes it the draft, to
 publish. A flight under way runs
 that much later; the area's later flights shift back only as far as they must
 (slack takes some of it), going round blocked time (a flight that wouldn't
@@ -1343,7 +1351,9 @@ Saturday to the desk".
 **Simulate**, linked from the timetable, tries numbers against the venue
 setup before entries arrive, or alongside them (ADR 0005 Decision 11). The
 form starts from the competition as it stands (or from a scenario, to
-change it):
+change it). The scenarios come first, under a plain heading with a count;
+once there are any, the form opens from **New scenario** (open to change
+one):
 
 - **Entries per event** (a synchro entry is a pair) and **gymnasts in all**:
   fewer gymnasts than the entries' places means some enter several
