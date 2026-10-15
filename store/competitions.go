@@ -748,6 +748,7 @@ func (s *Store) PublishTimetable(ctx context.Context, id string, t *competitions
 func (s *Store) SetTimetable(ctx context.Context, id string, t *competitions.Schedule) error {
 	data := ""
 	if t != nil {
+		t.Identify() // new flights get IDs of their own
 		b, err := json.Marshal(t)
 		if err != nil {
 			return err
@@ -776,6 +777,7 @@ func (s *Store) UpdateTimetable(ctx context.Context, id string, change func(*com
 		if err := change(&t); err != nil {
 			return err
 		}
+		t.Identify() // new flights get IDs of their own
 		b, err := json.Marshal(t)
 		if err != nil {
 			return err

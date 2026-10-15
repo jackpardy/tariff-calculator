@@ -336,6 +336,10 @@ func (s Setup) Check(events []string) error {
 
 // ScheduledFlight is a flight placed on an area at a time.
 type ScheduledFlight struct {
+	// ID is the flight's own, given when it's planned (Identify) and kept
+	// through every change: moving, redrawing and renumbering it. What
+	// happens to it on the day is kept by it (FlightKey).
+	ID string `json:"id,omitempty"`
 	Flight
 	Discipline string `json:"discipline,omitempty"`
 	Day        int    `json:"day"`
@@ -519,6 +523,8 @@ func PlanStaffed(entries []SchedEntry, eventOrder []string, setup Setup, staff *
 	sortFlights(out.Flights)
 	out.number()
 	out.OrderForRest(people)
+	ids := rand.New(rand.NewPCG(seed, 13)) // from the seed, so a plan is the same each time
+	out.identify(ids.Uint64)
 	return out
 }
 
