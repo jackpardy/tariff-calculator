@@ -247,8 +247,9 @@ and anyone you add.
 
 ## Plan the timetable
 
-Tap **Timetable** on the entries page. Set up the venue first; every number
-has a starting value you can change.
+Tap **Timetable**, then **Setup**. Set up the venue first; every number has a
+starting value you can change. Each part is a line saying how it's set, with
+a **Change** button to open it.
 
 1. **Days:** name each day and give its start and **end** time (when the venue
    must be empty of competition), and which areas are in use. **Add a day**
@@ -274,7 +275,8 @@ has a starting value you can change.
 5. **Rules:** put an event on an area or a day, before another event, or apart
    from another, as a **must** or a **prefer** (e.g. Elite synchro must be on
    Panel 1).
-6. Tap **Plan**. Each event is split into even flights with running orders
+6. Tap **Plan**, at the foot of **Setup**; the **Timetable** page then shows it.
+   Each event is split into even flights with running orders
    drawn at random (keeping a club's gymnasts apart where that's easy), and
    each event's flights are placed back to back on one area, so one panel
    can judge them all, with flight 1 first. No one is in two places at once,
@@ -303,24 +305,24 @@ has a starting value you can change.
    in its event, **Redraw order** draws a flight's running order again, and
    **Move** beside a gymnast puts them in another flight. To find someone
    on a long timetable, type part of their name in **Find a name**: only
-   the flights with them show. **Jump to** at the top of the page goes
+   the flights with them show. The day and area links beside it go
    straight to a day or an area. If an event's flights end up
    apart, or either side of a break you haven't allowed, it's listed as a
    problem. Entries made after planning are listed for you to place.
-   Changing the setup asks you to **Plan** again. Open a flight's **Panel**
+   Changing the setup asks you to **Plan** again, on **Setup**. Open a flight's **Panel**
    to give a seat to someone else, for all the event's flights they had it
    for; **Assign officials again** redoes every panel and keeps the flights.
 8. Under **Your rules**, **Officials: who does what** says who does what, as a
    must or a prefer: e.g. Mary **is** Chair of judges at Elite Women, Tom
    **doesn't officiate**, Ann **officiates only** on Saturday from 12:00. Then
    tap **Assign officials again**.
-9. **Print marshal sheets** and **Print chair of judges sheets** (one area to a
-   page, each flight with its panel), **Print score sheets** for the
+9. Under **Print**: **Marshal sheets** and **Chair of judges sheets** (one area to a
+   page, each flight with its panel), **Score sheets** for the
    recorders (a flight to a landscape page: each gymnast in running order,
    a box for each judge's mark of each routine, difficulty, penalty and
    totals, the paper copy beside the scores entered online; officials can
    also open their own panels' sheets on their phone from **Score sheets
-   for your panels**, beside their duties), and **Print the officials rota** (each person's duties) for the
+   for your panels**, beside their duties), and **The officials rota** (each person's duties) for the
    noticeboard. On a phone, swipe a sheet's table sideways to see all of
    it. **Panel timeline** shows every day
    side by side, a column per area, each flight and break with time running

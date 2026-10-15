@@ -15,13 +15,10 @@ type DayPage struct {
 	Competition CompetitionSummary
 	Menu []MenuSection
 	Notice      string
-	Screen      string // the venue screen for this day; "" if this link can't open it
-	Links       bool   // this link can make links under Settings, such as a Venue screen link
 	Day         int    // the day shown, by index
 	Days        []DayTab
 	Areas       []DayArea
 	Scratched   []DayScratched // scratched gymnasts who officiate or compete that day
-	Desk        string         // the organisers' desk, to send a message; "" if this link can't
 	Correct     bool           // this link can put a flight's times right
 	DayName     string         // the day shown, e.g. "Saturday", for the times put right
 }
@@ -126,29 +123,6 @@ templ Day(p DayPage) {
 		<h1 class="title is-4">On the day</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		@pageMenu(p.Menu)
-		if p.Screen != "" || p.Desk != "" {
-			// Named as in the menu; the Venue screen opens on the day shown.
-			<div class="comp-day-links mb-3">
-				<div class="buttons mb-1">
-					if p.Screen != "" {
-						<a class="button is-small is-link is-light" href={ templ.SafeURL(p.Screen) }>Venue screen</a>
-					}
-					if p.Desk != "" {
-						<a class="button is-small is-light" href={ templ.SafeURL(p.Desk) }>Desk messages</a>
-					}
-				</div>
-				if p.Screen != "" {
-					<p class="help">
-						The Venue screen shows what's on each area now and next, for a screen at the venue.
-						if p.Links {
-							Make a Venue screen link under Settings to open it on the screen itself.
-						} else {
-							The organiser makes a Venue screen link for the screen itself.
-						}
-					</p>
-				}
-			</div>
-		}
 		// Taps kept on this phone until the signal is back (static/js/taps.js).
 		<div id="day-taps" class="notification is-warning is-light comp-day-taps" aria-live="polite" hidden></div>
 		<div id="day-notice" class="comp-day-notice" aria-live="polite">

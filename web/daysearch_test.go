@@ -108,13 +108,13 @@ func TestTimetableSearchAndJump(t *testing.T) {
 	}
 
 	links := jumpLinks(t, page)
-	if len(links) < 3 || links[0] != (jumpLink{"Find a name", "timetable-find"}) {
-		t.Fatalf("the first link goes to Find a name: %+v", links)
+	if len(links) < 2 || links[0] != (jumpLink{"Day 1", "day-0"}) {
+		t.Fatalf("the first link goes to the day: %+v", links)
 	}
-	if links[1] != (jumpLink{"Day 1", "day-0"}) {
-		t.Errorf("then the day: %+v", links[1])
+	if find := strings.Index(page, `id="timetable-find"`); find < 0 || find > strings.Index(page, `href="#day-0"`) {
+		t.Error("Find a name is with the jumps, before them")
 	}
-	for _, l := range links[2:] {
+	for _, l := range links[1:] {
 		if l.Target != "day-0-"+areaID(l.Text) {
 			t.Errorf("then each of its areas: %+v", l)
 		}
@@ -218,31 +218,18 @@ func TestDaySearchInABrowser(t *testing.T) {
 	}
 }
 
-// On the day's buttons to the Venue screen and the desk are named as in the
-// menu, and tell whoever can make links where to make the screen's.
+// On the day doesn't repeat its menu: the Venue screen and the desk are in
+// the menu above it, not again as buttons under it.
 func TestDayPageHeader(t *testing.T) {
 	s := newTestServer(t, atTime(dayBefore))
 	admin, _, _, _ := scratchSetupOn(t, s.h, twoFlights)
-	links := func(page string) (buttons []string, help string) {
-		t.Helper()
-		box := firstByClass(parsePage(t, page), "comp-day-links")
-		if box == nil {
-			t.Fatalf("no buttons to the screen and desk: %s", page)
+	page := do(t, s.h, http.MethodGet, admin+"/day", nil).Body.String()
+	for _, path := range []string{"/screen", "/desk"} {
+		if n := strings.Count(page, `href="`+admin+path); n != 1 {
+			t.Errorf("%s is linked %d times, want once, from the menu", path, n)
 		}
-		for _, a := range byTag(box, "a") {
-			buttons = append(buttons, textOf(a))
-		}
-		return buttons, textOf(firstByClass(box, "help"))
 	}
-	buttons, help := links(do(t, s.h, http.MethodGet, admin+"/day", nil).Body.String())
-	if !slices.Equal(buttons, []string{"Venue screen", "Desk messages"}) {
-		t.Errorf("the organiser's buttons: %v", buttons)
-	}
-	if !strings.Contains(help, "Make a Venue screen link under Settings") {
-		t.Errorf("the organiser is told to make the screen's link: %q", help)
-	}
-	chair := madeLink(t, s.h, admin, "Chris", "chair")
-	if _, help := links(do(t, s.h, http.MethodGet, chair+"/day", nil).Body.String()); !strings.Contains(help, "The organiser makes a Venue screen link") {
-		t.Errorf("a chair, who can't make links, is told who does: %q", help)
+	if firstByClass(parsePage(t, page), "comp-day-links") != nil {
+		t.Error("no buttons repeating the menu")
 	}
 }

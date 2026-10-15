@@ -129,7 +129,7 @@ func TestVenueScreen(t *testing.T) {
 	// 09:00–09:14.
 	publishedWith(t, h, admin, "Ann", "Bea", "Cal")
 	day := admin + "/day?day=0"
-	if page := do(t, h, http.MethodGet, day, nil).Body.String(); !strings.Contains(page, `href="`+admin+`/screen?day=0"`) || !strings.Contains(page, "Venue screen") {
+	if page := do(t, h, http.MethodGet, day, nil).Body.String(); !strings.Contains(page, `href="`+admin+`/screen"`) || !strings.Contains(page, "Venue screen") {
 		t.Error("the organiser's On the day page links to the venue screen")
 	}
 	page := do(t, h, http.MethodGet, day, nil).Body.String()

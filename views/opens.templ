@@ -16,20 +16,19 @@ templ changeLine(what, now string, open bool) {
 }
 
 // opens is a button (label) opening a form, the children, beneath it, after
-// a line saying what it is (what, in bold, and now), if any. The button
-// reads Close while it's open.
+// a line saying what it is (what, in bold, and now beneath it), if any. A
+// setting is a row of a list, its button always at the right; a button
+// alone (an action) has no row. The button reads Close while it's open.
 templ opens(what, now, label string, open bool) {
-	<details class="comp-opens" open?={ open }>
+	<details class={ "comp-opens", templ.KV("comp-opens-action", what == "" && now == "") } open?={ open }>
 		<summary>
 			if what != "" || now != "" {
 				<span class="comp-opens-now">
 					if what != "" {
 						<strong>{ what }</strong>
 					}
-					if what != "" && now != "" {
-						{ " · " + now }
-					} else {
-						{ now }
+					if now != "" {
+						<span class="comp-opens-detail">{ now }</span>
 					}
 				</span>
 			}

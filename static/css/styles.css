@@ -601,17 +601,51 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .comp-counts { margin: 1rem 0; }
 .comp-manage[open] summary { margin-bottom: 0.75rem; }
 /* A page's settings, or a form for what it lists, opening in place from a
-   small button after a line saying how it's set (views/opens.templ). The
-   button says Close while open, and its chevron turns. */
-.comp-opens { margin-bottom: 1rem; }
-.comp-opens > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; }
+   small button (views/opens.templ). Settings are rows of a list: what and how
+   it's set on the left, the button always in the same place on the right, a
+   hairline between rows. An action's button alone has no row. The button
+   says Close while open, and its chevron turns. */
+.comp-opens { border-bottom: 1px solid #ededed; }
+.comp-opens:not(.comp-opens-action):not(.comp-opens + .comp-opens) { border-top: 1px solid #ededed; margin-top: 0.5rem; }
+.comp-opens:not(:has(+ .comp-opens)) { margin-bottom: 1.25rem; }
+.comp-opens > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.25rem 1rem; padding: 0.6rem 0; }
 .comp-opens > summary::before { content: none; }
-.comp-opens-now { flex: 0 1 auto; }
+.comp-opens-now strong { display: block; }
+.comp-opens-detail { display: block; color: #6b6b6b; font-size: 0.875rem; }
+.comp-opens-button { justify-self: end; }
+.comp-opens-action { border: 0; margin-bottom: 1rem; }
+.comp-opens-action > summary { display: block; padding: 0; }
 .comp-opens-button::after { content: ""; display: inline-block; width: 0.4em; height: 0.4em; margin-left: 0.5em; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-0.15em) rotate(45deg); transition: transform 0.15s; }
-.comp-opens[open] .comp-opens-button::after { transform: translateY(0.1em) rotate(-135deg); }
+.comp-opens[open] .comp-opens-button::after, .comp-popup[open] > .comp-opens-button::after { transform: translateY(0.1em) rotate(-135deg); }
 @media (prefers-reduced-motion: reduce) { .comp-opens-button::after { transition: none; } }
 .comp-opens[open] .comp-opens-label, .comp-opens:not([open]) .comp-opens-close { display: none; }
-.comp-opens-form { margin-top: 0.75rem; padding: 0.25rem 0 0.25rem 1rem; border-left: 3px solid #dbdbdb; }
+.comp-opens-form { margin: 0 0 0.9rem; padding: 0.25rem 0 0.25rem 1rem; border-left: 3px solid #dbdbdb; }
+/* A small pop-up menu from a button (details[data-menu], static/js/menus.js
+   closes it on a tap outside): the timetable's Print. */
+.comp-popup { position: relative; display: inline-block; }
+.comp-popup > summary::before { content: none; }
+.comp-popup-panel { position: absolute; right: 0; top: calc(100% + 0.25rem); z-index: 30; min-width: 14rem; padding: 0.3rem 0; background: #fff; border: 1px solid #dbdbdb; border-radius: 6px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12); }
+.comp-popup-panel a { display: block; padding: 0.45rem 0.9rem; color: #363636; }
+.comp-popup-panel a:hover, .comp-popup-panel a:focus { background: #f5f5f5; }
+/* The timetable's status card: published or not with its buttons, then what
+   to look at in the flights and the officials, each a section of the card. */
+.comp-tt-publish { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem 1.5rem; }
+.comp-tt-state { flex: 1 1 18rem; }
+.comp-tt-state .chip { margin-right: 0.5rem; }
+.comp-tt-note { color: #6b6b6b; font-size: 0.875rem; }
+.comp-tt-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.comp-tt-publish-form { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.comp-tt-check { border-top: 1px solid #ededed; margin-top: 1rem; padding-top: 0.9rem; }
+.comp-tt-check-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem 1rem; }
+.comp-tt-check-head { margin-bottom: 0.4rem; }
+.comp-tt-check-head .chip { margin-left: 0.5rem; }
+.comp-tt-check-head .comp-tt-note { margin-left: 0.5rem; }
+.comp-tt-days { font-size: 0.875rem; color: #4a4a4a; margin-bottom: 0.25rem; }
+.comp-tt-days li { margin-bottom: 0.1rem; }
+.comp-tt-check details { margin-top: 0.35rem; }
+/* Find a name and the jumps to each day and area, right above the flights. */
+.comp-tt-bar { margin: 1.5rem 0 0.5rem; }
+.comp-tt-bar .comp-jump p { margin-bottom: 0.2rem; }
 .comp-table td, .comp-table th { white-space: nowrap; }
 .comp-table td:nth-child(6) { white-space: normal; min-width: 12rem; }
 .comp-table tr.has-problems td:nth-child(6) { color: #cc0f35; }
