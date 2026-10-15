@@ -492,7 +492,7 @@ details > summary::before {
 }
 details[open] > summary::before { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) { details > summary::before { transition: none; } }
-details > summary.button::before, .routine-menu > summary::before, .comp-move > summary::before { content: none; }
+details > summary.button::before, .routine-menu > summary::before { content: none; }
 /* Fieldsets default to min-width: min-content, which lets nested grids overflow. */
 .matcher, .option-group { min-width: 0; }
 @media screen and (max-width: 768px) {
@@ -627,8 +627,6 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .comp-popup-panel { position: absolute; right: 0; top: calc(100% + 0.25rem); z-index: 30; min-width: 14rem; padding: 0.3rem 0; background: #fff; border: 1px solid #dbdbdb; border-radius: 6px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12); }
 .comp-popup-panel a { display: block; padding: 0.45rem 0.9rem; color: #363636; }
 .comp-popup-panel a:hover, .comp-popup-panel a:focus { background: #f5f5f5; }
-/* A menu from a button at the left of the page opens to the right, staying on screen. */
-.comp-popup-start .comp-popup-panel { left: 0; right: auto; }
 /* The entries page's concerns: the open ones a row each, a hairline between. */
 .comp-concerns h2 .chip { margin-left: 0.5rem; vertical-align: middle; }
 .comp-concern { padding: 0.6rem 0; border-top: 1px solid #ededed; }
@@ -636,8 +634,8 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .comp-concerns-resolved > summary { cursor: pointer; }
 /* The entries page's Print and Download, in a row above the search. */
 .comp-dash-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
-/* A menu at the left of a row of buttons (a person's Timetables and
-   calendars) opens rightwards, so it stays on a phone's screen. */
+/* A menu whose button is at the left (the entries page's Print, a person's
+   Timetables and calendars) opens rightwards, so it stays on a phone's screen. */
 .comp-popup-left > .comp-popup-panel { left: 0; right: auto; }
 .buttons > .comp-popup { margin: 0 0.5rem 0.5rem 0; }
 .buttons > .comp-popup > .button { margin: 0; }
@@ -703,16 +701,10 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 /* A gymnast's running number, their place in the flight: the same on every page. */
 .comp-run-no { display: inline-block; min-width: 1.6em; padding: 0 0.3em; margin-right: 0.35em; border-radius: 0.3em; background: #eef0f4; color: #333; font-weight: 700; font-size: 0.9em; text-align: center; font-variant-numeric: tabular-nums; }
 .comp-order li { margin: 0.15rem 0; }
-/* A gymnast in a flight's running order: their name, then Move, which opens its form
-   on a line of its own. */
-.comp-order-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
-.comp-order-name { flex: 1 1 8rem; }
-.comp-move { min-width: 0; }
-.comp-move[open] { flex-basis: 100%; }
-.comp-move[open] .comp-move-form { display: flex; margin: 0.3rem 0; }
+/* A flight's Move a gymnast: who, to which flight, Move, wrapping on a phone. */
 .comp-move-form { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
 /* The flight cards' buttons, dropdowns and choices are at least 40px tall, to tap. */
-.comp-move .button, .comp-move-form .button, .comp-tt-actions .button, .comp-panel .button { min-height: 2.5rem; }
+.comp-move-form .button, .comp-tt-actions .button, .comp-panel .button { min-height: 2.5rem; }
 .comp-move-form .select:not(.is-multiple), .comp-move-form .select select, .comp-tt-actions .select:not(.is-multiple), .comp-tt-actions .select select,
 .comp-panel .select:not(.is-multiple), .comp-panel .select select { height: 2.5rem; }
 .comp-panel > summary { display: flex; align-items: center; gap: 0.25em; min-height: 2.5rem; }

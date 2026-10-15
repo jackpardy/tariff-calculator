@@ -69,17 +69,19 @@ type TieView struct {
 // tiesBox lists who opens these pages from their own link, for the shared
 // link's holder to see and remove.
 templ tiesBox(remove string, ties []TieView, none string) {
-	<div class="box" id="ties">
-		<h3 class="title is-6 mb-2">Opened from people's own links</h3>
+	// Rows of a list under a small label, as the helpers' links are, not a
+	// card of its own (rendering.md, "Settings and forms on a page").
+	<div class="comp-ties mb-4" id="ties">
+		<p class="label is-small mb-1">Opened from people's own links</p>
 		if len(ties) == 0 {
-			<p class="is-size-7">No one yet. { none }</p>
+			<p class="help">No one yet. { none }</p>
 		} else {
-			<p class="is-size-7 mb-2">These people added a link to their own page, so it opens these pages from there. Replacing or removing the link ends it for them.</p>
+			<p class="help mb-2">These people added a link to their own page, so it opens these pages from there. Replacing or removing the link ends it for them.</p>
 			<ul>
 				for _, t := range ties {
 					<li class="comp-other-link">
 						<span>
-							{ t.Name }
+							<strong>{ t.Name }</strong>
 							<span class="has-text-grey is-size-7">
 								if t.What != "" {
 									{ t.What } ·
@@ -89,7 +91,7 @@ templ tiesBox(remove string, ties []TieView, none string) {
 						</span>
 						<form method="post" action={ templ.SafeURL(remove) } class="is-inline">
 							<input type="hidden" name="id" value={ t.ID }/>
-							<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+							<button class="button is-small is-text has-text-danger" type="submit" aria-label={ "Stop " + t.Name + "'s link opening these pages" }>Remove</button>
 						</form>
 					</li>
 				}

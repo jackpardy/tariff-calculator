@@ -25,8 +25,8 @@ func TestMoveOptionsOnce(t *testing.T) {
 		t.Fatalf("the flights to move to, once, with the script that fills the dropdowns: %s", page)
 	}
 	selects := regexp.MustCompile(`(?s)<select name="to"[^>]*data-fill="move-options">(.*?)</select>`).FindAllStringSubmatch(page, -1)
-	if len(selects) < 4 {
-		t.Fatalf("a move dropdown per gymnast: %d", len(selects))
+	if len(selects) < 1 || strings.Count(page, "Move a gymnast") != len(selects) {
+		t.Fatalf("a Move a gymnast form per flight, not a dropdown per gymnast: %d", len(selects))
 	}
 	for _, s := range selects {
 		if strings.Count(s[1], "<option") != 2 || !strings.Contains(s[1], `<option value="" disabled selected>Choose a flight</option>`) {
@@ -35,7 +35,11 @@ func TestMoveOptionsOnce(t *testing.T) {
 	}
 
 	// Left on "Choose a flight" (nothing sent): nothing changes.
-	entry := regexp.MustCompile(`name="entry" value="([^"]+)"`).FindStringSubmatch(page)[1]
+	entry := regexp.MustCompile(`<option value="([^"]+)">\d+\. `).FindStringSubmatch(page)[1]
+	// Left on "Choose a gymnast": nothing changes either.
+	if to := redirected(t, h, tt+"/entry", url.Values{"to": {""}}); !strings.Contains(to, "Choose+a+gymnast") {
+		t.Errorf("a move with no gymnast chosen says so: %s", to)
+	}
 	if to := redirected(t, h, tt+"/entry", url.Values{"entry": {entry}}); !strings.Contains(to, "Choose+a+flight") {
 		t.Errorf("a move with no flight chosen says so: %s", to)
 	}

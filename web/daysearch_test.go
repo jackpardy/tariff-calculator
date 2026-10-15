@@ -143,9 +143,9 @@ func TestTimetableSearchAndJump(t *testing.T) {
 	jumpsLand(t, page, links)
 }
 
-// A timetable flight card's controls are labelled buttons: Move for each
-// gymnast (its flights still filled in by fill.js), and a labelled dropdown
-// to move the flight.
+// A timetable flight card's controls are labelled buttons: one Move a
+// gymnast form, choosing who from the flight (its flights still filled in by
+// fill.js), and a labelled dropdown to move the flight.
 func TestTimetableFlightCardButtons(t *testing.T) {
 	s := newTestServer(t, atTime(dayBefore))
 	_, tt, _, _ := scratchSetupOn(t, s.h, twoFlights)
@@ -159,14 +159,16 @@ func TestTimetableFlightCardButtons(t *testing.T) {
 		t.Fatalf("flights to look at: %d", len(cards))
 	}
 	for _, card := range cards {
-		for _, m := range byClass(card, "comp-move") {
-			summary := firstChildTag(m, "summary")
-			if !hasClass(summary, "button") || textOf(summary) != "Move" || attrOf(firstByClass(m, "comp-move-form"), "class") == "" {
-				t.Errorf("each gymnast has a Move button: %s", renderNode(m))
-			}
-			if sel := byTag(m, "select"); len(sel) != 1 || attrOf(sel[0], "data-fill") != "move-options" {
-				t.Errorf("whose flights fill from the page's list")
-			}
+		forms := byClass(card, "comp-move-form")
+		if len(forms) != 1 {
+			t.Fatalf("one Move a gymnast form a flight: %d", len(forms))
+		}
+		if !strings.Contains(textOf(card), "Move a gymnast") {
+			t.Errorf("it opens from Move a gymnast: %s", renderNode(card))
+		}
+		sel := byTag(forms[0], "select")
+		if len(sel) != 2 || attrOf(sel[0], "name") != "entry" || len(byTag(sel[0], "option")) < 2 || attrOf(sel[1], "data-fill") != "move-options" {
+			t.Errorf("who, from the flight, and where to, filled from the page's list: %s", renderNode(forms[0]))
 		}
 		actions := firstByClass(card, "comp-tt-actions")
 		for _, b := range byTag(actions, "button") {
