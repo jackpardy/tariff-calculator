@@ -1513,8 +1513,9 @@ func (p *competitionPages) withdraw(w http.ResponseWriter, r *http.Request) {
 	message(w, r, http.StatusOK, "Entry withdrawn", "Your entry for "+c.Name+" has been withdrawn and deleted.")
 }
 
-// deleteExpired deletes competitions 120 days after their date and clubs
-// unused for 120 days (ADR 0004 Decision 6), now and every few hours.
+// deleteExpired deletes competitions 120 days after their date (ADR 0004
+// Decision 6) and clubs unused for 13 months (ADR 0011 Decision 7), now and
+// every few hours.
 func deleteExpired(st *store.Store) {
 	for {
 		comps, clubs, err := st.DeleteExpired(context.Background())

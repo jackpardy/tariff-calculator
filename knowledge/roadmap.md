@@ -135,7 +135,9 @@ build on:
    (accepted 2026-10-15), amending 0004 for the new personal data
    (progress, often of under-18s) and club retention.
    Built in steps, each usable on its own:
-   1. **Clubs kept 13 months after last real use** (decided 2026-10-15),
+   1. **Clubs kept 13 months after last real use** (decided and built
+      2026-10-15; member and coach pages already counted, now at most a
+      write a day),
       for every club, not 120 days. Any comp sec, coach or member opening
       their pages or changing something counts as use, not only the admin
       and join links as now. The comp sec's Settings says when the club

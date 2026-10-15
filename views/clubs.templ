@@ -22,6 +22,7 @@ type ClubPage struct {
 	QualificationOptions []CoachOption // every qualification, to give a coach
 	Pairs                []PairView    // synchro entries other clubs' gymnasts made with members
 	Menu                 []MenuSection // the sections of the comp sec's pages
+	KeptUntil            string        // when the club is deleted if no one uses it, on Settings (ADR 0011)
 	// MemberOptions are the members who aren't coaches too, to make one;
 	// Ties the people whose own link opens these pages (ADR 0010).
 	MemberOptions []CoachOption
@@ -240,7 +241,7 @@ templ NewClub(name string, problems []string) {
 			</div>
 			<button class="button is-primary is-fullwidth" type="submit">Create club</button>
 		</form>
-		<p class="help mt-4">We keep the club's name and its members' names and entries, nothing else. A club is deleted 120 days after it was last used.</p>
+		<p class="help mt-4">We keep the club's name and its members' names, entries and routines, nothing else. A club is deleted 13 months after anyone last used it.</p>
 	}
 }
 
@@ -609,6 +610,9 @@ templ ClubSettings(c ClubPage) {
 			<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
 			<p class="help">Entries already sent stay with each competition.</p>
 		</form>
+		if c.KeptUntil != "" {
+			<p class="help mt-3">{ "The club is kept until " + c.KeptUntil + ": 13 months after anyone last opened its pages, or a member's or coach's. Each time someone does, that moves on." }</p>
+		}
 		</div>
 		@tiesBox(c.Base+"/ties/remove", c.Ties, "Someone who adds this admin link to their own page (a member's or coach's, say) opens these pages from there, with a tab for each.")
 	}

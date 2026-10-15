@@ -91,3 +91,48 @@ func TestMemberRoutines(t *testing.T) {
 		t.Errorf("a removed member's routines stay: %d", len(got))
 	}
 }
+
+// Opening a club's pages marks it used, at most once a day; a change always does.
+func TestClubMarkedUsed(t *testing.T) {
+	now := time.Date(2026, 10, 15, 9, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	club, admin, err := s.CreateClub(ctx, "UCD")
+	must(t, err)
+	_, member, err := s.Join(ctx, club.ID, "A. Murphy")
+	must(t, err)
+	_, coach, err := s.CreateCoach(ctx, club.ID, "Ann")
+	must(t, err)
+	used := func() time.Time {
+		t.Helper()
+		c, err := s.ClubByAdmin(ctx, admin)
+		must(t, err)
+		return c.LastUsed
+	}
+	start := now
+
+	// Within the day, opening a page writes nothing.
+	now = start.Add(23 * time.Hour)
+	_, err = s.MemberByLink(ctx, member)
+	must(t, err)
+	if got := used(); !got.Equal(start) {
+		t.Errorf("marked used within the day: %v", got)
+	}
+
+	// A day on, a member's page marks it; so does a coach's the next day.
+	for i, open := range []func() error{
+		func() error { _, err := s.MemberByLink(ctx, member); return err },
+		func() error { _, err := s.CoachByLink(ctx, coach); return err },
+		func() error { _, err := s.ClubByJoinLink(ctx, club.JoinLink); return err },
+	} {
+		now = start.Add(time.Duration(i+1) * 25 * time.Hour)
+		must(t, open())
+		if got := used(); !got.Equal(now) {
+			t.Errorf("page %d: last used %v, want %v", i, got, now)
+		}
+	}
+	// The admin link's own page marks it too, and says so.
+	now = now.Add(48 * time.Hour)
+	if got := used(); !got.Equal(now) {
+		t.Errorf("the admin page: last used %v, want %v", got, now)
+	}
+}

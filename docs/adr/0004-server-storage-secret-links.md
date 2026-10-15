@@ -136,7 +136,8 @@ Constraints:
    birth or contact details. A competition and its entries are deleted **120
    days after the competition date**, and the organiser can delete them sooner.
    A club and its members' entries are deleted **120 days after the club was last
-   used**; the comp sec can delete the club or remove a member at any time.
+   used** (13 months since ADR 0011 Decision 7); the comp sec can delete the
+   club or remove a member at any time.
    The submit page says what is stored, who can see it and when it's deleted.
 
 7. **Abuse limits**, as in charades: a cap on competitions and clubs created per

@@ -1121,8 +1121,17 @@ your way round; the menu is `views/menu.templ`, built for each page in
   they have qualifications. Both are sections that can be collapsed and start
   open ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
 - **Settings** (`/settings`): replacing the admin link and deleting the club,
-  and who opens these pages from their own link, each with **Remove**
+  when the club would be deleted if no one uses it, and who opens these pages
+  from their own link, each with **Remove**
   ([one link, several roles](#one-link-several-roles-adr-0010)).
+
+**How long a club is kept** (ADR 0011 Decision 7, built 2026-10-15): until 13
+months after it was last used (`store.ClubRetentionMonths`, `KeptUntil`), so
+a summer break doesn't lose it. Opening a page through the club's admin or
+join link, a member's or a coach's link marks it used, at most once a day
+(`markUsed`), so page loads rarely write; anything changed marks it at once
+(`touch`). Competitions keep their own retention (120 days after their date),
+and so do individuals.
 
 On Members, **Make a coach too** beside a member (and on Coaches, a member to
 choose) makes them a coach of the club as well: no coach link, their member
@@ -1302,7 +1311,8 @@ link, and Your other links).
   people group by this key, so a misspelling no longer splits someone and two
   people of one name stay apart (those from before stay as they were until
   joined).
-- Individuals with no entries left are deleted with the retention of clubs.
+- Individuals with no entries left are deleted 120 days after they were made
+  (clubs are kept longer, ADR 0011 Decision 7).
 
 # My competition (roadmap: competitions 5)
 

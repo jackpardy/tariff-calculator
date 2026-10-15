@@ -308,6 +308,7 @@ func (p *competitionPages) clubCoachesPart(r *http.Request, club store.Club, pag
 // clubSettingsPart fills in the Settings section: who opens the comp sec's
 // pages from their own link.
 func (p *competitionPages) clubSettingsPart(r *http.Request, club store.Club, page *views.ClubPage) error {
+	page.KeptUntil = store.KeptUntil(club.LastUsed).In(local).Format("2 January 2006")
 	ties, err := p.st.ClubTies(r.Context(), club.ID)
 	for _, t := range ties {
 		page.Ties = append(page.Ties, views.TieView{ID: t.ID, Name: t.Name, Since: t.At.In(local).Format("2 January 2006")})

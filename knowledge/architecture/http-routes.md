@@ -204,5 +204,5 @@ check rather than failing the request.
 - Every response carries `X-App-Version` ([static assets](static-assets.md#update-notice)).
 - `PORT` sets the port (default 8080). `DATA_DIR` turns on competition
   storage there (SQLite); unset, it's off. With storage on, competitions 120
-  days past their date and clubs unused for 120 days are deleted at start-up
-  and every 6 hours.
+  days past their date and clubs unused for 13 months (ADR 0011) are deleted
+  at start-up and every 6 hours.

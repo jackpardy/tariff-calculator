@@ -463,7 +463,8 @@ coach sign-off. Changing a member's entry is part of Competitions too.
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
 - **Settings** (its own section): replace the admin link, or delete the club. A
-  club is deleted 120 days after it was last used. **Opened from people's own
+  club is deleted 13 months after anyone last used it (you, a coach or a
+  member opening their page); Settings says when. **Opened from people's own
   links** lists anyone who added the admin link to their own page (see
   [One link for all your roles](#6-one-link-for-all-your-roles)), with
   **Remove**; replacing the admin link ends it for all of them.

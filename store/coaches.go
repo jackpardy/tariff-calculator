@@ -77,7 +77,7 @@ func (s *Store) Coaches(ctx context.Context, clubID string) ([]Coach, error) {
 }
 
 // CoachByLink is the coach a link belongs to, or a personal link's Via to
-// them opens (ADR 0010). It marks their club used.
+// them opens (ADR 0010). It marks their club used (markUsed).
 func (s *Store) CoachByLink(ctx context.Context, token string) (Coach, error) {
 	var c Coach
 	var created string
@@ -91,7 +91,8 @@ func (s *Store) CoachByLink(ctx context.Context, token string) (Coach, error) {
 		if err != nil {
 			return notFound(err)
 		}
-		return touch(ctx, tx, c.ClubID, s.stamp())
+		_, err = s.markUsed(ctx, tx, c.ClubID)
+		return err
 	})
 	c.CreatedAt = parseTime(created)
 	return c, err
