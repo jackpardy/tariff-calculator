@@ -47,14 +47,12 @@ type DeskPersonOption struct {
 // DeskSent is a message sent.
 type DeskSent struct {
 	At, Who, To, Text string
-	Come              bool
 	Pushed, Emailed   int
 }
 
 // DeskNote is a message on a recipient's own page.
 type DeskNote struct {
 	Text, At string
-	Come     bool
 }
 
 // Desk is the organisers' desk.

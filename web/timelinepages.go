@@ -119,7 +119,7 @@ func timeline(s competitions.Schedule, name func(key string) string, officials b
 		}
 		return first, last
 	}
-	t := views.Timeline{Officials: officials, Header: timelineHeaderRows(officials), Focus: focus != nil}
+	t := views.Timeline{Officials: officials, Header: timelineHeaderRows(officials)}
 	header := t.Header
 	first, last := span(-1)
 	if first < 0 || last <= first {

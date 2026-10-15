@@ -32,7 +32,6 @@ type ScreenArea struct {
 	Now          string // the flight on now, or the break's name; "" for nothing
 	NowTimes     string // the flight's time in the timetable, e.g. "09:30–10:40"
 	Planned      bool   // Now is on by the plan only: nobody has marked it started
-	Break        bool   // Now is a break
 	Gymnasts     []FlightGymnast
 	More         int    // gymnasts on now not named
 	Next         string // the next flight; "" for none
@@ -43,7 +42,6 @@ type ScreenArea struct {
 	Finished     bool   // nothing more today
 	Late         string // e.g. "Running 15 min late"; "" when not measured
 	Behind       bool   // running late
-	Ahead        bool   // running early
 	Up           *ScreenUp // who's on in the flight on now, and next; nil until the marshal taps
 }
 

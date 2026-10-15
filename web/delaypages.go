@@ -191,7 +191,7 @@ func delayView(r competitions.DelayReport, names map[string]string) *views.Delay
 		ch := views.DelayChangeView{Flight: c.Flight,
 			Was:   fmt.Sprintf("%s %s–%s", c.Area, competitions.Clock(c.Start), competitions.Clock(c.End)),
 			Now:   fmt.Sprintf("%s %s–%s", c.NewArea, competitions.Clock(c.NewStart), competitions.Clock(c.NewEnd)),
-			Later: c.NewStart - c.Start, Moved: c.Moved}
+			Moved: c.Moved}
 		switch {
 		case c.Moved && c.PastEnd:
 			ch.Why = "moved: it would have run past the end of the day"

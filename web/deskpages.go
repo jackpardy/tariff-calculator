@@ -322,7 +322,7 @@ func (p *competitionPages) desk(w http.ResponseWriter, r *http.Request) {
 	page.PeopleTools = views.ListTools{ID: "desk-people", Noun: "people", Total: len(people), Filters: []views.ListFilter{clubFilter(peopleClubs)}}
 	for _, m := range sent {
 		page.Sent = append(page.Sent, views.DeskSent{
-			At: m.At.In(local).Format("Mon 2 Jan, 15:04"), Who: m.Who, To: m.Audience, Text: m.Full(), Come: m.Come,
+			At: m.At.In(local).Format("Mon 2 Jan, 15:04"), Who: m.Who, To: m.Audience, Text: m.Full(),
 			Pushed: m.Pushed, Emailed: m.Emailed,
 		})
 	}
@@ -379,7 +379,7 @@ func (p *competitionPages) deskNotes(ctx context.Context, competitionID string, 
 			break
 		}
 		if m.Reaches(people, clubs, staff) {
-			out = append(out, views.DeskNote{Text: m.Full(), At: deskWhen(m.At, p.now()), Come: m.Come})
+			out = append(out, views.DeskNote{Text: m.Full(), At: deskWhen(m.At, p.now())})
 		}
 	}
 	return out

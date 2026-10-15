@@ -395,7 +395,6 @@
 .skill-card-fig { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .skill-card-tariff { font-size: 1.35rem; font-weight: 700; color: #485fc7; line-height: 1; }
 .skill-card-problem { color: #cc0f35; font-size: 0.85rem; margin-top: 0.5rem; }
-.skill-card-note { color: #777; font-size: 0.85rem; margin-top: 0.5rem; }
 /* Shape buttons and Add (or Update / Cancel) share a row; Add takes what's left. */
 .skill-card-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.5rem; margin-top: 0.5rem; }
 .skill-card-actions .add-to { flex-basis: 100%; margin-bottom: 0; order: -1; } /* above the shapes, which share a row with Add */
@@ -484,7 +483,7 @@ details > * { box-sizing: border-box; }
    in em, so it sits on the first line whatever the summary is (label, title, small text,
    <strong> inside) and block-display summaries do not lose it. The native marker is
    hidden so there is never a double arrow. Summaries that are something else (a button,
-   the routine menu, the inline "move" link) opt out below; add `no-arrow` to any other. */
+   the routine menu, the inline "move" link) opt out below. */
 details > summary { cursor: pointer; list-style: none; }
 details > summary::-webkit-details-marker { display: none; }
 details > summary::before {
@@ -493,7 +492,7 @@ details > summary::before {
 }
 details[open] > summary::before { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) { details > summary::before { transition: none; } }
-details > summary.button::before, details > summary.no-arrow::before, .routine-menu > summary::before, .comp-move > summary::before { content: none; }
+details > summary.button::before, .routine-menu > summary::before, .comp-move > summary::before { content: none; }
 /* Fieldsets default to min-width: min-content, which lets nested grids overflow. */
 .matcher, .option-group { min-width: 0; }
 @media screen and (max-width: 768px) {
@@ -535,10 +534,6 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 }
 
 /* --- Loading a set routine: new routine or replace --- */
-.set-routine-dialog { width: calc(100% - 2rem); max-width: 26rem; margin: 0 auto; border-radius: 10px; }
-.set-routine-dialog .modal-card-body { border-radius: 10px; }
-.set-routine-choices { display: flex; flex-direction: column; gap: 0.5rem; }
-.set-routine-choices .button { white-space: normal; height: auto; min-height: 2.5em; }
 
 /* --- Which checks apply to a routine (set routines turn some off) --- */
 .routine-checks { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; border-top: 1px solid #eee; margin-top: 0.75rem; padding-top: 0.6rem; font-size: 0.9rem; }
@@ -605,7 +600,6 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-level { display: flex; align-items: center; gap: 0.4rem; padding: 0.15rem 0 0.15rem 1rem; }
 .comp-counts { margin: 1rem 0; }
 .comp-manage[open] summary { margin-bottom: 0.75rem; }
-.comp-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin: 1rem 0; }
 .comp-table td, .comp-table th { white-space: nowrap; }
 .comp-table td:nth-child(6) { white-space: normal; min-width: 12rem; }
 .comp-table tr.has-problems td:nth-child(6) { color: #cc0f35; }
@@ -619,7 +613,6 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-entries tr.has-problems td:nth-child(6) { color: inherit; }
 .comp-entries td.comp-problem-cell { white-space: normal; min-width: 12rem; }
 .comp-entries tr.has-problems td.comp-problem-cell { color: #cc0f35; }
-.comp-filters .input[type=search] { width: 14rem; }
 .comp-skills tr.not-counted td { color: #999; text-decoration: line-through; }
 .comp-results { list-style: none; margin: 0; font-size: 0.9rem; }
 .comp-results .is-unmet { color: #cc0f35; }
@@ -633,7 +626,6 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-table tr.is-withdrawn td a { color: #7a7a7a; text-decoration: line-through; }
 
 /* --- Timetable (views/timetable.templ) --- */
-.comp-plan-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0 1rem; }
 .comp-flight { padding: 0.9rem 1rem; }
 .comp-order { margin: 0 0 0.5rem 1.4rem; }
 /* A gymnast's running number, their place in the flight: the same on every page. */
@@ -697,8 +689,6 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
     .comp-timeline-officials .comp-tl-sheet { break-after: page; }
     .comp-tl-sheet *, .comp-tl-sheet { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
-.comp-event { border-top: 1px solid #eee; padding-top: 0.75rem; margin-top: 0.75rem; }
-.comp-event .comp-change summary { color: #485fc7; }
 
 /* --- Officials (views/officials.templ) --- */
 .comp-offer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.8rem; }

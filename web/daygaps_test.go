@@ -307,7 +307,7 @@ func TestDelayView(t *testing.T) {
 		}
 	}
 	v := delayView(competitions.DelayReport{Changes: []competitions.DelayChange{change(competitions.DelayChange{NewStart: 620, NewEnd: 680})}}, nil)
-	if c := v.Changes[0]; c.Was != "Panel 1 10:00–11:00" || c.Now != "Panel 1 10:20–11:20" || c.Later != 20 {
+	if c := v.Changes[0]; c.Was != "Panel 1 10:00–11:00" || c.Now != "Panel 1 10:20–11:20" {
 		t.Errorf("was and now: %+v", c)
 	}
 	v = delayView(competitions.DelayReport{Clashes: []competitions.Clash{

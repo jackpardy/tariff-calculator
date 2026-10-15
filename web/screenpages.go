@@ -222,7 +222,7 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 			v.NowTimes = competitions.Clock(f.Start) + "–" + competitions.Clock(f.End)
 			v.Gymnasts = gymnasts(f)
 		case n.Break != "":
-			v.Now, v.Break = n.Break, true
+			v.Now = n.Break
 		}
 		if n.Next != nil {
 			v.Next, v.NextWarmUp = n.Next.Name(), competitions.Clock(n.Next.Start)
@@ -230,7 +230,7 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 		}
 		v.Idle, v.Finished = n.Idle, n.Flight == nil && n.Break == "" && n.Next == nil
 		if l, ok := late[a.Name]; ok {
-			v.Late, v.Behind, v.Ahead = lateText(l), l.Minutes > 0, l.Minutes < 0
+			v.Late, v.Behind = lateText(l), l.Minutes > 0
 		}
 		page.Areas = append(page.Areas, v)
 	}
