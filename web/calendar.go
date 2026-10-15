@@ -37,7 +37,7 @@ func (p *competitionPages) memberCalendar(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	p.personalCalendar(w, r, c, "m:"+m.ID, m.Name)
+	p.personalCalendar(w, r, c, store.MemberKey(m.ID), m.Name)
 }
 
 func (p *competitionPages) individualCalendar(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +45,7 @@ func (p *competitionPages) individualCalendar(w http.ResponseWriter, r *http.Req
 	if !ok {
 		return
 	}
-	p.personalCalendar(w, r, c, personKeyOf(e), e.Entry.Gymnast)
+	p.personalCalendar(w, r, c, e.Key(), e.Entry.Gymnast)
 }
 
 func (p *competitionPages) memberClubCalendar(w http.ResponseWriter, r *http.Request) {
@@ -331,7 +331,7 @@ func (p *competitionPages) clubCalendar(w http.ResponseWriter, r *http.Request, 
 	}
 	ours := map[string]bool{} // the club's people, by key
 	for _, m := range members {
-		ours["m:"+m.ID] = true
+		ours[store.MemberKey(m.ID)] = true
 	}
 	p.serveCalendar(w, r, c, "club:"+clubID, clubName, func(entries []store.Entry, officials []competitions.RotaPerson, name func(string) string) func(calendarSlot) []calendarClaim {
 		for _, o := range officials {

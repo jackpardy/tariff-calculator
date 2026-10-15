@@ -232,31 +232,65 @@ type Entry struct {
 	// individuals had one link (by name), so saved keys still find them.
 	IndividualID string
 	PersonKey    string
+	// CoachID is the member's coach now, by id ("" for none, or an
+	// individual), and PartnerPersonKey the person key of a partner confirmed
+	// as an individual: their entry's.
+	CoachID          string
+	PartnerPersonKey string
+}
+
+// entryKeys are the columns after person_key that scanEntry reads: the
+// member's coach, and the person key of a partner confirmed as an individual.
+const entryKeys = `COALESCE((SELECT m.coach_id FROM members m WHERE m.id = entries.member_id), ''),
+	COALESCE((SELECT p.person_key FROM entries p WHERE p.id = entries.partner_entry), '')`
+
+// Key is the gymnast's person key: a member by their member id, an
+// individual by their person's key in the competition (ADR 0010).
+func (e Entry) Key() string {
+	switch {
+	case e.MemberID != "":
+		return MemberKey(e.MemberID)
+	case e.PersonKey != "":
+		return e.PersonKey
+	}
+	return IndividualNameKey(e.Entry.Gymnast)
 }
 
 // People are the entry's people, by a key that's the same wherever the same
-// person appears (ADR 0005 Decision 4): a member by their member id, an
-// individual by their entry, and a confirmed synchro partner as whichever
-// they confirmed as. An unconfirmed partner is their entry and name.
+// person appears (ADR 0005 Decision 4): the gymnast (Key), and a confirmed
+// synchro partner as whichever they confirmed as. An unconfirmed partner is
+// known only by this entry.
 func (e Entry) People() []string {
-	var out []string
-	switch {
-	case e.MemberID != "":
-		out = append(out, "m:"+e.MemberID)
-	default:
-		out = append(out, "e:"+e.ID)
-	}
+	out := []string{e.Key()}
 	if e.Entry.Partner != nil {
 		switch {
 		case e.PartnerMemberID != "":
-			out = append(out, "m:"+e.PartnerMemberID)
-		case e.PartnerEntryID != "":
-			out = append(out, "e:"+e.PartnerEntryID)
+			out = append(out, MemberKey(e.PartnerMemberID))
+		case e.PartnerEntryID != "" && e.PartnerPersonKey != "":
+			out = append(out, e.PartnerPersonKey)
 		default:
-			out = append(out, "p:"+e.ID)
+			out = append(out, PartnerKey(e.ID))
 		}
 	}
 	return out
+}
+
+// CoachKey is the person key of who coaches the gymnast, as CoachName names
+// them, "" for no one: a club's coach by their record (the one who signed it
+// off, or else the member's coach), an individual's by name. A club's
+// sign-off from before coaches were recorded keeps its club and name.
+func (e Entry) CoachKey() string {
+	switch {
+	case e.Individual:
+		return NamedCoachKey(e.CoachName())
+	case e.SignedOff() && e.SignedCoach != "":
+		return CoachKey(e.SignedCoach)
+	case e.SignedOff():
+		return clubCoachNameKey(e.ClubID, e.SignedBy)
+	case e.CoachID != "":
+		return CoachKey(e.CoachID)
+	}
+	return ""
 }
 
 // CoachName is who coaches the gymnast, for their card: the coach who signed
@@ -371,7 +405,7 @@ func (s *Store) entriesWhere(ctx context.Context, where string, args ...any) ([]
 	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
 		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
 			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id AND me.discipline = entries.discipline), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
-		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent, entered_at, let_in, COALESCE(individual_id, ''), person_key
+		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent, entered_at, let_in, COALESCE(individual_id, ''), person_key, `+entryKeys+`
 		FROM entries WHERE `+where+`
 		ORDER BY individual, club_name, gymnast, id`, args...)
 	if err != nil {
@@ -394,7 +428,7 @@ func scanEntry(row interface{ Scan(...any) error }) (Entry, error) {
 	var e Entry
 	var entry, sent, checked, signed, entered string
 	var counts bool
-	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach, &e.PartnerLink, &e.PartnerConfirmed, &e.PartnerMemberID, &e.PartnerEntryID, &e.SignedCoach, &counts, &e.Removal, &e.RemovalNote, &e.RemovalTo, &e.Resent, &entered, &e.LetIn, &e.IndividualID, &e.PersonKey); err != nil {
+	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach, &e.PartnerLink, &e.PartnerConfirmed, &e.PartnerMemberID, &e.PartnerEntryID, &e.SignedCoach, &counts, &e.Removal, &e.RemovalNote, &e.RemovalTo, &e.Resent, &entered, &e.LetIn, &e.IndividualID, &e.PersonKey, &e.CoachID, &e.PartnerPersonKey); err != nil {
 		return Entry{}, notFound(err)
 	}
 	e.Unapproved = signed != "" && !counts
@@ -497,7 +531,7 @@ func (s *Store) AddIndividualEntry(ctx context.Context, competitionID, as string
 
 // individualColumns are a row of entries as scanEntry reads it, for an
 // individual's own pages: no club, and never withdrawn.
-const individualColumns = `id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE, COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, ` + signoffCounts + `, removal, removal_note, removal_to, resent, entered_at, let_in, COALESCE(individual_id, ''), person_key`
+const individualColumns = `id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE, COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, ` + signoffCounts + `, removal, removal_note, removal_to, resent, entered_at, let_in, COALESCE(individual_id, ''), person_key, ` + entryKeys
 
 // IndividualEntry is the entry an individual's link opens: an entry link
 // from before one link a person, or a personal link's way to one of the
@@ -645,7 +679,7 @@ func (s *Store) CompetitionEntry(ctx context.Context, competitionID, id string) 
 	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
 		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
 			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id AND me.discipline = entries.discipline), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
-		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent, entered_at, let_in, COALESCE(individual_id, ''), person_key
+		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent, entered_at, let_in, COALESCE(individual_id, ''), person_key, `+entryKeys+`
 		FROM entries WHERE competition_id = $1 AND id = $2`, competitionID, id))
 }
 
@@ -701,7 +735,7 @@ func (s *Store) SetSignoff(ctx context.Context, id string, on bool) error {
 // EntryBySignoffLink is the individual's entry a coach's sign-off link opens.
 func (s *Store) EntryBySignoffLink(ctx context.Context, token string) (Entry, error) {
 	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, '', club_name, '', individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note, FALSE,
-		COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent, entered_at, let_in, COALESCE(individual_id, ''), person_key
+		COALESCE(signed_at, ''), signed_by, sign_note, signoff_token, '', partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent, entered_at, let_in, COALESCE(individual_id, ''), person_key, `+entryKeys+`
 		FROM entries WHERE signoff_hash = $1`, hash(token)))
 }
 

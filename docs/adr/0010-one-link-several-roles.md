@@ -1,8 +1,8 @@
 # ADR 0010 — One link for a person with several roles
 
 - **Status:** Accepted; built 2026-10-14
-- **Date:** 2026-10-14 (Decision 8, links the comp sec makes, added
-  2026-10-15)
+- **Date:** 2026-10-14 (Decision 8, links the comp sec makes, and Decision
+  9, person keys, added 2026-10-15)
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 3 (secret links: a personal link opens all
   of its person's roles); ADR 0005 Decision 4 (an individual is matched by
@@ -95,6 +95,28 @@ Asked on the roadmap (item 5, 2026-10-13 and 2026-10-14).
    link, and their roles at other clubs. Replacing the club's admin link
    didn't undo links it had already made. Now a link the comp sec holds
    opens nothing the club's admin link doesn't already reach.
+9. **Person keys, and one person across them** (added 2026-10-15, from the
+   cleanup audit). A key is a kind and an id, made and read only in
+   `store/personkey.go`: `m:<member id>`, `i:<individual id>` (or
+   `i:<lower-cased name>` from before, Decision 7), `c:<coach id>` for a
+   club's coach, `c::<lower-cased name>` for a coach an individual named
+   (they have no record), `o:<official id>` for an official with neither,
+   and `p:<entry id>` for a synchro partner not yet confirmed. A club's
+   coach was keyed by club and name as typed, so renaming them or a sign-off
+   typed differently lost what was saved under them, and two coaches of one
+   name were one; migration 34 moved the saved keys (a key two coaches of
+   one name shared stays, as nothing says whose it was). Where keys are
+   saved is one list, which `renameKey` changes and a test checks against
+   the schema.
+   Records joined as one person are one person wherever the timetable works
+   out clashes and rest: the planner, the rota, the report's problems and
+   short rest, a delay, an official leaving, a late change's place and the
+   simulation's count. Each request maps the keys in use, from the ties, to
+   one standing for the person (their official's key if they officiate, as
+   seats are saved under it), and works out with those; the keys saved stay
+   as they were. Someone coaching while they compete is a problem, and the
+   planner avoids it. An individual's notifications belong to the
+   individual, not the entry they asked on (migration 35).
 
 ## Alternatives considered
 
@@ -114,8 +136,13 @@ Asked on the roadmap (item 5, 2026-10-13 and 2026-10-14).
   rewrite, and the rename on joining is rare and contained.
 - **Keying a tied member and their own entries alike in a competition.** A
   member who also enters on their own at the same competition still has two
-  keys there (`m:` and `i:`); All people joins them by person, but the rota
-  and Your competition treat them apart. Rare, and left for later.
+  keys there (`m:` and `i:`); All people joins them by person, and since
+  Decision 9 so do the timetable's clashes and rest, but Your competition,
+  check-in and the desk still treat them apart. Rare, and left for later.
+- **One key per person, saved** (rewriting every saved key to a person's).
+  Seats, rules, desk messages and check-ins would all move whenever people
+  joined or parted; mapping keys to people when working out (Decision 9)
+  leaves what was saved alone.
 
 ## Consequences
 

@@ -374,7 +374,7 @@ type Schedule struct {
 
 // SchedEntry is an entry as the scheduler needs it: its event, discipline,
 // category and club, and the people in it (one, or a synchro pair), by a key
-// that's the same wherever the same person appears.
+// that's the same wherever the same person appears, as a gymnast or coach.
 type SchedEntry struct {
 	PlanEntry
 	Discipline string
@@ -912,6 +912,24 @@ func (p *planner) score(f ScheduledFlight, who, coached map[string]bool) float64
 		for _, iv := range p.coaches[c] {
 			if overlaps(iv, interval{f.Day, f.Start, f.End}) {
 				cost += 40
+				break
+			}
+		}
+	}
+	// Someone coaching while they compete (a coach who is also a gymnast, by
+	// one key): as costly as a broken prefer, as they can't do both at all.
+	for c := range coached {
+		for _, iv := range p.people[c] {
+			if overlaps(iv, interval{f.Day, f.Start, f.End}) {
+				cost += 120
+				break
+			}
+		}
+	}
+	for person := range who {
+		for _, iv := range p.coaches[person] {
+			if overlaps(iv, interval{f.Day, f.Start, f.End}) {
+				cost += 120
 				break
 			}
 		}

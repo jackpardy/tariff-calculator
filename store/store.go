@@ -635,6 +635,15 @@ var migrations = []string{
 	// someone joining or leaving the flight changes (flightIDs).
 	`ALTER TABLE up_now ADD COLUMN entry TEXT NOT NULL DEFAULT '';
 	ALTER TABLE up_now ADD COLUMN round INTEGER NOT NULL DEFAULT 0;`,
+
+	// 35: a club's coach is keyed by their record, not their club and name
+	// as typed (coachKeysByRecord): the keys saved under the old form move
+	// to the new. Nothing in the schema changes.
+	`SELECT 1;`,
+
+	// 36: an individual's notifications belong to the individual, not the
+	// entry they signed up on (individualSubscriptions).
+	individualSubscriptions,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run
@@ -642,6 +651,7 @@ var migrations = []string{
 var migrationSteps = map[int]func(context.Context, *sql.Tx) error{
 	30: individualsFromEntries,
 	34: flightIDs,
+	35: coachKeysByRecord,
 }
 
 // rebuilds are the migrations, by version, that rebuild a table, so run

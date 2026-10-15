@@ -189,9 +189,10 @@ func (s *Schedule) number() {
 
 // Problems are what manual changes have broken: a flight past its day's end, an
 // event's flights not back to back on one area (or across a break, where
-// that isn't allowed), or a person in two places at once. people are each
-// entry's people, by entry id.
-func (s Schedule) Problems(people map[string][]string, names map[string]string) []string {
+// that isn't allowed), a person in two places at once, or a coach competing
+// while their gymnasts compete elsewhere. people and coaches are each entry's
+// people and coaches, by entry id, keyed so that one person has one key.
+func (s Schedule) Problems(people, coaches map[string][]string, names map[string]string) []string {
 	var out []string
 	for _, f := range s.Flights {
 		if f.Day < len(s.Setup.Days) {
@@ -224,6 +225,28 @@ func (s Schedule) Problems(people map[string][]string, names map[string]string) 
 				if !seen[msg] {
 					seen[msg] = true
 					out = append(out, msg)
+				}
+			}
+		}
+	}
+	for i, a := range s.Flights {
+		coaching := map[string]bool{}
+		for _, id := range a.Entries {
+			for _, c := range coaches[id] {
+				coaching[c] = true
+			}
+		}
+		for j, b := range s.Flights {
+			if i == j || !overlaps(interval{a.Day, a.Start, a.End}, interval{b.Day, b.Start, b.End}) {
+				continue
+			}
+			for _, id := range b.Entries {
+				for _, p := range people[id] {
+					msg := fmt.Sprintf("%s coaches in %s while competing in %s", names[p], a.Name(), b.Name())
+					if coaching[p] && !seen[msg] {
+						seen[msg] = true
+						out = append(out, msg)
+					}
 				}
 			}
 		}

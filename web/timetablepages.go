@@ -61,52 +61,113 @@ func live(entries []store.Entry) []store.Entry {
 // members by member, and individuals by person (ADR 0005 Decision 4, ADR
 // 0010), their entries all keyed alike in a competition.
 func personKeys(entries []store.Entry) map[string][]string {
-	individual := map[string]string{} // entry id → key
-	for _, e := range entries {
-		if e.Individual {
-			individual[e.ID] = personKeyOf(e)
-		}
-	}
 	out := map[string][]string{}
 	for _, e := range entries {
-		var keys []string
-		for _, k := range e.People() {
-			if id, ok := strings.CutPrefix(k, "e:"); ok {
-				if key, known := individual[id]; known {
-					k = key
-				}
-			}
-			keys = append(keys, k)
-		}
-		out[e.ID] = keys
+		out[e.ID] = e.People()
 	}
 	return out
 }
 
-// personKeyOf is the person key of an individual's entry: their person's in
-// its competition (ADR 0010).
-func personKeyOf(e store.Entry) string {
-	if e.PersonKey != "" {
-		return e.PersonKey
+// samePeople says which person keys are one person (ADR 0010: a member who
+// also coaches, or also enters on their own), for working out clashes and
+// rest: each key of someone with more than one in use maps to the one that
+// stands for them all. Saved keys stay as they are; only the working out
+// uses it.
+type samePeople map[string]string
+
+// of is the key standing for a key's person.
+func (sp samePeople) of(key string) string {
+	if k, ok := sp[key]; ok {
+		return k
 	}
-	return store.IndividualKey(e.Entry.Gymnast)
+	return key
 }
 
-// coachKey is the key of an entry's coach, if it has one: by club and name.
-func coachKey(e store.Entry) string { return coachKeyOf(e.ClubID, e.CoachName()) }
-
-// coachKeyOf is the key of a coach of a club ("" for an individual's), by
-// name; "" for no name.
-func coachKeyOf(clubID, name string) string {
-	name = store.NameKey(name)
-	if name == "" {
-		return ""
+// all are keys as their people's.
+func (sp samePeople) all(keys []string) []string {
+	out := make([]string, len(keys))
+	for i, k := range keys {
+		out[i] = sp.of(k)
 	}
-	return "c:" + clubID + ":" + name
+	return out
 }
 
-// schedEntries are entries as the scheduler needs them, with their people.
-func schedEntries(entries []store.Entry) []competitions.SchedEntry {
+// newSamePeople works out who's the same person among the keys in use, from
+// groups (key to person, store.PersonGroups): the entries' gymnasts and
+// coaches, and the officials. Someone who officiates is stood for by their
+// official's key, which the rota's seats are saved under, so their seats and
+// their entries are seen as one person's; anyone else by their first key, a
+// member's before an individual's before a coach's.
+func newSamePeople(groups map[string]string, entries []store.Entry, officials []competitions.RotaPerson) samePeople {
+	official := map[string]bool{}
+	var inUse []string
+	for _, o := range officials {
+		official[o.Key] = true
+		inUse = append(inUse, o.Key)
+	}
+	for _, e := range entries {
+		inUse = append(inUse, e.People()...)
+		if k := e.CoachKey(); k != "" {
+			inUse = append(inUse, k)
+		}
+	}
+	rank := func(k string) int {
+		if official[k] {
+			return 0
+		}
+		kind, _ := store.KeyKind(k)
+		return 1 + strings.Index(store.KindMember+store.KindIndividual+store.KindCoach, kind)
+	}
+	stand := map[string]string{} // person → the key standing for them
+	for _, k := range inUse {
+		person, ok := groups[k]
+		if !ok {
+			continue
+		}
+		if s, seen := stand[person]; !seen || rank(k) < rank(s) || rank(k) == rank(s) && k < s {
+			stand[person] = k
+		}
+	}
+	out := samePeople{}
+	for _, k := range inUse {
+		if person, ok := groups[k]; ok && stand[person] != k {
+			out[k] = stand[person]
+		}
+	}
+	return out
+}
+
+// clashPeople are each entry's people and their names, as peopleOf has them,
+// keyed as their people (same) for working out clashes and rest, with names
+// for those keys too.
+func clashPeople(entries []store.Entry, same samePeople) (map[string][]string, map[string]string) {
+	people, names := peopleOf(entries)
+	for id, keys := range people {
+		people[id] = same.all(keys)
+	}
+	for k, n := range names {
+		if s := same.of(k); names[s] == "" {
+			names[s] = n
+		}
+	}
+	return people, names
+}
+
+// coachesOf are each entry's coaches, by entry id, keyed as their people
+// (same).
+func coachesOf(entries []store.Entry, same samePeople) map[string][]string {
+	out := map[string][]string{}
+	for _, e := range entries {
+		if k := e.CoachKey(); k != "" {
+			out[e.ID] = []string{same.of(k)}
+		}
+	}
+	return out
+}
+
+// schedEntries are entries as the scheduler needs them, with their people
+// and coaches keyed as their people (same).
+func schedEntries(entries []store.Entry, same samePeople) []competitions.SchedEntry {
 	keys := personKeys(entries)
 	out := make([]competitions.SchedEntry, len(entries))
 	for i, e := range entries {
@@ -116,10 +177,10 @@ func schedEntries(entries []store.Entry) []competitions.SchedEntry {
 		}
 		out[i] = competitions.SchedEntry{
 			PlanEntry:  competitions.PlanEntry{ID: e.ID, Level: e.Entry.Event(), Category: e.Entry.Category, Club: club},
-			Discipline: e.Entry.Discipline, People: keys[e.ID],
+			Discipline: e.Entry.Discipline, People: same.all(keys[e.ID]),
 		}
-		if k := coachKey(e); k != "" {
-			out[i].Coaches = []string{k}
+		if k := e.CoachKey(); k != "" {
+			out[i].Coaches = []string{same.of(k)}
 		}
 	}
 	return out
@@ -134,7 +195,7 @@ func peopleOf(entries []store.Entry) (map[string][]string, map[string]string) {
 		if len(ps) > 1 && e.Entry.Partner != nil {
 			names[ps[1]] = e.Entry.Partner.Name
 		}
-		if k := coachKey(e); k != "" {
+		if k := e.CoachKey(); k != "" {
 			names[k] = e.CoachName()
 		}
 	}
@@ -348,7 +409,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	people, err := p.rotaOf(r, c, entries)
+	people, same, err := p.rotaAndSame(r.Context(), c, entries)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -359,17 +420,17 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 	}
 	if s.Planned {
 		officials := people
-		page.Rota = rotaView(s, entries, officials)
-		people, names := peopleOf(entries)
+		page.Rota = rotaView(s, entries, officials, same)
+		people, names := clashPeople(entries, same)
 		report := s.Report(people)
-		page.Report = views.ReportView{Unplaced: report.Unplaced, Blocks: report.UnplacedBlocks, Broken: report.Broken, Problems: s.Problems(people, names)}
+		page.Report = views.ReportView{Unplaced: report.Unplaced, Blocks: report.UnplacedBlocks, Broken: report.Broken, Problems: s.Problems(people, coachesOf(entries, same), names)}
 		for _, d := range report.Days {
 			page.Report.Days = append(page.Report.Days, views.DayFinish{Name: d.Name, Finish: d.Finish, End: d.End, Spare: d.SpareMinutes, FlightsEnd: d.FlightsEnd, Free: d.FreeMinutes})
 		}
 		gymnasts := map[string]string{}
 		for k, n := range names {
-			if !strings.HasPrefix(k, "c:") {
-				gymnasts[k] = n
+			if kind, _ := store.KeyKind(k); kind != store.KindCoach {
+				gymnasts[same.of(k)] = n // one person's keys, once
 			}
 		}
 		for _, pair := range competitions.LookAlike(gymnasts) {
@@ -379,7 +440,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 			page.Report.ShortRest = append(page.Report.ShortRest, fmt.Sprintf("%s: %d minutes between %s and %s", names[sr.Person], sr.Minutes, sr.First, sr.Second))
 		}
 		if len(report.Unplaced)+len(report.UnplacedBlocks) > 0 {
-			for _, f := range competitions.Fixes(schedEntries(entries), c.EventNames(), s.Setup, 1) {
+			for _, f := range competitions.Fixes(schedEntries(entries, same), c.EventNames(), s.Setup, 1) {
 				page.Report.Fixes = append(page.Report.Fixes, views.FixView{Change: f.Change, Fits: f.Fits})
 			}
 		}
@@ -691,7 +752,7 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	people, err := p.rotaOf(r, c, entries)
+	people, same, err := p.rotaAndSame(r.Context(), c, entries)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -701,8 +762,8 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 		if err := s.Setup.Check(c.EventNames()); err != nil {
 			return refused("Fix the setup first: " + strings.Join(sentences(err), " "))
 		}
-		*s = competitions.PlanStaffed(schedEntries(entries), c.EventNames(), s.Setup, staffing(c.Competition, people), uint64(p.now().UnixNano()))
-		p.staff(s, c, entries, people)
+		*s = competitions.PlanStaffed(schedEntries(entries, same), c.EventNames(), s.Setup, staffing(c.Competition, people), uint64(p.now().UnixNano()))
+		p.staff(s, c, entries, people, same)
 		if n := len(s.Unplaced) + len(s.UnplacedBlocks); n > 0 {
 			notice += " Some of it doesn't fit: see below."
 		}
@@ -731,15 +792,20 @@ func (p *competitionPages) editFlight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	flight, _ := strconv.Atoi(r.FormValue("flight"))
-	err := p.changeDraft(r, c, func(s *competitions.Schedule) error {
+	_, same, err := p.rotaAndSame(r.Context(), c, entries)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	err = p.changeDraft(r, c, func(s *competitions.Schedule) error {
 		done := false
 		switch r.FormValue("action") {
 		case "redraw":
 			clubs := map[string]string{}
-			for _, e := range schedEntries(entries) {
+			for _, e := range schedEntries(entries, same) {
 				clubs[e.ID] = e.Club
 			}
-			people, _ := peopleOf(entries)
+			people, _ := clashPeople(entries, same)
 			done = s.Redraw(flight, clubs, people, rand.New(rand.NewPCG(uint64(p.now().UnixNano()), 1)))
 		case "move":
 			day, area, _ := strings.Cut(r.FormValue("to"), ":")

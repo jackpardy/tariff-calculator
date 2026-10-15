@@ -375,10 +375,8 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			case e.Checked:
 				row.Status = "Sent · checked ✓"
 			}
-			if checked, err := c.Check(e.Entry); err != nil {
-				row.Problems = 1
-			} else {
-				row.Problems = len(checked.Problems())
+			row.Problems = len(memberProblems(c.Competition, e, sent))
+			if checked, err := c.Check(e.Entry); err == nil {
 				if competitions.VideoMissing(e.Entry, c.VideoNeeds(checked)) {
 					row.Video = "missing"
 				}
@@ -892,8 +890,8 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 		return views.MemberCompetition{}, err
 	}
 	mc := views.MemberCompetition{ID: c.ID, Page: memberCompetitionPath(r.PathValue("token"), c.ID), Competition: summary(c.Competition, now),
-		Duties: dutiesOf(c, "m:"+m.ID), Day: dayPath(path, c.ID), Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
-	mc.Desk = p.deskNotes(ctx, c.ID, []string{"m:" + m.ID}, clubIDs(m.ClubID), nil)
+		Duties: dutiesOf(c, store.MemberKey(m.ID)), Day: dayPath(path, c.ID), Notify: p.notifyLink(path + "/competitions/" + c.ID + "/notify")}
+	mc.Desk = p.deskNotes(ctx, c.ID, []string{store.MemberKey(m.ID)}, clubIDs(m.ClubID), nil)
 	if len(mc.Duties) > 0 {
 		mc.ScoreSheets = path + "/competitions/" + c.ID + "/score-sheets"
 	}

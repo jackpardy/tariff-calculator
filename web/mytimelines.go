@@ -33,7 +33,7 @@ func (p *competitionPages) memberTimeline(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	p.personalTimeline(w, r, c, "m:"+m.ID, memberCompetitionPath(r.PathValue("token"), c.ID))
+	p.personalTimeline(w, r, c, store.MemberKey(m.ID), memberCompetitionPath(r.PathValue("token"), c.ID))
 }
 
 func (p *competitionPages) individualTimeline(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +41,7 @@ func (p *competitionPages) individualTimeline(w http.ResponseWriter, r *http.Req
 	if !ok {
 		return
 	}
-	p.personalTimeline(w, r, c, personKeyOf(e), "/competitions/entry/"+r.PathValue("token"))
+	p.personalTimeline(w, r, c, e.Key(), "/competitions/entry/"+r.PathValue("token"))
 }
 
 func (p *competitionPages) memberClubTimeline(w http.ResponseWriter, r *http.Request) {
@@ -156,7 +156,7 @@ func (p *competitionPages) clubTimeline(w http.ResponseWriter, r *http.Request, 
 	}
 	ours := map[string]bool{} // the club's people, by key
 	for _, m := range members {
-		ours["m:"+m.ID] = true
+		ours[store.MemberKey(m.ID)] = true
 	}
 	t, ok := p.focusedTimeline(w, r, c, back, func(entries []store.Entry, officials []competitions.RotaPerson, name func(string) string) func(timelineItem) (bool, []string) {
 		for _, o := range officials {
@@ -214,7 +214,7 @@ func (p *competitionPages) memberScoreSheets(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	p.officialScoreSheets(w, r, c, "m:"+m.ID, dayPath(memberPath(r.PathValue("token")), c.ID))
+	p.officialScoreSheets(w, r, c, store.MemberKey(m.ID), dayPath(memberPath(r.PathValue("token")), c.ID))
 }
 
 func (p *competitionPages) individualScoreSheets(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +222,7 @@ func (p *competitionPages) individualScoreSheets(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
-	p.officialScoreSheets(w, r, c, personKeyOf(e), "/competitions/entry/"+r.PathValue("token"))
+	p.officialScoreSheets(w, r, c, e.Key(), "/competitions/entry/"+r.PathValue("token"))
 }
 
 // officialScoreSheets are the score sheets of the flights a person (by key)

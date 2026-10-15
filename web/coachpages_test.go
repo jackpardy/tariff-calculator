@@ -93,6 +93,23 @@ func TestCoachSignoff(t *testing.T) {
 	if !strings.Contains(clubPage, "Signed off by Bob") || !strings.Contains(clubPage, "Waiting for a coach") {
 		t.Error("the comp sec sees each entry's sign-off")
 	}
+	// The comp sec and the coaches count an entry's problems as the
+	// organiser does: Y's missing sign-off is one more than X, signed off,
+	// has.
+	problems := func(page, member string) string {
+		for _, row := range tableRows(t, page) {
+			if len(row) > 2 && row[0] == member && row[1] == "BUCS L3" {
+				return row[2]
+			}
+		}
+		return "no row"
+	}
+	if y, x := problems(clubPage, "Y"), problems(clubPage, "X"); y != "3" || x != "2" {
+		t.Errorf("the comp sec's problems: Y %s, X %s", y, x)
+	}
+	if y, x := problems(do(t, h, http.MethodGet, ann, nil).Body.String(), "Y"), problems(do(t, h, http.MethodGet, ann, nil).Body.String(), "X"); y != "3" || x != "2" {
+		t.Errorf("the coach's problems: Y %s, X %s", y, x)
+	}
 	redirected(t, h, formAction(t, clubPage, club+"/competitions/"), url.Values{"which": {"all"}})
 	dash = do(t, h, http.MethodGet, admin, nil).Body.String()
 	if !strings.Contains(dash, "<th>Coach</th>") || !strings.Contains(dash, "✓ Bob") || !strings.Contains(dash, "not signed off") {

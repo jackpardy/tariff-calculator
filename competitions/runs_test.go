@@ -73,7 +73,7 @@ func TestRunsAcrossBreaks(t *testing.T) {
 
 	// Turned off again, the timetable says L1 runs either side of lunch.
 	s.Setup.AcrossBreaks = false
-	if p := s.Problems(nil, nil); len(p) != 1 || p[0] != "L1 runs either side of Lunch" {
+	if p := s.Problems(nil, nil, nil); len(p) != 1 || p[0] != "L1 runs either side of Lunch" {
 		t.Errorf("flagged: %v", p)
 	}
 }
@@ -129,7 +129,7 @@ func TestMoveRun(t *testing.T) {
 	// Moving one flight away by hand splits the event: flagged.
 	s.Flights[first].Area = map[string]string{"Panel 1": "Panel 2", "Panel 2": "Panel 1"}[to]
 	s.Retime()
-	if p := s.Problems(nil, nil); len(p) == 0 || !strings.Contains(p[0], "L1's flights aren't back to back on one area") {
+	if p := s.Problems(nil, nil, nil); len(p) == 0 || !strings.Contains(p[0], "L1's flights aren't back to back on one area") {
 		t.Errorf("a split event is flagged: %v", p)
 	}
 }

@@ -482,8 +482,10 @@ func (p *competitionPages) lateChecks(ctx context.Context, c store.Competition, 
 	if c.Timetable == nil || !c.Timetable.Planned {
 		return out
 	}
-	people, names := peopleOf(live(entries))
-	_, place := c.Timetable.PlaceChange(e.ID, event, req.Entry.Category, people, names)
+	// Without who's the same person, clashes are worked out by key alone.
+	_, same, _ := p.rotaAndSame(ctx, c, live(entries))
+	people, names := clashPeople(live(entries), same)
+	_, place := c.Timetable.PlaceChange(e.ID, event, req.Entry.Category, people, coachesOf(live(entries), same), names)
 	if place.Flight < 0 {
 		return append(out, "The draft timetable has no flight of "+event+" yet: accepted, they'd be out of the timetable until you place them.")
 	}
@@ -572,7 +574,13 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 				notice = fmt.Sprintf("Accepted: %s is %s on %s's waiting list.", accepted.Entry.Gymnasts(), waitingWord(e.Waiting), accepted.Entry.Event())
 			}
 		}
-		people, names := peopleOf(live(entries))
+		_, same, err := p.rotaAndSame(ctx, c, live(entries))
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		people, names := clashPeople(live(entries), same)
+		coaches := coachesOf(live(entries), same)
 		// The draft as it is now, not as it was when the page was read: an
 		// edit made since stays.
 		err = p.st.UpdateTimetable(ctx, c.ID, func(draft *competitions.Schedule) error {
@@ -582,7 +590,7 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 				return nil
 			}
 			var place competitions.ChangePlace
-			*draft, place = draft.PlaceChange(accepted.EntryID, accepted.Entry.Event(), accepted.Entry.Category, people, names)
+			*draft, place = draft.PlaceChange(accepted.EntryID, accepted.Entry.Event(), accepted.Entry.Category, people, coaches, names)
 			if place.Flight >= 0 {
 				notice += " The draft timetable has them in " + place.Name + ": publish it when you're ready."
 			} else {

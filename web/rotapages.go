@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"slices"
@@ -21,24 +22,32 @@ import (
 func officialKey(o store.Official, keys map[string][]string) string {
 	switch {
 	case o.MemberID != "":
-		return "m:" + o.MemberID
+		return store.MemberKey(o.MemberID)
 	case o.EntryID != "":
 		if k := keys[o.EntryID]; len(k) > 0 {
 			return k[0]
 		}
-		return store.IndividualKey(o.Name)
+		return store.IndividualNameKey(o.Name)
 	}
-	return "o:" + o.ID
+	return store.OfficialKey(o.ID)
 }
 
 // rotaPeople are the people who can officiate, as the rota needs them: each
 // once (an individual offering on two entries is one person), with what they
-// may do at each event under the competition's judging rule.
-func rotaPeople(c competitions.Competition, officials []store.Official, entries []store.Entry) []competitions.RotaPerson {
+// may do at each event under the competition's judging rule, counting what
+// they compete in under any of their keys (groups, as store.PersonGroups).
+func rotaPeople(c competitions.Competition, officials []store.Official, entries []store.Entry, groups map[string]string) []competitions.RotaPerson {
 	keys := personKeys(entries)
+	person := func(k string) string {
+		if id, ok := groups[k]; ok {
+			return "person " + id
+		}
+		return k
+	}
 	competing := map[string]map[string]string{} // person → discipline → level
 	for _, e := range entries {
 		for _, k := range keys[e.ID] {
+			k = person(k)
 			if competing[k] == nil {
 				competing[k] = map[string]string{}
 			}
@@ -61,7 +70,7 @@ func rotaPeople(c competitions.Competition, officials []store.Official, entries 
 		for _, d := range c.Disciplines() {
 			for _, l := range c.LevelNames(d) {
 				ev := competitions.EventName(d, l)
-				if c.CanJudge(o.Offer, o.Qualified, competing[key], d, l) {
+				if c.CanJudge(o.Offer, o.Qualified, competing[person(key)], d, l) {
 					p.Judge[ev] = true
 					p.Chair[ev] = p.Chair[ev] || o.Offer.Judge[d].Chair
 				}
@@ -74,11 +83,24 @@ func rotaPeople(c competitions.Competition, officials []store.Official, entries 
 
 // rotaOf is the competition's officials as the rota needs them.
 func (p *competitionPages) rotaOf(r *http.Request, c store.Competition, entries []store.Entry) ([]competitions.RotaPerson, error) {
-	officials, err := p.st.Officials(r.Context(), c.ID)
+	rota, _, err := p.rotaAndSame(r.Context(), c, entries)
+	return rota, err
+}
+
+// rotaAndSame is the competition's officials as the rota needs them, and
+// who's the same person among them and the entries (newSamePeople), for
+// working out clashes and rest.
+func (p *competitionPages) rotaAndSame(ctx context.Context, c store.Competition, entries []store.Entry) ([]competitions.RotaPerson, samePeople, error) {
+	officials, err := p.st.Officials(ctx, c.ID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return rotaPeople(c.Competition, officials, entries), nil
+	groups, err := p.st.PersonGroups(ctx, c.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	rota := rotaPeople(c.Competition, officials, entries, groups)
+	return rota, newSamePeople(groups, entries, rota), nil
 }
 
 // staffing is who may judge each event, and each discipline's panel's
@@ -99,8 +121,8 @@ func staffing(c competitions.Competition, people []competitions.RotaPerson) *com
 }
 
 // staff fills the timetable's panels.
-func (p *competitionPages) staff(s *competitions.Schedule, c store.Competition, entries []store.Entry, people []competitions.RotaPerson) {
-	s.Rota(schedEntries(entries), people, c.Officials, uint64(p.now().UnixNano()))
+func (p *competitionPages) staff(s *competitions.Schedule, c store.Competition, entries []store.Entry, people []competitions.RotaPerson, same samePeople) {
+	s.Rota(schedEntries(entries, same), people, c.Officials, uint64(p.now().UnixNano()))
 }
 
 // editRota assigns every panel again (action=rota), or gives one seat to a
@@ -110,7 +132,7 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	people, err := p.rotaOf(r, c, entries)
+	people, same, err := p.rotaAndSame(r.Context(), c, entries)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -135,7 +157,7 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 			return refused("Plan the timetable first.")
 		}
 		if r.FormValue("action") == "rota" {
-			p.staff(s, c, entries, people)
+			p.staff(s, c, entries, people, same)
 			return nil
 		}
 		seat, err2 := strconv.Atoi(r.FormValue("seat"))
@@ -176,14 +198,13 @@ func personRule(r *http.Request, people []competitions.RotaPerson) (competitions
 }
 
 // rotaView is the panels and the rota's report, as the page shows them.
-func rotaView(s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson) views.RotaView {
-	keys, names := peopleOf(entries)
+func rotaView(s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, same samePeople) views.RotaView {
+	keys, names := clashPeople(entries, same)
 	clubs := map[string]string{}
-	coaches := map[string][]string{}
-	for _, e := range schedEntries(entries) {
+	for _, e := range schedEntries(entries, same) {
 		clubs[e.ID] = e.Club
-		coaches[e.ID] = e.Coaches
 	}
+	coaches := coachesOf(entries, same)
 	for _, o := range people {
 		if names[o.Key] == "" {
 			names[o.Key] = o.Name

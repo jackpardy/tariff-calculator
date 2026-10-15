@@ -315,7 +315,7 @@ func TestScheduleEdits(t *testing.T) {
 		peopleOf[e.ID] = e.People
 	}
 	names := map[string]string{"Ann": "Ann"}
-	if p := s.Problems(peopleOf, names); len(p) != 0 {
+	if p := s.Problems(peopleOf, nil, names); len(p) != 0 {
 		t.Fatalf("a fresh plan has no problems: %v", p)
 	}
 	l1, _ := s.Find("L1#0")
@@ -345,11 +345,11 @@ func TestScheduleEdits(t *testing.T) {
 	tum, _ := s.Find("Tumbling Novice#0")
 	s.Flights[tum].Start = s.Flights[l1].Start
 	s.Retime()
-	if p := s.Problems(peopleOf, names); len(p) == 0 || !strings.Contains(p[0], "Ann is in") {
+	if p := s.Problems(peopleOf, nil, names); len(p) == 0 || !strings.Contains(p[0], "Ann is in") {
 		t.Errorf("Ann in two places at once is flagged: %v", p)
 	}
 	s.Setup.Days[0].End = "09:30"
-	if p := s.Problems(peopleOf, names); !strings.Contains(strings.Join(p, " "), "runs past the end") {
+	if p := s.Problems(peopleOf, nil, names); !strings.Contains(strings.Join(p, " "), "runs past the end") {
 		t.Errorf("a flight past the day's end is flagged: %v", p)
 	}
 }
