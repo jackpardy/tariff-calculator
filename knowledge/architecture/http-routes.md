@@ -50,6 +50,12 @@ competition or helper link, for an admin link). Every route takes it, and it
 works only while the role is the person's. A GET on a personal link's page
 gets tabs for the person's roles.
 
+The pages for someone at a competition (My competition, "I'm here", score
+sheets, timelines, calendars, notifications and late changes) sit under a
+member's, an individual's entry, a comp sec's or a coach's link. One
+resolver, `whose` in `web/whose.go`, works out from the link who is asking
+and which competition, and each feature has one handler for all of them.
+
 | Method and path | Input | Returns |
 |---|---|---|
 | `GET /competitions/new` | — | The form that creates a competition, and the competitions saved in this browser |

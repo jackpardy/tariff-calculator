@@ -502,7 +502,8 @@ are then filled flight by flight.
   penalty and total, then the total and place, all left to fill in. The
   organiser prints them; an official on a flight's panel can also open that
   flight's sheet on their phone (**Score sheets for your panels**, beside
-  their duties, once published). And the **officials rota**, each person's
+  their duties, once published), which goes back to My competition, for a
+  member and someone entered on their own alike. And the **officials rota**, each person's
   duties in time order, one line
   for an event ("Friday 09:30–15:15 · Panel 2 · BUCS L7 Men · all 5
   flights · Execution judge").

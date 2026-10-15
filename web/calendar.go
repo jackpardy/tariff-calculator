@@ -21,67 +21,28 @@ import (
 // again; until then it is an empty calendar, which fills in later.
 
 func (p *competitionPages) registerCalendars(handle func(string, http.HandlerFunc)) {
-	handle("GET /clubs/member/{token}/competitions/{id}/calendar.ics", p.memberCalendar)
-	handle("GET /competitions/entry/{token}/calendar.ics", p.individualCalendar)
-	handle("GET /clubs/member/{token}/competitions/{id}/club-calendar.ics", p.memberClubCalendar)
-	handle("GET /clubs/admin/{token}/competitions/{id}/calendar.ics", p.adminClubCalendar)
-	handle("GET /clubs/coach/{token}/competitions/{id}/calendar.ics", p.coachClubCalendar)
+	for _, path := range []string{
+		"/clubs/member/{token}/competitions/{id}/calendar.ics",
+		"/competitions/entry/{token}/calendar.ics",
+		"/clubs/member/{token}/competitions/{id}/club-calendar.ics",
+		"/clubs/admin/{token}/competitions/{id}/calendar.ics",
+		"/clubs/coach/{token}/competitions/{id}/calendar.ics",
+	} {
+		handle("GET "+path, p.calendar)
+	}
 }
 
-func (p *competitionPages) memberCalendar(w http.ResponseWriter, r *http.Request) {
-	m, ok := p.member(w, r)
+// calendar is a person's calendar, or their club's.
+func (p *competitionPages) calendar(w http.ResponseWriter, r *http.Request) {
+	a, ok := p.whose(w, r)
 	if !ok {
 		return
 	}
-	c, ok := p.memberCompetition(w, r, m)
-	if !ok {
+	if a.clubWide(r) {
+		p.clubCalendar(w, r, a.c, a.club)
 		return
 	}
-	p.personalCalendar(w, r, c, store.MemberKey(m.ID), m.Name)
-}
-
-func (p *competitionPages) individualCalendar(w http.ResponseWriter, r *http.Request) {
-	e, c, ok := p.own(w, r)
-	if !ok {
-		return
-	}
-	p.personalCalendar(w, r, c, e.Key(), e.Entry.Gymnast)
-}
-
-func (p *competitionPages) memberClubCalendar(w http.ResponseWriter, r *http.Request) {
-	m, ok := p.member(w, r)
-	if !ok {
-		return
-	}
-	c, ok := p.memberCompetition(w, r, m)
-	if !ok {
-		return
-	}
-	p.clubCalendar(w, r, c, m.ClubID)
-}
-
-func (p *competitionPages) adminClubCalendar(w http.ResponseWriter, r *http.Request) {
-	club, ok := p.clubAdmin(w, r)
-	if !ok {
-		return
-	}
-	c, ok := p.enteredCompetition(w, r, club.ID)
-	if !ok {
-		return
-	}
-	p.clubCalendar(w, r, c, club.ID)
-}
-
-func (p *competitionPages) coachClubCalendar(w http.ResponseWriter, r *http.Request) {
-	coach, _, ok := p.coach(w, r)
-	if !ok {
-		return
-	}
-	c, ok := p.enteredCompetition(w, r, coach.ClubID)
-	if !ok {
-		return
-	}
-	p.clubCalendar(w, r, c, coach.ClubID)
+	p.personalCalendar(w, r, a.c, a.key, a.name)
 }
 
 // calendarSlot is a placed flight or block, as the calendar needs it: id is

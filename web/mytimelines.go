@@ -17,67 +17,28 @@ import (
 // faint, or left out ("only").
 
 func (p *competitionPages) registerTimelines(handle func(string, http.HandlerFunc)) {
-	handle("GET /clubs/member/{token}/competitions/{id}/timeline", p.memberTimeline)
-	handle("GET /competitions/entry/{token}/timeline", p.individualTimeline)
-	handle("GET /clubs/member/{token}/competitions/{id}/club-timeline", p.memberClubTimeline)
-	handle("GET /clubs/admin/{token}/competitions/{id}/timeline", p.adminClubTimeline)
-	handle("GET /clubs/coach/{token}/competitions/{id}/timeline", p.coachClubTimeline)
+	for _, path := range []string{
+		"/clubs/member/{token}/competitions/{id}/timeline",
+		"/competitions/entry/{token}/timeline",
+		"/clubs/member/{token}/competitions/{id}/club-timeline",
+		"/clubs/admin/{token}/competitions/{id}/timeline",
+		"/clubs/coach/{token}/competitions/{id}/timeline",
+	} {
+		handle("GET "+path, p.timelinePage)
+	}
 }
 
-func (p *competitionPages) memberTimeline(w http.ResponseWriter, r *http.Request) {
-	m, ok := p.member(w, r)
+// timelinePage is a person's timetable, or their club's.
+func (p *competitionPages) timelinePage(w http.ResponseWriter, r *http.Request) {
+	a, ok := p.whose(w, r)
 	if !ok {
 		return
 	}
-	c, ok := p.memberCompetition(w, r, m)
-	if !ok {
+	if a.clubWide(r) {
+		p.clubTimeline(w, r, a.c, a.club, a.back)
 		return
 	}
-	p.personalTimeline(w, r, c, store.MemberKey(m.ID), memberCompetitionPath(r.PathValue("token"), c.ID))
-}
-
-func (p *competitionPages) individualTimeline(w http.ResponseWriter, r *http.Request) {
-	e, c, ok := p.own(w, r)
-	if !ok {
-		return
-	}
-	p.personalTimeline(w, r, c, e.Key(), "/competitions/entry/"+r.PathValue("token"))
-}
-
-func (p *competitionPages) memberClubTimeline(w http.ResponseWriter, r *http.Request) {
-	m, ok := p.member(w, r)
-	if !ok {
-		return
-	}
-	c, ok := p.memberCompetition(w, r, m)
-	if !ok {
-		return
-	}
-	p.clubTimeline(w, r, c, m.ClubID, memberCompetitionPath(r.PathValue("token"), c.ID))
-}
-
-func (p *competitionPages) adminClubTimeline(w http.ResponseWriter, r *http.Request) {
-	club, ok := p.clubAdmin(w, r)
-	if !ok {
-		return
-	}
-	c, ok := p.enteredCompetition(w, r, club.ID)
-	if !ok {
-		return
-	}
-	p.clubTimeline(w, r, c, club.ID, clubPath(r.PathValue("token")))
-}
-
-func (p *competitionPages) coachClubTimeline(w http.ResponseWriter, r *http.Request) {
-	coach, _, ok := p.coach(w, r)
-	if !ok {
-		return
-	}
-	c, ok := p.enteredCompetition(w, r, coach.ClubID)
-	if !ok {
-		return
-	}
-	p.clubTimeline(w, r, c, coach.ClubID, coachPath(r.PathValue("token")))
+	p.personalTimeline(w, r, a.c, a.key, a.back)
 }
 
 // focusedTimeline is the published timetable as a timeline focused by mark,
@@ -205,24 +166,13 @@ func published(c store.Competition) bool { return c.Published != nil }
 // timetable's sheets for the flights they have a seat on, to read on a
 // phone; the organiser prints them.
 
-func (p *competitionPages) memberScoreSheets(w http.ResponseWriter, r *http.Request) {
-	m, ok := p.member(w, r)
+// scoreSheetsPage is a person's score sheets, back to My competition.
+func (p *competitionPages) scoreSheetsPage(w http.ResponseWriter, r *http.Request) {
+	a, ok := p.whose(w, r)
 	if !ok {
 		return
 	}
-	c, ok := p.memberCompetition(w, r, m)
-	if !ok {
-		return
-	}
-	p.officialScoreSheets(w, r, c, store.MemberKey(m.ID), dayPath(memberPath(r.PathValue("token")), c.ID))
-}
-
-func (p *competitionPages) individualScoreSheets(w http.ResponseWriter, r *http.Request) {
-	e, c, ok := p.own(w, r)
-	if !ok {
-		return
-	}
-	p.officialScoreSheets(w, r, c, e.Key(), "/competitions/entry/"+r.PathValue("token"))
+	p.officialScoreSheets(w, r, a.c, a.key, a.day)
 }
 
 // officialScoreSheets are the score sheets of the flights a person (by key)

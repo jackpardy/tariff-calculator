@@ -20,71 +20,46 @@ import (
 // timetable with them picked out.
 
 func (p *competitionPages) registerMine(handle func(string, http.HandlerFunc)) {
-	handle("GET /clubs/member/{token}/competitions/{id}/day", p.memberDay)
-	handle("GET /competitions/entry/{token}/day", p.individualDay)
-	handle("POST /clubs/member/{token}/competitions/{id}/here", p.memberHere)
-	handle("POST /competitions/entry/{token}/here", p.individualHere)
-	handle("GET /clubs/member/{token}/competitions/{id}/score-sheets", p.memberScoreSheets)
-	handle("GET /competitions/entry/{token}/score-sheets", p.individualScoreSheets)
+	for _, own := range []string{"/clubs/member/{token}/competitions/{id}", "/competitions/entry/{token}"} {
+		handle("GET "+own+"/day", p.myDay)
+		handle("POST "+own+"/here", p.here)
+		handle("GET "+own+"/score-sheets", p.scoreSheetsPage)
+	}
 }
 
-func (p *competitionPages) memberDay(w http.ResponseWriter, r *http.Request) {
-	m, ok := p.member(w, r)
+// myDay is a member's or individual's My competition.
+func (p *competitionPages) myDay(w http.ResponseWriter, r *http.Request) {
+	a, ok := p.whose(w, r)
 	if !ok {
 		return
 	}
-	c, ok := p.memberCompetition(w, r, m)
-	if !ok {
-		return
+	c, frame := a.c, views.MyCompetitionPage{Back: a.back}
+	if a.kind == store.NotifyMember {
+		club, err := p.st.ClubName(r.Context(), a.club)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		frame.Over, frame.Menu, frame.BackLabel = club, memberMenu(r.PathValue("token"), memberCompetitions), "← "+c.Name+": your entries"
+		if published(c) {
+			frame.ClubTimeline, frame.ClubCalendar = a.back+"/club-timeline", a.back+"/club-calendar.ics"
+		}
+	} else {
+		frame.Over, frame.BackLabel = "Entered on your own", "← "+c.Name+": your entry"
+		if a.entry.IndividualID != "" {
+			frame.Menu = gymnastMenu(p.gymnastBase(r, a.entry), gymnastCompetitions)
+		}
 	}
-	club, err := p.memberClub(r, m)
-	if err != nil {
-		failed(w, r, err)
-		return
-	}
-	token := r.PathValue("token")
-	own := memberPath(token) + "/competitions/" + c.ID
-	frame := views.MyCompetitionPage{Over: club, Menu: memberMenu(token, memberCompetitions),
-		Back: memberCompetitionPath(token, c.ID), BackLabel: "← " + c.Name + ": your entries"}
-	if published(c) {
-		frame.ClubTimeline, frame.ClubCalendar = own+"/club-timeline", own+"/club-calendar.ics"
-	}
-	p.renderDay(w, r, c, store.MemberKey(m.ID), m.ClubID, m.Name, frame)
+	p.renderDay(w, r, c, a.key, a.club, a.name, frame)
 }
 
-func (p *competitionPages) individualDay(w http.ResponseWriter, r *http.Request) {
-	e, c, ok := p.own(w, r)
+// here is someone scratched saying they're still here for the rest.
+func (p *competitionPages) here(w http.ResponseWriter, r *http.Request) {
+	a, ok := p.whose(w, r)
 	if !ok {
 		return
 	}
-	frame := views.MyCompetitionPage{Over: "Entered on your own", Back: "/competitions/entry/" + r.PathValue("token"), BackLabel: "← " + c.Name + ": your entry"}
-	if e.IndividualID != "" {
-		frame.Menu = gymnastMenu(p.gymnastBase(r, e), gymnastCompetitions)
-	}
-	p.renderDay(w, r, c, e.Key(), "", e.Entry.Gymnast, frame)
-}
-
-// memberHere is a scratched member saying they're still here for the rest.
-func (p *competitionPages) memberHere(w http.ResponseWriter, r *http.Request) {
-	m, ok := p.member(w, r)
-	if !ok {
-		return
-	}
-	c, ok := p.memberCompetition(w, r, m)
-	if !ok {
-		return
-	}
-	p.stillHere(w, r, c, store.MemberKey(m.ID), m.Name, dayPath(memberPath(r.PathValue("token")), c.ID))
-}
-
-// individualHere is a scratched individual saying they're still here for the
-// rest.
-func (p *competitionPages) individualHere(w http.ResponseWriter, r *http.Request) {
-	e, c, ok := p.own(w, r)
-	if !ok {
-		return
-	}
-	p.stillHere(w, r, c, e.Key(), e.Entry.Gymnast, "/competitions/entry/"+r.PathValue("token")+"/day")
+	p.stillHere(w, r, a.c, a.key, a.name, a.day)
 }
 
 // hereBox is the box for someone scratched from some events who may still be

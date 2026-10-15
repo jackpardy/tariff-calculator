@@ -219,53 +219,39 @@ type lateTarget struct {
 // lateTargetOf is the entry a late change link is for, or a page saying why
 // there isn't one.
 func (p *competitionPages) lateTargetOf(w http.ResponseWriter, r *http.Request) (lateTarget, bool) {
-	ctx, token := r.Context(), r.PathValue("token")
-	var t lateTarget
-	var memberID string
-	switch {
-	case strings.HasPrefix(r.URL.Path, "/competitions/entry/"):
-		e, c, ok := p.own(w, r)
-		if !ok {
-			return t, false
-		}
-		t = lateTarget{c: c, entry: e, who: e.Entry.Gymnast, gymnast: e.Entry.Gymnast, back: "/competitions/entry/" + token}
-	case strings.HasPrefix(r.URL.Path, "/clubs/admin/"):
-		club, ok := p.clubAdmin(w, r)
-		if !ok {
-			return t, false
-		}
-		m, c, ok := p.memberOfClub(w, r, club)
-		if !ok {
-			return t, false
-		}
-		t, memberID = lateTarget{c: c, who: club.Name + " (competition secretary)", gymnast: m.Name, back: clubPath(token)}, m.ID
-	default:
-		m, ok := p.member(w, r)
-		if !ok {
-			return t, false
-		}
-		c, ok := p.memberCompetition(w, r, m)
-		if !ok {
-			return t, false
-		}
-		t, memberID = lateTarget{c: c, who: m.Name, gymnast: m.Name, back: memberCompetitionPath(token, c.ID)}, m.ID
+	a, ok := p.whose(w, r)
+	if !ok {
+		return lateTarget{}, false
 	}
-	if memberID != "" {
-		entries, err := p.st.Entries(ctx, t.c.ID)
+	t := lateTarget{c: a.c, entry: a.entry, who: a.name, gymnast: a.name, back: a.back}
+	var memberID string
+	switch a.kind {
+	case store.NotifyIndividual:
+		return t, true
+	case store.NotifyClub:
+		m, err := p.st.Member(r.Context(), a.club, r.PathValue("member"))
 		if err != nil {
 			failed(w, r, err)
 			return t, false
 		}
-		found := false
-		for _, e := range entries {
-			if e.MemberID == memberID && e.Entry.Discipline == r.FormValue("discipline") {
-				t.entry, found = e, true
-			}
+		t.who, t.gymnast, memberID = a.name+" (competition secretary)", m.Name, m.ID
+	default:
+		memberID = a.owner
+	}
+	entries, err := p.st.Entries(r.Context(), t.c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return t, false
+	}
+	found := false
+	for _, e := range entries {
+		if e.MemberID == memberID && e.Entry.Discipline == r.FormValue("discipline") {
+			t.entry, found = e, true
 		}
-		if !found {
-			message(w, r, http.StatusNotFound, "Not entered", "This entry hasn't reached the competition, so there's nothing to change.")
-			return t, false
-		}
+	}
+	if !found {
+		message(w, r, http.StatusNotFound, "Not entered", "This entry hasn't reached the competition, so there's nothing to change.")
+		return t, false
 	}
 	return t, true
 }
