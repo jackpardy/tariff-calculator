@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-16
+* **Update**: [One palette for states and roles](architecture/rendering.md#states-and-roles-one-palette), step 1: the colour tokens, `views.StateChip` and `views.WhoChip`, a contrast test for every colour, and how to choose a state. New pages, starting with skill tracking, use them; the rest move over in turn.
 * **Update**: [Colour and status](audits/2026-10-cleanup.md#colour-and-status-added-16-october-2026): an audit of how states and roles are shown, and the plan for one palette with fixed meanings, added to the cleanup audit and the [roadmap](roadmap.md).
 
 ## 2026-10-15

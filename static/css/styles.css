@@ -911,3 +911,32 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
   table.comp-stack > tbody > tr > td.has-text-right { text-align: left !important; }
   .table-container:has(> table.comp-stack) { overflow: visible; }
 }
+
+/* One palette for states and roles (views/status.templ). Each state has a text colour
+   and a background, each role one colour; they're the only colours that mean a state or
+   a role, on every page. static/contrast_test.go checks each reads at 4.5:1 or better. */
+:root {
+  --state-not-yet-ink: #4a4a4a;     --state-not-yet-bg: #eeeeee;
+  --state-in-progress-ink: #1d4f91; --state-in-progress-bg: #e6effa;
+  --state-done-ink: #1d6b48;        --state-done-bg: #e3f3ea;
+  --state-attention-ink: #7a4a00;   --state-attention-bg: #fff1d1;
+  --state-stopped-ink: #9b1c1c;     --state-stopped-bg: #fde8e8;
+  --role-gymnast: #0f6b6b;
+  --role-coach: #6b3fa0;
+  --role-club: #5c5a1a;
+  --role-organiser: #3b4a5e;
+}
+.chip { display: inline-flex; align-items: baseline; gap: 0.3em; font-size: 0.8em; font-weight: 600; line-height: 1.4; padding: 0.1em 0.6em; border-radius: 999px; white-space: nowrap; vertical-align: baseline; }
+.chip-mark { font-weight: 700; }
+.chip-state-not-yet { color: var(--state-not-yet-ink); background: var(--state-not-yet-bg); }
+.chip-state-in-progress { color: var(--state-in-progress-ink); background: var(--state-in-progress-bg); }
+.chip-state-done { color: var(--state-done-ink); background: var(--state-done-bg); }
+.chip-state-attention { color: var(--state-attention-ink); background: var(--state-attention-bg); }
+.chip-state-stopped { color: var(--state-stopped-ink); background: var(--state-stopped-bg); }
+/* Role chips are outlined, so a role never looks like a state even without colour. */
+.chip-who { background: #fff; border: 1.5px solid currentColor; padding: 0.05em 0.55em; }
+.chip-who .chip-name { font-weight: 400; }
+.chip-who-gymnast { color: var(--role-gymnast); }
+.chip-who-coach { color: var(--role-coach); }
+.chip-who-club { color: var(--role-club); }
+.chip-who-organiser { color: var(--role-organiser); }
