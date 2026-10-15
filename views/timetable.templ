@@ -930,47 +930,49 @@ templ TimetablePrint(s TimetableSheets) {
 					if len(f.Seats) > 0 {
 						<p class="is-size-7 mb-1">{ panelLine(f.Seats) }</p>
 					}
-					<table class="table is-fullwidth is-narrow is-bordered comp-sheet-table">
-						<thead>
-							<tr>
-								<th>#</th>
-								<th>Gymnast</th>
-								<th>Club</th>
-								if s.Judges {
-									<th>1st exercise</th>
-									<th>2nd exercise</th>
-									<th>Notes</th>
-								} else {
-									<th>Here</th>
-								}
-							</tr>
-						</thead>
-						<tbody>
-							for _, g := range f.Gymnasts {
+					<div class="table-container">
+						<table class="table is-fullwidth is-narrow is-bordered comp-sheet-table">
+							<thead>
 								<tr>
-									<td>{ strconv.Itoa(g.No) }</td>
-									<td>
-										if g.Scratched {
-											<s class="comp-scratched">{ g.Name }</s> (scratched)
-										} else {
-											{ g.Name }
-										}
-										if g.Category != "" {
-											<span class="is-size-7">({ g.Category })</span>
-										}
-									</td>
-									<td>{ g.Club }</td>
+									<th>#</th>
+									<th>Gymnast</th>
+									<th>Club</th>
 									if s.Judges {
-										<td>{ s.Exercises[g.ID][0] }</td>
-										<td>{ s.Exercises[g.ID][1] }</td>
-										<td class="is-size-7">{ s.Notes[g.ID] }</td>
+										<th>1st exercise</th>
+										<th>2nd exercise</th>
+										<th>Notes</th>
 									} else {
-										<td></td>
+										<th>Here</th>
 									}
 								</tr>
-							}
-						</tbody>
-					</table>
+							</thead>
+							<tbody>
+								for _, g := range f.Gymnasts {
+									<tr>
+										<td>{ strconv.Itoa(g.No) }</td>
+										<td>
+											if g.Scratched {
+												<s class="comp-scratched">{ g.Name }</s> (scratched)
+											} else {
+												{ g.Name }
+											}
+											if g.Category != "" {
+												<span class="is-size-7">({ g.Category })</span>
+											}
+										</td>
+										<td>{ g.Club }</td>
+										if s.Judges {
+											<td>{ s.Exercises[g.ID][0] }</td>
+											<td>{ s.Exercises[g.ID][1] }</td>
+											<td class="is-size-7">{ s.Notes[g.ID] }</td>
+										} else {
+											<td></td>
+										}
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
 				}
 			</section>
 		}
@@ -1016,22 +1018,24 @@ templ RotaPrint(s RotaSheet) {
 		if len(s.People) == 0 {
 			<p>No one has a duty yet.</p>
 		}
-		<table class="table is-fullwidth is-narrow is-bordered comp-sheet-table">
-			<thead><tr><th>Name</th><th>Club</th><th>Duties</th></tr></thead>
-			<tbody>
-				for _, p := range s.People {
-					<tr>
-						<td>{ p.Name }</td>
-						<td>{ p.Club }</td>
-						<td class="is-size-7">
-							for _, d := range p.Duties {
-								<div>{ d }</div>
-							}
-						</td>
-					</tr>
-				}
-			</tbody>
-		</table>
+		<div class="table-container">
+			<table class="table is-fullwidth is-narrow is-bordered comp-sheet-table">
+				<thead><tr><th>Name</th><th>Club</th><th>Duties</th></tr></thead>
+				<tbody>
+					for _, p := range s.People {
+						<tr>
+							<td>{ p.Name }</td>
+							<td>{ p.Club }</td>
+							<td class="is-size-7">
+								for _, d := range p.Duties {
+									<div>{ d }</div>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
 	}
 }
 
