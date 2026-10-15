@@ -3,6 +3,8 @@ package views
 import (
 	"crypto/rand"
 	"strconv"
+
+	"tariffCalculator/static"
 )
 
 // DayPage is the "On the day" page: for one day of the published timetable,
@@ -20,6 +22,8 @@ type DayPage struct {
 	Areas       []DayArea
 	Scratched   []DayScratched // scratched gymnasts who officiate or compete that day
 	Desk        string         // the organisers' desk, to send a message; "" if this link can't
+	Correct     bool           // this link can put a flight's times right
+	DayName     string         // the day shown, e.g. "Saturday", for the times put right
 }
 
 // DayScratched is a scratched gymnast who also holds seats that day, or is
@@ -65,12 +69,13 @@ type DayFlight struct {
 	Gymnasts  []DayGymnast
 	Panel     string // e.g. "4 of 6 here, 1 missing"; "" if no one has a seat
 	Seats     []DaySeat
-	Up        *DayUp // who's up now, for the marshal to tap on; nil unless it's running
+	Up        *DayUp // who's up now, for the marshal to tap on; nil unless it's running or yet to start
 }
 
 // DayUp is who's up now in a flight that's running: who's on (or, before the
 // marshal's first tap, who's first), for Next gymnast and Back.
 type DayUp struct {
+	Waiting   bool   // the flight hasn't started: hidden until Started is tapped without signal (taps.js)
 	Tapped    bool   // the marshal has tapped Next gymnast at least once
 	Entry     string // the gymnast shown, by entry, and which routine (Round, 1 or 2); "" before the first tap:
 	Round     string // posted back, so the same tap sent twice moves once
@@ -113,6 +118,7 @@ type DayGymnast struct {
 	CanScratch  bool
 	CanClear    bool
 	Notify      DayNotify
+	Routines    string // what their two routines are called, e.g. "Set|Voluntary", for who's up without signal
 }
 
 // Day is the on-the-day page.
@@ -144,6 +150,8 @@ templ Day(p DayPage) {
 				}
 			</div>
 		}
+		// Taps kept on this phone until the signal is back (static/js/taps.js).
+		<div id="day-taps" class="notification is-warning is-light comp-day-taps" aria-live="polite" hidden></div>
 		<div id="day-notice" class="comp-day-notice" aria-live="polite">
 			if p.Notice != "" {
 				<div class="notification is-info is-light">{ p.Notice }</div>
@@ -207,6 +215,9 @@ templ Day(p DayPage) {
 				</div>
 			}
 		</div>
+		// Keeps taps made without signal and sends them later; loaded by the
+		// time competitions.js runs dayPage, once the page has loaded.
+		<script defer src={ static.URL("js/taps.js") }></script>
 	}
 }
 
@@ -225,7 +236,7 @@ func dayNames(p DayPage) int {
 // stillHereForm is the button that clears a kind of scratch warning: the
 // person is still here for it.
 templ stillHereForm(p DayPage, s DayScratched, kind, label string) {
-	<form method="post" action={ templ.SafeURL(p.Base + "/day/clear") } class="mt-1">
+	<form method="post" action={ templ.SafeURL(p.Base + "/day/clear") } class="mt-1" data-tap={ "clear:" + s.Person + ":" + kind }>
 		<input type="hidden" name="person" value={ s.Person }/>
 		<input type="hidden" name="kind" value={ kind }/>
 		<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
@@ -283,7 +294,7 @@ templ dayArea(p DayPage, a DayArea) {
 					@dayUp(p, f)
 				}
 				if f.CanStart || f.CanFinish || f.Undo != "" {
-					<form method="post" action={ templ.SafeURL(p.Base + "/day/flight") } class="buttons mb-0">
+					<form method="post" action={ templ.SafeURL(p.Base + "/day/flight") } class="buttons mb-0" data-tap={ "flight:" + f.Key }>
 						<input type="hidden" name="flight" value={ f.Key }/>
 						<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
 						if f.CanStart {
@@ -302,7 +313,7 @@ templ dayArea(p DayPage, a DayArea) {
 					<details class="comp-checkin mt-2" data-key={ "checkin:" + f.Key } data-list-group>
 						<summary class="is-size-7">Check-in · { f.Checkin }</summary>
 						for _, g := range f.Gymnasts {
-							<div class="comp-checkin-row" { ListRow{Name: g.Name}.Attrs()... }>
+							<div class="comp-checkin-row" { ListRow{Name: g.Name}.Attrs()... } data-entry={ g.Entry } data-no={ strconv.Itoa(g.No) } data-club={ g.Club } data-routines={ g.Routines } data-state={ g.State }>
 								<span class="comp-checkin-name">
 									@runNo(g.No)
 									<span class={ templ.KV("comp-scratched", g.State == "scratched") }>{ g.Name }</span>
@@ -316,7 +327,7 @@ templ dayArea(p DayPage, a DayArea) {
 										<span class="has-text-grey is-size-7">{ g.Who }</span>
 									}
 								</span>
-								<form method="post" action={ templ.SafeURL(p.Base + "/day/checkin") }>
+								<form method="post" action={ templ.SafeURL(p.Base + "/day/checkin") } data-tap={ "checkin:" + g.Entry }>
 									<input type="hidden" name="entry" value={ g.Entry }/>
 									<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
 									if g.CanHere {
@@ -353,7 +364,7 @@ templ dayArea(p DayPage, a DayArea) {
 										<span class="has-text-grey is-size-7">{ s.Who }</span>
 									}
 								</span>
-								<form method="post" action={ templ.SafeURL(p.Base + "/day/officials") }>
+								<form method="post" action={ templ.SafeURL(p.Base + "/day/officials") } data-tap={ "official:" + f.Key + ":" + s.Person }>
 									<input type="hidden" name="person" value={ s.Person }/>
 									<input type="hidden" name="flight" value={ f.Key }/>
 									<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
@@ -377,15 +388,48 @@ templ dayArea(p DayPage, a DayArea) {
 						}
 					</details>
 				}
+				if p.Correct {
+					@dayCorrect(p, f)
+				}
 			</div>
 		}
 	</div>
 }
 
+// dayCorrect puts a flight's start and finish right, for when the paper
+// sheet was used or a tap was wrong.
+templ dayCorrect(p DayPage, f DayFlight) {
+	<details class="comp-correct mt-2" data-key={ "times:" + f.Key }>
+		<summary class="is-size-7">Correct the times</summary>
+		<form method="post" action={ templ.SafeURL(p.Base + "/day/times") } class="mt-2">
+			<input type="hidden" name="flight" value={ f.Key }/>
+			<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+			<div class="comp-correct-times">
+				<div class="field mb-0">
+					<label class="label is-small" for={ f.ID + "-started" }>Started</label>
+					<div class="control">
+						<input class="input is-small" type="time" id={ f.ID + "-started" } name="started" value={ f.Started }/>
+					</div>
+				</div>
+				<div class="field mb-0">
+					<label class="label is-small" for={ f.ID + "-finished" }>Finished</label>
+					<div class="control">
+						<input class="input is-small" type="time" id={ f.ID + "-finished" } name="finished" value={ f.Finished }/>
+					</div>
+				</div>
+				<button class="button is-small is-link is-light" type="submit">Save times</button>
+			</div>
+			<p class="help">
+				Clock times on { p.DayName }. Leave Finished empty if it hasn't finished, or both to clear them. The history says who changed them.
+			</p>
+		</form>
+	</details>
+}
+
 // dayUp is who's on in a running flight, big enough to read at arm's length,
 // with Next gymnast to tap as each one starts, and Back.
 templ dayUp(p DayPage, f DayFlight) {
-	<div class="comp-up mb-3">
+	<div class="comp-up mb-3" hidden?={ f.Up.Waiting }>
 		if f.Up.Name == "" {
 			<p class="mb-2">No one left to compete: everyone is scratched.</p>
 		} else {
@@ -410,7 +454,7 @@ templ dayUp(p DayPage, f DayFlight) {
 				<strong>{ f.Up.Routine }</strong>
 			</p>
 		}
-		<form method="post" action={ templ.SafeURL(p.Base + "/day/up") } class="buttons mb-0">
+		<form method="post" action={ templ.SafeURL(p.Base + "/day/up") } class="buttons mb-0" data-tap={ "up:" + f.Key }>
 			<input type="hidden" name="flight" value={ f.Key }/>
 			<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
 			<input type="hidden" name="entry" value={ f.Up.Entry }/>

@@ -467,7 +467,11 @@ December. Before it:
 - **Taps without signal**: Started, Finished, Here and Scratched saved on
   the phone with the time they were tapped, and sent when the signal
   comes back; and a way to correct a start or finish time afterwards,
-  for when the paper sheet was used instead.
+  for when the paper sheet was used instead. *Built 2026-10-15*
+  ([taps without signal](features/competition-entries.md#on-the-day-flights-started-and-finished)):
+  every tap on On the day, who's up included, recorded at the time tapped
+  by the server's clock, with rules for two phones' taps, and **Correct the
+  times** under each flight.
 - **A load test**: a script acting as 300 people against a test copy on
   the server, to get real numbers before the dry run. The script is built
   (2026-10-15, [load test](operations/deploy.md#load-test)): on a laptop

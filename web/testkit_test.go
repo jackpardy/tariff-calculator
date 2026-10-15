@@ -362,6 +362,10 @@ func dayPageAreas(t *testing.T, page string) map[string]dayArea {
 
 func dayFlightOf(box *html.Node) dayFlight {
 	f := dayFlight{Gymnasts: map[string]string{}}
+	if up := firstByClass(box, "comp-up"); up != nil && slices.ContainsFunc(up.Attr, func(a html.Attribute) bool { return a.Key == "hidden" }) {
+		// Who's up, hidden until the flight starts, isn't on the page.
+		up.Parent.RemoveChild(up)
+	}
 	ps := byTag(box, "p")
 	f.Name = textOf(ps[0])
 	for _, in := range byTag(box, "input") {
