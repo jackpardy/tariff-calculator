@@ -1,7 +1,7 @@
 ---
 type: Report
 title: Cleanup audit, October 2026
-description: The full audit of the app before the dry run (14–15 October 2026), what it found in each area, what was fixed, and what was left for the dry-run work or after it, with the measurements before and after; and the plan for one palette of colours for states and roles (16 October).
+description: The full audit of the app before the dry run (14–15 October 2026), what it found in each area, what was fixed, and what was left for the dry-run work or after it, with the measurements before and after; and the plan for one palette of colours for states and roles (15 October).
 tags: [audit, cleanup, quality]
 generated: { by: claude-code/cli, at: 2026-10-15T16:00:00Z }
 ---
@@ -103,7 +103,7 @@ holds; this is the record kept with the code.
   - the stack and features index;
   - a contents list for the features page.
 
-## Colour and status (added 16 October 2026)
+## Colour and status (added 15 October 2026)
 
 Most states are shown as plain text, and where colour is used it's chosen
 page by page:

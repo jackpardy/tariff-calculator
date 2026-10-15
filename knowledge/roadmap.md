@@ -419,14 +419,14 @@ govulncheck in CI; `/healthz` and a graceful shutdown; an end-to-end test on a
 fixed clock; the timetable page 6.1 MB to 0.8 MB; search on the day and
 timetable pages; wide tables as cards on a phone.
 
-**One palette for states and roles (planned 2026-10-16).** Fixed colours for
+**One palette for states and roles (planned 2026-10-15).** Fixed colours for
 states (grey not yet, blue in progress, green done, amber needs attention,
 red stopped) and for who did something (gymnast, coach, club, organiser),
 each always with a short label, used the same way on every page. The shared
 pieces come first, so skill tracking (ADR 0011) uses them from the start; the
 competition side's day check-in, entry rows and rota seats follow in the
 dry-run work, and the rest after it. The plan is in
-[the cleanup audit](audits/2026-10-cleanup.md#colour-and-status-added-16-october-2026).
+[the cleanup audit](audits/2026-10-cleanup.md#colour-and-status-added-15-october-2026).
 
 **Ready for the dry run (decided 2026-10-09).** A dry run of the core tools,
 entries through to the day, with about 20 people from 3 clubs, is planned for
