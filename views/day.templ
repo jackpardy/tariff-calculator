@@ -185,9 +185,10 @@ templ Day(p DayPage) {
 		if len(p.Areas) == 0 {
 			<div class="notification is-light">No flights on this day.</div>
 		}
-		<div class="columns" id="day-areas" data-day-page>
+		<div class="columns is-multiline" id="day-areas" data-day-page>
 			for _, a := range p.Areas {
-				<div class="column" data-list-group>
+				// At most three areas side by side, so a name and its buttons fit.
+				<div class="column is-half-tablet is-one-third-desktop" data-list-group>
 					@dayArea(p, a)
 				</div>
 			}
