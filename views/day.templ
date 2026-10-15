@@ -14,6 +14,7 @@ type DayPage struct {
 	Menu []MenuSection
 	Notice      string
 	Screen      string // the venue screen for this day; "" if this link can't open it
+	Links       bool   // this link can make links under Settings, such as a Venue screen link
 	Day         int    // the day shown, by index
 	Days        []DayTab
 	Areas       []DayArea
@@ -121,14 +122,28 @@ templ Day(p DayPage) {
 		<h1 class="title is-4">On the day</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		@pageMenu(p.Menu)
-		if p.Screen != "" {
-			<p class="mb-3">
-				<a class="button is-small is-link is-light" href={ templ.SafeURL(p.Screen) }>Venue screen</a>
-				<span class="help is-inline ml-2">What's on each area now and next, for a screen at the venue. The organiser makes a Venue screen link under Settings.</span>
-			</p>
-		}
-		if p.Desk != "" {
-			<p class="mb-3"><a class="button is-small is-light" href={ templ.SafeURL(p.Desk) }>Message from the desk</a></p>
+		if p.Screen != "" || p.Desk != "" {
+			// Named as in the menu; the Venue screen opens on the day shown.
+			<div class="comp-day-links mb-3">
+				<div class="buttons mb-1">
+					if p.Screen != "" {
+						<a class="button is-small is-link is-light" href={ templ.SafeURL(p.Screen) }>Venue screen</a>
+					}
+					if p.Desk != "" {
+						<a class="button is-small is-light" href={ templ.SafeURL(p.Desk) }>Desk messages</a>
+					}
+				</div>
+				if p.Screen != "" {
+					<p class="help">
+						The Venue screen shows what's on each area now and next, for a screen at the venue.
+						if p.Links {
+							Make a Venue screen link under Settings to open it on the screen itself.
+						} else {
+							The organiser makes a Venue screen link for the screen itself.
+						}
+					</p>
+				}
+			</div>
 		}
 		<div id="day-notice" class="comp-day-notice" aria-live="polite">
 			if p.Notice != "" {

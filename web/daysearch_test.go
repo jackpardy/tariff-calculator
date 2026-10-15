@@ -179,3 +179,32 @@ func TestDaySearchInABrowser(t *testing.T) {
 		t.Errorf("clearing shows every flight and closes the list it opened: %+v", cleared)
 	}
 }
+
+// On the day's buttons to the Venue screen and the desk are named as in the
+// menu, and tell whoever can make links where to make the screen's.
+func TestDayPageHeader(t *testing.T) {
+	s := newTestServer(t, atTime(dayBefore))
+	admin, _, _, _ := scratchSetupOn(t, s.h, twoFlights)
+	links := func(page string) (buttons []string, help string) {
+		t.Helper()
+		box := firstByClass(parsePage(t, page), "comp-day-links")
+		if box == nil {
+			t.Fatalf("no buttons to the screen and desk: %s", page)
+		}
+		for _, a := range byTag(box, "a") {
+			buttons = append(buttons, textOf(a))
+		}
+		return buttons, textOf(firstByClass(box, "help"))
+	}
+	buttons, help := links(do(t, s.h, http.MethodGet, admin+"/day", nil).Body.String())
+	if !slices.Equal(buttons, []string{"Venue screen", "Desk messages"}) {
+		t.Errorf("the organiser's buttons: %v", buttons)
+	}
+	if !strings.Contains(help, "Make a Venue screen link under Settings") {
+		t.Errorf("the organiser is told to make the screen's link: %q", help)
+	}
+	chair := madeLink(t, s.h, admin, "Chris", "chair")
+	if _, help := links(do(t, s.h, http.MethodGet, chair+"/day", nil).Body.String()); !strings.Contains(help, "The organiser makes a Venue screen link") {
+		t.Errorf("a chair, who can't make links, is told who does: %q", help)
+	}
+}
