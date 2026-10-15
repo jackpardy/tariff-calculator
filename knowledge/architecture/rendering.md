@@ -102,8 +102,9 @@ A page's several printouts go under one **Print** button, a small pop-up
 menu (`details.comp-popup[data-menu]`, which `static/js/menus.js` closes on a
 tap outside): `printMenu` for the timetable's sheets, `dashboardPrint` for
 the entries page's cards (and a chair of judges' sheets). A menu whose
-button sits at the left of the page adds `comp-popup-start`, so it opens to
-the right and stays on screen.
+button sits at the left of the page (the entries page's Print, a person's
+Timetables and calendars) adds `comp-popup-left`, so it opens to the right
+and stays on screen.
 
 # Lists of people: search and filters
 

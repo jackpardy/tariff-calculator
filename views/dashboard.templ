@@ -462,7 +462,7 @@ func shownCount(d Dashboard, l DashboardLevel) string {
 // that prints the timetable's sheets but has no timetable page (a chair of
 // judges), those sheets.
 templ dashboardPrint(d Dashboard) {
-	<details class="comp-popup comp-popup-start" data-menu>
+	<details class="comp-popup comp-popup-left" data-menu>
 		<summary class="button is-small comp-opens-button">Print</summary>
 		<div class="comp-popup-panel">
 			if d.Entries > 0 {
