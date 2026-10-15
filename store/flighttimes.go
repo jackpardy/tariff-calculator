@@ -18,8 +18,9 @@ type FlightTime struct {
 }
 
 // MarkFlight records that a flight started or finished now ("start" or
-// "finish"), or undoes the latest thing recorded ("undo": the finish, else the
-// start), by who.
+// "finish"), or takes one back ("undo-finish", or "undo-start" while it isn't
+// finished), by who. An undo that finds nothing to take back, as when the same
+// tap is sent twice, changes nothing.
 func (s *Store) MarkFlight(ctx context.Context, competitionID, flight, what, who string) error {
 	switch what {
 	case "start":
@@ -32,12 +33,13 @@ func (s *Store) MarkFlight(ctx context.Context, competitionID, flight, what, who
 			ON CONFLICT (competition_id, flight) DO UPDATE SET finished_at = excluded.finished_at, who = excluded.who`,
 			competitionID, flight, s.stamp(), who)
 		return err
-	case "undo":
-		_, err := s.db.ExecContext(ctx, `UPDATE flight_times SET
-			started_at = CASE WHEN finished_at = '' THEN '' ELSE started_at END,
-			finished_at = '',
-			who = $3
-			WHERE competition_id = $1 AND flight = $2`, competitionID, flight, who)
+	case "undo-finish":
+		_, err := s.db.ExecContext(ctx, `UPDATE flight_times SET finished_at = '', who = $3
+			WHERE competition_id = $1 AND flight = $2 AND finished_at != ''`, competitionID, flight, who)
+		return err
+	case "undo-start":
+		_, err := s.db.ExecContext(ctx, `UPDATE flight_times SET started_at = '', who = $3
+			WHERE competition_id = $1 AND flight = $2 AND started_at != '' AND finished_at = ''`, competitionID, flight, who)
 		return err
 	}
 	return fmt.Errorf("unknown flight mark %q", what)

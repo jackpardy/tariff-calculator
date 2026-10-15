@@ -169,7 +169,9 @@ func TestTimetable(t *testing.T) {
 
 func TestClubsSeeTheirFlights(t *testing.T) {
 	h := competitionServer(t)
-	admin := created(t, h, newCompetition())
+	form := newCompetition()
+	form.Set("tumbling", "Novice")
+	admin := created(t, h, form)
 	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
@@ -177,16 +179,30 @@ func TestClubsSeeTheirFlights(t *testing.T) {
 	member := withoutQuery(redirected(t, h, join, url.Values{"name": {"M"}}))
 	save := formAction(t, memberCompetitionPage(t, h, member), member+"/competitions/")
 	redirected(t, h, save, url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	redirected(t, h, save, url.Values{"discipline": {"tumbling"}, "level": {"Novice"}})
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
 
 	tt := admin + "/timetable"
 	redirected(t, h, tt+"/setup/days", url.Values{"day-0-name": {"Saturday"}, "day-0-start": {"08:30"}, "day-0-end": {"18:00"}})
 	redirected(t, h, tt+"/plan", url.Values{})
 	redirected(t, h, tt+"/publish", url.Values{"on": {"1"}})
-	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, "BUCS L3 · Panel 1 · warm-up Saturday 08:30") {
-		t.Error("the comp sec sees each member's flight")
+	// Each entry shows its own flight. The member's two flights can't overlap,
+	// so either may come first.
+	page := do(t, h, http.MethodGet, club, nil).Body.String()
+	flightOf := func(level string) string {
+		m := regexp.MustCompile(`<td>` + level + `</td>.*?has-text-info-dark">([^<]*)`).FindStringSubmatch(page)
+		if m == nil {
+			return ""
+		}
+		return m[1]
 	}
-	if page := memberCompetitionPage(t, h, member); !strings.Contains(page, "Panel 1 · warm-up Saturday 08:30") {
+	if at := flightOf("BUCS L3"); !regexp.MustCompile(`^BUCS L3 · Panel 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
+		t.Errorf("the comp sec sees the trampoline entry's flight: %q", at)
+	}
+	if at := flightOf("Tumbling Novice"); !regexp.MustCompile(`^[^·]*Novice[^·]* · Track 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
+		t.Errorf("the comp sec sees the tumbling entry's flight: %q", at)
+	}
+	if page := memberCompetitionPage(t, h, member); !regexp.MustCompile(`Panel 1 · warm-up Saturday \d\d:\d\d`).MatchString(page) {
 		t.Error("the member sees their flight")
 	}
 }

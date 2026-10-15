@@ -1055,19 +1055,20 @@ templ entryForm(f EntryForm) {
 				</select>
 			</div>
 		</div>
+		// One Men or Women choice for the form, shown for a level that splits
+		// them (static/js/competitions.js).
+		{{ split := splitLevel(f.Levels, f.Level) }}
+		<fieldset class="field comp-entry-category" hidden?={ !split } disabled?={ !split }>
+			<p class="label is-small"><span data-category-level>{ f.Level }</span> ranks men and women separately</p>
+			for _, c := range []string{"Men", "Women"} {
+				<label class="radio comp-option">
+					<input type="radio" name="category" value={ c } checked?={ f.Category == c } required/>
+					{ c }
+				</label>
+			}
+		</fieldset>
 		for _, l := range f.Levels {
-			<fieldset class="comp-entry-level" data-level={ l.Name } hidden?={ l.Name != f.Level } disabled?={ l.Name != f.Level }>
-				if l.Split {
-					<div class="field">
-						<p class="label is-small">{ l.Name } ranks men and women separately</p>
-						for _, c := range []string{"Men", "Women"} {
-							<label class="radio comp-option">
-								<input type="radio" name="category" value={ c } checked?={ f.Category == c } required/>
-								{ c }
-							</label>
-						}
-					</div>
-				}
+			<fieldset class="comp-entry-level" data-level={ l.Name } data-split={ strconv.FormatBool(l.Split) } hidden?={ l.Name != f.Level } disabled?={ l.Name != f.Level }>
 				if !f.Unchecked {
 					for n, ex := range l.Exercises {
 						if !ex.Skip {
@@ -1433,6 +1434,10 @@ type PartnerPage struct {
 	Club        string
 	Partner     string // the partner's name, as entered
 	Event       string
+	// The names a browser saves this synchro entry under, to leave out of who
+	// they are: its page saves the entering gymnast's own page as the pair,
+	// and an entry link from before as the pair and the competition.
+	Saved []string
 	Confirmed   bool
 	Action      string
 	Problems    []string
@@ -1456,8 +1461,9 @@ templ PartnerConfirm(p PartnerPage) {
 			</p>
 			@problemList(p.Problems)
 			<form method="post" action={ templ.SafeURL(p.Action) } class="comp-partner">
-				// Links saved in this browser (static/js/competitions.js).
-				<div class="field" data-saved-people hidden>
+				// Links saved in this browser (static/js/competitions.js), but
+				// not this entry's own.
+				<div class="field" data-saved-people data-saved-self={ strings.Join(p.Saved, "\n") } hidden>
 					<label class="label is-small" for="partner-saved">You are</label>
 					<div class="select is-fullwidth"><select id="partner-saved"></select></div>
 				</div>
@@ -1562,6 +1568,16 @@ func entryLevelLabel(l EntryLevel) string {
 		return l.Label
 	}
 	return l.Name
+}
+
+// splitLevel says whether the named level ranks men and women separately.
+func splitLevel(levels []EntryLevel, name string) bool {
+	for _, l := range levels {
+		if l.Name == name {
+			return l.Split
+		}
+	}
+	return false
 }
 
 // removeForm removes or holds the entries ticked in the tables.

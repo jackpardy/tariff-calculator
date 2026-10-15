@@ -139,12 +139,19 @@
             const levelSelect = form.querySelector('select[name="level"]');
             const routines = typeof RoutineStore === 'undefined' ? [] : RoutineStore.load().routines.filter((r) => r.skills.length > 0);
 
+            const category = form.querySelector('.comp-entry-category');
             const showLevel = () => {
+                let split = false;
                 for (const fieldset of form.querySelectorAll('.comp-entry-level')) {
                     const on = fieldset.dataset.level === levelSelect.value;
                     fieldset.hidden = !on;
                     fieldset.disabled = !on;
+                    if (on && fieldset.dataset.split === 'true') { split = true; }
                 }
+                // One Men or Women choice, kept as the level changes.
+                category.hidden = !split;
+                category.disabled = !split;
+                category.querySelector('[data-category-level]').textContent = levelSelect.value;
             };
 
             for (const box of form.querySelectorAll('.comp-entry-exercise')) {
@@ -178,15 +185,21 @@
 
     // savedPeople offers the people's pages saved in this browser in a field's
     // select, filling in the input with the one chosen, or showing it to paste
-    // another when the last option (other) is.
-    function savedPeople(field, input, people, other) {
+    // another when the last option (other) is. With a prompt, the select starts
+    // on it, choosing no one, and has to be changed.
+    function savedPeople(field, input, people, other, prompt) {
         if (!field || !input || people.length === 0) { return; }
         const select = field.querySelector('select');
+        if (prompt) {
+            select.append(new Option(prompt, '', true, true));
+            select.options[0].disabled = true;
+            select.required = true;
+        }
         for (const p of people) { select.append(new Option(p.name, p.url)); }
         select.append(new Option(other, ''));
         const choose = () => {
             input.value = select.value;
-            input.closest('.field').hidden = select.value !== '';
+            input.closest('.field').hidden = select.value !== '' || (Boolean(prompt) && select.selectedIndex === 0);
         };
         select.addEventListener('change', choose);
         field.hidden = false;
@@ -194,10 +207,14 @@
     }
 
     // partnerLink offers the member pages, own pages and entries saved in this
-    // browser for a synchro partner to say who they are.
+    // browser for a synchro partner to say who they are, starting on no one and
+    // leaving out the synchro entry itself.
     function partnerLink() {
-        savedPeople(document.querySelector('[data-saved-people]'), document.getElementById('partner-link'),
-            [...loadLinks(linkKeys.members), ...loadLinks(linkKeys.gymnasts), ...loadLinks(linkKeys.entries)], 'Someone else, or no other entry');
+        const field = document.querySelector('[data-saved-people]');
+        const self = (field?.dataset.savedSelf || '').split('\n');
+        savedPeople(field, document.getElementById('partner-link'),
+            [...loadLinks(linkKeys.members), ...loadLinks(linkKeys.gymnasts), ...loadLinks(linkKeys.entries)].filter((p) => !self.includes(p.name)),
+            'Someone else, or no other entry', 'Choose who you are');
     }
 
     // enterAs offers the own pages, member pages and entries saved in this

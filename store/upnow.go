@@ -21,24 +21,33 @@ type Up struct {
 	At       time.Time
 }
 
-// UpNext moves a flight on to the next open position after the one it's at
-// (open[i]: someone competes at position i), or to the first open one if the
-// marshal hasn't started yet, by who. moved is false, and nothing changes, if
-// there's no open position to go to.
-func (s *Store) UpNext(ctx context.Context, competitionID, flight string, open []bool, who string) (up Up, moved bool, err error) {
-	return s.moveUp(ctx, competitionID, flight, open, 1, who)
+// NotUp is the position of a flight the marshal hasn't tapped through yet.
+const NotUp = -1
+
+// ErrUpMoved is a tap from a position the flight is no longer at: a tap sent
+// again (on poor wifi, say), or one from a page out of date. Nothing changes.
+var ErrUpMoved = errors.New("the flight has moved on since")
+
+// UpNext moves a flight on to the next open position after from, the one the
+// marshal saw it at (open[i]: someone competes at position i), or to the first
+// open one from NotUp, by who. moved is false, and nothing changes, if there's
+// no open position to go to; it's ErrUpMoved if the flight isn't at from.
+func (s *Store) UpNext(ctx context.Context, competitionID, flight string, from int, open []bool, who string) (up Up, moved bool, err error) {
+	return s.moveUp(ctx, competitionID, flight, from, open, 1, who)
 }
 
-// UpBack moves a flight back to the open position before the one it's at, by
-// who. moved is false, and nothing changes, if it's at the first open
-// position, or hasn't started.
-func (s *Store) UpBack(ctx context.Context, competitionID, flight string, open []bool, who string) (up Up, moved bool, err error) {
-	return s.moveUp(ctx, competitionID, flight, open, -1, who)
+// UpBack moves a flight back to the open position before from, the one the
+// marshal saw it at, by who. moved is false, and nothing changes, if it's at
+// the first open position, or hasn't started; it's ErrUpMoved if the flight
+// isn't at from.
+func (s *Store) UpBack(ctx context.Context, competitionID, flight string, from int, open []bool, who string) (up Up, moved bool, err error) {
+	return s.moveUp(ctx, competitionID, flight, from, open, -1, who)
 }
 
-// moveUp moves a flight a step (1 or -1) to the nearest open position, read
-// and written in one transaction, so two taps at once each move it a step.
-func (s *Store) moveUp(ctx context.Context, competitionID, flight string, open []bool, step int, who string) (up Up, moved bool, err error) {
+// moveUp moves a flight a step (1 or -1) from the position from to the nearest
+// open position, read and written in one transaction, so the same tap sent
+// twice moves it only once.
+func (s *Store) moveUp(ctx context.Context, competitionID, flight string, from int, open []bool, step int, who string) (up Up, moved bool, err error) {
 	err = s.tx(ctx, func(tx *sql.Tx) error {
 		var at string
 		err := tx.QueryRowContext(ctx, `SELECT position, who, at FROM up_now WHERE competition_id = $1 AND flight = $2`, competitionID, flight).
@@ -48,6 +57,9 @@ func (s *Store) moveUp(ctx context.Context, competitionID, flight string, open [
 			return err
 		}
 		up.At = parseTime(at)
+		if started && up.Position != from || !started && from != NotUp {
+			return ErrUpMoved
+		}
 		if !started && step < 0 {
 			return nil
 		}

@@ -1,8 +1,10 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"slices"
+	"strconv"
 
 	"tariffCalculator/competitions"
 	"tariffCalculator/store"
@@ -20,7 +22,9 @@ func dayUp(c competitions.Competition, f competitions.ScheduledFlight, byID map[
 	o := upOrderOf(f, byID, scratched)
 	out := &views.DayUp{Tapped: tapped}
 	pos := up.Position
-	if !tapped {
+	if tapped {
+		out.At = strconv.Itoa(pos)
+	} else {
 		pos = slices.Index(o.open, true)
 	}
 	if _, _, ok := o.at(pos); !ok {
@@ -35,9 +39,11 @@ func dayUp(c competitions.Competition, f competitions.ScheduledFlight, byID map[
 }
 
 // markUp moves a running flight on to the next gymnast, or back one (flight:
-// its key; what: next or back; day: the page to go back to). A tap that
-// changes nothing says so, and the last routine leaves finishing the flight to
-// the Finished button.
+// its key; what: next or back; at: the position the page showed, "" before the
+// first tap; day: the page to go back to). A tap from a position the flight
+// has moved on from, as when the same tap is sent twice, quietly changes
+// nothing. A tap that changes nothing otherwise says so, and the last routine
+// leaves finishing the flight to the Finished button.
 func (p *competitionPages) markUp(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
 	if !ok {
@@ -53,6 +59,14 @@ func (p *competitionPages) markUp(w http.ResponseWriter, r *http.Request) {
 				f, found = g, true
 			}
 		}
+	}
+	from := store.NotUp
+	if at := r.FormValue("at"); at != "" {
+		n, err := strconv.Atoi(at)
+		if err != nil || n < 0 {
+			found = false
+		}
+		from = n
 	}
 	if !found || what != "next" && what != "back" {
 		message(w, r, http.StatusBadRequest, "Not a flight", "That flight isn't in the published timetable. It may have been changed: go back and try again.")
@@ -86,8 +100,10 @@ func (p *competitionPages) markUp(w http.ResponseWriter, r *http.Request) {
 	if what == "back" {
 		move = p.st.UpBack
 	}
-	_, moved, err := move(r.Context(), c.ID, key, o.open, linkOf(r).Name)
+	_, moved, err := move(r.Context(), c.ID, key, from, o.open, linkOf(r).Name)
 	switch {
+	case errors.Is(err, store.ErrUpMoved):
+		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
 	case err != nil:
 		failed(w, r, err)
 	case moved:

@@ -323,7 +323,8 @@ has a starting value you can change.
 11. **On the day** (a button on the entries page once you've published; chairs
    of judges' and timetable links get it too): pick the day, then for each
    area tap **Started** when a flight begins its warm-up and **Finished**
-   when it's done (**Undo** takes back the latest tap). Planned and actual
+   when it's done (**Undo** takes back the latest tap). On poor wifi a tap may
+   be sent twice; the second changes nothing. Planned and actual
    times sit side by side, and each area says whether it's "Running 15 min
    late", "On time" or early. Where an area is late, **What if: see the rest
    of the day** opens the delay page filled in. Gymnasts and officials see "Panel 2 is
@@ -537,7 +538,8 @@ if they have one): any gymnast, from your club, another, or none. A pair does
 one routine: the level's voluntary. Your entry then shows a **partner link**:
 send it to your partner. They open it and
 confirm who they are with their own member page or entry link (or that they
-have no other entry), so the timetable never puts either of you in two places
+have no other entry; if they've used the app on that phone before, they choose
+themselves from a list), so the timetable never puts either of you in two places
 at once. If you name a different partner, they confirm again. Once they've
 confirmed, the entry shows on their own page under **Synchro as a partner**,
 and to their coach and their club's comp sec, even if their club isn't

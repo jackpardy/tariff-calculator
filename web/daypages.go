@@ -249,7 +249,12 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 				Planned: competitions.Clock(f.Start) + "–" + competitions.Clock(f.End),
 				Started: clock(t.Started), Finished: clock(t.Finished), Who: t.Who,
 				CanStart: t.Started.IsZero(), CanFinish: !t.Started.IsZero() && t.Finished.IsZero(),
-				CanUndo: !t.Started.IsZero() || !t.Finished.IsZero(),
+			}
+			switch {
+			case !t.Finished.IsZero():
+				df.Undo = "undo-finish"
+			case !t.Started.IsZero():
+				df.Undo = "undo-start"
 			}
 			df.Checkin, df.Gymnasts = checkinOf(f, byID, checkins, keys, notify)
 			if df.CanFinish {
@@ -282,7 +287,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 }
 
 // flightAction finds a published flight by its key, and says whether marking
-// it start, finish or undo would change anything.
+// it start, finish, undo-finish or undo-start would change anything.
 func (p *competitionPages) flightAction(ctx context.Context, c store.Competition, key, what string) (f competitions.ScheduledFlight, applies, found bool, err error) {
 	if c.Published == nil {
 		return f, false, false, nil
@@ -305,15 +310,18 @@ func (p *competitionPages) flightAction(ctx context.Context, c store.Competition
 		applies = t.Started.IsZero()
 	case "finish":
 		applies = !t.Started.IsZero() && t.Finished.IsZero()
-	case "undo":
-		applies = !t.Started.IsZero() || !t.Finished.IsZero()
+	case "undo-finish":
+		applies = !t.Finished.IsZero()
+	case "undo-start":
+		applies = !t.Started.IsZero() && t.Finished.IsZero()
 	}
 	return f, applies, true, nil
 }
 
-// markFlight records that a flight started or finished now, or takes the
-// latest back (flight: its key; what: start, finish or undo; day: the page to
-// go back to).
+// markFlight records that a flight started or finished now, or takes one back
+// (flight: its key; what: start, finish, undo-finish or undo-start; day: the
+// page to go back to). An undo with nothing to take back is the same tap sent
+// again, so it quietly changes nothing.
 func (p *competitionPages) markFlight(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
 	if !ok {
@@ -325,8 +333,10 @@ func (p *competitionPages) markFlight(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case err != nil:
 		failed(w, r, err)
-	case !found || !slices.Contains([]string{"start", "finish", "undo"}, what):
+	case !found || !slices.Contains([]string{"start", "finish", "undo-finish", "undo-start"}, what):
 		message(w, r, http.StatusBadRequest, "Not a flight", "That flight isn't in the published timetable. It may have been changed: go back and try again.")
+	case !applies && strings.HasPrefix(what, "undo-"):
+		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
 	case !applies:
 		http.Redirect(w, r, backToDay(r, "Someone has already done that for "+f.Name()+".", anchor), http.StatusSeeOther)
 	default:
@@ -334,13 +344,9 @@ func (p *competitionPages) markFlight(w http.ResponseWriter, r *http.Request) {
 			failed(w, r, err)
 			return
 		}
-		if what == "undo" {
+		if what == "undo-start" {
 			// Undoing the start clears how far the marshal had got (uppages.go).
-			times, err := p.st.FlightTimes(r.Context(), c.ID)
-			if err == nil && times[key].Started.IsZero() {
-				err = p.st.ClearUp(r.Context(), c.ID, key)
-			}
-			if err != nil {
+			if err := p.st.ClearUp(r.Context(), c.ID, key); err != nil {
 				failed(w, r, err)
 				return
 			}
@@ -368,7 +374,8 @@ func (p *competitionPages) describeFlightMark(r *http.Request, c store.Competiti
 
 // lateNotes say how late the areas that the flights run on are, for the day
 // that's today: one line per area that's 5 or more minutes late or early,
-// e.g. "Panel 2 is running about 15 min late (as of 10:40)".
+// e.g. "Panel 2 is running about 15 min late (as of 10:40)" or "Panel 1 is
+// running about 1 h 5 min early (as of 09:15)".
 func (p *competitionPages) lateNotes(ctx context.Context, c store.Competition, flights []competitions.ScheduledFlight) ([]string, error) {
 	day, today := todayIndex(c, c.Published, p.now())
 	if !today || len(flights) == 0 {
@@ -386,9 +393,10 @@ func (p *competitionPages) lateNotes(ctx context.Context, c store.Competition, f
 			continue
 		}
 		seen[f.Area] = true
-		how := fmt.Sprintf("%d min late", l.Minutes)
+		// Worded as on the day page and the venue screen (minutesText).
+		how := minutesText(l.Minutes) + " late"
 		if l.Minutes < 0 {
-			how = fmt.Sprintf("%d min early", -l.Minutes)
+			how = minutesText(-l.Minutes) + " early"
 		}
 		out = append(out, fmt.Sprintf("%s is running about %s (as of %s)", f.Area, how, l.At.In(local).Format("15:04")))
 	}

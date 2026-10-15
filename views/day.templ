@@ -1,6 +1,9 @@
 package views
 
-import "strconv"
+import (
+	"crypto/rand"
+	"strconv"
+)
 
 // DayPage is the "On the day" page: for one day of the published timetable,
 // each area's flights with when they were planned and when they really
@@ -56,7 +59,7 @@ type DayFlight struct {
 	Who       string // who last marked it
 	CanStart  bool   // not started yet
 	CanFinish bool   // started, not finished
-	CanUndo   bool   // something to take back
+	Undo      string // what Undo takes back: undo-finish or undo-start; "" for nothing
 	Checkin   string // e.g. "8 of 10 here, 1 scratched"
 	Gymnasts  []DayGymnast
 	Panel     string // e.g. "4 of 6 here, 1 missing"; "" if no one has a seat
@@ -68,6 +71,7 @@ type DayFlight struct {
 // marshal's first tap, who's first), for Next gymnast and Back.
 type DayUp struct {
 	Tapped    bool   // the marshal has tapped Next gymnast at least once
+	At        string // the position shown, "" before the first tap: posted back, so the same tap sent twice moves once
 	Name      string // "" when nobody is left to compete
 	No        int    // their running number
 	Club      string
@@ -236,7 +240,7 @@ templ dayArea(p DayPage, a DayArea) {
 				if f.Up != nil {
 					@dayUp(p, f)
 				}
-				if f.CanStart || f.CanFinish || f.CanUndo {
+				if f.CanStart || f.CanFinish || f.Undo != "" {
 					<form method="post" action={ templ.SafeURL(p.Base + "/day/flight") } class="buttons mb-0">
 						<input type="hidden" name="flight" value={ f.Key }/>
 						<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
@@ -246,8 +250,9 @@ templ dayArea(p DayPage, a DayArea) {
 						if f.CanFinish {
 							<button class="button is-success" type="submit" name="what" value="finish">Finished</button>
 						}
-						if f.CanUndo {
-							<button class="button is-light is-small" type="submit" name="what" value="undo">Undo</button>
+						if f.Undo != "" {
+							// Says which, so the same tap sent twice takes back only the one.
+							<button class="button is-light is-small" type="submit" name="what" value={ f.Undo }>Undo</button>
 						}
 					</form>
 				}
@@ -366,6 +371,7 @@ templ dayUp(p DayPage, f DayFlight) {
 		<form method="post" action={ templ.SafeURL(p.Base + "/day/up") } class="buttons mb-0">
 			<input type="hidden" name="flight" value={ f.Key }/>
 			<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+			<input type="hidden" name="at" value={ f.Up.At }/>
 			<button class="button is-link is-medium" type="submit" name="what" value="next">Next gymnast</button>
 			if f.Up.CanBack {
 				<button class="button is-light is-small" type="submit" name="what" value="back">Back</button>
@@ -387,6 +393,8 @@ templ dayNotify(p DayPage, flight string, n DayNotify) {
 			<input type="hidden" name="flight" value={ flight }/>
 			<input type="hidden" name="as" value={ n.As }/>
 			<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+			// A new id each time the form is shown, so the same form sent twice sends once.
+			<input type="hidden" name="once" value={ rand.Text() }/>
 			<label class="checkbox is-size-7"><input type="checkbox" name="them" value="1" checked/> Them</label>
 			if n.Club {
 				<label class="checkbox is-size-7"><input type="checkbox" name="club" value="1"/> Their club</label>

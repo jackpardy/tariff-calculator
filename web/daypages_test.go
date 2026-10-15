@@ -73,15 +73,28 @@ func TestOnTheDay(t *testing.T) {
 	if to := mark("finish"); !strings.Contains(to, "notice=") {
 		t.Errorf("already finished: %s", to)
 	}
-	mark("undo")
-	page = do(t, h, http.MethodGet, day, nil).Body.String()
-	if !strings.Contains(page, ">Finished</button>") || !strings.Contains(page, "· finished —") {
-		t.Error("undo takes back the finish")
+	// Undo says what it takes back, so the same tap sent twice (its answer
+	// lost on poor wifi, say) takes back only that, and says nothing.
+	for range 2 {
+		if to := mark("undo-finish"); noticeOf(t, to) != "" {
+			t.Errorf("undo says nothing: %s", to)
+		}
+		page = do(t, h, http.MethodGet, day, nil).Body.String()
+		if !strings.Contains(page, ">Finished</button>") || !strings.Contains(page, "· finished —") || !strings.Contains(page, `value="undo-start"`) {
+			t.Error("undo takes back the finish, and only the finish")
+		}
 	}
-	mark("undo")
-	page = do(t, h, http.MethodGet, day, nil).Body.String()
-	if !strings.Contains(page, "Nothing started yet") || strings.Contains(page, ">Undo</button>") {
-		t.Error("undo again takes back the start")
+	for range 2 {
+		if to := mark("undo-start"); noticeOf(t, to) != "" {
+			t.Errorf("undo says nothing: %s", to)
+		}
+		page = do(t, h, http.MethodGet, day, nil).Body.String()
+		if !strings.Contains(page, "Nothing started yet") || strings.Contains(page, ">Undo</button>") {
+			t.Error("undo again takes back the start")
+		}
+	}
+	if rec := do(t, h, http.MethodPost, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo"}}); rec.Code != http.StatusBadRequest {
+		t.Errorf("an undo that doesn't say which: %d", rec.Code)
 	}
 	if rec := do(t, h, http.MethodPost, admin+"/day/flight", url.Values{"flight": {"9|Nowhere|X||1"}, "what": {"start"}}); rec.Code != http.StatusBadRequest {
 		t.Errorf("not a flight: %d", rec.Code)
@@ -175,11 +188,25 @@ func TestLateNotes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(notes) != 1 || !regexp.MustCompile(`^Panel 1 is running about 6\d min late \(as of \d\d:\d\d\)$`).MatchString(notes[0]) {
+	if len(notes) != 1 || !regexp.MustCompile(`^Panel 1 is running about 1 h( \d min)? late \(as of \d\d:\d\d\)$`).MatchString(notes[0]) {
 		t.Errorf("one line for Panel 1, once: %q", notes)
 	}
 	if notes, _ := p.lateNotes(context.Background(), comp, []competitions.ScheduledFlight{other}); len(notes) != 0 {
 		t.Errorf("Panel 2 has nothing recorded: %q", notes)
+	}
+	// Early, in hours and minutes as on the day page: a flight planned 2 h 5 min
+	// on, started now.
+	if minutes+125 < 24*60 {
+		early := competitions.ScheduledFlight{Flight: competitions.Flight{Level: "Early", Number: 1, Of: 1}, Area: "Panel 3", Start: minutes + 125, End: minutes + 185}
+		comp.Published.Flights = append(comp.Published.Flights, early)
+		comp.Published.Setup.Areas = append(comp.Published.Setup.Areas, competitions.Area{Name: "Panel 3"})
+		if err := st.MarkFlight(context.Background(), comp.ID, competitions.FlightKey(early), "start", "Marshal"); err != nil {
+			t.Fatal(err)
+		}
+		notes, _ := p.lateNotes(context.Background(), comp, []competitions.ScheduledFlight{early})
+		if len(notes) != 1 || !regexp.MustCompile(`^Panel 3 is running about 2 h [45] min early \(as of \d\d:\d\d\)$`).MatchString(notes[0]) {
+			t.Errorf("early in hours and minutes: %q", notes)
+		}
 	}
 	comp.Date = now.AddDate(0, 0, 1).Format(competitions.DateLayout)
 	if notes, _ := p.lateNotes(context.Background(), comp, []competitions.ScheduledFlight{first}); len(notes) != 0 {

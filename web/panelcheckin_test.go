@@ -267,6 +267,34 @@ func TestNotifyAnOfficial(t *testing.T) {
 	if history := do(t, h, http.MethodGet, admin+"/history", nil).Body.String(); !strings.Contains(history, "Notified Dara: should be at Panel 1") {
 		t.Errorf("the history: %s", history)
 	}
+
+	// The form as the page shows it carries a one-off id: the same form sent
+	// twice (its answer lost on poor wifi, say) sends once, and the repeat
+	// says nothing. The form shown again is a new one.
+	once := regexp.MustCompile(`name="once" value="([A-Z2-7]+)"`).FindAllStringSubmatch(do(t, h, http.MethodGet, day, nil).Body.String(), -1)
+	if len(once) == 0 || once[0][1] == regexp.MustCompile(`name="once" value="([A-Z2-7]+)"`).FindStringSubmatch(do(t, h, http.MethodGet, day, nil).Body.String())[1] {
+		t.Fatal("each Notify form shown has a new id")
+	}
+	mail.sent = nil
+	form.Set("once", once[0][1])
+	if to := redirected(t, h, admin+"/day/notify", form); !strings.Contains(to, "notice=Sent+to+Dara") {
+		t.Errorf("sent: %s", to)
+	}
+	if to := redirected(t, h, admin+"/day/notify", form); noticeOf(t, to) != "" || !strings.HasSuffix(to, "#"+flightID(flight)) {
+		t.Errorf("the repeat says nothing: %s", to)
+	}
+	if len(mail.sent) != 1 {
+		t.Errorf("sent once: %+v", mail.sent)
+	}
+	if n := strings.Count(do(t, h, http.MethodGet, admin+"/history", nil).Body.String(), "Notified Dara"); n != 2 {
+		t.Errorf("the repeat isn't in the history: %d", n)
+	}
+	form.Set("once", "ANOTHERFORM")
+	redirected(t, h, admin+"/day/notify", form)
+	if len(mail.sent) != 2 {
+		t.Errorf("another form sends again: %+v", mail.sent)
+	}
+
 	// Not a person on that flight, or not a way to be told.
 	for _, f := range []url.Values{
 		{"person": {"i:finn"}, "flight": {flight}, "as": {"official"}, "them": {"1"}},
