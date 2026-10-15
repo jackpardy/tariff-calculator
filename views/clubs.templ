@@ -388,36 +388,46 @@ templ ClubAdmin(c ClubPage) {
 					}
 				}
 				if comp.ApproveCoaches {
-					<div class="mt-3">
-						<p class="is-size-7 mb-1"><strong>Coaches for this competition.</strong> It approves coaches from their qualifications: only those it approves can sign off. Tick who to send.</p>
+					// A list with its count, each coach a row with their state in a
+					// column of its own, so the chips line up whatever the names.
+					@listSection("Coaches for this competition", len(comp.Coaches)) {
+						<p class="help mb-2">It approves coaches from their qualifications: only those it approves can sign off. Tick who to send.</p>
 						if len(comp.Coaches) == 0 {
 							<p class="is-size-7 has-text-grey">None of your coaches signs off routines yet (see <a href={ templ.SafeURL(c.Base + "/coaches") }>Coaches</a>).</p>
 						} else {
 							<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/coaches") }>
-								for _, k := range comp.Coaches {
-									<div class="is-size-7">
-										<label class="checkbox">
-											<input type="checkbox" name="coach" value={ k.ID } checked?={ k.Ticked }/>
-											{ k.Name }
-										</label>
-										if k.Status != "" {
-											@StateChip(k.State, k.Status)
+								<table class="table is-fullwidth is-narrow comp-stack">
+									<tbody>
+										for _, k := range comp.Coaches {
+											<tr>
+												<td>
+													<label class="checkbox">
+														<input type="checkbox" name="coach" value={ k.ID } checked?={ k.Ticked }/>
+														{ k.Name }
+													</label>
+												</td>
+												<td>
+													if k.Status != "" {
+														@StateChip(k.State, k.Status)
+													}
+													if k.Changed {
+														@StateChip(Attention, "Qualifications changed since sent: send again")
+													}
+													if k.NoQualifications {
+														@StateChip(Attention, "No qualifications added")
+													}
+													if k.Note != "" {
+														<span class="is-size-7 has-text-grey">· { k.Note }</span>
+													}
+												</td>
+											</tr>
 										}
-										if k.Changed {
-											@StateChip(Attention, "Qualifications changed since sent: send again")
-										}
-										if k.NoQualifications {
-											@StateChip(Attention, "No qualifications added")
-										}
-										if k.Note != "" {
-											<span class="has-text-grey">· { k.Note }</span>
-										}
-									</div>
-								}
-								<button class="button is-small mt-1" type="submit">Send coaches</button>
+									</tbody>
+								</table>
+								<button class="button is-small" type="submit">Send coaches</button>
 							</form>
 						}
-					</div>
+					}
 				}
 				if len(comp.Offers) > 0 {
 					@listSection("Judging and helping", len(comp.Offers)) {
