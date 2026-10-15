@@ -291,7 +291,7 @@ func TestMenuOnOrganiserPages(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	redirected(t, h, enter, url.Values{"gymnast": {"Ann Ryan"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	redirected(t, h, enter, bucsEntry("Ann Ryan"))
 	entry := entryLink(t, h, admin)
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 

@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	"tariffCalculator/competitions"
 	"tariffCalculator/store"
@@ -78,7 +77,7 @@ func upOn(page string) (name, routine string) {
 	if m == nil {
 		return "", ""
 	}
-	return html2text(m[1]), m[2]
+	return unescape(m[1]), m[2]
 }
 
 // screenUpIn is who the venue screen says is on, and who's next, each as
@@ -87,8 +86,8 @@ func screenUpIn(body string) []string {
 	body = regexp.MustCompile(`<span class="screen-no">\d+</span>\s*`).ReplaceAllString(body, "")
 	var out []string
 	for _, m := range regexp.MustCompile(`class="screen-up-(?:next-)?name">([^<]+)</(?:p|span)>\s*<(?:p|span) class="screen-up-detail">([^<]+)<`).FindAllStringSubmatch(body, -1) {
-		detail := strings.Fields(html2text(m[2]))
-		out = append(out, html2text(m[1])+" · "+detail[len(detail)-1])
+		detail := strings.Fields(unescape(m[2]))
+		out = append(out, unescape(m[1])+" · "+detail[len(detail)-1])
 	}
 	return out
 }
@@ -97,16 +96,10 @@ func screenUpIn(body string) []string {
 // skipping the scratched, with Back, and the venue screen shows who's on and
 // next once they do.
 func TestWhoIsUpNow(t *testing.T) {
-	h := competitionServer(t)
-	// Today's competition, so flights marked now count on the screen.
+	// Entered beforehand and run at 09:00 on the day, so flights marked
+	// count on the screen.
+	h, clock := competitionServerAt(t, dayBefore)
 	form := newCompetition()
-	today := time.Now().In(local)
-	if today.Hour() == 23 && today.Minute() >= 50 {
-		t.Skip("too close to midnight for a competition today")
-	}
-	form.Set("date", today.Format("2006-01-02"))
-	form.Set("deadlineDate", today.Format("2006-01-02"))
-	form.Set("deadlineTime", "23:59")
 	form["level"] = []string{"builtin-level:isto-novice"}
 	admin := created(t, h, form)
 	screen := madeLink(t, h, admin, "Main hall screen", "screen")
@@ -116,6 +109,7 @@ func TestWhoIsUpNow(t *testing.T) {
 	}
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
+	clock.set(onTheDay(9, 0))
 
 	day := admin + "/day?day=0"
 	get := func() string { return do(t, h, http.MethodGet, day, nil).Body.String() }
@@ -127,10 +121,10 @@ func TestWhoIsUpNow(t *testing.T) {
 	if key == nil {
 		t.Fatalf("no flight: %s", page)
 	}
-	flight := html2text(key[1])
+	flight := unescape(key[1])
 	var order, escaped []string // the running order, and as the page has it
 	for _, m := range regexp.MustCompile(`comp-checkin-name">\s*(?:<span class="comp-run-no"[^>]*>\d+</span>\s*)?<span[^>]*>([^<]+)</span>`).FindAllStringSubmatch(page, -1) {
-		order, escaped = append(order, html2text(m[1])), append(escaped, m[1])
+		order, escaped = append(order, unescape(m[1])), append(escaped, m[1])
 	}
 	if len(order) != 4 {
 		t.Fatalf("one flight of four: %v", order)

@@ -13,7 +13,7 @@ func TestLimitsAndWaitingLists(t *testing.T) {
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	var links []string
 	for _, name := range []string{"Ann Ryan", "Bea Kelly", "Cat Doyle"} {
-		links = append(links, withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {name}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})))
+		links = append(links, withoutQuery(redirected(t, h, enter, bucsEntry(name))))
 	}
 	if loc := redirected(t, h, admin+"/limits", url.Values{"limit-0": {"two"}}); !strings.Contains(loc, "Nothing+was+changed") {
 		t.Errorf("a limit must be a number: %s", loc)

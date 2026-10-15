@@ -15,7 +15,8 @@ import (
 // Browser tests load pages in headless Chrome, so the JavaScript that builds a
 // page's requests runs too: a page can render fine on the server and still be
 // broken in a browser (the tariff sheet's hx-vals once was). They need Chrome
-// or Chromium, which CI's Ubuntu runners have; without one they're skipped.
+// or Chromium, which CI's Ubuntu runners have; without one they're skipped,
+// except in CI (the CI environment variable set), where they fail.
 
 // findChrome is the path to a Chrome or Chromium to run, or "".
 func findChrome() string {
@@ -38,11 +39,15 @@ func findChrome() string {
 	return ""
 }
 
-// browser starts headless Chrome for a test, or skips the test without one.
+// browser starts headless Chrome for a test, or skips the test without one
+// (fails it, in CI).
 func browser(t *testing.T) context.Context {
 	t.Helper()
 	chrome := findChrome()
-	if chrome == "" {
+	switch {
+	case chrome == "" && os.Getenv("CI") != "":
+		t.Fatal("no Chrome or Chromium to run browser tests in CI (set CHROME_PATH)")
+	case chrome == "":
 		t.Skip("no Chrome or Chromium to run browser tests (set CHROME_PATH)")
 	}
 	// Chrome can take longer than chromedp's 20 seconds to start on a busy CI
@@ -52,7 +57,26 @@ func browser(t *testing.T) context.Context {
 	ctx, cancelCtx := chromedp.NewContext(alloc)
 	ctx, cancelTimeout := context.WithTimeout(ctx, 60*time.Second)
 	t.Cleanup(func() { cancelTimeout(); cancelCtx(); cancelAlloc() })
+	// Start it on this context, so a step's own timeout ending doesn't close
+	// the browser with it.
+	if err := chromedp.Run(ctx); err != nil {
+		t.Fatalf("starting Chrome: %v", err)
+	}
 	return ctx
+}
+
+// stepTimeout is how long one step of a browser test may take.
+const stepTimeout = 15 * time.Second
+
+// step runs a browser test's step with its own timeout, failing the test
+// with the step's name if it doesn't finish.
+func step(t *testing.T, ctx context.Context, name string, actions ...chromedp.Action) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(ctx, stepTimeout)
+	defer cancel()
+	if err := chromedp.Run(ctx, actions...); err != nil {
+		t.Fatalf("%s: %v", name, err)
+	}
 }
 
 // sheetRoutine is the routine saved in the browser for the sheet to show: a
@@ -69,13 +93,11 @@ func TestTariffSheetLoadsInABrowser(t *testing.T) {
 	defer srv.Close()
 
 	// Save the routine for this origin, then load the sheet with it.
-	if err := chromedp.Run(ctx,
+	step(t, ctx, "opening the sheet with a routine saved",
 		chromedp.Navigate(srv.URL+"/tariff-sheet"),
 		chromedp.Evaluate(`localStorage.setItem('trampolineRoutines', `+"`"+sheetRoutine+"`"+`)`, nil),
 		chromedp.Reload(),
-	); err != nil {
-		t.Fatal(err)
-	}
+	)
 	// The sheet should appear in a moment. If it doesn't, say what the page
 	// shows instead (still loading, or why it couldn't build the sheet).
 	wait, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -91,13 +113,11 @@ func TestTariffSheetLoadsInABrowser(t *testing.T) {
 
 	var rows int
 	var total, text string
-	if err := chromedp.Run(ctx,
+	step(t, ctx, "reading the sheet",
 		chromedp.Evaluate(`document.querySelectorAll('#tariff-sheet tbody tr').length`, &rows),
 		chromedp.Text(`#tariff-sheet tfoot td.diff`, &total, chromedp.ByQuery),
 		chromedp.Text(`#tariff-sheet`, &text, chromedp.ByQuery),
-	); err != nil {
-		t.Fatal(err)
-	}
+	)
 	if rows != 10 {
 		t.Errorf("the sheet has %d rows, want a full exercise of 10", rows)
 	}

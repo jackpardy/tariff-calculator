@@ -33,10 +33,6 @@ func levelEditor(t *testing.T, form url.Values) (requirements.Level, string, str
 	return level, problems, body
 }
 
-func unescape(s string) string {
-	return strings.NewReplacer("&#34;", `"`, "&quot;", `"`, "&amp;", "&", "&lt;", "<", "&gt;", ">", "&#39;", "'").Replace(s)
-}
-
 func TestLevelEditor(t *testing.T) {
 	custom := `[{"id":"set-mine","name":"My voluntary","set_routine":false},{"id":"set-ours","name":"Our set","set_routine":true}]`
 
