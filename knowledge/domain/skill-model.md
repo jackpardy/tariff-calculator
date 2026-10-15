@@ -71,7 +71,11 @@ Earlier versions had JavaScript copies of them, which were removed.
   landing and twist per phase, then adds the shape where it is relevant:
   first for single fronts, backs and baranis ("Tuck Back", "Pike Barani"), as
   coaches say them, and after the name for everything else ("Ball-Out Pike",
-  "Double Back Tuck"). Unknown combinations are "Custom Skill".
+  "Double Back Tuck"). Unknown combinations with no somersault
+  are described from their parts (`describe`: "Full Twist To Back", "Seat
+  Full Twist To Feet", up to a double twist); anything more complicated is
+  "Custom Skill" (`UnnamedSkill`). `NameOf` works a saved skill's name out
+  again if it was saved without one.
 - **Repetition** (`Equal`). Two skills are the same element under CoP §14 if
   rotation, total twist, direction, take-off and seat landing match. Shape then
   distinguishes basic jumps, singles of ¾–1¼ with less than a full twist, and

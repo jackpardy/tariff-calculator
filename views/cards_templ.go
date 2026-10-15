@@ -242,14 +242,14 @@ func entryCardChecks(c EntryCard) templ.Component {
 	})
 }
 
-// cardName is an element's name on an entry card: its own name, or its
-// catalogue name; blank for an element the catalogue has no name for, as
-// its FIG notation beside it says what it is.
+// cardName is an element's name on an entry card: its own name, its
+// catalogue name, or one from its parts; "Custom Skill" for one too
+// complicated to describe.
 func cardName(s skills.TrampolineSkill) string {
-	if s.CustomName == "" && s.Name == skills.UnnamedSkill {
-		return ""
+	if s.CustomName != "" {
+		return s.CustomName
 	}
-	return displayName(s)
+	return skills.NameOf(s)
 }
 
 func exerciseCard(ex ExerciseCard) templ.Component {

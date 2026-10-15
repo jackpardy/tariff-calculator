@@ -420,8 +420,11 @@ elements, FIG notation, tariff, flags (repeats, transitions, interruptions,
 carry-over) and each requirement with ✓ or ✗. Two buttons follow.
 
 An element's name is the catalogue's, or the coach's own words; one the
-catalogue has no name for is left blank, as its FIG notation beside it says
-what it is (never "Custom Skill"). A * marks an element that meets one of the
+catalogue has no name for is described from its parts if it has no
+somersault ("Full Twist To Back"), and is "Custom Skill" if it's more
+complicated than that, its FIG notation beside it saying what it is
+(decided 2026-10-15). Names are worked out again for elements saved
+without one. A * marks an element that meets one of the
 requirements, explained under the table. A set routine performed as written
 names each element in the set's own words ("Seat landing"), as its Set
 routine line does. The validation's flags read as sentences
