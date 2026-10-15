@@ -1,5 +1,10 @@
 package views
 
+import (
+	"fmt"
+	"strconv"
+)
+
 // Access is what the admin link a page was opened by can do (ADR 0009), so
 // its page offers only that.
 type Access struct {
@@ -144,44 +149,67 @@ type ConcernView struct {
 	ResolvedBy, Resolution string
 }
 
-// concernsBox lists the concerns, open ones first.
+// concernsBox lists the concerns: the open ones under a heading, as they
+// need doing, and those resolved closed beneath; with none open, just a line
+// that opens to those resolved.
 templ concernsBox(base string, concerns []ConcernView, open int, a Access) {
-	if len(concerns) > 0 {
-		<details class={ "box", templ.KV("comp-concerns-open", open > 0) } open?={ open > 0 && a.Resolve }>
-			<summary>
-				<strong>Concerns</strong>
-				if open > 0 {
-					<span class="tag is-warning ml-1">{ open } open</span>
-				} else {
-					<span class="is-size-7 has-text-grey">· none open</span>
-				}
-			</summary>
+	if open > 0 {
+		<section class="comp-concerns mb-4" id="concerns">
+			<h2 class="title is-5 mb-2">
+				Concerns
+				@StateChip(Attention, fmt.Sprintf("%d open", open))
+			</h2>
 			for _, c := range concerns {
-				<div class={ "mt-3", templ.KV("has-text-grey", !c.Open) }>
-					<p>
-						if c.About != "" {
-							<a href={ templ.SafeURL(c.AboutLink) }>{ c.About }</a>:
+				if c.Open {
+					@concernView(base, c, a)
+				}
+			}
+			if resolved := len(concerns) - open; resolved > 0 {
+				<details class="comp-concerns-resolved mt-2">
+					<summary class="is-size-7">Resolved · { strconv.Itoa(resolved) }</summary>
+					for _, c := range concerns {
+						if !c.Open {
+							@concernView(base, c, a)
 						}
-						{ c.Text }
-					</p>
-					<p class="is-size-7 has-text-grey">{ c.Who } · { c.At }</p>
-					if !c.Open {
-						<p class="is-size-7">
-							Resolved by { c.ResolvedBy }
-							if c.Resolution != "" {
-								: { c.Resolution }
-							}
-						</p>
-					} else if a.Resolve {
-						<form method="post" action={ templ.SafeURL(base + "/concerns/" + c.ID + "/resolve") } class="comp-flight-actions mt-1">
-							<input class="input is-small" name="note" maxlength="300" placeholder="What was done (optional)" aria-label="What was done"/>
-							<button class="button is-small" type="submit">Resolved</button>
-						</form>
 					}
-				</div>
+				</details>
+			}
+		</section>
+	} else if len(concerns) > 0 {
+		<details class="comp-concerns-resolved mb-4">
+			<summary class="is-size-7">Concerns · none open, { strconv.Itoa(len(concerns)) } resolved</summary>
+			for _, c := range concerns {
+				@concernView(base, c, a)
 			}
 		</details>
 	}
+}
+
+// concernView is one concern: what it is, who flagged it, and how it was
+// resolved, or the form to resolve it.
+templ concernView(base string, c ConcernView, a Access) {
+	<div class={ "comp-concern", templ.KV("has-text-grey", !c.Open) }>
+		<p>
+			if c.About != "" {
+				<a href={ templ.SafeURL(c.AboutLink) }>{ c.About }</a>:
+			}
+			{ c.Text }
+		</p>
+		<p class="is-size-7 has-text-grey">{ c.Who } · { c.At }</p>
+		if !c.Open {
+			<p class="is-size-7">
+				Resolved by { c.ResolvedBy }
+				if c.Resolution != "" {
+					: { c.Resolution }
+				}
+			</p>
+		} else if a.Resolve {
+			<form method="post" action={ templ.SafeURL(base + "/concerns/" + c.ID + "/resolve") } class="comp-flight-actions mt-1">
+				<input class="input is-small" name="note" maxlength="300" placeholder="What was done (optional)" aria-label="What was done"/>
+				<button class="button is-small" type="submit">Resolved</button>
+			</form>
+		}
+	</div>
 }
 
 // concernForm flags a concern for the organiser, about an entry ("" for the
