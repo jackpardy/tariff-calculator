@@ -117,7 +117,7 @@ func TestDayPageKeepsPlace(t *testing.T) {
 	if m == nil {
 		t.Fatalf("a scratched official is warned about: %s", page)
 	}
-	clear := url.Values{"person": {html2text(m[1])}, "kind": {"officiating"}, "day": {"0"}}
+	clear := url.Values{"person": {unescape(m[1])}, "kind": {"officiating"}, "day": {"0"}}
 	if to := redirected(t, h, admin+"/day/clear", clear); !strings.HasPrefix(to, day) || !strings.HasSuffix(to, "#day-warnings") {
 		t.Errorf("back to the warnings: %s", to)
 	}

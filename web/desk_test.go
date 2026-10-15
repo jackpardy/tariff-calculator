@@ -75,7 +75,7 @@ func personOnDesk(t *testing.T, page, name string) string {
 	if m == nil {
 		t.Fatalf("%s isn't on the desk's list: %s", name, page)
 	}
-	return html2text(m[1])
+	return unescape(m[1])
 }
 
 // anIndividual enters a gymnast on their own and returns their page.
@@ -210,7 +210,7 @@ func TestDeskMessageToAFlight(t *testing.T) {
 		t.Fatalf("the published flights, by day and area: %s", page)
 	}
 
-	to := redirected(t, h, desk, url.Values{"to": {"flight"}, "flight": {html2text(flight[1])}, "text": {"Your flight starts in 10 minutes"}})
+	to := redirected(t, h, desk, url.Values{"to": {"flight"}, "flight": {unescape(flight[1])}, "text": {"Your flight starts in 10 minutes"}})
 	if !strings.Contains(to, "1+by+push") {
 		t.Errorf("the notice: %s", to)
 	}
@@ -236,7 +236,7 @@ func TestDeskMessageToAFlight(t *testing.T) {
 
 	// A phone that's gone is dropped.
 	service.status = http.StatusGone
-	redirected(t, h, desk, url.Values{"to": {"flight"}, "flight": {html2text(flight[1])}, "text": {"Again"}})
+	redirected(t, h, desk, url.Values{"to": {"flight"}, "flight": {unescape(flight[1])}, "text": {"Again"}})
 	if page := do(t, h, http.MethodGet, ann+"/notify", nil).Body.String(); strings.Contains(page, "A phone or browser added") {
 		t.Error("a gone phone is dropped")
 	}
@@ -427,11 +427,11 @@ func TestDeskToOfficials(t *testing.T) {
 	if panel == nil {
 		t.Fatalf("a panel with officials is offered: %s", page)
 	}
-	redirected(t, h, desk, url.Values{"to": {"panel"}, "panel": {html2text(panel[1])}, "text": {"Panel check"}, "come": {"1"}})
+	redirected(t, h, desk, url.Values{"to": {"panel"}, "panel": {unescape(panel[1])}, "text": {"Panel check"}, "come": {"1"}})
 	if len(mail.sent) != 1 || mail.sent[0].to != "dara@example.com" || !strings.HasPrefix(mail.sent[0].subject, "Please come to the organisers' desk") {
 		t.Errorf("Dara is on the panel: %+v", mail.sent)
 	}
-	if history := html2text(do(t, h, http.MethodGet, admin+"/history", nil).Body.String()); !strings.Contains(history, "Called "+html2text(panel[2])+" to the desk") {
+	if history := unescape(do(t, h, http.MethodGet, admin+"/history", nil).Body.String()); !strings.Contains(history, "Called "+unescape(panel[2])+" to the desk") {
 		t.Errorf("the history names the panel: %s", history)
 	}
 
@@ -442,7 +442,7 @@ func TestDeskToOfficials(t *testing.T) {
 	if flight == nil {
 		t.Fatalf("BUCS L3's flight is offered: %s", page)
 	}
-	key := html2text(flight[1])
+	key := unescape(flight[1])
 	send := func(extra url.Values) (string, []string) {
 		t.Helper()
 		mail.sent = nil

@@ -83,7 +83,7 @@ func personLink(t *testing.T, page, admin, name string) string {
 	if m == nil {
 		t.Fatalf("no link to %s's page in: %s", name, page)
 	}
-	return html2text(m[1])
+	return unescape(m[1])
 }
 
 func TestPeople(t *testing.T) {
@@ -197,7 +197,7 @@ func TestPeople(t *testing.T) {
 	// Every link on those pages is to a page that exists.
 	for _, from := range []string{"", "/officials", "/coaches", "/people"} {
 		for _, link := range regexp.MustCompile(`href="(`+regexp.QuoteMeta(admin)+`/people/[^"]+)"`).FindAllStringSubmatch(do(t, h, http.MethodGet, admin+from, nil).Body.String(), -1) {
-			if rec := do(t, h, http.MethodGet, html2text(link[1]), nil); rec.Code != http.StatusOK {
+			if rec := do(t, h, http.MethodGet, unescape(link[1]), nil); rec.Code != http.StatusOK {
 				t.Errorf("%s links to %s: %d", from, link[1], rec.Code)
 			}
 		}

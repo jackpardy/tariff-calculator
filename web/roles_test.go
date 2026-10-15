@@ -26,7 +26,7 @@ type roleTab struct {
 func roleTabsIn(page string) []roleTab {
 	var out []roleTab
 	for _, m := range regexp.MustCompile(`<li class="role-tab( is-active)?"><a href="([^"]*)"[^>]*>([^<]*)</a>`).FindAllStringSubmatch(page, -1) {
-		out = append(out, roleTab{label: m[3], href: html2text(m[2]), current: m[1] != ""})
+		out = append(out, roleTab{label: m[3], href: unescape(m[2]), current: m[1] != ""})
 	}
 	return out
 }
@@ -355,7 +355,7 @@ func TestSameNameTwoPeople(t *testing.T) {
 		t.Fatalf("a page each: %v", pages)
 	}
 	for _, person := range pages {
-		if rec := do(t, h, http.MethodGet, html2text(person[1]), nil); rec.Code != http.StatusOK {
+		if rec := do(t, h, http.MethodGet, unescape(person[1]), nil); rec.Code != http.StatusOK {
 			t.Errorf("their page opens, its key escaped: %s %d", person[1], rec.Code)
 		}
 	}
@@ -479,7 +479,7 @@ func TestAllPeopleJoinsRoles(t *testing.T) {
 	if coach == nil {
 		t.Fatalf("Mo's page links to his coach: %s", mo)
 	}
-	if rec := do(t, h, http.MethodGet, html2text(coach[1]), nil); rec.Code != http.StatusFound || !strings.Contains(rec.Header().Get("Location"), "/people/m:") {
+	if rec := do(t, h, http.MethodGet, unescape(coach[1]), nil); rec.Code != http.StatusFound || !strings.Contains(rec.Header().Get("Location"), "/people/m:") {
 		t.Errorf("her coach's key goes to her page: %d %s", rec.Code, rec.Header().Get("Location"))
 	}
 }

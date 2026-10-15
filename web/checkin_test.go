@@ -15,7 +15,7 @@ func checkinEntry(t *testing.T, page, name string) string {
 	if m == nil {
 		t.Fatalf("no check-in row for %s: %s", name, page)
 	}
-	return html2text(m[1])
+	return unescape(m[1])
 }
 
 func TestCheckinAndScratches(t *testing.T) {
@@ -199,7 +199,7 @@ func TestScratchedOfficial(t *testing.T) {
 	if leave == nil {
 		t.Fatalf("a link to the what-if tool: %s", page)
 	}
-	if to := html2text(leave[1]); !strings.HasPrefix(to, tt+"/leave?") || !strings.Contains(to, "person=i%3A") || !strings.Contains(to, "day=0") {
+	if to := unescape(leave[1]); !strings.HasPrefix(to, tt+"/leave?") || !strings.Contains(to, "person=i%3A") || !strings.Contains(to, "day=0") {
 		t.Errorf("the link is for Dara on that day: %s", to)
 	} else if rec := do(t, h, http.MethodGet, to, nil); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Dara") {
 		t.Errorf("the what-if page opens for her: %d", rec.Code)
@@ -225,7 +225,7 @@ func checkinEntryIn(t *testing.T, page, flight, name string) string {
 	if m == nil {
 		t.Fatalf("no check-in row for %s in %s: %s", name, flight, page)
 	}
-	return html2text(m[1])
+	return unescape(m[1])
 }
 
 // A scratched person's warnings, for officiating and for competing, can be

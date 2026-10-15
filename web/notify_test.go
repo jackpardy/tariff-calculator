@@ -7,8 +7,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-
-	"tariffCalculator/store"
 )
 
 // sentEmail is an email the fake mailer was given.
@@ -27,15 +25,8 @@ func (m *fakeMailer) send(to, subject, body string, headers map[string]string) e
 // notifyServer is the competition pages with email on, to a fake mailer.
 func notifyServer(t *testing.T) (http.Handler, *competitionPages, *fakeMailer) {
 	t.Helper()
-	st, err := store.Open(context.Background(), t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { st.Close() })
-	p := newCompetitionPages(st)
-	mail := &fakeMailer{}
-	p.notify.mail, p.notify.base = mail, "https://tariff.example"
-	return routesWithPages(p), p, mail
+	s := newTestServer(t, withMail())
+	return s.h, s.p, s.mail
 }
 
 func TestNotifications(t *testing.T) {

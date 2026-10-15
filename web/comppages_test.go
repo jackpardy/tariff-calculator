@@ -1,26 +1,19 @@
 package web
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
 	"testing"
-
-	"tariffCalculator/store"
 )
 
-// competitionServer is the app with storage in a fresh directory.
+// competitionServer is the app with storage in a fresh directory, on the
+// real clock.
 func competitionServer(t *testing.T) http.Handler {
 	t.Helper()
-	st, err := store.Open(context.Background(), t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { st.Close() })
-	return routesWith(st)
+	return newTestServer(t).h
 }
 
 func do(t *testing.T, h http.Handler, method, path string, form url.Values) *httptest.ResponseRecorder {
