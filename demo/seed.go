@@ -25,7 +25,27 @@ import (
 // the timetable planned with its officials rota, and published. Everything goes through the pages, as
 // people would use them. It writes the links to open to out.
 func Seed(h http.Handler, out io.Writer, seed uint64) error {
-	s := &seeder{h: h, rng: rand.New(rand.NewPCG(seed, 99))}
+	return SeedSize(h, out, seed, Full)
+}
+
+// Size is how much of the demo to make.
+type Size struct {
+	Clubs       int // the first this many clubs, of 25
+	Voluntaries int // passing voluntaries found for each level's exercise, for gymnasts to choose from
+	Tries       int // routines tried to find them, at most; a gymnast with none to choose from gets one that may not pass
+}
+
+var (
+	// Full is the demo as it's shown.
+	Full = Size{Clubs: len(clubs), Voluntaries: 8, Tries: 30000}
+	// Small is a few clubs, the same in every other way, for quick tests.
+	Small = Size{Clubs: 3, Voluntaries: 1, Tries: 1000}
+)
+
+// SeedSize is Seed at a size: fewer clubs (at least two), or fewer
+// voluntaries to choose from.
+func SeedSize(h http.Handler, out io.Writer, seed uint64, size Size) error {
+	s := &seeder{h: h, rng: rand.New(rand.NewPCG(seed, 99)), size: size}
 	if err := s.run(out); err != nil {
 		return err
 	}
@@ -35,6 +55,7 @@ func Seed(h http.Handler, out io.Writer, seed uint64) error {
 type seeder struct {
 	h    http.Handler
 	rng  *rand.Rand
+	size Size
 	ip   int
 	err  error
 	vols map[string][]string // passing voluntaries, by level and exercise ("BUCS L3/2")
@@ -257,7 +278,7 @@ func (s *seeder) run(out io.Writer) error {
 				continue
 			}
 			opts := [2]string{option(l.name, 0, 1), option(l.name, 1, 0)}
-			s.vols[fmt.Sprintf("%s/%d", l.name, ex+1)] = voluntaries(c, l.name, ex, opts, 8, 30000, s.rng)
+			s.vols[fmt.Sprintf("%s/%d", l.name, ex+1)] = voluntaries(c, l.name, ex, opts, s.size.Voluntaries, s.size.Tries, s.rng)
 		}
 	}
 
@@ -305,7 +326,7 @@ func (s *seeder) run(out io.Writer) error {
 	var everyone []person
 	var firstMember, firstCoach string
 	var runs []clubRun
-	for _, cl := range clubs {
+	for _, cl := range clubs[:min(s.size.Clubs, len(clubs))] {
 		club := s.post("/clubs", url.Values{"name": {cl.name}})
 		clubAdmins = append(clubAdmins, cl.name+": "+club)
 		s.post(clubLink, url.Values{"clubAdmin": {club}})
