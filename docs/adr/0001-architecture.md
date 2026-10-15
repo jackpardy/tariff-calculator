@@ -2,7 +2,9 @@
 
 - **Status:** Accepted; §1 (browser WASM), §2 (UI as an API client), §8 (frontend)
   and the MVP's WASM and `embed.FS` items are amended by
-  [ADR 0002](0002-server-rendered-frontend.md)
+  [ADR 0002](0002-server-rendered-frontend.md); §3's Litestream backups were
+  replaced by a nightly `sqlite3 .backup` on the server
+  ([deploy](../../knowledge/operations/deploy.md#competition-storage), 2026-10-06)
 - **Date:** 2026-06-23
 - **Deciders:** jackpardy (solo maintainer)
 

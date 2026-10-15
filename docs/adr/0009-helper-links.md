@@ -1,6 +1,7 @@
 # ADR 0009 — Helpers' links, the change history and concerns
 
-- **Status:** Accepted; built 2026-10-08
+- **Status:** Accepted; built 2026-10-08. The links are made in the Links group
+  of the Settings page since 2026-10-14, not under Links on the dashboard
 - **Date:** 2026-10-08
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 3 (secret links: a competition has more
