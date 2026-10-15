@@ -483,56 +483,64 @@ type judged struct {
 
 // judge checks every entry.
 func judge(c competitions.Competition, entries []store.Entry) []judged {
+	all := enteredAll(c, entries)
 	out := make([]judged, len(entries))
 	for i, e := range entries {
 		j := judged{Entry: e, club: e.ClubName}
 		if e.Individual {
 			j.club = "individual"
 		}
-		if j.card, j.err = c.Check(e.Entry); j.err != nil {
-			j.problems = []string{j.err.Error()}
-		} else {
-			j.problems = j.card.Problems()
-			if problem := storedSignoff(c, j.Entry).Problem(); problem != "" && !j.Withdrawn {
-				j.problems = append(j.problems, problem)
-			}
-		}
+		j.card, j.err = c.Check(e.Entry)
+		j.problems = entryProblems(c, e, all)
 		j.video = videoStatus(c, j)
 		out[i] = j
-	}
-	for i, problem := range synchroLevels(c, entries) {
-		out[i].problems = append([]string{problem}, out[i].problems...)
 	}
 	return out
 }
 
-// synchroLevels checks each synchro pair's level against their individual
-// trampoline levels (by entry index): the same level, or the easier of two a
-// level apart; further apart, they usually can't pair.
-func synchroLevels(c competitions.Competition, entries []store.Entry) map[int]string {
-	keys := personKeys(entries)
-	individual := map[string]string{} // person → their trampoline level
+// entered is an entry as competitions.EntryProblems works out its problems,
+// with its sign-off as the organiser sees it: none once it's withdrawn.
+func entered(c competitions.Competition, e store.Entry) competitions.Entered {
+	en := competitions.Entered{Entry: e.Entry, People: e.People()}
+	if !e.Withdrawn {
+		en.Signoff = storedSignoff(c, e).Problem()
+	}
+	return en
+}
+
+// enteredAll are a competition's entries that count for a synchro pair's
+// individual levels: those not withdrawn.
+func enteredAll(c competitions.Competition, entries []store.Entry) []competitions.Entered {
+	var out []competitions.Entered
 	for _, e := range entries {
-		if !e.Withdrawn && e.Entry.Discipline == competitions.Trampoline {
-			individual[keys[e.ID][0]] = e.Entry.Level
+		if !e.Withdrawn {
+			out = append(out, entered(c, e))
 		}
 	}
+	return out
+}
+
+// entryProblems are an entry's problems, as the organiser, its club and its
+// coach all see them (competitions.EntryProblems); all are enteredAll. A
+// withdrawn entry's pair isn't checked.
+func entryProblems(c competitions.Competition, e store.Entry, all []competitions.Entered) []string {
+	if e.Withdrawn {
+		all = nil
+	}
+	return c.EntryProblems(entered(c, e), all)
+}
+
+// synchroLevels checks each synchro pair's level against their individual
+// trampoline levels (by entry index; competitions.PairLevel).
+func synchroLevels(c competitions.Competition, entries []store.Entry) map[int]string {
+	all := enteredAll(c, entries)
 	out := map[int]string{}
 	for i, e := range entries {
-		ks := keys[e.ID]
-		if e.Withdrawn || e.Entry.Discipline != competitions.Synchro || len(ks) < 2 || e.Entry.Partner == nil {
+		if e.Withdrawn {
 			continue
 		}
-		a, b := individual[ks[0]], individual[ks[1]]
-		if a == "" || b == "" {
-			continue
-		}
-		pair := fmt.Sprintf("%s (%s) and %s (%s)", e.Entry.Gymnast, a, e.Entry.Partner.Name, b)
-		switch want, ok := c.SynchroLevel(a, b); {
-		case !ok:
-			out[i] = pair + " compete more than a level apart individually, so usually can't pair in synchro"
-		case want != e.Entry.DoesLevel():
-			out[i] = fmt.Sprintf("%s compete individually, so as a pair they do %s in synchro, not %s", pair, want, e.Entry.DoesLevel())
+		if problem := c.PairLevel(entered(c, e), all); problem != "" {
+			out[i] = problem
 		}
 	}
 	return out

@@ -23,6 +23,25 @@ func memberSignoff(c competitions.Competition, e store.MemberEntry) views.Signof
 	return views.SignoffView{Required: c.Signoff, Signed: e.SignedOff(), By: e.SignedBy, Note: e.SignNote}
 }
 
+// memberProblems are a member's entry's problems as the organiser sees them
+// (entryProblems): the competition's copy's, while it's what the member has;
+// otherwise the member's own, worked out the same way, with its sign-off as
+// it stands. sent are the competition's entries.
+func memberProblems(c competitions.Competition, e store.MemberEntry, sent []store.Entry) []string {
+	all := enteredAll(c, sent)
+	people := []string{store.MemberKey(e.MemberID)}
+	for _, s := range sent {
+		if s.MemberID != e.MemberID || s.Entry.Discipline != e.Discipline {
+			continue
+		}
+		if e.Sent() && !e.ChangedSinceSent() {
+			return entryProblems(c, s, all)
+		}
+		people = s.People()
+	}
+	return c.EntryProblems(competitions.Entered{Entry: e.Entry, People: people, Signoff: memberSignoff(c, e).Problem()}, all)
+}
+
 // withSignoff adds an entry's sign-off to its card, and a missing one to its
 // problems, as the organiser's dashboard counts it.
 func withSignoff(card *views.EntryCard, s views.SignoffView) {
@@ -236,17 +255,18 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 				cc.Late = append(cc.Late, views.CoachLate{Member: l.Entry.Gymnasts(), What: competitions.LateKindName(l.Kind) + " to " + l.Entry.Event(), Link: path + "/late/" + l.ID})
 			}
 		}
+		sent, err := p.st.Entries(ctx, c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
 		for _, e := range entries {
 			if e.CompetitionID != c.ID {
 				continue
 			}
 			row := views.CoachRow{Member: e.MemberName, Level: e.Entry.Event(), Signoff: memberSignoff(c.Competition, e),
 				Open: path + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline}
-			if checked, err := c.Check(e.Entry); err != nil {
-				row.Problems = 1
-			} else {
-				row.Problems = len(checked.Problems())
-			}
+			row.Problems = len(memberProblems(c.Competition, e, sent))
 			if !e.SignedOff() {
 				cc.Waiting++
 			}

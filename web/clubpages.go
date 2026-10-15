@@ -375,10 +375,8 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			case e.Checked:
 				row.Status = "Sent · checked ✓"
 			}
-			if checked, err := c.Check(e.Entry); err != nil {
-				row.Problems = 1
-			} else {
-				row.Problems = len(checked.Problems())
+			row.Problems = len(memberProblems(c.Competition, e, sent))
+			if checked, err := c.Check(e.Entry); err == nil {
 				if competitions.VideoMissing(e.Entry, c.VideoNeeds(checked)) {
 					row.Video = "missing"
 				}
