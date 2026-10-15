@@ -160,7 +160,8 @@ build on:
       member's **Skills** tab, a **Skills** page per gymnast under the
       coach's Gymnasts, and the comp sec's Members, each with the shared
       search and filters (by skill, by level, marked by whom).
-   4. **The club's own skills** (decided 2026-10-15). Coaches add skills to
+   4. **The club's own skills** (decided and built 2026-10-15,
+      [club skills](features/competition-entries.md#club-skills-adr-0011)). Coaches add skills to
       a **club catalogue**, used for tracking alongside the built-in one:
       - **the club's name for a skill the catalog can describe**, one it
         names already ("Swivel Hips" for Seat Half Twist To Seat) or one

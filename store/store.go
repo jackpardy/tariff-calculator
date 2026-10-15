@@ -681,6 +681,22 @@ var migrations = []string{
 		PRIMARY KEY (member_id, item, side)
 	);
 	ALTER TABLE clubs ADD COLUMN skills_open INTEGER NOT NULL DEFAULT 0;`,
+
+	// 39: the club's own skills (ADR 0011 Decision 4), kept by its coaches: a
+	// club's name for a skill the catalog describes (skill: the skill as JSON,
+	// with the name as its custom_name), or something else to track (skill
+	// empty), with a note. Marks on one of the second kind have the item
+	// "c:<id>".
+	`CREATE TABLE club_skills (
+		id         TEXT PRIMARY KEY,
+		club_id    TEXT NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+		name       TEXT NOT NULL,
+		note       TEXT NOT NULL DEFAULT '',
+		skill      TEXT NOT NULL DEFAULT '',
+		by_name    TEXT NOT NULL,
+		created_at TEXT NOT NULL
+	);
+	CREATE INDEX club_skills_club ON club_skills (club_id);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

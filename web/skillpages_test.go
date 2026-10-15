@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"html"
 	"net/http"
 	"net/url"
@@ -127,5 +128,81 @@ func TestMarkingSkills(t *testing.T) {
 
 	if rec := do(t, h, http.MethodPost, member+"/skills", url.Values{"skill": {`{"rotation":99}`}, "state": {"can"}}); rec.Code != http.StatusBadRequest {
 		t.Errorf("an unreadable skill: %d", rec.Code)
+	}
+}
+
+// Coaches keep the club's own skills: a name for a catalog skill, which then
+// shows in its place on the club's pages, and something else to track, which
+// members and coaches mark like any skill.
+func TestClubSkills(t *testing.T) {
+	h := competitionServer(t)
+	club := aClub(t, h, created(t, h, newCompetition()), "UCD", false, "A. Murphy")
+	member := club.members["A. Murphy"]
+	ann := pathIn(t, do(t, h, http.MethodPost, club.page+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
+
+	page := do(t, h, http.MethodGet, ann+"/club-skills?q=seat+half+twist+to+seat", nil).Body.String()
+	if got := currentTab(t, page); got != "Club skills" {
+		t.Errorf("the coach's Club skills section is %q", got)
+	}
+	m := regexp.MustCompile(`<input type="hidden" name="skill" value="([^"]+)"><p><strong>Seat Half Twist To Seat</strong>`).FindStringSubmatch(page)
+	if m == nil {
+		t.Fatalf("no Seat Half Twist To Seat to name: %s", page)
+	}
+	swivel := html.UnescapeString(m[1])
+	if notice := noticeOf(t, redirected(t, h, ann+"/club-skills", url.Values{"skill": {swivel}, "name": {"Swivel Hips"}})); notice != "Added Swivel Hips." {
+		t.Errorf("naming a skill: %q", notice)
+	}
+	redirected(t, h, ann+"/club-skills", url.Values{"name": {"Kaboom drill"}, "note": {"On the crash mat"}})
+	if notice := noticeOf(t, redirected(t, h, ann+"/club-skills", url.Values{"name": {"swivel hips"}})); !strings.Contains(notice, "already has a skill called") {
+		t.Errorf("a name already used: %q", notice)
+	}
+	page = do(t, h, http.MethodGet, ann+"/club-skills", nil).Body.String()
+	for _, want := range []string{"Swivel Hips", "Seat Half Twist To Seat", "Kaboom drill", "On the crash mat", "To track", `<span class="chip-role">Coach</span> <span class="chip-name">· Ann</span>`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the club's skills should show %q", want)
+		}
+	}
+
+	// The member marks both from Your club's skills.
+	page = do(t, h, http.MethodGet, member+"/skills", nil).Body.String()
+	if !strings.Contains(page, "Your club&#39;s skills") {
+		t.Fatalf("Mark a skill offers the club's: %s", page)
+	}
+	kaboom := regexp.MustCompile(`<input type="hidden" name="club" value="([^"]+)"`).FindStringSubmatch(page)
+	if kaboom == nil {
+		t.Fatal("no club skill to mark")
+	}
+	redirected(t, h, member+"/skills", url.Values{"club": {kaboom[1]}, "state": {"learning"}})
+	if notice := noticeOf(t, redirected(t, h, member+"/skills", url.Values{"skill": {swivel}, "state": {"can"}})); notice != "Swivel Hips: Can do." {
+		t.Errorf("marking a named skill: %q", notice)
+	}
+	page = do(t, h, http.MethodGet, member+"/skills", nil).Body.String()
+	if sideIn(page, "Kaboom drill", "gymnast") != "Gymnast · You ◐ Learning" || sideIn(page, "Swivel Hips", "gymnast") != "Gymnast · You ✓ Can do" {
+		t.Errorf("both marked, under the club's names: %s", page)
+	}
+	if rec := do(t, h, http.MethodPost, member+"/skills", url.Values{"club": {"nope"}, "state": {"can"}}); rec.Code != http.StatusNotFound {
+		t.Errorf("a club skill that isn't one: %d", rec.Code)
+	}
+
+	// A kept routine with the skill shows the club's name for it.
+	var skill map[string]any
+	if err := json.Unmarshal([]byte(swivel), &skill); err != nil {
+		t.Fatal(err)
+	}
+	redirected(t, h, member+"/routines", keep(t, map[string]any{"id": "b1", "name": "Drops", "skills": []any{skill}}))
+	if page = do(t, h, http.MethodGet, member+"/routines", nil).Body.String(); !strings.Contains(page, "Swivel Hips") {
+		t.Errorf("the routine shows the club's name: %s", page)
+	}
+
+	// Removing something to track takes its marks with it.
+	remove := formAction(t, do(t, h, http.MethodGet, ann+"/club-skills", nil).Body.String(), ann+"/club-skills/"+kaboom[1])
+	other := aClub(t, h, created(t, h, newCompetition()), "DCU", false)
+	bob := pathIn(t, do(t, h, http.MethodPost, other.page+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
+	if rec := do(t, h, http.MethodPost, bob+strings.TrimPrefix(remove, ann), nil); rec.Code != http.StatusNotFound {
+		t.Errorf("another club's coach removes it: %d", rec.Code)
+	}
+	redirected(t, h, remove, nil)
+	if page = do(t, h, http.MethodGet, member+"/skills", nil).Body.String(); strings.Contains(page, "Kaboom drill") {
+		t.Error("its marks go with it")
 	}
 }

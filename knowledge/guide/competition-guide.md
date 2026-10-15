@@ -573,8 +573,9 @@ opens **Competitions**, which lists the links saved on that phone.
 
 Your page's **Skills** tab keeps track of the skills you're **Learning** and
 the ones you **Can do**. Find a skill under **Mark a skill** (type its name,
-like *barani*, or its FIG notation), or pick it from the skills in your
-routines or the lists by type, and tap **Learning** or **Can do**. Tap **Take
+like *barani*, or its FIG notation), or pick it from your club's own skills,
+the skills in your routines or the lists by type, and tap **Learning** or
+**Can do**. Tap **Take
 off** to remove it.
 
 Your coaches see your skills and mark them too. Your mark and your coach's
@@ -652,6 +653,14 @@ many skills they can do. Tap a gymnast to see their routines, checked, and
 write **Your note** on any of them for them to see, such as what to work on.
 Leave it empty to take it off.
 
+**Club skills** (the third section of your page) holds your club's own
+skills, for everyone to mark. To give a skill your club's name, find it
+under **Name a skill**, type the name (say *Swivel Hips*) and tap **Save
+name**: your club's pages then show that name. For anything else you track,
+like a drill, give it a name (and a note if you like) under **Something else
+to track** and tap **Add**. Removing something to track removes its marks
+too.
+
 From a gymnast's page, **Skills** shows what they're learning and can do. Mark
 skills for them the same way they do: your mark and theirs both show. A skill
 they've marked that you haven't marked the same has **Confirm**: tap it once
@@ -718,6 +727,7 @@ link listed has **Undo**.
 Only names, clubs, levels and events, men or women where asked, synchro
 partners, routines (with entries, and those members keep on their page),
 the skills members and coaches mark, with who marked them and when,
+the club's own skills and the coach who added each,
 video links, and the organiser's and coaches' notes, and
 coaches' qualifications with their certificates where the club adds them. No
 emails, birthdays or contact details. Videos are never uploaded: only their

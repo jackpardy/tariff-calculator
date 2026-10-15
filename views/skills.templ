@@ -18,6 +18,7 @@ type SideMark struct {
 // MarkView is one skill a member has marked, or a coach has for them.
 type MarkView struct {
 	Skill     string // the skill as JSON, posted to change a mark
+	Club      string // or one of the club's own skills to track, by id
 	Name, FIG string
 	Tariff    string // in a list of skills to mark
 	Gymnast   *SideMark
@@ -87,7 +88,11 @@ templ sideMark(r Role, m *SideMark) {
 // take it off; for a coach, Confirm makes the gymnast's mark theirs too.
 templ markButtons(action string, m MarkView) {
 	<form method="post" action={ templ.SafeURL(action) } class="buttons are-small mb-0 skill-mark-buttons">
-		<input type="hidden" name="skill" value={ m.Skill }/>
+		if m.Club != "" {
+			<input type="hidden" name="club" value={ m.Club }/>
+		} else {
+			<input type="hidden" name="skill" value={ m.Skill }/>
+		}
 		if m.Confirm != "" {
 			<button class="button" type="submit" name="state" value={ m.Confirm }>Confirm { markLabel(m.Confirm) }</button>
 		}
@@ -249,4 +254,104 @@ templ OtherMemberSkills(m MemberPage, p SkillsViewPage) {
 		<h2 class="title is-5">{ p.Name }</h2>
 		@skillMarks(p.Skills)
 	}
+}
+
+// ClubSkillView is one of the club's own skills, on the coaches' list.
+type ClubSkillView struct {
+	Name   string
+	What   string // the catalog skill it names, e.g. "Seat Half Twist To Seat (0 1)", or "To track"
+	Note   string
+	By     string // the coach who added it
+	Remove string // where removing it posts
+}
+
+// CatalogChoice is a catalog skill a coach can give the club's name, from a search.
+type CatalogChoice struct {
+	Skill    string // as JSON
+	Name     string // its own name
+	FIG      string
+	ClubName string // the club's name for it already, if any
+}
+
+// ClubSkillsPage is the coaches' page for the club's own skills.
+type ClubSkillsPage struct {
+	Frame   CoachFrame
+	Skills  []ClubSkillView
+	Action  string // where adding posts
+	Search  string // where searching the catalog goes
+	Query   string
+	Results []CatalogChoice
+	Max     int
+}
+
+// CoachClubSkills is the coaches' page for the club's own skills: its names
+// for catalog skills, and anything else it tracks.
+templ CoachClubSkills(p ClubSkillsPage) {
+	@competitionLayout("Club skills · " + p.Frame.Club) {
+		@coachFrame(p.Frame)
+		<p class="mb-4 is-size-7 has-text-grey">
+			Skills of your club's own, for every coach and member to mark: your club's name for a skill (it shows in place of the skill's own name on your club's pages), or something else to track, like a drill.
+		</p>
+		if len(p.Skills) == 0 {
+			<p class="has-text-grey mb-4">No club skills yet.</p>
+		}
+		for _, c := range p.Skills {
+			<div class="skill-mark">
+				<strong>{ c.Name }</strong>
+				<span class="has-text-grey is-size-7 ml-1">{ c.What }</span>
+				if c.Note != "" {
+					<p class="is-size-7 mt-1">{ c.Note }</p>
+				}
+				<p class="is-size-7 mt-1">
+					Added by
+					@WhoChip(RoleCoach, c.By)
+				</p>
+				<form method="post" action={ templ.SafeURL(c.Remove) } class="mt-1" onsubmit={ confirmRemoveClubSkill(c.Name) }>
+					<button class="button is-small is-text" type="submit">Remove</button>
+				</form>
+			</div>
+		}
+		<div class="box mt-5">
+			<h3 class="title is-6">Name a skill</h3>
+			<form method="get" action={ templ.SafeURL(p.Search) } class="field has-addons mb-3">
+				<div class="control is-expanded">
+					<input class="input" type="search" name="q" value={ p.Query } placeholder="Find the skill: a name or FIG notation" aria-label="Find a skill to name"/>
+				</div>
+				<div class="control"><button class="button" type="submit">Find</button></div>
+			</form>
+			if p.Query != "" && len(p.Results) == 0 {
+				<p class="has-text-grey is-size-7">No skill found for that.</p>
+			}
+			for _, c := range p.Results {
+				<form method="post" action={ templ.SafeURL(p.Action) } class="skill-mark">
+					<input type="hidden" name="skill" value={ c.Skill }/>
+					<p><strong>{ c.Name }</strong> <span class="has-text-grey is-size-7">{ c.FIG }</span></p>
+					<div class="field has-addons mt-1 mb-0">
+						<div class="control is-expanded">
+							<input class="input is-small" name="name" value={ c.ClubName } maxlength="60" required placeholder="Your club's name for it" aria-label={ "Your club's name for " + c.Name }/>
+						</div>
+						<div class="control"><button class="button is-small" type="submit">Save name</button></div>
+					</div>
+				</form>
+			}
+		</div>
+		<form method="post" action={ templ.SafeURL(p.Action) } class="box mt-4">
+			<h3 class="title is-6">Something else to track</h3>
+			<div class="field">
+				<label class="label is-small" for="club-skill-name">Name</label>
+				<input class="input" id="club-skill-name" name="name" maxlength="60" required placeholder="e.g. Kaboom drill"/>
+			</div>
+			<div class="field">
+				<label class="label is-small" for="club-skill-note">Note (optional)</label>
+				<input class="input" id="club-skill-note" name="note" maxlength="300" placeholder="What it is, or how it's done"/>
+			</div>
+			<button class="button is-primary is-small" type="submit">Add</button>
+			<p class="help mt-2">{ "Up to " + strconv.Itoa(p.Max) + " club skills. Members and coaches mark it like any skill; it's not for routines." }</p>
+		</form>
+	}
+}
+
+// confirmRemoveClubSkill asks before a club skill goes, with its marks.
+script confirmRemoveClubSkill(name string) {
+	return confirm('Remove ' + name + '? Marks on something to track go with it; a name for a skill only stops showing.');
 }

@@ -1465,6 +1465,32 @@ Decisions 2 and 3; `web/skillpages.go`, `views/skills.templ`,
 - Up to 500 skills marked a member (`store.MaxMarks`). Marks go with the
   member, and with the club.
 
+## Club skills (ADR 0011)
+
+Built 2026-10-15 ([ADR 0011](../../docs/adr/0011-club-routines-and-skill-tracking.md)
+Decision 4; `store/clubskills.go`, migration 39). A coach's page has a third
+section, **Club skills** (`/clubs/coach/{token}/club-skills`), where any of
+the club's coaches keeps the club's own skills, up to 200
+(`store.MaxClubSkills`):
+
+- **A name for a skill.** Search the catalog (`catalog.Search`) and give a
+  skill the club's name ("Swivel Hips" for Seat Half Twist To Seat). It's
+  kept as the skill with the name as its `custom_name`, the routine builder's
+  own label for a skill, so it's still that skill: its marks are the skill's
+  (found with `TrampolineSkill.Equal`), and naming it again renames it. On
+  the club's pages the name shows in place of the skill's own: on Skills
+  (with the skill's own name and notation beside it), in the notice after
+  marking it, and on kept routines' cards (`displayName` shows a
+  `custom_name`), unless the routine gave the skill a name of its own.
+- **Something else to track** (a drill, a conditioning test): a name and an
+  optional note, not for routines. Its marks are kept under its own item
+  (`c:<id>`); marking one posts `club` (its id) instead of `skill`.
+- Names are unique in the club, ignoring case. Each shows who added it
+  (`WhoChip(RoleCoach, name)`). **Remove** takes something to track with its
+  marks; a name only stops showing, as the marks are the skill's.
+- On every Skills page, **Mark a skill** starts with **Your club's skills**,
+  and a search finds them by their club name as well as the catalog.
+
 # One link, several roles (ADR 0010)
 
 Roadmap item 5, built 2026-10-14. A person's **records** are their club
