@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strings"
 
 	"tariffCalculator/catalog"
 	"tariffCalculator/skills"
@@ -27,6 +28,9 @@ func (p *competitionPages) registerSkills(handle func(string, http.HandlerFunc))
 	handle("POST /clubs/coach/{token}/gymnasts/{member}/skills", p.markGymnastSkill)
 	handle("GET /clubs/admin/{token}/members/{member}/skills", p.clubMemberSkills)
 	handle("POST /clubs/admin/{token}/skills-open", p.skillsOpen)
+	handle("GET /clubs/coach/{token}/club-skills", p.clubSkillsPage)
+	handle("POST /clubs/coach/{token}/club-skills", p.addClubSkill)
+	handle("POST /clubs/coach/{token}/club-skills/{id}/remove", p.removeClubSkill)
 }
 
 // memberSkillsPath is a member's Skills tab.
@@ -97,7 +101,7 @@ func (p *competitionPages) markOwnSkill(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	in, name, ok := postedMark(w, r)
+	in, name, ok := p.postedMark(w, r, m.ClubID)
 	if !ok {
 		return
 	}
@@ -162,7 +166,7 @@ func (p *competitionPages) markGymnastSkill(w http.ResponseWriter, r *http.Reque
 	if !ok {
 		return
 	}
-	in, name, ok := postedMark(w, r)
+	in, name, ok := p.postedMark(w, r, coach.ClubID)
 	if !ok {
 		return
 	}
@@ -214,8 +218,28 @@ func (p *competitionPages) skillsOpen(w http.ResponseWriter, r *http.Request) {
 }
 
 // postedMark is the mark posted: the skill (as JSON, checked as the builder
-// checks a skill) and its state, with the skill's name for the notice.
-func postedMark(w http.ResponseWriter, r *http.Request) (store.MarkIn, string, bool) {
+// checks a skill), or one of the club's own skills to track (club: its id),
+// and its state, with the skill's name for the notice.
+func (p *competitionPages) postedMark(w http.ResponseWriter, r *http.Request, clubID string) (store.MarkIn, string, bool) {
+	state := r.FormValue("state")
+	if state != "" && state != store.Learning && state != store.CanDo {
+		badRequest(w, errors.New("mark it Learning or Can do"))
+		return store.MarkIn{}, "", false
+	}
+	named, other, err := p.clubSkillsOf(r, clubID)
+	if err != nil {
+		failed(w, r, err)
+		return store.MarkIn{}, "", false
+	}
+	if id := r.FormValue("club"); id != "" {
+		for _, c := range other {
+			if c.ID == id {
+				return store.MarkIn{Item: c.Item(), State: state}, c.Name, true
+			}
+		}
+		failed(w, r, store.ErrNotFound)
+		return store.MarkIn{}, "", false
+	}
 	routine, err := parseRoutineJSON("[" + r.FormValue("skill") + "]")
 	if err != nil || len(routine) != 1 {
 		badRequest(w, errors.New("that skill couldn't be read"))
@@ -228,12 +252,46 @@ func postedMark(w http.ResponseWriter, r *http.Request) (store.MarkIn, string, b
 		badRequest(w, err)
 		return store.MarkIn{}, "", false
 	}
-	state := r.FormValue("state")
-	if state != "" && state != store.Learning && state != store.CanDo {
-		badRequest(w, errors.New("mark it Learning or Can do"))
-		return store.MarkIn{}, "", false
+	return store.MarkIn{Skill: string(data), State: state}, namedAs(named, s), true
+}
+
+// clubSkillsOf are a club's own skills: its names for catalog skills, as
+// the skills with the names as their custom names, and the rest, to track.
+func (p *competitionPages) clubSkillsOf(r *http.Request, clubID string) (named []skills.TrampolineSkill, other []store.ClubSkill, err error) {
+	list, err := p.st.ClubSkills(r.Context(), clubID)
+	if err != nil {
+		return nil, nil, err
 	}
-	return store.MarkIn{Skill: string(data), State: state}, skillName(s), true
+	for _, c := range list {
+		if c.Skill == "" {
+			other = append(other, c)
+			continue
+		}
+		var s skills.TrampolineSkill
+		if json.Unmarshal([]byte(c.Skill), &s) == nil {
+			named = append(named, s)
+		}
+	}
+	return named, other, nil
+}
+
+// clubName is the club's name for a skill (found by
+// TrampolineSkill.Equal), "" if it hasn't named it.
+func clubName(named []skills.TrampolineSkill, s skills.TrampolineSkill) string {
+	for _, n := range named {
+		if n.Equal(&s) {
+			return n.CustomName
+		}
+	}
+	return ""
+}
+
+// namedAs is a skill's name at the club: the club's name for it, or its own.
+func namedAs(named []skills.TrampolineSkill, s skills.TrampolineSkill) string {
+	if name := clubName(named, s); name != "" {
+		return name
+	}
+	return skillName(s)
 }
 
 // markFailed reports a mark that couldn't be made.
@@ -278,10 +336,20 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 	if viewer.gymnast {
 		part.Whose = "your"
 	}
-	// A skill's marks, both sides, in the order marks come (newest first).
+	named, other, err := p.clubSkillsOf(r, m.ClubID)
+	if err != nil {
+		return views.SkillsPart{}, err
+	}
+	clubItems := map[string]store.ClubSkill{}
+	for _, c := range other {
+		clubItems[c.Item()] = c
+	}
+	// A skill's marks, both sides, in the order marks come (newest first): a
+	// catalog skill's, or one of the club's own to track.
 	type marked struct {
 		skill skills.TrampolineSkill
 		data  string
+		club  *store.ClubSkill
 		sides map[string]store.Mark
 	}
 	var items []*marked
@@ -289,11 +357,12 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 	for _, k := range marks {
 		it := byItem[k.Item]
 		if it == nil {
-			var s skills.TrampolineSkill
-			if json.Unmarshal([]byte(k.Skill), &s) != nil {
+			it = &marked{data: k.Skill, sides: map[string]store.Mark{}}
+			if c, ok := clubItems[k.Item]; ok {
+				it.club = &c
+			} else if json.Unmarshal([]byte(k.Skill), &it.skill) != nil {
 				continue
 			}
-			it = &marked{skill: s, data: k.Skill, sides: map[string]store.Mark{}}
 			byItem[k.Item] = it
 			items = append(items, it)
 		}
@@ -311,8 +380,14 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 	}
 	// view is a skill as a row: its marks, the viewer's own, and for a coach
 	// the gymnast's to confirm.
-	view := func(s skills.TrampolineSkill, data string, sides map[string]store.Mark) views.MarkView {
+	view := func(s skills.TrampolineSkill, data string, club *store.ClubSkill, sides map[string]store.Mark) views.MarkView {
 		v := views.MarkView{Skill: data, Name: skillName(s), FIG: s.FIGNotation()}
+		switch {
+		case club != nil:
+			v = views.MarkView{Club: club.ID, Name: club.Name, FIG: club.Note}
+		case clubName(named, s) != "":
+			v.Name, v.FIG = clubName(named, s), skillName(s)+" "+s.FIGNotation()
+		}
 		g, hasG := sides[store.SideGymnast]
 		c, hasC := sides[store.SideCoach]
 		v.Gymnast, v.Coach = side(g, hasG), side(c, hasC)
@@ -329,7 +404,7 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 	}
 	can, learning, differ := views.SkillGroup{Title: "Can do"}, views.SkillGroup{Title: "Learning"}, views.SkillGroup{Title: "Marked differently"}
 	for _, it := range items {
-		v := view(it.skill, it.data, it.sides)
+		v := view(it.skill, it.data, it.club, it.sides)
 		if v.Confirm != "" {
 			part.ToConfirm++
 		}
@@ -361,14 +436,35 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 		data, _ := json.Marshal(s)
 		var sides map[string]store.Mark
 		for _, it := range items {
-			if it.skill.Equal(&s) {
+			if it.club == nil && it.skill.Equal(&s) {
 				sides = it.sides
 				break
 			}
 		}
-		v := view(s, string(data), sides)
+		v := view(s, string(data), nil, sides)
 		v.Tariff = fmt.Sprintf("%.1f", s.Tariff)
 		return v
+	}
+	// clubChoice is one of the club's own skills to track, with its marks.
+	clubChoice := func(c store.ClubSkill) views.MarkView {
+		var sides map[string]store.Mark
+		if it := byItem[c.Item()]; it != nil {
+			sides = it.sides
+		}
+		return view(skills.TrampolineSkill{}, "", &c, sides)
+	}
+	ours := views.SkillGroup{Title: "Your club's skills"}
+	for _, s := range named {
+		ours.Skills = append(ours.Skills, choice(s))
+		if q != "" && strings.Contains(strings.ToLower(s.CustomName), strings.ToLower(q)) {
+			part.Results = append(part.Results, choice(s))
+		}
+	}
+	for _, c := range other {
+		ours.Skills = append(ours.Skills, clubChoice(c))
+		if q != "" && strings.Contains(strings.ToLower(c.Name), strings.ToLower(q)) {
+			part.Results = append(part.Results, clubChoice(c))
+		}
 	}
 	for _, res := range catalog.Search(q) {
 		part.Results = append(part.Results, choice(res.Skill))
@@ -389,6 +485,9 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 				part.Routines = append(part.Routines, choice(s))
 			}
 		}
+	}
+	if len(ours.Skills) > 0 {
+		part.Browse = append(part.Browse, ours)
 	}
 	for _, c := range catalog.Categories() {
 		g := views.SkillGroup{Title: c.Label}
@@ -411,4 +510,90 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 		part.Browse = append(part.Browse, g)
 	}
 	return part, nil
+}
+
+// clubSkillsPath is the coaches' page for the club's own skills.
+func clubSkillsPath(token string) string { return coachPath(token) + "/club-skills" }
+
+// clubSkillsPage is the coaches' page for the club's own skills, with a
+// search of the catalog for a skill to name (q).
+func (p *competitionPages) clubSkillsPage(w http.ResponseWriter, r *http.Request) {
+	coach, club, ok := p.coach(w, r)
+	if !ok {
+		return
+	}
+	list, err := p.st.ClubSkills(r.Context(), coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	token, q := r.PathValue("token"), r.URL.Query().Get("q")
+	page := views.ClubSkillsPage{Frame: coachFrame(r, coach, club, coachClubSkillsTab), Action: clubSkillsPath(token), Search: clubSkillsPath(token), Query: q, Max: store.MaxClubSkills}
+	var named []skills.TrampolineSkill
+	for _, c := range list {
+		v := views.ClubSkillView{Name: c.Name, What: "To track", Note: c.Note, By: c.ByName, Remove: clubSkillsPath(token) + "/" + c.ID + "/remove"}
+		var s skills.TrampolineSkill
+		if c.Skill != "" && json.Unmarshal([]byte(c.Skill), &s) == nil {
+			v.What = skillName(s) + " " + s.FIGNotation()
+			named = append(named, s)
+		}
+		page.Skills = append(page.Skills, v)
+	}
+	for _, res := range catalog.Search(q) {
+		s := res.Skill
+		data, _ := json.Marshal(s)
+		page.Results = append(page.Results, views.CatalogChoice{Skill: string(data), Name: skillName(s), FIG: s.FIGNotation(), ClubName: clubName(named, s)})
+	}
+	render(w, r, views.CoachClubSkills(page))
+}
+
+// addClubSkill is a coach adding one of the club's own skills: a name for a
+// catalog skill (skill: its JSON), or something else to track (name, note).
+func (p *competitionPages) addClubSkill(w http.ResponseWriter, r *http.Request) {
+	coach, _, ok := p.coach(w, r)
+	if !ok {
+		return
+	}
+	skill := ""
+	if raw := r.FormValue("skill"); raw != "" {
+		routine, err := parseRoutineJSON("[" + raw + "]")
+		if err != nil || len(routine) != 1 {
+			badRequest(w, errors.New("that skill couldn't be read"))
+			return
+		}
+		routine[0].Name = skills.FindCommonSkillName(routine[0])
+		data, err := json.Marshal(routine[0])
+		if err != nil {
+			badRequest(w, err)
+			return
+		}
+		skill = string(data)
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	notice := "Added " + name + "."
+	switch err := p.st.AddClubSkill(r.Context(), coach, name, r.FormValue("note"), skill); {
+	case errors.Is(err, store.ErrSameName):
+		notice = "The club already has a skill called " + name + ": choose another name."
+	case errors.Is(err, store.ErrLimit):
+		notice = fmt.Sprintf("The club has %d skills of its own, the most there's room for: remove one first.", store.MaxClubSkills)
+	case err != nil && name == "":
+		notice = "A club skill needs a name."
+	case err != nil:
+		failed(w, r, err)
+		return
+	}
+	seeOther(w, r, clubSkillsPath(r.PathValue("token")), notice)
+}
+
+// removeClubSkill is a coach removing one of the club's own skills.
+func (p *competitionPages) removeClubSkill(w http.ResponseWriter, r *http.Request) {
+	coach, _, ok := p.coach(w, r)
+	if !ok {
+		return
+	}
+	if err := p.st.RemoveClubSkill(r.Context(), coach, r.PathValue("id")); err != nil {
+		failed(w, r, err)
+		return
+	}
+	seeOther(w, r, clubSkillsPath(r.PathValue("token")), "Removed.")
 }
