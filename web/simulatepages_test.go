@@ -16,7 +16,7 @@ func TestSimulation(t *testing.T) {
 	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}, "judge-tumbling": {"1"}})
 	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Rory"}, "recorder": {"1"}})
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	eve := redirected(t, h, enter, url.Values{"gymnast": {"Eve"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	eve := redirected(t, h, enter, bucsEntry("Eve"))
 	redirected(t, h, enter, url.Values{"gymnast": {"Eve"}, "discipline": {"tumbling"}, "level": {"Novice"}, "as": {eve}})
 	tt := admin + "/timetable"
 	sim := tt + "/simulate"

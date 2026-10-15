@@ -1,26 +1,20 @@
 package web
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
-
-	"tariffCalculator/store"
 )
 
-// competitionServer is the app with storage in a fresh directory.
+// competitionServer is the app with storage in a fresh directory, on the
+// real clock.
 func competitionServer(t *testing.T) http.Handler {
 	t.Helper()
-	st, err := store.Open(context.Background(), t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { st.Close() })
-	return routesWith(st)
+	return newTestServer(t).h
 }
 
 func do(t *testing.T, h http.Handler, method, path string, form url.Values) *httptest.ResponseRecorder {
@@ -194,8 +188,8 @@ func TestIndividualEntry(t *testing.T) {
 
 	// The organiser sees it, checked, with its problems.
 	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
-	if !strings.Contains(dash, "C. Ryan") || !strings.Contains(dash, "individual") || !strings.Contains(dash, "+") {
-		t.Errorf("the dashboard lists the entry with its problems")
+	if row := rowOf(t, dash, "C. Ryan"); !slices.Contains(row, "individual") || !slices.Contains(row, "Second exercise: Exactly 10 elements +1 more") {
+		t.Errorf("the dashboard lists the entry as an individual's, with its problems: %q", row)
 	}
 	if problems := do(t, h, http.MethodGet, admin+"?problems=1", nil).Body.String(); !strings.Contains(problems, "C. Ryan") {
 		t.Error("a two-skill voluntary has problems, so it's listed under problems only")

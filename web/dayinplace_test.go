@@ -1,14 +1,12 @@
 package web
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/chromedp/chromedp"
 )
@@ -117,7 +115,7 @@ func TestDayPageKeepsPlace(t *testing.T) {
 	if m == nil {
 		t.Fatalf("a scratched official is warned about: %s", page)
 	}
-	clear := url.Values{"person": {html2text(m[1])}, "kind": {"officiating"}, "day": {"0"}}
+	clear := url.Values{"person": {unescape(m[1])}, "kind": {"officiating"}, "day": {"0"}}
 	if to := redirected(t, h, admin+"/day/clear", clear); !strings.HasPrefix(to, day) || !strings.HasSuffix(to, "#day-warnings") {
 		t.Errorf("back to the warnings: %s", to)
 	}
@@ -144,22 +142,26 @@ func TestDayPageUpdatesInPlace(t *testing.T) {
 	var scrolled, scrolledAfter float64
 	var open, sameDoc, added bool
 	var notice string
-	if err := chromedp.Run(ctx,
+	step(t, ctx, "opening the day page",
 		chromedp.Navigate(srv.URL+admin+"/day?day=0"),
 		chromedp.WaitVisible(`#day-areas`, chromedp.ByQuery),
 		// Make the page tall, so there is somewhere to scroll to, and mark it
 		// so a reload would be noticed.
 		chromedp.Evaluate(`document.getElementById('day-notice').insertAdjacentHTML('beforebegin', '<div style="height:1500px"></div>'); window.sameDocument = true`, nil),
+	)
+	step(t, ctx, "opening the check-in list and scrolling to Here",
 		chromedp.Click(checkin+` summary`, chromedp.ByQuery),
 		chromedp.Evaluate(`document.querySelector('`+here+`').scrollIntoView({block: 'center'}); window.scrollY`, &scrolled),
+	)
+	step(t, ctx, "tapping Here and waiting for its tag",
 		chromedp.Click(here, chromedp.ByQuery),
 		chromedp.WaitVisible(checkin+` .tag.is-success`, chromedp.ByQuery),
+	)
+	step(t, ctx, "reading the page after the tap",
 		chromedp.Evaluate(`window.scrollY`, &scrolledAfter),
 		chromedp.Evaluate(`document.querySelector('`+checkin+`').open`, &open),
 		chromedp.Evaluate(`window.sameDocument === true`, &sameDoc),
-	); err != nil {
-		t.Fatal(err)
-	}
+	)
 	if !open {
 		t.Error("the check-in list stays open")
 	}
@@ -175,7 +177,7 @@ func TestDayPageUpdatesInPlace(t *testing.T) {
 
 	// Doing the same thing again from the old button says someone has done it:
 	// the page's notice shows it, and the list is still open.
-	if err := chromedp.Run(ctx,
+	step(t, ctx, "putting back a stale Here button",
 		// Put back a Here button for a gymnast who is already here, as a
 		// stale page would have it.
 		chromedp.Evaluate(`(() => {
@@ -184,14 +186,16 @@ func TestDayPageUpdatesInPlace(t *testing.T) {
 			return true;
 		})()`, &added),
 		chromedp.Evaluate(`document.querySelector('`+checkin+`').getBoundingClientRect().top`, &scrolled),
+	)
+	step(t, ctx, "tapping the stale button and waiting for the notice",
 		chromedp.Click(`#stale`, chromedp.ByQuery),
 		chromedp.WaitVisible(`#day-notice .notification`, chromedp.ByQuery),
+	)
+	step(t, ctx, "reading the notice",
 		chromedp.Evaluate(`document.querySelector('`+checkin+`').getBoundingClientRect().top`, &scrolledAfter),
 		chromedp.Text(`#day-notice`, &notice, chromedp.ByQuery),
 		chromedp.Evaluate(`document.querySelector('`+checkin+`').open && window.sameDocument === true`, &open),
-	); err != nil {
-		t.Fatal(err)
-	}
+	)
 	if !strings.Contains(notice, "Someone has already done that for") {
 		t.Errorf("the notice: %q", notice)
 	}
@@ -203,15 +207,11 @@ func TestDayPageUpdatesInPlace(t *testing.T) {
 	}
 
 	// A reload keeps the list open for this tab.
-	wait, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	if err := chromedp.Run(wait,
+	step(t, ctx, "reloading the day page",
 		chromedp.Reload(),
 		chromedp.WaitVisible(`#day-areas`, chromedp.ByQuery),
 		chromedp.Evaluate(`document.querySelector('`+checkin+`').open`, &open),
-	); err != nil {
-		t.Fatal(err)
-	}
+	)
 	if !open {
 		t.Error("a reload keeps the list open")
 	}

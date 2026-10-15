@@ -30,22 +30,15 @@ func (m *fakeMailer) send(to, subject, body string, headers map[string]string) e
 // notifyServer is the competition pages with email on, to a fake mailer.
 func notifyServer(t *testing.T) (http.Handler, *competitionPages, *fakeMailer) {
 	t.Helper()
-	st, err := store.Open(context.Background(), t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { st.Close() })
-	p := newCompetitionPages(st)
-	mail := &fakeMailer{}
-	p.notify.mail, p.notify.base = mail, "https://tariff.example"
-	return routesWithPages(p), p, mail
+	s := newTestServer(t, withMail())
+	return s.h, s.p, s.mail
 }
 
 func TestNotifications(t *testing.T) {
 	h, p, mail := notifyServer(t)
 	admin := created(t, h, newCompetition())
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Ann Ryan"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	own := withoutQuery(redirected(t, h, enter, bucsEntry("Ann Ryan")))
 	if !strings.Contains(do(t, h, http.MethodGet, own, nil).Body.String(), own+"/notify") {
 		t.Fatal("the entry links to hearing about changes")
 	}
@@ -137,7 +130,7 @@ func TestNotificationsWithoutEmail(t *testing.T) {
 	h := competitionServer(t) // no email configured
 	admin := created(t, h, newCompetition())
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Ann Ryan"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	own := withoutQuery(redirected(t, h, enter, bucsEntry("Ann Ryan")))
 	if !strings.Contains(do(t, h, http.MethodGet, own, nil).Body.String(), own+"/notify") {
 		t.Fatal("push needs nothing set up, so the link is there")
 	}
@@ -155,7 +148,7 @@ func TestNotifyingAClub(t *testing.T) {
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("")
 	var ann string
 	for _, name := range []string{"Ann", "Bea"} {
 		m := withoutQuery(redirected(t, h, join, url.Values{"name": {name}}))

@@ -15,7 +15,7 @@ func checkinEntry(t *testing.T, page, name string) string {
 	if m == nil {
 		t.Fatalf("no check-in row for %s: %s", name, page)
 	}
-	return html2text(m[1])
+	return unescape(m[1])
 }
 
 func TestCheckinAndScratches(t *testing.T) {
@@ -24,7 +24,7 @@ func TestCheckinAndScratches(t *testing.T) {
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	own := map[string]string{}
 	for _, name := range []string{"Ann", "Bea", "Cal"} {
-		own[name] = withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {name}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+		own[name] = withoutQuery(redirected(t, h, enter, bucsEntry(name)))
 	}
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
@@ -117,7 +117,7 @@ func TestCheckinAndScratches(t *testing.T) {
 	// Who can: chairs and the timetable link, not the cards link.
 	chair := madeLink(t, h, admin, "Chris", "chair")
 	mark(chair, checkinEntry(t, page, "Cal"), "here")
-	if history := do(t, h, http.MethodGet, admin+"/history", nil).Body.String(); !strings.Contains(history, "Checked in: Cal") || !strings.Contains(history, "Chris") {
+	if !historyHas(t, h, admin, "Chris", "Checked in: Cal") {
 		t.Error("the history says the chair checked Cal in")
 	}
 	if page := do(t, h, http.MethodGet, chair+"/day?day=0", nil).Body.String(); !strings.Contains(page, "Check-in · 2 of 3 here, 1 scratched</summary>") {
@@ -158,7 +158,7 @@ func scratchSetupOn(t *testing.T, h http.Handler, timings url.Values) (admin, tt
 	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "judge-tumbling": {"1"}, "chair-tumbling": {"1"}})
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	redirected(t, h, enter, url.Values{"gymnast": {"Eve"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	redirected(t, h, enter, bucsEntry("Eve"))
 	// Dara competes in tumbling and judges trampoline: tumbling goes first
 	// (as in TestOfficialsRota, where she is seated as an execution judge).
 	dara = withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "discipline": {"tumbling"}, "level": {"Novice"}}))
@@ -199,7 +199,7 @@ func TestScratchedOfficial(t *testing.T) {
 	if leave == nil {
 		t.Fatalf("a link to the what-if tool: %s", page)
 	}
-	if to := html2text(leave[1]); !strings.HasPrefix(to, tt+"/leave?") || !strings.Contains(to, "person=i%3A") || !strings.Contains(to, "day=0") {
+	if to := unescape(leave[1]); !strings.HasPrefix(to, tt+"/leave?") || !strings.Contains(to, "person=i%3A") || !strings.Contains(to, "day=0") {
 		t.Errorf("the link is for Dara on that day: %s", to)
 	} else if rec := do(t, h, http.MethodGet, to, nil); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Dara") {
 		t.Errorf("the what-if page opens for her: %d", rec.Code)
@@ -225,7 +225,7 @@ func checkinEntryIn(t *testing.T, page, flight, name string) string {
 	if m == nil {
 		t.Fatalf("no check-in row for %s in %s: %s", name, flight, page)
 	}
-	return html2text(m[1])
+	return unescape(m[1])
 }
 
 // A scratched person's warnings, for officiating and for competing, can be
@@ -259,7 +259,7 @@ func TestScratchClearing(t *testing.T) {
 		t.Errorf("already cleared: %s", to)
 	}
 	history := get(admin + "/history")
-	if !strings.Contains(history, "Cleared Dara&#39;s scratch warning (officiating)") || strings.Count(history, "Cleared Dara") != 1 || !strings.Contains(history, "Chris") {
+	if !historyHas(t, h, admin, "Chris", "Cleared Dara's scratch warning (officiating)") || strings.Count(history, "Cleared Dara") != 1 {
 		t.Errorf("the history says the chair cleared it, once: %s", history)
 	}
 

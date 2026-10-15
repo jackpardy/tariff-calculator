@@ -3,7 +3,7 @@ package web
 import (
 	"net/http"
 	"net/url"
-	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -90,50 +90,135 @@ func TestNowOn(t *testing.T) {
 	}
 }
 
+// screenEmpty is what the venue screen says when it has no areas to show,
+// "" when it has some.
+func screenEmpty(t *testing.T, body string) string {
+	t.Helper()
+	return textOf(firstByClass(parsePage(t, body), "screen-empty"))
+}
+
+// The venue screen through a competition day, on a fixed clock: before it,
+// the morning's planned flights, flights started on time and late, finished
+// early, finished for the day; areas chosen with ?area=; and who may open it.
 func TestVenueScreen(t *testing.T) {
-	h := competitionServer(t)
-	// Today's competition, so flights marked now count for its first day.
+	h, clock := competitionServerAt(t, dayBefore)
 	form := newCompetition()
-	today := time.Now().In(local)
-	if today.Hour() == 23 && today.Minute() >= 50 {
-		t.Skip("too close to midnight for a competition today")
-	}
-	form.Set("date", today.Format("2006-01-02"))
-	form.Set("deadlineDate", today.Format("2006-01-02"))
-	form.Set("deadlineTime", "23:59")
+	form.Set("tumbling", "Novice")
 	admin := created(t, h, form)
 	screen := madeLink(t, h, admin, "Main hall screen", "screen")
-	if rec := do(t, h, http.MethodGet, screen+"/screen", nil); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "The timetable isn&#39;t published yet") && !strings.Contains(rec.Body.String(), "The timetable isn't published yet") {
-		t.Errorf("nothing to show before publishing: %d %s", rec.Code, rec.Body.String())
+	show := func(query string) string {
+		t.Helper()
+		page := do(t, h, http.MethodGet, screen+"/screen"+query, nil)
+		if page.Code != http.StatusOK {
+			t.Fatalf("the screen%s: %d", query, page.Code)
+		}
+		return page.Body.String()
+	}
+	cards := func() map[string]screenCard {
+		t.Helper()
+		return screenCards(t, show("?day=0"))
+	}
+	if got := screenEmpty(t, show("")); got != "The timetable isn't published yet" {
+		t.Errorf("nothing to show before publishing: %q", got)
 	}
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	for _, name := range []string{"Ann", "Bea", "Cal"} {
-		redirected(t, h, enter, url.Values{"gymnast": {name}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	for _, name := range []string{"Tara", "Tom"} {
+		redirected(t, h, enter, url.Values{"gymnast": {name}, "discipline": {"tumbling"}, "level": {"Novice"}})
 	}
-	redirected(t, h, admin+"/timetable/plan", url.Values{})
-	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
-
-	day := do(t, h, http.MethodGet, admin+"/day?day=0", nil).Body.String()
-	areas := regexp.MustCompile(`<h2 class="title is-5 mb-1">([^<]+)</h2>`).FindAllStringSubmatch(day, -1)
-	if len(areas) == 0 {
-		t.Fatalf("no areas on the day page: %s", day)
-	}
-	if !strings.Contains(day, `href="`+admin+`/screen?day=0"`) || !strings.Contains(day, "Venue screen") {
+	// BUCS L3 on Panel 1 at 09:00–09:25; Tumbling Novice on Track 1,
+	// 09:00–09:14.
+	publishedWith(t, h, admin, "Ann", "Bea", "Cal")
+	day := admin + "/day?day=0"
+	if page := do(t, h, http.MethodGet, day, nil).Body.String(); !strings.Contains(page, `href="`+admin+`/screen?day=0"`) || !strings.Contains(page, "Venue screen") {
 		t.Error("the organiser's On the day page links to the venue screen")
+	}
+	page := do(t, h, http.MethodGet, day, nil).Body.String()
+	areas := dayPageAreas(t, page)
+	if len(areas["Panel 1"].Flights) != 1 || len(areas["Track 1"].Flights) != 1 {
+		t.Fatalf("a flight on each area: %+v", areas)
+	}
+	panel, track := areas["Panel 1"].Flights[0].Key, areas["Track 1"].Flights[0].Key
+	markAt := func(flight, what string, hour, minute int) {
+		t.Helper()
+		clock.set(onTheDay(hour, minute))
+		redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {what}, "day": {"0"}})
+	}
+
+	// Before the day: nothing on, each area's flight next, and a start
+	// tried out on the day page doesn't count.
+	redirected(t, h, admin+"/day/flight", url.Values{"flight": {panel}, "what": {"start"}, "day": {"0"}})
+	got := cards()
+	for area, next := range map[string]string{"Panel 1": "BUCS L3", "Track 1": "Tumbling Novice"} {
+		if c := got[area]; c.Now != "—" || c.Next != next || c.WarmUp != "09:00" || c.Late != "" || c.Finished {
+			t.Errorf("before the day, %s: %+v", area, c)
+		}
+	}
+	redirected(t, h, admin+"/day/flight", url.Values{"flight": {panel}, "what": {"undo-start"}, "day": {"0"}})
+
+	// The morning, nothing marked: on by the plan.
+	clock.set(onTheDay(9, 5))
+	got = cards()
+	if c := got["Panel 1"]; c.Now != "BUCS L3" || !c.Planned || c.NowTimes != "09:00–09:25" || !slices.Equal(c.Gymnasts, []string{"Cal", "Bea", "Ann"}) || c.Next != "—" || c.Late != "" {
+		t.Errorf("Panel 1 at 09:05, by the plan: %+v", c)
+	}
+	if c := got["Track 1"]; c.Now != "Tumbling Novice" || !c.Planned || !slices.Equal(c.Gymnasts, []string{"Tara", "Tom"}) {
+		t.Errorf("Track 1 at 09:05, by the plan: %+v", c)
+	}
+
+	// Track 1 starts on time; Panel 1 ten minutes late.
+	markAt(track, "start", 9, 0)
+	markAt(panel, "start", 9, 10)
+	got = cards()
+	if c := got["Track 1"]; c.Now != "Tumbling Novice" || c.Planned || c.Late != "On time" || c.Behind {
+		t.Errorf("Track 1 started on time: %+v", c)
+	}
+	if c := got["Panel 1"]; c.Now != "BUCS L3" || c.Planned || c.Late != "Running 10 min late" || !c.Behind {
+		t.Errorf("Panel 1 started late: %+v", c)
+	}
+
+	// Track 1 finishes: a strip, while Panel 1 keeps its card.
+	markAt(track, "finish", 9, 14)
+	clock.set(onTheDay(9, 15))
+	got = cards()
+	if c := got["Track 1"]; c.Strip != "Finished for the day" {
+		t.Errorf("Track 1 is a strip once it's done: %+v", c)
+	}
+	if c := got["Panel 1"]; c.Now != "BUCS L3" || c.Strip != "" {
+		t.Errorf("Panel 1 keeps its card: %+v", c)
+	}
+
+	// Only the areas asked for.
+	if got := screenCards(t, show("?day=0&area=Panel+1")); len(got) != 1 || got["Panel 1"].Now != "BUCS L3" {
+		t.Errorf("?area=Panel 1 shows only Panel 1: %+v", got)
+	}
+	if got := screenCards(t, show("?day=0&area=Panel+1&area=Track+1")); len(got) != 2 {
+		t.Errorf("both areas asked for: %+v", got)
+	}
+	if body := show("?day=0&area=Nowhere"); screenEmpty(t, body) != "No flights on this day" {
+		t.Errorf("an area that isn't one: %q", screenEmpty(t, body))
+	}
+
+	// Scratched gymnasts are struck through.
+	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {checkinEntry(t, page, "Bea")}, "status": {"scratched"}, "day": {"0"}})
+	if c := cards()["Panel 1"]; !slices.Equal(c.Scratched, []string{"Bea"}) || len(c.Gymnasts) != 3 {
+		t.Errorf("Bea is struck through, and still listed: %+v", c)
+	}
+
+	// Panel 1 finishes early, at 09:20 for 09:25; the evening, nothing left.
+	markAt(panel, "finish", 9, 20)
+	if c := cards()["Panel 1"]; c.Late != "5 min early" || c.Behind || c.Now != "—" || !c.Finished {
+		t.Errorf("Panel 1 finished early: %+v", c)
+	}
+	clock.set(onTheDay(19, 0))
+	for area, c := range cards() {
+		if !c.Finished || c.Now != "—" {
+			t.Errorf("the evening, %s: %+v", area, c)
+		}
 	}
 
 	// A screen link shows the screen, and nothing else.
-	page := do(t, h, http.MethodGet, screen+"/screen?day=0", nil)
-	if page.Code != http.StatusOK {
-		t.Fatalf("the screen: %d", page.Code)
-	}
-	body := page.Body.String()
-	for _, a := range areas {
-		if !strings.Contains(body, ">"+a[1]+"<") {
-			t.Errorf("the screen has a card for %s", a[1])
-		}
-	}
-	for _, want := range []string{`class="screen-part screen-next"`, ">Now<", `<meta http-equiv="refresh" content="30">`, `<meta name="robots" content="noindex">`} {
+	body := show("?day=0")
+	for _, want := range []string{`<meta http-equiv="refresh" content="30">`, `<meta name="robots" content="noindex">`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the screen has %q", want)
 		}
@@ -151,8 +236,8 @@ func TestVenueScreen(t *testing.T) {
 			t.Errorf("a screen link can't POST %q: %d", path, rec.Code)
 		}
 	}
-	if rec := do(t, h, http.MethodGet, screen+"/screen?day=99", nil); rec.Code != http.StatusOK {
-		t.Errorf("a day that isn't one shows the default: %d", rec.Code)
+	if got := screenCards(t, show("?day=99")); len(got) != 2 {
+		t.Errorf("a day that isn't one shows the default: %+v", got)
 	}
 
 	// Others can open it too, except the cards link.
@@ -165,38 +250,14 @@ func TestVenueScreen(t *testing.T) {
 			t.Errorf("a %s link's On the day page offers the screen", kind)
 		}
 	}
-	cards := madeLink(t, h, admin, "Cards", "cards")
-	if rec := do(t, h, http.MethodGet, cards+"/screen", nil); rec.Code != http.StatusForbidden {
+	cardsLink := madeLink(t, h, admin, "Cards", "cards")
+	if rec := do(t, h, http.MethodGet, cardsLink+"/screen", nil); rec.Code != http.StatusForbidden {
 		t.Errorf("a cards link can't open the screen: %d", rec.Code)
 	}
 	if rec := do(t, h, http.MethodGet, "/competitions/admin/nonsense/screen", nil); rec.Code != http.StatusNotFound {
 		t.Errorf("no such link: %d", rec.Code)
 	}
-	if page := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(); !strings.Contains(page, "Venue screen") {
+	if page := do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(); !strings.Contains(page, `value="screen"`) {
 		t.Error("the organiser can choose the kind of link")
-	}
-
-	// Marking the first flight started puts it under Now, with its gymnasts.
-	key := regexp.MustCompile(`name="flight" value="([^"]+)"`).FindStringSubmatch(day)
-	entry := regexp.MustCompile(`name="entry" value="([^"]+)"`).FindStringSubmatch(day)
-	if key == nil || entry == nil {
-		t.Fatal("no flight to mark")
-	}
-	redirected(t, h, admin+"/day/flight", url.Values{"flight": {html2text(key[1])}, "what": {"start"}, "day": {"0"}})
-	body = do(t, h, http.MethodGet, screen+"/screen?day=0", nil).Body.String()
-	if !regexp.MustCompile(`Now</p>\s*<p class="screen-flight">\s*BUCS L3`).MatchString(body) || strings.Contains(body, "not started yet") {
-		t.Errorf("the started flight is on now: %s", body)
-	}
-	for _, name := range []string{"Ann", "Bea", "Cal"} {
-		if !regexp.MustCompile(`>\s*` + name + `\s*<`).MatchString(body) {
-			t.Errorf("the flight's gymnasts are named: %s", name)
-		}
-	}
-	if strings.Contains(body, "comp-scratched") {
-		t.Error("nobody is scratched yet")
-	}
-	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {html2text(entry[1])}, "status": {"scratched"}, "day": {"0"}})
-	if body = do(t, h, http.MethodGet, screen+"/screen?day=0", nil).Body.String(); !strings.Contains(body, `class="comp-scratched"`) {
-		t.Errorf("a scratched gymnast is struck through: %s", body)
 	}
 }

@@ -11,19 +11,6 @@ import (
 	"tariffCalculator/store"
 )
 
-// aClubEntered is a club entered in a new competition, with the comp sec's
-// path, one member (who has joined, not entered) and their path.
-func aClubEntered(t *testing.T, h http.Handler) (admin, club, member string) {
-	t.Helper()
-	admin = created(t, h, newCompetition())
-	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
-	club = withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
-	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
-	member = withoutQuery(redirected(t, h, join, url.Values{"name": {"A. Murphy"}}))
-	return admin, club, member
-}
-
 // currentTab is the label of the menu's current section in a page.
 func currentTab(t *testing.T, page string) string {
 	t.Helper()
@@ -38,7 +25,9 @@ func currentTab(t *testing.T, page string) string {
 // it, and what each section's forms do brings them back to that section.
 func TestClubSections(t *testing.T) {
 	h := competitionServer(t)
-	admin, club, member := aClubEntered(t, h)
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	club, member := ucd.page, ucd.members["A. Murphy"]
 	_ = admin
 
 	// Competitions is the default: the competitions, and not the other parts.
@@ -143,8 +132,10 @@ func TestClubSections(t *testing.T) {
 // them goes back to Competitions.
 func TestClubCompetitionsSectionPages(t *testing.T) {
 	h := competitionServer(t)
-	_, club, member := aClubEntered(t, h)
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	club, member := ucd.page, ucd.members["A. Murphy"]
+	entry := bucsEntry("")
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, member), member+"/competitions/"), entry)
 
 	page := do(t, h, http.MethodGet, club, nil).Body.String()
@@ -184,7 +175,9 @@ func TestNewClubPage(t *testing.T) {
 // details; and a competition has a page of its own.
 func TestMemberTabs(t *testing.T) {
 	h := competitionServer(t)
-	_, club, member := aClubEntered(t, h)
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	club, member := ucd.page, ucd.members["A. Murphy"]
 	do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}})
 
 	// The default page lists the competitions, and saves their link.
@@ -283,7 +276,9 @@ func TestMemberTabs(t *testing.T) {
 // pages of the member's competition.
 func TestMemberCompetitionPageNotFound(t *testing.T) {
 	h := competitionServer(t)
-	_, _, member := aClubEntered(t, h)
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	_, member := ucd.page, ucd.members["A. Murphy"]
 	want := do(t, h, http.MethodGet, member+"/competitions/nope/day", nil)
 	got := do(t, h, http.MethodGet, member+"/competitions/nope", nil)
 	if got.Code != http.StatusNotFound || got.Code != want.Code || !strings.Contains(got.Body.String(), "Link not found") {
