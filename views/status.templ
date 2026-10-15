@@ -1,0 +1,79 @@
+package views
+
+// One palette for states and roles (the cleanup audit's "Colour and
+// status", 2026-10-16): every page shows what state something is in, and who
+// did it, with these two chips and nothing else, so a colour means the same
+// thing everywhere. A chip always carries words, so it reads without colour:
+// a state chip a mark and a label, a role chip the role's name. The colours
+// are tokens in static/css/styles.css (--state-*, --role-*), checked for
+// contrast by static/contrast_test.go; how to choose a state is in
+// knowledge/architecture/rendering.md.
+
+// State is how far along something is, for a state chip.
+type State string
+
+// The states, each with one colour and one meaning on every page.
+const (
+	NotYet     State = "not-yet"     // not started, not yet: Not checked in, Saved not sent, On the waiting list
+	InProgress State = "in-progress" // under way, or waiting on someone: Sent, Waiting for sign-off, Learning
+	Done       State = "done"        // finished, fine: Checked, Signed off, Here, Paid, Can do
+	Attention  State = "attention"   // someone should look: Has problems, Changed since sent, Waiting for you
+	Stopped    State = "stopped"     // out, ended or refused: Withdrawn, Removed, Scratched, Missing, Not approved
+)
+
+// mark is a state's shape, so states differ without colour too.
+func (s State) mark() string {
+	switch s {
+	case InProgress:
+		return "◐"
+	case Done:
+		return "✓"
+	case Attention:
+		return "!"
+	case Stopped:
+		return "✕"
+	}
+	return "○"
+}
+
+// Role is who did something, or whose something is, for a role chip.
+type Role string
+
+// The roles, each with its own colour, kept apart from the states' colours.
+const (
+	RoleGymnast   Role = "gymnast"   // a gymnast or member, entering through their club or on their own
+	RoleCoach     Role = "coach"     // a club's coach, or the coach an individual names
+	RoleClub      Role = "club"      // the club, as its comp sec
+	RoleOrganiser Role = "organiser" // the organiser, or a helper's link
+)
+
+// word is a role's name on its chip.
+func (r Role) word() string {
+	switch r {
+	case RoleCoach:
+		return "Coach"
+	case RoleClub:
+		return "Club"
+	case RoleOrganiser:
+		return "Organiser"
+	}
+	return "Gymnast"
+}
+
+// StateChip shows what state something is in: a filled chip in the state's
+// colour, with its mark and a short label ("Checked", "Changed since sent").
+templ StateChip(s State, label string) {
+	<span class={ "chip", "chip-state-" + string(s) }><span class="chip-mark" aria-hidden="true">{ s.mark() }</span>{ label }</span>
+}
+
+// WhoChip shows who did something, or whose it is: an outlined chip in the
+// role's colour with the role's name, and the person's or club's name if
+// given ("Coach · Declan Ward").
+templ WhoChip(r Role, name string) {
+	<span class={ "chip", "chip-who", "chip-who-" + string(r) }>
+		<span class="chip-role">{ r.word() }</span>
+		if name != "" {
+			<span class="chip-name">· { name }</span>
+		}
+	</span>
+}
