@@ -147,33 +147,32 @@ in Levels mode for whoever receives it.
 The app has ISTO's, BUCS's, FIG's and British Gymnastics' levels built in, but
 not every competition's. You can add your own, or change a built-in one.
 
-1. Tap **Manage requirements** (under Check against). The requirements page
-   opens in a new tab.
-2. Under **Your requirements**, tap **+ New**. Or find a similar built-in one
-   and tap **Duplicate** to start from it.
-3. Give it a **Name**, and optionally a description and source (e.g. "Club
-   championships 2027").
-4. **Add a rule** for each requirement. The kinds of rule are:
-   - special requirements that must each be met by a different skill;
-   - "one of these" (e.g. a ¾ somersault followed by a 1¼, *or* a full with a
-     full twist);
-   - how many skills of a kind (at least, at most, or none);
-   - linked skills, one straight after another (e.g. no linked somersaults);
-   - every skill of a kind;
-   - no repeats;
-   - number of skills;
-   - difficulty range or cap;
-   - a skill at a given position.
+You write them beside your routine, which is checked against them as you go:
 
-   Describe the skills by somersault (in quarters), twist (in half twists),
-   direction, shape, take-off and landing, tariff, or exact FIG notation. Leave
-   a field empty to allow anything. Add your own **Wording** so the rule reads
-   the way your handbook says it.
-5. Fix anything listed under **Fix before saving**, then tap **Save**. If the
-   editor says **These can't all be met**, some rules contradict each other or
-   ask for something no routine can do (say, at least 12 elements, or a double
-   back that another rule bans). It catches the obvious cases, not every one.
-   You can still save, but no routine will pass until you change them.
+1. Under **Check against**, tap the button and then **+ Write your own
+   requirements** at the bottom of the list. Or choose a built-in level and
+   tap **Copy and change** to start from it, or choose one of yours and tap
+   **Change**.
+2. Give it a **Name**, and optionally a description and source (e.g. "Club
+   championships 2027").
+3. **Add a rule** for each requirement: Must include, Must not include, How
+   many of a kind, This then this (skills in a row), Linked pairs of a kind,
+   No repeats, Number of skills, Difficulty between, A skill at a position,
+   Every skill must be, or Special requirements (each met by a different
+   skill). Pick the skill or kind of skill (any single somersault, a
+   barani…) from the list, or describe it by somersault, twist, direction
+   and shape. Add your own **Wording** so the rule reads the way your
+   handbook says it.
+4. Each rule says **Met** or **Not met** for the routine on screen, and the
+   routine below is checked against them as they are.
+5. Fix anything listed under **Fix before saving**, then tap **Save and
+   check against these**. If the editor says **These can't all be met**,
+   some rules contradict each other or ask for something no routine can do
+   (say, at least 12 elements, or a double back that another rule bans). It
+   catches the obvious cases, not every one.
+
+**Manage requirements** (beside Check against) opens the requirements page,
+where you can do the same, and also export, import, delete and make levels.
 
 Your requirements now appear under **Check against → Yours**.
 

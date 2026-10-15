@@ -582,8 +582,9 @@ func handleRequirementsPage(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.RequirementsPage(requirements.BuiltinGroups()))
 }
 
-// handleSetEditor renders the requirement set editor, either for a set posted
-// as JSON in "set" (opening, duplicating or importing one) or for the editor's
+// handleSetEditor renders the requirement set editor, either for a copy of a
+// built-in set ("copy", its reference), a set posted as JSON in "set"
+// (opening, duplicating or importing one), or for the editor's
 // own form after applying any button action or "Add a rule" choice. The set is
 // validated each time and its problems listed; a valid set is also checked for
 // rules that can't be met (which doesn't stop it being saved).
@@ -594,7 +595,16 @@ func handleSetEditor(w http.ResponseWriter, r *http.Request) {
 	}
 	var set requirements.Set
 	var problems []string
-	if raw := r.FormValue("set"); raw != "" {
+	if ref := r.FormValue("copy"); ref != "" {
+		// A built-in set to start from, copied (the builder's Copy and change).
+		builtin, ok := requirements.LookupBuiltin(ref)
+		if !ok {
+			badRequest(w, fmt.Errorf("no built-in requirements %q", ref))
+			return
+		}
+		set = builtin
+		set.Name = builtin.Name + " (copy)"
+	} else if raw := r.FormValue("set"); raw != "" {
 		if err := json.Unmarshal([]byte(raw), &set); err != nil {
 			badRequest(w, fmt.Errorf("those aren't requirements: %w", err))
 			return
@@ -620,7 +630,20 @@ func handleSetEditor(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	render(w, r, views.SetEditor(views.SetEditorData{Set: set, JSON: string(data), Problems: problems, Conflicts: conflicts}))
+	editor := views.SetEditorData{Set: set, JSON: string(data), Problems: problems, Conflicts: conflicts}
+	// Beside a routine in the builder: how it does against each rule.
+	if raw := r.FormValue("routineData"); raw != "" {
+		editor.Routine = raw
+		if len(problems) == 0 {
+			if routine, err := routineFrom(postedRoutine{data: raw, set: string(data)}); err == nil && routine.Set != nil {
+				editor.Results = map[int]requirements.Result{}
+				for _, res := range requirements.Check(routine, nil).Results {
+					editor.Results[res.Rule] = res
+				}
+			}
+		}
+	}
+	render(w, r, views.SetEditor(editor))
 }
 
 // handleViewPage serves the view screen, which loads a routine saved in the

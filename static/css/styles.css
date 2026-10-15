@@ -1092,3 +1092,7 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-kept { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; padding: 0.6rem 0; border-top: 1px solid #ededed; }
 .comp-kept-name { flex: 1 1 auto; }
 .comp-kept-name ul { list-style: disc; margin-left: 1.25rem; }
+/* Requirements written beside the routine (views.requirementsWriter). */
+.requirements-writer { margin: 0.5rem 0 1rem; border: 1px solid #485fc7; }
+.requirements-writer-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.75rem; margin-bottom: 0.75rem; }
+.rule-card-title .chip { margin-left: 0.4rem; }
