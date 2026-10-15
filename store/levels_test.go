@@ -69,3 +69,35 @@ func TestClubLevels(t *testing.T) {
 		t.Errorf("past the limit: %v", err)
 	}
 }
+
+// A level shared by another club comes with its club skills to track: the
+// club's own of that name where it has one, new ones otherwise, and not a
+// name the club gives a catalog skill.
+func TestImportClubLevel(t *testing.T) {
+	now := time.Date(2026, 10, 15, 9, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	club, _, err := s.CreateClub(ctx, "UCD")
+	must(t, err)
+	ann, _, err := s.CreateCoach(ctx, club.ID, "Ann")
+	must(t, err)
+	must(t, s.AddClubSkill(ctx, ann, "Kaboom drill", "", ""))
+	must(t, s.AddClubSkill(ctx, ann, "Swivel Hips", "", `{"rotation":0,"twist_distribution":[1],"takeoff_position":"Seat","shape":"Straight","seat_landing":true}`))
+	id, added, err := s.ImportClubLevel(ctx, ann, " Grade 1 ", `{"format":1,"name":"Grade 1","rules":[]}`,
+		[]SharedTrack{{Name: "kaboom DRILL"}, {Name: "Plank", Note: "30 seconds"}, {Name: "Swivel Hips"}, {Name: " "}})
+	must(t, err)
+	if added != 1 {
+		t.Errorf("added %d club skills, want 1 (Plank)", added)
+	}
+	own, _ := s.ClubSkills(ctx, club.ID)
+	levels, _ := s.ClubLevels(ctx, club.ID)
+	if len(levels) != 1 || levels[0].ID != id || levels[0].Name != "Grade 1" || levels[0].Source != "" || len(levels[0].ClubItems) != 2 {
+		t.Fatalf("levels = %+v", levels)
+	}
+	names := map[string]string{}
+	for _, k := range own {
+		names[k.ID] = k.Name + "/" + k.Note
+	}
+	if names[levels[0].ClubItems[0]] != "Kaboom drill/" || names[levels[0].ClubItems[1]] != "Plank/30 seconds" {
+		t.Errorf("tracks %v of %v", levels[0].ClubItems, names)
+	}
+}

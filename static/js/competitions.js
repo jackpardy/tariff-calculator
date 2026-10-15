@@ -704,6 +704,46 @@
         form.hidden = false;
     }
 
+    // sharedLevel reads a shared club level from its link's fragment
+    // ("#share=j" and base64url JSON, as the server writes it) and posts it to
+    // be shown; on the page that shows it, it offers the coach pages saved in
+    // this browser to add it to, members' who coach too included (ADR 0011
+    // Decision 6, ADR 0010).
+    function sharedLevel() {
+        const form = document.querySelector('[data-shared-level]');
+        if (form) {
+            const hash = location.hash;
+            const wait = document.querySelector('[data-shared-level-wait]');
+            if (!hash.startsWith('#share=j')) {
+                if (wait) { wait.textContent = "This link doesn't carry a level. Ask for it again."; }
+                return;
+            }
+            try {
+                const binary = atob(hash.slice('#share=j'.length).replace(/-/g, '+').replace(/_/g, '/'));
+                form.querySelector('input[name="level"]').value = new TextDecoder().decode(Uint8Array.from(binary, (c) => c.charCodeAt(0)));
+                form.submit();
+            } catch (e) {
+                if (wait) { wait.textContent = "This link's level couldn't be read. Ask for it again."; }
+            }
+        }
+        const saved = document.querySelector('[data-saved-coaches]');
+        if (saved) {
+            const coaches = [...loadLinks(linkKeys.coaches), ...loadLinks(linkKeys.members).filter((l) => l.coach)];
+            const input = document.getElementById('coach-link');
+            if (coaches.length === 0 || !input) { return; }
+            const select = saved.querySelector('select');
+            for (const c of coaches) { select.append(new Option(c.name, c.url)); }
+            select.append(new Option('Another club (paste its link)', ''));
+            const pick = () => {
+                input.value = select.value;
+                input.closest('.field').hidden = select.value !== '';
+            };
+            select.addEventListener('change', pick);
+            pick();
+            saved.hidden = false;
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         keepOffline();
         listTools();
@@ -721,5 +761,6 @@
         videoChoices();
         entryForms();
         keepRoutines();
+        sharedLevel();
     });
 })();

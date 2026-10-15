@@ -706,6 +706,12 @@ like its difficulty, are left out. On **Levels**, tick any of your club's own
 skills the level tracks too, put the levels in order, or **Open in the
 Requirements page** to change one and save it again.
 
+To give a level to another club, open **Share with another club** under it
+and send the link to one of their coaches. They open it, choose their coach
+page (or paste its link, or their member page's if they're a member who
+coaches too) and tap **Add to my club's levels**: their club gets
+its own copy, with the club skills it tracks. No one's marks go with it.
+
 From a gymnast's page, **Skills** shows what they're learning and can do. Mark
 skills for them the same way they do: your mark and theirs both show. A skill
 they've marked that you haven't marked the same has **Confirm**: tap it once
