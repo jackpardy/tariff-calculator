@@ -51,7 +51,9 @@ templ entryCardChecks(c EntryCard) {
 	@signoffBox(c.Signoff)
 	if c.Unchecked && len(c.Problems) == 0 {
 	} else if len(c.Problems) == 0 {
-		<div class="notification is-success is-light">No problems found.</div>
+		<p class="mb-3">
+			@StateChip(Done, "No problems found")
+		</p>
 	} else {
 		<div class="notification is-danger is-light">
 			<p><strong>{ Count(len(c.Problems), "problem", "problems") }</strong></p>

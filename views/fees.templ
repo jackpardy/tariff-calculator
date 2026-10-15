@@ -176,46 +176,7 @@ templ Invoice(p InvoicePage) {
 		<h1 class="title is-4">Invoice</h1>
 		<p class="mb-1"><strong>{ p.Competition.Name }</strong> · { p.Competition.Date }</p>
 		<p class="mb-4">To <strong>{ p.To }</strong> · { p.Date }</p>
-		<table class="table is-fullwidth is-narrow">
-			<thead>
-				<tr><th>Entry</th><th class="has-text-right">Fee</th></tr>
-			</thead>
-			<tbody>
-				for _, l := range p.Lines {
-					<tr><td>{ l.What }</td><td class="has-text-right comp-nowrap">{ l.Amount }</td></tr>
-				}
-			</tbody>
-			<tfoot>
-				<tr><th>Total</th><th class="has-text-right">{ p.Total }</th></tr>
-				for _, pay := range p.Payments {
-					<tr>
-						<td>
-							Paid { pay.At }
-							if pay.Note != "" {
-								· { pay.Note }
-							}
-						</td>
-						<td class="has-text-right comp-nowrap">−{ pay.Amount }</td>
-					</tr>
-				}
-				<tr>
-					<th>
-						if p.Settled {
-							Paid in full
-						} else {
-							To pay
-						}
-					</th>
-					<th class="has-text-right">{ p.Balance }</th>
-				</tr>
-			</tfoot>
-		</table>
-		if p.Instructions != "" && !p.Settled {
-			<div class="box">
-				<p class="label is-small mb-1">How to pay</p>
-				<p style="white-space: pre-line">{ p.Instructions }</p>
-			</div>
-		}
+		@invoiceTable(p)
 		<p class="is-size-7 has-text-grey">Removed, held and withdrawn entries aren't charged. If something here is wrong, ask the organiser.</p>
 	}
 }
@@ -233,11 +194,56 @@ templ feesLine(f *FeesSummary) {
 		<p class="is-size-7 mb-2">
 			<strong>Fees:</strong> { f.Due }
 			if f.Settled {
-				<span class="tag is-success is-light ml-1">Paid</span>
+				@StateChip(Done, "Paid")
 			} else {
 				· { f.Paid } paid · <strong>{ f.Balance } to pay</strong>
 			}
 			· <a href={ templ.SafeURL(f.Invoice) }>Invoice</a>
 		</p>
+	}
+}
+
+// invoiceTable is an invoice's lines, payments and what's left to pay, and
+// how to pay it: on the printed invoice, and on a club's Fees.
+templ invoiceTable(p InvoicePage) {
+	<table class="table is-fullwidth is-narrow">
+		<thead>
+			<tr><th>Entry</th><th class="has-text-right">Fee</th></tr>
+		</thead>
+		<tbody>
+			for _, l := range p.Lines {
+				<tr><td>{ l.What }</td><td class="has-text-right comp-nowrap">{ l.Amount }</td></tr>
+			}
+		</tbody>
+		<tfoot>
+			<tr><th>Total</th><th class="has-text-right">{ p.Total }</th></tr>
+			for _, pay := range p.Payments {
+				<tr>
+					<td>
+						Paid { pay.At }
+						if pay.Note != "" {
+							· { pay.Note }
+						}
+					</td>
+					<td class="has-text-right comp-nowrap">−{ pay.Amount }</td>
+				</tr>
+			}
+			<tr>
+				<th>
+					if p.Settled {
+						Paid in full
+					} else {
+						To pay
+					}
+				</th>
+				<th class="has-text-right">{ p.Balance }</th>
+			</tr>
+		</tfoot>
+	</table>
+	if p.Instructions != "" && !p.Settled {
+		<div class="box">
+			<p class="label is-small mb-1">How to pay</p>
+			<p style="white-space: pre-line">{ p.Instructions }</p>
+		</div>
 	}
 }

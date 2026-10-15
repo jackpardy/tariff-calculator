@@ -41,7 +41,15 @@ func TestPairedSynchro(t *testing.T) {
 	if !strings.Contains(dash, ">Synchro BUCS L3/L4 ") || !strings.Contains(dash, wrong) {
 		t.Errorf("the pair entered at the wrong level is flagged: %s", dash)
 	}
-	if page := do(t, h, http.MethodGet, pair, nil).Body.String(); !strings.Contains(page, "(doing BUCS L3)") || !strings.Contains(page, "Routine (the level&#39;s voluntary)") || strings.Contains(page, "First exercise") {
+	// A's page has her trampoline entry too: the synchro row is the one to read.
+	page = do(t, h, http.MethodGet, pair, nil).Body.String()
+	if i := strings.Index(page, "(doing BUCS L3)"); i >= 0 {
+		page = page[i:]
+		if next := strings.Index(page, `class="box comp-event-row"`); next >= 0 {
+			page = page[:next]
+		}
+	}
+	if !strings.Contains(page, "(doing BUCS L3)") || !strings.Contains(page, "Routine (the level&#39;s voluntary)") || strings.Contains(page, "First exercise") {
 		t.Error("the entry says which level the pair does, and shows their one routine")
 	}
 

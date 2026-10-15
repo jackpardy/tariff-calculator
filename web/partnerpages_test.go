@@ -142,7 +142,7 @@ func TestMemberDisciplines(t *testing.T) {
 	}
 
 	// The comp sec sends all three; A withdraws tumbling only.
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
 	if strings.Count(dash, ">A</a>") != 2 || !strings.Contains(dash, "A &amp; B") {
 		t.Errorf("A's trampoline and tumbling, and the pair, are on the dashboard")
@@ -160,7 +160,7 @@ func TestMemberDisciplines(t *testing.T) {
 	}
 
 	// The comp sec changes A's synchro entry from the club page.
-	clubPage := do(t, h, http.MethodGet, club, nil).Body.String()
+	clubPage := clubEntriesPage(t, h, club)
 	edit := regexp.MustCompile(`href="(` + regexp.QuoteMeta(club) + `/members/[^"]+discipline=synchro)"`).FindStringSubmatch(clubPage)
 	if edit == nil {
 		t.Fatal("a link to change A's synchro entry")

@@ -228,7 +228,7 @@ func TestAcceptLateAfterPlanning(t *testing.T) {
 
 	// BUCS L4 takes three now; Ann moves into its flight.
 	setLimit(t, h, admin, "BUCS L4", "3")
-	ask := regexp.MustCompile(regexp.QuoteMeta(ls.ucd.page) + `/members/[^"]+/late\?discipline=`).FindString(do(t, h, http.MethodGet, ls.ucd.page, nil).Body.String())
+	ask := regexp.MustCompile(regexp.QuoteMeta(ls.ucd.page) + `/members/[^"]+/late\?discipline=`).FindString(clubEntriesPage(t, h, ls.ucd.page))
 	if ask == "" {
 		t.Fatal("the comp sec can ask for Ann")
 	}

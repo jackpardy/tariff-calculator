@@ -104,8 +104,8 @@ func (p *competitionPages) editMemberOffer(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	render(w, r, views.ClubOfferEditPage(views.ClubOfferEdit{
-		Base: clubPath(r.PathValue("token")), Club: club.Name, Member: m.Name, Competition: summary(c.Competition, p.now()),
-		Menu: clubMenu(r.PathValue("token"), clubCompetitions), Form: offerForm(c.Competition, o, r.URL.Path),
+		Back: clubCompetitionPath(r.PathValue("token"), c.ID) + "/offers", Club: club.Name, Member: m.Name, Competition: summary(c.Competition, p.now()),
+		Menu: clubCompetitionMenu(r.PathValue("token"), c, clubCompOffers), Form: offerForm(c.Competition, o, r.URL.Path),
 	}))
 }
 
@@ -128,7 +128,7 @@ func (p *competitionPages) saveMemberOfferForMember(w http.ResponseWriter, r *ht
 		return
 	}
 	notice := fmt.Sprintf("Saved what %s offers at %s. Send to pass it on.", m.Name, c.Name)
-	seeOther(w, r, clubPath(r.PathValue("token")), notice)
+	seeOther(w, r, clubCompetitionPath(r.PathValue("token"), c.ID)+"/offers", notice)
 }
 
 func (p *competitionPages) saveIndividualOffer(w http.ResponseWriter, r *http.Request) {

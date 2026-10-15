@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"tariffCalculator/views"
 )
 
 // myDayPath is a member's My competition page, linked from their page for
@@ -91,7 +93,7 @@ func TestCompetitionEndToEnd(t *testing.T) {
 			if signed != len(names) {
 				t.Errorf("Coach %s signed off %d of %d", club, signed, len(names))
 			}
-			redirected(t, h, formAction(t, do(t, h, http.MethodGet, page, nil).Body.String(), page+"/competitions/"), url.Values{"which": {"all"}})
+			redirected(t, h, formAction(t, clubEntriesPage(t, h, page), page+"/competitions/"), url.Values{"which": {"all"}})
 		}
 		ivy = withoutQuery(redirected(t, h, enter, bucsEntry("Ivy")))
 		redirected(t, h, pathIn(t, do(t, h, http.MethodGet, ivy, nil).Body.String(), "/competitions/signoff/"), url.Values{"coach": {"Own coach"}, "signed": {"1"}})
@@ -227,7 +229,7 @@ func TestCompetitionEndToEnd(t *testing.T) {
 		if notice := noticeOf(t, redirected(t, h, admin+"/late/"+id[1]+"/accept", url.Values{})); !strings.HasPrefix(notice, "Accepted: Ann is in BUCS L4.") {
 			t.Errorf("accepted: %q", notice)
 		}
-		if page := memberCompetitionPage(t, h, members["Ann"]); !strings.Contains(page, "Level change to BUCS L4: accepted (€5, on the invoice)") {
+		if page := memberCompetitionPage(t, h, members["Ann"]); !strings.Contains(page, "Level change to BUCS L4: accepted (€5, on the invoice)") || !strings.Contains(page, chip(t, views.Done, "Late change")) {
 			t.Error("Ann sees it accepted, with its fee")
 		}
 		if got := myPageOf(t, "Ann"); len(got.Events) != 1 || got.Events[0].Event != "BUCS L4" {

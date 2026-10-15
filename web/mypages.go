@@ -42,9 +42,10 @@ func (p *competitionPages) myDay(w http.ResponseWriter, r *http.Request) {
 		}
 		frame.Over, frame.Menu, frame.BackLabel = club, memberMenu(r.PathValue("token"), memberCompetitions), "← "+c.Name+": your entries"
 	} else {
-		frame.Over, frame.BackLabel = "Entered on your own", "← "+c.Name+": your entry"
+		frame.Over, frame.BackLabel = "Entered on your own", "← "+c.Name+": your entries"
 		if a.entry.IndividualID != "" {
-			frame.Menu = gymnastMenu(p.gymnastBase(r, a.entry), gymnastCompetitions)
+			base := p.gymnastBase(r, a.entry)
+			frame.Menu, frame.Back = gymnastMenu(base, gymnastCompetitions), gymnastCompetitionPath(base, c.ID)
 		}
 	}
 	p.renderDay(w, r, c, a.key, a.club, a.name, frame)

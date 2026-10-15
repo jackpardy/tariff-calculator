@@ -70,7 +70,11 @@ func (p *competitionPages) gymnast(w http.ResponseWriter, r *http.Request) (stor
 
 // gymnastPage is the part of an individual's page that every tab has.
 func (p *competitionPages) gymnastPage(r *http.Request, ind store.Individual, tab string) views.GymnastPage {
-	token := r.PathValue("token")
+	return p.gymnastPageOf(r, r.PathValue("token"), ind, tab)
+}
+
+// gymnastPageOf is that for their page at token, whatever the request's.
+func (p *competitionPages) gymnastPageOf(r *http.Request, token string, ind store.Individual, tab string) views.GymnastPage {
 	page := views.GymnastPage{Name: ind.Name, Menu: gymnastMenu(token, tab), Home: gymnastPath(token), Notice: r.URL.Query().Get("notice")}
 	if !store.IsVia(token) {
 		page.Link = origin(r) + gymnastPath(token)
@@ -146,37 +150,73 @@ func (p *competitionPages) gymnastEntered(w http.ResponseWriter, r *http.Request
 }
 
 // gymnastCompetition is an individual's page for one competition: a row for
-// each discipline they entered, each opening to its card.
+// each discipline they entered, each opening to all of that entry.
 func (p *competitionPages) gymnastCompetition(w http.ResponseWriter, r *http.Request) {
-	ind, entries, ok := p.gymnast(w, r)
-	if !ok {
+	p.renderGymnastCompetition(w, r, r.PathValue("token"), r.PathValue("id"), nil)
+}
+
+// renderGymnastCompetition shows the page of the individual at token for a
+// competition, with a change that came back with problems (posted) in its
+// row; the row the address names (entry) opens, as does a lone entry's.
+func (p *competitionPages) renderGymnastCompetition(w http.ResponseWriter, r *http.Request, token, competitionID string, posted *postedOwn) {
+	ind, err := p.st.IndividualByLink(r.Context(), token)
+	if err != nil {
+		failed(w, r, err)
 		return
 	}
-	c, mine, ok := p.gymnastEntered(w, r, entries)
-	if !ok {
+	entries, err := p.st.IndividualEntries(r.Context(), ind.PersonID)
+	if err != nil {
+		failed(w, r, err)
 		return
 	}
-	token := r.PathValue("token")
-	page := p.gymnastPage(r, ind, gymnastCompetitions)
-	gc := views.GymnastCompetition{Competition: summary(c.Competition, p.now()), Status: views.Count(len(mine), "entry", "entries"), Day: entryPath(token, mine[0]) + "/day"}
+	var mine []store.Entry
+	for _, e := range entries {
+		if e.CompetitionID == competitionID {
+			mine = append(mine, e)
+		}
+	}
+	if len(mine) == 0 {
+		failed(w, r, store.ErrNotFound)
+		return
+	}
+	c, err := p.st.Competition(r.Context(), competitionID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	feedbackOn(r, c)
+	page := p.gymnastPageOf(r, token, ind, gymnastCompetitions)
+	first := entryPath(token, mine[0])
+	gc := views.GymnastCompetition{Competition: summary(c.Competition, p.now()), Status: views.Count(len(mine), "entry", "entries"), Day: first + "/day",
+		Saved: r.URL.Query().Get("saved") == "1"}
+	gc.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: first, key: mine[0].Key(), people: []string{mine[0].Key()}})
 	if gc.Competition.Open && c.Individuals {
 		gc.Enter = gymnastCompetitionPath(token, c.ID) + "/enter"
 	}
+	open := r.URL.Query().Get("entry")
 	for _, e := range mine {
-		shown, err := card(c.Competition, e.Entry, clubOf(e))
+		form, problems := e.Entry, []string(nil)
+		if posted != nil && posted.entry == e.ID {
+			form, problems = posted.form, posted.problems
+		}
+		ev, err := p.entryView(r, e, c, entryPath(token, e), form, problems)
 		if err != nil {
 			failed(w, r, err)
 			return
 		}
-		withSignoff(&shown, storedSignoff(c.Competition, e))
+		gc.Pairs = append(gc.Pairs, ev.Pairs...)
 		waiting := p.waitingOf(r.Context(), c.ID, e.ID)
-		word, state := brief(individualState(e, waiting.Waiting), len(shown.Problems), waiting.Waiting, "Entered")
+		word, state := brief(individualState(e, waiting.Waiting), len(ev.Card.Problems), waiting.Waiting, "Entered")
 		gc.Events = append(gc.Events, views.GymnastEvent{
-			Row:     views.MemberEvent{Discipline: e.Entry.Discipline, Name: competitions.DisciplineName(e.Entry.Discipline), Level: e.Entry.Level, Brief: word, BriefState: state, Status: "Entered " + e.SentAt.In(local).Format("2 January, 15:04")},
-			Gymnast: e.Entry.Gymnast, Open: entryPath(token, e), Placement: placement(c, e.ID), Card: &shown,
+			Row:   views.MemberEvent{Discipline: e.Entry.Discipline, Name: competitions.DisciplineName(e.Entry.Discipline), Level: ev.Card.Level, Brief: word, BriefState: state},
+			Open:  e.ID == open || len(mine) == 1 || len(problems) > 0,
+			Entry: ev,
 		})
 	}
 	page.Competition = &gc
+	if posted != nil && len(posted.problems) > 0 {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+	}
 	render(w, r, views.GymnastCompetitionPage(page))
 }
 

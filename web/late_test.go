@@ -23,7 +23,7 @@ func TestLateChanges(t *testing.T) {
 	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	ann := withoutQuery(redirected(t, h, join, url.Values{"name": {"Ann"}}))
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ann), ann+"/competitions/"), l3)
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 	with := func(name string, v url.Values) url.Values {
 		out := url.Values{"gymnast": {name}}
 		for k, x := range v {
@@ -60,7 +60,7 @@ func TestLateChanges(t *testing.T) {
 	}
 
 	// Ann, by her comp sec.
-	clubPage := do(t, h, http.MethodGet, club, nil).Body.String()
+	clubPage := clubEntriesPage(t, h, club)
 	annLate := regexp.MustCompile(regexp.QuoteMeta(club) + `/members/[^"]+/late\?discipline=`).FindString(clubPage)
 	if annLate == "" {
 		t.Fatal("the comp sec can ask for Ann")
@@ -92,7 +92,7 @@ func TestLateChanges(t *testing.T) {
 	if !strings.Contains(loc, "draft+timetable+has+them+in+BUCS+L4") {
 		t.Errorf("accepted into the draft timetable: %s", loc)
 	}
-	statuses := do(t, h, http.MethodGet, ivy, nil).Body.String() + do(t, h, http.MethodGet, club, nil).Body.String()
+	statuses := do(t, h, http.MethodGet, ivy, nil).Body.String() + clubEntriesPage(t, h, club)
 	if !strings.Contains(statuses, "accepted (€10, on the invoice)") || !strings.Contains(statuses, "not accepted. BUCS L4 is full on the day") {
 		t.Errorf("each sees the decision: %s", statuses)
 	}
@@ -126,7 +126,7 @@ func TestLateChangeSignoff(t *testing.T) {
 	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	x := withoutQuery(redirected(t, h, join, url.Values{"name": {"X"}}))
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, x), x+"/competitions/"), l3)
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 	ind := url.Values{"gymnast": {"Ivy"}}
 	for k, v := range l3 {
 		ind[k] = v

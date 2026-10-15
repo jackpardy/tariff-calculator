@@ -57,8 +57,8 @@ func listsCompetition(t *testing.T) listsSetup {
 	redirected(t, h, club+"/coaches/"+s.bobID+"/signs-off", url.Values{"on": {""}})
 	upload(t, h, club+"/coaches/"+s.annID+"/qualifications", map[string]string{"qualification": "bg-trampoline-3"}, "certificate", []byte("%PDF-1.4 Ann"))
 	redirected(t, h, members["Mo"]+"/coach", url.Values{"coach": {s.annID}})
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
-	comp := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/([^/"]+)/coaches`).FindStringSubmatch(do(t, h, http.MethodGet, club, nil).Body.String())[1]
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
+	comp := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/([^/"]+)/coaches`).FindStringSubmatch(clubCompetitionTab(t, h, club, "/coaches"))[1]
 	redirected(t, h, club+"/competitions/"+comp+"/coaches", url.Values{"coach": {s.annID, s.zoeID}})
 	redirected(t, h, admin+"/coaches/"+s.annID, url.Values{"action": {"approve"}})
 	return s

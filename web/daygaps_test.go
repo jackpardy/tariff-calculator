@@ -132,7 +132,7 @@ func TestNotifyClubOfJudge(t *testing.T) {
 	ucd := aClub(t, h, admin, "UCD", false, "Ann", "Jude")
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ucd.members["Ann"]), ucd.members["Ann"]+"/competitions/"), bucsEntry(""))
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ucd.members["Jude"]), ucd.members["Jude"]+"/competitions/")+"/offer", url.Values{"judge-trampoline": {"1"}})
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, ucd.page, nil).Body.String(), ucd.page+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, ucd.page), ucd.page+"/competitions/"), url.Values{"which": {"all"}})
 	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
@@ -150,7 +150,7 @@ func TestNotifyClubOfJudge(t *testing.T) {
 	if notice := notify(jude); !strings.HasPrefix(notice, "Sent to Jude's club") {
 		t.Errorf("Jude's club is told: %q", notice)
 	}
-	if got := myCompetitionOf(t, do(t, h, http.MethodGet, ucd.page, nil).Body.String()).Desk; len(got) != 1 || !strings.HasPrefix(got[0], "Jude should be at Panel 1 now to officiate BUCS L3") {
+	if got := myCompetitionOf(t, clubEntriesPage(t, h, ucd.page)).Desk; len(got) != 1 || !strings.HasPrefix(got[0], "Jude should be at Panel 1 now to officiate BUCS L3") {
 		t.Errorf("UCD's comp sec sees it: %q", got)
 	}
 	if notice := notify(mary); notice != "Mary doesn't belong to a club. Nothing was sent." {

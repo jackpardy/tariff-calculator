@@ -209,7 +209,9 @@ and `static/contrast_test.go` checks each reads at 4.5:1 or better. Don't
 use Bulma's colour classes (`tag is-success`, `has-text-danger` and the rest)
 to show a state or a role on a new page; the pages that still do move over
 in turn (the audit's rollout). On the day, the dashboard, the club's pages,
-the timetable's rota and Officials have moved
+the timetable's rota, Officials, a coach's entries, My competition, Tell me
+about changes, every entry card's sign-off, late changes and an individual's
+pages have moved
 ([what each shows](../features/competition-entries.md#states-and-roles-on-the-pages-one-palette-step-2)),
 and `TestStatesUseChips` (`views/status_test.go`) fails if one of their
 templates shows a state in Bulma's colours again: add a page to its list

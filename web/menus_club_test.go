@@ -36,7 +36,7 @@ func TestClubSections(t *testing.T) {
 	if got := currentTab(t, page); got != "Competitions" {
 		t.Errorf("the default section is %q", got)
 	}
-	for _, want := range []string{"Student Open", "No member has entered yet", `href="` + club + `/members"`, `href="` + club + `/coaches"`, `href="` + club + `/settings"`} {
+	for _, want := range []string{"Student Open", `href="` + club + `/competitions/`, `href="` + club + `/members"`, `href="` + club + `/coaches"`, `href="` + club + `/settings"`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("Competitions should have %q", want)
 		}
@@ -129,8 +129,9 @@ func TestClubSections(t *testing.T) {
 	}
 }
 
-// The comp sec's pages for a member's entry are in Competitions, and saving
-// them goes back to Competitions.
+// A competition's pages for the comp sec are in Competitions, each with the
+// competition's tabs; the pages for a member's entry and offer are too, and
+// saving them goes back to the competition's tab they came from.
 func TestClubCompetitionsSectionPages(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
@@ -139,25 +140,32 @@ func TestClubCompetitionsSectionPages(t *testing.T) {
 	entry := bucsEntry("")
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, member), member+"/competitions/"), entry)
 
-	page := do(t, h, http.MethodGet, club, nil).Body.String()
+	page := clubEntriesPage(t, h, club)
+	compPage := regexp.MustCompile(`href="(` + regexp.QuoteMeta(club) + `/competitions/[^"/?]+)"`).FindStringSubmatch(do(t, h, http.MethodGet, club, nil).Body.String())[1]
+	if currentTab(t, page) != "Competitions" || !strings.Contains(page, `href="`+compPage+`/offers"`) || strings.Contains(page, `href="`+compPage+`/fees"`) {
+		t.Error("a competition's page is in Competitions, with its tabs (no Fees where it doesn't charge)")
+	}
+	if rec := do(t, h, http.MethodGet, compPage+"/fees", nil); rec.Code != http.StatusNotFound {
+		t.Errorf("no Fees where it doesn't charge: %d", rec.Code)
+	}
 	edit := regexp.MustCompile(`href="(` + regexp.QuoteMeta(club) + `/members/[^"]+)"`).FindStringSubmatch(page)[1]
 	editPage := do(t, h, http.MethodGet, edit, nil).Body.String()
-	if currentTab(t, editPage) != "Competitions" || !strings.Contains(editPage, "← Competitions") {
+	if currentTab(t, editPage) != "Competitions" || !strings.Contains(editPage, "← Student Open") {
 		t.Error("changing a member's entry is in Competitions")
 	}
-	if got := withoutQuery(redirected(t, h, edit, entry)); got != club {
-		t.Errorf("saving a member's entry goes back to Competitions: %s", got)
+	if got := withoutQuery(redirected(t, h, edit, entry)); got != compPage {
+		t.Errorf("saving a member's entry goes back to the competition: %s", got)
 	}
 	send := formAction(t, page, club+"/competitions/")
-	if got := withoutQuery(redirected(t, h, send, url.Values{"which": {"all"}})); got != club {
-		t.Errorf("sending goes back to Competitions: %s", got)
+	if got := withoutQuery(redirected(t, h, send, url.Values{"which": {"all"}})); got != compPage {
+		t.Errorf("sending goes back to the competition: %s", got)
 	}
 	offer := withoutQuery(edit) + "/offer"
 	if offerPage := do(t, h, http.MethodGet, offer, nil).Body.String(); currentTab(t, offerPage) != "Competitions" {
 		t.Error("changing a member's offer is in Competitions")
 	}
-	if got := withoutQuery(redirected(t, h, offer, url.Values{"recorder": {"1"}})); got != club {
-		t.Errorf("saving a member's offer goes back to Competitions: %s", got)
+	if got := withoutQuery(redirected(t, h, offer, url.Values{"recorder": {"1"}})); got != compPage+"/offers" {
+		t.Errorf("saving a member's offer goes back to Judging and helping: %s", got)
 	}
 }
 

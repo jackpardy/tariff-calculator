@@ -42,6 +42,23 @@ func memberCompetitionPage(t *testing.T, h http.Handler, member string) string {
 	return do(t, h, http.MethodGet, m[1], nil).Body.String()
 }
 
+// clubEntriesPage is the comp sec's page for the club's first (usually only)
+// competition, its Entries, opened from the row on Competitions.
+func clubEntriesPage(t *testing.T, h http.Handler, club string) string {
+	t.Helper()
+	return clubCompetitionTab(t, h, club, "")
+}
+
+// clubCompetitionTab is another tab of it: "/coaches", "/offers" or "/fees".
+func clubCompetitionTab(t *testing.T, h http.Handler, club, tab string) string {
+	t.Helper()
+	m := regexp.MustCompile(`href="(` + regexp.QuoteMeta(club) + `/competitions/[^"/?]+)"`).FindStringSubmatch(do(t, h, http.MethodGet, club, nil).Body.String())
+	if m == nil {
+		t.Fatalf("no competition in %s's list", club)
+	}
+	return do(t, h, http.MethodGet, m[1]+tab, nil).Body.String()
+}
+
 // formAction finds a form's action in a page by its path prefix.
 func formAction(t *testing.T, html, prefix string) string {
 	t.Helper()
@@ -109,7 +126,7 @@ func TestClubs(t *testing.T) {
 	}
 
 	// The comp sec sends it.
-	page = do(t, h, http.MethodGet, club, nil).Body.String()
+	page = clubEntriesPage(t, h, club)
 	if !strings.Contains(page, chip(t, views.NotYet, "Not sent")) || !strings.Contains(page, "Send new and changed (1)") {
 		t.Error("the club page shows the entry not sent")
 	}
@@ -135,17 +152,17 @@ func TestClubs(t *testing.T) {
 	if page := do(t, h, http.MethodGet, member, nil).Body.String(); !strings.Contains(page, "Changed since your club sent it") {
 		t.Error("the member sees it's changed since sent")
 	}
-	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, chip(t, views.Attention, "Changed since sent")) || !strings.Contains(page, "Send new and changed (1)") {
+	if page := clubEntriesPage(t, h, club); !strings.Contains(page, chip(t, views.Attention, "Changed since sent")) || !strings.Contains(page, "Send new and changed (1)") {
 		t.Error("the comp sec sees it's changed since sent")
 	}
 
 	// The comp sec changes it on the member's behalf.
-	page = do(t, h, http.MethodGet, club, nil).Body.String()
+	page = clubEntriesPage(t, h, club)
 	edit := regexp.MustCompile(`href="(` + regexp.QuoteMeta(club) + `/members/[^"]+)"`).FindStringSubmatch(page)
 	if edit == nil {
 		t.Fatal("no link to change the member's entry")
 	}
-	if page := do(t, h, http.MethodGet, edit[1], nil).Body.String(); !strings.Contains(page, "Change the entry") || !strings.Contains(page, "← Competitions") {
+	if page := do(t, h, http.MethodGet, edit[1], nil).Body.String(); !strings.Contains(page, "Change the entry") || !strings.Contains(page, "← Student Open") {
 		t.Error("the comp sec's edit page")
 	}
 	location = redirected(t, h, edit[1], entry)
@@ -170,7 +187,7 @@ func TestClubs(t *testing.T) {
 		withdraw += "/withdraw"
 	}
 	redirected(t, h, withdraw, url.Values{"confirm": {"1"}})
-	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, chip(t, views.Stopped, "Withdrawn (still sent)")) {
+	if page := clubEntriesPage(t, h, club); !strings.Contains(page, chip(t, views.Stopped, "Withdrawn (still sent)")) {
 		t.Error("the comp sec sees the withdrawn entry is still with the competition")
 	}
 	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
@@ -248,7 +265,7 @@ func TestClubEntriesSearch(t *testing.T) {
 	s := newTestServer(t, atTime(dayBefore))
 	admin := created(t, s.h, newCompetition())
 	club := aClub(t, s.h, admin, "UCD", true, "Tadhg Ryan", "Éabha Kelly")
-	doc := parsePage(t, do(t, s.h, http.MethodGet, club.page, nil).Body.String())
+	doc := parsePage(t, clubEntriesPage(t, s.h, club.page))
 	tools := byClass(doc, "comp-list-tools")
 	if len(tools) != 1 || !strings.HasPrefix(attrOf(tools[0], "data-list-tools"), "entries-") {
 		t.Fatalf("the entries have search tools: %d", len(tools))

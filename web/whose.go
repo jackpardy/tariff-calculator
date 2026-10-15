@@ -62,7 +62,7 @@ func (p *competitionPages) whose(w http.ResponseWriter, r *http.Request) (asker,
 			return asker{}, false
 		}
 		c, ok := p.enteredCompetition(w, r, club.ID)
-		return asker{c: c, kind: store.NotifyClub, owner: club.ID, name: club.Name, club: club.ID, back: clubPath(token)}, ok
+		return asker{c: c, kind: store.NotifyClub, owner: club.ID, name: club.Name, club: club.ID, back: clubCompetitionPath(token, c.ID)}, ok
 	default:
 		coach, clubName, ok := p.coach(w, r)
 		if !ok {

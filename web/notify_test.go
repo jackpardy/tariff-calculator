@@ -196,8 +196,8 @@ func TestNotifyingAClub(t *testing.T) {
 			ann = m
 		}
 	}
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
-	clubPage := do(t, h, http.MethodGet, club, nil).Body.String()
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
+	clubPage := clubEntriesPage(t, h, club)
 	notify := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/[^/"]+/notify`).FindString(clubPage)
 	if notify == "" {
 		t.Fatal("the club page links to hearing about changes")
@@ -299,7 +299,7 @@ func TestConfirmationEmailsPerCompetition(t *testing.T) {
 	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"Click here to win"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	notify := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/[^/"]+/notify`).FindString(do(t, h, http.MethodGet, club, nil).Body.String())
+	notify := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/[^/"]+/notify`).FindString(clubEntriesPage(t, h, club))
 	if notify == "" {
 		t.Fatal("the club page links to hearing about changes")
 	}

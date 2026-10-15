@@ -35,6 +35,10 @@ func (p *competitionPages) registerClubs(mux *http.ServeMux) {
 	handle("GET /clubs/admin/{token}/members", p.clubMembersPage)
 	handle("GET /clubs/admin/{token}/coaches", p.clubCoachesPage)
 	handle("GET /clubs/admin/{token}/settings", p.clubSettingsPage)
+	handle("GET /clubs/admin/{token}/competitions/{id}", p.clubCompetitionEntries)
+	handle("GET /clubs/admin/{token}/competitions/{id}/coaches", p.clubCompetitionCoaches)
+	handle("GET /clubs/admin/{token}/competitions/{id}/offers", p.clubCompetitionOffers)
+	handle("GET /clubs/admin/{token}/competitions/{id}/fees", p.clubCompetitionFees)
 	handle("POST /clubs/admin/{token}/competitions/{id}/send", p.send)
 	handle("POST /clubs/admin/{token}/competitions/{id}/coaches", p.sendCoaches)
 	handle("GET /clubs/admin/{token}/members/{member}/competitions/{id}", p.editMemberEntry)
@@ -63,6 +67,7 @@ func (p *competitionPages) registerClubs(mux *http.ServeMux) {
 	handle("POST /clubs/admin/{token}/coaches-see-all", p.coachesSeeAll)
 	handle("POST /clubs/admin/{token}/members/{member}/coach", p.assignCoach)
 	handle("GET /clubs/coach/{token}", p.coachHome)
+	handle("GET /clubs/coach/{token}/details", p.coachDetails)
 	handle("GET /clubs/coach/{token}/members/{member}/competitions/{id}", p.coachEntry)
 	handle("POST /clubs/coach/{token}/members/{member}/competitions/{id}", p.signOff)
 	handle("GET /competitions/club/{token}", p.clubLink)
@@ -204,8 +209,95 @@ func (p *competitionPages) clubCompetitionsPart(r *http.Request, club store.Club
 	if err != nil {
 		return err
 	}
-	page.Competitions, err = p.clubCompetitions(r, club, page.Base, members, coaches, quals)
+	page.Competitions, err = p.clubCompetitions(r, club, page.Base, members, coaches, quals, "")
 	return err
+}
+
+// clubCompetitionEntries is the comp sec's page for one competition: its
+// entries, and sending them.
+func (p *competitionPages) clubCompetitionEntries(w http.ResponseWriter, r *http.Request) {
+	p.renderClubCompetition(w, r, clubCompEntries)
+}
+
+// clubCompetitionCoaches is a competition's coaches to send for approval,
+// where it approves coaches.
+func (p *competitionPages) clubCompetitionCoaches(w http.ResponseWriter, r *http.Request) {
+	p.renderClubCompetition(w, r, clubCompCoaches)
+}
+
+// clubCompetitionOffers is what the club's members offer to judge and help
+// with at a competition.
+func (p *competitionPages) clubCompetitionOffers(w http.ResponseWriter, r *http.Request) {
+	p.renderClubCompetition(w, r, clubCompOffers)
+}
+
+// clubCompetitionFees is what the club owes a competition, where it charges.
+func (p *competitionPages) clubCompetitionFees(w http.ResponseWriter, r *http.Request) {
+	p.renderClubCompetition(w, r, clubCompFees)
+}
+
+// renderClubCompetition shows one tab of the comp sec's pages for a
+// competition: 404 for one the club isn't in, and for Coaches or Fees where
+// the competition doesn't approve coaches or charge.
+func (p *competitionPages) renderClubCompetition(w http.ResponseWriter, r *http.Request, tab string) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	c, ok := p.enteredCompetition(w, r, club.ID)
+	if !ok {
+		return
+	}
+	if tab == clubCompCoaches && !(c.ApproveCoaches && c.Signoff) || tab == clubCompFees && !c.Fees.On() {
+		failed(w, r, store.ErrNotFound)
+		return
+	}
+	token := r.PathValue("token")
+	page := views.ClubPage{Base: clubPath(token), Name: club.Name, Notice: r.URL.Query().Get("notice"), Menu: clubCompetitionMenu(token, c, tab)}
+	ctx := r.Context()
+	coaches, err := p.st.Coaches(ctx, club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	quals, err := p.st.Qualifications(ctx, club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	members, err := p.st.Members(ctx, club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	comps, err := p.clubCompetitions(r, club, page.Base, members, coaches, quals, c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if len(comps) == 0 {
+		failed(w, r, store.ErrNotFound)
+		return
+	}
+	comp := comps[0]
+	switch tab {
+	case clubCompCoaches:
+		render(w, r, views.ClubCompetitionCoaches(page, comp))
+	case clubCompOffers:
+		render(w, r, views.ClubCompetitionOffers(page, comp))
+	case clubCompFees:
+		invoice, ok, err := p.invoicePage(ctx, c, clubPayer(club.ID), clubCompetitionPath(token, c.ID)+"/fees")
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		if !ok {
+			invoice = nil
+		}
+		render(w, r, views.ClubCompetitionFees(page, comp, invoice))
+	default:
+		render(w, r, views.ClubCompetitionEntries(page, comp))
+	}
 }
 
 // clubMembersPart fills in the Members section.
@@ -338,7 +430,7 @@ func (p *competitionPages) clubSettingsPart(r *http.Request, club store.Club, pa
 // clubCompetitions are the competitions the club is entered in, each with its
 // members' entries and what the comp sec can send.
 func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, base string, members []store.Member, coaches []store.Coach,
-	quals map[string][]store.CoachQualification) ([]views.ClubCompetition, error) {
+	quals map[string][]store.CoachQualification, only string) ([]views.ClubCompetition, error) {
 	ctx := r.Context()
 	comps, err := p.st.ClubCompetitions(ctx, club.ID)
 	if err != nil {
@@ -346,6 +438,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 	}
 	var out []views.ClubCompetition
 	for _, c := range comps {
+		if only != "" && c.ID != only {
+			continue
+		}
 		mine, err := p.st.ClubEntries(ctx, club.ID, c.ID)
 		if err != nil {
 			return nil, err
@@ -493,7 +588,7 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	notice := fmt.Sprintf("Sent %s to %s.", views.Count(n, "entry", "entries"), c.Name)
-	seeOther(w, r, clubPath(r.PathValue("token")), notice)
+	seeOther(w, r, clubCompetitionPath(r.PathValue("token"), compID), notice)
 }
 
 // memberOfClub is the member and competition a comp sec's member entry URL
@@ -571,8 +666,8 @@ func (p *competitionPages) editMemberEntry(w http.ResponseWriter, r *http.Reques
 
 func (p *competitionPages) renderMemberEdit(w http.ResponseWriter, r *http.Request, club store.Club, m store.Member, c store.Competition, existing *store.MemberEntry, form competitions.Entry, problems []string) {
 	page := views.ClubEntryEdit{
-		Base: clubPath(r.PathValue("token")), Club: club.Name, Member: m.Name, Competition: summary(c.Competition, p.now()),
-		Menu: clubMenu(r.PathValue("token"), clubCompetitions), Form: entryForm(c.Competition, form, r.URL.Path, "Save"),
+		Back: clubCompetitionPath(r.PathValue("token"), c.ID), Club: club.Name, Member: m.Name, Competition: summary(c.Competition, p.now()),
+		Menu: clubCompetitionMenu(r.PathValue("token"), c, clubCompEntries), Form: entryForm(c.Competition, form, r.URL.Path, "Save"),
 	}
 	page.Form.Member, page.Form.Problems = true, problems
 	kept, err := p.keptForEntry(r, m.ID)
@@ -620,7 +715,7 @@ func (p *competitionPages) saveMemberEntryForMember(w http.ResponseWriter, r *ht
 		return
 	}
 	notice := fmt.Sprintf("Saved %s's entry for %s. Send it when you're ready.", m.Name, c.Name)
-	seeOther(w, r, clubPath(r.PathValue("token")), notice)
+	seeOther(w, r, clubCompetitionPath(r.PathValue("token"), c.ID), notice)
 }
 
 func (p *competitionPages) newMemberLink(w http.ResponseWriter, r *http.Request) {
@@ -733,7 +828,7 @@ func (p *competitionPages) enterClub(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	seeOther(w, r, clubPath(token), club.Name+" is entered in "+c.Name+". Members can now add their entries.")
+	seeOther(w, r, clubCompetitionPath(token, c.ID), club.Name+" is entered in "+c.Name+". Members can now add their entries.")
 }
 
 // --- Members ---
@@ -1150,7 +1245,7 @@ func (p *competitionPages) sendCoaches(w http.ResponseWriter, r *http.Request) {
 	if len(r.Form["coach"]) == 0 {
 		notice = "No coaches sent."
 	}
-	seeOther(w, r, clubPath(r.PathValue("token")), notice)
+	seeOther(w, r, clubCompetitionPath(r.PathValue("token"), r.PathValue("id"))+"/coaches", notice)
 }
 
 // removalStatus says what the organiser did with an entry: removed, or held

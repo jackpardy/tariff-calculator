@@ -123,11 +123,17 @@ func TestRoleTabs(t *testing.T) {
 	if currentRole(t, page) != "Coach" || !strings.Contains(page, "A. Murphy") || strings.Contains(page, "Your coach link") || strings.Contains(page, "data-coach-link") || strings.Contains(page, "Your other links") {
 		t.Errorf("the coach's page, with no link of its own to keep and no other links to add there: %s", page)
 	}
-	// The member's details list it; the coach's page lists the member.
+	// The member's details list it; the coach's details list the member.
 	if !strings.Contains(get(member+"/details"), "Coach at UCD, as A. Murphy") {
 		t.Error("the member's details list the coach")
 	}
-	coachPage := get(coach)
+	if home := get(coach); strings.Contains(home, "Your other links") || !strings.Contains(home, `href="`+coach+`/details"`) {
+		t.Error("the coach's Entries start with the competitions; their links are under Your details")
+	}
+	if rec := do(t, h, http.MethodGet, asCoach+"/details", nil); rec.Code != http.StatusNotFound || strings.Contains(page, asCoach+"/details") {
+		t.Errorf("no Your details through the member's link, whose own page has them: %d", rec.Code)
+	}
+	coachPage := get(coach + "/details")
 	if roleTabTo(t, coachPage, "Member") == member || !strings.Contains(coachPage, "Member of UCD, as A. Murphy") {
 		t.Errorf("the coach's page lists the member, opened through the coach's link: %v", roleTabsIn(coachPage))
 	}
@@ -310,7 +316,7 @@ func TestIndividualPage(t *testing.T) {
 		t.Fatalf("their competitions: %s", home)
 	}
 	page = get(comp[1])
-	if !strings.Contains(page, "Trampoline") || !strings.Contains(page, `href="`+first+`"`) || !strings.Contains(page, "Enter another discipline") {
+	if !strings.Contains(page, "Trampoline") || !strings.Contains(page, `action="`+first+`"`) || !strings.Contains(page, "Enter another discipline") {
 		t.Fatalf("a row per discipline: %s", page)
 	}
 	// Another discipline from their page, under the same link.
@@ -421,8 +427,8 @@ func TestOldEntryLinks(t *testing.T) {
 	get := func(path string) string { return dayAll(t, h, path) }
 
 	page := get("/competitions/entry/oldLinkOne")
-	if !strings.Contains(page, "Una Ní Bhriain") || !strings.Contains(page, `data-entry-link="http://example.com/competitions/entry/oldLinkOne"`) {
-		t.Fatalf("the old link opens its entry, as its link to keep: %s", page)
+	if !strings.Contains(page, "Una Ní Bhriain") || !strings.Contains(page, `data-gymnast-link="http://example.com/competitions/gymnast/oldLinkOne"`) || !strings.Contains(page, `action="/competitions/entry/oldLinkOne~entryoldLinkOne"`) {
+		t.Fatalf("the old link opens its person's page at its entry, as their link to keep: %s", page)
 	}
 	if cur, _ := menuCurrent(page); cur != "Competitions" || !strings.Contains(page, `href="/competitions/gymnast/oldLinkOne/details"`) {
 		t.Errorf("on its person's page: %s", page)
@@ -468,7 +474,7 @@ func TestAllPeopleJoinsRoles(t *testing.T) {
 	redirected(t, h, club+"/coaches/from-member", url.Values{"member": {annID}})
 	coachID := regexp.MustCompile(regexp.QuoteMeta(club) + `/coaches/([^/"]+)/signs-off`).FindStringSubmatch(get(club + "/coaches"))[1]
 	redirected(t, h, members["Mo"]+"/coach", url.Values{"coach": {coachID}})
-	redirected(t, h, formAction(t, get(club), club+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 
 	people := get(admin + "/people")
 	if n := strings.Count(people, `data-name="Ann O&#39;Neill / Jr?"`); n != 1 {

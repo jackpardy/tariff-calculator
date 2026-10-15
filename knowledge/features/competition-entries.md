@@ -417,6 +417,9 @@ and no Bulma colour for a state (buttons keep theirs):
 | A coach's entries | how many to sign off; problems; the sign-off, as on the comp sec's; can't sign off (not approved) | the coach who signed off |
 | My competition (and the organiser's page of a person) | each event checked by the organiser, problems to sort out, or sent, not checked yet; Scratched | |
 | Tell me about changes | an email On, or waiting for you to confirm it | |
+| Every entry card (step 3: the organiser's, the comp sec's, a member's, an individual's, a coach's sign-off page) | the sign-off, as on the rows (signed off, waiting, needs changes, coach not approved); No problems found | the coach who signed off |
+| Late changes (an entry's row, the comp sec's rows, asking for one) | asked and waiting, accepted, or not accepted, as a "Late change" chip before what it is | |
+| An individual's competition page | checked by the organiser; fees paid | |
 
 On the day, a panel now lists its empty seats too, once anyone has a seat on
 it (`panelOf`); the counts are worked out on the page from the rows
@@ -1477,19 +1480,36 @@ The comp sec's page has a menu of four sections (roadmap 2026-10-13, finding
 your way round; the menu is `views/menu.templ`, built for each page in
 `web/menus_club.go`), each a page of its own:
 
-- **Competitions** (`/clubs/admin/{token}`, the default): the same table as
-  the organiser's, but for the club's members only, by competition. Above
-  the entries, a row says how many are still to send (a state chip) with
-  **Send new and changed** and, quieter, **Send all again**; below them,
-  **Judging and helping** lists what members offer (a list section with its
-  count). It shows the organiser's notes,
-  shows which members are still missing a required video, and lets the comp
-  sec edit an entry on a member's behalf (**Change**, under the member's
-  name; the status wraps, so the table fits a laptop). Each competition's
-  entries are a list section (`id="entries-<competition id>"`) searched by
-  name and filtered by problems and by whether they're still to send. The
-  pages for editing a member's entry or offer are in this section; the edit
-  page names the member once, at its head.
+- **Competitions** (`/clubs/admin/{token}`, the default): a row for each
+  competition the club is in (built 2026-10-15, like a member's list): its
+  date, how many entries, and chips for how many are still to send, how
+  many have problems, the timetable published and a message from the
+  organisers. Each row opens the competition's own pages
+  (`/competitions/{id}`), with its tabs under Competitions in the menu
+  (`clubCompetitionMenu`): its name, facts and messages head each.
+  - **Entries** (the competition's page itself): the club and calendar
+    links, then a row saying how many are still to send (a state chip) with
+    **Send new and changed** and, quieter, **Send all again**, then the same
+    table as the organiser's, but for the club's members only. It shows the
+    organiser's notes, which members are still missing a required video,
+    and lets the comp sec edit an entry on a member's behalf (**Change**,
+    under the member's name; the status wraps, so the table fits a laptop).
+    The entries are a list section (`id="entries-<competition id>"`)
+    searched by name and filtered by problems and by whether they're still
+    to send.
+  - **Coaches** (`/coaches`, only where it approves coaches): the coaches
+    to send, ticked, each with where they stand.
+  - **Judging and helping** (`/offers`): what members offer, each with
+    **Change**.
+  - **Fees** (`/fees`, only where it charges): what's left to pay as a
+    chip, the invoice's lines and payments, how to pay, and **Print the
+    invoice** (the printable invoice's Back returns here).
+
+  The pages for editing a member's entry or offer are in this section too,
+  with the competition's tabs; each names the member once, at its head, and
+  goes back (and saving goes back) to Entries or Judging and helping.
+  Sending, sending coaches and entering the club through its club link land
+  on the competition's page.
 - **Members** (`/members`): the join link, the members (a coach to choose,
   and under each one's **More**: **Make a coach too**, **New link** for one
   who lost theirs, which ends the old one, and **Remove**) and the synchro
@@ -1645,7 +1665,11 @@ own in the browser; nothing is copied unless the member asks.
   routine's are. The comp sec changing a member's entry gets the member's
   ("Kept on their page"), not only the routines in their own browser.
 - **Coaches.** A coach's page has a menu, **Entries** (the page it always
-  was) and **Gymnasts** (`/clubs/coach/{token}/gymnasts`, a `comp-stack`
+  was, starting with the competitions), **Your details**
+  (`/clubs/coach/{token}/details`, built 2026-10-15: their coach link and
+  Your other links, as a member's and an individual's are; only on the
+  coach's own link, as a member who coaches too has them on their member
+  page) and **Gymnasts** (`/clubs/coach/{token}/gymnasts`, a `comp-stack`
   table): the members they see (their own and those without a coach, or everyone where the club says
   so), with how many routines each keeps, searchable and filtered by having
   routines and by whether they chose this coach. Each opens the gymnast's
@@ -1861,8 +1885,8 @@ each role has them.
   `IndividualEntry`, `IndividualByLink`) also accepts this, so all their
   pages and forms work unchanged. Such a page never shows itself as a link to
   keep or share; the personal link is the one to keep.
-- **Adding a link.** On Your details (a member's or individual's) or at the
-  foot of a coach's page, **Your other links** takes a pasted link: a member,
+- **Adding a link.** On Your details (a member's, a coach's or an
+  individual's), **Your other links** takes a pasted link: a member,
   coach or individual's page, an entry link, a club's admin link or a
   competition's admin or helper link. Pasting it proves they hold it, so
   there's nothing to approve. Their own link, one already there, a link that
@@ -1899,10 +1923,18 @@ each role has them.
 A gymnast entering on their own has one personal page,
 `/competitions/gymnast/{token}` (`web/gymnastpages.go`), like a member's
 without the club: **Competitions** (each competition entered, with how many
-entries), each competition's page (a row per discipline, with its status, that
-opens to its card and **Open this entry**, the My competition link, and
-**Enter another discipline** while entries are open) and **Your details** (the
-link, and Your other links).
+entries), each competition's page and **Your details** (the link, and Your
+other links). A competition's page (built 2026-10-15, as a member's) has the
+facts, the My competition link, messages, Tell me about changes and their
+officiating, then a row per discipline, with its status, that opens to all
+of that entry (`entryBody`): checked, the flight, the organiser's notes,
+the card, **Change the entry** and **Withdraw**, **Your coach** and the
+sign-off link for their coach, fees and Judging and helping; then
+**Enter another discipline** while entries are open. Each row's forms post
+to the entry's own address, `/competitions/entry/{token}`, whose GET now
+redirects here with `entry=<id>` to open that row, so every entry link
+already sent lands on this page; a change with problems shows this page with
+the row and its form open.
 
 - **Entering.** The competition's link for entering on their own asks for **your
   page's link, if you have one**, offering the pages saved in this browser

@@ -57,7 +57,7 @@ func TestCoachSignoff(t *testing.T) {
 	for _, m := range []string{x, y} {
 		redirected(t, h, formAction(t, memberCompetitionPage(t, h, m), m+"/competitions/"), entry)
 	}
-	if page := memberCompetitionPage(t, h, y); !strings.Contains(page, "Waiting for a coach&#39;s sign-off") && !strings.Contains(page, "Waiting for a coach's sign-off") {
+	if page := memberCompetitionPage(t, h, y); !strings.Contains(page, chip(t, views.InProgress, "Waiting for sign-off")) {
 		t.Error("the member sees their entry waiting for sign-off")
 	}
 
@@ -79,7 +79,7 @@ func TestCoachSignoff(t *testing.T) {
 
 	// The comp sec lets every coach see everyone.
 	redirected(t, h, club+"/coaches-see-all", url.Values{"on": {"1"}})
-	if page := do(t, h, http.MethodGet, ann, nil).Body.String(); !strings.Contains(page, ">X</a>") || !strings.Contains(page, "You see every member") {
+	if page := do(t, h, http.MethodGet, ann, nil).Body.String(); !strings.Contains(page, ">X</a>") || !strings.Contains(do(t, h, http.MethodGet, ann+"/gymnasts", nil).Body.String(), "You see every member") {
 		t.Error("with see-all, Ann sees X too")
 	}
 
@@ -88,10 +88,10 @@ func TestCoachSignoff(t *testing.T) {
 	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Signed off X&#39;s BUCS L3 entry") {
 		t.Error("signed off")
 	}
-	if page := memberCompetitionPage(t, h, x); !strings.Contains(page, "Signed off by Bob") || !strings.Contains(page, "Ready") {
+	if page := memberCompetitionPage(t, h, x); !signedOffBy(t, page, "Bob") || !strings.Contains(page, "Ready") {
 		t.Error("the member sees who signed it off")
 	}
-	clubPage := do(t, h, http.MethodGet, club, nil).Body.String()
+	clubPage := clubEntriesPage(t, h, club)
 	if x, y := rowOf(t, clubPage, "X"), rowOf(t, clubPage, "Y"); !strings.HasSuffix(x[3], "Signed off Coach · Bob") || !strings.HasSuffix(y[3], "Waiting for sign-off") {
 		t.Errorf("the comp sec sees each entry's sign-off: %q, %q", x, y)
 	}
@@ -152,7 +152,7 @@ func TestCoachSignoff(t *testing.T) {
 	// A change needs signing off again.
 	entry.Set("ex1Option", "builtin:bucs-l3-option-2")
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, x), x+"/competitions/"), entry)
-	if page := memberCompetitionPage(t, h, x); strings.Contains(page, "Signed off by Bob") {
+	if page := memberCompetitionPage(t, h, x); signedOffBy(t, page, "Bob") {
 		t.Error("a changed entry isn't signed off any more")
 	}
 
@@ -184,7 +184,7 @@ func TestIndividualSignoff(t *testing.T) {
 		t.Errorf("the coach must give their name: %d", rec.Code)
 	}
 	redirected(t, h, signoff, url.Values{"signed": {"1"}, "coach": {"Coach C"}})
-	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Signed off by Coach C") {
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !signedOffBy(t, page, "Coach C") {
 		t.Error("the individual sees it signed off")
 	}
 	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, chip(t, views.Done, "Signed off")) || !strings.Contains(dash, "· Coach C") {

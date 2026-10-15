@@ -174,7 +174,7 @@ func detailsOf(r *http.Request) string {
 	case strings.HasPrefix(r.URL.Path, "/clubs/member/"):
 		return memberDetailsPath(token)
 	case strings.HasPrefix(r.URL.Path, "/clubs/coach/"):
-		return coachPath(token)
+		return coachDetailsPath(token)
 	}
 	return gymnastDetailsPath(token)
 }
