@@ -65,11 +65,20 @@ func Describe(r Rule) string {
 	return r.Type
 }
 
-// DescribeMatcher is the matcher's label if it has one, otherwise its
-// conditions, e.g. "backward, in tuck or pike".
+// DescribeMatcher is the matcher's label if it has one; the kind of skill
+// or the skill it picks, if it's one the editor offers ("a barani (front
+// with a half twist)", "Rudi"); otherwise its conditions, e.g. "backward, in
+// tuck or pike".
 func DescribeMatcher(m Matcher) string {
 	if strings.TrimSpace(m.Label) != "" {
 		return m.Label
+	}
+	if id := PickOf(m); id != "" {
+		p, _ := PickByID(id)
+		if p.Group == KindsGroup {
+			return strings.ToLower(p.Label[:1]) + p.Label[1:]
+		}
+		return p.Label
 	}
 	var parts []string
 	if m.FIG != "" {

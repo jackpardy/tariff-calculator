@@ -226,10 +226,11 @@ start from a gymnast's ticked skills. The TrampOnline entry export (clubs 1)
 waits on a sample of TrampOnline's entry file. The handover kit (5) is
 documents.
 
-# The requirements workflow (reviewed 2026-10-15, not planned yet)
+# The requirements workflow (reviewed 2026-10-15; 1 and 2 built 2026-10-15)
 
 A review of writing requirements, from the routine builder and from club
-levels, which are built on the same editor. Nothing is changed yet.
+levels, which are built on the same editor. 1 and 2 are built
+([the editor](requirements/framework.md#the-editor)); the rest is the plan.
 
 **What's clunky today.**
 
@@ -272,12 +273,15 @@ levels, which are built on the same editor. Nothing is changed yet.
 
 **Recommended, in order.**
 
-1. **Pick a skill in the rule editor** (helps both). Use the builder's
-   picker and search, and the club's named skills on a club page. Picking a
-   skill fills in a matcher pinned to that skill (notation, direction,
-   take-off); the numeric fields become "or describe a kind of skill". Only
-   existing pieces.
+1. **Pick a skill in the rule editor** (helps both). *Built 2026-10-15:* one
+   dropdown of kinds of skill (any single, a barani, landing on the
+   seat…) and the catalogue's named skills, the number fields under "Or
+   describe it"; each step of "this, then this" takes a kind too, so "a
+   back somersault, then a barani" prescribes no particular skills (the
+   owner's addition). The club's named skills join the list with 3.
 2. **Name rule kinds by what they mean, and offer only those that fit.**
+   *Built 2026-10-15* for the Requirements page, as listed in the editor;
+   the club-level kinds come with 3.
    - In the builder: Must include, Must not include, At least / at most N of
      a kind, Linked (this, then this), No repeats, Number of skills,
      Difficulty between, Skill at position.
@@ -301,7 +305,12 @@ levels, which are built on the same editor. Nothing is changed yet.
    then by organisation and level, with a search like the skill picker's.
    The same picker would serve Start from a set….
 6. **Later:** keep requirements and levels with the person, as routines on a
-   club page are, rather than in one browser.
+   club page are, rather than in one browser. *Suggested 2026-10-15:* build
+   it with 3, as one change: the editor saving to where it's opened from,
+   the person or the club. And sooner than later: Safari on an iPhone
+   clears a site's browser storage after 7 days without a visit (unless
+   it's on the home screen), so requirements and levels kept only in the
+   browser can be lost. Needs a short ADR, as it amends ADR 0003.
 
 1 and 2 give the most for the least: rule writing gets easier in both
 places with no change to the engine or storage. 3 removes the club round

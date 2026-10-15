@@ -18,8 +18,12 @@ import (
 // separate rule (with r<i>.s<j>.label its wording), and r<i>.o<k>.s<j>.<field>
 // for element j of option k of an includes rule. "rules", r<i>.seq, r<i>.opts
 // and r<i>.o<k>.seq give the counts, and r<i>.was is the rule's kind when the
-// form was drawn. Matcher fields: rotmin, rotmax, dir, twmin, twmax, shape,
-// takeoff, landing (repeatable checkboxes), tarmin, tarmax, fig.
+// form was drawn. r<i>.type and r<i>.was are kinds of rule as the editor
+// names them (requirements.RuleKinds: "include" is a count of at least one).
+// Matcher fields: pick (a skill or kind of skill picked, requirements.Picks)
+// and picked (the one shown when the form was drawn), rotmin, rotmax, dir,
+// twmin, twmax, shape, takeoff, landing (repeatable checkboxes), tarmin,
+// tarmax, fig.
 
 // parseSetForm reads the editor's form into a set, collecting any number that
 // couldn't be read; validation of the set itself happens afterwards.
@@ -70,6 +74,14 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 		if lo, hi := floatField(prefix+"tarmin"), floatField(prefix+"tarmax"); lo != nil || hi != nil {
 			m.Tariff = &requirements.TariffRange{Min: lo, Max: hi}
 		}
+		// A skill or kind of skill just picked replaces the description
+		// (picking nothing clears it); otherwise the fields say what it is.
+		if pick := r.FormValue(prefix + "pick"); r.Form.Has(prefix+"pick") && pick != r.FormValue(prefix+"picked") {
+			m = requirements.Matcher{}
+			if p, ok := requirements.PickByID(pick); ok {
+				m = p.Match.Clone()
+			}
+		}
 		return m
 	}
 
@@ -87,8 +99,9 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 	}
 	for i := range count("rules") {
 		p := fmt.Sprintf("r%d.", i)
+		kind := r.FormValue(p + "type") // a kind of rule, as the editor names them
 		rule := requirements.Rule{
-			Type:  r.FormValue(p + "type"),
+			Type:  requirements.KindType(kind),
 			Label: strings.TrimSpace(r.FormValue(p + "label")),
 		}
 		switch rule.Type {
@@ -125,6 +138,14 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 		if rule.Type == requirements.Count || rule.Type == requirements.Linked || rule.Type == requirements.Elements || rule.Type == requirements.Difficulty {
 			rule.Min, rule.Max = floatField(p+"min"), floatField(p+"max")
 		}
+		// Must include and must not include have no numbers to give.
+		one, none := 1.0, 0.0
+		switch kind {
+		case "include":
+			rule.Min, rule.Max = &one, nil
+		case "exclude":
+			rule.Min, rule.Max = nil, &none
+		}
 		if rule.Type == requirements.Difficulty {
 			rule.Cap = floatField(p + "cap")
 		}
@@ -135,8 +156,8 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 		}
 		// A rule whose kind was just changed starts from that kind's defaults,
 		// keeping its wording and, where the new kind has one, its matcher.
-		if was := r.FormValue(p + "was"); was != "" && was != rule.Type {
-			fresh := newRule(rule.Type)
+		if was := r.FormValue(p + "was"); was != "" && was != kind {
+			fresh := newRule(kind)
 			fresh.Label = rule.Label
 			if fresh.Match != nil && rule.Match != nil {
 				fresh.Match = rule.Match
@@ -148,9 +169,19 @@ func parseSetForm(r *http.Request) (requirements.Set, []string) {
 	return set, problems
 }
 
-// newRule is a rule of the given type with sensible starting values.
-func newRule(ruleType string) requirements.Rule {
-	one, ten := 1.0, 10.0
+// newRule is a rule of the given kind (requirements.RuleKinds, or a rule
+// type) with sensible starting values.
+func newRule(kind string) requirements.Rule {
+	one, two, ten, none := 1.0, 2.0, 10.0, 0.0
+	switch kind {
+	case "include":
+		return requirements.Rule{Type: requirements.Count, Match: &requirements.Matcher{}, Min: &one}
+	case "exclude":
+		return requirements.Rule{Type: requirements.Count, Match: &requirements.Matcher{}, Max: &none}
+	case "count":
+		return requirements.Rule{Type: requirements.Count, Match: &requirements.Matcher{}, Min: &two}
+	}
+	ruleType := requirements.KindType(kind)
 	switch ruleType {
 	case requirements.Count:
 		return requirements.Rule{Type: ruleType, Match: &requirements.Matcher{}, Min: &one}
@@ -179,7 +210,7 @@ func newRule(ruleType string) requirements.Rule {
 // "add-element:3", "delete-element:3:1", "add-option:3", "delete-option:3:0",
 // "add-step:3:0", "delete-step:3:0:1") or the "Add a rule" choice to a set.
 func applySetAction(set *requirements.Set, action, add string) {
-	if slices.Contains(requirements.RuleTypes, add) {
+	if add != "" && slices.Contains(requirements.RuleTypes, requirements.KindType(add)) {
 		set.Rules = append(set.Rules, newRule(add))
 	}
 	parts := strings.Split(action, ":")
