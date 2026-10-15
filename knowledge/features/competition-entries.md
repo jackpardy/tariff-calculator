@@ -562,7 +562,7 @@ are then filled flight by flight.
   avoids someone coaching while they compete (as costly as a broken
   prefer), and the report lists it ("Ann coaches in L2 while competing in
   L1"). The keys saved in seats and rules stay as they were; only the
-  working out sees them as one (`samePeople` in `web/timetablepages.go`).
+  working out sees them as one (`samePeople` in `web/personkeys.go`).
 - **The report:** for each day, when its flights end, when it finishes
   (blocked time such as awards included) against its end, and the time free
   after the last flight that isn't blocked off for the whole venue (room for
