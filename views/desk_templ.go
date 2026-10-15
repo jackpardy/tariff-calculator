@@ -282,7 +282,7 @@ func Desk(p DeskPage) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</select></div><div class=\"mb-3 ml-4\"><input type=\"hidden\" name=\"flightChoice\" value=\"1\"> <label class=\"checkbox mr-3\"><input type=\"checkbox\" name=\"flightGymnasts\" value=\"1\" checked> Its gymnasts</label> <label class=\"checkbox\"><input type=\"checkbox\" name=\"flightOfficials\" value=\"1\"> Its officials</label></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</select></div><div class=\"mb-3 ml-4\"><input type=\"hidden\" name=\"flightChoice\" value=\"1\"> <label class=\"checkbox comp-check mr-3\"><input type=\"checkbox\" name=\"flightGymnasts\" value=\"1\" checked> Its gymnasts</label> <label class=\"checkbox comp-check\"><input type=\"checkbox\" name=\"flightOfficials\" value=\"1\"> Its officials</label></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -442,7 +442,7 @@ func Desk(p DeskPage) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "</div><div class=\"field\"><label class=\"label is-small\" for=\"desk-text\">Message</label> <textarea class=\"textarea\" id=\"desk-text\" name=\"text\" rows=\"3\" maxlength=\"500\" placeholder=\"e.g. Panel 2 is running 15 minutes late\"></textarea></div><div class=\"field\"><label class=\"checkbox\"><input type=\"checkbox\" name=\"come\" value=\"1\"> Ask them to come to the organisers' desk</label></div><button class=\"button is-primary\" type=\"submit\">Send now</button><p class=\"help\">It goes at once by push and email to those who asked to hear about this competition, and shows on each person's own page for those who didn't.</p></form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "</div><div class=\"field\"><label class=\"label is-small\" for=\"desk-text\">Message</label> <textarea class=\"textarea\" id=\"desk-text\" name=\"text\" rows=\"3\" maxlength=\"500\" placeholder=\"e.g. Panel 2 is running 15 minutes late\"></textarea></div><div class=\"field\"><label class=\"checkbox comp-check\"><input type=\"checkbox\" name=\"come\" value=\"1\"> Ask them to come to the organisers' desk</label></div><button class=\"button is-primary\" type=\"submit\">Send now</button><p class=\"help\">It goes at once by push and email to those who asked to hear about this competition, and shows on each person's own page for those who didn't.</p></form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

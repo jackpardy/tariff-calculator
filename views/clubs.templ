@@ -250,6 +250,8 @@ templ clubFrame(c ClubPage) {
 	@competitionLayout(c.Name) {
 		<h1 class="title is-4">{ c.Name }</h1>
 		@pageMenu(c.Menu)
+		// Saves the admin link in this browser whenever it's opened (static/js/competitions.js).
+		<span hidden data-club-page={ c.Base } data-club-name={ c.Name }></span>
 		if c.New != "" && c.AdminLink != "" {
 			<div class="notification is-warning is-light">
 				<p class="mb-2">
@@ -599,7 +601,7 @@ templ ClubSettings(c ClubPage) {
 			<p class="help">If the admin link has been shared too widely. The old one stops working.</p>
 		</form>
 		<form method="post" action={ templ.SafeURL(c.Base + "/delete") }>
-			<label class="checkbox is-size-7">
+			<label class="checkbox comp-check is-size-7">
 				<input type="checkbox" name="confirm" value="1" required/>
 				Delete the club, its members and their entries, now
 			</label>

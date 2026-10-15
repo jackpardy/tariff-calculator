@@ -423,7 +423,7 @@ templ NewCompetition(f CompetitionForm) {
 				<p class="help">Until then, the club and individual links show the competition's name and date, and when entries open, so you can share them early.</p>
 			</fieldset>
 			<div class="field">
-				<label class="checkbox">
+				<label class="checkbox comp-check">
 					<input type="checkbox" name="individuals" value="1" checked?={ f.Individuals }/>
 					Gymnasts can also enter on their own, not only through a club
 				</label>
@@ -485,6 +485,10 @@ templ CompetitionDashboard(d Dashboard) {
 	@competitionLayout(d.Competition.Name) {
 		<h1 class="title is-4">{ d.Competition.Name }</h1>
 		@pageMenu(d.Menu)
+		if d.Access.Organiser {
+			// Saves the admin link in this browser whenever it's opened (static/js/competitions.js).
+			<span hidden data-competition-page={ d.Base } data-competition-name={ d.Competition.Name }></span>
+		}
 		if d.New != "" && d.Links.Admin != "" {
 			@newAdminLink(d.Competition, d.Links.Admin, d.New)
 		}

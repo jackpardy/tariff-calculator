@@ -88,6 +88,15 @@
 .checkbox {
     margin-right: 1.5rem;
 }
+/* A checkbox with a sentence: a space after the box, and a long label wraps
+   in line with its first word, not under the box. */
+.checkbox.comp-check {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.5em;
+}
+.checkbox.comp-check input { flex: none; margin-top: 0.3em; }
+.field .checkbox.comp-check { display: flex; }
 
 /* Styling for validation message area */
 .validation-messages {

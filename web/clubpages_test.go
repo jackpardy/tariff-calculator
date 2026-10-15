@@ -2,10 +2,13 @@ package web
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/chromedp/chromedp"
 )
 
 // redirected posts a form and returns where it redirects, failing otherwise.
@@ -251,5 +254,37 @@ func TestClubEntriesSearch(t *testing.T) {
 	}
 	if strings.Join(names, ", ") != "Éabha Kelly, Tadhg Ryan" {
 		t.Errorf("the rows, by name: %v", names)
+	}
+}
+
+// The organiser's and comp sec's pages save their links in the browser when
+// they're opened, not only when they're made; a helper's link, or a page
+// opened through someone's own link, never.
+func TestAdminLinksSavedWhenOpened(t *testing.T) {
+	ctx := browser(t)
+	s := newTestServer(t, atTime(dayBefore))
+	admin := withoutQuery(created(t, s.h, newCompetition()))
+	helper := madeLink(t, s.h, admin, "Mary", "everything")
+	club := aClub(t, s.h, admin, "UCD", false)
+	srv := httptest.NewServer(s.h)
+	defer srv.Close()
+
+	saved := func(key string) string {
+		t.Helper()
+		var links string
+		step(t, ctx, "reading "+key, chromedp.Evaluate(`localStorage.getItem('`+key+`') || ''`, &links))
+		return links
+	}
+	step(t, ctx, "opening the helper's link", chromedp.Navigate(srv.URL+helper), chromedp.WaitReady(`body`, chromedp.ByQuery))
+	if got := saved("trampolineCompetitions"); got != "" {
+		t.Errorf("a helper's link isn't saved: %s", got)
+	}
+	step(t, ctx, "opening the organiser's page", chromedp.Navigate(srv.URL+admin), chromedp.WaitReady(`body`, chromedp.ByQuery))
+	if got := saved("trampolineCompetitions"); !strings.Contains(got, `"url":"`+srv.URL+admin+`"`) || !strings.Contains(got, `"name":"Student Open"`) {
+		t.Errorf("the organiser's link is saved: %s", got)
+	}
+	step(t, ctx, "opening the club's page", chromedp.Navigate(srv.URL+club.page+"/members"), chromedp.WaitReady(`body`, chromedp.ByQuery))
+	if got := saved("trampolineClubs"); !strings.Contains(got, `"url":"`+srv.URL+club.page+`"`) || !strings.Contains(got, `"name":"UCD"`) {
+		t.Errorf("the comp sec's link is saved: %s", got)
 	}
 }

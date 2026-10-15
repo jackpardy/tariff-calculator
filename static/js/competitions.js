@@ -60,6 +60,14 @@
         if (coach) { keepLink(linkKeys.coaches, coach.dataset.coachName, coach.dataset.coachLink); }
         const gymnast = document.querySelector('[data-gymnast-link]');
         if (gymnast) { keepLink(linkKeys.gymnasts, gymnast.dataset.gymnastName, gymnast.dataset.gymnastLink); }
+        // An organiser's or comp sec's admin page saves its link whenever it's
+        // opened, as the other pages do; never a helper's link or a page opened
+        // through someone's own link (a "~" in the path), which isn't theirs to keep.
+        if (location.pathname.includes('~')) { return; }
+        const competition = document.querySelector('[data-competition-page]');
+        if (competition) { keepLink(linkKeys.competitions, competition.dataset.competitionName, location.origin + competition.dataset.competitionPage); }
+        const clubPage = document.querySelector('[data-club-page]');
+        if (clubPage) { keepLink(linkKeys.clubs, clubPage.dataset.clubName, location.origin + clubPage.dataset.clubPage); }
     }
 
     // linkItem is a list item linking to a saved link.
