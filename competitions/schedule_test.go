@@ -319,7 +319,6 @@ func TestScheduleEdits(t *testing.T) {
 		t.Fatalf("a fresh plan has no problems: %v", p)
 	}
 	l1, _ := s.Find("L1#0")
-	l2, _ := s.Find("L2#0")
 	// Moving L2's gymnast into L1 makes L1 longer; times are worked out again.
 	before := s.Flights[l1].End
 	if !s.MoveEntry("L2#0", l1) {
@@ -330,7 +329,7 @@ func TestScheduleEdits(t *testing.T) {
 		t.Errorf("L1 is five minutes longer: %s → %s", Clock(before), Clock(s.Flights[l1].End))
 	}
 	// Moving L2 onto L1's panel puts it after L1, clear of lunch.
-	l2, _ = s.Find("L2#1")
+	l2, _ := s.Find("L2#1")
 	if !s.MoveFlight(l2, 0, s.Flights[l1].Area) {
 		t.Fatal("moved the flight")
 	}

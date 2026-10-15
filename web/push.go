@@ -17,7 +17,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 	"net/url"
 	"strings"
@@ -203,20 +202,6 @@ func vapidToken(key *ecdsa.PrivateKey, audience, subject string, now time.Time) 
 	r.FillBytes(sig[:32])
 	s.FillBytes(sig[32:])
 	return signing + "." + enc.EncodeToString(sig), nil
-}
-
-// verifyVapidToken checks a token's signature, for tests.
-func verifyVapidToken(pub *ecdsa.PublicKey, token string) bool {
-	i := strings.LastIndex(token, ".")
-	if i < 0 {
-		return false
-	}
-	sig, err := base64.RawURLEncoding.DecodeString(token[i+1:])
-	if err != nil || len(sig) != 64 {
-		return false
-	}
-	digest := sha256.Sum256([]byte(token[:i]))
-	return ecdsa.Verify(pub, digest[:], new(big.Int).SetBytes(sig[:32]), new(big.Int).SetBytes(sig[32:]))
 }
 
 // handleServiceWorker serves the service worker at the site's root, so it

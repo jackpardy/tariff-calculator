@@ -196,16 +196,6 @@ func (s *Store) AddOfficial(ctx context.Context, competitionID, name, club strin
 	return out, err
 }
 
-// UpdateOfficial changes what a person the organiser added can do.
-func (s *Store) UpdateOfficial(ctx context.Context, competitionID, id string, o competitions.Offer) error {
-	data, err := json.Marshal(o)
-	if err != nil {
-		return err
-	}
-	return affected(s.db.ExecContext(ctx, `UPDATE officials SET offer = $1, updated_at = $2 WHERE competition_id = $3 AND id = $4 AND added`,
-		string(data), s.stamp(), competitionID, id))
-}
-
 // SetQualified marks an official qualified to judge, or not.
 func (s *Store) SetQualified(ctx context.Context, competitionID, id string, qualified bool) error {
 	return affected(s.db.ExecContext(ctx, `UPDATE officials SET qualified = $1 WHERE competition_id = $2 AND id = $3`, qualified, competitionID, id))

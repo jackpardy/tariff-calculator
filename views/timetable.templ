@@ -1,6 +1,7 @@
 package views
 
 import (
+	"tariffCalculator/static"
 	"strings"
 	"fmt"
 	"strconv"
@@ -151,6 +152,7 @@ type FlightOption struct {
 // CompetitionTimetable is the organiser's timetable page.
 templ CompetitionTimetable(p TimetablePage) {
 	@competitionLayout("Timetable · " + p.Competition.Name) {
+		@moveOptions(p.Moves)
 		<h1 class="title is-4">Timetable</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		@pageMenu(p.Menu)
@@ -711,7 +713,21 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 	</details>
 }
 
-// moveGymnast moves a gymnast to another flight, or out of the timetable.
+// moveOptions are the flights a gymnast can move to, once for the page: each
+// gymnast's move dropdown fills its list from them when opened
+// (static/js/moves.js), where repeating them in every dropdown made the page
+// several megabytes.
+templ moveOptions(moves []FlightOption) {
+	<template id="move-options">
+		for _, o := range moves {
+			<option value={ o.Value }>{ o.Label }</option>
+		}
+	</template>
+	<script defer src={ static.URL("js/moves.js") }></script>
+}
+
+// moveGymnast moves a gymnast to another flight, or out of the timetable. Its
+// list of flights is filled from moveOptions when the dropdown opens.
 templ moveGymnast(p TimetablePage, g TimetableGymnast, named bool) {
 	<form method="post" action={ templ.SafeURL(p.Base + "/timetable/entry") } class="comp-move-form">
 		<input type="hidden" name="entry" value={ g.ID }/>
@@ -719,10 +735,8 @@ templ moveGymnast(p TimetablePage, g TimetableGymnast, named bool) {
 			<span class="is-size-7">{ g.Name } <span class="has-text-grey">{ g.Club } { g.Category }</span></span>
 		}
 		<div class="select is-small">
-			<select name="to" aria-label={ "Flight for " + g.Name }>
-				for _, o := range p.Moves {
-					<option value={ o.Value }>{ o.Label }</option>
-				}
+			<select name="to" aria-label={ "Flight for " + g.Name } data-moves>
+				<option value="" disabled selected>Choose a flight</option>
 				<option value="">Take out of the timetable</option>
 			</select>
 		</div>

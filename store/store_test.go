@@ -965,10 +965,6 @@ func TestOfficials(t *testing.T) {
 	if len(list) != 3 {
 		t.Fatalf("A, I and J: %+v", list)
 	}
-	must(t, s.UpdateOfficial(ctx, c.ID, added.ID, competitions.Offer{Marshal: true}))
-	if err := s.UpdateOfficial(ctx, c.ID, list[0].ID, competitions.Offer{}); !errors.Is(err, ErrNotFound) {
-		t.Error("the organiser changes only the people they added")
-	}
 	if err := s.RemoveOfficial(ctx, c.ID, list[0].ID); !errors.Is(err, ErrNotFound) {
 		t.Error("people who offered themselves can't be removed by the organiser")
 	}

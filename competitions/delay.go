@@ -339,16 +339,6 @@ func (s Schedule) afterBlocks(day int, area string, t, length int) int {
 	return t
 }
 
-// blockEnding names the blocked time on an area ending at t.
-func (s Schedule) blockEnding(day int, area string, t int) string {
-	for _, b := range s.Blocks {
-		if b.Day == day && b.End == t && slices.Contains(b.Areas, area) {
-			return b.Name
-		}
-	}
-	return ""
-}
-
 // who are a flight's people: its gymnasts and officials.
 func (s Schedule) who(i int, people map[string][]string) []string {
 	var out []string
