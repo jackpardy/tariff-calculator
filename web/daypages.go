@@ -257,12 +257,12 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 			case !t.Started.IsZero():
 				df.Undo = "undo-start"
 			}
-			df.Checkin, df.Gymnasts = checkinOf(f, byID, checkins, keys, notify)
+			df.Gymnasts = checkinOf(f, byID, checkins, keys, notify)
 			if df.CanFinish {
 				up, tapped := ups[df.Key]
 				df.Up = dayUp(c.Competition, f, byID, scratched, up, tapped)
 			}
-			df.Panel, df.Seats = panelOf(f, day, nameOf, inClub, official[competitions.FlightKey(f)], whatIf, notify)
+			df.Seats = panelOf(f, day, nameOf, inClub, official[competitions.FlightKey(f)], whatIf, notify)
 			area.Flights = append(area.Flights, df)
 		}
 		marked := slices.ContainsFunc(area.Flights, func(f views.DayFlight) bool { return f.Started != "" || f.Finished != "" })

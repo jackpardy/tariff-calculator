@@ -113,6 +113,7 @@ type OfficialRow struct {
 	ID, Name, Club, Source, Offer string
 	Person                        string // their page
 	Qualified, Added              bool
+	Who                           Role    // who they are on a seat: a gymnast, a club's judge or the organiser's own
 	List                          ListRow // what the People list's search and filters see
 }
 
@@ -197,7 +198,7 @@ templ CompetitionOfficials(p OfficialsPage) {
 								<tr { o.List.Attrs()... }>
 									<td>
 										<a href={ templ.SafeURL(o.Person) }>{ o.Name }</a>
-										<span class="has-text-grey is-size-7">· { o.Source }</span>
+										@WhoChip(o.Who, o.Source)
 									</td>
 									<td data-label="Club">{ o.Club }</td>
 									<td class="comp-wrap" data-label="Can do">{ o.Offer }</td>

@@ -155,7 +155,7 @@ func TestDayPageUpdatesInPlace(t *testing.T) {
 	)
 	step(t, ctx, "tapping Here and waiting for its tag",
 		chromedp.Click(here, chromedp.ByQuery),
-		chromedp.WaitVisible(checkin+` .tag.is-success`, chromedp.ByQuery),
+		chromedp.WaitVisible(checkin+` .chip-state-done`, chromedp.ByQuery),
 	)
 	step(t, ctx, "reading the page after the tap",
 		chromedp.Evaluate(`window.scrollY`, &scrolledAfter),

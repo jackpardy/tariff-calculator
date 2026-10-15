@@ -47,6 +47,7 @@ type SeatView struct {
 	Role, Person, Name, Club string
 	Label                    string // e.g. "Execution judge 3", to choose it by
 	Here                     bool   // checked in for the panel on the day
+	Who                      Role   // who fills it: a gymnast, a club's judge or the organiser's own
 }
 
 // SetupForm is the timetable's setup, as the forms show it.
@@ -592,7 +593,9 @@ templ rotaReport(p TimetablePage) {
 		if p.Rota.People == 0 {
 			<p class="help">No one has offered to judge or help yet. Clubs send their members' offers with their entries, and you can add people on the Officials page.</p>
 		} else if len(p.Rota.Short) == 0 {
-			<p class="has-text-success is-size-7 mt-1">Every seat on every panel is filled.</p>
+			<p class="is-size-7 mt-1">
+				@StateChip(Done, "Every seat on every panel is filled")
+			</p>
 		}
 		if len(p.Rota.Short) > 0 {
 			<details class="mt-2">
@@ -660,7 +663,9 @@ templ reportView(r ReportView) {
 				}
 			</div>
 		} else {
-			<p class="has-text-success mb-2"><strong>Everything fits.</strong></p>
+			<p class="mb-2">
+				@StateChip(Done, "Everything fits")
+			</p>
 		}
 		@problemsList("Manual changes have broken", r.Problems)
 		@problemsList("Less rest than wanted", r.ShortRest)
@@ -707,7 +712,7 @@ templ flightBox(p TimetablePage, f ItemView) {
 							{ g.Name }
 							<span class="has-text-grey is-size-7">{ g.Club }</span>
 							if g.Moved != "" {
-								<span class="tag is-warning is-light">now { g.Moved }</span>
+								@StateChip(Attention, "Now "+g.Moved)
 							}
 						</span>
 						<details class="comp-move">
@@ -774,9 +779,10 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 				<li { seatRow(s)... }>
 					{ s.Role }:
 					if s.Person == "" {
-						<span class="has-text-danger">no one</span>
+						@StateChip(Attention, "No one")
 					} else {
 						{ s.Name } <span class="has-text-grey">{ s.Club }</span>
+						@WhoChip(s.Who, "")
 					}
 				</li>
 			}

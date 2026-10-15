@@ -427,6 +427,7 @@ pieces come first, so skill tracking (ADR 0011) uses them from the start; the
 competition side's day check-in, entry rows and rota seats follow in the
 dry-run work, and the rest after it. The plan is in
 [the cleanup audit](audits/2026-10-cleanup.md#colour-and-status-added-15-october-2026).
+The shared pieces and the dry-run pages are **built 2026-10-15**.
 
 **Ready for the dry run (decided 2026-10-09).** A dry run of the core tools,
 entries through to the day, with about 20 people from 3 clubs, is planned for
@@ -463,6 +464,11 @@ December. Before it:
   the phone with the time they were tapped, and sent when the signal
   comes back; and a way to correct a start or finish time afterwards,
   for when the paper sheet was used instead.
+- **One palette on the day's pages**: **built 2026-10-15.** On the day
+  (flights, check-in, panels and their empty seats), the dashboard's and the
+  club's entry rows and who fills each rota seat show states and roles with
+  the shared chips, and a test keeps Bulma's colours off them
+  ([what each shows](features/competition-entries.md#states-and-roles-on-the-pages-one-palette-step-2)).
 - **A load test**: a script acting as 300 people against a test copy on
   the server, to get real numbers before the dry run.
 

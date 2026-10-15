@@ -608,11 +608,10 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .comp-coaches tbody tr:last-child td { padding-top: 0; padding-bottom: 0.75rem; border-bottom-width: 2px; }
 /* A comp sec's entries: the status says a lot, so it wraps rather than pushing the table wider. */
 .comp-club-entries td:nth-child(4) { white-space: normal; min-width: 10rem; }
-/* The entries table has a tick box first: its problems are marked by class. */
+/* The entries table has a tick box first; its problems say so with a chip, not red text. */
 .comp-entries td:nth-child(6) { white-space: nowrap; min-width: 0; }
 .comp-entries tr.has-problems td:nth-child(6) { color: inherit; }
 .comp-entries td.comp-problem-cell { white-space: normal; min-width: 12rem; }
-.comp-entries tr.has-problems td.comp-problem-cell { color: #cc0f35; }
 .comp-skills tr.not-counted td { color: #999; text-decoration: line-through; }
 .comp-results { list-style: none; margin: 0; font-size: 0.9rem; }
 .comp-results .is-unmet { color: #cc0f35; }
@@ -748,7 +747,7 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
    Here and Scratched so it isn't tapped by mistake. */
 .comp-day-tabs a, .comp-day-links .button, #day-areas .button, #day-warnings .button, .comp-tap-link { min-height: 2.5rem; }
 .comp-tap-link { display: inline-flex; align-items: center; }
-#day-areas .comp-checkin > summary { display: flex; align-items: center; min-height: 2.5rem; }
+#day-areas .comp-checkin > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; min-height: 2.5rem; }
 .comp-notify > summary { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 0.75rem; margin: 0.5rem 0 0.25rem; border: 1px solid #dbdbdb; border-radius: 4px; }
 .comp-notify .input { min-height: 2.5rem; }
 .comp-notify .checkbox { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2.5rem; }
@@ -928,6 +927,10 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 }
 .chip { display: inline-flex; align-items: baseline; gap: 0.3em; font-size: 0.8em; font-weight: 600; line-height: 1.4; padding: 0.1em 0.6em; border-radius: 999px; white-space: nowrap; vertical-align: baseline; }
 .chip-mark { font-weight: 700; }
+/* A chip after a name or another chip keeps a gap from it; in a flex row, the row's gap
+   does that instead. */
+* + .chip { margin-left: 0.3em; }
+#day-areas .comp-checkin > summary > .chip { margin-left: 0; }
 .chip-state-not-yet { color: var(--state-not-yet-ink); background: var(--state-not-yet-bg); }
 .chip-state-in-progress { color: var(--state-in-progress-ink); background: var(--state-in-progress-bg); }
 .chip-state-done { color: var(--state-done-ink); background: var(--state-done-bg); }

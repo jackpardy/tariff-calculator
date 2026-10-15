@@ -8,10 +8,12 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
 	"tariffCalculator/store"
+	"tariffCalculator/views"
 )
 
 func TestCoachSignoff(t *testing.T) {
@@ -90,8 +92,8 @@ func TestCoachSignoff(t *testing.T) {
 		t.Error("the member sees who signed it off")
 	}
 	clubPage := do(t, h, http.MethodGet, club, nil).Body.String()
-	if !strings.Contains(clubPage, "Signed off by Bob") || !strings.Contains(clubPage, "Waiting for a coach") {
-		t.Error("the comp sec sees each entry's sign-off")
+	if x, y := rowOf(t, clubPage, "X"), rowOf(t, clubPage, "Y"); !strings.HasSuffix(x[3], "Signed off Coach · Bob") || !strings.HasSuffix(y[3], "Waiting for sign-off") {
+		t.Errorf("the comp sec sees each entry's sign-off: %q, %q", x, y)
 	}
 	// The comp sec and the coaches count an entry's problems as the
 	// organiser does: Y's missing sign-off is one more than X, signed off,
@@ -105,7 +107,7 @@ func TestCoachSignoff(t *testing.T) {
 		}
 		return "no row"
 	}
-	if y, x := problems(clubPage, "Y"), problems(clubPage, "X"); y != "3" || x != "2" {
+	if y, x := problems(clubPage, "Y"), problems(clubPage, "X"); y != "3 problems" || x != "2 problems" {
 		t.Errorf("the comp sec's problems: Y %s, X %s", y, x)
 	}
 	if y, x := problems(do(t, h, http.MethodGet, ann, nil).Body.String(), "Y"), problems(do(t, h, http.MethodGet, ann, nil).Body.String(), "X"); y != "3" || x != "2" {
@@ -113,7 +115,7 @@ func TestCoachSignoff(t *testing.T) {
 	}
 	redirected(t, h, formAction(t, clubPage, club+"/competitions/"), url.Values{"which": {"all"}})
 	dash = do(t, h, http.MethodGet, admin, nil).Body.String()
-	if !strings.Contains(dash, "<th>Coach</th>") || !strings.Contains(dash, "✓ Bob") || !strings.Contains(dash, "not signed off") {
+	if !strings.Contains(dash, "<th>Coach</th>") || !slices.Contains(rowOf(t, dash, "X"), "Signed off Coach · Bob") || !slices.Contains(rowOf(t, dash, "Y"), "Waiting for sign-off") {
 		t.Error("the organiser sees who signed off, and the entry without one flagged")
 	}
 	yEntry := regexp.MustCompile(`href="(` + regexp.QuoteMeta(admin) + `/entries/[^"]+)">Y</a>`).FindStringSubmatch(dash)[1]
@@ -185,7 +187,7 @@ func TestIndividualSignoff(t *testing.T) {
 	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Signed off by Coach C") {
 		t.Error("the individual sees it signed off")
 	}
-	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, "✓ Coach C") {
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, chip(t, views.Done, "Signed off")) || !strings.Contains(dash, "· Coach C") {
 		t.Error("the organiser sees it signed off")
 	}
 	if cards := do(t, h, http.MethodGet, admin+"/cards", nil).Body.String(); !strings.Contains(cards, `aria-label="Coach" value="Coach C"`) {

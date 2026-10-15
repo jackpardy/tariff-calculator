@@ -61,10 +61,8 @@ type DayFlight struct {
 	CanStart  bool   // not started yet
 	CanFinish bool   // started, not finished
 	Undo      string // what Undo takes back: undo-finish or undo-start; "" for nothing
-	Checkin   string // e.g. "8 of 10 here, 1 scratched"
 	Gymnasts  []DayGymnast
-	Panel     string // e.g. "4 of 6 here, 1 missing"; "" if no one has a seat
-	Seats     []DaySeat
+	Seats     []DaySeat // its panel's seats, filled or not
 	Up        *DayUp // who's up now, for the marshal to tap on; nil unless it's running
 }
 
@@ -91,7 +89,8 @@ type DayNotify struct {
 	Club   bool   // they belong to a club, so "Their club" is offered
 }
 
-// DaySeat is an official in a flight's panel check-in.
+// DaySeat is a seat in a flight's panel check-in: its official, or no one
+// (Person "").
 type DaySeat struct {
 	Person, Name, Role string
 	State              string // "here", "missing" or "" for not marked
@@ -216,10 +215,106 @@ func dayNames(p DayPage) int {
 	n := 0
 	for _, a := range p.Areas {
 		for _, f := range a.Flights {
-			n += len(f.Gymnasts) + len(f.Seats)
+			n += len(f.Gymnasts) + seatCount(f.Seats).Of
 		}
 	}
 	return n
+}
+
+// areaState is how an area is running, for its chip: running late needs
+// looking at; on time or early, measured from times marked today, is fine;
+// otherwise (times marked on another date) it isn't measured.
+func areaState(a DayArea) State {
+	switch {
+	case a.Late:
+		return Attention
+	case a.Since != "":
+		return Done
+	}
+	return NotYet
+}
+
+// flightState is a flight's state and its label: not started, under way
+// (running late if its area is), or finished.
+func flightState(a DayArea, f DayFlight) (State, string) {
+	switch {
+	case f.Finished != "":
+		return Done, "Finished"
+	case f.Started != "" && a.Late:
+		return Attention, "Running late"
+	case f.Started != "":
+		return InProgress, "Under way"
+	}
+	return NotYet, "Not started"
+}
+
+// checkinState is a gymnast's or official's check-in, and its label.
+func checkinState(state string) (State, string) {
+	switch state {
+	case "here":
+		return Done, "Here"
+	case "scratched":
+		return Stopped, "Scratched"
+	case "missing":
+		return Stopped, "Missing"
+	}
+	return NotYet, "Not yet"
+}
+
+// checkCount is a flight's check-in, or its panel's, counted: of the
+// people, how many are here and how many out (OutWord: scratched or
+// missing); and, for a panel, how many seats have no one.
+type checkCount struct {
+	Of, Here, Out, Empty int
+	OutWord              string
+}
+
+func checkinCount(gs []DayGymnast) checkCount {
+	c := checkCount{Of: len(gs), OutWord: "scratched"}
+	for _, g := range gs {
+		switch g.State {
+		case "here":
+			c.Here++
+		case "scratched":
+			c.Out++
+		}
+	}
+	return c
+}
+
+func seatCount(ss []DaySeat) checkCount {
+	c := checkCount{OutWord: "missing"}
+	for _, s := range ss {
+		switch {
+		case s.Person == "":
+			c.Empty++
+			continue
+		case s.State == "here":
+			c.Here++
+		case s.State == "missing":
+			c.Out++
+		}
+		c.Of++
+	}
+	return c
+}
+
+// countChips shows a check-in's counts: how many are here (done once
+// everyone is here or out), how many out, and the seats that need someone.
+templ countChips(c checkCount) {
+	if c.Of > 0 {
+		if c.Here+c.Out == c.Of {
+			@StateChip(Done, strconv.Itoa(c.Here)+" of "+strconv.Itoa(c.Of)+" here")
+		} else {
+			@StateChip(NotYet, strconv.Itoa(c.Here)+" of "+strconv.Itoa(c.Of)+" here")
+		}
+	}
+	if c.Out > 0 {
+		@StateChip(Stopped, strconv.Itoa(c.Out)+" "+c.OutWord)
+	}
+	if c.Empty > 0 {
+		@StateChip(Attention, Count(c.Empty, "seat needs someone", "seats need someone"))
+	}
 }
 
 // stillHereForm is the button that clears a kind of scratch warning: the
@@ -241,15 +336,9 @@ templ dayArea(p DayPage, a DayArea) {
 		<h2 class="title is-5 mb-1">{ a.Name }</h2>
 		<p class="mb-3">
 			if a.Status == "" {
-				<span class="tag is-light">Nothing started yet</span>
-			} else if a.Late {
-				<span class="tag is-warning">{ a.Status }</span>
-			} else if a.Early {
-				<span class="tag is-info is-light">{ a.Status }</span>
-			} else if a.Since == "" {
-				<span class="tag is-light">{ a.Status }</span>
+				@StateChip(NotYet, "Nothing started yet")
 			} else {
-				<span class="tag is-success is-light">{ a.Status }</span>
+				@StateChip(areaState(a), a.Status)
 			}
 			if a.Since != "" {
 				<span class="is-size-7 has-text-grey">{ a.Since }</span>
@@ -260,7 +349,7 @@ templ dayArea(p DayPage, a DayArea) {
 		}
 		for _, f := range a.Flights {
 			<div class="box comp-flight" id={ f.ID } data-list-group>
-				<p class="mb-1"><strong>{ f.Name }</strong></p>
+				<p class="mb-1"><strong>{ f.Name }</strong> @StateChip(flightState(a, f))</p>
 				<p class="is-size-7 mb-1">Planned { f.Planned }</p>
 				<p class="is-size-7 mb-2">
 					Started
@@ -300,18 +389,17 @@ templ dayArea(p DayPage, a DayArea) {
 				}
 				if len(f.Gymnasts) > 0 {
 					<details class="comp-checkin mt-2" data-key={ "checkin:" + f.Key } data-list-group>
-						<summary class="is-size-7">Check-in · { f.Checkin }</summary>
+						<summary class="is-size-7">
+							Check-in ·
+							@countChips(checkinCount(f.Gymnasts))
+						</summary>
 						for _, g := range f.Gymnasts {
 							<div class="comp-checkin-row" { ListRow{Name: g.Name}.Attrs()... }>
 								<span class="comp-checkin-name">
 									@runNo(g.No)
 									<span class={ templ.KV("comp-scratched", g.State == "scratched") }>{ g.Name }</span>
 									<span class="has-text-grey is-size-7">{ g.Club }</span>
-									if g.State == "here" {
-										<span class="tag is-success is-light">Here</span>
-									} else if g.State == "scratched" {
-										<span class="tag is-danger is-light">Scratched</span>
-									}
+									@StateChip(checkinState(g.State))
 									if g.Who != "" {
 										<span class="has-text-grey is-size-7">{ g.Who }</span>
 									}
@@ -338,17 +426,25 @@ templ dayArea(p DayPage, a DayArea) {
 				}
 				if len(f.Seats) > 0 {
 					<details class="comp-checkin mt-2" data-key={ "panel:" + f.Key } data-list-group>
-						<summary class="is-size-7">Panel · { f.Panel }</summary>
+						<summary class="is-size-7">
+							Panel ·
+							@countChips(seatCount(f.Seats))
+						</summary>
 						for _, s := range f.Seats {
+							if s.Person == "" {
+								<div class="comp-checkin-row">
+									<span class="comp-panel-name">
+										<span class="has-text-grey is-size-7">{ s.Role }</span>
+										@StateChip(Attention, "Needs someone")
+									</span>
+								</div>
+								continue
+							}
 							<div class="comp-checkin-row" { ListRow{Name: s.Name}.Attrs()... }>
 								<span class="comp-panel-name">
 									<span>{ s.Name }</span>
 									<span class="has-text-grey is-size-7">{ s.Role }</span>
-									if s.State == "here" {
-										<span class="tag is-success is-light">Here</span>
-									} else if s.State == "missing" {
-										<span class="tag is-danger is-light">Missing</span>
-									}
+									@StateChip(checkinState(s.State))
 									if s.Who != "" {
 										<span class="has-text-grey is-size-7">{ s.Who }</span>
 									}
@@ -400,7 +496,7 @@ templ dayUp(p DayPage, f DayFlight) {
 				@runNo(f.Up.No)
 				<span class={ templ.KV("comp-scratched", f.Up.Scratched) }>{ f.Up.Name }</span>
 				if f.Up.Scratched {
-					<span class="tag is-danger is-light">Scratched</span>
+					@StateChip(Stopped, "Scratched")
 				}
 			</p>
 			<p class="mb-2">

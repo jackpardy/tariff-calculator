@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"tariffCalculator/store"
+	"tariffCalculator/views"
 
 	"github.com/chromedp/chromedp"
 )
@@ -110,12 +111,13 @@ func TestClubs(t *testing.T) {
 
 	// The comp sec sends it.
 	page = do(t, h, http.MethodGet, club, nil).Body.String()
-	if !strings.Contains(page, "Not sent") || !strings.Contains(page, "Send new and changed (1)") {
+	if !strings.Contains(page, chip(t, views.NotYet, "Not sent")) || !strings.Contains(page, "Send new and changed (1)") {
 		t.Error("the club page shows the entry not sent")
 	}
 	send := formAction(t, page, club+"/competitions/")
 	location = redirected(t, h, send, url.Values{"which": {"changed"}})
-	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Sent 1 entry to Student Open.") || !strings.Contains(page, "Send new and changed (0)") {
+	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Sent 1 entry to Student Open.") || !strings.Contains(page, "Send new and changed (0)") ||
+		!strings.Contains(page, chip(t, views.InProgress, "Sent")) {
 		t.Error("sent")
 	}
 	if dash := do(t, h, http.MethodGet, admin+"?club=UCD", nil).Body.String(); !strings.Contains(dash, "A. Murphy") {
@@ -134,7 +136,7 @@ func TestClubs(t *testing.T) {
 	if page := do(t, h, http.MethodGet, member, nil).Body.String(); !strings.Contains(page, "Changed since your club sent it") {
 		t.Error("the member sees it's changed since sent")
 	}
-	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, "Changed since sent") || !strings.Contains(page, "Send new and changed (1)") {
+	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, chip(t, views.Attention, "Changed since sent")) || !strings.Contains(page, "Send new and changed (1)") {
 		t.Error("the comp sec sees it's changed since sent")
 	}
 
@@ -169,11 +171,11 @@ func TestClubs(t *testing.T) {
 		withdraw += "/withdraw"
 	}
 	redirected(t, h, withdraw, url.Values{"confirm": {"1"}})
-	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, "Withdrawn (still sent)") {
+	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, chip(t, views.Stopped, "Withdrawn (still sent)")) {
 		t.Error("the comp sec sees the withdrawn entry is still with the competition")
 	}
 	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
-	if !strings.Contains(dash, `class="is-withdrawn"`) || !strings.Contains(dash, ">Withdrawn</span>") || !strings.Contains(dash, `<p class="heading">withdrawn</p>`) {
+	if !strings.Contains(dash, `class="is-withdrawn"`) || !strings.Contains(dash, chip(t, views.Stopped, "Withdrawn")) || !strings.Contains(dash, `<p class="heading">withdrawn</p>`) {
 		t.Error("the organiser sees the entry marked withdrawn until the club sends again")
 	}
 	if !strings.Contains(dash, `<p class="title is-4">0</p><p class="heading">entries</p>`) {

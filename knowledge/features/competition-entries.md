@@ -337,6 +337,27 @@ the page's address so a view can be kept or shared:
   [requirements](../requirements/framework.md) and the
   [level](../requirements/levels.md) carry-over between exercises.
 
+## States and roles on the pages (one palette, step 2)
+
+The pages the dry run leans on show each state with `views.StateChip` and
+who did something, or whose it is, with `views.WhoChip`
+([one palette](../architecture/rendering.md#states-and-roles-one-palette)),
+and no Bulma colour for a state (buttons keep theirs):
+
+| Page | States | Roles |
+|---|---|---|
+| On the day | each area's lateness (amber late, green on time or early, grey not started or not measured); each flight not started, under way, running late (under way in an area running late) or finished; each gymnast not yet, Here or Scratched, and each official not yet, Here or Missing; the Check-in and Panel headings count who's here (green once everyone is here or out) and out; a panel's seat no one is in, "Needs someone" | |
+| Dashboard | Checked; problems (amber, with how many); video missing, provided, OK or need more; sign-off signed off, waiting, needs changes or coach not approved; Withdrawn; and under Removed and on hold, Removed, On hold, and changed and sent again | the coach who signed off; an individual's entry, "Gymnast · on their own" |
+| One entry | Checked; the video review | |
+| The comp sec's entries | not sent grey, sent or on a waiting list blue, changed since sent or on hold amber, checked green, withdrawn or removed red (sent again after a hold, blue); problems and missing video amber; the sign-off | the coach who signed off |
+| A member's or individual's disciplines, and their competitions list | the same states in a word or two; problems; timetable published; a message from the organisers | |
+| The rota (timetable) and Officials | a seat with no one; every seat filled; everything fits; a gymnast moved since | who fills a seat or offered: a gymnast if they compete, else the organiser's own (added on the Officials page) or a club's judge (`seatRole`) |
+
+On the day, a panel now lists its empty seats too, once anyone has a seat on
+it (`panelOf`); the counts are worked out on the page from the rows
+(`checkinCount`, `seatCount`). `views/status_test.go` fails if these
+templates show a state in Bulma's colours again.
+
 ## One entry
 
 Both exercises are shown side by side, as in the builder's Levels mode: the

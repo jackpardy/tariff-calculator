@@ -167,9 +167,9 @@ func (p *competitionPages) gymnastCompetition(w http.ResponseWriter, r *http.Req
 		}
 		withSignoff(&shown, storedSignoff(c.Competition, e))
 		waiting := p.waitingOf(r.Context(), c.ID, e.ID)
-		word, class := brief(individualState(e, waiting.Waiting), len(shown.Problems), waiting.Waiting, "Entered")
+		word, state := brief(individualState(e, waiting.Waiting), len(shown.Problems), waiting.Waiting, "Entered")
 		gc.Events = append(gc.Events, views.GymnastEvent{
-			Row:     views.MemberEvent{Discipline: e.Entry.Discipline, Name: competitions.DisciplineName(e.Entry.Discipline), Level: e.Entry.Level, Brief: word, BriefClass: class, Status: "Entered " + e.SentAt.In(local).Format("2 January, 15:04")},
+			Row:     views.MemberEvent{Discipline: e.Entry.Discipline, Name: competitions.DisciplineName(e.Entry.Discipline), Level: e.Entry.Level, Brief: word, BriefState: state, Status: "Entered " + e.SentAt.In(local).Format("2 January, 15:04")},
 			Gymnast: e.Entry.Gymnast, Open: entryPath(token, e), Placement: placement(c, e.ID), Card: &shown,
 		})
 	}

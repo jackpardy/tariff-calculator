@@ -168,6 +168,12 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	keys := personKeys(live(entries))
+	competing := map[string]bool{}
+	for _, ps := range keys {
+		for _, k := range ps {
+			competing[k] = true
+		}
+	}
 	page := views.OfficialsPage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuOfficials), Notice: r.URL.Query().Get("notice"),
 		Judge: c.Officials.Judge, RecordersChange: c.Officials.RecordersChange, MarshalsChange: c.Officials.MarshalsChange, Add: offerForm(c.Competition, competitions.Offer{}, ""),
@@ -200,8 +206,9 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		clubFilter(clubs), canDoFilter(), judgesFilter(c.Competition), qualifiedFilter(),
 	}}
 	for _, o := range people {
+		key := officialKey(o, keys)
 		row := views.OfficialRow{ID: o.ID, Name: o.Name, Club: o.ClubName, Offer: o.Offer.Describe(), Qualified: o.Qualified, Added: o.Added,
-			Person: personPath(page.Base, officialKey(o, keys)),
+			Person: personPath(page.Base, key), Who: seatRole(key, competing[key]),
 			List: views.ListRow{Name: o.Name, Values: map[string][]string{
 				"club": {clubValue(o.ClubName)}, "can": canDo(o.Offer), "judges": judges(c.Competition, o.Offer), "qualified": {qualifiedValue(o.Qualified)},
 			}}}

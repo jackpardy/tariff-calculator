@@ -85,6 +85,7 @@ type ClubSendCoach struct {
 	ID, Name         string
 	Ticked           bool   // sent, or to send
 	Status           string // e.g. "Waiting for the organiser", "" if not sent
+	State            State  // Status's state
 	Approved         bool
 	Note             string // the organiser's
 	Changed          bool   // their qualifications changed since they were sent
@@ -100,6 +101,7 @@ type ClubOfferRow struct {
 type ClubEntryRow struct {
 	Member, Level string
 	Status        string // "Not sent", "Sent", "Changed since sent", "Withdrawn"
+	State         State  // Status's state
 	Problems      int
 	Edit          string // where the comp sec changes it, "" if they can't
 	Note          string // the organiser's note
@@ -169,7 +171,7 @@ type MemberEvent struct {
 	Level       string // the entry's, e.g. "BUCS L3"; "" before they enter
 	Status      string
 	Brief       string // the status in a word or two, for the list: "Checked", "2 problems"
-	BriefClass  string // the Bulma colour of Brief, e.g. "is-success"
+	BriefState  State  // Brief's state
 	Open        bool   // shown open: it has problems to fix, or the notice is about it
 	Waiting     string // on a waiting list, and where
 	Late        string // a late change, where it stands
@@ -316,18 +318,18 @@ templ ClubAdmin(c ClubPage) {
 												}
 											</td>
 											<td data-label="Level">{ row.Level }</td>
-											<td class={ templ.KV("has-text-danger", row.Problems > 0) } data-label="Problems">
+											<td data-label="Problems">
 												if row.Problems == 0 {
 													–
 												} else {
-													{ strconv.Itoa(row.Problems) }
+													@StateChip(Attention, Count(row.Problems, "problem", "problems"))
 												}
 											</td>
 											<td data-label="Status">
-												{ row.Status }
+												@StateChip(row.State, row.Status)
 												if row.Video != "" {
 													<br/>
-													<span class="is-size-7 has-text-danger">Video { row.Video }</span>
+													@StateChip(Attention, "Video "+row.Video)
 												}
 												if row.Flight != "" {
 													<br/>
@@ -341,9 +343,14 @@ templ ClubAdmin(c ClubPage) {
 													<br/>
 													<a class="is-size-7" href={ templ.SafeURL(row.LateAsk) }>Ask for a late change</a>
 												}
-												if s := row.Signoff.Status(); s != "" {
+												if row.Signoff.Status() != "" {
 													<br/>
-													<span class={ "is-size-7", templ.KV("has-text-success", row.Signoff.Signed), templ.KV("has-text-warning-dark", !row.Signoff.Signed) } title={ row.Signoff.Note }>{ s }</span>
+													<span title={ row.Signoff.Note }>
+														@StateChip(signoffState(row.Signoff))
+														if row.Signoff.By != "" {
+															@WhoChip(RoleCoach, row.Signoff.By)
+														}
+													</span>
 												}
 												if row.Note != "" {
 													<br/>
@@ -380,13 +387,13 @@ templ ClubAdmin(c ClubPage) {
 											{ k.Name }
 										</label>
 										if k.Status != "" {
-											<span class={ "tag is-light ml-1", templ.KV("is-success", k.Approved), templ.KV("is-warning", !k.Approved) }>{ k.Status }</span>
+											@StateChip(k.State, k.Status)
 										}
 										if k.Changed {
-											<span class="has-text-grey">· qualifications changed since sent: send again</span>
+											@StateChip(Attention, "Qualifications changed since sent: send again")
 										}
 										if k.NoQualifications {
-											<span class="has-text-danger">· no qualifications added</span>
+											@StateChip(Attention, "No qualifications added")
 										}
 										if k.Note != "" {
 											<span class="has-text-grey">· { k.Note }</span>
@@ -700,13 +707,13 @@ templ MemberHome(p MemberPage) {
 				<span class="is-block is-size-7">
 					{ c.Status }
 					if c.Problems > 0 {
-						<span class="tag is-danger is-light ml-1">{ Count(c.Problems, "problem", "problems") }</span>
+						@StateChip(Attention, Count(c.Problems, "problem", "problems"))
 					}
 					if c.Timeline != "" {
-						<span class="tag is-success is-light ml-1">Timetable published</span>
+						@StateChip(Done, "Timetable published")
 					}
 					if len(c.Desk) > 0 {
-						<span class="tag is-warning is-light ml-1">Message from the organisers</span>
+						@StateChip(Attention, "Message from the organisers")
 					}
 				</span>
 			</a>
@@ -841,7 +848,7 @@ templ memberEventRow(ev MemberEvent) {
 	if ev.Level != "" {
 		<span class="has-text-grey is-size-7">· { ev.Level }</span>
 	}
-	<span class={ "tag ml-2", ev.BriefClass }>{ ev.Brief }</span>
+	@StateChip(ev.BriefState, ev.Brief)
 }
 
 // ClubOfferEdit is the comp sec changing what a member offers.
