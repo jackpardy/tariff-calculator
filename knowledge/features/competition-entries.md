@@ -414,8 +414,8 @@ and punctuation, the same in the browser as on the server, so "marykate"
 finds Mary Kate and "oneill" finds O'Néill; the count says how many are
 shown, and Clear shows everyone again. The lists are the dashboard's
 entries, All people, Officials, the organiser's Coaches, the desk's People I
-pick, the club's Members, Coaches and each competition's entries, and a
-coach's own entries. On the dashboard the filters work on the server, so its
+pick, the club's Members, Coaches and each competition's entries, a
+coach's own entries, and the names on the timetable and On the day. On the dashboard the filters work on the server, so its
 one set of Print cards and Download CSV buttons follows them (a level's own
 **Print this level's cards** button is inside the open level), and the search
 also narrows the entries as it's typed and opens the levels it finds them in.
@@ -579,13 +579,24 @@ are then filled flight by flight.
   or area, after what's there (clear of breaks unless events can run across
   them); **Earlier** swaps a flight with the one before it in its event;
   redraw a flight's order, move a gymnast to another flight or take them
-  out, and place entries made since planning. Changing the setup marks the
+  out, and place entries made since planning. On a flight's card these are
+  buttons at least 40px tall: **Move** beside each gymnast (its flights
+  filled in by `static/js/fill.js` when it opens), **Redraw order** and
+  **Earlier**, and a dropdown labelled **Move to** ("Move the event to") with
+  **Move** or **Move event**. At the top of the timetable, **Jump to** links
+  to each day and its areas and to **Find a name**, which searches the
+  running orders, the gymnasts not in a flight and the seated officials,
+  hiding days, areas, flights and blocked time with nobody it finds and
+  opening the Panel lists with someone. Changing the setup marks the
   plan out of date until **Plan** again; moves are rechecked and listed as
   problems: clashes, and an event whose flights aren't back to back on one
   area, or run either side of a break that isn't allowed (timetables
   planned before ADR 0006 show these until planned again).
 - **Sheets:** marshal sheets (running orders to tick off) and chair of judges
-  sheets (each gymnast's exercises and problems), one area to a page.
+  sheets (each gymnast's exercises and problems), one area to a page. On a
+  phone a sheet's table (and the rota's) scrolls sideways in its own box,
+  and the toolbar wraps, so the page doesn't and **Print / Save as PDF**
+  stays on screen; printed, nothing changes.
 - **Panel timeline:** time running down at an even scale (a grid row a
   minute), so every area and day lines up by time. Two views:
   - **Panel timeline:** every day side by side, a column per area, each
@@ -765,6 +776,24 @@ Back post the gymnast and routine shown, and Notify posts a one-off id. Which
 lists are open is also kept in `sessionStorage` (per path and `?day`), so a
 reload keeps them. The service worker only handles GET navigations, so these
 posts go straight to the network.
+
+**Finding someone, and the layout** (2026-10-15). Under the day tabs, **Jump
+to** links to each area, and **Find a name** (the shared list search) looks
+through every check-in row, gymnasts' and officials': a flight's box and an
+area's column hide while nothing in them matches, and a check-in or Panel
+list with someone it finds opens, closing again when the search is cleared.
+A tap that updates the page in place keeps the search and the lists it
+opened (`dayPage` carries their `data-list-opened` mark onto the fresh copy
+and runs the search again); lists opened only by the search aren't kept for
+a reload, as lists opened by hand are. The page uses the screen's width with
+at most three areas side by side (two on a tablet, one on a phone), so a name
+and its Here and Scratched share a line on a laptop. Every button, dropdown,
+day tab and link on the areas and warnings is at least 40px tall, and Notify
+is a box on its own line, apart from Here and Scratched. The **Venue screen**
+and **Desk messages** buttons at the top are named as in the menu (the
+screen's opens on the day shown); the organiser is told to make a Venue
+screen link under Settings, and a link that can't make links that the
+organiser makes it.
 
 **Who's up now** (roadmap item 7, built 2026-10-14): on a flight marked
 started and not finished, the box shows who's on now in large type (name,

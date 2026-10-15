@@ -131,7 +131,8 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
   calendar.
 - **On the day**: flights marked started and finished, with how late each
   area is running shown to everyone; check-in and scratches for gymnasts,
-  and chairs checking in their panel; a **Notify** button for anyone not
+  and chairs checking in their panel; **Find a name** to find anyone at
+  the desk; a **Notify** button for anyone not
   there; messages from the organisers' desk to a club, a flight, the
   officials or anyone you pick; and a venue screen showing what's on each
   area now and next.
