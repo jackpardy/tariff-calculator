@@ -163,73 +163,27 @@ templ CompetitionTimetable(p TimetablePage) {
 		if p.Notice != "" {
 			<div class="notification is-info is-light">{ p.Notice }</div>
 		}
-		if p.Planned && len(p.Days) > 0 {
-			@timetableJump(p)
-		}
-		@setupSections(p)
-		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/plan") } class="my-4">
-			<button class="button is-primary" type="submit" onclick={ confirmReplan(p.Planned) }>
-				if p.Planned {
-					Plan again
-				} else {
-					Plan
-				}
-			</button>
-			<p class="help">
-				Places every event's flights across the days and areas, around blocked time, keeping your rules and never putting anyone in two places at once.
-				if p.Planned {
-					Planning again starts afresh and loses your changes.
-				}
-			</p>
-		</form>
-		<p class="mb-4"><a href={ templ.SafeURL(p.Base + "/timetable/simulate") }>Simulate</a>: try numbers of entries and judges against this setup, before entries arrive or alongside them, without changing the timetable.</p>
-		if p.Planned {
-			<p class="mb-4"><a href={ templ.SafeURL(p.Base + "/timetable/delay") }>What if there's a delay?</a> See what holding up an area for a while does to the rest of the day, without changing the timetable.</p>
-			<p class="mb-4"><a href={ templ.SafeURL(p.Base + "/timetable/leave") }>What if an official has to leave?</a> See who'd fill each of their seats.</p>
-		}
-		if p.Stale {
-			<div class="notification is-warning is-light">The setup has changed since this was planned. Plan again to use it.</div>
-		}
-		if p.Planned {
-			@reportView(p.Report)
-			@rotaReport(p)
-			if p.Published && p.Changes {
-				<div class="notification is-info is-light">
-					<strong>Changes not published yet.</strong> Clubs, gymnasts and officials still see the timetable as you last published it. <strong>Publish changes</strong> shows them this one; <strong>Discard changes</strong> goes back to what's published.
-				</div>
-			}
-			<div class="buttons">
-				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/publish") } class="buttons mb-0">
-					@versionField(p.Version)
-					if !p.Published {
-						<button class="button is-small is-success" type="submit" name="action" value="publish">Publish</button>
-					} else {
-						if p.Changes {
-							<button class="button is-small is-success" type="submit" name="action" value="publish">Publish changes</button>
-							<button class="button is-small" type="submit" name="action" value="discard" onclick="return confirm('Go back to the published timetable, losing your changes since?')">Discard changes</button>
-						}
-						<button class="button is-small" type="submit" name="action" value="unpublish">Unpublish</button>
-					}
-				</form>
-				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=marshal") }>Print marshal sheets</a>
-				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=judges") }>Print chair of judges sheets</a>
-				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=scores") }>Print score sheets</a>
-				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=rota") }>Print the officials rota</a>
-				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=timeline") }>Panel timeline</a>
-				<a class="button is-small" href={ templ.SafeURL(p.Base + "/timetable/print?sheet=timeline-officials") }>Timeline with officials</a>
+		if !p.Planned {
+			<div class="box">
+				<p class="mb-2">
+					@StateChip(NotYet, "Not planned yet")
+				</p>
+				<p class="mb-3">Set up the days and areas, timings, blocked time and your rules, then plan it: every event's flights placed across the days and areas, with officials on every panel.</p>
+				<a class="button is-primary" href={ templ.SafeURL(p.Base + "/timetable/setup") }>Go to Setup</a>
 			</div>
-			<p class="help mb-4">
-				if p.Published {
-					Published: clubs, members and gymnasts entering on their own see their flight, area and time, and officials their duties. What you change here (planning, moves, officials) is a draft until you publish it.
-				} else {
-					Not published: only you see it.
-				}
-			</p>
-			if n := timetableNames(p); n > 0 {
-				<div id="timetable-find">
-					@listTools(ListTools{ID: "timetable-flights", Noun: "names", Total: n})
-				</div>
+		} else {
+			if p.Stale {
+				<div class="notification is-warning is-light">The setup has changed since this was planned. <a href={ templ.SafeURL(p.Base + "/timetable/setup") }>Plan again on Setup</a> to use it.</div>
 			}
+			@timetableStatus(p)
+			<div class="comp-tt-bar" id="timetable-find">
+				if n := timetableNames(p); n > 0 {
+					@listTools(ListTools{ID: "timetable-flights", Noun: "names", Total: n})
+				}
+				if len(p.Days) > 0 {
+					@timetableJump(p)
+				}
+			</div>
 			<div id="timetable-flights">
 				if len(p.Unplaced) > 0 {
 					<div class="box" data-list-group>
@@ -247,6 +201,94 @@ templ CompetitionTimetable(p TimetablePage) {
 			</div>
 		}
 	}
+}
+
+// TimetableSetup is the timetable's Setup page: what the timetable is made
+// from, and planning it.
+templ TimetableSetup(p TimetablePage) {
+	@competitionLayout("Timetable setup · " + p.Competition.Name) {
+		<h1 class="title is-4">Timetable setup</h1>
+		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		@pageMenu(p.Menu)
+		if p.Notice != "" {
+			<div class="notification is-info is-light">{ p.Notice }</div>
+		}
+		if p.Stale {
+			<div class="notification is-warning is-light">The setup has changed since the timetable was planned. Plan again to use it.</div>
+		}
+		<p class="mb-3">What the timetable is made from. Change any of it, then plan.</p>
+		@setupSections(p)
+		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/plan") } class="my-4">
+			<button class="button is-primary" type="submit" onclick={ confirmReplan(p.Planned) }>
+				if p.Planned {
+					Plan again
+				} else {
+					Plan
+				}
+			</button>
+			<p class="help">
+				Places every event's flights across the days and areas, around blocked time, keeping your rules and never putting anyone in two places at once.
+				if p.Planned {
+					Planning again starts afresh and loses your changes.
+				}
+			</p>
+		</form>
+	}
+}
+
+// timetableStatus is where the timetable stands, at the top of its page:
+// whether it's published and the buttons for that, the sheets to print, and
+// what to look at in the flights and the officials.
+templ timetableStatus(p TimetablePage) {
+	<div class="box comp-tt-status">
+		<div class="comp-tt-publish">
+			<div class="comp-tt-state">
+				switch {
+					case !p.Published:
+						@StateChip(NotYet, "Not published")
+						<span class="comp-tt-note">Only you see it. Publishing shows clubs, members and gymnasts their flights, and officials their duties.</span>
+					case p.Changes:
+						@StateChip(Attention, "Changes not published")
+						<span class="comp-tt-note">Clubs, gymnasts and officials still see what you last published.</span>
+					default:
+						@StateChip(Done, "Published")
+						<span class="comp-tt-note">Clubs, members and gymnasts see their flights, and officials their duties. What you change here waits until you publish it.</span>
+				}
+			</div>
+			<div class="comp-tt-actions">
+				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/publish") } class="comp-tt-publish-form">
+					@versionField(p.Version)
+					if !p.Published {
+						<button class="button is-small is-success" type="submit" name="action" value="publish">Publish</button>
+					} else {
+						if p.Changes {
+							<button class="button is-small is-success" type="submit" name="action" value="publish">Publish changes</button>
+							<button class="button is-small" type="submit" name="action" value="discard" onclick="return confirm('Go back to the published timetable, losing your changes since?')">Discard changes</button>
+						}
+						<button class="button is-small is-text" type="submit" name="action" value="unpublish">Unpublish</button>
+					}
+				</form>
+				@printMenu(p.Base)
+			</div>
+		</div>
+		@reportView(p.Report)
+		@rotaReport(p)
+	</div>
+}
+
+// printMenu is the timetable's printed sheets, under one button.
+templ printMenu(base string) {
+	<details class="comp-popup" data-menu>
+		<summary class="button is-small comp-opens-button">Print</summary>
+		<div class="comp-popup-panel">
+			<a href={ templ.SafeURL(base + "/timetable/print?sheet=marshal") }>Marshal sheets</a>
+			<a href={ templ.SafeURL(base + "/timetable/print?sheet=judges") }>Chair of judges sheets</a>
+			<a href={ templ.SafeURL(base + "/timetable/print?sheet=scores") }>Score sheets</a>
+			<a href={ templ.SafeURL(base + "/timetable/print?sheet=rota") }>The officials rota</a>
+			<a href={ templ.SafeURL(base + "/timetable/print?sheet=timeline") }>Panel timeline</a>
+			<a href={ templ.SafeURL(base + "/timetable/print?sheet=timeline-officials") }>Timeline with officials</a>
+		</div>
+	</details>
 }
 
 // timetableDay is a day's areas side by side, each with its flights and
@@ -274,16 +316,10 @@ templ timetableDay(p TimetablePage, day DayView) {
 	</section>
 }
 
-// timetableJump links to each day and its areas, and to "Find a name": on a
+// timetableJump links to each day and its areas, beside "Find a name": on a
 // phone the flights are a long way down.
 templ timetableJump(p TimetablePage) {
-	<div class="comp-jump is-size-7 mb-4">
-		<p>
-			Jump to:
-			if timetableNames(p) > 0 {
-				<a href="#timetable-find">Find a name</a>
-			}
-		</p>
+	<div class="comp-jump is-size-7">
 		for _, d := range p.Days {
 			<p>
 				<a href={ templ.SafeURL("#" + d.ID) }><strong>{ d.Name }</strong></a>
@@ -580,31 +616,28 @@ templ setupSections(p TimetablePage) {
 
 // rotaReport is how the officials rota went.
 templ rotaReport(p TimetablePage) {
-	<div class="box">
-		<div class="is-flex is-justify-content-space-between is-align-items-center">
-			<p><strong>Officials</strong> <span class="has-text-grey is-size-7">· { strconv.Itoa(p.Rota.People) } can officiate</span></p>
+	<div class="comp-tt-check">
+		<div class="comp-tt-check-row">
+			<p class="comp-tt-check-head">
+				<strong>Officials</strong>
+				if p.Rota.People == 0 {
+					@StateChip(NotYet, "No one has offered yet")
+				} else if len(p.Rota.Short) == 0 {
+					@StateChip(Done, "Every seat filled")
+				} else {
+					@StateChip(Attention, Count(p.Rota.Empty, "seat empty", "seats empty")+", on "+Count(len(p.Rota.Short), "panel", "panels"))
+				}
+				<span class="comp-tt-note">{ strconv.Itoa(p.Rota.People) } can officiate</span>
+			</p>
 			<form method="post" action={ templ.SafeURL(p.Base + "/timetable/officials") }>
 				@versionField(p.Version)
 				<button class="button is-small" type="submit" name="action" value="rota" onclick={ confirmRota() }>Assign officials again</button>
 			</form>
 		</div>
 		if p.Rota.People == 0 {
-			<p class="help">No one has offered to judge or help yet. Clubs send their members' offers with their entries, and you can add people on the Officials page.</p>
-		} else if len(p.Rota.Short) == 0 {
-			<p class="is-size-7 mt-1">
-				@StateChip(Done, "Every seat on every panel is filled")
-			</p>
+			<p class="help">Clubs send their members' offers with their entries, and you can add people on the Officials page.</p>
 		}
-		if len(p.Rota.Short) > 0 {
-			<details class="mt-2">
-				<summary class="is-size-7"><strong>Seats no one could take:</strong> { emptySeats(p.Rota.Empty, len(p.Rota.Short)) }</summary>
-				<ul class="is-size-7 mt-1">
-					for _, it := range p.Rota.Short {
-						<li>{ it }</li>
-					}
-				</ul>
-			</details>
-		}
+		@problemsList("Seats no one could take", p.Rota.Short)
 		@problemsList("Manual changes have broken", p.Rota.Problems)
 		@problemsList("Your rules about officials not kept", p.Rota.Broken)
 		@problemsList("Coaches needed in two places", p.Rota.Coaches)
@@ -618,32 +651,30 @@ script confirmRota() {
 }
 
 templ reportView(r ReportView) {
-	<div class="box">
-		<div class="table-container">
-			<table class="table is-narrow mb-2">
-				<thead><tr><th>Day</th><th>Flights end</th><th>Finishes</th><th>Must end by</th><th>Free after flights</th></tr></thead>
-				<tbody>
-					for _, d := range r.Days {
-						<tr>
-							<td>{ d.Name }</td>
-							<td>
-								if d.FlightsEnd == "" {
-									No flights
-								} else {
-									{ d.FlightsEnd }
-								}
-							</td>
-							<td>{ d.Finish }</td>
-							<td>{ d.End }</td>
-							<td>{ durationWord(d.Free) }</td>
-						</tr>
+	<div class="comp-tt-check">
+		<p class="comp-tt-check-head">
+			<strong>Flights</strong>
+			if len(r.Unplaced) > 0 || len(r.Blocks) > 0 {
+				@StateChip(Attention, Count(len(r.Unplaced)+len(r.Blocks), "thing doesn't fit", "things don't fit"))
+			} else {
+				@StateChip(Done, "Everything fits")
+			}
+		</p>
+		<ul class="comp-tt-days">
+			for _, d := range r.Days {
+				<li>
+					<strong>{ d.Name }</strong>
+					if d.FlightsEnd == "" {
+						no flights
+					} else {
+						flights end { d.FlightsEnd },
 					}
-				</tbody>
-			</table>
-		</div>
-		<p class="help mb-2">Finishes counts blocked time such as awards. Free after flights is the time from the last flight to the end that isn't blocked off for the whole venue: room for more flights.</p>
+					finishes { d.Finish } of { d.End } · { durationWord(d.Free) } free after flights
+				</li>
+			}
+		</ul>
 		if len(r.Unplaced) > 0 || len(r.Blocks) > 0 {
-			<div class="notification is-danger is-light">
+			<div class="notification is-warning is-light mt-2 mb-2">
 				<p><strong>Doesn't fit:</strong> { joinNames(append(r.Unplaced, r.Blocks...)) }.</p>
 				if len(r.Fixes) > 0 {
 					<p class="mt-2">What each change would do:</p>
@@ -660,10 +691,6 @@ templ reportView(r ReportView) {
 					</ul>
 				}
 			</div>
-		} else {
-			<p class="mb-2">
-				@StateChip(Done, "Everything fits")
-			</p>
 		}
 		@problemsList("Manual changes have broken", r.Problems)
 		@problemsList("Less rest than wanted", r.ShortRest)
@@ -916,11 +943,11 @@ templ runNo(n int) {
 func timingsNow(p TimetablePage) string {
 	var each []string
 	for _, t := range p.Setup.Timings {
-		each = append(each, fmt.Sprintf("%s %s min a competitor", t.Name, t.PerCompetitor))
+		each = append(each, t.Name+" "+t.PerCompetitor)
 	}
 	rest := "preferred"
 	if p.Setup.RestMust {
 		rest = "a must"
 	}
-	return strings.Join(each, ", ") + fmt.Sprintf("; rest between turns %d min, %s", p.Setup.Rest, rest)
+	return strings.Join(each, ", ") + fmt.Sprintf(" min a competitor; %d min rest between turns, %s", p.Setup.Rest, rest)
 }

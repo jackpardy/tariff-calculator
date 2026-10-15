@@ -36,7 +36,7 @@ func publishedWith(t *testing.T, h http.Handler, admin string, names ...string) 
 // panelOne is Panel 1 on a day page, failing unless it has one flight.
 func panelOne(t *testing.T, h http.Handler, path string) dayArea {
 	t.Helper()
-	a, ok := dayPageAreas(t, do(t, h, http.MethodGet, path, nil).Body.String())["Panel 1"]
+	a, ok := dayPageAreas(t, dayAll(t, h, path))["Panel 1"]
 	if !ok || len(a.Flights) != 1 {
 		t.Fatalf("Panel 1 with one flight on %s: %+v", path, a)
 	}
@@ -46,7 +46,7 @@ func panelOne(t *testing.T, h http.Handler, path string) dayArea {
 // firstFlightKey is the key of the first flight on a day page.
 func firstFlightKey(t *testing.T, h http.Handler, path string) string {
 	t.Helper()
-	key := regexp.MustCompile(`name="flight" value="([^"]+)"`).FindStringSubmatch(do(t, h, http.MethodGet, path, nil).Body.String())
+	key := regexp.MustCompile(`name="flight" value="([^"]+)"`).FindStringSubmatch(dayAll(t, h, path))
 	if key == nil {
 		t.Fatalf("no flight to mark on %s", path)
 	}

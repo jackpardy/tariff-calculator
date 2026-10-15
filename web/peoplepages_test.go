@@ -256,7 +256,7 @@ func TestPeoplePlannedAndPublished(t *testing.T) {
 	}
 
 	// Check-in, a scratch and a desk message show on the person's page.
-	day := do(t, h, http.MethodGet, admin+"/day?day=0", nil).Body.String()
+	day := dayAll(t, h, admin+"/day?day=0")
 	entry := checkinEntry(t, day, "Ivy")
 	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {entry}, "status": {"here"}, "day": {"0"}})
 	if page := do(t, h, http.MethodGet, ivy, nil).Body.String(); !strings.Contains(page, "Check-in: <strong>Here</strong>") {
@@ -322,7 +322,7 @@ func TestMemberPageUnchangedByPeople(t *testing.T) {
 	if day == nil {
 		t.Fatal("the member page links to their competition")
 	}
-	page := do(t, h, http.MethodGet, day[1], nil).Body.String()
+	page := dayAll(t, h, day[1])
 	for _, want := range []string{"← Student Open: your entries", "<h1 class=\"title is-4\">Mo</h1>", "My competition</h2>", "<p class=\"subtitle is-6\">Student Open · ", "Your details", "you're <strong>", "You're picked out in bold", "Your timetable", "Add to calendar"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the member's page has %q", want)

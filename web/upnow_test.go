@@ -92,9 +92,9 @@ func TestWhoIsUpNow(t *testing.T) {
 	clock.set(onTheDay(9, 0))
 
 	day := admin + "/day?day=0"
-	get := func() string { return do(t, h, http.MethodGet, day, nil).Body.String() }
+	get := func() string { return dayAll(t, h, day) }
 	shown := func() []string {
-		return screenUpIn(do(t, h, http.MethodGet, screen+"/screen?day=0", nil).Body.String())
+		return screenUpIn(dayAll(t, h, screen+"/screen?day=0"))
 	}
 	page := get()
 	key := regexp.MustCompile(`name="flight" value="([^"]+)"`).FindStringSubmatch(page)
@@ -172,7 +172,7 @@ func TestWhoIsUpNow(t *testing.T) {
 	on(order[2], "Set")
 	// Running numbers are places in the flight: scratching the 2nd doesn't
 	// make the 3rd a 2, on the screen or the day page.
-	if body := do(t, h, http.MethodGet, screen+"/screen?day=0", nil).Body.String(); !strings.Contains(body, `<p class="screen-up-name"><span class="screen-no">3</span> `+escaped[2]+`</p>`) {
+	if body := dayAll(t, h, screen+"/screen?day=0"); !strings.Contains(body, `<p class="screen-up-name"><span class="screen-no">3</span> `+escaped[2]+`</p>`) {
 		t.Errorf("the screen numbers who's on by their place: %s", body)
 	}
 	if page := get(); !strings.Contains(page, `<span class="comp-run-no" title="Running number">3</span> <span class="">`+escaped[2]+`</span>`) &&
@@ -240,7 +240,7 @@ func TestWhoIsUpNow(t *testing.T) {
 	}
 
 	// Only this flight's area shows who's on.
-	if body := do(t, h, http.MethodGet, screen+"/screen?day=0", nil).Body.String(); strings.Count(body, `class="screen-up"`) != 1 {
+	if body := dayAll(t, h, screen+"/screen?day=0"); strings.Count(body, `class="screen-up"`) != 1 {
 		t.Errorf("one area shows who's on: %s", body)
 	}
 

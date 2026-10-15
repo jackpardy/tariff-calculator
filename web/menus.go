@@ -22,6 +22,7 @@ const (
 	menuCoaches   = "/coaches"
 	menuFees      = "/fees"
 	menuTimetable = "/timetable"
+	menuSetup     = "/timetable/setup"
 	menuOfficials = "/officials"
 	menuSimulate  = "/timetable/simulate"
 	menuDelay     = "/timetable/delay"
@@ -121,7 +122,7 @@ func orgMenu(base string, a views.Access, m menuState, current string) []views.M
 	// A link that only prints the timetable's sheets (a chair of judges) finds
 	// them as buttons on the entries page: printouts have no menu of their own.
 	if a.Timetable {
-		items := []views.MenuItem{item("Timetable", menuTimetable, "")}
+		items := []views.MenuItem{item("Timetable", menuTimetable, ""), item("Setup", menuSetup, "")}
 		if a.Officials {
 			items = append(items, item("Officials", menuOfficials, ""))
 		}

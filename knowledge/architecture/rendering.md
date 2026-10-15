@@ -79,9 +79,12 @@ dashboard):
 - `opens(what, now, label, open)`: the same with any button, for a form that
   does something: Add someone, Remove or hold entries, Change the entry.
 
-The button says Close while its form is open, and its chevron turns, so it
-looks like something that opens; the form sits beneath with a light rule on
-its left. `open` shows it at first: when nothing is set yet (fees), the
+Settings are rows of a list: the name in bold with how it's set beneath in
+grey, the button always in the same place at the right, and a hairline
+between rows, so a page's settings line up however long each one's text is.
+A button on its own (an action, with no text) has no row. The button says
+Close while its form is open, and its chevron turns, so it looks like
+something that opens; the form sits beneath with a light rule on its left. `open` shows it at first: when nothing is set yet (fees), the
 timetable isn't planned, or a save came back with problems.
 
 A list that is what the page is for has a plain heading with its count

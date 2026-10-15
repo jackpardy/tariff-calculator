@@ -44,7 +44,7 @@ func TestPanelTimeline(t *testing.T) {
 		t.Error("the timetable links to the timeline")
 	}
 	// Lunch takes both areas; the day runs to 18:00.
-	if !strings.Contains(page, "<td>Day 1</td><td>09:27</td><td>12:45</td><td>18:00</td><td>7h 48m</td>") {
+	if !strings.Contains(page, "<strong>Day 1</strong> flights end 09:27, finishes 12:45 of 18:00 · 7h 48m free after flights") {
 		t.Error("the report says when the flights end and the time free after them")
 	}
 

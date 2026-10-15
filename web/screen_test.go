@@ -129,10 +129,10 @@ func TestVenueScreen(t *testing.T) {
 	// 09:00–09:14.
 	publishedWith(t, h, admin, "Ann", "Bea", "Cal")
 	day := admin + "/day?day=0"
-	if page := do(t, h, http.MethodGet, day, nil).Body.String(); !strings.Contains(page, `href="`+admin+`/screen?day=0"`) || !strings.Contains(page, "Venue screen") {
+	if page := dayAll(t, h, day); !strings.Contains(page, `href="`+admin+`/screen"`) || !strings.Contains(page, "Venue screen") {
 		t.Error("the organiser's On the day page links to the venue screen")
 	}
-	page := do(t, h, http.MethodGet, day, nil).Body.String()
+	page := dayAll(t, h, day)
 	areas := dayPageAreas(t, page)
 	if len(areas["Panel 1"].Flights) != 1 || len(areas["Track 1"].Flights) != 1 {
 		t.Fatalf("a flight on each area: %+v", areas)
@@ -246,7 +246,7 @@ func TestVenueScreen(t *testing.T) {
 		if rec := do(t, h, http.MethodGet, link+"/screen", nil); rec.Code != http.StatusOK {
 			t.Errorf("a %s link opens the screen: %d", kind, rec.Code)
 		}
-		if page := do(t, h, http.MethodGet, link+"/day", nil).Body.String(); !strings.Contains(page, link+"/screen") {
+		if page := dayAll(t, h, link+"/day"); !strings.Contains(page, link+"/screen") {
 			t.Errorf("a %s link's On the day page offers the screen", kind)
 		}
 	}

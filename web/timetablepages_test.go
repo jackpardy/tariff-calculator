@@ -33,7 +33,10 @@ func TestTimetable(t *testing.T) {
 	redirected(t, h, enter, url.Values{"gymnast": {"Tia"}, "discipline": {"tumbling"}, "level": {"Novice"}, "category": {"Women"}})
 
 	tt := admin + "/timetable"
-	page := do(t, h, http.MethodGet, tt, nil).Body.String()
+	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); !strings.Contains(page, "Not planned yet") || !strings.Contains(page, tt+"/setup") {
+		t.Error("before planning, the timetable points to Setup")
+	}
+	page := do(t, h, http.MethodGet, tt+"/setup", nil).Body.String()
 	for _, want := range []string{`value="Day 1"`, `value="Panel 1"`, `value="Track 1"`, "Places every event", `name="per-tumbling" value="2"`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the default setup should have %q", want)
@@ -48,10 +51,10 @@ func TestTimetable(t *testing.T) {
 		"day-1-name": {"Sunday"}, "day-1-start": {"09:00"}, "day-1-end": {"13:00"}, "day-1-area": {"Panel 1"}})
 	redirected(t, h, tt+"/setup/blocks", url.Values{"add": {"1"}, "name": {"Lunch"}, "minutes": {"45"}, "day": {"0"}, "from": {"12:00"}, "to": {"14:00"}})
 	location := redirected(t, h, tt+"/setup/rules", url.Values{"add": {"1"}, "event": {"Tumbling Novice"}, "kind": {"day"}, "day": {"1"}, "must": {"0"}})
-	if !strings.Contains(location, "Rule+added") {
-		t.Errorf("rule added: %s", location)
+	if !strings.Contains(location, "Rule+added") || !strings.Contains(location, "/timetable/setup?") {
+		t.Errorf("rule added, back on Setup: %s", location)
 	}
-	page = do(t, h, http.MethodGet, tt, nil).Body.String()
+	page = do(t, h, http.MethodGet, tt+"/setup", nil).Body.String()
 	for _, want := range []string{`value="Sunday"`, `value="Panel 2"`, "Lunch, 45 minutes, Saturday between 12:00 and 14:00, every area", "Tumbling Novice on Sunday (prefer)"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the setup should show %q", want)
@@ -100,7 +103,7 @@ func TestTimetable(t *testing.T) {
 	if location := redirected(t, h, tt+"/setup/blocks", url.Values{"breaks": {"1"}, "across": {"1"}}); !strings.Contains(location, "events+can+run+across+breaks") {
 		t.Errorf("saved: %s", location)
 	}
-	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); !strings.Contains(page, `name="across" value="1" checked`) {
+	if page := do(t, h, http.MethodGet, tt+"/setup", nil).Body.String(); !strings.Contains(page, `name="across" value="1" checked`) {
 		t.Error("the setting shows")
 	}
 	redirected(t, h, tt+"/setup/blocks", url.Values{"breaks": {"1"}})

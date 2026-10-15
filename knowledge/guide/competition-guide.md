@@ -247,8 +247,9 @@ and anyone you add.
 
 ## Plan the timetable
 
-Tap **Timetable** on the entries page. Set up the venue first; every number
-has a starting value you can change.
+Tap **Timetable**, then **Setup**. Set up the venue first; every number has a
+starting value you can change. Each part is a line saying how it's set, with
+a **Change** button to open it.
 
 1. **Days:** name each day and give its start and **end** time (when the venue
    must be empty of competition), and which areas are in use. **Add a day**
@@ -274,7 +275,8 @@ has a starting value you can change.
 5. **Rules:** put an event on an area or a day, before another event, or apart
    from another, as a **must** or a **prefer** (e.g. Elite synchro must be on
    Panel 1).
-6. Tap **Plan**. Each event is split into even flights with running orders
+6. Tap **Plan**, at the foot of **Setup**; the **Timetable** page then shows it.
+   Each event is split into even flights with running orders
    drawn at random (keeping a club's gymnasts apart where that's easy), and
    each event's flights are placed back to back on one area, so one panel
    can judge them all, with flight 1 first. No one is in two places at once,
@@ -303,24 +305,24 @@ has a starting value you can change.
    in its event, **Redraw order** draws a flight's running order again, and
    **Move** beside a gymnast puts them in another flight. To find someone
    on a long timetable, type part of their name in **Find a name**: only
-   the flights with them show. **Jump to** at the top of the page goes
+   the flights with them show. The day and area links beside it go
    straight to a day or an area. If an event's flights end up
    apart, or either side of a break you haven't allowed, it's listed as a
    problem. Entries made after planning are listed for you to place.
-   Changing the setup asks you to **Plan** again. Open a flight's **Panel**
+   Changing the setup asks you to **Plan** again, on **Setup**. Open a flight's **Panel**
    to give a seat to someone else, for all the event's flights they had it
    for; **Assign officials again** redoes every panel and keeps the flights.
 8. Under **Your rules**, **Officials: who does what** says who does what, as a
    must or a prefer: e.g. Mary **is** Chair of judges at Elite Women, Tom
    **doesn't officiate**, Ann **officiates only** on Saturday from 12:00. Then
    tap **Assign officials again**.
-9. **Print marshal sheets** and **Print chair of judges sheets** (one area to a
-   page, each flight with its panel), **Print score sheets** for the
+9. Under **Print**: **Marshal sheets** and **Chair of judges sheets** (one area to a
+   page, each flight with its panel), **Score sheets** for the
    recorders (a flight to a landscape page: each gymnast in running order,
    a box for each judge's mark of each routine, difficulty, penalty and
    totals, the paper copy beside the scores entered online; officials can
    also open their own panels' sheets on their phone from **Score sheets
-   for your panels**, beside their duties), and **Print the officials rota** (each person's duties) for the
+   for your panels**, beside their duties), and **The officials rota** (each person's duties) for the
    noticeboard. On a phone, swipe a sheet's table sideways to see all of
    it. **Panel timeline** shows every day
    side by side, a column per area, each flight and break with time running
@@ -335,9 +337,18 @@ has a starting value you can change.
    says when there are changes not published yet; **Discard changes** goes
    back to what's published, and **Unpublish** takes it down.
 11. **On the day** (a button on the entries page once you've published; chairs
-   of judges' and timetable links get it too): pick the day, then for each
-   area tap **Started** when a flight begins its warm-up and **Finished**
-   when it's done (**Undo** takes back the latest tap). On poor wifi a tap may
+   of judges' and timetable links get it too): pick the day. Each area is a
+   card saying how it's running, the flight it's on, who's up, how many are
+   checked in, what's next, and the one tap that comes next (**Started**,
+   **Next gymnast**, or **Finished** once the last routine is on). Tap the
+   area's name or **Open** for its own page, where its marshal works: the
+   flight on now, with **Started** at the top when it begins its warm-up,
+   then who's up, **Check-in** and **Panel**, and **Finished** at the bottom
+   when it's done (**Undo** takes back the latest tap), and **Correct the
+   times** under that; then the area's later flights and those finished,
+   each opening to the same. A marshal with one panel can keep its page open
+   all day. **Find a name** on the overview shows who it finds and which
+   area they're in. On poor wifi a tap may
    be sent twice; the second changes nothing. Planned and actual
    times sit side by side, and each area says whether it's "Running 15 min
    late", "On time" or early. Where an area is late, **What if: see the rest

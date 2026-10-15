@@ -39,7 +39,7 @@ func TestPanelCheckinRun(t *testing.T) {
 	h := competitionServer(t)
 	admin, tt, _, _ := scratchSetupOn(t, h, twoFlights)
 	day := admin + "/day?day=0"
-	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
+	get := func(path string) string { return dayAll(t, h, path) }
 	page := get(day)
 	const first, second = "BUCS L3 · flight 1 of 2", "BUCS L3 · flight 2 of 2"
 	// BUCS L3 is a run of two flights on Panel 1, with Mary, Tom and Dara
@@ -160,7 +160,7 @@ func TestPanelCheckinRun(t *testing.T) {
 func TestPanelCheckinClearsScratchWarning(t *testing.T) {
 	h, admin, _, _ := scratchSetup(t)
 	day := admin + "/day?day=0"
-	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
+	get := func(path string) string { return dayAll(t, h, path) }
 	page := get(day)
 	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {checkinEntry(t, page, "Dara")}, "status": {"scratched"}, "day": {"0"}})
 	if page := get(day); !strings.Contains(page, "Dara is scratched</strong>") {
@@ -190,7 +190,7 @@ func TestPanelCheckinClearsScratchWarning(t *testing.T) {
 // can't.
 func TestPanelCheckinAccess(t *testing.T) {
 	h, admin, _, _ := scratchSetup(t)
-	page := do(t, h, http.MethodGet, admin+"/day?day=0", nil).Body.String()
+	page := dayAll(t, h, admin+"/day?day=0")
 	dara, flight := panelSeat(t, page, "BUCS L3", "Dara")
 	officials := url.Values{"person": {dara}, "flight": {flight}, "status": {"here"}, "day": {"0"}}
 	notify := url.Values{"person": {dara}, "flight": {flight}, "as": {"official"}, "them": {"1"}, "day": {"0"}}
@@ -201,7 +201,7 @@ func TestPanelCheckinAccess(t *testing.T) {
 			t.Errorf("a cards link can't use %s: %d", path, rec.Code)
 		}
 	}
-	if page := do(t, h, http.MethodGet, admin+"/day?day=0", nil).Body.String(); slices.ContainsFunc(dayFlights(t, page), func(f dayFlight) bool { return strings.HasPrefix(f.Panel, "1 of") }) {
+	if page := dayAll(t, h, admin+"/day?day=0"); slices.ContainsFunc(dayFlights(t, page), func(f dayFlight) bool { return strings.HasPrefix(f.Panel, "1 of") }) {
 		t.Error("nothing was checked in")
 	}
 
@@ -229,7 +229,7 @@ func TestNotifyAnOfficial(t *testing.T) {
 	admin, _, _, dara := scratchSetupOn(t, h, nil)
 	subscribeByEmail(t, h, mail, dara+"/notify", "dara@example.com")
 	day := admin + "/day?day=0"
-	page := do(t, h, http.MethodGet, day, nil).Body.String()
+	page := dayAll(t, h, day)
 	person, flight := panelSeat(t, page, "BUCS L3", "Dara")
 	if !notifyForm(page, person, flight, "official") || !strings.Contains(page, `name="them" value="1" checked>`) || !strings.Contains(page, ">Send</button>") {
 		t.Fatalf("an official who isn't here can be notified: %s", page)
@@ -274,8 +274,8 @@ func TestNotifyAnOfficial(t *testing.T) {
 	// The form as the page shows it carries a one-off id: the same form sent
 	// twice (its answer lost on poor wifi, say) sends once, and the repeat
 	// says nothing. The form shown again is a new one.
-	once := regexp.MustCompile(`name="once" value="([A-Z2-7]+)"`).FindAllStringSubmatch(do(t, h, http.MethodGet, day, nil).Body.String(), -1)
-	if len(once) == 0 || once[0][1] == regexp.MustCompile(`name="once" value="([A-Z2-7]+)"`).FindStringSubmatch(do(t, h, http.MethodGet, day, nil).Body.String())[1] {
+	once := regexp.MustCompile(`name="once" value="([A-Z2-7]+)"`).FindAllStringSubmatch(dayAll(t, h, day), -1)
+	if len(once) == 0 || once[0][1] == regexp.MustCompile(`name="once" value="([A-Z2-7]+)"`).FindStringSubmatch(dayAll(t, h, day))[1] {
 		t.Fatal("each Notify form shown has a new id")
 	}
 	mail.sent = nil
@@ -328,7 +328,7 @@ func TestNotifyAClub(t *testing.T) {
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
 
 	day := admin + "/day?day=0"
-	page := do(t, h, http.MethodGet, day, nil).Body.String()
+	page := dayAll(t, h, day)
 	m := regexp.MustCompile(`(?s)<span class="">Ann</span>.*?name="person" value="([^"]+)">\s*<input type="hidden" name="flight" value="([^"]+)">`).FindStringSubmatch(page)
 	if m == nil || !strings.Contains(page, `name="club" value="1"> Their club`) {
 		t.Fatalf("Ann can be notified, and so can her club: %s", page)
@@ -388,7 +388,7 @@ func TestNotifyAClub(t *testing.T) {
 	// A gymnast who is here has nothing to be told.
 	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {checkinEntry(t, page, "Ann")}, "status": {"here"}, "day": {"0"}})
 	bea := regexp.MustCompile(`(?s)<span class="">Bea</span>.*?name="person" value="([^"]+)">`).FindStringSubmatch(page)[1]
-	if page := do(t, h, http.MethodGet, day, nil).Body.String(); notifyForm(page, ann, flight, "gymnast") || !notifyForm(page, unescape(bea), flight, "gymnast") {
+	if page := dayAll(t, h, day); notifyForm(page, ann, flight, "gymnast") || !notifyForm(page, unescape(bea), flight, "gymnast") {
 		t.Errorf("no Notify for Ann once she's here, still one for Bea: %s", page)
 	}
 

@@ -38,7 +38,7 @@ func TestDraftTimetable(t *testing.T) {
 	// Moving her flight changes the draft: Ann still sees the published one.
 	flight := regexp.MustCompile(`name="flight" value="(\d+)"`).FindStringSubmatch(page)[1]
 	redirected(t, h, tt+"/flight", url.Values{"flight": {flight}, "action": {"move"}, "to": {"0:" + other}})
-	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); !strings.Contains(page, "Changes not published yet") || !strings.Contains(page, "Publish changes") {
+	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); !strings.Contains(page, "Changes not published") || !strings.Contains(page, "Publish changes") {
 		t.Error("the organiser sees changes not published")
 	}
 	if where() != first {
@@ -46,7 +46,7 @@ func TestDraftTimetable(t *testing.T) {
 	}
 	// Discarded: back as published.
 	redirected(t, h, tt+"/publish", url.Values{"action": {"discard"}})
-	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); strings.Contains(page, "Changes not published yet") {
+	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); strings.Contains(page, "Changes not published") {
 		t.Error("discarded")
 	}
 	// Moved again and published: Ann sees the move.
@@ -64,7 +64,7 @@ func TestDraftTimetable(t *testing.T) {
 	if location := redirected(t, h, delay, url.Values{}); !strings.Contains(location, "now+the+draft") {
 		t.Errorf("kept: %s", location)
 	}
-	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); !strings.Contains(page, "Changes not published yet") {
+	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); !strings.Contains(page, "Changes not published") {
 		t.Error("the delay is a change to publish")
 	}
 

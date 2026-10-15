@@ -23,6 +23,7 @@ import (
 
 func (p *competitionPages) registerTimetable(handle func(string, http.HandlerFunc)) {
 	handle("GET /competitions/admin/{token}/timetable", p.timetable)
+	handle("GET /competitions/admin/{token}/timetable/setup", p.timetableSetup)
 	handle("POST /competitions/admin/{token}/timetable/setup/days", p.setupDays)
 	handle("POST /competitions/admin/{token}/timetable/setup/areas", p.setupAreas)
 	handle("POST /competitions/admin/{token}/timetable/setup/timings", p.setupTimings)
@@ -49,9 +50,13 @@ func timetablePath(r *http.Request) string {
 	return adminPath(r.PathValue("token")) + "/timetable"
 }
 
-// back redirects to the timetable page with a notice.
+// back redirects to the timetable page with a notice: its Setup page after a
+// change to the setup.
 func back(w http.ResponseWriter, r *http.Request, notice string) {
 	to := timetablePath(r)
+	if strings.Contains(r.Pattern, "/timetable/setup/") {
+		to += "/setup"
+	}
 	if notice != "" {
 		to += "?notice=" + url.QueryEscape(notice)
 	}
@@ -240,6 +245,24 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	render(w, r, views.CompetitionTimetable(page))
+}
+
+// timetableSetup is the timetable's Setup page: the days and areas, timings,
+// blocked time and rules, and planning from them.
+func (p *competitionPages) timetableSetup(w http.ResponseWriter, r *http.Request) {
+	c, s, entries, ok := p.timetableOf(w, r)
+	if !ok {
+		return
+	}
+	people, _, err := p.rotaAndSame(r.Context(), c, entries)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	render(w, r, views.TimetableSetup(views.TimetablePage{
+		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuSetup), Notice: r.URL.Query().Get("notice"),
+		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Entries: len(entries), Version: s.Version(),
+	}))
 }
 
 // planTimetable plans afresh with the setup, keeping whether it's published.

@@ -44,28 +44,58 @@ func jumpsLand(t *testing.T, page string, links []jumpLink) {
 	}
 }
 
-// On the day has "Find a name" over every check-in row, gymnasts' and
-// officials', with each flight, its lists and its area a group that hides or
-// opens with the search; and a link to jump to each area.
+// On the day's overview has "Find a name" over everyone in each area's
+// flights, each area's card a group that hides, and the names shown only
+// when found, each linking to their flight on the area's own page. An area's
+// own page has it over every check-in row, gymnasts' and officials', with
+// each flight and its lists a group that hides or opens with the search.
 func TestDayPageSearchAndJump(t *testing.T) {
 	s := newTestServer(t, atTime(dayBefore))
 	admin, _, _, _ := scratchSetupOn(t, s.h, twoFlights)
 	s.clock.set(onTheDay(8, 30))
-	page := do(t, s.h, http.MethodGet, admin+"/day", nil).Body.String()
-
-	if !strings.Contains(page, `data-list-tools="day-areas" data-noun="names"`) {
-		t.Fatalf("the day page has Find a name over its areas: %s", page)
+	overview := do(t, s.h, http.MethodGet, admin+"/day", nil).Body.String()
+	if !strings.Contains(overview, `data-list-tools="day-areas" data-noun="names"`) {
+		t.Fatalf("the overview has Find a name over its areas: %s", overview)
 	}
-	rows := listRows(t, page, "day-areas")
+	rows := listRows(t, overview, "day-areas")
 	for _, name := range []string{"Eve", "Dara", "Finn", "Mary", "Tom", "Ann"} {
 		if _, ok := rows[name]; !ok {
-			t.Errorf("%s can be found: %v", name, rows)
+			t.Errorf("%s can be found on the overview: %v", name, rows)
 		}
 	}
-	doc := parsePage(t, page)
+	doc := parsePage(t, overview)
+	cards := byClass(byID(doc, "day-areas"), "comp-day-card")
+	if len(cards) < 2 {
+		t.Fatalf("a card for each area: %d", len(cards))
+	}
+	for _, card := range cards {
+		link := attrOf(firstChildTag(firstChildTag(card, "h2"), "a"), "href")
+		if !hasAttr(card.Parent, "data-list-group") || !strings.Contains(link, "area=") {
+			t.Errorf("an area's card is a group that hides, and opens its page: %s", link)
+		}
+		people := firstByClass(card, "comp-day-people")
+		if people == nil || people.Data != "details" || !hasAttr(people, "data-list-group") || hasAttr(people, "open") {
+			t.Errorf("its people are shown only when found")
+			continue
+		}
+		for _, a := range byTag(people, "a") {
+			if !strings.HasPrefix(attrOf(a, "href"), link+"#flight-") {
+				t.Errorf("a name links to their flight on the area's page: %s", attrOf(a, "href"))
+			}
+		}
+	}
+
+	page := do(t, s.h, http.MethodGet, admin+"/day?day=0&area=Panel+1", nil).Body.String()
+	rows = listRows(t, page, "day-areas")
+	for _, name := range []string{"Eve", "Finn", "Mary", "Tom"} {
+		if _, ok := rows[name]; !ok {
+			t.Errorf("%s can be found on Panel 1's page: %v", name, rows)
+		}
+	}
+	doc = parsePage(t, page)
 	for _, box := range byClass(byID(doc, "day-areas"), "comp-flight") {
-		if !hasAttr(box, "data-list-group") || !hasAttr(box.Parent.Parent, "data-list-group") {
-			t.Errorf("a flight's box, and its area's column, are groups that hide")
+		if !hasAttr(box, "data-list-group") {
+			t.Errorf("a flight's box is a group that hides")
 		}
 	}
 	for _, d := range byClass(doc, "comp-checkin") {
@@ -73,18 +103,9 @@ func TestDayPageSearchAndJump(t *testing.T) {
 			t.Errorf("a check-in list (%s) opens when the search finds someone in it", attrOf(d, "data-key"))
 		}
 	}
-
-	areas := dayPageAreas(t, page)
-	links := jumpLinks(t, page)
-	if len(areas) < 2 || len(links) != len(areas) {
-		t.Fatalf("a link to each of the %d areas: %+v", len(areas), links)
+	if len(dayPageAreas(t, page)) != 1 || !strings.Contains(page, `href="`+admin+`/day?day=0">← All areas</a>`) {
+		t.Error("an area's page is that area alone, with the way back to them all")
 	}
-	for _, l := range links {
-		if _, ok := areas[l.Text]; !ok || l.Target != areaID(l.Text) {
-			t.Errorf("the link to %s goes to its block: %+v", l.Text, l)
-		}
-	}
-	jumpsLand(t, page, links)
 }
 
 // The timetable has "Find a name" over the flights' running orders and their
@@ -108,13 +129,13 @@ func TestTimetableSearchAndJump(t *testing.T) {
 	}
 
 	links := jumpLinks(t, page)
-	if len(links) < 3 || links[0] != (jumpLink{"Find a name", "timetable-find"}) {
-		t.Fatalf("the first link goes to Find a name: %+v", links)
+	if len(links) < 2 || links[0] != (jumpLink{"Day 1", "day-0"}) {
+		t.Fatalf("the first link goes to the day: %+v", links)
 	}
-	if links[1] != (jumpLink{"Day 1", "day-0"}) {
-		t.Errorf("then the day: %+v", links[1])
+	if find := strings.Index(page, `id="timetable-find"`); find < 0 || find > strings.Index(page, `href="#day-0"`) {
+		t.Error("Find a name is with the jumps, before them")
 	}
-	for _, l := range links[2:] {
+	for _, l := range links[1:] {
 		if l.Target != "day-0-"+areaID(l.Text) {
 			t.Errorf("then each of its areas: %+v", l)
 		}
@@ -160,7 +181,7 @@ func TestTimetableFlightCardButtons(t *testing.T) {
 	}
 }
 
-// In a real browser, "Find a name" on the day page shows only the flights
+// In a real browser, "Find a name" on an area's page shows only the flights
 // with someone it finds, with their check-in list open; and a tap on Here,
 // which updates the page in place, keeps the search, the list it opened and
 // the rest hidden. Clearing the search closes the list again.
@@ -181,19 +202,23 @@ func TestDaySearchInABrowser(t *testing.T) {
 		Search  string
 		Here    bool // Eve's Here tag
 		Same    bool // not reloaded
+		Listed  bool // Eve's list opens and closes: her flight isn't the one on now
 	}
 	read := `({
 		Shown: [...document.querySelectorAll('#day-areas [data-list-row]')].filter((r) => !r.hidden).map((r) => r.dataset.name).join(', '),
 		Flights: [...document.querySelectorAll('#day-areas .comp-flight')].filter((f) => !f.hidden && !f.closest('[hidden]')).length,
-		Open: document.querySelector('` + eve + `').closest('details').open,
-		Opened: 'listOpened' in document.querySelector('` + eve + `').closest('details').dataset,
+		// Eve's list: a section if her flight is on now, open always;
+		// otherwise a list the search opens.
+		Open: (() => { const d = document.querySelector('` + eve + `').closest('details'); return !d || d.open })(),
+		Opened: (() => { const d = document.querySelector('` + eve + `').closest('details'); return !d || 'listOpened' in d.dataset })(),
+		Listed: !!document.querySelector('` + eve + `').closest('details'),
 		Search: document.querySelector('[data-list-search]').value,
 		Here: !!document.querySelector('` + eve + ` .chip-state-done'),
 		Same: window.sameDocument === true,
 	})`
 	var before, after, cleared view
 	step(t, ctx, "searching the day page for Eve",
-		chromedp.Navigate(srv.URL+admin+"/day?day=0"),
+		chromedp.Navigate(srv.URL+admin+"/day?day=0&area=Panel+1"),
 		chromedp.WaitVisible(`[data-list-search]`, chromedp.ByQuery),
 		chromedp.Evaluate(`window.sameDocument = true; {const s = document.querySelector('[data-list-search]'); s.value = 'eve'; s.dispatchEvent(new Event('input', {bubbles: true}))}`, nil),
 		chromedp.Evaluate(read, &before),
@@ -213,36 +238,23 @@ func TestDaySearchInABrowser(t *testing.T) {
 		chromedp.Click(`[data-list-clear]`, chromedp.ByQuery),
 		chromedp.Evaluate(read, &cleared),
 	)
-	if cleared.Open || cleared.Flights < 2 || cleared.Search != "" {
+	if cleared.Open && cleared.Listed || cleared.Flights < 2 || cleared.Search != "" {
 		t.Errorf("clearing shows every flight and closes the list it opened: %+v", cleared)
 	}
 }
 
-// On the day's buttons to the Venue screen and the desk are named as in the
-// menu, and tell whoever can make links where to make the screen's.
+// On the day doesn't repeat its menu: the Venue screen and the desk are in
+// the menu above it, not again as buttons under it.
 func TestDayPageHeader(t *testing.T) {
 	s := newTestServer(t, atTime(dayBefore))
 	admin, _, _, _ := scratchSetupOn(t, s.h, twoFlights)
-	links := func(page string) (buttons []string, help string) {
-		t.Helper()
-		box := firstByClass(parsePage(t, page), "comp-day-links")
-		if box == nil {
-			t.Fatalf("no buttons to the screen and desk: %s", page)
+	page := dayAll(t, s.h, admin+"/day")
+	for _, path := range []string{"/screen", "/desk"} {
+		if n := strings.Count(page, `href="`+admin+path); n != 1 {
+			t.Errorf("%s is linked %d times, want once, from the menu", path, n)
 		}
-		for _, a := range byTag(box, "a") {
-			buttons = append(buttons, textOf(a))
-		}
-		return buttons, textOf(firstByClass(box, "help"))
 	}
-	buttons, help := links(do(t, s.h, http.MethodGet, admin+"/day", nil).Body.String())
-	if !slices.Equal(buttons, []string{"Venue screen", "Desk messages"}) {
-		t.Errorf("the organiser's buttons: %v", buttons)
-	}
-	if !strings.Contains(help, "Make a Venue screen link under Settings") {
-		t.Errorf("the organiser is told to make the screen's link: %q", help)
-	}
-	chair := madeLink(t, s.h, admin, "Chris", "chair")
-	if _, help := links(do(t, s.h, http.MethodGet, chair+"/day", nil).Body.String()); !strings.Contains(help, "The organiser makes a Venue screen link") {
-		t.Errorf("a chair, who can't make links, is told who does: %q", help)
+	if firstByClass(parsePage(t, page), "comp-day-links") != nil {
+		t.Error("no buttons repeating the menu")
 	}
 }
