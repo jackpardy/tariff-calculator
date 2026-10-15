@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -19,6 +20,7 @@ func TestUpNow(t *testing.T) {
 		u, ok := all[key]
 		return u, ok
 	}
+	pos := NotUp // where the marshal's page shows the flight
 	step := func(move func() (Up, bool, error), want int, moves bool) {
 		t.Helper()
 		u, moved, err := move()
@@ -29,9 +31,10 @@ func TestUpNow(t *testing.T) {
 		if got, ok := at(); !ok || got.Position != want {
 			t.Errorf("stored at %d (%v), want %d", got.Position, ok, want)
 		}
+		pos = want
 	}
-	next := func() (Up, bool, error) { return s.UpNext(ctx, c.ID, key, open, "Ann") }
-	back := func() (Up, bool, error) { return s.UpBack(ctx, c.ID, key, open, "Bea") }
+	next := func() (Up, bool, error) { return s.UpNext(ctx, c.ID, key, pos, open, "Ann") }
+	back := func() (Up, bool, error) { return s.UpBack(ctx, c.ID, key, pos, open, "Bea") }
 
 	if _, ok := at(); ok {
 		t.Error("nothing tapped yet")
@@ -60,15 +63,31 @@ func TestUpNow(t *testing.T) {
 	}
 	step(back, 0, false) // the first: nowhere to go
 
+	// The same tap sent again, from where the flight was, changes nothing.
+	step(next, 2, true)
+	for _, again := range []func() (Up, bool, error){
+		func() (Up, bool, error) { return s.UpNext(ctx, c.ID, key, 0, open, "Ann") },
+		func() (Up, bool, error) { return s.UpBack(ctx, c.ID, key, 3, open, "Bea") },
+		func() (Up, bool, error) { return s.UpNext(ctx, c.ID, key, NotUp, open, "Ann") },
+	} {
+		if _, moved, err := again(); !errors.Is(err, ErrUpMoved) || moved {
+			t.Errorf("a repeat: %v %v", moved, err)
+		}
+		if u, _ := at(); u.Position != 2 {
+			t.Errorf("a repeat moved it to %d", u.Position)
+		}
+	}
+	step(back, 0, true)
+
 	// The first gymnast scratched: Next from nothing starts at the first who competes.
-	_, moved, err := s.UpNext(ctx, c.ID, other, []bool{false, true, false, true}, "Ann")
+	_, moved, err := s.UpNext(ctx, c.ID, other, NotUp, []bool{false, true, false, true}, "Ann")
 	must(t, err)
 	all, err := s.UpNow(ctx, c.ID)
 	must(t, err)
 	if !moved || all[other].Position != 1 {
 		t.Errorf("starts at the first who competes: %+v", all[other])
 	}
-	if _, moved, err := s.UpNext(ctx, c.ID, "0|Panel 3|BUCS L5||1", []bool{false, false}, "Ann"); err != nil || moved {
+	if _, moved, err := s.UpNext(ctx, c.ID, "0|Panel 3|BUCS L5||1", NotUp, []bool{false, false}, "Ann"); err != nil || moved {
 		t.Errorf("no one to compete: %v %v", moved, err)
 	}
 
@@ -104,7 +123,7 @@ func TestUpNowMigration(t *testing.T) {
 	if times, err := s.FlightTimes(ctx, c.ID); err != nil || times["f1"].Started.IsZero() {
 		t.Errorf("flight times are kept: %+v, %v", times, err)
 	}
-	if _, moved, err := s.UpNext(ctx, c.ID, "f1", []bool{true, true}, "Ann"); err != nil || !moved {
+	if _, moved, err := s.UpNext(ctx, c.ID, "f1", NotUp, []bool{true, true}, "Ann"); err != nil || !moved {
 		t.Errorf("a flight started before can be tapped through: %v %v", moved, err)
 	}
 	// Deleting the competition takes its positions with it.

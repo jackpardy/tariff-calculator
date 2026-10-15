@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"tariffCalculator/competitions"
 	"tariffCalculator/store"
@@ -322,6 +324,61 @@ func (p *competitionPages) notifyFormOf(r *http.Request, c store.Competition) (d
 	return d, nil
 }
 
+// sentForms are the Notify forms sent lately, by competition and the form's
+// one-off id (once), so the same form sent again (on poor wifi, say) isn't
+// sent twice. They're forgotten after a few minutes.
+var sentForms = &onceForms{seen: map[string]time.Time{}}
+
+// onceForms remembers one-off form ids for a while.
+type onceForms struct {
+	mu   sync.Mutex
+	seen map[string]time.Time
+}
+
+// repeatWithin is how long a Notify form's id is remembered.
+const repeatWithin = 10 * time.Minute
+
+// has says whether id was claimed less than repeatWithin before now.
+func (o *onceForms) has(id string, now time.Time) bool {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	at, ok := o.seen[id]
+	return ok && now.Sub(at) < repeatWithin
+}
+
+// claim records id at now, unless it was claimed less than repeatWithin
+// before; false means it's a repeat.
+func (o *onceForms) claim(id string, now time.Time) bool {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	for k, at := range o.seen {
+		if now.Sub(at) >= repeatWithin {
+			delete(o.seen, k)
+		}
+	}
+	if _, ok := o.seen[id]; ok {
+		return false
+	}
+	o.seen[id] = now
+	return true
+}
+
+// release forgets id, so a form that wasn't sent can be sent again.
+func (o *onceForms) release(id string) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	delete(o.seen, id)
+}
+
+// notifyOnce is the key a Notify form's one-off id is remembered by; "" for a
+// form without one.
+func notifyOnce(r *http.Request, c store.Competition) string {
+	if id := r.FormValue("once"); id != "" {
+		return c.ID + "/" + id
+	}
+	return ""
+}
+
 // notifyOne sends a Notify message: tells an official or gymnast, and/or their
 // club's comp sec and coaches, where they should be (person, flight, as, them,
 // club, note; day: the page to go back to).
@@ -344,7 +401,16 @@ func (p *competitionPages) notifyOne(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, backToDay(r, d.problem+" Nothing was sent.", anchor), http.StatusSeeOther)
 		return
 	}
+	once := notifyOnce(r, c)
+	if once != "" && !sentForms.claim(once, p.now()) {
+		// Sent already: the same form again changes nothing.
+		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
+		return
+	}
 	m, err := p.st.SendDeskMessage(r.Context(), c.ID, d.msg)
+	if err != nil && once != "" {
+		sentForms.release(once)
+	}
 	if err == store.ErrLimit {
 		http.Redirect(w, r, backToDay(r, fmt.Sprintf("A competition can keep %d messages. Nothing was sent.", store.MaxDeskMessages), anchor), http.StatusSeeOther)
 		return
@@ -367,6 +433,9 @@ func (p *competitionPages) describeNotify(r *http.Request, c store.Competition) 
 	d, err := p.notifyFormOf(r, c)
 	if err != nil || d.notFound || d.problem != "" {
 		return ""
+	}
+	if once := notifyOnce(r, c); once != "" && sentForms.has(once, p.now()) {
+		return "" // sent already
 	}
 	return "Notified " + d.about + ": should be at " + d.area
 }

@@ -135,9 +135,18 @@ func TestWhoIsUpNow(t *testing.T) {
 	if len(order) != 4 {
 		t.Fatalf("one flight of four: %v", order)
 	}
+	// tapForm is the Next gymnast form as the day page shows it now.
+	tapForm := func(what string) url.Values {
+		t.Helper()
+		at := ""
+		if m := regexp.MustCompile(`name="at" value="(\d*)"`).FindStringSubmatch(get()); m != nil {
+			at = m[1]
+		}
+		return url.Values{"flight": {flight}, "what": {what}, "day": {"0"}, "at": {at}}
+	}
 	tap := func(link, what string) string {
 		t.Helper()
-		return redirected(t, h, link+"/day/up", url.Values{"flight": {flight}, "what": {what}, "day": {"0"}})
+		return redirected(t, h, link+"/day/up", tapForm(what))
 	}
 	on := func(name, routine string) {
 		t.Helper()
@@ -192,6 +201,20 @@ func TestWhoIsUpNow(t *testing.T) {
 		!regexp.MustCompile(`comp-run-no" title="Running number">3</span>\s*<span[^>]*>`+regexp.QuoteMeta(escaped[2])+`<`).MatchString(page) {
 		t.Errorf("the day page numbers them the same: %s", page)
 	}
+	// The same tap sent twice (its answer lost on poor wifi, say) moves once,
+	// and the repeat says nothing.
+	again := tapForm("next")
+	redirected(t, h, admin+"/day/up", again)
+	if to := redirected(t, h, admin+"/day/up", again); noticeOf(t, to) != "" {
+		t.Errorf("a repeated Next says nothing: %s", to)
+	}
+	on(order[3], "Set")
+	again = tapForm("back")
+	redirected(t, h, admin+"/day/up", again)
+	if to := redirected(t, h, admin+"/day/up", again); noticeOf(t, to) != "" {
+		t.Errorf("a repeated Back says nothing: %s", to)
+	}
+	on(order[2], "Set")
 	tap(admin, "next")
 	on(order[3], "Set")
 	// Who's next crosses into the 2nd round.
@@ -244,7 +267,10 @@ func TestWhoIsUpNow(t *testing.T) {
 	}
 
 	// Undoing the start clears the taps; a finished flight has none.
-	redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo"}, "day": {"0"}})
+	if page := get(); !strings.Contains(page, `value="undo-start">Undo</button>`) {
+		t.Error("Undo takes back the start of a running flight")
+	}
+	redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo-start"}, "day": {"0"}})
 	redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"start"}, "day": {"0"}})
 	if page := get(); !strings.Contains(page, "First up") {
 		t.Error("started again from the first")
@@ -260,7 +286,13 @@ func TestWhoIsUpNow(t *testing.T) {
 	if got := shown(); got != nil {
 		t.Errorf("nor anything on the screen: %v", got)
 	}
-	// Undoing the finish keeps the place.
-	redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo"}, "day": {"0"}})
+	// Undoing the finish keeps the place, even sent twice.
+	if page := get(); !strings.Contains(page, `value="undo-finish">Undo</button>`) {
+		t.Error("Undo takes back the finish of a finished flight")
+	}
+	redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo-finish"}, "day": {"0"}})
+	if to := redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo-finish"}, "day": {"0"}}); noticeOf(t, to) != "" {
+		t.Errorf("a repeated Undo says nothing: %s", to)
+	}
 	on(order[0], "Set")
 }

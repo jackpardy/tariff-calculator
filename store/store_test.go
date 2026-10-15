@@ -1652,13 +1652,21 @@ func TestFlightTimes(t *testing.T) {
 	if got := times(); !got.Started.Equal(now.Add(-40*time.Minute)) || !got.Finished.Equal(now) || got.Who != "Bea" {
 		t.Errorf("finished: %+v", got)
 	}
-	must(t, s.MarkFlight(ctx, c.ID, key, "undo", "Bea"))
-	if got := times(); got.Started.IsZero() || !got.Finished.IsZero() {
-		t.Errorf("undo takes back the finish: %+v", got)
+	must(t, s.MarkFlight(ctx, c.ID, key, "undo-start", "Cal"))
+	if got := times(); got.Started.IsZero() || got.Finished.IsZero() || got.Who != "Bea" {
+		t.Errorf("a finished flight's start stays: %+v", got)
 	}
-	must(t, s.MarkFlight(ctx, c.ID, key, "undo", "Bea"))
-	if got := times(); !got.Started.IsZero() || !got.Finished.IsZero() {
-		t.Errorf("undo again takes back the start: %+v", got)
+	for range 2 { // the same tap sent twice
+		must(t, s.MarkFlight(ctx, c.ID, key, "undo-finish", "Bea"))
+		if got := times(); got.Started.IsZero() || !got.Finished.IsZero() {
+			t.Errorf("undo takes back the finish, and only the finish: %+v", got)
+		}
+	}
+	for range 2 {
+		must(t, s.MarkFlight(ctx, c.ID, key, "undo-start", "Bea"))
+		if got := times(); !got.Started.IsZero() || !got.Finished.IsZero() {
+			t.Errorf("undo again takes back the start: %+v", got)
+		}
 	}
 	if err := s.MarkFlight(ctx, c.ID, key, "nonsense", "Bea"); err == nil {
 		t.Error("an unknown mark is refused")

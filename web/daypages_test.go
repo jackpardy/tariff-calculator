@@ -73,15 +73,28 @@ func TestOnTheDay(t *testing.T) {
 	if to := mark("finish"); !strings.Contains(to, "notice=") {
 		t.Errorf("already finished: %s", to)
 	}
-	mark("undo")
-	page = do(t, h, http.MethodGet, day, nil).Body.String()
-	if !strings.Contains(page, ">Finished</button>") || !strings.Contains(page, "· finished —") {
-		t.Error("undo takes back the finish")
+	// Undo says what it takes back, so the same tap sent twice (its answer
+	// lost on poor wifi, say) takes back only that, and says nothing.
+	for range 2 {
+		if to := mark("undo-finish"); noticeOf(t, to) != "" {
+			t.Errorf("undo says nothing: %s", to)
+		}
+		page = do(t, h, http.MethodGet, day, nil).Body.String()
+		if !strings.Contains(page, ">Finished</button>") || !strings.Contains(page, "· finished —") || !strings.Contains(page, `value="undo-start"`) {
+			t.Error("undo takes back the finish, and only the finish")
+		}
 	}
-	mark("undo")
-	page = do(t, h, http.MethodGet, day, nil).Body.String()
-	if !strings.Contains(page, "Nothing started yet") || strings.Contains(page, ">Undo</button>") {
-		t.Error("undo again takes back the start")
+	for range 2 {
+		if to := mark("undo-start"); noticeOf(t, to) != "" {
+			t.Errorf("undo says nothing: %s", to)
+		}
+		page = do(t, h, http.MethodGet, day, nil).Body.String()
+		if !strings.Contains(page, "Nothing started yet") || strings.Contains(page, ">Undo</button>") {
+			t.Error("undo again takes back the start")
+		}
+	}
+	if rec := do(t, h, http.MethodPost, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo"}}); rec.Code != http.StatusBadRequest {
+		t.Errorf("an undo that doesn't say which: %d", rec.Code)
 	}
 	if rec := do(t, h, http.MethodPost, admin+"/day/flight", url.Values{"flight": {"9|Nowhere|X||1"}, "what": {"start"}}); rec.Code != http.StatusBadRequest {
 		t.Errorf("not a flight: %d", rec.Code)

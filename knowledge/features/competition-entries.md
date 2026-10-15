@@ -637,7 +637,9 @@ each area with flights that day, and under each area its flights in start
 order: the planned time (warm-up start to end), when it actually started and
 finished, and who tapped it. **Started** (a flight not yet started),
 **Finished** (started, not finished) and **Undo** (takes back the finish, else
-the start) post to `/day/flight`, which stores the time now (`flight_times`,
+the start: it posts `undo-finish` or `undo-start`, so the same tap sent twice
+takes back only the one, and the repeat quietly changes nothing) post to
+`/day/flight`, which stores the time now (`flight_times`,
 one row per published flight, keyed `day|area|level|category|number`; see
 `competitions.FlightKey`). A tap that changes nothing (someone else got there
 first) is ignored and says so. It always works from the **published**
@@ -692,7 +694,11 @@ were open still open (a Notify list closes once sent), the flight kept at the
 same place on the screen, and the tapped button disabled meanwhile; taps are
 sent one at a time. If the request fails or the answer isn't the day page, the
 form is submitted the usual way (with the tapped button added back as a hidden
-input) and the server's redirect brings the person back to the flight. Which
+input) and the server's redirect brings the person back to the flight. So a
+form can reach the server twice (the first request went through, but its
+answer was lost), and every day tap is safe to repeat: check-in, panel and
+Started/Finished set a state, Undo says which it takes back, Next gymnast and
+Back post the position shown, and Notify posts a one-off id. Which
 lists are open is also kept in `sessionStorage` (per path and `?day`), so a
 reload keeps them. The service worker only handles GET navigations, so these
 posts go straight to the network.
@@ -706,8 +712,11 @@ gymnast's 1st routine) to 2n-1 (the last gymnast's 2nd) for a flight of n in
 the published running order: everyone's 1st routine in order, then everyone's
 2nd in the same order, synchro pairs and tumbling and DMT passes alike. It is
 stored per flight key in `up_now` (migration 31, `store/upnow.go`: `UpNext`,
-`UpBack`, `ClearUp`, `UpNow`), with who tapped and when; `UpNext` and `UpBack`
-read and write in one transaction, so two taps at once each move one step.
+`UpBack`, `ClearUp`, `UpNow`), with who tapped and when. The form posts the
+position it showed (`at`, empty before the first tap), and `UpNext` and `UpBack`
+move only from there, read and written in one transaction: the same tap sent
+twice, or a tap from a page out of date, is `ErrUpMoved` and quietly changes
+nothing (the page comes back showing where the flight is).
 Scratched gymnasts, and entries no longer in the competition, are skipped both
 ways (`upOrderOf` in `web/screenup.go`); one scratched after being reached is
 shown struck through until the next tap. The routine is named from the level
@@ -820,7 +829,8 @@ club** (only for someone who belongs to a club: a club member, or an entry that
 came from a club; organiser-added officials and individuals have none), an
 optional extra line (up to 300 characters) and **Send**. It posts to
 `/day/notify` (`person` key, `flight` key, `as` = `official` or `gymnast`,
-`them`, `club`, `note`, `day`) and sends a [desk message](#messages-from-the-organisers-desk)
+`them`, `club`, `note`, `day`, and `once`, a one-off id made each time the form
+is shown) and sends a [desk message](#messages-from-the-organisers-desk)
 at once, as the link that tapped it. The text is built for them:
 "Mary should be at Panel 1 now to officiate BUCS L3 · flight 1 of 2 (Execution
 judge)." for an official, or "Ann should be at Panel 1 now to compete in BUCS
@@ -832,8 +842,13 @@ notice says so. **Their club** reaches only the club's comp sec and coaches, not
 its members: the message's `staff` (below) holds the club, where `clubs` would
 reach everyone. The page comes back with "Sent to Ann and their club. Told 0 by
 push and 3 by email." and the history says "Notified Ann (and their club): should
-be at Panel 1" (or "Notified Ann's club: …" for the club alone). Organiser,
-"everything", chair and timetable links can use it.
+be at Panel 1" (or "Notified Ann's club: …" for the club alone). The same form
+(the same `once`) sent again within 10 minutes is a repeat: nothing is sent or
+recorded, and the page comes back without a notice. The ids sent are kept in
+memory (`sentForms` in `web/panelcheckin.go`), so a restart forgets them; one
+that wasn't sent (the store failed, or the message limit) is forgotten at once,
+so trying again works. Organiser, "everything", chair and timetable links can
+use it.
 
 ## The venue screen
 
