@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"html"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/chromedp/chromedp"
 )
 
 // listRows are the search name and filter values of each row of the list
@@ -89,15 +93,48 @@ func TestOfficialsListFilters(t *testing.T) {
 }
 
 func TestClubFilter(t *testing.T) {
-	f := clubFilter([]string{"ucc", "UCD", "", "UCD", "Athlone"})
+	f := clubFilter([]string{"ucc", "UCD", "", "UCD", "ATU Sligo", "Athlone", "Éire Óg"})
 	var got []string
 	for _, o := range f.Options {
 		got = append(got, o.Value+"="+o.Label)
 	}
-	if want := []string{"Athlone=Athlone", "ucc=ucc", "UCD=UCD", "-=No club"}; !slices.Equal(got, want) {
-		t.Errorf("clubs once each, ignoring case in order, then no club: %v", got)
+	if want := []string{"Athlone=Athlone", "ATU Sligo=ATU Sligo", "Éire Óg=Éire Óg", "ucc=ucc", "UCD=UCD", "-=No club"}; !slices.Equal(got, want) {
+		t.Errorf("clubs once each, ignoring case and accents in order, then no club: %v", got)
 	}
 	if f := clubFilter([]string{"UCD"}); len(f.Options) != 1 {
 		t.Error("no \"No club\" when everyone has one")
+	}
+}
+
+// A list's search in the browser matches names as the server's does: only
+// their letters count, so "marykate" finds Mary Kate and "eabha" finds Éabha.
+func TestListSearchInABrowser(t *testing.T) {
+	ctx := browser(t)
+	s := newTestServer(t, atTime(dayBefore))
+	admin := created(t, s.h, newCompetition())
+	club := aClub(t, s.h, admin, "UCD", false, "Mary Kate Byrne", "Éabha Ní Bhriain", "Tadhg Ryan")
+	srv := httptest.NewServer(s.h)
+	defer srv.Close()
+
+	shown := func(search string) string {
+		t.Helper()
+		var names string
+		step(t, ctx, "searching for "+search,
+			chromedp.Evaluate(`{const s = document.querySelector('[data-list-search]'); s.value = `+strconv.Quote(search)+`; s.dispatchEvent(new Event('input', {bubbles: true}))}`, nil),
+			chromedp.Evaluate(`[...document.querySelectorAll('#members [data-list-row]')].filter((r) => !r.hidden).map((r) => r.dataset.name).join(', ')`, &names),
+		)
+		return names
+	}
+	step(t, ctx, "opening the members", chromedp.Navigate(srv.URL+club.page+"/members"), chromedp.WaitVisible(`[data-list-search]`, chromedp.ByQuery))
+	for _, c := range []struct{ search, want string }{
+		{"marykate", "Mary Kate Byrne"},
+		{"mary kate", "Mary Kate Byrne"},
+		{"eabha", "Éabha Ní Bhriain"},
+		{"ni bhriain", "Éabha Ní Bhriain"},
+		{"", "Éabha Ní Bhriain, Mary Kate Byrne, Tadhg Ryan"}, // by name, ignoring accents
+	} {
+		if got := shown(c.search); got != c.want {
+			t.Errorf("searching %q shows %q, want %q", c.search, got, c.want)
+		}
 	}
 }
