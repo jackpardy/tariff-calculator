@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"tariffCalculator/views"
 )
 
 // peopleSetup is a competition with a club (UCD) whose member Mo competes at
@@ -263,7 +265,7 @@ func TestPeoplePlannedAndPublished(t *testing.T) {
 		t.Errorf("Ivy is here: %s", page)
 	}
 	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {entry}, "status": {"scratched"}, "day": {"0"}})
-	if page := do(t, h, http.MethodGet, ivy, nil).Body.String(); !strings.Contains(page, "Check-in: <strong>Scratched</strong>") || !strings.Contains(page, "Scratched · ") {
+	if page := do(t, h, http.MethodGet, ivy, nil).Body.String(); !strings.Contains(page, "Check-in: <strong>Scratched</strong>") || !strings.Contains(page, chip(t, views.Stopped, "Scratched")) {
 		t.Errorf("Ivy is scratched: %s", page)
 	}
 	desk := do(t, h, http.MethodGet, admin+"/desk", nil).Body.String()

@@ -684,7 +684,8 @@ The organiser sees a pair entered at another level flagged.
 
 # 4. Sign off routines (coaches)
 
-Your comp sec adds you and sends you your **coach link**. Your page lists each
+Your comp sec adds you and sends you your **coach link** (**Your coach link**,
+**Show**, at the top of your page shows it again). Your page lists each
 competition with the entries you see: the members who chose you, those who
 haven't chosen a coach, or everyone if the club says so, each with the
 problems the organiser sees (a missing sign-off among them). If the club hasn't

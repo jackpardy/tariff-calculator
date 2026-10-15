@@ -53,6 +53,8 @@ type MyEvent struct {
 	Coach, CoachLink          string // who coaches them, and their page: organiser's page only
 	Event, Gymnasts, Category string
 	Status                    string
+	StatusState               State // Status's state
+	Scratched                 bool  // scratched on the day
 	Problems                  []string
 	Flight, Area, Day, WarmUp string
 	Position, Of              int
@@ -163,7 +165,12 @@ templ MyCompetition(p MyCompetitionPage) {
 					}
 				</p>
 				<p class="is-size-7 mb-2">{ ev.Gymnasts }</p>
-				<p class="is-size-7">{ ev.Status }</p>
+				<p class="mb-1">
+					if ev.Scratched {
+						@StateChip(Stopped, "Scratched")
+					}
+					@StateChip(ev.StatusState, ev.Status)
+				</p>
 				if ev.Coach != "" {
 					<p class="is-size-7">
 						Coach:
@@ -175,7 +182,7 @@ templ MyCompetition(p MyCompetitionPage) {
 					</p>
 				}
 				if len(ev.Problems) > 0 {
-					<ul class="is-size-7 has-text-danger mb-2">
+					<ul class="is-size-7 mb-2">
 						for _, pr := range ev.Problems {
 							<li>{ pr }</li>
 						}

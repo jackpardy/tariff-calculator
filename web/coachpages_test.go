@@ -110,7 +110,7 @@ func TestCoachSignoff(t *testing.T) {
 	if y, x := problems(clubPage, "Y"), problems(clubPage, "X"); y != "3 problems" || x != "2 problems" {
 		t.Errorf("the comp sec's problems: Y %s, X %s", y, x)
 	}
-	if y, x := problems(do(t, h, http.MethodGet, ann, nil).Body.String(), "Y"), problems(do(t, h, http.MethodGet, ann, nil).Body.String(), "X"); y != "3" || x != "2" {
+	if y, x := problems(do(t, h, http.MethodGet, ann, nil).Body.String(), "Y"), problems(do(t, h, http.MethodGet, ann, nil).Body.String(), "X"); y != "3 problems" || x != "2 problems" {
 		t.Errorf("the coach's problems: Y %s, X %s", y, x)
 	}
 	redirected(t, h, formAction(t, clubPage, club+"/competitions/"), url.Values{"which": {"all"}})
