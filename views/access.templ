@@ -181,14 +181,13 @@ templ concernsBox(base string, concerns []ConcernView, open int, a Access) {
 // concernForm flags a concern for the organiser, about an entry ("" for the
 // competition).
 templ concernForm(base, entryID, label string) {
-	<details class="mt-3">
-		<summary class="is-size-7">{ label }</summary>
-		<form method="post" action={ templ.SafeURL(base + "/concerns") } class="mt-2">
+	@opens("", "", label, false) {
+		<form method="post" action={ templ.SafeURL(base + "/concerns") }>
 			if entryID != "" {
 				<input type="hidden" name="entry" value={ entryID }/>
 			}
 			<textarea class="textarea is-small mb-2" name="text" required maxlength="500" rows="2" placeholder="What's the concern? e.g. element 7 isn't on the card" aria-label="The concern"></textarea>
 			<button class="button is-small is-warning is-light" type="submit">Flag for the organiser</button>
 		</form>
-	</details>
+	}
 }
