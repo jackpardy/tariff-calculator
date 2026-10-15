@@ -288,12 +288,12 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 	}
 	var out []views.DayView
 	for d, day := range s.Setup.Days {
-		dv := views.DayView{Name: day.Name}
+		dv := views.DayView{ID: fmt.Sprintf("day-%d", d), Name: day.Name}
 		for _, a := range s.Setup.Areas {
 			if len(day.Areas) > 0 && !slices.Contains(day.Areas, a.Name) {
 				continue
 			}
-			av := views.AreaView{Name: a.Name}
+			av := views.AreaView{ID: fmt.Sprintf("day-%d-", d) + areaID(a.Name), Name: a.Name}
 			type timed struct {
 				start int
 				item  views.ItemView

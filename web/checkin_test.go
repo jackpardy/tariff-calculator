@@ -34,7 +34,7 @@ func TestCheckinAndScratches(t *testing.T) {
 	if !strings.Contains(page, "Check-in · 0 of 3 here</summary>") {
 		t.Errorf("nothing marked yet: %s", page)
 	}
-	if !strings.Contains(page, ">Here</button>") || !strings.Contains(page, ">Scratched</button>") || strings.Contains(page, ">Clear</button>") {
+	if !strings.Contains(page, ">Here</button>") || !strings.Contains(page, ">Scratched</button>") || strings.Contains(page, `value="">Clear</button>`) {
 		t.Error("Here and Scratched are offered, Clear isn't until something is marked")
 	}
 	ann, bea := checkinEntry(t, page, "Ann"), checkinEntry(t, page, "Bea")
@@ -55,7 +55,7 @@ func TestCheckinAndScratches(t *testing.T) {
 		!strings.Contains(page, `<span class="tag is-success is-light">Here</span>`) || !strings.Contains(page, `<span class="tag is-danger is-light">Scratched</span>`) {
 		t.Errorf("each gymnast's state: %s", page)
 	}
-	if !strings.Contains(page, ">Clear</button>") {
+	if !strings.Contains(page, `value="">Clear</button>`) {
 		t.Error("Clear is offered once something is marked")
 	}
 	// Doing it again does nothing, and says so.

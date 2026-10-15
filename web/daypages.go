@@ -193,6 +193,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 	if can(r, "GET", "/desk") {
 		page.Desk = base + "/desk"
 	}
+	page.Links = can(r, "POST", "/links")
 	whatIf := ""
 	if can(r, "GET", "/timetable/leave") {
 		whatIf = base + "/timetable/leave"

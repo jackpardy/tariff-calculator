@@ -14,6 +14,7 @@ type DayPage struct {
 	Menu []MenuSection
 	Notice      string
 	Screen      string // the venue screen for this day; "" if this link can't open it
+	Links       bool   // this link can make links under Settings, such as a Venue screen link
 	Day         int    // the day shown, by index
 	Days        []DayTab
 	Areas       []DayArea
@@ -121,14 +122,28 @@ templ Day(p DayPage) {
 		<h1 class="title is-4">On the day</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		@pageMenu(p.Menu)
-		if p.Screen != "" {
-			<p class="mb-3">
-				<a class="button is-small is-link is-light" href={ templ.SafeURL(p.Screen) }>Venue screen</a>
-				<span class="help is-inline ml-2">What's on each area now and next, for a screen at the venue. The organiser makes a Venue screen link under Settings.</span>
-			</p>
-		}
-		if p.Desk != "" {
-			<p class="mb-3"><a class="button is-small is-light" href={ templ.SafeURL(p.Desk) }>Message from the desk</a></p>
+		if p.Screen != "" || p.Desk != "" {
+			// Named as in the menu; the Venue screen opens on the day shown.
+			<div class="comp-day-links mb-3">
+				<div class="buttons mb-1">
+					if p.Screen != "" {
+						<a class="button is-small is-link is-light" href={ templ.SafeURL(p.Screen) }>Venue screen</a>
+					}
+					if p.Desk != "" {
+						<a class="button is-small is-light" href={ templ.SafeURL(p.Desk) }>Desk messages</a>
+					}
+				</div>
+				if p.Screen != "" {
+					<p class="help">
+						The Venue screen shows what's on each area now and next, for a screen at the venue.
+						if p.Links {
+							Make a Venue screen link under Settings to open it on the screen itself.
+						} else {
+							The organiser makes a Venue screen link for the screen itself.
+						}
+					</p>
+				}
+			</div>
 		}
 		<div id="day-notice" class="comp-day-notice" aria-live="polite">
 			if p.Notice != "" {
@@ -136,13 +151,27 @@ templ Day(p DayPage) {
 			}
 		</div>
 		if len(p.Days) > 1 {
-			<div class="tabs is-small">
+			<div class="tabs is-small comp-day-tabs">
 				<ul>
 					for _, d := range p.Days {
 						<li class={ templ.KV("is-active", d.Active) }><a href={ templ.SafeURL(d.Link) }>{ d.Name }</a></li>
 					}
 				</ul>
 			</div>
+		}
+		if len(p.Areas) > 1 {
+			<p class="comp-jump is-size-7 mb-2">
+				Jump to:
+				for i, a := range p.Areas {
+					if i > 0 {
+						·
+					}
+					<a href={ templ.SafeURL("#" + a.ID) }>{ a.Name }</a>
+				}
+			</p>
+		}
+		if n := dayNames(p); n > 0 {
+			@listTools(ListTools{ID: "day-areas", Noun: "names", Total: n})
 		}
 		<div id="day-warnings">
 			for _, s := range p.Scratched {
@@ -154,7 +183,7 @@ templ Day(p DayPage) {
 							<p>{ d }</p>
 						}
 						if s.WhatIf != "" {
-							<p><a href={ templ.SafeURL(s.WhatIf) }>What if they leave</a></p>
+							<p><a class="comp-tap-link" href={ templ.SafeURL(s.WhatIf) }>What if they leave</a></p>
 						}
 						@stillHereForm(p, s, "officiating", "Still officiating")
 					}
@@ -171,14 +200,27 @@ templ Day(p DayPage) {
 		if len(p.Areas) == 0 {
 			<div class="notification is-light">No flights on this day.</div>
 		}
-		<div class="columns" id="day-areas" data-day-page>
+		<div class="columns is-multiline" id="day-areas" data-day-page>
 			for _, a := range p.Areas {
-				<div class="column">
+				// At most three areas side by side, so a name and its buttons fit.
+				<div class="column is-half-tablet is-one-third-desktop" data-list-group>
 					@dayArea(p, a)
 				</div>
 			}
 		</div>
 	}
+}
+
+// dayNames counts the day's check-in rows, gymnasts' and officials', which
+// "Find a name" searches.
+func dayNames(p DayPage) int {
+	n := 0
+	for _, a := range p.Areas {
+		for _, f := range a.Flights {
+			n += len(f.Gymnasts) + len(f.Seats)
+		}
+	}
+	return n
 }
 
 // stillHereForm is the button that clears a kind of scratch warning: the
@@ -215,10 +257,10 @@ templ dayArea(p DayPage, a DayArea) {
 			}
 		</p>
 		if a.WhatIf != "" {
-			<p class="is-size-7 mb-3"><a href={ templ.SafeURL(a.WhatIf) }>What if: see the rest of the day</a></p>
+			<p class="is-size-7 mb-3"><a class="comp-tap-link" href={ templ.SafeURL(a.WhatIf) }>What if: see the rest of the day</a></p>
 		}
 		for _, f := range a.Flights {
-			<div class="box comp-flight" id={ f.ID }>
+			<div class="box comp-flight" id={ f.ID } data-list-group>
 				<p class="mb-1"><strong>{ f.Name }</strong></p>
 				<p class="is-size-7 mb-1">Planned { f.Planned }</p>
 				<p class="is-size-7 mb-2">
@@ -258,10 +300,10 @@ templ dayArea(p DayPage, a DayArea) {
 					</form>
 				}
 				if len(f.Gymnasts) > 0 {
-					<details class="comp-checkin mt-2" data-key={ "checkin:" + f.Key }>
+					<details class="comp-checkin mt-2" data-key={ "checkin:" + f.Key } data-list-group>
 						<summary class="is-size-7">Check-in · { f.Checkin }</summary>
 						for _, g := range f.Gymnasts {
-							<div class="comp-checkin-row">
+							<div class="comp-checkin-row" { ListRow{Name: g.Name}.Attrs()... }>
 								<span class="comp-checkin-name">
 									@runNo(g.No)
 									<span class={ templ.KV("comp-scratched", g.State == "scratched") }>{ g.Name }</span>
@@ -296,10 +338,10 @@ templ dayArea(p DayPage, a DayArea) {
 					</details>
 				}
 				if len(f.Seats) > 0 {
-					<details class="comp-checkin mt-2" data-key={ "panel:" + f.Key }>
+					<details class="comp-checkin mt-2" data-key={ "panel:" + f.Key } data-list-group>
 						<summary class="is-size-7">Panel · { f.Panel }</summary>
 						for _, s := range f.Seats {
-							<div class="comp-checkin-row">
+							<div class="comp-checkin-row" { ListRow{Name: s.Name}.Attrs()... }>
 								<span class="comp-panel-name">
 									<span>{ s.Name }</span>
 									<span class="has-text-grey is-size-7">{ s.Role }</span>
@@ -327,7 +369,7 @@ templ dayArea(p DayPage, a DayArea) {
 									}
 								</form>
 								if s.WhatIf != "" {
-									<a class="is-size-7" href={ templ.SafeURL(s.WhatIf) }>What if they leave</a>
+									<a class="is-size-7 comp-tap-link" href={ templ.SafeURL(s.WhatIf) }>What if they leave</a>
 								}
 								if s.Notify.Person != "" {
 									@dayNotify(p, f.Key, s.Notify)

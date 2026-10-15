@@ -296,7 +296,10 @@ has a starting value you can change.
 7. Adjust manually: **Move event** moves all of an event's flights together
    to another day or area, **Earlier** swaps a flight with the one before it
    in its event, **Redraw order** draws a flight's running order again, and
-   **move** puts a gymnast in another flight. If an event's flights end up
+   **Move** beside a gymnast puts them in another flight. To find someone
+   on a long timetable, type part of their name in **Find a name**: only
+   the flights with them show. **Jump to** at the top of the page goes
+   straight to a day or an area. If an event's flights end up
    apart, or either side of a break you haven't allowed, it's listed as a
    problem. Entries made after planning are listed for you to place.
    Changing the setup asks you to **Plan** again. Open a flight's **Panel**
@@ -313,7 +316,8 @@ has a starting value you can change.
    totals, the paper copy beside the scores entered online; officials can
    also open their own panels' sheets on their phone from **Score sheets
    for your panels**, beside their duties), and **Print the officials rota** (each person's duties) for the
-   noticeboard. **Panel timeline** shows every day
+   noticeboard. On a phone, swipe a sheet's table sideways to see all of
+   it. **Panel timeline** shows every day
    side by side, a column per area, each flight and break with time running
    down evenly; **Timeline with officials** shows each area's day with a
    column for each seat on its panel and who has it. Print either (A3
@@ -347,7 +351,10 @@ has a starting value you can change.
    whole run of that event on the area, and clears a scratch warning), or
    **Missing**, which links to "what if they leave". Next to anyone who isn't
    here, **Notify** sends them, their club's comp sec and coaches, or both,
-   a message saying where they should be.
+   a message saying where they should be. To find someone at the desk, type
+   part of their name in **Find a name**: only the flights with them show,
+   with their Check-in or Panel list open, and it stays that way as you tap
+   Here. **Jump to** goes straight to an area.
    **Marshals: who's up now.** Once a flight is **Started**, its box shows who's
    first up. Tap **Next gymnast** as each gymnast starts their routine: the
    box shows who's on, their club and which routine it is (such as Set or
@@ -356,8 +363,9 @@ has a starting value you can change.
    scratched gymnasts are skipped. **Back** puts it right if you tapped too
    soon. After the last routine, tap **Finished** as usual: Next gymnast won't
    finish the flight for you.
-   <a id="on-the-day-venue-screen"></a>**Venue screen** (a link at the top of
-   the On the day page): what's on each area now and what's next, for a TV
+   <a id="on-the-day-venue-screen"></a>**Venue screen** (in the menu, and a
+   button at the top of the On the day page that opens it on the day you're
+   looking at): what's on each area now and what's next, for a TV
    at the venue. On the **Settings** page make a **Venue screen** link, open
    it on the TV's browser and leave it: it keeps itself up to date, and that
    link can open nothing else. Each area has its own colour. Its card shows

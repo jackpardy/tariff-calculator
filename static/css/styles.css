@@ -639,11 +639,28 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 /* A gymnast's running number, their place in the flight: the same on every page. */
 .comp-run-no { display: inline-block; min-width: 1.6em; padding: 0 0.3em; margin-right: 0.35em; border-radius: 0.3em; background: #eef0f4; color: #333; font-weight: 700; font-size: 0.9em; text-align: center; font-variant-numeric: tabular-nums; }
 .comp-order li { margin: 0.15rem 0; }
-.comp-move summary { color: #485fc7; margin-left: 0.4rem; display: inline; }
+/* A gymnast in a flight's running order: their name, then Move, which opens its form
+   on a line of its own. */
+.comp-order-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
+.comp-order-name { flex: 1 1 8rem; }
+.comp-move { min-width: 0; }
+.comp-move[open] { flex-basis: 100%; }
 .comp-move[open] .comp-move-form { display: flex; margin: 0.3rem 0; }
 .comp-move-form { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
+/* The flight cards' buttons, dropdowns and choices are at least 40px tall, to tap. */
+.comp-move .button, .comp-move-form .button, .comp-tt-actions .button, .comp-panel .button { min-height: 2.5rem; }
+.comp-move-form .select:not(.is-multiple), .comp-move-form .select select, .comp-tt-actions .select:not(.is-multiple), .comp-tt-actions .select select,
+.comp-panel .select:not(.is-multiple), .comp-panel .select select { height: 2.5rem; }
+.comp-panel > summary { display: flex; align-items: center; gap: 0.25em; min-height: 2.5rem; }
+/* A long flight or person in a dropdown stays within the card. */
+.comp-move-form .select, .comp-move-form .select select, .comp-tt-actions .select, .comp-tt-actions .select select, .comp-panel .select, .comp-panel .select select { max-width: 100%; }
 .comp-flight-actions { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
-.comp-print-bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+/* "Jump to" a day or area (the timetable, On the day): links big enough to tap. */
+.comp-jump p, p.comp-jump { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.4rem; }
+.comp-jump a { display: inline-flex; align-items: center; min-height: 2.5rem; }
+/* A printout's toolbar wraps on a phone, and a wide table scrolls in its own box (a
+   .table-container), so the page never scrolls sideways and Print stays on screen. */
+.comp-print-bar { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; margin-bottom: 1rem; }
 .comp-sheet-table td, .comp-sheet-table th { font-size: 0.9rem; }
 .comp-sheet-table td:last-child { min-width: 4rem; }
 @media print {
@@ -727,12 +744,24 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 /* The day page's notice stays in view, as the page no longer jumps to the top to show it. */
 .comp-day-notice { position: sticky; top: 0; z-index: 20; }
 .comp-checkin-row { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; align-items: center; padding: 0.35rem 0; border-top: 1px solid #eee; }
-.comp-checkin-row .comp-checkin-name { flex: 1 1 8rem; }
+/* On the day uses the screen's width, three areas at most side by side, so a
+   gymnast's name and their Here and Scratched share a line on a laptop. */
+.comp-page .container:has(#day-areas) { max-width: none; }
+.comp-checkin-row .comp-checkin-name { flex: 1 1 7rem; }
 .comp-checkin-row form { display: flex; gap: 0.3rem; margin: 0; }
 .comp-checkin-row .comp-panel-name { flex: 1 1 8rem; }
 .comp-notify { flex: 1 1 100%; }
 .comp-checkin-row .comp-notify form { flex-wrap: wrap; align-items: center; margin-top: 0.3rem; }
 .comp-notify .input { width: 14rem; max-width: 100%; }
+/* Everything to tap on On the day is at least 40px tall: it's tapped on a phone, in a
+   hurry, between rows of names. Notify is a box of its own, set apart from the row's
+   Here and Scratched so it isn't tapped by mistake. */
+.comp-day-tabs a, .comp-day-links .button, #day-areas .button, #day-warnings .button, .comp-tap-link { min-height: 2.5rem; }
+.comp-tap-link { display: inline-flex; align-items: center; }
+#day-areas .comp-checkin > summary { display: flex; align-items: center; min-height: 2.5rem; }
+.comp-notify > summary { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 0.75rem; margin: 0.5rem 0 0.25rem; border: 1px solid #dbdbdb; border-radius: 4px; }
+.comp-notify .input { min-height: 2.5rem; }
+.comp-notify .checkbox { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2.5rem; }
 /* The venue screen (views/screen.templ), for a TV across a hall: black on white, each
    area in its own colour (the same on every screen and day), filling the screen. Text
    scales with the screen's width, and the cards share the height left by the header. */
