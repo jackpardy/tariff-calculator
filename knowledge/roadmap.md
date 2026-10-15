@@ -172,7 +172,8 @@ build on:
         Code of Points (a drill, a skill on another apparatus, a
         conditioning test): a name and an optional note, for tracking only,
         not in routines.
-   5. **Club levels** (decided 2026-10-15). Coaches make levels to track
+   5. **Club levels** (decided and built 2026-10-15,
+      [club levels](features/competition-entries.md#club-levels-adr-0011)). Coaches make levels to track
       gymnasts against ("Club Grade 1"), in order, out of **skills and
       requirements** (decided 2026-10-15), so linking one skill into
       another is tracked as well as each skill. This reuses the

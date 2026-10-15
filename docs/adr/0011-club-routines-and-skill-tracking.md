@@ -1,6 +1,6 @@
 # ADR 0011 — Club routines and skill tracking
 
-- **Status:** Accepted; Decisions 1 (routines), 2 and 3 (skill marks and who sees them), 4 (club skills) and 7 (retention) built 2026-10-15, the rest planned
+- **Status:** Accepted; Decisions 1 (routines), 2 and 3 (skill marks and who sees them), 4 (club skills), 5 (club levels) and 7 (retention) built 2026-10-15; 6 (sharing club levels) planned
 - **Date:** 2026-10-15
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 2 (a club lasts beyond a season), Decision 5
@@ -108,6 +108,16 @@ Club levels should reuse it rather than add a second way to describe skills.
      already passes the rule, it's shown beside the item as evidence for the
      coach; it doesn't mark the item by itself.
    - A club skill item is done when that skill is marked Can do.
+   - **As built (2026-10-15).** The requirements editor is the Requirements
+     page's, unchanged: a coach writes a level's requirements there and
+     **Save to club levels** posts them to the club (as the routine builder's
+     Save to my page does for routines), and the club's page opens them there
+     again by a share link. So any rule type can be written; the ones about a
+     single routine are left out when saved, saying so. The club's own skills
+     to track can't be written as requirements, so a level keeps them as a
+     list after its requirements, ticked on the club's Levels page. Each item
+     is worked out on each side apart, from the gymnast's marks and from a
+     coach's, and both show (Decision 2).
 6. **Sharing club levels.** A club level is shared by link like
    requirements and levels (`static/js/share.js`: the level in the link's
    fragment, never stored on the server), bringing the club skills it uses.

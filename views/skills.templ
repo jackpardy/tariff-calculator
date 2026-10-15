@@ -19,6 +19,8 @@ type SideMark struct {
 type MarkView struct {
 	Skill     string // the skill as JSON, posted to change a mark
 	Club      string // or one of the club's own skills to track, by id
+	Item      string // or a level's item marked as a whole (a link, a set routine)
+	Derived   bool   // a level's item worked out from the skills marked: no buttons
 	Name, FIG string
 	Tariff    string // in a list of skills to mark
 	Gymnast   *SideMark
@@ -54,7 +56,17 @@ type SkillsPart struct {
 	Routines  []MarkView   // skills in their kept routines
 	Browse    []SkillGroup // the catalog, by tab
 	Others    []OtherMember
-	Open      bool // every member of the club sees everyone's skills
+	Open      bool         // every member of the club sees everyone's skills
+	Levels    []LevelView  // the club's levels, and how far through each they are
+}
+
+// LevelView is one of the club's levels for a gymnast: each item, with how
+// it stands on each side, and how many each side has done.
+type LevelView struct {
+	Name           string
+	Items          []MarkView
+	Gymnast, Coach int // items done, by the gymnast's marks and by a coach's
+	Broken         string
 }
 
 // markState is a mark's state for its chip.
@@ -90,6 +102,8 @@ templ markButtons(action string, m MarkView) {
 	<form method="post" action={ templ.SafeURL(action) } class="buttons are-small mb-0 skill-mark-buttons">
 		if m.Club != "" {
 			<input type="hidden" name="club" value={ m.Club }/>
+		} else if m.Item != "" {
+			<input type="hidden" name="item" value={ m.Item }/>
 		} else {
 			<input type="hidden" name="skill" value={ m.Skill }/>
 		}
@@ -124,7 +138,7 @@ templ skillRow(action string, m MarkView) {
 				@sideMark(RoleCoach, m.Coach)
 			</div>
 		}
-		if action != "" {
+		if action != "" && !m.Derived {
 			@markButtons(action, m)
 		}
 	</div>
@@ -194,6 +208,7 @@ templ MemberSkills(p MemberPage) {
 			Mark the skills you're learning and the ones you can do. Your coaches see them and mark them too: your mark and theirs both show.
 		</p>
 		@skillMarks(p.Skills)
+		@levelsSection(p.Skills)
 		if p.Skills.Action != "" {
 			@skillsAdd(p.Skills)
 		}
@@ -234,6 +249,7 @@ templ CoachGymnastSkills(f CoachFrame, p SkillsViewPage) {
 		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a></p>
 		<h2 class="title is-5">{ p.Name }</h2>
 		@skillMarks(p.Skills)
+		@levelsSection(p.Skills)
 		@skillsAdd(p.Skills)
 	}
 }
@@ -244,6 +260,7 @@ templ ClubMemberSkills(c ClubPage, p SkillsViewPage) {
 		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a></p>
 		<h2 class="title is-5">{ p.Name }</h2>
 		@skillMarks(p.Skills)
+		@levelsSection(p.Skills)
 	}
 }
 
@@ -253,6 +270,7 @@ templ OtherMemberSkills(m MemberPage, p SkillsViewPage) {
 		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a></p>
 		<h2 class="title is-5">{ p.Name }</h2>
 		@skillMarks(p.Skills)
+		@levelsSection(p.Skills)
 	}
 }
 
@@ -303,7 +321,7 @@ templ CoachClubSkills(p ClubSkillsPage) {
 					<p class="is-size-7 mt-1">{ c.Note }</p>
 				}
 				<p class="is-size-7 mt-1">
-					Added by
+					Added by{ " " }
 					@WhoChip(RoleCoach, c.By)
 				</p>
 				<form method="post" action={ templ.SafeURL(c.Remove) } class="mt-1" onsubmit={ confirmRemoveClubSkill(c.Name) }>
@@ -354,4 +372,123 @@ templ CoachClubSkills(p ClubSkillsPage) {
 // confirmRemoveClubSkill asks before a club skill goes, with its marks.
 script confirmRemoveClubSkill(name string) {
 	return confirm('Remove ' + name + '? Marks on something to track go with it; a name for a skill only stops showing.');
+}
+
+// levelsSection is how far a gymnast is through each of the club's levels:
+// each item with how it stands on each side, and a count for each side.
+templ levelsSection(p SkillsPart) {
+	if len(p.Levels) > 0 {
+		<h3 class="title is-5 mt-5 mb-2">Levels</h3>
+		for _, l := range p.Levels {
+			<details class="box comp-level-progress">
+				<summary>
+					<strong>{ l.Name }</strong>
+					<span class="is-block mt-1">
+						@WhoChip(RoleGymnast, "")
+						<span class="is-size-7 ml-1 mr-3">{ strconv.Itoa(l.Gymnast) } of { strconv.Itoa(len(l.Items)) }</span>
+						@WhoChip(RoleCoach, "")
+						<span class="is-size-7 ml-1">{ strconv.Itoa(l.Coach) } of { strconv.Itoa(len(l.Items)) }</span>
+					</span>
+				</summary>
+				<div class="mt-3">
+					if l.Broken != "" {
+						@StateChip(Attention, l.Broken)
+					}
+					for _, m := range l.Items {
+						@skillRow(p.Action, m)
+					}
+				</div>
+			</details>
+		}
+	}
+}
+
+// LevelClubSkill is one of the club's own skills to track, for a level to
+// track too.
+type LevelClubSkill struct {
+	ID, Name string
+	In       bool // the level tracks it
+}
+
+// ClubLevelView is one of the club's levels, on the coaches' list.
+type ClubLevelView struct {
+	Name, By, Updated   string
+	Rules               []string // its requirements, in words
+	Broken              string
+	ClubSkills          []LevelClubSkill
+	Open                string // the Requirements page, with its requirements to edit
+	Items, Move, Remove string // where its club skills, moving it and removing it post
+	First, Last         bool
+}
+
+// ClubLevelsPage is the coaches' page for the club's levels.
+type ClubLevelsPage struct {
+	Frame  CoachFrame
+	Levels []ClubLevelView
+	Max    int
+}
+
+// CoachClubLevels is the coaches' page for the club's levels, in order.
+templ CoachClubLevels(p ClubLevelsPage) {
+	@competitionLayout("Levels · " + p.Frame.Club) {
+		@coachFrame(p.Frame)
+		<p class="mb-4 is-size-7 has-text-grey">
+			Your club's levels to track gymnasts against, in order. A level is requirements, written on the <a href="/requirements">Requirements</a> page: a skill, a kind of skill, a link of skills one after another, a number of them, or a set routine. There, <strong>Save to club levels</strong> adds them here, and saving them again changes the level. Each gymnast's Skills page shows how far through each level they are.
+		</p>
+		if len(p.Levels) == 0 {
+			<p class="has-text-grey mb-4">No levels yet.</p>
+		}
+		for _, l := range p.Levels {
+			<div class="box">
+				<h3 class="title is-6 mb-1">{ l.Name }</h3>
+				<p class="is-size-7 mb-2">
+					Saved by{ " " }
+					@WhoChip(RoleCoach, l.By)
+					<span class="has-text-grey ml-1">{ l.Updated }</span>
+				</p>
+				if l.Broken != "" {
+					@StateChip(Attention, l.Broken)
+				}
+				<ol class="is-size-7 ml-4 mb-2">
+					for _, rule := range l.Rules {
+						<li>{ rule }</li>
+					}
+				</ol>
+				if len(l.ClubSkills) > 0 {
+					<form method="post" action={ templ.SafeURL(l.Items) } class="mb-2">
+						<p class="is-size-7 has-text-weight-semibold mb-1">Your club's skills to track too</p>
+						for _, c := range l.ClubSkills {
+							<label class="checkbox is-block is-size-7">
+								<input type="checkbox" name="item" value={ c.ID } checked?={ c.In }/>
+								{ c.Name }
+							</label>
+						}
+						<button class="button is-small mt-1" type="submit">Save</button>
+					</form>
+				}
+				<div class="buttons are-small">
+					if l.Open != "" {
+						<a class="button" href={ templ.SafeURL(l.Open) }>Open in the Requirements page</a>
+					}
+					<form method="post" action={ templ.SafeURL(l.Move) } class="is-inline">
+						<input type="hidden" name="by" value="-1"/>
+						<button class="button" type="submit" disabled?={ l.First }>Earlier</button>
+					</form>
+					<form method="post" action={ templ.SafeURL(l.Move) } class="is-inline">
+						<input type="hidden" name="by" value="1"/>
+						<button class="button" type="submit" disabled?={ l.Last }>Later</button>
+					</form>
+					<form method="post" action={ templ.SafeURL(l.Remove) } class="is-inline" onsubmit={ confirmRemoveLevel(l.Name) }>
+						<button class="button is-text" type="submit">Remove</button>
+					</form>
+				</div>
+			</div>
+		}
+		<p class="help">{ "Up to " + strconv.Itoa(p.Max) + " levels." }</p>
+	}
+}
+
+// confirmRemoveLevel asks before a level goes.
+script confirmRemoveLevel(name string) {
+	return confirm('Remove ' + name + '? Gymnasts\' marks stay.');
 }

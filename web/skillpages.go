@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"tariffCalculator/catalog"
+	"tariffCalculator/requirements"
 	"tariffCalculator/skills"
 	"tariffCalculator/store"
 	"tariffCalculator/views"
@@ -231,6 +233,15 @@ func (p *competitionPages) postedMark(w http.ResponseWriter, r *http.Request, cl
 		failed(w, r, err)
 		return store.MarkIn{}, "", false
 	}
+	if item := r.FormValue("item"); item != "" {
+		rule, ok, err := p.levelWholeItem(r, clubID, item)
+		if err != nil || !ok {
+			failed(w, r, cmp.Or(err, store.ErrNotFound))
+			return store.MarkIn{}, "", false
+		}
+		data, _ := json.Marshal(rule)
+		return store.MarkIn{Item: item, Skill: string(data), State: state}, requirements.Describe(rule), true
+	}
 	if id := r.FormValue("club"); id != "" {
 		for _, c := range other {
 			if c.ID == id {
@@ -346,15 +357,17 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 	}
 	// A skill's marks, both sides, in the order marks come (newest first): a
 	// catalog skill's, or one of the club's own to track.
-	type marked struct {
-		skill skills.TrampolineSkill
-		data  string
-		club  *store.ClubSkill
-		sides map[string]store.Mark
-	}
 	var items []*marked
 	byItem := map[string]*marked{}
+	levelMarks := map[string]map[string]store.Mark{} // a level's items marked as a whole, by item
 	for _, k := range marks {
+		if strings.HasPrefix(k.Item, levelItemPrefix) {
+			if levelMarks[k.Item] == nil {
+				levelMarks[k.Item] = map[string]store.Mark{}
+			}
+			levelMarks[k.Item][k.Side] = k
+			continue
+		}
 		it := byItem[k.Item]
 		if it == nil {
 			it = &marked{data: k.Skill, sides: map[string]store.Mark{}}
@@ -378,16 +391,9 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 		}
 		return v
 	}
-	// view is a skill as a row: its marks, the viewer's own, and for a coach
+	// fill gives a row both sides' marks, the viewer's own, and for a coach
 	// the gymnast's to confirm.
-	view := func(s skills.TrampolineSkill, data string, club *store.ClubSkill, sides map[string]store.Mark) views.MarkView {
-		v := views.MarkView{Skill: data, Name: skillName(s), FIG: s.FIGNotation()}
-		switch {
-		case club != nil:
-			v = views.MarkView{Club: club.ID, Name: club.Name, FIG: club.Note}
-		case clubName(named, s) != "":
-			v.Name, v.FIG = clubName(named, s), skillName(s)+" "+s.FIGNotation()
-		}
+	fill := func(v *views.MarkView, sides map[string]store.Mark) {
 		g, hasG := sides[store.SideGymnast]
 		c, hasC := sides[store.SideCoach]
 		v.Gymnast, v.Coach = side(g, hasG), side(c, hasC)
@@ -400,6 +406,17 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 		if viewer.coach != nil && hasG && (!hasC || c.State != g.State) {
 			v.Confirm = g.State
 		}
+	}
+	// view is a skill as a row, with its marks.
+	view := func(s skills.TrampolineSkill, data string, club *store.ClubSkill, sides map[string]store.Mark) views.MarkView {
+		v := views.MarkView{Skill: data, Name: skillName(s), FIG: s.FIGNotation()}
+		switch {
+		case club != nil:
+			v = views.MarkView{Club: club.ID, Name: club.Name, FIG: club.Note}
+		case clubName(named, s) != "":
+			v.Name, v.FIG = clubName(named, s), skillName(s)+" "+s.FIGNotation()
+		}
+		fill(&v, sides)
 		return v
 	}
 	can, learning, differ := views.SkillGroup{Title: "Can do"}, views.SkillGroup{Title: "Learning"}, views.SkillGroup{Title: "Marked differently"}
@@ -425,6 +442,29 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 	if len(differ.Skills) > 0 {
 		part.Marked = append(part.Marked, differ)
 	}
+	kept, err := p.st.MemberRoutines(ctx, m.ID)
+	if err != nil {
+		return views.SkillsPart{}, err
+	}
+	// The skills each side can do, and is learning, for the levels.
+	sideSkills := map[string]map[string][]skills.TrampolineSkill{store.SideGymnast: {}, store.SideCoach: {}}
+	for _, it := range items {
+		if it.club != nil {
+			continue
+		}
+		for s, k := range it.sides {
+			sideSkills[s][k.State] = append(sideSkills[s][k.State], it.skill)
+		}
+	}
+	levels, err := p.st.ClubLevels(ctx, m.ClubID)
+	if err != nil {
+		return views.SkillsPart{}, err
+	}
+	gymnastName := m.Name
+	if viewer.gymnast {
+		gymnastName = "You"
+	}
+	part.Levels = levelsProgress(levels, clubItems, levelMarks, byItemSides(byItem), sideSkills, kept, gymnastName, fill)
 	if action == "" {
 		return part, nil
 	}
@@ -468,10 +508,6 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 	}
 	for _, res := range catalog.Search(q) {
 		part.Results = append(part.Results, choice(res.Skill))
-	}
-	kept, err := p.st.MemberRoutines(ctx, m.ID)
-	if err != nil {
-		return views.SkillsPart{}, err
 	}
 	var seen []skills.TrampolineSkill
 	for _, k := range kept {
@@ -596,4 +632,22 @@ func (p *competitionPages) removeClubSkill(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	seeOther(w, r, clubSkillsPath(r.PathValue("token")), "Removed.")
+}
+
+// marked is a skill's marks, both sides: a catalog skill's, or one of the
+// club's own to track.
+type marked struct {
+	skill skills.TrampolineSkill
+	data  string
+	club  *store.ClubSkill
+	sides map[string]store.Mark
+}
+
+// byItemSides is each item's marks, both sides, by item.
+func byItemSides(byItem map[string]*marked) map[string]map[string]store.Mark {
+	out := map[string]map[string]store.Mark{}
+	for item, it := range byItem {
+		out[item] = it.sides
+	}
+	return out
 }

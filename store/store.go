@@ -697,6 +697,25 @@ var migrations = []string{
 		created_at TEXT NOT NULL
 	);
 	CREATE INDEX club_skills_club ON club_skills (club_id);`,
+
+	// 40: club levels (ADR 0011 Decision 5): a club's levels to track
+	// gymnasts against, in order (position): requirements in the usual format
+	// (set, as JSON), made in the requirements editor (source: the browser's
+	// id for them, so saving again changes the level), and the club's own
+	// skills to track that the requirements can't describe (club_items: a
+	// JSON list of club skill ids).
+	`CREATE TABLE club_levels (
+		id         TEXT PRIMARY KEY,
+		club_id    TEXT NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+		source     TEXT NOT NULL DEFAULT '',
+		name       TEXT NOT NULL,
+		set_json   TEXT NOT NULL,
+		club_items TEXT NOT NULL DEFAULT '[]',
+		position   INTEGER NOT NULL,
+		by_name    TEXT NOT NULL,
+		updated_at TEXT NOT NULL
+	);
+	CREATE INDEX club_levels_club ON club_levels (club_id, position);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

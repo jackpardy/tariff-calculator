@@ -578,6 +578,11 @@ the skills in your routines or the lists by type, and tap **Learning** or
 **Can do**. Tap **Take
 off** to remove it.
 
+Under **Levels**, see how far you are through each of your club's levels:
+each part with your mark and your coach's. Parts about skills follow from the
+skills marked; a link of skills, or a set routine, you mark as a whole,
+and if one of your routines already does it, it says so.
+
 Your coaches see your skills and mark them too. Your mark and your coach's
 both show, each saying who made it: say you mark a skill **Can do** and your
 coach marks it **Learning**, you'll see both, under **Marked differently**.
@@ -660,6 +665,16 @@ name**: your club's pages then show that name. For anything else you track,
 like a drill, give it a name (and a note if you like) under **Something else
 to track** and tap **Add**. Removing something to track removes its marks
 too.
+
+**Levels** (the fourth section) holds your club's levels, such as *Club
+Grade 1*, in order. Write a level on the **Requirements** page, as you would
+any requirements: a skill, a kind of skill (*any back somersault*), skills
+linked one after another (*back drop, then back to feet*), a number of them,
+or a set routine. Then tap **Save to club levels** beside it (it's there once
+you've opened your coach page on that phone). Rules about a whole routine,
+like its difficulty, are left out. On **Levels**, tick any of your club's own
+skills the level tracks too, put the levels in order, or **Open in the
+Requirements page** to change one and save it again.
 
 From a gymnast's page, **Skills** shows what they're learning and can do. Mark
 skills for them the same way they do: your mark and theirs both show. A skill

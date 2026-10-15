@@ -18,11 +18,13 @@ function requirementsPage() {
         setRoutineName: '',
         importText: '',
         toast: '',
+        coachLinks: [], // club coach pages saved in this browser, to save requirements to as a club level (ADR 0011)
 
         init() {
             this.sets = SetStore.load();
             this.levels = LevelStore.load();
             this.routines = RoutineStore.load().routines;
+            this.coachLinks = RoutineStore.coachLinks();
             this.$watch('fromRoutine', (id) => {
                 const routine = this.routines.find((r) => r.id === id);
                 if (routine && !this.setRoutineName) { this.setRoutineName = routine.name; }
@@ -49,6 +51,17 @@ function requirementsPage() {
             }).then(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
         },
         newSet() { this.open({ format: 1, name: '', rules: [] }, 'New requirements'); },
+        // saveToClub posts saved requirements to a coach's club as one of its
+        // levels (coach: one of coachLinks), which then opens; saving the
+        // same requirements again changes the level.
+        saveToClub(coach, saved) {
+            const form = Object.assign(document.createElement('form'), { method: 'post', action: `${coach.url}/levels` });
+            for (const [name, value] of [['set', JSON.stringify(saved.set)], ['id', saved.id]]) {
+                form.append(Object.assign(document.createElement('input'), { type: 'hidden', name, value }));
+            }
+            document.body.append(form);
+            form.submit();
+        },
         edit(id) {
             const saved = this.sets.find((s) => s.id === id);
             if (saved) { this.open(saved.set, `Edit ${saved.set.name}`, id); }
