@@ -227,7 +227,7 @@ func calendarFileName(s string) string {
 // "<competition> · label", of the events claims picks from the published
 // timetable: empty until it is published.
 func (p *competitionPages) serveCalendar(w http.ResponseWriter, r *http.Request, c store.Competition, whose, label string,
-	claims func(entries []store.Entry, officials []competitions.RotaPerson, name func(string) string) func(calendarSlot) []calendarClaim) {
+	claims func(f rotaFacts) func(calendarSlot) []calendarClaim) {
 	var events []calendarEvent
 	if t := c.Published; t != nil {
 		f, err := p.liveRota(r.Context(), c)
@@ -235,7 +235,7 @@ func (p *competitionPages) serveCalendar(w http.ResponseWriter, r *http.Request,
 			failed(w, r, err)
 			return
 		}
-		events = calendarEventsOf(c, *t, whose, claims(f.entries, f.officials, f.name(false)))
+		events = calendarEventsOf(c, *t, whose, claims(f))
 	}
 	name := c.Name + " · " + label
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
@@ -247,23 +247,16 @@ func (p *competitionPages) serveCalendar(w http.ResponseWriter, r *http.Request,
 // personalCalendar is a person's (by key, called name): the flights they
 // compete in, as a synchro partner too, and the seats they hold.
 func (p *competitionPages) personalCalendar(w http.ResponseWriter, r *http.Request, c store.Competition, key, name string) {
-	p.serveCalendar(w, r, c, key, name, func(entries []store.Entry, _ []competitions.RotaPerson, _ func(string) string) func(calendarSlot) []calendarClaim {
-		keys := personKeys(entries)
-		byID := map[string]store.Entry{}
-		for _, e := range entries {
-			byID[e.ID] = e
-		}
+	p.serveCalendar(w, r, c, key, name, func(f rotaFacts) func(calendarSlot) []calendarClaim {
+		byID := entriesByID(f.entries)
 		return func(s calendarSlot) []calendarClaim {
 			var out []calendarClaim
-			for _, id := range s.entries {
-				if slices.Contains(keys[id], key) {
-					out = append(out, calendarClaim{kind: "compete", name: byID[id].Entry.Gymnasts()})
-				}
+			in, held := inSlot(key, f.people, s.entries, s.officials)
+			for _, id := range in {
+				out = append(out, calendarClaim{kind: "compete", name: byID[id].Entry.Gymnasts()})
 			}
-			for _, d := range s.officials {
-				if d.Person == key {
-					out = append(out, calendarClaim{kind: "duty", role: d.Role})
-				}
+			for _, d := range held {
+				out = append(out, calendarClaim{kind: "duty", role: d.Role})
 			}
 			return out
 		}
@@ -273,42 +266,22 @@ func (p *competitionPages) personalCalendar(w http.ResponseWriter, r *http.Reque
 // clubCalendar is a club's: every flight one of its gymnasts competes in, or
 // one of its people officiates, named.
 func (p *competitionPages) clubCalendar(w http.ResponseWriter, r *http.Request, c store.Competition, clubID string) {
-	clubName, err := p.st.ClubName(r.Context(), clubID)
+	club, err := p.clubPeople(r.Context(), clubID)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	members, err := p.st.Members(r.Context(), clubID)
-	if err != nil {
-		failed(w, r, err)
-		return
-	}
-	ours := map[string]bool{} // the club's people, by key
-	for _, m := range members {
-		ours[store.MemberKey(m.ID)] = true
-	}
-	p.serveCalendar(w, r, c, "club:"+clubID, clubName, func(entries []store.Entry, officials []competitions.RotaPerson, name func(string) string) func(calendarSlot) []calendarClaim {
-		for _, o := range officials {
-			if o.Club == clubName {
-				ours[o.Key] = true // the organiser's judges from the club too
-			}
-		}
-		byID := map[string]store.Entry{}
-		for _, e := range entries {
-			byID[e.ID] = e
-		}
+	p.serveCalendar(w, r, c, "club:"+clubID, club.name, func(f rotaFacts) func(calendarSlot) []calendarClaim {
+		ours, name := club.at(f), f.name(false)
 		return func(s calendarSlot) []calendarClaim {
 			var out []calendarClaim
-			for _, id := range s.entries {
-				if e, ok := byID[id]; ok && e.ClubID == clubID {
-					out = append(out, calendarClaim{kind: "compete", who: e.ID, name: e.Entry.Gymnasts(), note: "Competing: " + e.Entry.Gymnasts()})
-				}
+			in, held := ours.inSlot(s.entries, s.officials)
+			for _, e := range in {
+				out = append(out, calendarClaim{kind: "compete", who: e.ID, name: e.Entry.Gymnasts(), note: "Competing: " + e.Entry.Gymnasts()})
 			}
-			for _, d := range s.officials {
-				if ours[d.Person] {
-					out = append(out, calendarClaim{kind: "duty", who: d.Person, name: name(d.Person), role: d.Role,
-						note: "Officiating: " + name(d.Person) + " (" + competitions.RoleName(d.Role) + ")"})
-				}
+			for _, d := range held {
+				out = append(out, calendarClaim{kind: "duty", who: d.Person, name: name(d.Person), role: d.Role,
+					note: "Officiating: " + name(d.Person) + " (" + competitions.RoleName(d.Role) + ")"})
 			}
 			return out
 		}

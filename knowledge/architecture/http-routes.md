@@ -59,6 +59,11 @@ The links on a person's or club's page for a competition (timetables and
 calendars, Tell me about changes, duties and score sheets, the desk's
 messages) are built in one place too, `competitionLinks` in the same file,
 as a `views.MyLinks` each page embeds.
+A person's or club's timetable and calendar pick out the same flights by
+one rule (`web/ourflights.go`): `inSlot` for a person (the entries they're
+in, a partner's too, and their seats), and `clubPeople` with `ourClub.inSlot`
+for a club (its entries, and seats held by its members or by the
+organiser's officials from it).
 
 Pages that read a competition's people (calendars, timelines, score sheets,
 My competition, the desk, late changes, delays, leaving, simulation, the

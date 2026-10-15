@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"slices"
 	"strings"
 
 	"tariffCalculator/competitions"
@@ -44,7 +43,7 @@ func (p *competitionPages) timelinePage(w http.ResponseWriter, r *http.Request) 
 // focusedTimeline is the published timetable as a timeline focused by mark,
 // or a page saying it isn't published yet.
 func (p *competitionPages) focusedTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, back string,
-	mark func(entries []store.Entry, officials []competitions.RotaPerson, name func(string) string) func(timelineItem) (bool, []string)) (views.Timeline, bool) {
+	mark func(f rotaFacts) func(timelineItem) (bool, []string)) (views.Timeline, bool) {
 	t := c.Published
 	if t == nil {
 		message(w, r, http.StatusNotFound, "No timetable yet", "The organiser hasn't published the timetable yet. It shows here once they do.")
@@ -57,7 +56,7 @@ func (p *competitionPages) focusedTimeline(w http.ResponseWriter, r *http.Reques
 	}
 	name := f.name(false)
 	only := r.URL.Query().Get("only") == "1"
-	out := timeline(*t, name, false, &timelineFocus{mark: mark(f.entries, f.officials, name), only: only})
+	out := timeline(*t, name, false, &timelineFocus{mark: mark(f), only: only})
 	out.Competition, out.Back, out.BackLabel = summary(c.Competition, p.now()), back, "← Back"
 	out.Other, out.OtherLabel = r.URL.Path+"?only=1", "Only these"
 	if only {
@@ -69,20 +68,15 @@ func (p *competitionPages) focusedTimeline(w http.ResponseWriter, r *http.Reques
 // personalTimeline is a person's (by key) timetable: the flights they
 // compete in and the panels they sit on, picked out.
 func (p *competitionPages) personalTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, key, back string) {
-	t, ok := p.focusedTimeline(w, r, c, back, func(entries []store.Entry, _ []competitions.RotaPerson, _ func(string) string) func(timelineItem) (bool, []string) {
-		keys := personKeys(entries)
+	t, ok := p.focusedTimeline(w, r, c, back, func(f rotaFacts) func(timelineItem) (bool, []string) {
 		return func(it timelineItem) (bool, []string) {
 			var notes []string
-			for _, id := range it.entries {
-				if slices.Contains(keys[id], key) {
-					notes = append(notes, "You compete")
-					break
-				}
+			in, held := inSlot(key, f.people, it.entries, it.officials)
+			if len(in) > 0 {
+				notes = append(notes, "You compete")
 			}
-			for _, d := range it.officials {
-				if d.Person == key {
-					notes = append(notes, "You: "+competitions.RoleName(d.Role))
-				}
+			for _, d := range held {
+				notes = append(notes, "You: "+competitions.RoleName(d.Role))
 			}
 			return len(notes) > 0, notes
 		}
@@ -98,41 +92,21 @@ func (p *competitionPages) personalTimeline(w http.ResponseWriter, r *http.Reque
 // clubTimeline is a club's timetable: every flight one of its gymnasts
 // competes in, or one of its people officiates, picked out and named.
 func (p *competitionPages) clubTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, clubID, back string) {
-	clubName, err := p.st.ClubName(r.Context(), clubID)
+	club, err := p.clubPeople(r.Context(), clubID)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	members, err := p.st.Members(r.Context(), clubID)
-	if err != nil {
-		failed(w, r, err)
-		return
-	}
-	ours := map[string]bool{} // the club's people, by key
-	for _, m := range members {
-		ours[store.MemberKey(m.ID)] = true
-	}
-	t, ok := p.focusedTimeline(w, r, c, back, func(entries []store.Entry, officials []competitions.RotaPerson, name func(string) string) func(timelineItem) (bool, []string) {
-		for _, o := range officials {
-			if o.Club == clubName {
-				ours[o.Key] = true // the organiser's judges from the club too
-			}
-		}
-		byID := map[string]store.Entry{}
-		for _, e := range entries {
-			byID[e.ID] = e
-		}
+	t, ok := p.focusedTimeline(w, r, c, back, func(f rotaFacts) func(timelineItem) (bool, []string) {
+		ours, name := club.at(f), f.name(false)
 		return func(it timelineItem) (bool, []string) {
 			var competing, officiating []string
-			for _, id := range it.entries {
-				if e, ok := byID[id]; ok && e.ClubID == clubID {
-					competing = append(competing, e.Entry.Gymnasts())
-				}
+			in, held := ours.inSlot(it.entries, it.officials)
+			for _, e := range in {
+				competing = append(competing, e.Entry.Gymnasts())
 			}
-			for _, d := range it.officials {
-				if ours[d.Person] {
-					officiating = append(officiating, name(d.Person)+" ("+seatLabels[d.Role]+")")
-				}
+			for _, d := range held {
+				officiating = append(officiating, name(d.Person)+" ("+seatLabels[d.Role]+")")
 			}
 			var notes []string
 			if len(competing) > 0 {
@@ -147,8 +121,8 @@ func (p *competitionPages) clubTimeline(w http.ResponseWriter, r *http.Request, 
 	if !ok {
 		return
 	}
-	t.Title, t.Heading = clubName+" · "+c.Name, clubName+"'s timetable"
-	t.Intro = "Every flight with one of " + clubName + "'s gymnasts competing, or one of its people officiating, picked out in green and named; the rest of the timetable faint."
+	t.Title, t.Heading = club.name+" · "+c.Name, club.name+"'s timetable"
+	t.Intro = "Every flight with one of " + club.name + "'s gymnasts competing, or one of its people officiating, picked out in green and named; the rest of the timetable faint."
 	render(w, r, views.TimelinePrint(t))
 }
 
