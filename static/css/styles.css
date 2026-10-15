@@ -639,9 +639,21 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 /* A gymnast's running number, their place in the flight: the same on every page. */
 .comp-run-no { display: inline-block; min-width: 1.6em; padding: 0 0.3em; margin-right: 0.35em; border-radius: 0.3em; background: #eef0f4; color: #333; font-weight: 700; font-size: 0.9em; text-align: center; font-variant-numeric: tabular-nums; }
 .comp-order li { margin: 0.15rem 0; }
-.comp-move summary { color: #485fc7; margin-left: 0.4rem; display: inline; }
+/* A gymnast in a flight's running order: their name, then Move, which opens its form
+   on a line of its own. */
+.comp-order-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
+.comp-order-name { flex: 1 1 8rem; }
+.comp-move { min-width: 0; }
+.comp-move[open] { flex-basis: 100%; }
 .comp-move[open] .comp-move-form { display: flex; margin: 0.3rem 0; }
 .comp-move-form { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
+/* The flight cards' buttons, dropdowns and choices are at least 40px tall, to tap. */
+.comp-move .button, .comp-move-form .button, .comp-tt-actions .button, .comp-panel .button { min-height: 2.5rem; }
+.comp-move-form .select:not(.is-multiple), .comp-move-form .select select, .comp-tt-actions .select:not(.is-multiple), .comp-tt-actions .select select,
+.comp-panel .select:not(.is-multiple), .comp-panel .select select { height: 2.5rem; }
+.comp-panel > summary { display: flex; align-items: center; gap: 0.25em; min-height: 2.5rem; }
+/* A long flight or person in a dropdown stays within the card. */
+.comp-move-form .select, .comp-move-form .select select, .comp-tt-actions .select, .comp-tt-actions .select select, .comp-panel .select, .comp-panel .select select { max-width: 100%; }
 .comp-flight-actions { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
 /* "Jump to" a day or area (the timetable, On the day): links big enough to tap. */
 .comp-jump p, p.comp-jump { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.4rem; }

@@ -704,40 +704,55 @@ templ flightBox(p TimetablePage, f ItemView) {
 		<ol class="comp-order">
 			for _, g := range f.Gymnasts {
 				<li value={ strconv.Itoa(g.No) } { ListRow{Name: g.Name}.Attrs()... }>
-					{ g.Name }
-					<span class="has-text-grey is-size-7">{ g.Club }</span>
-					if g.Moved != "" {
-						<span class="tag is-warning is-light">now { g.Moved }</span>
-					}
-					<details class="comp-move is-inline-block">
-						<summary class="is-size-7">move</summary>
-						@moveGymnast(p, g, false)
-					</details>
+					<div class="comp-order-row">
+						<span class="comp-order-name">
+							{ g.Name }
+							<span class="has-text-grey is-size-7">{ g.Club }</span>
+							if g.Moved != "" {
+								<span class="tag is-warning is-light">now { g.Moved }</span>
+							}
+						</span>
+						<details class="comp-move">
+							<summary class="button is-small is-light" aria-label={ "Move " + g.Name }>Move</summary>
+							@moveGymnast(p, g, false)
+						</details>
+					</div>
 				</li>
 			}
 		</ol>
 		if len(f.Seats) > 0 {
 			@seatsEditor(p, f, "flight")
 		}
-		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/flight") } class="comp-flight-actions">
+		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/flight") } class="comp-tt-actions">
 			@versionField(p.Version)
 			<input type="hidden" name="flight" value={ strconv.Itoa(f.Index) }/>
-			<button class="button is-small is-text" type="submit" name="action" value="redraw">Redraw order</button>
-			if f.Earlier {
-				<button class="button is-small is-text" type="submit" name="action" value="earlier">Earlier</button>
-			}
-			<div class="select is-small">
-				<select name="to" aria-label={ "Move " + f.Name }>
-					for _, o := range p.Places {
-						<option value={ o.Value }>{ o.Label }</option>
-					}
-				</select>
+			<div class="buttons mb-2">
+				<button class="button is-small is-light" type="submit" name="action" value="redraw">Redraw order</button>
+				if f.Earlier {
+					<button class="button is-small is-light" type="submit" name="action" value="earlier">Earlier</button>
+				}
 			</div>
-			if f.InRun {
-				<button class="button is-small" type="submit" name="action" value="move">Move event</button>
-			} else {
-				<button class="button is-small" type="submit" name="action" value="move">Move</button>
-			}
+			<div class="comp-flight-actions">
+				<label class="is-size-7" for={ fmt.Sprintf("flight-%d-to", f.Index) }>
+					if f.InRun {
+						Move the event to
+					} else {
+						Move to
+					}
+				</label>
+				<div class="select is-small">
+					<select name="to" id={ fmt.Sprintf("flight-%d-to", f.Index) }>
+						for _, o := range p.Places {
+							<option value={ o.Value }>{ o.Label }</option>
+						}
+					</select>
+				</div>
+				if f.InRun {
+					<button class="button is-small" type="submit" name="action" value="move">Move event</button>
+				} else {
+					<button class="button is-small" type="submit" name="action" value="move">Move</button>
+				}
+			</div>
 		</form>
 	</div>
 }

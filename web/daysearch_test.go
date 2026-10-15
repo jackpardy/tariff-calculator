@@ -122,6 +122,44 @@ func TestTimetableSearchAndJump(t *testing.T) {
 	jumpsLand(t, page, links)
 }
 
+// A timetable flight card's controls are labelled buttons: Move for each
+// gymnast (its flights still filled in by fill.js), and a labelled dropdown
+// to move the flight.
+func TestTimetableFlightCardButtons(t *testing.T) {
+	s := newTestServer(t, atTime(dayBefore))
+	_, tt, _, _ := scratchSetupOn(t, s.h, twoFlights)
+	doc := parsePage(t, do(t, s.h, http.MethodGet, tt, nil).Body.String())
+	labels := map[string]string{}
+	for _, l := range byTag(doc, "label") {
+		labels[attrOf(l, "for")] = textOf(l)
+	}
+	cards := byClass(doc, "comp-flight")
+	if len(cards) < 2 {
+		t.Fatalf("flights to look at: %d", len(cards))
+	}
+	for _, card := range cards {
+		for _, m := range byClass(card, "comp-move") {
+			summary := firstChildTag(m, "summary")
+			if !hasClass(summary, "button") || textOf(summary) != "Move" || attrOf(firstByClass(m, "comp-move-form"), "class") == "" {
+				t.Errorf("each gymnast has a Move button: %s", renderNode(m))
+			}
+			if sel := byTag(m, "select"); len(sel) != 1 || attrOf(sel[0], "data-fill") != "move-options" {
+				t.Errorf("whose flights fill from the page's list")
+			}
+		}
+		actions := firstByClass(card, "comp-tt-actions")
+		for _, b := range byTag(actions, "button") {
+			if hasClass(b, "is-text") {
+				t.Errorf("%q is a button, not a link", textOf(b))
+			}
+		}
+		to := byTag(actions, "select")
+		if len(to) != 1 || !strings.HasPrefix(labels[attrOf(to[0], "id")], "Move") {
+			t.Errorf("the flight's dropdown is labelled: %q", labels[attrOf(to[0], "id")])
+		}
+	}
+}
+
 // In a real browser, "Find a name" on the day page shows only the flights
 // with someone it finds, with their check-in list open; and a tap on Here,
 // which updates the page in place, keeps the search, the list it opened and
