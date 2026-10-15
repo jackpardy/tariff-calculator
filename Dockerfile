@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM golang:1.25-alpine AS build
+FROM golang:1.26-alpine AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
@@ -15,5 +15,5 @@ ENV PORT=8080
 EXPOSE 8080
 USER app
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:8080/ || exit 1
+  CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1
 CMD ["/app/tariffCalculator"]

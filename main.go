@@ -3,9 +3,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"tariffCalculator/demo"
@@ -22,14 +25,15 @@ func main() {
 	// Competition storage is on only where DATA_DIR is set, a directory that
 	// survives deploys (ADR 0004 Decision 8). Without it, or if it can't be
 	// opened, the calculator works as ever and only the competition pages
-	// say storage isn't available.
+	// say storage isn't available; /healthz then fails, so a store that
+	// didn't open (a migration that failed on deploy, say) is noticed.
+	dir := os.Getenv("DATA_DIR")
 	var st *store.Store
-	if dir := os.Getenv("DATA_DIR"); dir != "" {
+	if dir != "" {
 		var err error
 		if st, err = store.Open(context.Background(), dir); err != nil {
-			log.Printf("Competition storage is off: %v", err)
+			log.Printf("COMPETITION STORAGE IS OFF: %v", err)
 		} else {
-			defer st.Close()
 			go web.DeleteExpired(st)
 		}
 	}
@@ -38,22 +42,70 @@ func main() {
 		if st == nil {
 			log.Fatal("The demo needs competition storage: set DATA_DIR.")
 		}
-		if err := demo.Seed(web.Routes(st), os.Stdout, uint64(time.Now().UnixNano())); err != nil {
+		err := demo.Seed(web.Routes(st), os.Stdout, uint64(time.Now().UnixNano()))
+		st.Close()
+		if err != nil {
 			log.Fatalf("Demo: %v", err)
 		}
 		return
 	}
 	app := web.New(st)
 	app.Notify()
+	mux := http.NewServeMux()
+	mux.Handle("/", app.Handler())
+	mux.HandleFunc("GET /healthz", healthz(dir != "", st))
 	srv := &http.Server{
 		Addr:              ":" + port,
-		Handler:           app.Handler(),
+		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       60 * time.Second,
 		MaxHeaderBytes:    web.MaxHeaderBytes,
 	}
+	// A deploy stops the app with SIGTERM: let the requests under way finish,
+	// then close the database cleanly.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
+	defer stop()
+	go func() {
+		<-ctx.Done()
+		shutdown, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdown); err != nil {
+			log.Printf("Shutting down: %v", err)
+		}
+	}()
 	log.Printf("Starting server on :%s\n", port)
-	log.Fatal(srv.ListenAndServe())
+	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
+	if st != nil {
+		if err := st.Close(); err != nil {
+			log.Printf("Closing the database: %v", err)
+		}
+	}
+	log.Print("Stopped")
+}
+
+// healthz answers 200 while the app is fit to serve: always for the
+// calculator alone, and with competition storage wanted (DATA_DIR set) only
+// while the database is open and answers. Docker's health check and the
+// deploy use it.
+func healthz(wanted bool, st *store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		if wanted {
+			if st == nil {
+				http.Error(w, "competition storage is off", http.StatusServiceUnavailable)
+				return
+			}
+			ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+			defer cancel()
+			if err := st.Ping(ctx); err != nil {
+				http.Error(w, "competition storage isn't answering", http.StatusServiceUnavailable)
+				return
+			}
+		}
+		w.Write([]byte("ok\n"))
+	}
 }
