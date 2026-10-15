@@ -54,7 +54,7 @@ func (p *competitionPages) settings(w http.ResponseWriter, r *http.Request) {
 		ChangesDate: dateField(c.ChangesUntil, c.Deadline), ChangesTime: timeField(c.ChangesUntil, c.Deadline),
 		SignoffsDate: dateField(c.SignoffsUntil, c.Deadline), SignoffsTime: timeField(c.SignoffsUntil, c.Deadline),
 		LiveDate: liveDate, LiveTime: liveTime,
-		NotifyOn: p.notifyLink("/") != "", NoWait: c.NoWait,
+		NotifyOn: p.notifyLink("/") != "", NoWait: c.NoWait, FeedbackButton: c.FeedbackButton,
 		Limits: limitFields(c, entries), Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()),
 		Events: eventsForm(c.Competition), LevelOrder: levelOrderForm(c.Competition),
 	}

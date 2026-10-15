@@ -141,6 +141,10 @@ went from 65 ms and 88 MB allocated to 6 ms and 12 MB, the dashboard from
 | `GET /competitions/admin/{token}/history` | — | Every change, when and by which link |
 | `POST /competitions/admin/{token}/concerns` | `text`, optional `entry` | Flags a concern for the organiser (any admin link) |
 | `POST /competitions/admin/{token}/concerns/{id}/resolve` | `note` | Marks a concern resolved |
+| `POST /competitions/admin/{token}/feedback`, `/clubs/admin/{token}/feedback`, `/competitions/club/{token}/feedback`, `/clubs/member/{token}/feedback`, `/clubs/coach/{token}/feedback`, `/competitions/enter/{token}/feedback`, `/competitions/entry/{token}/feedback`, `/competitions/gymnast/{token}/feedback`, `/competitions/partner/{token}/feedback`, `/competitions/signoff/{token}/feedback` | `text` (up to 2,000), optional `reply` (up to 200), `page` (the page's route pattern), `back`; `competition` for a club's, member's, coach's or gymnast's link (one they're entered in) | Keeps [feedback about the app](../features/competition-entries.md#feedback-about-the-app-ready-for-the-dry-run) with the link's role (any admin link but the venue screen's) and emails it to `FEEDBACK_EMAIL`; with `X-Feedback`, answers 200 with the thanks (or the reason it's refused, 403 when the button is off, 422, 429 past 200 a day), otherwise redirects back to the page at `#feedback-sent` |
+| `GET /competitions/admin/{token}/feedback` | — | The feedback, newest first (organiser and co-organiser) |
+| `POST /competitions/admin/{token}/feedback/{id}/done` | `done` (`1` or `0`) | Marks feedback dealt with, or not |
+| `POST /competitions/admin/{token}/feedback-button` | `on` (`1` or `0`) | Shows the Feedback button on every page, or not |
 
 Every `/competitions/admin/{token}` route takes the admin link or a helper's
 link of a kind that may use it (`allowed`, ADR 0009); others get 403.

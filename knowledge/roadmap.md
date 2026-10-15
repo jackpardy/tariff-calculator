@@ -446,7 +446,10 @@ December. Before it:
   gymnast's page from 109 KB to 11 KB and a club's from 41 KB to 4 KB.
 - **A Feedback button** on every competition page while the dry run is on,
   saving the words, the page, the role and the time for the maintainer.
-  Helper links already have Flag a concern; this is for everyone.
+  Helper links already have Flag a concern; this is for everyone. *Built
+  2026-10-15*
+  ([feedback](features/competition-entries.md#feedback-about-the-app-ready-for-the-dry-run)):
+  the organiser reads it and can turn it off; `FEEDBACK_EMAIL` emails it.
 - **Send in the background** (built 2026-10-15). A desk message, or a round of change
   notifications, emailed and pushed each person one at a time before the
   organiser's page answered: about half a second to a second an email, so

@@ -496,6 +496,7 @@ func (p *competitionPages) enteredCompetition(w http.ResponseWriter, r *http.Req
 		failed(w, r, err)
 		return c, false
 	}
+	feedbackOn(r, c)
 	return c, true
 }
 
@@ -671,6 +672,7 @@ func (p *competitionPages) clubLinkCompetition(w http.ResponseWriter, r *http.Re
 		failed(w, r, err)
 		return c, false
 	}
+	feedbackOn(r, c)
 	return c, true
 }
 

@@ -862,6 +862,17 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .role-tabs .tabs a { white-space: nowrap; }
 .comp-other-link { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; border-bottom: 1px solid #ededed; padding: 0.25rem 0; }
 .comp-other-link span { min-width: 0; overflow-wrap: anywhere; }
+/* The Feedback button at the foot of a competition's pages (views/feedback.templ): small
+   and out of the way, but a full 40px to tap. Without JavaScript the page comes back at
+   #feedback-sent, which shows the thanks. */
+.comp-feedback { margin-top: 3rem; padding-top: 0.75rem; border-top: 1px solid #ededed; }
+.comp-feedback > details > summary { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid #dbdbdb; border-radius: 4px; font-size: 0.875rem; }
+.comp-feedback-form { max-width: 32rem; margin-top: 0.5rem; }
+.comp-feedback-form .button { min-height: 2.5rem; }
+.comp-feedback-thanks { display: none; }
+#feedback-sent:target .comp-feedback-thanks { display: block; }
+.comp-feedback-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.comp-feedback-item.is-done { opacity: 0.6; }
 /* Search and filters on lists of people (views/lists.templ): the name search, then a
    select for each filter, wrapping onto more lines on a phone, where the search takes
    the whole first line and the selects share the rest. */

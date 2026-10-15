@@ -31,6 +31,7 @@ const (
 	menuScreen    = "/screen"
 	menuSettings  = "/settings"
 	menuHistory   = "/history"
+	menuFeedback  = "/feedback"
 )
 
 // menuState is what a competition's menu depends on besides the link: which
@@ -41,6 +42,7 @@ type menuState struct {
 	ApproveCoaches bool // coaches are approved, so there's a page to do it on
 	LateWaiting    int  // late changes to decide
 	CoachesWaiting int  // coaches sent or named, not decided yet
+	FeedbackNew    int  // feedback about the app not dealt with yet
 }
 
 // menuFor is the menu of a competition's pages for the request's link, with
@@ -63,6 +65,9 @@ func (p *competitionPages) menuFor(r *http.Request, c store.Competition, current
 		if err1 == nil && err2 == nil {
 			m.CoachesWaiting = coachApprovalForm(c.Competition, sent, named).Waiting
 		}
+	}
+	if a.Feedback {
+		m.FeedbackNew, _ = p.st.FeedbackWaiting(r.Context(), c.ID)
 	}
 	return orgMenu(adminPath(r.PathValue("token")), a, m, current)
 }
@@ -142,10 +147,19 @@ func orgMenu(base string, a views.Access, m menuState, current string) []views.M
 		add("On the day", day...)
 	}
 
+	// Feedback about the app, beside the history, for links that may read it.
+	var more []views.MenuItem
 	if a.Settings {
-		add("Settings", item("Settings", menuSettings, ""), item("History", menuHistory, ""))
+		more = append(more, item("Settings", menuSettings, ""))
+	}
+	more = append(more, item("History", menuHistory, ""))
+	if a.Feedback {
+		more = append(more, item("Feedback", menuFeedback, badge(m.FeedbackNew, "new")))
+	}
+	if a.Settings {
+		add("Settings", more...)
 	} else {
-		add("History", item("History", menuHistory, ""))
+		add("History", more...)
 	}
 	return sections
 }
