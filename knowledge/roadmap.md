@@ -433,13 +433,12 @@ entries through to the day, with about 20 people from 3 clubs, is planned for
 late 2026: entries from mid November, the day in late November or early
 December. Before it:
 
-- **Faster pages.** Measured on the demo, which has about 400 gymnasts: a
-  gymnast's own page manages about 25 loads a second on a fast laptop,
-  because every load reads all the entries again and works out the levels
-  and officials rota from scratch. Keep that per competition and
-  refresh it only when something changes. The server (a Hetzner CX23: 2
-  shared processors, 4 GB) is several times slower than the laptop, so
-  without this a desk message to everyone could stall it.
+- **Faster pages** (built 2026-10-15). Every load read all the entries
+  again and worked out the officials rota and every card's checks from
+  scratch; now each competition's are kept until something is saved. On
+  the full demo a gymnast's own page went from 65 ms to 6 ms, the
+  dashboard from 61 ms to 7 ms and a club's page from 58 ms to 18 ms
+  ([how](architecture/http-routes.md)).
 - **Smaller pages.** Pages are sent uncompressed: the organiser's On the
   day page is 875 KB (26 KB compressed), a gymnast's page 101 KB (10 KB).
   Compress them, in the app or in the web server in front of it.

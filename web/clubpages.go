@@ -331,7 +331,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		if err != nil {
 			return nil, err
 		}
-		sent, err := p.st.Entries(ctx, c.ID)
+		sent, err := p.entriesOf(ctx, c.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -930,7 +930,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 			ev.Level = e.Entry.Event()
 			if e.Sent() {
 				if sent == nil {
-					sent, _ = p.st.Entries(ctx, c.ID)
+					sent, _ = p.entriesOf(ctx, c.ID)
 				}
 			}
 			copyID, place := "", 0

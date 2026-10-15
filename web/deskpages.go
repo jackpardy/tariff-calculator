@@ -130,7 +130,7 @@ func (p *competitionPages) deskFormOf(r *http.Request, c store.Competition) (d d
 			d.problem = "Publish the timetable to message a flight."
 			return d, nil
 		}
-		all, err := p.st.Entries(ctx, c.ID)
+		all, err := p.entriesOf(ctx, c.ID)
 		if err != nil {
 			return d, err
 		}

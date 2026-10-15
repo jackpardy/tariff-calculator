@@ -162,7 +162,7 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	entries, err := p.st.Entries(r.Context(), c.ID)
+	entries, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return

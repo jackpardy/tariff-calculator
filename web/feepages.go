@@ -43,7 +43,7 @@ func entryPayer(entryID string) string { return "entry:" + entryID }
 // accounts are every payer with entries (or payments): clubs as their
 // entries came, then individuals, each entry its own.
 func (p *competitionPages) accounts(ctx context.Context, c store.Competition) ([]account, error) {
-	all, err := p.st.Entries(ctx, c.ID)
+	all, err := p.entriesOf(ctx, c.ID)
 	if err != nil {
 		return nil, err
 	}

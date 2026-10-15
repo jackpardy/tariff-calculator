@@ -45,6 +45,7 @@ type competitionPages struct {
 	emailLimiter                      *limiter // confirmation emails asked for, per address
 	now                               func() time.Time
 	notify                            *notifier // nil when storage is off
+	facts                             factCache // what the pages work out from each competition's entries
 }
 
 func newCompetitionPages(st *store.Store) *competitionPages {

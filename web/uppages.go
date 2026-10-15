@@ -82,7 +82,7 @@ func (p *competitionPages) markUp(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, backToDay(r, f.Name()+" isn't running: tap Started first, and Next gymnast before it's finished.", anchor), http.StatusSeeOther)
 		return
 	}
-	all, err := p.st.Entries(r.Context(), c.ID)
+	all, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return

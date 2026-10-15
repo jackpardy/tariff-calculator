@@ -123,7 +123,7 @@ func (p *competitionPages) officialAction(r *http.Request, c store.Competition, 
 			ch.flights = append(ch.flights, competitions.FlightKey(g))
 		}
 	}
-	all, err := p.st.Entries(r.Context(), c.ID)
+	all, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		return ch, err
 	}
@@ -249,7 +249,7 @@ func (p *competitionPages) notifyFormOf(r *http.Request, c store.Competition) (d
 		return d, nil
 	}
 	f := s.Flights[i]
-	all, err := p.st.Entries(ctx, c.ID)
+	all, err := p.entriesOf(ctx, c.ID)
 	if err != nil {
 		return d, err
 	}
