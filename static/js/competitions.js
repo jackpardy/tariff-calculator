@@ -681,9 +681,10 @@
     }
 
     // keepRoutines lists the routines saved in this browser on a member's
-    // Routines tab, each to tick, and posts the ticked ones to keep on their
-    // page (ADR 0011). Without routines here, or without the script, it stays
-    // hidden.
+    // Routines tab, or a coach's page for a gymnast, each to tick (ticked to
+    // start with, unless data-keep-unticked), and posts the ticked ones to keep
+    // on the member's page (ADR 0011). Without routines here, or without the
+    // script, it stays hidden.
     function keepRoutines() {
         const form = document.querySelector('[data-keep-routines]');
         if (!form || typeof RoutineStore === 'undefined') { return; }
@@ -692,8 +693,8 @@
         const list = form.querySelector('.comp-keep-list');
         for (const r of routines) {
             const label = Object.assign(document.createElement('label'), { className: 'checkbox is-block mb-1' });
-            const box = Object.assign(document.createElement('input'), { type: 'checkbox', value: r.id, checked: true });
-            label.append(box, ` ${r.name} (${r.skills.length} skills)`);
+            const box = Object.assign(document.createElement('input'), { type: 'checkbox', value: r.id, checked: !form.hasAttribute('data-keep-unticked') });
+            label.append(box, ` ${r.name} (${r.skills.length} ${r.skills.length === 1 ? 'skill' : 'skills'})`);
             list.append(label);
         }
         form.addEventListener('submit', (event) => {

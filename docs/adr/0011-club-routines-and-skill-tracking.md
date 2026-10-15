@@ -59,6 +59,13 @@ Club levels should reuse it rather than add a second way to describe skills.
      in.
    - A coach writes a note on a routine for the member to see. Coaches
      adding routines to a gymnast's page is left for later.
+   - **As built (2026-10-15, later the same day).** A coach adds routines to
+     the page of a gymnast they see, from the routines saved in their
+     browser (migration 43). Each is kept as the member's, saying which
+     coach added it; the member renames or deletes it as their own, and the
+     coach adding it again changes only theirs. A coach also checks a
+     gymnast's routine against a level they choose, the club's or a built-in
+     one, and sees which of its skills no coach has marked Can do.
 2. **Skill marks.** A mark is a member, an item, a side (the gymnast's or a
    coach's), a state (**Learning** or **Can do**), who made it and when. The
    gymnast's mark and a coach's are kept apart, so both show: a skill can be

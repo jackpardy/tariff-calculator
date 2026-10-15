@@ -770,6 +770,13 @@ var migrations = []string{
 		updated_at TEXT NOT NULL
 	);
 	CREATE INDEX club_levels_club ON club_levels (club_id, position);`,
+
+	// 43: a coach adds routines to a gymnast's page (ADR 0011 Decision 1, as
+	// built): added_by is the coach's id ('' for the member's own), so saving
+	// the same browser routine again changes only the one its adder kept, and
+	// added_name the coach's name, to show.
+	`ALTER TABLE member_routines ADD COLUMN added_by TEXT NOT NULL DEFAULT '';
+	ALTER TABLE member_routines ADD COLUMN added_name TEXT NOT NULL DEFAULT '';`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

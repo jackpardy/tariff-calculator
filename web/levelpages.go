@@ -79,13 +79,11 @@ func passes(rule requirements.Rule, list []skills.TrampolineSkill) bool {
 	return len(results) == 1 && results[0].Passed
 }
 
-// levelsProgress is how far a member is through each of the club's levels:
-// each item with how it stands on each side (fill gives a row its marks),
-// from their marks on whole items (levelMarks) and club skills (itemSides),
-// and the skills each side marked (sideSkills, by side and state), with the
-// kept routines that already do a whole item.
-func levelsProgress(levels []store.ClubLevel, clubItems map[string]store.ClubSkill, levelMarks, itemSides map[string]map[string]store.Mark,
-	sideSkills map[string]map[string][]skills.TrampolineSkill, kept []store.Routine, gymnast string, fill func(*views.MarkView, map[string]store.Mark)) []views.LevelView {
+// levelsProgress is how far a member is through each of the club's levels,
+// one for each level in order: each item with how it stands on each side
+// (fill gives a row its marks), from their marks (t), with the kept routines
+// that already do a whole item.
+func levelsProgress(levels []store.ClubLevel, clubItems map[string]store.ClubSkill, t tracking, kept []store.Routine, gymnast string, fill func(*views.MarkView, map[string]store.Mark)) []views.LevelView {
 	var routines []struct {
 		name  string
 		skill []skills.TrampolineSkill
@@ -99,11 +97,11 @@ func levelsProgress(levels []store.ClubLevel, clubItems map[string]store.ClubSki
 		}
 	}
 	derived := func(side string, rule requirements.Rule) string {
-		can := sideSkills[side][store.CanDo]
+		can, learning := t.sideSkills[side][store.CanDo], t.sideSkills[side][store.Learning]
 		switch {
 		case passes(rule, can):
 			return store.CanDo
-		case passes(rule, append(slices.Clone(can), sideSkills[side][store.Learning]...)):
+		case len(learning) > 0 && passes(rule, append(slices.Clone(can), learning...)):
 			return store.Learning
 		}
 		return ""
@@ -124,7 +122,7 @@ func levelsProgress(levels []store.ClubLevel, clubItems map[string]store.ClubSki
 			v := views.MarkView{Name: requirements.Describe(rule)}
 			if wholeRule(rule) {
 				v.Item = levelItem(rule)
-				fill(&v, levelMarks[v.Item])
+				fill(&v, t.levelMarks[v.Item])
 				var in []string
 				for _, k := range routines {
 					rv := skills.ValidateRoutineWith(k.skill, skills.ValidateOptions{AllowRepeats: true})
@@ -152,7 +150,7 @@ func levelsProgress(levels []store.ClubLevel, clubItems map[string]store.ClubSki
 				continue
 			}
 			v := views.MarkView{Club: c.ID, Name: c.Name, FIG: c.Note}
-			fill(&v, itemSides[c.Item()])
+			fill(&v, t.sides(c.Item()))
 			lv.Items = append(lv.Items, v)
 		}
 		for _, v := range lv.Items {
@@ -416,4 +414,66 @@ func (p *competitionPages) coachFromLink(w http.ResponseWriter, r *http.Request,
 		return c, "", false
 	}
 	return c, via, true
+}
+
+// Where a member stands on a club level, as the Level filter's values have
+// it after the level's id ("<id>:done").
+const (
+	levelDone    = "done"    // every item marked Can do by a coach
+	levelWorking = "working" // something marked on either side, not done yet
+)
+
+// levelStandings are where each of a club's members with marks stands on
+// each of its levels (levels), by member, as the Level filter's values.
+func (p *competitionPages) levelStandings(r *http.Request, clubID string, levels []store.ClubLevel) (map[string][]string, error) {
+	out := map[string][]string{}
+	if len(levels) == 0 {
+		return out, nil
+	}
+	marks, err := p.st.ClubMarks(r.Context(), clubID)
+	if err != nil {
+		return nil, err
+	}
+	_, other, err := p.clubSkillsOf(r, clubID)
+	if err != nil {
+		return nil, err
+	}
+	clubItems := map[string]store.ClubSkill{}
+	for _, c := range other {
+		clubItems[c.Item()] = c
+	}
+	fill := func(v *views.MarkView, sides map[string]store.Mark) {
+		if k, ok := sides[store.SideGymnast]; ok {
+			v.Gymnast = &views.SideMark{State: k.State}
+		}
+		if k, ok := sides[store.SideCoach]; ok {
+			v.Coach = &views.SideMark{State: k.State}
+		}
+	}
+	for member, list := range marks {
+		for i, lv := range levelsProgress(levels, clubItems, trackingOf(list, clubItems), nil, "", fill) {
+			if len(lv.Items) == 0 {
+				continue
+			}
+			started := slices.ContainsFunc(lv.Items, func(v views.MarkView) bool { return v.Gymnast != nil || v.Coach != nil })
+			switch {
+			case lv.Coach == len(lv.Items):
+				out[member] = append(out[member], levels[i].ID+":"+levelDone)
+			case started:
+				out[member] = append(out[member], levels[i].ID+":"+levelWorking)
+			}
+		}
+	}
+	return out, nil
+}
+
+// levelFilter is a filter by where members stand on the club's levels:
+// completed (by a coach's marks) or working on, for each level.
+func levelFilter(levels []store.ClubLevel) views.ListFilter {
+	f := views.ListFilter{Key: "level", Label: "Level", Any: "Any level"}
+	for _, l := range levels {
+		f.Options = append(f.Options, views.ListOption{Value: l.ID + ":" + levelDone, Label: l.Name + ": completed", Group: l.Name},
+			views.ListOption{Value: l.ID + ":" + levelWorking, Label: l.Name + ": working on", Group: l.Name})
+	}
+	return f
 }

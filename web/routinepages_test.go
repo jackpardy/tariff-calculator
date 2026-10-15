@@ -231,3 +231,94 @@ func TestEntryOffersKeptRoutines(t *testing.T) {
 		t.Errorf("the option's skills: %q (%v)", kept[1], err)
 	}
 }
+
+// A coach, on a gymnast's page, sees which skills in each routine no coach
+// has marked Can do, checks a routine against a level they choose, and adds
+// routines of their own to the gymnast's page; the comp sec's Members and
+// the coach's Gymnasts filter by where each stands on the club's levels.
+func TestCoachRoutineTools(t *testing.T) {
+	h := competitionServer(t)
+	c := aClub(t, h, created(t, h, newCompetition()), "UCD", false, "A. Murphy", "B. Kelly")
+	club, member, kelly := c.page, c.members["A. Murphy"], c.members["B. Kelly"]
+	ann := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
+	bob := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
+	redirected(t, h, member+"/routines", keep(t, aRoutine("b1", "Comp vol")))
+	redirected(t, h, ann+"/levels", url.Values{"set": {`{"format":1,"name":"Grade 1","rules":[{"type":"count","label":"A back somersault","match":{"rotation":{"min":4,"max":4},"direction":"backward"},"min":1}]}`}, "id": {"g1"}})
+	gymnasts := do(t, h, http.MethodGet, ann+"/gymnasts", nil).Body.String()
+	open := regexp.MustCompile(`href="(` + regexp.QuoteMeta(ann) + `/gymnasts/[^"]+)">A. Murphy</a>`).FindStringSubmatch(gymnasts)[1]
+
+	// Neither skill is marked Can do by a coach; the gymnast's own mark
+	// doesn't count, a coach's does.
+	backTuck := `{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}`
+	barani := `{"rotation":4,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Tuck"}`
+	if page := do(t, h, http.MethodGet, open, nil).Body.String(); !strings.Contains(page, "2 skills not marked Can do") || !strings.Contains(page, "Mark them on Skills") {
+		t.Errorf("both skills to mark: %s", page)
+	}
+	redirected(t, h, member+"/skills", url.Values{"skill": {barani}, "state": {"can"}})
+	redirected(t, h, open+"/skills", url.Values{"skill": {backTuck}, "state": {"can"}})
+	page := do(t, h, http.MethodGet, open, nil).Body.String()
+	marked := regexp.MustCompile(`No coach has marked these Can do: ([^.]*)\.`).FindStringSubmatch(page)
+	if !strings.Contains(page, "1 skill not marked Can do") || marked == nil || !strings.Contains(marked[1], "Barani") {
+		t.Errorf("only the barani is left to mark: %v", marked)
+	}
+	if strings.Contains(do(t, h, http.MethodGet, member+"/routines", nil).Body.String(), "not marked Can do") {
+		t.Error("the gymnast isn't told: it's for the coach")
+	}
+
+	// Checked against the club's level, it opens checked against it.
+	level := regexp.MustCompile(`<option value="(club:[^"]+)">Grade 1</option>`).FindStringSubmatch(page)
+	routine := regexp.MustCompile(`name="routine" value="([^"]+)"`).FindStringSubmatch(page)
+	if level == nil || routine == nil || !strings.Contains(page, `<optgroup label="Your club&#39;s levels">`) {
+		t.Fatalf("the levels to check against: %s", page)
+	}
+	page = do(t, h, http.MethodGet, open+"?"+url.Values{"routine": {routine[1]}, "against": {level[1]}}.Encode(), nil).Body.String()
+	if !strings.Contains(page, `open>`) || !strings.Contains(page, `<option value="`+level[1]+`" selected>`) || !strings.Contains(page, "Grade 1") {
+		t.Errorf("checked against Grade 1: %s", page)
+	}
+	if page = do(t, h, http.MethodGet, open+"?routine="+routine[1]+"&against=builtin:nope", nil).Body.String(); strings.Contains(page, `open>`) {
+		t.Error("a level that isn't there is ignored")
+	}
+
+	// The coach adds a routine; the member's own with the same browser id is
+	// theirs, and adding it again changes only the coach's.
+	location := redirected(t, h, open+"/routines", keep(t, aRoutine("c1", "Drill vol")))
+	if noticeOf(t, location) != "Kept 1 routine on A. Murphy's page." {
+		t.Errorf("adding: %s", location)
+	}
+	mine := do(t, h, http.MethodGet, member+"/routines", nil).Body.String()
+	if !strings.Contains(mine, "Drill vol") || !strings.Contains(mine, "added it") || !strings.Contains(mine, "Delete from your page") {
+		t.Errorf("the member sees the coach's routine, theirs to keep or delete: %s", mine)
+	}
+	redirected(t, h, member+"/routines", keep(t, aRoutine("c1", "My vol")))
+	redirected(t, h, open+"/routines", keep(t, aRoutine("c1", "Drill vol 2")))
+	mine = do(t, h, http.MethodGet, member+"/routines", nil).Body.String()
+	if !strings.Contains(mine, "My vol") || !strings.Contains(mine, "Drill vol 2") || strings.Contains(mine, "Drill vol<") || strings.Count(mine, `class="box comp-routine-row"`) != 3 {
+		t.Errorf("the member's routine and the coach's kept apart: %s", mine)
+	}
+
+	// Members and Gymnasts filter by level: A. Murphy's coach marked the back
+	// tuck, so Grade 1 is completed; B. Kelly is working on it.
+	redirected(t, h, kelly+"/skills", url.Values{"skill": {backTuck}, "state": {"learning"}})
+	levelID := strings.TrimPrefix(level[1], "club:")
+	for _, list := range []struct{ page, id string }{{club + "/members", "members"}, {ann + "/gymnasts", "gymnasts"}} {
+		page := do(t, h, http.MethodGet, list.page, nil).Body.String()
+		rows := listRows(t, page, list.id)
+		if got := rows["A. Murphy"]["level"]; len(got) != 1 || got[0] != levelID+":done" {
+			t.Errorf("%s: A. Murphy's level: %v", list.id, got)
+		}
+		if got := rows["B. Kelly"]["level"]; len(got) != 1 || got[0] != levelID+":working" {
+			t.Errorf("%s: B. Kelly's level: %v", list.id, got)
+		}
+		if !strings.Contains(page, `<optgroup label="Grade 1">`) || !strings.Contains(page, "Grade 1: completed") {
+			t.Errorf("%s: the Level filter", list.id)
+		}
+	}
+
+	// A coach who doesn't see the gymnast can't add to their page.
+	details := do(t, h, http.MethodGet, member+"/details", nil).Body.String()
+	annID := regexp.MustCompile(`<option value="([^"]+)">Ann</option>`).FindStringSubmatch(details)[1]
+	redirected(t, h, member+"/coach", url.Values{"coach": {annID}})
+	if rec := do(t, h, http.MethodPost, bob+strings.TrimPrefix(open, ann)+"/routines", keep(t, aRoutine("d1", "Bob's"))); rec.Code != http.StatusNotFound {
+		t.Errorf("another coach adding: %d", rec.Code)
+	}
+}

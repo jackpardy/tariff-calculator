@@ -503,7 +503,9 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
   other clubs made with your members are listed here too. To find a member,
   search by name or narrow the list by coach, entries, or coach too. A member
   who keeps routines on their page shows how many, and one with skills marked
-  how many they can do: tap either to see them.
+  how many they can do: tap either to see them. Once your coaches have made
+  levels, narrow the list by **Level** to see who has completed a level (by
+  a coach's marks) or is working on it.
 - **Coaches** (its own section; search by name, or narrow by who signs off
   and who has qualifications): type a name and tap **Add coach**, then send them the coach link
   shown (it's shown only then; **New link** makes another). Tick **Every coach
@@ -631,6 +633,8 @@ change an entry for you.
   changes it there.
 - Or open **Routines** on your page: under **Add routines from this browser**,
   tick the ones to keep and tap **Add to my page**.
+- Your coach can add routines to your page too: they show as added by them,
+  and are yours to rename or delete.
 - Tap a routine to see it checked, with any note from your coach. **Open in
   the Routine Builder** adds a copy to the builder on the phone you're using,
   to change and save again. **Rename** or **Delete from your page** (the
@@ -683,9 +687,17 @@ sign-off, entries without it are flagged to the organiser.
 
 Your page has two sections: **Entries** (the entries above) and **Gymnasts**:
 the members you see, with how many routines each keeps on their page and how
-many skills they can do. Tap a gymnast to see their routines, checked, and
-write **Your note** on any of them for them to see, such as what to work on.
-Leave it empty to take it off.
+many skills they can do (narrow it by **Level** to see who has completed a
+club level, or is working on it). Tap a gymnast to see their routines,
+checked, and write **Your note** on any of them for them to see, such as
+what to work on. Leave it empty to take it off. A routine with skills no
+coach has marked Can do says how many, and names them: mark them on the
+gymnast's **Skills** once you've seen them. To check a routine against
+another level, one of your club's or a competition's, choose it above the
+routine and tap **Check**. To give a gymnast a routine, build it in the
+Routine Builder on your phone, then on their page tick it under **Add
+routines from this browser**: it shows on their page as added by you, and
+adding it again from your phone updates it.
 
 **Club skills** (the third section of your page) holds your club's own
 skills, for everyone to mark. To give a skill your club's name, find it
