@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/mail"
-	"net/url"
 	"slices"
 	"strings"
 
@@ -121,12 +120,12 @@ func (p *competitionPages) notifyPage(w http.ResponseWriter, r *http.Request) {
 			if email != nil && email.ID == r.FormValue("remove") {
 				notice = "No more emails about this competition."
 			}
-			http.Redirect(w, r, r.URL.Path+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+			seeOther(w, r, r.URL.Path, notice)
 			return
 		case "push":
 			problems := p.savePush(r, t)
 			if len(problems) == 0 {
-				http.Redirect(w, r, r.URL.Path+"?notice="+url.QueryEscape("Notifications are on for this phone."), http.StatusSeeOther)
+				seeOther(w, r, r.URL.Path, "Notifications are on for this phone.")
 				return
 			}
 			page.Problems = problems
@@ -134,7 +133,7 @@ func (p *competitionPages) notifyPage(w http.ResponseWriter, r *http.Request) {
 		default:
 			notice, problems := p.saveEmail(r, t, email)
 			if len(problems) == 0 {
-				http.Redirect(w, r, r.URL.Path+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+				seeOther(w, r, r.URL.Path, notice)
 				return
 			}
 			page.Problems = problems
@@ -325,7 +324,7 @@ func (p *competitionPages) notifyNow(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Telling everyone who asked, within a minute."), http.StatusSeeOther)
+	seeOther(w, r, adminPath(r.PathValue("token")), "Telling everyone who asked, within a minute.")
 }
 
 // noWait turns the wait off on the competition's days (on=1), or back on.

@@ -105,7 +105,7 @@ templ scenarioFormView(p SimulationPage) {
 		<h2 class="title is-6">New scenario</h2>
 		<p class="help mb-3">
 			if p.Entries > 0 {
-				Filled in from the entries and offers so far ({ entriesWord(p.Entries) }); change any number.
+				Filled in from the entries and offers so far ({ Count(p.Entries, "entry", "entries") }); change any number.
 			} else {
 				Change any number. Leave a box empty for none.
 			}
@@ -214,7 +214,7 @@ templ scenarioTable(p SimulationPage) {
 						for _, s := range p.Scenarios {
 							<td>
 								if s.Run {
-									<div>{ entriesWord(s.EntryCount) }, { strconv.Itoa(s.Gymnasts) } gymnasts</div>
+									<div>{ Count(s.EntryCount, "entry", "entries") }, { strconv.Itoa(s.Gymnasts) } gymnasts</div>
 								}
 								<details class="is-size-7">
 									<summary>Numbers</summary>
@@ -349,13 +349,6 @@ func numberValue(n int) string {
 		return ""
 	}
 	return strconv.Itoa(n)
-}
-
-func entriesWord(n int) string {
-	if n == 1 {
-		return "1 entry"
-	}
-	return fmt.Sprintf("%d entries", n)
 }
 
 func spareWord(minutes int) string {

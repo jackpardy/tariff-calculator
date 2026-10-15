@@ -1,9 +1,8 @@
 package web
 
 import (
-	"fmt"
-
 	"tariffCalculator/store"
+	"tariffCalculator/views"
 )
 
 // standing is where an entry stands. Each page words it for its reader:
@@ -82,10 +81,8 @@ func brief(s standing, problems, place int, sent string) (string, string) {
 		return "Removed", "is-danger is-light"
 	case s == entryHeld:
 		return "On hold", "is-warning is-light"
-	case problems == 1:
-		return "1 problem", "is-danger is-light"
-	case problems > 1:
-		return fmt.Sprintf("%d problems", problems), "is-danger is-light"
+	case problems > 0:
+		return views.Count(problems, "problem", "problems"), "is-danger is-light"
 	}
 	switch s {
 	case entryNotSent:

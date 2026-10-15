@@ -92,7 +92,7 @@ func (p *competitionPages) competitionLinks(ctx context.Context, c store.Competi
 	if len(l.Duties) > 0 {
 		l.ScoreSheets = f.base + "/score-sheets"
 	}
-	if published(c) {
+	if c.Published != nil {
 		l.Timeline, l.Calendar = f.base+"/timeline", f.base+"/calendar.ics"
 		if f.member {
 			l.ClubTimeline, l.ClubCalendar = f.base+"/club-timeline", f.base+"/club-calendar.ics"

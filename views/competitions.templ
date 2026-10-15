@@ -884,7 +884,7 @@ templ entryCardChecks(c EntryCard) {
 		<div class="notification is-success is-light">No problems found.</div>
 	} else {
 		<div class="notification is-danger is-light">
-			<p><strong>{ problemCount(len(c.Problems)) }</strong></p>
+			<p><strong>{ Count(len(c.Problems), "problem", "problems") }</strong></p>
 			<ul>
 				for _, p := range c.Problems {
 					<li>{ p }</li>
@@ -915,13 +915,6 @@ func cardName(s skills.TrampolineSkill) string {
 		return ""
 	}
 	return displayName(s)
-}
-
-func problemCount(n int) string {
-	if n == 1 {
-		return "1 problem"
-	}
-	return fmt.Sprintf("%d problems", n)
 }
 
 templ exerciseCard(ex ExerciseCard) {
@@ -1306,7 +1299,7 @@ templ CompetitionCards(p CardsPage) {
 			<div class="toolbar screen-only">
 				<a href={ templ.SafeURL(p.Back) }>← Entries</a>
 				<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
-				<span>{ cardCount(len(p.Cards)) }</span>
+				<span>{ Count(len(p.Cards), "card", "cards") }</span>
 			</div>
 			if len(p.Cards) == 0 {
 				<p class="hint">No entries to print.</p>
@@ -1318,13 +1311,6 @@ templ CompetitionCards(p CardsPage) {
 			}
 		</body>
 	</html>
-}
-
-func cardCount(n int) string {
-	if n == 1 {
-		return "1 card"
-	}
-	return fmt.Sprintf("%d cards", n)
 }
 
 // organiserNote is the organiser's note on an entry, for the club or gymnast.

@@ -50,6 +50,11 @@ competition or helper link, for an admin link). Every route takes it, and it
 works only while the role is the person's. A GET on a personal link's page
 gets tabs for the person's roles.
 
+A form's POST answers 303 to the page to go back to, with what happened as
+`?notice=` (first in the query, before any `#part`): `seeOther` in
+`web/comppages.go`, which `back` (the timetable) and `backToDay` don't use
+yet.
+
 The pages for someone at a competition (My competition, "I'm here", score
 sheets, timelines, calendars, notifications and late changes) sit under a
 member's, an individual's entry, a comp sec's or a coach's link. One

@@ -225,12 +225,6 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 	</html>
 }
 
-func rulesCount(n int) string {
-	if n == 1 {
-		return "1 rule"
-	}
-	return strconv.Itoa(n) + " rules"
-}
 
 // builtinSets maps built-in set IDs to their sets, for duplicating one in the browser.
 func builtinSets(groups []requirements.BuiltinGroup) map[string]requirements.Set {
@@ -758,7 +752,7 @@ templ builtinGroup(name string, sets []requirements.Builtin) {
 							</details>
 						} else {
 							<details class="set-rules">
-								<summary>{ rulesCount(len(b.Set.Rules)) }</summary>
+								<summary>{ Count(len(b.Set.Rules), "rule", "rules") }</summary>
 								<ul>
 									for _, rule := range b.Set.Rules {
 										<li>{ requirements.Describe(rule) }</li>

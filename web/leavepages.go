@@ -117,10 +117,6 @@ func leaveView(s competitions.Schedule, fills []competitions.SeatFill, name func
 	if v.Empty > 0 {
 		parts = append(parts, fmt.Sprintf("%d left empty", v.Empty))
 	}
-	seats := "seats"
-	if len(fills) == 1 {
-		seats = "seat"
-	}
-	v.Summary = fmt.Sprintf("%s's %d %s: %s.", v.Who, len(fills), seats, strings.Join(parts, ", "))
+	v.Summary = fmt.Sprintf("%s's %s: %s.", v.Who, views.Count(len(fills), "seat", "seats"), strings.Join(parts, ", "))
 	return v
 }

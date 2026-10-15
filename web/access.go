@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"tariffCalculator/competitions"
@@ -156,9 +155,9 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 	case "/remove":
 		n := len(r.Form["entry"])
 		if f("action") == "hold" {
-			return fmt.Sprintf("Put %s on hold", entriesWord(n))
+			return fmt.Sprintf("Put %s on hold", views.Count(n, "entry", "entries"))
 		}
-		return "Removed " + entriesWord(n)
+		return "Removed " + views.Count(n, "entry", "entries")
 	case "/later-deadlines":
 		return "Changed when changes and sign-offs close"
 	case "/deadline":
@@ -341,7 +340,7 @@ func (p *competitionPages) removeTie(w http.ResponseWriter, r *http.Request) {
 
 // backToDashboard goes back to the dashboard, saying what happened.
 func backToDashboard(w http.ResponseWriter, r *http.Request, notice string) {
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	seeOther(w, r, adminPath(r.PathValue("token")), notice)
 }
 
 // history shows the latest changes, and who made them.
@@ -379,14 +378,14 @@ func (p *competitionPages) flagConcern(w http.ResponseWriter, r *http.Request) {
 		back += "/entries/" + entryID
 	}
 	if text == "" {
-		http.Redirect(w, r, back+"?notice="+url.QueryEscape("Say what the concern is."), http.StatusSeeOther)
+		seeOther(w, r, back, "Say what the concern is.")
 		return
 	}
 	if _, err := p.st.FlagConcern(r.Context(), c.ID, entryID, linkOf(r).Name, text); err != nil {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, back+"?notice="+url.QueryEscape("Flagged for the organiser."), http.StatusSeeOther)
+	seeOther(w, r, back, "Flagged for the organiser.")
 }
 
 // resolveConcern marks a concern dealt with (note optional).

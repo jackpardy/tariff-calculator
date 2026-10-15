@@ -3,7 +3,6 @@ package web
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -20,7 +19,7 @@ import (
 func simulatePath(r *http.Request) string { return timetablePath(r) + "/simulate" }
 
 func backToSimulation(w http.ResponseWriter, r *http.Request, notice string) {
-	http.Redirect(w, r, simulatePath(r)+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	seeOther(w, r, simulatePath(r), notice)
 }
 
 // actualScenario is the competition as it stands: its entries per event, how

@@ -60,7 +60,7 @@ func (p *competitionPages) addCoach(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	if err := competitions.CheckName("coach", name); err != nil {
-		http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery(strings.Join(sentences(err), " ")), http.StatusSeeOther)
+		seeOther(w, r, clubCoachesPath(r.PathValue("token")), strings.Join(sentences(err), " "))
 		return
 	}
 	coach, token, err := p.st.CreateCoach(r.Context(), club.ID, name)
@@ -118,7 +118,7 @@ func (p *competitionPages) removeCoach(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery("Removed "+coach.Name+" as a coach."), http.StatusSeeOther)
+	seeOther(w, r, clubCoachesPath(r.PathValue("token")), "Removed "+coach.Name+" as a coach.")
 }
 
 func (p *competitionPages) coachesSeeAll(w http.ResponseWriter, r *http.Request) {
@@ -135,7 +135,7 @@ func (p *competitionPages) coachesSeeAll(w http.ResponseWriter, r *http.Request)
 	if on {
 		notice = "Every coach now sees every member."
 	}
-	http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	seeOther(w, r, clubCoachesPath(r.PathValue("token")), notice)
 }
 
 // assignCoach chooses a member's coach for them (coach: an id, "" for none).
@@ -163,7 +163,7 @@ func (p *competitionPages) chooseOwnCoach(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, memberDetailsPath(r.PathValue("token"))+"?notice="+urlQuery("Coach saved."), http.StatusSeeOther)
+	seeOther(w, r, memberDetailsPath(r.PathValue("token")), "Coach saved.")
 }
 
 // --- Coaches ---
@@ -362,14 +362,14 @@ func (p *competitionPages) signOff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !coach.SignsOff {
-		http.Redirect(w, r, coachPath(r.PathValue("token"))+"?notice="+urlQuery("Your club hasn't set you to sign off routines; nothing was changed."), http.StatusSeeOther)
+		seeOther(w, r, coachPath(r.PathValue("token")), "Your club hasn't set you to sign off routines; nothing was changed.")
 		return
 	}
 	if why, err := p.notApprovedFor(r, c, coach); err != nil {
 		failed(w, r, err)
 		return
 	} else if why != "" {
-		http.Redirect(w, r, coachPath(r.PathValue("token"))+"?notice="+urlQuery(why+" Nothing was changed."), http.StatusSeeOther)
+		seeOther(w, r, coachPath(r.PathValue("token")), why+" Nothing was changed.")
 		return
 	}
 	signed := r.FormValue("signed") == "1"
@@ -381,7 +381,7 @@ func (p *competitionPages) signOff(w http.ResponseWriter, r *http.Request) {
 	if !signed {
 		notice = fmt.Sprintf("Told %s their %s entry for %s isn't ready yet.", e.MemberName, e.Entry.Event(), c.Name)
 	}
-	http.Redirect(w, r, coachPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	seeOther(w, r, coachPath(r.PathValue("token")), notice)
 }
 
 // maxCertificateBytes is the largest certificate (ADR 0007 Decision 4).
@@ -432,7 +432,7 @@ func (p *competitionPages) coachSignsOff(w http.ResponseWriter, r *http.Request)
 	if !on {
 		notice = coach.Name + " doesn't sign off routines, but still sees their members' entries."
 	}
-	http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	seeOther(w, r, clubCoachesPath(r.PathValue("token")), notice)
 }
 
 // addQualification gives a coach a qualification (qualification: its key)
@@ -448,7 +448,7 @@ func (p *competitionPages) addQualification(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	back := func(notice string) {
-		http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+		seeOther(w, r, clubCoachesPath(r.PathValue("token")), notice)
 	}
 	q, data, certType, problem := postedCertificate(r)
 	if problem != "" {
@@ -527,7 +527,7 @@ func (p *competitionPages) removeQualification(w http.ResponseWriter, r *http.Re
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery("Removed a qualification of "+coach.Name+"'s, and its certificate."), http.StatusSeeOther)
+	seeOther(w, r, clubCoachesPath(r.PathValue("token")), "Removed a qualification of "+coach.Name+"'s, and its certificate.")
 }
 
 // clubCertificate shows the comp sec a coach's certificate.

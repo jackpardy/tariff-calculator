@@ -61,9 +61,5 @@ func (p *competitionPages) screenUpOf(ctx context.Context, c store.Competition, 
 	if !ok {
 		return nil
 	}
-	byID := map[string]store.Entry{}
-	for _, e := range live(all) {
-		byID[e.ID] = e
-	}
-	return screenUp(c.Competition, *n.Flight, up.Routine, byID, scratched)
+	return screenUp(c.Competition, *n.Flight, up.Routine, entriesByID(live(all)), scratched)
 }

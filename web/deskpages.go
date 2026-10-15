@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -345,12 +344,12 @@ func (p *competitionPages) sendDesk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if d.problem != "" {
-		http.Redirect(w, r, back+"?notice="+url.QueryEscape(d.problem+" Nothing was sent."), http.StatusSeeOther)
+		seeOther(w, r, back, d.problem+" Nothing was sent.")
 		return
 	}
 	m, err := p.st.SendDeskMessage(r.Context(), c.ID, d.msg)
 	if err == store.ErrLimit {
-		http.Redirect(w, r, back+"?notice="+url.QueryEscape(fmt.Sprintf("A competition can keep %d messages. Nothing was sent.", store.MaxDeskMessages)), http.StatusSeeOther)
+		seeOther(w, r, back, fmt.Sprintf("A competition can keep %d messages. Nothing was sent.", store.MaxDeskMessages))
 		return
 	}
 	if err != nil {
@@ -362,7 +361,7 @@ func (p *competitionPages) sendDesk(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Desk: %s: %v", c.ID, err)
 	}
 	notice := fmt.Sprintf("Sent to %s. Told %d by push and %d by email; everyone else sees it on their page.", m.Audience, pushed, emailed)
-	http.Redirect(w, r, back+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	seeOther(w, r, back, notice)
 }
 
 // deskNotes are the messages that reach someone, newest first, at most

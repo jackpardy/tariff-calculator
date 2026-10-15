@@ -3,7 +3,6 @@ package web
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -87,7 +86,7 @@ func (p *competitionPages) saveOwnOffer(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	notice := "Saved what you offer at " + c.Name + ". Your club sends it with its entries."
-	http.Redirect(w, r, memberCompetitionPath(r.PathValue("token"), c.ID)+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	seeOther(w, r, memberCompetitionPath(r.PathValue("token"), c.ID), notice)
 }
 
 func (p *competitionPages) editMemberOffer(w http.ResponseWriter, r *http.Request) {
@@ -129,7 +128,7 @@ func (p *competitionPages) saveMemberOfferForMember(w http.ResponseWriter, r *ht
 		return
 	}
 	notice := fmt.Sprintf("Saved what %s offers at %s. Send to pass it on.", m.Name, c.Name)
-	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	seeOther(w, r, clubPath(r.PathValue("token")), notice)
 }
 
 func (p *competitionPages) saveIndividualOffer(w http.ResponseWriter, r *http.Request) {
@@ -253,7 +252,7 @@ func (p *competitionPages) officialSettings(w http.ResponseWriter, r *http.Reque
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, officialsPath(r)+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	seeOther(w, r, officialsPath(r), notice)
 }
 
 func (p *competitionPages) addOfficial(w http.ResponseWriter, r *http.Request) {
@@ -285,7 +284,7 @@ func (p *competitionPages) addOfficial(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, officialsPath(r)+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	seeOther(w, r, officialsPath(r), notice)
 }
 
 func (p *competitionPages) markQualified(w http.ResponseWriter, r *http.Request) {
@@ -309,7 +308,7 @@ func (p *competitionPages) removeOfficial(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, officialsPath(r)+"?notice="+url.QueryEscape("Removed."), http.StatusSeeOther)
+	seeOther(w, r, officialsPath(r), "Removed.")
 }
 
 // clubOffers are what a club's members offer at a competition, as the club

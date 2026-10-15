@@ -132,7 +132,7 @@ func (p *competitionPages) coachLate(w http.ResponseWriter, r *http.Request) {
 						failed(w, r, err)
 						return
 					}
-					http.Redirect(w, r, back+"?notice="+url.QueryEscape("Signed off "+req.Entry.Gymnasts()+"'s late change; it's gone to the organiser."), http.StatusSeeOther)
+					seeOther(w, r, back, "Signed off "+req.Entry.Gymnasts()+"'s late change; it's gone to the organiser.")
 					return
 				}
 			}
@@ -180,7 +180,7 @@ func (p *competitionPages) individualCoachLate(w http.ResponseWriter, r *http.Re
 				failed(w, r, err)
 				return
 			}
-			http.Redirect(w, r, back+"?notice="+url.QueryEscape("Signed off; the late change has gone to the organiser."), http.StatusSeeOther)
+			seeOther(w, r, back, "Signed off; the late change has gone to the organiser.")
 			return
 		}
 	}
@@ -307,7 +307,7 @@ func (p *competitionPages) lateRequest(w http.ResponseWriter, r *http.Request) {
 				if coachFirst {
 					notice = "Your late change has gone to your coach to sign off; then it goes to the organiser."
 				}
-				http.Redirect(w, r, t.back+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+				seeOther(w, r, t.back, notice)
 				return
 			}
 		}
@@ -393,10 +393,7 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	byID := map[string]store.Entry{}
-	for _, e := range entries {
-		byID[e.ID] = e
-	}
+	byID := entriesByID(entries)
 	f, err := p.liveRota(ctx, c)
 	if err != nil {
 		failed(w, r, err)
@@ -435,7 +432,7 @@ func (p *competitionPages) lateChecks(ctx context.Context, c store.Competition, 
 	case err != nil:
 		out = append(out, "The card can't be checked: "+err.Error())
 	case len(shown.Problems) > 0:
-		out = append(out, fmt.Sprintf("The new card has %s: %s", problemsWord(len(shown.Problems)), strings.Join(shown.Problems, "; ")))
+		out = append(out, fmt.Sprintf("The new card has %s: %s", views.Count(len(shown.Problems), "problem", "problems"), strings.Join(shown.Problems, "; ")))
 	default:
 		out = append(out, "The new card meets its requirements.")
 	}
@@ -503,7 +500,7 @@ func (p *competitionPages) setLate(w http.ResponseWriter, r *http.Request) {
 	for _, kind := range competitions.LateKinds {
 		fee, err := competitions.ParseMoney(r.FormValue("fee-" + kind))
 		if err != nil {
-			http.Redirect(w, r, back+"?notice="+url.QueryEscape(competitions.LateKindName(kind)+" fee: "+err.Error()+". Nothing was changed."), http.StatusSeeOther)
+			seeOther(w, r, back, competitions.LateKindName(kind)+" fee: "+err.Error()+". Nothing was changed.")
 			return
 		}
 		if on := r.FormValue("late-"+kind) == "1"; on || fee > 0 {
@@ -514,7 +511,7 @@ func (p *competitionPages) setLate(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, back+"?notice="+url.QueryEscape("Saved."), http.StatusSeeOther)
+	seeOther(w, r, back, "Saved.")
 }
 
 // acceptLate applies a request, with an optional note: the entry changes,
@@ -539,7 +536,7 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if req == nil {
-		http.Redirect(w, r, back+"?notice="+url.QueryEscape("That request has been decided already."), http.StatusSeeOther)
+		seeOther(w, r, back, "That request has been decided already.")
 		return
 	}
 	p.notify.changing(ctx, c)
@@ -590,7 +587,7 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	http.Redirect(w, r, back+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	seeOther(w, r, back, notice)
 }
 
 // rejectLate turns a request down, with a reason for whoever asked.
@@ -602,7 +599,7 @@ func (p *competitionPages) rejectLate(w http.ResponseWriter, r *http.Request) {
 	back := adminPath(r.PathValue("token")) + "/late"
 	reason := limitNote(strings.TrimSpace(r.FormValue("reason")))
 	if reason == "" {
-		http.Redirect(w, r, back+"?notice="+url.QueryEscape("Give a reason: whoever asked sees it."), http.StatusSeeOther)
+		seeOther(w, r, back, "Give a reason: whoever asked sees it.")
 		return
 	}
 	p.notify.changing(r.Context(), c)
@@ -610,5 +607,5 @@ func (p *competitionPages) rejectLate(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, back+"?notice="+url.QueryEscape("Not accepted; they'll see your reason."), http.StatusSeeOther)
+	seeOther(w, r, back, "Not accepted; they'll see your reason.")
 }

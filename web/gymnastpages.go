@@ -2,7 +2,6 @@ package web
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"tariffCalculator/competitions"
@@ -100,18 +99,10 @@ func (p *competitionPages) gymnastHome(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		page.Competitions = append(page.Competitions, views.GymnastCompetition{
-			Page: gymnastCompetitionPath(token, id), Competition: summary(c.Competition, p.now()), Status: entryCount(count[id]),
+			Page: gymnastCompetitionPath(token, id), Competition: summary(c.Competition, p.now()), Status: views.Count(count[id], "entry", "entries"),
 		})
 	}
 	render(w, r, views.GymnastHome(page))
-}
-
-// entryCount is how many entries, in words.
-func entryCount(n int) string {
-	if n == 1 {
-		return "1 entry"
-	}
-	return fmt.Sprintf("%d entries", n)
 }
 
 // gymnastDetails is an individual's details: their link, and their other
@@ -164,7 +155,7 @@ func (p *competitionPages) gymnastCompetition(w http.ResponseWriter, r *http.Req
 	}
 	token := r.PathValue("token")
 	page := p.gymnastPage(r, ind, gymnastCompetitions)
-	gc := views.GymnastCompetition{Competition: summary(c.Competition, p.now()), Status: entryCount(len(mine)), Day: entryPath(token, mine[0]) + "/day"}
+	gc := views.GymnastCompetition{Competition: summary(c.Competition, p.now()), Status: views.Count(len(mine), "entry", "entries"), Day: entryPath(token, mine[0]) + "/day"}
 	if gc.Competition.Open && c.Individuals {
 		gc.Enter = gymnastCompetitionPath(token, c.ID) + "/enter"
 	}

@@ -141,6 +141,23 @@ func (p *competitionPages) secret(h http.HandlerFunc) http.Handler {
 	})
 }
 
+// seeOther redirects after a form to the page to, with a notice saying what
+// happened ("" to say nothing), first in its query.
+func seeOther(w http.ResponseWriter, r *http.Request, to, notice string) {
+	if notice != "" {
+		page, part, hasPart := strings.Cut(to, "#")
+		path, query, hasQuery := strings.Cut(page, "?")
+		to = path + "?notice=" + url.QueryEscape(notice)
+		if hasQuery {
+			to += "&" + query
+		}
+		if hasPart {
+			to += "#" + part
+		}
+	}
+	http.Redirect(w, r, to, http.StatusSeeOther)
+}
+
 // message renders a page that only says something.
 func message(w http.ResponseWriter, r *http.Request, status int, title, text string) {
 	w.WriteHeader(status)
@@ -941,7 +958,7 @@ func (p *competitionPages) live(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("back") == "settings" {
 			to = settingsPath(r.PathValue("token"))
 		}
-		http.Redirect(w, r, to+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+		seeOther(w, r, to, notice)
 	}
 	at, problem := postedLiveAt(r, p.now())
 	if problem != "" {
@@ -1671,7 +1688,7 @@ func (p *competitionPages) moveLevel(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, settingsPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Order of levels changed.")+"#level-order", http.StatusSeeOther)
+	seeOther(w, r, settingsPath(r.PathValue("token"))+"#level-order", "Order of levels changed.")
 }
 
 // --- Men and women ---
@@ -1932,9 +1949,9 @@ func (p *competitionPages) removeEntries(w http.ResponseWriter, r *http.Request)
 	}
 	notice := "Tick the entries to remove or hold first; nothing was changed."
 	if n > 0 {
-		notice = fmt.Sprintf("%s %s. They're listed at the end, to restore.", done, entriesWord(n))
+		notice = fmt.Sprintf("%s %s. They're listed at the end, to restore.", done, views.Count(n, "entry", "entries"))
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	seeOther(w, r, adminPath(r.PathValue("token")), notice)
 }
 
 // restoreEntry puts a removed or held entry back in the competition.
@@ -1948,5 +1965,5 @@ func (p *competitionPages) restoreEntry(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Back in the competition."), http.StatusSeeOther)
+	seeOther(w, r, adminPath(r.PathValue("token")), "Back in the competition.")
 }

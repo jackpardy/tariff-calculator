@@ -126,9 +126,6 @@ func (p *competitionPages) clubTimeline(w http.ResponseWriter, r *http.Request, 
 	render(w, r, views.TimelinePrint(t))
 }
 
-// published says whether a competition's timetable is published.
-func published(c store.Competition) bool { return c.Published != nil }
-
 // Score sheets for an official (asked 2026-10-08): the published
 // timetable's sheets for the flights they have a seat on, to read on a
 // phone; the organiser prints them.

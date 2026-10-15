@@ -463,18 +463,8 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	notice := fmt.Sprintf("Sent %s to %s.", entriesWord(n), c.Name)
-	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
-}
-
-// urlQuery escapes a notice for a redirect's query.
-func urlQuery(s string) string { return url.QueryEscape(s) }
-
-func entriesWord(n int) string {
-	if n == 1 {
-		return "1 entry"
-	}
-	return fmt.Sprintf("%d entries", n)
+	notice := fmt.Sprintf("Sent %s to %s.", views.Count(n, "entry", "entries"), c.Name)
+	seeOther(w, r, clubPath(r.PathValue("token")), notice)
 }
 
 // memberOfClub is the member and competition a comp sec's member entry URL
@@ -594,7 +584,7 @@ func (p *competitionPages) saveMemberEntryForMember(w http.ResponseWriter, r *ht
 		return
 	}
 	notice := fmt.Sprintf("Saved %s's entry for %s. Send it when you're ready.", m.Name, c.Name)
-	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	seeOther(w, r, clubPath(r.PathValue("token")), notice)
 }
 
 func (p *competitionPages) newMemberLink(w http.ResponseWriter, r *http.Request) {
@@ -630,7 +620,7 @@ func (p *competitionPages) removeMember(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, clubMembersPath(r.PathValue("token"))+"?notice="+urlQuery("Removed "+m.Name+"."), http.StatusSeeOther)
+	seeOther(w, r, clubMembersPath(r.PathValue("token")), "Removed "+m.Name+".")
 }
 
 func (p *competitionPages) replaceClubLink(w http.ResponseWriter, r *http.Request) {
@@ -706,7 +696,7 @@ func (p *competitionPages) enterClub(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, clubPath(token)+"?notice="+urlQuery(club.Name+" is entered in "+c.Name+". Members can now add their entries."), http.StatusSeeOther)
+	seeOther(w, r, clubPath(token), club.Name+" is entered in "+c.Name+". Members can now add their entries.")
 }
 
 // --- Members ---
@@ -976,13 +966,9 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 		ev.Open = key == failedID || open[d]
 		mc.Events = append(mc.Events, ev)
 	}
-	switch {
-	case len(disciplines) == 1:
+	mc.Status = views.Count(entered, "entry", "entries")
+	if len(disciplines) == 1 {
 		mc.Status = mc.Events[0].Status
-	case entered == 1:
-		mc.Status = "1 entry"
-	default:
-		mc.Status = fmt.Sprintf("%d entries", entered)
 	}
 	offer, err := p.st.MemberOffer(ctx, m.ID, c.ID)
 	if err != nil {
@@ -1022,7 +1008,7 @@ func (p *competitionPages) saveOwnMemberEntry(w http.ResponseWriter, r *http.Req
 		return
 	}
 	notice := "Entry saved for " + c.Name + ". Your club's competition secretary sends it to the competition."
-	http.Redirect(w, r, memberCompetitionPath(r.PathValue("token"), c.ID)+"?notice="+urlQuery(notice)+"&discipline="+url.QueryEscape(e.Discipline), http.StatusSeeOther)
+	seeOther(w, r, memberCompetitionPath(r.PathValue("token"), c.ID)+"?discipline="+url.QueryEscape(e.Discipline), notice)
 }
 
 func (p *competitionPages) withdrawMemberEntry(w http.ResponseWriter, r *http.Request) {
@@ -1044,7 +1030,7 @@ func (p *competitionPages) withdrawMemberEntry(w http.ResponseWriter, r *http.Re
 		return
 	}
 	notice := "Withdrawn from " + c.Name + ". If your club already sent it, it stays with the competition until the club sends again."
-	http.Redirect(w, r, back+"?notice="+urlQuery(notice)+"&discipline="+url.QueryEscape(r.FormValue("discipline")), http.StatusSeeOther)
+	seeOther(w, r, back+"?discipline="+url.QueryEscape(r.FormValue("discipline")), notice)
 }
 
 // clubSendCoaches are the club's coaches who sign off, to send to a
@@ -1109,7 +1095,7 @@ func (p *competitionPages) sendCoaches(w http.ResponseWriter, r *http.Request) {
 	if len(r.Form["coach"]) == 0 {
 		notice = "No coaches sent."
 	}
-	http.Redirect(w, r, clubPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	seeOther(w, r, clubPath(r.PathValue("token")), notice)
 }
 
 // removalStatus says what the organiser did with an entry: removed, or held

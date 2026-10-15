@@ -81,7 +81,7 @@ func hereBox(entries []store.Entry, keys map[string][]string, key string, offici
 	here := hereSomewhere(entries, checkins, official)
 	officiating := officiates && warned(key, store.ClearOfficiating, here, clears)
 	competing := others > 0 && warned(key, store.ClearCompeting, here, clears)
-	box := &views.MyHere{Scratched: joinAnd(scratched), Action: action}
+	box := &views.MyHere{Scratched: competitions.JoinList(scratched), Action: action}
 	switch {
 	case officiating && competing:
 		box.For = "both your other events and your officiating"
@@ -135,7 +135,7 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		case j.Checked():
 			ev.Status = "Checked by the organiser ✓"
 		case len(j.problems) > 0:
-			ev.Status = problemsWord(len(j.problems)) + " to sort out"
+			ev.Status = views.Count(len(j.problems), "problem", "problems") + " to sort out"
 			ev.Problems = j.problems
 		default:
 			ev.Status = "Sent, not checked yet"

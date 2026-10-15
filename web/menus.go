@@ -47,7 +47,7 @@ type menuState struct {
 // current the page being shown.
 func (p *competitionPages) menuFor(r *http.Request, c store.Competition, current string) []views.MenuSection {
 	a := access(r)
-	m := menuState{Published: published(c), Planned: schedule(c).Planned, ApproveCoaches: c.Signoff && c.ApproveCoaches}
+	m := menuState{Published: c.Published != nil, Planned: schedule(c).Planned, ApproveCoaches: c.Signoff && c.ApproveCoaches}
 	if a.Settings {
 		if late, err := p.st.LateRequests(r.Context(), c.ID); err == nil {
 			for _, l := range late {

@@ -252,7 +252,7 @@ func (p *competitionPages) addOtherLink(w http.ResponseWriter, r *http.Request) 
 			notice = "Added your other link. Use the tabs at the top to switch."
 		}
 	}
-	http.Redirect(w, r, detailsOf(r)+"?notice="+urlQuery(notice)+"#other-links", http.StatusSeeOther)
+	seeOther(w, r, detailsOf(r)+"#other-links", notice)
 }
 
 // removeOtherLink takes one of the person's other roles off their page.
@@ -267,7 +267,7 @@ func (p *competitionPages) removeOtherLink(w http.ResponseWriter, r *http.Reques
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, detailsOf(r)+"?notice="+urlQuery(notice)+"#other-links", http.StatusSeeOther)
+	seeOther(w, r, detailsOf(r)+"#other-links", notice)
 }
 
 // makeCoach makes one of the club's members a coach too: their member link
@@ -288,7 +288,7 @@ func (p *competitionPages) makeCoach(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, clubCoachesPath(r.PathValue("token"))+"?notice="+urlQuery(notice), http.StatusSeeOther)
+	seeOther(w, r, clubCoachesPath(r.PathValue("token")), notice)
 }
 
 // removeClubTie stops someone's own link opening the comp sec's pages.
@@ -304,5 +304,5 @@ func (p *competitionPages) removeClubTie(w http.ResponseWriter, r *http.Request)
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, clubSettingsPath(r.PathValue("token"))+"?notice="+urlQuery(notice)+"#ties", http.StatusSeeOther)
+	seeOther(w, r, clubSettingsPath(r.PathValue("token"))+"#ties", notice)
 }

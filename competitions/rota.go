@@ -572,7 +572,7 @@ func (s Schedule) RotaReport(clubs map[string]string, officials []RotaPerson) Ro
 				parts = append(parts, fmt.Sprintf("%d %s", n, strings.ToLower(roleNames[role])+plural(n)))
 			}
 		}
-		rr.Short = append(rr.Short, fmt.Sprintf("%s: no one for %s", sh.label, joinList(parts)))
+		rr.Short = append(rr.Short, fmt.Sprintf("%s: no one for %s", sh.label, JoinList(parts)))
 	}
 	for c, n := range own {
 		rr.OwnClub = append(rr.OwnClub, ClubCount{c, n})
