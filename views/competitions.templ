@@ -527,10 +527,23 @@ templ CompetitionDashboard(d Dashboard) {
 			</div>
 		}
 		if d.Entries > 0 {
+			// Printing and the CSV follow the search and filters.
 			<div class="buttons">
-				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) }>Print cards</a>
+				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) } data-list-carry>
+					if filtered(d) {
+						Print cards shown
+					} else {
+						Print cards
+					}
+				</a>
 				<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards?unchecked=1") }>Print cards not checked</a>
-				<a class="button is-small" href={ templ.SafeURL(d.Base + "/entries.csv") } download>Download CSV</a>
+				<a class="button is-small" href={ templ.SafeURL(d.Base + "/entries.csv" + filterQuery(d, "")) } download data-list-carry>
+					if filtered(d) {
+						Download CSV of those shown
+					} else {
+						Download CSV
+					}
+				</a>
 			</div>
 		}
 		if d.Entries == 0 {
@@ -552,13 +565,13 @@ templ CompetitionDashboard(d Dashboard) {
 						if l.Places != "" {
 							<span class="tag is-light is-size-7 has-text-weight-normal ml-1">{ l.Places }</span>
 						}
-						if len(l.Rows) > 0 {
-							<a class="is-size-7 has-text-weight-normal ml-2" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) } data-list-carry>Print this level</a>
-						}
 					</summary>
 					if len(l.Rows) == 0 {
 						<p class="has-text-grey is-size-7">None</p>
 					} else {
+						<div class="buttons mb-2">
+							<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) } data-list-carry>Print this level's cards</a>
+						</div>
 						<div class="table-container">
 							<table class="table is-fullwidth is-narrow comp-table comp-entries">
 								<thead>
@@ -1669,7 +1682,7 @@ templ removedList(base string, rows []RemovedRow) {
 }
 
 // dashboardFilters are the ways to find entries: search, filters, sorting,
-// a list of the levels to jump to, and printing or downloading what's shown.
+// and a list of the levels to jump to.
 templ dashboardFilters(d Dashboard) {
 	@listTools(dashboardTools(d)) {
 		<div class="select is-small">
@@ -1684,8 +1697,6 @@ templ dashboardFilters(d Dashboard) {
 		</div>
 	}
 	<p class="is-size-7 mb-3">
-		<a href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, "")) } data-list-carry>Print what's shown</a> ·
-		<a href={ templ.SafeURL(d.Base + "/entries.csv" + filterQuery(d, "")) } download data-list-carry>CSV of what's shown</a> ·
 		Jump to:
 		for i, l := range d.Levels {
 			if i > 0 {
