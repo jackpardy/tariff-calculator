@@ -290,6 +290,14 @@ func (s *Store) SetEntryCoach(ctx context.Context, token, name, qualification, c
 		if err := s.open(ctx, tx, competitionID, signing); err != nil {
 			return err
 		}
+		var used int64 // the certificate replaced doesn't count
+		if err := tx.QueryRowContext(ctx, `SELECT COALESCE(SUM(length(ec.certificate)), 0) FROM entry_coaches ec JOIN entries e ON e.id = ec.entry_id
+			WHERE e.competition_id = $1 AND ec.entry_id <> $2`, competitionID, entryID).Scan(&used); err != nil {
+			return err
+		}
+		if err := s.roomFor(certificate, used, MaxCompetitionCertificateBytes); err != nil {
+			return err
+		}
 		_, err = tx.ExecContext(ctx, `INSERT INTO entry_coaches (entry_id, name, qualification, cert_type, certificate, sent_at) VALUES ($1, $2, $3, $4, $5, $6)
 			ON CONFLICT (entry_id) DO UPDATE SET name = excluded.name, qualification = excluded.qualification, cert_type = excluded.cert_type,
 				certificate = excluded.certificate, sent_at = excluded.sent_at, status = '', note = ''`,

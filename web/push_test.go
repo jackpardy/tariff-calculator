@@ -151,7 +151,7 @@ func TestPushNotifications(t *testing.T) {
 	if err := json.Unmarshal(openPush(t, ua, auth, service.bodies[0]), &m); err != nil {
 		t.Fatal(err)
 	}
-	if m.Title != "Student Open" || m.Body != "Ann Ryan · BUCS L3: card checked" || m.URL != "https://tariff.example"+own {
+	if m.Title != "Student Open" || m.Body != "Ann Ryan · BUCS L3: card checked" || m.URL != "https://tariff.example/competitions" {
 		t.Errorf("the message: %+v", m)
 	}
 	authz := req.Header.Get("Authorization")

@@ -114,7 +114,7 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 			}
 			emailed++
 		case store.ByPush:
-			err := n.push(ctx, told[0], pushMessage{Title: c.Name, Body: m.Full(), URL: n.base + told[0].Page})
+			err := n.push(ctx, told[0], pushMessage{Title: c.Name, Body: m.Full(), URL: n.savedLinks()})
 			switch {
 			case errors.Is(err, errGone):
 				for _, s := range told {
@@ -137,14 +137,9 @@ func (n *notifier) deskEmail(c store.Competition, m store.DeskMessage, subs []st
 		subject = "Please come to the organisers' desk · " + c.Name
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s\n\nSee it on your page:\n", m.Full())
-	for _, s := range subs {
-		fmt.Fprintf(&b, "%s%s\n", n.base, s.Page)
-	}
-	b.WriteString("\nTo stop these emails:\n")
-	for _, s := range subs {
-		fmt.Fprintf(&b, "%s\n", n.offLink(s.Token))
-	}
+	fmt.Fprintf(&b, "%s\n\n%s", m.Full(), n.seeYourPage("To see it"))
+	// Any one off link stops every email to the address for the competition.
+	fmt.Fprintf(&b, "\nTo stop these emails:\n%s\n", n.offLink(subs[0].Token))
 	return subject, b.String(), map[string]string{
 		"List-Unsubscribe":      "<" + n.offLink(subs[0].Token) + ">",
 		"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",

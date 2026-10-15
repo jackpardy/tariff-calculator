@@ -1,7 +1,8 @@
 # ADR 0010 — One link for a person with several roles
 
 - **Status:** Accepted; built 2026-10-14
-- **Date:** 2026-10-14
+- **Date:** 2026-10-14 (Decision 8, links the comp sec makes, added
+  2026-10-15)
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 3 (secret links: a personal link opens all
   of its person's roles); ADR 0005 Decision 4 (an individual is matched by
@@ -60,6 +61,8 @@ Asked on the roadmap (item 5, 2026-10-13 and 2026-10-14).
    shared layout shows them as tabs above the page's own menu.
 5. **The comp sec makes a member a coach too** by making a coach record that
    is the same person; its own link is made but never shown.
+   *Changed 2026-10-15:* if the comp sec later makes that coach a link of
+   its own, the coach first becomes a person of its own (Decision 8).
 6. **Individuals have one page.** A new individual gets a personal link
    (`/competitions/gymnast/{token}`); their entries have no link of their
    own. Migration 30 makes each existing individual entry an individual of
@@ -78,6 +81,20 @@ Asked on the roadmap (item 5, 2026-10-13 and 2026-10-14).
    check-ins), unless someone else of that name from before still has the
    key. Undoing gives the record leaving a new key; what was saved stays with
    the person.
+8. **A link the comp sec makes or replaces opens only the club's records**
+   (added 2026-10-15, replacing the first rule that a member's or coach's
+   replaced link kept their ties). **New link** for a coach makes the coach
+   a person of their own; for a member, the member and the club's coach who
+   is the same person (one made with Make a coach too, whose page their link
+   opens) become a person of their own. Either way the shared links added on
+   those records' pages are dropped. The person ties their other roles
+   again by pasting their other links.
+   *Why:* the comp sec sees every link it makes. Under the first rule it
+   could make a member a coach too, make that coach a link, and open
+   through it everything the member had tied: an organiser's or helper's
+   link, and their roles at other clubs. Replacing the club's admin link
+   didn't undo links it had already made. Now a link the comp sec holds
+   opens nothing the club's admin link doesn't already reach.
 
 ## Alternatives considered
 
@@ -103,6 +120,8 @@ Asked on the roadmap (item 5, 2026-10-13 and 2026-10-14).
 ## Consequences
 
 - One link opens all of a person's roles; each other link still works.
+- A member or coach given a **New link** by their comp sec adds their other
+  links to their page again (Decision 8).
 - A personal link opened somewhere now carries the person's every role:
   losing it loses more, which the guide says.
 - Anyone holding a shared link can't reach anyone's personal pages through

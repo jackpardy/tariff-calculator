@@ -137,10 +137,10 @@ func TestDeskMessageToAClub(t *testing.T) {
 	}
 	ann := got["ann@example.com"]
 	if ann.subject != "Message from the organisers of Student Open" || !strings.HasPrefix(ann.body, "Warm-up is moved to hall 2\n") ||
-		!strings.Contains(ann.body, "https://tariff.example"+members["Ann"]) || !strings.Contains(ann.body, "/notify/off/") || !strings.Contains(ann.headers["List-Unsubscribe"], "/notify/off/") {
+		!strings.Contains(ann.body, "https://tariff.example/competitions") || strings.Contains(ann.body, members["Ann"]) || !strings.Contains(ann.body, "/notify/off/") || !strings.Contains(ann.headers["List-Unsubscribe"], "/notify/off/") {
 		t.Errorf("Ann's email: %+v", ann)
 	}
-	if !strings.Contains(got["ucd@example.com"].body, "https://tariff.example"+club) {
+	if body := got["ucd@example.com"].body; !strings.Contains(body, "https://tariff.example/competitions") || strings.Contains(body, club) {
 		t.Errorf("the comp sec's email: %+v", got["ucd@example.com"])
 	}
 
@@ -221,7 +221,7 @@ func TestDeskMessageToAFlight(t *testing.T) {
 	if err := json.Unmarshal(openPush(t, ua, auth, service.bodies[0]), &m); err != nil {
 		t.Fatal(err)
 	}
-	if m.Title != "Student Open" || m.Body != "Your flight starts in 10 minutes" || m.URL != "https://tariff.example"+ann {
+	if m.Title != "Student Open" || m.Body != "Your flight starts in 10 minutes" || m.URL != "https://tariff.example/competitions" {
 		t.Errorf("the push: %+v", m)
 	}
 	// Bea hasn't asked to hear, but is in the flight: she sees it.
@@ -357,7 +357,7 @@ func TestDeskToACoach(t *testing.T) {
 		t.Error("Bob isn't shown what is for Bea")
 	}
 	redirected(t, h, desk, url.Values{"to": {"people"}, "person": {personOnDesk(t, page, "Ann")}, "text": {"For Ann"}})
-	if len(mail.sent) != 1 || mail.sent[0].to != "bob@example.com" || !strings.Contains(mail.sent[0].body, "https://tariff.example"+bob) {
+	if len(mail.sent) != 1 || mail.sent[0].to != "bob@example.com" || strings.Contains(mail.sent[0].body, bob) {
 		t.Errorf("Ann is Bob's: %+v", mail.sent)
 	}
 	if body := do(t, h, http.MethodGet, bob, nil).Body.String(); !strings.Contains(body, deskBox) || !strings.Contains(body, "For Ann") {

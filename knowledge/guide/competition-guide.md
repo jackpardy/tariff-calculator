@@ -447,9 +447,11 @@ coach sign-off. Changing a member's entry is part of Competitions too.
 - **Change** edits a member's entry for them.
 - **Members** (its own section): the **Join link**, then each member: choose
   their coach from the list, give a member who lost their link a **New link**
-  (their old one stops working), or **Remove** them. A member who also coaches
-  needs no coach link: tap **Make a coach too** beside them, and their member
-  link opens their coach's page as well. Synchro entries that gymnasts from
+  (their old one stops working, and the new one opens only their pages at
+  your club: they add their other links again), or **Remove** them. A member
+  who also coaches needs no coach link: tap **Make a coach too** beside them,
+  and their member link opens their coach's page as well. Making that coach a
+  link of their own (**New link**) parts it from the member. Synchro entries that gymnasts from
   other clubs made with your members are listed here too. To find a member,
   search by name or narrow the list by coach, entries, or coach too.
 - **Coaches** (its own section; search by name, or narrow by who signs off
@@ -459,7 +461,7 @@ coach sign-off. Changing a member's entry is part of Competitions too.
   **Signs off routines** if they shouldn't sign off: they still see their
   members' entries. Under **Add a qualification**, choose each coach's
   coaching qualification from the list and add a photo or PDF of its
-  certificate (up to 10 MB, four per coach), for competitions that ask for
+  certificate (up to 3 MB, four per coach, and 60 MB for the whole club), for competitions that ask for
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
 - **Settings** (its own section): replace the admin link, or delete the club. A
@@ -526,10 +528,16 @@ for you: when or where you compete, what you officiate, or your card
   to Home Screen**), open it from there and turn them on.
 - **By email** (where it's on): give your email, tick that you're 18 or over
   (or that it's a parent's email), then tap the link it sends to confirm.
+  The email says only "a competition on tariff.pardy.ie"; the page it opens
+  names the competition.
 
 You get one message for each round of changes, a few minutes after the
 organiser publishes, saying what was and what is now. The comp sec hears about all the club's members, and
-a coach about the gymnasts they coach. Every email has a link to stop them.
+a coach about the gymnasts they coach. Every email has a link to stop them:
+it stops all the emails to that address about that competition.
+To see it all, open your page from the link you saved: messages don't
+carry your link, so they can't be used to open your page. Tapping one
+opens **Competitions**, which lists the links saved on that phone.
 
 ## Synchro
 
@@ -600,7 +608,7 @@ sign-off, entries without it are flagged to the organiser.
 4. If the competition needs a coach's sign-off, send your coach the **Sign-off
    link** shown on your entry. They open it, check it and sign off with their
    name. If it approves coaches, first name your coach under **Your coach**,
-   with their qualification and a photo or PDF of its certificate, and tap
+   with their qualification and a photo or PDF of its certificate (up to 3 MB), and tap
    **Send to the organiser**. Once the organiser approves them, the link
    works and they sign off as themselves; your page shows the organiser's
    decision and any note. Changing your coach sends them to be approved
@@ -624,6 +632,9 @@ link listed has **Undo**.
   sees who added it, and can remove it; replacing it ends it for everyone.
 - If your comp sec makes you a coach too, there's no coach link: your member
   link opens your coach's page.
+- If your comp sec gives you a **New link**, it opens only your pages at
+  that club: add your other links to it again. The comp sec sees the links
+  they make, so a link they make never opens your roles elsewhere.
 
 # What's kept
 
@@ -640,6 +651,6 @@ browser, so copy any you'd hate to lose: clearing the browser's data, or using
 a private window, loses the saved links (not the entries). With all your roles
 on one page, keeping that one link is enough.
 
-Pages you've opened on your phone still open without a connection, as they were when last loaded.
+Pages you've opened on your phone still open without a connection, as they were when last loaded, for up to 30 days. A page whose link has been replaced or deleted is dropped from the phone the next time it's opened online.
 
 If a bar says **The app has been updated**, tap **Refresh**.

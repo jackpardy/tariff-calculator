@@ -345,8 +345,8 @@ func TestNotifyAClub(t *testing.T) {
 	if len(mail.sent) != 2 || !strings.HasPrefix(got["ucd@example.com"].body, text) || !strings.HasPrefix(got["bob@example.com"].body, text) {
 		t.Fatalf("the comp sec and the coach are emailed, and no one else: %+v", mail.sent)
 	}
-	if !strings.Contains(got["ucd@example.com"].body, "https://tariff.example"+club) || !strings.Contains(got["bob@example.com"].body, "https://tariff.example"+bob) {
-		t.Errorf("each is linked to their page: %+v", mail.sent)
+	if strings.Contains(got["ucd@example.com"].body, club) || strings.Contains(got["bob@example.com"].body, bob) {
+		t.Errorf("no one's secret link is sent: %+v", mail.sent)
 	}
 	for _, p := range []string{club, bob} {
 		if body := do(t, h, http.MethodGet, p, nil).Body.String(); !strings.Contains(body, deskBox) || !strings.Contains(body, text) {

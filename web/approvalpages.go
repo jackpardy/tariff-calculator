@@ -337,7 +337,15 @@ func (p *competitionPages) nameEntryCoach(w http.ResponseWriter, r *http.Request
 		back("Nothing was sent: " + strings.Join(sentences(err), " "))
 		return
 	}
-	if err := p.st.SetEntryCoach(r.Context(), r.PathValue("token"), name, q.Key, certType, data); err != nil {
+	err := p.st.SetEntryCoach(r.Context(), r.PathValue("token"), name, q.Key, certType, data)
+	switch {
+	case errors.Is(err, store.ErrCertificatesFull):
+		back("Nothing was sent: this competition has no room for more coaches' certificates. Ask the organiser.")
+		return
+	case err != nil && certificateRefused(err) != "":
+		back("Nothing was sent: " + certificateRefused(err))
+		return
+	case err != nil:
 		failed(w, r, err)
 		return
 	}

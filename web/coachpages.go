@@ -368,7 +368,7 @@ func (p *competitionPages) signOff(w http.ResponseWriter, r *http.Request) {
 }
 
 // maxCertificateBytes is the largest certificate (ADR 0007 Decision 4).
-const maxCertificateBytes = 10 << 20
+const maxCertificateBytes = store.MaxCertificateBytes
 
 // uploads says whether a path takes an upload, for its larger size limit.
 func uploads(path string) bool {
@@ -438,14 +438,32 @@ func (p *competitionPages) addQualification(w http.ResponseWriter, r *http.Reque
 		back("Nothing was added: " + problem)
 		return
 	}
-	if _, err := p.st.AddQualification(r.Context(), club.ID, coach.ID, q.Key, certType, data); errors.Is(err, store.ErrLimit) {
+	_, err = p.st.AddQualification(r.Context(), club.ID, coach.ID, q.Key, certType, data)
+	switch {
+	case errors.Is(err, store.ErrLimit):
 		back(fmt.Sprintf("Nothing was added: a coach can have %d qualifications at most. Remove one first.", store.MaxQualifications))
-		return
-	} else if err != nil {
+	case errors.Is(err, store.ErrCertificatesFull):
+		back(fmt.Sprintf("Nothing was added: your coaches' certificates already take up the %d MB a club has for them. Remove one, or add a smaller photo or PDF.",
+			store.MaxClubCertificateBytes>>20))
+	case err != nil && certificateRefused(err) != "":
+		back("Nothing was added: " + certificateRefused(err))
+	case err != nil:
 		failed(w, r, err)
-		return
+	default:
+		back("Added " + q.Name() + " for " + coach.Name + ".")
 	}
-	back("Added " + q.Name() + " for " + coach.Name + ".")
+}
+
+// certificateRefused says why a certificate the store wouldn't keep was
+// refused, for the reasons any upload can meet; "" for other errors.
+func certificateRefused(err error) string {
+	switch {
+	case errors.Is(err, store.ErrCertificateTooBig):
+		return "the certificate is over 3 MB. A photo or a smaller PDF will do."
+	case errors.Is(err, store.ErrDiskFull):
+		return "the server is short of space just now. Please try again later."
+	}
+	return ""
 }
 
 // postedCertificate is the qualification (its key) and certificate (a file)
@@ -454,7 +472,7 @@ func postedCertificate(r *http.Request) (q competitions.Qualification, data []by
 	if err := r.ParseMultipartForm(1 << 20); err != nil {
 		var tooBig *http.MaxBytesError
 		if errors.As(err, &tooBig) {
-			return q, nil, "", "the certificate is over 10 MB. A photo or a smaller PDF will do."
+			return q, nil, "", "the certificate is over 3 MB. A photo or a smaller PDF will do."
 		}
 		return q, nil, "", "choose a qualification and its certificate."
 	}
@@ -469,7 +487,7 @@ func postedCertificate(r *http.Request) (q competitions.Qualification, data []by
 	defer file.Close()
 	data, err = io.ReadAll(io.LimitReader(file, maxCertificateBytes+1))
 	if err != nil || len(data) > maxCertificateBytes {
-		return q, nil, "", "the certificate is over 10 MB. A photo or a smaller PDF will do."
+		return q, nil, "", "the certificate is over 3 MB. A photo or a smaller PDF will do."
 	}
 	if certType = certificateType(data); certType == "" {
 		return q, nil, "", "the certificate should be a photo (JPEG, PNG or WebP) or a PDF."

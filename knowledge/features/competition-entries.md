@@ -977,9 +977,10 @@ without the club's members (the On the day [Notify](#on-the-day-flights-started-
 button's **Their club**; the desk form itself doesn't use it).
 Each address is told once, however many pages it was given on. Email has the
 subject "Message from the organisers of *Competition*" (or "Please come to the
-organisers' desk · *Competition*"), the text, the page to see it on and the
-off link; push has the competition's name as the title, the text as the body
-and the person's page as the link. A push service that says the phone is gone
+organisers' desk · *Competition*"), the text, how to find their page (open
+it from the link they saved; Competitions lists the links saved in that
+browser) and the off link; push has the competition's name as the title,
+the text as the body and Competitions as the link. A push service that says the phone is gone
 drops it. It is sent while the organiser's request is handled (a handful of
 sends), and a mailer that is off simply sends none.
 
@@ -1054,8 +1055,11 @@ Where a competition requires it, each entry needs a coach's **sign-off**
 - **Qualifications** (ADR 0007 Decision 4): the comp sec gives a coach up to
   four, each from the built-in list (British Gymnastics levels 1–4 and
   Gymnastics Ireland levels 1–3, in trampoline, tumbling and DMT) with a
-  certificate: a JPEG, PNG, WebP or PDF up to 10 MB, its type checked from
-  its bytes. It's stored in the database with the coach, opened by the comp
+  certificate: a JPEG, PNG, WebP or PDF up to 3 MB, its type checked from
+  its bytes. A club's certificates take 60 MB at most together, and so do
+  those of the coaches a competition's individuals name; none is taken
+  while the server's disk has less than 1 GB free. Each refusal is a plain
+  notice. It's stored in the database with the coach, opened by the comp
   sec (served as its own type, `nosniff`, not cached), and deleted with the
   qualification, the coach or the club.
 - **Approval** (ADR 0007 Decisions 2, 5–7): where entries need sign-off, the
@@ -1234,10 +1238,19 @@ each role has them.
   and can **Remove** it.
 - **Undo.** Undoing a personal role makes it a person of its own again; a
   shared link added on that record goes with it. Removing a member or coach
-  ends what came through them. Replacing a member's or coach's own link keeps
-  their ties: they're the same person.
+  ends what came through them. `shared_ties` has no foreign keys, so
+  deleting a club or a competition, and the expiry of clubs, individuals and
+  competitions, delete the ties to or from them (`dropTies`); deleting an
+  entry deletes its check-in, late changes and concerns (`dropEntryRows`).
+- **A new link from the comp sec opens only the club's records** (ADR 0010
+  Decision 8, 2026-10-15). The comp sec sees the links it makes, so **New
+  link** for a coach makes the coach a person of their own; for a member,
+  the member and the club's coach who is the same person become a person of
+  their own. The shared links added on those pages go. The person pastes
+  their other links again to tie them.
 - **The comp sec makes a member a coach too** (above): a coach record that is
-  the same person, whose own link is never shown.
+  the same person, whose own link is never shown. Making that coach a link
+  of their own (New link) takes them apart from the member first.
 
 ## Entering on your own: one page
 
@@ -1342,7 +1355,10 @@ members they coach. It's per competition, and deleted with it.
 
 - An email is sent a link to confirm it first; nothing else is sent until
   it's tapped (a button, so link checkers don't). At most 10 confirmation
-  emails an hour from one address.
+  emails an hour from one address, and 50 a day for one competition (kept
+  in memory, so a restart forgets them). The email names no competition or
+  club, as it goes to any address typed in: it says "a competition on
+  tariff.pardy.ie", and the page its link opens names the competition.
 - Before the organiser publishes or unpublishes the timetable, checks a
   card or changes its note, or removes, holds or restores an entry, what's
   live is kept as a **baseline** (unless changes are already waiting), due
@@ -1354,8 +1370,14 @@ members they coach. It's per competition, and deleted with it.
   duties, and each card. Running orders, and anything changed and put back,
   tell no one. Each address gets **one email** for all of it, grouped by
   gymnast ("Ann Ryan" then "- BUCS L5 Women · flight 2 of 3: now warm-up
-  Saturday 10:20, Panel 2 (was Saturday 09:40, Panel 1)"), with links to
-  their pages and to stop the emails (also as one-click `List-Unsubscribe`).
+  Saturday 10:20, Panel 2 (was Saturday 09:40, Panel 1)"), saying to open
+  their page from the link they saved, with a link to Competitions
+  (`/competitions`, which lists the links saved in that browser), and a
+  link to stop the emails (also as one-click `List-Unsubscribe`), which
+  stops every email to that address for the competition. No email
+  or push links to the person's page itself, and no notification keeps its
+  path: it holds their secret link (ADR 0004; migration 33 cleared those
+  kept before 2026-10-15).
 
 Email goes by SMTP when `SMTP_HOST` and `MAIL_FROM` are set
 ([deploy](../operations/deploy.md#notifications)); without them only push
@@ -1369,8 +1391,8 @@ endpoint and keys (up to 5 phones a person a competition) and lists them,
 "This phone" for the one in hand, each with **Turn off**. Only push
 services' addresses are taken (Google, Mozilla, Apple, Microsoft), so the
 server posts nowhere else. A batch's push says the one change, or "3
-changes for Ann Ryan and Bea Kelly. Tap to see them.", and opens their
-page; it's encrypted for the browser (RFC 8291, `aes128gcm`) and signed
+changes for Ann Ryan and Bea Kelly. Tap to see them.", and opens
+Competitions; it's encrypted for the browser (RFC 8291, `aes128gcm`) and signed
 (RFC 8292, ES256), on the standard library. A push service answering 404
 or 410 drops the phone. On an iPhone or iPad, push works only from the home
 screen (iOS 16.4+): the page says to add it first (Share, Add to Home
@@ -1388,7 +1410,10 @@ page when the connection answers within about four seconds, else the copy
 last opened, else a short page saying this one hasn't been opened on this
 phone before. Static files are kept as first fetched (their addresses change
 with each version). Only successful pages are kept, never what a form
-posted, and at most 60 pages per phone, the oldest dropped first. The
+posted, and at most 60 pages per phone, the oldest dropped first.
+A copy is dropped after 30 days (by the date the server sent it), and when
+the server answers 404 or 410 for its page (a link replaced or deleted), so
+a phone doesn't keep an admin or helper page for good. The
 calculator's own pages and the rest of the site are left to the network.
 
 While the phone is offline, a banner at the top of each page says "You're

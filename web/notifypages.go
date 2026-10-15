@@ -207,8 +207,11 @@ func (p *competitionPages) saveEmail(r *http.Request, t notifyTarget, was *store
 	if !same && !p.emailLimiter.allow(clientIP(r), p.now()) {
 		return "", []string{"Too many emails asked for from here just now. Try again in an hour."}
 	}
+	if !same && !p.notify.confirms.allow(t.c.ID, p.now()) {
+		return "", []string{"Too many emails asked for at this competition today. Try again tomorrow, or turn on notifications on this phone instead."}
+	}
 	sub, token, err := p.st.Subscribe(r.Context(), store.Subscription{
-		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByEmail, Address: address, Topics: topics, Page: t.page,
+		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByEmail, Address: address, Topics: topics,
 	})
 	if err != nil {
 		return "", []string{"That didn't work. Please try again in a minute."}
@@ -216,7 +219,7 @@ func (p *competitionPages) saveEmail(r *http.Request, t notifyTarget, was *store
 	if token == "" {
 		return "Saved.", nil
 	}
-	if err := p.notify.confirmEmail(t.c, sub, t.who); err != nil {
+	if err := p.notify.confirmEmail(sub); err != nil {
 		p.st.RemoveSubscription(r.Context(), t.c.ID, t.kind, t.owner, sub.ID)
 		return "", []string{"The email couldn't be sent. Check the address, or try again later."}
 	}
@@ -237,7 +240,7 @@ func (p *competitionPages) savePush(r *http.Request, t notifyTarget) []string {
 	}
 	k, _ := json.Marshal(keys)
 	_, _, err := p.st.Subscribe(r.Context(), store.Subscription{
-		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByPush, Address: endpoint, Keys: string(k), Topics: topics, Page: t.page,
+		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByPush, Address: endpoint, Keys: string(k), Topics: topics,
 	})
 	switch {
 	case errors.Is(err, store.ErrLimit):

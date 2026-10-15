@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"tariffCalculator/store"
 )
 
 func TestCoachSignoff(t *testing.T) {
@@ -259,9 +262,12 @@ func TestCoachQualificationsPages(t *testing.T) {
 	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "nonsense"}, "certificate", pdf); !strings.Contains(rec.Header().Get("Location"), "choose+the+coach") {
 		t.Errorf("a qualification from the list: %s", rec.Header().Get("Location"))
 	}
-	big := append([]byte("%PDF-1.4\n"), make([]byte, 11<<20)...)
-	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "bg-trampoline-2"}, "certificate", big); !strings.Contains(rec.Header().Get("Location"), "over+10+MB") {
-		t.Errorf("10 MB at most: %d %s", rec.Code, rec.Header().Get("Location"))
+	big := append([]byte("%PDF-1.4\n"), make([]byte, 3<<20)...)
+	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "bg-trampoline-2"}, "certificate", big); !strings.Contains(rec.Header().Get("Location"), "over+3+MB") {
+		t.Errorf("3 MB at most: %d %s", rec.Code, rec.Header().Get("Location"))
+	}
+	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "bg-trampoline-2"}, "certificate", make([]byte, 11<<20)); !strings.Contains(rec.Header().Get("Location"), "over+3+MB") {
+		t.Errorf("a far bigger upload is cut off: %d %s", rec.Code, rec.Header().Get("Location"))
 	}
 	// Another club's comp sec can't open it.
 	other := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"DCU"}}))
@@ -272,5 +278,34 @@ func TestCoachQualificationsPages(t *testing.T) {
 	redirected(t, h, remove, url.Values{})
 	if rec := do(t, h, http.MethodGet, cert[1], nil); rec.Code == http.StatusOK {
 		t.Error("removed with its certificate")
+	}
+}
+
+// A club's certificates have a total: once they reach it, the comp sec is
+// told plainly.
+func TestClubCertificatesTotal(t *testing.T) {
+	h := competitionServer(t)
+	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
+	largest := append([]byte("%PDF-1.4\n"), make([]byte, store.MaxCertificateBytes-9)...)
+	var base string
+	seen := map[string]bool{}
+	for i := range store.MaxClubCertificateBytes/store.MaxCertificateBytes + 1 {
+		if i%store.MaxQualifications == 0 { // a new coach for the next four
+			do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {fmt.Sprintf("Coach %d", i)}})
+			page := do(t, h, http.MethodGet, club+"/coaches", nil).Body.String()
+			for _, c := range regexp.MustCompile(regexp.QuoteMeta(club)+`/coaches/([^/"]+)/signs-off`).FindAllStringSubmatch(page, -1) {
+				if !seen[c[1]] {
+					seen[c[1]], base = true, club+"/coaches/"+c[1]
+				}
+			}
+		}
+		location := upload(t, h, base+"/qualifications", map[string]string{"qualification": "bg-trampoline-2"}, "certificate", largest).Header().Get("Location")
+		if i < store.MaxClubCertificateBytes/store.MaxCertificateBytes {
+			if !strings.Contains(location, "Added") {
+				t.Fatalf("certificate %d: %s", i+1, location)
+			}
+		} else if !strings.Contains(location, "60+MB+a+club+has") {
+			t.Errorf("the club's total: %s", location)
+		}
 	}
 }
