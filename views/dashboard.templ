@@ -199,7 +199,7 @@ templ CompetitionDashboard(d Dashboard) {
 							<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) } data-list-carry>Print this level's cards</a>
 						</div>
 						<div class="table-container">
-							<table class="table is-fullwidth is-narrow comp-table comp-entries">
+							<table class="table is-fullwidth is-narrow comp-table comp-entries comp-stack">
 								<thead>
 									<tr>
 										if d.Access.Remove {
@@ -225,9 +225,9 @@ templ CompetitionDashboard(d Dashboard) {
 									for _, r := range l.Rows {
 										<tr class={ templ.KV("has-problems", len(r.Problems) > 0 && !r.Withdrawn), templ.KV("is-withdrawn", r.Withdrawn) } { ListRow{Name: r.Gymnast}.Attrs()... }>
 											if d.Access.Remove {
-												<td><input type="checkbox" name="entry" value={ r.ID } form="remove-form" aria-label={ "Tick " + r.Gymnast }/></td>
+												<td class="comp-stack-tick"><input type="checkbox" name="entry" value={ r.ID } form="remove-form" aria-label={ "Tick " + r.Gymnast }/></td>
 											}
-											<td>
+											<td class="comp-stack-title">
 												<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID) }>{ r.Gymnast }</a>
 												if r.Person != "" {
 													<a class="is-size-7 ml-1" href={ templ.SafeURL(r.Person) } title="Everything this person is doing">person</a>
@@ -239,20 +239,20 @@ templ CompetitionDashboard(d Dashboard) {
 													<span class="tag is-warning is-light ml-1" title="Withdrawn since the club sent it; it goes when the club sends again">Withdrawn</span>
 												}
 											</td>
-											<td>
+											<td data-label="Club">
 												{ r.Club }
 												if r.Category != "" {
 													<span class="tag is-light ml-1">{ r.Category }</span>
 												}
 											</td>
-											<td>{ r.Exercises[0] }</td>
-											<td>{ r.Exercises[1] }</td>
-											<td>
+											<td data-label="1st exercise">{ r.Exercises[0] }</td>
+											<td data-label="2nd exercise">{ r.Exercises[1] }</td>
+											<td data-label="Requirements">
 												if r.Rules > 0 {
 													{ fmt.Sprintf("%d/%d %s", r.Met, r.Rules, markFor(r.Met == r.Rules)) }
 												}
 											</td>
-											<td class="comp-problem-cell">
+											<td class="comp-problem-cell" data-label="Problems">
 												if len(r.Problems) == 0 {
 													–
 												} else {
@@ -262,9 +262,9 @@ templ CompetitionDashboard(d Dashboard) {
 													}
 												}
 											</td>
-											<td>{ r.Sent }</td>
+											<td data-label="Sent">{ r.Sent }</td>
 											if d.Competition.Video != "" {
-												<td class={ templ.KV("has-text-danger", r.Video == "missing" || r.Video == "need more") }>
+												<td class={ templ.KV("has-text-danger", r.Video == "missing" || r.Video == "need more") } data-label="Video">
 													if r.Video == "" {
 														–
 													} else {
@@ -273,7 +273,7 @@ templ CompetitionDashboard(d Dashboard) {
 												</td>
 											}
 											if d.Competition.Signoff {
-												<td class={ templ.KV("has-text-success", r.Signoff.Signed), templ.KV("has-text-danger", !r.Signoff.Signed && !r.Withdrawn) } title={ r.Signoff.Note }>
+												<td class={ templ.KV("has-text-success", r.Signoff.Signed), templ.KV("has-text-danger", !r.Signoff.Signed && !r.Withdrawn) } title={ r.Signoff.Note } data-label="Coach">
 													if r.Signoff.Signed {
 														✓ { r.Signoff.By }
 													} else {
@@ -281,7 +281,7 @@ templ CompetitionDashboard(d Dashboard) {
 													}
 												</td>
 											}
-											<td title={ r.Note }>
+											<td title={ r.Note } data-label="Checked">
 												if r.Checked {
 													✓
 												} else {
