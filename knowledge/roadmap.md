@@ -465,7 +465,11 @@ December. Before it:
   comes back; and a way to correct a start or finish time afterwards,
   for when the paper sheet was used instead.
 - **A load test**: a script acting as 300 people against a test copy on
-  the server, to get real numbers before the dry run.
+  the server, to get real numbers before the dry run. The script is built
+  (2026-10-15, [load test](operations/deploy.md#load-test)): on a laptop
+  held to two cores, 400 people opening their pages within 2 seconds went
+  from 191 of 343 failing to none, with a median of 171 ms. Still to do: a
+  run on the server.
 
 For ISTO itself: a 4G/5G router for the organiser, marshals and chairs
 (and a cable for the venue screen); everyone's times by push and email
