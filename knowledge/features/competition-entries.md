@@ -1170,6 +1170,11 @@ for: Triple Back") and has a field for a link per exercise, with a reminder to
 make a YouTube video unlisted, not private. They can replace the level or
 routine at any time until the deadline.
 
+The entry form (`entryForm` in `views/competitions.templ`, used by members, the
+comp sec and individuals) has one Men or Women choice, shown only while the
+chosen level ranks them separately; changing level keeps what's ticked, and an
+existing entry opens with its own ticked.
+
 # One link, several roles (ADR 0010)
 
 Roadmap item 5, built 2026-10-14. A person's **records** are their club

@@ -139,12 +139,19 @@
             const levelSelect = form.querySelector('select[name="level"]');
             const routines = typeof RoutineStore === 'undefined' ? [] : RoutineStore.load().routines.filter((r) => r.skills.length > 0);
 
+            const category = form.querySelector('.comp-entry-category');
             const showLevel = () => {
+                let split = false;
                 for (const fieldset of form.querySelectorAll('.comp-entry-level')) {
                     const on = fieldset.dataset.level === levelSelect.value;
                     fieldset.hidden = !on;
                     fieldset.disabled = !on;
+                    if (on && fieldset.dataset.split === 'true') { split = true; }
                 }
+                // One Men or Women choice, kept as the level changes.
+                category.hidden = !split;
+                category.disabled = !split;
+                category.querySelector('[data-category-level]').textContent = levelSelect.value;
             };
 
             for (const box of form.querySelectorAll('.comp-entry-exercise')) {
