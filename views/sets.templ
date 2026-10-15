@@ -343,20 +343,6 @@ type SetEditorData struct {
 	Conflicts []string
 }
 
-// ruleTypeLabels are the editor's names for rule types.
-var ruleTypeLabels = map[string]string{
-	requirements.Separate:   "Special requirements",
-	requirements.Different:  "No repeated elements",
-	requirements.Includes:   "Includes one of…",
-	requirements.Count:      "Elements that must (or mustn't) appear",
-	requirements.Linked:     "Linked elements (one straight after another)",
-	requirements.Every:      "Every element must…",
-	requirements.Elements:   "Number of elements",
-	requirements.Difficulty: "Total difficulty",
-	requirements.Position:   "Element at a position",
-	requirements.Sequence:   "Set routine",
-}
-
 // SetEditor is the editor form for one requirement set. Every change posts the
 // form to /requirements/editor, which re-renders it; data-set-json carries the
 // set as it would be saved.
@@ -412,8 +398,8 @@ templ SetEditor(e SetEditorData) {
 			<div class="select is-small">
 				<select id="add-rule" name="add">
 					<option value="">Choose a kind of rule...</option>
-					for _, t := range editorRuleTypes("") {
-						<option value={ t }>{ ruleTypeLabels[t] }</option>
+					for _, k := range editorKinds("") {
+						<option value={ k.ID }>{ k.Label }</option>
 					}
 				</select>
 			</div>
@@ -444,6 +430,7 @@ templ SetEditor(e SetEditorData) {
 
 templ ruleCard(i int, rule requirements.Rule, total int) {
 	{{ p := fmt.Sprintf("r%d.", i) }}
+	{{ kind := requirements.KindOfRule(rule) }}
 	<div class="rule-card">
 		<div class="rule-card-head">
 			<p class="rule-card-title">{ fmt.Sprintf("%d. ", i+1) }{ describeSafely(rule) }</p>
@@ -453,14 +440,14 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 				@editorAction("Remove", fmt.Sprintf("delete:%d", i), false)
 			</div>
 		</div>
-		<input type="hidden" name={ p + "was" } value={ rule.Type }/>
+		<input type="hidden" name={ p + "was" } value={ kind }/>
 		<div class="rule-grid rule-kind">
 			<div class="field">
 				<label class="label is-small" for={ p + "type" }>Kind of rule</label>
 				<div class="select is-small is-fullwidth">
 					<select id={ p + "type" } name={ p + "type" }>
-						for _, t := range editorRuleTypes(rule.Type) {
-							<option value={ t } selected?={ t == rule.Type }>{ ruleTypeLabels[t] }</option>
+						for _, k := range editorKinds(kind) {
+							<option value={ k.ID } selected?={ k.ID == kind }>{ k.Label }</option>
 						}
 					</select>
 				</div>
@@ -472,20 +459,27 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 		</div>
 		switch rule.Type {
 			case requirements.Count:
-				<div class="rule-grid">
-					@numberField(p+"min", "At least", floatText(rule.Min), "1")
-					@numberField(p+"max", "At most (0 = not allowed)", floatText(rule.Max), "1")
-				</div>
-				@matcherFields(p+"m.", rule.Match, "Elements that count")
+				switch kind {
+					case "include":
+						@matcherFields(p+"m.", rule.Match, "The routine must include")
+					case "exclude":
+						@matcherFields(p+"m.", rule.Match, "The routine must not include")
+					default:
+						<div class="rule-grid">
+							@numberField(p+"min", "At least", floatText(rule.Min), "1")
+							@numberField(p+"max", "At most (0 = not allowed)", floatText(rule.Max), "1")
+						</div>
+						@matcherFields(p+"m.", rule.Match, "Skills that count")
+				}
 			case requirements.Linked:
 				<p class="matcher-hint mb-2">Counts pairs of these elements performed one straight after another, e.g. linked somersaults. Three in a row are two pairs.</p>
 				<div class="rule-grid">
 					@numberField(p+"min", "At least (pairs)", floatText(rule.Min), "1")
 					@numberField(p+"max", "At most (0 = none linked)", floatText(rule.Max), "1")
 				</div>
-				@matcherFields(p+"m.", rule.Match, "Elements that count")
+				@matcherFields(p+"m.", rule.Match, "Skills that count")
 			case requirements.Every:
-				@matcherFields(p+"m.", rule.Match, "Every element must be")
+				@matcherFields(p+"m.", rule.Match, "Every skill must be")
 			case requirements.Elements:
 				<div class="rule-grid">
 					@numberField(p+"min", "At least", floatText(rule.Min), "1")
@@ -501,7 +495,7 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 				<div class="rule-grid">
 					@numberField(p+"position", "Element number", strconv.Itoa(rule.Position), "1")
 				</div>
-				@matcherFields(p+"m.", rule.Match, "That element must be")
+				@matcherFields(p+"m.", rule.Match, "That skill must be")
 			case requirements.Sequence:
 				// A set routine is built in the Routine Builder, not written here.
 				<p class="matcher-hint mb-2">This is a set routine. Its elements are built in the Routine Builder: save these requirements, then use "Edit in the Routine Builder" under Your set routines.</p>
@@ -524,7 +518,7 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 					@editorAction("+ Add requirement", fmt.Sprintf("add-element:%d", i), false)
 				</div>
 			case requirements.Includes:
-				<p class="matcher-hint mb-2">Met if any one option appears in the routine. An option with several elements means they're performed one straight after another.</p>
+				<p class="matcher-hint mb-2">These skills one straight after another: each a skill you pick, or a kind of skill (a back somersault, then a barani). Add another option for "or instead".</p>
 				<input type="hidden" name={ p + "opts" } value={ strconv.Itoa(len(rule.Options)) }/>
 				for k, option := range rule.Options {
 					{{ op := fmt.Sprintf("%so%d.", p, k) }}
@@ -538,13 +532,13 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 							</div>
 						}
 						<div class="buttons are-small">
-							@editorAction("+ Then another element", fmt.Sprintf("add-step:%d:%d", i, k), false)
+							@editorAction("+ Then another skill", fmt.Sprintf("add-step:%d:%d", i, k), false)
 							@editorAction(fmt.Sprintf("Remove option %d", k+1), fmt.Sprintf("delete-option:%d:%d", i, k), len(rule.Options) == 1)
 						</div>
 					</fieldset>
 				}
 				<div class="buttons are-small">
-					@editorAction("+ Add option", fmt.Sprintf("add-option:%d", i), false)
+					@editorAction("+ Or instead", fmt.Sprintf("add-option:%d", i), false)
 				</div>
 			case requirements.Different:
 				<p class="matcher-hint">No element may be repeated. Shapes count as different elements only where the Code of Points says they do (§14).</p>
@@ -583,48 +577,97 @@ templ itemFields(prefix string, m *requirements.Matcher, title, placeholder stri
 	@matcherFields(prefix, m, title)
 }
 
-// matcherFields describes which elements a rule is about; empty fields don't restrict.
+// matcherFields describes which skills a rule is about: picked, a skill or a
+// kind of skill (requirements.Picks), or described field by field under
+// "Or describe it", open for a description of the coach's own. Empty fields
+// don't restrict. picked is the pick shown, so the form knows when a new one
+// is chosen.
 templ matcherFields(prefix string, m *requirements.Matcher, title string) {
 	{{
 		if m == nil {
 			m = &requirements.Matcher{}
 		}
+		picked := requirements.PickOf(*m)
+		own := picked == "" && requirements.DescribeMatcher(requirements.Matcher{Rotation: m.Rotation, Direction: m.Direction, Twist: m.Twist, Shapes: m.Shapes, Takeoff: m.Takeoff, Landing: m.Landing, Tariff: m.Tariff, FIG: m.FIG}) != "any element"
 	}}
 	<fieldset class="matcher">
 		<legend>{ title }: <span class="matcher-summary">{ requirements.DescribeMatcher(*m) }</span></legend>
-		<div class="rule-grid">
-			@numberField(prefix+"rotmin", "Somersault at least (quarters)", rangeMin(m.Rotation), "1")
-			@numberField(prefix+"rotmax", "Somersault at most (quarters)", rangeMax(m.Rotation), "1")
-			@numberField(prefix+"twmin", "Twist at least (half twists)", rangeMin(m.Twist), "1")
-			@numberField(prefix+"twmax", "Twist at most (half twists)", rangeMax(m.Twist), "1")
-			<div class="field">
-				<label class="label is-small" for={ prefix + "dir" }>Direction</label>
-				<div class="select is-small is-fullwidth">
-					<select id={ prefix + "dir" } name={ prefix + "dir" }>
-						<option value="" selected?={ m.Direction == "" }>Either</option>
-						<option value="forward" selected?={ m.Direction == "forward" }>Forward</option>
-						<option value="backward" selected?={ m.Direction == "backward" }>Backward</option>
-					</select>
-				</div>
+		<div class="field matcher-pick">
+			<label class="label is-small" for={ prefix + "pick" }>A skill, or a kind of skill</label>
+			<div class="select is-small is-fullwidth">
+				<select id={ prefix + "pick" } name={ prefix + "pick" }>
+					<option value="" selected?={ picked == "" }>
+						if own {
+							Your own description, below
+						} else {
+							Any skill
+						}
+					</option>
+					for _, g := range pickGroups() {
+						<optgroup label={ g.name }>
+							for _, p := range g.picks {
+								<option value={ p.ID } selected?={ p.ID == picked }>{ p.Label }</option>
+							}
+						</optgroup>
+					}
+				</select>
 			</div>
+			<input type="hidden" name={ prefix + "picked" } value={ picked }/>
 		</div>
-		@checkboxes(prefix+"shape", "Shape", []string{"tuck", "pike", "straight", "straddle"}, m.Shapes)
-		// Less common conditions, shown when one is set.
-		<details class="matcher-more" open?={ m.Tariff != nil || m.FIG != "" || len(m.Takeoff) > 0 || len(m.Landing) > 0 }>
-			<summary>More conditions: tariff, FIG, take-off and landing</summary>
+		<details class="matcher-describe" open?={ own }>
+			<summary>Or describe it: somersault, twist, direction, shape</summary>
 			<div class="rule-grid">
-				@numberField(prefix+"tarmin", "Tariff at least", tariffMin(m.Tariff), "0.1")
-				@numberField(prefix+"tarmax", "Tariff at most", tariffMax(m.Tariff), "0.1")
+				@numberField(prefix+"rotmin", "Somersault at least (quarters)", rangeMin(m.Rotation), "1")
+				@numberField(prefix+"rotmax", "Somersault at most (quarters)", rangeMax(m.Rotation), "1")
+				@numberField(prefix+"twmin", "Twist at least (half twists)", rangeMin(m.Twist), "1")
+				@numberField(prefix+"twmax", "Twist at most (half twists)", rangeMax(m.Twist), "1")
 				<div class="field">
-					<label class="label is-small" for={ prefix + "fig" }>FIG notation (exact)</label>
-					<input class="input is-small" id={ prefix + "fig" } name={ prefix + "fig" } value={ m.FIG } placeholder="e.g. 4 1 o"/>
+					<label class="label is-small" for={ prefix + "dir" }>Direction</label>
+					<div class="select is-small is-fullwidth">
+						<select id={ prefix + "dir" } name={ prefix + "dir" }>
+							<option value="" selected?={ m.Direction == "" }>Either</option>
+							<option value="forward" selected?={ m.Direction == "forward" }>Forward</option>
+							<option value="backward" selected?={ m.Direction == "backward" }>Backward</option>
+						</select>
+					</div>
 				</div>
 			</div>
-			@checkboxes(prefix+"takeoff", "Takes off from", []string{"feet", "front", "back", "seat"}, m.Takeoff)
-			@checkboxes(prefix+"landing", "Lands on", []string{"feet", "front", "back", "seat"}, m.Landing)
+			@checkboxes(prefix+"shape", "Shape", []string{"tuck", "pike", "straight", "straddle"}, m.Shapes)
+			// Less common conditions, shown when one is set.
+			<details class="matcher-more" open?={ m.Tariff != nil || m.FIG != "" || len(m.Takeoff) > 0 || len(m.Landing) > 0 }>
+				<summary>More conditions: tariff, FIG, take-off and landing</summary>
+				<div class="rule-grid">
+					@numberField(prefix+"tarmin", "Tariff at least", tariffMin(m.Tariff), "0.1")
+					@numberField(prefix+"tarmax", "Tariff at most", tariffMax(m.Tariff), "0.1")
+					<div class="field">
+						<label class="label is-small" for={ prefix + "fig" }>FIG notation (exact)</label>
+						<input class="input is-small" id={ prefix + "fig" } name={ prefix + "fig" } value={ m.FIG } placeholder="e.g. 4 1 o"/>
+					</div>
+				</div>
+				@checkboxes(prefix+"takeoff", "Takes off from", []string{"feet", "front", "back", "seat"}, m.Takeoff)
+				@checkboxes(prefix+"landing", "Lands on", []string{"feet", "front", "back", "seat"}, m.Landing)
+			</details>
+			<p class="matcher-hint">4 quarters = 1 somersault; 2 half twists = 1 twist. Leave a field empty to allow anything.</p>
 		</details>
-		<p class="matcher-hint">4 quarters = 1 somersault; 2 half twists = 1 twist. Leave a field empty to allow anything.</p>
 	</fieldset>
+}
+
+// pickGroup is a heading of picks in the editor, and its picks.
+type pickGroup struct {
+	name  string
+	picks []requirements.Pick
+}
+
+// pickGroups are the editor's picks under their headings, in order.
+func pickGroups() []pickGroup {
+	var out []pickGroup
+	for _, p := range requirements.Picks() {
+		if len(out) == 0 || out[len(out)-1].name != p.Group {
+			out = append(out, pickGroup{name: p.Group})
+		}
+		out[len(out)-1].picks = append(out[len(out)-1].picks, p)
+	}
+	return out
 }
 
 templ checkboxes(name, label string, options, chosen []string) {
@@ -639,12 +682,12 @@ templ checkboxes(name, label string, options, chosen []string) {
 	</div>
 }
 
-// stepTitle names element j of an includes option: the first, then the next.
+// stepTitle names skill j of a "this, then this" option: the first, then the next.
 func stepTitle(j int) string {
 	if j == 0 {
-		return "Element"
+		return "Skill"
 	}
-	return fmt.Sprintf("Then element %d", j+1)
+	return fmt.Sprintf("Then skill %d", j+1)
 }
 
 // describedRules is each rule in plain English, saved with the set for its listing.
@@ -670,14 +713,13 @@ func describeSafely(r requirements.Rule) string {
 	return requirements.Describe(r)
 }
 
-// editorRuleTypes are the kinds of rule the editor offers: every one but a set
-// routine, which is built in the Routine Builder, unless the rule already is one.
-func editorRuleTypes(current string) []string {
-	var out []string
-	for _, t := range requirements.RuleTypes {
-		if t != requirements.Sequence || current == requirements.Sequence {
-			out = append(out, t)
-		}
+// editorKinds are the kinds of rule the editor offers, by what they mean
+// (requirements.RuleKinds), and a set routine where the rule already is one:
+// set routines are built in the Routine Builder.
+func editorKinds(current string) []requirements.RuleKind {
+	out := slices.Clone(requirements.RuleKinds)
+	if current == requirements.Sequence {
+		out = append(out, requirements.SetRoutineKind)
 	}
 	return out
 }

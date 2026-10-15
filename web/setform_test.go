@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/html"
 
 	"tariffCalculator/requirements"
+	"tariffCalculator/skills"
 )
 
 // everyKindOfRule uses every rule type and every matcher field.
@@ -255,9 +256,17 @@ func TestSetEditorActions(t *testing.T) {
 	if len(retyped.Sequence) != 1 || retyped.Match != nil {
 		t.Errorf("every changed to a set routine: %+v", retyped)
 	}
+	retyped = edit(map[string]string{"r3.type": "include"}).Rules[3]
+	if retyped.Type != requirements.Count || retyped.Match == nil || retyped.Min == nil || *retyped.Min != 1 || retyped.Max != nil {
+		t.Errorf("elements changed to must include: %+v", retyped)
+	}
 	retyped = edit(map[string]string{"r3.type": "count"}).Rules[3]
-	if retyped.Match == nil || retyped.Min == nil || *retyped.Min != 1 {
-		t.Errorf("elements changed to count: %+v", retyped)
+	if retyped.Match == nil || retyped.Min == nil || *retyped.Min != 2 {
+		t.Errorf("elements changed to how many of a kind: %+v", retyped)
+	}
+	retyped = edit(map[string]string{"r3.type": "exclude"}).Rules[3]
+	if retyped.Max == nil || *retyped.Max != 0 || retyped.Min != nil {
+		t.Errorf("elements changed to must not include: %+v", retyped)
 	}
 }
 
@@ -336,5 +345,71 @@ func TestEditorLeavesSetRoutinesToTheBuilder(t *testing.T) {
 	body := postForm(t, "/requirements/editor", url.Values{"set": {`{"format":1,"name":"Club","rules":[{"type":"sequence","sequence":[{"label":"Tuck Jump","fig":"(o)"}]}]}`}}).Body.String()
 	if !strings.Contains(body, "Edit in the Routine Builder") || !strings.Contains(body, "seqjson") || strings.Contains(body, `name="r0.s0.rotmin"`) {
 		t.Error("a set routine's elements are shown read-only, not as matcher fields")
+	}
+}
+
+// A rule's skills can be picked, a skill or a kind of skill, rather than
+// described: picking fills the description in; changing a field after
+// makes it the coach's own, opened to edit; and "this, then this" takes a
+// kind at each step (a back somersault, then a barani).
+func TestSetEditorPicks(t *testing.T) {
+	post := func(values url.Values) (requirements.Set, *html.Node) {
+		t.Helper()
+		doc, err := html.Parse(postForm(t, "/requirements/editor", values).Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		set, problems := editorSet(t, doc)
+		if problems != "0" {
+			t.Fatalf("problems: %s", problems)
+		}
+		return set, doc
+	}
+	start := submitted(editorFor(t, `{"format":1,"name":"Picks","rules":[{"type":"count","min":1,"match":{}}]}`))
+	if start.Get("r0.type") != "include" || start.Get("r0.m.pick") != "" {
+		t.Fatalf("a count of at least one is Must include, any skill: %v", start)
+	}
+
+	start.Set("r0.m.pick", "kind:barani")
+	set, doc := post(start)
+	barani, _ := requirements.PickByID("kind:barani")
+	if got := requirements.Describe(set.Rules[0]); got != "At least 1 element: a barani (front with a half twist)" || requirements.PickOf(*set.Rules[0].Match) != barani.ID {
+		t.Errorf("picked a barani: %q", got)
+	}
+	again := submitted(doc)
+	if again.Get("r0.m.pick") != "kind:barani" || again.Get("r0.m.picked") != "kind:barani" || again.Get("r0.m.rotmin") != "4" {
+		t.Errorf("the pick is shown chosen, its fields filled in: %v", again)
+	}
+
+	// A field changed after: the coach's own, the pick left as it was shown.
+	again.Set("r0.m.twmax", "2")
+	set, doc = post(again)
+	if m := set.Rules[0].Match; requirements.PickOf(*m) != "" || m.Twist == nil || *m.Twist.Max != 2 {
+		t.Errorf("a field changed after picking: %+v", m)
+	}
+	for n := range doc.Descendants() {
+		if n.Type == html.ElementNode && n.Data == "details" && hasClass(n, "matcher-describe") && !hasAttr(n, "open") {
+			t.Error("a description of the coach's own is open to edit")
+		}
+	}
+
+	// This, then this: two kinds in a row.
+	then := submitted(editorFor(t, `{"format":1,"name":"Then","rules":[{"type":"includes","options":[[{},{}]]}]}`))
+	if then.Get("r0.type") != "then" {
+		t.Fatalf("includes is This, then this: %v", then)
+	}
+	then.Set("r0.o0.s0.pick", "kind:back")
+	then.Set("r0.o0.s1.pick", "kind:barani")
+	set, _ = post(then)
+	if got := requirements.Describe(set.Rules[0]); got != "Includes a back somersault, no twist, then a barani (front with a half twist)" {
+		t.Errorf("a back somersault then a barani: %q", got)
+	}
+	tuckBack := skills.TrampolineSkill{Rotation: 4, TwistDistribution: []int{0}, TakeoffPosition: skills.Feet, Shape: skills.Tuck, Backward: true}
+	baraniStraight := skills.TrampolineSkill{Rotation: 4, TwistDistribution: []int{1}, TakeoffPosition: skills.Feet, Shape: skills.Straight}
+	if res := requirements.Evaluate(set, skills.ValidateRoutine([]skills.TrampolineSkill{tuckBack, baraniStraight}))[0]; !res.Passed {
+		t.Errorf("a tuck back then a straight barani meets it: %+v", res)
+	}
+	if res := requirements.Evaluate(set, skills.ValidateRoutine([]skills.TrampolineSkill{baraniStraight, tuckBack}))[0]; res.Passed {
+		t.Error("the barani first doesn't")
 	}
 }
