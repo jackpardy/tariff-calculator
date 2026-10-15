@@ -283,6 +283,10 @@ has a starting value you can change.
    Planning tries to keep a coach's gymnasts off two areas at once; where it
    can't, **Coaches needed in two places** lists them, so you can move a
    flight, or the club can bring another coach.
+   Someone who is a member and also a coach, or also enters on their own
+   (one person, with one link), counts as one person: planning keeps their
+   turns apart, tries not to put their gymnasts on while they compete, and
+   the report says if they're coaching while competing, or short of rest.
    Planning also fills every panel from the people who've offered to judge
    and help (see **Officials**): never someone competing or on another panel
    at the time, and only in roles they may take. Each event's panel is
@@ -433,7 +437,10 @@ Your club page is in four sections, in a menu at the top: **Competitions**,
 lists each competition with every member's entry (one per discipline they
 enter): its event, problems and status (**Not sent**, **Sent**, **Changed since
 sent**, or withdrawn), plus any note from the organiser, and missing videos and
-coach sign-off. Changing a member's entry is part of Competitions too.
+coach sign-off. Its problems are the ones the organiser sees: the card's, a
+missing coach sign-off where the competition needs one, and a synchro pair at
+the wrong level for their individual ones. Changing a member's entry is part
+of Competitions too.
 
 - **Coaches for this competition** (where it approves coaches): tick the
   coaches who'll sign off its entries (your members' coaches start ticked)
@@ -565,7 +572,8 @@ The organiser sees a pair entered at another level flagged.
 
 Your comp sec adds you and sends you your **coach link**. Your page lists each
 competition with the entries you see: the members who chose you, those who
-haven't chosen a coach, or everyone if the club says so. If the club hasn't
+haven't chosen a coach, or everyone if the club says so, each with the
+problems the organiser sees (a missing sign-off among them). If the club hasn't
 set you to sign off routines, you see the entries but can't sign them off. A
 competition that approves coaches says if you're waiting for its organiser
 to approve you (or why they haven't): until they do, you can't sign off its

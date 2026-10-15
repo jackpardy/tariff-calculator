@@ -67,8 +67,12 @@ entering on their own is `i:<id>` for the person, kept on each entry (entries
 from before [one link a person](#one-link-several-roles-adr-0010) keep
 `i:<lower-cased name>`); a synchro partner nobody has
 linked is `p:<entry id>`; an official the organiser added is `o:<official
-id>`; a coach is `c:<club id>:<lower-cased name>` (`c::<name>` for one an
-individual named). The list is built from the live entries (not withdrawn, not
+id>`; a club's coach is `c:<coach id>`, the coach who signed the entry off
+or else the member's coach, so renaming them or a sign-off typed
+differently is still them (keys saved under the old `c:<club id>:<name>`
+moved at migration 34); a coach an individual named, who has no record, is
+`c::<lower-cased name>`. Keys are made and read only in
+`store/personkey.go`. The list is built from the live entries (not withdrawn, not
 on the waiting list), the officials and the coaches (those entries name, those a
 club sent and those an individual named), so a coach with no entries yet is
 there too. Keys of one person (a member who is a coach too, or who also
@@ -529,7 +533,15 @@ are then filled flight by flight.
   the second's (also when a flight is redrawn).
   A person is a member (by their member link) or, for individuals entering
   several disciplines, the person they entered as (ADR 0010); a confirmed
-  synchro partner is the same person as their own entries.
+  synchro partner is the same person as their own entries. Records joined
+  as one person ([one link, several roles](#one-link-several-roles-adr-0010))
+  are one person here too: a member who also enters on their own, or also
+  coaches, gets rest and clash warnings against themselves, and isn't put
+  on a panel while they compete under another of their keys. Planning
+  avoids someone coaching while they compete (as costly as a broken
+  prefer), and the report lists it ("Ann coaches in L2 while competing in
+  L1"). The keys saved in seats and rules stay as they were; only the
+  working out sees them as one (`samePeople` in `web/timetablepages.go`).
 - **The report:** for each day, when its flights end, when it finishes
   (blocked time such as awards included) against its end, and the time free
   after the last flight that isn't blocked off for the whole venue (room for
@@ -1086,7 +1098,11 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   the club's Members section. A coach sees their own members and every member without a
   coach; the club can let **every coach see every member**.
 - The coach's page lists each competition's entries they see, with problems
-  and sign-off, and how many are waiting. Opening one shows it checked, with
+  and sign-off, and how many are waiting. The coach and the comp sec count
+  an entry's problems as the organiser does (`competitions.EntryProblems`):
+  a synchro pair's levels, the card, and a missing sign-off, from the
+  competition's copy while it's what the member has, else from the member's
+  own. Opening one shows it checked, with
   **Sign off** and **Not yet**, and a note the member and comp sec see.
 - A changed entry needs signing off again. The sign-off goes to the
   competition with the entry when the club sends it.
@@ -1351,7 +1367,10 @@ what about: **when or where** they (or their
 gymnasts) compete, **officiating**, and **cards** (checked, a note from the
 organiser, removed or on hold). A member and an individual hear about
 themselves, a comp sec about every member of the club, a coach about the
-members they coach. It's per competition, and deleted with it.
+members they coach. It's per competition, and deleted with it. An
+individual's belongs to them, not the entry they asked on, so withdrawing
+that entry leaves them hearing about their others (migration 35 moved those
+made before).
 
 - An email is sent a link to confirm it first; nothing else is sent until
   it's tapped (a button, so link checkers don't). At most 10 confirmation
