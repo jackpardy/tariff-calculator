@@ -221,3 +221,35 @@ func TestHub(t *testing.T) {
 		}
 	}
 }
+
+// The comp sec's Competitions page searches its entries as the other lists
+// do, and each entry's Change link sits under the member's name, where a
+// narrow table can't cut it off.
+func TestClubEntriesSearch(t *testing.T) {
+	s := newTestServer(t, atTime(dayBefore))
+	admin := created(t, s.h, newCompetition())
+	club := aClub(t, s.h, admin, "UCD", true, "Tadhg Ryan", "Éabha Kelly")
+	doc := parsePage(t, do(t, s.h, http.MethodGet, club.page, nil).Body.String())
+	tools := byClass(doc, "comp-list-tools")
+	if len(tools) != 1 || !strings.HasPrefix(attrOf(tools[0], "data-list-tools"), "entries-") {
+		t.Fatalf("the entries have search tools: %d", len(tools))
+	}
+	list := byID(doc, attrOf(tools[0], "data-list-tools"))
+	if list == nil {
+		t.Fatal("the tools name the entries' table")
+	}
+	var names []string
+	for _, tr := range byTag(list, "tr") {
+		if attrOf(tr, "data-name") == "" {
+			continue
+		}
+		names = append(names, attrOf(tr, "data-name"))
+		cells := byTag(tr, "td")
+		if links := byTag(cells[0], "a"); len(links) != 1 || textOf(links[0]) != "Change" {
+			t.Errorf("Change under %s's name: %s", attrOf(tr, "data-name"), textOf(cells[0]))
+		}
+	}
+	if strings.Join(names, ", ") != "Éabha Kelly, Tadhg Ryan" {
+		t.Errorf("the rows, by name: %v", names)
+	}
+}

@@ -67,7 +67,8 @@ type ClubCompetition struct {
 	ID          string
 	Competition CompetitionSummary
 	Rows        []ClubEntryRow
-	ToSend      int // entries never sent, or changed since
+	Tools       ListTools // the search and filters of its entries
+	ToSend      int       // entries never sent, or changed since
 	Offers      []ClubOfferRow
 	// ApproveCoaches says the competition approves coaches; Coaches are the
 	// club's who sign off, to send for approval (ADR 0007 Decision 5).
@@ -107,6 +108,7 @@ type ClubEntryRow struct {
 	Signoff       SignoffView
 	Flight        string // where they compete, once the timetable is published
 	Late, LateAsk string // a late change: where it stands, and where to ask for one
+	List          ListRow
 }
 
 // ClubEntryEdit is the comp sec changing a member's entry on their behalf.
@@ -301,16 +303,23 @@ templ ClubAdmin(c ClubPage) {
 				if len(comp.Rows) == 0 {
 					<p class="has-text-grey is-size-7">No member has entered yet.</p>
 				} else {
-					<div class="table-container">
+					@listSection("Entries", len(comp.Rows), false) {
+						@listTools(comp.Tools)
 						<div class="table-container">
-							<table class="table is-fullwidth is-narrow comp-table">
+							<table class="table is-fullwidth is-narrow comp-table comp-club-entries" id={ comp.Tools.ID }>
 								<thead>
-									<tr><th>Member</th><th>Level</th><th>Problems</th><th>Status</th><th></th></tr>
+									<tr><th>Member</th><th>Level</th><th>Problems</th><th>Status</th></tr>
 								</thead>
 								<tbody>
 									for _, row := range comp.Rows {
-										<tr>
-											<td>{ row.Member }</td>
+										<tr { row.List.Attrs()... }>
+											<td>
+												{ row.Member }
+												if row.Edit != "" {
+													<br/>
+													<a class="is-size-7" href={ templ.SafeURL(row.Edit) }>Change</a>
+												}
+											</td>
 											<td>{ row.Level }</td>
 											<td class={ templ.KV("has-text-danger", row.Problems > 0) }>
 												if row.Problems == 0 {
@@ -346,17 +355,12 @@ templ ClubAdmin(c ClubPage) {
 													<span class="is-size-7 has-text-info-dark">Organiser: { row.Note }</span>
 												}
 											</td>
-											<td>
-												if row.Edit != "" {
-													<a href={ templ.SafeURL(row.Edit) }>Change</a>
-												}
-											</td>
 										</tr>
 									}
 								</tbody>
 							</table>
 						</div>
-					</div>
+					}
 				}
 				if comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
 					<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/send") } class="buttons">

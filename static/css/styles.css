@@ -600,6 +600,8 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .comp-table td, .comp-table th { white-space: nowrap; }
 .comp-table td:nth-child(6) { white-space: normal; min-width: 12rem; }
 .comp-table tr.has-problems td:nth-child(6) { color: #cc0f35; }
+/* A comp sec's entries: the status says a lot, so it wraps rather than pushing the table wider. */
+.comp-club-entries td:nth-child(4) { white-space: normal; min-width: 10rem; }
 /* The entries table has a tick box first: its problems are marked by class. */
 .comp-entries td:nth-child(6) { white-space: nowrap; min-width: 0; }
 .comp-entries tr.has-problems td:nth-child(6) { color: inherit; }
