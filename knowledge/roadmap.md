@@ -223,6 +223,86 @@ start from a gymnast's ticked skills. The TrampOnline entry export (clubs 1)
 waits on a sample of TrampOnline's entry file. The handover kit (5) is
 documents.
 
+# The requirements workflow (reviewed 2026-10-15, not planned yet)
+
+A review of writing requirements, from the routine builder and from club
+levels, which are built on the same editor. Nothing is changed yet.
+
+**What's clunky today.**
+
+- **From the routine builder:**
+  - **Three places for one idea.** Requirements are written on the
+    Requirements page. Set routines are made in the builder (More, Save as a
+    set routine). Levels are made on the Requirements page but used in the
+    builder's Levels mode. Three nouns and two pages stand between a coach
+    and checking a routine against their own competition.
+  - **Editing means leaving the routine.** Manage requirements opens the
+    Requirements page in a new tab: rules are written without the routine in
+    sight, then the coach comes back and picks them under Check against.
+  - **Skills are described by numbers, not picked.** "A back somersault" or
+    "back drop, then back to feet" means somersault and twist ranges in
+    quarters and half twists, then direction, shape, take-off and landing
+    (the last two under More conditions). The builder's skill picker and
+    search, which everyone already knows, isn't there.
+  - **Rule kinds are named after the engine,** not what people mean:
+    "Elements that must (or mustn't) appear", "Includes one of…", "Special
+    requirements". A link of two skills is an "Includes one of…" rule with
+    one option of two steps.
+  - **Check against is one long list,** about 50 on a phone, with your own
+    requirements at the bottom.
+  - **Requirements and levels stay in one browser,** easily lost.
+- **From club levels:**
+  - **A round trip and two copies.** Requirements are written on the
+    Requirements page, saved to the club, and opened back there to change.
+    The browser's copy drifts from the club's, and another phone can't
+    change a level without that round trip.
+  - **The save button depends on the browser.** Save to club levels only
+    shows where the coach's own link was opened in the same browser.
+  - **The rule kinds don't fit a club grade.** A grade is mostly a checklist
+    (these skills, this link, any three singles, a set routine), but the
+    editor offers rules about a whole routine, which are dropped when saved.
+  - **Club skills sit outside the requirements,** so they're listed after
+    them, not in the order a coach would give.
+  - **No one-tap start** from a competition level's set routine, another
+    club level, or a shared one.
+
+**Recommended, in order.**
+
+1. **Pick a skill in the rule editor** (helps both). Use the builder's
+   picker and search, and the club's named skills on a club page. Picking a
+   skill fills in a matcher pinned to that skill (notation, direction,
+   take-off); the numeric fields become "or describe a kind of skill". Only
+   existing pieces.
+2. **Name rule kinds by what they mean, and offer only those that fit.**
+   - In the builder: Must include, Must not include, At least / at most N of
+     a kind, Linked (this, then this), No repeats, Number of skills,
+     Difficulty between, Skill at position.
+   - For club levels only: Skill, Any of these skills, Link, N skills of a
+     kind, Set routine, Club skill.
+   - Both map onto today's rule types, so the stored format and the engine
+     are unchanged. Common starters ("10 skills, no repeats, difficulty
+     x–y") could be one tap.
+3. **Edit club levels on the club page, saved straight to the club.**
+   - The editor is a server-rendered form, so the coach's Levels page can
+     host it, with the club-level kinds from 2: one copy, any phone, and a
+     club skill as an item like any other, in order.
+   - Start from a competition level's set routine, another club level, or a
+     shared one (with sharing, step 6 above).
+   - Save to club levels on the Requirements page stays as a way in.
+4. **Write requirements without leaving the builder.** At least, after
+   saving, offer "Check the routine against these now". Better, edit them in
+   a panel under Check against, each rule's ✓ or ✗ for the routine on screen
+   as it's written.
+5. **A better Check against picker:** your own and recently used first,
+   then by organisation and level, with a search like the skill picker's.
+   The same picker would serve Start from a set….
+6. **Later:** keep requirements and levels with the person, as routines on a
+   club page are, rather than in one browser.
+
+1 and 2 give the most for the least: rule writing gets easier in both
+places with no change to the engine or storage. 3 removes the club round
+trip.
+
 # Decisions so far (2026-10-05)
 
 - Complement TrampOnline and TScore first, and keep replacement possible.
