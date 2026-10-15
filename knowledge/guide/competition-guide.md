@@ -777,7 +777,7 @@ confirm.
 4. If the competition needs a coach's sign-off, send your coach the **Sign-off
    link for your coach** on your entry (open until they've signed it off;
    **Show** after that). They open it, check it and sign off with their
-   name. If it approves coaches, first name your coach under **Your coach**,
+   name. If it approves coaches, first tap **Name your coach** under **Your coach**,
    with their qualification and a photo or PDF of its certificate (up to 3 MB), and tap
    **Send to the organiser**. Once the organiser approves them, the link
    works and they sign off as themselves; your page shows the organiser's

@@ -121,6 +121,7 @@ type EntryPage struct {
 type EntryCoachView struct {
 	Name, Qualification string // as named; "" before
 	Status              string // e.g. "Waiting for the organiser"
+	State               State  // Status's state
 	Approved            bool
 	Note                string // the organiser's
 	Action              string // where naming them posts
