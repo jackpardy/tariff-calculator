@@ -635,9 +635,9 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 		@pageMenu(e.Menu)
 		<p class="mb-3"><a href={ templ.SafeURL(e.Base) }>← Competitions</a></p>
 		<h1 class="title is-4">{ e.Member }</h1>
-		<p class="subtitle is-6">{ e.Competition.Name }</p>
 		if e.Card != nil {
-			@entryCard(*e.Card)
+			<p class="subtitle is-6">{ e.Competition.Name } · { e.Card.Level }</p>
+			@entryCardChecks(*e.Card)
 			// Collapsed under the card, so the entry is what shows; open when a save had problems.
 			<details class="box mt-4 comp-change" open?={ len(e.Form.Problems) > 0 }>
 				<summary><strong>Change the entry</strong></summary>
@@ -646,6 +646,7 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 				</div>
 			</details>
 		} else {
+			<p class="subtitle is-6">{ e.Competition.Name }</p>
 			<h2 class="title is-5 mt-5">Enter them</h2>
 			@entryForm(e.Form)
 		}

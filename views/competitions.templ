@@ -242,6 +242,7 @@ type EntryOption struct {
 
 // EntryPage is an individual's own entry, through their personal link.
 type EntryPage struct {
+	Name        string // the gymnast's own name, without a synchro partner's
 	Waiting     string // on a waiting list, and where
 	Late        string // a late change, where it stands
 	LateAsk     string // where to ask for a late change, once entries close
@@ -1157,7 +1158,7 @@ templ CompetitionEntryPage(p EntryPage) {
 			</div>
 		}
 		if p.Personal {
-			<div data-gymnast-link={ p.Link } data-gymnast-name={ p.Card.Gymnast }>
+			<div data-gymnast-link={ p.Link } data-gymnast-name={ p.Name }>
 				@linkBox("Your personal link (keep it to yourself)", p.Link, "")
 			</div>
 		} else if p.Link != "" {
@@ -1191,7 +1192,13 @@ templ CompetitionEntryPage(p EntryPage) {
 		}
 		@organiserNote(p.Note)
 		@videoReviewNote(p.VideoReview, p.VideoNote)
-		@entryCard(p.Card)
+		if len(p.Menu) > 0 {
+			// Their name heads the page already.
+			<p class="subtitle is-6">{ p.Card.Level }</p>
+			@entryCardChecks(p.Card)
+		} else {
+			@entryCard(p.Card)
+		}
 		<p class="has-text-grey is-size-7">Entered { p.Sent }.</p>
 		@pairEntries(p.Pairs)
 		if p.Competition.ChangesOpen {
