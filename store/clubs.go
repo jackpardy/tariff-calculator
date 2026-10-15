@@ -78,9 +78,16 @@ func (s *Store) ReplaceClubAdmin(ctx context.Context, id string) (string, error)
 }
 
 // DeleteClub deletes a club, its members and their entries. Entries it already
-// sent stay with each competition, under the competition's retention.
+// sent stay with each competition, under the competition's retention. The
+// shared links tied to its admin link, or added on its members' and coaches'
+// pages, go with it.
 func (s *Store) DeleteClub(ctx context.Context, id string) error {
-	return affected(s.db.ExecContext(ctx, `DELETE FROM clubs WHERE id = $1`, id))
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		if err := affected(tx.ExecContext(ctx, `DELETE FROM clubs WHERE id = $1`, id)); err != nil {
+			return err
+		}
+		return dropTies(ctx, tx)
+	})
 }
 
 // Member is one of a club's members.
@@ -471,6 +478,9 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 				AND NOT EXISTS (SELECT 1 FROM member_entries me JOIN members m ON m.id = me.member_id
 					WHERE m.club_id = $2 AND me.competition_id = $1
 					AND me.member_id = entries.member_id AND me.discipline = entries.discipline)`, competitionID, clubID); err != nil {
+				return err
+			}
+			if err := dropEntryRows(ctx, tx, competitionID); err != nil {
 				return err
 			}
 		}

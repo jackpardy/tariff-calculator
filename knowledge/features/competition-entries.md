@@ -1214,7 +1214,10 @@ each role has them.
   and can **Remove** it.
 - **Undo.** Undoing a personal role makes it a person of its own again; a
   shared link added on that record goes with it. Removing a member or coach
-  ends what came through them.
+  ends what came through them. `shared_ties` has no foreign keys, so
+  deleting a club or a competition, and the expiry of clubs, individuals and
+  competitions, delete the ties to or from them (`dropTies`); deleting an
+  entry deletes its check-in, late changes and concerns (`dropEntryRows`).
 - **A new link from the comp sec opens only the club's records** (ADR 0010
   Decision 8, 2026-10-15). The comp sec sees the links it makes, so **New
   link** for a coach makes the coach a person of their own; for a member,

@@ -160,9 +160,15 @@ func (s *Store) ReplaceCompetitionAdmin(ctx context.Context, id string) (string,
 	return admin, affected(s.db.ExecContext(ctx, `UPDATE competitions SET admin_hash = $1 WHERE id = $2`, hash(admin), id))
 }
 
-// DeleteCompetition deletes a competition and everything entered for it.
+// DeleteCompetition deletes a competition and everything entered for it,
+// with the ties to its admin and helper links on people's pages.
 func (s *Store) DeleteCompetition(ctx context.Context, id string) error {
-	return affected(s.db.ExecContext(ctx, `DELETE FROM competitions WHERE id = $1`, id))
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		if err := affected(tx.ExecContext(ctx, `DELETE FROM competitions WHERE id = $1`, id)); err != nil {
+			return err
+		}
+		return dropTies(ctx, tx)
+	})
 }
 
 // Entry is the competition's copy of an entry, as a club sent it or an
@@ -578,7 +584,10 @@ func (s *Store) WithdrawIndividualEntry(ctx context.Context, token string) error
 		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
-		return affected(tx.ExecContext(ctx, `DELETE FROM entries WHERE id = $1`, id))
+		if err := affected(tx.ExecContext(ctx, `DELETE FROM entries WHERE id = $1`, id)); err != nil {
+			return err
+		}
+		return dropEntryRows(ctx, tx, competitionID)
 	})
 }
 
@@ -603,9 +612,14 @@ func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err erro
 		if clubs, err = res.RowsAffected(); err != nil {
 			return err
 		}
-		_, err = tx.ExecContext(ctx, `DELETE FROM individuals WHERE created_at <= $1
-			AND NOT EXISTS (SELECT 1 FROM entries WHERE individual_id = individuals.id)`, unused)
-		return err
+		if _, err = tx.ExecContext(ctx, `DELETE FROM individuals WHERE created_at <= $1
+			AND NOT EXISTS (SELECT 1 FROM entries WHERE individual_id = individuals.id)`, unused); err != nil {
+			return err
+		}
+		if err := dropTies(ctx, tx); err != nil {
+			return err
+		}
+		return dropEntryRows(ctx, tx, "")
 	})
 	return comps, clubs, err
 }

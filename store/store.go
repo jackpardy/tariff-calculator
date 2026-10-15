@@ -712,6 +712,31 @@ func (s *Store) rebuildTx(ctx context.Context, fn func(*sql.Tx) error) error {
 	return tx.Commit()
 }
 
+// dropTies deletes the shared links tied to a member, coach or individual
+// who is gone, or to a club, competition or helper link that is gone:
+// shared_ties has no foreign keys, as its columns refer to several tables.
+func dropTies(ctx context.Context, tx *sql.Tx) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id NOT IN (
+			SELECT id FROM members UNION ALL SELECT id FROM coaches UNION ALL SELECT id FROM individuals)
+		OR (kind = 'club' AND target_id NOT IN (SELECT id FROM clubs))
+		OR (kind = 'organiser' AND target_id NOT IN (SELECT id FROM competitions))
+		OR (kind = 'helper' AND target_id NOT IN (SELECT id FROM competition_links))`)
+	return err
+}
+
+// dropEntryRows deletes the check-ins, late changes and concerns about
+// entries that are gone, in a competition ("" for every one): they keep the
+// entry's id without a foreign key. A concern about no entry stays.
+func dropEntryRows(ctx context.Context, tx *sql.Tx, competitionID string) error {
+	for _, table := range []string{"checkins", "late_requests", "concerns"} {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM `+table+` WHERE ($1 = '' OR competition_id = $1) AND entry_id <> ''
+			AND entry_id NOT IN (SELECT id FROM entries WHERE competition_id = `+table+`.competition_id)`, competitionID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // tx runs fn in a transaction, committing if it returns nil.
 func (s *Store) tx(ctx context.Context, fn func(*sql.Tx) error) error {
 	tx, err := s.db.BeginTx(ctx, nil)
