@@ -577,6 +577,28 @@ are then filled flight by flight.
   so: **Publish changes** copies the draft over, **Discard changes** copies
   the published one back, **Unpublish** takes it down. Timetables published
   before this became their own published copy (migration 14).
+- **Changes at once** (built 2026-10-15): every change to the draft (setup,
+  plan, a move, a redraw, a seat, a rota rule, a kept "what if", an accepted
+  late change) reads, changes and saves it in one transaction
+  (`store.UpdateTimetable`), so the organiser, a timetable helper and an
+  accepted late change build on each other rather than one quietly undoing
+  another. The timetable page's forms, and the delay and leave pages'
+  **Keep** buttons, also post the draft's version (`version`:
+  `Schedule.Version`, a hash of the draft as the page showed it). Forms name
+  flights, gymnasts' flights, seats, days, areas, blocks and rules by their
+  place in the draft, so one from a page opened before someone else changed
+  the draft is refused with "The timetable changed since you opened this
+  page; nothing was changed.", as is **Publish changes** (it would publish
+  what nobody has looked at). A form without a version (not from these
+  pages) isn't checked.
+- **Flight IDs** (built 2026-10-15): each flight has an ID of its own
+  (`ScheduledFlight.ID`, saved as `id`), given when it's planned (from the
+  plan's seed) and kept by every change: moving its event, Earlier,
+  redrawing, renumbering, a delay merging another into it. A flight made any
+  other way gets a new one when the draft is saved (`Schedule.Identify`).
+  Planning again makes new flights, with new IDs. What happens to a flight on
+  the day is kept by its ID (`competitions.FlightKey`), so it follows the
+  flight when the organiser moves or renumbers it and publishes again.
 
 ## What if there's a delay
 
@@ -643,12 +665,16 @@ finished, and who tapped it. **Started** (a flight not yet started),
 the start: it posts `undo-finish` or `undo-start`, so the same tap sent twice
 takes back only the one, and the repeat quietly changes nothing) post to
 `/day/flight`, which stores the time now (`flight_times`,
-one row per published flight, keyed `day|area|level|category|number`; see
-`competitions.FlightKey`). A tap that changes nothing (someone else got there
-first) is ignored and says so. It always works from the **published**
-timetable, so planning again or moving flights in the draft doesn't lose
-the times; republishing with a flight's day, area or number changed does
-orphan its row. Organiser, "everything", chair-of-judges and timetable links
+one row per published flight, keyed by the flight's ID; see
+`competitions.FlightKey`, and `PlaceKey` for a flight without one). A tap
+that changes nothing (someone else got there first) is ignored and says so.
+It always works from the **published** timetable, so planning again or
+moving flights in the draft doesn't lose the times, and as a flight keeps its
+ID, neither does republishing it moved to another area or day, or
+renumbered: its start, its panel's check-ins and who's on go with it.
+Migration 34 gave timetables saved before then IDs (a draft flight taking
+its published flight's, by place or else by event and gymnasts) and moved
+the day's rows from each flight's place to its ID. Organiser, "everything", chair-of-judges and timetable links
 can use it, and each tap is in the history ("Marked a flight started: BUCS
 L3 · flight 1 of 2 (Panel 1)").
 
@@ -702,7 +728,7 @@ input) and the server's redirect brings the person back to the flight. So a
 form can reach the server twice (the first request went through, but its
 answer was lost), and every day tap is safe to repeat: check-in, panel and
 Started/Finished set a state, Undo says which it takes back, Next gymnast and
-Back post the position shown, and Notify posts a one-off id. Which
+Back post the gymnast and routine shown, and Notify posts a one-off id. Which
 lists are open is also kept in `sessionStorage` (per path and `?day`), so a
 reload keeps them. The service worker only handles GET navigations, so these
 posts go straight to the network.
@@ -711,20 +737,27 @@ posts go straight to the network.
 started and not finished, the box shows who's on now in large type (name,
 club for a club's gymnast, and the routine), with a big **Next gymnast** and a
 small **Back**. Before the first tap it shows who's first up; the marshal taps
-Next gymnast as each gymnast starts. The position runs from 0 (the first
-gymnast's 1st routine) to 2n-1 (the last gymnast's 2nd) for a flight of n in
-the published running order: everyone's 1st routine in order, then everyone's
-2nd in the same order, synchro pairs and tumbling and DMT passes alike. It is
-stored per flight key in `up_now` (migration 31, `store/upnow.go`: `UpNext`,
-`UpBack`, `ClearUp`, `UpNow`), with who tapped and when. The form posts the
-position it showed (`at`, empty before the first tap), and `UpNext` and `UpBack`
-move only from there, read and written in one transaction: the same tap sent
-twice, or a tap from a page out of date, is `ErrUpMoved` and quietly changes
-nothing (the page comes back showing where the flight is).
+Next gymnast as each gymnast starts. The order is the published running
+order's: everyone's 1st routine in order, then everyone's 2nd in the same
+order, synchro pairs and tumbling and DMT passes alike. The rules (the order,
+who's skipped, what's next and what's before) are `competitions.UpOrder`
+(`competitions/upnow.go`); where the marshal has got is a
+`competitions.Routine`, the gymnast on (by entry) and which routine (round 1
+or 2), not a place in the order, so adding someone to the flight or taking
+someone out while it runs leaves the marshal on the same gymnast. It is
+stored per flight (by its ID) in `up_now` (migrations 32 and 34,
+`store/upnow.go`: `MoveUp`, `ClearUp`, `UpNow`), with who tapped and when.
+The form posts the gymnast and routine it showed (`entry` and `round`, empty
+before the first tap), and `MoveUp` moves only from there, read and written
+in one transaction: the same tap sent twice, or a tap from a page out of
+date, is `ErrUpMoved` and quietly changes nothing (the page comes back
+showing where the flight is). Should the gymnast on be moved out of the
+flight, the page shows nobody on, and Next gymnast goes to the first in
+their round who competes.
 Scratched gymnasts, and entries no longer in the competition, are skipped both
-ways (`upOrderOf` in `web/screenup.go`); one scratched after being reached is
-shown struck through until the next tap. The routine is named from the level
-(`routineNames`): "Set" for an exercise whose options are all set routines and
+ways (`upOrderOf` in `web/screenup.go` says who competes); one scratched after
+being reached is shown struck through until the next tap. The routine is named
+from the level (`competitions.RoutineNames`): "Set" for an exercise whose options are all set routines and
 "Voluntary" for one whose options are all requirements, when the two
 exercises differ; otherwise "1st routine" and "2nd routine" (two voluntaries,
 mixed options, synchro, or a level that can't be read), and "1st pass" and
@@ -733,7 +766,7 @@ nothing and says "That was the last routine in … Tap Finished once it's
 done."; the box also says it's the flight's last routine. It never finishes
 the flight. Back at the first gymnast (or before the first tap), and either tap
 on a flight that isn't running, are ignored with a notice. **Undo** that takes
-back the start clears the position (`ClearUp`), so starting again starts from
+back the start clears where the marshal had got (`ClearUp`), so starting again starts from
 the first; undoing a finish keeps it. Taps post to `/day/up` (organiser,
 "everything", chair and timetable links), update in place like the other day
 buttons, and aren't put in the history (one per routine would bury the rest).
