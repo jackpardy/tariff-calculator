@@ -81,7 +81,7 @@ func routesWithPages(pages *competitionPages) http.Handler {
 // since the response may already be partly written.
 func render(w http.ResponseWriter, r *http.Request, c templ.Component) {
 	if err := c.Render(r.Context(), w); err != nil {
-		log.Printf("Error rendering %s: %v", r.URL.Path, err)
+		log.Printf("Error rendering %s: %v", r.Pattern, err) // the pattern: a path can hold a secret link
 	}
 }
 
