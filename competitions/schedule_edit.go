@@ -1,6 +1,9 @@
 package competitions
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/rand/v2"
 	"slices"
@@ -9,6 +12,18 @@ import (
 // Manual changes to a schedule: the organiser moves gymnasts and flights; times
 // are worked out again, and anything the edits break is flagged rather than
 // refused.
+
+// Version identifies the timetable as it is: any change to it changes its
+// version, so a form can say which timetable it was made from, and one made
+// from another is refused rather than moving the wrong flight or seat.
+func (s Schedule) Version() string {
+	b, err := json.Marshal(s)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:8])
+}
 
 // Find is the flight an entry is in, by index, if it's in one.
 func (s Schedule) Find(entryID string) (int, bool) {
@@ -99,7 +114,7 @@ func (s *Schedule) Earlier(flight int) bool {
 func (s Schedule) runOf(flight int) []int {
 	var out []int
 	for i, f := range s.Flights {
-		if f.Event() == s.Flights[flight].Event() {
+		if f.Group() == s.Flights[flight].Group() {
 			out = append(out, i)
 		}
 	}
@@ -159,7 +174,7 @@ func (s *Schedule) Retime() {
 func (s *Schedule) number() {
 	byEvent := map[string][]int{}
 	for i, f := range s.Flights {
-		byEvent[f.Event()] = append(byEvent[f.Event()], i)
+		byEvent[f.Group()] = append(byEvent[f.Group()], i)
 	}
 	for _, idx := range byEvent {
 		slices.SortStableFunc(idx, func(a, b int) int {
@@ -223,10 +238,10 @@ func (s Schedule) runProblems() []string {
 	var out []string
 	seen := map[string]bool{}
 	for i, f := range s.Flights {
-		if seen[f.Event()] {
+		if seen[f.Group()] {
 			continue
 		}
-		seen[f.Event()] = true
+		seen[f.Group()] = true
 		run := s.runOf(i)
 		split, across := false, ""
 		for k := 1; k < len(run); k++ {
@@ -246,9 +261,9 @@ func (s Schedule) runProblems() []string {
 		}
 		switch {
 		case split:
-			out = append(out, fmt.Sprintf("%s's flights aren't back to back on one area, so one panel can't judge them all", f.Event()))
+			out = append(out, fmt.Sprintf("%s's flights aren't back to back on one area, so one panel can't judge them all", f.Group()))
 		case across != "" && !s.Setup.AcrossBreaks:
-			out = append(out, fmt.Sprintf("%s runs either side of %s", f.Event(), across))
+			out = append(out, fmt.Sprintf("%s runs either side of %s", f.Group(), across))
 		}
 	}
 	return out

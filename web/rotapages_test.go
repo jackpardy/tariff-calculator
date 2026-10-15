@@ -145,7 +145,7 @@ func TestBlockOfficials(t *testing.T) {
 
 func TestDutiesByEvent(t *testing.T) {
 	flight := func(n, start int) competitions.ScheduledFlight {
-		return competitions.ScheduledFlight{Flight: competitions.Flight{Level: "BUCS L7", Category: "Men", Number: n, Of: 3}, Area: "Panel 2", Start: start, End: start + 60,
+		return competitions.ScheduledFlight{Flight: competitions.Flight{Event: "BUCS L7", Category: "Men", Number: n, Of: 3}, Area: "Panel 2", Start: start, End: start + 60,
 			Officials: []competitions.Duty{{Role: competitions.RoleExecution, Person: "m:1"}}}
 	}
 	s := competitions.Schedule{Setup: competitions.Setup{Days: []competitions.Day{{Name: "Friday"}}}, Flights: []competitions.ScheduledFlight{flight(1, 570), flight(2, 630), flight(3, 690)}}

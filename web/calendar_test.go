@@ -203,7 +203,7 @@ func TestCalendarEvents(t *testing.T) {
 	s := competitions.Schedule{
 		Setup: competitions.Setup{Days: []competitions.Day{{Name: "Saturday"}, {Name: "Sunday"}}},
 		Flights: []competitions.ScheduledFlight{
-			{Flight: competitions.Flight{Level: "BUCS L4", Number: 2, Of: 3, Entries: []string{"e1"}}, Day: 1, Area: "Panel 2", Start: 9*60 + 30, End: 10*60 + 40,
+			{Flight: competitions.Flight{Event: "BUCS L4", Number: 2, Of: 3, Entries: []string{"e1"}}, Day: 1, Area: "Panel 2", Start: 9*60 + 30, End: 10*60 + 40,
 				Officials: []competitions.Duty{{Role: competitions.RoleExecution, Person: "m:ann"}, {Role: competitions.RoleChair}}},
 		},
 	}

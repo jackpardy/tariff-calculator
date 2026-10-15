@@ -12,7 +12,7 @@ func TestLatenessOnClockChangeDays(t *testing.T) {
 	if err != nil {
 		t.Skip("no time zone data")
 	}
-	f := ScheduledFlight{Flight: Flight{Level: "L", Number: 1, Of: 1}, Area: "Panel 1", Start: 9 * 60, End: 10 * 60}
+	f := ScheduledFlight{Flight: Flight{Event: "L", Number: 1, Of: 1}, Area: "Panel 1", Start: 9 * 60, End: 10 * 60}
 	s := Schedule{Flights: []ScheduledFlight{f}}
 	for _, day := range []time.Time{
 		time.Date(2026, time.October, 25, 0, 0, 0, 0, dublin), // the clocks go back

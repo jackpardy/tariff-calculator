@@ -9,7 +9,7 @@ func TestLateness(t *testing.T) {
 	loc := time.FixedZone("test", 3600)
 	first := time.Date(2030, 3, 16, 0, 0, 0, 0, time.UTC)
 	flight := func(level, area string, day, start, end int) ScheduledFlight {
-		return ScheduledFlight{Flight: Flight{Level: level, Number: 1, Of: 1}, Area: area, Day: day, Start: start, End: end}
+		return ScheduledFlight{Flight: Flight{Event: level, Number: 1, Of: 1}, Area: area, Day: day, Start: start, End: end}
 	}
 	s := Schedule{Flights: []ScheduledFlight{
 		flight("A", "P1", 0, 9*60, 10*60),
@@ -50,7 +50,7 @@ func TestLateness(t *testing.T) {
 // A time recorded on another date than the flight's day doesn't count.
 func TestLatenessOtherDay(t *testing.T) {
 	first := time.Date(2030, 3, 16, 0, 0, 0, 0, time.UTC)
-	f := ScheduledFlight{Flight: Flight{Level: "BUCS L3", Number: 1, Of: 1}, Area: "P1", Start: 9 * 60, End: 10 * 60}
+	f := ScheduledFlight{Flight: Flight{Event: "BUCS L3", Number: 1, Of: 1}, Area: "P1", Start: 9 * 60, End: 10 * 60}
 	s := Schedule{Setup: Setup{Days: []Day{{Name: "Sat"}}}, Flights: []ScheduledFlight{f}}
 	early := map[string]Actual{FlightKey(f): {Started: time.Date(2026, 10, 9, 9, 0, 0, 0, time.UTC)}}
 	if got := Lateness(s, 0, first, time.UTC, early); len(got) != 0 {

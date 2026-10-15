@@ -13,29 +13,6 @@ import (
 	"tariffCalculator/views"
 )
 
-// A level's exercises are named where they're a set routine and a voluntary;
-// otherwise they're numbered.
-func TestRoutineNames(t *testing.T) {
-	c := competitions.Competition{
-		Levels:   []competitions.Level{{Ref: "builtin-level:isto-novice"}, {Ref: "builtin-level:bucs-l3"}, {Ref: "builtin-level:fig-ag3"}},
-		Tumbling: []string{"Novice"},
-	}
-	for _, tc := range []struct {
-		entry competitions.Entry
-		want  [2]string
-	}{
-		{competitions.Entry{Level: "ISTO Novice"}, [2]string{"Set", "Voluntary"}},
-		{competitions.Entry{Level: "BUCS L3"}, [2]string{"Set", "Voluntary"}},
-		{competitions.Entry{Level: "FIG AG3 (17–21)"}, [2]string{"1st routine", "2nd routine"}}, // two voluntaries
-		{competitions.Entry{Level: "Not a level"}, [2]string{"1st routine", "2nd routine"}},
-		{competitions.Entry{Discipline: competitions.Tumbling, Level: "Novice"}, [2]string{"1st pass", "2nd pass"}},
-	} {
-		if got := routineNames(c, tc.entry); got != tc.want {
-			t.Errorf("%s %s: %v, want %v", tc.entry.Discipline, tc.entry.Level, got, tc.want)
-		}
-	}
-}
-
 // The screen names who's on and the next two, with their club and routine,
 // skipping the scratched and crossing into the 2nd round.
 func TestScreenUp(t *testing.T) {
@@ -56,16 +33,19 @@ func TestScreenUp(t *testing.T) {
 		}
 		return out
 	}
-	for pos, want := range map[int]string{
-		0: "Áine Ní Bhriain (UCD, Set) / Cal (, Set) / Áine Ní Bhriain (UCD, Voluntary)",
-		2: "Cal (, Set) / Áine Ní Bhriain (UCD, Voluntary) / Cal (, Voluntary)",
-		6: "Cal (, Voluntary)",
-		1: "nothing", // scratched since
-		3: "nothing", // no longer entered
-		8: "nothing", // past the end
+	r := func(entry string, round int) competitions.Routine {
+		return competitions.Routine{Entry: entry, Round: round}
+	}
+	for at, want := range map[competitions.Routine]string{
+		r("a", 1):    "Áine Ní Bhriain (UCD, Set) / Cal (, Set) / Áine Ní Bhriain (UCD, Voluntary)",
+		r("c", 1):    "Cal (, Set) / Áine Ní Bhriain (UCD, Voluntary) / Cal (, Voluntary)",
+		r("c", 2):    "Cal (, Voluntary)",
+		r("b", 1):    "nothing", // scratched since
+		r("gone", 2): "nothing", // no longer entered
+		r("x", 1):    "nothing", // moved out of the flight
 	} {
-		if got := show(screenUp(c, f, pos, byID, scratched)); got != want {
-			t.Errorf("at %d: %s, want %s", pos, got, want)
+		if got := show(screenUp(c, f, at, byID, scratched)); got != want {
+			t.Errorf("at %v: %s, want %s", at, got, want)
 		}
 	}
 }
@@ -132,11 +112,14 @@ func TestWhoIsUpNow(t *testing.T) {
 	// tapForm is the Next gymnast form as the day page shows it now.
 	tapForm := func(what string) url.Values {
 		t.Helper()
-		at := ""
-		if m := regexp.MustCompile(`name="at" value="(\d*)"`).FindStringSubmatch(get()); m != nil {
-			at = m[1]
+		form := url.Values{"flight": {flight}, "what": {what}, "day": {"0"}}
+		up := regexp.MustCompile(`(?s)<form[^>]*/day/up"[^>]*>.*?</form>`).FindString(get())
+		for _, field := range []string{"entry", "round"} {
+			if m := regexp.MustCompile(`name="` + field + `" value="([^"]*)"`).FindStringSubmatch(up); m != nil {
+				form.Set(field, unescape(m[1]))
+			}
 		}
-		return url.Values{"flight": {flight}, "what": {what}, "day": {"0"}, "at": {at}}
+		return form
 	}
 	tap := func(link, what string) string {
 		t.Helper()

@@ -336,6 +336,10 @@ func (s Setup) Check(events []string) error {
 
 // ScheduledFlight is a flight placed on an area at a time.
 type ScheduledFlight struct {
+	// ID is the flight's own, given when it's planned (Identify) and kept
+	// through every change: moving, redrawing and renumbering it. What
+	// happens to it on the day is kept by it (FlightKey).
+	ID string `json:"id,omitempty"`
 	Flight
 	Discipline string `json:"discipline,omitempty"`
 	Day        int    `json:"day"`
@@ -453,7 +457,7 @@ func PlanStaffed(entries []SchedEntry, eventOrder []string, setup Setup, staff *
 	}
 	tied := func(i int) bool {
 		return slices.ContainsFunc(setup.Rules, func(r Rule) bool {
-			return r.Must && r.Event == runs[i][0].Level && (r.Kind == RuleDay || r.Kind == RuleArea)
+			return r.Must && r.Event == runs[i][0].Event && (r.Kind == RuleDay || r.Kind == RuleArea)
 		})
 	}
 	slices.SortStableFunc(longest, func(a, b int) int { return setup.runLength(runs[b]) - setup.runLength(runs[a]) })
@@ -519,6 +523,8 @@ func PlanStaffed(entries []SchedEntry, eventOrder []string, setup Setup, staff *
 	sortFlights(out.Flights)
 	out.number()
 	out.OrderForRest(people)
+	ids := rand.New(rand.NewPCG(seed, 13)) // from the seed, so a plan is the same each time
+	out.identify(ids.Uint64)
 	return out
 }
 
@@ -529,10 +535,10 @@ func runsOf(flights []ScheduledFlight) [][]ScheduledFlight {
 	var out [][]ScheduledFlight
 	at := map[string]int{}
 	for _, f := range flights {
-		i, ok := at[f.Event()]
+		i, ok := at[f.Group()]
 		if !ok {
 			i = len(out)
-			at[f.Event()] = i
+			at[f.Group()] = i
 			out = append(out, nil)
 		}
 		out[i] = append(out[i], f)
@@ -561,7 +567,7 @@ func beforeOrder(order []int, runs [][]ScheduledFlight, rules []Rule) []int {
 			}
 		}
 	}
-	slices.SortStableFunc(order, func(a, b int) int { return rank[runs[a][0].Level] - rank[runs[b][0].Level] })
+	slices.SortStableFunc(order, func(a, b int) int { return rank[runs[a][0].Event] - rank[runs[b][0].Event] })
 	return order
 }
 
@@ -647,7 +653,7 @@ func (p *planner) placeRun(run []ScheduledFlight, people, coaches map[string][]s
 		}
 		lengths[k] = p.setup.duration(f)
 	}
-	event := run[0].Level
+	event := run[0].Event
 	bestCost := math.Inf(1)
 	var best []ScheduledFlight
 	for day := range p.days {
@@ -684,7 +690,7 @@ func (p *planner) placeRun(run []ScheduledFlight, people, coaches map[string][]s
 	}
 	for k, f := range best {
 		p.placed = append(p.placed, f)
-		p.byEvent[f.Level] = append(p.byEvent[f.Level], f)
+		p.byEvent[f.Event] = append(p.byEvent[f.Event], f)
 		iv := interval{f.Day, f.Start, f.End}
 		p.busy[f.Area] = append(p.busy[f.Area], iv)
 		for person := range whos[k] {
@@ -724,7 +730,7 @@ func (p *planner) earliestRun(run []ScheduledFlight, whos []map[string]bool, len
 	if p.setup.RestMust {
 		rest = p.setup.Rest
 	}
-	notBefore, notAfter, apart, ok := p.orderLimits(run[0].Level, day)
+	notBefore, notAfter, apart, ok := p.orderLimits(run[0].Event, day)
 	if !ok {
 		return nil, false
 	}
@@ -868,7 +874,7 @@ func (p *planner) clear(iv interval, area string, who map[string]bool, rest int,
 // (later days much worse), and each broken prefer costs.
 func (p *planner) score(f ScheduledFlight, who, coached map[string]bool) float64 {
 	cost := float64(f.Day*24*60 + f.End)
-	if p.broken(f.Level, f.Area, f.Day, false) {
+	if p.broken(f.Event, f.Area, f.Day, false) {
 		cost += 120
 	}
 	// Rest, as a prefer: each minute short costs.
@@ -916,21 +922,21 @@ func (p *planner) score(f ScheduledFlight, who, coached map[string]bool) float64
 			continue
 		}
 		switch {
-		case r.Kind == RuleBefore && r.Event2 == f.Level:
+		case r.Kind == RuleBefore && r.Event2 == f.Event:
 			for _, other := range p.byEvent[r.Event] {
 				if other.Day > f.Day || (other.Day == f.Day && other.End > f.Start) {
 					cost += 120
 				}
 			}
-		case r.Kind == RuleBefore && r.Event == f.Level:
+		case r.Kind == RuleBefore && r.Event == f.Event:
 			for _, other := range p.byEvent[r.Event2] {
 				if f.Day > other.Day || (f.Day == other.Day && f.End > other.Start) {
 					cost += 120
 				}
 			}
-		case r.Kind == RuleApart && (r.Event == f.Level || r.Event2 == f.Level):
+		case r.Kind == RuleApart && (r.Event == f.Event || r.Event2 == f.Event):
 			other := r.Event2
-			if other == f.Level {
+			if other == f.Event {
 				other = r.Event
 			}
 			for _, o := range p.byEvent[other] {
@@ -947,7 +953,7 @@ func (p *planner) score(f ScheduledFlight, who, coached map[string]bool) float64
 // busy whoever competes then, and also the people in who.
 func (p *planner) short(f ScheduledFlight, iv interval, who map[string]bool) int {
 	free := 0
-	for _, key := range p.staff.Judges[f.Level] {
+	for _, key := range p.staff.Judges[f.Event] {
 		if who[key] {
 			continue
 		}

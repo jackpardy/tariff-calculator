@@ -116,7 +116,7 @@ type calendarEvent struct {
 func calendarSlots(s competitions.Schedule) []calendarSlot {
 	var out []calendarSlot
 	for _, f := range s.Flights {
-		id := fmt.Sprintf("flight|%s|%s|%s|%d", f.Discipline, f.Level, f.Category, f.Number)
+		id := fmt.Sprintf("flight|%s|%s|%s|%d", f.Discipline, f.Event, f.Category, f.Number)
 		out = append(out, calendarSlot{id: id, title: f.Name(), flight: true, day: f.Day, start: f.Start, end: f.End, location: f.Area, entries: f.Entries, officials: f.Officials})
 	}
 	for _, b := range s.Blocks {

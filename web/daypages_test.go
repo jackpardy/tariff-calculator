@@ -220,7 +220,7 @@ func TestLateNotes(t *testing.T) {
 	// 10:50, 10 minutes early. Panel 3's started at 11:00, 2 minutes late:
 	// not enough to say. Panel 4 has nothing recorded.
 	at := func(area, level string, start, end int) competitions.ScheduledFlight {
-		return competitions.ScheduledFlight{Flight: competitions.Flight{Level: level, Number: 1, Of: 1}, Area: area, Start: start, End: end}
+		return competitions.ScheduledFlight{Flight: competitions.Flight{Event: level, Number: 1, Of: 1}, Area: area, Start: start, End: end}
 	}
 	first, second := at("Panel 1", "BUCS L3", 600, 660), at("Panel 1", "FIG AG3", 660, 720)
 	early, nearly, none := at("Panel 2", "Early", 600, 660), at("Panel 3", "Close", 658, 700), at("Panel 4", "None", 600, 660)

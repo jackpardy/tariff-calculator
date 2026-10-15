@@ -164,7 +164,7 @@ func (s Schedule) Delayed(d Delay, people map[string][]string) (Schedule, DelayR
 			first := &out.Flights[idx[k]]
 			for k+1 < len(idx) {
 				next := out.Flights[idx[k+1]]
-				if next.Level != first.Level || next.Category != first.Category || next.Discipline != first.Discipline || len(first.Entries)+len(next.Entries) > d.MaxFlight {
+				if next.Event != first.Event || next.Category != first.Category || next.Discipline != first.Discipline || len(first.Entries)+len(next.Entries) > d.MaxFlight {
 					break
 				}
 				r.Merged = append(r.Merged, fmt.Sprintf("%s and %s on %s (%d)", first.Name(), next.Name(), area, len(first.Entries)+len(next.Entries)))
@@ -211,7 +211,7 @@ func (s Schedule) Delayed(d Delay, people map[string][]string) (Schedule, DelayR
 			// The flights placed as one: this one, and unless events can run
 			// across breaks, the rest of its run next on this area.
 			unit := []int{i}
-			for !s.Setup.AcrossBreaks && u+len(unit) < len(idx) && out.Flights[idx[u+len(unit)]].Event() == f.Event() {
+			for !s.Setup.AcrossBreaks && u+len(unit) < len(idx) && out.Flights[idx[u+len(unit)]].Group() == f.Group() {
 				unit = append(unit, idx[u+len(unit)])
 			}
 			lengths, total := make([]int, len(unit)), 0

@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"net/http"
@@ -154,6 +155,45 @@ func back(w http.ResponseWriter, r *http.Request, notice string) {
 	http.Redirect(w, r, to, http.StatusSeeOther)
 }
 
+// refused is a change to the draft timetable turned down, with why: nothing
+// is changed, and the organiser is told.
+type refused string
+
+func (e refused) Error() string { return string(e) }
+
+// staleTimetable refuses a form made from the draft timetable as it was
+// before someone else changed it: its flights and seats, by position, may now
+// be others.
+const staleTimetable = refused("The timetable changed since you opened this page; nothing was changed.")
+
+// changeDraft changes the draft timetable with change, in one transaction
+// (store.UpdateTimetable). A form carrying the version of the draft it was
+// made from (version) is refused if the draft has changed since.
+func (p *competitionPages) changeDraft(r *http.Request, c store.Competition, change func(*competitions.Schedule) error) error {
+	r.ParseForm()
+	version, checked := r.PostForm["version"]
+	return p.st.UpdateTimetable(r.Context(), c.ID, func(s *competitions.Schedule) error {
+		if checked && (len(version) != 1 || version[0] != s.Version()) {
+			return staleTimetable
+		}
+		return change(s)
+	})
+}
+
+// changed goes back to the timetable page after changeDraft: with notice if
+// the change was made, or why it wasn't.
+func changed(w http.ResponseWriter, r *http.Request, err error, notice string) {
+	var no refused
+	switch {
+	case errors.As(err, &no):
+		back(w, r, string(no))
+	case err != nil:
+		failed(w, r, err)
+	default:
+		back(w, r, notice)
+	}
+}
+
 // schedule is the competition's timetable: the one saved, or a new one with
 // the default setup.
 func schedule(c store.Competition) competitions.Schedule {
@@ -210,7 +250,7 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 						continue // withdrawn since
 					}
 					g := views.TimetableGymnast{ID: id, No: n + 1, Name: e.Entry.Gymnasts(), Club: clubOf(e), Category: e.Entry.Category}
-					if e.Entry.Event() != f.Level || (f.Category != "" && e.Entry.Category != f.Category) {
+					if e.Entry.Event() != f.Event || (f.Category != "" && e.Entry.Category != f.Category) {
 						g.Moved = strings.TrimSpace(e.Entry.Event() + " " + e.Entry.Category)
 					}
 					it.Gymnasts = append(it.Gymnasts, g)
@@ -315,7 +355,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 	}
 	page := views.TimetablePage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuTimetable), Notice: r.URL.Query().Get("notice"),
-		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Published: c.Published != nil, Changes: c.Published != nil && !sameTimetable(s, *c.Published), Entries: len(entries),
+		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Published: c.Published != nil, Changes: c.Published != nil && !sameTimetable(s, *c.Published), Entries: len(entries), Version: s.Version(),
 	}
 	if s.Planned {
 		officials := people
@@ -365,41 +405,41 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.CompetitionTimetable(page))
 }
 
-// saveSetup checks a changed setup and saves it, marking the plan stale.
-func (p *competitionPages) saveSetup(w http.ResponseWriter, r *http.Request, c store.Competition, s competitions.Schedule, notice string) {
-	if err := s.Setup.Check(c.EventNames()); err != nil {
-		back(w, r, "Nothing was changed: "+strings.Join(sentences(err), " "))
-		return
-	}
-	s.Stale = s.Planned
-	if err := p.st.SetTimetable(r.Context(), c.ID, &s); err != nil {
-		failed(w, r, err)
-		return
-	}
-	back(w, r, notice)
+// setupChange is what a change to the setup says once saved, and whether
+// it's only to the rules about officials (rota): the flights then stand, and
+// only the officials need assigning again.
+type setupChange struct {
+	notice string
+	rota   bool
 }
 
-// saveRotaRules saves a change to the rules about officials: the flights
-// stand, so only the officials need assigning again.
-func (p *competitionPages) saveRotaRules(w http.ResponseWriter, r *http.Request, c store.Competition, s competitions.Schedule, notice string) {
-	if err := s.Setup.Check(c.EventNames()); err != nil {
-		back(w, r, "Nothing was changed: "+strings.Join(sentences(err), " "))
-		return
-	}
-	if err := p.st.SetTimetable(r.Context(), c.ID, &s); err != nil {
-		failed(w, r, err)
-		return
-	}
-	if s.Planned {
-		notice += " Assign officials again to use it."
-	}
-	back(w, r, notice)
+// saveSetup changes the setup with edit, checks it and saves it, marking the
+// plan stale unless only the rules about officials changed. edit may refuse
+// the change, or say more in the notice.
+func (p *competitionPages) saveSetup(w http.ResponseWriter, r *http.Request, c store.Competition, notice string, edit func(*competitions.Schedule, *setupChange) error) {
+	ch := setupChange{notice: notice}
+	err := p.changeDraft(r, c, func(s *competitions.Schedule) error {
+		if err := edit(s, &ch); err != nil {
+			return err
+		}
+		if err := s.Setup.Check(c.EventNames()); err != nil {
+			return refused("Nothing was changed: " + strings.Join(sentences(err), " "))
+		}
+		switch {
+		case !ch.rota:
+			s.Stale = s.Planned
+		case s.Planned:
+			ch.notice += " Assign officials again to use it."
+		}
+		return nil
+	})
+	changed(w, r, err, ch.notice)
 }
 
 // setupDays saves the days (day-<i>-name, -start, -end, -area), adds one
 // (add=1) or removes one (remove=<i>).
 func (p *competitionPages) setupDays(w http.ResponseWriter, r *http.Request) {
-	c, s, _, ok := p.timetableOf(w, r)
+	c, ok := p.admin(w, r)
 	if !ok {
 		return
 	}
@@ -407,93 +447,97 @@ func (p *competitionPages) setupDays(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
-	for i := range s.Setup.Days {
-		d := &s.Setup.Days[i]
-		d.Name = strings.TrimSpace(r.FormValue(fmt.Sprintf("day-%d-name", i)))
-		d.Start, d.End = r.FormValue(fmt.Sprintf("day-%d-start", i)), r.FormValue(fmt.Sprintf("day-%d-end", i))
-		d.Areas = r.Form[fmt.Sprintf("day-%d-area", i)]
-	}
-	if i, err := strconv.Atoi(r.FormValue("remove")); err == nil && i >= 0 && i < len(s.Setup.Days) {
-		s.Setup.Days = slices.Delete(s.Setup.Days, i, i+1)
-		// Blocks and day rules on later days move with them; those on the day go.
-		s.Setup.Blocks = slices.DeleteFunc(s.Setup.Blocks, func(b competitions.Block) bool { return b.Day == i })
-		s.Setup.Rules = slices.DeleteFunc(s.Setup.Rules, func(ru competitions.Rule) bool { return ru.Kind == competitions.RuleDay && ru.Day == i })
-		for j := range s.Setup.Blocks {
-			if s.Setup.Blocks[j].Day > i {
-				s.Setup.Blocks[j].Day--
+	p.saveSetup(w, r, c, "Days saved.", func(s *competitions.Schedule, _ *setupChange) error {
+		for i := range s.Setup.Days {
+			d := &s.Setup.Days[i]
+			d.Name = strings.TrimSpace(r.FormValue(fmt.Sprintf("day-%d-name", i)))
+			d.Start, d.End = r.FormValue(fmt.Sprintf("day-%d-start", i)), r.FormValue(fmt.Sprintf("day-%d-end", i))
+			d.Areas = r.Form[fmt.Sprintf("day-%d-area", i)]
+		}
+		if i, err := strconv.Atoi(r.FormValue("remove")); err == nil && i >= 0 && i < len(s.Setup.Days) {
+			s.Setup.Days = slices.Delete(s.Setup.Days, i, i+1)
+			// Blocks and day rules on later days move with them; those on the day go.
+			s.Setup.Blocks = slices.DeleteFunc(s.Setup.Blocks, func(b competitions.Block) bool { return b.Day == i })
+			s.Setup.Rules = slices.DeleteFunc(s.Setup.Rules, func(ru competitions.Rule) bool { return ru.Kind == competitions.RuleDay && ru.Day == i })
+			for j := range s.Setup.Blocks {
+				if s.Setup.Blocks[j].Day > i {
+					s.Setup.Blocks[j].Day--
+				}
+			}
+			for j := range s.Setup.Rules {
+				if s.Setup.Rules[j].Kind == competitions.RuleDay && s.Setup.Rules[j].Day > i {
+					s.Setup.Rules[j].Day--
+				}
 			}
 		}
-		for j := range s.Setup.Rules {
-			if s.Setup.Rules[j].Kind == competitions.RuleDay && s.Setup.Rules[j].Day > i {
-				s.Setup.Rules[j].Day--
-			}
+		if r.FormValue("add") == "1" {
+			s.Setup.Days = append(s.Setup.Days, competitions.Day{Name: fmt.Sprintf("Day %d", len(s.Setup.Days)+1), Start: "09:00", End: "18:00"})
 		}
-	}
-	if r.FormValue("add") == "1" {
-		s.Setup.Days = append(s.Setup.Days, competitions.Day{Name: fmt.Sprintf("Day %d", len(s.Setup.Days)+1), Start: "09:00", End: "18:00"})
-	}
-	p.saveSetup(w, r, c, s, "Days saved.")
+		return nil
+	})
 }
 
 // setupAreas saves the areas (area-<i>-name, -discipline), adds one (add=1)
 // or removes one (remove=<i>). Days, blocks and rules follow a renamed area.
 func (p *competitionPages) setupAreas(w http.ResponseWriter, r *http.Request) {
-	c, s, _, ok := p.timetableOf(w, r)
+	c, ok := p.admin(w, r)
 	if !ok {
 		return
 	}
-	rename := map[string]string{}
-	for i := range s.Setup.Areas {
-		a := &s.Setup.Areas[i]
-		name := strings.TrimSpace(r.FormValue(fmt.Sprintf("area-%d-name", i)))
-		if name != a.Name {
-			rename[a.Name] = name
-		}
-		a.Name = name
-		a.Discipline = r.FormValue(fmt.Sprintf("area-%d-discipline", i))
-		if a.Discipline == "trampoline" {
-			a.Discipline = competitions.Trampoline
-		}
-	}
-	removed := ""
-	if i, err := strconv.Atoi(r.FormValue("remove")); err == nil && i >= 0 && i < len(s.Setup.Areas) {
-		removed = s.Setup.Areas[i].Name
-		s.Setup.Areas = slices.Delete(s.Setup.Areas, i, i+1)
-	}
-	follow := func(names []string) []string {
-		var out []string
-		for _, n := range names {
-			if to, ok := rename[n]; ok {
-				n = to
+	p.saveSetup(w, r, c, "Areas saved.", func(s *competitions.Schedule, _ *setupChange) error {
+		rename := map[string]string{}
+		for i := range s.Setup.Areas {
+			a := &s.Setup.Areas[i]
+			name := strings.TrimSpace(r.FormValue(fmt.Sprintf("area-%d-name", i)))
+			if name != a.Name {
+				rename[a.Name] = name
 			}
-			if n != removed {
-				out = append(out, n)
+			a.Name = name
+			a.Discipline = r.FormValue(fmt.Sprintf("area-%d-discipline", i))
+			if a.Discipline == "trampoline" {
+				a.Discipline = competitions.Trampoline
 			}
 		}
-		return out
-	}
-	for i := range s.Setup.Days {
-		s.Setup.Days[i].Areas = follow(s.Setup.Days[i].Areas)
-	}
-	for i := range s.Setup.Blocks {
-		s.Setup.Blocks[i].Areas = follow(s.Setup.Blocks[i].Areas)
-	}
-	s.Setup.Rules = slices.DeleteFunc(s.Setup.Rules, func(ru competitions.Rule) bool { return ru.Kind == competitions.RuleArea && ru.Area == removed })
-	for i := range s.Setup.Rules {
-		if to, ok := rename[s.Setup.Rules[i].Area]; ok {
-			s.Setup.Rules[i].Area = to
+		removed := ""
+		if i, err := strconv.Atoi(r.FormValue("remove")); err == nil && i >= 0 && i < len(s.Setup.Areas) {
+			removed = s.Setup.Areas[i].Name
+			s.Setup.Areas = slices.Delete(s.Setup.Areas, i, i+1)
 		}
-	}
-	if r.FormValue("add") == "1" {
-		s.Setup.Areas = append(s.Setup.Areas, competitions.Area{Name: fmt.Sprintf("Area %d", len(s.Setup.Areas)+1), Discipline: competitions.Trampoline})
-	}
-	p.saveSetup(w, r, c, s, "Areas saved.")
+		follow := func(names []string) []string {
+			var out []string
+			for _, n := range names {
+				if to, ok := rename[n]; ok {
+					n = to
+				}
+				if n != removed {
+					out = append(out, n)
+				}
+			}
+			return out
+		}
+		for i := range s.Setup.Days {
+			s.Setup.Days[i].Areas = follow(s.Setup.Days[i].Areas)
+		}
+		for i := range s.Setup.Blocks {
+			s.Setup.Blocks[i].Areas = follow(s.Setup.Blocks[i].Areas)
+		}
+		s.Setup.Rules = slices.DeleteFunc(s.Setup.Rules, func(ru competitions.Rule) bool { return ru.Kind == competitions.RuleArea && ru.Area == removed })
+		for i := range s.Setup.Rules {
+			if to, ok := rename[s.Setup.Rules[i].Area]; ok {
+				s.Setup.Rules[i].Area = to
+			}
+		}
+		if r.FormValue("add") == "1" {
+			s.Setup.Areas = append(s.Setup.Areas, competitions.Area{Name: fmt.Sprintf("Area %d", len(s.Setup.Areas)+1), Discipline: competitions.Trampoline})
+		}
+		return nil
+	})
 }
 
 // setupTimings saves each discipline's timings (per-, between-, max-<key>),
 // rest (rest, restMust) and separate men's and women's flights.
 func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) {
-	c, s, _, ok := p.timetableOf(w, r)
+	c, ok := p.admin(w, r)
 	if !ok {
 		return
 	}
@@ -501,7 +545,7 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 		badRequest(w, err)
 		return
 	}
-	s.Setup.Timings = map[string]competitions.Timings{}
+	timings := map[string]competitions.Timings{}
 	for _, d := range c.Disciplines() {
 		key := offerKey(d)
 		per, err1 := strconv.ParseFloat(r.FormValue("per-"+key), 64)
@@ -513,7 +557,7 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 		}
 		t := competitions.Timings{PerCompetitor: per, Between: between, MaxFlight: most}
 		if t != competitions.DefaultTimings(d) {
-			s.Setup.Timings[d] = t
+			timings[d] = t
 		}
 	}
 	rest, err := strconv.Atoi(r.FormValue("rest"))
@@ -521,18 +565,21 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 		back(w, r, "Nothing was changed: rest should be a number of minutes.")
 		return
 	}
-	s.Setup.Rest, s.Setup.RestMust = rest, r.FormValue("restMust") == "1"
-	if r.Form.Has("separate") {
-		s.Setup.Separate = postedSplit(r, "separate", "separateLevel")
-	}
-	p.saveSetup(w, r, c, s, "Timings saved.")
+	p.saveSetup(w, r, c, "Timings saved.", func(s *competitions.Schedule, _ *setupChange) error {
+		s.Setup.Timings = timings
+		s.Setup.Rest, s.Setup.RestMust = rest, r.FormValue("restMust") == "1"
+		if r.Form.Has("separate") {
+			s.Setup.Separate = postedSplit(r, "separate", "separateLevel")
+		}
+		return nil
+	})
 }
 
 // setupBlocks adds blocked time (add=1: name, minutes, day, at or from and
 // to, area), removes some (remove=<i>), or says whether events can run
 // across breaks (breaks=1, across=1 if they can).
 func (p *competitionPages) setupBlocks(w http.ResponseWriter, r *http.Request) {
-	c, s, _, ok := p.timetableOf(w, r)
+	c, ok := p.admin(w, r)
 	if !ok {
 		return
 	}
@@ -541,17 +588,25 @@ func (p *competitionPages) setupBlocks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Form.Has("breaks") {
-		s.Setup.AcrossBreaks = r.FormValue("across") == "1"
+		across := r.FormValue("across") == "1"
 		notice := "Saved: each event is all before a break or all after it."
-		if s.Setup.AcrossBreaks {
+		if across {
 			notice = "Saved: events can run across breaks."
 		}
-		p.saveSetup(w, r, c, s, notice)
+		p.saveSetup(w, r, c, notice, func(s *competitions.Schedule, _ *setupChange) error {
+			s.Setup.AcrossBreaks = across
+			return nil
+		})
 		return
 	}
-	if i, err := strconv.Atoi(r.FormValue("remove")); err == nil && i >= 0 && i < len(s.Setup.Blocks) {
-		s.Setup.Blocks = slices.Delete(s.Setup.Blocks, i, i+1)
-		p.saveSetup(w, r, c, s, "Blocked time removed.")
+	if i, err := strconv.Atoi(r.FormValue("remove")); err == nil {
+		p.saveSetup(w, r, c, "Blocked time removed.", func(s *competitions.Schedule, _ *setupChange) error {
+			if i < 0 || i >= len(s.Setup.Blocks) {
+				return staleTimetable
+			}
+			s.Setup.Blocks = slices.Delete(s.Setup.Blocks, i, i+1)
+			return nil
+		})
 		return
 	}
 	minutes, _ := strconv.Atoi(r.FormValue("minutes"))
@@ -565,29 +620,38 @@ func (p *competitionPages) setupBlocks(w http.ResponseWriter, r *http.Request) {
 		return n
 	}
 	b.Officials = competitions.Panel{Chair: need("chair"), Execution: need("judges"), Recorder: need("recorder"), Marshal: need("marshal")}
-	s.Setup.Blocks = append(s.Setup.Blocks, b)
-	p.saveSetup(w, r, c, s, "Blocked time added: "+describeBlock(b, s.Setup.Days)+".")
+	p.saveSetup(w, r, c, "", func(s *competitions.Schedule, ch *setupChange) error {
+		s.Setup.Blocks = append(s.Setup.Blocks, b)
+		ch.notice = "Blocked time added: " + describeBlock(b, s.Setup.Days) + "."
+		return nil
+	})
 }
 
 // setupRules adds a rule (add=1: kind, must, event, and the area, day or
 // other event it needs) or removes one (remove=<i>).
 func (p *competitionPages) setupRules(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, ok := p.admin(w, r)
 	if !ok {
 		return
 	}
-	if i, err := strconv.Atoi(r.FormValue("remove")); err == nil && i >= 0 && i < len(s.Setup.Rules) {
-		about := s.Setup.Rules[i].Person != ""
-		s.Setup.Rules = slices.Delete(s.Setup.Rules, i, i+1)
-		if about {
-			p.saveRotaRules(w, r, c, s, "Rule removed.")
-		} else {
-			p.saveSetup(w, r, c, s, "Rule removed.")
-		}
+	if i, err := strconv.Atoi(r.FormValue("remove")); err == nil {
+		p.saveSetup(w, r, c, "Rule removed.", func(s *competitions.Schedule, ch *setupChange) error {
+			if i < 0 || i >= len(s.Setup.Rules) {
+				return staleTimetable
+			}
+			ch.rota = s.Setup.Rules[i].Person != ""
+			s.Setup.Rules = slices.Delete(s.Setup.Rules, i, i+1)
+			return nil
+		})
 		return
 	}
 	if kind := r.FormValue("kind"); kind == competitions.RuleRole || kind == competitions.RuleOff || kind == competitions.RuleHours {
-		people, err := p.rotaOf(r, c, entries)
+		entries, err := p.st.Entries(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		people, err := p.rotaOf(r, c, live(entries))
 		if err != nil {
 			failed(w, r, err)
 			return
@@ -597,8 +661,12 @@ func (p *competitionPages) setupRules(w http.ResponseWriter, r *http.Request) {
 			back(w, r, "Choose someone who's offered to officiate.")
 			return
 		}
-		s.Setup.Rules = append(s.Setup.Rules, rule)
-		p.saveRotaRules(w, r, c, s, "Rule added: "+rule.Describe(s.Setup.Days)+".")
+		p.saveSetup(w, r, c, "", func(s *competitions.Schedule, ch *setupChange) error {
+			ch.rota = true
+			s.Setup.Rules = append(s.Setup.Rules, rule)
+			ch.notice = "Rule added: " + rule.Describe(s.Setup.Days) + "."
+			return nil
+		})
 		return
 	}
 	rule := competitions.Rule{Kind: r.FormValue("kind"), Must: r.FormValue("must") == "1", Event: r.FormValue("event")}
@@ -610,18 +678,17 @@ func (p *competitionPages) setupRules(w http.ResponseWriter, r *http.Request) {
 	default:
 		rule.Event2 = r.FormValue("event2")
 	}
-	s.Setup.Rules = append(s.Setup.Rules, rule)
-	p.saveSetup(w, r, c, s, "Rule added: "+rule.Describe(s.Setup.Days)+".")
+	p.saveSetup(w, r, c, "", func(s *competitions.Schedule, ch *setupChange) error {
+		s.Setup.Rules = append(s.Setup.Rules, rule)
+		ch.notice = "Rule added: " + rule.Describe(s.Setup.Days) + "."
+		return nil
+	})
 }
 
 // planTimetable plans afresh with the setup, keeping whether it's published.
 func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, _, entries, ok := p.timetableOf(w, r)
 	if !ok {
-		return
-	}
-	if err := s.Setup.Check(c.EventNames()); err != nil {
-		back(w, r, "Fix the setup first: "+strings.Join(sentences(err), " "))
 		return
 	}
 	people, err := p.rotaOf(r, c, entries)
@@ -629,17 +696,19 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 		failed(w, r, err)
 		return
 	}
-	planned := competitions.PlanStaffed(schedEntries(entries), c.EventNames(), s.Setup, staffing(c.Competition, people), uint64(p.now().UnixNano()))
-	p.staff(&planned, c, entries, people)
-	if err := p.st.SetTimetable(r.Context(), c.ID, &planned); err != nil {
-		failed(w, r, err)
-		return
-	}
 	notice := fmt.Sprintf("Planned %s.", gymnastsWord(len(entries)))
-	if n := len(planned.Unplaced) + len(planned.UnplacedBlocks); n > 0 {
-		notice += " Some of it doesn't fit: see below."
-	}
-	back(w, r, notice)
+	err = p.changeDraft(r, c, func(s *competitions.Schedule) error {
+		if err := s.Setup.Check(c.EventNames()); err != nil {
+			return refused("Fix the setup first: " + strings.Join(sentences(err), " "))
+		}
+		*s = competitions.PlanStaffed(schedEntries(entries), c.EventNames(), s.Setup, staffing(c.Competition, people), uint64(p.now().UnixNano()))
+		p.staff(s, c, entries, people)
+		if n := len(s.Unplaced) + len(s.UnplacedBlocks); n > 0 {
+			notice += " Some of it doesn't fit: see below."
+		}
+		return nil
+	})
+	changed(w, r, err, notice)
 }
 
 func gymnastsWord(n int) string {
@@ -649,46 +718,48 @@ func gymnastsWord(n int) string {
 	return fmt.Sprintf("%d gymnasts", n)
 }
 
+// cantGo refuses a change to a flight or gymnast that no longer fits the
+// draft.
+const cantGo = refused("That flight can't go there, or has moved since; nothing was changed.")
+
 // editFlight redraws a flight's running order (action=redraw), moves its
 // event to the end of a day's area (action=move, to: "<day>:<area>"), or swaps
 // it with the flight before it in its event (action=earlier).
 func (p *competitionPages) editFlight(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, _, entries, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
 	flight, _ := strconv.Atoi(r.FormValue("flight"))
-	done := false
-	switch r.FormValue("action") {
-	case "redraw":
-		clubs := map[string]string{}
-		for _, e := range schedEntries(entries) {
-			clubs[e.ID] = e.Club
+	err := p.changeDraft(r, c, func(s *competitions.Schedule) error {
+		done := false
+		switch r.FormValue("action") {
+		case "redraw":
+			clubs := map[string]string{}
+			for _, e := range schedEntries(entries) {
+				clubs[e.ID] = e.Club
+			}
+			people, _ := peopleOf(entries)
+			done = s.Redraw(flight, clubs, people, rand.New(rand.NewPCG(uint64(p.now().UnixNano()), 1)))
+		case "move":
+			day, area, _ := strings.Cut(r.FormValue("to"), ":")
+			d, err := strconv.Atoi(day)
+			done = err == nil && s.MoveFlight(flight, d, area)
+		case "earlier":
+			done = s.Earlier(flight)
 		}
-		people, _ := peopleOf(entries)
-		done = s.Redraw(flight, clubs, people, rand.New(rand.NewPCG(uint64(p.now().UnixNano()), 1)))
-	case "move":
-		day, area, _ := strings.Cut(r.FormValue("to"), ":")
-		d, err := strconv.Atoi(day)
-		done = err == nil && s.MoveFlight(flight, d, area)
-	case "earlier":
-		done = s.Earlier(flight)
-	}
-	if !done {
-		back(w, r, "That flight can't go there, or has moved since; nothing was changed.")
-		return
-	}
-	if err := p.st.SetTimetable(r.Context(), c.ID, &s); err != nil {
-		failed(w, r, err)
-		return
-	}
-	back(w, r, "")
+		if !done {
+			return cantGo
+		}
+		return nil
+	})
+	changed(w, r, err, "")
 }
 
 // moveEntry moves a gymnast to a flight (to: its index), or out of the
 // timetable (to: "").
 func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, _, entries, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -700,25 +771,24 @@ func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
 		back(w, r, "Choose a flight to move them to; nothing was changed.")
 		return
 	}
-	switch to := r.FormValue("to"); {
-	case to == "":
-		s.RemoveEntry(id)
-		s.Retime()
-	case !known:
+	to := r.FormValue("to")
+	if to != "" && !known {
 		back(w, r, "That gymnast isn't entered any more.")
 		return
-	default:
+	}
+	err := p.changeDraft(r, c, func(s *competitions.Schedule) error {
+		if to == "" {
+			s.RemoveEntry(id)
+			s.Retime()
+			return nil
+		}
 		flight, err := strconv.Atoi(to)
 		if err != nil || !s.MoveEntry(id, flight) {
-			back(w, r, "That flight has moved since; nothing was changed.")
-			return
+			return refused("That flight has moved since; nothing was changed.")
 		}
-	}
-	if err := p.st.SetTimetable(r.Context(), c.ID, &s); err != nil {
-		failed(w, r, err)
-		return
-	}
-	back(w, r, "")
+		return nil
+	})
+	changed(w, r, err, "")
 }
 
 func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Request) {
@@ -736,6 +806,12 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 	}
 	switch action {
 	case "publish":
+		// Not a draft someone has changed since the page was opened: that
+		// would publish what nobody has looked at.
+		if v, ok := r.PostForm["version"]; ok && (len(v) != 1 || v[0] != s.Version()) {
+			back(w, r, string(staleTimetable))
+			return
+		}
 		p.notify.changing(r.Context(), c)
 		if err := p.st.PublishTimetable(r.Context(), c.ID, &s); err != nil {
 			failed(w, r, err)
@@ -906,17 +982,22 @@ func sameTimetable(draft, published competitions.Schedule) bool {
 }
 
 // keepWhatIf makes a "what if"'s timetable the draft, for the organiser to
-// publish.
-func (p *competitionPages) keepWhatIf(w http.ResponseWriter, r *http.Request, c store.Competition, out competitions.Schedule, done string) {
-	if err := p.st.SetTimetable(r.Context(), c.ID, &out); err != nil {
-		failed(w, r, err)
-		return
-	}
+// publish: whatIf works it out again from the draft as it is when saved,
+// and a form from a page made from another draft is refused (changeDraft).
+func (p *competitionPages) keepWhatIf(w http.ResponseWriter, r *http.Request, c store.Competition, whatIf func(competitions.Schedule) (competitions.Schedule, error), done string) {
+	err := p.changeDraft(r, c, func(s *competitions.Schedule) error {
+		out, err := whatIf(*s)
+		if err != nil {
+			return refused("Nothing was changed: " + strings.Join(sentences(err), " "))
+		}
+		*s = out
+		return nil
+	})
 	notice := done
 	if c.Published != nil {
 		notice += " Publish the changes to show them to everyone."
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/timetable?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	changed(w, r, err, notice)
 }
 
 // scoreSheets are the recorders' score sheets: each flight in time order,

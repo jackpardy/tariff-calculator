@@ -626,12 +626,22 @@ var migrations = []string{
 	// holds their secret link, and only links' hashes are kept (ADR 0004).
 	// The column stays, empty, as dropping it means rebuilding the table.
 	`UPDATE notify_subscriptions SET page = '';`,
+
+	// 34: each flight has an ID of its own (competitions.ScheduledFlight),
+	// and what happens to it on the day (its times, its panel's check-ins,
+	// who's up) is kept by that, not by its day, area, event and number,
+	// which moving or renumbering it changes. Who's up is the gymnast on and
+	// their 1st or 2nd routine, not a place in the running order, which
+	// someone joining or leaving the flight changes (flightIDs).
+	`ALTER TABLE up_now ADD COLUMN entry TEXT NOT NULL DEFAULT '';
+	ALTER TABLE up_now ADD COLUMN round INTEGER NOT NULL DEFAULT 0;`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run
 // after that migration's SQL, in its transaction.
 var migrationSteps = map[int]func(context.Context, *sql.Tx) error{
 	30: individualsFromEntries,
+	34: flightIDs,
 }
 
 // rebuilds are the migrations, by version, that rebuild a table, so run

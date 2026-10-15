@@ -565,7 +565,6 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 			failed(w, r, err)
 			return
 		}
-		draft := *c.Timetable
 		waiting := false
 		for _, e := range entries {
 			if e.ID == accepted.EntryID && e.Waiting > 0 {
@@ -573,20 +572,25 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 				notice = fmt.Sprintf("Accepted: %s is %s on %s's waiting list.", accepted.Entry.Gymnasts(), waitingWord(e.Waiting), accepted.Entry.Event())
 			}
 		}
-		if waiting {
-			draft.RemoveEntry(accepted.EntryID)
-			draft.Retime()
-		} else {
-			people, names := peopleOf(live(entries))
+		people, names := peopleOf(live(entries))
+		// The draft as it is now, not as it was when the page was read: an
+		// edit made since stays.
+		err = p.st.UpdateTimetable(ctx, c.ID, func(draft *competitions.Schedule) error {
+			if waiting {
+				draft.RemoveEntry(accepted.EntryID)
+				draft.Retime()
+				return nil
+			}
 			var place competitions.ChangePlace
-			draft, place = draft.PlaceChange(accepted.EntryID, accepted.Entry.Event(), accepted.Entry.Category, people, names)
+			*draft, place = draft.PlaceChange(accepted.EntryID, accepted.Entry.Event(), accepted.Entry.Category, people, names)
 			if place.Flight >= 0 {
 				notice += " The draft timetable has them in " + place.Name + ": publish it when you're ready."
 			} else {
 				notice += " The draft timetable has no flight of it yet: place them by hand."
 			}
-		}
-		if err := p.st.SetTimetable(ctx, c.ID, &draft); err != nil {
+			return nil
+		})
+		if err != nil {
 			failed(w, r, err)
 			return
 		}

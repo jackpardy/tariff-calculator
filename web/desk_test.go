@@ -186,7 +186,7 @@ func TestDeskMessageToAFlight(t *testing.T) {
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
 	page := do(t, h, http.MethodGet, desk, nil).Body.String()
-	flight := regexp.MustCompile(`<option value="(\d+\|[^"]+)">`).FindStringSubmatch(page)
+	flight := regexp.MustCompile(`<option value="([0-9a-f]{16})">`).FindStringSubmatch(page)
 	if flight == nil || !strings.Contains(page, "<optgroup") {
 		t.Fatalf("the published flights, by day and area: %s", page)
 	}

@@ -3,7 +3,6 @@ package web
 import (
 	"errors"
 	"net/http"
-	"slices"
 	"strconv"
 
 	"tariffCalculator/competitions"
@@ -21,29 +20,31 @@ import (
 func dayUp(c competitions.Competition, f competitions.ScheduledFlight, byID map[string]store.Entry, scratched map[string]bool, up store.Up, tapped bool) *views.DayUp {
 	o := upOrderOf(f, byID, scratched)
 	out := &views.DayUp{Tapped: tapped}
-	pos := up.Position
+	at := up.Routine
 	if tapped {
-		out.At = strconv.Itoa(pos)
+		out.Entry, out.Round = at.Entry, strconv.Itoa(at.Round)
 	} else {
-		pos = slices.Index(o.open, true)
+		at, _ = o.First()
 	}
-	if _, _, ok := o.at(pos); !ok {
+	if !o.Has(at) {
 		return out
 	}
-	g := upGymnast(c, o, pos)
+	g := upGymnast(c, o, at, byID)
 	out.Name, out.No, out.Club, out.Routine = g.Name, g.No, g.Club, g.Routine
-	out.Scratched = !o.open[pos]
-	out.Last = tapped && len(o.after(pos, 1)) == 0
-	out.CanBack = tapped && slices.Contains(o.open[:min(pos, len(o.open))], true)
+	out.Scratched = !o.Open(at)
+	out.Last = tapped && len(o.After(at, 1)) == 0
+	_, back := o.Back(at)
+	out.CanBack = tapped && back
 	return out
 }
 
 // markUp moves a running flight on to the next gymnast, or back one (flight:
-// its key; what: next or back; at: the position the page showed, "" before the
-// first tap; day: the page to go back to). A tap from a position the flight
-// has moved on from, as when the same tap is sent twice, quietly changes
-// nothing. A tap that changes nothing otherwise says so, and the last routine
-// leaves finishing the flight to the Finished button.
+// its key; what: next or back; entry and round: the gymnast and routine the
+// page showed, "" before the first tap; day: the page to go back to). A tap
+// from a routine the flight has moved on from, as when the same tap is sent
+// twice, quietly changes nothing. A tap that changes nothing otherwise says
+// so, and the last routine leaves finishing the flight to the Finished
+// button.
 func (p *competitionPages) markUp(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
 	if !ok {
@@ -60,13 +61,13 @@ func (p *competitionPages) markUp(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	from := store.NotUp
-	if at := r.FormValue("at"); at != "" {
-		n, err := strconv.Atoi(at)
-		if err != nil || n < 0 {
+	var from competitions.Routine
+	if entry := r.FormValue("entry"); entry != "" {
+		round, err := strconv.Atoi(r.FormValue("round"))
+		if err != nil || round < 1 || round > 2 {
 			found = false
 		}
-		from = n
+		from = competitions.Routine{Entry: entry, Round: round}
 	}
 	if !found || what != "next" && what != "back" {
 		message(w, r, http.StatusBadRequest, "Not a flight", "That flight isn't in the published timetable. It may have been changed: go back and try again.")
@@ -96,11 +97,12 @@ func (p *competitionPages) markUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	o := upOrderOf(f, byID, scratched)
-	move := p.st.UpNext
+	move := o.Next
 	if what == "back" {
-		move = p.st.UpBack
+		move = o.Back
 	}
-	_, moved, err := move(r.Context(), c.ID, key, from, o.open, linkOf(r).Name)
+	_, moved, err := p.st.MoveUp(r.Context(), c.ID, key, from, move, linkOf(r).Name)
+	_, anyone := o.First()
 	switch {
 	case errors.Is(err, store.ErrUpMoved):
 		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
@@ -110,7 +112,7 @@ func (p *competitionPages) markUp(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
 	case what == "back":
 		http.Redirect(w, r, backToDay(r, "Nothing to go back to in "+f.Name()+": that's the first gymnast.", anchor), http.StatusSeeOther)
-	case !slices.Contains(o.open, true):
+	case !anyone:
 		http.Redirect(w, r, backToDay(r, "No one left to compete in "+f.Name()+": everyone is scratched.", anchor), http.StatusSeeOther)
 	default:
 		http.Redirect(w, r, backToDay(r, "That was the last routine in "+f.Name()+". Tap Finished once it's done.", anchor), http.StatusSeeOther)

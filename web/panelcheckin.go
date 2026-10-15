@@ -36,10 +36,10 @@ func runOf(s competitions.Schedule, i int) []competitions.ScheduledFlight {
 		return competitions.FlightKey(g) == competitions.FlightKey(f)
 	})
 	lo, hi := at, at
-	for lo > 0 && same[lo-1].Event() == f.Event() {
+	for lo > 0 && same[lo-1].Group() == f.Group() {
 		lo--
 	}
-	for hi+1 < len(same) && same[hi+1].Event() == f.Event() {
+	for hi+1 < len(same) && same[hi+1].Group() == f.Group() {
 		hi++
 	}
 	return same[lo : hi+1]
@@ -181,7 +181,7 @@ func (p *competitionPages) describeOfficial(r *http.Request, c store.Competition
 	if err != nil || !ch.found || !ch.applies {
 		return ""
 	}
-	where := ": " + ch.name + " (" + ch.flight.Event() + ", " + ch.flight.Area + ")"
+	where := ": " + ch.name + " (" + ch.flight.Group() + ", " + ch.flight.Area + ")"
 	switch status {
 	case store.OfficialHere:
 		return "Checked in official" + where

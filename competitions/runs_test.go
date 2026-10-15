@@ -12,14 +12,14 @@ func runsTogether(t *testing.T, s Schedule) {
 	t.Helper()
 	seen := map[string]bool{}
 	for i, f := range s.Flights {
-		if seen[f.Event()] {
+		if seen[f.Group()] {
 			continue
 		}
-		seen[f.Event()] = true
+		seen[f.Group()] = true
 		run := s.runOf(i)
 		for k, j := range run {
 			if s.Flights[j].Number != k+1 {
-				t.Errorf("%s: flight %d runs %d%s", f.Event(), s.Flights[j].Number, k+1, map[bool]string{true: "st", false: "th"}[k == 0])
+				t.Errorf("%s: flight %d runs %d%s", f.Group(), s.Flights[j].Number, k+1, map[bool]string{true: "st", false: "th"}[k == 0])
 			}
 		}
 	}
@@ -95,15 +95,15 @@ func TestMoveRun(t *testing.T) {
 	runsTogether(t, s)
 	var end int
 	for _, f := range s.Flights {
-		if f.Level == "L1" && f.Area != to {
+		if f.Event == "L1" && f.Area != to {
 			t.Errorf("all of L1 moves to %s: %s on %s", to, f.Name(), f.Area)
 		}
-		if f.Level != "L1" && f.Area == to {
+		if f.Event != "L1" && f.Area == to {
 			end = max(end, f.End)
 		}
 	}
 	for _, f := range s.Flights {
-		if f.Level == "L1" && f.Start < end {
+		if f.Event == "L1" && f.Start < end {
 			t.Errorf("L1 goes after what was on %s: %s at %s", to, f.Name(), Clock(f.Start))
 		}
 	}
@@ -136,7 +136,7 @@ func TestMoveRun(t *testing.T) {
 
 func TestDelayKeepsRunsTogether(t *testing.T) {
 	two := func(name, area string, start int, a, b string) ScheduledFlight {
-		return ScheduledFlight{Flight: Flight{Level: name, Entries: []string{a, b}}, Area: area, Start: start, End: start + 20}
+		return ScheduledFlight{Flight: Flight{Event: name, Entries: []string{a, b}}, Area: area, Start: start, End: start + 20}
 	}
 	people := map[string][]string{"a": {"a"}, "b": {"b"}, "c": {"c"}, "d": {"d"}, "e": {"e"}, "f": {"f"}}
 	s := Schedule{
@@ -146,7 +146,7 @@ func TestDelayKeepsRunsTogether(t *testing.T) {
 	}
 	ys := func(out Schedule) (starts []int, areas []string) {
 		for _, f := range out.Flights {
-			if f.Level == "Y" {
+			if f.Event == "Y" {
 				starts, areas = append(starts, f.Start), append(areas, f.Area)
 			}
 		}
@@ -179,7 +179,7 @@ func TestDelayKeepsRunsTogether(t *testing.T) {
 	// is held up: they stay as they were. Only the flights still to come,
 	// which the delay pushes past the end, move.
 	z := func(start int, a string) ScheduledFlight {
-		return ScheduledFlight{Flight: Flight{Level: "Z", Entries: []string{a}}, Area: "P1", Start: start, End: start + 20}
+		return ScheduledFlight{Flight: Flight{Event: "Z", Entries: []string{a}}, Area: "P1", Start: start, End: start + 20}
 	}
 	people["g"], people["h"], people["i"], people["j"] = []string{"g"}, []string{"h"}, []string{"i"}, []string{"j"}
 	s = Schedule{

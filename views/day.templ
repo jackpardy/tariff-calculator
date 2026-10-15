@@ -71,7 +71,8 @@ type DayFlight struct {
 // marshal's first tap, who's first), for Next gymnast and Back.
 type DayUp struct {
 	Tapped    bool   // the marshal has tapped Next gymnast at least once
-	At        string // the position shown, "" before the first tap: posted back, so the same tap sent twice moves once
+	Entry     string // the gymnast shown, by entry, and which routine (Round, 1 or 2); "" before the first tap:
+	Round     string // posted back, so the same tap sent twice moves once
 	Name      string // "" when nobody is left to compete
 	No        int    // their running number
 	Club      string
@@ -371,7 +372,8 @@ templ dayUp(p DayPage, f DayFlight) {
 		<form method="post" action={ templ.SafeURL(p.Base + "/day/up") } class="buttons mb-0">
 			<input type="hidden" name="flight" value={ f.Key }/>
 			<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
-			<input type="hidden" name="at" value={ f.Up.At }/>
+			<input type="hidden" name="entry" value={ f.Up.Entry }/>
+			<input type="hidden" name="round" value={ f.Up.Round }/>
 			<button class="button is-link is-medium" type="submit" name="what" value="next">Next gymnast</button>
 			if f.Up.CanBack {
 				<button class="button is-light is-small" type="submit" name="what" value="back">Back</button>
