@@ -374,7 +374,8 @@ func (p *competitionPages) describeFlightMark(r *http.Request, c store.Competiti
 
 // lateNotes say how late the areas that the flights run on are, for the day
 // that's today: one line per area that's 5 or more minutes late or early,
-// e.g. "Panel 2 is running about 15 min late (as of 10:40)".
+// e.g. "Panel 2 is running about 15 min late (as of 10:40)" or "Panel 1 is
+// running about 1 h 5 min early (as of 09:15)".
 func (p *competitionPages) lateNotes(ctx context.Context, c store.Competition, flights []competitions.ScheduledFlight) ([]string, error) {
 	day, today := todayIndex(c, c.Published, p.now())
 	if !today || len(flights) == 0 {
@@ -392,9 +393,10 @@ func (p *competitionPages) lateNotes(ctx context.Context, c store.Competition, f
 			continue
 		}
 		seen[f.Area] = true
-		how := fmt.Sprintf("%d min late", l.Minutes)
+		// Worded as on the day page and the venue screen (minutesText).
+		how := minutesText(l.Minutes) + " late"
 		if l.Minutes < 0 {
-			how = fmt.Sprintf("%d min early", -l.Minutes)
+			how = minutesText(-l.Minutes) + " early"
 		}
 		out = append(out, fmt.Sprintf("%s is running about %s (as of %s)", f.Area, how, l.At.In(local).Format("15:04")))
 	}

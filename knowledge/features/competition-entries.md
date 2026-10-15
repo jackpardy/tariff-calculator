@@ -669,7 +669,8 @@ shows what holding up the area by that long does to its later flights. Nothing i
 
 Attendees see it too: on **My competition** (the same today-only rule), a line
 at the top for each area their flights are on that is running 5 or more minutes
-late or early, such as "Panel 2 is running about 15 min late (as of 10:40)".
+late or early, such as "Panel 2 is running about 15 min late (as of 10:40)",
+in hours and minutes from an hour as on the day page ("1 h 5 min early").
 
 **The page stays where it is** (built 2026-10-14). Every button on the day
 page (flight Started/Finished/Undo, check-in, panel, Notify, Still

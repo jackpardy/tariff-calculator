@@ -188,11 +188,25 @@ func TestLateNotes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(notes) != 1 || !regexp.MustCompile(`^Panel 1 is running about 6\d min late \(as of \d\d:\d\d\)$`).MatchString(notes[0]) {
+	if len(notes) != 1 || !regexp.MustCompile(`^Panel 1 is running about 1 h( \d min)? late \(as of \d\d:\d\d\)$`).MatchString(notes[0]) {
 		t.Errorf("one line for Panel 1, once: %q", notes)
 	}
 	if notes, _ := p.lateNotes(context.Background(), comp, []competitions.ScheduledFlight{other}); len(notes) != 0 {
 		t.Errorf("Panel 2 has nothing recorded: %q", notes)
+	}
+	// Early, in hours and minutes as on the day page: a flight planned 2 h 5 min
+	// on, started now.
+	if minutes+125 < 24*60 {
+		early := competitions.ScheduledFlight{Flight: competitions.Flight{Level: "Early", Number: 1, Of: 1}, Area: "Panel 3", Start: minutes + 125, End: minutes + 185}
+		comp.Published.Flights = append(comp.Published.Flights, early)
+		comp.Published.Setup.Areas = append(comp.Published.Setup.Areas, competitions.Area{Name: "Panel 3"})
+		if err := st.MarkFlight(context.Background(), comp.ID, competitions.FlightKey(early), "start", "Marshal"); err != nil {
+			t.Fatal(err)
+		}
+		notes, _ := p.lateNotes(context.Background(), comp, []competitions.ScheduledFlight{early})
+		if len(notes) != 1 || !regexp.MustCompile(`^Panel 3 is running about 2 h [45] min early \(as of \d\d:\d\d\)$`).MatchString(notes[0]) {
+			t.Errorf("early in hours and minutes: %q", notes)
+		}
 	}
 	comp.Date = now.AddDate(0, 0, 1).Format(competitions.DateLayout)
 	if notes, _ := p.lateNotes(context.Background(), comp, []competitions.ScheduledFlight{first}); len(notes) != 0 {
