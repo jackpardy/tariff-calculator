@@ -21,10 +21,10 @@ func TestMoveOptionsOnce(t *testing.T) {
 	redirected(t, h, tt+"/plan", url.Values{})
 	page := do(t, h, http.MethodGet, tt, nil).Body.String()
 	template := regexp.MustCompile(`(?s)<template id="move-options">(.*?)</template>`).FindStringSubmatch(page)
-	if template == nil || !strings.Contains(template[1], "<option value=") || !strings.Contains(page, "js/moves.js") {
+	if template == nil || !strings.Contains(template[1], "<option value=") || !strings.Contains(page, "js/fill.js") {
 		t.Fatalf("the flights to move to, once, with the script that fills the dropdowns: %s", page)
 	}
-	selects := regexp.MustCompile(`(?s)<select name="to"[^>]*data-moves>(.*?)</select>`).FindAllStringSubmatch(page, -1)
+	selects := regexp.MustCompile(`(?s)<select name="to"[^>]*data-fill="move-options">(.*?)</select>`).FindAllStringSubmatch(page, -1)
 	if len(selects) < 4 {
 		t.Fatalf("a move dropdown per gymnast: %d", len(selects))
 	}
@@ -41,6 +41,14 @@ func TestMoveOptionsOnce(t *testing.T) {
 	}
 	if after := do(t, h, http.MethodGet, tt, nil).Body.String(); strings.Contains(after, "Not in the timetable") && !strings.Contains(page, "Not in the timetable") {
 		t.Error("nobody was taken out")
+	}
+	// The seat dropdowns fill from one list of people too, and a seat left
+	// on "Choose a person" (nothing sent) isn't emptied.
+	if !strings.Contains(page, `<template id="seat-options">`) || !regexp.MustCompile(`data-fill="seat-options"><option value="" disabled selected>Choose a person</option>\s*<option value="">No one</option></select>`).MatchString(page) {
+		t.Error("seat dropdowns hold only their placeholder and No one until opened")
+	}
+	if to := redirected(t, h, tt+"/officials", url.Values{"action": {"seat"}, "flight": {"0"}, "seat": {"0"}}); !strings.Contains(to, "Choose+who+takes+the+seat") {
+		t.Errorf("a seat with no one chosen says so: %s", to)
 	}
 	// Choosing "Take out of the timetable" (sent empty) still takes them out.
 	redirected(t, h, tt+"/entry", url.Values{"entry": {entry}, "to": {""}})
