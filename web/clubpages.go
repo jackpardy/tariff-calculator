@@ -356,8 +356,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			toSend := cc.ToSend // counted on, if this one is to send
 			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Event(), Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
 			rem, removed := removals[e.MemberID+"/"+e.Discipline]
-			switch {
-			case removed:
+			place := waitingPlace[e.MemberID+"/"+e.Discipline]
+			switch memberState(e, rem, removed, place) {
+			case entryRemoved, entryHeld:
 				row.Status = removalStatus(rem, e.ChangedSinceSent())
 				if rem.ForClub() && rem.RemovalNote != "" {
 					row.Note = strings.TrimSpace(row.Note + " " + rem.RemovalNote)
@@ -365,15 +366,15 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 				if rem.Removal == store.Held && e.ChangedSinceSent() && !rem.Resent {
 					cc.ToSend++
 				}
-			case !e.Sent():
+			case entryNotSent:
 				row.Status = "Not sent"
 				cc.ToSend++
-			case waitingPlace[e.MemberID+"/"+e.Discipline] > 0 && !e.ChangedSinceSent():
-				row.Status = "Sent · waiting list, " + waitingWord(waitingPlace[e.MemberID+"/"+e.Discipline])
-			case e.ChangedSinceSent():
+			case entryWaiting:
+				row.Status = "Sent · waiting list, " + waitingWord(place)
+			case entryChanged:
 				row.Status = "Changed since sent"
 				cc.ToSend++
-			case e.Checked:
+			case entryChecked:
 				row.Status = "Sent · checked ✓"
 			}
 			row.Problems = len(memberProblems(c.Competition, e, sent))
@@ -964,22 +965,12 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 				ev.Partner = &views.PartnerView{Name: e.Entry.Partner.Name, Link: origin(r) + partnerPath(e.PartnerLink), Confirmed: e.PartnerConfirmed}
 			}
 			rem, removed := removals[c.ID+"/"+d]
-			switch {
-			case removed:
-				ev.Status = removalStatus(rem, e.ChangedSinceSent())
-				if rem.ForMember() && rem.RemovalNote != "" {
-					ev.Note = strings.TrimSpace(ev.Note + " " + rem.RemovalNote)
-				}
-			case !e.Sent():
-				ev.Status = "Saved, not sent yet"
-			case e.ChangedSinceSent():
-				ev.Status = "Changed since your club sent it"
-			case e.Checked:
-				ev.Status = "Sent by your club · checked by the organiser ✓"
-			default:
-				ev.Status = "Sent by your club"
+			if removed && rem.ForMember() && rem.RemovalNote != "" {
+				ev.Note = strings.TrimSpace(ev.Note + " " + rem.RemovalNote)
 			}
-			ev.Brief, ev.BriefClass = entryBrief(e, rem, removed, len(shown.Problems), place)
+			state := memberState(e, rem, removed, place)
+			ev.Status = memberStatus(state, rem, e.ChangedSinceSent())
+			ev.Brief, ev.BriefClass = brief(state, len(shown.Problems), place, "Sent")
 			mc.Problems += len(shown.Problems)
 		}
 		key := c.ID + "/" + d
@@ -1010,32 +1001,6 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 	form := offerForm(c.Competition, offer, path+"/competitions/"+c.ID+"/offer")
 	mc.Offer = &form
 	return mc, nil
-}
-
-// entryBrief is where a member's entry stands in a word or two, for the list
-// of a competition's disciplines, and the Bulma colour of its tag. removal is
-// what the organiser did with it, if removed; problems are on its card and
-// place is its place on a waiting list (0: in).
-func entryBrief(e store.MemberEntry, removal store.Entry, removed bool, problems, place int) (string, string) {
-	switch {
-	case removed && removal.Removal == store.Removed:
-		return "Removed", "is-danger is-light"
-	case removed:
-		return "On hold", "is-warning is-light"
-	case problems == 1:
-		return "1 problem", "is-danger is-light"
-	case problems > 1:
-		return fmt.Sprintf("%d problems", problems), "is-danger is-light"
-	case place > 0 && !e.ChangedSinceSent():
-		return "Waiting list, " + waitingWord(place), "is-warning is-light"
-	case !e.Sent():
-		return "Saved, not sent", "is-info is-light"
-	case e.ChangedSinceSent():
-		return "Changed, send again", "is-warning is-light"
-	case e.Checked:
-		return "Checked", "is-success is-light"
-	}
-	return "Sent", "is-success is-light"
 }
 
 // memberClub is the name of a member's club.

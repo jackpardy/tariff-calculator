@@ -218,7 +218,14 @@ without moving anyone else. The dashboard shows "88 of 90 places" beside a
 limited event and a **Waiting lists** box; the comp sec sees "Sent ·
 waiting list, 3rd", and a member or individual "On the waiting list for
 BUCS L1: 3rd". Notifications (cards) say when an entry goes on or comes
-off a waiting list, when the organiser's change does it. The demo limits
+off a waiting list, when the organiser's change does it.
+
+Every page says where an entry stands in the same order (`stateOf` in
+`web/entrystate.go`), the comp sec's: removed, on hold, not sent, on a
+waiting list (unless changed since), changed since sent, checked, sent.
+Each page words it for its reader. So a checked entry on a waiting list
+reads as waiting everywhere: a member's status line says "Sent by your
+club", not "checked by the organiser". The demo limits
 BUCS L1 to 12 and DMT Advanced to 17.
 
 ## Entry fees

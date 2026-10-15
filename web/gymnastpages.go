@@ -176,34 +176,14 @@ func (p *competitionPages) gymnastCompetition(w http.ResponseWriter, r *http.Req
 		}
 		withSignoff(&shown, storedSignoff(c.Competition, e))
 		waiting := p.waitingOf(r.Context(), c.ID, e.ID)
-		brief, class := individualBrief(e, len(shown.Problems), waiting.Waiting)
+		word, class := brief(individualState(e, waiting.Waiting), len(shown.Problems), waiting.Waiting, "Entered")
 		gc.Events = append(gc.Events, views.GymnastEvent{
-			Row:     views.MemberEvent{Discipline: e.Entry.Discipline, Name: competitions.DisciplineName(e.Entry.Discipline), Level: e.Entry.Level, Brief: brief, BriefClass: class, Status: "Entered " + e.SentAt.In(local).Format("2 January, 15:04")},
+			Row:     views.MemberEvent{Discipline: e.Entry.Discipline, Name: competitions.DisciplineName(e.Entry.Discipline), Level: e.Entry.Level, Brief: word, BriefClass: class, Status: "Entered " + e.SentAt.In(local).Format("2 January, 15:04")},
 			Gymnast: e.Entry.Gymnast, Open: entryPath(token, e), Placement: placement(c, e.ID), Card: &shown,
 		})
 	}
 	page.Competition = &gc
 	render(w, r, views.GymnastCompetitionPage(page))
-}
-
-// individualBrief is where an individual's entry stands in a word or two, for
-// the list of a competition's disciplines, and the Bulma colour of its tag.
-func individualBrief(e store.Entry, problems, place int) (string, string) {
-	switch {
-	case e.Removal == store.Removed:
-		return "Removed", "is-danger is-light"
-	case e.Removal == store.Held:
-		return "On hold", "is-warning is-light"
-	case problems == 1:
-		return "1 problem", "is-danger is-light"
-	case problems > 1:
-		return fmt.Sprintf("%d problems", problems), "is-danger is-light"
-	case place > 0:
-		return "Waiting list, " + waitingWord(place), "is-warning is-light"
-	case e.Checked():
-		return "Checked", "is-success is-light"
-	}
-	return "Entered", "is-success is-light"
 }
 
 // gymnastEnter enters another discipline of a competition the individual has
