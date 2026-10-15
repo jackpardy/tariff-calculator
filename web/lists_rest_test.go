@@ -90,8 +90,8 @@ func TestCoachApprovalsListFilters(t *testing.T) {
 			t.Errorf("the tools have %s", want)
 		}
 	}
-	if !regexp.MustCompile(`<details class="comp-list mt-5" open><summary class="title is-5 mb-3">Coaches <span[^>]*>\(2\)</span>`).MatchString(page) {
-		t.Error("the list is a dropdown under its heading and count")
+	if !regexp.MustCompile(`<section class="comp-list mt-5"><h2 class="title is-5 mb-3">Coaches <span[^>]*>· 2</span></h2>`).MatchString(page) {
+		t.Error("the list is under its heading and count")
 	}
 	if n := strings.Count(page, "data-list-group"); n != 1 {
 		t.Errorf("one box for UCD is the one group, not %d", n)
@@ -158,8 +158,8 @@ func TestClubMembersListFilters(t *testing.T) {
 			t.Errorf("the tools have %s in %s", want, regexp.MustCompile(`(?s)data-list-tools.*?data-list-none`).FindString(page))
 		}
 	}
-	if !regexp.MustCompile(`<details class="comp-list mt-5" open><summary class="title is-5 mb-3">Members <span[^>]*>\(2\)</span>`).MatchString(page) {
-		t.Error("the list is a dropdown, open, under its heading and count")
+	if !regexp.MustCompile(`<section class="comp-list mt-5"><h2 class="title is-5 mb-3">Members <span[^>]*>· 2</span></h2>`).MatchString(page) {
+		t.Error("the list is under its heading and count")
 	}
 	rows := listRows(t, page, "members")
 	mo, zoe := rows["Mo"], rows[zoeName]

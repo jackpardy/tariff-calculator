@@ -600,6 +600,18 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .comp-level { display: flex; align-items: center; gap: 0.4rem; padding: 0.15rem 0 0.15rem 1rem; }
 .comp-counts { margin: 1rem 0; }
 .comp-manage[open] summary { margin-bottom: 0.75rem; }
+/* A page's settings, or a form for what it lists, opening in place from a
+   small button after a line saying how it's set (views/opens.templ). The
+   button says Close while open, and its chevron turns. */
+.comp-opens { margin-bottom: 1rem; }
+.comp-opens > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; }
+.comp-opens > summary::before { content: none; }
+.comp-opens-now { flex: 0 1 auto; }
+.comp-opens-button::after { content: ""; display: inline-block; width: 0.4em; height: 0.4em; margin-left: 0.5em; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-0.15em) rotate(45deg); transition: transform 0.15s; }
+.comp-opens[open] .comp-opens-button::after { transform: translateY(0.1em) rotate(-135deg); }
+@media (prefers-reduced-motion: reduce) { .comp-opens-button::after { transition: none; } }
+.comp-opens[open] .comp-opens-label, .comp-opens:not([open]) .comp-opens-close { display: none; }
+.comp-opens-form { margin-top: 0.75rem; padding: 0.25rem 0 0.25rem 1rem; border-left: 3px solid #dbdbdb; }
 .comp-table td, .comp-table th { white-space: nowrap; }
 .comp-table td:nth-child(6) { white-space: normal; min-width: 12rem; }
 .comp-table tr.has-problems td:nth-child(6) { color: #cc0f35; }
@@ -880,7 +892,6 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 /* Search and filters on lists of people (views/lists.templ): the name search, then a
    select for each filter, wrapping onto more lines on a phone, where the search takes
    the whole first line and the selects share the rest. */
-.comp-list > summary.title { display: block; }
 .comp-list-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .comp-list-controls .comp-list-search { flex: 1 1 14rem; max-width: 22rem; }
 .comp-list-controls .select, .comp-list-controls .select select { max-width: 100%; }

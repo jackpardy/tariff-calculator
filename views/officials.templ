@@ -1,6 +1,10 @@
 package views
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 // OfferForm says what a person can do as an official (ADR 0005 Decision 5).
 type OfferForm struct {
@@ -58,21 +62,19 @@ templ offerForm(f OfferForm) {
 
 // offerBox is what someone offers, with the form to change it, collapsed.
 templ offerBox(f OfferForm) {
-	<details class="box mt-4 comp-change" open?={ len(f.Problems) > 0 }>
-		<summary>
-			<strong>Judging and helping</strong>
-			<span class="has-text-grey is-size-7">
-				if f.Summary == "" {
-					· nothing offered
-				} else {
-					· { f.Summary }
-				}
-			</span>
-		</summary>
-		<div class="mt-3">
+	<div class="mt-4">
+		@changeLine("Judging and helping", offerNow(f), len(f.Problems) > 0) {
 			@offerForm(f)
-		</div>
-	</details>
+		}
+	</div>
+}
+
+// offerNow is what someone offers, in a line.
+func offerNow(f OfferForm) string {
+	if f.Summary == "" {
+		return "nothing offered"
+	}
+	return f.Summary
 }
 
 // OfficialsPage is the organiser's officials: the panels and judging rule,
@@ -142,8 +144,7 @@ templ CompetitionOfficials(p OfficialsPage) {
 			</table>
 		</div>
 		<p class="help mb-4">People who compete judge around their own turns; the timetable puts them on panels.</p>
-		<details class="box comp-manage">
-			<summary><strong>Panels and who may judge</strong></summary>
+		@changeLine("Panels and who may judge", panelsNow(p), false) {
 			<form method="post" action={ templ.SafeURL(p.Base + "/officials/settings") }>
 				<p class="help mb-2">Each discipline's panel starts as the FIG Code of Points' (a Chair of Judges Panel, 6 execution and 2 difficulty judges), plus a recorder and a marshal. Change any of it. Trampoline and synchro need HD (horizontal displacement) judges where no machine measures it; synchro starts with 2 synchronisation judges, for where no machine measures synchronisation.</p>
 				<div class="table-container">
@@ -184,8 +185,8 @@ templ CompetitionOfficials(p OfficialsPage) {
 				</fieldset>
 				<button class="button is-small" type="submit">Save</button>
 			</form>
-		</details>
-		@listSection("People", len(p.Officials), false) {
+		}
+		@listSection("People", len(p.Officials)) {
 			if len(p.Officials) == 0 {
 				<p class="has-text-grey">Nobody yet. Gymnasts offer when they enter (clubs send members' offers with their entries); add anyone else below.</p>
 			} else {
@@ -225,9 +226,9 @@ templ CompetitionOfficials(p OfficialsPage) {
 				</div>
 			}
 		}
-		<details class="box mt-4 comp-change">
-			<summary><strong>Add someone</strong> <span class="has-text-grey is-size-7">· a judge or helper who isn't entering, perhaps with no club</span></summary>
-			<form method="post" action={ templ.SafeURL(p.Base + "/officials/add") } class="mt-3">
+		<div class="mt-4">
+			@opens("", "A judge or helper who isn't entering, perhaps with no club:", "Add someone", false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/officials/add") }>
 				<div class="field">
 					<input class="input is-small" name="name" required maxlength="80" placeholder="Name" aria-label="Name"/>
 					<input class="input is-small mt-1" name="club" maxlength="80" placeholder="Club (leave blank if none)" aria-label="Club"/>
@@ -252,10 +253,35 @@ templ CompetitionOfficials(p OfficialsPage) {
 				</div>
 				<button class="button is-small is-primary" type="submit">Add</button>
 			</form>
-		</details>
+		}
+		</div>
 	}
 }
 
 templ panelInput(key, field string, value int) {
 	<td><input class="input is-small comp-num" type="number" min="0" max="20" name={ "panel-" + key + "-" + field } value={ strconv.Itoa(value) } aria-label={ key + " " + field }/></td>
+}
+
+// panelsNow says, in a line, how many sit on each discipline's panel and
+// who may judge.
+func panelsNow(p OfficialsPage) string {
+	var seats []string
+	for _, s := range p.Panels {
+		n := s.Chair + s.Execution + s.Difficulty + s.Recorder + s.Marshal
+		if s.HasHD {
+			n += s.HD
+		}
+		if s.HasSync {
+			n += s.Sync
+		}
+		seats = append(seats, fmt.Sprintf("%s %d", s.Name, n))
+	}
+	who := "anyone, up to the level they say"
+	switch p.Judge {
+	case "below":
+		who = "only levels below the one they compete at"
+	case "qualified":
+		who = "only people you mark qualified"
+	}
+	return "seats on a panel: " + strings.Join(seats, ", ") + "; who may judge: " + who
 }

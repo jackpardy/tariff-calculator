@@ -89,7 +89,7 @@ templ CompetitionApprovals(p ApprovalsPage) {
 			<div class="notification is-success is-light">{ p.Notice }</div>
 		}
 		<p class="mb-4">Only coaches you approve can sign off. You ask for at least { p.Asked }. Open each certificate to check it; clubs see your note.</p>
-		@listSection("Coaches", p.Total, false) {
+		@listSection("Coaches", p.Total) {
 			if len(p.Clubs) == 0 {
 				<p class="has-text-grey">No club has sent its coaches yet.</p>
 			} else {

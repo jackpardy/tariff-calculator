@@ -89,13 +89,14 @@ func listGroups(options []ListOption) [][]ListOption {
 	return out
 }
 
-// listSection is a list under its heading and count, as a dropdown, open
-// unless closed is set. Its children are the list's tools and the list.
-templ listSection(title string, count int, closed bool) {
-	<details class="comp-list mt-5" open?={ !closed }>
-		<summary class="title is-5 mb-3">{ title } <span class="has-text-grey is-size-6">({ strconv.Itoa(count) })</span></summary>
+// listSection is a list under its heading and count. Its children are the
+// list's tools and the list. It doesn't open and close: a page is about its
+// list (rendering.md, "Settings and forms on a page").
+templ listSection(title string, count int) {
+	<section class="comp-list mt-5">
+		<h2 class="title is-5 mb-3">{ title } <span class="has-text-grey has-text-weight-normal">· { strconv.Itoa(count) }</span></h2>
 		{ children... }
-	</details>
+	</section>
 }
 
 // listTools is the search and filters of the list with element id t.ID.
