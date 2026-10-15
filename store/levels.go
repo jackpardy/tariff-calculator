@@ -1,6 +1,7 @@
 package store
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -87,6 +88,28 @@ func (s *Store) SaveClubLevel(ctx context.Context, c Coach, source, name, set st
 		return touch(ctx, tx, c.ClubID, now)
 	})
 	return added, err
+}
+
+// UpdateClubLevel is a coach changing one of the club's levels, from the
+// level editor on the club's page: its name and requirements (set, as
+// JSON, already checked). ErrNotFound for a level that isn't the club's.
+func (s *Store) UpdateClubLevel(ctx context.Context, c Coach, levelID, name, set string) error {
+	name = clip(strings.TrimSpace(name), 80)
+	if name == "" {
+		name = "Level"
+	}
+	now := s.stamp()
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(ctx, `UPDATE club_levels SET name = $1, set_json = $2, by_name = $3, updated_at = $4 WHERE club_id = $5 AND id = $6`,
+			name, set, c.Name, now, c.ClubID, levelID)
+		if err != nil {
+			return err
+		}
+		if n, err := res.RowsAffected(); err != nil || n == 0 {
+			return cmp.Or(err, ErrNotFound)
+		}
+		return touch(ctx, tx, c.ClubID, now)
+	})
 }
 
 // SetLevelClubItems are the club skills (by id) a level tracks besides its

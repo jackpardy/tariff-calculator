@@ -1720,6 +1720,16 @@ Built 2026-10-15 ([ADR 0011](../../docs/adr/0011-club-routines-and-skill-trackin
 Decision 5; `web/levelpages.go`, `store/levels.go`, migration 42). A club's
 levels to track gymnasts against ("Club Grade 1"), in order, up to 50.
 
+- **Written on the club's page** (2026-10-15, step 3 of the [requirements
+  workflow](../roadmap.md)). The Levels section has **New level**, and each
+  level **Change** and **Copy as a new level**, opening the requirements
+  editor on a page of its own (`web/leveleditor.go`): the kinds of rule a
+  level tracks (a skill or kind of skill, several of a kind, a link: this,
+  then this, each by a different skill), the club's own named skills first
+  in every pick list ("Your club's skills", read back by the club's name for
+  them), and **Save level**, which saves it straight to the club (a new one
+  last; a change in place, `Store.UpdateClubLevel`). One copy, on any phone;
+  the ways in from the Requirements page below stay.
 - **Written on the Requirements page.** A level is requirements in the usual
   format, written in the Requirements page's editor, unchanged. Each saved set
   of requirements there has **Save to club levels** for each coach's page
