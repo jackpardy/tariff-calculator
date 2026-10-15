@@ -161,15 +161,39 @@ build on:
         Code of Points (a drill, a skill on another apparatus, a
         conditioning test): a name and an optional note, for tracking only,
         not in routines.
-   5. **Club levels** (decided 2026-10-15). Coaches make levels out of
-      skills, built-in or the club's ("Club Grade 1: seat drop, front drop,
-      ½ twist to feet…"), in order, to track gymnasts against. Each
-      gymnast sees how far through each level they are and what's left;
-      the comp sec's Members can filter by level and show "completed" and
-      "working on". A club level can start from a competition level's set
-      routine (BUCS L5's, say), so "ready for BUCS L5's set" is a club
-      level like any other. These are tracking levels, separate from the
-      competition levels the requirements engine checks routines against.
+   5. **Club levels** (decided 2026-10-15). Coaches make levels to track
+      gymnasts against ("Club Grade 1"), in order, out of **skills and
+      requirements** (decided 2026-10-15), so linking one skill into
+      another is tracked as well as each skill. This reuses the
+      requirements framework and its editor rather than adding new
+      machinery: a club level is a list of requirements in the existing
+      JSON format (`requirements.Set`), written in the requirements editor
+      with its matchers and plain-English descriptions (`describe.go`),
+      saved to the club instead of the browser. Each item is one
+      requirement:
+      - **a skill**: a matcher with its FIG notation (built-in or a club
+        skill from 4);
+      - **a kind of skill**: a matcher without one ("any back somersault",
+        "a single with a full twist");
+      - **a link**: an `includes` option of two or more matchers one
+        straight after another ("back drop, then ½ twist to feet");
+        several options mean "any of these";
+      - **how many**: `count` or `separate` ("three different singles");
+      - **a whole set routine**: `sequence`, so a club level can start
+        from a competition level's (BUCS L5's set routine, say).
+
+      **How an item counts as done.** Skill and kind-of-skill items, `count`
+      and `separate` are checked by the engine against the gymnast's
+      Can do skills, taken as a list with no order. A skill's mark counts
+      in every level that has it. A link or set routine is marked as a
+      whole, like a skill, by the gymnast or a coach, with who and when;
+      one of the gymnast's routines (from 1) that already does it (the
+      engine's `includes` or `sequence` check) is shown beside it as
+      evidence for the coach to mark. Each gymnast sees how far through
+      each level they are and what's left. The comp sec's Members can
+      filter by level and show "completed" and "working on". These are
+      tracking levels, separate from the competition levels that check a
+      single routine.
 
 **Still to decide for 2:**
 
