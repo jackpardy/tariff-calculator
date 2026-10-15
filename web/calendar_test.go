@@ -52,7 +52,7 @@ func TestCalendars(t *testing.T) {
 	entry := bucsEntry("")
 	ann := withoutQuery(redirected(t, h, join, url.Values{"name": {"Ann"}}))
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ann), ann+"/competitions/"), entry)
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 	ind := url.Values{"gymnast": {"Ivy"}}
 	for k, v := range entry {
 		ind[k] = v
@@ -134,7 +134,7 @@ func TestCalendars(t *testing.T) {
 	if !strings.Contains(page, ">Add to calendar</a>") || !strings.Contains(page, ">Club calendar</a>") {
 		t.Fatal("Ann's My competition links to her calendar and the club's")
 	}
-	if !strings.Contains(do(t, h, http.MethodGet, club, nil).Body.String(), ">Club calendar</a>") {
+	if !strings.Contains(clubEntriesPage(t, h, club), ">Club calendar</a>") {
 		t.Error("the club page links to its calendar")
 	}
 	if !strings.Contains(dayAll(t, h, ivy+"/day"), ">Add to calendar</a>") {

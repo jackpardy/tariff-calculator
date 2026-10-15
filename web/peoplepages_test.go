@@ -44,10 +44,10 @@ func peopleCompetition(t *testing.T) peopleSetup {
 	save := formAction(t, memberCompetitionPage(t, h, mo), mo+"/competitions/")
 	redirected(t, h, save, bucsEntry(""))
 	redirected(t, h, save+"/offer", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
-	comp := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/([^/"]+)/coaches`).FindStringSubmatch(do(t, h, http.MethodGet, club, nil).Body.String())[1]
+	comp := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/([^/"]+)/coaches`).FindStringSubmatch(clubCompetitionTab(t, h, club, "/coaches"))[1]
 	redirected(t, h, club+"/competitions/"+comp+"/coaches", url.Values{"coach": {annID}})
 	redirected(t, h, admin+"/coaches/"+annID, url.Values{"action": {"approve"}})
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 
 	enter := pathIn(t, settings, "/competitions/enter/")
 	entry := bucsEntry("Ivy")

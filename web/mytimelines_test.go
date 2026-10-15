@@ -18,7 +18,7 @@ func TestPersonalAndClubTimetables(t *testing.T) {
 	entry := bucsEntry("")
 	ann := withoutQuery(redirected(t, h, join, url.Values{"name": {"Ann"}}))
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ann), ann+"/competitions/"), entry)
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 	ind := url.Values{"gymnast": {"Ivy"}}
 	for k, v := range entry {
 		ind[k] = v
@@ -54,7 +54,7 @@ func TestPersonalAndClubTimetables(t *testing.T) {
 	}
 
 	// The club's: Ann named, Ivy's flight (if apart) not picked out.
-	clubPage := do(t, h, http.MethodGet, club, nil).Body.String()
+	clubPage := clubEntriesPage(t, h, club)
 	if !strings.Contains(clubPage, ">Club timetable</a>") {
 		t.Error("the club page links to its timetable")
 	}

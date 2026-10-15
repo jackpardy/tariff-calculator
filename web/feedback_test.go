@@ -82,7 +82,7 @@ func TestFeedbackFromEveryLink(t *testing.T) {
 	if coachEntry == nil {
 		t.Fatal("the coach sees Ann's entry")
 	}
-	compSec := regexp.MustCompile(`href="(` + regexp.QuoteMeta(ucd.page) + `/members/[^"]+/competitions/[^"]+)"`).FindStringSubmatch(do(t, h, http.MethodGet, ucd.page, nil).Body.String())
+	compSec := regexp.MustCompile(`href="(` + regexp.QuoteMeta(ucd.page) + `/members/[^"]+/competitions/[^"]+)"`).FindStringSubmatch(clubEntriesPage(t, h, ucd.page))
 	if compSec == nil {
 		t.Fatal("the comp sec sees Ann's entry")
 	}

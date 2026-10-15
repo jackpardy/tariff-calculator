@@ -53,7 +53,7 @@ func TestEditingKeepsMenOrWomen(t *testing.T) {
 	if got := categoryTicked(t, memberCompetitionPage(t, h, member)); got != "Women" {
 		t.Errorf("the member's entry has %q ticked", got)
 	}
-	edit := regexp.MustCompile(`href="(` + regexp.QuoteMeta(club) + `/members/[^"]+/competitions/[^"?]+)`).FindStringSubmatch(do(t, h, http.MethodGet, club, nil).Body.String())
+	edit := regexp.MustCompile(`href="(` + regexp.QuoteMeta(club) + `/members/[^"]+/competitions/[^"?]+)`).FindStringSubmatch(clubEntriesPage(t, h, club))
 	if edit == nil {
 		t.Fatal("the comp sec's Change link")
 	}

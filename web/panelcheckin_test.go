@@ -352,8 +352,15 @@ func TestNotifyAClub(t *testing.T) {
 	if strings.Contains(got["ucd@example.com"].body, club) || strings.Contains(got["bob@example.com"].body, bob) {
 		t.Errorf("no one's secret link is sent: %+v", mail.sent)
 	}
+	// The comp sec sees it on the competition's page; the coach on theirs.
+	pageOf := func(p string) string {
+		if p == club {
+			return clubEntriesPage(t, h, p)
+		}
+		return do(t, h, http.MethodGet, p, nil).Body.String()
+	}
 	for _, p := range []string{club, bob} {
-		if body := do(t, h, http.MethodGet, p, nil).Body.String(); !strings.Contains(body, deskBox) || !strings.Contains(body, text) {
+		if body := pageOf(p); !strings.Contains(body, deskBox) || !strings.Contains(body, text) {
 			t.Errorf("%s shows it: %s", p, body)
 		}
 	}

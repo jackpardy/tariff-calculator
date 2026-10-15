@@ -25,7 +25,7 @@ func TestRemovingEntriesPages(t *testing.T) {
 		redirected(t, h, formAction(t, memberCompetitionPage(t, h, m), m+"/competitions/"), entry)
 		members[name] = m
 	}
-	send := regexp.MustCompile(`action="(` + regexp.QuoteMeta(club) + `/competitions/[^"]+/send)"`).FindStringSubmatch(do(t, h, http.MethodGet, club, nil).Body.String())[1]
+	send := regexp.MustCompile(`action="(` + regexp.QuoteMeta(club) + `/competitions/[^"]+/send)"`).FindStringSubmatch(clubEntriesPage(t, h, club))[1]
 	redirected(t, h, send, url.Values{"which": {"all"}})
 	ind := url.Values{"gymnast": {"I"}}
 	for k, v := range entry {
@@ -52,7 +52,7 @@ func TestRemovingEntriesPages(t *testing.T) {
 	if csv := do(t, h, http.MethodGet, admin+"/entries.csv", nil).Body.String(); strings.Contains(csv, "\nX,") {
 		t.Error("nor in the CSV")
 	}
-	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, chip(t, views.Stopped, "Removed by the organiser")) || !strings.Contains(page, "Not paid") {
+	if page := clubEntriesPage(t, h, club); !strings.Contains(page, chip(t, views.Stopped, "Removed by the organiser")) || !strings.Contains(page, "Not paid") {
 		t.Error("the club sees X removed, and why")
 	}
 	if page := do(t, h, http.MethodGet, members["X"], nil).Body.String(); !strings.Contains(page, "Removed by the organiser") || strings.Contains(page, "Not paid") {
@@ -69,7 +69,7 @@ func TestRemovingEntriesPages(t *testing.T) {
 	}
 	changed := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-2"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, members["Y"]), members["Y"]+"/competitions/"), changed)
-	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, chip(t, views.Attention, "On hold: changed, send it again")) {
+	if page := clubEntriesPage(t, h, club); !strings.Contains(page, chip(t, views.Attention, "On hold: changed, send it again")) {
 		t.Error("the club sees Y changed, to send")
 	}
 	redirected(t, h, send, url.Values{"which": {"changed"}})
@@ -77,7 +77,7 @@ func TestRemovingEntriesPages(t *testing.T) {
 	if !strings.Contains(dash, chip(t, views.Attention, "Changed and sent again: waiting for you")) || !strings.Contains(dash, "Accept back in") {
 		t.Fatal("the organiser sees Y changed, to accept")
 	}
-	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, chip(t, views.InProgress, "Changed and sent again: waiting for the organiser")) {
+	if page := clubEntriesPage(t, h, club); !strings.Contains(page, chip(t, views.InProgress, "Changed and sent again: waiting for the organiser")) {
 		t.Error("the club sees Y sent again, waiting")
 	}
 	redirected(t, h, admin+"/entries/"+ids["Y"]+"/restore", url.Values{})

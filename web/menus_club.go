@@ -1,6 +1,7 @@
 package web
 
 import (
+	"tariffCalculator/store"
 	"tariffCalculator/views"
 )
 
@@ -32,6 +33,37 @@ func clubMenu(token, current string) []views.MenuSection {
 		{Label: "Settings", Href: clubSettingsPath(token), Current: current == clubSettings},
 	}
 	return sections
+}
+
+// The tabs of one competition's pages, in the comp sec's Competitions.
+const (
+	clubCompEntries = "entries"
+	clubCompCoaches = "coaches"
+	clubCompOffers  = "offers"
+	clubCompFees    = "fees"
+)
+
+// clubCompetitionPath is the comp sec's page for a competition: its entries.
+func clubCompetitionPath(token, competitionID string) string {
+	return clubPath(token) + "/competitions/" + competitionID
+}
+
+// clubCompetitionMenu is the comp sec's menu on a competition's pages:
+// Competitions current, with the competition's own tabs under it. Coaches
+// only where it approves coaches, Fees only where it charges.
+func clubCompetitionMenu(token string, c store.Competition, current string) []views.MenuSection {
+	page := clubCompetitionPath(token, c.ID)
+	items := []views.MenuItem{{Label: "Entries", Href: page, Current: current == clubCompEntries}}
+	if c.ApproveCoaches && c.Signoff {
+		items = append(items, views.MenuItem{Label: "Coaches", Href: page + "/coaches", Current: current == clubCompCoaches})
+	}
+	items = append(items, views.MenuItem{Label: "Judging and helping", Href: page + "/offers", Current: current == clubCompOffers})
+	if c.Fees.On() {
+		items = append(items, views.MenuItem{Label: "Fees", Href: page + "/fees", Current: current == clubCompFees})
+	}
+	menu := clubMenu(token, clubCompetitions)
+	menu[0].Items = items
+	return menu
 }
 
 // The tabs of a member's pages.

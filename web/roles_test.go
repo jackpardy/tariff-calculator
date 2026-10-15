@@ -468,7 +468,7 @@ func TestAllPeopleJoinsRoles(t *testing.T) {
 	redirected(t, h, club+"/coaches/from-member", url.Values{"member": {annID}})
 	coachID := regexp.MustCompile(regexp.QuoteMeta(club) + `/coaches/([^/"]+)/signs-off`).FindStringSubmatch(get(club + "/coaches"))[1]
 	redirected(t, h, members["Mo"]+"/coach", url.Values{"coach": {coachID}})
-	redirected(t, h, formAction(t, get(club), club+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 
 	people := get(admin + "/people")
 	if n := strings.Count(people, `data-name="Ann O&#39;Neill / Jr?"`); n != 1 {

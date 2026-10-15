@@ -91,7 +91,7 @@ func TestCoachSignoff(t *testing.T) {
 	if page := memberCompetitionPage(t, h, x); !strings.Contains(page, "Signed off by Bob") || !strings.Contains(page, "Ready") {
 		t.Error("the member sees who signed it off")
 	}
-	clubPage := do(t, h, http.MethodGet, club, nil).Body.String()
+	clubPage := clubEntriesPage(t, h, club)
 	if x, y := rowOf(t, clubPage, "X"), rowOf(t, clubPage, "Y"); !strings.HasSuffix(x[3], "Signed off Coach · Bob") || !strings.HasSuffix(y[3], "Waiting for sign-off") {
 		t.Errorf("the comp sec sees each entry's sign-off: %q, %q", x, y)
 	}

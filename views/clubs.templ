@@ -117,7 +117,7 @@ type ClubEntryRow struct {
 
 // ClubEntryEdit is the comp sec changing a member's entry on their behalf.
 type ClubEntryEdit struct {
-	Base        string
+	Back        string // the competition's entries, where Back goes
 	Club        string
 	Member      string
 	Competition CompetitionSummary
@@ -287,171 +287,256 @@ templ clubFrame(c ClubPage) {
 	}
 }
 
-// ClubAdmin is the comp sec's page: the Competitions section, where the club's
-// entries are sent.
+// ClubAdmin is the comp sec's page, the Competitions section: a row for
+// each competition the club is in, opening its own pages.
 templ ClubAdmin(c ClubPage) {
 	@clubFrame(c) {
 		if len(c.Competitions) == 0 {
 			<p class="has-text-grey">Not entered in any yet. Open the club link a competition's organiser gave you to enter the club.</p>
 		}
 		for _, comp := range c.Competitions {
-			<div class="box">
-				<h3 class="title is-6 mb-1">{ comp.Competition.Name }</h3>
-				@competitionFacts(comp.Competition)
-				@feesLine(comp.Fees)
-				@deskMessages(comp.Desk)
-				@timelineLinks("", comp.Timeline, comp.Notify, "", comp.Calendar)
-				if comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
-					// Sending is what the page is for, so it's above the entries, with
-					// sending everything again (rarely needed) as a quiet button.
-					<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/send") } class="comp-send">
-						<div class="comp-send-state">
-							if comp.ToSend > 0 {
-								@StateChip(Attention, Count(comp.ToSend, "entry to send", "entries to send"))
-							} else {
-								@StateChip(Done, "All sent")
+			<a class="box comp-member-row" href={ templ.SafeURL(c.Base + "/competitions/" + comp.ID) }>
+				<strong>{ comp.Competition.Name }</strong>
+				<span class="is-block has-text-grey is-size-7">{ comp.Competition.Date }</span>
+				<span class="is-block is-size-7">
+					{ Count(len(comp.Rows), "entry", "entries") }
+					if comp.ToSend > 0 {
+						@StateChip(Attention, Count(comp.ToSend, "to send", "to send"))
+					}
+					if n := clubProblems(comp); n > 0 {
+						@StateChip(Attention, strconv.Itoa(n)+" with problems")
+					}
+					if comp.Timeline != "" {
+						@StateChip(Done, "Timetable published")
+					}
+					if len(comp.Desk) > 0 {
+						@StateChip(Attention, "Message from the organisers")
+					}
+				</span>
+			</a>
+		}
+	}
+}
+
+// clubProblems counts a competition's entries with problems.
+func clubProblems(comp ClubCompetition) int {
+	n := 0
+	for _, r := range comp.Rows {
+		if r.Problems > 0 {
+			n++
+		}
+	}
+	return n
+}
+
+// clubCompetitionHead is the top of each of a competition's pages for the
+// comp sec, under the menu: the competition, its facts and its messages.
+templ clubCompetitionHead(comp ClubCompetition) {
+	<h2 class="title is-5 mb-2">{ comp.Competition.Name }</h2>
+	@competitionFacts(comp.Competition)
+	@deskMessages(comp.Desk)
+}
+
+// ClubCompetitionEntries is a competition's Entries: where they stand,
+// sending them, and the members' entries.
+templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
+	@clubFrame(c) {
+		@clubCompetitionHead(comp)
+		@timelineLinks("", comp.Timeline, comp.Notify, "", comp.Calendar)
+		if comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
+			// Sending is what the page is for, so it's above the entries, with
+			// sending everything again (rarely needed) as a quiet button.
+			<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/send") } class="comp-send">
+				<div class="comp-send-state">
+					if comp.ToSend > 0 {
+						@StateChip(Attention, Count(comp.ToSend, "entry to send", "entries to send"))
+					} else {
+						@StateChip(Done, "All sent")
+					}
+					<span class="comp-send-note">The organiser sees only what you send, with what members offer to judge and help with. Sending all again also takes back withdrawn entries.</span>
+				</div>
+				<div class="comp-send-actions">
+					<button class="button is-primary is-small" type="submit" name="which" value="changed" disabled?={ comp.ToSend == 0 }>
+						{ fmt.Sprintf("Send new and changed (%d)", comp.ToSend) }
+					</button>
+					<button class="button is-small is-text" type="submit" name="which" value="all" title="Sends every entry again, and takes back withdrawn ones">Send all again</button>
+				</div>
+			</form>
+		}
+		if len(comp.Rows) == 0 {
+			<p class="has-text-grey is-size-7">No member has entered yet.</p>
+		} else {
+			@listSection("Entries", len(comp.Rows)) {
+				@listTools(comp.Tools)
+				<div class="table-container">
+					<table class="table is-fullwidth is-narrow comp-table comp-club-entries comp-stack" id={ comp.Tools.ID }>
+						<thead>
+							<tr><th>Member</th><th>Level</th><th>Problems</th><th>Status</th></tr>
+						</thead>
+						<tbody>
+							for _, row := range comp.Rows {
+								<tr { row.List.Attrs()... }>
+									<td>
+										{ row.Member }
+										if row.Edit != "" {
+											<br/>
+											<a class="is-size-7" href={ templ.SafeURL(row.Edit) }>Change</a>
+										}
+									</td>
+									<td data-label="Level">{ row.Level }</td>
+									<td data-label="Problems">
+										// Empty when there are none, so a phone's card leaves the line out.
+										if row.Problems > 0 {
+											@StateChip(Attention, Count(row.Problems, "problem", "problems"))
+										}
+									</td>
+									<td data-label="Status">
+										@StateChip(row.State, row.Status)
+										if row.Video != "" {
+											<br/>
+											@StateChip(Attention, "Video "+row.Video)
+										}
+										if row.Flight != "" {
+											<br/>
+											<span class="is-size-7 has-text-info-dark">{ row.Flight }</span>
+										}
+										if row.Late != "" {
+											<br/>
+											<span class="is-size-7">Late change: { row.Late }</span>
+										}
+										if row.LateAsk != "" {
+											<br/>
+											<a class="is-size-7" href={ templ.SafeURL(row.LateAsk) }>Ask for a late change</a>
+										}
+										if row.Signoff.Status() != "" {
+											<br/>
+											<span title={ row.Signoff.Note }>
+												@StateChip(signoffState(row.Signoff))
+												if row.Signoff.By != "" {
+													@WhoChip(RoleCoach, row.Signoff.By)
+												}
+											</span>
+										}
+										if row.Note != "" {
+											<br/>
+											<span class="is-size-7 has-text-info-dark">Organiser: { row.Note }</span>
+										}
+									</td>
+								</tr>
 							}
-							<span class="comp-send-note">The organiser sees only what you send, with what members offer to judge and help with. Sending all again also takes back withdrawn entries.</span>
-						</div>
-						<div class="comp-send-actions">
-							<button class="button is-primary is-small" type="submit" name="which" value="changed" disabled?={ comp.ToSend == 0 }>
-								{ fmt.Sprintf("Send new and changed (%d)", comp.ToSend) }
-							</button>
-							<button class="button is-small is-text" type="submit" name="which" value="all" title="Sends every entry again, and takes back withdrawn ones">Send all again</button>
-						</div>
+						</tbody>
+					</table>
+				</div>
+			}
+		}
+	}
+}
+
+// ClubCompetitionCoaches is a competition's coaches to send for approval,
+// where it approves coaches.
+templ ClubCompetitionCoaches(c ClubPage, comp ClubCompetition) {
+	@clubFrame(c) {
+		@clubCompetitionHead(comp)
+		if comp.ApproveCoaches {
+			// A list with its count, each coach a row with their state in a
+			// column of its own, so the chips line up whatever the names.
+			@listSection("Coaches for this competition", len(comp.Coaches)) {
+				<p class="help mb-2">It approves coaches from their qualifications: only those it approves can sign off. Tick who to send.</p>
+				if len(comp.Coaches) == 0 {
+					<p class="is-size-7 has-text-grey">None of your coaches signs off routines yet (see <a href={ templ.SafeURL(c.Base + "/coaches") }>Coaches</a>).</p>
+				} else {
+					<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/coaches") }>
+						<table class="table is-fullwidth is-narrow comp-stack">
+							<tbody>
+								for _, k := range comp.Coaches {
+									<tr>
+										<td>
+											<label class="checkbox">
+												<input type="checkbox" name="coach" value={ k.ID } checked?={ k.Ticked }/>
+												{ k.Name }
+											</label>
+										</td>
+										<td>
+											if k.Status != "" {
+												@StateChip(k.State, k.Status)
+											}
+											if k.Changed {
+												@StateChip(Attention, "Qualifications changed since sent: send again")
+											}
+											if k.NoQualifications {
+												@StateChip(Attention, "No qualifications added")
+											}
+											if k.Note != "" {
+												<span class="is-size-7 has-text-grey">· { k.Note }</span>
+											}
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+						<button class="button is-small" type="submit">Send coaches</button>
 					</form>
 				}
-				if len(comp.Rows) == 0 {
-					<p class="has-text-grey is-size-7">No member has entered yet.</p>
-				} else {
-					@listSection("Entries", len(comp.Rows)) {
-						@listTools(comp.Tools)
-						<div class="table-container">
-							<table class="table is-fullwidth is-narrow comp-table comp-club-entries comp-stack" id={ comp.Tools.ID }>
-								<thead>
-									<tr><th>Member</th><th>Level</th><th>Problems</th><th>Status</th></tr>
-								</thead>
-								<tbody>
-									for _, row := range comp.Rows {
-										<tr { row.List.Attrs()... }>
-											<td>
-												{ row.Member }
-												if row.Edit != "" {
-													<br/>
-													<a class="is-size-7" href={ templ.SafeURL(row.Edit) }>Change</a>
-												}
-											</td>
-											<td data-label="Level">{ row.Level }</td>
-											<td data-label="Problems">
-												// Empty when there are none, so a phone's card leaves the line out.
-												if row.Problems > 0 {
-													@StateChip(Attention, Count(row.Problems, "problem", "problems"))
-												}
-											</td>
-											<td data-label="Status">
-												@StateChip(row.State, row.Status)
-												if row.Video != "" {
-													<br/>
-													@StateChip(Attention, "Video "+row.Video)
-												}
-												if row.Flight != "" {
-													<br/>
-													<span class="is-size-7 has-text-info-dark">{ row.Flight }</span>
-												}
-												if row.Late != "" {
-													<br/>
-													<span class="is-size-7">Late change: { row.Late }</span>
-												}
-												if row.LateAsk != "" {
-													<br/>
-													<a class="is-size-7" href={ templ.SafeURL(row.LateAsk) }>Ask for a late change</a>
-												}
-												if row.Signoff.Status() != "" {
-													<br/>
-													<span title={ row.Signoff.Note }>
-														@StateChip(signoffState(row.Signoff))
-														if row.Signoff.By != "" {
-															@WhoChip(RoleCoach, row.Signoff.By)
-														}
-													</span>
-												}
-												if row.Note != "" {
-													<br/>
-													<span class="is-size-7 has-text-info-dark">Organiser: { row.Note }</span>
-												}
-											</td>
-										</tr>
-									}
-								</tbody>
-							</table>
-						</div>
-					}
-				}
-				if comp.ApproveCoaches {
-					// A list with its count, each coach a row with their state in a
-					// column of its own, so the chips line up whatever the names.
-					@listSection("Coaches for this competition", len(comp.Coaches)) {
-						<p class="help mb-2">It approves coaches from their qualifications: only those it approves can sign off. Tick who to send.</p>
-						if len(comp.Coaches) == 0 {
-							<p class="is-size-7 has-text-grey">None of your coaches signs off routines yet (see <a href={ templ.SafeURL(c.Base + "/coaches") }>Coaches</a>).</p>
-						} else {
-							<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/coaches") }>
-								<table class="table is-fullwidth is-narrow comp-stack">
-									<tbody>
-										for _, k := range comp.Coaches {
-											<tr>
-												<td>
-													<label class="checkbox">
-														<input type="checkbox" name="coach" value={ k.ID } checked?={ k.Ticked }/>
-														{ k.Name }
-													</label>
-												</td>
-												<td>
-													if k.Status != "" {
-														@StateChip(k.State, k.Status)
-													}
-													if k.Changed {
-														@StateChip(Attention, "Qualifications changed since sent: send again")
-													}
-													if k.NoQualifications {
-														@StateChip(Attention, "No qualifications added")
-													}
-													if k.Note != "" {
-														<span class="is-size-7 has-text-grey">· { k.Note }</span>
-													}
-												</td>
-											</tr>
+			}
+		}
+	}
+}
+
+// ClubCompetitionOffers is what members offer to judge and help with at a
+// competition, sent with the entries.
+templ ClubCompetitionOffers(c ClubPage, comp ClubCompetition) {
+	@clubFrame(c) {
+		@clubCompetitionHead(comp)
+		if len(comp.Offers) == 0 {
+			<p class="has-text-grey mt-4">No member has offered to judge or help yet. Members say what they can do on their page for the competition.</p>
+		}
+		if len(comp.Offers) > 0 {
+			@listSection("Judging and helping", len(comp.Offers)) {
+				<p class="help mb-2">What members offer, sent with the entries.</p>
+				<div class="table-container">
+					<table class="table is-fullwidth is-narrow">
+						<tbody>
+							for _, o := range comp.Offers {
+								<tr>
+									<td>{ o.Member }</td>
+									<td class="is-size-7">{ o.Offer }</td>
+									<td>
+										if o.Edit != "" {
+											<a href={ templ.SafeURL(o.Edit) }>Change</a>
 										}
-									</tbody>
-								</table>
-								<button class="button is-small" type="submit">Send coaches</button>
-							</form>
-						}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		}
+	}
+}
+
+// ClubCompetitionFees is what the club owes a competition: the invoice's
+// lines and payments, with the invoice to print.
+templ ClubCompetitionFees(c ClubPage, comp ClubCompetition, invoice *InvoicePage) {
+	@clubFrame(c) {
+		@clubCompetitionHead(comp)
+		if invoice == nil {
+			<p class="has-text-grey mt-4">There's nothing to pay for this competition yet.</p>
+		} else {
+			<div class="comp-send">
+				<div class="comp-send-state">
+					if invoice.Settled {
+						@StateChip(Done, "Paid in full")
+					} else {
+						@StateChip(Attention, invoice.Balance+" to pay")
 					}
-				}
-				if len(comp.Offers) > 0 {
-					@listSection("Judging and helping", len(comp.Offers)) {
-						<p class="help mb-2">What members offer, sent with the entries.</p>
-						<div class="table-container">
-							<table class="table is-fullwidth is-narrow">
-								<tbody>
-									for _, o := range comp.Offers {
-										<tr>
-											<td>{ o.Member }</td>
-											<td class="is-size-7">{ o.Offer }</td>
-											<td>
-												if o.Edit != "" {
-													<a href={ templ.SafeURL(o.Edit) }>Change</a>
-												}
-											</td>
-										</tr>
-									}
-								</tbody>
-							</table>
-						</div>
-					}
-				}
+					<span class="comp-send-note">Removed, held and withdrawn entries aren't charged. If something here is wrong, ask the organiser.</span>
+				</div>
+				<div class="comp-send-actions">
+					<a class="button is-small" href={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/invoice") }>Print the invoice</a>
+				</div>
 			</div>
+			@invoiceTable(*invoice)
 		}
 	}
 }
@@ -685,7 +770,7 @@ script confirmRemove(name string) {
 templ ClubEntryEditPage(e ClubEntryEdit) {
 	@competitionLayout(e.Member + " · " + e.Competition.Name) {
 		@pageMenu(e.Menu)
-		<p class="mb-3"><a href={ templ.SafeURL(e.Base) }>← Competitions</a></p>
+		<p class="mb-3"><a href={ templ.SafeURL(e.Back) }>← { e.Competition.Name }</a></p>
 		<h1 class="title is-4">{ e.Member }</h1>
 		if e.Card != nil {
 			<p class="subtitle is-6">{ e.Competition.Name } · { e.Card.Level }</p>
@@ -899,7 +984,7 @@ templ memberEventRow(ev MemberEvent) {
 
 // ClubOfferEdit is the comp sec changing what a member offers.
 type ClubOfferEdit struct {
-	Base, Club, Member string
+	Back, Club, Member string // Back: the competition's Judging and helping
 	Competition        CompetitionSummary
 	Form               OfferForm
 	Menu               []MenuSection
@@ -909,7 +994,7 @@ type ClubOfferEdit struct {
 templ ClubOfferEditPage(e ClubOfferEdit) {
 	@competitionLayout(e.Member + " · judging and helping") {
 		@pageMenu(e.Menu)
-		<p class="mb-3"><a href={ templ.SafeURL(e.Base) }>← Competitions</a></p>
+		<p class="mb-3"><a href={ templ.SafeURL(e.Back) }>← { e.Competition.Name }</a></p>
 		<h1 class="title is-4">{ e.Member }</h1>
 		<p class="subtitle is-6">Judging and helping at { e.Competition.Name }</p>
 		@offerForm(e.Form)

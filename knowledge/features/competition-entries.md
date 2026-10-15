@@ -1465,19 +1465,36 @@ The comp sec's page has a menu of four sections (roadmap 2026-10-13, finding
 your way round; the menu is `views/menu.templ`, built for each page in
 `web/menus_club.go`), each a page of its own:
 
-- **Competitions** (`/clubs/admin/{token}`, the default): the same table as
-  the organiser's, but for the club's members only, by competition. Above
-  the entries, a row says how many are still to send (a state chip) with
-  **Send new and changed** and, quieter, **Send all again**; below them,
-  **Judging and helping** lists what members offer (a list section with its
-  count). It shows the organiser's notes,
-  shows which members are still missing a required video, and lets the comp
-  sec edit an entry on a member's behalf (**Change**, under the member's
-  name; the status wraps, so the table fits a laptop). Each competition's
-  entries are a list section (`id="entries-<competition id>"`) searched by
-  name and filtered by problems and by whether they're still to send. The
-  pages for editing a member's entry or offer are in this section; the edit
-  page names the member once, at its head.
+- **Competitions** (`/clubs/admin/{token}`, the default): a row for each
+  competition the club is in (built 2026-10-15, like a member's list): its
+  date, how many entries, and chips for how many are still to send, how
+  many have problems, the timetable published and a message from the
+  organisers. Each row opens the competition's own pages
+  (`/competitions/{id}`), with its tabs under Competitions in the menu
+  (`clubCompetitionMenu`): its name, facts and messages head each.
+  - **Entries** (the competition's page itself): the club and calendar
+    links, then a row saying how many are still to send (a state chip) with
+    **Send new and changed** and, quieter, **Send all again**, then the same
+    table as the organiser's, but for the club's members only. It shows the
+    organiser's notes, which members are still missing a required video,
+    and lets the comp sec edit an entry on a member's behalf (**Change**,
+    under the member's name; the status wraps, so the table fits a laptop).
+    The entries are a list section (`id="entries-<competition id>"`)
+    searched by name and filtered by problems and by whether they're still
+    to send.
+  - **Coaches** (`/coaches`, only where it approves coaches): the coaches
+    to send, ticked, each with where they stand.
+  - **Judging and helping** (`/offers`): what members offer, each with
+    **Change**.
+  - **Fees** (`/fees`, only where it charges): what's left to pay as a
+    chip, the invoice's lines and payments, how to pay, and **Print the
+    invoice** (the printable invoice's Back returns here).
+
+  The pages for editing a member's entry or offer are in this section too,
+  with the competition's tabs; each names the member once, at its head, and
+  goes back (and saving goes back) to Entries or Judging and helping.
+  Sending, sending coaches and entering the club through its club link land
+  on the competition's page.
 - **Members** (`/members`): the join link, the members (a coach to choose,
   and under each one's **More**: **Make a coach too**, **New link** for one
   who lost theirs, which ends the old one, and **Remove**) and the synchro

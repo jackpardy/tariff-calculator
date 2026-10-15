@@ -29,7 +29,7 @@ func TestMyCompetition(t *testing.T) {
 	if page := dayAll(t, h, day); !strings.Contains(page, "No entries for you have reached the competition yet") {
 		t.Error("nothing sent yet")
 	}
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 
 	// An individual who judges, in the same event.
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")

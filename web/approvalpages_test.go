@@ -56,13 +56,13 @@ func TestCoachApprovalPages(t *testing.T) {
 	}
 
 	// The club sends Ann (ticked, as X's coach); Bob isn't offered.
-	page = do(t, h, http.MethodGet, club, nil).Body.String()
+	page = clubCompetitionTab(t, h, club, "/coaches")
 	comp := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/([^/"]+)/coaches`).FindStringSubmatch(page)
 	if comp == nil || !regexp.MustCompile(`value="`+annID+`" checked`).MatchString(page) || strings.Contains(page, `name="coach" value="`+bobID+`"`) {
 		t.Fatal("the club's coaches to send: Ann ticked, Bob not offered")
 	}
 	redirected(t, h, club+"/competitions/"+comp[1]+"/coaches", url.Values{"coach": {annID}})
-	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, "Waiting for the organiser") {
+	if page := clubCompetitionTab(t, h, club, "/coaches"); !strings.Contains(page, "Waiting for the organiser") {
 		t.Error("the club sees Ann waiting")
 	}
 
@@ -85,7 +85,7 @@ func TestCoachApprovalPages(t *testing.T) {
 
 	// Approved, she signs off; sent, it counts.
 	redirected(t, h, open, url.Values{"signed": {"1"}})
-	send := regexp.MustCompile(`action="(` + regexp.QuoteMeta(club) + `/competitions/[^"]+/send)"`).FindStringSubmatch(do(t, h, http.MethodGet, club, nil).Body.String())[1]
+	send := regexp.MustCompile(`action="(` + regexp.QuoteMeta(club) + `/competitions/[^"]+/send)"`).FindStringSubmatch(clubEntriesPage(t, h, club))[1]
 	redirected(t, h, send, url.Values{"which": {"all"}})
 	problems := func() string { // the entry, as the organiser sees it
 		dash := do(t, h, http.MethodGet, admin, nil).Body.String()

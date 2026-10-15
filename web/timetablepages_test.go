@@ -185,7 +185,7 @@ func TestClubsSeeTheirFlights(t *testing.T) {
 	save := formAction(t, memberCompetitionPage(t, h, member), member+"/competitions/")
 	redirected(t, h, save, bucsEntry(""))
 	redirected(t, h, save, url.Values{"discipline": {"tumbling"}, "level": {"Novice"}})
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 
 	tt := admin + "/timetable"
 	redirected(t, h, tt+"/setup/days", url.Values{"day-0-name": {"Saturday"}, "day-0-start": {"08:30"}, "day-0-end": {"18:00"}})
@@ -193,7 +193,7 @@ func TestClubsSeeTheirFlights(t *testing.T) {
 	redirected(t, h, tt+"/publish", url.Values{"on": {"1"}})
 	// Each entry shows its own flight. The member's two flights can't overlap,
 	// so either may come first.
-	page := do(t, h, http.MethodGet, club, nil).Body.String()
+	page := clubEntriesPage(t, h, club)
 	flightOf := func(level string) string {
 		m := regexp.MustCompile(`<td[^>]*>` + level + `</td>.*?has-text-info-dark">([^<]*)`).FindStringSubmatch(page)
 		if m == nil {

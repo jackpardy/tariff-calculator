@@ -3,8 +3,11 @@ package web
 import (
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
+
+	"tariffCalculator/views"
 )
 
 func TestEntryFees(t *testing.T) {
@@ -20,7 +23,7 @@ func TestEntryFees(t *testing.T) {
 		m := withoutQuery(redirected(t, h, join, url.Values{"name": {name}}))
 		redirected(t, h, formAction(t, memberCompetitionPage(t, h, m), m+"/competitions/"), entry)
 	}
-	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 	ind := url.Values{"gymnast": {"Ivy"}}
 	for k, v := range entry {
 		ind[k] = v
@@ -28,8 +31,8 @@ func TestEntryFees(t *testing.T) {
 	ivy := withoutQuery(redirected(t, h, enter, ind))
 
 	// Nothing charged: nothing said.
-	if strings.Contains(do(t, h, http.MethodGet, club, nil).Body.String(), "Fees:") {
-		t.Error("no fees, no fees line")
+	if strings.Contains(clubEntriesPage(t, h, club), "/fees\"") {
+		t.Error("no fees, no Fees tab")
 	}
 	fees := admin + "/fees"
 	if loc := redirected(t, h, fees+"/settings", url.Values{"fee-": {"abc"}}); !strings.Contains(loc, "Nothing+was+changed") {
@@ -45,11 +48,10 @@ func TestEntryFees(t *testing.T) {
 	// UCD pays €25: €24 to come.
 	payer := "club:" + strings.Split(strings.Split(page, `name="payer" value="club:`)[1], `"`)[0]
 	redirected(t, h, fees+"/payments", url.Values{"payer": {payer}, "amount": {"25"}, "note": {"Transfer"}})
-	if page := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(page, "<strong>€24 to pay</strong>") {
-		t.Error("the comp sec sees what's left to pay")
+	if page := clubCompetitionTab(t, h, club, "/fees"); !strings.Contains(page, chip(t, views.Attention, "€24 to pay")) || !strings.Contains(page, "<td>Ann · BUCS L3</td>") {
+		t.Error("the comp sec sees what's left to pay, on Fees")
 	}
-	clubPage := do(t, h, http.MethodGet, club, nil).Body.String()
-	invoiceLink := club + "/competitions/" + strings.Split(strings.Split(clubPage, club+"/competitions/")[1], "/")[0] + "/invoice"
+	invoiceLink := regexp.MustCompile(`href="(` + regexp.QuoteMeta(club) + `/competitions/[^"/]+/invoice)"`).FindStringSubmatch(clubCompetitionTab(t, h, club, "/fees"))[1]
 	invoice := do(t, h, http.MethodGet, invoiceLink, nil).Body.String()
 	for _, want := range []string{"Club fee", "Ann · BUCS L3", "Bea · BUCS L3", "−€25", "IBAN IE00 TEST", "€24"} {
 		if !strings.Contains(invoice, want) {

@@ -91,7 +91,7 @@ func TestCompetitionEndToEnd(t *testing.T) {
 			if signed != len(names) {
 				t.Errorf("Coach %s signed off %d of %d", club, signed, len(names))
 			}
-			redirected(t, h, formAction(t, do(t, h, http.MethodGet, page, nil).Body.String(), page+"/competitions/"), url.Values{"which": {"all"}})
+			redirected(t, h, formAction(t, clubEntriesPage(t, h, page), page+"/competitions/"), url.Values{"which": {"all"}})
 		}
 		ivy = withoutQuery(redirected(t, h, enter, bucsEntry("Ivy")))
 		redirected(t, h, pathIn(t, do(t, h, http.MethodGet, ivy, nil).Body.String(), "/competitions/signoff/"), url.Values{"coach": {"Own coach"}, "signed": {"1"}})

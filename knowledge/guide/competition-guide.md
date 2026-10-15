@@ -153,7 +153,7 @@ pair's one routine), checked as the Routine Builder checks them.
   and a club fee if you have one) and how to pay. Each club and individual
   is listed with what's due, paid and left; record payments as they come
   (**Paid**, with the amount and a note), and print each one's **Invoice**.
-  Clubs see what they owe on their club page, with their invoice;
+  Clubs see what they owe on the competition's **Fees** tab of their club page, with their invoice;
   individuals on their entry. Removed, held and withdrawn entries aren't
   charged.
 - **Concerns:** anyone with one of your links can **Flag a concern**, about
@@ -482,31 +482,38 @@ venue setup, **Run again**.
    Members can then add their entries.
 
 Your club page is in four sections, in a menu at the top: **Competitions**,
-**Members**, **Coaches** and **Settings**. It opens on **Competitions**, which
-lists each competition with every member's entry (one per discipline they
-enter): its event, problems and status (**Not sent**, **Sent**, **Changed since
-sent**, or withdrawn), plus any note from the organiser, and missing videos and
-coach sign-off. Its problems are the ones the organiser sees: the card's, a
-missing coach sign-off where the competition needs one, and a synchro pair at
-the wrong level for their individual ones. Find a member with the search above
-each competition's entries, or show only those with problems or still to send.
-**Change**, under a member's name, changes their entry: that's part of
-Competitions too. Your club's pages save their link in your browser each time
-you open them, so **tariff.pardy.ie/competitions** lists the club.
+**Members**, **Coaches** and **Settings**. It opens on **Competitions**, a
+row for each competition your club is in, saying how many entries it has,
+how many are still to send or have problems, and whether the timetable is
+published or there's a message from the organisers. Tap one to open its
+page, which has its own tabs under the menu: **Entries**, **Coaches** (where
+it approves coaches), **Judging and helping** and **Fees** (where it
+charges). Your club's pages save their link in your browser each time you
+open them, so **tariff.pardy.ie/competitions** lists the club.
 
-- **Coaches for this competition** (where it approves coaches): tick the
-  coaches who'll sign off its entries (your members' coaches start ticked)
-  and tap **Send coaches**. Each shows whether the organiser has approved
-  them, with their note. If you change a coach's qualifications, send them
-  again for the organiser to approve again.
+- **Entries** lists every member's entry (one per discipline they enter):
+  its event, problems and status (**Not sent**, **Sent**, **Changed since
+  sent**, or withdrawn), plus any note from the organiser, and missing
+  videos and coach sign-off. Its problems are the ones the organiser sees:
+  the card's, a missing coach sign-off where the competition needs one, and
+  a synchro pair at the wrong level for their individual ones. Find a member
+  with the search above the entries, or show only those with problems or
+  still to send. **Change**, under a member's name, changes their entry.
 - **Send new and changed**, above the entries with how many are still to
   send, sends the entries the competition doesn't have yet, or that changed
   since you sent them. **Send all again**, the quiet button beside it, sends
   everyone's and takes back withdrawn ones. The organiser only sees what you
-  send, until entries close. What members offer to judge and help with is
-  listed under the entries, under **Judging and helping**, and goes with every
-  send.
-- **Change** edits a member's entry for them.
+  send, until entries close. What members offer to judge and help with goes
+  with every send.
+- **Coaches** (where it approves coaches): tick the coaches who'll sign off
+  its entries (your members' coaches start ticked) and tap **Send
+  coaches**. Each shows whether the organiser has approved them, with their
+  note. If you change a coach's qualifications, send them again for the
+  organiser to approve again.
+- **Judging and helping** lists what each member offers; **Change** corrects
+  it.
+- **Fees** says what's left to pay, with the invoice's lines, payments and
+  how to pay; **Print the invoice** opens it to print or save as a PDF.
 - **Members** (its own section): the **Join link**, then each member: choose
   their coach from the list. Under **More** beside them, give a member who
   lost their link a **New link** (their old one stops working, and the new

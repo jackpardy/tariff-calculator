@@ -134,7 +134,7 @@ went from 65 ms and 88 MB allocated to 6 ms and 12 MB, the dashboard from
 | `POST /competitions/admin/{token}/fees/payments` | `payer` (`club:<id>` or `entry:<id>`), `amount`, `note` | Records a payment |
 | `POST /competitions/admin/{token}/fees/payments/{id}/remove` | — | Removes a payment |
 | `GET /competitions/admin/{token}/fees/invoice` | `payer` | A payer's invoice, to print |
-| `GET /clubs/admin/{token}/competitions/{id}/invoice`, `/competitions/entry/{token}/invoice` | — | The club's, or an individual's, invoice |
+| `GET /clubs/admin/{token}/competitions/{id}/invoice`, `/competitions/entry/{token}/invoice` | — | The club's, or an individual's, invoice, to print; Back goes to the club's Fees tab |
 | `POST /competitions/admin/{token}/links` | `name`, `kind` (`cards`, `chair`, `timetable`, `everything`) | Makes a helper's link (ADR 0009) and shows it once |
 | `POST /competitions/admin/{token}/links/{id}/remove` | — | Stops a helper's link working |
 | `POST /competitions/admin/{token}/ties/remove` | `id` (the tie) | Stops someone's own link opening these pages through the admin link or a helper's (organiser only) |
@@ -161,12 +161,14 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET /competitions/entry/{token}/day` | `notice` | My competition, for someone entering on their own (all their entries, matched by name) |
 | `POST /competitions/entry/{token}/here` | — | "I'm here for the rest": a scratched individual clears both scratch warnings for themselves, then goes back to My competition with a notice; only once the timetable is published |
 | `GET /competitions` | — | The competitions, clubs and entries this browser has links to |
-| `GET`, `POST /competitions/club/{token}` | `clubAdmin` (a club's admin link, or its token) | A competition's club link: a comp sec enters their club |
+| `GET`, `POST /competitions/club/{token}` | `clubAdmin` (a club's admin link, or its token) | A competition's club link: a comp sec enters their club, then lands on the club's page for the competition |
 | `GET /clubs/new`, `POST /clubs` | `name` | Creates a club: 303 to its page with `?new=created`; 429 after 5 an hour from one address |
-| `GET /clubs/admin/{token}` | optional `new`, `notice` | The comp sec's Competitions section (the default): each competition the club is in, with its members' entries |
+| `GET /clubs/admin/{token}` | optional `new`, `notice` | The comp sec's Competitions section (the default): a row for each competition the club is in (entries, to send, with problems, timetable published, messages), opening its page |
+| `GET /clubs/admin/{token}/competitions/{id}` | optional `notice` | The comp sec's page for one competition, its **Entries** tab: where they stand, sending them, and the members' entries; 404 if the club isn't entered |
+| `GET /clubs/admin/{token}/competitions/{id}/coaches`, `/offers`, `/fees` | optional `notice` | Its other tabs: the coaches to send for approval (404 unless it approves coaches), what members offer to judge and help with, and what the club owes with the invoice's lines (404 unless it charges) |
 | `GET /clubs/admin/{token}/members`, `/coaches`, `/settings` | optional `notice` | The comp sec's other sections: the join link, members and synchro entries made with them; the coaches; replacing the admin link and deleting the club. Each has the section menu |
-| `POST /clubs/admin/{token}/competitions/{id}/send` | `which` (`changed` or `all`) | Sends new and changed entries, or all again (taking back withdrawn ones) |
-| `GET`, `POST /clubs/admin/{token}/members/{member}/competitions/{id}` | as entering, without `gymnast` | Changes a member's entry on their behalf |
+| `POST /clubs/admin/{token}/competitions/{id}/send` | `which` (`changed` or `all`) | Sends new and changed entries, or all again (taking back withdrawn ones); back to the competition's Entries |
+| `GET`, `POST /clubs/admin/{token}/members/{member}/competitions/{id}` | as entering, without `gymnast` | Changes a member's entry on their behalf; saving goes back to the competition's Entries |
 | `POST /clubs/admin/{token}/members/{member}/new-link` | — | The page with the member's new link, shown once |
 | `POST /clubs/admin/{token}/members/{member}/remove` | — | Removes the member and their entries |
 | `POST /clubs/admin/{token}/replace-link`, `/delete` | `confirm=1` to delete | As for a competition |
@@ -220,7 +222,7 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST /competitions/admin/{token}/officials/settings` | `judge` (`""`, `below`, `qualified`), `panel-<discipline>-<role>` | Panels per discipline and who may judge what |
 | `POST /competitions/admin/{token}/officials/add` | `name`, `club`, and an offer | Adds a judge or helper |
 | `POST /competitions/admin/{token}/officials/{id}/qualified`, `/remove` | `on` | Marks someone qualified; removes someone the organiser added |
-| `POST /clubs/member/{token}/competitions/{id}/offer`, `GET`/`POST /clubs/admin/{token}/members/{member}/competitions/{id}/offer`, `POST /competitions/entry/{token}/offer` | `judge-<discipline>`, `upto-<discipline>`, `chair-<discipline>`, `recorder`, `marshal` | What a member, the comp sec for a member, or an individual offers to judge and help with |
+| `POST /clubs/member/{token}/competitions/{id}/offer`, `GET`/`POST /clubs/admin/{token}/members/{member}/competitions/{id}/offer`, `POST /competitions/entry/{token}/offer` | `judge-<discipline>`, `upto-<discipline>`, `chair-<discipline>`, `recorder`, `marshal` | What a member, the comp sec for a member, or an individual offers to judge and help with (the comp sec back to the competition's Judging and helping) |
 | `POST /competitions/admin/{token}/split` | `split` (`""`, `all`, `some`), `splitLevel` | Which levels rank men and women separately (also `split=all` on `POST /competitions`); entries then take `category` |
 | `GET /competitions/admin/{token}/timetable/setup` | `notice` | The timetable's Setup page: days and areas, timings and rest, blocked time, your rules, and **Plan**. The setup forms below come back to it |
 | `GET /competitions/admin/{token}/timetable` | `notice` | The timetable: whether it's published (Publish, Discard, Unpublish, and Print's sheets), what to look at in the flights and the officials, Find a name with the jumps to each day and area, each day's areas, unplaced entries; before planning, a pointer to Setup. Each form on it also posts `version`, the draft's version as the page showed it: the posts below that carry it are refused with "The timetable changed since you opened this page; nothing was changed." if the draft has changed since, and every change to the draft is read and saved in one transaction |
@@ -266,7 +268,7 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET /competitions/admin/{token}/entry-coaches/{entry}/certificate` | — | An individual's coach's certificate |
 | `POST /competitions/admin/{token}/remove` | `entry` (repeated), `action` (`hold` to hold rather than remove), `note`, `to` (who the note is for: the club, the member or both) | Removes or holds the ticked entries, with a note |
 | `POST /competitions/admin/{token}/entries/{id}/restore` | — | Puts a removed or held entry back |
-| `POST /clubs/admin/{token}/competitions/{id}/coaches` | `coach` (ids, repeated) | Sends the ticked coaches to the competition for approval |
+| `POST /clubs/admin/{token}/competitions/{id}/coaches` | `coach` (ids, repeated) | Sends the ticked coaches to the competition for approval; back to its Coaches tab |
 | `POST /clubs/admin/{token}/coaches/{coach}/qualifications` | `qualification` (its key), `certificate` (a file, multipart, up to 3 MB) | Adds a qualification with its certificate to a coach |
 | `POST /clubs/admin/{token}/coaches/{coach}/qualifications/{q}/remove` | — | Removes a coach's qualification and its certificate |
 | `GET /clubs/admin/{token}/coaches/{coach}/qualifications/{q}/certificate` | — | A coach's certificate, for the comp sec |

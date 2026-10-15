@@ -146,7 +146,7 @@ func aClub(t *testing.T, h http.Handler, admin, name string, entered bool, membe
 		}
 	}
 	if entered && len(members) > 0 {
-		redirected(t, h, formAction(t, do(t, h, http.MethodGet, c.page, nil).Body.String(), c.page+"/competitions/"), url.Values{"which": {"all"}})
+		redirected(t, h, formAction(t, clubEntriesPage(t, h, c.page), c.page+"/competitions/"), url.Values{"which": {"all"}})
 	}
 	return c
 }

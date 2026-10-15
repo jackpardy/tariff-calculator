@@ -38,6 +38,8 @@ func notifyPageOf(t *testing.T, h http.Handler, page, prefix string) string {
 	body := ""
 	if strings.HasPrefix(page, "/clubs/member/") {
 		body = memberCompetitionPage(t, h, page)
+	} else if strings.HasPrefix(page, "/clubs/admin/") {
+		body = clubEntriesPage(t, h, page)
 	} else {
 		body = do(t, h, http.MethodGet, page, nil).Body.String()
 	}
@@ -137,7 +139,7 @@ func TestDeskMessageToAClub(t *testing.T) {
 			}
 		}
 	}
-	if body := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(body, deskBox) || !strings.Contains(body, "Warm-up is moved to hall 2") {
+	if body := clubEntriesPage(t, h, club); !strings.Contains(body, deskBox) || !strings.Contains(body, "Warm-up is moved to hall 2") {
 		t.Error("the club's page shows the message")
 	}
 
@@ -159,7 +161,7 @@ func TestDeskMessageToAClub(t *testing.T) {
 	if body := memberCompetitionPage(t, h, members["Bea"]); strings.Contains(body, "Your coach is looking for you") {
 		t.Error("Bea isn't shown what is for Ann")
 	}
-	if body := do(t, h, http.MethodGet, club, nil).Body.String(); !strings.Contains(body, "Your coach is looking for you") {
+	if body := clubEntriesPage(t, h, club); !strings.Contains(body, "Your coach is looking for you") {
 		t.Error("the club is shown what is for its member")
 	}
 }

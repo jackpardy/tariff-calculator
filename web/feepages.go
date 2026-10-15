@@ -282,7 +282,7 @@ func (p *competitionPages) clubInvoice(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	p.invoice(w, r, c, clubPayer(club.ID), clubPath(r.PathValue("token")))
+	p.invoice(w, r, c, clubPayer(club.ID), clubCompetitionPath(r.PathValue("token"), c.ID)+"/fees")
 }
 
 // individualInvoice is an individual's invoice for their entry.
@@ -296,14 +296,25 @@ func (p *competitionPages) individualInvoice(w http.ResponseWriter, r *http.Requ
 
 // invoice shows a payer's invoice, to print.
 func (p *competitionPages) invoice(w http.ResponseWriter, r *http.Request, c store.Competition, key, back string) {
-	a, ok, err := p.accountOf(r.Context(), c, key)
+	page, ok, err := p.invoicePage(r.Context(), c, key, back)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	if !ok || !c.Fees.On() {
+	if !ok {
 		message(w, r, http.StatusNotFound, "No invoice", "There's nothing to pay for this competition yet.")
 		return
+	}
+	render(w, r, views.Invoice(*page))
+}
+
+// invoicePage is a payer's invoice for a competition (key: the club's or
+// the individual's), with back where its page's Back goes; not ok while
+// there's nothing to pay for.
+func (p *competitionPages) invoicePage(ctx context.Context, c store.Competition, key, back string) (*views.InvoicePage, bool, error) {
+	a, ok, err := p.accountOf(ctx, c, key)
+	if err != nil || !ok || !c.Fees.On() {
+		return nil, false, err
 	}
 	f := c.Fees
 	page := views.InvoicePage{Competition: summary(c.Competition, p.now()), Back: back, To: a.name, Instructions: f.Instructions,
@@ -314,5 +325,5 @@ func (p *competitionPages) invoice(w http.ResponseWriter, r *http.Request, c sto
 	for _, pay := range a.payments {
 		page.Payments = append(page.Payments, views.PaymentView{Amount: f.Money(pay.Amount), Note: pay.Note, At: pay.At.In(local).Format("2 January")})
 	}
-	render(w, r, views.Invoice(page))
+	return &page, true, nil
 }
