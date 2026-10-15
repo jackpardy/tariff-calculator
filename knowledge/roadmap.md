@@ -113,7 +113,8 @@ build on:
 1. **Routines on your page** (new; the foundation for 2 and for clubs 6).
    **Built 2026-10-15** ([routines on your page](features/competition-entries.md#routines-on-your-page-adr-0011)).
    Each routine is checked against what it was checked against in the
-   builder; checking it against a level the coach picks is left for later.
+   builder; a coach can check it against a level they pick, and add
+   routines to a gymnast's page (built 2026-10-15).
    - **Member:** a **Routines** tab (in `memberMenu`) with routines kept on
      the server: open one in the routine builder, rename, delete. The
      builder gets **Save to my page** when a member's link is saved in this
@@ -152,8 +153,8 @@ build on:
       3 Oct", "Learning · marked by you"). Each side keeps its own mark;
       the coach can filter for the gymnast's marks they haven't made the
       same, to confirm. The skills in the gymnast's routines (from 1) are
-      offered first. Still to do: a routine with a skill not yet marked Can
-      do saying so to the coach.
+      offered first. A routine with a skill no coach has marked Can do
+      says so to the coach (built 2026-10-15).
    3. **Who sees it** (decided 2026-10-15): the gymnast, the coaches who
       see them, and the comp sec, at least. The comp sec can open it to
       **every member of the club** (a setting, off to start with). The
@@ -202,8 +203,9 @@ build on:
       one of the gymnast's routines (from 1) that already does it (the
       engine's `includes` or `sequence` check) is shown beside it as
       evidence for the coach to mark. Each gymnast sees how far through
-      each level they are and what's left. The comp sec's Members can
-      filter by level and show "completed" and "working on". These are
+      each level they are and what's left. The comp sec's Members, and a
+      coach's Gymnasts, filter by level, "completed" (by a coach's marks)
+      and "working on" (built 2026-10-15). These are
       tracking levels, separate from the competition levels that check a
       single routine.
 

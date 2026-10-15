@@ -355,32 +355,8 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 	for _, c := range other {
 		clubItems[c.Item()] = c
 	}
-	// A skill's marks, both sides, in the order marks come (newest first): a
-	// catalog skill's, or one of the club's own to track.
-	var items []*marked
-	byItem := map[string]*marked{}
-	levelMarks := map[string]map[string]store.Mark{} // a level's items marked as a whole, by item
-	for _, k := range marks {
-		if strings.HasPrefix(k.Item, levelItemPrefix) {
-			if levelMarks[k.Item] == nil {
-				levelMarks[k.Item] = map[string]store.Mark{}
-			}
-			levelMarks[k.Item][k.Side] = k
-			continue
-		}
-		it := byItem[k.Item]
-		if it == nil {
-			it = &marked{data: k.Skill, sides: map[string]store.Mark{}}
-			if c, ok := clubItems[k.Item]; ok {
-				it.club = &c
-			} else if json.Unmarshal([]byte(k.Skill), &it.skill) != nil {
-				continue
-			}
-			byItem[k.Item] = it
-			items = append(items, it)
-		}
-		it.sides[k.Side] = k
-	}
+	t := trackingOf(marks, clubItems)
+	items, byItem := t.items, t.byItem
 	side := func(k store.Mark, ok bool) *views.SideMark {
 		if !ok {
 			return nil
@@ -446,16 +422,6 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 	if err != nil {
 		return views.SkillsPart{}, err
 	}
-	// The skills each side can do, and is learning, for the levels.
-	sideSkills := map[string]map[string][]skills.TrampolineSkill{store.SideGymnast: {}, store.SideCoach: {}}
-	for _, it := range items {
-		if it.club != nil {
-			continue
-		}
-		for s, k := range it.sides {
-			sideSkills[s][k.State] = append(sideSkills[s][k.State], it.skill)
-		}
-	}
 	levels, err := p.st.ClubLevels(ctx, m.ClubID)
 	if err != nil {
 		return views.SkillsPart{}, err
@@ -464,7 +430,7 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 	if viewer.gymnast {
 		gymnastName = "You"
 	}
-	part.Levels = levelsProgress(levels, clubItems, levelMarks, byItemSides(byItem), sideSkills, kept, gymnastName, fill)
+	part.Levels = levelsProgress(levels, clubItems, t, kept, gymnastName, fill)
 	if action == "" {
 		return part, nil
 	}
@@ -643,11 +609,63 @@ type marked struct {
 	sides map[string]store.Mark
 }
 
-// byItemSides is each item's marks, both sides, by item.
-func byItemSides(byItem map[string]*marked) map[string]map[string]store.Mark {
-	out := map[string]map[string]store.Mark{}
-	for item, it := range byItem {
-		out[item] = it.sides
+// tracking is a member's marks sorted for tracking them.
+type tracking struct {
+	// items are the skills marked, a catalog skill's or one of the club's own
+	// to track, each with both sides' marks, in the order marks come (newest
+	// first); byItem has them by item.
+	items  []*marked
+	byItem map[string]*marked
+	// levelMarks are the club levels' items marked as a whole, both sides,
+	// by item.
+	levelMarks map[string]map[string]store.Mark
+	// sideSkills are the catalog skills each side marked, by side and state.
+	sideSkills map[string]map[string][]skills.TrampolineSkill
+}
+
+// trackingOf sorts a member's marks (newest first, as MemberMarks gives
+// them), with the club's own skills to track by item (clubItems).
+func trackingOf(marks []store.Mark, clubItems map[string]store.ClubSkill) tracking {
+	t := tracking{byItem: map[string]*marked{}, levelMarks: map[string]map[string]store.Mark{},
+		sideSkills: map[string]map[string][]skills.TrampolineSkill{store.SideGymnast: {}, store.SideCoach: {}}}
+	for _, k := range marks {
+		if strings.HasPrefix(k.Item, levelItemPrefix) {
+			if t.levelMarks[k.Item] == nil {
+				t.levelMarks[k.Item] = map[string]store.Mark{}
+			}
+			t.levelMarks[k.Item][k.Side] = k
+			continue
+		}
+		it := t.byItem[k.Item]
+		if it == nil {
+			it = &marked{data: k.Skill, sides: map[string]store.Mark{}}
+			if c, ok := clubItems[k.Item]; ok {
+				it.club = &c
+			} else if json.Unmarshal([]byte(k.Skill), &it.skill) != nil {
+				continue
+			}
+			t.byItem[k.Item] = it
+			t.items = append(t.items, it)
+		}
+		it.sides[k.Side] = k
 	}
-	return out
+	for _, it := range t.items {
+		if it.club != nil {
+			continue
+		}
+		for s, k := range it.sides {
+			if t.sideSkills[s] != nil {
+				t.sideSkills[s][k.State] = append(t.sideSkills[s][k.State], it.skill)
+			}
+		}
+	}
+	return t
+}
+
+// sides is an item's marks, both sides ("" for none).
+func (t tracking) sides(item string) map[string]store.Mark {
+	if it, ok := t.byItem[item]; ok {
+		return it.sides
+	}
+	return nil
 }

@@ -1587,6 +1587,29 @@ own in the browser; nothing is copied unless the member asks.
   routines, checked, with **Your note** on each: the member sees it under
   the coach's role chip (`WhoChip(RoleCoach, name)`), and "written before the routine last changed" once it's
   older than the routine. A coach who doesn't see the member gets 404.
+  Also on each routine, for the coach (built 2026-10-15):
+  - **Skills not marked Can do.** The skills in it that no coach has marked
+    Can do (the gymnast's own marks don't count), each once, matched with
+    `TrampolineSkill.Equal` as marks are (`notMarkedCan`): an Attention chip
+    in the row ("1 skill not marked Can do") and their names, by the club's
+    name where it has one, with a link to the gymnast's Skills. The member
+    isn't shown this.
+  - **Check against a level the coach chooses.** A choice of the club's
+    levels and the built-in sets, by group (`checkChoices`), sent as `GET`
+    with `routine` and `against` (`club:<id>` or `builtin:<id>`): that
+    routine opens checked against it, as the routine builder checks one,
+    and its Open in the Routine Builder link carries it. Anything else
+    shows the routine as it was checked.
+- **A coach adding routines.** The coach's page for a gymnast has **Add
+  routines from this browser** (the same list as the member's, unticked to
+  start with, `data-keep-unticked`), posting to
+  `/clubs/coach/{token}/gymnasts/{member}/routines` (`AddRoutinesAsCoach`,
+  migration 43). The routine is the member's, kept with `added_by` (the
+  coach's id) and `added_name`, and shows "added it" under the coach's role
+  chip; the member renames or deletes it as their own. Adding the same
+  browser routine again changes only the one that coach added, never the
+  member's own (the update matches `added_by` as well as the source), and
+  the member saving theirs never changes a coach's.
 - **The comp sec.** Members shows "3 routines" beside a member who keeps
   any, opening them to look at (no note, no changes).
 - Routines go with the member when they're removed, and with the club.
@@ -1707,6 +1730,13 @@ levels to track gymnasts against ("Club Grade 1"), in order, up to 50.
     link in two levels is one item); a kept routine that already does it is
     named beside it ("Done in Drops"), for the coach to mark;
   - the club's own skills to track are their marks.
+- **Filtering lists by level** (built 2026-10-15). The comp sec's Members
+  and a coach's Gymnasts have a **Level** filter where the club has levels
+  (`levelFilter`): for each level, **completed** (every item Can do on a
+  coach's side) and **working on** (something marked on either side, not
+  completed), grouped by level. Each member's standing is worked out as
+  their Skills page does it (`levelStandings`: `store.ClubMarks`,
+  `trackingOf` and `levelsProgress`), only for members with marks.
 
 ## Sharing club levels (ADR 0011)
 

@@ -190,7 +190,8 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET /clubs/coach/{token}` | — | A coach's page: each competition's entries they see, and their sign-off |
 | `GET`, `POST /clubs/coach/{token}/members/{member}/competitions/{id}` | `signed` (`1`/`0`), `note` | One entry, checked, to sign off or say not yet |
 | `GET /clubs/coach/{token}/gymnasts` | optional `notice` | A coach's Gymnasts: the members they see, with how many routines each keeps |
-| `GET /clubs/coach/{token}/gymnasts/{member}` | optional `notice` | One of them, with their kept routines, each checked, and a note on each; 404 for a member the coach doesn't see |
+| `GET /clubs/coach/{token}/gymnasts/{member}` | optional `notice`; `routine` and `against` (`club:<level id>` or `builtin:<id>`) | One of them, with their kept routines, each checked, a note on each, the skills in each no coach has marked Can do, and a choice of level to check each against: `routine` opens checked against `against`; 404 for a member the coach doesn't see |
+| `POST /clubs/coach/{token}/gymnasts/{member}/routines` | `routines` (as `POST /clubs/member/{token}/routines`) | A coach adds routines to the gymnast's page, kept as the coach's: the same browser routine again changes only theirs. Back to the gymnast; 404 for a member the coach doesn't see |
 | `POST /clubs/coach/{token}/gymnasts/{member}/routines/{routine}/note` | `note` (`""` clears it) | The coach's note on a routine, which the member sees with the coach's name |
 | `GET /clubs/admin/{token}/members/{member}/routines` | — | The comp sec's view of a member's kept routines, from Members |
 | `GET /clubs/member/{token}/skills` | optional `q` (a skill search), `notice` | A member's Skills tab (ADR 0011): what they can do and are learning, who marked each, and skills to mark: the search's, their routines', the catalog's |
