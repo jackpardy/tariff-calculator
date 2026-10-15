@@ -626,12 +626,18 @@ var migrations = []string{
 	// holds their secret link, and only links' hashes are kept (ADR 0004).
 	// The column stays, empty, as dropping it means rebuilding the table.
 	`UPDATE notify_subscriptions SET page = '';`,
+
+	// 34: a club's coach is keyed by their record, not their club and name
+	// as typed (coachKeysByRecord): the keys saved under the old form move
+	// to the new. Nothing in the schema changes.
+	`SELECT 1;`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run
 // after that migration's SQL, in its transaction.
 var migrationSteps = map[int]func(context.Context, *sql.Tx) error{
 	30: individualsFromEntries,
+	34: coachKeysByRecord,
 }
 
 // rebuilds are the migrations, by version, that rebuild a table, so run

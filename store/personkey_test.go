@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 )
@@ -119,5 +120,52 @@ func TestEntryCoachKey(t *testing.T) {
 		if got := c.e.CoachKey(); got != c.want {
 			t.Errorf("%s: %q, want %q", c.name, got, c.want)
 		}
+	}
+}
+
+// Migration 34 moves the keys saved for a club's coaches, by club and name,
+// to their records, unless two coaches had the key.
+func TestCoachKeysByRecord(t *testing.T) {
+	dir := t.TempDir()
+	all := migrations
+	migrations = all[:33]
+	old, err := Open(ctx, dir)
+	if err != nil {
+		migrations = all
+		t.Fatal(err)
+	}
+	now := time.Date(2027, 1, 10, 12, 0, 0, 0, time.UTC)
+	old.now = func() time.Time { return now }
+	comp, _, err := old.CreateCompetition(ctx, competition())
+	must(t, err)
+	club, _, _ := old.CreateClub(ctx, "UCD")
+	must(t, old.AttachClub(ctx, club.ID, comp.ID))
+	pat, _, _ := old.CreateCoach(ctx, club.ID, "Pat Kelly")
+	old.CreateCoach(ctx, club.ID, "Sam")
+	old.CreateCoach(ctx, club.ID, "sam")
+	patKey, samKey := "c:"+club.ID+":pat kelly", "c:"+club.ID+":sam"
+	_, err = old.db.Exec(`UPDATE competitions SET timetable = $1 WHERE id = $2`, `{"rules":[{"person":"`+patKey+`"},{"person":"`+samKey+`"}]}`, comp.ID)
+	must(t, err)
+	_, err = old.db.Exec(`INSERT INTO desk_messages (id, competition_id, text, audience, people, clubs, who, at) VALUES ('d1', $1, 'Hi', 'Pat', $2, '[]', 'Desk', '')`,
+		comp.ID, `["`+patKey+`"]`)
+	must(t, err)
+	_, err = old.db.Exec(`INSERT INTO scratch_clears (competition_id, person, kind, who, at) VALUES ($1, $2, 'officiate', 'Desk', '')`, comp.ID, patKey)
+	must(t, err)
+	old.Close()
+	migrations = all
+
+	s, err := Open(ctx, dir)
+	must(t, err)
+	defer s.Close()
+	var timetable, people, cleared string
+	must(t, s.db.QueryRow(`SELECT timetable FROM competitions WHERE id = $1`, comp.ID).Scan(&timetable))
+	must(t, s.db.QueryRow(`SELECT people FROM desk_messages WHERE id = 'd1'`).Scan(&people))
+	must(t, s.db.QueryRow(`SELECT person FROM scratch_clears WHERE competition_id = $1`, comp.ID).Scan(&cleared))
+	want := CoachKey(pat.ID)
+	if !strings.Contains(timetable, `"`+want+`"`) || strings.Contains(timetable, patKey) || !strings.Contains(people, want) || cleared != want {
+		t.Errorf("Pat's saved keys are by record: %s %s %s", timetable, people, cleared)
+	}
+	if !strings.Contains(timetable, samKey) {
+		t.Errorf("the key two Sams had stays: %s", timetable)
 	}
 }

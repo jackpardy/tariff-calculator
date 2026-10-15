@@ -1,6 +1,10 @@
 package store
 
-import "strings"
+import (
+	"context"
+	"database/sql"
+	"strings"
+)
 
 // Person keys (ADR 0005 Decision 4, ADR 0010) name someone the same way
 // wherever they appear in a competition: in its entries, its timetable's
@@ -81,4 +85,55 @@ var keyedJSON = []struct{ table, column, competition string }{
 var keyedRows = []struct{ table, also string }{
 	{"scratch_clears", "kind"},
 	{"official_checkins", "flight"},
+}
+
+// coachKeysByRecord moves the keys each competition saved for a club's
+// coaches from the club and name as typed to the coach's record (migration
+// 34): every coach of a club in the competition by their name, and each
+// sign-off by the name it was typed under. A key that two of a club's
+// coaches had (two of one name) stays as it was, as nothing says whose it
+// was.
+func coachKeysByRecord(ctx context.Context, tx *sql.Tx) error {
+	rows, err := tx.QueryContext(ctx, `SELECT cc.competition_id, co.club_id, co.name, co.id FROM coaches co
+			JOIN club_competitions cc ON cc.club_id = co.club_id
+		UNION SELECT e.competition_id, co.club_id, co.name, co.id FROM entries e JOIN coaches co ON co.club_id = e.club_id
+		UNION SELECT competition_id, club_id, signed_by, signed_coach FROM entries
+			WHERE NOT individual AND club_id IS NOT NULL AND signed_coach <> '' AND signed_by <> ''`)
+	if err != nil {
+		return err
+	}
+	type old struct{ competition, key string }
+	coaches := map[old]map[string]bool{} // old key → the coaches it was
+	var order []old
+	for rows.Next() {
+		var competition, club, name, coach string
+		if err := rows.Scan(&competition, &club, &name, &coach); err != nil {
+			rows.Close()
+			return err
+		}
+		k := old{competition, clubCoachNameKey(club, name)}
+		if k.key == "" {
+			continue
+		}
+		if coaches[k] == nil {
+			coaches[k] = map[string]bool{}
+			order = append(order, k)
+		}
+		coaches[k][coach] = true
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, k := range order {
+		if len(coaches[k]) != 1 {
+			continue
+		}
+		for coach := range coaches[k] {
+			if err := renameKey(ctx, tx, k.competition, k.key, CoachKey(coach)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
