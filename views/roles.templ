@@ -98,12 +98,14 @@ templ tiesBox(remove string, ties []TieView, none string) {
 	</div>
 }
 
-// otherLinksBox lists the person's other roles and adds more.
+// otherLinksBox lists the person's other roles and adds more: a section
+// with a plain heading, the roles as rows, and the form to add another
+// opening from a button (rendering.md, "Settings and forms on a page").
 templ otherLinksBox(o OtherLinks) {
-	<div class="box comp-other-links" id="other-links">
-		<h2 class="title is-6 mb-2">Your other links</h2>
+	<section class="comp-other-links mt-5" id="other-links">
+		<h2 class="title is-5 mb-2">Your other links</h2>
 		if len(o.Roles) == 0 {
-			<p class="is-size-7 mb-3">If you have another link here, such as a coach's, your club's competition secretary (comp sec) link, a competition you entered on your own or one you help run, add it below. Then this link opens all of them, with a tab for each.</p>
+			<p class="is-size-7 mb-3">If you have another link here, such as a coach's, your club's competition secretary (comp sec) link, a competition you entered on your own or one you help run, add it. Then this link opens all of them, with a tab for each.</p>
 		} else {
 			<p class="is-size-7 mb-2">This link also opens these, with a tab for each:</p>
 			<ul class="mb-3">
@@ -119,19 +121,21 @@ templ otherLinksBox(o OtherLinks) {
 				}
 			</ul>
 		}
-		<form method="post" action={ templ.SafeURL(o.Add) }>
-			<label class="label is-small" for="other-link">Add your other link</label>
-			<div class="field has-addons">
-				<div class="control is-expanded">
-					<input class="input is-small" id="other-link" name="link" required placeholder="Paste the link" autocomplete="off"/>
+		@opens("", "", "Add a link", false) {
+			<form method="post" action={ templ.SafeURL(o.Add) }>
+				<label class="label is-small" for="other-link">Your other link</label>
+				<div class="field has-addons">
+					<div class="control is-expanded">
+						<input class="input is-small" id="other-link" name="link" required placeholder="Paste the link" autocomplete="off"/>
+					</div>
+					<div class="control">
+						<button class="button is-small is-link" type="submit">Add</button>
+					</div>
 				</div>
-				<div class="control">
-					<button class="button is-small is-link" type="submit">Add</button>
-				</div>
-			</div>
-			<p class="help">Only add links that are yours. A shared link, such as a club's comp sec link, opens from here, but never opens this page.</p>
-		</form>
-	</div>
+				<p class="help">Only add links that are yours. A shared link, such as a club's comp sec link, opens from here, but never opens this page.</p>
+			</form>
+		}
+	</section>
 }
 
 // coachesToo says the person whose page this is has a coach's role too.

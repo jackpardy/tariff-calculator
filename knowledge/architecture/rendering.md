@@ -78,6 +78,11 @@ dashboard):
   `now` with the page, so the line always says what's saved.
 - `opens(what, now, label, open)`: the same with any button, for a form that
   does something: Add someone, Remove or hold entries, Change the entry.
+- A row's rare actions, in a list where every row would otherwise carry them
+  (a club's member: Make a coach too, New link, Remove), go under
+  `opens("", "", "More", false)` in the row's last cell, given the class
+  `comp-row-more`: the button stays at the right and the actions open
+  beneath it.
 
 Settings are rows of a list: the name in bold with how it's set beneath in
 grey, the button always in the same place at the right, and a hairline
