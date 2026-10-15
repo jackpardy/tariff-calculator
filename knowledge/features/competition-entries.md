@@ -17,9 +17,14 @@ the [roadmap](../roadmap.md). Storage, links, clubs, video proof and coach
 sign-off are decided in ADR 0004.[^adr-0004]
 
 It's built from storage (`store`), checking (`competitions`), and the pages:
-competitions, the organiser's dashboard and each entry, and individual entry
-(`comppages.go`); clubs, members and sending (`clubpages.go`); and coaches
-(`coachpages.go`) ([routes](../architecture/http-routes.md#competition-pages)).
+the routes, an entry's card and the entry form (`comppages.go`); creating a
+competition and its settings (`compsettings.go`); the organiser's dashboard
+and each entry (`dashboardpages.go`); individual entry and sign-off
+(`individualpages.go`); clubs, members and sending (`clubpages.go`); and
+coaches (`coachpages.go`), with shared helpers in `helpers.go`
+([routes](../architecture/http-routes.md#competition-pages)). Their views
+are `views/competitions.templ` (the layout and shared parts),
+`dashboard.templ`, `entry.templ`, `cards.templ` and `partner.templ`.
 `/competitions` lists the links a browser has. The pages are on only where
 `DATA_DIR` is set ([competition storage](../operations/deploy.md#competition-storage)).
 
@@ -1281,7 +1286,7 @@ for: Triple Back") and has a field for a link per exercise, with a reminder to
 make a YouTube video unlisted, not private. They can replace the level or
 routine at any time until the deadline.
 
-The entry form (`entryForm` in `views/competitions.templ`, used by members, the
+The entry form (`entryForm` in `views/entry.templ`, used by members, the
 comp sec and individuals) has one Men or Women choice, shown only while the
 chosen level ranks them separately; changing level keeps what's ticked, and an
 existing entry opens with its own ticked.

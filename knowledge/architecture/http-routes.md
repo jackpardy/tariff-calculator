@@ -34,8 +34,8 @@ All routes are defined in `routesWithPages()` in `web/calculator.go`. Forms are
 
 ## Competition pages
 
-[Competition entries](../features/competition-entries.md) (`web/comppages.go`,
-`web/clubpages.go`), reached at `/competitions`; the calculator doesn't link to
+[Competition entries](../features/competition-entries.md) (`web/comppages.go`
+and the files beside it, `web/clubpages.go`), reached at `/competitions`; the calculator doesn't link to
 them, for now. `{token}` is a secret link (ADR 0004). These
 pages send `Referrer-Policy: no-referrer`, `Cache-Control: no-store` and
 `X-Robots-Tag: noindex`. A wrong or replaced link gets 404, and without storage
@@ -52,7 +52,7 @@ gets tabs for the person's roles.
 
 A form's POST answers 303 to the page to go back to, with what happened as
 `?notice=` (first in the query, before any `#part`): `seeOther` in
-`web/comppages.go`, which `back` (the timetable) and `backToDay` don't use
+`web/helpers.go`, which `back` (the timetable) and `backToDay` don't use
 yet.
 
 The pages for someone at a competition (My competition, "I'm here", score

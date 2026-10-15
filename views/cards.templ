@@ -1,0 +1,251 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"tariffCalculator/requirements"
+	"tariffCalculator/skills"
+	"tariffCalculator/static"
+)
+
+// Competition cards: an entry's card, each exercise checked, as the pages
+// show it and as the organiser prints them.
+
+// EntryCard is an entry checked exactly as the builder checks a level.
+type EntryCard struct {
+	Gymnast, Club, Level string
+	Exercises            [2]ExerciseCard
+	Problems             []string
+	Signoff              SignoffView
+	Unchecked            bool // tumbling or DMT: a level only
+}
+
+// ExerciseCard is one exercise of an entry, checked.
+type ExerciseCard struct {
+	Title        string // "First exercise"
+	Requirements string // what it's checked against
+	SetRoutine   bool   // performed as written
+	Validation   skills.RoutineValidation
+	Checks       Checks
+	Results      []requirements.Result
+	Required     map[int]bool
+	SetErr       string
+	Video        VideoView
+	Carried      []int // elements whose difficulty carries over (first exercise)
+	Repeated     []int // elements repeating one that carried over (second exercise)
+	Skip         bool  // not done: synchro does only the level's voluntary
+}
+
+// entryCard is an entry checked: both exercises, side by side on wider screens.
+templ entryCard(c EntryCard) {
+	<h1 class="title is-4">{ c.Gymnast }</h1>
+	<p class="subtitle is-6">{ c.Club } · { c.Level }</p>
+	@entryCardChecks(c)
+}
+
+// entryCardChecks is an entry card without the gymnast's name, club and level
+// at its head, for a page that already says them (a member's own entry row).
+templ entryCardChecks(c EntryCard) {
+	@signoffBox(c.Signoff)
+	if c.Unchecked && len(c.Problems) == 0 {
+	} else if len(c.Problems) == 0 {
+		<div class="notification is-success is-light">No problems found.</div>
+	} else {
+		<div class="notification is-danger is-light">
+			<p><strong>{ Count(len(c.Problems), "problem", "problems") }</strong></p>
+			<ul>
+				for _, p := range c.Problems {
+					<li>{ p }</li>
+				}
+			</ul>
+		</div>
+	}
+	if c.Unchecked {
+		<p class="has-text-grey">Entered at { c.Level }. Tumbling and DMT passes aren't checked yet.</p>
+	} else {
+		<div class="columns">
+			for _, ex := range c.Exercises {
+				if !ex.Skip {
+					<div class="column">
+						@exerciseCard(ex)
+					</div>
+				}
+			}
+		</div>
+	}
+}
+
+// cardName is an element's name on an entry card: its own name, or its
+// catalogue name; blank for an element the catalogue has no name for, as
+// its FIG notation beside it says what it is.
+func cardName(s skills.TrampolineSkill) string {
+	if s.CustomName == "" && s.Name == skills.UnnamedSkill {
+		return ""
+	}
+	return displayName(s)
+}
+
+templ exerciseCard(ex ExerciseCard) {
+	<div class="box comp-exercise">
+		<h2 class="title is-6 mb-1">{ ex.Title }</h2>
+		<p class="is-size-7 has-text-grey mb-2">
+			{ ex.Requirements }
+			if ex.SetRoutine {
+				· set routine as written
+			}
+		</p>
+		if ex.SetErr != "" {
+			<p class="has-text-danger">{ ex.SetErr }</p>
+		}
+		if len(ex.Validation.Skills) == 0 {
+			<p class="has-text-grey">No routine.</p>
+		} else {
+			<table class="table is-fullwidth is-narrow comp-skills">
+				<tbody>
+					for i, sv := range ex.Validation.Skills {
+						<tr class={ templ.KV("not-counted", !sv.Counted && !sv.Unscored) }>
+							<td class="has-text-grey">{ strconv.Itoa(i + 1) }</td>
+							<td>
+								{ cardName(sv.Skill) }
+								if ex.Required[i+1] {
+									<span title="Meets a requirement">*</span>
+								}
+								if ex.Validation.Messages[i] != "" {
+									<br/>
+									<span class="is-size-7 has-text-danger">{ skills.ElementNote(i, ex.Validation.Messages[i]) }</span>
+								}
+							</td>
+							<td class="has-text-grey">{ sv.FIGNotation }</td>
+							<td class="has-text-right">
+								if ex.Checks.ScoreDifficulty {
+									{ fmt.Sprintf("%.1f", sv.Skill.Tariff) }
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+			<p class="has-text-right">
+				if len(ex.Required) > 0 {
+					<span class="is-size-7 has-text-grey mr-2">* meets one of the requirements</span>
+				}
+				if ex.Checks.ScoreDifficulty {
+					<strong>Difficulty { fmt.Sprintf("%.1f", ex.Validation.TotalTariff) }</strong>
+				} else {
+					<span class="has-text-grey">No difficulty</span>
+				}
+			</p>
+		}
+		if len(ex.Carried) > 0 {
+			<p class="is-size-7 mt-2">{ fmt.Sprintf("Difficulty carries over from elements %s.", elementNumbers(ex.Carried)) }</p>
+		}
+		if len(ex.Repeated) > 0 {
+			<p class="is-size-7 mt-2 has-text-danger">{ fmt.Sprintf("Element %s repeats one whose difficulty carried over.", elementNumbers(ex.Repeated)) }</p>
+		}
+		@videoBox(ex.Video)
+		if len(ex.Results) > 0 {
+			<ul class="comp-results mt-3">
+				for _, r := range ex.Results {
+					<li class={ templ.KV("is-unmet", !r.Passed) }>
+						{ markFor(r.Passed) } { r.Description }
+						if r.Detail != "" && !r.Passed {
+							<span class="has-text-grey is-size-7">({ r.Detail })</span>
+						}
+					</li>
+				}
+			</ul>
+		}
+	</div>
+}
+
+func elementNumbers(ns []int) string {
+	out := ""
+	for i, n := range ns {
+		if i > 0 {
+			out += ", "
+		}
+		out += strconv.Itoa(n)
+	}
+	return out
+}
+
+// CardsPage is a set of competition cards to print, one exercise per page.
+type CardsPage struct {
+	Title string
+	Back  string
+	Cards []PrintedCard
+}
+
+// PrintedCard is one exercise's card, its details filled in.
+type PrintedCard struct {
+	Validation skills.RoutineValidation
+	Required   map[int]bool
+	Checks     Checks
+	Details    SheetDetails
+}
+
+// CompetitionCards prints competition cards, one per page.
+templ CompetitionCards(p CardsPage) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="robots" content="noindex"/>
+			<title>{ p.Title }</title>
+			<meta name="app-version" content={ static.Version }/>
+			<script defer src={ static.URL("js/version.js") }></script>
+			<link rel="stylesheet" href={ static.URL("css/sheet.css") }/>
+		</head>
+		<body>
+			<div class="toolbar screen-only">
+				<a href={ templ.SafeURL(p.Back) }>← Entries</a>
+				<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
+				<span>{ Count(len(p.Cards), "card", "cards") }</span>
+			</div>
+			if len(p.Cards) == 0 {
+				<p class="hint">No entries to print.</p>
+			}
+			for _, c := range p.Cards {
+				<section class="card-page">
+					@TariffSheet(c.Validation, c.Required, c.Checks, c.Details)
+				</section>
+			}
+		</body>
+	</html>
+}
+
+// VideoView is an exercise's video: whether it's needed, for which skills,
+// and the gymnast's link.
+type VideoView struct {
+	Needed bool
+	Skills []string // the skills that need it; none for the whole routine
+	Link   string
+	Note   string
+}
+
+// videoBox shows an exercise's video: what needs it, and the link, which
+// opens in a new tab and is never embedded.
+templ videoBox(v VideoView) {
+	if v.Needed || v.Link != "" {
+		<div class="comp-video-box mt-3">
+			if v.Needed && len(v.Skills) > 0 {
+				<p class="is-size-7"><strong>Video needed for:</strong> { strings.Join(v.Skills, ", ") }</p>
+			} else if v.Needed {
+				<p class="is-size-7"><strong>Video needed</strong> of the whole routine</p>
+			}
+			if v.Link != "" {
+				<p class="is-size-7">
+					<a href={ templ.SafeURL(v.Link) } target="_blank" rel="noopener noreferrer nofollow">Open the video ↗</a>
+					if v.Note != "" {
+						<span class="has-text-grey">· { v.Note }</span>
+					}
+				</p>
+			} else if v.Needed {
+				<p class="is-size-7 has-text-danger">No video yet.</p>
+			}
+		</div>
+	}
+}
