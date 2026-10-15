@@ -419,6 +419,7 @@ type ClubLevelView struct {
 	Rules               []string // its requirements, in words
 	Broken              string
 	ClubSkills          []LevelClubSkill
+	Edit, Copy          string // the level editor, for it and for a new level copying it
 	Open                string // the Requirements page, with its requirements to edit
 	Share               string // a link sharing it with other clubs
 	Items, Move, Remove string // where its club skills, moving it and removing it post
@@ -428,6 +429,7 @@ type ClubLevelView struct {
 // ClubLevelsPage is the coaches' page for the club's levels.
 type ClubLevelsPage struct {
 	Frame  CoachFrame
+	New    string // the level editor, for a new level
 	Levels []ClubLevelView
 	Max    int
 }
@@ -437,8 +439,9 @@ templ CoachClubLevels(p ClubLevelsPage) {
 	@competitionLayout("Levels · " + p.Frame.Club) {
 		@coachFrame(p.Frame)
 		<p class="mb-4 is-size-7 has-text-grey">
-			Your club's levels to track gymnasts against, in order. A level is requirements, written on the <a href="/requirements">Requirements</a> page: a skill, a kind of skill, a link of skills one after another, a number of them, or a set routine. There, <strong>Save to club levels</strong> adds them here, and saving them again changes the level. Each gymnast's Skills page shows how far through each level they are.
+			Your club's levels to track gymnasts against, in order: each a list of skills or kinds of skill, several of a kind, links of skills one after another, or a set routine. Each gymnast's Skills page shows how far through each level they are.
 		</p>
+		<p class="mb-4"><a class="button is-primary is-small" href={ templ.SafeURL(p.New) }>New level</a></p>
 		if len(p.Levels) == 0 {
 			<p class="has-text-grey mb-4">No levels yet.</p>
 		}
@@ -477,8 +480,12 @@ templ CoachClubLevels(p ClubLevelsPage) {
 					</details>
 				}
 				<div class="buttons are-small">
+					if l.Edit != "" {
+						<a class="button is-link is-light" href={ templ.SafeURL(l.Edit) }>Change</a>
+						<a class="button" href={ templ.SafeURL(l.Copy) }>Copy as a new level</a>
+					}
 					if l.Open != "" {
-						<a class="button" href={ templ.SafeURL(l.Open) }>Open in the Requirements page</a>
+						<a class="button is-text" href={ templ.SafeURL(l.Open) }>Open in the Requirements page</a>
 					}
 					<form method="post" action={ templ.SafeURL(l.Move) } class="is-inline">
 						<input type="hidden" name="by" value="-1"/>

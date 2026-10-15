@@ -300,6 +300,8 @@ func (p *competitionPages) entryCoachView(r *http.Request, c store.Competition, 
 		return nil, err
 	}
 	v.Name, v.Qualification, v.Status, v.Approved, v.Note = named.Name, qualificationName(named.Qualification), coachStatus(named.Status), named.Approved(), named.Note
+	// The chip has its own mark, so the status loses its tick.
+	v.Status, v.State = strings.TrimSuffix(v.Status, " ✓"), coachState(named.Status)
 	return v, nil
 }
 

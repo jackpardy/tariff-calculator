@@ -341,6 +341,36 @@ type SetEditorData struct {
 	// Conflicts are rules that can't be met, alone or together
 	// (requirements.Conflicts). They're warnings: the set can still be saved.
 	Conflicts []string
+	// Club is set when the editor writes one of a club's levels, on the
+	// coach's page; nil on the Requirements page.
+	Club *ClubEditor
+}
+
+// ClubEditor is what the editor needs to write a club's level (ADR 0011
+// Decision 5): where it posts as it changes and where Save posts, the kinds
+// of rule a level can track, and the club's own named skills to pick.
+type ClubEditor struct {
+	Endpoint string // the coach's level editor, posted on every change
+	Save     string // where Save level posts the level
+	Back     string // the Levels page
+	Picks    []requirements.Pick
+}
+
+// endpoint is where the editor posts as it changes.
+func (e *SetEditorData) endpoint() string {
+	if e.Club != nil {
+		return e.Club.Endpoint
+	}
+	return "/requirements/editor"
+}
+
+// picks are what the editor offers to describe skills: the club's own
+// named skills first, on a club's level.
+func (e *SetEditorData) picks() []requirements.Pick {
+	if e.Club != nil {
+		return slices.Concat(e.Club.Picks, requirements.Picks())
+	}
+	return requirements.Picks()
 }
 
 // SetEditor is the editor form for one requirement set. Every change posts the
@@ -350,7 +380,7 @@ templ SetEditor(e SetEditorData) {
 	<form
 		id="set-editor"
 		class="set-editor"
-		hx-post="/requirements/editor"
+		hx-post={ e.endpoint() }
 		hx-trigger="change"
 		hx-target="this"
 		hx-swap="outerHTML"
@@ -359,11 +389,17 @@ templ SetEditor(e SetEditorData) {
 		data-problems={ strconv.Itoa(len(e.Problems)) }
 		data-described={ templ.JSONString(describedRules(e.Set)) }
 		x-on:submit.prevent
+		if e.Club != nil {
+			action={ templ.SafeURL(e.Club.Save) }
+			method="post"
+		}
 	>
 		<div class="field">
 			<label class="label is-small" for="set-name">Name</label>
 			<input class="input" id="set-name" name="name" value={ e.Set.Name } placeholder="e.g. Student novice 2026–27"/>
 		</div>
+		// A club's level is a list of skills: no description, source or scoring.
+		if e.Club == nil {
 		<div class="field">
 			<label class="label is-small" for="set-description">Description (optional)</label>
 			<input class="input is-small" id="set-description" name="description" value={ e.Set.Description }/>
@@ -389,16 +425,17 @@ templ SetEditor(e SetEditorData) {
 			</label>
 			<p class="matcher-hint">The first two are usual for set (compulsory) routines; AG3 first exercises score 2 elements.</p>
 		</div>
+		}
 		<input type="hidden" name="rules" value={ strconv.Itoa(len(e.Set.Rules)) }/>
 		for i, rule := range e.Set.Rules {
-			@ruleCard(i, rule, len(e.Set.Rules))
+			@ruleCard(&e, i, rule, len(e.Set.Rules))
 		}
 		<div class="field">
 			<label class="label is-small" for="add-rule">Add a rule</label>
 			<div class="select is-small">
 				<select id="add-rule" name="add">
 					<option value="">Choose a kind of rule...</option>
-					for _, k := range editorKinds("") {
+					for _, k := range editorKinds(&e, "") {
 						<option value={ k.ID }>{ k.Label }</option>
 					}
 				</select>
@@ -425,19 +462,25 @@ templ SetEditor(e SetEditorData) {
 				</ul>
 			</div>
 		}
+		if e.Club != nil {
+			<div class="buttons mt-4">
+				<button class="button is-primary" type="submit">Save level</button>
+				<a class="button is-text" href={ templ.SafeURL(e.Club.Back) }>Cancel</a>
+			</div>
+		}
 	</form>
 }
 
-templ ruleCard(i int, rule requirements.Rule, total int) {
+templ ruleCard(e *SetEditorData, i int, rule requirements.Rule, total int) {
 	{{ p := fmt.Sprintf("r%d.", i) }}
 	{{ kind := requirements.KindOfRule(rule) }}
 	<div class="rule-card">
 		<div class="rule-card-head">
 			<p class="rule-card-title">{ fmt.Sprintf("%d. ", i+1) }{ describeSafely(rule) }</p>
 			<div class="buttons are-small mb-0">
-				@editorAction("↑", fmt.Sprintf("up:%d", i), i == 0)
-				@editorAction("↓", fmt.Sprintf("down:%d", i), i == total-1)
-				@editorAction("Remove", fmt.Sprintf("delete:%d", i), false)
+				@editorAction(e, "↑", fmt.Sprintf("up:%d", i), i == 0)
+				@editorAction(e, "↓", fmt.Sprintf("down:%d", i), i == total-1)
+				@editorAction(e, "Remove", fmt.Sprintf("delete:%d", i), false)
 			</div>
 		</div>
 		<input type="hidden" name={ p + "was" } value={ kind }/>
@@ -446,7 +489,7 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 				<label class="label is-small" for={ p + "type" }>Kind of rule</label>
 				<div class="select is-small is-fullwidth">
 					<select id={ p + "type" } name={ p + "type" }>
-						for _, k := range editorKinds(kind) {
+						for _, k := range editorKinds(e, kind) {
 							<option value={ k.ID } selected?={ k.ID == kind }>{ k.Label }</option>
 						}
 					</select>
@@ -461,15 +504,19 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 			case requirements.Count:
 				switch kind {
 					case "include":
-						@matcherFields(p+"m.", rule.Match, "The routine must include")
+						if e.Club != nil {
+							@matcherFields(e, p+"m.", rule.Match, "The gymnast can do")
+						} else {
+							@matcherFields(e, p+"m.", rule.Match, "The routine must include")
+						}
 					case "exclude":
-						@matcherFields(p+"m.", rule.Match, "The routine must not include")
+						@matcherFields(e, p+"m.", rule.Match, "The routine must not include")
 					default:
 						<div class="rule-grid">
 							@numberField(p+"min", "At least", floatText(rule.Min), "1")
 							@numberField(p+"max", "At most (0 = not allowed)", floatText(rule.Max), "1")
 						</div>
-						@matcherFields(p+"m.", rule.Match, "Skills that count")
+						@matcherFields(e, p+"m.", rule.Match, "Skills that count")
 				}
 			case requirements.Linked:
 				<p class="matcher-hint mb-2">Counts pairs of these elements performed one straight after another, e.g. linked somersaults. Three in a row are two pairs.</p>
@@ -477,9 +524,9 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 					@numberField(p+"min", "At least (pairs)", floatText(rule.Min), "1")
 					@numberField(p+"max", "At most (0 = none linked)", floatText(rule.Max), "1")
 				</div>
-				@matcherFields(p+"m.", rule.Match, "Skills that count")
+				@matcherFields(e, p+"m.", rule.Match, "Skills that count")
 			case requirements.Every:
-				@matcherFields(p+"m.", rule.Match, "Every skill must be")
+				@matcherFields(e, p+"m.", rule.Match, "Every skill must be")
 			case requirements.Elements:
 				<div class="rule-grid">
 					@numberField(p+"min", "At least", floatText(rule.Min), "1")
@@ -495,7 +542,7 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 				<div class="rule-grid">
 					@numberField(p+"position", "Element number", strconv.Itoa(rule.Position), "1")
 				</div>
-				@matcherFields(p+"m.", rule.Match, "That skill must be")
+				@matcherFields(e, p+"m.", rule.Match, "That skill must be")
 			case requirements.Sequence:
 				// A set routine is built in the Routine Builder, not written here.
 				<p class="matcher-hint mb-2">This is a set routine. Its elements are built in the Routine Builder: save these requirements, then use "Edit in the Routine Builder" under Your set routines.</p>
@@ -509,13 +556,13 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 				<p class="matcher-hint mb-2">Each requirement must be met by a different element, as with the starred (*) elements on a competition card.</p>
 				<input type="hidden" name={ p + "seq" } value={ strconv.Itoa(len(rule.Each)) }/>
 				for j, m := range rule.Each {
-					@itemFields(fmt.Sprintf("%ss%d.", p, j), &m, fmt.Sprintf("Requirement %d", j+1), "e.g. Landing on the front")
+					@itemFields(e, fmt.Sprintf("%ss%d.", p, j), &m, fmt.Sprintf("Requirement %d", j+1), "e.g. Landing on the front")
 					<div class="buttons are-small">
-						@editorAction(fmt.Sprintf("Remove requirement %d", j+1), fmt.Sprintf("delete-element:%d:%d", i, j), len(rule.Each) == 1)
+						@editorAction(e, fmt.Sprintf("Remove requirement %d", j+1), fmt.Sprintf("delete-element:%d:%d", i, j), len(rule.Each) == 1)
 					</div>
 				}
 				<div class="buttons are-small">
-					@editorAction("+ Add requirement", fmt.Sprintf("add-element:%d", i), false)
+					@editorAction(e, "+ Add requirement", fmt.Sprintf("add-element:%d", i), false)
 				</div>
 			case requirements.Includes:
 				<p class="matcher-hint mb-2">These skills one straight after another: each a skill you pick, or a kind of skill (a back somersault, then a barani). Add another option for "or instead".</p>
@@ -526,19 +573,19 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 						<legend>Option { strconv.Itoa(k + 1) }</legend>
 						<input type="hidden" name={ op + "seq" } value={ strconv.Itoa(len(option)) }/>
 						for j, m := range option {
-							@itemFields(fmt.Sprintf("%ss%d.", op, j), &m, stepTitle(j), "e.g. ¾ somersault to front or back")
+							@itemFields(e, fmt.Sprintf("%ss%d.", op, j), &m, stepTitle(j), "e.g. ¾ somersault to front or back")
 							<div class="buttons are-small">
-								@editorAction(fmt.Sprintf("Remove %s", strings.ToLower(stepTitle(j))), fmt.Sprintf("delete-step:%d:%d:%d", i, k, j), len(option) == 1)
+								@editorAction(e, fmt.Sprintf("Remove %s", strings.ToLower(stepTitle(j))), fmt.Sprintf("delete-step:%d:%d:%d", i, k, j), len(option) == 1)
 							</div>
 						}
 						<div class="buttons are-small">
-							@editorAction("+ Then another skill", fmt.Sprintf("add-step:%d:%d", i, k), false)
-							@editorAction(fmt.Sprintf("Remove option %d", k+1), fmt.Sprintf("delete-option:%d:%d", i, k), len(rule.Options) == 1)
+							@editorAction(e, "+ Then another skill", fmt.Sprintf("add-step:%d:%d", i, k), false)
+							@editorAction(e, fmt.Sprintf("Remove option %d", k+1), fmt.Sprintf("delete-option:%d:%d", i, k), len(rule.Options) == 1)
 						</div>
 					</fieldset>
 				}
 				<div class="buttons are-small">
-					@editorAction("+ Or instead", fmt.Sprintf("add-option:%d", i), false)
+					@editorAction(e, "+ Or instead", fmt.Sprintf("add-option:%d", i), false)
 				</div>
 			case requirements.Different:
 				<p class="matcher-hint">No element may be repeated. Shapes count as different elements only where the Code of Points says they do (§14).</p>
@@ -547,12 +594,12 @@ templ ruleCard(i int, rule requirements.Rule, total int) {
 }
 
 // editorAction is a button that posts the editor with an action ("delete:2").
-templ editorAction(label, action string, disabled bool) {
+templ editorAction(e *SetEditorData, label, action string, disabled bool) {
 	<button
 		type="button"
 		class="button is-small"
 		disabled?={ disabled }
-		hx-post="/requirements/editor"
+		hx-post={ e.endpoint() }
 		hx-include="#set-editor"
 		hx-target="#set-editor"
 		hx-swap="outerHTML"
@@ -569,12 +616,12 @@ templ numberField(name, label, value, step string) {
 
 // itemFields is one element of a set routine or one special requirement: its
 // wording and which elements meet it.
-templ itemFields(prefix string, m *requirements.Matcher, title, placeholder string) {
+templ itemFields(e *SetEditorData, prefix string, m *requirements.Matcher, title, placeholder string) {
 	<div class="field mb-1">
 		<label class="label is-small" for={ prefix + "label" }>{ title }: wording (optional)</label>
 		<input class="input is-small" id={ prefix + "label" } name={ prefix + "label" } value={ m.Label } placeholder={ placeholder }/>
 	</div>
-	@matcherFields(prefix, m, title)
+	@matcherFields(e, prefix, m, title)
 }
 
 // matcherFields describes which skills a rule is about: picked, a skill or a
@@ -582,12 +629,12 @@ templ itemFields(prefix string, m *requirements.Matcher, title, placeholder stri
 // "Or describe it", open for a description of the coach's own. Empty fields
 // don't restrict. picked is the pick shown, so the form knows when a new one
 // is chosen.
-templ matcherFields(prefix string, m *requirements.Matcher, title string) {
+templ matcherFields(e *SetEditorData, prefix string, m *requirements.Matcher, title string) {
 	{{
 		if m == nil {
 			m = &requirements.Matcher{}
 		}
-		picked := requirements.PickOf(*m)
+		picked := requirements.PickIn(e.picks(), *m)
 		own := picked == "" && requirements.DescribeMatcher(requirements.Matcher{Rotation: m.Rotation, Direction: m.Direction, Twist: m.Twist, Shapes: m.Shapes, Takeoff: m.Takeoff, Landing: m.Landing, Tariff: m.Tariff, FIG: m.FIG}) != "any element"
 	}}
 	<fieldset class="matcher">
@@ -603,7 +650,7 @@ templ matcherFields(prefix string, m *requirements.Matcher, title string) {
 							Any skill
 						}
 					</option>
-					for _, g := range pickGroups() {
+					for _, g := range pickGroups(e.picks()) {
 						<optgroup label={ g.name }>
 							for _, p := range g.picks {
 								<option value={ p.ID } selected?={ p.ID == picked }>{ p.Label }</option>
@@ -659,9 +706,9 @@ type pickGroup struct {
 }
 
 // pickGroups are the editor's picks under their headings, in order.
-func pickGroups() []pickGroup {
+func pickGroups(picks []requirements.Pick) []pickGroup {
 	var out []pickGroup
-	for _, p := range requirements.Picks() {
+	for _, p := range picks {
 		if len(out) == 0 || out[len(out)-1].name != p.Group {
 			out = append(out, pickGroup{name: p.Group})
 		}
@@ -716,8 +763,11 @@ func describeSafely(r requirements.Rule) string {
 // editorKinds are the kinds of rule the editor offers, by what they mean
 // (requirements.RuleKinds), and a set routine where the rule already is one:
 // set routines are built in the Routine Builder.
-func editorKinds(current string) []requirements.RuleKind {
+func editorKinds(e *SetEditorData, current string) []requirements.RuleKind {
 	out := slices.Clone(requirements.RuleKinds)
+	if e.Club != nil {
+		out = slices.Clone(requirements.LevelKinds)
+	}
 	if current == requirements.Sequence {
 		out = append(out, requirements.SetRoutineKind)
 	}

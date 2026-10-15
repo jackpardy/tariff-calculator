@@ -121,6 +121,7 @@ type EntryPage struct {
 type EntryCoachView struct {
 	Name, Qualification string // as named; "" before
 	Status              string // e.g. "Waiting for the organiser"
+	State               State  // Status's state
 	Approved            bool
 	Note                string // the organiser's
 	Action              string // where naming them posts
@@ -160,6 +161,24 @@ templ CompetitionEnter(p EnterPage) {
 			@entryForm(p.Form)
 			@privacyNote(p.Competition)
 		}
+	}
+}
+
+// withdrawForm withdraws an entry (discipline, where the form needs it),
+// out of the way behind a button until asked for, then ticked to be sure:
+// it's rare, and can't be undone.
+templ withdrawForm(action, discipline string) {
+	@opens("", "", "Withdraw", false) {
+		<form method="post" action={ templ.SafeURL(action) }>
+			if discipline != "" {
+				<input type="hidden" name="discipline" value={ discipline }/>
+			}
+			<label class="checkbox is-size-7">
+				<input type="checkbox" name="confirm" value="1" required/>
+				Withdraw this entry
+			</label>
+			<button class="button is-small is-danger is-outlined ml-2" type="submit">Withdraw</button>
+		</form>
 	}
 }
 
@@ -328,10 +347,13 @@ templ CompetitionEntryPage(p EntryPage) {
 				}
 			</div>
 		}
-		if p.Personal {
+		if p.Personal && (p.JustSaved || len(p.Menu) == 0) {
 			<div data-gymnast-link={ p.Link } data-gymnast-name={ p.Name }>
 				@linkBox("Your personal link (keep it to yourself)", p.Link, "")
 			</div>
+		} else if p.Personal {
+			// Their link is under Your details; it's still saved in this browser.
+			<span hidden data-gymnast-link={ p.Link } data-gymnast-name={ p.Name }></span>
 		} else if p.Link != "" {
 			<div data-entry-link={ p.Link } data-entry-name={ p.Card.Gymnast + " · " + p.Competition.Name }>
 				@linkBox("Your personal link (keep it to yourself)", p.Link, "")
@@ -348,7 +370,10 @@ templ CompetitionEntryPage(p EntryPage) {
 			@entryCoachBox(*p.Coach, p.Competition.SignoffsOpen)
 		}
 		if p.SignoffLink != "" {
-			@linkBox("Sign-off link for your coach", p.SignoffLink, "This competition needs a coach's sign-off. Send this link to your coach: they see your entry and sign it off.")
+			// Open until a coach signs it off: until then, sending it is what's left to do.
+			@opens("Sign-off link for your coach", "This competition needs a coach's sign-off. Send it to your coach: they see your entry and sign it off.", "Show", !p.Card.Signoff.Signed) {
+				@linkBox("Sign-off link for your coach", p.SignoffLink, "")
+			}
 		}
 		@dayLink(p.Day)
 		@feesLine(p.Fees)
@@ -378,17 +403,11 @@ templ CompetitionEntryPage(p EntryPage) {
 				@opens("", "", "Change the entry", len(p.Form.Problems) > 0) {
 					@entryForm(p.Form)
 				}
+				@withdrawForm(p.Withdraw, "")
 			</div>
 			if p.Offer != nil {
 				@offerBox(*p.Offer)
 			}
-			<form method="post" action={ templ.SafeURL(p.Withdraw) } class="mt-4">
-				<label class="checkbox is-size-7">
-					<input type="checkbox" name="confirm" value="1" required/>
-					Withdraw this entry
-				</label>
-				<button class="button is-small is-danger is-outlined ml-2" type="submit">Withdraw</button>
-			</form>
 			@privacyNote(p.Competition)
 		}
 	}

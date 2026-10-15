@@ -76,7 +76,7 @@ func TestCheckinAndScratches(t *testing.T) {
 		}
 	}
 	// They see it on their own page.
-	if mine := dayAll(t, h, own["Bea"]+"/day"); !strings.Contains(mine, "Scratched · ") {
+	if mine := dayAll(t, h, own["Bea"]+"/day"); !strings.Contains(mine, chip(t, views.Stopped, "Scratched")) {
 		t.Errorf("Bea's page says she's scratched: %s", mine)
 	}
 	if mine := dayAll(t, h, own["Ann"]+"/day"); strings.Contains(mine, "Scratched") {

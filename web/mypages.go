@@ -137,16 +137,14 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		ev := views.MyEvent{ID: j.ID, Event: j.Entry.Entry.Event(), Gymnasts: j.Entry.Entry.Gymnasts(), Category: j.Entry.Entry.Category}
 		switch {
 		case j.Checked():
-			ev.Status = "Checked by the organiser ✓"
+			ev.Status, ev.StatusState = "Checked by the organiser", views.Done
 		case len(j.problems) > 0:
-			ev.Status = views.Count(len(j.problems), "problem", "problems") + " to sort out"
+			ev.Status, ev.StatusState = views.Count(len(j.problems), "problem", "problems")+" to sort out", views.Attention
 			ev.Problems = j.problems
 		default:
-			ev.Status = "Sent, not checked yet"
+			ev.Status, ev.StatusState = "Sent, not checked yet", views.InProgress
 		}
-		if f.checkins[j.ID].Status == store.Scratched {
-			ev.Status = "Scratched · " + ev.Status
-		}
+		ev.Scratched = f.checkins[j.ID].Status == store.Scratched
 		if published {
 			if i, ok := t.Find(j.ID); ok {
 				fl := t.Flights[i]

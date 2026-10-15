@@ -233,13 +233,14 @@ func (p *competitionPages) simulation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	start := actualScenario(c.Competition, f.entries, f.officials, f.same)
+	from := false
 	if i, err := strconv.Atoi(r.URL.Query().Get("from")); err == nil && i >= 0 && i < len(scenarios) {
-		start = scenarios[i]
+		start, from = scenarios[i], true
 	}
 	start.Name = competitions.SimName(scenarios)
 	page := views.SimulationPage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuSimulate), Notice: r.URL.Query().Get("notice"),
-		Form: scenarioForm(c.Competition, start), Entries: len(f.entries), Max: competitions.MaxScenarios,
+		Form: scenarioForm(c.Competition, start), From: from, Entries: len(f.entries), Max: competitions.MaxScenarios,
 	}
 	if err := s.Setup.Check(c.EventNames()); err != nil {
 		page.SetupProblems = sentences(err)

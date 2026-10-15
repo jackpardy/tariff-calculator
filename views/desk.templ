@@ -163,25 +163,26 @@ templ Desk(p DeskPage) {
 			<p class="help">It goes by push and email to those who asked to hear about this competition, sent in the background, and shows on each person's own page. Reload this page to see how the sending is going.</p>
 		</form>
 		@deskScreen(p)
-		<h2 class="title is-5">Sent</h2>
-		if len(p.Sent) == 0 {
-			<p class="has-text-grey">Nothing sent yet.</p>
-		}
-		for _, m := range p.Sent {
-			<div class="box py-3">
-				<p>
-					{ m.Text }
-				</p>
-				<p class="is-size-7 has-text-grey">
-					{ m.At } · { m.Who } · to { m.To } · told { strconv.Itoa(m.Pushed) } by push, { strconv.Itoa(m.Emailed) } by email
-					if m.ToGo > 0 {
-						· still sending to { strconv.Itoa(m.ToGo) }
-					}
-					if m.Failed > 0 {
-						· { strconv.Itoa(m.Failed) } failed
-					}
-				</p>
-			</div>
+		@listSection("Sent", len(p.Sent)) {
+			if len(p.Sent) == 0 {
+				<p class="has-text-grey">Nothing sent yet.</p>
+			}
+			for _, m := range p.Sent {
+				<div class="box py-3">
+					<p>
+						{ m.Text }
+					</p>
+					<p class="is-size-7 has-text-grey">
+						{ m.At } · { m.Who } · to { m.To } · told { strconv.Itoa(m.Pushed) } by push, { strconv.Itoa(m.Emailed) } by email
+						if m.ToGo > 0 {
+							· still sending to { strconv.Itoa(m.ToGo) }
+						}
+						if m.Failed > 0 {
+							· { strconv.Itoa(m.Failed) } failed
+						}
+					</p>
+				</div>
+			}
 		}
 	}
 }
@@ -241,7 +242,7 @@ templ deskScreen(p DeskPage) {
 					</div>
 				</div>
 				<div class="control">
-					<button class="button is-small is-link" type="submit">Put it on the screen</button>
+					<button class="button is-small is-primary" type="submit">Put it on the screen</button>
 				</div>
 			</div>
 		</form>

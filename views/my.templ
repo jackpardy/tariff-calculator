@@ -53,6 +53,8 @@ type MyEvent struct {
 	Coach, CoachLink          string // who coaches them, and their page: organiser's page only
 	Event, Gymnasts, Category string
 	Status                    string
+	StatusState               State // Status's state
+	Scratched                 bool  // scratched on the day
 	Problems                  []string
 	Flight, Area, Day, WarmUp string
 	Position, Of              int
@@ -163,7 +165,12 @@ templ MyCompetition(p MyCompetitionPage) {
 					}
 				</p>
 				<p class="is-size-7 mb-2">{ ev.Gymnasts }</p>
-				<p class="is-size-7">{ ev.Status }</p>
+				<p class="mb-1">
+					if ev.Scratched {
+						@StateChip(Stopped, "Scratched")
+					}
+					@StateChip(ev.StatusState, ev.Status)
+				</p>
 				if ev.Coach != "" {
 					<p class="is-size-7">
 						Coach:
@@ -175,7 +182,7 @@ templ MyCompetition(p MyCompetitionPage) {
 					</p>
 				}
 				if len(ev.Problems) > 0 {
-					<ul class="is-size-7 has-text-danger mb-2">
+					<ul class="is-size-7 mb-2">
 						for _, pr := range ev.Problems {
 							<li>{ pr }</li>
 						}
@@ -423,22 +430,57 @@ templ latenessLine(text string) {
 // to keep it up to date), once the timetable is published.
 templ timelineLinks(mine, club, notify, calendar, clubCalendar string) {
 	if mine != "" || club != "" || notify != "" || calendar != "" || clubCalendar != "" {
-		<p class="mb-3 buttons">
-			if mine != "" {
-				<a class="button is-small is-light" href={ templ.SafeURL(mine) }>Your timetable</a>
-			}
-			if club != "" {
-				<a class="button is-small is-light" href={ templ.SafeURL(club) }>Club timetable</a>
-			}
-			if calendar != "" {
-				<a class="button is-small is-light" href={ templ.SafeURL(calendar) } title="Subscribe to it to keep it up to date">Add to calendar</a>
-			}
-			if clubCalendar != "" {
-				<a class="button is-small is-light" href={ templ.SafeURL(clubCalendar) } title="Subscribe to it to keep it up to date">Club calendar</a>
+		<div class="mb-3 buttons">
+			if len(timetableLinks(mine, club, calendar, clubCalendar)) > 2 {
+				// Yours and the club's, timetable and calendar: one menu rather
+				// than a row of four alike.
+				<details class="comp-popup comp-popup-left" data-menu>
+					<summary class="button is-small is-light comp-opens-button">Timetables and calendars</summary>
+					<div class="comp-popup-panel">
+						for _, l := range timetableLinks(mine, club, calendar, clubCalendar) {
+							<a href={ templ.SafeURL(l.Href) } { l.attrs()... }>{ l.Label }</a>
+						}
+					</div>
+				</details>
+			} else {
+				for _, l := range timetableLinks(mine, club, calendar, clubCalendar) {
+					<a class="button is-small is-light" href={ templ.SafeURL(l.Href) } { l.attrs()... }>{ l.Label }</a>
+				}
 			}
 			if notify != "" {
 				<a class="button is-small is-light" href={ templ.SafeURL(notify) }>Tell me about changes</a>
 			}
-		</p>
+		</div>
 	}
+}
+
+// timetableLink is one of the timetables or calendars timelineLinks offers.
+type timetableLink struct {
+	Label, Href, Title string
+}
+
+// attrs is the link's title, if it has one.
+func (l timetableLink) attrs() templ.Attributes {
+	if l.Title == "" {
+		return nil
+	}
+	return templ.Attributes{"title": l.Title}
+}
+
+// timetableLinks are the timetables and calendars there are, in order: the
+// person's, then the club's.
+func timetableLinks(mine, club, calendar, clubCalendar string) []timetableLink {
+	const subscribe = "Subscribe to it to keep it up to date"
+	var links []timetableLink
+	for _, l := range []timetableLink{
+		{"Your timetable", mine, ""},
+		{"Club timetable", club, ""},
+		{"Add to calendar", calendar, subscribe},
+		{"Club calendar", clubCalendar, subscribe},
+	} {
+		if l.Href != "" {
+			links = append(links, l)
+		}
+	}
+	return links
 }

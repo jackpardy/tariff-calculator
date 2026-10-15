@@ -87,7 +87,7 @@ asked, when it was sent, and whether you've checked it. To find entries:
 "marykate" finds Mary Kate, and synchro partners count), filter by club, coach (or no coach), checked or not, signed off or
 not, video, men or women, or **Problems only**, and sort by club, gymnast,
 latest sent or coach. The filters stay in the page's address, so you can
-bookmark or share a view; **Print cards** and **Download CSV** use them too. Each event's table starts folded (tap its heading to open it),
+bookmark or share a view; **Print** and **Download CSV**, above the search, use them too. Each event's table starts folded (tap its heading to open it),
 says how many of its entries are shown ("12 of 96"), and the list at the top
 jumps to it; **Expand all** and **Collapse all** open or fold every one, and
 your browser remembers which you left open. A search or filter opens the
@@ -99,23 +99,25 @@ pair's one routine), checked as the Routine Builder checks them.
   the entry, it needs checking again.
 - **Video**: open each video (it opens in a new tab), then **Video OK** or
   **Need more** with a note of what's missing.
-- **Print cards** prints a competition card per exercise, filled in, for
-  everyone shown, one level (**Print this level's cards**, inside the open
-  level), the entries you haven't checked (**Print cards not checked**), or
-  one gymnast (**Print card**). Save as PDF from the print dialog for one
-  file.
+- **Print** opens a menu: **Cards** prints a competition card per exercise,
+  filled in, for everyone shown, and **Cards not checked** the entries you
+  haven't checked; one level's are inside the open level (**Print this
+  level's cards**), and one gymnast's on their page (**Print card**). Save as
+  PDF from the print dialog for one file. A chair of judges' link finds the
+  timetable's sheets in the same menu.
 - **Download CSV** gives every entry shown for a spreadsheet or scoring
   system.
 - On the **Settings** page (a page of its own, with a list at the top to jump to
-  each group) you can change when entries close or **Close
+  each group) each setting is a line saying how it's set, with **Change**
+  to open it. You can change when entries close or **Close
   entries now**, change the synchro, tumbling and DMT levels, put the levels
   in order (**Order of levels**, easiest first: built-in levels start in
   order, so check where your own levels sit), choose which
   levels rank men and women separately, turn entering on their own, video proof or
   coach sign-off on or off, **Replace the admin link** if it's been shared too
-  widely, or delete the competition.
-- **Links for your helpers** (under **Links** on the Settings page): name a link
-  (who it's for) and choose what it can do: **Checking cards** (for
+  widely, or delete the competition (each of those last two asks once more).
+- **Links for your helpers** (under **Links** on the Settings page): tap
+  **Make a link**, name it (who it's for) and choose what it can do: **Checking cards** (for
   difficulty judges: check cards, add notes, review videos), **Chairs of
   judges** (see the entries and print the chair of judges, score and
   marshal sheets), **Timetable and officials**, **Venue screen** (for a
@@ -152,14 +154,15 @@ pair's one routine), checked as the Routine Builder checks them.
   amount per entry for each discipline, a synchro pair counting as one,
   and a club fee if you have one) and how to pay. Each club and individual
   is listed with what's due, paid and left; record payments as they come
-  (**Paid**, with the amount and a note), and print each one's **Invoice**.
+  (**Record a payment**, with the amount and a note), and print each one's
+  **Invoice**.
   Clubs see what they owe on their club page, with their invoice;
   individuals on their entry. Removed, held and withdrawn entries aren't
   charged.
 - **Concerns:** anyone with one of your links can **Flag a concern**, about
-  an entry or generally ("element 7 isn't on the card"). They're listed at
-  the top of your entries page, for you alone; mark each **Resolved**, with
-  a note of what was done.
+  an entry or generally ("element 7 isn't on the card"). The open ones are
+  listed at the top of the entries page; mark each **Resolved**, with a note
+  of what was done, and those resolved fold away beneath.
 - **Feedback:** while the app is new, every page has a **Feedback** button
   at the foot, for anyone to say what confused them. It goes to the people
   who make the app, and you see it under **Settings**, **Feedback**: tick
@@ -218,12 +221,12 @@ screen link.
 
 ## Officials
 
-Tap **Officials** on the entries page. It shows, for each discipline, how many
+Open **Timetable**, then **Officials**. It shows, for each discipline, how many
 people can judge and chair against what one panel needs, and lists everyone:
 gymnasts who offered (clubs send their members' offers with their entries),
 and anyone you add.
 
-- **Add someone** who isn't entering, such as a judge with no club: their name,
+- **Add someone** (at the head of the list) who isn't entering, such as a judge with no club: their name,
   club (if any), and what they can judge and help with.
 - Tick **Qualified** for people qualified to judge.
 - Under **Panels and who may judge**, each discipline's panel starts as the
@@ -300,10 +303,11 @@ a **Change** button to open it.
    at the time, and only in roles they may take. Each event's panel is
    filled once, with people free for all of its flights, and judges all of
    them. Clubs share judging their own gymnasts fairly.
-7. Adjust manually: **Move event** moves all of an event's flights together
-   to another day or area, **Earlier** swaps a flight with the one before it
-   in its event, **Redraw order** draws a flight's running order again, and
-   **Move** beside a gymnast puts them in another flight. To find someone
+7. Adjust manually: a flight's **Move or redraw** opens **Move event**,
+   which moves all of an event's flights together to another day or area,
+   **Earlier**, which swaps a flight with the one before it in its event, and
+   **Redraw order**, which draws its running order again; **Move** beside a
+   gymnast puts them in another flight. To find someone
    on a long timetable, type part of their name in **Find a name**: only
    the flights with them show. The day and area links beside it go
    straight to a day or an area. If an event's flights end up
@@ -431,7 +435,7 @@ a **Change** button to open it.
    and how many were told, are still to go, or failed: reload it to see how
    the sending is going.
 
-**What if there's a delay?** (on the timetable page, once planned): choose the
+**What if there's a delay?** (under **Timetable**, once planned): choose the
 day, when the hold-up starts, how many minutes and which areas (none ticked
 for all). It shows which flights now start later or move to another area, when
 each day's flights end, anything that no longer fits, and anyone needed in two
@@ -442,10 +446,10 @@ to come. Flights that have already run, or are under way, never move. Under **Ea
 work through lunch on those areas, fewer minutes between flights, quicker
 turns, merging an event's flights into bigger ones, or letting the day run
 over; it shows what that buys against the delay alone. Nothing is changed
-unless you tap **Keep this in the draft timetable**; then publish the
-changes when you're ready.
+unless you tap **Keep this in the draft timetable**, below what happens; then
+publish the changes when you're ready.
 
-**What if an official has to leave?** (on the timetable page, once planned):
+**What if an official leaves?** (under **Timetable**, once planned):
 choose who, the day and time they go, and whether for good. Each of their
 seats is filled for the rest of its event, by one person: someone free for
 all of it, or by moving others round: a judge on the panel moving up to
@@ -454,12 +458,12 @@ turn. Choose **easiest to fill** (the gap ends at a seat many
 can take, such as recorder) or **fewest changes**. Nothing is changed unless
 you tap **Keep this in the draft timetable**.
 
-**Simulate** (on the timetable page) tries numbers before entries arrive, or
+**Simulate** (under **Timetable**) tries numbers before entries arrive, or
 alongside them, without changing your timetable. It starts from your entries
 and officials so far: change the entries per event, how many gymnasts there
 are in all (fewer than the entries means some enter several disciplines), the
 clubs, and how many people can judge, chair, record and marshal, then tap
-**Simulate**. Under **Judges each club must bring**, say how many judges a club
+**Simulate** (once you have scenarios, **New scenario** opens the numbers). Under **Judges each club must bring**, say how many judges a club
 brings for every so many of its competitors in a discipline (e.g. 1 per 8,
 rounding up), and how many of them must be able to chair: the clubs' judges
 then come from that, and the judges above are only your own. Each
@@ -499,16 +503,20 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
   and tap **Send coaches**. Each shows whether the organiser has approved
   them, with their note. If you change a coach's qualifications, send them
   again for the organiser to approve again.
-- **Send new and changed** sends the entries the competition doesn't have yet,
-  or that changed since you sent them. **Send all again** sends everyone's and
-  takes back withdrawn ones. The organiser only sees what you send, until
-  entries close.
+- **Send new and changed**, above the entries with how many are still to
+  send, sends the entries the competition doesn't have yet, or that changed
+  since you sent them. **Send all again**, the quiet button beside it, sends
+  everyone's and takes back withdrawn ones. The organiser only sees what you
+  send, until entries close. What members offer to judge and help with is
+  listed under the entries, under **Judging and helping**, and goes with every
+  send.
 - **Change** edits a member's entry for them.
 - **Members** (its own section): the **Join link**, then each member: choose
-  their coach from the list, give a member who lost their link a **New link**
-  (their old one stops working, and the new one opens only their pages at
-  your club: they add their other links again), or **Remove** them. A member
-  who also coaches needs no coach link: tap **Make a coach too** beside them,
+  their coach from the list. Under **More** beside them, give a member who
+  lost their link a **New link** (their old one stops working, and the new
+  one opens only their pages at your club: they add their other links
+  again), or **Remove** them. A member who also coaches needs no coach link:
+  tap **More**, **Make a coach too**,
   and their member link opens their coach's page as well. Making that coach a
   link of their own (**New link**) parts it from the member. Synchro entries that gymnasts from
   other clubs made with your members are listed here too. To find a member,
@@ -518,19 +526,22 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
   levels, narrow the list by **Level** to see who has completed a level (by
   a coach's marks) or is working on it.
 - **Coaches** (its own section; search by name, or narrow by who signs off
-  and who has qualifications): type a name and tap **Add coach**, then send them the coach link
-  shown (it's shown only then; **New link** makes another). Tick **Every coach
-  sees every member** if your coaches share everyone. Untick a coach's
+  and who has qualifications): tap **Add a coach**, type a name and tap
+  **Add coach**, then send them the coach link shown (it's shown only then;
+  **More**, **New link** makes another, and **Remove** takes them off). **Who
+  coaches see**, **Change**: tick **Every coach sees every member** if your
+  coaches share everyone. Untick a coach's
   **Signs off routines** if they shouldn't sign off: they still see their
   members' entries. Under **Add a qualification**, choose each coach's
   coaching qualification from the list and add a photo or PDF of its
   certificate (up to 3 MB, four per coach, and 60 MB for the whole club), for competitions that ask for
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
-- **Settings** (its own section): replace the admin link, or delete the club.
-  **Let every member see everyone's skills** shares members' skills with the
-  whole club (otherwise each member's are seen by them, their coaches and
-  you). A
+- **Settings** (its own section): a row for each setting, with its button at
+  the right. **Members' skills**, **Change**: **Let every member see
+  everyone's skills** shares members' skills with the whole club (otherwise
+  each member's are seen by them, their coaches and you). **Admin link**,
+  **Replace**, and **Delete the club**, **Delete**, open to do it. A
   club is deleted 13 months after anyone last used it (you, a coach or a
   member opening their page); Settings says when. **Opened from people's own
   links** lists anyone who added the admin link to their own page (see
@@ -548,7 +559,7 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
    published**); tap one to open it. **Routines** has the routines you keep
    on your page (see [Keep your routines on your page](#keep-your-routines-on-your-page)).
    **Your details** has your personal link,
-   to keep, **Your coach** to choose if your club has coaches, and **Your other
+   to keep, **Your coach** to choose if your club has coaches (**Change**), and **Your other
    links** (see [One link for all your roles](#6-one-link-for-all-your-roles)).
 3. A competition's page has a row for each discipline it offers, closed until
    you tap it: the discipline, your level and its status (for example **Not
@@ -570,8 +581,8 @@ Under **Judging and helping**, say what you can do at the competition: judge a
 discipline (up to a level, and whether you can chair), or help as a recorder
 or marshal. Your comp sec can correct it, and sends it with the entries.
 
-To change it, open the discipline's row, then **Change your entry**. To pull out of one discipline, tick
-**Withdraw this entry** under it and tap **Withdraw**. Notes from the organiser
+To change it, open the discipline's row, then **Change your entry**. To pull out of one discipline, tap
+**Withdraw** under it, tick **Withdraw this entry** and tap **Withdraw**. Notes from the organiser
 and your coach show on your entry, and once the organiser publishes the
 timetable, your flight, area and warm-up time, and under **Officiating**
 when and where you judge or help.
@@ -589,7 +600,8 @@ these** hides the rest); **Club timetable** does the same for everyone in
 your club, naming who. The comp sec and coaches have **Club timetable** on
 their pages too. Each prints on A3. **Add to calendar** (and **Club
 calendar**) puts the same flights and duties in your phone's calendar; subscribe to it
-and it updates when the timetable is published again.
+and it updates when the timetable is published again. Where there are more than
+two of these, they're in one menu, **Timetables and calendars**.
 
 **Tell me about changes** tells you when the organiser changes something
 for you: when or where you compete, what you officiate, or your card
@@ -677,7 +689,8 @@ The organiser sees a pair entered at another level flagged.
 
 # 4. Sign off routines (coaches)
 
-Your comp sec adds you and sends you your **coach link**. Your page lists each
+Your comp sec adds you and sends you your **coach link** (**Your coach link**,
+**Show**, at the top of your page shows it again). Your page lists each
 competition with the entries you see: the members who chose you, those who
 haven't chosen a coach, or everyone if the club says so, each with the
 problems the organiser sees (a missing sign-off among them). If the club hasn't
@@ -766,8 +779,9 @@ confirm.
    its entry on your page. Add the others under **Your details**, **Your other
    links**, so they're all on one page.
 4. If the competition needs a coach's sign-off, send your coach the **Sign-off
-   link** shown on your entry. They open it, check it and sign off with their
-   name. If it approves coaches, first name your coach under **Your coach**,
+   link for your coach** on your entry (open until they've signed it off;
+   **Show** after that). They open it, check it and sign off with their
+   name. If it approves coaches, first tap **Name your coach** under **Your coach**,
    with their qualification and a photo or PDF of its certificate (up to 3 MB), and tap
    **Send to the organiser**. Once the organiser approves them, the link
    works and they sign off as themselves; your page shows the organiser's
@@ -779,8 +793,8 @@ confirm.
 If you're a member who also coaches, your club's comp sec, entering some
 competitions on your own, or helping run one, you can open all of it from
 one link. On your page's **Your details** (a coach's is at the foot of their
-page), under **Your other links**, paste another of your links and tap
-**Add**. Then tabs at the top (Member, Coach, Competition secretary, On your own, or the
+page), under **Your other links**, tap **Add a link**, paste another of your
+links and tap **Add**. Then tabs at the top (Member, Coach, Competition secretary, On your own, or the
 competition's) switch between them, whichever of your links you open. Each
 link listed has **Undo**.
 

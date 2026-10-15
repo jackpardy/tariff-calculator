@@ -71,9 +71,9 @@ templ NotifyCompetition(p NotifyPage) {
 					<p class="mb-2">
 						<strong>{ p.Email.Address }</strong>
 						if p.Email.Confirmed {
-							<span class="tag is-success is-light ml-1">On</span>
+							@StateChip(Done, "On")
 						} else {
-							<span class="tag is-warning is-light ml-1">Waiting for you to confirm it</span>
+							@StateChip(Attention, "Waiting for you to confirm it")
 						}
 					</p>
 					if !p.Email.Confirmed {

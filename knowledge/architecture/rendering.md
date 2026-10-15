@@ -78,6 +78,11 @@ dashboard):
   `now` with the page, so the line always says what's saved.
 - `opens(what, now, label, open)`: the same with any button, for a form that
   does something: Add someone, Remove or hold entries, Change the entry.
+- A row's rare actions, in a list where every row would otherwise carry them
+  (a club's member: Make a coach too, New link, Remove), go under
+  `opens("", "", "More", false)` in the row's last cell, given the class
+  `comp-row-more`: the button stays at the right and the actions open
+  beneath it.
 
 Settings are rows of a list: the name in bold with how it's set beneath in
 grey, the button always in the same place at the right, and a hairline
@@ -88,9 +93,17 @@ something that opens; the form sits beneath with a light rule on its left. `open
 timetable isn't planned, or a save came back with problems.
 
 A list that is what the page is for has a plain heading with its count
-("People · 325", `listSection`), not a dropdown. Rows that are the content
+("People · 325", `listSection`), not a dropdown: the waiting lists, Removed
+and on hold, Scenarios and the desk's Sent too. Rows that are the content
 (each flight, each discipline of an entry, each routine) still open and close
 as dropdowns.
+
+A page's several printouts go under one **Print** button, a small pop-up
+menu (`details.comp-popup[data-menu]`, which `static/js/menus.js` closes on a
+tap outside): `printMenu` for the timetable's sheets, `dashboardPrint` for
+the entries page's cards (and a chair of judges' sheets). A menu whose
+button sits at the left of the page adds `comp-popup-start`, so it opens to
+the right and stays on screen.
 
 # Lists of people: search and filters
 
@@ -98,9 +111,9 @@ Every list of people has the same search and filters (roadmap item 6), from
 one set of pieces, so they look and work alike. The organiser's Officials
 page's People list is the example to copy.
 
-- **The section.** `@listSection(title, count, closed)` in `views/lists.templ`
-  draws the heading and count as a dropdown, open unless `closed`. Put the
-  list, and its "nobody yet" message, inside it.
+- **The section.** `@listSection(title, count)` in `views/lists.templ`
+  draws the plain heading and count ("People · 325"); it doesn't open and
+  close. Put the list, and its "nobody yet" message, inside it.
 - **The tools.** `@listTools(views.ListTools{ID, Noun, Total, Filters})`
   goes above the list, which gets `id={ ID }`. `ID` is unique on the page and
   also keys the saved search, so keep it stable. `Noun` is plural ("people",

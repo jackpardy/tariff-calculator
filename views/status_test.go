@@ -13,8 +13,9 @@ import (
 
 // paletteOnly are the templates that show states and roles only with the
 // chips (the cleanup audit's roll-out, step 2): On the day, the dashboard,
-// the club's pages, the timetable's rota and the officials.
-var paletteOnly = []string{"day.templ", "dashboard.templ", "clubs.templ", "timetable.templ", "officials.templ"}
+// the club's pages, the timetable's rota and the officials; then a coach's
+// entries, My competition and hearing about changes.
+var paletteOnly = []string{"day.templ", "dashboard.templ", "clubs.templ", "timetable.templ", "officials.templ", "coaches.templ", "my.templ", "notify.templ"}
 
 // bulmaState is Bulma colour used to show a state: a coloured tag, or
 // coloured text.

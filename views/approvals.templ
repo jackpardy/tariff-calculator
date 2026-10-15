@@ -154,28 +154,16 @@ templ CompetitionApprovals(p ApprovalsPage) {
 
 // entryCoachBox is where an individual names their coach.
 templ entryCoachBox(c EntryCoachView, open bool) {
-	<div class="box">
-		<h2 class="title is-6 mb-2">Your coach</h2>
-		<p class="is-size-7 mb-2">This competition approves coaches: name yours, with their coaching qualification (at least { c.Asked }) and a photo or PDF of its certificate. Once the organiser approves them, they can sign off your entry with the link below. Only the organiser sees the certificate, and it's deleted with the competition.</p>
-		if c.Name != "" {
-			<p class="mb-2">
-				<strong>{ c.Name }</strong> · { c.Qualification }
-				<span class={ "tag is-light ml-1", templ.KV("is-success", c.Approved), templ.KV("is-warning", !c.Approved) }>{ c.Status }</span>
-			</p>
-			if c.Note != "" {
-				<p class="is-size-7 mb-2">The organiser's note: { c.Note }</p>
-			}
-		}
+	<div class="mt-4">
 		if open {
-			<details open?={ c.Name == "" }>
-				<summary class="is-size-7">
-					if c.Name == "" {
-						Name your coach
-					} else {
-						Change your coach (the organiser approves them again)
-					}
-				</summary>
-				<form method="post" action={ templ.SafeURL(c.Action) } enctype="multipart/form-data" class="mt-2">
+			// A setting row: open at first until they've named one, as naming
+			// them is what's left to do.
+			@opens("Your coach", entryCoachNow(c), entryCoachLabel(c), c.Name == "") {
+				<p class="is-size-7 mb-2">This competition approves coaches: name yours, with their coaching qualification (at least { c.Asked }) and a photo or PDF of its certificate. Once the organiser approves them, they can sign off your entry with your coach's sign-off link. Only the organiser sees the certificate, and it's deleted with the competition.</p>
+				if c.Name != "" {
+					<p class="is-size-7 mb-2">Changing your coach sends them to the organiser to approve again.</p>
+				}
+				<form method="post" action={ templ.SafeURL(c.Action) } enctype="multipart/form-data">
 					<div class="field">
 						<input class="input is-small" name="name" required maxlength="80" placeholder="Coach's name" aria-label="Coach's name"/>
 					</div>
@@ -195,9 +183,35 @@ templ entryCoachBox(c EntryCoachView, open bool) {
 					</div>
 					<button class="button is-small" type="submit">Send to the organiser</button>
 				</form>
-			</details>
+			}
+		} else {
+			<p class="mb-2"><strong>Your coach</strong> <span class="has-text-grey">{ entryCoachNow(c) }</span></p>
+		}
+		if c.Name != "" {
+			<p class="is-size-7 mb-3">
+				@StateChip(c.State, c.Status)
+				if c.Note != "" {
+					<span class="has-text-grey">The organiser's note: { c.Note }</span>
+				}
+			</p>
 		}
 	</div>
+}
+
+// entryCoachNow says who an individual named as their coach.
+func entryCoachNow(c EntryCoachView) string {
+	if c.Name == "" {
+		return "None named yet: the competition approves coaches"
+	}
+	return c.Name + " · " + c.Qualification
+}
+
+// entryCoachLabel is the button opening the form to name a coach.
+func entryCoachLabel(c EntryCoachView) string {
+	if c.Name == "" {
+		return "Name your coach"
+	}
+	return "Change"
 }
 
 // PairView is a synchro entry as its partner's side sees it.
