@@ -1,0 +1,180 @@
+package views
+
+import (
+	"fmt"
+	"strings"
+
+	"tariffCalculator/requirements"
+)
+
+// The builder's choosers (roadmap's requirements workflow, step 5): Check
+// against and Start from a set, each a button that opens a panel under it
+// with a search, your own first (those kept on your page before those in this
+// browser), the ones you used lately, then each organisation's, opened one at
+// a time or all at once while searching. The page's Alpine component keeps
+// which is open and the search (chooser in static/js/app.js).
+
+// Chooser kinds: requirements to check a routine against, or a set routine
+// to start one from.
+const (
+	chooseCheck = "check"
+	chooseSet   = "set"
+)
+
+// chooserKey is the open chooser's key in the page's component: the kind,
+// and for Check against, the column.
+func chooserKey(kind, side string) string {
+	if kind == chooseCheck {
+		return kind + "-" + side
+	}
+	return kind
+}
+
+// searchText is what an option is found by: its group's name, its label and
+// its requirements' own name, in lower case.
+func searchText(parts ...string) string {
+	return strings.ToLower(strings.Join(parts, " "))
+}
+
+// chooserButton opens or closes a chooser; it shows what's chosen.
+templ chooserButton(kind, side, label string) {
+	{{ key := chooserKey(kind, side) }}
+	<button
+		class="button is-small chooser-button"
+		type="button"
+		aria-haspopup="true"
+		x-bind:aria-expanded={ fmt.Sprintf("chooser.open === '%s'", key) }
+		x-on:click={ fmt.Sprintf("toggleChooser('%s')", key) }
+	>
+		<span class="chooser-chosen" x-text={ label }></span>
+		<span class="chooser-arrow" aria-hidden="true"></span>
+	</button>
+}
+
+// chooserPanel is a chooser's panel: what there is to choose, by kind. groups
+// are the built-in ones, with their options already chosen for the kind.
+templ chooserPanel(kind, side string, groups []chooserGroup) {
+	{{ key := chooserKey(kind, side) }}
+	<div
+		class="chooser-panel"
+		x-show={ fmt.Sprintf("chooser.open === '%s'", key) }
+		x-cloak
+		x-on:keydown.escape.stop={ fmt.Sprintf("closeChooser('%s')", key) }
+	>
+		<input
+			class="input is-small chooser-search"
+			type="search"
+			autocomplete="off"
+			x-model="chooser.q"
+			if kind == chooseCheck {
+				placeholder="Find requirements, e.g. BUCS L7 or novice"
+				aria-label="Find requirements"
+			} else {
+				placeholder="Find a set routine, e.g. BG Club L2"
+				aria-label="Find a set routine"
+			}
+			x-on:keydown.enter.prevent="$el.closest('.chooser-panel').querySelector('.chooser-option:not([style*=none])')?.click()"
+		/>
+		if kind == chooseCheck {
+			<button class="chooser-option" type="button" data-search="no requirements none" x-show="chooserShows($el)" x-bind:class={ fmt.Sprintf("{ 'is-chosen': !chosenRequirements('%s') }", side) } x-on:click={ fmt.Sprintf("choose('%s', '')", key) }>No requirements</button>
+		}
+		// Your own: kept on your page first, then those in this browser.
+		<template x-if={ fmt.Sprintf("yourChoices('%s').length > 0", kind) }>
+			<div class="chooser-section" x-show="chooserAny($el)">
+				<p class="chooser-heading">Yours</p>
+				<template x-for={ fmt.Sprintf("o in yourChoices('%s')", kind) } x-bind:key="o.ref">
+					<button
+						class="chooser-option"
+						type="button"
+						x-bind:data-search="o.search"
+						x-show="chooserShows($el)"
+						x-bind:class={ fmt.Sprintf("{ 'is-chosen': o.ref === chosenRequirements('%s') }", side) }
+						x-on:click={ fmt.Sprintf("choose('%s', o.ref)", key) }
+					>
+						<span x-text="o.name"></span>
+						<span class="chooser-note" x-show="o.kept">On your page</span>
+					</button>
+				</template>
+			</div>
+		</template>
+		// Used lately, from the built-in ones (your own are listed above).
+		<template x-if={ fmt.Sprintf("chooser.q === '' && recentChoices('%s').length > 0", kind) }>
+			<div class="chooser-section">
+				<p class="chooser-heading">Used lately</p>
+				<template x-for={ fmt.Sprintf("o in recentChoices('%s')", kind) } x-bind:key="o.ref">
+					<button class="chooser-option" type="button" x-bind:class={ fmt.Sprintf("{ 'is-chosen': o.ref === chosenRequirements('%s') }", side) } x-on:click={ fmt.Sprintf("choose('%s', o.ref)", key) } x-text="o.name"></button>
+				</template>
+			</div>
+		</template>
+		// Each organisation's, closed until opened, or open while searching.
+		for _, g := range groups {
+			<details class="chooser-group" x-show="chooserAny($el)" x-effect="$el.open = chooser.q !== ''">
+				<summary>{ g.Name } <span class="chooser-count" x-show="chooser.q === ''">{ fmt.Sprint(len(g.Options)) }</span></summary>
+				<div class="chooser-options">
+					for _, o := range g.Options {
+						<button
+							class="chooser-option"
+							type="button"
+							data-ref={ o.Ref }
+							data-search={ searchText(g.Name, o.Label, o.Name) }
+							x-show="chooserShows($el)"
+							if kind == chooseCheck {
+								x-bind:class={ fmt.Sprintf("{ 'is-chosen': chosenRequirements('%s') === '%s' }", side, o.Ref) }
+							}
+							x-on:click={ fmt.Sprintf("choose('%s', '%s')", key, o.Ref) }
+						>{ o.Label }</button>
+					}
+				</div>
+			</details>
+		}
+		<p class="chooser-empty" x-show="chooser.q !== '' && !chooserAny($el.closest('.chooser-panel'))">Nothing matches that.</p>
+		if kind == chooseCheck && side == "a" {
+			// Requirements of your own, written beside the routine (requirementsWriter).
+			<button class="button is-small is-light mt-2" type="button" x-on:click={ fmt.Sprintf("closeChooser('%s'); writeRequirements('')", key) }>+ Write your own requirements</button>
+		}
+	</div>
+}
+
+// chooserGroup is an organisation's options for a chooser.
+type chooserGroup struct {
+	Name    string
+	Options []chooserOption
+}
+
+// chooserOption is a built-in to choose: its reference, its label in its
+// group, and its own name (found by either).
+type chooserOption struct {
+	Ref, Label, Name string
+}
+
+// checkGroups are each organisation's requirements to check a routine
+// against (CheckOptions), for the Check against chooser.
+func checkGroups(groups []requirements.BuiltinGroup) []chooserGroup {
+	var out []chooserGroup
+	for _, g := range groups {
+		var options []chooserOption
+		for _, o := range CheckOptions(g) {
+			set, _ := requirements.LookupBuiltin(o.Ref)
+			options = append(options, chooserOption{Ref: o.Ref, Label: o.Label, Name: set.Name})
+		}
+		if len(options) > 0 {
+			out = append(out, chooserGroup{Name: g.Name, Options: options})
+		}
+	}
+	return out
+}
+
+// setGroups are each organisation's set routines, for Start from a set.
+func setGroups(groups []requirements.BuiltinGroup) []chooserGroup {
+	var out []chooserGroup
+	for _, g := range groups {
+		var options []chooserOption
+		for _, b := range g.SetRoutines() {
+			options = append(options, chooserOption{Ref: requirements.BuiltinPrefix + b.ID, Label: b.Set.Name, Name: b.Set.Name})
+		}
+		if len(options) > 0 {
+			out = append(out, chooserGroup{Name: g.Name, Options: options})
+		}
+	}
+	return out
+}

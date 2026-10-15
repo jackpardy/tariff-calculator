@@ -685,7 +685,7 @@ if you enter on your own) and they're safe, and open on any phone:
 - Or open **Requirements** on your page: **Add from this browser** keeps all
   of them in one go. **Take off** removes one from your page.
 - Wherever your page is saved, the Requirements page and the Routine
-  Builder's **Check against** list what's kept as **On your page**, first.
+  Builder's **Check against** list what's kept first, marked **On your page**.
 
 You can keep up to 50 sets of requirements and 50 levels.
 

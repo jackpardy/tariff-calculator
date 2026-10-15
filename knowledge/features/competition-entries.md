@@ -1649,7 +1649,7 @@ people with no record left).
 - **Reading them**: the Requirements page and the Routine Builder read each
   saved personal link's `<link>/requirements.json` on load and merge it into
   `SetStore` and `LevelStore`, the page's copy winning, each marked `kept`.
-  **Check against** lists kept ones first as **On your page**. Without a
+  **Check against** lists kept ones first under **Yours**, marked **On your page**. Without a
   signal, the browser's copies stand.
 - **The Requirements tab** on a member's, coach's and individual's pages
   lists them (a set's rules and a level's exercises in words), with **Take
@@ -1811,7 +1811,10 @@ Decision 5; `web/levelpages.go`, `store/levels.go`, migration 42). A club's
 levels to track gymnasts against ("Club Grade 1"), in order, up to 50.
 
 - **Written on the club's page** (2026-10-15, step 3 of the [requirements
-  workflow](../roadmap.md)). The Levels section has **New level**, and each
+  workflow](../roadmap.md)). The Levels section has **New level**, and
+  **Start from a set routine** (2026-10-16), each competition's set routines
+  by organisation, opening the editor with that set routine as the level's
+  first item (`?set=<reference>`); and each
   level **Change** and **Copy as a new level**, opening the requirements
   editor on a page of its own (`web/leveleditor.go`): the kinds of rule a
   level tracks (a skill or kind of skill, several of a kind, a link: this,

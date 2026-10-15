@@ -37,9 +37,13 @@ function tariffCalculatorStore() {
         query: '',          // the picker's search text; results replace the tabs while it's set
         toast: { show: false, message: '', type: 'info' },
         memberLinks: [], // club member pages saved in this browser, to keep routines on (ADR 0011)
+        chooser: { open: '', q: '' }, // the open chooser ('check-a', 'check-b' or 'set') and its search
+        recent: { check: [], set: [] }, // the built-in requirements and set routines chosen lately, latest first
+        writing: null, // requirements being written beside the routine: {id (the saved set, or null), title, draft (the last valid set's JSON)}
 
         init() {
             this.memberLinks = RoutineStore.memberLinks();
+            try { this.recent = { check: [], set: [], ...JSON.parse(localStorage.getItem('recentRequirements') || '{}') }; } catch (e) { /* none yet */ }
             const state = RoutineStore.load();
             LevelEntries.migrate(state); // routines that held a level's tabs become level entries
             // A set routine is a starting point now, not requirements to check against.
@@ -77,6 +81,7 @@ function tariffCalculatorStore() {
                 this.currentRoutine().skills = routine; // the routine may have been replaced (e.g. cleared)
                 this.renderRoutines();
                 this.persist();
+                if (this.writing) { this.routineChangedWhileWriting(); }
             });
             this.$watch('routineB', (routine) => {
                 if (!this.compareId) { return; }
@@ -91,6 +96,10 @@ function tariffCalculatorStore() {
             });
             document.body.addEventListener('htmx:afterRequest', (event) => {
                 if (event.detail.failed) { this.requestFailed(event.detail.requestConfig?.path, event.detail.xhr); }
+            });
+            // Requirements written beside the routine: it's checked against them as they change.
+            document.body.addEventListener('htmx:afterSettle', (event) => {
+                if (this.writing && event.detail.requestConfig?.path === '/requirements/editor') { this.draftChanged(); }
             });
 
             if (this.mode === 'levels') { this.syncColumns(); } else if (this.beside) { this.compareWith(this.beside); } else { this.renderRoutines(); }
@@ -139,6 +148,8 @@ function tariffCalculatorStore() {
                     : { side, ...Exercises.values(routine), ...entryValues };
             } else {
                 values = { side, ...Exercises.values(this.routineFor(side)) };
+                // Requirements being written beside it: checked against the draft.
+                if (side === 'a' && this.writing?.draft) { values.requirementSet = this.writing.draft; }
             }
             if (this.mode === 'routines' && this.compareId) {
                 const other = side === 'b' ? 'a' : 'b';
@@ -236,6 +247,146 @@ function tariffCalculatorStore() {
             this.persist();
             this.renderRoutine(side);
         },
+        // --- Writing requirements beside the routine (views.requirementsWriter) ---
+        isYours(ref) { return !!ref && !ref.startsWith('builtin:') && this.customSets.some((s) => s.id === ref); },
+        // writeRequirements opens the editor beside the routine: on one of
+        // your own requirements (ref), a copy of a built-in one, or new ('').
+        writeRequirements(ref) {
+            if (this.mode !== 'routines') { return; }
+            const saved = this.customSets.find((s) => s.id === ref);
+            let values;
+            if (saved) {
+                this.writing = { id: saved.id, title: `Change ${saved.set.name}`, draft: JSON.stringify(saved.set) };
+                values = { set: JSON.stringify(saved.set) };
+            } else if (ref.startsWith('builtin:')) {
+                this.writing = { id: null, title: `A copy of ${Exercises.requirementName(ref)}`, draft: SetStore.payload(ref) };
+                values = { copy: ref };
+            } else {
+                this.writing = { id: null, title: 'Your own requirements', draft: '' };
+                values = { set: JSON.stringify({ format: 1, name: '', rules: [] }) };
+            }
+            // The routine goes with it, for each rule to say whether it's met.
+            values.routineData = JSON.stringify(this.routine);
+            htmx.ajax('POST', '/requirements/editor', { source: '#requirements-writer-editor', target: '#requirements-writer-editor', swap: 'innerHTML', values })
+                .then(() => {
+                    this.draftChanged();
+                    document.querySelector('.requirements-writer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+        },
+        // draftChanged checks the routine against the requirements as the
+        // editor has them now, if they can be read (no problems listed).
+        draftChanged() {
+            const form = document.querySelector('#requirements-writer-editor #set-editor');
+            if (!form || !this.writing) { return; }
+            if (form.dataset.problems === '0') { this.writing.draft = form.dataset.setJson; }
+            this.renderRoutine('a');
+        },
+        // saveWriting saves the requirements written beside the routine (as
+        // the Requirements page saves them, and on your page if they're kept
+        // there), and checks the routine against them.
+        async saveWriting() {
+            const form = document.querySelector('#requirements-writer-editor #set-editor');
+            if (!form || !this.writing) { return; }
+            const response = await fetch('/requirements/editor', { method: 'POST', body: new URLSearchParams(new FormData(form)) });
+            if (!response.ok) { this.showToast(`Couldn't save: ${(await response.text()).trim()}`, 'error'); return; }
+            const html = await response.text();
+            form.outerHTML = html;
+            const fresh = document.querySelector('#requirements-writer-editor #set-editor');
+            const set = JSON.parse(fresh.dataset.setJson);
+            if (!set.name?.trim()) { this.showToast('Give the requirements a name first.', 'error'); fresh.querySelector('[name=name]')?.focus(); return; }
+            if (fresh.dataset.problems !== '0') { this.showToast('Fix the problems listed in the editor first.', 'error'); return; }
+            const sets = SetStore.load();
+            let saved = sets.find((s) => s.id === this.writing.id);
+            const described = JSON.parse(fresh.dataset.described || '[]');
+            if (saved) {
+                Object.assign(saved, { set, described });
+            } else {
+                saved = { id: SetStore.newId(), set, described };
+                sets.push(saved);
+            }
+            SetStore.save(sets);
+            this.customSets = sets;
+            this.writing = null;
+            this.setRequirements(saved.id, 'a');
+            if (saved.kept) {
+                try { await KeptRequirements.save(saved.kept, 'set', saved); } catch (e) {
+                    this.showToast(`Saved here, but not on your page (${e.message}): try again when there's a signal.`, 'error');
+                    return;
+                }
+            }
+            this.showToast(`Saved ${set.name}. This routine is checked against it.`, 'info');
+        },
+        // routineChangedWhileWriting posts the editor again with the routine as
+        // it is now, so each rule says whether it's met.
+        routineChangedWhileWriting() {
+            const form = document.querySelector('#requirements-writer-editor #set-editor');
+            const field = form?.querySelector('[name=routineData]');
+            if (!field) { return; }
+            field.value = JSON.stringify(this.routine);
+            htmx.trigger(form, 'change');
+        },
+        cancelWriting() {
+            this.writing = null;
+            document.getElementById('requirements-writer-editor')?.replaceChildren();
+            this.renderRoutine('a');
+        },
+
+        // --- Choosers: Check against and Start from a set (views/chooser.templ) ---
+        toggleChooser(key) {
+            this.chooser = { open: this.chooser.open === key ? '' : key, q: '' };
+            if (this.chooser.open) {
+                this.$nextTick(() => document.querySelector('.chooser-panel:not([style*=none]) .chooser-search')?.focus());
+            }
+        },
+        closeChooser(key) {
+            if (this.chooser.open === key) { this.chooser = { open: '', q: '' }; }
+        },
+        // chooserShows reports whether an option (with its search text in
+        // data-search) matches the search: every word of it, ignoring case and accents.
+        chooserShows(el) {
+            const plain = (text) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            const text = plain(el.dataset.search || el.textContent);
+            return plain(this.chooser.q).split(/\s+/).every((word) => text.includes(word));
+        },
+        // chooserAny reports whether any option inside el matches the search.
+        chooserAny(el) {
+            this.chooser.q; // re-evaluate as it changes
+            return [...el.querySelectorAll('[data-search]')].some((o) => this.chooserShows(o));
+        },
+        chosenRequirements(side) { return this.routineFor(side)?.requirements || ''; },
+        checkLabel(side) {
+            const ref = this.chosenRequirements(side);
+            if (!ref) { return 'No requirements'; }
+            return this.customSets.find((s) => s.id === ref)?.set.name || Exercises.requirementName(ref);
+        },
+        // yourChoices are your own requirements or set routines (kind 'check'
+        // or 'set'): those kept on your page first.
+        yourChoices(kind) {
+            return this.customSets
+                .filter((s) => this.isSetRoutine(s.set) === (kind === 'set'))
+                .map((s) => ({ ref: s.id, name: s.set.name, kept: !!s.kept, search: `${s.set.name} ${s.kept ? 'on your page' : ''}` }))
+                .sort((a, b) => Number(b.kept) - Number(a.kept));
+        },
+        // recentChoices are the built-in ones chosen lately, still there.
+        recentChoices(kind) {
+            const names = Exercises.data().names || {};
+            return (this.recent[kind] || []).filter((ref) => names[ref]).map((ref) => ({ ref, name: names[ref] }));
+        },
+        // choose takes a chooser's option: requirements for its column to be
+        // checked against, or a set routine to start from.
+        choose(key, ref) {
+            this.chooser = { open: '', q: '' };
+            const kind = key === 'set' ? 'set' : 'check';
+            if (ref.startsWith('builtin:')) {
+                this.recent[kind] = [ref, ...(this.recent[kind] || []).filter((r) => r !== ref)].slice(0, 4);
+                try { localStorage.setItem('recentRequirements', JSON.stringify(this.recent)); } catch (e) { /* remembered for this visit only */ }
+            }
+            if (kind === 'set') {
+                this.startFromSetRoutine(ref);
+            } else {
+                this.setRequirements(ref, key === 'check-b' ? 'b' : 'a');
+            }
+        },
         // setCheck turns one of a column's checks ('difficulty' or 'repeats') on or
         // off for its routine, overriding its requirement set's choice.
         setCheck(side, check, on) {
@@ -303,6 +454,7 @@ function tariffCalculatorStore() {
         // --- Levels mode: a level's tabs, with its voluntaries as linked routines ---
         setMode(mode) {
             if (this.editingIndex !== null) { this.cancelEdit(); }
+            if (this.writing) { this.cancelWriting(); }
             this.mode = mode;
             try { localStorage.setItem('builderMode', mode); } catch (e) { /* remembered for this visit only */ }
             this.compareId = null;

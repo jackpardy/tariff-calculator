@@ -60,13 +60,30 @@ messages and total.
 
 A routine can be checked against built-in or custom
 [requirements](../requirements/framework.md). The results show under the
-routine, and the elements involved are highlighted. "Check against" lists each
+routine, and the elements involved are highlighted. "Check against" is a
+button showing what's chosen; it opens a panel under it with a search
+(by organisation, level or name, ignoring case and accents; Enter takes the
+first match), **Yours** (those kept on your page first, then this browser's),
+**Used lately** (the last four built-in ones chosen, kept in the browser as
+`recentRequirements`), then each organisation, closed until opened and all
+open while searching (`views/chooser.templ`). It lists each
 level's voluntary requirements by group, named after the level ("BUCS L7"), or
 by exercise when its two voluntaries differ ("BUCS L1 · first exercise",
 "BUCS L1 · second exercise"); requirements shared by levels are listed
 once, by their own name ("BG Regional L4 13+ · first exercise").
-Set routines aren't requirements to check against: **Start from a set...**
-beside "+ New" uses one as a starting point
+Requirements can be written beside the routine (roadmap's requirements
+workflow, step 4): **+ Write your own requirements** at the foot of Check
+against's panel, **Copy and change** for a built-in set chosen, or
+**Change** for one of yours, opens the requirements editor in a panel under
+Check against (`views.requirementsWriter`). The editor posts the routine
+with it (`routineData`), so each rule's card says **Met** or **Not met**
+with what was found, and the routine's own checks below use the draft while
+it can be read; changing the routine re-posts the editor. **Save and check
+against these** saves the set as the Requirements page does (in the browser,
+and on the person's page if it's kept there) and checks the routine against
+it; **Cancel** goes back to what it was checked against.
+Set routines aren't requirements to check against: **Start from a set**
+beside "+ New", the same kind of chooser, uses one as a starting point
 ([set routines](../requirements/set-routines.md)). Routines checked against a
 set routine by an earlier version stop being checked.
 

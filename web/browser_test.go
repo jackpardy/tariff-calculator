@@ -130,3 +130,75 @@ func TestTariffSheetLoadsInABrowser(t *testing.T) {
 		}
 	}
 }
+
+// The builder's Check against chooser opens on its button, finds
+// requirements by a search, takes the first match on Enter, shows it on the
+// button, checks the routine against it, and lists it under Used lately.
+func TestCheckAgainstChooserInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := httptest.NewServer(routes())
+	defer srv.Close()
+
+	var chosen, saved, label, recent string
+	step(t, ctx, "choosing requirements by a search",
+		chromedp.Navigate(srv.URL+"/"),
+		chromedp.WaitReady(`.requirement-picker .chooser-button`, chromedp.ByQuery),
+		chromedp.Click(`.requirement-picker .chooser-button`, chromedp.ByQuery),
+		chromedp.WaitVisible(`.requirement-picker .chooser-search`, chromedp.ByQuery),
+		chromedp.SendKeys(`.requirement-picker .chooser-search`, "bucs l7", chromedp.ByQuery),
+		// Alpine shows and hides the options a moment after the search changes.
+		chromedp.Poll(`!document.querySelector('.requirement-picker .chooser-option[data-ref="builtin:bucs-fig"]')?.offsetParent && !!document.querySelector('.requirement-picker .chooser-option[data-ref="builtin:bucs-l7-second"]')?.offsetParent`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+		chromedp.Evaluate(`[...document.querySelectorAll('.requirement-picker .chooser-option[data-ref]')].filter((o) => o.offsetParent).map((o) => o.dataset.ref).join()`, &chosen),
+		chromedp.SendKeys(`.requirement-picker .chooser-search`, "\r", chromedp.ByQuery),
+		chromedp.WaitNotVisible(`.requirement-picker .chooser-panel`, chromedp.ByQuery),
+		chromedp.Text(`.requirement-picker .chooser-chosen`, &label, chromedp.ByQuery),
+		chromedp.Evaluate(`JSON.parse(localStorage.getItem('trampolineRoutines')).routines[0].requirements`, &saved),
+		chromedp.Evaluate(`JSON.parse(localStorage.getItem('recentRequirements')).check.join()`, &recent),
+	)
+	if chosen != "builtin:bucs-l7-second" {
+		t.Errorf("searching bucs l7 should leave BUCS L7's voluntary alone, got %q", chosen)
+	}
+	if saved != "builtin:bucs-l7-second" || recent != saved {
+		t.Errorf("Enter should check the routine against the match and remember it: saved %q, recent %q", saved, recent)
+	}
+	if !strings.Contains(label, "BUCS L7") {
+		t.Errorf("the button should show what's chosen, got %q", label)
+	}
+}
+
+// Requirements written beside the routine in the builder: Copy and change
+// opens a copy of the built-in set chosen, each rule saying whether the
+// routine meets it; Save keeps it as one of yours and checks the routine
+// against it.
+func TestWriteRequirementsInTheBuilderInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := httptest.NewServer(routes())
+	defer srv.Close()
+
+	var chips, name, saved, setName string
+	step(t, ctx, "copying and changing the requirements checked against",
+		chromedp.Navigate(srv.URL+"/"),
+		chromedp.Evaluate(`localStorage.setItem('trampolineRoutines', `+"`"+`{"current":"r1","routines":[{"id":"r1","name":"Test","requirements":"builtin:bucs-l7-second","skills":[
+			{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}]}]}`+"`"+`)`, nil),
+		chromedp.Reload(),
+		chromedp.WaitReady(`.requirement-picker .chooser-button`, chromedp.ByQuery),
+		chromedp.Evaluate(`[...document.querySelectorAll('.requirement-picker button')].find((b) => b.textContent.trim() === 'Copy and change').click()`, nil),
+		chromedp.WaitVisible(`#requirements-writer-editor .rule-card`, chromedp.ByQuery),
+		chromedp.Evaluate(`[...document.querySelectorAll('#requirements-writer-editor .rule-card-title .chip')].map((c) => c.textContent.trim()).join()`, &chips),
+		chromedp.Value(`#requirements-writer-editor [name=name]`, &name, chromedp.ByQuery),
+		chromedp.SetValue(`#requirements-writer-editor [name=name]`, "Our L7", chromedp.ByQuery),
+		chromedp.Evaluate(`Alpine.$data(document.querySelector('.requirement-picker')).saveWriting()`, nil),
+		chromedp.WaitNotVisible(`.requirements-writer`, chromedp.ByQuery),
+		chromedp.Evaluate(`JSON.parse(localStorage.getItem('trampolineRoutines')).routines[0].requirements`, &saved),
+		chromedp.Evaluate(`JSON.parse(localStorage.getItem('trampolineRequirementSets')).find((s) => s.id === JSON.parse(localStorage.getItem('trampolineRoutines')).routines[0].requirements)?.set.name || ''`, &setName),
+	)
+	if chips != "!Not met,!Not met,!Not met" { // one skill: too few, too easy, and not the elements allowed
+		t.Errorf("each rule says whether the routine meets it: %q", chips)
+	}
+	if name != "BUCS L7 · second exercise (copy)" {
+		t.Errorf("a copy, named so: %q", name)
+	}
+	if strings.HasPrefix(saved, "builtin:") || setName != "Our L7" {
+		t.Errorf("saved as one of yours and checked against: %q %q", saved, setName)
+	}
+}

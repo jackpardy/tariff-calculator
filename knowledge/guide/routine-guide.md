@@ -82,8 +82,11 @@ number of skills.
 
 # 3. Check a routine against a competition
 
-1. Under **Check against**, choose the competition and level. The levels are
-   grouped by organisation (BUCS, FIG age groups, British Gymnastics). Where a
+1. Tap the button under **Check against** (it says **No requirements** at
+   first) and choose the competition and level. Type to find one, e.g. "BUCS
+   L7" or "novice", and press Enter for the first match. Your own requirements
+   come first, then the ones you used lately, then each organisation (ISTO,
+   BUCS, FIG age groups, British Gymnastics): tap one to open it. Where a
    level's two voluntaries have different rules, they're listed separately,
    e.g. "BUCS L1 · first exercise" and "BUCS L1 · second exercise".
 2. Each requirement is listed below the routine with ✓ or ✗, and the top shows
@@ -106,8 +109,9 @@ them against your competition's current rules.**
 
 ## Start from a set routine
 
-**Start from a set...** (next to **+ New**) copies a set routine into your
-routine: into the one on screen if it's empty, otherwise into a new routine
+**Start from a set** (next to **+ New**) opens a list of set routines, yours
+first, with a search like Check against's. It copies the one you choose into
+your routine: into the one on screen if it's empty, otherwise into a new routine
 named after the set. Change it from there.
 
 # 4. Work on a competition level
@@ -143,35 +147,34 @@ in Levels mode for whoever receives it.
 The app has ISTO's, BUCS's, FIG's and British Gymnastics' levels built in, but
 not every competition's. You can add your own, or change a built-in one.
 
-1. Tap **Manage requirements** (under Check against). The requirements page
-   opens in a new tab.
-2. Under **Your requirements**, tap **+ New**. Or find a similar built-in one
-   and tap **Duplicate** to start from it.
-3. Give it a **Name**, and optionally a description and source (e.g. "Club
+You write them beside your routine, which is checked against them as you go:
+
+1. Under **Check against**, tap the button and then **+ Write your own
+   requirements** at the bottom of the list. Or choose a built-in level and
+   tap **Copy and change** to start from it, or choose one of yours and tap
+   **Change**.
+2. Give it a **Name**, and optionally a description and source (e.g. "Club
    championships 2027").
-4. **Add a rule** for each requirement. The kinds of rule are:
-   - special requirements that must each be met by a different skill;
-   - "one of these" (e.g. a ¾ somersault followed by a 1¼, *or* a full with a
-     full twist);
-   - how many skills of a kind (at least, at most, or none);
-   - linked skills, one straight after another (e.g. no linked somersaults);
-   - every skill of a kind;
-   - no repeats;
-   - number of skills;
-   - difficulty range or cap;
-   - a skill at a given position.
+3. **Add a rule** for each requirement: Must include, Must not include, How
+   many of a kind, This then this (skills in a row), Linked pairs of a kind,
+   No repeats, Number of skills, Difficulty between, A skill at a position,
+   Every skill must be, or Special requirements (each met by a different
+   skill). Pick the skill or kind of skill (any single somersault, a
+   barani…) from the list, or describe it by somersault, twist, direction
+   and shape. Add your own **Wording** so the rule reads the way your
+   handbook says it.
+4. Each rule says **Met** or **Not met** for the routine on screen, and the
+   routine below is checked against them as they are.
+5. Fix anything listed under **Fix before saving**, then tap **Save and
+   check against these**. If the editor says **These can't all be met**,
+   some rules contradict each other or ask for something no routine can do
+   (say, at least 12 elements, or a double back that another rule bans). It
+   catches the obvious cases, not every one.
 
-   Describe the skills by somersault (in quarters), twist (in half twists),
-   direction, shape, take-off and landing, tariff, or exact FIG notation. Leave
-   a field empty to allow anything. Add your own **Wording** so the rule reads
-   the way your handbook says it.
-5. Fix anything listed under **Fix before saving**, then tap **Save**. If the
-   editor says **These can't all be met**, some rules contradict each other or
-   ask for something no routine can do (say, at least 12 elements, or a double
-   back that another rule bans). It catches the obvious cases, not every one.
-   You can still save, but no routine will pass until you change them.
+**Manage requirements** (beside Check against) opens the requirements page,
+where you can do the same, and also export, import, delete and make levels.
 
-Your requirements now appear under **Check against → Your requirements**.
+Your requirements now appear under **Check against → Yours**.
 
 ## Make your own set routine
 
@@ -181,7 +184,7 @@ A set routine is built like any routine, not written as rules:
 2. Choose **More → Save as a set routine** and give it a name. If the routine
    was already saved as one, you can update it or save a new one.
 
-It then appears under **Start from a set... → Your set routines**, and on the
+It then appears under **Start from a set → Yours**, and on the
 requirements page under **Your set routines** (**+ New set routine** there
 makes one from a routine you've already built). To change it later, use **Edit
 in the Routine Builder**.

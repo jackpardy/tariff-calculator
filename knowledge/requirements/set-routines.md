@@ -18,7 +18,7 @@ scored without difficulty and may repeat elements. Their descriptions note that
 
 `Builtin.IsSetRoutine` reports whether a built-in has a sequence. Set routines
 aren't requirements a routine is checked against: in the builder they're a
-**starting point** ("Start from a set..."), and a [level](levels.md) shows them
+**starting point** ("Start from a set"), and a [level](levels.md) shows them
 as prescribed. The requirements page lists them apart, by source.
 
 Where a level lets the gymnast choose between set routines (e.g. BUCS L3–L7
@@ -30,7 +30,7 @@ Where a level lets the gymnast choose between set routines (e.g. BUCS L3–L7
 `requirements.SetRoutine(set)` turns the sequence into real skills using
 `Matcher.Example()` (the simplest skill each matcher allows), named and priced.
 The page asks for it with `POST /set-routine`, which returns the skills (and
-whether a posted routine already **matches** them). "Start from a set..." puts
+whether a posted routine already **matches** them). "Start from a set" puts
 them in the routine on screen if it's empty, otherwise in a new routine named
 after the set; a level's set tab is rendered from them read-only
 (`/routine` with `prescribed=1`).

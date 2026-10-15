@@ -343,4 +343,25 @@ func TestClubLevelEditor(t *testing.T) {
 	if !strings.Contains(page, `value="Copy of Grade 1A"`) || !strings.Contains(page, "Back tuck (club)") {
 		t.Errorf("a copy starts from the level: %s", page)
 	}
+
+	// Or start from a competition's set routine: the level's first item,
+	// saved as it is.
+	set := regexp.MustCompile(`href="(` + regexp.QuoteMeta(ann) + `/levels/new\?set=builtin%3Abg-club-l1)"`).FindStringSubmatch(levels)
+	if set == nil || !strings.Contains(levels, ">Start from a set routine</summary>") {
+		t.Fatalf("the Levels page offers the set routines to start from: %s", levels)
+	}
+	page = do(t, h, http.MethodGet, unescape(set[1]), nil).Body.String()
+	if !strings.Contains(page, `value="BG Club L1"`) || !strings.Contains(page, `<option value="sequence" selected`) {
+		t.Fatalf("the editor starts with the set routine: %s", page)
+	}
+	form = submitted(func() *nethtml.Node {
+		doc, _ := nethtml.Parse(strings.NewReader(page))
+		return doc
+	}())
+	if notice := noticeOf(t, redirected(t, h, ann+"/levels/new", form)); notice != "BG Club L1 saved." {
+		t.Errorf("saved: %q", notice)
+	}
+	if levels = do(t, h, http.MethodGet, ann+"/levels", nil).Body.String(); !strings.Contains(levels, "<h3 class=\"title is-6 mb-1\">BG Club L1</h3>") {
+		t.Error("the level is the club's")
+	}
 }

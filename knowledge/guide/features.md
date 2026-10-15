@@ -43,6 +43,8 @@ generated: { by: claude-code/cli, at: 2026-10-09T12:00:00Z }
   British Gymnastics national (2026) and club & regional (2027) levels. Each
   names the rule book it came from
   ([requirements](../requirements/framework.md)).
+- **Find them quickly**: Check against opens a list with a search, your own
+  and the ones you used lately first, then each organisation's.
 - **Pass or fail for each requirement**, with the skills that meet it
   highlighted, and special requirements starred.
 - **Your own requirements**, for any competition the app doesn't know yet:

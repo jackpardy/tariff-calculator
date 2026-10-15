@@ -772,7 +772,7 @@ func TestPageOffersBuiltinSets(t *testing.T) {
 	rec := httptest.NewRecorder()
 	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	html := rec.Body.String()
-	if !strings.Contains(html, `<option value="builtin:fig-ag1-first"`) || !strings.Contains(html, `<optgroup label="British Gymnastics national pathway (2026)"`) || !strings.Contains(html, `href="/requirements"`) {
+	if !strings.Contains(html, `data-ref="builtin:fig-ag1-first"`) || !strings.Contains(html, `<summary>British Gymnastics national pathway (2026) `) || !strings.Contains(html, `href="/requirements"`) {
 		t.Errorf("the calculator should offer built-in sets and link to the requirements page")
 	}
 }
@@ -815,7 +815,7 @@ func TestPageOffersSideBySide(t *testing.T) {
 	rec := httptest.NewRecorder()
 	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	html := rec.Body.String()
-	for _, want := range []string{`id="compare-with"`, `id="routine-view-b"`, `id="requirement-set-b"`, `href="/compare"`} {
+	for _, want := range []string{`id="compare-with"`, `id="routine-view-b"`, `toggleChooser(&#39;check-b&#39;)`, `href="/compare"`} {
 		if !strings.Contains(html, want) {
 			t.Errorf("the page is missing %q", want)
 		}
@@ -855,7 +855,7 @@ func TestSetRoutineEndpoint(t *testing.T) {
 
 	// The builder starts a routine from a set routine, rather than offering
 	// to load one it's checked against.
-	if page := getPage(t, "/"); !strings.Contains(page, `startFromSetRoutine($event.target.value)`) || strings.Contains(page, "Load this set routine") {
+	if page := getPage(t, "/"); !strings.Contains(page, `choose(&#39;set&#39;, &#39;builtin:bg-club-l1&#39;)`) || strings.Contains(page, "Load this set routine") {
 		t.Errorf("the builder should offer set routines as a starting point")
 	}
 
@@ -1068,32 +1068,44 @@ func TestSharing(t *testing.T) {
 }
 
 // "Check against" offers each level's voluntary requirements, named after the
-// level, and set routines only as a starting point.
+// level, by organisation, and set routines only as a starting point (Start from
+// a set). Each is a chooser: a button opening a panel with a search.
 func TestSetRoutinesListedApart(t *testing.T) {
 	rec := httptest.NewRecorder()
 	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	page := rec.Body.String()
-	check := page[strings.Index(page, `id="requirement-set"`):]
-	check = check[:strings.Index(check, "</select>")]
-	starter := page[strings.Index(page, `aria-label="Start from a set routine"`):]
-	starter = starter[:strings.Index(starter, "</select>")]
+	panel := func(key string) string {
+		start := strings.Index(page, `x-show="chooser.open === &#39;`+key+`&#39;"`)
+		if start < 0 {
+			t.Fatalf("no %s chooser", key)
+		}
+		rest := page[start:]
+		return rest[:strings.Index(rest, `class="chooser-empty"`)]
+	}
+	check, starter := panel("check-a"), panel("set")
 	for _, want := range []string{
-		`<option value="builtin:bucs-l7-second"`, `>BUCS L7</option>`, // one voluntary: the level's name
-		`>BUCS L1 · first exercise</option>`, `>BUCS L1 · second exercise</option>`, // two different voluntaries
-		`>FIG AG3 (17–21) · second exercise</option>`,
+		`data-ref="builtin:bucs-l7-second"`, `>BUCS L7</button>`, // one voluntary: the level's name
+		`>BUCS L1 · first exercise</button>`, `>BUCS L1 · second exercise</button>`, // two different voluntaries
+		`>FIG AG3 (17–21) · second exercise</button>`,
+		`<summary>BUCS student championships (2026) `,             // by organisation
+		`data-search="bucs student championships (2026) bucs l7 `, // found by its organisation, label and name
+		`placeholder="Find requirements`,
 	} {
 		if !strings.Contains(check, want) {
 			t.Errorf("Check against is missing %q", want)
 		}
 	}
-	if strings.Contains(check, "bucs-l3-option-1") || strings.Contains(check, "bg-club-l1") || strings.Contains(check, "Set routines") {
+	if strings.Contains(check, "bucs-l3-option-1") || strings.Contains(check, "bg-club-l1") {
 		t.Errorf("set routines aren't requirements to check against")
 	}
-	if strings.Count(check, `"builtin:bg-regional-l4-13-first"`) != 1 || !strings.Contains(check, `>BG Regional L4 13+ · first exercise</option>`) {
+	if strings.Count(check, `"builtin:bg-regional-l4-13-first"`) != 1 || !strings.Contains(check, `>BG Regional L4 13+ · first exercise</button>`) {
 		t.Errorf("requirements shared by levels are listed once, by their own name")
 	}
-	if !strings.Contains(starter, `value="builtin:bucs-l3-option-1"`) || !strings.Contains(starter, ">BG Club L1<") {
+	if !strings.Contains(starter, `data-ref="builtin:bucs-l3-option-1"`) || !strings.Contains(starter, ">BG Club L1<") {
 		t.Errorf("set routines are offered as a starting point")
+	}
+	if strings.Contains(page, `<select aria-label="Start from a set routine"`) || strings.Contains(page, `id="requirement-set"`) {
+		t.Errorf("the old long selects should be gone")
 	}
 
 	rec = httptest.NewRecorder()

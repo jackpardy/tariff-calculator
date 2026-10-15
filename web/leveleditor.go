@@ -75,6 +75,19 @@ func (p *competitionPages) newClubLevel(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	set := requirements.Set{Format: requirements.Format, Name: "New level", Rules: []requirements.Rule{newRule("include")}}
+	// A competition's set routine to start from: the level's first item.
+	if ref := r.URL.Query().Get("set"); ref != "" {
+		if builtin, ok := requirements.LookupBuiltin(ref); ok {
+			if _, isSet := requirements.SetRoutine(builtin); isSet {
+				i := slices.IndexFunc(builtin.Rules, func(rule requirements.Rule) bool { return rule.Type == requirements.Sequence })
+				rule := builtin.Rules[i]
+				if rule.Label == "" {
+					rule.Label = builtin.Name
+				}
+				set.Name, set.Rules = builtin.Name, []requirements.Rule{rule}
+			}
+		}
+	}
 	if from := r.URL.Query().Get("from"); from != "" {
 		level, found, err := p.clubLevel(r, coach, from)
 		if err != nil {
