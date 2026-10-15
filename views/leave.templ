@@ -37,7 +37,7 @@ type SeatFillView struct {
 // Leave is the page.
 templ Leave(p LeavePage) {
 	@competitionLayout("What if an official leaves · " + p.Competition.Name) {
-		<h1 class="title is-4">What if an official has to leave?</h1>
+		<h1 class="title is-4">What if an official leaves?</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		@pageMenu(p.Menu)
 		<p class="mb-4">Choose who leaves and when. Each seat they'd have had from then is filled again by someone free (not competing, not on another panel, and allowed by your rules), or by moving others round where it helps: someone on that panel up a role, or someone across from a panel at the same time, their seat filled in turn (three moves at most). Nothing is saved: the rota stays as it is.</p>
@@ -83,12 +83,6 @@ templ Leave(p LeavePage) {
 			<button class="button is-primary is-small" type="submit">Show what happens</button>
 		</form>
 		if r := p.Result; r != nil {
-			<form method="post" action={ templ.SafeURL(p.Keep) } class="mb-4">
-				@versionField(p.Version)
-				<button class="button is-small is-success" type="submit">Keep this in the draft timetable</button>
-				<span class="help is-inline ml-2">Attendees see it once you publish the timetable again.</span>
-			</form>
-
 			<div class="box">
 				if len(r.Seats) == 0 {
 					<p>{ r.Who } has no seats from then.</p>
@@ -113,6 +107,12 @@ templ Leave(p LeavePage) {
 					}
 				}
 			</div>
+			// Kept once it's been read, so below what happens.
+			<form method="post" action={ templ.SafeURL(p.Keep) } class="mb-4">
+				@versionField(p.Version)
+				<button class="button is-small is-success" type="submit">Keep this in the draft timetable</button>
+				<span class="help is-inline ml-2">Attendees see it once you publish the timetable again.</span>
+			</form>
 		}
 	}
 }
