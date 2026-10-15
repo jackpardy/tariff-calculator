@@ -1783,7 +1783,10 @@ Decision 5; `web/levelpages.go`, `store/levels.go`, migration 42). A club's
 levels to track gymnasts against ("Club Grade 1"), in order, up to 50.
 
 - **Written on the club's page** (2026-10-15, step 3 of the [requirements
-  workflow](../roadmap.md)). The Levels section has **New level**, and each
+  workflow](../roadmap.md)). The Levels section has **New level**, and
+  **Start from a set routine** (2026-10-16), each competition's set routines
+  by organisation, opening the editor with that set routine as the level's
+  first item (`?set=<reference>`); and each
   level **Change** and **Copy as a new level**, opening the requirements
   editor on a page of its own (`web/leveleditor.go`): the kinds of rule a
   level tracks (a skill or kind of skill, several of a kind, a link: this,

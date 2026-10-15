@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -215,6 +216,15 @@ func (p *competitionPages) coachLevels(w http.ResponseWriter, r *http.Request) {
 	}
 	base := coachLevelsPath(r.PathValue("token"))
 	page := views.ClubLevelsPage{Frame: coachFrame(r, coach, club, coachLevelsTab), Max: store.MaxClubLevels, New: base + "/new"}
+	for _, g := range requirements.BuiltinGroups() {
+		group := views.SetRoutineGroup{Name: g.Name}
+		for _, b := range g.SetRoutines() {
+			group.Routines = append(group.Routines, views.SetRoutineChoice{Name: b.Set.Name, Href: base + "/new?set=" + url.QueryEscape(requirements.BuiltinPrefix+b.ID)})
+		}
+		if len(group.Routines) > 0 {
+			page.Sets = append(page.Sets, group)
+		}
+	}
 	for i, l := range levels {
 		v := views.ClubLevelView{Name: l.Name, By: l.ByName, Updated: l.UpdatedAt.In(local).Format("2 January 2006"),
 			Items: base + "/" + l.ID + "/items", Move: base + "/" + l.ID + "/move", Remove: base + "/" + l.ID + "/remove",

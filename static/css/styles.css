@@ -1096,3 +1096,6 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .requirements-writer { margin: 0.5rem 0 1rem; border: 1px solid #485fc7; }
 .requirements-writer-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.75rem; margin-bottom: 0.75rem; }
 .rule-card-title .chip { margin-left: 0.4rem; }
+/* Start from a set routine (a club's Levels): a long list, scrolling in its panel. */
+.comp-level-sets { max-height: 22rem; overflow-y: auto; }
+.comp-level-sets-head { font-size: 0.75rem; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.03em; padding: 0.5rem 0.9rem 0.2rem; margin: 0; }

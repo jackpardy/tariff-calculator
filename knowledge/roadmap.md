@@ -294,8 +294,11 @@ levels, which are built on the same editor. 1 and 2 are built
    *Built 2026-10-15:* New level, Change and Copy as a new level on the
    Levels section, the editor with the level kinds and the club's own
    skills to pick, Save level straight to the club. Not yet: the club's
-   things to track as items among the rules (still a list after), and
-   starting from a competition level's set routine or a shared level.
+   things to track as items among the rules (still a list after). *Built
+   2026-10-16:* **Start from a set routine** beside New level, a
+   competition's set routine as the level's first item; a shared level
+   already adds as the club's own copy (ADR 0011 Decision 6), and Copy as a
+   new level starts from another of the club's.
    - The editor is a server-rendered form, so the coach's Levels page can
      host it, with the club-level kinds from 2: one copy, any phone, and a
      club skill as an item like any other, in order.
