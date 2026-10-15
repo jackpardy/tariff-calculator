@@ -1035,8 +1035,11 @@ Where a competition requires it, each entry needs a coach's **sign-off**
 - **Qualifications** (ADR 0007 Decision 4): the comp sec gives a coach up to
   four, each from the built-in list (British Gymnastics levels 1–4 and
   Gymnastics Ireland levels 1–3, in trampoline, tumbling and DMT) with a
-  certificate: a JPEG, PNG, WebP or PDF up to 10 MB, its type checked from
-  its bytes. It's stored in the database with the coach, opened by the comp
+  certificate: a JPEG, PNG, WebP or PDF up to 3 MB, its type checked from
+  its bytes. A club's certificates take 60 MB at most together, and so do
+  those of the coaches a competition's individuals name; none is taken
+  while the server's disk has less than 1 GB free. Each refusal is a plain
+  notice. It's stored in the database with the coach, opened by the comp
   sec (served as its own type, `nosniff`, not cached), and deleted with the
   qualification, the coach or the club.
 - **Approval** (ADR 0007 Decisions 2, 5–7): where entries need sign-off, the

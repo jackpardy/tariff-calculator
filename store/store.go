@@ -52,6 +52,9 @@ const (
 type Store struct {
 	db  *sql.DB
 	now func() time.Time
+	// free is the space free on the data directory's disk, to refuse
+	// certificates when it's nearly full.
+	free func() (uint64, error)
 }
 
 // Open opens (creating if needed) the database in dir and brings its schema up
@@ -66,7 +69,7 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("opening the database: %w", err)
 	}
-	s := &Store{db: db, now: func() time.Time { return time.Now().UTC() }}
+	s := &Store{db: db, now: func() time.Time { return time.Now().UTC() }, free: func() (uint64, error) { return diskFree(dir) }}
 	if err := s.migrate(ctx); err != nil {
 		db.Close()
 		return nil, err

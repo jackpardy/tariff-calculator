@@ -460,7 +460,7 @@ coach sign-off. Changing a member's entry is part of Competitions too.
   **Signs off routines** if they shouldn't sign off: they still see their
   members' entries. Under **Add a qualification**, choose each coach's
   coaching qualification from the list and add a photo or PDF of its
-  certificate (up to 10 MB, four per coach), for competitions that ask for
+  certificate (up to 3 MB, four per coach, and 60 MB for the whole club), for competitions that ask for
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
 - **Settings** (its own section): replace the admin link, or delete the club. A
@@ -600,7 +600,7 @@ sign-off, entries without it are flagged to the organiser.
 4. If the competition needs a coach's sign-off, send your coach the **Sign-off
    link** shown on your entry. They open it, check it and sign off with their
    name. If it approves coaches, first name your coach under **Your coach**,
-   with their qualification and a photo or PDF of its certificate, and tap
+   with their qualification and a photo or PDF of its certificate (up to 3 MB), and tap
    **Send to the organiser**. Once the organiser approves them, the link
    works and they sign off as themselves; your page shows the organiser's
    decision and any note. Changing your coach sends them to be approved

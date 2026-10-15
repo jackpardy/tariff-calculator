@@ -834,7 +834,7 @@ func entryCoachBox(c EntryCoachView, open bool) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 79, "</select></div></div><div class=\"field\"><input class=\"input is-small\" type=\"file\" name=\"certificate\" required accept=\"image/jpeg,image/png,image/webp,application/pdf\" aria-label=\"Their certificate\"><p class=\"help\">A photo or PDF, up to 10 MB.</p></div><button class=\"button is-small\" type=\"submit\">Send to the organiser</button></form></details>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 79, "</select></div></div><div class=\"field\"><input class=\"input is-small\" type=\"file\" name=\"certificate\" required accept=\"image/jpeg,image/png,image/webp,application/pdf\" aria-label=\"Their certificate\"><p class=\"help\">A photo or PDF, up to 3 MB.</p></div><button class=\"button is-small\" type=\"submit\">Send to the organiser</button></form></details>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
