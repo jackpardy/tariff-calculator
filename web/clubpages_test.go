@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	"tariffCalculator/store"
 
@@ -231,13 +230,12 @@ func TestHub(t *testing.T) {
 // The comp sec's Settings says when the club would be deleted: 13 months on
 // (ADR 0011 Decision 7).
 func TestClubKeptUntil(t *testing.T) {
-	h := competitionServer(t)
-	_, club, _ := aClubEntered(t, h)
-	page := do(t, h, http.MethodGet, club+"/settings", nil).Body.String()
-	want := "The club is kept until " + time.Now().AddDate(0, store.ClubRetentionMonths, 0).In(local).Format("January 2006")
-	if !strings.Contains(strings.Join(strings.Fields(page), " "), "13 months after anyone last opened its pages") ||
-		!regexp.MustCompile(regexp.QuoteMeta("The club is kept until ")+`\d+ `+regexp.QuoteMeta(strings.TrimPrefix(want, "The club is kept until "))).MatchString(page) {
-		t.Errorf("Settings should say %q...: %s", want, page)
+	h, _ := competitionServerAt(t, dayBefore)
+	club := aClub(t, h, created(t, h, newCompetition()), "UCD", false, "A. Murphy")
+	page := strings.Join(strings.Fields(do(t, h, http.MethodGet, club.page+"/settings", nil).Body.String()), " ")
+	want := "The club is kept until " + dayBefore.AddDate(0, store.ClubRetentionMonths, 0).In(local).Format("2 January 2006") + ": 13 months after anyone last opened its pages"
+	if !strings.Contains(page, want) {
+		t.Errorf("Settings should say %q: %s", want, page)
 	}
 }
 

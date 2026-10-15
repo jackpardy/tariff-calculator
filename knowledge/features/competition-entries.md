@@ -1394,7 +1394,8 @@ own in the browser; nothing is copied unless the member asks.
   many didn't fit. The request may be up to 512 KB (`keepsRoutines`), more
   than other forms.
 - **The Routines tab** lists them by name, each a row (skills, difficulty
-  where it's scored, when it changed, a tag for a coach's note) that opens to
+  where it's scored, when it changed, and the coach's role chip, "left a
+  note", when there's a note) that opens to
   its card, checked as the builder checks it, against its requirements, or the
   Code of Points only. **Open in the Routine Builder** is a share link
   (`/#share=j…`, `builderLink`) with the routine and its own requirements, so
@@ -1406,16 +1407,63 @@ own in the browser; nothing is copied unless the member asks.
   routine's are. The comp sec changing a member's entry gets the member's
   ("Kept on their page"), not only the routines in their own browser.
 - **Coaches.** A coach's page has a menu, **Entries** (the page it always
-  was) and **Gymnasts** (`/clubs/coach/{token}/gymnasts`): the members they
-  see (their own and those without a coach, or everyone where the club says
+  was) and **Gymnasts** (`/clubs/coach/{token}/gymnasts`, a `comp-stack`
+  table): the members they see (their own and those without a coach, or everyone where the club says
   so), with how many routines each keeps, searchable and filtered by having
   routines and by whether they chose this coach. Each opens the gymnast's
-  routines, checked, with **Your note** on each: the member sees it with the
-  coach's name, and "written before the routine last changed" once it's
+  routines, checked, with **Your note** on each: the member sees it under
+  the coach's role chip (`WhoChip(RoleCoach, name)`), and "written before the routine last changed" once it's
   older than the routine. A coach who doesn't see the member gets 404.
 - **The comp sec.** Members shows "3 routines" beside a member who keeps
   any, opening them to look at (no note, no changes).
 - Routines go with the member when they're removed, and with the club.
+
+## Skills (ADR 0011)
+
+Built 2026-10-15 ([ADR 0011](../../docs/adr/0011-club-routines-and-skill-tracking.md)
+Decisions 2 and 3; `web/skillpages.go`, `views/skills.templ`,
+`store/marks.go`, migration 38). A member marks the skills they're
+**Learning** and **Can do**; a coach who sees them marks them too.
+
+- **Both marks show.** The gymnast's mark and a coach's are kept apart
+  (`skill_marks.side`), so a skill can be Can do to the gymnast and Learning
+  to their coach, and when both say Can do, both marks show it. Each is a
+  role chip and a state chip from the one palette
+  ([states and roles](../architecture/rendering.md#states-and-roles-one-palette)):
+  `WhoChip(RoleGymnast, name)` or `WhoChip(RoleCoach, name)` ("You" for the
+  viewer's own), then `StateChip(InProgress, "Learning")` or
+  `StateChip(Done, "Can do")`, and when. Marked skills are listed as **Can
+  do** (every mark says so), **Learning**, and **Marked differently** (the
+  two disagree). Each side changes and takes off only its own mark; a coach's
+  replaces another coach's.
+- **Which skill.** A mark is found by its skill with
+  `TrampolineSkill.Equal`, the app's one rule for "the same skill": a full
+  twisting back marked in any shape is one item, while a tuck and a pike back
+  are two. Marks are kept with the skill (`skill_marks.skill`) under an item
+  id (`s:<id>`), so club skills and level items can be marks too later.
+  Matching is pairwise ([open questions](../open-questions.md#code-to-restructure)).
+- **The member's Skills tab** (`/clubs/member/{token}/skills`): their marked
+  skills, each with **Learning**, **Can do** or **Take off** for their own
+  mark; then **Mark a skill**: a search (the routine builder's,
+  `catalog.Search`: a name or FIG notation), the skills in their kept
+  routines, and the catalog by tab (`catalog.Categories`, each somersault in
+  tuck, pike and straight), each with its marks if it has any. Marking
+  returns to the tab, keeping the search.
+- **Coaches.** Gymnasts shows how many skills each can do and, as an
+  attention chip, how many the gymnast marked that no coach has marked the
+  same ("2 to confirm"), with a filter for those. A gymnast's page links to
+  their **Skills** (`/clubs/coach/{token}/gymnasts/{member}/skills`), where
+  the coach marks skills the same way; **Confirm Can do** (or Learning) gives
+  a skill the coach's mark in the gymnast's state. A coach who doesn't see
+  the member gets 404.
+- **The comp sec** sees "can do 3" beside a member with marks on Members,
+  opening their skills to look at. On Settings, **Let every member see
+  everyone's skills** (off to start with; `clubs.skills_open`): then each
+  member's Skills tab lists the club's other members, each opening their
+  skills to look at (`/clubs/member/{token}/skills/{member}`, 404 while it's
+  off).
+- Up to 500 skills marked a member (`store.MaxMarks`). Marks go with the
+  member, and with the club.
 
 # One link, several roles (ADR 0010)
 

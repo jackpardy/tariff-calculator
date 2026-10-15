@@ -473,7 +473,8 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
   link of their own (**New link**) parts it from the member. Synchro entries that gymnasts from
   other clubs made with your members are listed here too. To find a member,
   search by name or narrow the list by coach, entries, or coach too. A member
-  who keeps routines on their page shows how many: tap it to see them.
+  who keeps routines on their page shows how many, and one with skills marked
+  how many they can do: tap either to see them.
 - **Coaches** (its own section; search by name, or narrow by who signs off
   and who has qualifications): type a name and tap **Add coach**, then send them the coach link
   shown (it's shown only then; **New link** makes another). Tick **Every coach
@@ -484,7 +485,10 @@ you open them, so **tariff.pardy.ie/competitions** lists the club.
   certificate (up to 3 MB, four per coach, and 60 MB for the whole club), for competitions that ask for
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
-- **Settings** (its own section): replace the admin link, or delete the club. A
+- **Settings** (its own section): replace the admin link, or delete the club.
+  **Let every member see everyone's skills** shares members' skills with the
+  whole club (otherwise each member's are seen by them, their coaches and
+  you). A
   club is deleted 13 months after anyone last used it (you, a coach or a
   member opening their page); Settings says when. **Opened from people's own
   links** lists anyone who added the admin link to their own page (see
@@ -565,6 +569,20 @@ To see it all, open your page from the link you saved: messages don't
 carry your link, so they can't be used to open your page. Tapping one
 opens **Competitions**, which lists the links saved on that phone.
 
+## Mark your skills
+
+Your page's **Skills** tab keeps track of the skills you're **Learning** and
+the ones you **Can do**. Find a skill under **Mark a skill** (type its name,
+like *barani*, or its FIG notation), or pick it from the skills in your
+routines or the lists by type, and tap **Learning** or **Can do**. Tap **Take
+off** to remove it.
+
+Your coaches see your skills and mark them too. Your mark and your coach's
+both show, each saying who made it: say you mark a skill **Can do** and your
+coach marks it **Learning**, you'll see both, under **Marked differently**.
+Tapping a button changes only your own mark. If your club shares skills, you
+can see everyone else's too.
+
 ## Keep your routines on your page
 
 Routines you build in the Routine Builder are saved in that browser only. Keep
@@ -629,9 +647,16 @@ If they change the entry, it needs signing off again. Where a competition needs
 sign-off, entries without it are flagged to the organiser.
 
 Your page has two sections: **Entries** (the entries above) and **Gymnasts**:
-the members you see, with how many routines each keeps on their page. Tap a
-gymnast to see their routines, checked, and write **Your note** on any of
-them for them to see, such as what to work on. Leave it empty to take it off.
+the members you see, with how many routines each keeps on their page and how
+many skills they can do. Tap a gymnast to see their routines, checked, and
+write **Your note** on any of them for them to see, such as what to work on.
+Leave it empty to take it off.
+
+From a gymnast's page, **Skills** shows what they're learning and can do. Mark
+skills for them the same way they do: your mark and theirs both show. A skill
+they've marked that you haven't marked the same has **Confirm**: tap it once
+you've seen it, and you mark it the same. Gymnasts lists how many each has to
+confirm.
 
 # 5. Enter on your own
 
@@ -692,6 +717,7 @@ link listed has **Undo**.
 
 Only names, clubs, levels and events, men or women where asked, synchro
 partners, routines (with entries, and those members keep on their page),
+the skills members and coaches mark, with who marked them and when,
 video links, and the organiser's and coaches' notes, and
 coaches' qualifications with their certificates where the club adds them. No
 emails, birthdays or contact details. Videos are never uploaded: only their
