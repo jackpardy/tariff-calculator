@@ -35,7 +35,7 @@ func TestOfficialsRota(t *testing.T) {
 	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "judge-tumbling": {"1"}, "chair-tumbling": {"1"}})
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	redirected(t, h, enter, url.Values{"gymnast": {"Eve"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	redirected(t, h, enter, bucsEntry("Eve"))
 	// Dara competes in tumbling and judges trampoline: tumbling goes first.
 	dara := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "discipline": {"tumbling"}, "level": {"Novice"}}))
 	redirected(t, h, dara+"/offer", url.Values{"judge-trampoline": {"1"}})
@@ -114,7 +114,11 @@ func TestOfficialsRota(t *testing.T) {
 	if !strings.Contains(sheets, "<h1 class=\"title is-5 mb-1\">BUCS L3") || strings.Contains(sheets, "Tumbling Novice</h1>") || !strings.Contains(sheets, "you don&#39;t need to") && !strings.Contains(sheets, "you don't need to") {
 		t.Errorf("BUCS L3's sheet, not tumbling's: %s", sheets)
 	}
-	if strings.Contains(do(t, h, http.MethodGet, withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Fay"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})), nil).Body.String(), "/score-sheets") {
+	// They go back to My competition, as a member's do.
+	if !strings.Contains(sheets, `href="`+dara+`/day"`) {
+		t.Error("an individual's score sheets go back to My competition")
+	}
+	if strings.Contains(do(t, h, http.MethodGet, withoutQuery(redirected(t, h, enter, bucsEntry("Fay"))), nil).Body.String(), "/score-sheets") {
 		t.Error("no link for someone who doesn't officiate")
 	}
 }
@@ -145,7 +149,7 @@ func TestBlockOfficials(t *testing.T) {
 
 func TestDutiesByEvent(t *testing.T) {
 	flight := func(n, start int) competitions.ScheduledFlight {
-		return competitions.ScheduledFlight{Flight: competitions.Flight{Level: "BUCS L7", Category: "Men", Number: n, Of: 3}, Area: "Panel 2", Start: start, End: start + 60,
+		return competitions.ScheduledFlight{Flight: competitions.Flight{Event: "BUCS L7", Category: "Men", Number: n, Of: 3}, Area: "Panel 2", Start: start, End: start + 60,
 			Officials: []competitions.Duty{{Role: competitions.RoleExecution, Person: "m:1"}}}
 	}
 	s := competitions.Schedule{Setup: competitions.Setup{Days: []competitions.Day{{Name: "Friday"}}}, Flights: []competitions.ScheduledFlight{flight(1, 570), flight(2, 630), flight(3, 690)}}

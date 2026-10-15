@@ -16,7 +16,7 @@ func delayed(t *testing.T, s Schedule, d Delay, people map[string][]string) (Sch
 
 func at(s Schedule, name string) ScheduledFlight {
 	for _, f := range s.Flights {
-		if f.Level == name {
+		if f.Event == name {
 			return f
 		}
 	}
@@ -25,7 +25,7 @@ func at(s Schedule, name string) ScheduledFlight {
 
 func TestDelay(t *testing.T) {
 	flight := func(name, area string, start, end int, entries ...string) ScheduledFlight {
-		return ScheduledFlight{Flight: Flight{Level: name, Entries: entries}, Area: area, Start: start, End: end}
+		return ScheduledFlight{Flight: Flight{Event: name, Entries: entries}, Area: area, Start: start, End: end}
 	}
 	people := map[string][]string{"a": {"pa"}, "b": {"pb"}, "c": {"pc"}, "d": {"pd"}, "e": {"pb"}}
 	s := Schedule{
@@ -112,7 +112,7 @@ func TestDelay(t *testing.T) {
 func TestDelayEasing(t *testing.T) {
 	two := func(name string, start int, a, b string) ScheduledFlight {
 		// Two gymnasts at trampoline's defaults: 10 minutes between and 5 each.
-		return ScheduledFlight{Flight: Flight{Level: name, Entries: []string{a, b}}, Area: "P1", Start: start, End: start + 20}
+		return ScheduledFlight{Flight: Flight{Event: name, Entries: []string{a, b}}, Area: "P1", Start: start, End: start + 20}
 	}
 	people := map[string][]string{"a": {"a"}, "b": {"b"}, "c": {"c"}, "d": {"d"}, "e": {"e"}, "f": {"f"}}
 	// Y's flights are either side of lunch, so events run across breaks.
@@ -127,7 +127,7 @@ func TestDelayEasing(t *testing.T) {
 	ys := func(out Schedule) []int {
 		var starts []int
 		for _, f := range out.Flights {
-			if f.Level == "Y" {
+			if f.Event == "Y" {
 				starts = append(starts, f.Start)
 			}
 		}
@@ -189,9 +189,9 @@ func TestDelayOverrun(t *testing.T) {
 	s := Schedule{
 		Setup: Setup{Areas: []Area{{Name: "P1"}, {Name: "P2"}}, Days: []Day{{Name: "Sat", Start: "09:00", End: "12:00"}}},
 		Flights: []ScheduledFlight{
-			{Flight: Flight{Level: "A", Entries: []string{"a"}}, Area: "P1", Start: 9 * 60, End: 10 * 60},
-			{Flight: Flight{Level: "C", Entries: []string{"c"}}, Area: "P1", Start: 11 * 60, End: 11*60 + 30},
-			{Flight: Flight{Level: "P2 all day", Entries: []string{"b"}}, Area: "P2", Start: 9 * 60, End: 12 * 60},
+			{Flight: Flight{Event: "A", Entries: []string{"a"}}, Area: "P1", Start: 9 * 60, End: 10 * 60},
+			{Flight: Flight{Event: "C", Entries: []string{"c"}}, Area: "P1", Start: 11 * 60, End: 11*60 + 30},
+			{Flight: Flight{Event: "P2 all day", Entries: []string{"b"}}, Area: "P2", Start: 9 * 60, End: 12 * 60},
 		},
 	}
 	d := Delay{Areas: []string{"P1"}, From: 9*60 + 30, Minutes: 120}
@@ -210,7 +210,7 @@ func TestDelayOverrun(t *testing.T) {
 // event's flight already after lunch doesn't come earlier.
 func TestDelayThroughKeepsLaterFlights(t *testing.T) {
 	flight := func(n, start, end int, entry string) ScheduledFlight {
-		return ScheduledFlight{Flight: Flight{Level: "L6", Category: "Women", Number: n, Of: 4, Entries: []string{entry}}, Area: "P1", Start: start, End: end}
+		return ScheduledFlight{Flight: Flight{Event: "L6", Category: "Women", Number: n, Of: 4, Entries: []string{entry}}, Area: "P1", Start: start, End: end}
 	}
 	people := map[string][]string{"a": {"a"}, "b": {"b"}, "c": {"c"}, "d": {"d"}}
 	s := Schedule{

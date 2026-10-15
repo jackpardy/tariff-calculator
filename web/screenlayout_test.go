@@ -12,8 +12,8 @@ import (
 )
 
 func TestScreenFit(t *testing.T) {
-	names := func(n int) []views.ScreenGymnast {
-		out := make([]views.ScreenGymnast, n)
+	names := func(n int) []views.FlightGymnast {
+		out := make([]views.FlightGymnast, n)
 		for i := range out {
 			out[i].Name = "G"
 		}
@@ -55,9 +55,9 @@ func TestScreenFit(t *testing.T) {
 func TestScreenCards(t *testing.T) {
 	p := views.ScreenPage{Competition: "ISTO", Published: true, At: 1, Zone: "Europe/Dublin", Notices: []string{"Lunch extended by 15 minutes"}, Areas: []views.ScreenArea{
 		{Name: "Panel 1", Colour: 0, Now: "BUCS L7 Women · flight 2 of 5", NowTimes: "10:40–11:50", Planned: true, Late: "Running 1 h 5 min late", Behind: true,
-			Gymnasts: []views.ScreenGymnast{{Name: "Aoife O'Brien", Club: "UCD"}, {Name: "Seán Ó Briain", Club: "DCU", Scratched: true}, {Name: "Kit Lee"}},
+			Gymnasts: []views.FlightGymnast{{Name: "Aoife O'Brien", Club: "UCD"}, {Name: "Seán Ó Briain", Club: "DCU", Scratched: true}, {Name: "Kit Lee"}},
 			Next:     "BUCS L7 Women · flight 3 of 5", NextWarmUp: "11:50",
-			NextGymnasts: []views.ScreenGymnast{{Name: "Méabh Ryan", Club: "UL"}}},
+			NextGymnasts: []views.FlightGymnast{{Name: "Méabh Ryan", Club: "UL"}}},
 		{Name: "Panel 2", Colour: 1, Idle: true, Next: "BUCS L6 Men · flight 1 of 2", NextWarmUp: "14:00"},
 		{Name: "Track 1", Colour: 2, Idle: true, Finished: true},
 	}}

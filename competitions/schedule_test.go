@@ -94,7 +94,7 @@ func TestScheduleBasics(t *testing.T) {
 	}
 	// L1: 10 minutes + 10 × 5 = 60 minutes, early on (two panels, little else).
 	for _, f := range s.Flights {
-		if f.Level == "L1" && (f.End-f.Start != 60 || f.Start > 10*60) {
+		if f.Event == "L1" && (f.End-f.Start != 60 || f.Start > 10*60) {
 			t.Errorf("L1 for an hour, starting by 10:00: %s–%s", Clock(f.Start), Clock(f.End))
 		}
 	}
@@ -133,7 +133,7 @@ func TestScheduleEndAndDays(t *testing.T) {
 	s := PlanSchedule(entries, []string{"L1", "L2", "L3"}, setup, 1)
 	check(t, s)
 	// Each level is 70 minutes; two panels fit two levels by 10:30.
-	if len(s.Unplaced) != 1 || s.Unplaced[0].Level != "L3" && s.Unplaced[0].Level != "L1" && s.Unplaced[0].Level != "L2" {
+	if len(s.Unplaced) != 1 || s.Unplaced[0].Event != "L3" && s.Unplaced[0].Event != "L1" && s.Unplaced[0].Event != "L2" {
 		t.Errorf("one level doesn't fit: %+v", s.Unplaced)
 	}
 	// A second day takes it.
@@ -192,7 +192,7 @@ func TestScheduleRules(t *testing.T) {
 	}
 	at := map[string]ScheduledFlight{}
 	for _, f := range s.Flights {
-		at[f.Level] = f
+		at[f.Event] = f
 	}
 	if at["Synchro L1"].Area != "Panel 2" {
 		t.Errorf("synchro on Panel 2: %+v", at["Synchro L1"])
@@ -315,11 +315,10 @@ func TestScheduleEdits(t *testing.T) {
 		peopleOf[e.ID] = e.People
 	}
 	names := map[string]string{"Ann": "Ann"}
-	if p := s.Problems(peopleOf, names); len(p) != 0 {
+	if p := s.Problems(peopleOf, nil, names); len(p) != 0 {
 		t.Fatalf("a fresh plan has no problems: %v", p)
 	}
 	l1, _ := s.Find("L1#0")
-	l2, _ := s.Find("L2#0")
 	// Moving L2's gymnast into L1 makes L1 longer; times are worked out again.
 	before := s.Flights[l1].End
 	if !s.MoveEntry("L2#0", l1) {
@@ -330,7 +329,7 @@ func TestScheduleEdits(t *testing.T) {
 		t.Errorf("L1 is five minutes longer: %s → %s", Clock(before), Clock(s.Flights[l1].End))
 	}
 	// Moving L2 onto L1's panel puts it after L1, clear of lunch.
-	l2, _ = s.Find("L2#1")
+	l2, _ := s.Find("L2#1")
 	if !s.MoveFlight(l2, 0, s.Flights[l1].Area) {
 		t.Fatal("moved the flight")
 	}
@@ -346,11 +345,11 @@ func TestScheduleEdits(t *testing.T) {
 	tum, _ := s.Find("Tumbling Novice#0")
 	s.Flights[tum].Start = s.Flights[l1].Start
 	s.Retime()
-	if p := s.Problems(peopleOf, names); len(p) == 0 || !strings.Contains(p[0], "Ann is in") {
+	if p := s.Problems(peopleOf, nil, names); len(p) == 0 || !strings.Contains(p[0], "Ann is in") {
 		t.Errorf("Ann in two places at once is flagged: %v", p)
 	}
 	s.Setup.Days[0].End = "09:30"
-	if p := s.Problems(peopleOf, names); !strings.Contains(strings.Join(p, " "), "runs past the end") {
+	if p := s.Problems(peopleOf, nil, names); !strings.Contains(strings.Join(p, " "), "runs past the end") {
 		t.Errorf("a flight past the day's end is flagged: %v", p)
 	}
 }
@@ -380,11 +379,11 @@ func TestOrderForRest(t *testing.T) {
 	for seed := range uint64(8) {
 		s := PlanSchedule(entries, []string{"BUCS L3", "BUCS L5"}, setup, seed)
 		first, second := s.Flights[0], s.Flights[1]
-		if first.Entries[0] != first.Level+"#0" || second.Entries[len(second.Entries)-1] != second.Level+"#0" {
+		if first.Entries[0] != first.Event+"#0" || second.Entries[len(second.Entries)-1] != second.Event+"#0" {
 			t.Fatalf("seed %d: Dara should be first then last: %v, %v", seed, first.Entries, second.Entries)
 		}
 		s.Redraw(1, clubs, pp, rand.New(rand.NewPCG(seed, 2)))
-		if e := s.Flights[1].Entries; e[len(e)-1] != second.Level+"#0" {
+		if e := s.Flights[1].Entries; e[len(e)-1] != second.Event+"#0" {
 			t.Errorf("seed %d: a redraw keeps Dara last: %v", seed, e)
 		}
 	}
@@ -415,8 +414,8 @@ func TestFreeAfterFlights(t *testing.T) {
 	s := Schedule{
 		Setup: Setup{Areas: []Area{{Name: "P1"}, {Name: "P2"}}, Days: []Day{{Name: "Sun", Start: "09:00", End: "17:00"}, {Name: "Mon", Start: "09:00", End: "10:00"}}},
 		Flights: []ScheduledFlight{
-			{Flight: Flight{Level: "A"}, Day: 0, Area: "P1", Start: 9 * 60, End: 10 * 60},
-			{Flight: Flight{Level: "B"}, Day: 0, Area: "P2", Start: 9 * 60, End: 9*60 + 30},
+			{Flight: Flight{Event: "A"}, Day: 0, Area: "P1", Start: 9 * 60, End: 10 * 60},
+			{Flight: Flight{Event: "B"}, Day: 0, Area: "P2", Start: 9 * 60, End: 9*60 + 30},
 		},
 		Blocks: []ScheduledBlock{
 			{Name: "Lunch", Day: 0, Areas: []string{"P1", "P2"}, Start: 12 * 60, End: 12*60 + 45},

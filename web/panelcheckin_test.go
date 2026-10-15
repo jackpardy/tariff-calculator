@@ -21,7 +21,7 @@ func panelSeat(t *testing.T, page, flight, name string) (person, key string) {
 	if m == nil {
 		t.Fatalf("no panel row for %s in %s: %s", name, flight, page)
 	}
-	return html2text(m[1]), html2text(m[2])
+	return unescape(m[1]), unescape(m[2])
 }
 
 // notifyForm says whether the day page offers to Notify a person in a flight,
@@ -47,7 +47,7 @@ func TestPanelCheckinRun(t *testing.T) {
 	if !strings.Contains(page, "Panel · 0 of 1 here</summary>") {
 		t.Error("so does tumbling's, of one")
 	}
-	if strings.Contains(page, ">Clear</button>") {
+	if strings.Contains(page, `value="">Clear</button>`) {
 		t.Error("nothing to clear yet")
 	}
 	dara, flight1 := panelSeat(t, page, first, "Dara")
@@ -68,7 +68,7 @@ func TestPanelCheckinRun(t *testing.T) {
 	if !strings.Contains(page, "Panel · 0 of 1 here</summary>") {
 		t.Error("tumbling's panel isn't touched")
 	}
-	if !strings.Contains(page, `<span class="tag is-success is-light">Here</span>`) || !strings.Contains(page, ">Clear</button>") {
+	if !strings.Contains(page, `<span class="tag is-success is-light">Here</span>`) || !strings.Contains(page, `value="">Clear</button>`) {
 		t.Errorf("her state, and Clear: %s", page)
 	}
 	if notifyForm(page, dara, flight1, "official") || notifyForm(page, dara, flight2, "official") {
@@ -98,7 +98,7 @@ func TestPanelCheckinRun(t *testing.T) {
 	if leave == nil || strings.Count(page, "What if they leave") != 2 {
 		t.Fatalf("a what-if link under each of her seats: %s", page)
 	}
-	if to := html2text(leave[1]); !strings.HasPrefix(to, tt+"/leave?") || !strings.Contains(to, "person=i%3A") || !strings.Contains(to, "day=0") {
+	if to := unescape(leave[1]); !strings.HasPrefix(to, tt+"/leave?") || !strings.Contains(to, "person=i%3A") || !strings.Contains(to, "day=0") {
 		t.Errorf("the link is for Dara on that day: %s", to)
 	}
 	if !notifyForm(page, dara, flight1, "official") || !notifyForm(page, dara, flight2, "official") {
@@ -117,7 +117,7 @@ func TestPanelCheckinRun(t *testing.T) {
 	// Clear takes it back on the whole run.
 	mark(admin, dara, flight1, "")
 	page = get(day)
-	if n := strings.Count(page, "Panel · 0 of 3 here</summary>"); n != 2 || strings.Contains(page, "What if they leave") || strings.Contains(page, ">Clear</button>") {
+	if n := strings.Count(page, "Panel · 0 of 3 here</summary>"); n != 2 || strings.Contains(page, "What if they leave") || strings.Contains(page, `value="">Clear</button>`) {
 		t.Errorf("cleared on both flights: %s", page)
 	}
 	if to := mark(admin, dara, flight1, ""); !strings.Contains(to, "notice=") {
@@ -267,6 +267,34 @@ func TestNotifyAnOfficial(t *testing.T) {
 	if history := do(t, h, http.MethodGet, admin+"/history", nil).Body.String(); !strings.Contains(history, "Notified Dara: should be at Panel 1") {
 		t.Errorf("the history: %s", history)
 	}
+
+	// The form as the page shows it carries a one-off id: the same form sent
+	// twice (its answer lost on poor wifi, say) sends once, and the repeat
+	// says nothing. The form shown again is a new one.
+	once := regexp.MustCompile(`name="once" value="([A-Z2-7]+)"`).FindAllStringSubmatch(do(t, h, http.MethodGet, day, nil).Body.String(), -1)
+	if len(once) == 0 || once[0][1] == regexp.MustCompile(`name="once" value="([A-Z2-7]+)"`).FindStringSubmatch(do(t, h, http.MethodGet, day, nil).Body.String())[1] {
+		t.Fatal("each Notify form shown has a new id")
+	}
+	mail.sent = nil
+	form.Set("once", once[0][1])
+	if to := redirected(t, h, admin+"/day/notify", form); !strings.Contains(to, "notice=Sent+to+Dara") {
+		t.Errorf("sent: %s", to)
+	}
+	if to := redirected(t, h, admin+"/day/notify", form); noticeOf(t, to) != "" || !strings.HasSuffix(to, "#"+flightID(flight)) {
+		t.Errorf("the repeat says nothing: %s", to)
+	}
+	if len(mail.sent) != 1 {
+		t.Errorf("sent once: %+v", mail.sent)
+	}
+	if n := strings.Count(do(t, h, http.MethodGet, admin+"/history", nil).Body.String(), "Notified Dara"); n != 2 {
+		t.Errorf("the repeat isn't in the history: %d", n)
+	}
+	form.Set("once", "ANOTHERFORM")
+	redirected(t, h, admin+"/day/notify", form)
+	if len(mail.sent) != 2 {
+		t.Errorf("another form sends again: %+v", mail.sent)
+	}
+
 	// Not a person on that flight, or not a way to be told.
 	for _, f := range []url.Values{
 		{"person": {"i:finn"}, "flight": {flight}, "as": {"official"}, "them": {"1"}},
@@ -286,7 +314,8 @@ func TestNotifyAnOfficial(t *testing.T) {
 func TestNotifyAClub(t *testing.T) {
 	h, _, mail := notifyServer(t)
 	admin := created(t, h, newCompetition())
-	club, members := aClubWithMembers(t, h, admin, "Ann", "Bea")
+	ucd := aClub(t, h, admin, "UCD", true, "Ann", "Bea")
+	club, members := ucd.page, ucd.members
 	bob := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, club, club), "ucd@example.com")
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, bob, bob), "bob@example.com")
@@ -301,7 +330,7 @@ func TestNotifyAClub(t *testing.T) {
 	if m == nil || !strings.Contains(page, `name="club" value="1"> Their club`) {
 		t.Fatalf("Ann can be notified, and so can her club: %s", page)
 	}
-	ann, flight := html2text(m[1]), html2text(m[2])
+	ann, flight := unescape(m[1]), unescape(m[2])
 	text := "Ann should be at Panel 1 now to compete in BUCS L3, warm-up "
 
 	// Their club only: the comp sec and the coach hear, no member.
@@ -317,8 +346,8 @@ func TestNotifyAClub(t *testing.T) {
 	if len(mail.sent) != 2 || !strings.HasPrefix(got["ucd@example.com"].body, text) || !strings.HasPrefix(got["bob@example.com"].body, text) {
 		t.Fatalf("the comp sec and the coach are emailed, and no one else: %+v", mail.sent)
 	}
-	if !strings.Contains(got["ucd@example.com"].body, "https://tariff.example"+club) || !strings.Contains(got["bob@example.com"].body, "https://tariff.example"+bob) {
-		t.Errorf("each is linked to their page: %+v", mail.sent)
+	if strings.Contains(got["ucd@example.com"].body, club) || strings.Contains(got["bob@example.com"].body, bob) {
+		t.Errorf("no one's secret link is sent: %+v", mail.sent)
 	}
 	for _, p := range []string{club, bob} {
 		if body := do(t, h, http.MethodGet, p, nil).Body.String(); !strings.Contains(body, deskBox) || !strings.Contains(body, text) {
@@ -356,7 +385,7 @@ func TestNotifyAClub(t *testing.T) {
 	// A gymnast who is here has nothing to be told.
 	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {checkinEntry(t, page, "Ann")}, "status": {"here"}, "day": {"0"}})
 	bea := regexp.MustCompile(`(?s)<span class="">Bea</span>.*?name="person" value="([^"]+)">`).FindStringSubmatch(page)[1]
-	if page := do(t, h, http.MethodGet, day, nil).Body.String(); notifyForm(page, ann, flight, "gymnast") || !notifyForm(page, html2text(bea), flight, "gymnast") {
+	if page := do(t, h, http.MethodGet, day, nil).Body.String(); notifyForm(page, ann, flight, "gymnast") || !notifyForm(page, unescape(bea), flight, "gymnast") {
 		t.Errorf("no Notify for Ann once she's here, still one for Bea: %s", page)
 	}
 

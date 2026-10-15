@@ -2,7 +2,7 @@
 
 - **Status:** Accepted; built 2026-10-08 (email waiting on a provider on
   the server)
-- **Date:** 2026-10-08
+- **Date:** 2026-10-08 (Decisions 2 and 6 changed 2026-10-15)
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 6 (personal data: an email can be kept, to
   notify)
@@ -59,7 +59,14 @@ expired competitions.
 2. **Emails are confirmed.** An email is sent a link to confirm it before
    anything else is sent to it, so a mistyped or someone else's address
    gets one email and no more. Every email has a link that turns its
-   notifications off at once, without the person's page. The form says what
+   notifications off at once, without the person's page. *Changed
+   2026-10-15:* as one email covers every subscription of its address for
+   the competition, an off link (and the one-click `List-Unsubscribe`
+   header, which carries one) stops them all. The confirming email goes
+   to any address typed in, so it names no competition or club (names the
+   organiser and comp sec choose, which could carry a message): it says "a
+   competition on tariff.pardy.ie", and its page names the competition. A
+   competition sends at most 50 a day. The form says what
    is kept and when it's deleted, with the tick box "I'm 18 or over, or this
    is a parent's email", required for email.
 
@@ -103,6 +110,12 @@ expired competitions.
    Saturday 09:40, Panel 1)"), the push says how many and whose ("3 changes
    for UCD at ISTO 2027"), and both link to the person's page for the
    competition.
+   *Changed 2026-10-15:* neither links to the person's page any more. Its
+   path holds their secret link, so keeping it to link to broke ADR 0004's
+   rule that only links' hashes are kept (migration 33 cleared the paths
+   kept until then). The email says to open their page from the link they
+   saved, and links to Competitions (`/competitions`), which lists the
+   links saved in that browser; a push opens Competitions.
 
 7. **Email goes by SMTP, configured on the server.** `SMTP_HOST`,
    `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` and `MAIL_FROM` set the

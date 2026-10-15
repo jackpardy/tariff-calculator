@@ -43,6 +43,9 @@ self.addEventListener('notificationclick', (event) => {
 const PAGES = 'pages-v1';
 const STATIC = 'static-v1';
 const MAX_PAGES = 60;
+// A copy older than this is dropped, so a phone doesn't keep an admin or
+// helper page for good.
+const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const NETWORK_WAIT_MS = 4000;
 const OFFLINE_PAGE = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">' +
     '<meta name="viewport" content="width=device-width, initial-scale=1"><title>Offline</title></head>' +
@@ -54,13 +57,22 @@ self.addEventListener('install', () => {
 });
 
 // activate takes over open pages at once and drops caches left by older
-// versions of this file (any not named above).
+// versions of this file (any not named above), and pages kept too long.
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys()
             .then((keys) => Promise.all(keys.filter((k) => k !== PAGES && k !== STATIC).map((k) => caches.delete(k))))
+            .then(() => caches.open(PAGES))
+            .then((cache) => trimPages(cache))
             .then(() => self.clients.claim()));
 });
+
+// tooOld is whether a kept page is past MAX_AGE_MS, by the Date the server
+// sent it with. A copy without one is kept to MAX_PAGES like any other.
+function tooOld(response) {
+    const sent = Date.parse(response.headers.get('Date') || '');
+    return !Number.isNaN(sent) && Date.now() - sent > MAX_AGE_MS;
+}
 
 // isPage is whether a path is one of the competition tools' pages (admin pages
 // included). The calculator's own pages and its APIs are left to the network.
@@ -68,18 +80,24 @@ function isPage(path) {
     return path.startsWith('/clubs/') || path.startsWith('/competitions/') || path.startsWith('/notify/');
 }
 
-// trimPages keeps the newest MAX_PAGES copies: keys come back oldest first.
+// trimPages keeps the newest MAX_PAGES copies (keys come back oldest first),
+// and drops any older than MAX_AGE_MS.
 async function trimPages(cache) {
     const keys = await cache.keys();
-    for (const key of keys.slice(0, Math.max(0, keys.length - MAX_PAGES))) {
-        await cache.delete(key);
+    const over = Math.max(0, keys.length - MAX_PAGES);
+    for (const [i, key] of keys.entries()) {
+        const kept = i < over ? null : await cache.match(key);
+        if (!kept || tooOld(kept)) {
+            await cache.delete(key);
+        }
     }
 }
 
 // pageFromNetwork fetches a page, giving up after NETWORK_WAIT_MS so that a
 // poor connection falls back to the copy at once. Only good, same-origin
 // responses are kept, replacing the older copy (deleted first, so the new one
-// counts as the newest).
+// counts as the newest). A page the server says isn't there (404) or is gone
+// (410), such as a replaced or deleted link's, drops its copy too.
 async function pageFromNetwork(request) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), NETWORK_WAIT_MS);
@@ -90,6 +108,9 @@ async function pageFromNetwork(request) {
             await cache.delete(request.url);
             await cache.put(request.url, response.clone());
             await trimPages(cache);
+        } else if (response.status === 404 || response.status === 410) {
+            const cache = await caches.open(PAGES);
+            await cache.delete(request.url);
         }
         return response;
     } finally {
@@ -98,12 +119,18 @@ async function pageFromNetwork(request) {
 }
 
 // page is network first: the live page when the connection answers in time,
-// else the copy last seen, else a short page saying there isn't one.
+// else the copy last seen (unless it's too old), else a short page saying
+// there isn't one.
 async function page(request) {
     try {
         return await pageFromNetwork(request);
     } catch (e) {
-        const cached = await caches.match(request.url, { cacheName: PAGES });
+        const cache = await caches.open(PAGES);
+        let cached = await cache.match(request.url);
+        if (cached && tooOld(cached)) {
+            await cache.delete(request.url);
+            cached = undefined;
+        }
         if (cached) {
             // Show the page's "you're offline" note: on a slow connection the
             // phone still counts as online, so the page itself wouldn't.

@@ -11,19 +11,6 @@ import (
 	"tariffCalculator/store"
 )
 
-// aClubEntered is a club entered in a new competition, with the comp sec's
-// path, one member (who has joined, not entered) and their path.
-func aClubEntered(t *testing.T, h http.Handler) (admin, club, member string) {
-	t.Helper()
-	admin = created(t, h, newCompetition())
-	clubLink := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/club/")
-	club = withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
-	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
-	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
-	member = withoutQuery(redirected(t, h, join, url.Values{"name": {"A. Murphy"}}))
-	return admin, club, member
-}
-
 // currentTab is the label of the menu's current section in a page.
 func currentTab(t *testing.T, page string) string {
 	t.Helper()
@@ -38,7 +25,9 @@ func currentTab(t *testing.T, page string) string {
 // it, and what each section's forms do brings them back to that section.
 func TestClubSections(t *testing.T) {
 	h := competitionServer(t)
-	admin, club, member := aClubEntered(t, h)
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	club, member := ucd.page, ucd.members["A. Murphy"]
 	_ = admin
 
 	// Competitions is the default: the competitions, and not the other parts.
@@ -143,8 +132,10 @@ func TestClubSections(t *testing.T) {
 // them goes back to Competitions.
 func TestClubCompetitionsSectionPages(t *testing.T) {
 	h := competitionServer(t)
-	_, club, member := aClubEntered(t, h)
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	club, member := ucd.page, ucd.members["A. Murphy"]
+	entry := bucsEntry("")
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, member), member+"/competitions/"), entry)
 
 	page := do(t, h, http.MethodGet, club, nil).Body.String()
@@ -184,7 +175,9 @@ func TestNewClubPage(t *testing.T) {
 // details; and a competition has a page of its own.
 func TestMemberTabs(t *testing.T) {
 	h := competitionServer(t)
-	_, club, member := aClubEntered(t, h)
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	club, member := ucd.page, ucd.members["A. Murphy"]
 	do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}})
 
 	// The default page lists the competitions, and saves their link.
@@ -274,7 +267,7 @@ func TestMemberTabs(t *testing.T) {
 
 	// The My competition page goes back to the competition's page.
 	day := do(t, h, http.MethodGet, compPath+"/day", nil).Body.String()
-	if !strings.Contains(day, `<a href="`+compPath+`">← Your entries</a>`) {
+	if !strings.Contains(day, `<a href="`+compPath+`">← Student Open: your entries</a>`) {
 		t.Error("the day page's back link goes to the competition's page")
 	}
 }
@@ -283,7 +276,9 @@ func TestMemberTabs(t *testing.T) {
 // pages of the member's competition.
 func TestMemberCompetitionPageNotFound(t *testing.T) {
 	h := competitionServer(t)
-	_, _, member := aClubEntered(t, h)
+	admin := created(t, h, newCompetition())
+	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
+	_, member := ucd.page, ucd.members["A. Murphy"]
 	want := do(t, h, http.MethodGet, member+"/competitions/nope/day", nil)
 	got := do(t, h, http.MethodGet, member+"/competitions/nope", nil)
 	if got.Code != http.StatusNotFound || got.Code != want.Code || !strings.Contains(got.Body.String(), "Link not found") {
@@ -323,8 +318,51 @@ func TestEntryBrief(t *testing.T) {
 		{"on hold", sent, store.Entry{Removal: store.Held}, true, 0, 0, "On hold"},
 		{"removed", sent, store.Entry{Removal: store.Removed}, true, 0, 0, "Removed"},
 	} {
-		if got, _ := entryBrief(c.e, c.removal, c.removed, c.problems, c.place); got != c.want {
+		if got, _ := brief(memberState(c.e, c.removal, c.removed, c.place), c.problems, c.place, "Sent"); got != c.want {
 			t.Errorf("%s: %q, want %q", c.name, got, c.want)
 		}
+	}
+}
+
+// Where an entry stands, in the comp sec's order, for every page: removed,
+// held, not sent, waiting (unless changed since), changed, checked, sent.
+func TestEntryStanding(t *testing.T) {
+	for _, c := range []struct {
+		name          string
+		removal       string
+		sent, changed bool
+		place         int
+		checked       bool
+		want          standing
+	}{
+		{"removed", store.Removed, true, true, 2, true, entryRemoved},
+		{"held", store.Held, true, true, 2, true, entryHeld},
+		{"not sent", "", false, false, 0, false, entryNotSent},
+		{"not sent, though on a list", "", false, false, 2, false, entryNotSent},
+		{"waiting, though checked", "", true, false, 2, true, entryWaiting},
+		{"changed, though waiting", "", true, true, 2, true, entryChanged},
+		{"checked", "", true, false, 0, true, entryChecked},
+		{"sent", "", true, false, 0, false, entrySent},
+	} {
+		if got := stateOf(c.removal, c.sent, c.changed, c.place, c.checked); got != c.want {
+			t.Errorf("%s: %d, want %d", c.name, got, c.want)
+		}
+	}
+	// A member's checked entry on a waiting list reads as waiting, as on
+	// the comp sec's page: sent, not checked.
+	sent := store.MemberEntry{SentAt: time.Now().Add(-time.Hour), UpdatedAt: time.Now().Add(-2 * time.Hour), Checked: true}
+	if got := memberStatus(memberState(sent, store.Entry{}, false, 1), store.Entry{}, false); got != "Sent by your club" {
+		t.Errorf("a member's checked entry on a waiting list: %q", got)
+	}
+	if got := memberStatus(memberState(sent, store.Entry{}, false, 0), store.Entry{}, false); got != "Sent by your club · checked by the organiser ✓" {
+		t.Errorf("a member's checked entry: %q", got)
+	}
+	// An individual's: on a waiting list, and checked.
+	in := store.Entry{CheckedAt: time.Now()}
+	if got, _ := brief(individualState(in, 2), 0, 2, "Entered"); got != "Waiting list, 2nd" {
+		t.Errorf("an individual on a waiting list: %q", got)
+	}
+	if got, _ := brief(individualState(in, 0), 0, 0, "Entered"); got != "Checked" {
+		t.Errorf("an individual checked: %q", got)
 	}
 }

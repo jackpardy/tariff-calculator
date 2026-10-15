@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/mail"
-	"net/url"
 	"slices"
 	"strings"
 
@@ -50,42 +49,28 @@ func (p *competitionPages) notifyLink(path string) string {
 
 // notifyTarget is whose page a notify page is on.
 type notifyTarget struct {
-	c           store.Competition
-	kind, owner string
-	page        string // their page for the competition
-	who         string // whose changes, e.g. "you"
-	yours       bool   // their own, rather than others'
+	asker
+	who   string // whose changes, e.g. "you"
+	yours bool   // their own, rather than others'
 }
 
-// target is the person and competition a notify page's link is for.
+// target is the person and competition a notify page's link is for. A
+// member's goes back to My competition.
 func (p *competitionPages) target(w http.ResponseWriter, r *http.Request) (notifyTarget, bool) {
-	token := r.PathValue("token")
-	switch {
-	case strings.HasPrefix(r.URL.Path, "/clubs/member/"):
-		m, ok := p.member(w, r)
-		if !ok {
-			return notifyTarget{}, false
-		}
-		c, ok := p.memberCompetition(w, r, m)
-		return notifyTarget{c, store.NotifyMember, m.ID, dayPath(memberPath(token), c.ID), "you", true}, ok
-	case strings.HasPrefix(r.URL.Path, "/competitions/entry/"):
-		e, c, ok := p.own(w, r)
-		return notifyTarget{c, store.NotifyIndividual, e.ID, "/competitions/entry/" + token, "you", true}, ok
-	case strings.HasPrefix(r.URL.Path, "/clubs/admin/"):
-		club, ok := p.clubAdmin(w, r)
-		if !ok {
-			return notifyTarget{}, false
-		}
-		c, ok := p.enteredCompetition(w, r, club.ID)
-		return notifyTarget{c, store.NotifyClub, club.ID, clubPath(token), club.Name + "'s members", false}, ok
-	default:
-		coach, _, ok := p.coach(w, r)
-		if !ok {
-			return notifyTarget{}, false
-		}
-		c, ok := p.enteredCompetition(w, r, coach.ClubID)
-		return notifyTarget{c, store.NotifyCoach, coach.ID, coachPath(token), "the gymnasts you coach", false}, ok
+	a, ok := p.whose(w, r)
+	if !ok {
+		return notifyTarget{}, false
 	}
+	t := notifyTarget{asker: a, who: "you", yours: a.person()}
+	switch a.kind {
+	case store.NotifyMember:
+		t.back = a.day
+	case store.NotifyClub:
+		t.who = a.name + "'s members"
+	case store.NotifyCoach:
+		t.who = "the gymnasts you coach"
+	}
+	return t, true
 }
 
 // topicLabels say what each topic is, for oneself or for others.
@@ -122,7 +107,7 @@ func (p *competitionPages) notifyPage(w http.ResponseWriter, r *http.Request) {
 			email = &subs[i]
 		}
 	}
-	page := views.NotifyPage{Competition: summary(t.c.Competition, p.now()), Back: t.page, Action: r.URL.Path, For: t.who,
+	page := views.NotifyPage{Competition: summary(t.c.Competition, p.now()), Back: t.back, Action: r.URL.Path, For: t.who,
 		EmailOn: p.notify != nil && p.notify.mail != nil, Notice: r.URL.Query().Get("notice")}
 	if r.Method == http.MethodPost {
 		switch r.FormValue("action") {
@@ -135,12 +120,12 @@ func (p *competitionPages) notifyPage(w http.ResponseWriter, r *http.Request) {
 			if email != nil && email.ID == r.FormValue("remove") {
 				notice = "No more emails about this competition."
 			}
-			http.Redirect(w, r, r.URL.Path+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+			seeOther(w, r, r.URL.Path, notice)
 			return
 		case "push":
 			problems := p.savePush(r, t)
 			if len(problems) == 0 {
-				http.Redirect(w, r, r.URL.Path+"?notice="+url.QueryEscape("Notifications are on for this phone."), http.StatusSeeOther)
+				seeOther(w, r, r.URL.Path, "Notifications are on for this phone.")
 				return
 			}
 			page.Problems = problems
@@ -148,7 +133,7 @@ func (p *competitionPages) notifyPage(w http.ResponseWriter, r *http.Request) {
 		default:
 			notice, problems := p.saveEmail(r, t, email)
 			if len(problems) == 0 {
-				http.Redirect(w, r, r.URL.Path+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+				seeOther(w, r, r.URL.Path, notice)
 				return
 			}
 			page.Problems = problems
@@ -207,8 +192,11 @@ func (p *competitionPages) saveEmail(r *http.Request, t notifyTarget, was *store
 	if !same && !p.emailLimiter.allow(clientIP(r), p.now()) {
 		return "", []string{"Too many emails asked for from here just now. Try again in an hour."}
 	}
+	if !same && !p.notify.confirms.allow(t.c.ID, p.now()) {
+		return "", []string{"Too many emails asked for at this competition today. Try again tomorrow, or turn on notifications on this phone instead."}
+	}
 	sub, token, err := p.st.Subscribe(r.Context(), store.Subscription{
-		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByEmail, Address: address, Topics: topics, Page: t.page,
+		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByEmail, Address: address, Topics: topics,
 	})
 	if err != nil {
 		return "", []string{"That didn't work. Please try again in a minute."}
@@ -216,7 +204,7 @@ func (p *competitionPages) saveEmail(r *http.Request, t notifyTarget, was *store
 	if token == "" {
 		return "Saved.", nil
 	}
-	if err := p.notify.confirmEmail(t.c, sub, t.who); err != nil {
+	if err := p.notify.confirmEmail(sub); err != nil {
 		p.st.RemoveSubscription(r.Context(), t.c.ID, t.kind, t.owner, sub.ID)
 		return "", []string{"The email couldn't be sent. Check the address, or try again later."}
 	}
@@ -237,7 +225,7 @@ func (p *competitionPages) savePush(r *http.Request, t notifyTarget) []string {
 	}
 	k, _ := json.Marshal(keys)
 	_, _, err := p.st.Subscribe(r.Context(), store.Subscription{
-		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByPush, Address: endpoint, Keys: string(k), Topics: topics, Page: t.page,
+		CompetitionID: t.c.ID, Kind: t.kind, OwnerID: t.owner, Channel: store.ByPush, Address: endpoint, Keys: string(k), Topics: topics,
 	})
 	switch {
 	case errors.Is(err, store.ErrLimit):
@@ -336,7 +324,7 @@ func (p *competitionPages) notifyNow(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Telling everyone who asked, within a minute."), http.StatusSeeOther)
+	seeOther(w, r, adminPath(r.PathValue("token")), "Telling everyone who asked, within a minute.")
 }
 
 // noWait turns the wait off on the competition's days (on=1), or back on.

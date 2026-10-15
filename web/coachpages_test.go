@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"tariffCalculator/store"
 )
 
 func TestCoachSignoff(t *testing.T) {
@@ -48,7 +51,7 @@ func TestCoachSignoff(t *testing.T) {
 	if page := do(t, h, http.MethodGet, x+"/details", nil).Body.String(); !strings.Contains(page, `<option value="`+bobID+`" selected>Bob</option>`) {
 		t.Error("X's coach is Bob")
 	}
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("")
 	for _, m := range []string{x, y} {
 		redirected(t, h, formAction(t, memberCompetitionPage(t, h, m), m+"/competitions/"), entry)
 	}
@@ -89,6 +92,24 @@ func TestCoachSignoff(t *testing.T) {
 	clubPage := do(t, h, http.MethodGet, club, nil).Body.String()
 	if !strings.Contains(clubPage, "Signed off by Bob") || !strings.Contains(clubPage, "Waiting for a coach") {
 		t.Error("the comp sec sees each entry's sign-off")
+	}
+	// The comp sec and the coaches count an entry's problems as the
+	// organiser does: Y's missing sign-off is one more than X, signed off,
+	// has.
+	problems := func(page, member string) string {
+		for _, row := range tableRows(t, page) {
+			// The comp sec's name cell also holds Change, under the name.
+			if len(row) > 2 && (row[0] == member || strings.HasPrefix(row[0], member+" ")) && row[1] == "BUCS L3" {
+				return row[2]
+			}
+		}
+		return "no row"
+	}
+	if y, x := problems(clubPage, "Y"), problems(clubPage, "X"); y != "3" || x != "2" {
+		t.Errorf("the comp sec's problems: Y %s, X %s", y, x)
+	}
+	if y, x := problems(do(t, h, http.MethodGet, ann, nil).Body.String(), "Y"), problems(do(t, h, http.MethodGet, ann, nil).Body.String(), "X"); y != "3" || x != "2" {
+		t.Errorf("the coach's problems: Y %s, X %s", y, x)
 	}
 	redirected(t, h, formAction(t, clubPage, club+"/competitions/"), url.Values{"which": {"all"}})
 	dash = do(t, h, http.MethodGet, admin, nil).Body.String()
@@ -148,7 +169,7 @@ func TestIndividualSignoff(t *testing.T) {
 	form.Set("signoff", "1")
 	admin := created(t, h, form)
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"I"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	own := withoutQuery(redirected(t, h, enter, bucsEntry("I")))
 	page := do(t, h, http.MethodGet, own, nil).Body.String()
 	if !strings.Contains(page, "Sign-off link for your coach") {
 		t.Fatal("the individual gets a sign-off link to send")
@@ -207,7 +228,7 @@ func TestCoachQualificationsPages(t *testing.T) {
 	ann := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
 	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	x := withoutQuery(redirected(t, h, join, url.Values{"name": {"X"}}))
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("")
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, x), x+"/competitions/"), entry)
 
 	page := do(t, h, http.MethodGet, club+"/coaches", nil).Body.String()
@@ -259,9 +280,12 @@ func TestCoachQualificationsPages(t *testing.T) {
 	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "nonsense"}, "certificate", pdf); !strings.Contains(rec.Header().Get("Location"), "choose+the+coach") {
 		t.Errorf("a qualification from the list: %s", rec.Header().Get("Location"))
 	}
-	big := append([]byte("%PDF-1.4\n"), make([]byte, 11<<20)...)
-	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "bg-trampoline-2"}, "certificate", big); !strings.Contains(rec.Header().Get("Location"), "over+10+MB") {
-		t.Errorf("10 MB at most: %d %s", rec.Code, rec.Header().Get("Location"))
+	big := append([]byte("%PDF-1.4\n"), make([]byte, 3<<20)...)
+	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "bg-trampoline-2"}, "certificate", big); !strings.Contains(rec.Header().Get("Location"), "over+3+MB") {
+		t.Errorf("3 MB at most: %d %s", rec.Code, rec.Header().Get("Location"))
+	}
+	if rec := upload(t, h, base+"/qualifications", map[string]string{"qualification": "bg-trampoline-2"}, "certificate", make([]byte, 11<<20)); !strings.Contains(rec.Header().Get("Location"), "over+3+MB") {
+		t.Errorf("a far bigger upload is cut off: %d %s", rec.Code, rec.Header().Get("Location"))
 	}
 	// Another club's comp sec can't open it.
 	other := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"DCU"}}))
@@ -272,5 +296,34 @@ func TestCoachQualificationsPages(t *testing.T) {
 	redirected(t, h, remove, url.Values{})
 	if rec := do(t, h, http.MethodGet, cert[1], nil); rec.Code == http.StatusOK {
 		t.Error("removed with its certificate")
+	}
+}
+
+// A club's certificates have a total: once they reach it, the comp sec is
+// told plainly.
+func TestClubCertificatesTotal(t *testing.T) {
+	h := competitionServer(t)
+	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
+	largest := append([]byte("%PDF-1.4\n"), make([]byte, store.MaxCertificateBytes-9)...)
+	var base string
+	seen := map[string]bool{}
+	for i := range store.MaxClubCertificateBytes/store.MaxCertificateBytes + 1 {
+		if i%store.MaxQualifications == 0 { // a new coach for the next four
+			do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {fmt.Sprintf("Coach %d", i)}})
+			page := do(t, h, http.MethodGet, club+"/coaches", nil).Body.String()
+			for _, c := range regexp.MustCompile(regexp.QuoteMeta(club)+`/coaches/([^/"]+)/signs-off`).FindAllStringSubmatch(page, -1) {
+				if !seen[c[1]] {
+					seen[c[1]], base = true, club+"/coaches/"+c[1]
+				}
+			}
+		}
+		location := upload(t, h, base+"/qualifications", map[string]string{"qualification": "bg-trampoline-2"}, "certificate", largest).Header().Get("Location")
+		if i < store.MaxClubCertificateBytes/store.MaxCertificateBytes {
+			if !strings.Contains(location, "Added") {
+				t.Fatalf("certificate %d: %s", i+1, location)
+			}
+		} else if !strings.Contains(location, "60+MB+a+club+has") {
+			t.Errorf("the club's total: %s", location)
+		}
 	}
 }

@@ -34,8 +34,6 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 		log.Printf("Desk: %s: %v", c.ID, err)
 		return 0, 0
 	}
-	keys := personKeys(entries)
-
 	// Who it reaches: its people, every member of its clubs, and the comp sec
 	// and coaches of its clubs and staff clubs.
 	members := map[string][]store.Member{}
@@ -45,7 +43,7 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 	}
 	for _, club := range m.Clubs {
 		for _, mem := range n.members(ctx, club, members) {
-			reached["m:"+mem.ID] = true
+			reached[store.MemberKey(mem.ID)] = true
 		}
 	}
 	for _, e := range entries {
@@ -69,17 +67,17 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 	covers := func(sub store.Subscription) bool {
 		switch sub.Kind {
 		case store.NotifyMember:
-			return reached["m:"+sub.OwnerID]
+			return reached[store.MemberKey(sub.OwnerID)]
 		case store.NotifyIndividual:
-			return len(keys[sub.OwnerID]) > 0 && reached[keys[sub.OwnerID][0]]
+			return slices.ContainsFunc(n.individualKeys(ctx, sub), func(k string) bool { return reached[k] })
 		case store.NotifyClub:
-			return slices.Contains(m.Clubs, sub.OwnerID) || slices.Contains(m.Staff, sub.OwnerID) || slices.ContainsFunc(n.members(ctx, sub.OwnerID, members), func(mem store.Member) bool { return reached["m:"+mem.ID] })
+			return slices.Contains(m.Clubs, sub.OwnerID) || slices.Contains(m.Staff, sub.OwnerID) || slices.ContainsFunc(n.members(ctx, sub.OwnerID, members), func(mem store.Member) bool { return reached[store.MemberKey(mem.ID)] })
 		case store.NotifyCoach:
 			if clubCoach[sub.OwnerID] {
 				return true
 			}
 			for _, clubMembers := range members {
-				if slices.ContainsFunc(clubMembers, func(mem store.Member) bool { return mem.CoachID == sub.OwnerID && reached["m:"+mem.ID] }) {
+				if slices.ContainsFunc(clubMembers, func(mem store.Member) bool { return mem.CoachID == sub.OwnerID && reached[store.MemberKey(mem.ID)] }) {
 					return true
 				}
 			}
@@ -114,7 +112,7 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 			}
 			emailed++
 		case store.ByPush:
-			err := n.push(ctx, told[0], pushMessage{Title: c.Name, Body: m.Full(), URL: n.base + told[0].Page})
+			err := n.push(ctx, told[0], pushMessage{Title: c.Name, Body: m.Full(), URL: n.savedLinks()})
 			switch {
 			case errors.Is(err, errGone):
 				for _, s := range told {
@@ -137,14 +135,9 @@ func (n *notifier) deskEmail(c store.Competition, m store.DeskMessage, subs []st
 		subject = "Please come to the organisers' desk · " + c.Name
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s\n\nSee it on your page:\n", m.Full())
-	for _, s := range subs {
-		fmt.Fprintf(&b, "%s%s\n", n.base, s.Page)
-	}
-	b.WriteString("\nTo stop these emails:\n")
-	for _, s := range subs {
-		fmt.Fprintf(&b, "%s\n", n.offLink(s.Token))
-	}
+	fmt.Fprintf(&b, "%s\n\n%s", m.Full(), n.seeYourPage("To see it"))
+	// Any one off link stops every email to the address for the competition.
+	fmt.Fprintf(&b, "\nTo stop these emails:\n%s\n", n.offLink(subs[0].Token))
 	return subject, b.String(), map[string]string{
 		"List-Unsubscribe":      "<" + n.offLink(subs[0].Token) + ">",
 		"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",

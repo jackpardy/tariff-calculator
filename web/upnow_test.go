@@ -7,35 +7,11 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	"tariffCalculator/competitions"
 	"tariffCalculator/store"
 	"tariffCalculator/views"
 )
-
-// A level's exercises are named where they're a set routine and a voluntary;
-// otherwise they're numbered.
-func TestRoutineNames(t *testing.T) {
-	c := competitions.Competition{
-		Levels:   []competitions.Level{{Ref: "builtin-level:isto-novice"}, {Ref: "builtin-level:bucs-l3"}, {Ref: "builtin-level:fig-ag3"}},
-		Tumbling: []string{"Novice"},
-	}
-	for _, tc := range []struct {
-		entry competitions.Entry
-		want  [2]string
-	}{
-		{competitions.Entry{Level: "ISTO Novice"}, [2]string{"Set", "Voluntary"}},
-		{competitions.Entry{Level: "BUCS L3"}, [2]string{"Set", "Voluntary"}},
-		{competitions.Entry{Level: "FIG AG3 (17–21)"}, [2]string{"1st routine", "2nd routine"}}, // two voluntaries
-		{competitions.Entry{Level: "Not a level"}, [2]string{"1st routine", "2nd routine"}},
-		{competitions.Entry{Discipline: competitions.Tumbling, Level: "Novice"}, [2]string{"1st pass", "2nd pass"}},
-	} {
-		if got := routineNames(c, tc.entry); got != tc.want {
-			t.Errorf("%s %s: %v, want %v", tc.entry.Discipline, tc.entry.Level, got, tc.want)
-		}
-	}
-}
 
 // The screen names who's on and the next two, with their club and routine,
 // skipping the scratched and crossing into the 2nd round.
@@ -57,16 +33,19 @@ func TestScreenUp(t *testing.T) {
 		}
 		return out
 	}
-	for pos, want := range map[int]string{
-		0: "Áine Ní Bhriain (UCD, Set) / Cal (, Set) / Áine Ní Bhriain (UCD, Voluntary)",
-		2: "Cal (, Set) / Áine Ní Bhriain (UCD, Voluntary) / Cal (, Voluntary)",
-		6: "Cal (, Voluntary)",
-		1: "nothing", // scratched since
-		3: "nothing", // no longer entered
-		8: "nothing", // past the end
+	r := func(entry string, round int) competitions.Routine {
+		return competitions.Routine{Entry: entry, Round: round}
+	}
+	for at, want := range map[competitions.Routine]string{
+		r("a", 1):    "Áine Ní Bhriain (UCD, Set) / Cal (, Set) / Áine Ní Bhriain (UCD, Voluntary)",
+		r("c", 1):    "Cal (, Set) / Áine Ní Bhriain (UCD, Voluntary) / Cal (, Voluntary)",
+		r("c", 2):    "Cal (, Voluntary)",
+		r("b", 1):    "nothing", // scratched since
+		r("gone", 2): "nothing", // no longer entered
+		r("x", 1):    "nothing", // moved out of the flight
 	} {
-		if got := show(screenUp(c, f, pos, byID, scratched)); got != want {
-			t.Errorf("at %d: %s, want %s", pos, got, want)
+		if got := show(screenUp(c, f, at, byID, scratched)); got != want {
+			t.Errorf("at %v: %s, want %s", at, got, want)
 		}
 	}
 }
@@ -78,7 +57,7 @@ func upOn(page string) (name, routine string) {
 	if m == nil {
 		return "", ""
 	}
-	return html2text(m[1]), m[2]
+	return unescape(m[1]), m[2]
 }
 
 // screenUpIn is who the venue screen says is on, and who's next, each as
@@ -87,8 +66,8 @@ func screenUpIn(body string) []string {
 	body = regexp.MustCompile(`<span class="screen-no">\d+</span>\s*`).ReplaceAllString(body, "")
 	var out []string
 	for _, m := range regexp.MustCompile(`class="screen-up-(?:next-)?name">([^<]+)</(?:p|span)>\s*<(?:p|span) class="screen-up-detail">([^<]+)<`).FindAllStringSubmatch(body, -1) {
-		detail := strings.Fields(html2text(m[2]))
-		out = append(out, html2text(m[1])+" · "+detail[len(detail)-1])
+		detail := strings.Fields(unescape(m[2]))
+		out = append(out, unescape(m[1])+" · "+detail[len(detail)-1])
 	}
 	return out
 }
@@ -97,16 +76,10 @@ func screenUpIn(body string) []string {
 // skipping the scratched, with Back, and the venue screen shows who's on and
 // next once they do.
 func TestWhoIsUpNow(t *testing.T) {
-	h := competitionServer(t)
-	// Today's competition, so flights marked now count on the screen.
+	// Entered beforehand and run at 09:00 on the day, so flights marked
+	// count on the screen.
+	h, clock := competitionServerAt(t, dayBefore)
 	form := newCompetition()
-	today := time.Now().In(local)
-	if today.Hour() == 23 && today.Minute() >= 50 {
-		t.Skip("too close to midnight for a competition today")
-	}
-	form.Set("date", today.Format("2006-01-02"))
-	form.Set("deadlineDate", today.Format("2006-01-02"))
-	form.Set("deadlineTime", "23:59")
 	form["level"] = []string{"builtin-level:isto-novice"}
 	admin := created(t, h, form)
 	screen := madeLink(t, h, admin, "Main hall screen", "screen")
@@ -116,6 +89,7 @@ func TestWhoIsUpNow(t *testing.T) {
 	}
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
+	clock.set(onTheDay(9, 0))
 
 	day := admin + "/day?day=0"
 	get := func() string { return do(t, h, http.MethodGet, day, nil).Body.String() }
@@ -127,17 +101,29 @@ func TestWhoIsUpNow(t *testing.T) {
 	if key == nil {
 		t.Fatalf("no flight: %s", page)
 	}
-	flight := html2text(key[1])
+	flight := unescape(key[1])
 	var order, escaped []string // the running order, and as the page has it
 	for _, m := range regexp.MustCompile(`comp-checkin-name">\s*(?:<span class="comp-run-no"[^>]*>\d+</span>\s*)?<span[^>]*>([^<]+)</span>`).FindAllStringSubmatch(page, -1) {
-		order, escaped = append(order, html2text(m[1])), append(escaped, m[1])
+		order, escaped = append(order, unescape(m[1])), append(escaped, m[1])
 	}
 	if len(order) != 4 {
 		t.Fatalf("one flight of four: %v", order)
 	}
+	// tapForm is the Next gymnast form as the day page shows it now.
+	tapForm := func(what string) url.Values {
+		t.Helper()
+		form := url.Values{"flight": {flight}, "what": {what}, "day": {"0"}}
+		up := regexp.MustCompile(`(?s)<form[^>]*/day/up"[^>]*>.*?</form>`).FindString(get())
+		for _, field := range []string{"entry", "round"} {
+			if m := regexp.MustCompile(`name="` + field + `" value="([^"]*)"`).FindStringSubmatch(up); m != nil {
+				form.Set(field, unescape(m[1]))
+			}
+		}
+		return form
+	}
 	tap := func(link, what string) string {
 		t.Helper()
-		return redirected(t, h, link+"/day/up", url.Values{"flight": {flight}, "what": {what}, "day": {"0"}})
+		return redirected(t, h, link+"/day/up", tapForm(what))
 	}
 	on := func(name, routine string) {
 		t.Helper()
@@ -192,6 +178,20 @@ func TestWhoIsUpNow(t *testing.T) {
 		!regexp.MustCompile(`comp-run-no" title="Running number">3</span>\s*<span[^>]*>`+regexp.QuoteMeta(escaped[2])+`<`).MatchString(page) {
 		t.Errorf("the day page numbers them the same: %s", page)
 	}
+	// The same tap sent twice (its answer lost on poor wifi, say) moves once,
+	// and the repeat says nothing.
+	again := tapForm("next")
+	redirected(t, h, admin+"/day/up", again)
+	if to := redirected(t, h, admin+"/day/up", again); noticeOf(t, to) != "" {
+		t.Errorf("a repeated Next says nothing: %s", to)
+	}
+	on(order[3], "Set")
+	again = tapForm("back")
+	redirected(t, h, admin+"/day/up", again)
+	if to := redirected(t, h, admin+"/day/up", again); noticeOf(t, to) != "" {
+		t.Errorf("a repeated Back says nothing: %s", to)
+	}
+	on(order[2], "Set")
 	tap(admin, "next")
 	on(order[3], "Set")
 	// Who's next crosses into the 2nd round.
@@ -244,7 +244,10 @@ func TestWhoIsUpNow(t *testing.T) {
 	}
 
 	// Undoing the start clears the taps; a finished flight has none.
-	redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo"}, "day": {"0"}})
+	if page := get(); !strings.Contains(page, `value="undo-start">Undo</button>`) {
+		t.Error("Undo takes back the start of a running flight")
+	}
+	redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo-start"}, "day": {"0"}})
 	redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"start"}, "day": {"0"}})
 	if page := get(); !strings.Contains(page, "First up") {
 		t.Error("started again from the first")
@@ -260,7 +263,13 @@ func TestWhoIsUpNow(t *testing.T) {
 	if got := shown(); got != nil {
 		t.Errorf("nor anything on the screen: %v", got)
 	}
-	// Undoing the finish keeps the place.
-	redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo"}, "day": {"0"}})
+	// Undoing the finish keeps the place, even sent twice.
+	if page := get(); !strings.Contains(page, `value="undo-finish">Undo</button>`) {
+		t.Error("Undo takes back the finish of a finished flight")
+	}
+	redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo-finish"}, "day": {"0"}})
+	if to := redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo-finish"}, "day": {"0"}}); noticeOf(t, to) != "" {
+		t.Errorf("a repeated Undo says nothing: %s", to)
+	}
 	on(order[0], "Set")
 }

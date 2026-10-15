@@ -275,9 +275,9 @@ func scenarioFormView(p SimulationPage) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var9 string
-			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(entriesWord(p.Entries))
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(Count(p.Entries, "entry", "entries"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/simulate.templ`, Line: 108, Col: 74}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/simulate.templ`, Line: 108, Col: 88}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -765,9 +765,9 @@ func scenarioTable(p SimulationPage) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var40 string
-				templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(entriesWord(s.EntryCount))
+				templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(Count(s.EntryCount, "entry", "entries"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/simulate.templ`, Line: 217, Col: 41}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/simulate.templ`, Line: 217, Col: 55}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 				if templ_7745c5c3_Err != nil {
@@ -780,7 +780,7 @@ func scenarioTable(p SimulationPage) templ.Component {
 				var templ_7745c5c3_Var41 string
 				templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(s.Gymnasts))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/simulate.templ`, Line: 217, Col: 71}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/simulate.templ`, Line: 217, Col: 85}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 				if templ_7745c5c3_Err != nil {
@@ -1379,13 +1379,6 @@ func numberValue(n int) string {
 		return ""
 	}
 	return strconv.Itoa(n)
-}
-
-func entriesWord(n int) string {
-	if n == 1 {
-		return "1 entry"
-	}
-	return fmt.Sprintf("%d entries", n)
 }
 
 func spareWord(minutes int) string {

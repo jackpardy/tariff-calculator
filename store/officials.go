@@ -1,9 +1,11 @@
 package store
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"slices"
 	"time"
 
 	"tariffCalculator/competitions"
@@ -181,6 +183,9 @@ func (s *Store) Officials(ctx context.Context, competitionID string) ([]Official
 		o.UpdatedAt = parseTime(updated)
 		out = append(out, o)
 	}
+	slices.SortStableFunc(out, func(a, b Official) int {
+		return cmp.Or(competitions.CompareNames(a.Name, b.Name), competitions.CompareNames(a.ClubName, b.ClubName))
+	})
 	return out, rows.Err()
 }
 
@@ -194,16 +199,6 @@ func (s *Store) AddOfficial(ctx context.Context, competitionID, name, club strin
 	_, err = s.db.ExecContext(ctx, `INSERT INTO officials (id, competition_id, club_name, name, offer, added, updated_at) VALUES ($1, $2, $3, $4, $5, TRUE, $6)`,
 		out.ID, competitionID, club, name, string(data), out.UpdatedAt.Format(timeLayout))
 	return out, err
-}
-
-// UpdateOfficial changes what a person the organiser added can do.
-func (s *Store) UpdateOfficial(ctx context.Context, competitionID, id string, o competitions.Offer) error {
-	data, err := json.Marshal(o)
-	if err != nil {
-		return err
-	}
-	return affected(s.db.ExecContext(ctx, `UPDATE officials SET offer = $1, updated_at = $2 WHERE competition_id = $3 AND id = $4 AND added`,
-		string(data), s.stamp(), competitionID, id))
 }
 
 // SetQualified marks an official qualified to judge, or not.

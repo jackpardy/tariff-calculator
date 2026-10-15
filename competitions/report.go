@@ -106,7 +106,7 @@ func (s Schedule) Report(people map[string][]string) Report {
 	// Prefer rules broken.
 	at := map[string][]ScheduledFlight{}
 	for _, f := range s.Flights {
-		at[f.Level] = append(at[f.Level], f)
+		at[f.Event] = append(at[f.Event], f)
 	}
 	for _, rule := range s.Setup.Rules {
 		if rule.Must {
@@ -265,7 +265,7 @@ func caps(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) [
 	planned := PlanSchedule(entries, eventOrder, setup, seed)
 	short := map[string]bool{}
 	for _, f := range planned.Unplaced {
-		short[f.Level] = true
+		short[f.Event] = true
 	}
 	var out []Fix
 	for _, ev := range eventOrder {
@@ -284,7 +284,7 @@ func caps(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) [
 			capped := capAt(entries, ev, n)
 			fitted := true
 			for _, f := range PlanSchedule(capped, eventOrder, setup, seed).Unplaced {
-				fitted = fitted && f.Level != ev
+				fitted = fitted && f.Event != ev
 			}
 			if fitted {
 				out = append(out, Fix{Change: fmt.Sprintf("%s capped at %d entries (%d fewer)", ev, n, total-n), Setup: setup, entries: capped})

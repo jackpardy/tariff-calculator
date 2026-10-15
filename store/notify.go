@@ -16,7 +16,7 @@ import (
 // Who a subscription is for: the page it was made on.
 const (
 	NotifyMember     = "member"     // a club member, by member id
-	NotifyIndividual = "individual" // an individual's entry, by entry id
+	NotifyIndividual = "individual" // someone entering on their own, by individual id (ADR 0010)
 	NotifyClub       = "club"       // the comp sec, by club id
 	NotifyCoach      = "coach"      // a coach, by coach id
 )
@@ -49,7 +49,6 @@ type Subscription struct {
 	Channel       string // ByEmail or ByPush
 	Address       string // the email, or the push endpoint
 	Keys          string // a push subscription's keys, as the browser gave them (JSON)
-	Page          string // the path of the person's page for the competition, to link to
 	Token         string // for its confirm and off links
 	Topics        []string
 	Confirmed     bool // an email is confirmed; push needs no confirming
@@ -59,12 +58,12 @@ type Subscription struct {
 // About says whether it's about a topic.
 func (s Subscription) About(topic string) bool { return slices.Contains(s.Topics, topic) }
 
-const subscriptionColumns = `id, competition_id, kind, owner_id, channel, address, keys, page, token, topics, confirmed, created_at`
+const subscriptionColumns = `id, competition_id, kind, owner_id, channel, address, keys, token, topics, confirmed, created_at`
 
 func scanSubscription(row interface{ Scan(...any) error }) (Subscription, error) {
 	var sub Subscription
 	var topics, created string
-	if err := row.Scan(&sub.ID, &sub.CompetitionID, &sub.Kind, &sub.OwnerID, &sub.Channel, &sub.Address, &sub.Keys, &sub.Page, &sub.Token, &topics, &sub.Confirmed, &created); err != nil {
+	if err := row.Scan(&sub.ID, &sub.CompetitionID, &sub.Kind, &sub.OwnerID, &sub.Channel, &sub.Address, &sub.Keys, &sub.Token, &topics, &sub.Confirmed, &created); err != nil {
 		return Subscription{}, notFound(err)
 	}
 	if topics != "" {
@@ -126,7 +125,7 @@ func (s *Store) Subscribe(ctx context.Context, sub Subscription) (Subscription, 
 			switch {
 			case err == nil && strings.EqualFold(address, sub.Address):
 				sub.ID, sub.Confirmed = id, confirmed
-				_, err := tx.ExecContext(ctx, `UPDATE notify_subscriptions SET topics = $1, page = $2 WHERE id = $3`, topics, sub.Page, id)
+				_, err := tx.ExecContext(ctx, `UPDATE notify_subscriptions SET topics = $1 WHERE id = $2`, topics, id)
 				if err != nil || confirmed {
 					return err
 				}
@@ -159,9 +158,11 @@ func (s *Store) Subscribe(ctx context.Context, sub Subscription) (Subscription, 
 		}
 		sub.ID, sub.CreatedAt, token = newID(), parseTime(s.stamp()), newToken()
 		sub.Token = token
+		// The page column is left empty: the path of the person's page holds
+		// their secret link, and only links' hashes are kept (migration 33).
 		_, err := tx.ExecContext(ctx, `INSERT INTO notify_subscriptions (id, competition_id, kind, owner_id, channel, address, keys, page, topics, token, confirmed, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-			sub.ID, sub.CompetitionID, sub.Kind, sub.OwnerID, sub.Channel, sub.Address, sub.Keys, sub.Page, topics, token, sub.Confirmed, s.stamp())
+			VALUES ($1, $2, $3, $4, $5, $6, $7, '', $8, $9, $10, $11)`,
+			sub.ID, sub.CompetitionID, sub.Kind, sub.OwnerID, sub.Channel, sub.Address, sub.Keys, topics, token, sub.Confirmed, s.stamp())
 		return err
 	})
 	if err != nil {
@@ -174,6 +175,37 @@ func (s *Store) Subscribe(ctx context.Context, sub Subscription) (Subscription, 
 func (s *Store) Subscriptions(ctx context.Context, competitionID, kind, ownerID string) ([]Subscription, error) {
 	return s.subscriptions(ctx, `competition_id = $1 AND kind = $2 AND owner_id = $3`, competitionID, kind, ownerID)
 }
+
+// IndividualKeys are the person keys an individual's person has in a
+// competition, from their entries in it: those of all their records entering
+// on their own (ADR 0010), whichever entry they signed up on.
+func (s *Store) IndividualKeys(ctx context.Context, competitionID, individualID string) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT DISTINCT person_key FROM entries WHERE competition_id = $1 AND person_key <> ''
+		AND individual_id IN (SELECT id FROM individuals WHERE person_id = (SELECT person_id FROM individuals WHERE id = $2))
+		ORDER BY person_key`, competitionID, individualID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var k string
+		if err := rows.Scan(&k); err != nil {
+			return nil, err
+		}
+		out = append(out, k)
+	}
+	return out, rows.Err()
+}
+
+// individualSubscriptions makes each individual's subscription belong to the
+// individual, not the entry they signed up on (migration 35), so withdrawing
+// that entry doesn't stop what they hear about their others. One whose entry
+// has gone since stays as it was: whose it was isn't known.
+const individualSubscriptions = `UPDATE notify_subscriptions
+	SET owner_id = (SELECT individual_id FROM entries WHERE entries.id = notify_subscriptions.owner_id)
+	WHERE kind = 'individual' AND EXISTS (SELECT 1 FROM entries
+		WHERE entries.id = notify_subscriptions.owner_id AND entries.individual_id IS NOT NULL);`
 
 // CompetitionSubscriptions are everyone told about a competition: push,
 // and confirmed emails.
@@ -191,9 +223,13 @@ func (s *Store) ConfirmSubscription(ctx context.Context, token string) error {
 	return affected(s.db.ExecContext(ctx, `UPDATE notify_subscriptions SET confirmed = TRUE WHERE token = $1`, token))
 }
 
-// Unsubscribe turns a subscription off by its link's token.
+// Unsubscribe turns emails off by an off link's token: every email
+// subscription to its address for its competition, as one email covers them
+// all (and its List-Unsubscribe header carries one link).
 func (s *Store) Unsubscribe(ctx context.Context, token string) error {
-	return affected(s.db.ExecContext(ctx, `DELETE FROM notify_subscriptions WHERE token = $1`, token))
+	return affected(s.db.ExecContext(ctx, `DELETE FROM notify_subscriptions WHERE token = $1 OR (channel = $2 AND EXISTS (
+		SELECT 1 FROM notify_subscriptions o WHERE o.token = $1 AND o.channel = $2
+		AND o.competition_id = notify_subscriptions.competition_id AND lower(o.address) = lower(notify_subscriptions.address)))`, token, ByEmail))
 }
 
 // RemoveSubscription turns one of a person's subscriptions off, from their page.

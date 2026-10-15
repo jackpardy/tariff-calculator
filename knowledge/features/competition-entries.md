@@ -1,7 +1,7 @@
 ---
 type: Feature
 title: Competition entries
-description: What organisers, club competition secretaries, members and coaches see when entries are collected for a competition. Organisers get an overview of every entry with its problems, a full view of any one entry, printed cards, an export, optional video proof by link, and optional coach sign-off.
+description: What organisers, club competition secretaries, members, coaches and gymnasts entering on their own see, from entering a competition to the day itself — entries and their problems, fees, limits, late changes, officials, the timetable and rota, helpers' links, notifications, one link for several roles, and on the day check-in, who's up, desk messages and the venue screen.
 tags: [feature, competitions, clubs, coaches]
 generated: { by: claude-code/cli, at: 2026-10-06T11:00:00Z }
 sources:
@@ -17,11 +17,54 @@ the [roadmap](../roadmap.md). Storage, links, clubs, video proof and coach
 sign-off are decided in ADR 0004.[^adr-0004]
 
 It's built from storage (`store`), checking (`competitions`), and the pages:
-competitions, the organiser's dashboard and each entry, and individual entry
-(`comppages.go`); clubs, members and sending (`clubpages.go`); and coaches
-(`coachpages.go`) ([routes](../architecture/http-routes.md#competition-pages)).
+the routes, an entry's card and the entry form (`comppages.go`); creating a
+competition and its settings (`compsettings.go`); the organiser's dashboard
+and each entry (`dashboardpages.go`); individual entry and sign-off
+(`individualpages.go`); clubs, members and sending (`clubpages.go`); and
+coaches (`coachpages.go`), with shared helpers in `helpers.go`
+([routes](../architecture/http-routes.md#competition-pages)). Their views
+are `views/competitions.templ` (the layout and shared parts),
+`dashboard.templ`, `entry.templ`, `cards.templ` and `partner.templ`.
 `/competitions` lists the links a browser has. The pages are on only where
 `DATA_DIR` is set ([competition storage](../operations/deploy.md#competition-storage)).
+
+**Contents**
+
+- [The organiser (competition admin link)](#the-organiser-competition-admin-link)
+    - [The menu and the Settings page (roadmap 2026-10-14)](#the-menu-and-the-settings-page-roadmap-2026-10-14)
+    - [All people (roadmap 2026-10-14)](#all-people-roadmap-2026-10-14)
+    - [Helpers' links, history and concerns (ADR 0009)](#helpers-links-history-and-concerns-adr-0009)
+    - [When entries, changes and sign-offs close](#when-entries-changes-and-sign-offs-close)
+    - [Late changes](#late-changes)
+    - [Limits and waiting lists](#limits-and-waiting-lists)
+    - [Entry fees](#entry-fees)
+    - [Going live](#going-live)
+    - [Dashboard](#dashboard)
+    - [One entry](#one-entry)
+    - [Printing and export](#printing-and-export)
+    - [Removing and holding entries](#removing-and-holding-entries)
+    - [Video proof](#video-proof)
+- [Events and synchro (ADR 0005, step 2)](#events-and-synchro-adr-0005-step-2)
+- [Searching lists of people (roadmap item 6)](#searching-lists-of-people-roadmap-item-6)
+- [Officials (ADR 0005, step 3)](#officials-adr-0005-step-3)
+- [Officials rota (ADR 0005, step 5)](#officials-rota-adr-0005-step-5)
+- [Timetable (ADR 0005, step 4)](#timetable-adr-0005-step-4)
+    - [What if there's a delay](#what-if-theres-a-delay)
+    - [What if an official has to leave](#what-if-an-official-has-to-leave)
+    - [On the day: flights started and finished](#on-the-day-flights-started-and-finished)
+    - [The venue screen](#the-venue-screen)
+    - [Messages from the organisers' desk](#messages-from-the-organisers-desk)
+    - [Simulation (ADR 0005, step 6)](#simulation-adr-0005-step-6)
+- [Coaches (coach link)](#coaches-coach-link)
+- [The club's comp sec (club admin link)](#the-clubs-comp-sec-club-admin-link)
+- [A member (personal link)](#a-member-personal-link)
+- [One link, several roles (ADR 0010)](#one-link-several-roles-adr-0010)
+    - [Entering on your own: one page](#entering-on-your-own-one-page)
+- [My competition (roadmap: competitions 5)](#my-competition-roadmap-competitions-5)
+    - [Personal and club timetables](#personal-and-club-timetables)
+- [Notifications (ADR 0008)](#notifications-adr-0008)
+    - [Offline](#offline)
+- [Built from](#built-from)
 
 # The organiser (competition admin link)
 
@@ -47,10 +90,10 @@ bar scrolls sideways on a phone.
 **Settings** (`GET /competitions/admin/{token}/settings`, in `web/settingspages.go`)
 holds what used to fold away on the entries page, in groups with a list of
 jump links at the top: Links (helpers' links for the organiser, the club
-link, the individual entry link), Entries and deadlines, Limits and waiting
+link, the link for entering on their own), Entries and deadlines, Limits and waiting
 lists, Events and levels (events, order of levels, men and women), Sign-off
 and coaches, Video, Going live, Telling people about changes (when people
-can ask to hear), Individual entry, and Admin link and deleting (the
+can ask to hear), Entering on their own, and Admin link and deleting (the
 organiser only). A co-organiser's link opens it without the links box,
 replacing the admin link or deleting. Each form posts to its own route, which
 comes back to the Settings page with a notice; the history records them as
@@ -67,8 +110,12 @@ entering on their own is `i:<id>` for the person, kept on each entry (entries
 from before [one link a person](#one-link-several-roles-adr-0010) keep
 `i:<lower-cased name>`); a synchro partner nobody has
 linked is `p:<entry id>`; an official the organiser added is `o:<official
-id>`; a coach is `c:<club id>:<lower-cased name>` (`c::<name>` for one an
-individual named). The list is built from the live entries (not withdrawn, not
+id>`; a club's coach is `c:<coach id>`, the coach who signed the entry off
+or else the member's coach, so renaming them or a sign-off typed
+differently is still them (keys saved under the old `c:<club id>:<name>`
+moved at migration 34); a coach an individual named, who has no record, is
+`c::<lower-cased name>`. Keys are made and read only in
+`store/personkey.go`. The list is built from the live entries (not withdrawn, not
 on the waiting list), the officials and the coaches (those entries name, those a
 club sent and those an individual named), so a coach with no entries yet is
 there too. Keys of one person (a member who is a coach too, or who also
@@ -76,8 +123,8 @@ enters on their own) are one row and one page, with all their roles
 ([one link, several roles](#one-link-several-roles-adr-0010)); the page is at
 the first key found, and another of their keys redirects to it.
 
-Each row has the name (a link), the club ("Individual" for someone entering on
-their own, nothing for an official with no club) and **what they do**: the
+Each row has the name (a link), the club ("On their own" for someone entering
+without a club, nothing for an official with no club) and **what they do**: the
 events they compete in ("Trampoline BUCS L7, Synchro BUCS L6/L7"), what they
 offered ("judge, can chair, recorder, marshal") and "coaches 6" (the gymnasts
 they coach). The list can be searched by name and filtered by club and by what
@@ -92,7 +139,7 @@ escaped as one path segment (`url.PathEscape`, which leaves the colons and
 escapes a slash, a question mark, a percent sign and a hash in a name); Go's
 mux matches the escaped path and gives the handler the key unescaped. An
 unknown key is a 404 ("Person not found"). The page is read-only and is the
-person's own **Your competition** page (`views.MyCompetition`) built by the
+person's own **My competition** page (`views.MyCompetition`) built by the
 same code (`dayOf` in `web/mypages.go`, which the member's page and this one
 both call), with the parts that are only for the person left out (notify, the
 calendar, "I'm here for the rest", the score sheets link) and these added:
@@ -214,7 +261,14 @@ without moving anyone else. The dashboard shows "88 of 90 places" beside a
 limited event and a **Waiting lists** box; the comp sec sees "Sent ·
 waiting list, 3rd", and a member or individual "On the waiting list for
 BUCS L1: 3rd". Notifications (cards) say when an entry goes on or comes
-off a waiting list, when the organiser's change does it. The demo limits
+off a waiting list, when the organiser's change does it.
+
+Every page says where an entry stands in the same order (`stateOf` in
+`web/entrystate.go`), the comp sec's: removed, on hold, not sent, on a
+waiting list (unless changed since), changed since sent, checked, sent.
+Each page words it for its reader. So a checked entry on a waiting list
+reads as waiting everywhere: a member's status line says "Sent by your
+club", not "checked by the organiser". The demo limits
 BUCS L1 to 12 and DMT Advanced to 17.
 
 ## Entry fees
@@ -264,14 +318,16 @@ the page's address so a view can be kept or shared:
   none), checked, signed off, video (missing, to review, need more, OK),
   men or women, problems only;
 - **sort**: by club (as stored), gymnast, latest sent or coach;
-- **print and CSV what's shown**: the cards and the CSV take the same
-  filters.
+- **print and CSV what's shown**: one set of buttons (Print cards, Print
+  cards not checked, Download CSV) above the levels; Print cards and the CSV
+  take the same filters, and each open level has **Print this level's
+  cards**.
 
 | Gymnast | Club | 1st exercise | 2nd exercise | Requirements | Problems | Video | Sent | Checked |
 |---|---|---|---|---|---|---|---|---|
 | A. Murphy | UCD | Set 1 | 4.6 | 5/5 ✓ | – | not needed | 3 Mar, 21:04 | ✓ |
 | B. Kelly | DCU | Set 2 | 5.9 | 4/5 ✗ | Repeat (element 7) | missing | 4 Mar (changed since) | – |
-| C. Ryan | individual | 2.1 | 6.2 | 9/10 ✗ | 10th lands on back | provided | 5 Mar | – |
+| C. Ryan | On their own | 2.1 | 6.2 | 9/10 ✗ | Element 10 must land on feet. | provided | 5 Mar | – |
 
 - Counts at the top: entries per level and club, how many have problems, how
   many aren't checked yet, and any late ones.
@@ -285,7 +341,17 @@ the page's address so a view can be kept or shared:
 
 Both exercises are shown side by side, as in the builder's Levels mode: the
 elements, FIG notation, tariff, flags (repeats, transitions, interruptions,
-carry-over) and each requirement with ✓ or ✗. Two buttons:
+carry-over) and each requirement with ✓ or ✗. Two buttons follow.
+
+An element's name is the catalogue's, or the coach's own words; one the
+catalogue has no name for is left blank, as its FIG notation beside it says
+what it is (never "Custom Skill"). A * marks an element that meets one of the
+requirements, explained under the table. A set routine performed as written
+names each element in the set's own words ("Seat landing"), as its Set
+routine line does. The validation's flags read as sentences
+(`skills.ElementNotes`): "Element 10 must land on feet.", "Element 4 takes
+off from front, but element 3 lands on back.", on the card's rows and in the
+problem lists gymnasts, comp secs, coaches and the organiser see. The buttons:
 
 - **Mark checked**, with an optional note. The note is shown to the club's comp
   sec and the member.
@@ -362,7 +428,10 @@ A competition offers **events**: a discipline at a level.
 - **Synchro pairs** can be any two gymnasts. The entry names the partner and
   shows a **partner link** to send them; the partner confirms who they are
   with their own member page or entry link (or as having no other entry), so
-  the timetable can later check their clashes. Naming a different partner
+  the timetable can later check their clashes. Where links are saved in their
+  browser, the page offers them, starting on "Choose who you are" and leaving
+  out the synchro entry itself (saved under the pair's names, which the page
+  gives as `data-saved-self`). Naming a different partner
   needs a new confirmation. Once confirmed, the pair's entry shows under
   **Synchro as a partner** on the partner's page (member or individual),
   their coach's (unless they already see the entrant) and their club's comp
@@ -390,13 +459,22 @@ A competition offers **events**: a discipline at a level.
 
 Every list of people has the same search and filters, from one set of shared
 pieces ([how](../architecture/rendering.md#lists-of-people-search-and-filters)).
-"Find a name" ignores case, accents and punctuation, the count says how many
-are shown, and Clear shows everyone again. The lists are the dashboard's
+"Find a name" looks at a name's letters only, ignoring case, accents, spaces
+and punctuation, the same in the browser as on the server, so "marykate"
+finds Mary Kate and "oneill" finds O'Néill; the count says how many are
+shown, and Clear shows everyone again. The lists are the dashboard's
 entries, All people, Officials, the organiser's Coaches, the desk's People I
-pick, the club's Members and Coaches, and a coach's own entries. On the
-dashboard the filters work on the server, so Print what's shown and the CSV
-follow them, and the search also narrows the entries as it's typed and opens
-the levels it finds them in.
+pick, the club's Members, Coaches and each competition's entries, a
+coach's own entries, and the names on the timetable and On the day. On the dashboard the filters work on the server, so its
+one set of Print cards and Download CSV buttons follows them (a level's own
+**Print this level's cards** button is inside the open level), and the search
+also narrows the entries as it's typed and opens the levels it finds them in.
+
+Names are listed in the order people expect, ignoring case and accents
+(`competitions.CompareNames`): Aberdeen before ATU Sligo, DCU before DkIT,
+Éabha before Tadhg. The store sorts members, coaches, officials, clubs and
+entries this way after reading them, and the pages' own sorts (club filters,
+the dashboard's sort, people) use the same compare.
 
 # Officials (ADR 0005, step 3)
 
@@ -474,7 +552,8 @@ are then filled flight by flight.
   penalty and total, then the total and place, all left to fill in. The
   organiser prints them; an official on a flight's panel can also open that
   flight's sheet on their phone (**Score sheets for your panels**, beside
-  their duties, once published). And the **officials rota**, each person's
+  their duties, once published), which goes back to My competition, for a
+  member and someone entered on their own alike. And the **officials rota**, each person's
   duties in time order, one line
   for an event ("Friday 09:30–15:15 · Panel 2 · BUCS L7 Men · all 5
   flights · Execution judge").
@@ -526,7 +605,15 @@ are then filled flight by flight.
   the second's (also when a flight is redrawn).
   A person is a member (by their member link) or, for individuals entering
   several disciplines, the person they entered as (ADR 0010); a confirmed
-  synchro partner is the same person as their own entries.
+  synchro partner is the same person as their own entries. Records joined
+  as one person ([one link, several roles](#one-link-several-roles-adr-0010))
+  are one person here too: a member who also enters on their own, or also
+  coaches, gets rest and clash warnings against themselves, and isn't put
+  on a panel while they compete under another of their keys. Planning
+  avoids someone coaching while they compete (as costly as a broken
+  prefer), and the report lists it ("Ann coaches in L2 while competing in
+  L1"). The keys saved in seats and rules stay as they were; only the
+  working out sees them as one (`samePeople` in `web/personkeys.go`).
 - **The report:** for each day, when its flights end, when it finishes
   (blocked time such as awards included) against its end, and the time free
   after the last flight that isn't blocked off for the whole venue (room for
@@ -543,13 +630,24 @@ are then filled flight by flight.
   or area, after what's there (clear of breaks unless events can run across
   them); **Earlier** swaps a flight with the one before it in its event;
   redraw a flight's order, move a gymnast to another flight or take them
-  out, and place entries made since planning. Changing the setup marks the
+  out, and place entries made since planning. On a flight's card these are
+  buttons at least 40px tall: **Move** beside each gymnast (its flights
+  filled in by `static/js/fill.js` when it opens), **Redraw order** and
+  **Earlier**, and a dropdown labelled **Move to** ("Move the event to") with
+  **Move** or **Move event**. At the top of the timetable, **Jump to** links
+  to each day and its areas and to **Find a name**, which searches the
+  running orders, the gymnasts not in a flight and the seated officials,
+  hiding days, areas, flights and blocked time with nobody it finds and
+  opening the Panel lists with someone. Changing the setup marks the
   plan out of date until **Plan** again; moves are rechecked and listed as
   problems: clashes, and an event whose flights aren't back to back on one
   area, or run either side of a break that isn't allowed (timetables
   planned before ADR 0006 show these until planned again).
 - **Sheets:** marshal sheets (running orders to tick off) and chair of judges
-  sheets (each gymnast's exercises and problems), one area to a page.
+  sheets (each gymnast's exercises and problems), one area to a page. On a
+  phone a sheet's table (and the rota's) scrolls sideways in its own box,
+  and the toolbar wraps, so the page doesn't and **Print / Save as PDF**
+  stays on screen; printed, nothing changes.
 - **Panel timeline:** time running down at an even scale (a grid row a
   minute), so every area and day lines up by time. Two views:
   - **Panel timeline:** every day side by side, a column per area, each
@@ -574,6 +672,28 @@ are then filled flight by flight.
   so: **Publish changes** copies the draft over, **Discard changes** copies
   the published one back, **Unpublish** takes it down. Timetables published
   before this became their own published copy (migration 14).
+- **Changes at once** (built 2026-10-15): every change to the draft (setup,
+  plan, a move, a redraw, a seat, a rota rule, a kept "what if", an accepted
+  late change) reads, changes and saves it in one transaction
+  (`store.UpdateTimetable`), so the organiser, a timetable helper and an
+  accepted late change build on each other rather than one quietly undoing
+  another. The timetable page's forms, and the delay and leave pages'
+  **Keep** buttons, also post the draft's version (`version`:
+  `Schedule.Version`, a hash of the draft as the page showed it). Forms name
+  flights, gymnasts' flights, seats, days, areas, blocks and rules by their
+  place in the draft, so one from a page opened before someone else changed
+  the draft is refused with "The timetable changed since you opened this
+  page; nothing was changed.", as is **Publish changes** (it would publish
+  what nobody has looked at). A form without a version (not from these
+  pages) isn't checked.
+- **Flight IDs** (built 2026-10-15): each flight has an ID of its own
+  (`ScheduledFlight.ID`, saved as `id`), given when it's planned (from the
+  plan's seed) and kept by every change: moving its event, Earlier,
+  redrawing, renumbering, a delay merging another into it. A flight made any
+  other way gets a new one when the draft is saved (`Schedule.Identify`).
+  Planning again makes new flights, with new IDs. What happens to a flight on
+  the day is kept by its ID (`competitions.FlightKey`), so it follows the
+  flight when the organiser moves or renumbers it and publishes again.
 
 ## What if there's a delay
 
@@ -637,13 +757,19 @@ each area with flights that day, and under each area its flights in start
 order: the planned time (warm-up start to end), when it actually started and
 finished, and who tapped it. **Started** (a flight not yet started),
 **Finished** (started, not finished) and **Undo** (takes back the finish, else
-the start) post to `/day/flight`, which stores the time now (`flight_times`,
-one row per published flight, keyed `day|area|level|category|number`; see
-`competitions.FlightKey`). A tap that changes nothing (someone else got there
-first) is ignored and says so. It always works from the **published**
-timetable, so planning again or moving flights in the draft doesn't lose
-the times; republishing with a flight's day, area or number changed does
-orphan its row. Organiser, "everything", chair-of-judges and timetable links
+the start: it posts `undo-finish` or `undo-start`, so the same tap sent twice
+takes back only the one, and the repeat quietly changes nothing) post to
+`/day/flight`, which stores the time now (`flight_times`,
+one row per published flight, keyed by the flight's ID; see
+`competitions.FlightKey`, and `PlaceKey` for a flight without one). A tap
+that changes nothing (someone else got there first) is ignored and says so.
+It always works from the **published** timetable, so planning again or
+moving flights in the draft doesn't lose the times, and as a flight keeps its
+ID, neither does republishing it moved to another area or day, or
+renumbered: its start, its panel's check-ins and who's on go with it.
+Migration 34 gave timetables saved before then IDs (a draft flight taking
+its published flight's, by place or else by event and gymnasts) and moved
+the day's rows from each flight's place to its ID. Organiser, "everything", chair-of-judges and timetable links
 can use it, and each tap is in the history ("Marked a flight started: BUCS
 L3 · flight 1 of 2 (Panel 1)").
 
@@ -664,7 +790,8 @@ shows what holding up the area by that long does to its later flights. Nothing i
 
 Attendees see it too: on **My competition** (the same today-only rule), a line
 at the top for each area their flights are on that is running 5 or more minutes
-late or early, such as "Panel 2 is running about 15 min late (as of 10:40)".
+late or early, such as "Panel 2 is running about 15 min late (as of 10:40)",
+in hours and minutes from an hour as on the day page ("1 h 5 min early").
 
 **The page stays where it is** (built 2026-10-14). Every button on the day
 page (flight Started/Finished/Undo, check-in, panel, Notify, Still
@@ -692,26 +819,58 @@ were open still open (a Notify list closes once sent), the flight kept at the
 same place on the screen, and the tapped button disabled meanwhile; taps are
 sent one at a time. If the request fails or the answer isn't the day page, the
 form is submitted the usual way (with the tapped button added back as a hidden
-input) and the server's redirect brings the person back to the flight. Which
+input) and the server's redirect brings the person back to the flight. So a
+form can reach the server twice (the first request went through, but its
+answer was lost), and every day tap is safe to repeat: check-in, panel and
+Started/Finished set a state, Undo says which it takes back, Next gymnast and
+Back post the gymnast and routine shown, and Notify posts a one-off id. Which
 lists are open is also kept in `sessionStorage` (per path and `?day`), so a
 reload keeps them. The service worker only handles GET navigations, so these
 posts go straight to the network.
+
+**Finding someone, and the layout** (2026-10-15). Under the day tabs, **Jump
+to** links to each area, and **Find a name** (the shared list search) looks
+through every check-in row, gymnasts' and officials': a flight's box and an
+area's column hide while nothing in them matches, and a check-in or Panel
+list with someone it finds opens, closing again when the search is cleared.
+A tap that updates the page in place keeps the search and the lists it
+opened (`dayPage` carries their `data-list-opened` mark onto the fresh copy
+and runs the search again); lists opened only by the search aren't kept for
+a reload, as lists opened by hand are. The page uses the screen's width with
+at most three areas side by side (two on a tablet, one on a phone), so a name
+and its Here and Scratched share a line on a laptop. Every button, dropdown,
+day tab and link on the areas and warnings is at least 40px tall, and Notify
+is a box on its own line, apart from Here and Scratched. The **Venue screen**
+and **Desk messages** buttons at the top are named as in the menu (the
+screen's opens on the day shown); the organiser is told to make a Venue
+screen link under Settings, and a link that can't make links that the
+organiser makes it.
 
 **Who's up now** (roadmap item 7, built 2026-10-14): on a flight marked
 started and not finished, the box shows who's on now in large type (name,
 club for a club's gymnast, and the routine), with a big **Next gymnast** and a
 small **Back**. Before the first tap it shows who's first up; the marshal taps
-Next gymnast as each gymnast starts. The position runs from 0 (the first
-gymnast's 1st routine) to 2n-1 (the last gymnast's 2nd) for a flight of n in
-the published running order: everyone's 1st routine in order, then everyone's
-2nd in the same order, synchro pairs and tumbling and DMT passes alike. It is
-stored per flight key in `up_now` (migration 31, `store/upnow.go`: `UpNext`,
-`UpBack`, `ClearUp`, `UpNow`), with who tapped and when; `UpNext` and `UpBack`
-read and write in one transaction, so two taps at once each move one step.
+Next gymnast as each gymnast starts. The order is the published running
+order's: everyone's 1st routine in order, then everyone's 2nd in the same
+order, synchro pairs and tumbling and DMT passes alike. The rules (the order,
+who's skipped, what's next and what's before) are `competitions.UpOrder`
+(`competitions/upnow.go`); where the marshal has got is a
+`competitions.Routine`, the gymnast on (by entry) and which routine (round 1
+or 2), not a place in the order, so adding someone to the flight or taking
+someone out while it runs leaves the marshal on the same gymnast. It is
+stored per flight (by its ID) in `up_now` (migrations 32 and 34,
+`store/upnow.go`: `MoveUp`, `ClearUp`, `UpNow`), with who tapped and when.
+The form posts the gymnast and routine it showed (`entry` and `round`, empty
+before the first tap), and `MoveUp` moves only from there, read and written
+in one transaction: the same tap sent twice, or a tap from a page out of
+date, is `ErrUpMoved` and quietly changes nothing (the page comes back
+showing where the flight is). Should the gymnast on be moved out of the
+flight, the page shows nobody on, and Next gymnast goes to the first in
+their round who competes.
 Scratched gymnasts, and entries no longer in the competition, are skipped both
-ways (`upOrderOf` in `web/screenup.go`); one scratched after being reached is
-shown struck through until the next tap. The routine is named from the level
-(`routineNames`): "Set" for an exercise whose options are all set routines and
+ways (`upOrderOf` in `web/screenup.go` says who competes); one scratched after
+being reached is shown struck through until the next tap. The routine is named
+from the level (`competitions.RoutineNames`): "Set" for an exercise whose options are all set routines and
 "Voluntary" for one whose options are all requirements, when the two
 exercises differ; otherwise "1st routine" and "2nd routine" (two voluntaries,
 mixed options, synchro, or a level that can't be read), and "1st pass" and
@@ -720,7 +879,7 @@ nothing and says "That was the last routine in … Tap Finished once it's
 done."; the box also says it's the flight's last routine. It never finishes
 the flight. Back at the first gymnast (or before the first tap), and either tap
 on a flight that isn't running, are ignored with a notice. **Undo** that takes
-back the start clears the position (`ClearUp`), so starting again starts from
+back the start clears where the marshal had got (`ClearUp`), so starting again starts from
 the first; undoing a finish keeps it. Taps post to `/day/up` (organiser,
 "everything", chair and timetable links), update in place like the other day
 buttons, and aren't put in the history (one per routine would bury the rest).
@@ -820,7 +979,8 @@ club** (only for someone who belongs to a club: a club member, or an entry that
 came from a club; organiser-added officials and individuals have none), an
 optional extra line (up to 300 characters) and **Send**. It posts to
 `/day/notify` (`person` key, `flight` key, `as` = `official` or `gymnast`,
-`them`, `club`, `note`, `day`) and sends a [desk message](#messages-from-the-organisers-desk)
+`them`, `club`, `note`, `day`, and `once`, a one-off id made each time the form
+is shown) and sends a [desk message](#messages-from-the-organisers-desk)
 at once, as the link that tapped it. The text is built for them:
 "Mary should be at Panel 1 now to officiate BUCS L3 · flight 1 of 2 (Execution
 judge)." for an official, or "Ann should be at Panel 1 now to compete in BUCS
@@ -832,8 +992,13 @@ notice says so. **Their club** reaches only the club's comp sec and coaches, not
 its members: the message's `staff` (below) holds the club, where `clubs` would
 reach everyone. The page comes back with "Sent to Ann and their club. Told 0 by
 push and 3 by email." and the history says "Notified Ann (and their club): should
-be at Panel 1" (or "Notified Ann's club: …" for the club alone). Organiser,
-"everything", chair and timetable links can use it.
+be at Panel 1" (or "Notified Ann's club: …" for the club alone). The same form
+(the same `once`) sent again within 10 minutes is a repeat: nothing is sent or
+recorded, and the page comes back without a notice. The ids sent are kept in
+memory (`sentForms` in `web/panelcheckin.go`), so a restart forgets them; one
+that wasn't sent (the store failed, or the message limit) is forgotten at once,
+so trying again works. Organiser, "everything", chair and timetable links can
+use it.
 
 ## The venue screen
 
@@ -915,8 +1080,9 @@ up to 160 characters) for 15 or 30 minutes, an hour, or until someone takes
 it down. Phones aren't told. The page lists what's up, by whom and until
 when, each with **Take down**. They show even before the timetable is
 published, latest first. The history records each one put up and taken
-down. The links that can send desk messages can do this too
-(`store/screennotices.go`, `web/screennotices.go`).
+down. The links that can send desk messages can do this too. A competition
+keeps its latest 50 announcements, shown or not (`store.MaxScreenNotices`;
+`store/screennotices.go`, `web/screennotices.go`).
 
 A new kind of link, **venue screen** (`store.LinkScreen`), can `GET` this
 route and nothing else. Organiser, "everything", chair and timetable links
@@ -958,9 +1124,10 @@ without the club's members (the On the day [Notify](#on-the-day-flights-started-
 button's **Their club**; the desk form itself doesn't use it).
 Each address is told once, however many pages it was given on. Email has the
 subject "Message from the organisers of *Competition*" (or "Please come to the
-organisers' desk · *Competition*"), the text, the page to see it on and the
-off link; push has the competition's name as the title, the text as the body
-and the person's page as the link. A push service that says the phone is gone
+organisers' desk · *Competition*"), the text, how to find their page (open
+it from the link they saved; Competitions lists the links saved in that
+browser) and the off link; push has the competition's name as the title,
+the text as the body and Competitions as the link. A push service that says the phone is gone
 drops it. It is sent while the organiser's request is handled (a handful of
 sends), and a mailer that is off simply sends none.
 
@@ -1035,8 +1202,11 @@ Where a competition requires it, each entry needs a coach's **sign-off**
 - **Qualifications** (ADR 0007 Decision 4): the comp sec gives a coach up to
   four, each from the built-in list (British Gymnastics levels 1–4 and
   Gymnastics Ireland levels 1–3, in trampoline, tumbling and DMT) with a
-  certificate: a JPEG, PNG, WebP or PDF up to 10 MB, its type checked from
-  its bytes. It's stored in the database with the coach, opened by the comp
+  certificate: a JPEG, PNG, WebP or PDF up to 3 MB, its type checked from
+  its bytes. A club's certificates take 60 MB at most together, and so do
+  those of the coaches a competition's individuals name; none is taken
+  while the server's disk has less than 1 GB free. Each refusal is a plain
+  notice. It's stored in the database with the coach, opened by the comp
   sec (served as its own type, `nosniff`, not cached), and deleted with the
   qualification, the coach or the club.
 - **Approval** (ADR 0007 Decisions 2, 5–7): where entries need sign-off, the
@@ -1063,7 +1233,11 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   the club's Members section. A coach sees their own members and every member without a
   coach; the club can let **every coach see every member**.
 - The coach's page lists each competition's entries they see, with problems
-  and sign-off, and how many are waiting. Opening one shows it checked, with
+  and sign-off, and how many are waiting. The coach and the comp sec count
+  an entry's problems as the organiser does (`competitions.EntryProblems`):
+  a synchro pair's levels, the card, and a missing sign-off, from the
+  competition's copy while it's what the member has, else from the member's
+  own. Opening one shows it checked, with
   **Sign off** and **Not yet**, and a note the member and comp sec see.
 - A changed entry needs signing off again. The sign-off goes to the
   competition with the entry when the club sends it.
@@ -1075,7 +1249,7 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   competition approves coaches (ADR 0007 Decision 8), the entry page first
   asks for **Your coach**: a name, a qualification from the list and a
   certificate, stored with the entry (deleted with it, or the competition).
-  The organiser's Coaches page lists them under **Individuals**, to approve
+  The organiser's Coaches page lists them under **Gymnasts on their own**, to approve
   as clubs' coaches are. Until approved, the sign-off link says why and
   can't be used; once approved, the coach signs off as the named coach,
   and the sign-off counts while they stay approved. Naming another coach
@@ -1091,7 +1265,7 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
 - The organiser's Coaches page (coaches sent for approval) has the same
   search and filters (`id="coaches"`): by coach's name, club (or
-  "Individuals") and status (approved, waiting, not approved, approval
+  "Gymnasts on their own") and status (approved, waiting, not approved, approval
   withdrawn). Each club's box is a group that hides when none of its coaches
   match.
 
@@ -1105,8 +1279,12 @@ your way round; the menu is `views/menu.templ`, built for each page in
   the organiser's, but for the club's members only, by competition. It has
   **Send** and **Re-send changed** buttons, shows the organiser's notes,
   shows which members are still missing a required video, and lets the comp
-  sec edit an entry on a member's behalf. The pages for editing a member's
-  entry or offer are in this section.
+  sec edit an entry on a member's behalf (**Change**, under the member's
+  name; the status wraps, so the table fits a laptop). Each competition's
+  entries are a list section (`id="entries-<competition id>"`) searched by
+  name and filtered by problems and by whether they're still to send. The
+  pages for editing a member's entry or offer are in this section; the edit
+  page names the member once, at its head.
 - **Members** (`/members`): the join link, the members (with **New link** for
   one who lost theirs, which ends the old one, a coach to choose, and
   **Remove**) and the synchro entries other clubs' gymnasts made with them.
@@ -1116,7 +1294,9 @@ your way round; the menu is `views/menu.templ`, built for each page in
 - The Members list (`id="members"`) can be searched by name and filtered by
   coach (each of the club's coaches, or no coach), by whether the member has
   entries, and by whether they are a coach too. The Coaches list
-  (`id="coaches"`; each coach's two table rows are one `<tbody>`) can be
+  (`id="coaches"`; each coach's two table rows are one `<tbody>`, ruled off
+  below, so "Signs off routines" and "Add a qualification" sit with their
+  coach) can be
   searched by name and filtered by whether they sign off routines and whether
   they have qualifications. Both are sections that can be collapsed and start
   open ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
@@ -1132,9 +1312,11 @@ link opens the coach's page. Members shows them as "Coach too", Coaches as
 Each form returns to the section it's on, with its notice. The exceptions are
 replacing the admin link, which shows the new link on Competitions (where it's
 saved in the browser), and the new link made for a member or coach, which is
-shown on that response only. The default page is also where the club's admin
-link is saved in the browser (`data-club-admin`, when the club is new or the
-link was replaced).
+shown on that response only. Every page of the club's saves its admin link in
+the browser when it's opened (`data-club-page`), as the organiser's dashboard
+does (`data-competition-page`) and members', coaches' and gymnasts' pages do;
+never on a page opened through someone's own link or a helper's link (a "~" in
+the path). The new or replaced link is shown and saved too (`data-club-admin`).
 
 # A member (personal link)
 
@@ -1150,14 +1332,16 @@ coach's view will be more tabs):
   entered in. The page also holds a hidden `data-member-link`, so the link is
   saved in the browser on the first visit (as it is on every member page).
 - **A competition's page** (`/clubs/member/{token}/competitions/{id}`): the
-  facts, the Your competition link, desk messages, timetable links, each
+  facts, the one **My competition →** link (their flights and times, the
+  timetables and calendars are all there), desk messages, Tell me about
+  changes, each
   discipline's entry, officiating, and the judging offer. Each discipline is a
   row (discipline, level, status such as "Checked", "2 problems", "Not entered"
   or "Waiting list, 3rd") that opens to its card and forms. It's closed unless
   a form just posted had problems, or the notice is about it (the redirect after
   a save or withdrawal carries `discipline`). Saving, withdrawing and offering
-  go back to this page; so do the late-change and timetable pages, and Your
-  competition links back to it.
+  go back to this page; so do the late-change and timetable pages, and My
+  competition links back to it ("← ISTO 2027: your entries").
 - **Your details** (`/clubs/member/{token}/details`): their personal link,
   their coach, and **Your other links**
   ([one link, several roles](#one-link-several-roles-adr-0010)); choosing a
@@ -1170,12 +1354,17 @@ for: Triple Back") and has a field for a link per exercise, with a reminder to
 make a YouTube video unlisted, not private. They can replace the level or
 routine at any time until the deadline.
 
+The entry form (`entryForm` in `views/entry.templ`, used by members, the
+comp sec and individuals) has one Men or Women choice, shown only while the
+chosen level ranks them separately; changing level keeps what's ticked, and an
+existing entry opens with its own ticked.
+
 # One link, several roles (ADR 0010)
 
 Roadmap item 5, built 2026-10-14. A person's **records** are their club
 memberships, their coaching for a club, and their entering on their own;
 records with the same `person_id` are one person, and **whichever of their
-personal links they open, tabs above the page** (Member, Coach, Comp sec,
+personal links they open, tabs above the page** (Member, Coach, Competition secretary,
 On your own, Organiser · competition, or a helper link's name · competition)
 switch between their roles, each keeping its own menu. With one role there
 are no tabs. The tabs are worked out for any page a personal link opens
@@ -1210,10 +1399,19 @@ each role has them.
   and can **Remove** it.
 - **Undo.** Undoing a personal role makes it a person of its own again; a
   shared link added on that record goes with it. Removing a member or coach
-  ends what came through them. Replacing a member's or coach's own link keeps
-  their ties: they're the same person.
+  ends what came through them. `shared_ties` has no foreign keys, so
+  deleting a club or a competition, and the expiry of clubs, individuals and
+  competitions, delete the ties to or from them (`dropTies`); deleting an
+  entry deletes its check-in, late changes and concerns (`dropEntryRows`).
+- **A new link from the comp sec opens only the club's records** (ADR 0010
+  Decision 8, 2026-10-15). The comp sec sees the links it makes, so **New
+  link** for a coach makes the coach a person of their own; for a member,
+  the member and the club's coach who is the same person become a person of
+  their own. The shared links added on those pages go. The person pastes
+  their other links again to tie them.
 - **The comp sec makes a member a coach too** (above): a coach record that is
-  the same person, whose own link is never shown.
+  the same person, whose own link is never shown. Making that coach a link
+  of their own (New link) takes them apart from the member first.
 
 ## Entering on your own: one page
 
@@ -1221,11 +1419,11 @@ A gymnast entering on their own has one personal page,
 `/competitions/gymnast/{token}` (`web/gymnastpages.go`), like a member's
 without the club: **Competitions** (each competition entered, with how many
 entries), each competition's page (a row per discipline, with its status, that
-opens to its card and **Open this entry**, the Your competition link, and
+opens to its card and **Open this entry**, the My competition link, and
 **Enter another discipline** while entries are open) and **Your details** (the
 link, and Your other links).
 
-- **Entering.** The competition's individual entry link asks for **your
+- **Entering.** The competition's link for entering on their own asks for **your
   page's link, if you have one**, offering the pages saved in this browser
   (own pages, member pages, entry links). Given, the entry joins that person
   (a member's link makes them a person who also enters on their own); blank,
@@ -1257,14 +1455,22 @@ link, and Your other links).
 
 # My competition (roadmap: competitions 5)
 
-From a member's page for a competition or an individual's entry, **Your
-competition** opens one page for the day:
+From a member's page for a competition or an individual's entry, **My
+competition** opens one page for the day. It's one of their pages: their club
+(or "Entered on your own") and name at the top, their tabs, a back link that
+names the competition ("← ISTO 2027: your entries"), then **My competition**
+with the competition's name and date, and their links: Your timetable, Club
+timetable (a member's), Add to calendar, Club calendar (a member's) and Tell
+me about changes. The page they came from has only the one link to it (and
+Tell me about changes), not the timetables and calendars as well.
 
 - Every event they're in that has reached the competition (a member's sent
   entries; an individual's entries, as one person; synchro as either
   partner), with its card's status: checked, problems to sort out (listed),
   or not checked yet.
-- Once the timetable is published: each flight, area, day and warm-up, where
+- Once the timetable is published, their events come in the order they warm
+  up (`byWarmUp`), any not in a flight last, each with its flight, area, day
+  and warm-up, where
   they are in the running order ("3rd of 12"), and about when each routine
   is, worked out from the flight's timings (a guide only).
 - What they officiate, and the whole timetable, every day and area, with
@@ -1277,10 +1483,10 @@ Once the timetable is published (roadmap 2026-10-08), the panel timeline
 (days side by side, a column per area, time running down evenly) is also
 shown focused (`timelineFocus`):
 
-- **Your timetable** (a member's page, an individual's entry, "My
-  competition"): the flights they compete in ("You compete") and the panels
+- **Your timetable** (on "My competition"): the flights they compete in ("You compete") and the panels
   they sit on ("You: Execution judge") picked out in green.
-- **Club timetable** (the comp sec's page, a coach's, a member's): every
+- **Club timetable** (the comp sec's page, a coach's, a member's My
+  competition): every
   flight with one of the club's gymnasts, named, or one of its people
   officiating ("Officials: Ann (E2)"; members, and the organiser's judges
   from the club), picked out.
@@ -1314,11 +1520,17 @@ what about: **when or where** they (or their
 gymnasts) compete, **officiating**, and **cards** (checked, a note from the
 organiser, removed or on hold). A member and an individual hear about
 themselves, a comp sec about every member of the club, a coach about the
-members they coach. It's per competition, and deleted with it.
+members they coach. It's per competition, and deleted with it. An
+individual's belongs to them, not the entry they asked on, so withdrawing
+that entry leaves them hearing about their others (migration 35 moved those
+made before).
 
 - An email is sent a link to confirm it first; nothing else is sent until
   it's tapped (a button, so link checkers don't). At most 10 confirmation
-  emails an hour from one address.
+  emails an hour from one address, and 50 a day for one competition (kept
+  in memory, so a restart forgets them). The email names no competition or
+  club, as it goes to any address typed in: it says "a competition on
+  tariff.pardy.ie", and the page its link opens names the competition.
 - Before the organiser publishes or unpublishes the timetable, checks a
   card or changes its note, or removes, holds or restores an entry, what's
   live is kept as a **baseline** (unless changes are already waiting), due
@@ -1330,8 +1542,14 @@ members they coach. It's per competition, and deleted with it.
   duties, and each card. Running orders, and anything changed and put back,
   tell no one. Each address gets **one email** for all of it, grouped by
   gymnast ("Ann Ryan" then "- BUCS L5 Women · flight 2 of 3: now warm-up
-  Saturday 10:20, Panel 2 (was Saturday 09:40, Panel 1)"), with links to
-  their pages and to stop the emails (also as one-click `List-Unsubscribe`).
+  Saturday 10:20, Panel 2 (was Saturday 09:40, Panel 1)"), saying to open
+  their page from the link they saved, with a link to Competitions
+  (`/competitions`, which lists the links saved in that browser), and a
+  link to stop the emails (also as one-click `List-Unsubscribe`), which
+  stops every email to that address for the competition. No email
+  or push links to the person's page itself, and no notification keeps its
+  path: it holds their secret link (ADR 0004; migration 33 cleared those
+  kept before 2026-10-15).
 
 Email goes by SMTP when `SMTP_HOST` and `MAIL_FROM` are set
 ([deploy](../operations/deploy.md#notifications)); without them only push
@@ -1345,8 +1563,8 @@ endpoint and keys (up to 5 phones a person a competition) and lists them,
 "This phone" for the one in hand, each with **Turn off**. Only push
 services' addresses are taken (Google, Mozilla, Apple, Microsoft), so the
 server posts nowhere else. A batch's push says the one change, or "3
-changes for Ann Ryan and Bea Kelly. Tap to see them.", and opens their
-page; it's encrypted for the browser (RFC 8291, `aes128gcm`) and signed
+changes for Ann Ryan and Bea Kelly. Tap to see them.", and opens
+Competitions; it's encrypted for the browser (RFC 8291, `aes128gcm`) and signed
 (RFC 8292, ES256), on the standard library. A push service answering 404
 or 410 drops the phone. On an iPhone or iPad, push works only from the home
 screen (iOS 16.4+): the page says to add it first (Share, Add to Home
@@ -1364,7 +1582,10 @@ page when the connection answers within about four seconds, else the copy
 last opened, else a short page saying this one hasn't been opened on this
 phone before. Static files are kept as first fetched (their addresses change
 with each version). Only successful pages are kept, never what a form
-posted, and at most 60 pages per phone, the oldest dropped first. The
+posted, and at most 60 pages per phone, the oldest dropped first.
+A copy is dropped after 30 days (by the date the server sent it), and when
+the server answers 404 or 410 for its page (a link replaced or deleted), so
+a phone doesn't keep an admin or helper page for good. The
 calculator's own pages and the rest of the site are left to the network.
 
 While the phone is offline, a banner at the top of each page says "You're

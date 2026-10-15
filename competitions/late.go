@@ -75,8 +75,8 @@ type ChangePlace struct {
 // running order; the timetable with it there; and what that changes. With
 // no flight of the event, Flight is -1 and the timetable is as it was, less
 // the entry.
-func (s Schedule) PlaceChange(entryID, event, category string, people map[string][]string, names map[string]string) (Schedule, ChangePlace) {
-	before := s.Problems(people, names)
+func (s Schedule) PlaceChange(entryID, event, category string, people, coaches map[string][]string, names map[string]string) (Schedule, ChangePlace) {
+	before := s.Problems(people, coaches, names)
 	out := s
 	out.Flights = make([]ScheduledFlight, len(s.Flights))
 	for i, f := range s.Flights {
@@ -85,7 +85,7 @@ func (s Schedule) PlaceChange(entryID, event, category string, people map[string
 	}
 	best := -1
 	for i, f := range out.Flights {
-		if f.Event() != flightEvent(event, category) || slices.Contains(f.Entries, entryID) {
+		if f.Group() != (Flight{Event: event, Category: category}).Group() || slices.Contains(f.Entries, entryID) {
 			continue
 		}
 		if best < 0 || len(f.Entries) < len(out.Flights[best].Entries) {
@@ -115,7 +115,7 @@ func (s Schedule) PlaceChange(entryID, event, category string, people map[string
 	// entry aside); those that start later have moved.
 	key := func(f ScheduledFlight) string {
 		ids := slices.DeleteFunc(slices.Clone(f.Entries), func(id string) bool { return id == entryID })
-		return fmt.Sprint(f.Level, "|", f.Category, "|", ids)
+		return fmt.Sprint(f.Event, "|", f.Category, "|", ids)
 	}
 	starts := map[string]int{}
 	for _, f := range s.Flights {
@@ -126,19 +126,10 @@ func (s Schedule) PlaceChange(entryID, event, category string, people map[string
 			place.Moves++
 		}
 	}
-	for _, p := range out.Problems(people, names) {
+	for _, p := range out.Problems(people, coaches, names) {
 		if !slices.Contains(before, p) {
 			place.Problems = append(place.Problems, p)
 		}
 	}
 	return out, place
-}
-
-// flightEvent is an event's name on its flights: the event, and its
-// category where men and women fly separately.
-func flightEvent(event, category string) string {
-	if category == "" {
-		return event
-	}
-	return fmt.Sprintf("%s %s", event, category)
 }

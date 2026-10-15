@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"tariffCalculator/views"
 )
 
 func TestMyCompetition(t *testing.T) {
@@ -17,7 +19,7 @@ func TestMyCompetition(t *testing.T) {
 	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
 	member := withoutQuery(redirected(t, h, join, url.Values{"name": {"Mo"}}))
 	save := formAction(t, memberCompetitionPage(t, h, member), member+"/competitions/")
-	redirected(t, h, save, url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	redirected(t, h, save, bucsEntry(""))
 
 	m := regexp.MustCompile(`href="(` + regexp.QuoteMeta(member) + `/competitions/[^"/]+/day)"`).FindStringSubmatch(memberCompetitionPage(t, h, member))
 	if m == nil {
@@ -31,7 +33,7 @@ func TestMyCompetition(t *testing.T) {
 
 	// An individual who judges, in the same event.
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Ivy"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	own := withoutQuery(redirected(t, h, enter, bucsEntry("Ivy")))
 	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
 
 	page := do(t, h, http.MethodGet, day, nil).Body.String()
@@ -56,7 +58,22 @@ func TestMyCompetition(t *testing.T) {
 	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, own+"/day") {
 		t.Error("the individual's entry links to their competition")
 	}
-	if page := do(t, h, http.MethodGet, own+"/day", nil).Body.String(); !strings.Contains(page, "<strong>Ivy</strong>") || !strings.Contains(page, "← Your page") {
+	if page := do(t, h, http.MethodGet, own+"/day", nil).Body.String(); !strings.Contains(page, "<strong>Ivy</strong>") || !strings.Contains(page, ": your entry</a>") {
 		t.Error("the individual's competition")
+	}
+}
+
+// Once the timetable is published, My competition lists someone's events
+// in the order they warm up, a later day after an earlier one, and any not
+// in a flight last.
+func TestMyEventsByWarmUp(t *testing.T) {
+	events := []views.MyEvent{{ID: "tumbling"}, {ID: "none"}, {ID: "synchro"}, {ID: "trampoline"}}
+	byWarmUp(events, map[string]int{"tumbling": 1440 + 9*60, "synchro": 14 * 60, "trampoline": 9*60 + 30})
+	var got []string
+	for _, ev := range events {
+		got = append(got, ev.ID)
+	}
+	if strings.Join(got, " ") != "trampoline synchro tumbling none" {
+		t.Errorf("by warm-up: %v", got)
 	}
 }

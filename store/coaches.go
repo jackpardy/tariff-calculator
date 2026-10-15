@@ -3,8 +3,12 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"slices"
 	"time"
+
+	"tariffCalculator/competitions"
 )
 
 // Coaches sign off their members' routines (ADR 0004 Decision 11). The comp
@@ -73,6 +77,7 @@ func (s *Store) Coaches(ctx context.Context, clubID string) ([]Coach, error) {
 		c.CreatedAt = parseTime(created)
 		out = append(out, c)
 	}
+	slices.SortStableFunc(out, func(a, b Coach) int { return competitions.CompareNames(a.Name, b.Name) })
 	return out, rows.Err()
 }
 
@@ -97,11 +102,26 @@ func (s *Store) CoachByLink(ctx context.Context, token string) (Coach, error) {
 	return c, err
 }
 
-// ReplaceCoachLink gives a coach a new link, which ends the old one. They're
-// the same person, with the same other roles.
+// ReplaceCoachLink gives a coach a new link, which ends the old one. The comp
+// sec holds the new link too, so it opens only the coach: they become a
+// person of their own, without the shared links added on their page (ADR
+// 0010). A coach made with Make a coach too leaves the member this way, so
+// the member's link no longer opens them. The coach ties their other links
+// again by pasting them.
 func (s *Store) ReplaceCoachLink(ctx context.Context, clubID, coachID string) (string, error) {
 	token := newToken()
-	return token, affected(s.db.ExecContext(ctx, `UPDATE coaches SET token_hash = $1 WHERE id = $2 AND club_id = $3`, hash(token), coachID, clubID))
+	err := s.tx(ctx, func(tx *sql.Tx) error {
+		if err := affected(tx.ExecContext(ctx, `UPDATE coaches SET token_hash = $1, person_id = $2 WHERE id = $3 AND club_id = $4`,
+			hash(token), newID(), coachID, clubID)); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, coachID)
+		return err
+	})
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }
 
 // RemoveCoach removes a coach, and the shared links added on their page.
@@ -187,6 +207,50 @@ type CoachQualification struct {
 // MaxQualifications is the most qualifications a coach can have.
 const MaxQualifications = 4
 
+// Certificates are kept in the database, so the room they take is limited
+// (ADR 0007 Decision 9): each one, each club's, and each competition's
+// individuals' coaches', and none is taken when the disk is nearly full.
+const (
+	// MaxCertificateBytes is the largest certificate.
+	MaxCertificateBytes = 3 << 20
+	// MaxClubCertificateBytes is the most a club's coaches' certificates
+	// take together.
+	MaxClubCertificateBytes = 60 << 20
+	// MaxCompetitionCertificateBytes is the most the certificates of the
+	// coaches a competition's individuals name take together.
+	MaxCompetitionCertificateBytes = 60 << 20
+	// minFreeBytes is the space the data directory's disk keeps free: below
+	// it, no certificate is taken.
+	minFreeBytes = 1 << 30
+)
+
+var (
+	// ErrCertificateTooBig is a certificate over MaxCertificateBytes.
+	ErrCertificateTooBig = errors.New("the certificate is too big")
+	// ErrCertificatesFull is a certificate that would take a club's or a
+	// competition's certificates over their total.
+	ErrCertificatesFull = errors.New("no room for more certificates")
+	// ErrDiskFull is a certificate refused because the disk is nearly full.
+	ErrDiskFull = errors.New("the server is short of space")
+)
+
+// roomFor checks a certificate fits: no bigger than one can be, within the
+// total with used bytes already kept, and with the disk not nearly full. The
+// free space is only checked where it can be told.
+func (s *Store) roomFor(certificate []byte, used, total int64) error {
+	n := int64(len(certificate))
+	switch {
+	case n > MaxCertificateBytes:
+		return ErrCertificateTooBig
+	case used+n > total:
+		return ErrCertificatesFull
+	}
+	if free, err := s.free(); err == nil && free < minFreeBytes {
+		return ErrDiskFull
+	}
+	return nil
+}
+
 // AddQualification gives one of a club's coaches a qualification, with its
 // certificate, already checked, of a type certType.
 func (s *Store) AddQualification(ctx context.Context, clubID, coachID, qualification, certType string, certificate []byte) (CoachQualification, error) {
@@ -199,6 +263,14 @@ func (s *Store) AddQualification(ctx context.Context, clubID, coachID, qualifica
 		}
 		if n >= MaxQualifications {
 			return ErrLimit
+		}
+		var used int64
+		if err := tx.QueryRowContext(ctx, `SELECT COALESCE(SUM(length(q.certificate)), 0) FROM coach_qualifications q
+			JOIN coaches c ON c.id = q.coach_id WHERE c.club_id = $1`, clubID).Scan(&used); err != nil {
+			return err
+		}
+		if err := s.roomFor(certificate, used, MaxClubCertificateBytes); err != nil {
+			return err
 		}
 		res, err := tx.ExecContext(ctx, `INSERT INTO coach_qualifications (id, coach_id, qualification, cert_type, certificate, uploaded_at)
 			SELECT $1, id, $3, $4, $5, $6 FROM coaches WHERE id = $2 AND club_id = $7`, q.ID, coachID, qualification, certType, certificate, now, clubID)

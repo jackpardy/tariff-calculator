@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -78,9 +79,16 @@ func (s *Store) ReplaceClubAdmin(ctx context.Context, id string) (string, error)
 }
 
 // DeleteClub deletes a club, its members and their entries. Entries it already
-// sent stay with each competition, under the competition's retention.
+// sent stay with each competition, under the competition's retention. The
+// shared links tied to its admin link, or added on its members' and coaches'
+// pages, go with it.
 func (s *Store) DeleteClub(ctx context.Context, id string) error {
-	return affected(s.db.ExecContext(ctx, `DELETE FROM clubs WHERE id = $1`, id))
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		if err := affected(tx.ExecContext(ctx, `DELETE FROM clubs WHERE id = $1`, id)); err != nil {
+			return err
+		}
+		return dropTies(ctx, tx)
+	})
 }
 
 // Member is one of a club's members.
@@ -167,16 +175,40 @@ func (s *Store) Members(ctx context.Context, clubID string) ([]Member, error) {
 		m.CreatedAt = parseTime(created)
 		out = append(out, m)
 	}
+	slices.SortStableFunc(out, func(a, b Member) int { return competitions.CompareNames(a.Name, b.Name) })
 	return out, rows.Err()
 }
 
 // ReplaceMemberLink gives a club's member a new personal link, which ends the
 // old one: for the comp sec to send to a member who lost theirs. Only hashes
-// are kept, so the old link can't be shown again. They're the same person,
-// with the same other roles.
+// are kept, so the old link can't be shown again. The comp sec holds the new
+// link too, so it opens only what the club already has: the member becomes a
+// person of their own, with the club's coach who is the same person (made
+// with Make a coach too, whose page they open), and without the shared links
+// added on either's page (ADR 0010). The member ties their other links again
+// by pasting them.
 func (s *Store) ReplaceMemberLink(ctx context.Context, clubID, memberID string) (string, error) {
 	token := newToken()
-	return token, affected(s.db.ExecContext(ctx, `UPDATE members SET token_hash = $1 WHERE id = $2 AND club_id = $3`, hash(token), memberID, clubID))
+	err := s.tx(ctx, func(tx *sql.Tx) error {
+		var was string
+		if err := tx.QueryRowContext(ctx, `SELECT COALESCE(person_id, id) FROM members WHERE id = $1 AND club_id = $2`, memberID, clubID).Scan(&was); err != nil {
+			return notFound(err)
+		}
+		person := newID()
+		if _, err := tx.ExecContext(ctx, `UPDATE members SET token_hash = $1, person_id = $2 WHERE id = $3`, hash(token), person, memberID); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1
+			OR record_id IN (SELECT id FROM coaches WHERE club_id = $2 AND person_id = $3)`, memberID, clubID, was); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `UPDATE coaches SET person_id = $1 WHERE club_id = $2 AND person_id = $3`, person, clubID, was)
+		return err
+	})
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }
 
 // RemoveMember removes a member from their club, with their entries and the
@@ -249,6 +281,7 @@ func (s *Store) CompetitionClubs(ctx context.Context, competitionID string) ([]C
 		c.CreatedAt, c.LastUsed = parseTime(created), parseTime(used)
 		out = append(out, c)
 	}
+	slices.SortStableFunc(out, func(a, b Club) int { return competitions.CompareNames(a.Name, b.Name) })
 	return out, rows.Err()
 }
 
@@ -367,6 +400,7 @@ func (s *Store) memberEntries(ctx context.Context, where string, args ...any) ([
 		e.UpdatedAt, e.SentAt, e.SignedAt = parseTime(updated), parseTime(sent), parseTime(signed)
 		out = append(out, e)
 	}
+	slices.SortStableFunc(out, func(a, b MemberEntry) int { return competitions.CompareNames(a.MemberName, b.MemberName) })
 	return out, rows.Err()
 }
 
@@ -448,6 +482,9 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 				AND NOT EXISTS (SELECT 1 FROM member_entries me JOIN members m ON m.id = me.member_id
 					WHERE m.club_id = $2 AND me.competition_id = $1
 					AND me.member_id = entries.member_id AND me.discipline = entries.discipline)`, competitionID, clubID); err != nil {
+				return err
+			}
+			if err := dropEntryRows(ctx, tx, competitionID); err != nil {
 				return err
 			}
 		}

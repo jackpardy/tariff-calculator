@@ -52,6 +52,9 @@ const (
 type Store struct {
 	db  *sql.DB
 	now func() time.Time
+	// free is the space free on the data directory's disk, to refuse
+	// certificates when it's nearly full.
+	free func() (uint64, error)
 }
 
 // Open opens (creating if needed) the database in dir and brings its schema up
@@ -66,7 +69,7 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("opening the database: %w", err)
 	}
-	s := &Store{db: db, now: func() time.Time { return time.Now().UTC() }}
+	s := &Store{db: db, now: func() time.Time { return time.Now().UTC() }, free: func() (uint64, error) { return diskFree(dir) }}
 	if err := s.migrate(ctx); err != nil {
 		db.Close()
 		return nil, err
@@ -81,6 +84,18 @@ func (s *Store) Close() error {
 
 // migrations upgrade the schema, in order. Each runs once, in a transaction;
 // never edit one that has shipped, add another.
+//
+// They run with foreign keys on, and SQLite ignores PRAGMA foreign_keys
+// inside a transaction. A migration that rebuilds a table (create the new
+// one, copy the rows, drop the old, rename the new) needs them off: with
+// them on, dropping the old table deletes, or fails on, the rows that refer
+// to it. Give its version in rebuilds: it then runs on a connection of its
+// own with foreign keys off, and commits only if PRAGMA foreign_key_check
+// finds every reference still holds. No migration so far needs it.
+//
+// A database migrated further than the app knows isn't opened (migrate):
+// after a rollback, an older app would write rows without the newer
+// columns.
 var migrations = []string{
 	`CREATE TABLE competitions (
 		id               TEXT PRIMARY KEY,
@@ -606,13 +621,42 @@ var migrations = []string{
 		at             TEXT NOT NULL,
 		PRIMARY KEY (competition_id, flight)
 	);`,
+
+	// 33: a notification no longer keeps the path of the person's page: it
+	// holds their secret link, and only links' hashes are kept (ADR 0004).
+	// The column stays, empty, as dropping it means rebuilding the table.
+	`UPDATE notify_subscriptions SET page = '';`,
+
+	// 34: each flight has an ID of its own (competitions.ScheduledFlight),
+	// and what happens to it on the day (its times, its panel's check-ins,
+	// who's up) is kept by that, not by its day, area, event and number,
+	// which moving or renumbering it changes. Who's up is the gymnast on and
+	// their 1st or 2nd routine, not a place in the running order, which
+	// someone joining or leaving the flight changes (flightIDs).
+	`ALTER TABLE up_now ADD COLUMN entry TEXT NOT NULL DEFAULT '';
+	ALTER TABLE up_now ADD COLUMN round INTEGER NOT NULL DEFAULT 0;`,
+
+	// 35: a club's coach is keyed by their record, not their club and name
+	// as typed (coachKeysByRecord): the keys saved under the old form move
+	// to the new. Nothing in the schema changes.
+	`SELECT 1;`,
+
+	// 36: an individual's notifications belong to the individual, not the
+	// entry they signed up on (individualSubscriptions).
+	individualSubscriptions,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run
 // after that migration's SQL, in its transaction.
 var migrationSteps = map[int]func(context.Context, *sql.Tx) error{
 	30: individualsFromEntries,
+	34: flightIDs,
+	35: coachKeysByRecord,
 }
+
+// rebuilds are the migrations, by version, that rebuild a table, so run
+// with foreign keys off (see migrations).
+var rebuilds = map[int]bool{}
 
 // migrate runs the migrations the database hasn't had yet.
 func (s *Store) migrate(ctx context.Context) error {
@@ -626,8 +670,16 @@ func (s *Store) migrate(ctx context.Context) error {
 	if err := s.db.QueryRowContext(ctx, `SELECT COALESCE(MAX(version), 0) FROM migrations`).Scan(&done); err != nil {
 		return fmt.Errorf("reading the schema version: %w", err)
 	}
+	if done > len(migrations) {
+		return fmt.Errorf("the database's schema is at version %d, but this version of the app knows only up to %d: "+
+			"it was used by a newer version. Run that version again, or restore a backup taken before it", done, len(migrations))
+	}
 	for v := done + 1; v <= len(migrations); v++ {
-		err := s.tx(ctx, func(tx *sql.Tx) error {
+		run := s.tx
+		if rebuilds[v] {
+			run = s.rebuildTx
+		}
+		err := run(ctx, func(tx *sql.Tx) error {
 			if _, err := tx.ExecContext(ctx, migrations[v-1]); err != nil {
 				return err
 			}
@@ -641,6 +693,65 @@ func (s *Store) migrate(ctx context.Context) error {
 		})
 		if err != nil {
 			return fmt.Errorf("migration %d: %w", v, err)
+		}
+	}
+	return nil
+}
+
+// rebuildTx runs fn in a transaction with foreign keys off, for a migration
+// that rebuilds a table, committing if it returns nil and every reference
+// still holds. It has a connection of its own, which gets its foreign keys
+// back before it goes back to the pool.
+func (s *Store) rebuildTx(ctx context.Context, fn func(*sql.Tx) error) error {
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	if _, err := conn.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+		return err
+	}
+	defer conn.ExecContext(context.WithoutCancel(ctx), `PRAGMA foreign_keys = ON`)
+	tx, err := conn.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	if err := fn(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	var table string
+	switch err := tx.QueryRowContext(ctx, `SELECT "table" FROM pragma_foreign_key_check`).Scan(&table); {
+	case err == nil:
+		tx.Rollback()
+		return fmt.Errorf("rows in %s refer to rows that are gone", table)
+	case !errors.Is(err, sql.ErrNoRows):
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+// dropTies deletes the shared links tied to a member, coach or individual
+// who is gone, or to a club, competition or helper link that is gone:
+// shared_ties has no foreign keys, as its columns refer to several tables.
+func dropTies(ctx context.Context, tx *sql.Tx) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id NOT IN (
+			SELECT id FROM members UNION ALL SELECT id FROM coaches UNION ALL SELECT id FROM individuals)
+		OR (kind = 'club' AND target_id NOT IN (SELECT id FROM clubs))
+		OR (kind = 'organiser' AND target_id NOT IN (SELECT id FROM competitions))
+		OR (kind = 'helper' AND target_id NOT IN (SELECT id FROM competition_links))`)
+	return err
+}
+
+// dropEntryRows deletes the check-ins, late changes and concerns about
+// entries that are gone, in a competition ("" for every one): they keep the
+// entry's id without a foreign key. A concern about no entry stays.
+func dropEntryRows(ctx context.Context, tx *sql.Tx, competitionID string) error {
+	for _, table := range []string{"checkins", "late_requests", "concerns"} {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM `+table+` WHERE ($1 = '' OR competition_id = $1) AND entry_id <> ''
+			AND entry_id NOT IN (SELECT id FROM entries WHERE competition_id = `+table+`.competition_id)`, competitionID); err != nil {
+			return err
 		}
 	}
 	return nil

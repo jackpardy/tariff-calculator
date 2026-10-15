@@ -15,7 +15,7 @@ func TestDashboardNavigation(t *testing.T) {
 	admin := created(t, h, form)
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	for _, name := range []string{"Dara O'Néill", "Ann Ryan", "Bea Kelly"} {
-		redirected(t, h, enter, url.Values{"gymnast": {name}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+		redirected(t, h, enter, bucsEntry(name))
 	}
 	shows := func(query string) string {
 		t.Helper()
@@ -41,7 +41,7 @@ func TestDashboardNavigation(t *testing.T) {
 	}
 	// The search and filters are the shared list tools, sent to the server.
 	for _, want := range []string{`data-list-tools="entries" data-noun="entries" data-total="3" data-form`, `placeholder="Find a name"`, `name="q" value="oneill"`,
-		`<select aria-label="Club" data-list-filter="club" name="club">`, `<div id="entries">`, `data-list-carry>Print what's shown</a>`} {
+		`<select aria-label="Club" data-list-filter="club" name="club">`, `<div id="entries">`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the dashboard's tools have %s", want)
 		}
@@ -49,9 +49,13 @@ func TestDashboardNavigation(t *testing.T) {
 	if rows := listRows(t, page, "entries"); len(rows) != 1 || rows["Dara O'Néill"] == nil {
 		t.Errorf("one row, Dara's, searchable by name: %v", rows)
 	}
-	// Print and CSV what's shown.
-	if !strings.Contains(page, admin+"/cards?q=oneill") {
-		t.Error("print what's shown")
+	// Print and CSV what's shown: one set of buttons, following the search,
+	// and a button in each level for its cards.
+	if strings.Count(page, `href="`+admin+`/cards?q=oneill"`) != 1 || strings.Count(page, `href="`+admin+`/entries.csv?q=oneill"`) != 1 {
+		t.Error("print and download what's shown, once each")
+	}
+	if !strings.Contains(page, ">Print this level's cards</a>") || !strings.Contains(page, `class="button is-small" href="`+admin+`/cards?level=BUCS+L3&amp;q=oneill" data-list-carry`) {
+		t.Error("a button prints the level's cards")
 	}
 	if csv := do(t, h, http.MethodGet, admin+"/entries.csv?q=ryan", nil).Body.String(); !strings.Contains(csv, "Ann Ryan") || strings.Contains(csv, "Bea Kelly") {
 		t.Errorf("the CSV of what's shown: %s", csv)

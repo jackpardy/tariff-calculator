@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -68,6 +69,16 @@ func TestEvents(t *testing.T) {
 	partner := pathIn(t, page, "/competitions/partner/")
 	if page := do(t, h, http.MethodGet, partner, nil).Body.String(); !strings.Contains(page, "Synchro BUCS L3 with S") {
 		t.Error("the partner page")
+	}
+	// The browser's list of who they are leaves out this entry, saved under
+	// the name its own page gives it.
+	saved := regexp.MustCompile(`data-gymnast-name="([^"]+)"`).FindStringSubmatch(do(t, h, http.MethodGet, pair, nil).Body.String())
+	self := regexp.MustCompile(`data-saved-self="([^"]*)"`).FindStringSubmatch(do(t, h, http.MethodGet, partner, nil).Body.String())
+	if saved == nil || saved[1] != "S" {
+		t.Errorf("the entry saves its link under the gymnast's own name, not the pair's: %v", saved)
+	}
+	if saved == nil || self == nil || !slices.Contains(strings.Split(self[1], "\n"), saved[1]) {
+		t.Errorf("the partner page names the entry to leave out: %v in %v", saved, self)
 	}
 	if rec := do(t, h, http.MethodPost, partner, url.Values{"link": {"http://example.com" + pair}}); rec.Code != http.StatusUnprocessableEntity {
 		t.Errorf("the pair's own entry isn't the partner's: %d", rec.Code)

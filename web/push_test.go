@@ -110,7 +110,7 @@ func TestPushNotifications(t *testing.T) {
 	p.notify.http = &http.Client{Transport: service}
 	admin := created(t, h, newCompetition())
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Ann Ryan"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}))
+	own := withoutQuery(redirected(t, h, enter, bucsEntry("Ann Ryan")))
 	notify := own + "/notify"
 	if page := do(t, h, http.MethodGet, notify, nil).Body.String(); !strings.Contains(page, `data-push-key="B`) {
 		t.Fatal("the page has the server's push key")
@@ -151,7 +151,7 @@ func TestPushNotifications(t *testing.T) {
 	if err := json.Unmarshal(openPush(t, ua, auth, service.bodies[0]), &m); err != nil {
 		t.Fatal(err)
 	}
-	if m.Title != "Student Open" || m.Body != "Ann Ryan · BUCS L3: card checked" || m.URL != "https://tariff.example"+own {
+	if m.Title != "Student Open" || m.Body != "Ann Ryan · BUCS L3: card checked" || m.URL != "https://tariff.example/competitions" {
 		t.Errorf("the message: %+v", m)
 	}
 	authz := req.Header.Get("Authorization")

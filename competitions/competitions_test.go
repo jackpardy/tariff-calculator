@@ -155,7 +155,7 @@ func TestCheck(t *testing.T) {
 	}
 	found := false
 	for _, p := range card.Problems() {
-		found = found || p == "Second exercise: element 1: Can't Repeat: Scored In 1st Exercise"
+		found = found || p == "Second exercise: Element 1 scored difficulty in the first exercise, so it doesn't count again."
 	}
 	if !found {
 		t.Errorf("the repeat is a problem: %v", card.Problems())
@@ -172,5 +172,16 @@ func TestCheck(t *testing.T) {
 
 	if _, err := c.Check(Entry{Level: "Gone"}); err == nil {
 		t.Error("a level the competition doesn't offer can't be checked")
+	}
+}
+
+// A set routine performed as written takes the set's words for its
+// elements, so the card names them as the set routine line does.
+func TestNamedAsSet(t *testing.T) {
+	routine := []skills.TrampolineSkill{{Name: "Seat Drop"}, {Name: "Straight Jump", CustomName: "Own words"}, {}}
+	set := requirements.Set{Rules: []requirements.Rule{{Type: requirements.Sequence, Sequence: []requirements.Matcher{{Label: "Seat landing"}, {Label: "Straight jump"}}}}}
+	namedAsSet(routine, set)
+	if routine[0].CustomName != "Seat landing" || routine[1].CustomName != "Own words" || routine[2].CustomName != "" {
+		t.Errorf("named as the set: %+v", routine)
 	}
 }

@@ -60,6 +60,14 @@
         if (coach) { keepLink(linkKeys.coaches, coach.dataset.coachName, coach.dataset.coachLink); }
         const gymnast = document.querySelector('[data-gymnast-link]');
         if (gymnast) { keepLink(linkKeys.gymnasts, gymnast.dataset.gymnastName, gymnast.dataset.gymnastLink); }
+        // An organiser's or comp sec's admin page saves its link whenever it's
+        // opened, as the other pages do; never a helper's link or a page opened
+        // through someone's own link (a "~" in the path), which isn't theirs to keep.
+        if (location.pathname.includes('~')) { return; }
+        const competition = document.querySelector('[data-competition-page]');
+        if (competition) { keepLink(linkKeys.competitions, competition.dataset.competitionName, location.origin + competition.dataset.competitionPage); }
+        const clubPage = document.querySelector('[data-club-page]');
+        if (clubPage) { keepLink(linkKeys.clubs, clubPage.dataset.clubName, location.origin + clubPage.dataset.clubPage); }
     }
 
     // linkItem is a list item linking to a saved link.
@@ -139,12 +147,19 @@
             const levelSelect = form.querySelector('select[name="level"]');
             const routines = typeof RoutineStore === 'undefined' ? [] : RoutineStore.load().routines.filter((r) => r.skills.length > 0);
 
+            const category = form.querySelector('.comp-entry-category');
             const showLevel = () => {
+                let split = false;
                 for (const fieldset of form.querySelectorAll('.comp-entry-level')) {
                     const on = fieldset.dataset.level === levelSelect.value;
                     fieldset.hidden = !on;
                     fieldset.disabled = !on;
+                    if (on && fieldset.dataset.split === 'true') { split = true; }
                 }
+                // One Men or Women choice, kept as the level changes.
+                category.hidden = !split;
+                category.disabled = !split;
+                category.querySelector('[data-category-level]').textContent = levelSelect.value;
             };
 
             for (const box of form.querySelectorAll('.comp-entry-exercise')) {
@@ -178,15 +193,21 @@
 
     // savedPeople offers the people's pages saved in this browser in a field's
     // select, filling in the input with the one chosen, or showing it to paste
-    // another when the last option (other) is.
-    function savedPeople(field, input, people, other) {
+    // another when the last option (other) is. With a prompt, the select starts
+    // on it, choosing no one, and has to be changed.
+    function savedPeople(field, input, people, other, prompt) {
         if (!field || !input || people.length === 0) { return; }
         const select = field.querySelector('select');
+        if (prompt) {
+            select.append(new Option(prompt, '', true, true));
+            select.options[0].disabled = true;
+            select.required = true;
+        }
         for (const p of people) { select.append(new Option(p.name, p.url)); }
         select.append(new Option(other, ''));
         const choose = () => {
             input.value = select.value;
-            input.closest('.field').hidden = select.value !== '';
+            input.closest('.field').hidden = select.value !== '' || (Boolean(prompt) && select.selectedIndex === 0);
         };
         select.addEventListener('change', choose);
         field.hidden = false;
@@ -194,10 +215,14 @@
     }
 
     // partnerLink offers the member pages, own pages and entries saved in this
-    // browser for a synchro partner to say who they are.
+    // browser for a synchro partner to say who they are, starting on no one and
+    // leaving out the synchro entry itself.
     function partnerLink() {
-        savedPeople(document.querySelector('[data-saved-people]'), document.getElementById('partner-link'),
-            [...loadLinks(linkKeys.members), ...loadLinks(linkKeys.gymnasts), ...loadLinks(linkKeys.entries)], 'Someone else, or no other entry');
+        const field = document.querySelector('[data-saved-people]');
+        const self = (field?.dataset.savedSelf || '').split('\n');
+        savedPeople(field, document.getElementById('partner-link'),
+            [...loadLinks(linkKeys.members), ...loadLinks(linkKeys.gymnasts), ...loadLinks(linkKeys.entries)].filter((p) => !self.includes(p.name)),
+            'Someone else, or no other entry', 'Choose who you are');
     }
 
     // enterAs offers the own pages, member pages and entries saved in this
@@ -266,8 +291,21 @@
             return;
         }
         const key = 'trampolineOpenDay:' + location.pathname + '?day=' + (new URLSearchParams(location.search).get('day') || '');
-        const openKeys = (root) => new Set(Array.from(root.querySelectorAll('details[data-key][open]'), (d) => d.dataset.key));
-        const reopen = (root, keys) => root.querySelectorAll('details[data-key]').forEach((d) => { d.open = keys.has(d.dataset.key); });
+        // The lists opened by hand, and those "Find a name" opened because
+        // they have someone it found (listTools marks them), which close
+        // again when the search is cleared and aren't remembered.
+        const openKeys = (root) => new Set(Array.from(root.querySelectorAll('details[data-key][open]:not([data-list-opened])'), (d) => d.dataset.key));
+        const searchKeys = (root) => new Set(Array.from(root.querySelectorAll('details[data-key][open][data-list-opened]'), (d) => d.dataset.key));
+        const reopen = (root, keys) => root.querySelectorAll('details[data-key]').forEach((d) => {
+            if ('listOpened' in d.dataset) {
+                // Opened by the search, and by hand before: it stays open after it.
+                if (keys.has(d.dataset.key)) { delete d.dataset.listOpened; }
+                return;
+            }
+            d.open = keys.has(d.dataset.key);
+        });
+        // research runs the page's search again, over a fresh copy of the areas.
+        const research = () => document.querySelectorAll('[data-list-tools="day-areas"] [data-list-search]').forEach((s) => s.dispatchEvent(new Event('input')));
         const save = () => {
             try { sessionStorage.setItem(key, JSON.stringify(Array.from(openKeys(document)))); } catch (e) { /* not remembered */ }
         };
@@ -336,8 +374,17 @@
                 const before = document.getElementById(anchor).getBoundingClientRect().top;
                 const keys = openKeys(document);
                 keys.delete(shut);
+                const searched = searchKeys(document);
                 reopen(fresh, keys);
+                fresh.querySelectorAll('details[data-key]').forEach((d) => {
+                    if (searched.has(d.dataset.key) && d.dataset.key !== shut) {
+                        d.open = true;
+                        d.dataset.listOpened = '';
+                    }
+                });
                 swap(fresh);
+                // Hide again whoever the search doesn't find.
+                research();
                 const after = document.getElementById(anchor)?.getBoundingClientRect().top;
                 if (after !== undefined && after !== before) { window.scrollBy(0, after - before); }
                 save();
@@ -397,11 +444,17 @@
         }
     }
 
-    // fold makes text searchable as the server's NameMatches does: lower case,
-    // without accents or punctuation, so "o briain" finds "Ó Briain" and
-    // "oneill" finds "O'Neill".
+    // fold makes text searchable as the server's NameMatches does: only its
+    // letters, lower case, without accents, so "o briain" finds "Ó Briain",
+    // "oneill" finds "O'Neill" and "marykate" finds "Mary Kate".
     function fold(text) {
-        return text.normalize('NFD').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}\s]/gu, '').toLowerCase();
+        const plain = { 'ø': 'o', 'ł': 'l', 'đ': 'd', 'ı': 'i' }; // letters without a separate accent
+        return text.normalize('NFD').replace(/\p{M}/gu, '').replace(/\P{L}/gu, '').toLowerCase().replace(/[øłđı]/g, (c) => plain[c]);
+    }
+
+    // searchWords are a search's words, each folded, as NameMatches reads them.
+    function searchWords(text) {
+        return text.split(/\s+/).map(fold).filter(Boolean);
     }
 
     // listTools searches and filters each list of people (views/lists.templ):
@@ -413,15 +466,15 @@
     // address and links marked data-list-carry follow it.
     function listTools() {
         for (const tools of document.querySelectorAll('[data-list-tools]')) {
-            const list = document.getElementById(tools.dataset.listTools);
-            if (!list) { continue; }
+            if (!document.getElementById(tools.dataset.listTools)) { continue; }
             const form = tools.hasAttribute('data-form');
-            const rows = [...list.querySelectorAll('[data-list-row]')].map((el) => {
+            // The list and its rows are read afresh each time, as the On the
+            // day page swaps in new copies of them (dayPage).
+            const readRows = (list) => [...list.querySelectorAll('[data-list-row]')].map((el) => {
                 let values = {};
                 try { values = JSON.parse(el.dataset.values || '{}'); } catch (e) { /* no values: matches no filter */ }
                 return { el, name: fold(el.dataset.name || ''), values };
             });
-            const total = form ? Number(tools.dataset.total) : rows.length;
             const search = tools.querySelector('[data-list-search]');
             const filters = [...tools.querySelectorAll('[data-list-filter]')];
             const count = tools.querySelector('[data-list-count]');
@@ -451,7 +504,11 @@
             };
 
             const apply = () => {
-                const words = fold(search.value).split(/\s+/).filter(Boolean);
+                const list = document.getElementById(tools.dataset.listTools);
+                if (!list) { return; }
+                const rows = readRows(list);
+                const total = form ? Number(tools.dataset.total) : rows.length;
+                const words = searchWords(search.value);
                 const chosen = filters.filter((f) => f.value !== '');
                 let shown = 0;
                 for (const row of rows) {

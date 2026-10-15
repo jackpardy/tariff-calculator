@@ -21,8 +21,8 @@ func TestOfficialLeaves(t *testing.T) {
 	s := Schedule{
 		Setup: Setup{Areas: []Area{{Name: "P1"}}, Days: []Day{{Name: "Sat", Start: "09:00", End: "18:00"}, {Name: "Sun", Start: "09:00", End: "18:00"}}},
 		Flights: []ScheduledFlight{
-			{Flight: Flight{Level: "L"}, Area: "P1", Day: 0, Start: 10 * 60, End: 11 * 60, Officials: panel},
-			{Flight: Flight{Level: "L"}, Area: "P1", Day: 1, Start: 10 * 60, End: 11 * 60, Officials: panel},
+			{Flight: Flight{Event: "L"}, Area: "P1", Day: 0, Start: 10 * 60, End: 11 * 60, Officials: panel},
+			{Flight: Flight{Event: "L"}, Area: "P1", Day: 1, Start: 10 * 60, End: 11 * 60, Officials: panel},
 		},
 	}
 	name := func(k string) string { return strings.ToUpper(k) }
@@ -67,7 +67,7 @@ func TestOfficialLeaves(t *testing.T) {
 	// J competes then, so can't; for the rest of the competition, Sunday
 	// too.
 	busy := s
-	busy.Flights = append(busy.Flights, ScheduledFlight{Flight: Flight{Level: "M", Entries: []string{"x"}}, Area: "P2", Day: 0, Start: 10*60 + 30, End: 11 * 60})
+	busy.Flights = append(busy.Flights, ScheduledFlight{Flight: Flight{Event: "M", Entries: []string{"x"}}, Area: "P2", Day: 0, Start: 10*60 + 30, End: 11 * 60})
 	_, fills, _ = busy.Left(Leave{Person: "e2", Day: 0, From: 9 * 60, ForGood: true, Prefer: PreferFewest}, map[string][]string{"x": {"j"}}, officials)
 	if len(fills) != 2 || describe(fills[0]) != "R moves from recorder to execution judge; H takes recorder" || describe(fills[1]) != "J takes execution judge" {
 		t.Errorf("J competing on Saturday; Sunday too: %q / %q", describe(fills[0]), describe(fills[1]))
@@ -76,8 +76,8 @@ func TestOfficialLeaves(t *testing.T) {
 	// No one on P1's panel can chair, but K, judging on P2 at the same time,
 	// can: K moves across, and J judges on P2 in their place.
 	across := Schedule{Setup: s.Setup, Flights: []ScheduledFlight{
-		{Flight: Flight{Level: "L"}, Area: "P1", Start: 10 * 60, End: 11 * 60, Officials: []Duty{{Role: RoleChair, Person: "c"}, {Role: RoleExecution, Person: "e2"}}},
-		{Flight: Flight{Level: "L"}, Area: "P2", Start: 10*60 + 30, End: 11*60 + 30, Officials: []Duty{{Role: RoleExecution, Person: "k"}}},
+		{Flight: Flight{Event: "L"}, Area: "P1", Start: 10 * 60, End: 11 * 60, Officials: []Duty{{Role: RoleChair, Person: "c"}, {Role: RoleExecution, Person: "e2"}}},
+		{Flight: Flight{Event: "L"}, Area: "P2", Start: 10*60 + 30, End: 11*60 + 30, Officials: []Duty{{Role: RoleExecution, Person: "k"}}},
 	}}
 	_, fills, _ = across.Left(Leave{Person: "c", Day: 0, From: 9 * 60, Prefer: PreferFewest}, nil, []RotaPerson{judge("c", true), judge("e2", false), judge("k", true), judge("j", false)})
 	if got := describe(fills[0]); got != "K moves from execution judge on L on P2 to chair of judges; J takes execution judge on L on P2" {

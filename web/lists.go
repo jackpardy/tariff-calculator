@@ -34,7 +34,7 @@ func clubFilter(clubs []string) views.ListFilter {
 			names = append(names, c)
 		}
 	}
-	slices.SortFunc(names, func(a, b string) int { return cmp.Compare(strings.ToLower(a), strings.ToLower(b)) })
+	slices.SortFunc(names, competitions.CompareNames)
 	for _, n := range names {
 		f.Options = append(f.Options, views.ListOption{Value: n, Label: n})
 	}

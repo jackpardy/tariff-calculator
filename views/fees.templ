@@ -89,9 +89,9 @@ templ FeesAdmin(p FeesPage) {
 			<p class="has-text-grey">No entries yet.</p>
 		} else if p.On {
 			<div class="table-container">
-				<table class="table is-fullwidth is-narrow">
+				<table class="table is-fullwidth is-narrow comp-stack">
 					<thead>
-						<tr><th>Club or individual</th><th>Entries</th><th>Due</th><th>Paid</th><th>Balance</th><th></th></tr>
+						<tr><th>Club, or gymnast on their own</th><th>Entries</th><th>Due</th><th>Paid</th><th>Balance</th><th></th></tr>
 					</thead>
 					<tbody>
 						for _, a := range p.Accounts {
@@ -111,10 +111,10 @@ templ FeesAdmin(p FeesPage) {
 										</div>
 									}
 								</td>
-								<td>{ strconv.Itoa(a.Entries) }</td>
-								<td>{ a.Due }</td>
-								<td>{ a.Paid }</td>
-								<td>
+								<td data-label="Entries">{ strconv.Itoa(a.Entries) }</td>
+								<td data-label="Due">{ a.Due }</td>
+								<td data-label="Paid">{ a.Paid }</td>
+								<td data-label="Balance">
 									if a.Settled {
 										<span class="tag is-success is-light">Paid</span>
 									} else {

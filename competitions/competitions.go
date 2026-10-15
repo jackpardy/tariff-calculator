@@ -237,16 +237,6 @@ func (c Competition) Validate() error {
 	return errors.Join(errs...)
 }
 
-// Level is the offered level with this name.
-func (c Competition) Level(name string) (Level, requirements.Level, bool) {
-	for _, l := range c.Levels {
-		if level, err := l.Resolve(); err == nil && level.Name == name {
-			return l, level, true
-		}
-	}
-	return Level{}, requirements.Level{}, false
-}
-
 // Entry is one gymnast's entry: a level and a routine for each of its two
 // exercises. A member keeps one with their club for each competition, and the
 // competition keeps a copy of what the club sent.
@@ -393,6 +383,7 @@ func (c Competition) Check(e Entry) (Card, error) {
 			// A set routine left empty is performed as prescribed.
 			if len(r.Skills) == 0 {
 				r.Skills, _ = requirements.SetRoutine(set)
+				namedAsSet(r.Skills, set)
 			}
 		}
 		routines[i] = r
@@ -432,12 +423,29 @@ func (c Card) Problems() []string {
 			}
 		}
 		for j, msg := range ex.Validation.Messages {
-			if msg != "" {
-				out = append(out, fmt.Sprintf("%selement %d: %s", prefix, j+1, msg))
+			for _, note := range skills.ElementNotes(j, msg) {
+				out = append(out, prefix+note)
 			}
 		}
 	}
 	return out
+}
+
+// namedAsSet names a set routine performed as written by the set's own
+// words for each element ("Seat landing"), so its card says the same as the
+// set routine it's checked against.
+func namedAsSet(routine []skills.TrampolineSkill, set requirements.Set) {
+	for _, rule := range set.Rules {
+		if rule.Type != requirements.Sequence {
+			continue
+		}
+		for i := range routine {
+			if i < len(rule.Sequence) && routine[i].CustomName == "" {
+				routine[i].CustomName = strings.TrimSpace(rule.Sequence[i].Label)
+			}
+		}
+		return
+	}
 }
 
 // CheckName reports a missing or too-long name of a competition, club or
@@ -504,17 +512,6 @@ func (s Split) validate(levels []string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown split %q", s.Mode)
-}
-
-// names are the names of the levels a competition offers, in order.
-func names(c Competition) []string {
-	var out []string
-	for _, l := range c.Levels {
-		if level, err := l.Resolve(); err == nil {
-			out = append(out, level.Name)
-		}
-	}
-	return out
 }
 
 // CoachLevel is the lowest coaching qualification level accepted in a

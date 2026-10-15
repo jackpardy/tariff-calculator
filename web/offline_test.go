@@ -2,10 +2,25 @@ package web
 
 import (
 	"net/http"
+	"os/exec"
 	"regexp"
 	"strings"
 	"testing"
 )
+
+// The service worker keeps pages, serves them offline, and drops a page the
+// server says isn't there (404 or 410) and any kept over 30 days, run in
+// node against fake caches (testdata/swtest.mjs). It skips without node.
+func TestServiceWorkerKeepsAndDrops(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("no node to run the service worker in")
+	}
+	out, err := exec.Command(node, "testdata/swtest.mjs", "../static/js/sw.js").CombinedOutput()
+	if err != nil {
+		t.Errorf("%v\n%s", err, out)
+	}
+}
 
 // The service worker keeps competition pages for offline use, and the pages
 // carry the banner and render time that say when a kept copy is old.

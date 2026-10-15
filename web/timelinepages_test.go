@@ -27,7 +27,7 @@ func TestPanelTimeline(t *testing.T) {
 	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "judge-tumbling": {"1"}, "chair-tumbling": {"1"}})
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
-	redirected(t, h, enter, url.Values{"gymnast": {"Eve"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	redirected(t, h, enter, bucsEntry("Eve"))
 	redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "discipline": {"tumbling"}, "level": {"Novice"}})
 	tt := admin + "/timetable"
 	redirected(t, h, tt+"/setup/rules", url.Values{"add": {"1"}, "kind": {"before"}, "must": {"1"}, "event": {"Tumbling Novice"}, "event2": {"BUCS L3"}})
@@ -116,9 +116,9 @@ func TestTimelineLayout(t *testing.T) {
 			Days:  []competitions.Day{{Name: "Fri", Start: "18:00", End: "20:00", Areas: []string{"Panel 1"}}, {Name: "Sat", Start: "09:00", End: "12:00"}},
 		},
 		Flights: []competitions.ScheduledFlight{
-			{Flight: competitions.Flight{Level: "A"}, Day: 1, Area: "Panel 1", Start: 9 * 60, End: 10 * 60, Officials: duties},
-			{Flight: competitions.Flight{Level: "B", Entries: []string{"x", "y"}}, Discipline: competitions.Synchro, Day: 1, Area: "Panel 1", Start: 9*60 + 30, End: 10*60 + 30}, // moved by hand onto A
-			{Flight: competitions.Flight{Level: "C"}, Day: 0, Area: "Panel 1", Start: 18 * 60, End: 18*60 + 20},
+			{Flight: competitions.Flight{Event: "A"}, Day: 1, Area: "Panel 1", Start: 9 * 60, End: 10 * 60, Officials: duties},
+			{Flight: competitions.Flight{Event: "B", Entries: []string{"x", "y"}}, Discipline: competitions.Synchro, Day: 1, Area: "Panel 1", Start: 9*60 + 30, End: 10*60 + 30}, // moved by hand onto A
+			{Flight: competitions.Flight{Event: "C"}, Day: 0, Area: "Panel 1", Start: 18 * 60, End: 18*60 + 20},
 		},
 	}
 	name := func(k string) string { return strings.ToUpper(k) }

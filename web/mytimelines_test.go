@@ -15,7 +15,7 @@ func TestPersonalAndClubTimetables(t *testing.T) {
 	club := withoutQuery(redirected(t, h, "/clubs", url.Values{"name": {"UCD"}}))
 	redirected(t, h, clubLink, url.Values{"clubAdmin": {club}})
 	join := pathIn(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), "/clubs/join/")
-	entry := url.Values{"level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}}
+	entry := bucsEntry("")
 	ann := withoutQuery(redirected(t, h, join, url.Values{"name": {"Ann"}}))
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ann), ann+"/competitions/"), entry)
 	redirected(t, h, formAction(t, do(t, h, http.MethodGet, club, nil).Body.String(), club+"/competitions/"), url.Values{"which": {"all"}})
@@ -37,11 +37,14 @@ func TestPersonalAndClubTimetables(t *testing.T) {
 	if !strings.Contains(do(t, h, http.MethodGet, ann, nil).Body.String(), "Timetable published") {
 		t.Error("Ann's list of competitions says the timetable is published")
 	}
-	page := memberCompetitionPage(t, h, ann)
+	page := do(t, h, http.MethodGet, myDayPath(t, h, ann), nil).Body.String()
 	if !strings.Contains(page, ">Your timetable</a>") || !strings.Contains(page, ">Club timetable</a>") {
-		t.Fatal("Ann's page links to her timetable and the club's")
+		t.Fatal("Ann's My competition links to her timetable and the club's")
 	}
-	compID := strings.Split(strings.Split(page, ann+"/competitions/")[1], "/")[0]
+	if page := memberCompetitionPage(t, h, ann); strings.Contains(page, ">Your timetable</a>") || strings.Contains(page, ">Add to calendar</a>") {
+		t.Error("her page for the competition has one link, to My competition, not the timetables too")
+	}
+	compID := strings.Split(strings.TrimPrefix(myDayPath(t, h, ann), ann+"/competitions/"), "/")[0]
 	mine := do(t, h, http.MethodGet, ann+"/competitions/"+compID+"/timeline", nil).Body.String()
 	if !strings.Contains(mine, "Your timetable") || !strings.Contains(mine, "comp-tl-mine") || !strings.Contains(mine, "You compete") {
 		t.Error("Ann's flight picked out")
@@ -64,8 +67,8 @@ func TestPersonalAndClubTimetables(t *testing.T) {
 	}
 
 	// Ivy's own.
-	if page := do(t, h, http.MethodGet, ivy, nil).Body.String(); !strings.Contains(page, ">Your timetable</a>") {
-		t.Error("Ivy's page links to hers")
+	if page := do(t, h, http.MethodGet, ivy+"/day", nil).Body.String(); !strings.Contains(page, ">Your timetable</a>") {
+		t.Error("Ivy's My competition links to hers")
 	}
 	if mine := do(t, h, http.MethodGet, ivy+"/timeline", nil).Body.String(); !strings.Contains(mine, "You compete") {
 		t.Error("Ivy's flight picked out")

@@ -1,6 +1,6 @@
 # ADR 0003 — A flexible framework for routine requirements
 
-- **Status:** Proposed
+- **Status:** Accepted; built (ten rule types in `requirements/requirements.go`)
 - **Date:** 2026-10-04
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0001 §5 (requirements engine) and its roadmap items for standard and

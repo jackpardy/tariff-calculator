@@ -132,7 +132,7 @@ func (p *competitionPages) coachLate(w http.ResponseWriter, r *http.Request) {
 						failed(w, r, err)
 						return
 					}
-					http.Redirect(w, r, back+"?notice="+url.QueryEscape("Signed off "+req.Entry.Gymnasts()+"'s late change; it's gone to the organiser."), http.StatusSeeOther)
+					seeOther(w, r, back, "Signed off "+req.Entry.Gymnasts()+"'s late change; it's gone to the organiser.")
 					return
 				}
 			}
@@ -180,11 +180,11 @@ func (p *competitionPages) individualCoachLate(w http.ResponseWriter, r *http.Re
 				failed(w, r, err)
 				return
 			}
-			http.Redirect(w, r, back+"?notice="+url.QueryEscape("Signed off; the late change has gone to the organiser."), http.StatusSeeOther)
+			seeOther(w, r, back, "Signed off; the late change has gone to the organiser.")
 			return
 		}
 	}
-	p.renderLateSignoff(w, r, c, req, "Individual", back, true, problems)
+	p.renderLateSignoff(w, r, c, req, onTheirOwn, back, true, problems)
 }
 
 // renderLateSignoff shows a late change's new card, to sign off.
@@ -211,7 +211,7 @@ func lateOpen(c store.Competition, now time.Time) bool {
 type lateTarget struct {
 	c       store.Competition
 	entry   store.Entry // the competition's copy
-	who     string      // who's asking, e.g. "UCD (comp sec)"
+	who     string      // who's asking, e.g. "UCD (competition secretary)"
 	gymnast string      // fixed for a club's member
 	back    string
 }
@@ -219,53 +219,39 @@ type lateTarget struct {
 // lateTargetOf is the entry a late change link is for, or a page saying why
 // there isn't one.
 func (p *competitionPages) lateTargetOf(w http.ResponseWriter, r *http.Request) (lateTarget, bool) {
-	ctx, token := r.Context(), r.PathValue("token")
-	var t lateTarget
-	var memberID string
-	switch {
-	case strings.HasPrefix(r.URL.Path, "/competitions/entry/"):
-		e, c, ok := p.own(w, r)
-		if !ok {
-			return t, false
-		}
-		t = lateTarget{c: c, entry: e, who: e.Entry.Gymnast, gymnast: e.Entry.Gymnast, back: "/competitions/entry/" + token}
-	case strings.HasPrefix(r.URL.Path, "/clubs/admin/"):
-		club, ok := p.clubAdmin(w, r)
-		if !ok {
-			return t, false
-		}
-		m, c, ok := p.memberOfClub(w, r, club)
-		if !ok {
-			return t, false
-		}
-		t, memberID = lateTarget{c: c, who: club.Name + " (comp sec)", gymnast: m.Name, back: clubPath(token)}, m.ID
-	default:
-		m, ok := p.member(w, r)
-		if !ok {
-			return t, false
-		}
-		c, ok := p.memberCompetition(w, r, m)
-		if !ok {
-			return t, false
-		}
-		t, memberID = lateTarget{c: c, who: m.Name, gymnast: m.Name, back: memberCompetitionPath(token, c.ID)}, m.ID
+	a, ok := p.whose(w, r)
+	if !ok {
+		return lateTarget{}, false
 	}
-	if memberID != "" {
-		entries, err := p.st.Entries(ctx, t.c.ID)
+	t := lateTarget{c: a.c, entry: a.entry, who: a.name, gymnast: a.name, back: a.back}
+	var memberID string
+	switch a.kind {
+	case store.NotifyIndividual:
+		return t, true
+	case store.NotifyClub:
+		m, err := p.st.Member(r.Context(), a.club, r.PathValue("member"))
 		if err != nil {
 			failed(w, r, err)
 			return t, false
 		}
-		found := false
-		for _, e := range entries {
-			if e.MemberID == memberID && e.Entry.Discipline == r.FormValue("discipline") {
-				t.entry, found = e, true
-			}
+		t.who, t.gymnast, memberID = a.name+" (competition secretary)", m.Name, m.ID
+	default:
+		memberID = a.owner
+	}
+	entries, err := p.st.Entries(r.Context(), t.c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return t, false
+	}
+	found := false
+	for _, e := range entries {
+		if e.MemberID == memberID && e.Entry.Discipline == r.FormValue("discipline") {
+			t.entry, found = e, true
 		}
-		if !found {
-			message(w, r, http.StatusNotFound, "Not entered", "This entry hasn't reached the competition, so there's nothing to change.")
-			return t, false
-		}
+	}
+	if !found {
+		message(w, r, http.StatusNotFound, "Not entered", "This entry hasn't reached the competition, so there's nothing to change.")
+		return t, false
 	}
 	return t, true
 }
@@ -321,7 +307,7 @@ func (p *competitionPages) lateRequest(w http.ResponseWriter, r *http.Request) {
 				if coachFirst {
 					notice = "Your late change has gone to your coach to sign off; then it goes to the organiser."
 				}
-				http.Redirect(w, r, t.back+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+				seeOther(w, r, t.back, notice)
 				return
 			}
 		}
@@ -407,9 +393,11 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	byID := map[string]store.Entry{}
-	for _, e := range entries {
-		byID[e.ID] = e
+	byID := entriesByID(entries)
+	f, err := p.liveRota(ctx, c)
+	if err != nil {
+		failed(w, r, err)
+		return
 	}
 	base := adminPath(r.PathValue("token"))
 	page := views.LateAdminPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuLate), Notice: r.URL.Query().Get("notice"),
@@ -427,7 +415,7 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 			v.Fee = c.Fees.Money(fee)
 		}
 		if v.Waiting {
-			v.Checks = p.lateChecks(ctx, c, req, e, entries)
+			v.Checks = p.lateChecks(ctx, c, req, e, entries, f)
 		}
 		page.Requests = append(page.Requests, v)
 	}
@@ -437,14 +425,14 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 // lateChecks say whether a change can be fitted in: the new card's
 // problems, the new level's limit, and where it would go in the draft
 // timetable and what that does.
-func (p *competitionPages) lateChecks(ctx context.Context, c store.Competition, req store.LateRequest, e store.Entry, entries []store.Entry) []string {
+func (p *competitionPages) lateChecks(ctx context.Context, c store.Competition, req store.LateRequest, e store.Entry, entries []store.Entry, f rotaFacts) []string {
 	var out []string
 	shown, err := card(c.Competition, req.Entry, clubOf(e))
 	switch {
 	case err != nil:
 		out = append(out, "The card can't be checked: "+err.Error())
 	case len(shown.Problems) > 0:
-		out = append(out, fmt.Sprintf("The new card has %s: %s", problemsWord(len(shown.Problems)), strings.Join(shown.Problems, "; ")))
+		out = append(out, fmt.Sprintf("The new card has %s: %s", views.Count(len(shown.Problems), "problem", "problems"), strings.Join(shown.Problems, "; ")))
 	default:
 		out = append(out, "The new card meets its requirements.")
 	}
@@ -482,8 +470,7 @@ func (p *competitionPages) lateChecks(ctx context.Context, c store.Competition, 
 	if c.Timetable == nil || !c.Timetable.Planned {
 		return out
 	}
-	people, names := peopleOf(live(entries))
-	_, place := c.Timetable.PlaceChange(e.ID, event, req.Entry.Category, people, names)
+	_, place := c.Timetable.PlaceChange(e.ID, event, req.Entry.Category, f.one, coachesOf(f.entries, f.same), f.oneNames)
 	if place.Flight < 0 {
 		return append(out, "The draft timetable has no flight of "+event+" yet: accepted, they'd be out of the timetable until you place them.")
 	}
@@ -513,7 +500,7 @@ func (p *competitionPages) setLate(w http.ResponseWriter, r *http.Request) {
 	for _, kind := range competitions.LateKinds {
 		fee, err := competitions.ParseMoney(r.FormValue("fee-" + kind))
 		if err != nil {
-			http.Redirect(w, r, back+"?notice="+url.QueryEscape(competitions.LateKindName(kind)+" fee: "+err.Error()+". Nothing was changed."), http.StatusSeeOther)
+			seeOther(w, r, back, competitions.LateKindName(kind)+" fee: "+err.Error()+". Nothing was changed.")
 			return
 		}
 		if on := r.FormValue("late-"+kind) == "1"; on || fee > 0 {
@@ -524,7 +511,7 @@ func (p *competitionPages) setLate(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, back+"?notice="+url.QueryEscape("Saved."), http.StatusSeeOther)
+	seeOther(w, r, back, "Saved.")
 }
 
 // acceptLate applies a request, with an optional note: the entry changes,
@@ -549,7 +536,7 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if req == nil {
-		http.Redirect(w, r, back+"?notice="+url.QueryEscape("That request has been decided already."), http.StatusSeeOther)
+		seeOther(w, r, back, "That request has been decided already.")
 		return
 	}
 	p.notify.changing(ctx, c)
@@ -565,7 +552,6 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 			failed(w, r, err)
 			return
 		}
-		draft := *c.Timetable
 		waiting := false
 		for _, e := range entries {
 			if e.ID == accepted.EntryID && e.Waiting > 0 {
@@ -573,25 +559,35 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 				notice = fmt.Sprintf("Accepted: %s is %s on %s's waiting list.", accepted.Entry.Gymnasts(), waitingWord(e.Waiting), accepted.Entry.Event())
 			}
 		}
-		if waiting {
-			draft.RemoveEntry(accepted.EntryID)
-			draft.Retime()
-		} else {
-			people, names := peopleOf(live(entries))
+		f, err := p.liveRota(ctx, c)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		people, names, coaches := f.one, f.oneNames, coachesOf(f.entries, f.same)
+		// The draft as it is now, not as it was when the page was read: an
+		// edit made since stays.
+		err = p.st.UpdateTimetable(ctx, c.ID, func(draft *competitions.Schedule) error {
+			if waiting {
+				draft.RemoveEntry(accepted.EntryID)
+				draft.Retime()
+				return nil
+			}
 			var place competitions.ChangePlace
-			draft, place = draft.PlaceChange(accepted.EntryID, accepted.Entry.Event(), accepted.Entry.Category, people, names)
+			*draft, place = draft.PlaceChange(accepted.EntryID, accepted.Entry.Event(), accepted.Entry.Category, people, coaches, names)
 			if place.Flight >= 0 {
 				notice += " The draft timetable has them in " + place.Name + ": publish it when you're ready."
 			} else {
 				notice += " The draft timetable has no flight of it yet: place them by hand."
 			}
-		}
-		if err := p.st.SetTimetable(ctx, c.ID, &draft); err != nil {
+			return nil
+		})
+		if err != nil {
 			failed(w, r, err)
 			return
 		}
 	}
-	http.Redirect(w, r, back+"?notice="+url.QueryEscape(notice), http.StatusSeeOther)
+	seeOther(w, r, back, notice)
 }
 
 // rejectLate turns a request down, with a reason for whoever asked.
@@ -603,7 +599,7 @@ func (p *competitionPages) rejectLate(w http.ResponseWriter, r *http.Request) {
 	back := adminPath(r.PathValue("token")) + "/late"
 	reason := limitNote(strings.TrimSpace(r.FormValue("reason")))
 	if reason == "" {
-		http.Redirect(w, r, back+"?notice="+url.QueryEscape("Give a reason: whoever asked sees it."), http.StatusSeeOther)
+		seeOther(w, r, back, "Give a reason: whoever asked sees it.")
 		return
 	}
 	p.notify.changing(r.Context(), c)
@@ -611,5 +607,5 @@ func (p *competitionPages) rejectLate(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, back+"?notice="+url.QueryEscape("Not accepted; they'll see your reason."), http.StatusSeeOther)
+	seeOther(w, r, back, "Not accepted; they'll see your reason.")
 }

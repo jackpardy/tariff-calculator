@@ -319,7 +319,7 @@ func otherLinksBox(o OtherLinks) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if len(o.Roles) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<p class=\"is-size-7 mb-3\">If you have another link here, such as a coach's, your club's comp sec link, a competition you entered on your own or one you help run, add it below. Then this link opens all of them, with a tab for each.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<p class=\"is-size-7 mb-3\">If you have another link here, such as a coach's, your club's competition secretary (comp sec) link, a competition you entered on your own or one you help run, add it below. Then this link opens all of them, with a tab for each.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

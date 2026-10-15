@@ -1,0 +1,386 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+)
+
+// Entering: the entry form, the individual's entry link's page, and their
+// entry's own page.
+
+// EntryForm enters or replaces an individual's entry. Each level's exercises
+// are listed, and the page (static/js/competitions.js) shows the chosen
+// level's and fills each voluntary from the routines saved in this browser.
+type EntryForm struct {
+	Action   string // where the form posts
+	Key      string // tells forms on the same page apart
+	Submit   string // its button
+	Gymnast  string
+	Member   bool   // the gymnast is a club's member, under their own name
+	Video    string // what video the competition asks for, "" for none
+	Level    string
+	Category string // Men or Women, where the level splits them
+	Levels   []EntryLevel
+	Problems []string
+	// The discipline: "" for individual trampoline, or synchro (with a
+	// partner), tumbling or DMT (a level only: not checked).
+	Discipline  string
+	Synchro     bool
+	Unchecked   bool
+	PartnerName string
+	PartnerClub string
+	Note        bool // ask for a note for the organiser (a late change)
+	NoteText    string
+	// As asks who's entering on their own, by the link of their page (ADR
+	// 0010): nil where the page already says who.
+	As *EnterAs
+}
+
+// EnterAs is the link of the page someone entering on their own already has,
+// as posted.
+type EnterAs struct {
+	Link string
+}
+
+// EntryLevel is a level an entry can choose, with its two exercises.
+type EntryLevel struct {
+	Name      string // posted as the level
+	Label     string // how it's shown, if not its name: "BUCS L1/L2 (doing BUCS L1)"
+	Split     bool   // gymnasts say Men or Women
+	Exercises [2]EntryExercise
+}
+
+// EntryExercise is one exercise's choice: which option, and for a voluntary,
+// which routine.
+type EntryExercise struct {
+	Options []EntryOption
+	Chosen  string // the option chosen
+	Skills  string // the routine as JSON, if one was chosen or entered already
+	Count   int    // how many skills it has
+	Video   string // its video link and note, if the competition asks for video
+	Note    string
+	Skip    bool   // not done: synchro does only the level's voluntary
+	Title   string // its heading, if not "First exercise" or "Second exercise"
+}
+
+// EntryOption is one of an exercise's options.
+type EntryOption struct {
+	Ref, Label string
+	SetRoutine bool
+}
+
+// EntryPage is an individual's own entry, through their personal link.
+type EntryPage struct {
+	Name        string // the gymnast's own name, without a synchro partner's
+	Waiting     string // on a waiting list, and where
+	Late        string // a late change, where it stands
+	LateAsk     string // where to ask for a late change, once entries close
+	Competition CompetitionSummary
+	Link        string // their personal link, as a full URL
+	JustSaved   bool
+	Sent        string
+	Checked     bool   // the organiser checked it
+	Note        string // the organiser's note
+	VideoReview string // the organiser's review of its videos
+	VideoNote   string
+	Card        EntryCard
+	Form        EntryForm
+	Withdraw    string // where withdrawing posts
+	SignoffLink string // the link for their coach to sign it off, where the competition needs it
+	Partner     *PartnerView
+	Placement   *Placement      // where they compete, once the timetable is published
+	MyLinks
+	Day         string          // their My competition page
+	Offer       *OfferForm      // what they offer to judge and help with
+	Coach       *EntryCoachView // their coach, where the competition approves coaches
+	Notice      string
+	Pairs       []PairView   // synchro entries they're the partner in
+	Removal     string       // what the organiser did with it, and why, if anything
+	Fees        *FeesSummary // what they owe, if the competition charges
+	// Menu and Back are the person's pages it's one of (ADR 0010); Personal
+	// says Link is their personal page's link, not the entry's own.
+	Menu     []MenuSection
+	Back     string
+	Personal bool
+}
+
+// EntryCoachView is the coach an individual names, for the organiser to
+// approve (ADR 0007 Decision 8).
+type EntryCoachView struct {
+	Name, Qualification string // as named; "" before
+	Status              string // e.g. "Waiting for the organiser"
+	Approved            bool
+	Note                string // the organiser's
+	Action              string // where naming them posts
+	Options             []CoachOption
+	Asked               string // the levels the competition asks for
+}
+
+// EnterPage is a competition's individual entry page.
+type EnterPage struct {
+	Competition CompetitionSummary
+	Form        EntryForm
+	Disciplines []DisciplineTab // to choose from, when there are several
+}
+
+// DisciplineTab is one of a competition's disciplines to enter.
+type DisciplineTab struct {
+	Name, URL string
+	Current   bool
+}
+
+// CompetitionEnter is the individual entry page.
+templ CompetitionEnter(p EnterPage) {
+	@competitionLayout("Enter " + p.Competition.Name) {
+		<h1 class="title is-4">Enter { p.Competition.Name }</h1>
+		@competitionFacts(p.Competition)
+		if p.Competition.Open {
+			if len(p.Disciplines) > 1 {
+				<div class="tabs is-small">
+					<ul>
+						for _, d := range p.Disciplines {
+							<li class={ templ.KV("is-active", d.Current) }><a href={ templ.SafeURL(d.URL) }>{ d.Name }</a></li>
+						}
+					</ul>
+				</div>
+				<p class="help mb-3">Enter each discipline separately; each joins your page.</p>
+			}
+			@entryForm(p.Form)
+			@privacyNote(p.Competition)
+		}
+	}
+}
+
+templ privacyNote(c CompetitionSummary) {
+	<p class="help mt-4">
+		We keep the gymnast's name, level and routines, which the organiser and the difficulty judges see. Nothing else, and no account. They're deleted { c.DeleteAfter }, or sooner if the organiser deletes the competition.
+	</p>
+}
+
+// entryForm chooses a level, each exercise's option and each voluntary's routine.
+templ entryForm(f EntryForm) {
+	@problemList(f.Problems)
+	<form method="post" action={ templ.SafeURL(f.Action) } class="comp-entry-form">
+		<input type="hidden" name="discipline" value={ f.Discipline }/>
+		if f.As != nil {
+			// The pages saved in this browser (static/js/competitions.js).
+			<div class="field" data-saved-as hidden>
+				<label class="label" for="saved-as">Who's entering?</label>
+				<div class="select is-fullwidth"><select id="saved-as"></select></div>
+			</div>
+			<div class="field">
+				<label class="label" for="enter-as">Your page's link, if you have one</label>
+				<input class="input" id="enter-as" name="as" value={ f.As.Link } placeholder="Leave it blank the first time" autocomplete="off"/>
+				<p class="help">Entered a competition on your own before, or a club member? Give that page's link and this entry joins it, under the same link. Leave it blank to start a page of your own.</p>
+			</div>
+		}
+		if !f.Member {
+			<div class="field">
+				<label class="label" for={ "entry-gymnast" + f.Key }>Gymnast</label>
+				<input class="input" id={ "entry-gymnast" + f.Key } name="gymnast" required maxlength="80" value={ f.Gymnast } placeholder="Name, as on the results"/>
+			</div>
+		}
+		if f.Synchro {
+			<div class="field">
+				<label class="label" for={ "entry-partner" + f.Key }>Synchro partner</label>
+				<input class="input" id={ "entry-partner" + f.Key } name="partnerName" required maxlength="80" value={ f.PartnerName } placeholder="Their name"/>
+				<input class="input mt-1" name="partnerClub" maxlength="80" value={ f.PartnerClub } placeholder="Their club (leave blank if none)" aria-label="Synchro partner's club"/>
+				<p class="help">Any gymnast, from any club or none. You'll get a link to send them to confirm the pair.</p>
+			</div>
+		}
+		if f.Unchecked {
+			<p class="help mb-3">Tumbling and DMT entries are a level only: their passes aren't checked yet.</p>
+		}
+		<div class="field">
+			<label class="label" for={ "entry-level" + f.Key }>Level</label>
+			<div class="select is-fullwidth">
+				<select id={ "entry-level" + f.Key } name="level" required>
+					<option value="" disabled selected?={ f.Level == "" }>Choose a level</option>
+					for _, l := range f.Levels {
+						<option value={ l.Name } selected?={ f.Level == l.Name }>{ entryLevelLabel(l) }</option>
+					}
+				</select>
+			</div>
+		</div>
+		// One Men or Women choice for the form, shown for a level that splits
+		// them (static/js/competitions.js).
+		{{ split := splitLevel(f.Levels, f.Level) }}
+		<fieldset class="field comp-entry-category" hidden?={ !split } disabled?={ !split }>
+			<p class="label is-small"><span data-category-level>{ f.Level }</span> ranks men and women separately</p>
+			for _, c := range []string{"Men", "Women"} {
+				<label class="radio comp-option">
+					<input type="radio" name="category" value={ c } checked?={ f.Category == c } required/>
+					{ c }
+				</label>
+			}
+		</fieldset>
+		for _, l := range f.Levels {
+			<fieldset class="comp-entry-level" data-level={ l.Name } data-split={ strconv.FormatBool(l.Split) } hidden?={ l.Name != f.Level } disabled?={ l.Name != f.Level }>
+				if !f.Unchecked {
+					for n, ex := range l.Exercises {
+						if !ex.Skip {
+							@entryExercise(n+1, ex, f.Video)
+						}
+					}
+				}
+			</fieldset>
+		}
+		if f.Note {
+			<div class="field mt-4">
+				<label class="label is-small" for={ "entry-note" + f.Key }>Note for the organiser (optional)</label>
+				<textarea class="textarea is-small" id={ "entry-note" + f.Key } name="note" rows="2" maxlength="500" placeholder="e.g. She's been moved up a level by her coach">{ f.NoteText }</textarea>
+			</div>
+		}
+		<button class="button is-primary is-fullwidth mt-4" type="submit">{ f.Submit }</button>
+	</form>
+}
+
+templ entryExercise(n int, ex EntryExercise, video string) {
+	{{ prefix := fmt.Sprintf("ex%d", n) }}
+	<div class="box comp-entry-exercise" data-exercise={ prefix }>
+		<h2 class="title is-6">
+			if ex.Title != "" {
+				{ ex.Title }
+			} else {
+				{ titleCase(exerciseName(n)) } exercise
+			}
+		</h2>
+		if len(ex.Options) > 1 {
+			for _, o := range ex.Options {
+				<label class="radio comp-option">
+					<input type="radio" name={ prefix + "Option" } value={ o.Ref } data-set-routine={ strconv.FormatBool(o.SetRoutine) } checked?={ ex.Chosen == o.Ref } required/>
+					{ o.Label }
+				</label>
+			}
+		} else if len(ex.Options) == 1 {
+			<input type="hidden" name={ prefix + "Option" } value={ ex.Options[0].Ref } data-set-routine={ strconv.FormatBool(ex.Options[0].SetRoutine) }/>
+			<p class="is-size-7 has-text-grey">{ ex.Options[0].Label }</p>
+		}
+		<p class="comp-set-note is-size-7" hidden>The set routine, as written: nothing to choose.</p>
+		<div class="field comp-routine mt-2">
+			<label class="label is-small">Routine</label>
+			<div class="select is-fullwidth">
+				// Filled from the routines saved in this browser (static/js/competitions.js).
+				<select data-routine-for={ prefix } aria-label={ "Routine for the " + exerciseName(n) + " exercise" }>
+					if ex.Skills != "" {
+						<option value="current" selected>{ fmt.Sprintf("Keep the routine entered (%d skills)", ex.Count) }</option>
+					}
+				</select>
+			</div>
+			<p class="help">One of the routines saved in this browser. Build it in the Routine Builder first.</p>
+		</div>
+		<input type="hidden" name={ prefix + "Skills" } value={ ex.Skills }/>
+		if video != "" {
+			<div class="field mt-3">
+				<label class="label is-small">Video link</label>
+				<input class="input is-small" type="url" name={ prefix + "Video" } value={ ex.Video } maxlength="500" placeholder="https://youtu.be/..." aria-label={ "Video link for the " + exerciseName(n) + " exercise" }/>
+				<input class="input is-small mt-1" type="text" name={ prefix + "VideoNote" } value={ ex.Note } maxlength="200" placeholder="What it shows, e.g. Full-in at 0:42" aria-label={ "What the " + exerciseName(n) + " exercise's video shows" }/>
+				<p class="help">{ video }. A YouTube video must be <strong>unlisted, not private</strong> (a private one only plays for people it's shared with); a Google Drive file must be shared with <strong>anyone with the link</strong>.</p>
+			</div>
+		}
+	</div>
+}
+
+// CompetitionEntryPage is an individual's own entry, through their personal link.
+templ CompetitionEntryPage(p EntryPage) {
+	@competitionLayout(p.Card.Gymnast + " · " + p.Competition.Name) {
+		if len(p.Menu) > 0 {
+			// On the person's own page (ADR 0010): who, their tabs, and back to the competition.
+			<p class="has-text-grey mb-1">Entered on your own</p>
+			<h1 class="title is-4">{ p.Card.Gymnast }</h1>
+			@pageMenu(p.Menu)
+			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.Competition.Name }</a></p>
+		} else {
+			<p class="has-text-grey mb-1">{ p.Competition.Name }</p>
+		}
+		@competitionFacts(p.Competition)
+		if p.JustSaved {
+			<div class="notification is-success is-light">
+				if p.Personal {
+					<p><strong>Entry saved.</strong> Your personal link below opens this entry and every other you make with it: keep it to change or withdraw them. It's saved in this browser too.</p>
+				} else {
+					<p><strong>Entry saved.</strong> It's on your page with your other entries.</p>
+				}
+			</div>
+		}
+		if p.Personal {
+			<div data-gymnast-link={ p.Link } data-gymnast-name={ p.Name }>
+				@linkBox("Your personal link (keep it to yourself)", p.Link, "")
+			</div>
+		} else if p.Link != "" {
+			<div data-entry-link={ p.Link } data-entry-name={ p.Card.Gymnast + " · " + p.Competition.Name }>
+				@linkBox("Your personal link (keep it to yourself)", p.Link, "")
+			</div>
+		}
+		@partnerBox(p.Partner)
+		if p.Notice != "" {
+			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		if p.Removal != "" {
+			<div class="notification is-warning is-light">{ p.Removal }</div>
+		}
+		if p.Coach != nil {
+			@entryCoachBox(*p.Coach, p.Competition.SignoffsOpen)
+		}
+		if p.SignoffLink != "" {
+			@linkBox("Sign-off link for your coach", p.SignoffLink, "This competition needs a coach's sign-off. Send this link to your coach: they see your entry and sign it off.")
+		}
+		@dayLink(p.Day)
+		@feesLine(p.Fees)
+		@deskMessages(p.Desk)
+		// The timetables and calendars are on My competition; hearing about changes is here too.
+		@timelineLinks("", "", p.Notify, "", "")
+		@waitingLine(p.Waiting)
+		@lateLine(p.Late, p.LateAsk)
+		@placementLine(p.Placement)
+		@dutiesBox(p.Duties, p.ScoreSheets)
+		if p.Checked {
+			<p class="mb-2"><strong>✓ Checked by the organiser.</strong></p>
+		}
+		@organiserNote(p.Note)
+		@videoReviewNote(p.VideoReview, p.VideoNote)
+		if len(p.Menu) > 0 {
+			// Their name heads the page already.
+			<p class="subtitle is-6">{ p.Card.Level }</p>
+			@entryCardChecks(p.Card)
+		} else {
+			@entryCard(p.Card)
+		}
+		<p class="has-text-grey is-size-7">Entered { p.Sent }.</p>
+		@pairEntries(p.Pairs)
+		if p.Competition.ChangesOpen {
+			<details class="box mt-4" open?={ len(p.Form.Problems) > 0 }>
+				<summary><strong>Change the entry</strong></summary>
+				@entryForm(p.Form)
+			</details>
+			if p.Offer != nil {
+				@offerBox(*p.Offer)
+			}
+			<form method="post" action={ templ.SafeURL(p.Withdraw) } class="mt-4">
+				<label class="checkbox is-size-7">
+					<input type="checkbox" name="confirm" value="1" required/>
+					Withdraw this entry
+				</label>
+				<button class="button is-small is-danger is-outlined ml-2" type="submit">Withdraw</button>
+			</form>
+			@privacyNote(p.Competition)
+		}
+	}
+}
+
+func entryLevelLabel(l EntryLevel) string {
+	if l.Label != "" {
+		return l.Label
+	}
+	return l.Name
+}
+
+// splitLevel says whether the named level ranks men and women separately.
+func splitLevel(levels []EntryLevel, name string) bool {
+	for _, l := range levels {
+		if l.Name == name {
+			return l.Split
+		}
+	}
+	return false
+}

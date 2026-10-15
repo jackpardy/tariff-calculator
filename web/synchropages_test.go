@@ -30,7 +30,7 @@ func TestPairedSynchro(t *testing.T) {
 	}
 
 	// A competes at L3 and B at L4: as a pair they do L4, the easier.
-	a := redirected(t, h, enter, url.Values{"gymnast": {"A"}, "level": {"BUCS L3"}, "ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}})
+	a := redirected(t, h, enter, bucsEntry("A"))
 	b := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"B"}, "level": {"BUCS L4"}, "ex1Option": {"builtin:bucs-l4-option-1"}, "ex2Option": {"builtin:bucs-l4-second"}, "ex2Skills": {voluntary}}))
 	pair := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"A"}, "discipline": {"synchro"}, "level": {"BUCS L3"}, "partnerName": {"B"},
 		"ex1Option": {"builtin:bucs-l3-option-1"}, "ex2Option": {"builtin:bucs-l3-second"}, "ex2Skills": {voluntary}, "as": {a}}))

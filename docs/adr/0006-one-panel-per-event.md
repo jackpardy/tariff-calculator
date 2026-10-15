@@ -1,7 +1,8 @@
 # ADR 0006 — One panel for a whole event
 
 - **Status:** Accepted; steps 2 (runs) and 3 (one panel per run) built
-  2026-10-08
+  2026-10-08; step 4 (splitting by routine) deliberately not built, left
+  until a competition needs it
 - **Date:** 2026-10-08
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0005 Decisions 9 (the scheduler) and 12 (the officials

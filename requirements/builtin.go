@@ -208,14 +208,19 @@ func BuiltinLevels() []BuiltinLevel {
 // LookupBuiltinLevel finds a built-in level by its reference
 // ("builtin-level:<ID>") or ID.
 func LookupBuiltinLevel(ref string) (Level, bool) {
-	id := strings.TrimPrefix(ref, BuiltinLevelPrefix)
-	for _, l := range BuiltinLevels() {
-		if l.ID == id {
-			return l.Level, true
-		}
-	}
-	return Level{}, false
+	l, ok := builtinLevelsByID[strings.TrimPrefix(ref, BuiltinLevelPrefix)]
+	return l, ok
 }
+
+// builtinLevelsByID are the built-in levels by ID: pages look levels up
+// thousands of times, so it's built once rather than searched each time.
+var builtinLevelsByID = func() map[string]Level {
+	out := map[string]Level{}
+	for _, l := range BuiltinLevels() {
+		out[l.ID] = l.Level
+	}
+	return out
+}()
 
 // BuiltinLevelRank places a built-in level by its reference: its group's
 // position among the groups, and its rank within the group, easiest first.

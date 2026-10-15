@@ -1,6 +1,9 @@
 package competitions
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/rand/v2"
 	"slices"
@@ -9,6 +12,18 @@ import (
 // Manual changes to a schedule: the organiser moves gymnasts and flights; times
 // are worked out again, and anything the edits break is flagged rather than
 // refused.
+
+// Version identifies the timetable as it is: any change to it changes its
+// version, so a form can say which timetable it was made from, and one made
+// from another is refused rather than moving the wrong flight or seat.
+func (s Schedule) Version() string {
+	b, err := json.Marshal(s)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:8])
+}
 
 // Find is the flight an entry is in, by index, if it's in one.
 func (s Schedule) Find(entryID string) (int, bool) {
@@ -99,7 +114,7 @@ func (s *Schedule) Earlier(flight int) bool {
 func (s Schedule) runOf(flight int) []int {
 	var out []int
 	for i, f := range s.Flights {
-		if f.Event() == s.Flights[flight].Event() {
+		if f.Group() == s.Flights[flight].Group() {
 			out = append(out, i)
 		}
 	}
@@ -159,7 +174,7 @@ func (s *Schedule) Retime() {
 func (s *Schedule) number() {
 	byEvent := map[string][]int{}
 	for i, f := range s.Flights {
-		byEvent[f.Event()] = append(byEvent[f.Event()], i)
+		byEvent[f.Group()] = append(byEvent[f.Group()], i)
 	}
 	for _, idx := range byEvent {
 		slices.SortStableFunc(idx, func(a, b int) int {
@@ -174,9 +189,10 @@ func (s *Schedule) number() {
 
 // Problems are what manual changes have broken: a flight past its day's end, an
 // event's flights not back to back on one area (or across a break, where
-// that isn't allowed), or a person in two places at once. people are each
-// entry's people, by entry id.
-func (s Schedule) Problems(people map[string][]string, names map[string]string) []string {
+// that isn't allowed), a person in two places at once, or a coach competing
+// while their gymnasts compete elsewhere. people and coaches are each entry's
+// people and coaches, by entry id, keyed so that one person has one key.
+func (s Schedule) Problems(people, coaches map[string][]string, names map[string]string) []string {
 	var out []string
 	for _, f := range s.Flights {
 		if f.Day < len(s.Setup.Days) {
@@ -213,6 +229,28 @@ func (s Schedule) Problems(people map[string][]string, names map[string]string) 
 			}
 		}
 	}
+	for i, a := range s.Flights {
+		coaching := map[string]bool{}
+		for _, id := range a.Entries {
+			for _, c := range coaches[id] {
+				coaching[c] = true
+			}
+		}
+		for j, b := range s.Flights {
+			if i == j || !overlaps(interval{a.Day, a.Start, a.End}, interval{b.Day, b.Start, b.End}) {
+				continue
+			}
+			for _, id := range b.Entries {
+				for _, p := range people[id] {
+					msg := fmt.Sprintf("%s coaches in %s while competing in %s", names[p], a.Name(), b.Name())
+					if coaching[p] && !seen[msg] {
+						seen[msg] = true
+						out = append(out, msg)
+					}
+				}
+			}
+		}
+	}
 	return out
 }
 
@@ -223,10 +261,10 @@ func (s Schedule) runProblems() []string {
 	var out []string
 	seen := map[string]bool{}
 	for i, f := range s.Flights {
-		if seen[f.Event()] {
+		if seen[f.Group()] {
 			continue
 		}
-		seen[f.Event()] = true
+		seen[f.Group()] = true
 		run := s.runOf(i)
 		split, across := false, ""
 		for k := 1; k < len(run); k++ {
@@ -246,9 +284,9 @@ func (s Schedule) runProblems() []string {
 		}
 		switch {
 		case split:
-			out = append(out, fmt.Sprintf("%s's flights aren't back to back on one area, so one panel can't judge them all", f.Event()))
+			out = append(out, fmt.Sprintf("%s's flights aren't back to back on one area, so one panel can't judge them all", f.Group()))
 		case across != "" && !s.Setup.AcrossBreaks:
-			out = append(out, fmt.Sprintf("%s runs either side of %s", f.Event(), across))
+			out = append(out, fmt.Sprintf("%s runs either side of %s", f.Group(), across))
 		}
 	}
 	return out

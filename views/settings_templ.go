@@ -194,7 +194,7 @@ func CompetitionSettings(p SettingsPage) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<a href=\"#individuals\">Individual entry</a> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<a href=\"#individuals\">Entering on their own</a> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -245,7 +245,7 @@ func CompetitionSettings(p SettingsPage) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if p.Competition.Individuals {
-				templ_7745c5c3_Err = linkBox("Individual entry link", p.Links.Individual, "Anyone with it can enter on their own.").Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = linkBox("Link for entering on their own", p.Links.Individual, "Anyone with it can enter on their own, without a club.").Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -626,7 +626,7 @@ func CompetitionSettings(p SettingsPage) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = settingsGroup("individuals", "Individual entry").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = settingsGroup("individuals", "Entering on their own").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -648,7 +648,7 @@ func CompetitionSettings(p SettingsPage) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if p.Competition.Individuals {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "<input type=\"hidden\" name=\"on\" value=\"0\"> <button class=\"button is-small\" type=\"submit\">Stop individual entries</button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "<input type=\"hidden\" name=\"on\" value=\"0\"> <button class=\"button is-small\" type=\"submit\">Stop entries on their own</button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
