@@ -873,3 +873,19 @@ details > summary.button::before, details > summary.no-arrow::before, .routine-m
 .button.is-success[disabled], fieldset[disabled] .button.is-success { background-color: #257953; }
 .has-text-primary { color: #00796b !important; }
 .has-text-success { color: #257953 !important; }
+
+/* Wide tables on a phone (class comp-stack): each row becomes a card, the first cell
+   its title and each other cell a line labelled from its data-label, so problems and
+   row actions don't sit off to the right. Rows the list search hides stay hidden. */
+@media screen and (max-width: 768px) {
+  table.comp-stack, table.comp-stack > tbody, table.comp-stack > tbody > tr, table.comp-stack > tbody > tr > td { display: block; width: 100%; }
+  table.comp-stack > thead { display: none; }
+  table.comp-stack > tbody > tr { border: 1px solid #dbdbdb; border-radius: 6px; padding: 0.5rem 0.75rem; margin-bottom: 0.6rem; }
+  table.comp-stack > tbody > tr[hidden] { display: none; }
+  table.comp-stack > tbody > tr > td { border: 0; padding: 0.15rem 0; white-space: normal; min-width: 0; }
+  table.comp-stack > tbody > tr > td:first-child { font-weight: 600; }
+  table.comp-stack > tbody > tr > td[data-label]::before { content: attr(data-label) ": "; font-weight: 600; color: #555; }
+  table.comp-stack > tbody > tr > td:empty { display: none; }
+  table.comp-stack > tbody > tr > td[data-label] > form { display: inline-block; vertical-align: middle; }
+  .table-container:has(> table.comp-stack) { overflow: visible; }
+}
