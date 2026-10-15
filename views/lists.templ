@@ -123,25 +123,24 @@ templ listTools(t ListTools) {
 templ listControls(t ListTools) {
 	<div class="comp-list-controls">
 		<input class="input is-small comp-list-search" type="search" placeholder="Find a name" aria-label="Find a name" data-list-search autocomplete="off" { searchAttrs(t)... }/>
-		for _, f := range t.Filters {
-			<div class="select is-small">
-				<select aria-label={ f.Label } data-list-filter={ f.Key } data-at-least?={ f.AtLeast } { filterAttrs(t, f)... }>
-					<option value="">{ f.Any }</option>
-					for _, group := range listGroups(f.Options) {
-						if group[0].Group != "" {
-							<optgroup label={ group[0].Group }>
-								for _, o := range group {
-									<option value={ o.Value } selected?={ o.Value == f.Value }>{ o.Label }</option>
-								}
-							</optgroup>
-						} else {
-							for _, o := range group {
-								<option value={ o.Value } selected?={ o.Value == f.Value }>{ o.Label }</option>
-							}
-						}
+		// More than a few filters go under a Filters button, saying how many
+		// are on, so they don't fill a row of their own.
+		if len(t.Filters) > maxInlineFilters {
+			<details class="comp-popup comp-popup-left comp-list-filters" data-menu>
+				<summary class="button is-small comp-opens-button">
+					Filters
+					<span class="tag is-link is-light ml-1" data-list-filters-on hidden?={ filtersOn(t) == 0 }>{ strconv.Itoa(filtersOn(t)) }</span>
+				</summary>
+				<div class="comp-popup-panel comp-list-filter-panel">
+					for _, f := range t.Filters {
+						@listFilter(t, f)
 					}
-				</select>
-			</div>
+				</div>
+			</details>
+		} else {
+			for _, f := range t.Filters {
+				@listFilter(t, f)
+			}
 		}
 		{ children... }
 		if t.Form {
@@ -157,6 +156,43 @@ templ listControls(t ListTools) {
 		}
 	</p>
 	<p class="has-text-grey is-size-7" data-list-none hidden?={ !t.Form || t.Shown > 0 }>Nobody matches.</p>
+}
+
+// maxInlineFilters is how many filters a list shows in its row; more go
+// under a Filters button.
+const maxInlineFilters = 3
+
+// filtersOn counts a list's filters that are chosen.
+func filtersOn(t ListTools) int {
+	n := 0
+	for _, f := range t.Filters {
+		if f.Value != "" {
+			n++
+		}
+	}
+	return n
+}
+
+// listFilter is one of a list's filters: a select of its options.
+templ listFilter(t ListTools, f ListFilter) {
+	<div class="select is-small">
+		<select aria-label={ f.Label } data-list-filter={ f.Key } data-at-least?={ f.AtLeast } { filterAttrs(t, f)... }>
+			<option value="">{ f.Any }</option>
+			for _, group := range listGroups(f.Options) {
+				if group[0].Group != "" {
+					<optgroup label={ group[0].Group }>
+						for _, o := range group {
+							<option value={ o.Value } selected?={ o.Value == f.Value }>{ o.Label }</option>
+						}
+					</optgroup>
+				} else {
+					for _, o := range group {
+						<option value={ o.Value } selected?={ o.Value == f.Value }>{ o.Label }</option>
+					}
+				}
+			}
+		</select>
+	</div>
 }
 
 // searchAttrs are the search's form field, when the server filters.

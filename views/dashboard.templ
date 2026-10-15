@@ -117,7 +117,6 @@ templ CompetitionDashboard(d Dashboard) {
 		if d.Notice != "" {
 			<div class="notification is-success is-light">{ d.Notice }</div>
 		}
-		@competitionFacts(d.Competition)
 		if !d.Access.Organiser {
 			<p class="is-size-7 has-text-grey mb-3">You're using the link for <strong>{ d.Access.Who }</strong>.</p>
 		}
@@ -127,47 +126,26 @@ templ CompetitionDashboard(d Dashboard) {
 				<button class="button is-small ml-2" type="submit">Notify now</button>
 			</form>
 		}
-		if d.Access.Settings {
-			@liveBox(d.Base, d.Competition, d.LiveDate, d.LiveTime, "")
-		}
-		<nav class="level is-mobile comp-counts">
-			@count(d.Entries, "entries")
-			@count(d.WithProblems, "with problems")
-			@count(d.Unchecked, "not checked")
-			if d.Withdrawn > 0 {
-				@count(d.Withdrawn, "withdrawn")
-			}
-			@count(len(d.Clubs), "clubs")
-		</nav>
-		@concernsBox(d.Base, d.Concerns, d.OpenConcerns, d.Access)
-		if !d.Access.Organiser {
-			@concernForm(d.Base, "", "Flag a concern for the organiser")
-		}
-		if d.Entries > 0 || (d.Access.Sheets && !d.Access.Timetable) {
-			<div class="comp-dash-actions">
-				@dashboardPrint(d)
-				if d.Entries > 0 {
-					// The CSV follows the search and filters, as printing does.
-					<a class="button is-small" href={ templ.SafeURL(d.Base + "/entries.csv" + filterQuery(d, "")) } download data-list-carry>
-						if filtered(d) {
-							Download CSV of those shown
-						} else {
-							Download CSV
-						}
-					</a>
-				}
-			</div>
+		// The entries come first; open concerns are a line here, listed below them.
+		if d.OpenConcerns > 0 {
+			<p class="mb-3">
+				<a href="#concerns">
+					@StateChip(Attention, Count(d.OpenConcerns, "concern open", "concerns open"))
+				</a>
+				<span class="is-size-7 has-text-grey ml-1">Below the entries.</span>
+			</p>
 		}
 		if d.Entries == 0 {
 			<p class="has-text-grey">No entries yet. Clubs send theirs through the club link; gymnasts on their own enter through theirs.</p>
-		} else if d.Access.Remove {
-			@removeForm(d.Base)
 		}
 		@dashboardFilters(d)
 		if len(d.Levels) > 0 {
 			<div class="buttons mt-4 mb-0">
 				<button class="button is-small" type="button" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = true)">Expand all</button>
 				<button class="button is-small" type="button" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = false)">Collapse all</button>
+				if d.Entries > 0 {
+					@tableViewMenu("entries")
+				}
 			</div>
 		}
 		<div id="entries">
@@ -186,7 +164,7 @@ templ CompetitionDashboard(d Dashboard) {
 							<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) } data-list-carry>Print this level's cards</a>
 						</div>
 						<div class="table-container">
-							<table class="table is-fullwidth is-narrow comp-table comp-entries comp-stack">
+							<table class="table is-fullwidth is-narrow comp-table comp-entries comp-stack" data-table-view="entries">
 								<thead>
 									<tr>
 										if d.Access.Remove {
@@ -270,7 +248,7 @@ templ CompetitionDashboard(d Dashboard) {
 													} else {
 														@StateChip(signoffState(r.Signoff))
 														if r.Signoff.By != "" {
-															@WhoChip(RoleCoach, r.Signoff.By)
+															@WhoLink(RoleCoach, r.Signoff.By, r.Signoff.Link)
 														}
 													}
 												</td>
@@ -294,6 +272,45 @@ templ CompetitionDashboard(d Dashboard) {
 				</details>
 			}
 		</div>
+		// Then the rest: printing and the CSV (following the search and
+		// filters), removing or holding those ticked, concerns, and the
+		// competition's facts and counts.
+		if d.Entries > 0 || (d.Access.Sheets && !d.Access.Timetable) {
+			<div class="comp-dash-actions mt-5">
+				@dashboardPrint(d)
+				if d.Entries > 0 {
+					<a class="button is-small" href={ templ.SafeURL(d.Base + "/entries.csv" + filterQuery(d, "")) } download data-list-carry>
+						if filtered(d) {
+							Download CSV of those shown
+						} else {
+							Download CSV
+						}
+					</a>
+				}
+			</div>
+		}
+		if d.Entries > 0 && d.Access.Remove {
+			@removeForm(d.Base)
+		}
+		@concernsBox(d.Base, d.Concerns, d.OpenConcerns, d.Access)
+		if !d.Access.Organiser {
+			@concernForm(d.Base, "", "Flag a concern for the organiser")
+		}
+		<section class="comp-dash-about mt-5">
+			@competitionFacts(d.Competition)
+			if d.Access.Settings {
+				@liveBox(d.Base, d.Competition, d.LiveDate, d.LiveTime, "")
+			}
+			<nav class="level is-mobile comp-counts">
+				@count(d.Entries, "entries")
+				@count(d.WithProblems, "with problems")
+				@count(d.Unchecked, "not checked")
+				if d.Withdrawn > 0 {
+					@count(d.Withdrawn, "withdrawn")
+				}
+				@count(len(d.Clubs), "clubs")
+			</nav>
+		</section>
 		@waitingBox(d.Base, d.Waiting, d.Access.Settings)
 		if d.Access.Remove {
 			@removedList(d.Base, d.Removed)
@@ -485,6 +502,23 @@ templ dashboardPrint(d Dashboard) {
 	</details>
 }
 
+// tableViewMenu is how the tables marked data-table-view={ id } show: which
+// columns, and long text wrapped or clipped; dragging a heading's edge
+// resizes its column. static/js/tables.js fills it in and keeps the choice in
+// this browser.
+templ tableViewMenu(id string) {
+	<details class="comp-popup comp-popup-left" data-menu data-table-menu={ id }>
+		<summary class="button is-small comp-opens-button">Columns</summary>
+		<div class="comp-popup-panel comp-table-menu">
+			<p class="comp-table-menu-head">Show</p>
+			<div data-table-columns></div>
+			<label class="checkbox comp-table-menu-row comp-table-menu-clip"><input type="checkbox" data-table-clip/> Clip long text to one line</label>
+			<p class="comp-table-menu-help">Drag the edge of a heading to make a column wider or narrower.</p>
+			<button class="button is-small is-text" type="button" data-table-reset>Back to how it was</button>
+		</div>
+	</details>
+}
+
 // removeForm removes or holds the entries ticked in the tables.
 templ removeForm(base string) {
 	@opens("", "", "Remove or hold entries", false) {
@@ -553,8 +587,8 @@ templ removedList(base string, rows []RemovedRow) {
 	}
 }
 
-// dashboardFilters are the ways to find entries: search, filters, sorting,
-// and a list of the levels to jump to.
+// dashboardFilters are the ways to find entries: search, filters and
+// sorting. The levels open and close, so there's no list of them to jump to.
 templ dashboardFilters(d Dashboard) {
 	@listTools(dashboardTools(d)) {
 		<div class="select is-small">
@@ -568,15 +602,6 @@ templ dashboardFilters(d Dashboard) {
 			</select>
 		</div>
 	}
-	<p class="is-size-7 mb-3">
-		Jump to:
-		for i, l := range d.Levels {
-			if i > 0 {
-				·
-			}
-			<a href={ templ.SafeURL("#" + l.Anchor) } onclick={ openLevel(l.Anchor) }>{ l.Name } ({ shownCount(d, l) })</a>
-		}
-	</p>
 }
 
 // dashboardTools are the entries' search and filters, sent to the server so
@@ -630,11 +655,4 @@ func problemsValue(only bool) string {
 		return "1"
 	}
 	return ""
-}
-
-// openLevel opens a level's table when jumping to it.
-
-script openLevel(id string) {
-	const d = document.getElementById(id);
-	if (d) { d.open = true; }
 }

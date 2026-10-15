@@ -24,6 +24,7 @@ const (
 	menuTimetable = "/timetable"
 	menuSetup     = "/timetable/setup"
 	menuOfficials = "/officials"
+	menuTimeline  = "/timetable/timeline"
 	menuSimulate  = "/timetable/simulate"
 	menuDelay     = "/timetable/delay"
 	menuLeave     = "/timetable/leave"
@@ -125,6 +126,9 @@ func orgMenu(base string, a views.Access, m menuState, current string) []views.M
 		items := []views.MenuItem{item("Timetable", menuTimetable, ""), item("Setup", menuSetup, "")}
 		if a.Officials {
 			items = append(items, item("Officials", menuOfficials, ""))
+		}
+		if m.Planned {
+			items = append(items, item("Panel timeline", menuTimeline, ""))
 		}
 		items = append(items, item("Simulate", menuSimulate, ""))
 		if m.Planned {

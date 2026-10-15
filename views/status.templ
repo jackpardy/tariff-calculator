@@ -71,9 +71,25 @@ templ StateChip(s State, label string) {
 // given ("Coach · Declan Ward").
 templ WhoChip(r Role, name string) {
 	<span class={ "chip", "chip-who", "chip-who-" + string(r) }>
-		<span class="chip-role">{ r.word() }</span>
-		if name != "" {
-			<span class="chip-name">· { name }</span>
-		}
+		@whoChipText(r, name)
 	</span>
+}
+
+// WhoLink is WhoChip as a link to the person's page, where the page's link
+// has one (href); the plain chip where it hasn't ("").
+templ WhoLink(r Role, name, href string) {
+	if href == "" {
+		@WhoChip(r, name)
+	} else {
+		<a class={ "chip", "chip-who", "chip-who-" + string(r), "chip-link" } href={ templ.SafeURL(href) }>
+			@whoChipText(r, name)
+		</a>
+	}
+}
+
+templ whoChipText(r Role, name string) {
+	<span class="chip-role">{ r.word() }</span>
+	if name != "" {
+		<span class="chip-name">· { name }</span>
+	}
 }

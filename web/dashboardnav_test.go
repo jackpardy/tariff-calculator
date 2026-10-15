@@ -36,8 +36,17 @@ func TestDashboardNavigation(t *testing.T) {
 	if !strings.Contains(page, `aria-label="Tick Dara O&#39;Néill"`) || strings.Contains(page, `aria-label="Tick Ann Ryan"`) || !strings.Contains(page, "1 of 3 entries") {
 		t.Error("searching finds Dara only")
 	}
-	if !strings.Contains(page, "(1 of 3)") || !strings.Contains(page, `href="#level-0"`) || !strings.Contains(page, `id="level-0"`) {
-		t.Error("each level says how many are shown, and can be jumped to")
+	// The levels open and close, so there's no list of them to jump to; the
+	// entries come before the competition's facts and counts.
+	if !strings.Contains(page, "(1 of 3)") || strings.Contains(page, `href="#level-0"`) || strings.Contains(page, "Jump to") || !strings.Contains(page, `id="level-0"`) {
+		t.Error("each level says how many are shown, with no jump list")
+	}
+	if e, about := strings.Index(page, `<div id="entries">`), strings.Index(page, `class="comp-dash-about`); e < 0 || about < e || strings.Index(page, "comp-counts") < e {
+		t.Error("the entries come first, the facts and counts after them")
+	}
+	// Its many filters are under a Filters button, counting those on.
+	if f := shows("checked=yes&signedoff=no"); !strings.Contains(f, `<summary class="button is-small comp-opens-button">Filters <span class="tag is-link is-light ml-1" data-list-filters-on>2</span>`) {
+		t.Error("the filters are under a button saying 2 are on")
 	}
 	// The search and filters are the shared list tools, sent to the server.
 	for _, want := range []string{`data-list-tools="entries" data-noun="entries" data-total="3" data-form`, `placeholder="Find a name"`, `name="q" value="oneill"`,

@@ -139,6 +139,13 @@ func newDirectory(entries []store.Entry, officials []store.Official, sent []stor
 			coaching(coach(k, e.CoachName(), e.ClubName), e)
 		}
 	}
+	// A coach who signed an entry off though the competition hasn't approved
+	// them is someone at it too, to see before approving them.
+	for _, e := range entries {
+		if k := e.SignerKey(); k != "" && e.Unapproved {
+			coaching(coach(k, e.SignedBy, e.ClubName), e)
+		}
+	}
 	for i := range named {
 		if k := store.NamedCoachKey(named[i].Name); k != "" {
 			dp := coach(k, named[i].Name, "")

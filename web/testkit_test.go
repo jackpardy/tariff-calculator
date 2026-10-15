@@ -350,7 +350,15 @@ func whoChip(t *testing.T, r views.Role, name string) string {
 // signedOffBy says a page shows an entry signed off by the coach named.
 func signedOffBy(t *testing.T, page, coach string) bool {
 	t.Helper()
-	return strings.Contains(page, chip(t, views.Done, "Signed off")) && strings.Contains(page, whoChip(t, views.RoleCoach, coach))
+	return strings.Contains(page, chip(t, views.Done, "Signed off")) && strings.Contains(page, whoChipText(t, views.RoleCoach, coach))
+}
+
+// whoChipText is what a role chip naming someone says, as a plain chip or
+// as a link to their page (views.WhoLink).
+func whoChipText(t *testing.T, r views.Role, name string) string {
+	t.Helper()
+	c := whoChip(t, r, name)
+	return strings.TrimSuffix(c[strings.Index(c, ">")+1:], "</span>")
 }
 
 func chip(t *testing.T, s views.State, label string) string {

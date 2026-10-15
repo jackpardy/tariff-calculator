@@ -191,7 +191,8 @@ func TestClubCoachesListFilters(t *testing.T) {
 			t.Errorf("the tools have %s", want)
 		}
 	}
-	if n := strings.Count(page, "<tbody data-list-row="); n != 3 {
+	// One tbody a coach, with an id for their chip to link to.
+	if n := len(regexp.MustCompile(`<tbody id="coach-[^"]+" class="comp-target" data-list-row=`).FindAllString(page, -1)); n != 3 {
 		t.Errorf("each coach's two table rows are one tbody: %d", n)
 	}
 	if !strings.Contains(page, `action="`+s.club+`/coaches"`) || !strings.Contains(page, "Coaches sign off members' routines") {

@@ -430,7 +430,7 @@ templ dayCardFlight(p DayPage, a DayArea, f DayFlight) {
 				@dayFlightForm(p, f, false)
 			case f.CanFinish && f.Up != nil && f.Up.Name != "" && !f.Up.Last:
 				<div class="comp-up">
-					@dayUpForm(p, f)
+					@dayUpForm(p, f, true)
 				</div>
 			case f.CanFinish:
 				@dayFlightForm(p, f, false)
@@ -562,7 +562,7 @@ templ dayFlightBody(p DayPage, f DayFlight, open bool) {
 			</details>
 		}
 	}
-	if !f.CanStart && (f.CanFinish || f.Undo != "") {
+	if !f.CanStart && (f.CanFinish || f.Undo != "") && !finishesHere(f) {
 		@dayFlightForm(p, f, true)
 	}
 	if p.Correct {
@@ -581,7 +581,7 @@ templ dayFlightForm(p DayPage, f DayFlight, undo bool) {
 			<button class="button is-success" type="submit" name="what" value="start">Started</button>
 		}
 		if f.CanFinish {
-			<button class="button is-success" type="submit" name="what" value="finish">Finished</button>
+			<button class={ "button is-success", templ.KV("is-medium", finishesHere(f)) } type="submit" name="what" value="finish">Finished</button>
 		}
 		if undo && f.Undo != "" {
 			// Says which, so the same tap sent twice takes back only the one.
@@ -735,22 +735,38 @@ templ dayUp(p DayPage, f DayFlight) {
 				<strong>{ f.Up.Routine }</strong>
 			</p>
 		}
-		@dayUpForm(p, f)
-		if f.Up.Last {
+		if finishesHere(f) {
+			// The last routine: Finished takes Next gymnast's place, Back beside it.
+			<div class="comp-up-last">
+				@dayFlightForm(p, f, true)
+				// Back, if there's one to go back to; the form stays either way, for a tap kept on the phone.
+				@dayUpForm(p, f, false)
+			</div>
 			<p class="is-size-7 mt-2">The flight's last routine: tap Finished once it's done.</p>
+		} else {
+			@dayUpForm(p, f, true)
 		}
 	</div>
 }
 
-// dayUpForm is Next gymnast, and Back: what's posted is who the page
-// showed, so the same tap sent twice moves once.
-templ dayUpForm(p DayPage, f DayFlight) {
+// finishesHere reports whether a flight's Finished goes where Next gymnast
+// was: its last routine is on.
+func finishesHere(f DayFlight) bool {
+	return f.CanFinish && f.Up != nil && !f.Up.Waiting && f.Up.Name != "" && f.Up.Last
+}
+
+// dayUpForm is Next gymnast (unless next is false: the last routine is on),
+// and Back: what's posted is who the page showed, so the same tap sent twice
+// moves once.
+templ dayUpForm(p DayPage, f DayFlight, next bool) {
 	<form method="post" action={ templ.SafeURL(p.Base + "/day/up") } class="buttons mb-0" data-tap={ "up:" + f.Key }>
 		<input type="hidden" name="flight" value={ f.Key }/>
 		@dayFields(p)
 		<input type="hidden" name="entry" value={ f.Up.Entry }/>
 		<input type="hidden" name="round" value={ f.Up.Round }/>
-		<button class="button is-link is-medium" type="submit" name="what" value="next">Next gymnast</button>
+		if next {
+			<button class="button is-link is-medium" type="submit" name="what" value="next">Next gymnast</button>
+		}
 		if f.Up.CanBack {
 			<button class="button is-light is-small" type="submit" name="what" value="back">Back</button>
 		}

@@ -79,8 +79,12 @@ func TestNowOn(t *testing.T) {
 			actual: map[string]competitions.Actual{key(a): {Started: at(16, 9, 0), Finished: at(16, 10, 40)}}},
 		{what: "running late past the end of the plan: never blank while flights are left", now: at(16, 15, 0), area: "Floor 1", on: "C", planned: true, next: "-",
 			actual: map[string]competitions.Actual{key(a): {Started: at(16, 9, 0), Finished: at(16, 10, 0)}, key(b): {Started: at(16, 10, 0), Finished: at(16, 14, 50)}}},
-		{what: "marked on another date doesn't count", now: at(16, 9, 30), area: "Floor 1", on: "A", planned: true, next: "B",
+		{what: "marked on another date counts, as on the day's pages", now: at(16, 9, 30), area: "Floor 1", on: "A", next: "B",
 			actual: map[string]competitions.Actual{key(a): {Started: at(15, 9, 0)}}},
+		{what: "finished on another date: the next flight is next, not the finished one", now: at(14, 9, 30), area: "Floor 1", on: "-", next: "B",
+			actual: map[string]competitions.Actual{key(a): {Started: at(14, 9, 0), Finished: at(14, 9, 20)}}},
+		{what: "started on another date: it's on now", now: at(14, 9, 30), area: "Floor 1", on: "B", next: "C",
+			actual: map[string]competitions.Actual{key(a): {Started: at(14, 9, 0), Finished: at(14, 9, 20)}, key(b): {Started: at(14, 9, 25)}}},
 	} {
 		got := nowOn(s, 0, tc.area, first, tc.actual, tc.now)
 		if name(got.Flight) != tc.on || got.Planned != tc.planned || got.Break != tc.brk || name(got.Next) != tc.next {
@@ -144,14 +148,18 @@ func TestVenueScreen(t *testing.T) {
 		redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {what}, "day": {"0"}})
 	}
 
-	// Before the day: nothing on, each area's flight next, and a start
-	// tried out on the day page doesn't count.
-	redirected(t, h, admin+"/day/flight", url.Values{"flight": {panel}, "what": {"start"}, "day": {"0"}})
+	// Before the day: nothing on, each area's flight next.
 	got := cards()
 	for area, next := range map[string]string{"Panel 1": "BUCS L3", "Track 1": "Tumbling Novice"} {
 		if c := got[area]; c.Now != "—" || c.Next != next || c.WarmUp != "09:00" || c.Late != "" || c.Finished {
 			t.Errorf("before the day, %s: %+v", area, c)
 		}
+	}
+	// A start tried out on the day page shows, as it does there, until it's
+	// taken back.
+	redirected(t, h, admin+"/day/flight", url.Values{"flight": {panel}, "what": {"start"}, "day": {"0"}})
+	if c := cards()["Panel 1"]; c.Now != "BUCS L3" || c.Planned {
+		t.Errorf("before the day, started on the day page: %+v", c)
 	}
 	redirected(t, h, admin+"/day/flight", url.Values{"flight": {panel}, "what": {"undo-start"}, "day": {"0"}})
 

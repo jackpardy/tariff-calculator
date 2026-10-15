@@ -40,8 +40,13 @@ func TestPanelTimeline(t *testing.T) {
 		t.Errorf("no CSV before planning: %q", loc)
 	}
 	page := do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
-	if !strings.Contains(page, "/timetable/print?sheet=timeline") {
-		t.Error("the timetable links to the timeline")
+	// The timeline is a page of the Timetable menu, not one of the sheets to print.
+	if !strings.Contains(page, `/timetable/timeline"`) || strings.Contains(page, "sheet=timeline") {
+		t.Error("the timetable's menu has the timeline, its Print menu doesn't")
+	}
+	menuPage := do(t, h, http.MethodGet, tt+"/timeline?officials=1", nil).Body.String()
+	if !strings.Contains(menuPage, `class="comp-menu`) || !strings.Contains(menuPage, "Timeline with officials") || !strings.Contains(menuPage, `/timetable/timeline">Without officials</a>`) || strings.Contains(menuPage, "← Timetable") {
+		t.Error("the timeline page has the menu and switches to without officials")
 	}
 	// Lunch takes both areas; the day runs to 18:00.
 	if !strings.Contains(page, "<strong>Day 1</strong> flights end 09:27, finishes 12:45 of 18:00 · 7h 48m free after flights") {

@@ -366,8 +366,19 @@ private. Competitions made before this went live when they were made.
 
 ## Dashboard
 
-There is one table per level (event), each folding away under its heading,
-which says how many are shown ("12 of 96"); a list at the top jumps to each.
+The entries come first: the search and filters, then one table per level
+(event), each folding away under its heading, which says how many are shown
+("12 of 96"); no list jumps to them, as they fold and the search finds
+anyone. Open concerns are a chip at the top linking to them, below the
+entries; then Print and Download CSV, Remove or hold, the concerns, and the
+competition's facts and counts. More than three filters (`maxInlineFilters`
+in `views/lists.templ`) sit under a **Filters** button saying how many are
+on, on any list. The tables have a **Columns** menu (`static/js/tables.js`):
+tick which columns show (the gymnast's always does), **Clip long text to one
+line**, and drag a heading's edge to resize its column; kept in the browser
+for every level's table, and on a phone (where they're cards) only hidden
+columns count. Any table that scrolls sideways shows a line at the edge
+with more to see.
 Levels start folded, with **Expand all** and **Collapse all**; the browser
 remembers which were left open, and a search or filter opens the levels it
 finds people in. Finding entries (roadmap 2026-10-08), all in
@@ -420,6 +431,12 @@ and no Bulma colour for a state (buttons keep theirs):
 | Every entry card (step 3: the organiser's, the comp sec's, a member's, an individual's, a coach's sign-off page) | the sign-off, as on the rows (signed off, waiting, needs changes, coach not approved); No problems found | the coach who signed off |
 | Late changes (an entry's row, the comp sec's rows, asking for one) | asked and waiting, accepted, or not accepted, as a "Late change" chip before what it is | |
 | An individual's competition page | checked by the organiser; fees paid | |
+
+A chip opens what it's about where the link has a page for it
+(`views.WhoLink`; 2026-10-16): on the organiser's entries a coach's chip
+opens their page in People, and on the comp sec's a problems chip opens the
+entry, with its problems, and a coach's chip their row on the club's Coaches
+page (`coach-<id>`, picked out for a moment).
 
 On the day, a panel now lists its empty seats too, once anyone has a seat on
 it (`panelOf`); the counts are worked out on the page from the rows
@@ -728,8 +745,9 @@ are then filled flight by flight.
   filled in by `static/js/fill.js` when it opens; left on "Choose a gymnast"
   or "Choose a flight", nothing changes), and **Move or redraw** opening **Redraw order**, **Earlier**, and a dropdown
   labelled **Move to** ("Move the event to") with **Move** or **Move
-  event**. At the top of the timetable, **Jump to** links
-  to each day and its areas and to **Find a name**, which searches the
+  event**. At the top of the timetable, a line of links to each day (or,
+  for one day, its areas), with each day's own areas linked under its
+  heading, since days can use different areas, and **Find a name**, which searches the
   running orders, the gymnasts not in a flight and the seated officials,
   hiding days, areas, flights and blocked time with nobody it finds and
   opening the Panel lists with someone. Changing the setup marks the
@@ -742,7 +760,10 @@ are then filled flight by flight.
   phone a sheet's table (and the rota's) scrolls sideways in its own box,
   and the toolbar wraps, so the page doesn't and **Print / Save as PDF**
   stays on screen; printed, nothing changes.
-- **Panel timeline:** time running down at an even scale (a grid row a
+- **Panel timeline:** a page of the Timetable menu once it's planned
+  (`/timetable/timeline`, `?officials=1` with officials), to look at as much
+  as to print, not in the Print menu; a chair of judges' link prints it from
+  the entries page as before. Time runs down at an even scale (a grid row a
   minute), so every area and day lines up by time. Two views:
   - **Panel timeline:** every day side by side, a column per area, each
     flight (warm-up to finish, how many gymnasts) and blocked time. Prints
@@ -1054,8 +1075,10 @@ from the level (`competitions.RoutineNames`): "Set" for an exercise whose option
 "Voluntary" for one whose options are all requirements, when the two
 exercises differ; otherwise "1st routine" and "2nd routine" (two voluntaries,
 mixed options, synchro, or a level that can't be read), and "1st pass" and
-"2nd pass" for tumbling and DMT. Next gymnast at the last routine changes
-nothing and says "That was the last routine in … Tap Finished once it's
+"2nd pass" for tumbling and DMT. With the flight's last routine on, the
+area page shows **Finished** (as big) where Next gymnast was, with Back
+beside it, and the bottom Finished goes. Next gymnast at the last routine
+(a tap kept on a phone) changes nothing and says "That was the last routine in … Tap Finished once it's
 done."; the box also says it's the flight's last routine. It never finishes
 the flight. Back at the first gymnast (or before the first tap), and either tap
 on a flight that isn't running, are ignored with a notice. **Undo** that takes
@@ -1223,7 +1246,10 @@ Each card has:
   late, so an area running late never goes blank while it has flights left.
   Else the name of a block covering now (a block with no areas is on all of
   them); else "—". Planned windows and blocks only count on the day shown;
-  times marked on another date don't count. Under it, the flight's gymnasts
+  times marked count whatever date they were marked, as on On the day's
+  pages, so a flight marked finished is never shown as next (a start tried
+  out before the day shows until it's taken back with Undo or Correct the
+  times). Under it, the flight's gymnasts
   in running order with their clubs (none for those entering on their own),
   scratched ones struck through.
 - **On now** and **Up next**, only for a flight marked started and only
@@ -1261,7 +1287,9 @@ a line across the top of every venue screen ("Lunch extended by 15 minutes",
 up to 160 characters) for 15 or 30 minutes, an hour, or until someone takes
 it down. Phones aren't told. The page lists what's up, by whom and until
 when, each with **Take down**. They show even before the timetable is
-published, latest first. The history records each one put up and taken
+published, latest first, one at a time: with several, each shows for 8
+seconds in turn, counted ("2 of 3"), so they never push the areas down
+(`static/js/screen.js`). The history records each one put up and taken
 down. The links that can send desk messages can do this too. A competition
 keeps its latest 50 announcements, shown or not (`store.MaxScreenNotices`;
 `store/screennotices.go`, `web/screennotices.go`).

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"tariffCalculator/competitions"
@@ -427,6 +428,9 @@ func (p *competitionPages) clubSettingsPart(r *http.Request, club store.Club, pa
 	return err
 }
 
+// coachAnchor is a coach's row's id on the club's Coaches page.
+func coachAnchor(id string) string { return "coach-" + id }
+
 // clubCompetitions are the competitions the club is entered in, each with its
 // members' entries and what the comp sec can send.
 func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, base string, members []store.Member, coaches []store.Coach,
@@ -470,6 +474,10 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			has[e.MemberID] = true
 			toSend := cc.ToSend // counted on, if this one is to send
 			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Event(), Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
+			// The coach's chip opens their row on the club's Coaches page.
+			if i := slices.IndexFunc(coaches, func(co store.Coach) bool { return co.Name == e.SignedBy }); e.SignedBy != "" && i >= 0 {
+				row.Signoff.Link = base + "/coaches#" + coachAnchor(coaches[i].ID)
+			}
 			rem, removed := removals[e.MemberID+"/"+e.Discipline]
 			place := waitingPlace[e.MemberID+"/"+e.Discipline]
 			state := memberState(e, rem, removed, place)

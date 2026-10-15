@@ -389,7 +389,14 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 									<td data-label="Problems">
 										// Empty when there are none, so a phone's card leaves the line out.
 										if row.Problems > 0 {
-											@StateChip(Attention, Count(row.Problems, "problem", "problems"))
+											// Opens the entry, where its problems are listed.
+											if row.Edit != "" {
+												<a href={ templ.SafeURL(row.Edit) } title="See the problems">
+													@StateChip(Attention, Count(row.Problems, "problem", "problems"))
+												</a>
+											} else {
+												@StateChip(Attention, Count(row.Problems, "problem", "problems"))
+											}
 										}
 									</td>
 									<td data-label="Status">
@@ -418,7 +425,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 											<span title={ row.Signoff.Note }>
 												@StateChip(signoffState(row.Signoff))
 												if row.Signoff.By != "" {
-													@WhoChip(RoleCoach, row.Signoff.By)
+													@WhoLink(RoleCoach, row.Signoff.By, row.Signoff.Link)
 												}
 											</span>
 										}
@@ -619,7 +626,7 @@ templ ClubCoaches(c ClubPage) {
 				<div class="table-container">
 					<table class="table is-fullwidth is-narrow comp-coaches" id={ c.CoachesTools.ID }>
 						for _, coach := range c.Coaches {
-							<tbody { coach.List.Attrs()... }>
+							<tbody id={ "coach-" + coach.ID } class="comp-target" { coach.List.Attrs()... }>
 								<tr>
 									<td>
 										{ coach.Name }

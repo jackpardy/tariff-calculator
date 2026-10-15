@@ -2,7 +2,8 @@
 // every 30 seconds and swaps in what it shows, keeping the last one that
 // loaded when the connection drops, and says so once it's more than a minute
 // old. The clock ticks on from the server's time, in the competition's time
-// zone, whatever the screen's own clock says. The cards' text shrinks until
+// zone, whatever the screen's own clock says. Announcements take turns, one
+// at a time, every 8 seconds. The cards' text shrinks until
 // everything fits, down to a size readable across a hall, then shows fewer
 // names, so no name is ever cut off unseen.
 (function () {
@@ -73,6 +74,21 @@
         }
     }
 
+    // Announcements take turns: the one shown changes every noticeEvery,
+    // and carries on in turn when the page is fetched again.
+    const noticeEvery = 8 * 1000;
+    let noticeAt = 0;
+    function showNotice() {
+        const notices = [...main.querySelectorAll('[data-notice]')];
+        if (notices.length === 0) { return; }
+        noticeAt %= notices.length;
+        notices.forEach((n, i) => { n.hidden = i !== noticeAt; });
+    }
+    function nextNotice() {
+        noticeAt++;
+        showNotice();
+    }
+
     async function refresh() {
         try {
             const response = await fetch(location.href, { cache: 'no-store' });
@@ -82,6 +98,7 @@
             if (!fresh) { return; }
             main.replaceWith(fresh);
             main = fresh;
+            showNotice();
             fit();
             lastLoaded = Date.now();
             offset = Number(main.dataset.at) - lastLoaded;
@@ -103,4 +120,5 @@
     tick();
     setInterval(tick, 1000);
     setInterval(refresh, every);
+    setInterval(nextNotice, noticeEvery);
 })();

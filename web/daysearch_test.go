@@ -128,16 +128,17 @@ func TestTimetableSearchAndJump(t *testing.T) {
 		t.Error("an empty seat isn't a row")
 	}
 
+	// One day: its areas, on one line.
 	links := jumpLinks(t, page)
-	if len(links) < 2 || links[0] != (jumpLink{"Day 1", "day-0"}) {
-		t.Fatalf("the first link goes to the day: %+v", links)
+	if len(links) < 2 {
+		t.Fatalf("a link to each area: %+v", links)
 	}
-	if find := strings.Index(page, `id="timetable-find"`); find < 0 || find > strings.Index(page, `href="#day-0"`) {
+	if find := strings.Index(page, `id="timetable-find"`); find < 0 || find > strings.Index(page, `class="comp-jump`) {
 		t.Error("Find a name is with the jumps, before them")
 	}
-	for _, l := range links[1:] {
+	for _, l := range links {
 		if l.Target != "day-0-"+areaID(l.Text) {
-			t.Errorf("then each of its areas: %+v", l)
+			t.Errorf("each of its areas: %+v", l)
 		}
 	}
 	jumpsLand(t, page, links)

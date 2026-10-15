@@ -209,6 +209,12 @@ func TestWhoIsUpNow(t *testing.T) {
 	if !strings.Contains(page, "last routine") || !strings.Contains(page, ">Finished</button>") {
 		t.Errorf("the last routine says to finish the flight: %s", page)
 	}
+	// Finished takes Next gymnast's place, once, with Back beside it.
+	if up := page[strings.Index(page, `class="comp-up mb-3"`):]; strings.Contains(page, ">Next gymnast</button>") ||
+		strings.Count(page, ">Finished</button>") != 1 || !strings.Contains(up[:strings.Index(up, "last routine")], ">Finished</button>") ||
+		!strings.Contains(page, ">Back</button>") || !strings.Contains(page, `class="button is-success is-medium"`) {
+		t.Errorf("the last routine: Finished where Next gymnast was, and Back: %s", page)
+	}
 	if got, want := strings.Join(shown(), " / "), order[3]+" · Voluntary"; got != want {
 		t.Errorf("nobody next after the last: %s", got)
 	}

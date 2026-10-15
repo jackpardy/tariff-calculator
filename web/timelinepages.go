@@ -256,17 +256,53 @@ func officialNames(people []competitions.RotaPerson, names map[string]string, wi
 	}
 }
 
-// printTimeline is the panel timeline, to print: without officials
-// (sheet=timeline), or with a column for each seat (sheet=timeline-officials).
-func printTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, now time.Time, officials bool) {
+// panelTimeline is the panel timeline: without officials, or with a column
+// for each seat. other is the address of the other kind, without its query.
+func panelTimeline(r *http.Request, c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, now time.Time, officials bool) views.Timeline {
 	_, names := peopleOf(entries)
 	t := timeline(s, officialNames(people, names, false), officials, nil)
 	t.Title, t.Back, t.CSV = "Panel timeline · "+c.Name, timetablePath(r), timetablePath(r)+"/timeline.csv"
 	t.Competition = summary(c.Competition, now)
-	t.Other, t.OtherLabel = timetablePath(r)+"/print?sheet=timeline-officials", "With officials"
 	if officials {
 		t.Title = "Timeline with officials · " + c.Name
+	}
+	return t
+}
+
+// printTimeline is the panel timeline as a printout, for a link that prints
+// the timetable's sheets: without officials (sheet=timeline), or with a
+// column for each seat (sheet=timeline-officials).
+func printTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, now time.Time, officials bool) {
+	t := panelTimeline(r, c, s, entries, people, now, officials)
+	t.Other, t.OtherLabel = timetablePath(r)+"/print?sheet=timeline-officials", "With officials"
+	if officials {
 		t.Other, t.OtherLabel = timetablePath(r)+"/print?sheet=timeline", "Without officials"
+	}
+	render(w, r, views.TimelinePrint(t))
+}
+
+// panelTimelinePage is the panel timeline as a page of the Timetable menu, to
+// look at as much as to print: officials=1 adds a column for each seat.
+func (p *competitionPages) panelTimelinePage(w http.ResponseWriter, r *http.Request) {
+	c, s, entries, ok := p.timetableOf(w, r)
+	if !ok {
+		return
+	}
+	if !s.Planned {
+		back(w, r, "Plan the timetable first.")
+		return
+	}
+	people, err := p.rotaOf(r, c, entries)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	officials := r.URL.Query().Get("officials") == "1"
+	t := panelTimeline(r, c, s, entries, people, p.now(), officials)
+	t.Menu = p.menuFor(r, c, menuTimeline)
+	t.Other, t.OtherLabel = timetablePath(r)+"/timeline?officials=1", "With officials"
+	if officials {
+		t.Other, t.OtherLabel = timetablePath(r)+"/timeline", "Without officials"
 	}
 	render(w, r, views.TimelinePrint(t))
 }
