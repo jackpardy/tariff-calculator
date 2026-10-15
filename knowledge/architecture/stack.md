@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: Technology stack
-description: Go 1.25 standard-library server, templ components, htmx 2, a little Alpine.js, SortableJS and Bulma, all vendored and embedded in one static binary, with SQLite on the way for competition entries.
+description: Go standard-library server (Go 1.26 toolchain), templ components, htmx 2, a little Alpine.js, SortableJS and Bulma, all vendored and embedded in one static binary, with SQLite for competition entries.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/go.mod
 tags: [architecture, go, templ, htmx, alpine]
 generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
@@ -11,7 +11,7 @@ generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 
 | Part | Choice | Notes |
 |---|---|---|
-| Language | Go 1.25 | Module `tariffCalculator`. |
+| Language | Go 1.26 (toolchain 1.26.9; the module allows 1.25) | Module `tariffCalculator`. |
 | HTTP | `net/http` (stdlib `ServeMux` with method patterns) | Timeouts and a 64 KB body/header limit; see [HTTP routes](http-routes.md). |
 | Templates | [templ](https://templ.guide) `v0.3.x` | Typed components in `views/*.templ`; the generated `*_templ.go` files are committed. The CLI is pinned as a `tool` in `go.mod`: `go tool templ generate`. |
 | Interactivity | htmx 2.0.x | Vendored in `static/js/htmx.min.js`; no CDN scripts. |
@@ -19,7 +19,7 @@ generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 | Reordering | SortableJS | Vendored. |
 | Styling | Bulma (vendored CSS) plus `styles.css`, `sheet.css` for print. | |
 | QR codes | `rsc.io/qr` | [Sharing](../features/sharing.md). |
-| Storage | Browser `localStorage`; SQLite (`modernc.org/sqlite`, pure Go) for competition entries | The `store` package is built and tested but not used by any page yet ([ADR 0004](../../docs/adr/0004-server-storage-secret-links.md)). Pinned to v1.59 because later versions need Go 1.26. No accounts. |
+| Storage | Browser `localStorage`; SQLite (`modernc.org/sqlite`, pure Go) for competition entries | Live since 2026-10-06, on when `DATA_DIR` is set ([ADR 0004](../../docs/adr/0004-server-storage-secret-links.md)). Pinned to v1.59, from when the toolchain was Go 1.25; later versions now build too. No accounts. |
 
 # Packages
 
