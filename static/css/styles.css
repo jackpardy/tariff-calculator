@@ -280,6 +280,31 @@
 .requirement-picker { margin-bottom: 1rem; }
 .requirement-picker-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .requirement-picker .select select { max-width: 18rem; }
+/* The builder's choosers (views/chooser.templ): a button showing what's chosen, with
+   an arrow, opening a panel under its row with a search, your own, used lately, and
+   each organisation's. */
+.chooser-button { max-width: 100%; justify-content: space-between; gap: 0.5rem; }
+.chooser-chosen { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 18rem; }
+.chooser-arrow { display: inline-block; width: 0.55em; height: 0.55em; background: currentColor; clip-path: polygon(0 15%, 100% 15%, 50% 100%); transition: transform 0.15s ease; }
+.chooser-button[aria-expanded="true"] .chooser-arrow { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .chooser-arrow { transition: none; } }
+.chooser-panel { margin: 0.5rem 0 1rem; padding: 0.6rem; border: 1px solid #dbdbdb; border-radius: 8px; background: #fafafa; max-height: 24rem; overflow-y: auto; }
+.chooser-search { margin-bottom: 0.5rem; }
+.chooser-section { margin-bottom: 0.5rem; }
+.chooser-heading { font-size: 0.75rem; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.03em; margin: 0.25rem 0.25rem 0.3rem; }
+.chooser-option { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; width: 100%; min-height: 2.25rem; padding: 0.3rem 0.6rem; margin-bottom: 0.25rem; border: 1px solid #e3e3e3; border-radius: 6px; background: #fff; font: inherit; font-size: 0.9rem; text-align: left; cursor: pointer; }
+.chooser-option:hover { border-color: #485fc7; }
+.chooser-option.is-chosen { border-color: #485fc7; background: #eef1fb; font-weight: 600; }
+.chooser-note { font-size: 0.75rem; color: #555; font-weight: 400; white-space: nowrap; }
+.chooser-group { margin-bottom: 0.25rem; }
+.chooser-group > summary { padding: 0.35rem 0.25rem; font-size: 0.9rem; font-weight: 600; }
+.chooser-count { color: #666; font-weight: 400; }
+.chooser-options { padding: 0.2rem 0 0.3rem 1.1rem; }
+@media screen and (min-width: 769px) {
+  .chooser-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 0.35rem; }
+}
+.is-comparing .chooser-options { display: block; }
+.chooser-empty { color: #555; font-size: 0.9rem; padding: 0.25rem; }
 .requirements-title { font-weight: 700; margin-bottom: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .requirements-list li { display: flex; gap: 0.5rem; padding: 0.3rem 0; border-top: 1px solid #f0f0f0; }
 .requirement-mark { font-weight: 700; width: 1.2rem; flex-shrink: 0; }

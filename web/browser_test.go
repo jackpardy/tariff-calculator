@@ -130,3 +130,38 @@ func TestTariffSheetLoadsInABrowser(t *testing.T) {
 		}
 	}
 }
+
+// The builder's Check against chooser opens on its button, finds
+// requirements by a search, takes the first match on Enter, shows it on the
+// button, checks the routine against it, and lists it under Used lately.
+func TestCheckAgainstChooserInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := httptest.NewServer(routes())
+	defer srv.Close()
+
+	var chosen, saved, label, recent string
+	step(t, ctx, "choosing requirements by a search",
+		chromedp.Navigate(srv.URL+"/"),
+		chromedp.WaitReady(`.requirement-picker .chooser-button`, chromedp.ByQuery),
+		chromedp.Click(`.requirement-picker .chooser-button`, chromedp.ByQuery),
+		chromedp.WaitVisible(`.requirement-picker .chooser-search`, chromedp.ByQuery),
+		chromedp.SendKeys(`.requirement-picker .chooser-search`, "bucs l7", chromedp.ByQuery),
+		// Alpine shows and hides the options a moment after the search changes.
+		chromedp.Poll(`!document.querySelector('.requirement-picker .chooser-option[data-ref="builtin:bucs-fig"]')?.offsetParent && !!document.querySelector('.requirement-picker .chooser-option[data-ref="builtin:bucs-l7-second"]')?.offsetParent`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+		chromedp.Evaluate(`[...document.querySelectorAll('.requirement-picker .chooser-option[data-ref]')].filter((o) => o.offsetParent).map((o) => o.dataset.ref).join()`, &chosen),
+		chromedp.SendKeys(`.requirement-picker .chooser-search`, "\r", chromedp.ByQuery),
+		chromedp.WaitNotVisible(`.requirement-picker .chooser-panel`, chromedp.ByQuery),
+		chromedp.Text(`.requirement-picker .chooser-chosen`, &label, chromedp.ByQuery),
+		chromedp.Evaluate(`JSON.parse(localStorage.getItem('trampolineRoutines')).routines[0].requirements`, &saved),
+		chromedp.Evaluate(`JSON.parse(localStorage.getItem('recentRequirements')).check.join()`, &recent),
+	)
+	if chosen != "builtin:bucs-l7-second" {
+		t.Errorf("searching bucs l7 should leave BUCS L7's voluntary alone, got %q", chosen)
+	}
+	if saved != "builtin:bucs-l7-second" || recent != saved {
+		t.Errorf("Enter should check the routine against the match and remember it: saved %q, recent %q", saved, recent)
+	}
+	if !strings.Contains(label, "BUCS L7") {
+		t.Errorf("the button should show what's chosen, got %q", label)
+	}
+}

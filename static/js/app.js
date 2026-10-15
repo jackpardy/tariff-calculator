@@ -37,9 +37,12 @@ function tariffCalculatorStore() {
         query: '',          // the picker's search text; results replace the tabs while it's set
         toast: { show: false, message: '', type: 'info' },
         memberLinks: [], // club member pages saved in this browser, to keep routines on (ADR 0011)
+        chooser: { open: '', q: '' }, // the open chooser ('check-a', 'check-b' or 'set') and its search
+        recent: { check: [], set: [] }, // the built-in requirements and set routines chosen lately, latest first
 
         init() {
             this.memberLinks = RoutineStore.memberLinks();
+            try { this.recent = { check: [], set: [], ...JSON.parse(localStorage.getItem('recentRequirements') || '{}') }; } catch (e) { /* none yet */ }
             const state = RoutineStore.load();
             LevelEntries.migrate(state); // routines that held a level's tabs become level entries
             // A set routine is a starting point now, not requirements to check against.
@@ -235,6 +238,62 @@ function tariffCalculatorStore() {
             delete routine.checks; // the new requirements' checks apply
             this.persist();
             this.renderRoutine(side);
+        },
+        // --- Choosers: Check against and Start from a set (views/chooser.templ) ---
+        toggleChooser(key) {
+            this.chooser = { open: this.chooser.open === key ? '' : key, q: '' };
+            if (this.chooser.open) {
+                this.$nextTick(() => document.querySelector('.chooser-panel:not([style*=none]) .chooser-search')?.focus());
+            }
+        },
+        closeChooser(key) {
+            if (this.chooser.open === key) { this.chooser = { open: '', q: '' }; }
+        },
+        // chooserShows reports whether an option (with its search text in
+        // data-search) matches the search: every word of it, ignoring case and accents.
+        chooserShows(el) {
+            const plain = (text) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            const text = plain(el.dataset.search || el.textContent);
+            return plain(this.chooser.q).split(/\s+/).every((word) => text.includes(word));
+        },
+        // chooserAny reports whether any option inside el matches the search.
+        chooserAny(el) {
+            this.chooser.q; // re-evaluate as it changes
+            return [...el.querySelectorAll('[data-search]')].some((o) => this.chooserShows(o));
+        },
+        chosenRequirements(side) { return this.routineFor(side)?.requirements || ''; },
+        checkLabel(side) {
+            const ref = this.chosenRequirements(side);
+            if (!ref) { return 'No requirements'; }
+            return this.customSets.find((s) => s.id === ref)?.set.name || Exercises.requirementName(ref);
+        },
+        // yourChoices are your own requirements or set routines (kind 'check'
+        // or 'set'): those kept on your page first.
+        yourChoices(kind) {
+            return this.customSets
+                .filter((s) => this.isSetRoutine(s.set) === (kind === 'set'))
+                .map((s) => ({ ref: s.id, name: s.set.name, kept: !!s.kept, search: `${s.set.name} ${s.kept ? 'on your page' : ''}` }))
+                .sort((a, b) => Number(b.kept) - Number(a.kept));
+        },
+        // recentChoices are the built-in ones chosen lately, still there.
+        recentChoices(kind) {
+            const names = Exercises.data().names || {};
+            return (this.recent[kind] || []).filter((ref) => names[ref]).map((ref) => ({ ref, name: names[ref] }));
+        },
+        // choose takes a chooser's option: requirements for its column to be
+        // checked against, or a set routine to start from.
+        choose(key, ref) {
+            this.chooser = { open: '', q: '' };
+            const kind = key === 'set' ? 'set' : 'check';
+            if (ref.startsWith('builtin:')) {
+                this.recent[kind] = [ref, ...(this.recent[kind] || []).filter((r) => r !== ref)].slice(0, 4);
+                try { localStorage.setItem('recentRequirements', JSON.stringify(this.recent)); } catch (e) { /* remembered for this visit only */ }
+            }
+            if (kind === 'set') {
+                this.startFromSetRoutine(ref);
+            } else {
+                this.setRequirements(ref, key === 'check-b' ? 'b' : 'a');
+            }
         },
         // setCheck turns one of a column's checks ('difficulty' or 'repeats') on or
         // off for its routine, overriding its requirement set's choice.

@@ -60,13 +60,19 @@ messages and total.
 
 A routine can be checked against built-in or custom
 [requirements](../requirements/framework.md). The results show under the
-routine, and the elements involved are highlighted. "Check against" lists each
+routine, and the elements involved are highlighted. "Check against" is a
+button showing what's chosen; it opens a panel under it with a search
+(by organisation, level or name, ignoring case and accents; Enter takes the
+first match), **Yours** (those kept on your page first, then this browser's),
+**Used lately** (the last four built-in ones chosen, kept in the browser as
+`recentRequirements`), then each organisation, closed until opened and all
+open while searching (`views/chooser.templ`). It lists each
 level's voluntary requirements by group, named after the level ("BUCS L7"), or
 by exercise when its two voluntaries differ ("BUCS L1 · first exercise",
 "BUCS L1 · second exercise"); requirements shared by levels are listed
 once, by their own name ("BG Regional L4 13+ · first exercise").
-Set routines aren't requirements to check against: **Start from a set...**
-beside "+ New" uses one as a starting point
+Set routines aren't requirements to check against: **Start from a set**
+beside "+ New", the same kind of chooser, uses one as a starting point
 ([set routines](../requirements/set-routines.md)). Routines checked against a
 set routine by an earlier version stop being checked.
 

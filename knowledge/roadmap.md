@@ -308,7 +308,10 @@ levels, which are built on the same editor. 1 and 2 are built
    as it's written.
 5. **A better Check against picker:** your own and recently used first,
    then by organisation and level, with a search like the skill picker's.
-   The same picker would serve Start from a set….
+   The same picker would serve Start from a set…. *Built 2026-10-16:* Check
+   against and Start from a set are each a button opening a panel with a
+   search, Yours (kept on your page first), Used lately, then each
+   organisation ([routine builder](features/routine-builder.md#requirements-and-checks)).
 6. *Built 2026-10-15 ([ADR 0013](../docs/adr/0013-requirements-with-the-person.md)).*
    Keep requirements and levels with the person, as routines on a
    club page are, rather than in one browser. *Suggested 2026-10-15:* build

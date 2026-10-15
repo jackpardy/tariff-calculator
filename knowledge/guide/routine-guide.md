@@ -82,8 +82,11 @@ number of skills.
 
 # 3. Check a routine against a competition
 
-1. Under **Check against**, choose the competition and level. The levels are
-   grouped by organisation (BUCS, FIG age groups, British Gymnastics). Where a
+1. Tap the button under **Check against** (it says **No requirements** at
+   first) and choose the competition and level. Type to find one, e.g. "BUCS
+   L7" or "novice", and press Enter for the first match. Your own requirements
+   come first, then the ones you used lately, then each organisation (ISTO,
+   BUCS, FIG age groups, British Gymnastics): tap one to open it. Where a
    level's two voluntaries have different rules, they're listed separately,
    e.g. "BUCS L1 · first exercise" and "BUCS L1 · second exercise".
 2. Each requirement is listed below the routine with ✓ or ✗, and the top shows
@@ -106,8 +109,9 @@ them against your competition's current rules.**
 
 ## Start from a set routine
 
-**Start from a set...** (next to **+ New**) copies a set routine into your
-routine: into the one on screen if it's empty, otherwise into a new routine
+**Start from a set** (next to **+ New**) opens a list of set routines, yours
+first, with a search like Check against's. It copies the one you choose into
+your routine: into the one on screen if it's empty, otherwise into a new routine
 named after the set. Change it from there.
 
 # 4. Work on a competition level
@@ -171,7 +175,7 @@ not every competition's. You can add your own, or change a built-in one.
    back that another rule bans). It catches the obvious cases, not every one.
    You can still save, but no routine will pass until you change them.
 
-Your requirements now appear under **Check against → Your requirements**.
+Your requirements now appear under **Check against → Yours**.
 
 ## Make your own set routine
 
@@ -181,7 +185,7 @@ A set routine is built like any routine, not written as rules:
 2. Choose **More → Save as a set routine** and give it a name. If the routine
    was already saved as one, you can update it or save a new one.
 
-It then appears under **Start from a set... → Your set routines**, and on the
+It then appears under **Start from a set → Yours**, and on the
 requirements page under **Your set routines** (**+ New set routine** there
 makes one from a routine you've already built). To change it later, use **Edit
 in the Routine Builder**.

@@ -1,5 +1,8 @@
 # Update log
 
+## 2026-10-16
+* **Update**: [The builder's Check against](features/routine-builder.md#requirements-and-checks) is a button showing what's chosen, opening a panel with a search (Enter takes the first match), **Yours** (kept on your page first), **Used lately**, then each organisation's levels, in place of a list of about 50; **Start from a set** works the same way. Step 5 of the [requirements workflow](roadmap.md#the-requirements-workflow-reviewed-2026-10-15-1-and-2-built-2026-10-15).
+
 ## 2026-10-15
 * **Update**: [One palette, step 3](features/competition-entries.md#states-and-roles-on-the-pages-one-palette-step-2): every entry card shows its sign-off as the rows do (a state chip with the coach's chip and their note) and "No problems found" as a chip, in place of coloured boxes, on the organiser's pages too; a late change shows as a "Late change" chip (asked, accepted or not accepted) before what it is; an individual's fees show Paid as a chip. `TestStatesUseChips` checks the late, entry and individual's templates too.
 * **Update**: A coach has a **Your details** tab (their coach link and Your other links), as members and individuals do, so their Entries start with the competitions (new [route](architecture/http-routes.md)); a member who coaches too keeps theirs on their member page.
