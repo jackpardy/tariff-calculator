@@ -211,7 +211,7 @@ for a reply (up to 200). `static/js/feedback.js` sends it without leaving
 the page and says "Thanks: your feedback is sent." there; without
 JavaScript the page comes back at `#feedback-sent`, which shows the thanks.
 
-What's kept (migration 38, the `feedback` table, in `store/feedback.go`):
+What's kept (migration 40, the `feedback` table, in `store/feedback.go`):
 the competition, the words, the reply-to, the role (Organiser, "Helper
 link: Chairs (chairs of judges)", Comp sec, Member, Coach, Individual,
 Synchro partner or An individual's coach, from the link it's posted under,
@@ -1296,7 +1296,7 @@ message the desk page shows "told 34 by push, 178 by email", then "· still
 sending to 2" while it's going and "· 2 failed" for those that couldn't be
 told (a gone phone counts as failed); reloading the page updates it. While
 sending, the counts are in memory; once a message's deliveries are all done,
-they're kept with it (`pushed`, `emailed` and `failed`, migration 39). The
+they're kept with it (`pushed`, `emailed` and `failed`, migration 41). The
 queue is in memory too: when the app stops it waits up to 20 seconds for
 what's queued, then logs how many were left unsent and keeps those as
 failed. The confirmation email when someone asks to hear by email is still
@@ -1320,7 +1320,7 @@ Messages are kept in `desk_messages` (the text, whether it asks them to come,
 the audience in words such as "UCD" or "3 people", its person keys and club
 ids as JSON, who sent it, when, and how many addresses were pushed and
 emailed; the club ids of its staff as JSON, added in migration 29; how many
-failed, added in migration 39); a competition keeps up to 500. The page lists them, latest first.
+failed, added in migration 41); a competition keeps up to 500. The page lists them, latest first.
 Each is in the history: "Sent a message to UCD", "Called Panel 2's officials,
 Saturday to the desk".
 
@@ -1567,7 +1567,8 @@ own in the browser; nothing is copied unless the member asks.
   many didn't fit. The request may be up to 512 KB (`keepsRoutines`), more
   than other forms.
 - **The Routines tab** lists them by name, each a row (skills, difficulty
-  where it's scored, when it changed, a tag for a coach's note) that opens to
+  where it's scored, when it changed, and the coach's role chip, "left a
+  note", when there's a note) that opens to
   its card, checked as the builder checks it, against its requirements, or the
   Code of Points only. **Open in the Routine Builder** is a share link
   (`/#share=j…`, `builderLink`) with the routine and its own requirements, so
@@ -1579,16 +1580,89 @@ own in the browser; nothing is copied unless the member asks.
   routine's are. The comp sec changing a member's entry gets the member's
   ("Kept on their page"), not only the routines in their own browser.
 - **Coaches.** A coach's page has a menu, **Entries** (the page it always
-  was) and **Gymnasts** (`/clubs/coach/{token}/gymnasts`): the members they
-  see (their own and those without a coach, or everyone where the club says
+  was) and **Gymnasts** (`/clubs/coach/{token}/gymnasts`, a `comp-stack`
+  table): the members they see (their own and those without a coach, or everyone where the club says
   so), with how many routines each keeps, searchable and filtered by having
   routines and by whether they chose this coach. Each opens the gymnast's
-  routines, checked, with **Your note** on each: the member sees it with the
-  coach's name, and "written before the routine last changed" once it's
+  routines, checked, with **Your note** on each: the member sees it under
+  the coach's role chip (`WhoChip(RoleCoach, name)`), and "written before the routine last changed" once it's
   older than the routine. A coach who doesn't see the member gets 404.
 - **The comp sec.** Members shows "3 routines" beside a member who keeps
   any, opening them to look at (no note, no changes).
 - Routines go with the member when they're removed, and with the club.
+
+## Skills (ADR 0011)
+
+Built 2026-10-15 ([ADR 0011](../../docs/adr/0011-club-routines-and-skill-tracking.md)
+Decisions 2 and 3; `web/skillpages.go`, `views/skills.templ`,
+`store/marks.go`, migration 38). A member marks the skills they're
+**Learning** and **Can do**; a coach who sees them marks them too.
+
+- **Both marks show.** The gymnast's mark and a coach's are kept apart
+  (`skill_marks.side`), so a skill can be Can do to the gymnast and Learning
+  to their coach, and when both say Can do, both marks show it. Each is a
+  role chip and a state chip from the one palette
+  ([states and roles](../architecture/rendering.md#states-and-roles-one-palette)):
+  `WhoChip(RoleGymnast, name)` or `WhoChip(RoleCoach, name)` ("You" for the
+  viewer's own), then `StateChip(InProgress, "Learning")` or
+  `StateChip(Done, "Can do")`, and when. Marked skills are listed as **Can
+  do** (every mark says so), **Learning**, and **Marked differently** (the
+  two disagree). Each side changes and takes off only its own mark; a coach's
+  replaces another coach's.
+- **Which skill.** A mark is found by its skill with
+  `TrampolineSkill.Equal`, the app's one rule for "the same skill": a full
+  twisting back marked in any shape is one item, while a tuck and a pike back
+  are two. Marks are kept with the skill (`skill_marks.skill`) under an item
+  id (`s:<id>`), so club skills and level items can be marks too later.
+  Matching is pairwise ([open questions](../open-questions.md#code-to-restructure)).
+- **The member's Skills tab** (`/clubs/member/{token}/skills`): their marked
+  skills, each with **Learning**, **Can do** or **Take off** for their own
+  mark; then **Mark a skill**: a search (the routine builder's,
+  `catalog.Search`: a name or FIG notation), the skills in their kept
+  routines, and the catalog by tab (`catalog.Categories`, each somersault in
+  tuck, pike and straight), each with its marks if it has any. Marking
+  returns to the tab, keeping the search.
+- **Coaches.** Gymnasts shows how many skills each can do and, as an
+  attention chip, how many the gymnast marked that no coach has marked the
+  same ("2 to confirm"), with a filter for those. A gymnast's page links to
+  their **Skills** (`/clubs/coach/{token}/gymnasts/{member}/skills`), where
+  the coach marks skills the same way; **Confirm Can do** (or Learning) gives
+  a skill the coach's mark in the gymnast's state. A coach who doesn't see
+  the member gets 404.
+- **The comp sec** sees "can do 3" beside a member with marks on Members,
+  opening their skills to look at. On Settings, **Let every member see
+  everyone's skills** (off to start with; `clubs.skills_open`): then each
+  member's Skills tab lists the club's other members, each opening their
+  skills to look at (`/clubs/member/{token}/skills/{member}`, 404 while it's
+  off).
+- Up to 500 skills marked a member (`store.MaxMarks`). Marks go with the
+  member, and with the club.
+
+## Club skills (ADR 0011)
+
+Built 2026-10-15 ([ADR 0011](../../docs/adr/0011-club-routines-and-skill-tracking.md)
+Decision 4; `store/clubskills.go`, migration 39). A coach's page has a third
+section, **Club skills** (`/clubs/coach/{token}/club-skills`), where any of
+the club's coaches keeps the club's own skills, up to 200
+(`store.MaxClubSkills`):
+
+- **A name for a skill.** Search the catalog (`catalog.Search`) and give a
+  skill the club's name ("Swivel Hips" for Seat Half Twist To Seat). It's
+  kept as the skill with the name as its `custom_name`, the routine builder's
+  own label for a skill, so it's still that skill: its marks are the skill's
+  (found with `TrampolineSkill.Equal`), and naming it again renames it. On
+  the club's pages the name shows in place of the skill's own: on Skills
+  (with the skill's own name and notation beside it), in the notice after
+  marking it, and on kept routines' cards (`displayName` shows a
+  `custom_name`), unless the routine gave the skill a name of its own.
+- **Something else to track** (a drill, a conditioning test): a name and an
+  optional note, not for routines. Its marks are kept under its own item
+  (`c:<id>`); marking one posts `club` (its id) instead of `skill`.
+- Names are unique in the club, ignoring case. Each shows who added it
+  (`WhoChip(RoleCoach, name)`). **Remove** takes something to track with its
+  marks; a name only stops showing, as the marks are the skill's.
+- On every Skills page, **Mark a skill** starts with **Your club's skills**,
+  and a search finds them by their club name as well as the catalog.
 
 # One link, several roles (ADR 0010)
 

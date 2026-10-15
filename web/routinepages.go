@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"tariffCalculator/requirements"
+	"tariffCalculator/skills"
 	"tariffCalculator/store"
 	"tariffCalculator/views"
 )
@@ -62,8 +63,13 @@ func (p *competitionPages) memberRoutines(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return
 	}
+	named, _, err := p.clubSkillsOf(r, m.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	base := memberRoutinesPath(r.PathValue("token"))
-	page.Routines = routinesPart(list, "You haven't kept any routines here yet.", func(v *views.RoutineView) {
+	page.Routines = routinesPart(list, named, "You haven't kept any routines here yet.", func(v *views.RoutineView) {
 		v.Rename, v.Delete = base+"/"+v.ID+"/rename", base+"/"+v.ID+"/delete"
 	})
 	page.Routines.Add = base
@@ -206,6 +212,11 @@ func (p *competitionPages) coachGymnasts(w http.ResponseWriter, r *http.Request)
 		failed(w, r, err)
 		return
 	}
+	can, toConfirm, err := p.st.MarkCounts(ctx, coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	seesAll, err := p.st.CoachesSeeAll(ctx, coach.ClubID)
 	if err != nil {
 		failed(w, r, err)
@@ -214,12 +225,14 @@ func (p *competitionPages) coachGymnasts(w http.ResponseWriter, r *http.Request)
 	base := coachGymnastsPath(r.PathValue("token"))
 	page := views.CoachGymnastsPage{Frame: coachFrame(r, coach, club, coachGymnastsTab), SeesAll: seesAll}
 	for _, m := range members {
-		page.Gymnasts = append(page.Gymnasts, views.CoachGymnast{Name: m.Name, Routines: counts[m.ID], Open: base + "/" + m.ID,
-			List: views.ListRow{Name: m.Name, Values: map[string][]string{"routines": {hasValue(counts[m.ID] > 0)}, "mine": {hasValue(m.CoachID == coach.ID)}}}})
+		page.Gymnasts = append(page.Gymnasts, views.CoachGymnast{Name: m.Name, Routines: counts[m.ID], Can: can[m.ID], ToConfirm: toConfirm[m.ID], Open: base + "/" + m.ID,
+			List: views.ListRow{Name: m.Name, Values: map[string][]string{"routines": {hasValue(counts[m.ID] > 0)}, "mine": {hasValue(m.CoachID == coach.ID)},
+				"confirm": {hasValue(toConfirm[m.ID] > 0)}}}})
 	}
 	page.Tools = views.ListTools{ID: "gymnasts", Noun: "gymnasts", Total: len(members), Filters: []views.ListFilter{
 		hasFilter("routines", "Routines", "Routines or not", "Has routines", "No routines"),
 		hasFilter("mine", "Coach", "Any coach", "Chose you", "Didn't choose you"),
+		hasFilter("confirm", "Skills", "Any skills", "Marks to confirm", "None to confirm"),
 	}}
 	render(w, r, views.CoachGymnasts(page))
 }
@@ -240,9 +253,14 @@ func (p *competitionPages) coachGymnast(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return
 	}
+	named, _, err := p.clubSkillsOf(r, coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	base := coachGymnastsPath(r.PathValue("token"))
-	page := views.CoachGymnastsPage{Frame: coachFrame(r, coach, club, coachGymnastsTab), Gymnast: m.Name, Back: base}
-	page.Routines = routinesPart(list, m.Name+" hasn't kept any routines on their page yet.", func(v *views.RoutineView) {
+	page := views.CoachGymnastsPage{Frame: coachFrame(r, coach, club, coachGymnastsTab), Gymnast: m.Name, Back: base, Skills: base + "/" + m.ID + "/skills"}
+	page.Routines = routinesPart(list, named, m.Name+" hasn't kept any routines on their page yet.", func(v *views.RoutineView) {
 		v.NoteAction = base + "/" + m.ID + "/routines/" + v.ID + "/note"
 	})
 	render(w, r, views.CoachGymnastPage(page))
@@ -278,21 +296,26 @@ func (p *competitionPages) clubMemberRoutines(w http.ResponseWriter, r *http.Req
 		failed(w, r, err)
 		return
 	}
+	named, _, err := p.clubSkillsOf(r, club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	token := r.PathValue("token")
 	page := views.ClubMemberRoutinesPage{
 		Club:   views.ClubPage{Base: clubPath(token), Name: club.Name, Menu: clubMenu(token, clubMembers)},
 		Member: m.Name, Back: clubMembersPath(token),
-		Routines: routinesPart(list, m.Name+" hasn't kept any routines on their page yet.", nil),
+		Routines: routinesPart(list, named, m.Name+" hasn't kept any routines on their page yet.", nil),
 	}
 	render(w, r, views.ClubMemberRoutines(page))
 }
 
-// routinesPart is kept routines as a page shows them, each given its actions
-// by with (nil for none).
-func routinesPart(list []store.Routine, empty string, with func(*views.RoutineView)) views.RoutinesPart {
+// routinesPart is kept routines as a page shows them, with the club's names
+// for skills (named), each given its actions by with (nil for none).
+func routinesPart(list []store.Routine, named []skills.TrampolineSkill, empty string, with func(*views.RoutineView)) views.RoutinesPart {
 	out := views.RoutinesPart{Max: store.MaxRoutines, Empty: empty}
 	for _, kept := range list {
-		v := routineView(kept)
+		v := routineView(kept, named)
 		if with != nil {
 			with(&v)
 		}
@@ -302,8 +325,9 @@ func routinesPart(list []store.Routine, empty string, with func(*views.RoutineVi
 }
 
 // routineView is a kept routine, checked as the routine builder checks it,
-// against its requirements if it has any.
-func routineView(kept store.Routine) views.RoutineView {
+// against its requirements if it has any, with the club's names for its
+// skills (named) where the routine hasn't its own.
+func routineView(kept store.Routine, named []skills.TrampolineSkill) views.RoutineView {
 	v := views.RoutineView{ID: kept.ID, Name: kept.Name, Updated: kept.UpdatedAt.In(local).Format("2 January 2006"),
 		Note: kept.Note, NoteBy: kept.NoteBy, NoteBefore: kept.NoteBefore()}
 	routine, err := routineFrom(postedRoutine{data: kept.Skills, set: kept.Requirements, checks: kept.Checks})
@@ -311,9 +335,13 @@ func routineView(kept store.Routine) views.RoutineView {
 		v.Broken = "This routine couldn't be read."
 		return v
 	}
-	named, err := namedRoutine(kept.Skills)
-	if err == nil {
-		routine.Skills = named
+	if withNames, err := namedRoutine(kept.Skills); err == nil {
+		routine.Skills = withNames
+	}
+	for i, s := range routine.Skills {
+		if s.CustomName == "" {
+			routine.Skills[i].CustomName = clubName(named, s)
+		}
 	}
 	checked := requirements.Check(routine, nil)
 	v.Count = len(routine.Skills)

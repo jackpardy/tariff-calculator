@@ -132,7 +132,9 @@ func TestIndividualSubscriptionsMigrate(t *testing.T) {
 		_, _, err := s.Subscribe(ctx, Subscription{CompetitionID: c.ID, Kind: NotifyIndividual, OwnerID: owner, Channel: ByPush, Address: "https://push.example/" + owner, Keys: "{}", Topics: Topics})
 		must(t, err)
 	}
-	_, err = s.db.ExecContext(ctx, individualSubscriptions) // the migration alone
+	// Run the migration again on these, as it ran on what was there; running
+	// every later one again would make their tables twice.
+	_, err = s.db.ExecContext(ctx, individualSubscriptions)
 	must(t, err)
 	if mine, _ := s.Subscriptions(ctx, c.ID, NotifyIndividual, e.IndividualID); len(mine) != 1 {
 		t.Errorf("the individual's: %+v", mine)
@@ -179,12 +181,12 @@ func TestNotificationsKeepNoPage(t *testing.T) {
 	}
 }
 
-// Migration 38 adds feedback, with the button on for competitions already
+// Migration 40 adds feedback, with the button on for competitions already
 // made too.
 func TestFeedbackMigrates(t *testing.T) {
 	all := migrations
 	t.Cleanup(func() { migrations = all })
-	migrations = all[:38-1]
+	migrations = all[:40-1]
 	dir := t.TempDir()
 	s, err := Open(ctx, dir)
 	must(t, err)

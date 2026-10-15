@@ -960,3 +960,10 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .chip-who-coach { color: var(--role-coach); }
 .chip-who-club { color: var(--role-club); }
 .chip-who-organiser { color: var(--role-organiser); }
+/* Skill tracking (ADR 0011): a row per skill, with the gymnast's and a
+   coach's marks, each a role chip and a state chip (views/status.templ). */
+.skill-mark { border-left: 4px solid #e5e5e5; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; background: #fafafa; border-radius: 4px; }
+.skill-sides { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; }
+.skill-side { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 0.3rem; }
+.skill-mark-buttons { margin-top: 0.4rem; }
+.skill-mark-buttons .button { min-height: 2.5rem; }

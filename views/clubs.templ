@@ -23,6 +23,7 @@ type ClubPage struct {
 	Pairs                []PairView    // synchro entries other clubs' gymnasts made with members
 	Menu                 []MenuSection // the sections of the comp sec's pages
 	KeptUntil            string        // when the club is deleted if no one uses it, on Settings (ADR 0011)
+	SkillsOpen           bool          // every member sees everyone's skills (ADR 0011)
 	// MemberOptions are the members who aren't coaches too, to make one;
 	// Ties the people whose own link opens these pages (ADR 0010).
 	MemberOptions []CoachOption
@@ -61,6 +62,8 @@ type ClubMember struct {
 	CoachID   string
 	AlsoCoach bool    // a coach of the club too
 	Routines  int     // routines kept on their page (ADR 0011)
+	Can       int     // skills marked Can do (ADR 0011)
+	Marks     bool    // has any skills marked
 	List      ListRow // what the list's search and filters see
 }
 
@@ -148,6 +151,7 @@ type MemberPage struct {
 	Pairs        []PairView          // synchro entries they're the partner in
 	Other        *OtherLinks         // their other links, on their details (ADR 0010)
 	Routines     RoutinesPart        // their kept routines, on Routines (ADR 0011)
+	Skills       SkillsPart          // what they're learning and can do, on Skills (ADR 0011)
 }
 
 // MemberCompetition is a member's entry for one competition, and the form to
@@ -457,6 +461,9 @@ templ ClubMembers(c ClubPage) {
 										if m.Routines > 0 {
 											· <a href={ templ.SafeURL(c.Base + "/members/" + m.ID + "/routines") }>{ Count(m.Routines, "routine", "routines") }</a>
 										}
+										if m.Marks {
+											· <a href={ templ.SafeURL(c.Base + "/members/" + m.ID + "/skills") }>can do { strconv.Itoa(m.Can) }</a>
+										}
 									</td>
 									if len(c.CoachOptions) > 0 {
 										<td data-label="Coach">
@@ -613,6 +620,23 @@ templ ClubSettings(c ClubPage) {
 			<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
 			<p class="help">Entries already sent stay with each competition.</p>
 		</form>
+		<form method="post" action={ templ.SafeURL(c.Base + "/skills-open") } class="mt-4">
+			<input type="hidden" name="on" value={ onIfNot(c.SkillsOpen) }/>
+			<p class="is-size-7 mb-1">
+				if c.SkillsOpen {
+					<strong>Every member sees everyone's skills.</strong>
+				} else {
+					Each member's skills are seen by them, their coaches and you.
+				}
+			</p>
+			<button class="button is-small" type="submit">
+				if c.SkillsOpen {
+					Show each member only their own
+				} else {
+					Let every member see everyone's skills
+				}
+			</button>
+		</form>
 		if c.KeptUntil != "" {
 			<p class="help mt-3">{ "The club is kept until " + c.KeptUntil + ": 13 months after anyone last opened its pages, or a member's or coach's. Each time someone does, that moves on." }</p>
 		}
@@ -666,7 +690,7 @@ templ ClubJoin(p JoinPage) {
 			</div>
 			<button class="button is-primary is-fullwidth" type="submit">Join</button>
 		</form>
-		<p class="help mt-4">We keep your name, your entries and any routines you keep on your page, which your club sees, and your entries the competitions they're sent to. Nothing else, and no account.</p>
+		<p class="help mt-4">We keep your name, your entries, and any routines and skills you keep on your page, which your club sees, and your entries the competitions they're sent to. Nothing else, and no account.</p>
 	}
 }
 
@@ -868,4 +892,12 @@ templ ClubOfferEditPage(e ClubOfferEdit) {
 		<p class="subtitle is-6">Judging and helping at { e.Competition.Name }</p>
 		@offerForm(e.Form)
 	}
+}
+
+// onIfNot is the "on" value that turns a setting the other way.
+func onIfNot(on bool) string {
+	if on {
+		return ""
+	}
+	return "1"
 }

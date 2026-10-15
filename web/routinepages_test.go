@@ -36,7 +36,7 @@ func aRoutine(id, name string) map[string]any {
 // checked, and opens in the routine builder.
 func TestMemberKeepsRoutines(t *testing.T) {
 	h := competitionServer(t)
-	_, _, member := aClubEntered(t, h)
+	member := aClub(t, h, created(t, h, newCompetition()), "UCD", false, "A. Murphy").members["A. Murphy"]
 
 	page := do(t, h, http.MethodGet, member+"/routines", nil).Body.String()
 	if got := currentTab(t, page); got != "Routines" {
@@ -117,7 +117,7 @@ func TestMemberKeepsRoutines(t *testing.T) {
 // most a member keeps, the rest are left out and the member told.
 func TestKeepingManyRoutines(t *testing.T) {
 	h := competitionServer(t)
-	_, _, member := aClubEntered(t, h)
+	member := aClub(t, h, created(t, h, newCompetition()), "UCD", false, "A. Murphy").members["A. Murphy"]
 	var many []map[string]any
 	for i := range store.MaxRoutines + 2 {
 		r := aRoutine(fmt.Sprint("b", i), fmt.Sprint("Routine ", i))
@@ -138,7 +138,8 @@ func TestKeepingManyRoutines(t *testing.T) {
 // member sees the note, and the comp sec the routines.
 func TestCoachSeesRoutines(t *testing.T) {
 	h := competitionServer(t)
-	_, club, member := aClubEntered(t, h)
+	c := aClub(t, h, created(t, h, newCompetition()), "UCD", false, "A. Murphy")
+	club, member := c.page, c.members["A. Murphy"]
 	ann := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
 	bob := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
 	redirected(t, h, member+"/routines", keep(t, aRoutine("b1", "Comp vol")))
@@ -164,7 +165,7 @@ func TestCoachSeesRoutines(t *testing.T) {
 		t.Errorf("noting: %s", location)
 	}
 	page = do(t, h, http.MethodGet, member+"/routines", nil).Body.String()
-	if !strings.Contains(page, "Straighter legs in the back") || !strings.Contains(page, "Note from Ann") {
+	if !strings.Contains(page, "Straighter legs in the back") || !strings.Contains(page, "left a note") || !strings.Contains(page, `<span class="chip-role">Coach</span> <span class="chip-name">· Ann</span>`) {
 		t.Error("the member sees the coach's note")
 	}
 
@@ -199,7 +200,8 @@ func TestCoachSeesRoutines(t *testing.T) {
 // the member and to the comp sec changing their entry.
 func TestEntryOffersKeptRoutines(t *testing.T) {
 	h := competitionServer(t)
-	_, club, member := aClubEntered(t, h)
+	c := aClub(t, h, created(t, h, newCompetition()), "UCD", false, "A. Murphy")
+	club, member := c.page, c.members["A. Murphy"]
 	page := memberCompetitionPage(t, h, member)
 	if strings.Contains(page, "Kept on your page") {
 		t.Error("nothing kept yet")
@@ -228,13 +230,4 @@ func TestEntryOffersKeptRoutines(t *testing.T) {
 	if err := json.Unmarshal([]byte(strings.ReplaceAll(kept[1], "&#34;", `"`)), &skills); err != nil || len(skills) != 2 {
 		t.Errorf("the option's skills: %q (%v)", kept[1], err)
 	}
-}
-
-// aClubEntered is a club entered in a new competition, with the comp sec's
-// path, one member (who has joined, not entered) and their path.
-func aClubEntered(t *testing.T, h http.Handler) (admin, club, member string) {
-	t.Helper()
-	admin = created(t, h, newCompetition())
-	c := aClub(t, h, admin, "UCD", false, "A. Murphy")
-	return admin, c.page, c.members["A. Murphy"]
 }

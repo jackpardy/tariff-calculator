@@ -695,7 +695,41 @@ var migrations = []string{
 	);
 	CREATE INDEX IF NOT EXISTS member_routines_member ON member_routines (member_id);`,
 
-	// 38: feedback about the app (roadmap, ready for the dry run), from any
+	// 38: skill marks (ADR 0011 Decision 2): what a member is learning or can
+	// do, the gymnast's mark and a coach's apart (side), each with who made it
+	// (by_coach: the coach's id, "" for the gymnast) and when; the skill
+	// itself is kept to show it. And whether every member of the club sees
+	// everyone's skills (Decision 3).
+	`CREATE TABLE skill_marks (
+		member_id TEXT NOT NULL REFERENCES members (id) ON DELETE CASCADE,
+		item      TEXT NOT NULL,
+		side      TEXT NOT NULL,
+		skill     TEXT NOT NULL DEFAULT '',
+		state     TEXT NOT NULL,
+		by_coach  TEXT NOT NULL DEFAULT '',
+		by_name   TEXT NOT NULL,
+		at        TEXT NOT NULL,
+		PRIMARY KEY (member_id, item, side)
+	);
+	ALTER TABLE clubs ADD COLUMN skills_open INTEGER NOT NULL DEFAULT 0;`,
+
+	// 39: the club's own skills (ADR 0011 Decision 4), kept by its coaches: a
+	// club's name for a skill the catalog describes (skill: the skill as JSON,
+	// with the name as its custom_name), or something else to track (skill
+	// empty), with a note. Marks on one of the second kind have the item
+	// "c:<id>".
+	`CREATE TABLE club_skills (
+		id         TEXT PRIMARY KEY,
+		club_id    TEXT NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+		name       TEXT NOT NULL,
+		note       TEXT NOT NULL DEFAULT '',
+		skill      TEXT NOT NULL DEFAULT '',
+		by_name    TEXT NOT NULL,
+		created_at TEXT NOT NULL
+	);
+	CREATE INDEX club_skills_club ON club_skills (club_id);`,
+
+	// 40: feedback about the app (roadmap, ready for the dry run), from any
 	// of a competition's pages, for the organiser and the maintainer: the
 	// words, a reply-to if given, the role and the page (its route pattern,
 	// never its path, which holds a secret link). The button is on for every
@@ -714,7 +748,7 @@ var migrations = []string{
 	);
 	CREATE INDEX feedback_competition ON feedback (competition_id, at);`,
 
-	// 39: desk messages sent in the background (roadmap, ready for the dry
+	// 41: desk messages sent in the background (roadmap, ready for the dry
 	// run): how many addresses couldn't be told, once it's finished.
 	`ALTER TABLE desk_messages ADD COLUMN failed INTEGER NOT NULL DEFAULT 0;`,
 }

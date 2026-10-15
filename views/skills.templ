@@ -1,0 +1,357 @@
+package views
+
+import "strconv"
+
+// Skill tracking (ADR 0011 Decisions 2 and 3): what a member is learning or
+// can do, on the member's Skills tab, a coach's page for each gymnast, and the
+// comp sec's view. The gymnast's mark and a coach's are kept apart and both
+// shown, each a role chip and a state chip (views/status.templ): Learning is
+// in progress, Can do is done.
+
+// SideMark is the gymnast's, or a coach's, mark on a skill.
+type SideMark struct {
+	State string // "learning" or "can"
+	By    string // their name, or "You"
+	At    string // when, e.g. "15 Oct"
+}
+
+// MarkView is one skill a member has marked, or a coach has for them.
+type MarkView struct {
+	Skill     string // the skill as JSON, posted to change a mark
+	Club      string // or one of the club's own skills to track, by id
+	Name, FIG string
+	Tariff    string // in a list of skills to mark
+	Gymnast   *SideMark
+	Coach     *SideMark
+	Mine      string // the state of the viewer's own side's mark, "" for none
+	Confirm   string // for a coach: the gymnast's state, to confirm as theirs, "" for nothing to confirm
+}
+
+// SkillGroup is skills shown together: the marked ones by how they stand, or
+// skills to mark (a catalog tab's, say).
+type SkillGroup struct {
+	Title  string
+	Skills []MarkView
+}
+
+// OtherMember is another member of the club, whose skills a member opens
+// when the club lets everyone see everyone's.
+type OtherMember struct {
+	Name string
+	Open string
+	Can  int
+}
+
+// SkillsPart is a member's skills on a page, and how to mark them.
+type SkillsPart struct {
+	Whose     string       // "your", or the member's name and "'s"
+	Marked    []SkillGroup // Can do, Learning, and Marked differently
+	Action    string       // where a mark posts; "" when it's to look at
+	ToConfirm int          // the gymnast's marks no coach has made the same, for a coach
+	Search    string       // where searching goes
+	Query     string
+	Results   []MarkView
+	Routines  []MarkView   // skills in their kept routines
+	Browse    []SkillGroup // the catalog, by tab
+	Others    []OtherMember
+	Open      bool // every member of the club sees everyone's skills
+}
+
+// markState is a mark's state for its chip.
+func markState(state string) State {
+	if state == "can" {
+		return Done
+	}
+	return InProgress
+}
+
+// markLabel is a mark's state in words.
+func markLabel(state string) string {
+	if state == "can" {
+		return "Can do"
+	}
+	return "Learning"
+}
+
+// sideMark is one side's mark: who, their state, and when.
+templ sideMark(r Role, m *SideMark) {
+	if m != nil {
+		<span class="skill-side">
+			@WhoChip(r, m.By)
+			@StateChip(markState(m.State), markLabel(m.State))
+			<span class="has-text-grey is-size-7">{ m.At }</span>
+		</span>
+	}
+}
+
+// markButtons change the viewer's own mark on a skill: Learning, Can do, or
+// take it off; for a coach, Confirm makes the gymnast's mark theirs too.
+templ markButtons(action string, m MarkView) {
+	<form method="post" action={ templ.SafeURL(action) } class="buttons are-small mb-0 skill-mark-buttons">
+		if m.Club != "" {
+			<input type="hidden" name="club" value={ m.Club }/>
+		} else {
+			<input type="hidden" name="skill" value={ m.Skill }/>
+		}
+		if m.Confirm != "" {
+			<button class="button" type="submit" name="state" value={ m.Confirm }>Confirm { markLabel(m.Confirm) }</button>
+		}
+		if m.Mine != "learning" && m.Confirm != "learning" {
+			<button class="button" type="submit" name="state" value="learning">Learning</button>
+		}
+		if m.Mine != "can" && m.Confirm != "can" {
+			<button class="button" type="submit" name="state" value="can">Can do</button>
+		}
+		if m.Mine != "" {
+			<button class="button is-text" type="submit" name="state" value="">Take off</button>
+		}
+	</form>
+}
+
+// skillRow is a skill with both sides' marks, and the viewer's buttons.
+templ skillRow(action string, m MarkView) {
+	<div class="skill-mark">
+		<div>
+			<strong>{ m.Name }</strong>
+			<span class="has-text-grey is-size-7 ml-1">{ m.FIG }</span>
+			if m.Tariff != "" {
+				<span class="has-text-grey is-size-7 ml-1">{ m.Tariff }</span>
+			}
+		</div>
+		if m.Gymnast != nil || m.Coach != nil {
+			<div class="skill-sides mt-1">
+				@sideMark(RoleGymnast, m.Gymnast)
+				@sideMark(RoleCoach, m.Coach)
+			</div>
+		}
+		if action != "" {
+			@markButtons(action, m)
+		}
+	</div>
+}
+
+// skillMarks is a member's marked skills, by how they stand.
+templ skillMarks(p SkillsPart) {
+	if p.ToConfirm > 0 {
+		<p class="mb-3">
+			@StateChip(Attention, strconv.Itoa(p.ToConfirm)+" to confirm")
+			<span class="is-size-7 ml-1">The gymnast marked these and no coach has yet: <strong>Confirm</strong> the ones you've seen.</span>
+		</p>
+	}
+	for _, g := range p.Marked {
+		<h3 class="title is-6 mt-4 mb-2">{ g.Title } <span class="has-text-grey">({ strconv.Itoa(len(g.Skills)) })</span></h3>
+		if len(g.Skills) == 0 {
+			<p class="has-text-grey is-size-7">None yet.</p>
+		}
+		for _, m := range g.Skills {
+			@skillRow(p.Action, m)
+		}
+	}
+}
+
+// skillsAdd is how to find a skill to mark: a search, the skills in their
+// routines, and the catalog by tab.
+templ skillsAdd(p SkillsPart) {
+	<div class="box mt-5">
+		<h3 class="title is-6">Mark a skill</h3>
+		<form method="get" action={ templ.SafeURL(p.Search) } class="field has-addons mb-3">
+			<div class="control is-expanded">
+				<input class="input" type="search" name="q" value={ p.Query } placeholder="A name or FIG notation, e.g. barani, 41/" aria-label="Find a skill"/>
+			</div>
+			<div class="control"><button class="button" type="submit">Find</button></div>
+		</form>
+		if p.Query != "" {
+			if len(p.Results) == 0 {
+				<p class="has-text-grey is-size-7 mb-3">No skill found for that.</p>
+			}
+			for _, m := range p.Results {
+				@skillRow(p.Action, m)
+			}
+		}
+		if len(p.Routines) > 0 {
+			<details class="mt-3" open?={ p.Query == "" }>
+				<summary class="has-text-weight-semibold">In { p.Whose } routines</summary>
+				for _, m := range p.Routines {
+					@skillRow(p.Action, m)
+				}
+			</details>
+		}
+		for _, g := range p.Browse {
+			<details class="mt-3">
+				<summary class="has-text-weight-semibold">{ g.Title }</summary>
+				for _, m := range g.Skills {
+					@skillRow(p.Action, m)
+				}
+			</details>
+		}
+	</div>
+}
+
+// MemberSkills is a member's Skills tab.
+templ MemberSkills(p MemberPage) {
+	@memberFrame(p) {
+		<p class="mb-4 is-size-7 has-text-grey">
+			Mark the skills you're learning and the ones you can do. Your coaches see them and mark them too: your mark and theirs both show.
+		</p>
+		@skillMarks(p.Skills)
+		if p.Skills.Action != "" {
+			@skillsAdd(p.Skills)
+		}
+		if len(p.Skills.Others) > 0 {
+			<div class="box mt-5">
+				<h3 class="title is-6">Your club</h3>
+				<p class="is-size-7 has-text-grey mb-2">Your club shares everyone's skills.</p>
+				for _, o := range p.Skills.Others {
+					<a class="is-block py-1" href={ templ.SafeURL(o.Open) }>{ o.Name } <span class="has-text-grey is-size-7">· can do { strconv.Itoa(o.Can) }</span></a>
+				}
+			</div>
+		}
+		<p class="help mt-4">We keep each skill you or a coach mark, who marked it and when, until it's taken off or you leave the club. Your coaches and comp sec see them{ openNote(p.Skills.Open) }.</p>
+	}
+}
+
+// openNote adds who else sees a member's skills.
+func openNote(open bool) string {
+	if open {
+		return ", and so does everyone in your club"
+	}
+	return ""
+}
+
+// SkillsViewPage is someone's skills to look at, or for a coach to mark: a
+// coach's page for a gymnast, the comp sec's, or another member's.
+type SkillsViewPage struct {
+	Back   string
+	BackTo string // e.g. "Gymnasts"
+	Name   string // whose skills
+	Skills SkillsPart
+}
+
+// CoachGymnastSkills is a coach's page for a gymnast's skills.
+templ CoachGymnastSkills(f CoachFrame, p SkillsViewPage) {
+	@competitionLayout(p.Name + " · " + f.Coach) {
+		@coachFrame(f)
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a></p>
+		<h2 class="title is-5">{ p.Name }</h2>
+		@skillMarks(p.Skills)
+		@skillsAdd(p.Skills)
+	}
+}
+
+// ClubMemberSkills is the comp sec's view of a member's skills.
+templ ClubMemberSkills(c ClubPage, p SkillsViewPage) {
+	@clubFrame(c) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a></p>
+		<h2 class="title is-5">{ p.Name }</h2>
+		@skillMarks(p.Skills)
+	}
+}
+
+// OtherMemberSkills is another member's skills, where the club shares them.
+templ OtherMemberSkills(m MemberPage, p SkillsViewPage) {
+	@memberFrame(m) {
+		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a></p>
+		<h2 class="title is-5">{ p.Name }</h2>
+		@skillMarks(p.Skills)
+	}
+}
+
+// ClubSkillView is one of the club's own skills, on the coaches' list.
+type ClubSkillView struct {
+	Name   string
+	What   string // the catalog skill it names, e.g. "Seat Half Twist To Seat (0 1)", or "To track"
+	Note   string
+	By     string // the coach who added it
+	Remove string // where removing it posts
+}
+
+// CatalogChoice is a catalog skill a coach can give the club's name, from a search.
+type CatalogChoice struct {
+	Skill    string // as JSON
+	Name     string // its own name
+	FIG      string
+	ClubName string // the club's name for it already, if any
+}
+
+// ClubSkillsPage is the coaches' page for the club's own skills.
+type ClubSkillsPage struct {
+	Frame   CoachFrame
+	Skills  []ClubSkillView
+	Action  string // where adding posts
+	Search  string // where searching the catalog goes
+	Query   string
+	Results []CatalogChoice
+	Max     int
+}
+
+// CoachClubSkills is the coaches' page for the club's own skills: its names
+// for catalog skills, and anything else it tracks.
+templ CoachClubSkills(p ClubSkillsPage) {
+	@competitionLayout("Club skills · " + p.Frame.Club) {
+		@coachFrame(p.Frame)
+		<p class="mb-4 is-size-7 has-text-grey">
+			Skills of your club's own, for every coach and member to mark: your club's name for a skill (it shows in place of the skill's own name on your club's pages), or something else to track, like a drill.
+		</p>
+		if len(p.Skills) == 0 {
+			<p class="has-text-grey mb-4">No club skills yet.</p>
+		}
+		for _, c := range p.Skills {
+			<div class="skill-mark">
+				<strong>{ c.Name }</strong>
+				<span class="has-text-grey is-size-7 ml-1">{ c.What }</span>
+				if c.Note != "" {
+					<p class="is-size-7 mt-1">{ c.Note }</p>
+				}
+				<p class="is-size-7 mt-1">
+					Added by
+					@WhoChip(RoleCoach, c.By)
+				</p>
+				<form method="post" action={ templ.SafeURL(c.Remove) } class="mt-1" onsubmit={ confirmRemoveClubSkill(c.Name) }>
+					<button class="button is-small is-text" type="submit">Remove</button>
+				</form>
+			</div>
+		}
+		<div class="box mt-5">
+			<h3 class="title is-6">Name a skill</h3>
+			<form method="get" action={ templ.SafeURL(p.Search) } class="field has-addons mb-3">
+				<div class="control is-expanded">
+					<input class="input" type="search" name="q" value={ p.Query } placeholder="Find the skill: a name or FIG notation" aria-label="Find a skill to name"/>
+				</div>
+				<div class="control"><button class="button" type="submit">Find</button></div>
+			</form>
+			if p.Query != "" && len(p.Results) == 0 {
+				<p class="has-text-grey is-size-7">No skill found for that.</p>
+			}
+			for _, c := range p.Results {
+				<form method="post" action={ templ.SafeURL(p.Action) } class="skill-mark">
+					<input type="hidden" name="skill" value={ c.Skill }/>
+					<p><strong>{ c.Name }</strong> <span class="has-text-grey is-size-7">{ c.FIG }</span></p>
+					<div class="field has-addons mt-1 mb-0">
+						<div class="control is-expanded">
+							<input class="input is-small" name="name" value={ c.ClubName } maxlength="60" required placeholder="Your club's name for it" aria-label={ "Your club's name for " + c.Name }/>
+						</div>
+						<div class="control"><button class="button is-small" type="submit">Save name</button></div>
+					</div>
+				</form>
+			}
+		</div>
+		<form method="post" action={ templ.SafeURL(p.Action) } class="box mt-4">
+			<h3 class="title is-6">Something else to track</h3>
+			<div class="field">
+				<label class="label is-small" for="club-skill-name">Name</label>
+				<input class="input" id="club-skill-name" name="name" maxlength="60" required placeholder="e.g. Kaboom drill"/>
+			</div>
+			<div class="field">
+				<label class="label is-small" for="club-skill-note">Note (optional)</label>
+				<input class="input" id="club-skill-note" name="note" maxlength="300" placeholder="What it is, or how it's done"/>
+			</div>
+			<button class="button is-primary is-small" type="submit">Add</button>
+			<p class="help mt-2">{ "Up to " + strconv.Itoa(p.Max) + " club skills. Members and coaches mark it like any skill; it's not for routines." }</p>
+		</form>
+	}
+}
+
+// confirmRemoveClubSkill asks before a club skill goes, with its marks.
+script confirmRemoveClubSkill(name string) {
+	return confirm('Remove ' + name + '? Marks on something to track go with it; a name for a skill only stops showing.');
+}

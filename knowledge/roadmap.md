@@ -142,22 +142,26 @@ build on:
       their pages or changing something counts as use, not only the admin
       and join links as now. The comp sec's Settings says when the club
       would be deleted. Comes first, so no progress is lost over a summer.
-   2. **Marking skills.** Any skill the catalog can describe, found with
+   2. **Marking skills** (built 2026-10-15, with 3: [skills](features/competition-entries.md#skills-adr-0011)).
+      The gymnast's mark and a coach's both show (decided 2026-10-15), as
+      role and state chips from the one palette.
+      Any skill the catalog can describe, found with
       the routine builder's picker and search, can be marked **Learning** or
       **Can do**, by the gymnast or by a coach (decided 2026-10-15). Each
       mark says who made it and when ("Can do · marked by Declan (coach),
-      3 Oct", "Learning · marked by you"). A coach marking a skill the
-      gymnast already marked makes it theirs; the coach can filter for
-      gymnast-only marks, to confirm. The skills in the gymnast's routines
-      (from 1) are offered first, and a routine with a skill not yet marked
-      Can do says so to the coach.
+      3 Oct", "Learning · marked by you"). Each side keeps its own mark;
+      the coach can filter for the gymnast's marks they haven't made the
+      same, to confirm. The skills in the gymnast's routines (from 1) are
+      offered first. Still to do: a routine with a skill not yet marked Can
+      do saying so to the coach.
    3. **Who sees it** (decided 2026-10-15): the gymnast, the coaches who
       see them, and the comp sec, at least. The comp sec can open it to
       **every member of the club** (a setting, off to start with). The
       member's **Skills** tab, a **Skills** page per gymnast under the
       coach's Gymnasts, and the comp sec's Members, each with the shared
       search and filters (by skill, by level, marked by whom).
-   4. **The club's own skills** (decided 2026-10-15). Coaches add skills to
+   4. **The club's own skills** (decided and built 2026-10-15,
+      [club skills](features/competition-entries.md#club-skills-adr-0011)). Coaches add skills to
       a **club catalogue**, used for tracking alongside the built-in one:
       - **the club's name for a skill the catalog can describe**, one it
         names already ("Swivel Hips" for Seat Half Twist To Seat) or one

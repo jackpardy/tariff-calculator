@@ -237,8 +237,14 @@ func (p *competitionPages) clubMembersPart(r *http.Request, club store.Club, pag
 	if err != nil {
 		return err
 	}
+	can, _, err := p.st.MarkCounts(ctx, club.ID)
+	if err != nil {
+		return err
+	}
 	for _, m := range members {
+		_, marked := can[m.ID]
 		page.Members = append(page.Members, views.ClubMember{ID: m.ID, Name: m.Name, Entries: entered[m.ID], CoachID: m.CoachID, AlsoCoach: m.AlsoCoach != "", Routines: routines[m.ID],
+			Can: can[m.ID], Marks: marked,
 			List: views.ListRow{Name: m.Name, Values: map[string][]string{
 				"coach": {memberCoachValue(m.CoachID)}, "entries": {hasValue(entered[m.ID] > 0)}, "coachtoo": {hasValue(m.AlsoCoach != "")},
 			}}})
@@ -309,6 +315,7 @@ func (p *competitionPages) clubCoachesPart(r *http.Request, club store.Club, pag
 // pages from their own link.
 func (p *competitionPages) clubSettingsPart(r *http.Request, club store.Club, page *views.ClubPage) error {
 	page.KeptUntil = store.KeptUntil(club.LastUsed).In(local).Format("2 January 2006")
+	page.SkillsOpen = club.SkillsOpen
 	ties, err := p.st.ClubTies(r.Context(), club.ID)
 	for _, t := range ties {
 		page.Ties = append(page.Ties, views.TieView{ID: t.ID, Name: t.Name, Since: t.At.In(local).Format("2 January 2006")})

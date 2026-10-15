@@ -35,7 +35,7 @@ This is for the late-2026 dry run (about 20 people) and ISTO in April 2027
 4. **Counts on the desk.** While a message is sending, its counts (told by
    push, by email, failed, still to go) are in memory; when it's done
    they're written to `desk_messages` (`pushed`, `emailed`, and a new
-   `failed`, migration 39). The desk page shows them when it's reloaded.
+   `failed`, migration 41). The desk page shows them when it's reloaded.
 5. **The queue is in memory.** On SIGTERM, after the requests under way
    finish, the app waits up to 20 seconds for what's queued, then stops,
    logs how many were left unsent and keeps those as failed for their
