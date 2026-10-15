@@ -84,6 +84,7 @@ type CoachPage struct {
 	Club, Coach  string
 	Link         string // their coach link, as a full URL
 	Notice       string
+	Menu         []MenuSection // Entries and Gymnasts
 	SeesAll      bool // they see every member, not just their own and those without a coach
 	SignsOff     bool // the club lets them sign off routines
 	Competitions []CoachCompetition
@@ -114,11 +115,7 @@ type CoachRow struct {
 // CoachHome is a coach's page.
 templ CoachHome(p CoachPage) {
 	@competitionLayout(p.Coach + " · " + p.Club) {
-		<p class="has-text-grey mb-1">{ p.Club } · coach</p>
-		<h1 class="title is-4">{ p.Coach }</h1>
-		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
-		}
+		@coachFrame(CoachFrame{Club: p.Club, Coach: p.Coach, Notice: p.Notice, Menu: p.Menu})
 		if p.Link != "" {
 			<div data-coach-link={ p.Link } data-coach-name={ p.Coach + " · " + p.Club }>
 				@linkBox("Your coach link (keep it to yourself)", p.Link, "Saved in this browser too.")

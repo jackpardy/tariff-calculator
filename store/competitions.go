@@ -635,10 +635,11 @@ func (s *Store) WithdrawIndividualEntry(ctx context.Context, token string) error
 	})
 }
 
-// DeleteExpired deletes competitions past their retention date, and clubs
-// unused for competitions.RetentionDays, with everything they hold, and
-// individuals with no entries left who were made that long ago. It returns
-// how many competitions and clubs it deleted.
+// DeleteExpired deletes competitions past their retention date, clubs unused
+// for ClubRetentionMonths (ADR 0011 Decision 7), with everything they hold,
+// and individuals with no entries left who were made
+// competitions.RetentionDays ago. It returns how many competitions and clubs
+// it deleted.
 func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err error) {
 	now := s.now()
 	err = s.tx(ctx, func(tx *sql.Tx) error {
@@ -649,15 +650,15 @@ func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err erro
 		if comps, err = res.RowsAffected(); err != nil {
 			return err
 		}
-		unused := now.AddDate(0, 0, -competitions.RetentionDays).Format(timeLayout)
-		if res, err = tx.ExecContext(ctx, `DELETE FROM clubs WHERE last_used <= $1`, unused); err != nil {
+		unusedClubs := now.AddDate(0, -ClubRetentionMonths, 0).Format(timeLayout)
+		if res, err = tx.ExecContext(ctx, `DELETE FROM clubs WHERE last_used <= $1`, unusedClubs); err != nil {
 			return err
 		}
 		if clubs, err = res.RowsAffected(); err != nil {
 			return err
 		}
 		if _, err = tx.ExecContext(ctx, `DELETE FROM individuals WHERE created_at <= $1
-			AND NOT EXISTS (SELECT 1 FROM entries WHERE individual_id = individuals.id)`, unused); err != nil {
+			AND NOT EXISTS (SELECT 1 FROM entries WHERE individual_id = individuals.id)`, now.AddDate(0, 0, -competitions.RetentionDays).Format(timeLayout)); err != nil {
 			return err
 		}
 		if err := dropTies(ctx, tx); err != nil {

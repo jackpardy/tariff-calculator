@@ -34,6 +34,18 @@ type EntryForm struct {
 	// As asks who's entering on their own, by the link of their page (ADR
 	// 0010): nil where the page already says who.
 	As *EnterAs
+	// Kept are the member's routines kept on their page (ADR 0011), offered
+	// for each voluntary with those saved in this browser; KeptOn says whose
+	// page, "your page" or "their page".
+	Kept   []KeptRoutine
+	KeptOn string
+}
+
+// KeptRoutine is a routine kept on a member's page, to choose for an entry.
+type KeptRoutine struct {
+	Name   string
+	Skills string // as JSON
+	Count  int
 }
 
 // EnterAs is the link of the page someone entering on their own already has,
@@ -219,7 +231,7 @@ templ entryForm(f EntryForm) {
 				if !f.Unchecked {
 					for n, ex := range l.Exercises {
 						if !ex.Skip {
-							@entryExercise(n+1, ex, f.Video)
+							@entryExercise(n+1, ex, f)
 						}
 					}
 				}
@@ -235,8 +247,9 @@ templ entryForm(f EntryForm) {
 	</form>
 }
 
-templ entryExercise(n int, ex EntryExercise, video string) {
+templ entryExercise(n int, ex EntryExercise, f EntryForm) {
 	{{ prefix := fmt.Sprintf("ex%d", n) }}
+	{{ video := f.Video }}
 	<div class="box comp-entry-exercise" data-exercise={ prefix }>
 		<h2 class="title is-6">
 			if ex.Title != "" {
@@ -260,14 +273,26 @@ templ entryExercise(n int, ex EntryExercise, video string) {
 		<div class="field comp-routine mt-2">
 			<label class="label is-small">Routine</label>
 			<div class="select is-fullwidth">
-				// Filled from the routines saved in this browser (static/js/competitions.js).
+				// The routines kept on the member's page, then those saved in
+				// this browser, added by static/js/competitions.js.
 				<select data-routine-for={ prefix } aria-label={ "Routine for the " + exerciseName(n) + " exercise" }>
 					if ex.Skills != "" {
 						<option value="current" selected>{ fmt.Sprintf("Keep the routine entered (%d skills)", ex.Count) }</option>
 					}
+					if len(f.Kept) > 0 {
+						<optgroup label={ "Kept on " + f.KeptOn } data-kept>
+							for i, k := range f.Kept {
+								<option value={ fmt.Sprintf("kept:%d", i) } data-skills={ k.Skills }>{ fmt.Sprintf("%s (%d skills)", k.Name, k.Count) }</option>
+							}
+						</optgroup>
+					}
 				</select>
 			</div>
-			<p class="help">One of the routines saved in this browser. Build it in the Routine Builder first.</p>
+			if len(f.Kept) > 0 {
+				<p class="help">{ "One kept on " + f.KeptOn + ", or saved in this browser." }</p>
+			} else {
+				<p class="help">One of the routines saved in this browser. Build it in the Routine Builder first.</p>
+			}
 		</div>
 		<input type="hidden" name={ prefix + "Skills" } value={ ex.Skills }/>
 		if video != "" {

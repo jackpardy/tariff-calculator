@@ -104,6 +104,10 @@ templ calculator(groups []requirements.BuiltinGroup) {
 							<button class="button is-small is-white" type="button" x-on:click="renameRoutine()">Rename</button>
 							<button class="button is-small is-white" type="button" x-on:click="duplicateRoutine()">Duplicate</button>
 							<button class="button is-small is-white" type="button" x-on:click="saveAsSetRoutine()" x-bind:disabled="routine.length === 0">Save as a set routine</button>
+							// A club member's page saved in this browser keeps the routine there too (ADR 0011).
+							<template x-for="m in memberLinks" x-bind:key="m.url">
+								<button class="button is-small is-white" type="button" x-on:click="saveToPage(m)" x-bind:disabled="routine.length === 0" x-text="memberLinks.length > 1 ? `Save to ${m.name}` : 'Save to my page'"></button>
+							</template>
 							<button class="button is-small is-white" type="button" x-on:click="expandAll()">Expand all</button>
 							<button class="button is-small is-white" type="button" x-on:click="collapseAll()">Collapse all</button>
 							<button class="button is-small is-white has-text-danger" type="button" x-on:click="clearRoutine()" x-bind:disabled="routine.length === 0">Clear skills</button>

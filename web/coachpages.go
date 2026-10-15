@@ -222,7 +222,8 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	path := coachPath(r.PathValue("token"))
-	page := views.CoachPage{Club: club, Coach: coach.Name, Link: origin(r) + path, Notice: r.URL.Query().Get("notice"), SeesAll: seesAll, SignsOff: coach.SignsOff}
+	page := views.CoachPage{Club: club, Coach: coach.Name, Link: origin(r) + path, Notice: r.URL.Query().Get("notice"), SeesAll: seesAll, SignsOff: coach.SignsOff,
+		Menu: coachMenu(r.PathValue("token"), coachEntriesTab)}
 	if store.IsVia(r.PathValue("token")) {
 		page.Link = "" // opened through another of their links, which is the one to keep
 	}

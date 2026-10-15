@@ -406,8 +406,20 @@ func TestDeleteExpired(t *testing.T) {
 		t.Error("and the competition's copies")
 	}
 
-	// 120 days after the club was last used, it goes with its members.
+	// 120 days after the club was last used it stays (ADR 0011 Decision 7)...
 	now = time.Date(2027, 11, 7, 12, 0, 0, 0, time.UTC)
+	if _, clubs, err := s.DeleteExpired(ctx); err != nil || clubs != 0 {
+		t.Errorf("the club isn't due yet: %d, %v", clubs, err)
+	}
+	// ...until 13 months after, when it goes with its members.
+	if want := time.Date(2028, 8, 10, 12, 0, 0, 0, time.UTC); !KeptUntil(time.Date(2027, 7, 10, 12, 0, 0, 0, time.UTC)).Equal(want) {
+		t.Errorf("kept until %v", KeptUntil(time.Date(2027, 7, 10, 12, 0, 0, 0, time.UTC)))
+	}
+	now = time.Date(2028, 8, 10, 11, 0, 0, 0, time.UTC)
+	if _, clubs, err := s.DeleteExpired(ctx); err != nil || clubs != 0 {
+		t.Errorf("the club isn't due until the hour it was used: %d, %v", clubs, err)
+	}
+	now = time.Date(2028, 8, 10, 12, 0, 0, 0, time.UTC)
 	if _, clubs, err := s.DeleteExpired(ctx); err != nil || clubs != 1 {
 		t.Errorf("the club is due: %d, %v", clubs, err)
 	}

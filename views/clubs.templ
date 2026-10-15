@@ -22,6 +22,7 @@ type ClubPage struct {
 	QualificationOptions []CoachOption // every qualification, to give a coach
 	Pairs                []PairView    // synchro entries other clubs' gymnasts made with members
 	Menu                 []MenuSection // the sections of the comp sec's pages
+	KeptUntil            string        // when the club is deleted if no one uses it, on Settings (ADR 0011)
 	// MemberOptions are the members who aren't coaches too, to make one;
 	// Ties the people whose own link opens these pages (ADR 0010).
 	MemberOptions []CoachOption
@@ -58,7 +59,8 @@ type ClubMember struct {
 	ID, Name  string
 	Entries   int
 	CoachID   string
-	AlsoCoach bool // a coach of the club too
+	AlsoCoach bool    // a coach of the club too
+	Routines  int     // routines kept on their page (ADR 0011)
 	List      ListRow // what the list's search and filters see
 }
 
@@ -143,6 +145,7 @@ type MemberPage struct {
 	Competition  *MemberCompetition  // the one competition's page shows
 	Pairs        []PairView          // synchro entries they're the partner in
 	Other        *OtherLinks         // their other links, on their details (ADR 0010)
+	Routines     RoutinesPart        // their kept routines, on Routines (ADR 0011)
 }
 
 // MemberCompetition is a member's entry for one competition, and the form to
@@ -230,7 +233,7 @@ templ NewClub(name string, problems []string) {
 			</div>
 			<button class="button is-primary is-fullwidth" type="submit">Create club</button>
 		</form>
-		<p class="help mt-4">We keep the club's name and its members' names and entries, nothing else. A club is deleted 120 days after it was last used.</p>
+		<p class="help mt-4">We keep the club's name and its members' names, entries and routines, nothing else. A club is deleted 13 months after anyone last used it.</p>
 	}
 }
 
@@ -442,7 +445,12 @@ templ ClubMembers(c ClubPage) {
 											<span class="tag is-info is-light ml-1">Coach too</span>
 										}
 									</td>
-									<td class="has-text-grey is-size-7">{ Count(m.Entries, "entry", "entries") }</td>
+									<td class="has-text-grey is-size-7">
+										{ Count(m.Entries, "entry", "entries") }
+										if m.Routines > 0 {
+											· <a href={ templ.SafeURL(c.Base + "/members/" + m.ID + "/routines") }>{ Count(m.Routines, "routine", "routines") }</a>
+										}
+									</td>
 									if len(c.CoachOptions) > 0 {
 										<td data-label="Coach">
 											@coachSelect(c.Base+"/members/"+m.ID+"/coach", c.CoachOptions, m.CoachID, m.Name+"'s coach")
@@ -598,6 +606,9 @@ templ ClubSettings(c ClubPage) {
 			<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
 			<p class="help">Entries already sent stay with each competition.</p>
 		</form>
+		if c.KeptUntil != "" {
+			<p class="help mt-3">{ "The club is kept until " + c.KeptUntil + ": 13 months after anyone last opened its pages, or a member's or coach's. Each time someone does, that moves on." }</p>
+		}
 		</div>
 		@tiesBox(c.Base+"/ties/remove", c.Ties, "Someone who adds this admin link to their own page (a member's or coach's, say) opens these pages from there, with a tab for each.")
 	}
@@ -648,7 +659,7 @@ templ ClubJoin(p JoinPage) {
 			</div>
 			<button class="button is-primary is-fullwidth" type="submit">Join</button>
 		</form>
-		<p class="help mt-4">We keep your name and your entries, which your club and the competitions you're sent to see. Nothing else, and no account.</p>
+		<p class="help mt-4">We keep your name, your entries and any routines you keep on your page, which your club sees, and your entries the competitions they're sent to. Nothing else, and no account.</p>
 	}
 }
 

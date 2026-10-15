@@ -1,0 +1,388 @@
+package web
+
+import (
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
+
+	"tariffCalculator/requirements"
+	"tariffCalculator/store"
+	"tariffCalculator/views"
+)
+
+// A member's routines, kept on their page (ADR 0011 Decision 1): the member's
+// Routines tab, where the routine builder's Save to my page posts; a coach's
+// Gymnasts, with each gymnast's routines and a note on each; and the comp
+// sec's view of a member's routines from Members.
+
+// maxKeepBytes bounds a request keeping routines: a browser's worth, each
+// with its requirements.
+const maxKeepBytes = 512 << 10
+
+// maxKeptSet is the most a kept routine's own requirements may be, as JSON.
+const maxKeptSet = 16 << 10
+
+func (p *competitionPages) registerRoutines(handle func(string, http.HandlerFunc)) {
+	handle("GET /clubs/member/{token}/routines", p.memberRoutines)
+	handle("POST /clubs/member/{token}/routines", p.keepRoutines)
+	handle("POST /clubs/member/{token}/routines/{routine}/rename", p.renameRoutine)
+	handle("POST /clubs/member/{token}/routines/{routine}/delete", p.deleteRoutine)
+	handle("GET /clubs/coach/{token}/gymnasts", p.coachGymnasts)
+	handle("GET /clubs/coach/{token}/gymnasts/{member}", p.coachGymnast)
+	handle("POST /clubs/coach/{token}/gymnasts/{member}/routines/{routine}/note", p.noteRoutine)
+	handle("GET /clubs/admin/{token}/members/{member}/routines", p.clubMemberRoutines)
+}
+
+// keepsRoutines says a request keeps routines, for its larger body.
+func keepsRoutines(path string) bool {
+	return strings.HasPrefix(path, "/clubs/member/") && strings.HasSuffix(path, "/routines")
+}
+
+// memberRoutinesPath is a member's Routines tab.
+func memberRoutinesPath(token string) string { return memberPath(token) + "/routines" }
+
+// coachGymnastsPath is a coach's Gymnasts.
+func coachGymnastsPath(token string) string { return coachPath(token) + "/gymnasts" }
+
+// memberRoutines is a member's Routines tab.
+func (p *competitionPages) memberRoutines(w http.ResponseWriter, r *http.Request) {
+	m, ok := p.member(w, r)
+	if !ok {
+		return
+	}
+	page, _, ok := p.memberPage(w, r, m, memberRoutinesTab)
+	if !ok {
+		return
+	}
+	list, err := p.st.MemberRoutines(r.Context(), m.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	base := memberRoutinesPath(r.PathValue("token"))
+	page.Routines = routinesPart(list, "You haven't kept any routines here yet.", func(v *views.RoutineView) {
+		v.Rename, v.Delete = base+"/"+v.ID+"/rename", base+"/"+v.ID+"/delete"
+	})
+	page.Routines.Add = base
+	render(w, r, views.MemberRoutines(page))
+}
+
+// keptRoutine is a routine posted to keep, as the browser saves it: its id
+// there, its name, skills, requirements (a built-in reference or the set's
+// JSON, as SetStore.payload gives) and checks.
+type keptRoutine struct {
+	ID           string          `json:"id"`
+	Name         string          `json:"name"`
+	Skills       json.RawMessage `json:"skills"`
+	Requirements string          `json:"requirements"`
+	Checks       json.RawMessage `json:"checks"`
+}
+
+// keepRoutines keeps the posted routines (routines: a JSON list of
+// keptRoutine) on a member's page, from the routine builder or the Routines
+// tab, and goes back to the tab saying how many.
+func (p *competitionPages) keepRoutines(w http.ResponseWriter, r *http.Request) {
+	m, ok := p.member(w, r)
+	if !ok {
+		return
+	}
+	var posted []keptRoutine
+	if err := json.Unmarshal([]byte(r.FormValue("routines")), &posted); err != nil {
+		badRequest(w, fmt.Errorf("the routines couldn't be read"))
+		return
+	}
+	var in []store.RoutineIn
+	unread := 0
+	for _, k := range posted {
+		var skills []json.RawMessage
+		if json.Unmarshal(k.Skills, &skills) == nil && len(skills) == 0 {
+			continue // an empty routine: nothing to keep
+		}
+		kept, ok := routineToKeep(k)
+		if !ok {
+			unread++
+			continue
+		}
+		in = append(in, kept)
+	}
+	saved, full, err := p.st.SaveRoutines(r.Context(), m.ClubID, m.ID, in)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	notice := "Nothing to keep: choose a routine with skills."
+	if saved > 0 {
+		notice = fmt.Sprintf("Kept %s on your page.", plural(saved, "routine", "routines"))
+	}
+	if full > 0 {
+		notice += fmt.Sprintf(" %s didn't fit: there's room for %d, so delete one to keep another.", plural(full, "routine", "routines"), store.MaxRoutines)
+	}
+	if unread > 0 {
+		notice += fmt.Sprintf(" %s couldn't be read.", plural(unread, "routine", "routines"))
+	}
+	seeOther(w, r, memberRoutinesPath(r.PathValue("token")), notice)
+}
+
+// routineToKeep is a posted routine as it's kept: its skills read and checked
+// as the builder's are, its requirements kept only if they can be used, and
+// its checks only if they're a small JSON object. An empty routine, or one
+// that can't be read, isn't kept.
+func routineToKeep(k keptRoutine) (store.RoutineIn, bool) {
+	routine, err := parseRoutineJSON(string(k.Skills))
+	if err != nil || len(routine) == 0 || len(routine) > store.MaxRoutineSkills {
+		return store.RoutineIn{}, false
+	}
+	data, err := json.Marshal(routine)
+	if err != nil {
+		return store.RoutineIn{}, false
+	}
+	out := store.RoutineIn{Name: k.Name, Skills: string(data)}
+	if len(k.ID) <= 40 {
+		out.Source = k.ID
+	}
+	if set := strings.TrimSpace(k.Requirements); set != "" && len(set) <= maxKeptSet {
+		if _, err := requirements.ResolveSet(set); err == nil {
+			out.Requirements = set
+		}
+	}
+	var checks map[string]any
+	if len(k.Checks) <= 1<<10 && json.Unmarshal(k.Checks, &checks) == nil && checks != nil {
+		out.Checks = string(k.Checks)
+	}
+	return out, true
+}
+
+// renameRoutine renames one of a member's routines.
+func (p *competitionPages) renameRoutine(w http.ResponseWriter, r *http.Request) {
+	m, ok := p.member(w, r)
+	if !ok {
+		return
+	}
+	notice := "Renamed."
+	if err := p.st.RenameRoutine(r.Context(), m.ID, r.PathValue("routine"), r.FormValue("name")); errors.Is(err, store.ErrNotFound) {
+		failed(w, r, err)
+		return
+	} else if err != nil {
+		notice = "A routine needs a name."
+	}
+	seeOther(w, r, memberRoutinesPath(r.PathValue("token")), notice)
+}
+
+// deleteRoutine deletes one of a member's routines from their page.
+func (p *competitionPages) deleteRoutine(w http.ResponseWriter, r *http.Request) {
+	m, ok := p.member(w, r)
+	if !ok {
+		return
+	}
+	if err := p.st.DeleteRoutine(r.Context(), m.ID, r.PathValue("routine")); err != nil {
+		failed(w, r, err)
+		return
+	}
+	seeOther(w, r, memberRoutinesPath(r.PathValue("token")), "Deleted from your page.")
+}
+
+// coachFrame is the top of a coach's page, with the section shown current.
+func coachFrame(r *http.Request, coach store.Coach, club, section string) views.CoachFrame {
+	return views.CoachFrame{Club: club, Coach: coach.Name, Notice: r.URL.Query().Get("notice"), Menu: coachMenu(r.PathValue("token"), section)}
+}
+
+// coachGymnasts lists the gymnasts a coach sees, with how many routines each keeps.
+func (p *competitionPages) coachGymnasts(w http.ResponseWriter, r *http.Request) {
+	coach, club, ok := p.coach(w, r)
+	if !ok {
+		return
+	}
+	ctx := r.Context()
+	members, err := p.st.CoachMembers(ctx, coach)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	counts, err := p.st.RoutineCounts(ctx, coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	seesAll, err := p.st.CoachesSeeAll(ctx, coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	base := coachGymnastsPath(r.PathValue("token"))
+	page := views.CoachGymnastsPage{Frame: coachFrame(r, coach, club, coachGymnastsTab), SeesAll: seesAll}
+	for _, m := range members {
+		page.Gymnasts = append(page.Gymnasts, views.CoachGymnast{Name: m.Name, Routines: counts[m.ID], Open: base + "/" + m.ID,
+			List: views.ListRow{Name: m.Name, Values: map[string][]string{"routines": {hasValue(counts[m.ID] > 0)}, "mine": {hasValue(m.CoachID == coach.ID)}}}})
+	}
+	page.Tools = views.ListTools{ID: "gymnasts", Noun: "gymnasts", Total: len(members), Filters: []views.ListFilter{
+		hasFilter("routines", "Routines", "Routines or not", "Has routines", "No routines"),
+		hasFilter("mine", "Coach", "Any coach", "Chose you", "Didn't choose you"),
+	}}
+	render(w, r, views.CoachGymnasts(page))
+}
+
+// coachGymnast is one gymnast a coach sees, with their routines to note.
+func (p *competitionPages) coachGymnast(w http.ResponseWriter, r *http.Request) {
+	coach, club, ok := p.coach(w, r)
+	if !ok {
+		return
+	}
+	m, err := p.st.CoachMember(r.Context(), coach, r.PathValue("member"))
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	list, err := p.st.MemberRoutines(r.Context(), m.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	base := coachGymnastsPath(r.PathValue("token"))
+	page := views.CoachGymnastsPage{Frame: coachFrame(r, coach, club, coachGymnastsTab), Gymnast: m.Name, Back: base}
+	page.Routines = routinesPart(list, m.Name+" hasn't kept any routines on their page yet.", func(v *views.RoutineView) {
+		v.NoteAction = base + "/" + m.ID + "/routines/" + v.ID + "/note"
+	})
+	render(w, r, views.CoachGymnastPage(page))
+}
+
+// noteRoutine is a coach's note on a gymnast's routine.
+func (p *competitionPages) noteRoutine(w http.ResponseWriter, r *http.Request) {
+	coach, _, ok := p.coach(w, r)
+	if !ok {
+		return
+	}
+	member, routine := r.PathValue("member"), r.PathValue("routine")
+	if err := p.st.NoteRoutine(r.Context(), coach, member, routine, r.FormValue("note")); err != nil {
+		failed(w, r, err)
+		return
+	}
+	seeOther(w, r, coachGymnastsPath(r.PathValue("token"))+"/"+member+"#routine-"+routine, "Note saved.")
+}
+
+// clubMemberRoutines shows the comp sec a member's routines.
+func (p *competitionPages) clubMemberRoutines(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	m, err := p.st.Member(r.Context(), club.ID, r.PathValue("member"))
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	list, err := p.st.MemberRoutines(r.Context(), m.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	token := r.PathValue("token")
+	page := views.ClubMemberRoutinesPage{
+		Club:   views.ClubPage{Base: clubPath(token), Name: club.Name, Menu: clubMenu(token, clubMembers)},
+		Member: m.Name, Back: clubMembersPath(token),
+		Routines: routinesPart(list, m.Name+" hasn't kept any routines on their page yet.", nil),
+	}
+	render(w, r, views.ClubMemberRoutines(page))
+}
+
+// routinesPart is kept routines as a page shows them, each given its actions
+// by with (nil for none).
+func routinesPart(list []store.Routine, empty string, with func(*views.RoutineView)) views.RoutinesPart {
+	out := views.RoutinesPart{Max: store.MaxRoutines, Empty: empty}
+	for _, kept := range list {
+		v := routineView(kept)
+		if with != nil {
+			with(&v)
+		}
+		out.Routines = append(out.Routines, v)
+	}
+	return out
+}
+
+// routineView is a kept routine, checked as the routine builder checks it,
+// against its requirements if it has any.
+func routineView(kept store.Routine) views.RoutineView {
+	v := views.RoutineView{ID: kept.ID, Name: kept.Name, Updated: kept.UpdatedAt.In(local).Format("2 January 2006"),
+		Note: kept.Note, NoteBy: kept.NoteBy, NoteBefore: kept.NoteBefore()}
+	routine, err := routineFrom(postedRoutine{data: kept.Skills, set: kept.Requirements, checks: kept.Checks})
+	if err != nil {
+		v.Broken = "This routine couldn't be read."
+		return v
+	}
+	named, err := namedRoutine(kept.Skills)
+	if err == nil {
+		routine.Skills = named
+	}
+	checked := requirements.Check(routine, nil)
+	v.Count = len(routine.Skills)
+	v.Card = views.ExerciseCard{Title: kept.Name, Requirements: checked.SetName,
+		Validation: checked.Validation, Checks: checked.Checks, Results: checked.Results, Required: checked.Required}
+	if checked.SetErr != nil {
+		v.Card.SetErr = checked.SetErr.Error()
+	}
+	if v.Card.Requirements == "" {
+		v.Card.Requirements = "Checked against the Code of Points only"
+	}
+	if checked.Checks.ScoreDifficulty {
+		v.Difficulty = fmt.Sprintf("%.1f", checked.Validation.TotalTariff)
+	}
+	v.Open = builderLink(kept)
+	return v
+}
+
+// builderLink opens the routine builder with a kept routine to add, as a
+// share link (static/js/share.js) does: the routine in the link's fragment,
+// as plain JSON, with its own requirements if it has them.
+func builderLink(kept store.Routine) string {
+	var list []map[string]any
+	if err := json.Unmarshal([]byte(kept.Skills), &list); err != nil {
+		return ""
+	}
+	for _, s := range list {
+		delete(s, "name") // worked out again, as a share link's are
+		delete(s, "tariff")
+	}
+	routine := map[string]any{"name": kept.Name, "skills": list}
+	share := map[string]any{"v": 1, "routines": []any{routine}}
+	if strings.HasPrefix(kept.Requirements, requirements.BuiltinPrefix) {
+		routine["requirements"] = kept.Requirements
+	} else if kept.Requirements != "" {
+		routine["requirements"] = "set:0"
+		share["sets"] = []json.RawMessage{json.RawMessage(kept.Requirements)}
+	}
+	if kept.Checks != "" {
+		routine["checks"] = json.RawMessage(kept.Checks)
+	}
+	data, err := json.Marshal(share)
+	if err != nil {
+		return ""
+	}
+	return "/#share=j" + base64.RawURLEncoding.EncodeToString(data)
+}
+
+// keptForEntry are a member's kept routines, offered for an entry's voluntaries.
+func (p *competitionPages) keptForEntry(r *http.Request, memberID string) ([]views.KeptRoutine, error) {
+	list, err := p.st.MemberRoutines(r.Context(), memberID)
+	if err != nil {
+		return nil, err
+	}
+	var out []views.KeptRoutine
+	for _, kept := range list {
+		routine, err := parseRoutineJSON(kept.Skills)
+		if err != nil || len(routine) == 0 {
+			continue
+		}
+		out = append(out, views.KeptRoutine{Name: kept.Name, Skills: kept.Skills, Count: len(routine)})
+	}
+	return out, nil
+}
+
+// plural is n with its noun, e.g. "1 routine", "3 routines".
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return "1 " + one
+	}
+	return fmt.Sprintf("%d %s", n, many)
+}

@@ -63,5 +63,34 @@ const RoutineStore = (() => {
 
     const current = (state) => state.routines.find((r) => r.id === state.current);
 
-    return { load, save, current, newId, nextName };
+    // keepable is a routine as a member's page keeps it (ADR 0011): its id
+    // here, so keeping it again changes it, its name, its skills without the
+    // names and tariffs the server works out again, what it's checked
+    // against (a built-in reference or its own requirements) and its checks.
+    function keepable(r) {
+        const skills = r.skills.map(({ name, tariff, ...skill }) => skill);
+        const requirements = typeof SetStore === 'undefined' ? '' : SetStore.payload(r.requirements);
+        return { id: r.id, name: r.name, skills, requirements, checks: r.checks || null };
+    }
+
+    // keep posts routines to a member's page (its full link), which opens it.
+    function keep(memberLink, routines) {
+        const form = Object.assign(document.createElement('form'), { method: 'post', action: `${memberLink}/routines` });
+        form.append(Object.assign(document.createElement('input'), { type: 'hidden', name: 'routines', value: JSON.stringify(routines.map(keepable)) }));
+        document.body.append(form);
+        form.submit();
+    }
+
+    // memberLinks are the member pages saved in this browser ({name, url}),
+    // as the competition pages save them (static/js/competitions.js).
+    function memberLinks() {
+        try {
+            const links = JSON.parse(localStorage.getItem('trampolineMemberLinks') || '[]');
+            return Array.isArray(links) ? links.filter((l) => l && typeof l.url === 'string' && l.url.includes('/clubs/member/')) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    return { load, save, current, newId, nextName, keepable, keep, memberLinks };
 })();

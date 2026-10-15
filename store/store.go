@@ -644,6 +644,25 @@ var migrations = []string{
 	// 36: an individual's notifications belong to the individual, not the
 	// entry they signed up on (individualSubscriptions).
 	individualSubscriptions,
+
+	// 37: a member's routines, kept on their page (ADR 0011 Decision 1). The
+	// source is the id the routine had in the browser it came from, so saving
+	// it again changes it rather than adding another; a coach's note on it,
+	// with when, so a note older than the routine's last change can say so.
+	`CREATE TABLE IF NOT EXISTS member_routines (
+		id           TEXT PRIMARY KEY,
+		member_id    TEXT NOT NULL REFERENCES members (id) ON DELETE CASCADE,
+		source       TEXT NOT NULL DEFAULT '',
+		name         TEXT NOT NULL,
+		skills       TEXT NOT NULL,
+		requirements TEXT NOT NULL DEFAULT '',
+		checks       TEXT NOT NULL DEFAULT '',
+		note         TEXT NOT NULL DEFAULT '',
+		note_by      TEXT NOT NULL DEFAULT '',
+		note_at      TEXT NOT NULL DEFAULT '',
+		updated_at   TEXT NOT NULL
+	);
+	CREATE INDEX IF NOT EXISTS member_routines_member ON member_routines (member_id);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

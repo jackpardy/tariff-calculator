@@ -141,7 +141,8 @@
     }
 
     // entryForms show the chosen level's exercises, and for each voluntary a
-    // choice of the routines saved in this browser, whose skills are posted.
+    // choice of the routines kept on the member's page (from the server) and
+    // those saved in this browser, whose skills are posted.
     function entryForms() {
         for (const form of document.querySelectorAll('.comp-entry-form')) {
             const levelSelect = form.querySelector('select[name="level"]');
@@ -165,14 +166,24 @@
             for (const box of form.querySelectorAll('.comp-entry-exercise')) {
                 const skills = box.querySelector(`input[name="${box.dataset.exercise}Skills"]`);
                 const select = box.querySelector('select[data-routine-for]');
+                const kept = select.querySelector('optgroup[data-kept]');
                 if (!select.querySelector('option[value="current"]')) {
-                    select.append(new Option(routines.length > 0 ? 'Choose a routine' : 'No routines saved in this browser', ''));
+                    const any = routines.length > 0 || kept;
+                    const prompt = new Option(any ? 'Choose a routine' : 'No routines saved in this browser', '');
+                    select.prepend(prompt);
+                    prompt.selected = true;
                 }
-                for (const r of routines) {
-                    select.append(new Option(`${r.name} (${r.skills.length} skills)`, r.id));
+                if (routines.length > 0) {
+                    const group = kept ? Object.assign(document.createElement('optgroup'), { label: 'Saved in this browser' }) : select;
+                    for (const r of routines) {
+                        group.append(new Option(`${r.name} (${r.skills.length} skills)`, r.id));
+                    }
+                    if (kept) { select.append(group); }
                 }
                 select.addEventListener('change', () => {
                     if (select.value === 'current') { return; }
+                    const option = select.selectedOptions[0];
+                    if (option?.dataset.skills) { skills.value = option.dataset.skills; return; }
                     const routine = routines.find((r) => r.id === select.value);
                     skills.value = routine ? JSON.stringify(routine.skills) : '';
                 });
@@ -580,6 +591,30 @@
         }
     }
 
+    // keepRoutines lists the routines saved in this browser on a member's
+    // Routines tab, each to tick, and posts the ticked ones to keep on their
+    // page (ADR 0011). Without routines here, or without the script, it stays
+    // hidden.
+    function keepRoutines() {
+        const form = document.querySelector('[data-keep-routines]');
+        if (!form || typeof RoutineStore === 'undefined') { return; }
+        const routines = RoutineStore.load().routines.filter((r) => r.skills.length > 0);
+        if (routines.length === 0) { return; }
+        const list = form.querySelector('.comp-keep-list');
+        for (const r of routines) {
+            const label = Object.assign(document.createElement('label'), { className: 'checkbox is-block mb-1' });
+            const box = Object.assign(document.createElement('input'), { type: 'checkbox', value: r.id, checked: true });
+            label.append(box, ` ${r.name} (${r.skills.length} skills)`);
+            list.append(label);
+        }
+        form.addEventListener('submit', (event) => {
+            const ticked = [...list.querySelectorAll('input:checked')].map((box) => routines.find((r) => r.id === box.value));
+            if (ticked.length === 0) { event.preventDefault(); return; }
+            form.querySelector('input[name="routines"]').value = JSON.stringify(ticked.map(RoutineStore.keepable));
+        });
+        form.hidden = false;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         keepOffline();
         listTools();
@@ -596,5 +631,6 @@
         enterAs();
         videoChoices();
         entryForms();
+        keepRoutines();
     });
 })();

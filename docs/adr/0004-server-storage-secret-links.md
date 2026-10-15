@@ -9,7 +9,8 @@
   accounts ("accounts only when save routines forces it")
 - **Amended by:** ADR 0007 (approved coaches, 2026-10-08), for Decisions 6,
   7 and 11; ADR 0008 (notifications, 2026-10-08), for Decision 6; ADR 0009 (helpers' links,
-  2026-10-08), for Decision 3
+  2026-10-08), for Decision 3; ADR 0011 (club routines and skill tracking,
+  2026-10-15), for Decisions 2, 5 and 6
 
 ## Context
 
@@ -140,7 +141,8 @@ Constraints:
    birth or contact details. A competition and its entries are deleted **120
    days after the competition date**, and the organiser can delete them sooner.
    A club and its members' entries are deleted **120 days after the club was last
-   used**; the comp sec can delete the club or remove a member at any time.
+   used** (13 months since ADR 0011 Decision 7); the comp sec can delete the
+   club or remove a member at any time.
    The submit page says what is stored, who can see it and when it's deleted.
 
 7. **Abuse limits**, as in charades: a cap on competitions and clubs created per

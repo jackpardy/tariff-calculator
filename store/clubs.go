@@ -37,18 +37,54 @@ func (s *Store) CreateClub(ctx context.Context, name string) (Club, string, erro
 	return c, admin, nil
 }
 
-// clubBy finds a club by a condition on its row (from $2) and marks it used.
+// clubBy finds a club by a condition on its row and marks it used.
 func (s *Store) clubBy(ctx context.Context, where string, args ...any) (Club, error) {
 	var c Club
 	var created, used string
-	err := s.db.QueryRowContext(ctx, `UPDATE clubs SET last_used = $1 WHERE `+where+`
-		RETURNING id, name, join_token, coaches_see_all, created_at, last_used`, append([]any{s.stamp()}, args...)...).
+	err := s.db.QueryRowContext(ctx, `SELECT id, name, join_token, coaches_see_all, created_at, last_used FROM clubs WHERE `+where, args...).
 		Scan(&c.ID, &c.Name, &c.JoinLink, &c.CoachesSeeAll, &created, &used)
 	if err != nil {
 		return Club{}, notFound(err)
 	}
 	c.CreatedAt, c.LastUsed = parseTime(created), parseTime(used)
+	if marked, err := s.markUsed(ctx, s.db, c.ID); err != nil {
+		return Club{}, err
+	} else if marked {
+		c.LastUsed = parseTime(formatTime(s.now()))
+	}
 	return c, nil
+}
+
+// ClubRetentionMonths is how long a club is kept after it was last used
+// (ADR 0011 Decision 7): long enough for a summer break.
+const ClubRetentionMonths = 13
+
+// KeptUntil is when a club last used at lastUsed is deleted, unless it's used
+// again before then.
+func KeptUntil(lastUsed time.Time) time.Time {
+	return lastUsed.AddDate(0, ClubRetentionMonths, 0)
+}
+
+// usedEvery is how often opening a club's pages marks it used: a page load
+// writes at most once a day (ADR 0011 Decision 7).
+const usedEvery = 24 * time.Hour
+
+// execer runs a statement, in a transaction or not.
+type execer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+// markUsed marks a club used by a page being opened, unless it was marked in
+// the last day. It says whether it did.
+func (s *Store) markUsed(ctx context.Context, q execer, clubID string) (bool, error) {
+	now := s.now()
+	res, err := q.ExecContext(ctx, `UPDATE clubs SET last_used = $1 WHERE id = $2 AND last_used < $3`,
+		formatTime(now), clubID, formatTime(now.Add(-usedEvery)))
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n > 0, err
 }
 
 // ClubByAdmin is the club a comp sec's admin link opens: the link itself, or
@@ -57,19 +93,19 @@ func (s *Store) clubBy(ctx context.Context, where string, args ...any) (Club, er
 func (s *Store) ClubByAdmin(ctx context.Context, token string) (Club, error) {
 	personal, id, ok := splitVia(token)
 	if !ok {
-		return s.clubBy(ctx, "admin_hash = $2", hash(token))
+		return s.clubBy(ctx, "admin_hash = $1", hash(token))
 	}
 	h, err := holderOf(ctx, s.db, personal)
 	if err != nil {
 		return Club{}, err
 	}
-	return s.clubBy(ctx, `id = $2 AND EXISTS (SELECT 1 FROM shared_ties t WHERE t.kind = 'club' AND t.target_id = clubs.id
-		AND t.link_hash = clubs.admin_hash AND t.record_id IN (`+personRecords("3")+`))`, id, h.PersonID)
+	return s.clubBy(ctx, `id = $1 AND EXISTS (SELECT 1 FROM shared_ties t WHERE t.kind = 'club' AND t.target_id = clubs.id
+		AND t.link_hash = clubs.admin_hash AND t.record_id IN (`+personRecords("2")+`))`, id, h.PersonID)
 }
 
 // ClubByJoinLink is the club a join link joins.
 func (s *Store) ClubByJoinLink(ctx context.Context, token string) (Club, error) {
-	return s.clubBy(ctx, "join_hash = $2", hash(token))
+	return s.clubBy(ctx, "join_hash = $1", hash(token))
 }
 
 // ReplaceClubAdmin gives a club a new admin link, which ends the old one.
@@ -136,7 +172,7 @@ func touch(ctx context.Context, tx *sql.Tx, clubID, now string) error {
 }
 
 // MemberByLink is the member a personal link belongs to, or a personal
-// link's Via to them opens (ADR 0010). It marks their club used.
+// link's Via to them opens (ADR 0010). It marks their club used (markUsed).
 func (s *Store) MemberByLink(ctx context.Context, token string) (Member, error) {
 	var m Member
 	var created string
@@ -150,7 +186,8 @@ func (s *Store) MemberByLink(ctx context.Context, token string) (Member, error) 
 		if err != nil {
 			return notFound(err)
 		}
-		return touch(ctx, tx, m.ClubID, s.stamp())
+		_, err = s.markUsed(ctx, tx, m.ClubID)
+		return err
 	})
 	m.CreatedAt = parseTime(created)
 	return m, err
