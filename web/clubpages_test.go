@@ -125,7 +125,7 @@ func TestClubs(t *testing.T) {
 	if page := do(t, h, http.MethodGet, member, nil).Body.String(); !strings.Contains(page, "Sent by your club") {
 		t.Error("the member sees it's sent")
 	}
-	if page := memberCompetitionPage(t, h, member); !strings.Contains(page, `<details class="box mt-4 comp-change"><summary><strong>Change your entry</strong>`) {
+	if page := memberCompetitionPage(t, h, member); !strings.Contains(page, `<details class="comp-opens"><summary><span class="button is-small comp-opens-button"><span class="comp-opens-label">Change your entry</span>`) {
 		t.Error("with an entry, the form to change it starts closed")
 	}
 

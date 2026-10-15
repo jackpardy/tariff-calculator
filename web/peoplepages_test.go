@@ -132,8 +132,8 @@ func TestPeople(t *testing.T) {
 			t.Errorf("the tools have %s", want)
 		}
 	}
-	if !regexp.MustCompile(`<details class="comp-list mt-5" open><summary class="title is-5 mb-3">People <span[^>]*>\(7\)</span>`).MatchString(list) {
-		t.Error("the list is a dropdown under its heading and count")
+	if !regexp.MustCompile(`<section class="comp-list mt-5"><h2 class="title is-5 mb-3">People <span[^>]*>· 7</span></h2>`).MatchString(list) {
+		t.Error("the list is under its heading and count")
 	}
 	if kit := values["Kit O/Neil? 100% #1"]; !slices.Equal(kit["club"], []string{"On their own"}) {
 		t.Errorf("an awkward name's values: %v", kit)

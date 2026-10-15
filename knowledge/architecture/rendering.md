@@ -60,6 +60,35 @@ something else opts out by `content: none` on its `::before`, in the same block:
 (`.comp-move`), or any summary given the class `no-arrow`. The tariff sheet and
 the view page have their own stylesheets and menus, so the rule doesn't reach them.
 
+# Settings and forms on a page
+
+A page is about what it lists: the late changes asked for, the fees owed, the
+officials, the entries. Its own settings, and forms for doing something to
+what it lists, stay out of the way until asked for, as **one line with a small
+button** (`views/opens.templ`), not a card with a heading of its own that
+opens and closes (the look the pages had when they were all on one long
+dashboard):
+
+- `changeLine(what, now, open)`: a setting, **what** in bold and how it's set
+  **now**, with a **Change** button opening its form beneath, e.g. "**Late
+  changes** · level change (€5) and routine change (no fee) can be asked for
+  after the deadline [Change]". Late changes, What you charge, Panels and who
+  may judge, the timetable's Days and areas, Timings and rest, Blocked time
+  and Your rules, and a person's Judging and helping. The server works out
+  `now` with the page, so the line always says what's saved.
+- `opens(what, now, label, open)`: the same with any button, for a form that
+  does something: Add someone, Remove or hold entries, Change the entry.
+
+The button says Close while its form is open, and its chevron turns, so it
+looks like something that opens; the form sits beneath with a light rule on
+its left. `open` shows it at first: when nothing is set yet (fees), the
+timetable isn't planned, or a save came back with problems.
+
+A list that is what the page is for has a plain heading with its count
+("People · 325", `listSection`), not a dropdown. Rows that are the content
+(each flight, each discipline of an entry, each routine) still open and close
+as dropdowns.
+
 # Lists of people: search and filters
 
 Every list of people has the same search and filters (roadmap item 6), from

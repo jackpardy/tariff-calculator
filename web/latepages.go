@@ -402,10 +402,19 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 	base := adminPath(r.PathValue("token"))
 	page := views.LateAdminPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuLate), Notice: r.URL.Query().Get("notice"),
 		Signoff: c.Signoff, SignoffFirst: c.Late.SignoffFirst}
+	var allowed []string
 	for _, kind := range competitions.LateKinds {
 		rule := c.Late.Rule(kind)
 		page.Kinds = append(page.Kinds, views.LateKindField{Kind: kind, Name: competitions.LateKindName(kind), On: rule.On, Fee: amountField(rule.Fee)})
+		if rule.On {
+			fee := "no fee"
+			if rule.Fee > 0 {
+				fee = c.Fees.Money(rule.Fee)
+			}
+			allowed = append(allowed, fmt.Sprintf("%s (%s)", strings.ToLower(competitions.LateKindName(kind)), fee))
+		}
 	}
+	page.Now = lateNow(allowed, c.Signoff && c.Late.SignoffFirst)
 	for _, req := range requests {
 		e := byID[req.EntryID]
 		v := views.LateRequestView{ID: req.ID, Who: req.Who, Kind: competitions.LateKindName(req.Kind), Gymnast: req.Entry.Gymnasts(),
@@ -608,4 +617,18 @@ func (p *competitionPages) rejectLate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	seeOther(w, r, back, "Not accepted; they'll see your reason.")
+}
+
+// lateNow says, in a line, what can be asked for after the deadline:
+// allowed are the kinds, each with its fee; signoffFirst if a coach signs a
+// late change off before it comes to the organiser.
+func lateNow(allowed []string, signoffFirst bool) string {
+	if len(allowed) == 0 {
+		return "nothing can be asked for after the deadline"
+	}
+	now := strings.Join(allowed, " and ") + " can be asked for after the deadline"
+	if signoffFirst {
+		now += "; a coach signs it off first"
+	}
+	return now
 }

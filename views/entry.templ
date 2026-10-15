@@ -374,10 +374,11 @@ templ CompetitionEntryPage(p EntryPage) {
 		<p class="has-text-grey is-size-7">Entered { p.Sent }.</p>
 		@pairEntries(p.Pairs)
 		if p.Competition.ChangesOpen {
-			<details class="box mt-4" open?={ len(p.Form.Problems) > 0 }>
-				<summary><strong>Change the entry</strong></summary>
-				@entryForm(p.Form)
-			</details>
+			<div class="mt-4">
+				@opens("", "", "Change the entry", len(p.Form.Problems) > 0) {
+					@entryForm(p.Form)
+				}
+			</div>
 			if p.Offer != nil {
 				@offerBox(*p.Offer)
 			}

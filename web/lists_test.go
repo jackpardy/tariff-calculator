@@ -58,8 +58,8 @@ func TestOfficialsListFilters(t *testing.T) {
 			t.Errorf("the tools have %s", want)
 		}
 	}
-	if !regexp.MustCompile(`<details class="comp-list mt-5" open><summary class="title is-5 mb-3">People <span[^>]*>\(2\)</span></summary>`).MatchString(page) {
-		t.Error("the list is a dropdown, open, under its heading and count")
+	if !regexp.MustCompile(`<section class="comp-list mt-5"><h2 class="title is-5 mb-3">People <span[^>]*>· 2</span></h2>`).MatchString(page) {
+		t.Error("the list is under its heading and count")
 	}
 
 	rows := listRows(t, page, "officials")
