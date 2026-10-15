@@ -117,6 +117,29 @@ browser posts the form to `POST /requirements/editor`, the server parses and
 validates it into the model and re-renders the editor with any problems listed,
 and the browser saves the result. Validation exists only in Go.
 
+**Kinds of rule** are named by what they mean, and stored as the rule
+types, so nothing saved changes (`requirements.RuleKinds`, `KindOfRule`,
+`KindType`): **Must include** (a count of at least one), **Must not
+include** (a count of none), **How many of a kind** (any other count),
+**This, then this** (`includes`), **Linked pairs of a kind**, **No
+repeats**, **Number of skills**, **Difficulty between**, **A skill at a
+position**, **Every skill must be** and **Special requirements**.
+
+**Picking the skills.** Wherever a rule describes skills (a count, linked
+pairs, every skill, a position, each special requirement, each step of
+"this, then this"), one dropdown offers **kinds of skill** (any somersault,
+any single, any double, a back, a front, a barani, any twisting
+somersault, a ¾ to front or back, a twist jump, landing on the seat, front
+or back), then every **named skill** of the catalogue, grouped as jumps
+and drops, singles, and doubles and more (`requirements.Picks`). Picking
+one fills the description in (`SkillMatch` for a skill: its somersault,
+twist, direction, take-off and landing, any shape but where the shape is
+the skill). The number fields sit under **Or describe it**, closed unless
+the description is the coach's own. A picked description reads as its
+pick ("a barani (front with a half twist)", "Rudi") wherever rules are
+described. So "a back somersault, then a barani" is two picks in one
+"this, then this" rule, with no particular skills fixed.
+
 A valid set is also checked for rules that can't be met
 (`requirements.Conflicts`, `requirements/conflicts.go`), shown as **These can't
 all be met** without blocking the save. It tests each skill description

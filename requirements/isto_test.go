@@ -23,7 +23,7 @@ func TestLinked(t *testing.T) {
 	if err := (Rule{Type: Linked, Match: &Matcher{}}).validate(); err == nil {
 		t.Errorf("a linked rule needs a minimum or maximum")
 	}
-	if got := Describe(rule); got != "At most 1 linked pair, one straight after another: at least ¾ somersault" {
+	if got := Describe(rule); got != "At most 1 linked pair, one straight after another: any somersault (¾ or more)" {
 		t.Errorf("Describe = %q", got)
 	}
 	set := Set{Format: Format, Name: "x", Rules: []Rule{rule}}

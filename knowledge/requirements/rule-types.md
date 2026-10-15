@@ -11,7 +11,9 @@ generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 
 Each rule is a JSON object with a `type` and an optional `label`, the author's
 own wording. Without a label, a plain-English description is generated
-(`requirements/describe.go`). The editor offers the types in the order below.
+(`requirements/describe.go`). The editor names them by what they mean
+([the editor](framework.md#the-editor)): a `count` of at least one is "Must
+include", of none "Must not include", and `includes` is "This, then this".
 
 | Type | Fields | Passes when | Example |
 |---|---|---|---|
