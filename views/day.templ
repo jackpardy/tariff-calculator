@@ -16,6 +16,8 @@ type DayPage struct {
 	Menu []MenuSection
 	Notice      string
 	Day         int    // the day shown, by index
+	Area        string // the area whose page this is; "" for the overview of every area
+	AllAreas    string // the overview, from an area's page
 	Days        []DayTab
 	Areas       []DayArea
 	Scratched   []DayScratched // scratched gymnasts who officiate or compete that day
@@ -43,6 +45,7 @@ type DayTab struct {
 type DayArea struct {
 	ID      string // the id of its block on the page
 	Name    string
+	Link    string // its own page, where its marshal works
 	Status  string // e.g. "Running 15 min late", "On time"; "" for nothing recorded yet
 	Late    bool   // running behind
 	Early   bool   // running ahead
@@ -139,16 +142,8 @@ templ Day(p DayPage) {
 				</ul>
 			</div>
 		}
-		if len(p.Areas) > 1 {
-			<p class="comp-jump is-size-7 mb-2">
-				Jump to:
-				for i, a := range p.Areas {
-					if i > 0 {
-						·
-					}
-					<a href={ templ.SafeURL("#" + a.ID) }>{ a.Name }</a>
-				}
-			</p>
+		if p.Area != "" {
+			<p class="mb-3"><a href={ templ.SafeURL(p.AllAreas) }>← All areas</a></p>
 		}
 		if n := dayNames(p); n > 0 {
 			@listTools(ListTools{ID: "day-areas", Noun: "names", Total: n})
@@ -180,14 +175,22 @@ templ Day(p DayPage) {
 		if len(p.Areas) == 0 {
 			<div class="notification is-light">No flights on this day.</div>
 		}
-		<div class="columns is-multiline" id="day-areas" data-day-page>
-			for _, a := range p.Areas {
-				// At most three areas side by side, so a name and its buttons fit.
-				<div class="column is-half-tablet is-one-third-desktop" data-list-group>
-					@dayArea(p, a)
-				</div>
-			}
-		</div>
+		if p.Area == "" {
+			<div class="columns is-multiline" id="day-areas" data-day-page>
+				for _, a := range p.Areas {
+					// At most three areas side by side, so a name and its buttons fit.
+					<div class="column is-half-tablet is-one-third-desktop" data-list-group>
+						@dayAreaCard(p, a)
+					</div>
+				}
+			</div>
+		} else {
+			<div id="day-areas" data-day-page>
+				for _, a := range p.Areas {
+					@dayAreaPage(p, a)
+				}
+			</div>
+		}
 		// Keeps taps made without signal and sends them later; loaded by the
 		// time competitions.js runs dayPage, once the page has loaded.
 		<script defer src={ static.URL("js/taps.js") }></script>
@@ -308,162 +311,370 @@ templ stillHereForm(p DayPage, s DayScratched, kind, label string) {
 	<form method="post" action={ templ.SafeURL(p.Base + "/day/clear") } class="mt-1" data-tap={ "clear:" + s.Person + ":" + kind }>
 		<input type="hidden" name="person" value={ s.Person }/>
 		<input type="hidden" name="kind" value={ kind }/>
-		<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+		@dayFields(p)
 		<button class="button is-small is-warning" type="submit">{ label }</button>
 	</form>
 }
 
 // dayArea is one area's header and flights, in a block with an id so the page
 // can swap in a fresh copy of it (static/js/competitions.js, dayPage). The
-// open lists carry a data-key so they can be opened again after the swap.
-templ dayArea(p DayPage, a DayArea) {
-	<div id={ a.ID }>
-		<h2 class="title is-5 mb-1">{ a.Name }</h2>
-		<p class="mb-3">
-			if a.Status == "" {
-				@StateChip(NotYet, "Nothing started yet")
-			} else {
-				@StateChip(areaState(a), a.Status)
+// currentFlight is the flight an area is on, by index: the first not
+// finished; -1 when every one is.
+func currentFlight(a DayArea) int {
+	for i, f := range a.Flights {
+		if f.Finished == "" {
+			return i
+		}
+	}
+	return -1
+}
+
+// dayAreaStatus is how an area is running, and from what, with where to see
+// the rest of the day if it's late.
+templ dayAreaStatus(a DayArea) {
+	<p class="mb-2">
+		if a.Status == "" {
+			@StateChip(NotYet, "Nothing started yet")
+		} else {
+			@StateChip(areaState(a), a.Status)
+		}
+		if a.Since != "" {
+			<span class="is-size-7 has-text-grey">{ a.Since }</span>
+		}
+	</p>
+	if a.WhatIf != "" {
+		<p class="is-size-7 mb-3"><a class="comp-tap-link" href={ templ.SafeURL(a.WhatIf) }>What if: see the rest of the day</a></p>
+	}
+}
+
+// dayAreaCard is an area on the overview: how it's running, the flight it's
+// on with who's up and the counts, the one tap that comes next, and its own
+// page, where everything else is. Its people are there for Find a name, shown
+// only when it finds them.
+templ dayAreaCard(p DayPage, a DayArea) {
+	<div class="box comp-day-area comp-day-card" id={ a.ID }>
+		<h2 class="title is-5 mb-1"><a href={ templ.SafeURL(a.Link) }>{ a.Name }</a></h2>
+		@dayAreaStatus(a)
+		if cur := currentFlight(a); cur < 0 {
+			<p class="mb-2">
+				@StateChip(Done, "Finished for the day")
+			</p>
+		} else {
+			@dayCardFlight(p, a, a.Flights[cur])
+			if cur+1 < len(a.Flights) {
+				<p class="is-size-7 has-text-grey mt-2">Next: { a.Flights[cur+1].Name } · { a.Flights[cur+1].Planned }</p>
 			}
-			if a.Since != "" {
-				<span class="is-size-7 has-text-grey">{ a.Since }</span>
+		}
+		<p class="mt-3"><a class="button is-small comp-day-open" href={ templ.SafeURL(a.Link) }>Open { a.Name } →</a></p>
+		<details class="comp-day-people" data-list-group>
+			<summary>People</summary>
+			for _, f := range a.Flights {
+				for _, g := range f.Gymnasts {
+					<a class="comp-day-person" href={ templ.SafeURL(a.Link + "#" + f.ID) } { ListRow{Name: g.Name}.Attrs()... }>
+						{ g.Name }
+						<span class="has-text-grey is-size-7">{ f.Name }</span>
+					</a>
+				}
+				for _, st := range f.Seats {
+					if st.Person != "" {
+						<a class="comp-day-person" href={ templ.SafeURL(a.Link + "#" + f.ID) } { ListRow{Name: st.Name}.Attrs()... }>
+							{ st.Name }
+							<span class="has-text-grey is-size-7">{ st.Role } · { f.Name }</span>
+						</a>
+					}
+				}
+			}
+		</details>
+	</div>
+}
+
+// dayCardFlight is the flight an area is on, on its card: who's up, the
+// counts, and the one tap that comes next (Started, Next gymnast, or
+// Finished once the last routine is on).
+templ dayCardFlight(p DayPage, a DayArea, f DayFlight) {
+	<div class="comp-day-card-flight">
+		<p class="mb-1"><strong>{ f.Name }</strong> @StateChip(flightState(a, f))</p>
+		<p class="is-size-7 has-text-grey mb-2">
+			if f.Started != "" {
+				Started { f.Started } · planned { f.Planned }
+			} else {
+				Planned { f.Planned }
 			}
 		</p>
-		if a.WhatIf != "" {
-			<p class="is-size-7 mb-3"><a class="comp-tap-link" href={ templ.SafeURL(a.WhatIf) }>What if: see the rest of the day</a></p>
+		if f.Up != nil && !f.Up.Waiting && f.Up.Name != "" {
+			<p class="mb-2">
+				<span class="is-size-7 has-text-grey">
+					if f.Up.Tapped {
+						On now
+					} else {
+						First up
+					}
+				</span>
+				@runNo(f.Up.No)
+				<strong>{ f.Up.Name }</strong>
+				<span class="is-size-7">{ f.Up.Routine }</span>
+			</p>
 		}
-		for _, f := range a.Flights {
-			<div class="box comp-flight" id={ f.ID } data-list-group>
-				<p class="mb-1"><strong>{ f.Name }</strong> @StateChip(flightState(a, f))</p>
-				<p class="is-size-7 mb-1">Planned { f.Planned }</p>
-				<p class="is-size-7 mb-2">
-					Started
-					if f.Started != "" {
-						<strong>{ f.Started }</strong>
-					} else {
-						—
-					}
-					· finished
-					if f.Finished != "" {
-						<strong>{ f.Finished }</strong>
-					} else {
-						—
-					}
-					if f.Who != "" && (f.Started != "" || f.Finished != "") {
-						<span class="has-text-grey"> · { f.Who }</span>
-					}
-				</p>
-				if f.Up != nil {
-					@dayUp(p, f)
-				}
-				if f.CanStart || f.CanFinish || f.Undo != "" {
-					<form method="post" action={ templ.SafeURL(p.Base + "/day/flight") } class="buttons mb-0" data-tap={ "flight:" + f.Key }>
-						<input type="hidden" name="flight" value={ f.Key }/>
-						<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
-						if f.CanStart {
-							<button class="button is-success" type="submit" name="what" value="start">Started</button>
-						}
-						if f.CanFinish {
-							<button class="button is-success" type="submit" name="what" value="finish">Finished</button>
-						}
-						if f.Undo != "" {
-							// Says which, so the same tap sent twice takes back only the one.
-							<button class="button is-light is-small" type="submit" name="what" value={ f.Undo }>Undo</button>
-						}
-					</form>
-				}
-				if len(f.Gymnasts) > 0 {
-					<details class="comp-checkin mt-2" data-key={ "checkin:" + f.Key } data-list-group>
-						<summary class="is-size-7">
-							Check-in ·
-							@countChips(checkinCount(f.Gymnasts))
-						</summary>
-						for _, g := range f.Gymnasts {
-							<div class="comp-checkin-row" { ListRow{Name: g.Name}.Attrs()... } data-entry={ g.Entry } data-no={ strconv.Itoa(g.No) } data-club={ g.Club } data-routines={ g.Routines } data-state={ g.State }>
-								<span class="comp-checkin-name">
-									@runNo(g.No)
-									<span class={ templ.KV("comp-scratched", g.State == "scratched") }>{ g.Name }</span>
-									<span class="has-text-grey is-size-7">{ g.Club }</span>
-									@StateChip(checkinState(g.State))
-									if g.Who != "" {
-										<span class="has-text-grey is-size-7">{ g.Who }</span>
-									}
-								</span>
-								<form method="post" action={ templ.SafeURL(p.Base + "/day/checkin") } data-tap={ "checkin:" + g.Entry }>
-									<input type="hidden" name="entry" value={ g.Entry }/>
-									<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
-									if g.CanHere {
-										<button class="button is-small is-success is-light" type="submit" name="status" value="here">Here</button>
-									}
-									if g.CanScratch {
-										<button class="button is-small is-danger is-light" type="submit" name="status" value="scratched">Scratched</button>
-									}
-									if g.CanClear {
-										<button class="button is-small is-light" type="submit" name="status" value="">Clear</button>
-									}
-								</form>
-								if g.Notify.Person != "" {
-									@dayNotify(p, f.Key, g.Notify)
-								}
-							</div>
-						}
-					</details>
-				}
-				if len(f.Seats) > 0 {
-					<details class="comp-checkin mt-2" data-key={ "panel:" + f.Key } data-list-group>
-						<summary class="is-size-7">
-							Panel ·
-							@countChips(seatCount(f.Seats))
-						</summary>
-						for _, s := range f.Seats {
-							if s.Person == "" {
-								<div class="comp-checkin-row">
-									<span class="comp-panel-name">
-										<span class="has-text-grey is-size-7">{ s.Role }</span>
-										@StateChip(Attention, "Needs someone")
-									</span>
-								</div>
-								continue
-							}
-							<div class="comp-checkin-row" { ListRow{Name: s.Name}.Attrs()... }>
-								<span class="comp-panel-name">
-									<span>{ s.Name }</span>
-									<span class="has-text-grey is-size-7">{ s.Role }</span>
-									@StateChip(checkinState(s.State))
-									if s.Who != "" {
-										<span class="has-text-grey is-size-7">{ s.Who }</span>
-									}
-								</span>
-								<form method="post" action={ templ.SafeURL(p.Base + "/day/officials") } data-tap={ "official:" + f.Key + ":" + s.Person }>
-									<input type="hidden" name="person" value={ s.Person }/>
-									<input type="hidden" name="flight" value={ f.Key }/>
-									<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
-									if s.CanHere {
-										<button class="button is-small is-success is-light" type="submit" name="status" value="here">Here</button>
-									}
-									if s.CanMissing {
-										<button class="button is-small is-danger is-light" type="submit" name="status" value="missing">Missing</button>
-									}
-									if s.CanClear {
-										<button class="button is-small is-light" type="submit" name="status" value="">Clear</button>
-									}
-								</form>
-								if s.WhatIf != "" {
-									<a class="is-size-7 comp-tap-link" href={ templ.SafeURL(s.WhatIf) }>What if they leave</a>
-								}
-								if s.Notify.Person != "" {
-									@dayNotify(p, f.Key, s.Notify)
-								}
-							</div>
-						}
-					</details>
-				}
-				if p.Correct {
-					@dayCorrect(p, f)
-				}
-			</div>
+		<p class="is-size-7 mb-3">
+			if len(f.Gymnasts) > 0 {
+				Check-in
+				@countChips(checkinCount(f.Gymnasts))
+			}
+			if len(f.Seats) > 0 {
+				<span class="ml-2">Panel</span>
+				@countChips(seatCount(f.Seats))
+			}
+		</p>
+		switch {
+			case f.CanStart:
+				@dayFlightForm(p, f, false)
+			case f.CanFinish && f.Up != nil && f.Up.Name != "" && !f.Up.Last:
+				<div class="comp-up">
+					@dayUpForm(p, f)
+				</div>
+			case f.CanFinish:
+				@dayFlightForm(p, f, false)
 		}
 	</div>
+}
+
+// dayAreaPage is an area's own page, where its marshal works: the flight
+// it's on in full (Started at the top, then who's up, check-in and the
+// panel, and Finished at the bottom), then its later flights and those
+// finished, each opening to the same.
+templ dayAreaPage(p DayPage, a DayArea) {
+	<div class="comp-day-area" id={ a.ID } data-list-group>
+		<h2 class="title is-4 mb-1">{ a.Name }</h2>
+		@dayAreaStatus(a)
+		if cur := currentFlight(a); cur >= 0 {
+			<div class="box comp-flight comp-day-now" id={ a.Flights[cur].ID } data-list-group>
+				<p class="mb-1"><strong>{ a.Flights[cur].Name }</strong> @StateChip(flightState(a, a.Flights[cur]))</p>
+				@dayFlightTimes(a.Flights[cur])
+				@dayFlightBody(p, a.Flights[cur], true)
+			</div>
+			if cur+1 < len(a.Flights) {
+				<h3 class="title is-6 mt-5 mb-2">Later on { a.Name }</h3>
+				for _, f := range a.Flights[cur+1:] {
+					@dayOtherFlight(p, a, f)
+				}
+			}
+			if cur > 0 {
+				<h3 class="title is-6 mt-5 mb-2">Finished</h3>
+				for _, f := range a.Flights[:cur] {
+					@dayOtherFlight(p, a, f)
+				}
+			}
+		} else {
+			<p class="mb-3">
+				@StateChip(Done, "Finished for the day")
+			</p>
+			for _, f := range a.Flights {
+				@dayOtherFlight(p, a, f)
+			}
+		}
+	</div>
+}
+
+// dayOtherFlight is a flight the area isn't on, closed, opening to the same
+// as the one it's on.
+templ dayOtherFlight(p DayPage, a DayArea, f DayFlight) {
+	<details class="box comp-flight comp-day-other" id={ f.ID } data-key={ "flight:" + f.Key } data-list-group>
+		<summary>
+			<strong>{ f.Name }</strong>
+			@StateChip(flightState(a, f))
+			<span class="is-size-7 has-text-grey">{ f.Planned }</span>
+		</summary>
+		<div class="mt-2">
+			@dayFlightTimes(f)
+			@dayFlightBody(p, f, false)
+		</div>
+	</details>
+}
+
+// dayFlightTimes is when a flight was planned, and started and finished.
+templ dayFlightTimes(f DayFlight) {
+	<p class="is-size-7 mb-1">Planned { f.Planned }</p>
+	<p class="is-size-7 mb-2">
+		Started
+		if f.Started != "" {
+			<strong>{ f.Started }</strong>
+		} else {
+			—
+		}
+		· finished
+		if f.Finished != "" {
+			<strong>{ f.Finished }</strong>
+		} else {
+			—
+		}
+		if f.Who != "" && (f.Started != "" || f.Finished != "") {
+			<span class="has-text-grey"> · { f.Who }</span>
+		}
+	</p>
+}
+
+// dayFlightBody is a flight's taps and lists, in the order they're used:
+// Started at the top until it is, then who's up, check-in and the panel,
+// with Finished at the bottom, and putting its times right after that. Open
+// shows the lists as they are, for the flight on now; otherwise each opens.
+templ dayFlightBody(p DayPage, f DayFlight, open bool) {
+	if f.CanStart {
+		@dayFlightForm(p, f, true)
+	}
+	if f.Up != nil {
+		@dayUp(p, f)
+	}
+	if len(f.Gymnasts) > 0 {
+		if open {
+			<div class="comp-checkin comp-day-section" data-key={ "checkin:" + f.Key } data-list-group>
+				<h4 class="comp-day-section-title">
+					Check-in
+					@countChips(checkinCount(f.Gymnasts))
+				</h4>
+				@dayCheckinRows(p, f)
+			</div>
+		} else {
+			<details class="comp-checkin mt-2" data-key={ "checkin:" + f.Key } data-list-group>
+				<summary class="is-size-7">
+					Check-in ·
+					@countChips(checkinCount(f.Gymnasts))
+				</summary>
+				@dayCheckinRows(p, f)
+			</details>
+		}
+	}
+	if len(f.Seats) > 0 {
+		if open {
+			<div class="comp-checkin comp-day-section" data-key={ "panel:" + f.Key } data-list-group>
+				<h4 class="comp-day-section-title">
+					Panel
+					@countChips(seatCount(f.Seats))
+				</h4>
+				@daySeatRows(p, f)
+			</div>
+		} else {
+			<details class="comp-checkin mt-2" data-key={ "panel:" + f.Key } data-list-group>
+				<summary class="is-size-7">
+					Panel ·
+					@countChips(seatCount(f.Seats))
+				</summary>
+				@daySeatRows(p, f)
+			</details>
+		}
+	}
+	if !f.CanStart && (f.CanFinish || f.Undo != "") {
+		@dayFlightForm(p, f, true)
+	}
+	if p.Correct {
+		@dayCorrect(p, f)
+	}
+}
+
+// dayFlightForm is a flight's Started, Finished and Undo: one form, so a
+// tap kept on the phone shows the next as it will be (taps.js). Undo, which
+// takes back the last of them, only where the flight is in full.
+templ dayFlightForm(p DayPage, f DayFlight, undo bool) {
+	<form method="post" action={ templ.SafeURL(p.Base + "/day/flight") } class="buttons comp-day-flight-taps" data-tap={ "flight:" + f.Key }>
+		<input type="hidden" name="flight" value={ f.Key }/>
+		@dayFields(p)
+		if f.CanStart {
+			<button class="button is-success" type="submit" name="what" value="start">Started</button>
+		}
+		if f.CanFinish {
+			<button class="button is-success" type="submit" name="what" value="finish">Finished</button>
+		}
+		if undo && f.Undo != "" {
+			// Says which, so the same tap sent twice takes back only the one.
+			<button class="button is-light is-small" type="submit" name="what" value={ f.Undo }>Undo</button>
+		}
+	</form>
+}
+
+// dayFields are the day shown, and the area whose page it is, which every
+// form on the page posts, to come back to the same page.
+templ dayFields(p DayPage) {
+	<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+	if p.Area != "" {
+		<input type="hidden" name="area" value={ p.Area }/>
+	}
+}
+
+// dayCheckinRows are a flight's gymnasts, to check in.
+templ dayCheckinRows(p DayPage, f DayFlight) {
+	for _, g := range f.Gymnasts {
+		<div class="comp-checkin-row" { ListRow{Name: g.Name}.Attrs()... } data-entry={ g.Entry } data-no={ strconv.Itoa(g.No) } data-club={ g.Club } data-routines={ g.Routines } data-state={ g.State }>
+			<span class="comp-checkin-name">
+				@runNo(g.No)
+				<span class={ templ.KV("comp-scratched", g.State == "scratched") }>{ g.Name }</span>
+				<span class="has-text-grey is-size-7">{ g.Club }</span>
+				@StateChip(checkinState(g.State))
+				if g.Who != "" {
+					<span class="has-text-grey is-size-7">{ g.Who }</span>
+				}
+			</span>
+			<form method="post" action={ templ.SafeURL(p.Base + "/day/checkin") } data-tap={ "checkin:" + g.Entry }>
+				<input type="hidden" name="entry" value={ g.Entry }/>
+				@dayFields(p)
+				if g.CanHere {
+					<button class="button is-small is-success is-light" type="submit" name="status" value="here">Here</button>
+				}
+				if g.CanScratch {
+					<button class="button is-small is-danger is-light" type="submit" name="status" value="scratched">Scratched</button>
+				}
+				if g.CanClear {
+					<button class="button is-small is-light" type="submit" name="status" value="">Clear</button>
+				}
+			</form>
+			if g.Notify.Person != "" {
+				@dayNotify(p, f.Key, g.Notify)
+			}
+		</div>
+	}
+}
+
+// daySeatRows are a flight's panel, to check in, with the seats no one has.
+templ daySeatRows(p DayPage, f DayFlight) {
+	for _, s := range f.Seats {
+		if s.Person == "" {
+			<div class="comp-checkin-row">
+				<span class="comp-panel-name">
+					<span class="has-text-grey is-size-7">{ s.Role }</span>
+					@StateChip(Attention, "Needs someone")
+				</span>
+			</div>
+			continue
+		}
+		<div class="comp-checkin-row" { ListRow{Name: s.Name}.Attrs()... }>
+			<span class="comp-panel-name">
+				<span>{ s.Name }</span>
+				<span class="has-text-grey is-size-7">{ s.Role }</span>
+				@StateChip(checkinState(s.State))
+				if s.Who != "" {
+					<span class="has-text-grey is-size-7">{ s.Who }</span>
+				}
+			</span>
+			<form method="post" action={ templ.SafeURL(p.Base + "/day/officials") } data-tap={ "official:" + f.Key + ":" + s.Person }>
+				<input type="hidden" name="person" value={ s.Person }/>
+				<input type="hidden" name="flight" value={ f.Key }/>
+				@dayFields(p)
+				if s.CanHere {
+					<button class="button is-small is-success is-light" type="submit" name="status" value="here">Here</button>
+				}
+				if s.CanMissing {
+					<button class="button is-small is-danger is-light" type="submit" name="status" value="missing">Missing</button>
+				}
+				if s.CanClear {
+					<button class="button is-small is-light" type="submit" name="status" value="">Clear</button>
+				}
+			</form>
+			if s.WhatIf != "" {
+				<a class="is-size-7 comp-tap-link" href={ templ.SafeURL(s.WhatIf) }>What if they leave</a>
+			}
+			if s.Notify.Person != "" {
+				@dayNotify(p, f.Key, s.Notify)
+			}
+		</div>
+	}
 }
 
 // dayCorrect puts a flight's start and finish right, for when the paper
@@ -473,7 +684,7 @@ templ dayCorrect(p DayPage, f DayFlight) {
 		<summary class="is-size-7">Correct the times</summary>
 		<form method="post" action={ templ.SafeURL(p.Base + "/day/times") } class="mt-2">
 			<input type="hidden" name="flight" value={ f.Key }/>
-			<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+			@dayFields(p)
 			<div class="comp-correct-times">
 				<div class="field mb-0">
 					<label class="label is-small" for={ f.ID + "-started" }>Started</label>
@@ -524,20 +735,26 @@ templ dayUp(p DayPage, f DayFlight) {
 				<strong>{ f.Up.Routine }</strong>
 			</p>
 		}
-		<form method="post" action={ templ.SafeURL(p.Base + "/day/up") } class="buttons mb-0" data-tap={ "up:" + f.Key }>
-			<input type="hidden" name="flight" value={ f.Key }/>
-			<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
-			<input type="hidden" name="entry" value={ f.Up.Entry }/>
-			<input type="hidden" name="round" value={ f.Up.Round }/>
-			<button class="button is-link is-medium" type="submit" name="what" value="next">Next gymnast</button>
-			if f.Up.CanBack {
-				<button class="button is-light is-small" type="submit" name="what" value="back">Back</button>
-			}
-		</form>
+		@dayUpForm(p, f)
 		if f.Up.Last {
 			<p class="is-size-7 mt-2">The flight's last routine: tap Finished once it's done.</p>
 		}
 	</div>
+}
+
+// dayUpForm is Next gymnast, and Back: what's posted is who the page
+// showed, so the same tap sent twice moves once.
+templ dayUpForm(p DayPage, f DayFlight) {
+	<form method="post" action={ templ.SafeURL(p.Base + "/day/up") } class="buttons mb-0" data-tap={ "up:" + f.Key }>
+		<input type="hidden" name="flight" value={ f.Key }/>
+		@dayFields(p)
+		<input type="hidden" name="entry" value={ f.Up.Entry }/>
+		<input type="hidden" name="round" value={ f.Up.Round }/>
+		<button class="button is-link is-medium" type="submit" name="what" value="next">Next gymnast</button>
+		if f.Up.CanBack {
+			<button class="button is-light is-small" type="submit" name="what" value="back">Back</button>
+		}
+	</form>
 }
 
 // dayNotify is the small form that tells someone who isn't here where they
@@ -549,7 +766,7 @@ templ dayNotify(p DayPage, flight string, n DayNotify) {
 			<input type="hidden" name="person" value={ n.Person }/>
 			<input type="hidden" name="flight" value={ flight }/>
 			<input type="hidden" name="as" value={ n.As }/>
-			<input type="hidden" name="day" value={ strconv.Itoa(p.Day) }/>
+			@dayFields(p)
 			// A new id each time the form is shown, so the same form sent twice sends once.
 			<input type="hidden" name="once" value={ rand.Text() }/>
 			<label class="checkbox is-size-7"><input type="checkbox" name="them" value="1" checked/> Them</label>

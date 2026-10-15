@@ -137,7 +137,7 @@ func TestNotifyClubOfJudge(t *testing.T) {
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
 
-	page := do(t, h, http.MethodGet, admin+"/day?day=0", nil).Body.String()
+	page := dayAll(t, h, admin+"/day?day=0")
 	jude, flight := panelSeat(t, page, "BUCS L3", "Jude")
 	mary, _ := panelSeat(t, page, "BUCS L3", "Mary")
 	if !strings.HasPrefix(jude, "m:") {
@@ -239,7 +239,7 @@ func TestTapsTumblingAndAllScratched(t *testing.T) {
 	day := admin + "/day?day=0"
 	track := func() dayFlight {
 		t.Helper()
-		a := dayPageAreas(t, do(t, h, http.MethodGet, day, nil).Body.String())["Track 1"]
+		a := dayPageAreas(t, dayAll(t, h, day))["Track 1"]
 		if len(a.Flights) != 1 {
 			t.Fatalf("one flight on Track 1: %+v", a)
 		}
@@ -256,7 +256,7 @@ func TestTapsTumblingAndAllScratched(t *testing.T) {
 		t.Errorf("tumbling has passes: %+v", got)
 	}
 
-	page := do(t, h, http.MethodGet, day, nil).Body.String()
+	page := dayAll(t, h, day)
 	for _, name := range f.Order {
 		redirected(t, h, admin+"/day/checkin", url.Values{"entry": {checkinEntry(t, page, name)}, "status": {"scratched"}, "day": {"0"}})
 	}

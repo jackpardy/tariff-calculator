@@ -267,7 +267,7 @@ func TestMemberTabs(t *testing.T) {
 	}
 
 	// The My competition page goes back to the competition's page.
-	day := do(t, h, http.MethodGet, compPath+"/day", nil).Body.String()
+	day := dayAll(t, h, compPath+"/day")
 	if !strings.Contains(day, `<a href="`+compPath+`">← Student Open: your entries</a>`) {
 		t.Error("the day page's back link goes to the competition's page")
 	}

@@ -309,10 +309,10 @@ func TestDeskLinks(t *testing.T) {
 	// The On the day page links to the desk once the timetable is published.
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
-	if page := do(t, h, http.MethodGet, chair+"/day", nil).Body.String(); !strings.Contains(page, `href="`+chair+`/desk"`) {
+	if page := dayAll(t, h, chair+"/day"); !strings.Contains(page, `href="`+chair+`/desk"`) {
 		t.Error("the day page links to the desk")
 	}
-	if page := do(t, h, http.MethodGet, cards+"/day", nil).Body.String(); strings.Contains(page, "/desk") {
+	if page := dayAll(t, h, cards+"/day"); strings.Contains(page, "/desk") {
 		t.Error("a cards link has no desk")
 	}
 }

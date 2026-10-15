@@ -72,7 +72,7 @@ func TestRoleTabs(t *testing.T) {
 	admin := created(t, h, newCompetition())
 	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
 	club, member := ucd.page, ucd.members["A. Murphy"]
-	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
+	get := func(path string) string { return dayAll(t, h, path) }
 	do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"A. Murphy"}})
 	// A coach's link is shown once, when made.
 	coach := pathIn(t, do(t, h, http.MethodPost, club+"/coaches/"+regexp.MustCompile(regexp.QuoteMeta(club) + `/coaches/([^/"]+)/new-link`).FindStringSubmatch(get(club + "/coaches"))[1]+"/new-link", nil).Body.String(), "/clubs/coach/")
@@ -162,7 +162,7 @@ func TestMakeACoachToo(t *testing.T) {
 	admin := created(t, h, newCompetition())
 	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
 	club, member := ucd.page, ucd.members["A. Murphy"]
-	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
+	get := func(path string) string { return dayAll(t, h, path) }
 	members := get(club + "/members")
 	id := regexp.MustCompile(`name="member" value="([^"]+)"`).FindStringSubmatch(members)
 	if id == nil || !strings.Contains(members, "Make a coach too") {
@@ -194,7 +194,7 @@ func TestSharedLinkOneWay(t *testing.T) {
 	admin := created(t, h, newCompetition())
 	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
 	club, member := ucd.page, ucd.members["A. Murphy"]
-	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
+	get := func(path string) string { return dayAll(t, h, path) }
 	redirected(t, h, member+"/links", url.Values{"link": {"http://example.com" + club + "/settings"}})
 	home := get(member)
 	asCompSec := roleTabTo(t, home, "Competition secretary")
@@ -255,7 +255,7 @@ func TestCompetitionLinksOnAPersonalPage(t *testing.T) {
 	admin := created(t, h, newCompetition())
 	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
 	_, member := ucd.page, ucd.members["A. Murphy"]
-	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
+	get := func(path string) string { return dayAll(t, h, path) }
 	chair := madeLink(t, h, admin, "Chairs", "chair")
 	redirected(t, h, member+"/links", url.Values{"link": {"http://example.com" + chair}})
 	home := get(member)
@@ -286,7 +286,7 @@ func TestIndividualPage(t *testing.T) {
 	form.Set("tumbling", "Novice")
 	form.Set("dmt", "Open")
 	admin := created(t, h, form)
-	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
+	get := func(path string) string { return dayAll(t, h, path) }
 	enter := pathIn(t, get(admin+"/settings"), "/competitions/enter/")
 	if page := get(enter); !strings.Contains(page, `name="as"`) || !strings.Contains(page, "data-saved-as") {
 		t.Errorf("the entry form asks for their page's link: %s", page)
@@ -349,7 +349,7 @@ func TestSameNameTwoPeople(t *testing.T) {
 	form := newCompetition()
 	form.Set("tumbling", "Novice")
 	admin := created(t, h, form)
-	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
+	get := func(path string) string { return dayAll(t, h, path) }
 	enter := pathIn(t, get(admin+"/settings"), "/competitions/enter/")
 	name := "Sam O'Brien / Jr?"
 	one := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {name}, "discipline": {"tumbling"}, "level": {"Novice"}}))
@@ -418,7 +418,7 @@ func TestOldEntryLinks(t *testing.T) {
 			t.Fatal(i, err)
 		}
 	}
-	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
+	get := func(path string) string { return dayAll(t, h, path) }
 
 	page := get("/competitions/entry/oldLinkOne")
 	if !strings.Contains(page, "Una Ní Bhriain") || !strings.Contains(page, `data-entry-link="http://example.com/competitions/entry/oldLinkOne"`) {
@@ -451,7 +451,7 @@ func TestOldEntryLinks(t *testing.T) {
 func TestAllPeopleJoinsRoles(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
+	get := func(path string) string { return dayAll(t, h, path) }
 	name := "Ann O'Neill / Jr?"
 	ucd := aClub(t, h, admin, "UCD", true, name, "Mo")
 	club, members := ucd.page, ucd.members

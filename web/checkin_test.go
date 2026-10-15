@@ -32,7 +32,7 @@ func TestCheckinAndScratches(t *testing.T) {
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
 
 	day := admin + "/day?day=0"
-	page := do(t, h, http.MethodGet, day, nil).Body.String()
+	page := dayAll(t, h, day)
 	if dayFlights(t, page)[0].Checkin != "0 of 3 here" || !strings.Contains(page, chip(t, views.NotYet, "0 of 3 here")) || strings.Count(page, chip(t, views.NotYet, "Not yet")) != 3 {
 		t.Errorf("nothing marked yet: %+v", dayFlights(t, page))
 	}
@@ -49,7 +49,7 @@ func TestCheckinAndScratches(t *testing.T) {
 		t.Errorf("back to the day: %s", to)
 	}
 	mark(admin, bea, "scratched")
-	page = do(t, h, http.MethodGet, day, nil).Body.String()
+	page = dayAll(t, h, day)
 	if dayFlights(t, page)[0].Checkin != "1 of 3 here, 1 scratched" {
 		t.Errorf("the counts: %s", page)
 	}
@@ -76,16 +76,16 @@ func TestCheckinAndScratches(t *testing.T) {
 		}
 	}
 	// They see it on their own page.
-	if mine := do(t, h, http.MethodGet, own["Bea"]+"/day", nil).Body.String(); !strings.Contains(mine, "Scratched · ") {
+	if mine := dayAll(t, h, own["Bea"]+"/day"); !strings.Contains(mine, "Scratched · ") {
 		t.Errorf("Bea's page says she's scratched: %s", mine)
 	}
-	if mine := do(t, h, http.MethodGet, own["Ann"]+"/day", nil).Body.String(); strings.Contains(mine, "Scratched") {
+	if mine := dayAll(t, h, own["Ann"]+"/day"); strings.Contains(mine, "Scratched") {
 		t.Error("Ann's page doesn't")
 	}
 
 	// Clear takes it back.
 	mark(admin, bea, "")
-	page = do(t, h, http.MethodGet, day, nil).Body.String()
+	page = dayAll(t, h, day)
 	if dayFlights(t, page)[0].Checkin != "1 of 3 here" || strings.Contains(page, "comp-scratched") {
 		t.Errorf("cleared: %s", page)
 	}
@@ -123,7 +123,7 @@ func TestCheckinAndScratches(t *testing.T) {
 		t.Error("the history says the chair checked Cal in")
 	}
 	// Everyone here or scratched: the check-in is done.
-	if page := do(t, h, http.MethodGet, chair+"/day?day=0", nil).Body.String(); dayFlights(t, page)[0].Checkin != "2 of 3 here, 1 scratched" || !strings.Contains(page, chip(t, views.Done, "2 of 3 here")) {
+	if page := dayAll(t, h, chair+"/day?day=0"); dayFlights(t, page)[0].Checkin != "2 of 3 here, 1 scratched" || !strings.Contains(page, chip(t, views.Done, "2 of 3 here")) {
 		t.Errorf("a chair sees the check-in: %s", page)
 	}
 	timetable := madeLink(t, h, admin, "Tina", "timetable")
@@ -188,13 +188,13 @@ func scratchSetupOn(t *testing.T, h http.Handler, timings url.Values) (admin, tt
 func TestScratchedOfficial(t *testing.T) {
 	h, admin, tt, _ := scratchSetup(t)
 	day := admin + "/day?day=0"
-	page := do(t, h, http.MethodGet, day, nil).Body.String()
+	page := dayAll(t, h, day)
 	if strings.Contains(page, "is scratched") {
 		t.Error("no warning before anyone is scratched")
 	}
 	entry := checkinEntry(t, page, "Dara")
 	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {entry}, "status": {"scratched"}, "day": {"0"}})
-	page = do(t, h, http.MethodGet, day, nil).Body.String()
+	page = dayAll(t, h, day)
 	if !strings.Contains(page, "Dara is scratched</strong>") || !strings.Contains(page, "But officiates:") || !strings.Contains(page, "BUCS L3 · Execution judge") {
 		t.Fatalf("the warning names the seat: %s", page)
 	}
@@ -210,13 +210,13 @@ func TestScratchedOfficial(t *testing.T) {
 
 	// A chair sees the warning but isn't sent to a page they can't use.
 	chair := madeLink(t, h, admin, "Chris", "chair")
-	page = do(t, h, http.MethodGet, chair+"/day?day=0", nil).Body.String()
+	page = dayAll(t, h, chair+"/day?day=0")
 	if !strings.Contains(page, "Dara is scratched</strong>") || !strings.Contains(page, "BUCS L3 · Execution judge") || strings.Contains(page, "What if they leave") {
 		t.Errorf("a chair sees the warning, without the link: %s", page)
 	}
 	// Here, or cleared, there's no warning.
 	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {entry}, "status": {"here"}, "day": {"0"}})
-	if page := do(t, h, http.MethodGet, day, nil).Body.String(); strings.Contains(page, "is scratched</strong>") {
+	if page := dayAll(t, h, day); strings.Contains(page, "is scratched</strong>") {
 		t.Error("no warning once she's here")
 	}
 }
@@ -237,7 +237,7 @@ func checkinEntryIn(t *testing.T, page, flight, name string) string {
 func TestScratchClearing(t *testing.T) {
 	h, admin, _, finn := scratchSetup(t)
 	day := admin + "/day?day=0"
-	get := func(path string) string { return do(t, h, http.MethodGet, path, nil).Body.String() }
+	get := func(path string) string { return dayAll(t, h, path) }
 	scratch := func(flight, name string) {
 		t.Helper()
 		redirected(t, h, admin+"/day/checkin", url.Values{"entry": {checkinEntryIn(t, get(day), flight, name)}, "status": {"scratched"}, "day": {"0"}})

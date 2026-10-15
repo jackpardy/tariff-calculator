@@ -37,7 +37,7 @@ func TestDayPageKeepsPlace(t *testing.T) {
 	h := competitionServer(t)
 	admin, _, _, _ := scratchSetupOn(t, h, twoFlights)
 	day := admin + "/day?day=0"
-	get := func() string { return do(t, h, http.MethodGet, day, nil).Body.String() }
+	get := func() string { return dayAll(t, h, day) }
 	page := get()
 
 	for _, id := range []string{"day-notice", "day-warnings", "day-areas", areaID("Panel 1")} {
@@ -50,7 +50,7 @@ func TestDayPageKeepsPlace(t *testing.T) {
 	}
 	_, flight1 := panelSeat(t, page, "BUCS L3 · flight 1 of 2", "Dara")
 	box := flightID(flight1)
-	if !strings.Contains(page, `class="box comp-flight" id="`+box+`"`) {
+	if !regexp.MustCompile(`class="box comp-flight[^"]*" id="` + box + `"`).MatchString(page) {
 		t.Errorf("the flight has a box with an id: %s", page)
 	}
 	for _, key := range []string{`data-key="checkin:` + flight1 + `"`, `data-key="panel:` + flight1 + `"`} {
@@ -135,21 +135,25 @@ func TestDayPageUpdatesInPlace(t *testing.T) {
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 
+	// The check-in list of Panel 1's later flight, on its own page: the
+	// flight and its list both open and close.
 	const (
-		checkin = `details[data-key^="checkin:"]`
+		later   = `details.comp-day-other`
+		checkin = later + ` details[data-key^="checkin:"]`
 		here    = checkin + ` button[value="here"]`
 	)
 	var scrolled, scrolledAfter float64
 	var open, sameDoc, added bool
 	var notice string
 	step(t, ctx, "opening the day page",
-		chromedp.Navigate(srv.URL+admin+"/day?day=0"),
+		chromedp.Navigate(srv.URL+admin+"/day?day=0&area=Panel+1"),
 		chromedp.WaitVisible(`#day-areas`, chromedp.ByQuery),
 		// Make the page tall, so there is somewhere to scroll to, and mark it
 		// so a reload would be noticed.
 		chromedp.Evaluate(`document.getElementById('day-notice').insertAdjacentHTML('beforebegin', '<div style="height:1500px"></div>'); window.sameDocument = true`, nil),
 	)
-	step(t, ctx, "opening the check-in list and scrolling to Here",
+	step(t, ctx, "opening the later flight, its check-in list, and scrolling to Here",
+		chromedp.Click(later+` > summary`, chromedp.ByQuery),
 		chromedp.Click(checkin+` summary`, chromedp.ByQuery),
 		chromedp.Evaluate(`document.querySelector('`+here+`').scrollIntoView({block: 'center'}); window.scrollY`, &scrolled),
 	)

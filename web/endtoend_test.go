@@ -171,7 +171,7 @@ func TestCompetitionEndToEnd(t *testing.T) {
 		if c := screenCard(t); len(c.Up) == 0 || c.Up[0] != order[0]+" · Set" {
 			t.Errorf("the screen says who's on: %+v", c.Up)
 		}
-		page := do(t, h, http.MethodGet, day, nil).Body.String()
+		page := dayAll(t, h, day)
 		redirected(t, h, admin+"/day/checkin", url.Values{"entry": {checkinEntry(t, page, order[1])}, "status": {"scratched"}, "day": {"0"}})
 		if f := panelOne(t, h, day).Flights[0]; f.Gymnasts[order[1]] != "scratched" {
 			t.Errorf("%s is scratched on the day page: %+v", order[1], f.Gymnasts)

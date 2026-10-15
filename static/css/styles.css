@@ -1012,3 +1012,20 @@ details > summary.button::before, .routine-menu > summary::before, .comp-move > 
 .skill-side { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 0.3rem; }
 .skill-mark-buttons { margin-top: 0.4rem; }
 .skill-mark-buttons .button { min-height: 2.5rem; }
+
+/* On the day: each area as a card on the overview, with the one tap that
+   comes next; its own page has the flight it's on in full, a section each
+   for check-in and the panel, then its later and finished flights, closed. */
+.comp-day-card .title a { color: inherit; }
+.comp-day-card-flight { border-top: 1px solid #ededed; padding-top: 0.75rem; margin-top: 0.5rem; }
+.comp-day-card .comp-day-flight-taps, .comp-day-card .comp-up .buttons { margin-bottom: 0; }
+.comp-day-people > summary { display: none; }
+.comp-day-people[open] { margin-top: 0.75rem; border-top: 1px solid #ededed; padding-top: 0.5rem; }
+.comp-day-person { display: block; padding: 0.2rem 0; }
+.comp-day-now { border: 2px solid var(--state-in-progress-ink, #3e56c4); }
+.comp-day-section { margin-top: 1rem; }
+.comp-day-section-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.4rem; }
+.comp-day-section-title .chip { margin-left: 0.4rem; }
+.comp-day-flight-taps { margin-top: 1rem; }
+.comp-day-other > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; }
+.comp-day-other > summary .chip { margin-left: 0; }

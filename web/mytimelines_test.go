@@ -67,7 +67,7 @@ func TestPersonalAndClubTimetables(t *testing.T) {
 	}
 
 	// Ivy's own.
-	if page := do(t, h, http.MethodGet, ivy+"/day", nil).Body.String(); !strings.Contains(page, ">Your timetable</a>") {
+	if page := dayAll(t, h, ivy+"/day"); !strings.Contains(page, ">Your timetable</a>") {
 		t.Error("Ivy's My competition links to hers")
 	}
 	if mine := do(t, h, http.MethodGet, ivy+"/timeline", nil).Body.String(); !strings.Contains(mine, "You compete") {

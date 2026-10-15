@@ -379,6 +379,44 @@ func dayFlights(t *testing.T, page string) []dayFlight {
 	return out
 }
 
+// dayAll is an On the day page as the tests read it: the overview, with each
+// area's own page (where its flights are in full) in place of its card. Any
+// other page comes back as it is.
+func dayAll(t *testing.T, h http.Handler, path string) string {
+	t.Helper()
+	page := do(t, h, http.MethodGet, path, nil).Body.String()
+	if strings.Contains(path, "area=") {
+		return page
+	}
+	// The areas are what's between their block's start and the end of the
+	// block before the taps script, which follows it, as the page has them.
+	inner := func(page, start string) (from, to int, ok bool) {
+		from = strings.Index(page, start)
+		end := strings.Index(page, `<script defer src="/static/js/taps.js`)
+		if from < 0 || end < 0 {
+			return 0, 0, false
+		}
+		from += len(start)
+		to = strings.LastIndex(page[:end], "</div>")
+		return from, to, to >= from
+	}
+	from, to, ok := inner(page, `<div class="columns is-multiline" id="day-areas" data-day-page>`)
+	if !ok {
+		return page
+	}
+	var areas strings.Builder
+	for _, m := range regexp.MustCompile(`<div class="box comp-day-area comp-day-card" id="[^"]*"><h2 class="title is-5 mb-1"><a href="([^"]+)">`).FindAllStringSubmatch(page, -1) {
+		link := unescape(m[1])
+		full := do(t, h, http.MethodGet, link, nil).Body.String()
+		f, e, ok := inner(full, `<div id="day-areas" data-day-page>`)
+		if !ok {
+			t.Fatalf("no area page at %s", link)
+		}
+		areas.WriteString(full[f:e])
+	}
+	return page[:from] + areas.String() + page[to:]
+}
+
 // dayPageAreas are the On the day page's areas, by name.
 func dayPageAreas(t *testing.T, page string) map[string]dayArea {
 	t.Helper()
@@ -388,11 +426,7 @@ func dayPageAreas(t *testing.T, page string) map[string]dayArea {
 	if root == nil {
 		return out
 	}
-	for _, col := range byClass(root, "column") {
-		block := firstElementChild(col)
-		if block == nil {
-			continue
-		}
+	for _, block := range byClass(root, "comp-day-area") {
 		var a dayArea
 		name := textOf(firstByClass(block, "title"))
 		if chip := firstByClass(block, "chip"); chip != nil {
@@ -421,8 +455,15 @@ func dayFlightOf(box *html.Node) dayFlight {
 		// Who's up, hidden until the flight starts, isn't on the page.
 		up.Parent.RemoveChild(up)
 	}
+	// The flight an area is on is in full, its name first; the others are
+	// closed, their name in the summary.
 	ps := byTag(box, "p")
-	f.Name, f.State = textOf(firstChildTag(ps[0], "strong")), textOf(firstByClass(ps[0], "chip"))
+	if summary := firstChildTag(box, "summary"); summary != nil {
+		f.Name, f.State = textOf(firstChildTag(summary, "strong")), textOf(firstByClass(summary, "chip"))
+		ps = append([]*html.Node{summary}, ps...)
+	} else {
+		f.Name, f.State = textOf(firstChildTag(ps[0], "strong")), textOf(firstByClass(ps[0], "chip"))
+	}
 	for _, in := range byTag(box, "input") {
 		if attrOf(in, "name") == "flight" {
 			f.Key = attrOf(in, "value")
@@ -467,13 +508,18 @@ func dayFlightOf(box *html.Node) dayFlight {
 		f.Last = strings.Contains(textOf(up), "The flight's last routine")
 	}
 	for _, d := range byClass(box, "comp-checkin") {
+		// A closed list's counts are in its summary; an open section's in its heading.
+		head := firstChildTag(d, "summary")
+		if head == nil {
+			head = firstChildTag(d, "h4")
+		}
 		if strings.HasPrefix(attrOf(d, "data-key"), "panel:") {
-			f.Panel = chipsOf(firstChildTag(d, "summary"))
+			f.Panel = chipsOf(head)
 		}
 		if attr := attrOf(d, "data-key"); !strings.HasPrefix(attr, "checkin:") {
 			continue
 		}
-		f.Checkin = chipsOf(firstChildTag(d, "summary"))
+		f.Checkin = chipsOf(head)
 		for _, row := range byClass(d, "comp-checkin-row") {
 			name := firstByClass(row, "comp-checkin-name")
 			who := ""
@@ -498,15 +544,6 @@ func byID(n *html.Node, id string) *html.Node {
 	for d := range n.Descendants() {
 		if d.Type == html.ElementNode && attrOf(d, "id") == id {
 			return d
-		}
-	}
-	return nil
-}
-
-func firstElementChild(n *html.Node) *html.Node {
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		if c.Type == html.ElementNode {
-			return c
 		}
 	}
 	return nil
@@ -729,7 +766,7 @@ func rowOf(t *testing.T, page, name string) []string {
 // isn't taken for a second tap. It returns where the tap redirected.
 func tapUp(t *testing.T, h http.Handler, admin, flight, what string) string {
 	t.Helper()
-	page := do(t, h, http.MethodGet, admin+"/day?day=0", nil).Body.String()
+	page := dayAll(t, h, admin+"/day?day=0")
 	tap := url.Values{"flight": {flight}, "what": {what}, "day": {"0"}}
 	for _, form := range regexp.MustCompile(`(?s)<form[^>]*/day/up"[^>]*>.*?</form>`).FindAllString(page, -1) {
 		if strings.Contains(form, `name="flight" value="`+html.EscapeString(flight)+`"`) {

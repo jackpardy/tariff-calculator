@@ -302,7 +302,8 @@
         if (!document.getElementById('day-areas')?.hasAttribute('data-day-page')) {
             return;
         }
-        const key = 'trampolineOpenDay:' + location.pathname + '?day=' + (new URLSearchParams(location.search).get('day') || '');
+        const shownArea = new URLSearchParams(location.search).get('area') || '';
+        const key = 'trampolineOpenDay:' + location.pathname + '?day=' + (new URLSearchParams(location.search).get('day') || '') + '&area=' + shownArea;
         // The lists opened by hand, and those "Find a name" opened because
         // they have someone it found (listTools marks them), which close
         // again when the search is cleared and aren't remembered.
@@ -420,7 +421,7 @@
                 plainSubmit(form, submitter);
                 return;
             }
-            show(fresh, form.closest('.comp-flight')?.id || 'day-areas', shut);
+            show(fresh, form.closest('.comp-flight, .comp-day-card')?.id || 'day-areas', shut);
         };
 
         // One at a time, so a slow answer can't undo a newer one.
@@ -458,7 +459,7 @@
                             const n = doc.getElementById('day-notice')?.textContent.trim();
                             if (n) { notices.push(n); }
                             const u = new URL(a.url || location.href, location.href);
-                            fresh = u.pathname === location.pathname && u.searchParams.get('day') === shownDay() ? doc : null;
+                            fresh = u.pathname === location.pathname && u.searchParams.get('day') === shownDay() && (u.searchParams.get('area') || '') === shownArea ? doc : null;
                         } else {
                             const page = new DOMParser().parseFromString(a.text, 'text/html');
                             const why = [page.querySelector('h1')?.textContent.trim(), page.querySelector('h1 + p')?.textContent.trim()].filter(Boolean).join(': ');
@@ -490,7 +491,7 @@
             const submitter = event.submitter;
             const tap = taps && DayTaps.tapOf(form, submitter, taps.load());
             if (tap && taps.add(tap)) {
-                tapAnchor = form.closest('.comp-flight')?.id || (form.closest('#day-warnings') ? 'day-warnings' : 'day-areas');
+                tapAnchor = form.closest('.comp-flight, .comp-day-card')?.id || (form.closest('#day-warnings') ? 'day-warnings' : 'day-areas');
                 // Shown as done at once; the count only once it's waiting.
                 DayTaps.markWaiting(taps.load());
                 if (!navigator.onLine) { DayTaps.count(taps.load().length); }
