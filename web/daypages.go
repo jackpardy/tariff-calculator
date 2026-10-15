@@ -92,6 +92,20 @@ func todayIndex(c store.Competition, s *competitions.Schedule, now time.Time) (i
 	return 0, false
 }
 
+// warmUpStarted says whether a flight's warm-up has begun by now: it has
+// started, or the planned time of its warm-up on its day has come.
+func warmUpStarted(c competitions.Competition, f competitions.ScheduledFlight, started bool, now time.Time) bool {
+	if started {
+		return true
+	}
+	first, err := c.Day()
+	if err != nil {
+		return false
+	}
+	at := time.Date(first.Year(), first.Month(), first.Day()+f.Day, 0, f.Start, 0, 0, local)
+	return !now.Before(at)
+}
+
 // actualOf turns the times stored into those Lateness reads.
 func actualOf(times map[string]store.FlightTime) map[string]competitions.Actual {
 	out := make(map[string]competitions.Actual, len(times))
@@ -278,7 +292,10 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 			case !t.Started.IsZero():
 				df.Undo = "undo-start"
 			}
-			df.Gymnasts = checkinOf(f, byID, checkins, keys, notify)
+			// Notify only once the flight's warm-up has begun: before then,
+			// not being here yet isn't news.
+			warming := notify && warmUpStarted(c.Competition, f, !t.Started.IsZero(), p.now())
+			df.Gymnasts = checkinOf(f, byID, checkins, keys, warming)
 			for i, g := range df.Gymnasts {
 				names := competitions.RoutineNames(c.Competition, byID[g.Entry].Entry)
 				df.Gymnasts[i].Routines = names[0] + "|" + names[1]
@@ -293,7 +310,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 				df.Up = dayUp(c.Competition, f, byID, scratched, store.Up{}, false)
 				df.Up.Waiting = true
 			}
-			df.Seats = panelOf(f, day, nameOf, inClub, official[competitions.FlightKey(f)], whatIf, notify)
+			df.Seats = panelOf(f, day, nameOf, inClub, official[competitions.FlightKey(f)], whatIf, warming)
 			area.Flights = append(area.Flights, df)
 		}
 		marked := slices.ContainsFunc(area.Flights, func(f views.DayFlight) bool { return f.Started != "" || f.Finished != "" })

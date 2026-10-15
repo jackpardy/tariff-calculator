@@ -1149,7 +1149,8 @@ clear anything. On the printed chair of judges sheets (`sheet=judges`) the
 panel line puts " ✓" after the name of each official who is checked in for that
 flight; the other sheets don't.
 
-**Notify** (built 2026-10-09). Next to each official who isn't checked in or is
+**Notify** (built 2026-10-09; from 2026-10-15 only once the flight's warm-up
+has begun, by its planned time or its start, `warmUpStarted`). Next to each official who isn't checked in or is
 missing, and each gymnast who isn't checked in (not one already marked here or
 scratched), a folded **Notify** has two tick boxes, **Them** (ticked) and **Their
 club** (only for someone who belongs to a club: a club member, or an entry that

@@ -370,8 +370,8 @@ a **Change** button to open it.
    page with **I'm here for the rest**. Under each flight, **Panel** does the
    same for the officials: tap **Here** as each arrives (it counts for the
    whole run of that event on the area, and clears a scratch warning), or
-   **Missing**, which links to "what if they leave". Next to anyone who isn't
-   here, **Notify** sends them, their club's comp sec and coaches, or both,
+   **Missing**, which links to "what if they leave". Once a flight's warm-up has begun, next to
+   anyone who isn't here, **Notify** sends them, their club's comp sec and coaches, or both,
    a message saying where they should be. To find someone at the desk, type
    part of their name in **Find a name**: only the flights with them show,
    with their Check-in or Panel list open, and it stays that way as you tap
