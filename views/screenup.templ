@@ -11,9 +11,8 @@ type ScreenUp struct {
 
 // ScreenUpGymnast is a gymnast and the routine they're doing.
 type ScreenUpGymnast struct {
-	Name, Club string
-	No         int    // their running number: their place in the flight
-	Routine    string // e.g. "Set", "Voluntary" or "2nd routine"
+	FlightGymnast
+	Routine string // e.g. "Set", "Voluntary" or "2nd routine"
 }
 
 // screenUp is who's on now and who's next in an area's card on the venue

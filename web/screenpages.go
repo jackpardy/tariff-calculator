@@ -182,17 +182,17 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	people := map[string]views.ScreenGymnast{}
+	people := map[string]views.FlightGymnast{}
 	for _, e := range live(all) {
-		people[e.ID] = views.ScreenGymnast{Name: e.Entry.Gymnasts(), Club: screenClub(e)}
+		people[e.ID] = views.FlightGymnast{Name: e.Entry.Gymnasts(), Club: screenClub(e)}
 	}
 	scratched, err := p.scratchedOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	gymnasts := func(f competitions.ScheduledFlight) []views.ScreenGymnast {
-		var out []views.ScreenGymnast
+	gymnasts := func(f competitions.ScheduledFlight) []views.FlightGymnast {
+		var out []views.FlightGymnast
 		for n, id := range f.Entries {
 			if g, ok := people[id]; ok {
 				g.No, g.Scratched = n+1, scratched[id]

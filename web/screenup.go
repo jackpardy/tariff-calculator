@@ -27,7 +27,7 @@ func upOrderOf(f competitions.ScheduledFlight, byID map[string]store.Entry, scra
 func upGymnast(c competitions.Competition, o competitions.UpOrder, r competitions.Routine, byID map[string]store.Entry) views.ScreenUpGymnast {
 	e := byID[r.Entry] // a zero Entry for one no longer entered
 	// An individual has no club to name.
-	return views.ScreenUpGymnast{Name: e.Entry.Gymnasts(), No: o.No(r), Club: e.ClubName, Routine: competitions.RoutineNames(c, e.Entry)[r.Round-1]}
+	return views.ScreenUpGymnast{FlightGymnast: views.FlightGymnast{Name: e.Entry.Gymnasts(), No: o.No(r), Club: e.ClubName}, Routine: competitions.RoutineNames(c, e.Entry)[r.Round-1]}
 }
 
 // screenUp is who's on in a flight at the routine the marshal has tapped to,

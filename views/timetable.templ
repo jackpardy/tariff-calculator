@@ -139,10 +139,9 @@ type ItemView struct {
 
 // TimetableGymnast is a gymnast in a running order.
 type TimetableGymnast struct {
-	ID, Name, Club, Category string
-	No                       int    // their running number: their place in the flight, the same on every page and sheet
-	Moved                    string // the event they're entered at now, if not the flight's
-	Scratched                bool   // a no-show on the day: struck through on the printed sheets
+	FlightGymnast
+	ID, Category string
+	Moved        string // the event they're entered at now, if not the flight's
 }
 
 // FlightOption is somewhere to move a gymnast or flight to.
@@ -1180,14 +1179,7 @@ type ScoreFlight struct {
 	Name, Day, Area, Start string
 	Seats                  []SeatView // who's on its panel
 	Marks                  []string // each routine's columns: "E1"…, "D", "HD", "S1"…, "Pen", "Total"
-	Rows                   []ScoreRow
-}
-
-// ScoreRow is a gymnast (or synchro pair) on a score sheet.
-type ScoreRow struct {
-	Name, Club string
-	No         int  // their running number
-	Scratched  bool // a no-show on the day: struck through
+	Rows                   []FlightGymnast
 }
 
 // ScorePrint is the recorders' score sheets, to print landscape.
