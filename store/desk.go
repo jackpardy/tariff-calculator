@@ -26,6 +26,7 @@ type DeskMessage struct {
 	At       time.Time
 	Pushed   int // addresses told by push
 	Emailed  int // addresses told by email
+	Failed   int // addresses that couldn't be told
 }
 
 // SendDeskMessage keeps a message, returning it with its id; ErrLimit once the
@@ -56,14 +57,15 @@ func (s *Store) SendDeskMessage(ctx context.Context, competitionID string, m Des
 	return m, err
 }
 
-// SetDeskTold records how many addresses a message was pushed and emailed to.
-func (s *Store) SetDeskTold(ctx context.Context, competitionID, id string, pushed, emailed int) error {
-	return affected(s.db.ExecContext(ctx, `UPDATE desk_messages SET pushed = $1, emailed = $2 WHERE competition_id = $3 AND id = $4`, pushed, emailed, competitionID, id))
+// SetDeskTold records how many addresses a message was pushed and emailed to,
+// and how many couldn't be told.
+func (s *Store) SetDeskTold(ctx context.Context, competitionID, id string, pushed, emailed, failed int) error {
+	return affected(s.db.ExecContext(ctx, `UPDATE desk_messages SET pushed = $1, emailed = $2, failed = $3 WHERE competition_id = $4 AND id = $5`, pushed, emailed, failed, competitionID, id))
 }
 
 // DeskMessages are a competition's messages, latest first.
 func (s *Store) DeskMessages(ctx context.Context, competitionID string) ([]DeskMessage, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, text, come, audience, people, clubs, staff, who, at, pushed, emailed FROM desk_messages WHERE competition_id = $1 ORDER BY at DESC, rowid DESC LIMIT $2`,
+	rows, err := s.db.QueryContext(ctx, `SELECT id, text, come, audience, people, clubs, staff, who, at, pushed, emailed, failed FROM desk_messages WHERE competition_id = $1 ORDER BY at DESC, rowid DESC LIMIT $2`,
 		competitionID, MaxDeskMessages)
 	if err != nil {
 		return nil, err
@@ -73,7 +75,7 @@ func (s *Store) DeskMessages(ctx context.Context, competitionID string) ([]DeskM
 	for rows.Next() {
 		var m DeskMessage
 		var people, clubs, staff, at string
-		if err := rows.Scan(&m.ID, &m.Text, &m.Come, &m.Audience, &people, &clubs, &staff, &m.Who, &at, &m.Pushed, &m.Emailed); err != nil {
+		if err := rows.Scan(&m.ID, &m.Text, &m.Come, &m.Audience, &people, &clubs, &staff, &m.Who, &at, &m.Pushed, &m.Emailed, &m.Failed); err != nil {
 			return nil, err
 		}
 		json.Unmarshal([]byte(people), &m.People)

@@ -77,7 +77,7 @@ func main() {
 		MaxHeaderBytes:    web.MaxHeaderBytes,
 	}
 	// A deploy stops the app with SIGTERM: let the requests under way finish,
-	// then close the database cleanly.
+	// and the emails and pushes queued, then close the database cleanly.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer stop()
 	go func() {
@@ -92,6 +92,8 @@ func main() {
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}
+	// Then let what's being emailed and pushed go, for a while.
+	app.Finish(20 * time.Second)
 	if st != nil {
 		if err := st.Close(); err != nil {
 			log.Printf("Closing the database: %v", err)

@@ -82,8 +82,22 @@ func newTestServer(t *testing.T, opts ...serverOption) *testServer {
 	for _, o := range opts {
 		o(s)
 	}
-	s.h = checkingFacts(t, s.p, routesWithPages(s.p))
+	t.Cleanup(func() { s.p.notify.send.stop(time.Second) }) // before the store closes
+	h := routesWithPages(s.p)
+	// Each request waits for what it sent, so a test sees it once the
+	// request answers.
+	// It checks the cache after (checkingFacts).
+	s.h = checkingFacts(t, s.p, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
+		s.p.notify.send.flush()
+	}))
 	return s
+}
+
+// tellDue tells the changes that are due, and waits until they're sent.
+func tellDue(p *competitionPages) {
+	p.notify.tell(context.Background())
+	p.notify.send.flush()
 }
 
 // competitionServerAt is the app on a clock set to now.

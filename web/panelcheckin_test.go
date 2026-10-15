@@ -336,7 +336,7 @@ func TestNotifyAClub(t *testing.T) {
 	// Their club only: the comp sec and the coach hear, no member.
 	form := url.Values{"person": {ann}, "flight": {flight}, "as": {"gymnast"}, "club": {"1"}, "day": {"0"}}
 	to := redirected(t, h, admin+"/day/notify", form)
-	if notice, _ := url.QueryUnescape(to); !strings.Contains(notice, "notice=Sent to Ann's club. Told 0 by push and 2 by email") {
+	if notice, _ := url.QueryUnescape(to); !strings.Contains(notice, "notice=Sent to Ann's club. Sending to 2 people: 2 by email, 0 by push") {
 		t.Errorf("the notice: %s", notice)
 	}
 	got := map[string]sentEmail{}

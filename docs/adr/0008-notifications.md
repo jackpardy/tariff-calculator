@@ -6,6 +6,7 @@
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 6 (personal data: an email can be kept, to
   notify)
+- **Amended by:** ADR 0012 (emails and pushes sent in the background)
 
 ## Context
 

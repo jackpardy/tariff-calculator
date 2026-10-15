@@ -447,12 +447,13 @@ December. Before it:
 - **A Feedback button** on every competition page while the dry run is on,
   saving the words, the page, the role and the time for the maintainer.
   Helper links already have Flag a concern; this is for everyone.
-- **Send in the background.** A desk message, or a round of change
-  notifications, emails and pushes each person one at a time before the
-  organiser's page answers: about half a second to a second an email, so
-  a message to 300 people hangs for minutes and may time out part way
-  through. Send a few at a time in the background, and say at once how
-  many it's going to.
+- **Send in the background** (built 2026-10-15). A desk message, or a round of change
+  notifications, emailed and pushed each person one at a time before the
+  organiser's page answered: about half a second to a second an email, so
+  a message to 300 people hung for minutes and might time out part way
+  through. Now four go at a time in the background, emails capped a
+  second, the page says at once how many it's going to, and the desk shows
+  sent, still sending and failed.
 - **Email on the server**: Amazon SES in Ireland (decided 2026-10-09:
   pennies a competition and no daily cap that matters, unlike the free
   tiers of Resend or Brevo; Postmark is the fallback if SES refuses
