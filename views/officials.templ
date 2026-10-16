@@ -148,7 +148,7 @@ templ CompetitionOfficials(p OfficialsPage) {
 			<form method="post" action={ templ.SafeURL(p.Base + "/officials/settings") }>
 				<p class="help mb-2">Each discipline's panel starts as the FIG Code of Points' (a Chair of Judges Panel, 6 execution and 2 difficulty judges), plus a recorder and a marshal. Change any of it. Trampoline and synchro need HD (horizontal displacement) judges where no machine measures it; synchro starts with 2 synchronisation judges, for where no machine measures synchronisation.</p>
 				<div class="table-container">
-					<table class="table is-narrow comp-panels">
+					<table class="table is-narrow comp-panels comp-stack">
 						<thead><tr><th></th><th>Chair</th><th>Execution</th><th>Difficulty</th><th>HD</th><th>Sync</th><th>Recorder</th><th>Marshal</th></tr></thead>
 						<tbody>
 							for _, s := range p.Panels {
@@ -160,12 +160,12 @@ templ CompetitionOfficials(p OfficialsPage) {
 									if s.HasHD {
 										@panelInput(s.Key, "hd", s.HD)
 									} else {
-										<td class="has-text-grey">—</td>
+										<td class="has-text-grey"></td>
 									}
 									if s.HasSync {
 										@panelInput(s.Key, "sync", s.Sync)
 									} else {
-										<td class="has-text-grey">—</td>
+										<td class="has-text-grey"></td>
 									}
 									@panelInput(s.Key, "recorder", s.Recorder)
 									@panelInput(s.Key, "marshal", s.Marshal)
@@ -200,7 +200,10 @@ templ CompetitionOfficials(p OfficialsPage) {
 								<tr { o.List.Attrs()... }>
 									<td>
 										<a href={ templ.SafeURL(o.Person) }>{ o.Name }</a>
-										@WhoChip(o.Who, o.Source)
+										// Sent by their club, as most are, needs no chip: their club is beside it.
+										if o.Who != RoleClub {
+											@WhoChip(o.Who, o.Source)
+										}
 									</td>
 									<td data-label="Club">{ o.Club }</td>
 									<td class="comp-wrap" data-label="Can do">{ o.Offer }</td>
@@ -263,7 +266,13 @@ templ addOfficial(p OfficialsPage) {
 }
 
 templ panelInput(key, field string, value int) {
-	<td><input class="input is-small comp-num" type="number" min="0" max="20" name={ "panel-" + key + "-" + field } value={ strconv.Itoa(value) } aria-label={ key + " " + field }/></td>
+	<td data-label={ panelFieldName(field) }><input class="input is-small comp-num" type="number" min="0" max="20" name={ "panel-" + key + "-" + field } value={ strconv.Itoa(value) } aria-label={ key + " " + field }/></td>
+}
+
+// panelFieldName is a panel's seat as the table's heading says it, for a
+// phone's card.
+func panelFieldName(field string) string {
+	return map[string]string{"chair": "Chair", "execution": "Execution", "difficulty": "Difficulty", "hd": "HD", "sync": "Sync", "recorder": "Recorder", "marshal": "Marshal"}[field]
 }
 
 // panelsNow says, in a line, how many sit on each discipline's panel and

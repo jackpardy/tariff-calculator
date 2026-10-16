@@ -17,6 +17,11 @@ func Describe(r Rule) string {
 	case Track:
 		return "One of the club's own skills"
 	case Count:
+		// A skill to include, named or picked, is just its name: "Barani",
+		// "A back somersault", not "At least 1 element: Barani".
+		if r.Min != nil && *r.Min == 1 && r.Max == nil && named(*r.Match) {
+			return Capitalise(DescribeMatcher(*r.Match))
+		}
 		return countPhrase(r.Min, r.Max) + ": " + DescribeMatcher(*r.Match)
 	case Linked:
 		return linkedPhrase(r.Min, r.Max) + ", one straight after another: " + DescribeMatcher(*r.Match)
@@ -249,3 +254,20 @@ func capitalise(s string) string {
 // Capitalise is a description with its first letter in capitals, to start
 // a line ("any single somersault" heading a level's line).
 func Capitalise(s string) string { return capitalise(s) }
+
+// named says whether a matcher has a name to go by: its wording, or a skill
+// or kind of skill picked, and so each of its other skills.
+func named(m Matcher) bool {
+	one := func(m Matcher) bool {
+		return strings.TrimSpace(m.Label) != "" || PickOf(Matcher{Label: m.Label, Rotation: m.Rotation, Direction: m.Direction, Twist: m.Twist, Shapes: m.Shapes, Takeoff: m.Takeoff, Landing: m.Landing, Tariff: m.Tariff, FIG: m.FIG}) != ""
+	}
+	if !one(m) {
+		return false
+	}
+	for _, o := range m.Or {
+		if !one(o) {
+			return false
+		}
+	}
+	return true
+}

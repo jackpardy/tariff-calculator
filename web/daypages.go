@@ -206,6 +206,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 	base := adminPath(r.PathValue("token"))
 	page := views.DayPage{Base: base, Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuDay), Notice: r.URL.Query().Get("notice"), Day: day}
 	page.Correct = can(r, "POST", "/day/times")
+	page.People = can(r, "GET", "/people/{key}")
 	if day < len(s.Setup.Days) {
 		page.DayName = s.Setup.Days[day].Name
 		if first, err := c.Competition.Day(); err == nil {
@@ -315,6 +316,10 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 			case df.CanFinish:
 				up, tapped := ups[df.Key]
 				df.Up = dayUp(c.Competition, f, byID, scratched, up, tapped)
+				// Who's on, not checked in: said, so the marshal looks for them.
+				if df.Up.Entry != "" {
+					df.Up.NotHere = checkins[df.Up.Entry].Status == ""
+				}
 			case df.CanStart:
 				// Hidden, for the marshal to go on with if Started is tapped
 				// without signal (static/js/taps.js).
@@ -335,11 +340,27 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 			area.Late, area.Early = l.Minutes > 0, l.Minutes < 0
 			area.Since = fmt.Sprintf("measured from %s %s at %s", l.Flight, l.As, clock(l.At))
 			if l.Minutes > 0 && can(r, "GET", "/timetable/delay") {
+				// From when it was planned to happen, so a flight planned to
+				// start after it, still waiting, moves later rather than
+				// counting as under way.
 				area.WhatIf = base + "/timetable/delay?" + url.Values{
 					"day": {strconv.Itoa(day)}, "area": {a.Name},
-					"from": {clock(l.At)}, "minutes": {strconv.Itoa(l.Minutes)},
+					"from": {clock(l.At.Add(-time.Duration(l.Minutes) * time.Minute))}, "minutes": {strconv.Itoa(l.Minutes)},
 				}.Encode()
 			}
+		}
+		// Its blocked time that day, and who's on an event's panel.
+		for _, b := range s.Blocks {
+			if b.Day != day || len(b.Areas) > 0 && !slices.Contains(b.Areas, a.Name) {
+				continue
+			}
+			br := views.DayBreak{Name: b.Name, Times: competitions.Clock(b.Start) + "–" + competitions.Clock(b.End)}
+			for _, d := range b.Officials {
+				if d.Person != "" {
+					br.Officials = append(br.Officials, nameOf(d.Person)+" ("+competitions.RoleWord(d.Role)+")")
+				}
+			}
+			area.Breaks = append(area.Breaks, br)
 		}
 		page.Areas = append(page.Areas, area)
 	}

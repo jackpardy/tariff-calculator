@@ -30,6 +30,7 @@ type DeskNotice struct {
 // DeskOption is a choice in a list.
 type DeskOption struct {
 	Value, Label string
+	Selected     bool // chosen to start with: the first flight not finished
 }
 
 // DeskGroup is choices under a heading.
@@ -73,7 +74,8 @@ templ Desk(p DeskPage) {
 					<input type="radio" name="to" value="club" checked/>
 					A club: its competition secretary, coaches and members
 				</label>
-				<div class="select is-small mb-3">
+				// Each choice's controls show while it's the one chosen.
+				<div class="select is-small mb-3 desk-to-club">
 					<select name="club" aria-label="Club">
 						for _, c := range p.Clubs {
 							<option value={ c.Value }>{ c.Label }</option>
@@ -91,18 +93,18 @@ templ Desk(p DeskPage) {
 					}
 				</label>
 				if len(p.Flights) > 0 {
-					<div class="select is-small mb-3">
+					<div class="select is-small mb-3 desk-to-flight">
 						<select name="flight" aria-label="Flight">
 							for _, g := range p.Flights {
 								<optgroup label={ g.Label }>
 									for _, o := range g.Options {
-										<option value={ o.Value }>{ o.Label }</option>
+										<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
 									}
 								</optgroup>
 							}
 						</select>
 					</div>
-					<div class="mb-3 ml-4">
+					<div class="mb-3 ml-4 desk-to-flight">
 						<input type="hidden" name="flightChoice" value="1"/>
 						<label class="checkbox comp-check mr-3">
 							<input type="checkbox" name="flightGymnasts" value="1" checked/>
@@ -123,7 +125,7 @@ templ Desk(p DeskPage) {
 					One panel's officials, for a day
 				</label>
 				if len(p.Panels) > 0 {
-					<div class="select is-small mb-3">
+					<div class="select is-small mb-3 desk-to-panel">
 						<select name="panel" aria-label="Panel">
 							for _, o := range p.Panels {
 								<option value={ o.Value }>{ o.Label }</option>
@@ -136,10 +138,12 @@ templ Desk(p DeskPage) {
 					People I pick
 				</label>
 				if len(p.People) == 0 {
-					<p class="is-size-7 has-text-grey">No one has entered or offered to officiate yet.</p>
+					<p class="is-size-7 has-text-grey desk-to-people">No one has entered or offered to officiate yet.</p>
 				} else {
-					@listTools(p.PeopleTools)
-					<div class="comp-desk-people" id={ p.PeopleTools.ID } style="max-height: 14rem; overflow-y: auto">
+					<div class="desk-to-people">
+						@listTools(p.PeopleTools)
+					</div>
+					<div class="comp-desk-people desk-to-people" id={ p.PeopleTools.ID } style="max-height: 14rem; overflow-y: auto">
 						for _, d := range p.People {
 							<label class="checkbox is-block" { d.List.Attrs()... }>
 								<input type="checkbox" name="person" value={ d.Key }/>

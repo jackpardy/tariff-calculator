@@ -33,6 +33,11 @@ func dayUp(c competitions.Competition, f competitions.ScheduledFlight, byID map[
 	out.Name, out.No, out.Club, out.Routine = g.Name, g.No, g.Club, g.Routine
 	out.Scratched = !o.Open(at)
 	out.Last = tapped && len(o.After(at, 1)) == 0
+	// Who's next, for the marshal to call.
+	if next := o.After(at, 1); tapped && len(next) == 1 {
+		n := upGymnast(c, o, next[0], byID)
+		out.Next = n.Name + " (" + n.Routine + ")"
+	}
 	_, back := o.Back(at)
 	out.CanBack = tapped && back
 	return out

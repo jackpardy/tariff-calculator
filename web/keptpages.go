@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"tariffCalculator/requirements"
@@ -184,9 +185,34 @@ func (p *competitionPages) dropKept(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	// A level's requirements no other level uses go with it, as its page
+	// lists them under it.
+	var alone []string
+	if r.PathValue("kind") == store.KeptLevel {
+		kept, err := p.st.KeptRequirements(r.Context(), person)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		i := slices.IndexFunc(kept, func(k store.Kept) bool { return k.Kind == store.KeptLevel && k.Source == r.PathValue("source") })
+		if i >= 0 {
+			others := levelsUse(slices.Delete(slices.Clone(kept), i, i+1))
+			for _, ref := range levelRefs(kept[i].Data) {
+				if !others[ref] {
+					alone = append(alone, ref)
+				}
+			}
+		}
+	}
 	if err := p.st.DropKept(r.Context(), person, r.PathValue("kind"), r.PathValue("source")); err != nil {
 		failed(w, r, err)
 		return
+	}
+	for _, ref := range alone {
+		if err := p.st.DropKept(r.Context(), person, store.KeptSet, ref); err != nil {
+			failed(w, r, err)
+			return
+		}
 	}
 	if r.FormValue("back") != "" {
 		seeOther(w, r, keptPath(r), "Taken off your page.")
@@ -210,22 +236,72 @@ func (p *competitionPages) keptPart(w http.ResponseWriter, r *http.Request) (vie
 	base := keptPath(r)
 	part := views.KeptPart{Add: base, Max: store.MaxKept}
 	names := map[string]string{} // kept sets' names, by their id in the browser, for levels to name them
+	sets := map[string]views.KeptView{}
 	for _, k := range kept {
 		if k.Kind == store.KeptSet {
 			names[k.Source] = k.Name
+			sets[k.Source] = views.KeptView{Name: k.Name, Lines: describedSet(k.Data)}
 		}
 	}
+	used := levelsUse(kept)
 	for _, k := range kept {
 		v := views.KeptView{Name: k.Name, Updated: k.Updated.In(local).Format("2 January 2006"), Remove: base + "/" + k.Kind + "/" + k.Source + "/remove"}
 		if k.Kind == store.KeptSet {
+			// A level's requirements are listed under it, not on their own.
+			if used[k.Source] {
+				continue
+			}
 			v.Lines = describedSet(k.Data)
+			if set, err := requirements.Parse([]byte(k.Data)); err == nil {
+				if _, isSet := requirements.SetRoutine(set); isSet {
+					part.SetRoutines = append(part.SetRoutines, v)
+					continue
+				}
+			}
 			part.Sets = append(part.Sets, v)
 			continue
 		}
 		v.Lines = levelLines(k.Data, names)
+		for _, ref := range levelRefs(k.Data) {
+			if own, ok := sets[ref]; ok {
+				v.Own = append(v.Own, own)
+			}
+		}
 		part.Levels = append(part.Levels, v)
 	}
 	return part, true
+}
+
+// levelRefs are the requirements a kept level's exercises use, by reference.
+func levelRefs(data string) []string {
+	var level requirements.Level
+	if json.Unmarshal([]byte(data), &level) != nil {
+		return nil
+	}
+	refs := slices.Clone(level.First.Options)
+	if level.Second != nil {
+		refs = append(refs, level.Second.Options...)
+	}
+	var out []string
+	for _, ref := range refs {
+		if ref != "" && !slices.Contains(out, ref) {
+			out = append(out, ref)
+		}
+	}
+	return out
+}
+
+// levelsUse are the kept sets (by their id in the browser) that kept levels use.
+func levelsUse(kept []store.Kept) map[string]bool {
+	out := map[string]bool{}
+	for _, k := range kept {
+		if k.Kind == store.KeptLevel {
+			for _, ref := range levelRefs(k.Data) {
+				out[ref] = true
+			}
+		}
+	}
+	return out
 }
 
 // levelLines say what a kept level's exercises are checked against: each

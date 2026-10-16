@@ -312,7 +312,7 @@ func renderNode(n *html.Node) string {
 
 // dayArea is an area on the organiser's On the day page.
 type dayArea struct {
-	Status  string // "Nothing started yet", "On time", "Running 15 min late"…
+	Status  string // "" with nothing started, "On time", "Running 15 min late"…
 	Since   string // e.g. "measured from BUCS L3 started at 09:20"
 	Late    bool   // its chip says it needs attention
 	Early   bool
@@ -453,7 +453,8 @@ func dayPageAreas(t *testing.T, page string) map[string]dayArea {
 	for _, block := range byClass(root, "comp-day-area") {
 		var a dayArea
 		name := textOf(firstByClass(block, "title"))
-		if chip := firstByClass(block, "chip"); chip != nil {
+		if status := firstByClass(block, "comp-area-status"); status != nil {
+			chip := firstByClass(status, "chip")
 			a.Status, a.Late = textOf(chip), hasClass(chip, "chip-state-attention")
 			a.Early = strings.HasSuffix(a.Status, " early")
 			if since := firstByClass(chip.Parent, "has-text-grey"); since != nil {
@@ -546,10 +547,12 @@ func dayFlightOf(box *html.Node) dayFlight {
 		f.Checkin = chipsOf(head)
 		for _, row := range byClass(d, "comp-checkin-row") {
 			name := firstByClass(row, "comp-checkin-name")
+			// Their name: the row's first span or link (to their page) after
+			// the running number.
 			who := ""
-			for _, s := range byTag(name, "span") {
-				if !hasClass(s, "comp-run-no") && s.Parent == name {
-					who = textOf(s)
+			for c := name.FirstChild; c != nil; c = c.NextSibling {
+				if c.Type == html.ElementNode && (c.Data == "span" || c.Data == "a") && !hasClass(c, "comp-run-no") {
+					who = textOf(c)
 					break
 				}
 			}

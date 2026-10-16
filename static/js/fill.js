@@ -35,6 +35,10 @@
     }, true);
     document.addEventListener('focusin', (e) => {
         if (e.target.matches && e.target.matches('select[data-fill]')) { fillSelect(e.target); }
+        // A list's search box (static/js/selectsearch.js) searches the filled list.
+        const box = e.target.closest?.('.select-search');
+        const select = box?.nextElementSibling?.querySelector?.('select[data-fill]') || (box?.nextElementSibling?.matches?.('select[data-fill]') ? box.nextElementSibling : null);
+        if (select) { fillSelect(select); }
     });
     // Dropdowns not inside a <details> (unplaced gymnasts) fill now.
     document.querySelectorAll('select[data-fill]').forEach((s) => { if (!s.closest('details')) { fillSelect(s); } });

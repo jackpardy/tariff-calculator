@@ -103,7 +103,7 @@ func TestWhoIsUpNow(t *testing.T) {
 	}
 	flight := unescape(key[1])
 	var order, escaped []string // the running order, and as the page has it
-	for _, m := range regexp.MustCompile(`comp-checkin-name">\s*(?:<span class="comp-run-no"[^>]*>\d+</span>\s*)?<span[^>]*>([^<]+)</span>`).FindAllStringSubmatch(page, -1) {
+	for _, m := range regexp.MustCompile(`comp-checkin-name">\s*(?:<span class="comp-run-no"[^>]*>\d+</span>\s*)?<(?:span|a)[^>]*>([^<]+)</(?:span|a)>`).FindAllStringSubmatch(page, -1) {
 		order, escaped = append(order, unescape(m[1])), append(escaped, m[1])
 	}
 	if len(order) != 4 {

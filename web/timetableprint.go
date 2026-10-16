@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
@@ -76,7 +77,8 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 			for _, it := range area.Items {
 				if it.Flight {
 					for i := range it.Seats {
-						it.Seats[i].Here = arrived[competitions.FlightKey(s.Flights[it.Index])][it.Seats[i].Person].Status == store.OfficialHere
+						status := arrived[competitions.FlightKey(s.Flights[it.Index])][it.Seats[i].Person].Status
+						it.Seats[i].Here, it.Seats[i].Missing = status == store.OfficialHere, status == store.OfficialMissing
 					}
 					for i := range it.Gymnasts {
 						it.Gymnasts[i].Scratched = scratched[it.Gymnasts[i].ID]
@@ -110,11 +112,20 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 					continue
 				}
 				ex[i] = exerciseSummary(j.Entry.Entry.Exercises[i], checked)
+				// A voluntary's difficulty, said as one, not a bare number.
+				if checked.Checks.ScoreDifficulty && len(j.Entry.Entry.Exercises[i].Skills) > 0 {
+					ex[i] = "Difficulty " + ex[i]
+				}
 			}
 			sheets.Exercises[j.ID] = ex
 			var notes []string
+			// What the problems are, not just how many: the first, and a count of the rest.
 			if n := len(j.problems); n > 0 {
-				notes = append(notes, problemsWord(n))
+				note := j.problems[0]
+				if n > 1 {
+					note += fmt.Sprintf(" (and %d more)", n-1)
+				}
+				notes = append(notes, note)
 			}
 			if j.Checked() {
 				notes = append(notes, "card checked")

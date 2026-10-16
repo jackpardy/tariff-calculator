@@ -115,7 +115,13 @@ built-in), deleted, exported as JSON, imported, or shared. The editor follows
 the skill editor's pattern ([rendering](../architecture/rendering.md)): the
 browser posts the form to `POST /requirements/editor`, the server parses and
 validates it into the model and re-renders the editor with any problems listed,
-and the browser saves the result. Validation exists only in Go.
+and the browser saves the result. Validation exists only in Go. A rule that
+doesn't say which skill (a new **Must include**, an empty **+ Or another
+skill**, a link's empty element: `requirements.Vague`) is listed as a problem,
+isn't met by anything until it does, and stands aside from the conflict check.
+A rule including one named or picked skill reads as just that skill
+("Barani", not "At least 1 element: Barani"). With more than four rules,
+each folds to its name with **Change**, as a club level's lines do.
 
 **Kinds of rule** are named by what they mean, and stored as the rule
 types, so nothing saved changes (`requirements.RuleKinds`, `KindOfRule`,

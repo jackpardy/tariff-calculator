@@ -67,10 +67,10 @@ func TestEntriesAreNamedAndPriced(t *testing.T) {
 
 func TestPickerName(t *testing.T) {
 	want := map[string]string{
-		"backSomersault": "Back s/s",
-		"front":          "Front s/s",
-		"backToSeat":     "Back s/s To Seat",
-		"frontToSeat":    "Front s/s To Seat",
+		"backSomersault": "Back",
+		"front":          "Front",
+		"backToSeat":     "Back To Seat",
+		"frontToSeat":    "Front To Seat",
 		"crashDive":      "Crash Dive",
 		"lazyBack":       "Lazy Back",
 		"ballOut":        "Ball-Out",
@@ -89,8 +89,15 @@ func TestPickerName(t *testing.T) {
 	// Any shape gives the same name.
 	pike := skills.CommonSkills["backSomersault"]
 	pike.Shape = skills.Pike
-	if got := PickerName(pike); got != "Back s/s" {
+	if got := PickerName(pike); got != "Back" {
 		t.Errorf("back pike: %q", got)
+	}
+	// The rule books' name is said beside it.
+	if got := AlsoCalled(pike); got != "Back s/s Pike" {
+		t.Errorf("also called: %q", got)
+	}
+	if got := AlsoCalled(skills.CommonSkills["barani"]); got != "" {
+		t.Errorf("a barani is a barani: %q", got)
 	}
 }
 
