@@ -180,7 +180,12 @@ Your requirements now appear under **Check against → Yours**.
 
 ## Make your own set routine
 
-A set routine is built like any routine, not written as rules:
+A set routine is built like any routine, not written as rules. On the
+requirements page, **+ New set routine** builds one right there: name it, find
+each skill (by name or FIG notation), adjust it under **Build or adjust this
+skill** and choose its shape on the card, then **Add to the set routine**;
+move or remove skills in the list, then **Save set routine**. Or, in the
+Routine Builder:
 
 1. Build it in the Routine Builder, skill by skill.
 2. Choose **More → Save as a set routine** and give it a name. If the routine

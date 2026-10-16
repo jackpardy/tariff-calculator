@@ -30,6 +30,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 			<script defer src={ static.URL("js/sets.js") }></script>
 			<script defer src={ static.URL("js/share.js") }></script>
 			<script defer src={ static.URL("js/requirements.js") }></script>
+			<script defer src={ static.URL("js/judging.js") }></script>
 			<script defer src={ static.URL("js/alpine.min.js") }></script>
 			@templ.JSONScript("builtin-sets", builtinSets(groups))
 			@templ.JSONScript("level-data", levelData(groups))
@@ -114,10 +115,39 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 								<button class="button is-primary is-small" type="button" x-on:click="makingSetRoutine = !makingSetRoutine">+ New set routine</button>
 							</div>
 						</div>
-						// A set routine is built, not written: in the Routine Builder, or from a routine already built.
+						// A set routine is built, not written: right here, skill by skill
+						// (setRoutineMaker, with the builder's search, builder and card),
+						// in the Routine Builder, or from a routine already built.
 						<div class="import-panel" x-show="makingSetRoutine" x-cloak>
-							<p class="mb-2">
-								Build it like any routine in the <a href="/">Routine Builder</a>, then choose
+							<template x-if="makingSetRoutine">
+								<div class="set-routine-maker" x-data="setRoutineMaker()" x-on:set-routine-made="addSetRoutine($event.detail)" x-on:flash="flash($event.detail)">
+									<div class="field">
+										<label class="label is-small" for="set-routine-name">Name</label>
+										<input class="input is-small" id="set-routine-name" type="text" maxlength="60" placeholder="e.g. Club L1" x-model="name"/>
+									</div>
+									<p class="label is-small mb-1">Its skills, in order</p>
+									<p class="has-text-grey is-size-7" x-show="skills.length === 0">None yet: find each below, adjust it if it needs it, and add it.</p>
+									<ol class="set-routine-skills">
+										<template x-for="(s, i) in skills" x-bind:key="i">
+											<li>
+												<span x-text="s.custom_name || s.name"></span>
+												<span class="has-text-grey is-size-7" x-text="(s.tariff || 0).toFixed(1)"></span>
+												<span class="buttons are-small mb-0">
+													<button class="button is-small" type="button" aria-label="Earlier" x-bind:disabled="i === 0" x-on:click="move(i, -1)">↑</button>
+													<button class="button is-small" type="button" aria-label="Later" x-bind:disabled="i === skills.length - 1" x-on:click="move(i, 1)">↓</button>
+													<button class="button is-small" type="button" x-on:click="skills.splice(i, 1)">Remove</button>
+												</span>
+											</li>
+										</template>
+									</ol>
+									<div id="skill-form-wrapper" class="mt-3" hx-post="/skill-form?compact=1" hx-trigger="load" hx-swap="innerHTML" x-init="htmx.process($el)"></div>
+									<div class="buttons mt-3">
+										<button class="button is-primary is-small" type="button" x-bind:disabled="skills.length === 0 || busy" x-on:click="save()">Save set routine</button>
+									</div>
+								</div>
+							</template>
+							<p class="mb-2 is-size-7">
+								Or build it in the <a href="/">Routine Builder</a>, then choose
 								<strong>More → Save as a set routine</strong>.
 							</p>
 							<template x-if="routines.length > 0">

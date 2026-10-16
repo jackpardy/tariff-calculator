@@ -310,3 +310,62 @@ func TestWriteRequirementsInALevelInABrowser(t *testing.T) {
 		t.Errorf("chosen for the exercise %v, the level's own %v, in Your requirements %v", chosen, inLevel, listed)
 	}
 }
+
+// A set routine is built on the requirements page, skill by skill, with the
+// builder's search and skill card, and saved with the rest.
+func TestBuildASetRoutineOnTheRequirementsPageInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := httptest.NewServer(routes())
+	defer srv.Close()
+
+	var tabs int
+	var label, saved string
+	// Steps of their own, each with its own time: CI's runners are slower.
+	step(t, ctx, "opening + New set routine",
+		chromedp.Navigate(srv.URL+"/requirements"),
+		chromedp.WaitReady(`[x-data]`, chromedp.ByQuery),
+		chromedp.Poll(`!!window.Alpine && !!Alpine.$data(document.querySelector('[x-data]'))`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+		chromedp.Evaluate(`Alpine.$data(document.querySelector('[x-data]')).makingSetRoutine = true`, nil),
+	)
+	step(t, ctx, "the skill form loading",
+		chromedp.Poll(`!!document.getElementById('skill-search') && !!document.getElementById('add-btn')`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+		chromedp.Evaluate(`document.querySelectorAll('.set-routine-maker .picker-tab').length`, &tabs),
+		chromedp.Text(`#add-btn`, &label, chromedp.ByQuery),
+	)
+	// The search too is wired up just after the form is shown: it searches
+	// again until there are results.
+	step(t, ctx, "finding Seat Drop",
+		chromedp.Evaluate(`Alpine.$data(document.querySelector('.set-routine-maker')).name = 'Club L1'`, nil),
+		chromedp.Poll(`(() => {
+			if (document.querySelector('#search-results .picker-skill')) { return true; }
+			const i = document.getElementById('skill-search');
+			i.value = 'seat drop';
+			i.dispatchEvent(new Event('input', {bubbles: true}));
+			return false;
+		})()`, nil, chromedp.WithPollingInterval(500*time.Millisecond)),
+	)
+	// htmx wires a result up just after it's shown: a click before then does
+	// nothing, so it clicks again until the card has it.
+	step(t, ctx, "loading it onto the card",
+		chromedp.Poll(`(() => {
+			if (document.querySelector('.skill-card-name')?.textContent.includes('Seat Drop')) { return true; }
+			document.querySelector('#search-results .picker-skill')?.click();
+			return false;
+		})()`, nil, chromedp.WithPollingInterval(300*time.Millisecond)),
+	)
+	step(t, ctx, "adding it",
+		chromedp.Evaluate(`Alpine.$data(document.querySelector('.set-routine-maker')).addFromForm()`, nil),
+		chromedp.Poll(`Alpine.$data(document.querySelector('.set-routine-maker')).skills.length === 1`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+	)
+	step(t, ctx, "saving the set routine",
+		chromedp.Evaluate(`Alpine.$data(document.querySelector('.set-routine-maker')).save()`, nil),
+		chromedp.Poll(`(JSON.parse(localStorage.getItem('trampolineRequirementSets') || '[]')).length === 1`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+		chromedp.Evaluate(`(() => { const s = JSON.parse(localStorage.getItem('trampolineRequirementSets'))[0].set; return s.name + ': ' + s.rules.find((r) => r.type === 'sequence').sequence.map((m) => m.label).join(', '); })()`, &saved),
+	)
+	if tabs != 0 || !strings.Contains(label, "Add to the set routine") {
+		t.Errorf("a cut-down form, adding to the set routine: %d tabs, %q", tabs, label)
+	}
+	if saved != "Club L1: Seat Drop" {
+		t.Errorf("saved: %q", saved)
+	}
+}
