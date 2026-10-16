@@ -1,5 +1,6 @@
 package views
 
+import "tariffCalculator/static"
 
 // LeavePage is the organiser's "what if an official has to leave".
 type LeavePage struct {
@@ -41,12 +42,13 @@ templ Leave(p LeavePage) {
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		@pageMenu(p.Menu)
 		<p class="mb-4">Choose who leaves and when. Each seat they'd have had from then is filled again by someone free (not competing, not on another panel, and allowed by your rules), or by moving others round where it helps: someone on that panel up a role, or someone across from a panel at the same time, their seat filled in turn (three moves at most). Nothing changes until you choose <strong>Keep this in the draft timetable</strong>, and even then officials see it only once you publish.</p>
+		<script defer src={ static.URL("js/selectsearch.js") }></script>
 		@problemList(p.Problems)
 		<form method="get" action={ templ.SafeURL(p.Base + "/timetable/leave") } class="box">
 			<div class="comp-setup-row">
 				<label class="label is-small mb-0" for="leave-person">Who</label>
 				<div class="select is-small">
-					<select id="leave-person" name="person" required>
+					<select id="leave-person" name="person" required data-search-select="Search the officials">
 						<option value="" disabled selected?={ p.Person == "" }>Choose an official</option>
 						for _, o := range p.People {
 							<option value={ o.Value } selected?={ p.Person == o.Value }>{ o.Label }</option>

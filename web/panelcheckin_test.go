@@ -400,7 +400,7 @@ func TestNotifyAClub(t *testing.T) {
 
 	// A gymnast who is here has nothing to be told.
 	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {checkinEntry(t, page, "Ann")}, "status": {"here"}, "day": {"0"}})
-	bea := regexp.MustCompile(`(?s)<span class="">Bea</span>.*?name="person" value="([^"]+)">`).FindStringSubmatch(page)[1]
+	bea := regexp.MustCompile(`(?s)<(?:span|a) class=""[^>]*>Bea</(?:span|a)>.*?name="person" value="([^"]+)">`).FindStringSubmatch(page)[1]
 	if page := dayAll(t, h, day); notifyForm(page, ann, flight, "gymnast") || !notifyForm(page, unescape(bea), flight, "gymnast") {
 		t.Errorf("no Notify for Ann once she's here, still one for Bea: %s", page)
 	}

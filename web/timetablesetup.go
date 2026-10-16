@@ -206,6 +206,11 @@ func (p *competitionPages) setupAreas(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("add") == "1" {
 			s.Setup.Areas = append(s.Setup.Areas, competitions.Area{Name: fmt.Sprintf("Area %d", len(s.Setup.Areas)+1), Discipline: competitions.Trampoline})
 		}
+		// Earlier (up: its index): the order the timetable, On the day and
+		// the venue screen show the areas in.
+		if i, err := strconv.Atoi(r.FormValue("up")); err == nil && i > 0 && i < len(s.Setup.Areas) {
+			s.Setup.Areas[i-1], s.Setup.Areas[i] = s.Setup.Areas[i], s.Setup.Areas[i-1]
+		}
 		return nil
 	})
 }

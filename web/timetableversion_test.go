@@ -71,10 +71,10 @@ func TestStaleTimetableForm(t *testing.T) {
 	}
 
 	// From the page as it is now, the same change goes through.
-	if to := redirected(t, h, tt+"/flight", url.Values{"flight": {"0"}, "action": {"redraw"}, "version": {versionIn(now)}}); noticeOf(t, to) != "" {
+	if to := redirected(t, h, tt+"/flight", url.Values{"flight": {"0"}, "action": {"redraw"}, "version": {versionIn(now)}}); !strings.HasPrefix(noticeOf(t, to), "Redrew ") {
 		t.Errorf("a redraw from the page as it is: %q", noticeOf(t, to))
 	}
-	if to := redirected(t, h, tt+"/entry", url.Values{"entry": {entry}, "to": {"0"}, "version": {versionIn(do(t, h, http.MethodGet, tt, nil).Body.String())}}); noticeOf(t, to) != "" {
+	if to := redirected(t, h, tt+"/entry", url.Values{"entry": {entry}, "to": {"0"}, "version": {versionIn(do(t, h, http.MethodGet, tt, nil).Body.String())}}); noticeOf(t, to) != "Moved Ann to BUCS L3." {
 		t.Errorf("putting the gymnast back: %q", noticeOf(t, to))
 	}
 }

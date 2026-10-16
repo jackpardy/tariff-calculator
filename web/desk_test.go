@@ -188,9 +188,10 @@ func TestDeskMessageToAFlight(t *testing.T) {
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
 	page := do(t, h, http.MethodGet, desk, nil).Body.String()
-	flight := regexp.MustCompile(`<option value="([0-9a-f]{16})">`).FindStringSubmatch(page)
+	// The first flight not finished is chosen to start with.
+	flight := regexp.MustCompile(`<option value="([0-9a-f]{16})" selected>`).FindStringSubmatch(page)
 	if flight == nil || !strings.Contains(page, "<optgroup") {
-		t.Fatalf("the published flights, by day and area: %s", page)
+		t.Fatalf("the published flights, by day and area, the first chosen: %s", page)
 	}
 
 	to := redirected(t, h, desk, url.Values{"to": {"flight"}, "flight": {unescape(flight[1])}, "text": {"Your flight starts in 10 minutes"}})

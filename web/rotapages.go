@@ -195,6 +195,7 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 		back(w, r, "")
 		return
 	}
+	anchor := ""
 	err = p.changeDraft(r, c, func(s *competitions.Schedule) error {
 		if !s.Planned {
 			return refused("Plan the timetable first.")
@@ -211,13 +212,16 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 			set = s.SetBlockDuty(block, seat, person)
 		} else if flight, err := strconv.Atoi(r.FormValue("flight")); err == nil {
 			set = s.SetDuty(flight, seat, person)
+			if set {
+				anchor, notice = flightAnchor(s.Flights[flight]), "Seat set on "+s.Flights[flight].Name()+"."
+			}
 		}
 		if err2 != nil || !known || !set {
 			return refused("That seat has changed since; nothing was changed.")
 		}
 		return nil
 	})
-	changed(w, r, err, notice)
+	changedAt(w, r, err, notice, anchor)
 }
 
 // personRule is a rule about an official from the rules form (kind role, off

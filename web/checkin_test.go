@@ -13,7 +13,7 @@ import (
 // checkinEntry finds a gymnast's entry id in the day page's check-in lists.
 func checkinEntry(t *testing.T, page, name string) string {
 	t.Helper()
-	m := regexp.MustCompile(`(?s)comp-checkin-name">\s*(?:<span class="comp-run-no"[^>]*>\d+</span>\s*)?<span[^>]*>` + regexp.QuoteMeta(name) + `</span>.*?name="entry" value="([^"]+)"`).FindStringSubmatch(page)
+	m := regexp.MustCompile(`(?s)comp-checkin-name">\s*(?:<span class="comp-run-no"[^>]*>\d+</span>\s*)?<(?:span|a)[^>]*>` + regexp.QuoteMeta(name) + `</(?:span|a)>.*?name="entry" value="([^"]+)"`).FindStringSubmatch(page)
 	if m == nil {
 		t.Fatalf("no check-in row for %s: %s", name, page)
 	}
@@ -53,7 +53,10 @@ func TestCheckinAndScratches(t *testing.T) {
 	if dayFlights(t, page)[0].Checkin != "1 of 3 here, 1 scratched" {
 		t.Errorf("the counts: %s", page)
 	}
-	if !strings.Contains(page, `<span class="comp-scratched">Bea</span>`) || strings.Contains(page, `<span class="comp-scratched">Ann</span>`) ||
+	scratched := func(name string) bool {
+		return regexp.MustCompile(`class="comp-scratched"[^>]*>` + name + `<`).MatchString(page)
+	}
+	if !scratched("Bea") || scratched("Ann") ||
 		!strings.Contains(page, chip(t, views.Done, "Here")) || !strings.Contains(page, chip(t, views.Stopped, "Scratched")) {
 		t.Errorf("each gymnast's state: %s", page)
 	}
@@ -224,7 +227,7 @@ func TestScratchedOfficial(t *testing.T) {
 // checkinEntryIn finds a gymnast's entry id in one flight's check-in list.
 func checkinEntryIn(t *testing.T, page, flight, name string) string {
 	t.Helper()
-	m := regexp.MustCompile(`(?s)<strong>` + regexp.QuoteMeta(flight) + `</strong>.*?comp-checkin-name">\s*(?:<span class="comp-run-no"[^>]*>\d+</span>\s*)?<span[^>]*>` + regexp.QuoteMeta(name) + `</span>.*?name="entry" value="([^"]+)"`).FindStringSubmatch(page)
+	m := regexp.MustCompile(`(?s)<strong>` + regexp.QuoteMeta(flight) + `</strong>.*?comp-checkin-name">\s*(?:<span class="comp-run-no"[^>]*>\d+</span>\s*)?<(?:span|a)[^>]*>` + regexp.QuoteMeta(name) + `</(?:span|a)>.*?name="entry" value="([^"]+)"`).FindStringSubmatch(page)
 	if m == nil {
 		t.Fatalf("no check-in row for %s in %s: %s", name, flight, page)
 	}

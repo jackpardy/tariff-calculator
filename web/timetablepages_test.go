@@ -95,8 +95,8 @@ func TestTimetable(t *testing.T) {
 	if second == nil || !strings.Contains(page, `value="earlier"`) {
 		t.Fatal("the second flight can go earlier")
 	}
-	if location := redirected(t, h, tt+"/flight", url.Values{"flight": {second[1]}, "action": {"earlier"}}); strings.Contains(location, "notice=") {
-		t.Errorf("swapped: %s", location)
+	if location := redirected(t, h, tt+"/flight", url.Values{"flight": {second[1]}, "action": {"earlier"}}); noticeOf(t, location) != "Moved it earlier in its event." || !strings.HasSuffix(location, "#day-0-area-Panel_201") {
+		t.Errorf("swapped, back at its area: %s", location)
 	}
 
 	// Events can run across breaks, if the organiser says so.
@@ -126,14 +126,14 @@ func TestTimetable(t *testing.T) {
 
 	// Hand changes: move a flight, redraw it, move a gymnast.
 	flight := regexp.MustCompile(`name="flight" value="(\d+)"`).FindStringSubmatch(page)[1]
-	if location := redirected(t, h, tt+"/flight", url.Values{"flight": {flight}, "action": {"redraw"}}); strings.Contains(location, "notice=") {
+	if location := redirected(t, h, tt+"/flight", url.Values{"flight": {flight}, "action": {"redraw"}}); !strings.HasPrefix(noticeOf(t, location), "Redrew BUCS L3") || !strings.Contains(location, "#day-0-area-") {
 		t.Errorf("redrawn: %s", location)
 	}
 	if location := redirected(t, h, tt+"/flight", url.Values{"flight": {flight}, "action": {"move"}, "to": {"0:Track 1"}}); !strings.Contains(location, "go+there") {
 		t.Error("trampoline can't move to the track")
 	}
-	if location := redirected(t, h, tt+"/flight", url.Values{"flight": {flight}, "action": {"move"}, "to": {"1:Panel 1"}}); strings.Contains(location, "notice=") {
-		t.Errorf("moved to Sunday: %s", location)
+	if location := redirected(t, h, tt+"/flight", url.Values{"flight": {flight}, "action": {"move"}, "to": {"1:Panel 1"}}); noticeOf(t, location) != "Moved BUCS L3 to Sunday · Panel 1." || !strings.HasSuffix(location, "#day-1-area-Panel_201") {
+		t.Errorf("moved to Sunday, back at it there: %s", location)
 	}
 
 	// A late entry isn't in a flight until the organiser moves it in.
@@ -244,5 +244,18 @@ func TestLookAlikeNames(t *testing.T) {
 	page := do(t, h, http.MethodGet, redirected(t, h, admin+"/timetable/plan", url.Values{}), nil).Body.String()
 	if !strings.Contains(page, "Dara O&#39;Neill and Dara ONeill") {
 		t.Error("names that look alike are flagged")
+	}
+}
+
+// Areas go in the order the organiser puts them: ↑ moves one earlier.
+func TestAreaOrder(t *testing.T) {
+	h := competitionServer(t)
+	admin := created(t, h, newCompetition())
+	tt := admin + "/timetable"
+	redirected(t, h, tt+"/setup/areas", url.Values{"area-0-name": {"Panel 1"}, "area-0-discipline": {"trampoline"}, "add": {"1"}})
+	redirected(t, h, tt+"/setup/areas", url.Values{"area-0-name": {"Panel 1"}, "area-0-discipline": {"trampoline"}, "area-1-name": {"Panel 2"}, "area-1-discipline": {"trampoline"}, "up": {"1"}})
+	page := do(t, h, http.MethodGet, tt+"/setup", nil).Body.String()
+	if a, b := strings.Index(page, `value="Panel 2"`), strings.Index(page, `value="Panel 1"`); a < 0 || b < 0 || a > b {
+		t.Errorf("Panel 2 moved before Panel 1: %d %d", a, b)
 	}
 }

@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
 	"slices"
 	"strconv"
@@ -284,7 +285,19 @@ func (p *competitionPages) simulate(w http.ResponseWriter, r *http.Request) {
 		backToSimulation(w, r, "Nothing was simulated: there's already a scenario called "+sc.Name+".")
 		return
 	}
-	result, err := c.Simulate(sc, s.Setup, uint64(p.now().UnixNano()))
+	// The entries so far, unchanged: planned with the real entries and
+	// officials, so it comes to what the plan does rather than stand-ins'.
+	f, err := p.liveRota(r.Context(), c)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	var result competitions.SimResult
+	if asEntered(sc, actualScenario(c.Competition, f.entries, f.officials, f.same)) {
+		result, err = c.SimulateAsEntered(sc, s.Setup, uint64(p.now().UnixNano()), schedEntries(f.entries, f.same), f.officials)
+	} else {
+		result, err = c.Simulate(sc, s.Setup, uint64(p.now().UnixNano()))
+	}
 	if err != nil {
 		backToSimulation(w, r, "Nothing was simulated: "+strings.Join(sentences(err), " "))
 		return
@@ -331,4 +344,12 @@ func (p *competitionPages) deleteScenario(w http.ResponseWriter, r *http.Request
 		return
 	}
 	backToSimulation(w, r, name+" removed.")
+}
+
+// asEntered says whether a scenario's numbers are the entries' and officials'
+// as they are: nothing changed from what the page filled in.
+func asEntered(sc, actual competitions.Scenario) bool {
+	return maps.Equal(sc.Entries, actual.Entries) && maps.Equal(sc.Judges, actual.Judges) && maps.Equal(sc.Chairs, actual.Chairs) &&
+		sc.Gymnasts == actual.Gymnasts && sc.Clubs == actual.Clubs && sc.JudgePeople == actual.JudgePeople && sc.Competing == actual.Competing &&
+		sc.Helpers == actual.Helpers && len(sc.Quota) == 0 && sc.AlsoJudge == actual.AlsoJudge
 }

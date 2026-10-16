@@ -53,7 +53,11 @@ func timetablePath(r *http.Request) string {
 
 // back redirects to the timetable page with a notice: its Setup page after a
 // change to the setup.
-func back(w http.ResponseWriter, r *http.Request, notice string) {
+func back(w http.ResponseWriter, r *http.Request, notice string) { backTo(w, r, notice, "") }
+
+// backTo is back to a place on the page (anchor: an area's id, as
+// flightAnchor gives it), where the change shows, with the notice there.
+func backTo(w http.ResponseWriter, r *http.Request, notice, anchor string) {
 	to := timetablePath(r)
 	if strings.Contains(r.Pattern, "/timetable/setup/") {
 		to += "/setup"
@@ -61,7 +65,15 @@ func back(w http.ResponseWriter, r *http.Request, notice string) {
 	if notice != "" {
 		to += "?notice=" + url.QueryEscape(notice)
 	}
+	if anchor != "" {
+		to += "#" + anchor
+	}
 	http.Redirect(w, r, to, http.StatusSeeOther)
+}
+
+// flightAnchor is the timetable page's place for a flight: its day's area.
+func flightAnchor(f competitions.ScheduledFlight) string {
+	return fmt.Sprintf("day-%d-", f.Day) + areaID(f.Area)
 }
 
 // refused is a change to the draft timetable turned down, with why: nothing
@@ -92,14 +104,19 @@ func (p *competitionPages) changeDraft(r *http.Request, c store.Competition, cha
 // changed goes back to the timetable page after changeDraft: with notice if
 // the change was made, or why it wasn't.
 func changed(w http.ResponseWriter, r *http.Request, err error, notice string) {
+	changedAt(w, r, err, notice, "")
+}
+
+// changedAt is changed, back at the place the change shows (anchor).
+func changedAt(w http.ResponseWriter, r *http.Request, err error, notice, anchor string) {
 	var no refused
 	switch {
 	case errors.As(err, &no):
-		back(w, r, string(no))
+		backTo(w, r, string(no), anchor)
 	case err != nil:
 		failed(w, r, err)
 	default:
-		back(w, r, notice)
+		backTo(w, r, notice, anchor)
 	}
 }
 
@@ -158,7 +175,7 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 					if !ok {
 						continue // withdrawn since
 					}
-					g := views.TimetableGymnast{ID: id, FlightGymnast: views.FlightGymnast{No: n + 1, Name: e.Entry.Gymnasts(), Club: clubOf(e)}, Category: e.Entry.Category}
+					g := views.TimetableGymnast{ID: id, FlightGymnast: views.FlightGymnast{No: n + 1, Name: e.Entry.Gymnasts(), Club: clubOf(e)}, Category: e.Entry.Category, Person: e.Key()}
 					if e.Entry.Event() != f.Event || (f.Category != "" && e.Entry.Category != f.Category) {
 						g.Moved = strings.TrimSpace(e.Entry.Event() + " " + e.Entry.Category)
 					}
@@ -176,10 +193,16 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 				}
 			}
 			slices.SortStableFunc(items, func(x, y timed) int { return x.start - y.start })
+			// An area with nothing on that day but breaks (warm-up, lunch)
+			// takes no column; one with an event taking entries does.
+			busy := false
 			for _, it := range items {
 				av.Items = append(av.Items, it.item)
+				busy = busy || it.item.Flight || len(it.item.Seats) > 0
 			}
-			dv.Areas = append(dv.Areas, av)
+			if busy || len(s.Flights) == 0 {
+				dv.Areas = append(dv.Areas, av)
+			}
 		}
 		out = append(out, dv)
 	}
@@ -318,8 +341,12 @@ func (p *competitionPages) editFlight(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	notice, anchor := "", ""
 	err = p.changeDraft(r, c, func(s *competitions.Schedule) error {
 		done := false
+		if flight >= 0 && flight < len(s.Flights) {
+			anchor = flightAnchor(s.Flights[flight])
+		}
 		switch r.FormValue("action") {
 		case "redraw":
 			clubs := map[string]string{}
@@ -328,19 +355,33 @@ func (p *competitionPages) editFlight(w http.ResponseWriter, r *http.Request) {
 			}
 			people, _ := clashPeople(entries, same)
 			done = s.Redraw(flight, clubs, people, rand.New(rand.NewPCG(uint64(p.now().UnixNano()), 1)))
+			if done {
+				notice = "Redrew " + s.Flights[flight].Name() + "'s running order."
+			}
 		case "move":
 			day, area, _ := strings.Cut(r.FormValue("to"), ":")
 			d, err := strconv.Atoi(day)
+			name := ""
+			if flight >= 0 && flight < len(s.Flights) {
+				name = s.Flights[flight].Event
+			}
 			done = err == nil && s.MoveFlight(flight, d, area)
+			if done && d >= 0 && d < len(s.Setup.Days) {
+				notice = fmt.Sprintf("Moved %s to %s · %s.", name, s.Setup.Days[d].Name, area)
+				anchor = fmt.Sprintf("day-%d-", d) + areaID(area)
+			}
 		case "earlier":
 			done = s.Earlier(flight)
+			if done {
+				notice = "Moved it earlier in its event."
+			}
 		}
 		if !done {
 			return cantGo
 		}
 		return nil
 	})
-	changed(w, r, err, "")
+	changedAt(w, r, err, notice, anchor)
 }
 
 // moveEntry moves a gymnast to a flight (to: its index), or out of the
@@ -368,10 +409,19 @@ func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
 		back(w, r, "That gymnast isn't entered any more.")
 		return
 	}
+	name := ""
+	if i := slices.IndexFunc(entries, func(e store.Entry) bool { return e.ID == id }); i >= 0 {
+		name = entries[i].Entry.Gymnasts()
+	}
+	notice, anchor := "", ""
 	err := p.changeDraft(r, c, func(s *competitions.Schedule) error {
+		if from, ok := s.Find(id); ok {
+			anchor = flightAnchor(s.Flights[from])
+		}
 		if to == "" {
 			s.RemoveEntry(id)
 			s.Retime()
+			notice = "Took " + name + " out of the timetable."
 			return nil
 		}
 		flight, err := strconv.Atoi(to)
@@ -382,12 +432,14 @@ func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
 		if i := slices.IndexFunc(entries, func(e store.Entry) bool { return e.ID == id }); i >= 0 && entries[i].Entry.Discipline != s.Flights[flight].Discipline {
 			return refused("They can only move to a flight of their own discipline; nothing was changed.")
 		}
+		dest := s.Flights[flight]
 		if !s.MoveEntry(id, flight) {
 			return refused("That flight has moved since; nothing was changed.")
 		}
+		notice, anchor = "Moved "+name+" to "+dest.Name()+".", flightAnchor(dest)
 		return nil
 	})
-	changed(w, r, err, "")
+	changedAt(w, r, err, notice, anchor)
 }
 
 func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Request) {
@@ -441,13 +493,6 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	back(w, r, notice)
-}
-
-func problemsWord(n int) string {
-	if n == 1 {
-		return "1 problem"
-	}
-	return fmt.Sprintf("%d problems", n)
 }
 
 // placement is where an entry competes, on the published timetable.

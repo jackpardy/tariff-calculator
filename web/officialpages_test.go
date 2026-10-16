@@ -52,7 +52,7 @@ func TestOfficialPages(t *testing.T) {
 	}
 	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 	page = do(t, h, http.MethodGet, officials, nil).Body.String()
-	if !strings.Contains(page, "sent by their club") || !strings.Contains(page, "Judge Trampoline and Tumbling; marshal") {
+	if !strings.Contains(page, "Judge Trampoline and Tumbling; marshal") {
 		t.Error("the club's offer reaches the organiser, as the comp sec corrected it")
 	}
 
@@ -73,10 +73,10 @@ func TestOfficialPages(t *testing.T) {
 	if !strings.Contains(page, "added by you") {
 		t.Fatal("added")
 	}
-	// Who each is, as a role chip: A's club sent them, I competes, the
-	// organiser added J.
-	for name, who := range map[string]string{"A": "Club · sent by their club", "I": "Gymnast · entering on their own", "Judge J": "Organiser · added by you"} {
-		if got := rowOf(t, page, name)[0]; got != name+" "+who {
+	// Who each is, as a role chip, where it isn't the usual: I competes, the
+	// organiser added J; A's club sent them, as clubs send most, with no chip.
+	for name, who := range map[string]string{"A": "", "I": " Gymnast · entering on their own", "Judge J": " Organiser · added by you"} {
+		if got := rowOf(t, page, name)[0]; got != name+who {
 			t.Errorf("%s: %q, want %q", name, got, who)
 		}
 	}
