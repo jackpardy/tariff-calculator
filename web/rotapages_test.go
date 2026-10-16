@@ -102,15 +102,23 @@ func TestOfficialsRota(t *testing.T) {
 	if flight == nil {
 		t.Fatal("BUCS L3's seat form")
 	}
+	asked := false
 	for seat := range 3 {
-		redirected(t, h, tt+"/officials", url.Values{"action": {"seat"}, "flight": {flight[1]}, "seat": {string(rune('0' + seat))}, "person": {tom[1]}})
+		form := url.Values{"action": {"seat"}, "flight": {flight[1]}, "seat": {string(rune('0' + seat))}, "person": {tom[1]}}
+		// It breaks his rule, so it's asked first, with Make the change anyway.
+		if rec := do(t, h, http.MethodPost, tt+"/officials", form); rec.Code == http.StatusOK {
+			ask := rec.Body.String()
+			asked = asked || strings.Contains(ask, "Before you change it") && strings.Contains(ask, "Breaks the rule: Tom") && strings.Contains(ask, `name="anyway" value="1"`)
+			form.Set("anyway", "1")
+			redirected(t, h, tt+"/officials", form)
+		}
 		page = do(t, h, http.MethodGet, tt, nil).Body.String()
 		if strings.Contains(page, "Your rules about officials not kept") {
 			break
 		}
 	}
-	if !strings.Contains(page, "Your rules about officials not kept") {
-		t.Error("a broken rule about an official is reported")
+	if !strings.Contains(page, "Your rules about officials not kept") || !asked {
+		t.Errorf("a broken rule about an official is asked about first (%v), then reported", asked)
 	}
 	if rec := do(t, h, http.MethodPost, tt+"/officials", url.Values{"action": {"seat"}, "flight": {flight[1]}, "seat": {"0"}, "person": {"m:nobody"}}); !strings.Contains(rec.Header().Get("Location"), "nothing+was+changed") {
 		t.Error("only officials can be given a seat")

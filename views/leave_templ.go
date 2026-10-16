@@ -33,6 +33,7 @@ type LeaveResult struct {
 	Summary                 string // e.g. "Mary's 3 seats: 2 filled by someone free, 1 by moving people round the panel."
 	Seats                   []SeatFillView
 	Direct, Reworked, Empty int
+	Breaking                []string // what filling the seats breaks that holds now
 }
 
 // SeatFillView is one seat filled again.
@@ -84,7 +85,7 @@ func Leave(p LeavePage) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(p.Competition.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 42, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 43, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -97,7 +98,7 @@ func Leave(p LeavePage) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(p.Competition.Date)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 42, Col: 73}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 43, Col: 73}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -111,14 +112,14 @@ func Leave(p LeavePage) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, " <p class=\"mb-4\">Choose who leaves and when. Each seat they'd have had from then is filled again by someone free (not competing, not on another panel, and allowed by your rules), or by moving others round where it helps: someone on that panel up a role, or someone across from a panel at the same time, their seat filled in turn (three moves at most). Nothing changes until you choose <strong>Keep this in the draft timetable</strong>, and even then officials see it only once you publish.</p><script defer src=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, " <p class=\"mb-4\">Choose who leaves and when. Each seat they'd have had from then is filled again by someone free (not competing, not on another panel or on duty for blocked time, not coaching someone competing elsewhere, rested where rest is a must, and allowed by your rules), or by moving others round where it helps: someone on that panel up a role, or someone across from a panel at the same time, their seat filled in turn (three moves at most). Nothing changes until you choose <strong>Keep this in the draft timetable</strong>, and even then officials see it only once you publish.</p><script defer src=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(static.URL("js/selectsearch.js"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 45, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 46, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 			if templ_7745c5c3_Err != nil {
@@ -139,7 +140,7 @@ func Leave(p LeavePage) templ.Component {
 			var templ_7745c5c3_Var6 templ.SafeURL
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/leave"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 47, Col: 72}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 48, Col: 72}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -167,7 +168,7 @@ func Leave(p LeavePage) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(o.Value)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 54, Col: 30}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 55, Col: 30}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 				if templ_7745c5c3_Err != nil {
@@ -190,7 +191,7 @@ func Leave(p LeavePage) templ.Component {
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(o.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 54, Col: 76}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 55, Col: 76}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -213,7 +214,7 @@ func Leave(p LeavePage) templ.Component {
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(d.Value)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 62, Col: 30}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 63, Col: 30}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 				if templ_7745c5c3_Err != nil {
@@ -236,7 +237,7 @@ func Leave(p LeavePage) templ.Component {
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(d.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 62, Col: 73}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 63, Col: 73}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -254,7 +255,7 @@ func Leave(p LeavePage) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.From)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 67, Col: 106}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 68, Col: 106}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 			if templ_7745c5c3_Err != nil {
@@ -307,7 +308,7 @@ func Leave(p LeavePage) templ.Component {
 					var templ_7745c5c3_Var12 string
 					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(r.Who)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 90, Col: 15}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 91, Col: 15}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 					if templ_7745c5c3_Err != nil {
@@ -325,13 +326,17 @@ func Leave(p LeavePage) templ.Component {
 					var templ_7745c5c3_Var13 string
 					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(r.Summary)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 92, Col: 40}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 93, Col: 40}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</strong></p>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = newBreaks(r.Breaking).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -361,7 +366,7 @@ func Leave(p LeavePage) templ.Component {
 						var templ_7745c5c3_Var16 string
 						templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(s.Flight)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 95, Col: 28}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 97, Col: 28}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 						if templ_7745c5c3_Err != nil {
@@ -374,7 +379,7 @@ func Leave(p LeavePage) templ.Component {
 						var templ_7745c5c3_Var17 string
 						templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(s.Where)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 95, Col: 52}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 97, Col: 52}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 						if templ_7745c5c3_Err != nil {
@@ -387,7 +392,7 @@ func Leave(p LeavePage) templ.Component {
 						var templ_7745c5c3_Var18 string
 						templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(s.When)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 95, Col: 66}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 97, Col: 66}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 						if templ_7745c5c3_Err != nil {
@@ -400,7 +405,7 @@ func Leave(p LeavePage) templ.Component {
 						var templ_7745c5c3_Var19 string
 						templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(s.Role)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 95, Col: 80}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 97, Col: 80}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 						if templ_7745c5c3_Err != nil {
@@ -418,7 +423,7 @@ func Leave(p LeavePage) templ.Component {
 							var templ_7745c5c3_Var20 string
 							templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(s.Empty)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 97, Col: 38}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 99, Col: 38}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 							if templ_7745c5c3_Err != nil {
@@ -441,7 +446,7 @@ func Leave(p LeavePage) templ.Component {
 								var templ_7745c5c3_Var21 string
 								templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(st)
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 101, Col: 18}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 103, Col: 18}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 								if templ_7745c5c3_Err != nil {
@@ -464,7 +469,7 @@ func Leave(p LeavePage) templ.Component {
 								var templ_7745c5c3_Var22 string
 								templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(s.Others)
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 105, Col: 54}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 107, Col: 54}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 								if templ_7745c5c3_Err != nil {
@@ -489,7 +494,7 @@ func Leave(p LeavePage) templ.Component {
 				var templ_7745c5c3_Var23 templ.SafeURL
 				templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Keep))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 113, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/leave.templ`, Line: 115, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 				if templ_7745c5c3_Err != nil {

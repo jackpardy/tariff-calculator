@@ -30,7 +30,8 @@ type DelayResult struct {
 	Easing    []string     // what the organiser does to ease it, described
 	Without   string       // what the delay alone would do, when eased
 	Merged    []string
-	Breaks    []string
+	Breaks    []string // breaks (lunch, say) moved, shortened or worked through
+	Breaking  []string // what the delay breaks that holds now: rules, coaches, rest, duties
 	Days      []DelayDay
 	Changes   []DelayChangeView
 	Unplaced  []string
@@ -157,6 +158,7 @@ templ Delay(p DelayPage) {
 							@StateChip(Done, "Everything still fits")
 						</p>
 					}
+					@newBreaks(r.Breaking)
 					@problemsList("Needed in two places", r.Clashes)
 					@problemsList("Breaks", r.Breaks)
 					@problemsList("Flights merged", r.Merged)

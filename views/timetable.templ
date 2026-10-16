@@ -735,6 +735,32 @@ templ reportView(r ReportView) {
 	</div>
 }
 
+// newBreaks is what a change would break that isn't broken now
+// (competitions.NewBreaks): open, not folded, as it's what to weigh.
+templ newBreaks(items []string) {
+	if len(items) > 0 {
+		<div class="notification is-warning is-light comp-new-breaks">
+			<p class="mb-1"><strong>This would break { Count(len(items), "thing", "things") } that hold now:</strong></p>
+			<ul>
+				for _, it := range items[:min(len(items), 6)] {
+					<li>{ it }</li>
+				}
+			</ul>
+			// A long list folds after the first few.
+			if len(items) > 6 {
+				<details class="mt-1">
+					<summary class="is-size-7">{ strconv.Itoa(len(items) - 6) } more</summary>
+					<ul>
+						for _, it := range items[6:] {
+							<li>{ it }</li>
+						}
+					</ul>
+				</details>
+			}
+		</div>
+	}
+}
+
 templ problemsList(title string, items []string) {
 	if len(items) > 0 {
 		<details class="mt-2">
@@ -1044,4 +1070,63 @@ func listSummary(items []string, none string) string {
 		out += fmt.Sprintf(" and %d more", more)
 	}
 	return out
+}
+
+// ChangeCheckPage asks before a manual change to the timetable that would
+// break something that holds now (roadmap 9): what it breaks, fixes to
+// choose instead, and the change anyway.
+type ChangeCheckPage struct {
+	Base        string
+	Competition CompetitionSummary
+	Menu        []MenuSection
+	What        string      // the change, e.g. "Move BUCS L5 Men to Saturday · Panel 2"
+	Breaks      []string    // what it would break
+	Action      string      // where the change posts
+	Fields      []FormValue // the change as posted, to make it anyway
+	Fixes       []ChangeFix
+	Back        string // the timetable, where it was asked from
+}
+
+// ChangeFix is another change that does what was meant without breaking
+// anything: what it is, and the fields that make it.
+type ChangeFix struct {
+	Label  string
+	Fields []FormValue
+}
+
+// ChangeCheck is the page.
+templ ChangeCheck(p ChangeCheckPage) {
+	@competitionLayout("Before you change it · " + p.Competition.Name) {
+		<h1 class="title is-4">Before you change it</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		@pageMenu(p.Menu)
+		<p class="mb-3"><strong>{ p.What }</strong></p>
+		@newBreaks(p.Breaks)
+		if len(p.Fixes) > 0 {
+			<div class="box">
+				<p class="label is-small mb-2">Instead, without breaking anything</p>
+				<div class="buttons">
+					for _, f := range p.Fixes {
+						<form method="post" action={ templ.SafeURL(p.Action) } class="is-inline">
+							for _, v := range f.Fields {
+								<input type="hidden" name={ v.Name } value={ v.Value }/>
+							}
+							<button class="button is-small is-link is-light" type="submit">{ f.Label }</button>
+						</form>
+					}
+				</div>
+			</div>
+		}
+		<div class="buttons">
+			<form method="post" action={ templ.SafeURL(p.Action) } class="is-inline">
+				for _, v := range p.Fields {
+					<input type="hidden" name={ v.Name } value={ v.Value }/>
+				}
+				<input type="hidden" name="anyway" value="1"/>
+				<button class="button is-small is-warning" type="submit">Make the change anyway</button>
+			</form>
+			<a class="button is-small" href={ templ.SafeURL(p.Back) }>Cancel</a>
+		</div>
+		<p class="help">Either way it goes into the draft: attendees see it only once you publish.</p>
+	}
 }

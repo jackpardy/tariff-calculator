@@ -104,36 +104,42 @@ func (s Schedule) Report(people map[string][]string) Report {
 	}
 
 	// Prefer rules broken.
-	at := map[string][]ScheduledFlight{}
-	for _, f := range s.Flights {
-		at[f.Event] = append(at[f.Event], f)
-	}
 	for _, rule := range s.Setup.Rules {
-		if rule.Must {
-			continue
-		}
-		broken := false
-		for _, f := range at[rule.Event] {
-			switch rule.Kind {
-			case RuleArea:
-				broken = broken || f.Area != rule.Area
-			case RuleDay:
-				broken = broken || f.Day != rule.Day
-			case RuleBefore:
-				for _, g := range at[rule.Event2] {
-					broken = broken || f.Day > g.Day || (f.Day == g.Day && f.End > g.Start)
-				}
-			case RuleApart:
-				for _, g := range at[rule.Event2] {
-					broken = broken || overlaps(interval{f.Day, f.Start, f.End}, interval{g.Day, g.Start, g.End})
-				}
-			}
-		}
-		if broken {
+		if !rule.Must && s.eventRuleBroken(rule) {
 			r.Broken = append(r.Broken, rule.Describe(s.Setup.Days))
 		}
 	}
 	return r
+}
+
+// eventRuleBroken says whether the schedule breaks one of the organiser's
+// rules about events (area, day, before, apart); false for a rule about a
+// person.
+func (s Schedule) eventRuleBroken(rule Rule) bool {
+	broken := false
+	for _, f := range s.Flights {
+		if f.Event != rule.Event {
+			continue
+		}
+		switch rule.Kind {
+		case RuleArea:
+			broken = broken || f.Area != rule.Area
+		case RuleDay:
+			broken = broken || f.Day != rule.Day
+		case RuleBefore, RuleApart:
+			for _, g := range s.Flights {
+				if g.Event != rule.Event2 {
+					continue
+				}
+				if rule.Kind == RuleBefore {
+					broken = broken || f.Day > g.Day || (f.Day == g.Day && f.End > g.Start)
+				} else {
+					broken = broken || overlaps(interval{f.Day, f.Start, f.End}, interval{g.Day, g.Start, g.End})
+				}
+			}
+		}
+	}
+	return broken
 }
 
 // Fix is a change to the setup (or a cap on an event's entries), and whether

@@ -193,6 +193,14 @@ func (s *Schedule) number() {
 // while their gymnasts compete elsewhere. people and coaches are each entry's
 // people and coaches, by entry id, keyed so that one person has one key.
 func (s Schedule) Problems(people, coaches map[string][]string, names map[string]string) []string {
+	out := s.pastEnd()
+	out = append(out, s.runProblems()...)
+	out = append(out, s.personClashes(people, names)...)
+	return append(out, s.coachCompeting(people, coaches, names)...)
+}
+
+// pastEnd are flights past their day's end.
+func (s Schedule) pastEnd() []string {
 	var out []string
 	for _, f := range s.Flights {
 		if f.Day < len(s.Setup.Days) {
@@ -201,34 +209,53 @@ func (s Schedule) Problems(people, coaches map[string][]string, names map[string
 			}
 		}
 	}
-	out = append(out, s.runProblems()...)
-	type turn struct {
-		f      ScheduledFlight
-		person string
-	}
-	var turns []turn
-	for _, f := range s.Flights {
+	return out
+}
+
+// personClashes are people competing in two flights at once.
+func (s Schedule) personClashes(people map[string][]string, names map[string]string) []string {
+	// Each person's flights, by index, people in the order they first come:
+	// pairs only within a person, not every turn against every other.
+	var order []string
+	turns := map[string][]int{}
+	for i, f := range s.Flights {
 		for _, id := range f.Entries {
 			for _, p := range people[id] {
-				turns = append(turns, turn{f, p})
-			}
-		}
-	}
-	seen := map[string]bool{}
-	for i, a := range turns {
-		for _, b := range turns[i+1:] {
-			if a.person != b.person || (a.f.Name() == b.f.Name() && a.f.Area == b.f.Area && a.f.Start == b.f.Start) {
-				continue
-			}
-			if overlaps(interval{a.f.Day, a.f.Start, a.f.End}, interval{b.f.Day, b.f.Start, b.f.End}) {
-				msg := fmt.Sprintf("%s is in %s and %s at once", names[a.person], a.f.Name(), b.f.Name())
-				if !seen[msg] {
-					seen[msg] = true
-					out = append(out, msg)
+				if len(turns[p]) == 0 {
+					order = append(order, p)
+				}
+				if !slices.Contains(turns[p], i) {
+					turns[p] = append(turns[p], i)
 				}
 			}
 		}
 	}
+	var out []string
+	seen := map[string]bool{}
+	for _, p := range order {
+		ts := turns[p]
+		for x, i := range ts {
+			a := s.Flights[i]
+			for _, j := range ts[x+1:] {
+				b := s.Flights[j]
+				if overlaps(interval{a.Day, a.Start, a.End}, interval{b.Day, b.Start, b.End}) {
+					msg := fmt.Sprintf("%s is in %s and %s at once", names[p], a.Name(), b.Name())
+					if !seen[msg] {
+						seen[msg] = true
+						out = append(out, msg)
+					}
+				}
+			}
+		}
+	}
+	return out
+}
+
+// coachCompeting are coaches competing while gymnasts they coach compete
+// elsewhere.
+func (s Schedule) coachCompeting(people, coaches map[string][]string, names map[string]string) []string {
+	var out []string
+	seen := map[string]bool{}
 	for i, a := range s.Flights {
 		coaching := map[string]bool{}
 		for _, id := range a.Entries {

@@ -609,8 +609,8 @@ to practise the paper fallback; copying a competition with its entries
 builds on copying last year's.
 
 Then, by when ISTO needs them: link the calculator (before entries open),
-the "what ifs'" missing checks (8) and saying what a manual change breaks
-(9), judges' qualifications, and details like better defaults (14);
+the "what ifs'" missing checks (8, built 2026-10-16) and saying what a manual change breaks
+(9, built 2026-10-16), judges' qualifications, and details like better defaults (14);
 splitting an event by routine (10) if ISTO's timetable needs it. A dry run of the core tools in late 2026 (above), a full rehearsal of the day in March, and nothing but fixes in the last two weeks.
 After ISTO: copying last year's competition, results history, the club
 tools and the possible additions.
@@ -727,7 +727,7 @@ Notifications (7) are built; numbers 1–7 below are built.
    [open questions](open-questions.md#notifications)).
 8. **Draft and published timetables, and applying a "what if"** (decided
    2026-10-07; drafts, officials in them, and keeping a "what if" built
-   2026-10-08; the "what ifs'" missing checks still to do). Once a timetable is published, attendees see that copy and
+   2026-10-08; the "what ifs'" missing checks built 2026-10-16). Once a timetable is published, attendees see that copy and
    the organiser works on a **draft**: every change (moving a flight,
    redrawing an order, planning again, keeping a delay's or a leaving
    official's result) goes into the draft, and **Publish** makes it what
@@ -737,7 +737,11 @@ Notifications (7) are built; numbers 1–7 below are built.
    published timetable is the one being edited, so every change goes live
    straight away. Also close the gaps the "what ifs" don't check yet:
    coaches in two places, the organiser's rules about events and people,
-   officials on blocked time, and rest as a must.
+   officials on blocked time, and rest as a must. *Built 2026-10-16:* a
+   delay moves flights only where the must rules allow and says what it
+   newly breaks (all of these); filling a leaving official's seats skips
+   anyone on blocked-time duty, coaching someone competing elsewhere or short
+   of rest where it's a must, and says the same (`Schedule.Breaks`).
 9. **Say what a manual change breaks, and how to fix it** (proposed
    2026-10-08). Today a manual change (moving a flight or a gymnast, giving
    someone a seat) is made, and what it broke is listed afterwards under
@@ -746,7 +750,9 @@ Notifications (7) are built; numbers 1–7 below are built.
    Intermediate Women at once") and offers fixes where there are some
    (someone free to take Eoin's tumbling seat; another time for the
    flight), to apply or to make the change anyway. With drafts (8), nothing
-   reaches attendees until it's published.
+   reaches attendees until it's published. *Built 2026-10-16:* moving an
+   event or a gymnast, or giving a seat, that breaks something new asks
+   first, with up to three fixes that break nothing.
 10. **One panel for a whole event** (decided 2026-10-07; designed in
    [ADR 0006](../docs/adr/0006-one-panel-per-event.md); runs and
    one panel per run built 2026-10-08; splitting by routine is left). Everyone on an

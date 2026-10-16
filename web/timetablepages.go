@@ -331,7 +331,7 @@ const cantGo = refused("That flight can't go there, or has moved since; nothing 
 // event to the end of a day's area (action=move, to: "<day>:<area>"), or swaps
 // it with the flight before it in its event (action=earlier).
 func (p *competitionPages) editFlight(w http.ResponseWriter, r *http.Request) {
-	c, _, entries, ok := p.timetableOf(w, r)
+	c, draft, entries, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -342,7 +342,7 @@ func (p *competitionPages) editFlight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	notice, anchor := "", ""
-	err = p.changeDraft(r, c, func(s *competitions.Schedule) error {
+	apply := func(s *competitions.Schedule) error {
 		done := false
 		if flight >= 0 && flight < len(s.Flights) {
 			anchor = flightAnchor(s.Flights[flight])
@@ -363,7 +363,7 @@ func (p *competitionPages) editFlight(w http.ResponseWriter, r *http.Request) {
 			d, err := strconv.Atoi(day)
 			name := ""
 			if flight >= 0 && flight < len(s.Flights) {
-				name = s.Flights[flight].Event
+				name = s.Flights[flight].Group()
 			}
 			done = err == nil && s.MoveFlight(flight, d, area)
 			if done && d >= 0 && d < len(s.Setup.Days) {
@@ -380,14 +380,51 @@ func (p *competitionPages) editFlight(w http.ResponseWriter, r *http.Request) {
 			return cantGo
 		}
 		return nil
-	})
+	}
+	// A move that breaks something asks first, offering days and areas
+	// where the event fits as things are.
+	if r.FormValue("action") == "move" && flight >= 0 && flight < len(draft.Flights) {
+		f, err := p.liveRota(r.Context(), c)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		what := "Move " + draft.Flights[flight].Group() + " to " + placeName(draft, r.FormValue("to"))
+		if p.askFirst(w, r, c, draft, f, what, apply, func(clean func(func(*competitions.Schedule) bool) bool) []views.ChangeFix {
+			var fixes []views.ChangeFix
+			for d := range draft.Setup.Days {
+				for _, a := range draft.Setup.Areas {
+					to := fmt.Sprintf("%d:%s", d, a.Name)
+					if len(fixes) == maxFixes || to == r.FormValue("to") {
+						continue
+					}
+					if clean(func(t *competitions.Schedule) bool { return t.MoveFlight(flight, d, a.Name) }) {
+						fixes = append(fixes, views.ChangeFix{Label: "Move it to " + placeName(draft, to), Fields: withField(postedFields(r), "to", to)})
+					}
+				}
+			}
+			return fixes
+		}) {
+			return
+		}
+	}
+	err = p.changeDraft(r, c, apply)
 	changedAt(w, r, err, notice, anchor)
+}
+
+// placeName names a "<day>:<area>" of the schedule, e.g. "Saturday · Panel 2".
+func placeName(s competitions.Schedule, to string) string {
+	day, area, _ := strings.Cut(to, ":")
+	if d, err := strconv.Atoi(day); err == nil && d >= 0 && d < len(s.Setup.Days) {
+		return s.Setup.Days[d].Name + " · " + area
+	}
+	return area
 }
 
 // moveEntry moves a gymnast to a flight (to: its index), or out of the
 // timetable (to: "").
 func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
-	c, _, entries, ok := p.timetableOf(w, r)
+	c, draft, entries, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -414,7 +451,7 @@ func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
 		name = entries[i].Entry.Gymnasts()
 	}
 	notice, anchor := "", ""
-	err := p.changeDraft(r, c, func(s *competitions.Schedule) error {
+	apply := func(s *competitions.Schedule) error {
 		if from, ok := s.Find(id); ok {
 			anchor = flightAnchor(s.Flights[from])
 		}
@@ -438,7 +475,32 @@ func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
 		}
 		notice, anchor = "Moved "+name+" to "+dest.Name()+".", flightAnchor(dest)
 		return nil
-	})
+	}
+	// A move that breaks something asks first, offering the event's other
+	// flights where they'd fit as things are.
+	if flight, err := strconv.Atoi(to); err == nil && flight >= 0 && flight < len(draft.Flights) {
+		f, err := p.liveRota(r.Context(), c)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		dest := draft.Flights[flight]
+		if p.askFirst(w, r, c, draft, f, "Move "+name+" to "+dest.Name(), apply, func(clean func(func(*competitions.Schedule) bool) bool) []views.ChangeFix {
+			var fixes []views.ChangeFix
+			for i, g := range draft.Flights {
+				if len(fixes) == maxFixes || i == flight || g.Event != dest.Event || g.Category != dest.Category || g.Discipline != dest.Discipline || slices.Contains(g.Entries, id) {
+					continue
+				}
+				if clean(func(t *competitions.Schedule) bool { return t.MoveEntry(id, i) }) {
+					fixes = append(fixes, views.ChangeFix{Label: "Put them in " + g.Name() + " instead", Fields: withField(postedFields(r), "to", strconv.Itoa(i))})
+				}
+			}
+			return fixes
+		}) {
+			return
+		}
+	}
+	err := p.changeDraft(r, c, apply)
 	changedAt(w, r, err, notice, anchor)
 }
 
