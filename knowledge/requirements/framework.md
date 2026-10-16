@@ -121,9 +121,12 @@ and the browser saves the result. Validation exists only in Go.
 types, so nothing saved changes (`requirements.RuleKinds`, `KindOfRule`,
 `KindType`): **Must include** (a count of at least one), **Must not
 include** (a count of none), **How many of a kind** (any other count),
-**This, then this** (`includes`), **Linked pairs of a kind**, **No
-repeats**, **Number of skills**, **Difficulty between**, **A skill at a
-position**, **Every skill must be** and **Special requirements**.
+**This, then this** (`includes`), **Linked pairs of a kind**, **Number of
+skills**, **Difficulty between**, **A skill at a position**, **Every skill
+must be** and **Special requirements**. **No repeats** (`different`) isn't
+offered (2026-10-16): leaving **Elements may be repeated** unticked already
+flags repeats and scores them nothing; requirements that have the rule keep
+it, and having both is flagged as rules that can't all be met.
 
 **Picking the skills.** Wherever a rule describes skills (a count, linked
 pairs, every skill, a position, each special requirement, each step of

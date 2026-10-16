@@ -1148,3 +1148,7 @@ a:hover > .chip { text-decoration: underline; }
 .select-search-option:hover, .select-search-option:focus { background: #eef1fb; }
 .select-search-group { font-size: 0.75rem; color: #555; white-space: nowrap; }
 .select-search-none { font-size: 0.85rem; color: #555; padding: 0.4rem 0.75rem; margin: 0; }
+/* The requirements editor redraws itself by replacing its form (htmx). The
+   browser's scroll anchoring then held the page to something below it, so
+   typing in a field jumped to the bottom: no anchoring while there's one. */
+html:has(.set-editor) { overflow-anchor: none; }

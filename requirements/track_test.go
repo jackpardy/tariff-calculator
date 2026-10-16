@@ -1,6 +1,7 @@
 package requirements
 
 import (
+	"strings"
 	"testing"
 
 	"tariffCalculator/skills"
@@ -34,5 +35,18 @@ func TestTrackRules(t *testing.T) {
 	}
 	if c := Conflicts(set); len(c) != 0 {
 		t.Errorf("no conflicts: %v", c)
+	}
+}
+
+// Elements may be repeated, and a rule that none may: the editor says one
+// has to go.
+func TestRepeatsAllowedAndNoRepeats(t *testing.T) {
+	set := Set{Format: Format, Name: "x", RepeatsAllowed: true, Rules: []Rule{{Type: Different}}}
+	if c := Conflicts(set); len(c) != 1 || !strings.Contains(c[0], "elements may be") {
+		t.Errorf("flagged: %v", c)
+	}
+	set.RepeatsAllowed = false
+	if c := Conflicts(set); len(c) != 0 {
+		t.Errorf("no repeats either way: %v", c)
 	}
 }

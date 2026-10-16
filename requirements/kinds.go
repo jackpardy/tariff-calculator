@@ -171,7 +171,6 @@ var RuleKinds = []RuleKind{
 	{"count", "How many of a kind (at least, at most)"},
 	{"then", "This, then this (skills in a row)"},
 	{Linked, "Linked pairs of a kind"},
-	{Different, "No repeats"},
 	{Elements, "Number of skills"},
 	{Difficulty, "Difficulty between"},
 	{Position, "A skill at a position"},
@@ -181,6 +180,11 @@ var RuleKinds = []RuleKind{
 
 // SetRoutineKind is a set routine's kind, offered only for one that is.
 var SetRoutineKind = RuleKind{Sequence, "Set routine"}
+
+// NoRepeatsKind is a rule that no element is repeated, offered only for one
+// that is (built-in requirements have it): "Elements may be repeated",
+// unticked, already says so, flagging repeats and scoring them nothing.
+var NoRepeatsKind = RuleKind{Different, "No repeats"}
 
 // KindOfRule is the kind of rule a rule is, by ID.
 func KindOfRule(r Rule) string {

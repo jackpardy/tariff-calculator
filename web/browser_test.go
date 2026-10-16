@@ -236,3 +236,33 @@ func TestSkillListSearchInABrowser(t *testing.T) {
 		t.Errorf("the barani is picked: %q", title)
 	}
 }
+
+// Changing a field of the requirements editor redraws it without moving the
+// page (the browser's scroll anchoring once threw it to the bottom).
+func TestEditorKeepsItsPlaceInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := httptest.NewServer(routes())
+	defer srv.Close()
+
+	var before, after float64
+	step(t, ctx, "changing a field in the editor",
+		chromedp.EmulateViewport(1000, 700),
+		chromedp.Navigate(srv.URL+"/requirements"),
+		chromedp.WaitReady(`[x-data]`, chromedp.ByQuery),
+		chromedp.Sleep(300*time.Millisecond),
+		chromedp.Evaluate(`Alpine.$data(document.querySelector('[x-data]')).newSet()`, nil),
+		chromedp.WaitVisible(`#set-editor #add-rule`, chromedp.ByQuery),
+		chromedp.Sleep(300*time.Millisecond),
+		chromedp.Evaluate(`(() => { const a = document.getElementById('add-rule'); a.value = 'linked'; a.dispatchEvent(new Event('change', {bubbles: true})); })()`, nil),
+		chromedp.WaitVisible(`#set-editor [name="r0.max"]`, chromedp.ByQuery),
+		chromedp.Sleep(300*time.Millisecond),
+		chromedp.Evaluate(`(() => { const f = document.querySelector('[name="r0.max"]'); f.scrollIntoView({block: 'center'}); return window.scrollY; })()`, &before),
+		chromedp.Evaluate(`(() => { const f = document.querySelector('[name="r0.max"]'); f.focus(); f.value = '2'; f.dispatchEvent(new Event('change', {bubbles: true})); })()`, nil),
+		chromedp.Poll(`document.querySelector('.rule-card-title')?.textContent.includes('At most 2')`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+		chromedp.Sleep(200*time.Millisecond),
+		chromedp.Evaluate(`window.scrollY`, &after),
+	)
+	if before == 0 || after != before {
+		t.Errorf("the page moved from %v to %v", before, after)
+	}
+}

@@ -154,10 +154,11 @@ You write them beside your routine, which is checked against them as you go:
    tap **Copy and change** to start from it, or choose one of yours and tap
    **Change**.
 2. Give it a **Name**, and optionally a description and source (e.g. "Club
-   championships 2027").
+   championships 2027"). Leave **Elements may be repeated** unticked for the
+   usual rule: a repeated element is flagged and scores no difficulty.
 3. **Add a rule** for each requirement: Must include, Must not include, How
    many of a kind, This then this (skills in a row), Linked pairs of a kind,
-   No repeats, Number of skills, Difficulty between, A skill at a position,
+   Number of skills, Difficulty between, A skill at a position,
    Every skill must be, or Special requirements (each met by a different
    skill). Pick the skill or kind of skill (any single somersault, a
    barani…) from the list, or describe it by somersault, twist, direction
