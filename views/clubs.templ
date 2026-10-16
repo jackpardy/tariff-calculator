@@ -283,7 +283,7 @@ templ clubFrame(c ClubPage) {
 					</strong>
 					Save this page's link, the admin link: it's the only way back to the club, and anyone who has it can send its entries.
 				</p>
-				<div data-club-admin={ c.AdminLink } data-club-name={ c.Name }>
+				<div data-club-admin={ c.AdminLink } data-club-name={ c.Name } data-replaces?={ c.New == "replaced" }>
 					@linkBox("Admin link (keep it secret)", c.AdminLink, "Saved in this browser too.")
 				</div>
 				if c.New == "created" {

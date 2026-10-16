@@ -2,6 +2,7 @@ package views
 
 import (
 	"context"
+	"strings"
 
 	"tariffCalculator/static"
 )
@@ -109,7 +110,12 @@ templ Feedback(p FeedbackPage) {
 							<span class="comp-feedback-when">{ f.At }</span> · <span class="comp-feedback-role">{ f.Role }</span> · <span class="comp-feedback-page">{ f.Page }</span>
 						</p>
 						if f.ReplyTo != "" {
-							<p class="is-size-7">Reply to: <span class="comp-feedback-reply">{ f.ReplyTo }</span></p>
+							// An email to write to; otherwise what they gave, a name to find them by.
+							if strings.Contains(f.ReplyTo, "@") && !strings.ContainsAny(f.ReplyTo, " <>") {
+								<p class="is-size-7">Reply to: <a class="comp-feedback-reply" href={ templ.SafeURL("mailto:" + f.ReplyTo) }>{ f.ReplyTo }</a></p>
+							} else {
+								<p class="is-size-7">They left their name for a reply: <span class="comp-feedback-reply">{ f.ReplyTo }</span> (no email)</p>
+							}
 						}
 						<form method="post" action={ templ.SafeURL(p.Base + "/feedback/" + f.ID + "/done") } class="mt-2">
 							<input type="hidden" name="done" value={ boolValue(!f.Done) }/>

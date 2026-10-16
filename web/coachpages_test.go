@@ -140,7 +140,7 @@ func TestCoachSignoff(t *testing.T) {
 		t.Error("not signed off is one of the entry's problems")
 	}
 	csv := do(t, h, http.MethodGet, admin+"/entries.csv", nil).Body.String()
-	if !strings.Contains(csv, ",Bob,\n") {
+	if !strings.Contains(csv, ",Bob,,") {
 		t.Errorf("the CSV says who signed off:\n%s", csv)
 	}
 

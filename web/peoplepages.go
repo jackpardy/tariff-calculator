@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -189,7 +190,12 @@ func (p *competitionPages) directoryOf(r *http.Request, c store.Competition, ent
 // BUCS L7".
 func (dp *dirPerson) events() []string {
 	var out []string
-	for _, e := range dp.entries {
+	// In the usual order of disciplines, whatever order they came in.
+	entries := slices.Clone(dp.entries)
+	slices.SortStableFunc(entries, func(a, b store.Entry) int {
+		return cmp.Compare(slices.Index(competitions.AllDisciplines, a.Entry.Discipline), slices.Index(competitions.AllDisciplines, b.Entry.Discipline))
+	})
+	for _, e := range entries {
 		ev := competitions.DisciplineName(e.Entry.Discipline) + " " + e.Entry.Level
 		if !slices.Contains(out, ev) {
 			out = append(out, ev)

@@ -18,7 +18,10 @@ There are no accounts. Each person gets a **private link** instead: whoever has
 it can use that page, so keep yours to yourself, and don't post anyone else's
 in a group chat. Every link you get is saved in that browser, and
 **tariff.pardy.ie/competitions** lists them all (competitions you run, clubs you
-run, your clubs, clubs you coach, your own entries). On another phone, open the
+run, your clubs, clubs you coach, your own entries). Two competitions or clubs
+with the same name are both kept; a link that turns out to lead nowhere (a
+competition deleted, a link replaced) is dropped from the list when you open
+it, and its page has a way back to the list. On another phone, open the
 link itself; copy it somewhere safe with **Copy** when you get it.
 
 Who does what:
@@ -76,8 +79,10 @@ People, Late changes, Coaches (when you approve coaches) and Fees, with a count 
 Late changes and Coaches when something waits for you. **Timetable** has the
 timetable, Officials, Simulate and the two "what if" pages. **On the day** has
 the day's page, Desk messages and the Venue screen. **Settings** has the
-Settings page and History. On a phone the bar scrolls sideways. A helper's link
-shows only the sections it can open.
+Settings page, History and Feedback (its tab says how much feedback is new).
+On a phone the bar scrolls sideways. A helper's link shows only the sections
+it can open: one that can read feedback but not change settings has a
+**Feedback** tab.
 
 The entries page shows the counts, then a table for each event (a level, or
 "Synchro BUCS L3", "Tumbling Novice"): gymnast (both names for a synchro pair), club,
@@ -105,7 +110,9 @@ pair's one routine), checked as the Routine Builder checks them.
   PDF from the print dialog for one file. A chair of judges' link finds the
   timetable's sheets in the same menu.
 - **Download CSV** gives every entry shown for a spreadsheet or scoring
-  system.
+  system: each exercise (what it's checked against, "not done in synchro"
+  for synchro's first, "level only" for tumbling and DMT) with its
+  difficulty, how many problems and, in the last column, what they are.
 - On the **Settings** page (a page of its own, with a list at the top to jump to
   each group) each setting is a line saying how it's set, with **Change**
   to open it. You can change when entries close or **Close
@@ -159,12 +166,14 @@ pair's one routine), checked as the Routine Builder checks them.
   individuals on their entry. Removed, held and withdrawn entries aren't
   charged.
 - **Concerns:** anyone with one of your links can **Flag a concern**, about
-  an entry or generally ("element 7 isn't on the card"). The open ones are
-  listed at the top of the entries page; mark each **Resolved**, with a note
-  of what was done, and those resolved fold away beneath.
+  an entry or generally ("element 7 isn't on the card"). A chip at the top of
+  the entries page says how many are open and goes to them, listed at the
+  foot of the page; mark each **Resolved**, with a note of what was done, and
+  those resolved fold away beneath.
 - **Feedback:** while the app is new, every page has a **Feedback** button
   at the foot, for anyone to say what confused them. It goes to the people
-  who make the app, and you see it under **Settings**, **Feedback**: tick
+  who make the app, and you see it under **Settings**, **Feedback** (the
+  Settings tab says how many are new): tick
   **Dealt with** as you go. Turn the button off in **Settings**, under
   Feedback.
 - **Approved coaches:** where entries need sign-off, tick **Coaches must be
@@ -214,7 +223,8 @@ published, their flight, where they are in it, whether they're here, any
 scratch warning and the desk messages sent to them. Names on the entries page,
 the **Officials** page and the **Coaches** page open the same page (on the
 entries page it's the small **person** link beside the name, and **partner** for
-a synchro pair). A coach who is also a member shows as two people for now.
+a synchro pair). A member who also coaches is one row too, once their club
+has made them a coach too, or they've added their coach link to their page.
 Helpers' links that can see the entries page can see People, but not the venue
 screen link.
 

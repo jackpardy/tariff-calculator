@@ -98,7 +98,28 @@ templ Message(title, text string) {
 	@competitionLayout(title) {
 		<h1 class="title is-4">{ title }</h1>
 		<p>{ text }</p>
+		@messageOnward()
 	}
+}
+
+// DeadLink is Message for a link that leads nowhere (or no longer will: a
+// competition just deleted). The browser forgets it if it saved it
+// (data-dead-link, static/js/competitions.js).
+templ DeadLink(title, text string) {
+	@competitionLayout(title) {
+		<h1 class="title is-4">{ title }</h1>
+		<p data-dead-link>{ text }</p>
+		@messageOnward()
+	}
+}
+
+// messageOnward is the way on from a page that only says something: back,
+// or to the links saved in this browser.
+templ messageOnward() {
+	<p class="buttons mt-4">
+		<button type="button" class="button is-small" onclick="history.back()">← Back</button>
+		<a class="button is-small" href="/competitions">Your competitions and pages</a>
+	</p>
 }
 
 templ problemList(problems []string) {
@@ -233,7 +254,7 @@ templ newAdminLink(c CompetitionSummary, link, which string) {
 			</strong>
 			Save this page's link, the admin link: it's the only way back to the entries, and anyone who has it can manage the competition.
 		</p>
-		<div data-competition-admin={ link } data-competition-name={ c.Name }>
+		<div data-competition-admin={ link } data-competition-name={ c.Name } data-replaces?={ which == "replaced" }>
 			@linkBox("Admin link (keep it secret)", link, "Saved in this browser too: it's under Your competitions in this browser, on the Competitions page.")
 		</div>
 	</div>
@@ -350,7 +371,9 @@ templ videoFields(v VideoForm) {
 		<div class="comp-video-skills">
 			<label class="checkbox comp-level"><input type="checkbox" name="videoTriples" value="1" checked?={ v.Triples }/> any triple somersault</label>
 			<label class="checkbox comp-level"><input type="checkbox" name="videoDoubles" value="1" checked?={ v.Doubles }/> any double somersault or more</label>
+			// Its box isn't posted: unticked, the script empties the tariff, which is what's sent.
 			<label class="checkbox comp-level">
+				<input type="checkbox" data-video-tariff checked?={ v.Tariff != "" }/>
 				any skill of tariff
 				<input class="input is-small comp-tariff" type="number" name="videoTariff" min="0.1" max="5" step="0.1" value={ v.Tariff } aria-label="Tariff"/>
 				or more

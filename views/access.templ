@@ -77,14 +77,16 @@ templ linksBox(base string, links []LinkView) {
 				<div class="field">
 					<input class="input is-small" name="name" required maxlength="60" placeholder="Who it's for, e.g. Difficulty judges" aria-label="Who the link is for"/>
 				</div>
-				<div class="field">
+				// The choices smaller than the box's heading, under one of their own.
+				<fieldset class="field">
+					<legend class="label is-small mb-1">What it can do</legend>
 					for i, k := range LinkKinds {
-						<label class="radio is-block mb-1 ml-0">
+						<label class="radio is-block mb-1 ml-0 is-size-7">
 							<input type="radio" name="kind" value={ k.Value } checked?={ i == 0 }/>
-							<strong>{ k.Label }</strong> <span class="is-size-7 has-text-grey">{ k.Help }</span>
+							<span class="has-text-weight-semibold">{ k.Label }</span> <span class="has-text-grey">{ k.Help }</span>
 						</label>
 					}
-				</div>
+				</fieldset>
 				<button class="button is-small" type="submit">Make a link</button>
 			</form>
 		}

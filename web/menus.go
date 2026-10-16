@@ -163,8 +163,12 @@ func orgMenu(base string, a views.Access, m menuState, current string) []views.M
 	}
 	if a.Settings {
 		add("Settings", more...)
+		// The badge there is new feedback, not a setting: say so on the tab.
+		if last := &sections[len(sections)-1]; last.Badge != "" {
+			last.Badge += " feedback"
+		}
 	} else {
-		add("History", more...)
+		add("Feedback", more...) // a link without the settings has no history
 	}
 	return sections
 }
