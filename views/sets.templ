@@ -475,7 +475,7 @@ templ SetEditor(e SetEditorData) {
 				<input class="input is-small scored-input" type="number" inputmode="numeric" min="0" max="10" name="scored_elements" value={ scoredText(e.Set.ScoredElements) } placeholder="all"/>
 				elements score difficulty
 			</label>
-			<p class="matcher-hint">The first two are usual for set (compulsory) routines; AG3 first exercises score 2 elements.</p>
+			<p class="matcher-hint">Unless elements may be repeated, a repeated element is flagged and scores no difficulty (§14). The first two are usual for set (compulsory) routines; AG3 first exercises score 2 elements.</p>
 		</div>
 		}
 		<input type="hidden" name="rules" value={ strconv.Itoa(len(e.Set.Rules)) }/>
@@ -723,7 +723,7 @@ templ ruleBody(e *SetEditorData, i int, rule requirements.Rule, p, kind string) 
 				@editorAction(e, "+ Or instead", fmt.Sprintf("add-option:%d", i), false)
 			</div>
 		case requirements.Different:
-			<p class="matcher-hint">No element may be repeated. Shapes count as different elements only where the Code of Points says they do (§14).</p>
+			<p class="matcher-hint">No element may be repeated. Shapes count as different elements only where the Code of Points says they do (§14). Leaving "Elements may be repeated" unticked already flags repeats, so this rule only adds a line to the results.</p>
 	}
 }
 
@@ -910,6 +910,9 @@ func editorKinds(e *SetEditorData, current string) []requirements.RuleKind {
 	}
 	if current == requirements.Sequence {
 		out = append(out, requirements.SetRoutineKind)
+	}
+	if current == requirements.Different {
+		out = append(out, requirements.NoRepeatsKind)
 	}
 	return out
 }
