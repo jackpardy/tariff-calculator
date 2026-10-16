@@ -326,6 +326,13 @@ a **Change** button to open it.
    Changing the setup asks you to **Plan** again, on **Setup**. Open a flight's **Panel**
    to give a seat to someone else, for all the event's flights they had it
    for; **Assign officials again** redoes every panel and keeps the flights.
+   Moving an event or a gymnast, or giving someone a seat, that would break
+   something that holds now (someone in two places, a coach needed on two
+   areas, a flight past the end of the day, one of your rules, rest where
+   it's a must) asks first: **Before you change it** says what, offers other
+   changes that break nothing (another day or area for the event, another
+   of the event's flights for the gymnast, someone else free for the seat),
+   and has **Make the change anyway** and **Cancel**.
 8. Under **Your rules**, **Officials: who does what** says who does what, as a
    must or a prefer: e.g. Mary **is** Chair of judges at Elite Women, Tom
    **doesn't officiate**, Ann **officiates only** on Saturday from 12:00. Then

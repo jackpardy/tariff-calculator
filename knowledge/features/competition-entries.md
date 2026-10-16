@@ -772,6 +772,18 @@ are then filled flight by flight.
   problems: clashes, and an event whose flights aren't back to back on one
   area, or run either side of a break that isn't allowed (timetables
   planned before ADR 0006 show these until planned again).
+- **Saying what a change breaks** (roadmap 9): moving an event, moving a
+  gymnast, or giving someone a seat is first tried on a copy of the draft
+  (`Schedule.Copy`, `askFirst` in `web/changecheck.go`). What it would newly
+  break (`Schedule.Breaks` with the rota's `RotaProblems`, before and after:
+  `NewBreaks`) is shown on **Before you change it**, with up to three
+  changes that break nothing new, each a button: another day and area for
+  the event (each tried with `MoveFlight`), another flight of the same
+  event and category for the gymnast, or someone free for the seat
+  (`Schedule.FreeForSeat`, the same rules as filling a leaving official's
+  seat). **Make the change anyway** posts the change again with `anyway=1`.
+  A change that breaks nothing new is made at once; redrawing and Earlier
+  aren't asked about.
 - **Sheets:** marshal sheets (running orders to tick off) and chair of judges
   sheets (each gymnast's exercises and problems), one area to a page. On a
   phone a sheet's table (and the rota's) scrolls sideways in its own box,

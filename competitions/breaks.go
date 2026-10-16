@@ -62,6 +62,26 @@ func (s Schedule) breaks(people, coaches map[string][]string, names map[string]s
 	return out
 }
 
+// Copy is a copy of the schedule to change, leaving this one as it is: its
+// flights, blocks and their seats are its own.
+func (s Schedule) Copy() Schedule {
+	out := s
+	copyFlights := func(in []ScheduledFlight) []ScheduledFlight {
+		fs := slices.Clone(in)
+		for i := range fs {
+			fs[i].Entries, fs[i].Officials = slices.Clone(fs[i].Entries), slices.Clone(fs[i].Officials)
+		}
+		return fs
+	}
+	out.Flights, out.Unplaced = copyFlights(s.Flights), copyFlights(s.Unplaced)
+	out.Blocks = slices.Clone(s.Blocks)
+	for i := range out.Blocks {
+		out.Blocks[i].Areas, out.Blocks[i].Officials = slices.Clone(out.Blocks[i].Areas), slices.Clone(out.Blocks[i].Officials)
+	}
+	out.UnplacedBlocks = slices.Clone(s.UnplacedBlocks)
+	return out
+}
+
 // NewBreaks are the lines of after that before doesn't have: what a change
 // breaks that wasn't broken already.
 func NewBreaks(before, after []string) []string {
@@ -102,4 +122,30 @@ func nameOr(names map[string]string, key string) string {
 		return n
 	}
 	return "someone"
+}
+
+// FreeForSeat are the officials who could take a flight's seat, for the
+// stretch of its event's run that seat covers, as an official leaving is
+// replaced: allowed the role there, and free for all of it (not competing,
+// officiating or on blocked-time duty then, not coaching someone competing
+// elsewhere, rested where rest is a must, nor kept off by a must rule).
+// Those with fewest duties that day come first; the seat's holder isn't one.
+func (s Schedule) FreeForSeat(flight, seat int, people, coaches map[string][]string, officials []RotaPerson) []string {
+	if flight < 0 || flight >= len(s.Flights) || seat < 0 || seat >= len(s.Flights[flight].Officials) {
+		return nil
+	}
+	start := flight
+	for prev := s.before(start); prev >= 0 && seat < len(s.Flights[prev].Officials) && s.Flights[prev].Officials[seat] == s.Flights[flight].Officials[seat]; prev = s.before(start) {
+		start = prev
+	}
+	st := s.stretchFrom(start, seat)
+	f, d := s.Flights[flight], s.Flights[flight].Officials[seat]
+	var out []string
+	for _, o := range officials {
+		if o.Key != d.Person && o.Can(d.Role, f.Event) && s.freeIgnoring(o.Key, st, nil, people, coaches) {
+			out = append(out, o.Key)
+		}
+	}
+	slices.SortStableFunc(out, func(a, b string) int { return s.dutiesOn(a, f.Day) - s.dutiesOn(b, f.Day) })
+	return out
 }

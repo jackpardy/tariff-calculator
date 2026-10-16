@@ -132,7 +132,7 @@ func TestTimetable(t *testing.T) {
 	if location := redirected(t, h, tt+"/flight", url.Values{"flight": {flight}, "action": {"move"}, "to": {"0:Track 1"}}); !strings.Contains(location, "go+there") {
 		t.Error("trampoline can't move to the track")
 	}
-	if location := redirected(t, h, tt+"/flight", url.Values{"flight": {flight}, "action": {"move"}, "to": {"1:Panel 1"}}); noticeOf(t, location) != "Moved BUCS L3 to Sunday · Panel 1." || !strings.HasSuffix(location, "#day-1-area-Panel_201") {
+	if location := redirected(t, h, tt+"/flight", url.Values{"flight": {flight}, "action": {"move"}, "to": {"1:Panel 1"}}); noticeOf(t, location) != "Moved BUCS L3 Women to Sunday · Panel 1." || !strings.HasSuffix(location, "#day-1-area-Panel_201") {
 		t.Errorf("moved to Sunday, back at it there: %s", location)
 	}
 

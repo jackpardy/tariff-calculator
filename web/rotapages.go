@@ -117,14 +117,29 @@ func (f rotaFacts) name(withClub bool) func(string) string {
 // themselves (competitions.Schedule.WhatIfBreaks), people and coaches each
 // keyed as one person, every one named.
 func (f rotaFacts) whatIfBreaks(s competitions.Schedule) []string {
+	return s.WhatIfBreaks(f.one, f.coaches(), f.breakNames())
+}
+
+// manualBreaks are everything a schedule breaks (competitions.Schedule.Breaks),
+// and what its rota does (RotaProblems), for a manual change to say what it
+// would newly break.
+func (f rotaFacts) manualBreaks(s competitions.Schedule) []string {
+	names := f.breakNames()
+	return append(s.Breaks(f.one, f.coaches(), names), s.RotaProblems(f.one, f.officials, names)...)
+}
+
+// coaches are each live entry's coaches, keyed as one person.
+func (f rotaFacts) coaches() map[string][]string { return coachesOf(f.entries, f.same) }
+
+// breakNames are clashNames with the coaches named too.
+func (f rotaFacts) breakNames() map[string]string {
 	names := f.clashNames()
-	coaches := coachesOf(f.entries, f.same)
 	for _, e := range f.entries {
 		if k := e.CoachKey(); k != "" && names[f.same.of(k)] == "" {
 			names[f.same.of(k)] = e.CoachName()
 		}
 	}
-	return s.WhatIfBreaks(f.one, coaches, names)
+	return names
 }
 
 // clashNames are oneNames with the officials not competing named too.
@@ -185,7 +200,7 @@ func (p *competitionPages) staff(s *competitions.Schedule, c store.Competition, 
 // editRota assigns every panel again (action=rota), or gives one seat to a
 // person (action=seat: flight, seat, person; "" empties it).
 func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
-	c, _, _, ok := p.timetableOf(w, r)
+	c, draft, _, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -210,7 +225,7 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	anchor := ""
-	err = p.changeDraft(r, c, func(s *competitions.Schedule) error {
+	apply := func(s *competitions.Schedule) error {
 		if !s.Planned {
 			return refused("Plan the timetable first.")
 		}
@@ -234,7 +249,32 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 			return refused("That seat has changed since; nothing was changed.")
 		}
 		return nil
-	})
+	}
+	// A seat given to someone that breaks something asks first, offering
+	// others free for it.
+	flight, err1 := strconv.Atoi(r.FormValue("flight"))
+	seat, err2 := strconv.Atoi(r.FormValue("seat"))
+	if person := r.FormValue("person"); r.FormValue("action") == "seat" && person != "" && err1 == nil && err2 == nil &&
+		flight >= 0 && flight < len(draft.Flights) && seat >= 0 && seat < len(draft.Flights[flight].Officials) {
+		fl, d := draft.Flights[flight], draft.Flights[flight].Officials[seat]
+		name := f.name(false)
+		what := "Give " + name(person) + " the " + competitions.RoleWord(d.Role) + " seat on " + fl.Name()
+		if p.askFirst(w, r, c, draft, f, what, apply, func(clean func(func(*competitions.Schedule) bool) bool) []views.ChangeFix {
+			var fixes []views.ChangeFix
+			for _, other := range draft.FreeForSeat(flight, seat, f.one, f.coaches(), f.officials) {
+				if len(fixes) == maxFixes {
+					break
+				}
+				if other != person && clean(func(t *competitions.Schedule) bool { return t.SetDuty(flight, seat, other) }) {
+					fixes = append(fixes, views.ChangeFix{Label: "Give it to " + name(other), Fields: withField(postedFields(r), "person", other)})
+				}
+			}
+			return fixes
+		}) {
+			return
+		}
+	}
+	err = p.changeDraft(r, c, apply)
 	changedAt(w, r, err, notice, anchor)
 }
 
