@@ -29,7 +29,6 @@ func (p *competitionPages) registerLevels(handle func(string, http.HandlerFunc))
 	handle("GET /clubs/coach/{token}/levels", p.coachLevels)
 	handle("POST /clubs/coach/{token}/levels", p.saveClubLevel)
 	handle("POST /clubs/levels/save", p.saveLevelFromLink)
-	handle("POST /clubs/coach/{token}/levels/{id}/items", p.clubLevelItems)
 	handle("POST /clubs/coach/{token}/levels/{id}/move", p.moveClubLevel)
 	handle("POST /clubs/coach/{token}/levels/{id}/remove", p.removeClubLevel)
 	// The level editor on the club's page (web/leveleditor.go).
@@ -50,7 +49,26 @@ func coachLevelsPath(token string) string { return coachPath(token) + "/levels" 
 // kind of skill, a link, a number of them, or a set routine. Rules about a
 // single routine (its length, its difficulty) can't.
 func trackable(rule requirements.Rule) bool {
-	return slices.Contains([]string{requirements.Includes, requirements.Count, requirements.Separate, requirements.Sequence}, rule.Type)
+	return slices.Contains([]string{requirements.Includes, requirements.Count, requirements.Separate, requirements.Sequence, requirements.Track}, rule.Type)
+}
+
+// describeLevelRule is a club level's rule in words: one of the club's own
+// skills by its name (own: the club's skills to track, by id), others as the
+// requirements describe them.
+func describeLevelRule(rule requirements.Rule, own map[string]store.ClubSkill) string {
+	if strings.TrimSpace(rule.Label) == "" {
+		switch {
+		case rule.Type == requirements.Track:
+			if c, ok := own[rule.Item]; ok {
+				return c.Name
+			}
+			return "A club skill no longer kept"
+		case requirements.KindOfRule(rule) == "include" && rule.Match != nil:
+			// A skill on a level's list is just its name: "Tuck Jump".
+			return requirements.Capitalise(requirements.DescribeMatcher(*rule.Match))
+		}
+	}
+	return requirements.Describe(rule)
 }
 
 // wholeRule says a rule is marked as a whole, not worked out from the
@@ -122,11 +140,26 @@ func levelsProgress(levels []store.ClubLevel, clubItems map[string]store.ClubSki
 			out = append(out, lv)
 			continue
 		}
-		for _, rule := range set.Rules {
+		// The club skills it lists after its rules (from before they could be
+		// rules) come last, as if they were.
+		for _, rule := range withClubItems(set.Rules, l.ClubItems) {
 			if !trackable(rule) {
 				continue
 			}
-			v := views.MarkView{Name: requirements.Describe(rule)}
+			if rule.Type == requirements.Track {
+				c, ok := clubItems[store.ClubSkill{ID: rule.Item}.Item()]
+				if !ok {
+					continue
+				}
+				v := views.MarkView{Club: c.ID, Name: c.Name, FIG: c.Note}
+				if strings.TrimSpace(rule.Label) != "" {
+					v.Name = rule.Label
+				}
+				fill(&v, t.sides(c.Item()))
+				lv.Items = append(lv.Items, v)
+				continue
+			}
+			v := views.MarkView{Name: describeLevelRule(rule, nil)}
 			if wholeRule(rule) {
 				v.Item = levelItem(rule)
 				fill(&v, t.levelMarks[v.Item])
@@ -149,15 +182,6 @@ func levelsProgress(levels []store.ClubLevel, clubItems map[string]store.ClubSki
 					v.Coach = &views.SideMark{State: state}
 				}
 			}
-			lv.Items = append(lv.Items, v)
-		}
-		for _, id := range l.ClubItems {
-			c, ok := clubItems[store.ClubSkill{ID: id}.Item()]
-			if !ok {
-				continue
-			}
-			v := views.MarkView{Club: c.ID, Name: c.Name, FIG: c.Note}
-			fill(&v, t.sides(c.Item()))
 			lv.Items = append(lv.Items, v)
 		}
 		for _, v := range lv.Items {
@@ -227,20 +251,17 @@ func (p *competitionPages) coachLevels(w http.ResponseWriter, r *http.Request) {
 	}
 	for i, l := range levels {
 		v := views.ClubLevelView{Name: l.Name, By: l.ByName, Updated: l.UpdatedAt.In(local).Format("2 January 2006"),
-			Items: base + "/" + l.ID + "/items", Move: base + "/" + l.ID + "/move", Remove: base + "/" + l.ID + "/remove",
+			Move: base + "/" + l.ID + "/move", Remove: base + "/" + l.ID + "/remove",
 			First: i == 0, Last: i == len(levels)-1}
 		if set, err := requirements.Parse([]byte(l.Set)); err == nil {
-			for _, rule := range set.Rules {
-				v.Rules = append(v.Rules, requirements.Describe(rule))
+			for _, rule := range withClubItems(set.Rules, l.ClubItems) {
+				v.Rules = append(v.Rules, describeLevelRule(rule, own))
 			}
 			v.Edit, v.Copy = base+"/"+l.ID+"/edit", base+"/new?from="+l.ID
 			v.Open = requirementsLink(l.Set)
 			v.Share = levelShareLink(r, l, own)
 		} else {
 			v.Broken = "Its requirements couldn't be read."
-		}
-		for _, c := range other {
-			v.ClubSkills = append(v.ClubSkills, views.LevelClubSkill{ID: c.ID, Name: c.Name, In: slices.Contains(l.ClubItems, c.ID)})
 		}
 		page.Levels = append(page.Levels, v)
 	}
@@ -322,24 +343,6 @@ func (p *competitionPages) saveLevelAs(w http.ResponseWriter, r *http.Request, c
 		notice += fmt.Sprintf(" %s about a single routine (its length, difficulty or the like) can't be tracked from skills, so %s left out.", plural(left, "rule", "rules"), map[bool]string{true: "it was", false: "they were"}[left == 1])
 	}
 	seeOther(w, r, coachLevelsPath(token), notice)
-}
-
-// clubLevelItems are the club skills a level tracks besides its requirements
-// (item: each one ticked, by id).
-func (p *competitionPages) clubLevelItems(w http.ResponseWriter, r *http.Request) {
-	coach, _, ok := p.coach(w, r)
-	if !ok {
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		badRequest(w, err)
-		return
-	}
-	if err := p.st.SetLevelClubItems(r.Context(), coach, r.PathValue("id"), r.Form["item"]); err != nil {
-		failed(w, r, err)
-		return
-	}
-	seeOther(w, r, coachLevelsPath(r.PathValue("token")), "Saved.")
 }
 
 // moveClubLevel moves a level one place earlier (by=-1) or later (by=1).

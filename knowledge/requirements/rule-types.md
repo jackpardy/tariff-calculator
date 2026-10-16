@@ -27,6 +27,7 @@ include", of none "Must not include", and `includes` is "This, then this".
 | `difficulty` | `min`/`max`, optional `cap` | The counted difficulty is in range. With `cap`, each element counts at most the cap (CoP §17.1, age groups); a cap with no bounds just reports the capped total. | BUCS L1 second: 5.9–8.0; FIG AG1: cap 1.7 |
 | `position` | `position` (1-based), `match` | The element at that position matches | "Finish with a back somersault" |
 | `sequence` | `sequence`: matchers | Element *i* matches matcher *i*, with exactly that many elements. This makes the requirements a [set routine](set-routines.md). | BG Club L1 |
+| `track` | `item`: a club skill's id | One of a club's own skills to track on a [club level](../features/competition-entries.md#club-levels-adr-0011), something no routine shows (a handstand, a drill). Never checked against a routine: `Evaluate` gives it no result. Keeps its place among the level's rules. | "Handstand hold, 10 seconds" |
 
 What each result reports in `Elements`: the matching elements for `count` and
 `includes`, those in a linked pair for `linked`, and the offending ones for `every`, `position`, `sequence` and
@@ -49,10 +50,13 @@ left out matches anything.
 | `takeoff`, `landing` | list | `feet`, `front`, `back`, `seat` |
 | `tariff` | `{min, max}` | The skill's tariff |
 | `fig` | text | Exact FIG notation; brackets and spaces are ignored, so `4-o` equals `(4 - o)` |
+| `or` | list of matchers | Other skills that count too, which needn't fit the same description: a skill matches if it fits this matcher **or** any of these ("a front somersault, or a barani"). They have no `or` of their own. Added 2026-10-16, without bumping `format`. |
 
 Matchers cover nearly every element requirement in the known rule books. The
 `cel-go` expression rule that ADR 0001 planned was dropped until a real rule
-needs it. If a rule doesn't fit, add a rule type and bump `format`.
+needs it. If a rule doesn't fit, add a rule type and bump `format`. `track`
+(2026-10-16) didn't bump it: it only appears in club levels, every format 1
+file stays valid, and a routine is never checked against it.
 
 `Matcher.Example()` builds the simplest skill a matcher allows. This is how a
 [set routine](set-routines.md) is loaded into the builder.

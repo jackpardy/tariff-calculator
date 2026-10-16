@@ -151,7 +151,7 @@ func sameMatcher(a, b Matcher) bool {
 	sameTariff := func(x, y *TariffRange) bool {
 		return (x == nil || x.Min == nil && x.Max == nil) && (y == nil || y.Min == nil && y.Max == nil)
 	}
-	return sameRange(a.Rotation, b.Rotation) && sameRange(a.Twist, b.Twist) && a.Direction == b.Direction &&
+	return len(a.Or) == 0 && len(b.Or) == 0 && sameRange(a.Rotation, b.Rotation) && sameRange(a.Twist, b.Twist) && a.Direction == b.Direction &&
 		slices.Equal(a.Shapes, b.Shapes) && slices.Equal(a.Takeoff, b.Takeoff) && slices.Equal(a.Landing, b.Landing) &&
 		a.FIG == b.FIG && sameTariff(a.Tariff, b.Tariff)
 }
@@ -171,7 +171,6 @@ var RuleKinds = []RuleKind{
 	{"count", "How many of a kind (at least, at most)"},
 	{"then", "This, then this (skills in a row)"},
 	{Linked, "Linked pairs of a kind"},
-	{Different, "No repeats"},
 	{Elements, "Number of skills"},
 	{Difficulty, "Difficulty between"},
 	{Position, "A skill at a position"},
@@ -181,6 +180,11 @@ var RuleKinds = []RuleKind{
 
 // SetRoutineKind is a set routine's kind, offered only for one that is.
 var SetRoutineKind = RuleKind{Sequence, "Set routine"}
+
+// NoRepeatsKind is a rule that no element is repeated, offered only for one
+// that is (built-in requirements have it): "Elements may be repeated",
+// unticked, already says so, flagging repeats and scoring them nothing.
+var NoRepeatsKind = RuleKind{Different, "No repeats"}
 
 // KindOfRule is the kind of rule a rule is, by ID.
 func KindOfRule(r Rule) string {
@@ -235,6 +239,10 @@ func (m Matcher) Clone() Matcher {
 		out.Tariff = &t
 	}
 	out.Shapes, out.Takeoff, out.Landing = slices.Clone(m.Shapes), slices.Clone(m.Takeoff), slices.Clone(m.Landing)
+	out.Or = nil
+	for _, o := range m.Or {
+		out.Or = append(out.Or, o.Clone())
+	}
 	return out
 }
 
@@ -247,6 +255,7 @@ var LevelKinds = []RuleKind{
 	{"count", "Several of a kind (at least, at most)"},
 	{"then", "A link: this, then this"},
 	{Separate, "Each by a different skill"},
+	{Track, "One of your club's own skills"},
 }
 
 // PickIn is PickOf over picks: the first that describes the same skills as

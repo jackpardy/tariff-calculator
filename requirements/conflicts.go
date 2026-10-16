@@ -233,6 +233,12 @@ func (c *conflicts) needsAgainstLimits() {
 // repeats flags more of a skill required than exist without repeating one,
 // when repeats aren't allowed.
 func (c *conflicts) repeats() {
+	// Elements may be repeated, and a rule says none may: one has to go.
+	if c.set.RepeatsAllowed {
+		if i := slices.IndexFunc(c.set.Rules, func(r Rule) bool { return r.Type == Different }); i >= 0 {
+			c.one(i, "it says no element may be repeated, but the requirements say elements may be (untick that, or remove this rule)")
+		}
+	}
 	noRepeats := !c.set.RepeatsAllowed || slices.ContainsFunc(c.set.Rules, func(r Rule) bool { return r.Type == Different })
 	if !noRepeats {
 		return
@@ -365,13 +371,17 @@ var universe = sync.OnceValue(func() []skills.TrampolineSkill {
 })
 
 // candidates are the skills to test a matcher against: the universe, plus the
-// matcher's own example (which follows its FIG notation's twist by phase).
+// matcher's own example and its alternatives' (which follow their FIG
+// notation's twist by phase).
 func candidates(m Matcher) []skills.TrampolineSkill {
 	u := universe()
-	if s, ok := m.Example(); ok {
-		return append(u[:len(u):len(u)], s)
+	out := u[:len(u):len(u)]
+	for _, one := range append([]Matcher{m}, m.Or...) {
+		if s, ok := one.Example(); ok {
+			out = append(out, s)
+		}
 	}
-	return u
+	return out
 }
 
 // fits reports whether some skill fits the matcher.

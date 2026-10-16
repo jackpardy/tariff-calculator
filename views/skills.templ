@@ -406,23 +406,15 @@ templ levelsSection(p SkillsPart) {
 	}
 }
 
-// LevelClubSkill is one of the club's own skills to track, for a level to
-// track too.
-type LevelClubSkill struct {
-	ID, Name string
-	In       bool // the level tracks it
-}
-
 // ClubLevelView is one of the club's levels, on the coaches' list.
 type ClubLevelView struct {
 	Name, By, Updated   string
 	Rules               []string // its requirements, in words
-	Broken              string
-	ClubSkills          []LevelClubSkill
-	Edit, Copy          string // the level editor, for it and for a new level copying it
-	Open                string // the Requirements page, with its requirements to edit
-	Share               string // a link sharing it with other clubs
-	Items, Move, Remove string // where its club skills, moving it and removing it post
+	Broken       string
+	Edit, Copy   string // the level editor, for it and for a new level copying it
+	Open         string // the Requirements page, with its requirements to edit
+	Share        string // a link sharing it with other clubs
+	Move, Remove string // where moving it and removing it post
 	First, Last         bool
 }
 
@@ -490,18 +482,6 @@ templ CoachClubLevels(p ClubLevelsPage) {
 						<li>{ rule }</li>
 					}
 				</ol>
-				if len(l.ClubSkills) > 0 {
-					<form method="post" action={ templ.SafeURL(l.Items) } class="mb-2">
-						<p class="is-size-7 has-text-weight-semibold mb-1">Your club's skills to track too</p>
-						for _, c := range l.ClubSkills {
-							<label class="checkbox is-block is-size-7">
-								<input type="checkbox" name="item" value={ c.ID } checked?={ c.In }/>
-								{ c.Name }
-							</label>
-						}
-						<button class="button is-small mt-1" type="submit">Save</button>
-					</form>
-				}
 				if l.Share != "" {
 					<details class="mb-2">
 						<summary class="is-size-7">Share with another club</summary>

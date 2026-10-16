@@ -58,7 +58,8 @@ func parseSetForm(r *http.Request, extra ...requirements.Pick) (requirements.Set
 		n, _ := strconv.Atoi(r.FormValue(name))
 		return max(n, 0)
 	}
-	matcher := func(prefix string) requirements.Matcher {
+	var matcher func(prefix string) requirements.Matcher
+	matcher = func(prefix string) requirements.Matcher {
 		m := requirements.Matcher{
 			Direction: r.FormValue(prefix + "dir"),
 			Shapes:    r.Form[prefix+"shape"],
@@ -89,6 +90,18 @@ func parseSetForm(r *http.Request, extra ...requirements.Pick) (requirements.Set
 		if id := requirements.PickIn(extra, m); id != "" {
 			m.Label = extra[slices.IndexFunc(extra, func(p requirements.Pick) bool { return p.ID == id })].Label
 		}
+		// Other skills that count too (alternatives, prefix "<prefix>or<k>."):
+		// "+ Or another skill" adds one ("or-add:<prefix>"), Remove takes one
+		// off ("or-del:<prefix>:<k>"). Alternatives have none of their own.
+		action := r.FormValue("action")
+		for k := range count(prefix + "ors") {
+			if action != fmt.Sprintf("or-del:%s:%d", prefix, k) {
+				m.Or = append(m.Or, matcher(fmt.Sprintf("%sor%d.", prefix, k)))
+			}
+		}
+		if action == "or-add:"+prefix {
+			m.Or = append(m.Or, requirements.Matcher{})
+		}
 		return m
 	}
 
@@ -115,6 +128,8 @@ func parseSetForm(r *http.Request, extra ...requirements.Pick) (requirements.Set
 		case requirements.Count, requirements.Linked, requirements.Every, requirements.Position:
 			m := matcher(p + "m.")
 			rule.Match = &m
+		case requirements.Track:
+			rule.Item = strings.TrimSpace(r.FormValue(p + "item"))
 		case requirements.Sequence:
 			// A set routine's elements aren't edited here: they come back as they went out.
 			if err := json.Unmarshal([]byte(r.FormValue(p+"seqjson")), &rule.Sequence); err != nil {
@@ -221,7 +236,7 @@ func newRule(kind string) requirements.Rule {
 // "add-element:3", "delete-element:3:1", "add-option:3", "delete-option:3:0",
 // "add-step:3:0", "delete-step:3:0:1") or the "Add a rule" choice to a set.
 func applySetAction(set *requirements.Set, action, add string) {
-	if add != "" && slices.Contains(requirements.RuleTypes, requirements.KindType(add)) {
+	if add != "" && (slices.Contains(requirements.RuleTypes, requirements.KindType(add)) || add == requirements.Track) {
 		set.Rules = append(set.Rules, newRule(add))
 	}
 	parts := strings.Split(action, ":")

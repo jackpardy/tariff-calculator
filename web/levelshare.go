@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
+	"strconv"
+	"strings"
 
 	"tariffCalculator/requirements"
 	"tariffCalculator/store"
@@ -39,20 +42,62 @@ type sharedLevel struct {
 const maxSharedTrack = 50
 
 // levelShareLink is a link sharing a club level and the club skills it
-// tracks (own: the club's skills to track, by id).
+// tracks (own: the club's skills to track, by id). Each of its own skills
+// among its rules points at the link's list of them (store.SharedItem), as
+// does each it lists after them (a level from before they could be rules),
+// so they arrive in order, as rules.
 func levelShareLink(r *http.Request, l store.ClubLevel, own map[string]store.ClubSkill) string {
+	set, err := requirements.Parse([]byte(l.Set))
+	if err != nil {
+		return ""
+	}
 	var share sharedLevel
-	share.V, share.Level.Name, share.Level.Set = 1, l.Name, json.RawMessage(l.Set)
-	for _, id := range l.ClubItems {
-		if c, ok := own[id]; ok {
+	share.V, share.Level.Name = 1, l.Name
+	at := map[string]int{} // a club skill's place in the list
+	shared := func(id string) (string, bool) {
+		c, ok := own[id]
+		if !ok {
+			return "", false
+		}
+		if _, seen := at[id]; !seen {
+			at[id] = len(share.Level.Track)
 			share.Level.Track = append(share.Level.Track, store.SharedTrack{Name: c.Name, Note: c.Note})
 		}
+		return store.SharedItem(at[id]), true
+	}
+	var rules []requirements.Rule
+	for _, rule := range withClubItems(set.Rules, l.ClubItems) {
+		if rule.Type == requirements.Track {
+			item, ok := shared(rule.Item)
+			if !ok {
+				continue
+			}
+			rule.Item = item
+		}
+		rules = append(rules, rule)
+	}
+	set.Rules = rules
+	if share.Level.Set, err = json.Marshal(set); err != nil {
+		return ""
 	}
 	data, err := json.Marshal(share)
 	if err != nil {
 		return ""
 	}
 	return origin(r) + "/clubs/levels/shared#share=j" + base64.RawURLEncoding.EncodeToString(data)
+}
+
+// withClubItems are a level's rules with the club skills it lists after
+// them (items, from before they could be rules) as rules at the end, those
+// not among its rules already.
+func withClubItems(rules []requirements.Rule, items []string) []requirements.Rule {
+	out := slices.Clone(rules)
+	for _, id := range items {
+		if !slices.ContainsFunc(out, func(r requirements.Rule) bool { return r.Type == requirements.Track && r.Item == id }) {
+			out = append(out, requirements.Rule{Type: requirements.Track, Item: id})
+		}
+	}
+	return out
 }
 
 // readSharedLevel is the shared level posted (level: as its link carries it,
@@ -101,7 +146,12 @@ func (p *competitionPages) sharedLevelPreview(w http.ResponseWriter, r *http.Req
 	}
 	page := views.SharedLevelPage{Name: name, Level: raw, Left: left}
 	for _, rule := range set.Rules {
-		page.Rules = append(page.Rules, requirements.Describe(rule))
+		text := requirements.Describe(rule)
+		// One of the club skills it brings, by its name.
+		if j, err := strconv.Atoi(strings.TrimPrefix(rule.Item, "shared:")); rule.Type == requirements.Track && rule.Label == "" && err == nil && j >= 0 && j < len(track) {
+			text = track[j].Name
+		}
+		page.Rules = append(page.Rules, text)
 	}
 	for _, t := range track {
 		page.Track = append(page.Track, t.Name)
