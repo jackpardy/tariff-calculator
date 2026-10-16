@@ -449,7 +449,12 @@ a **Change** button to open it.
 day, when the hold-up starts, how many minutes and which areas (none ticked
 for all). It shows which flights now start later or move to another area, when
 each day's flights end, anything that no longer fits, and anyone needed in two
-places. An event's flights stay together: if one would no longer finish
+places. Above those, **This would break** lists anything the delay breaks
+that holds now: your rules (an event's area, day, order or keeping two events
+apart; a person's hours or role), a coach needed on two areas, an official on
+a flight during blocked time they're on duty for, and short rest where rest is
+a must. A flight that moves to another area only goes where your must rules
+let it. An event's flights stay together: if one would no longer finish
 before a break, the rest of the event waits for it too (unless events can run
 across breaks), and an event moves to another area with all its flights still
 to come. Flights that have already run, or are under way, never move. Under **Ease it**, try what you'd do on the day: move, shorten or
@@ -464,8 +469,11 @@ choose who, the day and time they go, and whether for good. Each of their
 seats is filled for the rest of its event, by one person: someone free for
 all of it, or by moving others round: a judge on the panel moving up to
 chair, or someone moving across from another panel, their seat filled in
-turn. Choose **easiest to fill** (the gap ends at a seat many
-can take, such as recorder) or **fewest changes**. Nothing is changed unless
+turn. Free means not competing, judging or on duty for blocked time then,
+not coaching someone competing elsewhere, rested where rest is a must, and
+allowed by your rules. Choose **easiest to fill** (the gap ends at a seat many
+can take, such as recorder) or **fewest changes**. Anything the result would
+break that holds now is listed above the seats. Nothing is changed unless
 you tap **Keep this in the draft timetable**.
 
 **Simulate** (under **Timetable**) tries numbers before entries arrive, or

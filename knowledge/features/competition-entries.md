@@ -839,7 +839,9 @@ that much later; the area's later flights shift back only as far as they must
 finish before lunch waits for it to end, and says so). A shifted flight that
 would run past the end of the day, or need someone (a gymnast or official) in
 two places, moves to the earliest free slot on another area of its
-discipline, no earlier than its published time and clear of the delay. An
+discipline, no earlier than its published time and clear of the delay, and
+only where the organiser's must rules let it (an event kept to its area, or
+apart from another). An
 event's flights stay together (ADR 0006): unless events can run across
 breaks, the rest of an event's run waits for a break as one, and a flight
 moves to another area with all of its event's flights still to come. No
@@ -848,7 +850,14 @@ is when the flight before it works through the break. Flights
 that have already run, or are under way when the delay starts, never move. The
 page shows each day's flights end and free time before and after, what no
 longer fits, who's needed in two places, short rest before and after, and
-each flight that changes (was, now, why).
+each flight that changes (was, now, why). Above those, **This would break**
+lists what the delay breaks that holds in the timetable now
+(`Schedule.WhatIfBreaks` before and after, `NewBreaks`; the first six
+first, the rest folded), besides what the page shows already (past the end,
+in two places): the organiser's rules about events and about
+people, a coach with gymnasts on two areas (or competing while coaching), an
+official on a flight during blocked time they're on duty for, and, where rest
+is a must, too little rest between someone's turns.
 
 The organiser can **ease** it on the held-up areas, from the delay: breaks
 (lunch and other blocked time) wait (the default), **move later** keeping
@@ -871,13 +880,15 @@ the rest of its event's flights they'd have had, by one person. A seat goes
 to someone free for all of them (not competing or on another panel then, allowed the role at that event
 and by the must rules about people), or is reached by moving others round, at
 most three moves: someone on that panel up a role, or someone across from a
-panel at the same time, their seat filled in turn. Two ways to choose:
+panel at the same time, their seat filled in turn. Free means, too, not on
+duty for blocked time then, not coaching a gymnast competing on another area
+then, and, where rest is a must, not too soon before or after their own turn. Two ways to choose:
 **easiest to fill** (the default) ends the chain at the seat the most free
 people could take (recorder or marshal before HD or execution, before chair),
 fewer moves breaking ties; **fewest changes** takes the shortest chain. Each
 seat shows the moves and who else was free for the last one; a seat no one
-can reach is left empty. Coaches, the organiser's own rules about events,
-and officials on blocked time aren't considered.
+can reach is left empty. What the result would break that holds now is
+listed above the seats, as for a delay.
 
 ## On the day: flights started and finished
 

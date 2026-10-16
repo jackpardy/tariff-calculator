@@ -95,7 +95,7 @@ func TestOnePanelPerEvent(t *testing.T) {
 	// second and third flights, as one seat.
 	s.Rota(entries, officials, settings, 1)
 	chair := s.Flights[0].Officials[0].Person
-	out, fills, err := s.Left(Leave{Person: chair, Day: 0, From: 9*60 + 25}, pp, officials)
+	out, fills, err := s.Left(Leave{Person: chair, Day: 0, From: 9*60 + 25}, pp, nil, officials)
 	if err != nil {
 		t.Fatal(err)
 	}

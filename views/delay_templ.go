@@ -38,7 +38,8 @@ type DelayResult struct {
 	Easing    []string // what the organiser does to ease it, described
 	Without   string   // what the delay alone would do, when eased
 	Merged    []string
-	Breaks    []string
+	Breaks    []string // breaks (lunch, say) moved, shortened or worked through
+	Breaking  []string // what the delay breaks that holds now: rules, coaches, rest, duties
 	Days      []DelayDay
 	Changes   []DelayChangeView
 	Unplaced  []string
@@ -99,7 +100,7 @@ func Delay(p DelayPage) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(p.Competition.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 57, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 58, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -112,7 +113,7 @@ func Delay(p DelayPage) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(p.Competition.Date)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 57, Col: 73}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 58, Col: 73}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -141,7 +142,7 @@ func Delay(p DelayPage) templ.Component {
 			var templ_7745c5c3_Var5 templ.SafeURL
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/delay"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 61, Col: 72}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 62, Col: 72}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -159,7 +160,7 @@ func Delay(p DelayPage) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(d.Value)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 67, Col: 30}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 68, Col: 30}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 				if templ_7745c5c3_Err != nil {
@@ -182,7 +183,7 @@ func Delay(p DelayPage) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(d.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 67, Col: 73}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 68, Col: 73}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -200,7 +201,7 @@ func Delay(p DelayPage) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.From)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 72, Col: 106}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 73, Col: 106}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 			if templ_7745c5c3_Err != nil {
@@ -213,7 +214,7 @@ func Delay(p DelayPage) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Minutes)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 74, Col: 135}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 75, Col: 135}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 			if templ_7745c5c3_Err != nil {
@@ -231,7 +232,7 @@ func Delay(p DelayPage) templ.Component {
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(a)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 81, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 82, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 				if templ_7745c5c3_Err != nil {
@@ -254,7 +255,7 @@ func Delay(p DelayPage) templ.Component {
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(a)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 82, Col: 9}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 83, Col: 9}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -287,7 +288,7 @@ func Delay(p DelayPage) templ.Component {
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(o[0])
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 92, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 93, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 				if templ_7745c5c3_Err != nil {
@@ -310,7 +311,7 @@ func Delay(p DelayPage) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(o[1])
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 93, Col: 13}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 94, Col: 13}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -328,7 +329,7 @@ func Delay(p DelayPage) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Shorten)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 96, Col: 108}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 97, Col: 108}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 			if templ_7745c5c3_Err != nil {
@@ -341,7 +342,7 @@ func Delay(p DelayPage) templ.Component {
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Between)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 102, Col: 108}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 103, Col: 108}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 			if templ_7745c5c3_Err != nil {
@@ -354,7 +355,7 @@ func Delay(p DelayPage) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Quicker)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 106, Col: 108}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 107, Col: 108}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 			if templ_7745c5c3_Err != nil {
@@ -367,7 +368,7 @@ func Delay(p DelayPage) templ.Component {
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.MaxFlight)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 110, Col: 112}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 111, Col: 112}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 			if templ_7745c5c3_Err != nil {
@@ -380,7 +381,7 @@ func Delay(p DelayPage) templ.Component {
 			var templ_7745c5c3_Var18 string
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Overrun)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 114, Col: 109}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 115, Col: 109}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
 			if templ_7745c5c3_Err != nil {
@@ -403,7 +404,7 @@ func Delay(p DelayPage) templ.Component {
 					var templ_7745c5c3_Var19 string
 					templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(joinNames(r.Easing))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 123, Col: 70}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 124, Col: 70}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 					if templ_7745c5c3_Err != nil {
@@ -421,7 +422,7 @@ func Delay(p DelayPage) templ.Component {
 						var templ_7745c5c3_Var20 string
 						templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(r.Without)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 125, Col: 57}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 126, Col: 57}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 						if templ_7745c5c3_Err != nil {
@@ -460,7 +461,7 @@ func Delay(p DelayPage) templ.Component {
 							var templ_7745c5c3_Var21 string
 							templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(d.Name)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 141, Col: 23}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 142, Col: 23}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 							if templ_7745c5c3_Err != nil {
@@ -473,7 +474,7 @@ func Delay(p DelayPage) templ.Component {
 							var templ_7745c5c3_Var22 string
 							templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(d.WasEnd)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 142, Col: 50}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 143, Col: 50}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 							if templ_7745c5c3_Err != nil {
@@ -486,7 +487,7 @@ func Delay(p DelayPage) templ.Component {
 							var templ_7745c5c3_Var23 string
 							templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(d.NowEnd)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 142, Col: 75}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 143, Col: 75}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 							if templ_7745c5c3_Err != nil {
@@ -499,7 +500,7 @@ func Delay(p DelayPage) templ.Component {
 							var templ_7745c5c3_Var24 string
 							templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(d.End)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 143, Col: 47}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 144, Col: 47}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 							if templ_7745c5c3_Err != nil {
@@ -534,7 +535,7 @@ func Delay(p DelayPage) templ.Component {
 							var templ_7745c5c3_Var27 string
 							templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(durationWord(d.WasFree))
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 144, Col: 125}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 145, Col: 125}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 							if templ_7745c5c3_Err != nil {
@@ -547,7 +548,7 @@ func Delay(p DelayPage) templ.Component {
 							var templ_7745c5c3_Var28 string
 							templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(signedDuration(d.NowFree))
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 144, Col: 167}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 145, Col: 167}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 							if templ_7745c5c3_Err != nil {
@@ -575,7 +576,7 @@ func Delay(p DelayPage) templ.Component {
 						var templ_7745c5c3_Var29 string
 						templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(joinNames(r.Unplaced))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 153, Col: 74}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 154, Col: 74}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 						if templ_7745c5c3_Err != nil {
@@ -603,7 +604,7 @@ func Delay(p DelayPage) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = problemsList("Needed in two places", r.Clashes).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = newBreaks(r.Breaking).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -611,7 +612,7 @@ func Delay(p DelayPage) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = problemsList("Breaks", r.Breaks).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = problemsList("Needed in two places", r.Clashes).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -619,7 +620,7 @@ func Delay(p DelayPage) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = problemsList("Flights merged", r.Merged).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = problemsList("Breaks", r.Breaks).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -627,96 +628,104 @@ func Delay(p DelayPage) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
+					templ_7745c5c3_Err = problemsList("Flights merged", r.Merged).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, " ")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
 					if r.ShortRest[1] > r.ShortRest[0] {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "<p class=\"is-size-7 mb-2\">Less rest than wanted: ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "<p class=\"is-size-7 mb-2\">Less rest than wanted: ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var30 string
 						templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(r.ShortRest[0]))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 164, Col: 85}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 166, Col: 85}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, " people before, ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, " people before, ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var31 string
 						templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(r.ShortRest[1]))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 164, Col: 133}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 166, Col: 133}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, " after.</p>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, " after.</p>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, " <h2 class=\"title is-6 mt-3\">Flights that change (")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 65, " <h2 class=\"title is-6 mt-3\">Flights that change (")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var32 string
 					templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(r.Changes)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 166, Col: 84}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 168, Col: 84}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 65, ")</h2><div class=\"table-container\"><table class=\"table is-narrow is-fullwidth comp-table comp-stack\"><thead><tr><th>Flight</th><th>Was</th><th>Now</th><th></th></tr></thead> <tbody>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, ")</h2><div class=\"table-container\"><table class=\"table is-narrow is-fullwidth comp-table comp-stack\"><thead><tr><th>Flight</th><th>Was</th><th>Now</th><th></th></tr></thead> <tbody>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					for _, c := range r.Changes {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "<tr><td>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, "<tr><td>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var33 string
 						templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(c.Flight)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 173, Col: 24}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 175, Col: 24}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, "</td><td data-label=\"Was\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 68, "</td><td data-label=\"Was\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var34 string
 						templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(c.Was)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 174, Col: 38}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 176, Col: 38}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 68, "</td><td data-label=\"Now\"><strong>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "</td><td data-label=\"Now\"><strong>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var35 string
 						templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(c.Now)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 175, Col: 46}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 177, Col: 46}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "</strong></td><td class=\"is-size-7 comp-wrap\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 70, "</strong></td><td class=\"is-size-7 comp-wrap\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -724,37 +733,37 @@ func Delay(p DelayPage) templ.Component {
 							var templ_7745c5c3_Var36 string
 							templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(c.Why)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 178, Col: 19}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 180, Col: 19}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 70, "</td></tr>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "</td></tr>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "</tbody></table></div>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 72, "</tbody></table></div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 72, "</div> <form method=\"post\" action=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "</div> <form method=\"post\" action=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var37 templ.SafeURL
 				templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Keep))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 189, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/delay.templ`, Line: 191, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "\" class=\"mb-4\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 74, "\" class=\"mb-4\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -762,12 +771,12 @@ func Delay(p DelayPage) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 74, "<button class=\"button is-small is-success\" type=\"submit\">Keep this in the draft timetable</button> <span class=\"help is-inline ml-2\">Attendees see it once you publish the timetable again.</span></form>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "<button class=\"button is-small is-success\" type=\"submit\">Keep this in the draft timetable</button> <span class=\"help is-inline ml-2\">Attendees see it once you publish the timetable again.</span></form>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else if !p.Asked {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "<p class=\"help\">e.g. Panel 2's trampoline needs a spring replaced: Saturday, from 10:30, for 25 minutes, Panel 2.</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "<p class=\"help\">e.g. Panel 2's trampoline needs a spring replaced: Saturday, from 10:30, for 25 minutes, Panel 2.</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

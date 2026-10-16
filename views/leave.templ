@@ -25,6 +25,7 @@ type LeaveResult struct {
 	Summary                 string // e.g. "Mary's 3 seats: 2 filled by someone free, 1 by moving people round the panel."
 	Seats                   []SeatFillView
 	Direct, Reworked, Empty int
+	Breaking                []string // what filling the seats breaks that holds now
 }
 
 // SeatFillView is one seat filled again.
@@ -41,7 +42,7 @@ templ Leave(p LeavePage) {
 		<h1 class="title is-4">What if an official leaves?</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		@pageMenu(p.Menu)
-		<p class="mb-4">Choose who leaves and when. Each seat they'd have had from then is filled again by someone free (not competing, not on another panel, and allowed by your rules), or by moving others round where it helps: someone on that panel up a role, or someone across from a panel at the same time, their seat filled in turn (three moves at most). Nothing changes until you choose <strong>Keep this in the draft timetable</strong>, and even then officials see it only once you publish.</p>
+		<p class="mb-4">Choose who leaves and when. Each seat they'd have had from then is filled again by someone free (not competing, not on another panel or on duty for blocked time, not coaching someone competing elsewhere, rested where rest is a must, and allowed by your rules), or by moving others round where it helps: someone on that panel up a role, or someone across from a panel at the same time, their seat filled in turn (three moves at most). Nothing changes until you choose <strong>Keep this in the draft timetable</strong>, and even then officials see it only once you publish.</p>
 		<script defer src={ static.URL("js/selectsearch.js") }></script>
 		@problemList(p.Problems)
 		<form method="get" action={ templ.SafeURL(p.Base + "/timetable/leave") } class="box">
@@ -90,6 +91,7 @@ templ Leave(p LeavePage) {
 					<p>{ r.Who } has no seats from then.</p>
 				} else {
 					<p class="mb-3"><strong>{ r.Summary }</strong></p>
+					@newBreaks(r.Breaking)
 					for _, s := range r.Seats {
 						<div class={ "comp-leave-seat", templ.KV("has-text-danger", s.Empty != "") }>
 							<p><strong>{ s.Flight }</strong> · { s.Where } · { s.When } · { s.Role }</p>
