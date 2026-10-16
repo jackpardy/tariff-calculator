@@ -56,11 +56,17 @@ func trackable(rule requirements.Rule) bool {
 // skills by its name (own: the club's skills to track, by id), others as the
 // requirements describe them.
 func describeLevelRule(rule requirements.Rule, own map[string]store.ClubSkill) string {
-	if rule.Type == requirements.Track && strings.TrimSpace(rule.Label) == "" {
-		if c, ok := own[rule.Item]; ok {
-			return c.Name
+	if strings.TrimSpace(rule.Label) == "" {
+		switch {
+		case rule.Type == requirements.Track:
+			if c, ok := own[rule.Item]; ok {
+				return c.Name
+			}
+			return "A club skill no longer kept"
+		case requirements.KindOfRule(rule) == "include" && rule.Match != nil:
+			// A skill on a level's list is just its name: "Tuck Jump".
+			return requirements.Capitalise(requirements.DescribeMatcher(*rule.Match))
 		}
-		return "A club skill no longer kept"
 	}
 	return requirements.Describe(rule)
 }
@@ -153,7 +159,7 @@ func levelsProgress(levels []store.ClubLevel, clubItems map[string]store.ClubSki
 				lv.Items = append(lv.Items, v)
 				continue
 			}
-			v := views.MarkView{Name: requirements.Describe(rule)}
+			v := views.MarkView{Name: describeLevelRule(rule, nil)}
 			if wholeRule(rule) {
 				v.Item = levelItem(rule)
 				fill(&v, t.levelMarks[v.Item])

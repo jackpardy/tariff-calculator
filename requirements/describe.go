@@ -229,3 +229,7 @@ func capitalise(s string) string {
 	}
 	return strings.ToUpper(s[:1]) + s[1:]
 }
+
+// Capitalise is a description with its first letter in capitals, to start
+// a line ("any single somersault" heading a level's line).
+func Capitalise(s string) string { return capitalise(s) }

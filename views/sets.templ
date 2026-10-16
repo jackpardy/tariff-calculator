@@ -25,6 +25,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
 			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
 			<script src={ static.URL("js/htmx.min.js") }></script>
+			<script defer src={ static.URL("js/selectsearch.js") }></script>
 			<script defer src={ static.URL("js/routines.js") }></script>
 			<script defer src={ static.URL("js/sets.js") }></script>
 			<script defer src={ static.URL("js/share.js") }></script>
@@ -361,6 +362,9 @@ type SetEditorData struct {
 	// how it does against each rule, by index, while the set can be read.
 	Routine string
 	Results map[int]requirements.Result
+	// OpenRule is the rule open in a club level's editor, where lines are
+	// folded: the one just added as another kind of rule; -1 for none.
+	OpenRule int
 }
 
 // ClubEditor is what the editor needs to write a club's level (ADR 0011
@@ -396,6 +400,10 @@ func (e *SetEditorData) ownName(id string) string {
 func (e *SetEditorData) ruleTitle(rule requirements.Rule) string {
 	if name := e.ownName(rule.Item); rule.Type == requirements.Track && strings.TrimSpace(rule.Label) == "" && name != "" {
 		return name
+	}
+	// On a club's level, a skill on its list is just its name.
+	if e.Club != nil && strings.TrimSpace(rule.Label) == "" && rule.Match != nil && requirements.KindOfRule(rule) == "include" {
+		return requirements.Capitalise(requirements.DescribeMatcher(*rule.Match))
 	}
 	return describeSafely(rule)
 }
@@ -477,8 +485,41 @@ templ SetEditor(e SetEditorData) {
 		for i, rule := range e.Set.Rules {
 			@ruleCard(&e, i, rule, len(e.Set.Rules))
 		}
+		// A club's level is mostly a list of skills: each picked here is a line
+		// of its own, ticked off on its own.
+		if e.Club != nil {
+			<div class="field">
+				<label class="label is-small" for="add-pick">Add a skill</label>
+				<div class="select is-small">
+					<select id="add-pick" name="addpick" data-search-select="Search to add, e.g. seat drop or a drill">
+						<option value="">Choose a skill to add...</option>
+						if len(e.Club.Own) > 0 {
+							<optgroup label="Your club's own skills (not trampoline skills)">
+								for _, c := range e.Club.Own {
+									<option value={ "own:" + c.ID }>{ c.Name }</option>
+								}
+							</optgroup>
+						}
+						for _, g := range pickGroups(e.picks()) {
+							<optgroup label={ g.name }>
+								for _, p := range g.picks {
+									<option value={ p.ID }>{ p.Label }</option>
+								}
+							</optgroup>
+						}
+					</select>
+				</div>
+				<p class="help">Each one you pick is a line of its own. Add as many as the level needs, in any mix with the rules below.</p>
+			</div>
+		}
 		<div class="field">
-			<label class="label is-small" for="add-rule">Add a rule</label>
+			<label class="label is-small" for="add-rule">
+				if e.Club != nil {
+					Or add another kind of rule
+				} else {
+					Add a rule
+				}
+			</label>
 			<div class="select is-small">
 				<select id="add-rule" name="add">
 					<option value="">Choose a kind of rule...</option>
@@ -543,132 +584,147 @@ templ ruleCard(e *SetEditorData, i int, rule requirements.Rule, total int) {
 				@editorAction(e, "Remove", fmt.Sprintf("delete:%d", i), false)
 			</div>
 		</div>
-		<input type="hidden" name={ p + "was" } value={ kind }/>
-		<div class="rule-grid rule-kind">
-			<div class="field">
-				<label class="label is-small" for={ p + "type" }>Kind of rule</label>
-				<div class="select is-small is-fullwidth">
-					<select id={ p + "type" } name={ p + "type" }>
-						for _, k := range editorKinds(e, kind) {
-							<option value={ k.ID } selected?={ k.ID == kind }>{ k.Label }</option>
-						}
-					</select>
-				</div>
-			</div>
-			<div class="field">
-				<label class="label is-small" for={ p + "label" }>Wording (optional)</label>
-				<input class="input is-small" id={ p + "label" } name={ p + "label" } value={ rule.Label } placeholder="e.g. A back somersault"/>
-			</div>
-		</div>
-		switch rule.Type {
-			case requirements.Count:
-				switch kind {
-					case "include":
-						if e.Club != nil {
-							@matcherFields(e, p+"m.", rule.Match, "The gymnast can do")
-						} else {
-							@matcherFields(e, p+"m.", rule.Match, "The routine must include")
-						}
-					case "exclude":
-						@matcherFields(e, p+"m.", rule.Match, "The routine must not include")
-					default:
-						<div class="rule-grid">
-							@numberField(p+"min", "At least", floatText(rule.Min), "1")
-							@numberField(p+"max", "At most (0 = not allowed)", floatText(rule.Max), "1")
-						</div>
-						@matcherFields(e, p+"m.", rule.Match, "Skills that count")
-				}
-			case requirements.Linked:
-				<p class="matcher-hint mb-2">Counts pairs of these elements performed one straight after another, e.g. linked somersaults. Three in a row are two pairs.</p>
-				<div class="rule-grid">
-					@numberField(p+"min", "At least (pairs)", floatText(rule.Min), "1")
-					@numberField(p+"max", "At most (0 = none linked)", floatText(rule.Max), "1")
-				</div>
-				@matcherFields(e, p+"m.", rule.Match, "Skills that count")
-			case requirements.Every:
-				@matcherFields(e, p+"m.", rule.Match, "Every skill must be")
-			case requirements.Elements:
-				<div class="rule-grid">
-					@numberField(p+"min", "At least", floatText(rule.Min), "1")
-					@numberField(p+"max", "At most", floatText(rule.Max), "1")
-				</div>
-			case requirements.Difficulty:
-				<div class="rule-grid">
-					@numberField(p+"min", "At least", floatText(rule.Min), "0.1")
-					@numberField(p+"max", "At most", floatText(rule.Max), "0.1")
-					@numberField(p+"cap", "Each element counts at most", floatText(rule.Cap), "0.1")
-				</div>
-			case requirements.Position:
-				<div class="rule-grid">
-					@numberField(p+"position", "Element number", strconv.Itoa(rule.Position), "1")
-				</div>
-				@matcherFields(e, p+"m.", rule.Match, "That skill must be")
-			case requirements.Sequence:
-				// A set routine is built in the Routine Builder, not written here.
-				<p class="matcher-hint mb-2">This is a set routine. Its elements are built in the Routine Builder: save these requirements, then use "Edit in the Routine Builder" under Your set routines.</p>
-				<ol class="set-routine-elements">
-					for _, m := range rule.Sequence {
-						<li>{ requirements.DescribeMatcher(m) }</li>
-					}
-				</ol>
-				<input type="hidden" name={ p + "seqjson" } value={ templ.JSONString(rule.Sequence) }/>
-			case requirements.Separate:
-				<p class="matcher-hint mb-2">Each requirement must be met by a different element, as with the starred (*) elements on a competition card.</p>
-				<input type="hidden" name={ p + "seq" } value={ strconv.Itoa(len(rule.Each)) }/>
-				for j, m := range rule.Each {
-					@itemFields(e, fmt.Sprintf("%ss%d.", p, j), &m, fmt.Sprintf("Requirement %d", j+1), "e.g. Landing on the front")
-					<div class="buttons are-small">
-						@editorAction(e, fmt.Sprintf("Remove requirement %d", j+1), fmt.Sprintf("delete-element:%d:%d", i, j), len(rule.Each) == 1)
-					</div>
-				}
-				<div class="buttons are-small">
-					@editorAction(e, "+ Add requirement", fmt.Sprintf("add-element:%d", i), false)
-				</div>
-			case requirements.Track:
-				// One of the club's own skills, which no routine shows: chosen
-				// from the club's list, or kept as it is where there's none.
-				if e.Club != nil && len(e.Club.Own) > 0 {
-					<div class="field">
-						<label class="label is-small" for={ p + "item" }>Which of your club's skills</label>
-						<div class="select is-small">
-							<select id={ p + "item" } name={ p + "item" }>
-								for _, c := range e.Club.Own {
-									<option value={ c.ID } selected?={ c.ID == rule.Item }>{ c.Name }</option>
-								}
-							</select>
-						</div>
-					</div>
-				} else {
-					<p class="matcher-hint mb-2">One of a club's own skills to track. Only the club's page tracks it; a routine isn't checked against it.</p>
-					<input type="hidden" name={ p + "item" } value={ rule.Item }/>
-				}
-			case requirements.Includes:
-				<p class="matcher-hint mb-2">These skills one straight after another: each a skill you pick, or a kind of skill (a back somersault, then a barani). Add another option for "or instead".</p>
-				<input type="hidden" name={ p + "opts" } value={ strconv.Itoa(len(rule.Options)) }/>
-				for k, option := range rule.Options {
-					{{ op := fmt.Sprintf("%so%d.", p, k) }}
-					<fieldset class="option-group">
-						<legend>Option { strconv.Itoa(k + 1) }</legend>
-						<input type="hidden" name={ op + "seq" } value={ strconv.Itoa(len(option)) }/>
-						for j, m := range option {
-							@itemFields(e, fmt.Sprintf("%ss%d.", op, j), &m, stepTitle(j), "e.g. ¾ somersault to front or back")
-							<div class="buttons are-small">
-								@editorAction(e, fmt.Sprintf("Remove %s", strings.ToLower(stepTitle(j))), fmt.Sprintf("delete-step:%d:%d:%d", i, k, j), len(option) == 1)
-							</div>
-						}
-						<div class="buttons are-small">
-							@editorAction(e, "+ Then another skill", fmt.Sprintf("add-step:%d:%d", i, k), false)
-							@editorAction(e, fmt.Sprintf("Remove option %d", k+1), fmt.Sprintf("delete-option:%d:%d", i, k), len(rule.Options) == 1)
-						</div>
-					</fieldset>
-				}
-				<div class="buttons are-small">
-					@editorAction(e, "+ Or instead", fmt.Sprintf("add-option:%d", i), false)
-				</div>
-			case requirements.Different:
-				<p class="matcher-hint">No element may be repeated. Shapes count as different elements only where the Code of Points says they do (§14).</p>
+		// On a club's level, a line is folded to its name, with Change to open
+		// it: a level is mostly a list of skills. Open ones stay open as the
+		// editor redraws (ClubLevelEditor's script); one just added opens.
+		if e.Club != nil {
+			<details class="rule-card-body" data-rule={ strconv.Itoa(i) } open?={ e.OpenRule == i }>
+				<summary class="is-size-7">Change</summary>
+				@ruleBody(e, i, rule, p, kind)
+			</details>
+		} else {
+			@ruleBody(e, i, rule, p, kind)
 		}
 	</div>
+}
+
+// ruleBody is a rule card's fields: its kind, wording, and what the kind needs.
+templ ruleBody(e *SetEditorData, i int, rule requirements.Rule, p, kind string) {
+	<input type="hidden" name={ p + "was" } value={ kind }/>
+	<div class="rule-grid rule-kind">
+		<div class="field">
+			<label class="label is-small" for={ p + "type" }>Kind of rule</label>
+			<div class="select is-small is-fullwidth">
+				<select id={ p + "type" } name={ p + "type" }>
+					for _, k := range editorKinds(e, kind) {
+						<option value={ k.ID } selected?={ k.ID == kind }>{ k.Label }</option>
+					}
+				</select>
+			</div>
+		</div>
+		<div class="field">
+			<label class="label is-small" for={ p + "label" }>Wording (optional)</label>
+			<input class="input is-small" id={ p + "label" } name={ p + "label" } value={ rule.Label } placeholder="e.g. A back somersault"/>
+		</div>
+	</div>
+	switch rule.Type {
+		case requirements.Count:
+			switch kind {
+				case "include":
+					if e.Club != nil {
+						@matcherFields(e, p+"m.", rule.Match, "The gymnast can do")
+					} else {
+						@matcherFields(e, p+"m.", rule.Match, "The routine must include")
+					}
+				case "exclude":
+					@matcherFields(e, p+"m.", rule.Match, "The routine must not include")
+				default:
+					<div class="rule-grid">
+						@numberField(p+"min", "At least", floatText(rule.Min), "1")
+						@numberField(p+"max", "At most (0 = not allowed)", floatText(rule.Max), "1")
+					</div>
+					@matcherFields(e, p+"m.", rule.Match, "Skills that count")
+			}
+		case requirements.Linked:
+			<p class="matcher-hint mb-2">Counts pairs of these elements performed one straight after another, e.g. linked somersaults. Three in a row are two pairs.</p>
+			<div class="rule-grid">
+				@numberField(p+"min", "At least (pairs)", floatText(rule.Min), "1")
+				@numberField(p+"max", "At most (0 = none linked)", floatText(rule.Max), "1")
+			</div>
+			@matcherFields(e, p+"m.", rule.Match, "Skills that count")
+		case requirements.Every:
+			@matcherFields(e, p+"m.", rule.Match, "Every skill must be")
+		case requirements.Elements:
+			<div class="rule-grid">
+				@numberField(p+"min", "At least", floatText(rule.Min), "1")
+				@numberField(p+"max", "At most", floatText(rule.Max), "1")
+			</div>
+		case requirements.Difficulty:
+			<div class="rule-grid">
+				@numberField(p+"min", "At least", floatText(rule.Min), "0.1")
+				@numberField(p+"max", "At most", floatText(rule.Max), "0.1")
+				@numberField(p+"cap", "Each element counts at most", floatText(rule.Cap), "0.1")
+			</div>
+		case requirements.Position:
+			<div class="rule-grid">
+				@numberField(p+"position", "Element number", strconv.Itoa(rule.Position), "1")
+			</div>
+			@matcherFields(e, p+"m.", rule.Match, "That skill must be")
+		case requirements.Sequence:
+			// A set routine is built in the Routine Builder, not written here.
+			<p class="matcher-hint mb-2">This is a set routine. Its elements are built in the Routine Builder: save these requirements, then use "Edit in the Routine Builder" under Your set routines.</p>
+			<ol class="set-routine-elements">
+				for _, m := range rule.Sequence {
+					<li>{ requirements.DescribeMatcher(m) }</li>
+				}
+			</ol>
+			<input type="hidden" name={ p + "seqjson" } value={ templ.JSONString(rule.Sequence) }/>
+		case requirements.Separate:
+			<p class="matcher-hint mb-2">Each requirement must be met by a different element, as with the starred (*) elements on a competition card.</p>
+			<input type="hidden" name={ p + "seq" } value={ strconv.Itoa(len(rule.Each)) }/>
+			for j, m := range rule.Each {
+				@itemFields(e, fmt.Sprintf("%ss%d.", p, j), &m, fmt.Sprintf("Requirement %d", j+1), "e.g. Landing on the front")
+				<div class="buttons are-small">
+					@editorAction(e, fmt.Sprintf("Remove requirement %d", j+1), fmt.Sprintf("delete-element:%d:%d", i, j), len(rule.Each) == 1)
+				</div>
+			}
+			<div class="buttons are-small">
+				@editorAction(e, "+ Add requirement", fmt.Sprintf("add-element:%d", i), false)
+			</div>
+		case requirements.Track:
+			// One of the club's own skills, which no routine shows: chosen
+			// from the club's list, or kept as it is where there's none.
+			if e.Club != nil && len(e.Club.Own) > 0 {
+				<div class="field">
+					<label class="label is-small" for={ p + "item" }>Which of your club's skills</label>
+					<div class="select is-small">
+						<select id={ p + "item" } name={ p + "item" }>
+							for _, c := range e.Club.Own {
+								<option value={ c.ID } selected?={ c.ID == rule.Item }>{ c.Name }</option>
+							}
+						</select>
+					</div>
+				</div>
+			} else {
+				<p class="matcher-hint mb-2">One of a club's own skills to track. Only the club's page tracks it; a routine isn't checked against it.</p>
+				<input type="hidden" name={ p + "item" } value={ rule.Item }/>
+			}
+		case requirements.Includes:
+			<p class="matcher-hint mb-2">These skills one straight after another: each a skill you pick, or a kind of skill (a back somersault, then a barani). Add another option for "or instead".</p>
+			<input type="hidden" name={ p + "opts" } value={ strconv.Itoa(len(rule.Options)) }/>
+			for k, option := range rule.Options {
+				{{ op := fmt.Sprintf("%so%d.", p, k) }}
+				<fieldset class="option-group">
+					<legend>Option { strconv.Itoa(k + 1) }</legend>
+					<input type="hidden" name={ op + "seq" } value={ strconv.Itoa(len(option)) }/>
+					for j, m := range option {
+						@itemFields(e, fmt.Sprintf("%ss%d.", op, j), &m, stepTitle(j), "e.g. ¾ somersault to front or back")
+						<div class="buttons are-small">
+							@editorAction(e, fmt.Sprintf("Remove %s", strings.ToLower(stepTitle(j))), fmt.Sprintf("delete-step:%d:%d:%d", i, k, j), len(option) == 1)
+						</div>
+					}
+					<div class="buttons are-small">
+						@editorAction(e, "+ Then another skill", fmt.Sprintf("add-step:%d:%d", i, k), false)
+						@editorAction(e, fmt.Sprintf("Remove option %d", k+1), fmt.Sprintf("delete-option:%d:%d", i, k), len(rule.Options) == 1)
+					</div>
+				</fieldset>
+			}
+			<div class="buttons are-small">
+				@editorAction(e, "+ Or instead", fmt.Sprintf("add-option:%d", i), false)
+			</div>
+		case requirements.Different:
+			<p class="matcher-hint">No element may be repeated. Shapes count as different elements only where the Code of Points says they do (§14).</p>
+	}
 }
 
 // editorAction is a button that posts the editor with an action ("delete:2").
@@ -720,7 +776,7 @@ templ matcherFields(e *SetEditorData, prefix string, m *requirements.Matcher, ti
 		<div class="field matcher-pick">
 			<label class="label is-small" for={ prefix + "pick" }>A skill, or a kind of skill</label>
 			<div class="select is-small is-fullwidth">
-				<select id={ prefix + "pick" } name={ prefix + "pick" }>
+				<select id={ prefix + "pick" } name={ prefix + "pick" } data-search-select="Search, e.g. barani or tuck jump">
 					<option value="" selected?={ picked == "" }>
 						if own {
 							Your own description, below

@@ -59,6 +59,32 @@ func (p *competitionPages) clubOwn(r *http.Request, clubID string) ([]views.Club
 	return out, nil
 }
 
+// pickedRule is the rule for a skill picked from Add a skill (pick): one of
+// the club's own skills to track ("own:<id>"), or a skill or kind of skill
+// the gymnast can do (a pick's ID, the club's named skills among picks).
+func pickedRule(pick string, picks []requirements.Pick) (requirements.Rule, bool) {
+	if pick == "" {
+		return requirements.Rule{}, false
+	}
+	if id, own := strings.CutPrefix(pick, "own:"); own {
+		return requirements.Rule{Type: requirements.Track, Item: id}, id != ""
+	}
+	p, ok := requirements.PickByID(pick)
+	if i := slices.IndexFunc(picks, func(p requirements.Pick) bool { return p.ID == pick }); i >= 0 {
+		p, ok = picks[i], true
+	}
+	if !ok {
+		return requirements.Rule{}, false
+	}
+	rule := newRule("include")
+	m := p.Match.Clone()
+	if p.Group == "Your club's skills" {
+		m.Label = p.Label
+	}
+	rule.Match = &m
+	return rule, true
+}
+
 // levelEditorData is the editor as it shows a level being written: the
 // set, its problems and the rules that can't be met together, and where it
 // posts on the coach's page (token) for the level (id, "" for a new one).
@@ -83,7 +109,7 @@ func levelEditorData(set requirements.Set, problems []string, token, id string, 
 	if id != "" {
 		save = coachLevelsPath(token) + "/" + id + "/edit"
 	}
-	return views.SetEditorData{Set: set, JSON: string(data), Problems: problems, Conflicts: conflicts, Club: &views.ClubEditor{
+	return views.SetEditorData{Set: set, JSON: string(data), Problems: problems, Conflicts: conflicts, OpenRule: -1, Club: &views.ClubEditor{
 		Endpoint: coachLevelsPath(token) + "/editor?level=" + id, Save: save, Back: coachLevelsPath(token), Picks: picks, Own: own,
 	}}
 }
@@ -95,7 +121,7 @@ func (p *competitionPages) newClubLevel(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	set := requirements.Set{Format: requirements.Format, Name: "New level", Rules: []requirements.Rule{newRule("include")}}
+	set := requirements.Set{Format: requirements.Format, Name: "New level", Rules: []requirements.Rule{}}
 	// A competition's set routine to start from: the level's first item.
 	if ref := r.URL.Query().Get("set"); ref != "" {
 		if builtin, ok := requirements.LookupBuiltin(ref); ok {
@@ -188,7 +214,15 @@ func (p *competitionPages) clubLevelEditor(w http.ResponseWriter, r *http.Reques
 	}
 	set, problems := parseSetForm(r, picks...)
 	applySetAction(&set, r.FormValue("action"), r.FormValue("add"))
-	render(w, r, views.SetEditor(levelEditorData(set, problems, r.PathValue("token"), r.URL.Query().Get("level"), picks, own)))
+	if rule, ok := pickedRule(r.FormValue("addpick"), picks); ok {
+		set.Rules = append(set.Rules, rule)
+	}
+	data := levelEditorData(set, problems, r.PathValue("token"), r.URL.Query().Get("level"), picks, own)
+	// Another kind of rule just added opens, to fill in.
+	if r.FormValue("add") != "" {
+		data.OpenRule = len(data.Set.Rules) - 1
+	}
+	render(w, r, views.SetEditor(data))
 }
 
 // saveNewClubLevel saves the editor's level as a new one of the club's,
