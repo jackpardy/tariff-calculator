@@ -212,6 +212,8 @@ templ CompetitionCards(p CardsPage) {
 			}
 			for _, c := range p.Cards {
 				<section class="card-page">
+					// Whose card, on screen: its warnings are about it.
+					<p class="hint screen-only card-who"><strong>{ c.Details["gymnast"] }</strong> · { c.Details["category"] } · { c.Details["round"] }</p>
 					@TariffSheet(c.Validation, c.Required, c.Checks, c.Details)
 				</section>
 			}

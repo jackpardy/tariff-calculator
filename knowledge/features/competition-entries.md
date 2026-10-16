@@ -82,7 +82,7 @@ timetable is planned the two "what if" pages), **On the day** (once the
 timetable is published: On the day, Desk messages, Venue screen) and
 **Settings** (Settings, History, and Feedback for links that may read it). Late changes, Coaches and Feedback show a count of
 what waits; the menu works that out on every page. It shows only what the
-admin link may open (ADR 0009): a cards link sees Entries (with People) and History; a
+admin link may open (ADR 0009): a cards link sees Entries (with People); a
 chair of judges adds the day's pages, and finds the printed sheets in the
 entries page's **Print** menu; the timetable team adds Timetable and Officials. The
 menu is left off printouts, the CSV, invoices, cards and the venue screen. The
@@ -190,7 +190,8 @@ one gate (`allowed` in `access.go`); pages show only what the link can do,
 and say whose link it is.
 
 **History** (`/history`) lists every change made through any admin link,
-latest first: when, which link (its name, "Organiser" for the admin link)
+for the organiser and "everything" links only (it says what was paid and
+what feedback was sent, which the narrower links can't see), latest first: when, which link (its name, "Organiser" for the admin link)
 and what ("Marked a card checked: Ann Ryan · BUCS L3"); the latest 2,000
 are kept.
 

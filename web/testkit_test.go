@@ -611,9 +611,9 @@ func myCompetitionOf(t *testing.T, page string) myPage {
 	if h1 := byTag(doc, "h1"); len(h1) > 0 {
 		out.Name = textOf(h1[0])
 	}
-	if tags := firstByClass(doc, "tags"); tags != nil {
-		for _, tag := range byClass(tags, "tag") {
-			out.Roles = append(out.Roles, textOf(tag))
+	if roles := firstByClass(doc, "comp-roles"); roles != nil {
+		for _, chip := range byClass(roles, "chip") {
+			out.Roles = append(out.Roles, textOf(chip))
 		}
 	}
 	for _, h2 := range byTag(doc, "h2") {

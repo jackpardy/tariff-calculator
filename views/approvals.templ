@@ -105,7 +105,7 @@ templ CompetitionApprovals(p ApprovalsPage) {
 								<div class="mb-4" { k.List.Attrs()... }>
 									<p>
 										<strong><a href={ templ.SafeURL(k.Person) }>{ k.Name }</a></strong>
-										<span class={ "tag is-light ml-1", templ.KV("is-success", k.Approved), templ.KV("is-warning", !k.Approved) }>{ k.Status }</span>
+										@StateChip(approvalState(k))
 										if k.Changed {
 											<span class="is-size-7 has-text-grey">· the club has changed their qualifications since, not sent yet</span>
 										}
@@ -237,4 +237,17 @@ templ pairEntries(list []PairView) {
 			}
 		</div>
 	}
+}
+
+// approvalState is the organiser's decision about a coach as a state chip,
+// in the palette's colours: approved, not approved or withdrawn, or waiting.
+func approvalState(k ApprovalRow) (State, string) {
+	label := strings.TrimSuffix(k.Status, " ✓")
+	switch {
+	case k.Approved:
+		return Done, label
+	case k.Withdrawn || k.Status == "Not approved":
+		return Stopped, label
+	}
+	return InProgress, label
 }

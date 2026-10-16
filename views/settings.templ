@@ -56,7 +56,8 @@ templ CompetitionSettings(p SettingsPage) {
 			@newAdminLink(p.Competition, p.Links.Admin, p.New)
 		}
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			// Stays in sight as the page goes to the setting changed.
+			<div class="notification is-success is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
 		}
 		<p class="is-size-7 mb-4">
 			Jump to:

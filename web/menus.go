@@ -153,11 +153,11 @@ func orgMenu(base string, a views.Access, m menuState, current string) []views.M
 	}
 
 	// Feedback about the app, beside the history, for links that may read it.
+	// The history (payments, feedback) is for links that change the settings.
 	var more []views.MenuItem
 	if a.Settings {
-		more = append(more, item("Settings", menuSettings, ""))
+		more = append(more, item("Settings", menuSettings, ""), item("History", menuHistory, ""))
 	}
-	more = append(more, item("History", menuHistory, ""))
 	if a.Feedback {
 		more = append(more, item("Feedback", menuFeedback, badge(m.FeedbackNew, "new")))
 	}

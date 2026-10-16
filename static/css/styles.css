@@ -1213,3 +1213,30 @@ input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100
 /* The set routine maker (Requirements page): Add as wide as its words, not
    the whole card, so Save below isn't lost under it. */
 .set-routine-maker #add-btn { width: auto; }
+
+/* Entries ticked: a bar at the foot of the screen with Remove and Hold. */
+.comp-tick-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); z-index: 40; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.9rem; background: #fff; border: 1px solid #dbdbdb; border-radius: 8px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15); max-width: calc(100% - 2rem); }
+.comp-tick-bar .button { margin: 0; }
+
+/* Fees: Record a payment opens as a panel under its button, so the table's
+   columns don't move; on a phone, where rows are cards, in place. */
+@media screen and (min-width: 769px) {
+  .comp-pay-cell { position: relative; }
+  .comp-pay-cell .comp-opens-form { position: absolute; right: 0; top: 100%; z-index: 20; background: #fff; border: 1px solid #dbdbdb; border-radius: 6px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12); padding: 0.6rem; min-width: 22rem; }
+}
+
+/* A coach's page: the gymnasts they coach, a row each. */
+.comp-coached { margin: 0; }
+.comp-coached li { padding: 0.35rem 0; border-bottom: 1px solid #ededed; }
+.comp-coached .chip { margin-left: 0.4rem; }
+
+/* The entries table on a wide screen: the page's full width, the gymnast's
+   name (and tick) staying in view as the rest scrolls, and a problem's
+   chip alone so rows stay one line. */
+.comp-page .container:has(#entries) { max-width: none; }
+@media screen and (min-width: 769px) {
+  .comp-entries .comp-problem-first { display: none; }
+  .comp-entries td.comp-stack-title, .comp-entries th.comp-stack-title { position: sticky; left: 0; z-index: 1; background: #fff; box-shadow: 1px 0 0 #ededed; }
+  .comp-entries.has-ticks td.comp-stack-tick, .comp-entries.has-ticks th:first-child { position: sticky; left: 0; z-index: 2; background: #fff; width: 2.25rem; min-width: 2.25rem; }
+  .comp-entries.has-ticks td.comp-stack-title, .comp-entries.has-ticks th.comp-stack-title { left: 2.25rem; }
+}

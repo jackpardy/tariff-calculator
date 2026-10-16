@@ -46,7 +46,13 @@ func TestPayments(t *testing.T) {
 		t.Errorf("nothing recorded: %+v", got)
 	}
 
-	if notice := noticeOf(t, redirected(t, h, fees+"/payments", url.Values{"payer": {ucd.Payer}, "amount": {"20.50"}, "note": {"Cash"}})); notice != "€20.50 recorded." {
+	// A refused amount comes back to the row, the form open as it was typed.
+	again := redirected(t, h, fees+"/payments", url.Values{"payer": {ucd.Payer}, "amount": {"abc"}, "note": {"Cash"}})
+	path, _, _ := strings.Cut(again, "#") // a browser keeps the anchor to itself
+	if page := do(t, h, http.MethodGet, path, nil).Body.String(); !strings.Contains(again, "#payer-") || !strings.Contains(page, `value="abc"`) || !strings.Contains(page, `value="Cash"`) {
+		t.Errorf("what was typed stays: %s", again)
+	}
+	if notice := noticeOf(t, redirected(t, h, fees+"/payments", url.Values{"payer": {ucd.Payer}, "amount": {"20.50"}, "note": {"Cash"}})); notice != "€20.50 recorded from UCD." {
 		t.Errorf("recorded: %q", notice)
 	}
 	redirected(t, h, fees+"/payments", url.Values{"payer": {ucd.Payer}, "amount": {"10"}})
@@ -351,5 +357,12 @@ func TestOverpayment(t *testing.T) {
 	inv := do(t, h, http.MethodGet, ucd.Invoice, nil).Body.String()
 	if !strings.Contains(inv, "Paid more than due") || !strings.Contains(inv, "€11 over") || strings.Contains(inv, "−€11") {
 		t.Errorf("the invoice says so: %s", inv)
+	}
+	// The credit refunded: settled, nothing over.
+	if notice := noticeOf(t, redirected(t, h, fees+"/payments", url.Values{"payer": {ucd.Payer}, "amount": {"11"}, "refund": {"1"}})); notice != "€11 refunded to UCD." {
+		t.Errorf("refunded: %q", notice)
+	}
+	if got := feeAccounts(t, do(t, h, http.MethodGet, fees, nil).Body.String())["UCD"]; strings.Contains(got.Balance, "over") || !strings.Contains(got.Balance, "Paid") {
+		t.Errorf("after the refund: %+v", got)
 	}
 }
