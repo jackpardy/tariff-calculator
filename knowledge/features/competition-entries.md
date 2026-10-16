@@ -345,7 +345,10 @@ Removed, held and withdrawn entries aren't charged (`Fees.Invoice`). The
 page lists each club, and each individual's entry, with entries, due, paid
 and balance (the Paid chip once settled), and totals; the organiser records
 each payment (**Record a payment**, opening the amount and note, with who
-recorded it) and can remove one made by mistake. Each has an **invoice** to print: a line per entry and the club
+recorded it) and can remove one made by mistake. An amount is whole and
+cents ("12.50" or "12,50"; "1,000" is refused rather than read as 1), a fee
+up to 1,000 and a payment up to 100,000 (a club's whole bill) (`ParseMoney`, `ParsePayment`),
+and a refund shows on the invoice as "Refunded … +€X". Each has an **invoice** to print: a line per entry and the club
 fee, payments, what's left and how to pay. A club's comp sec sees "Fees:
 €49 · €25 paid · €24 to pay" on each competition, with the invoice; an
 individual on their entry. No money goes through the tools. The demo
@@ -1698,7 +1701,9 @@ people with no record left).
   browser, posts it (`POST <link>/requirements`, `items` a JSON list) by its
   id in the browser, so saving again changes it. It shows **On your page**
   from then on; saving it in the editor saves it there too, and **Delete**
-  takes it off the page as well.
+  takes it off the page as well. A level's own requirements (`inLevel`)
+  stay its own on the page too (the `in_level` column, migration 46), so
+  they don't come back in Your requirements on another browser.
 - **Reading them**: the Requirements page and the Routine Builder read each
   saved personal link's `<link>/requirements.json` on load and merge it into
   `SetStore` and `LevelStore`, the page's copy winning, each marked `kept`.
@@ -2197,9 +2202,11 @@ when the connection drops. Every competition page registers the service
 worker (`/sw.js`), which keeps a copy of each page opened on that phone: the
 competition pages under `/clubs/`, `/competitions/` (admin pages included) and
 `/notify/`, and the app's static files. Pages are **network first**: the live
-page when the connection answers within about four seconds, else the copy
-last opened, else a short page saying this one hasn't been opened on this
-phone before. Static files are kept as first fetched (their addresses change
+page when the server starts answering within about four seconds (from
+then the page comes through however slowly, as it would without the worker),
+else the copy last opened, else a short page saying this one hasn't been
+opened on this phone before. A page is kept only once all of it has
+arrived, so a page cut off partway leaves the older copy. Static files are kept as first fetched (their addresses change
 with each version). Only successful pages are kept, never what a form
 posted, and at most 60 pages per phone, the oldest dropped first.
 A copy is dropped after 30 days (by the date the server sent it), and when

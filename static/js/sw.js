@@ -93,37 +93,50 @@ async function trimPages(cache) {
     }
 }
 
-// pageFromNetwork fetches a page, giving up after NETWORK_WAIT_MS so that a
-// poor connection falls back to the copy at once. Only good, same-origin
-// responses are kept, replacing the older copy (deleted first, so the new one
-// counts as the newest). A page the server says isn't there (404) or is gone
-// (410), such as a replaced or deleted link's, drops its copy too.
-async function pageFromNetwork(request) {
+// pageFromNetwork fetches a page, giving up if the server hasn't started
+// answering within NETWORK_WAIT_MS, so that a poor connection falls back to the
+// copy at once. Once it has, the page comes through however slowly, as it would
+// without this worker. Only good, same-origin responses are kept, and only once
+// the whole page has arrived (see keep). A page the server says isn't there
+// (404) or is gone (410), such as a replaced or deleted link's, drops its copy.
+async function pageFromNetwork(request, event) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), NETWORK_WAIT_MS);
+    let response;
     try {
-        const response = await fetch(request, { signal: controller.signal });
-        if (response.ok && response.type === 'basic') {
-            const cache = await caches.open(PAGES);
-            await cache.delete(request.url);
-            await cache.put(request.url, response.clone());
-            await trimPages(cache);
-        } else if (response.status === 404 || response.status === 410) {
-            const cache = await caches.open(PAGES);
-            await cache.delete(request.url);
-        }
-        return response;
+        response = await fetch(request, { signal: controller.signal });
     } finally {
         clearTimeout(timer);
     }
+    if (response.ok && response.type === 'basic') {
+        event.waitUntil(keep(request.url, response.clone()).catch(() => {}));
+    } else if (response.status === 404 || response.status === 410) {
+        event.waitUntil(caches.open(PAGES).then((cache) => cache.delete(request.url)));
+    }
+    return response;
+}
+
+// keep puts a page in the cache once all of it has arrived, replacing the older
+// copy (deleted then, so the new one counts as the newest). If the page never
+// finishes arriving, the older copy stays.
+async function keep(url, response) {
+    const body = await response.blob();
+    const cache = await caches.open(PAGES);
+    await cache.delete(url);
+    await cache.put(url, new Response(body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+    }));
+    await trimPages(cache);
 }
 
 // page is network first: the live page when the connection answers in time,
 // else the copy last seen (unless it's too old), else a short page saying
 // there isn't one.
-async function page(request) {
+async function page(request, event) {
     try {
-        return await pageFromNetwork(request);
+        return await pageFromNetwork(request, event);
     } catch (e) {
         const cache = await caches.open(PAGES);
         let cached = await cache.match(request.url);
@@ -169,7 +182,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     if (request.mode === 'navigate' && isPage(url.pathname)) {
-        event.respondWith(page(request));
+        event.respondWith(page(request, event));
     } else if (url.pathname.startsWith('/static/')) {
         event.respondWith(asset(request));
     }

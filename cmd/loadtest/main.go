@@ -215,19 +215,30 @@ func (t *tester) do(ctx context.Context, kind, method, path string, form url.Val
 	return string(page)
 }
 
-var checkinForm = regexp.MustCompile(`name="entry" value="([^"]+)"`)
+var (
+	checkinForm = regexp.MustCompile(`name="entry" value="([^"]+)"`)
+	areaLink    = regexp.MustCompile(`/day\?day=0&amp;area=([^"&]+)"`)
+)
 
 // tapping checks a gymnast in, or clears them, every so often, as the
-// marshals do, on the organiser's On the day page.
+// marshals do, on the first day's area pages (On the day's check-ins are
+// only on each area's own page).
 func (t *tester) tapping(ctx context.Context, day page, every time.Duration, rng *rand.Rand) {
-	var entries []string
-	for _, m := range checkinForm.FindAllStringSubmatch(t.do(ctx, "day", http.MethodGet, day.path, nil), -1) {
-		if !slices.Contains(entries, m[1]) {
-			entries = append(entries, m[1])
+	var areas, entries []string
+	for _, m := range areaLink.FindAllStringSubmatch(t.do(ctx, "day", http.MethodGet, day.path, nil), -1) {
+		if !slices.Contains(areas, m[1]) {
+			areas = append(areas, m[1])
+		}
+	}
+	for _, a := range areas {
+		for _, m := range checkinForm.FindAllStringSubmatch(t.do(ctx, "day", http.MethodGet, day.path+"?day=0&area="+a, nil), -1) {
+			if !slices.Contains(entries, m[1]) {
+				entries = append(entries, m[1])
+			}
 		}
 	}
 	if len(entries) == 0 {
-		log.Print("No check-in on the day page to tap: the timetable may not be published.")
+		log.Print("No check-in on the day's area pages to tap: the timetable may not be published.")
 		return
 	}
 	here := map[string]bool{}
