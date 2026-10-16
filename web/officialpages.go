@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -103,9 +104,14 @@ func (p *competitionPages) editMemberOffer(w http.ResponseWriter, r *http.Reques
 		failed(w, r, err)
 		return
 	}
+	form := offerForm(c.Competition, o, r.URL.Path)
+	if form.Judging, err = p.memberJudging(r.Context(), c, m, clubPath(r.PathValue("token"))+"/members/"+m.ID+"/judging", r.URL.Path, m.Name+"'s"); err != nil {
+		failed(w, r, err)
+		return
+	}
 	render(w, r, views.ClubOfferEditPage(views.ClubOfferEdit{
 		Back: clubCompetitionPath(r.PathValue("token"), c.ID) + "/offers", Club: club.Name, Member: m.Name, Competition: summary(c, p.now()),
-		Menu: clubCompetitionMenu(r.PathValue("token"), c, clubCompOffers), Form: offerForm(c.Competition, o, r.URL.Path),
+		Menu: clubCompetitionMenu(r.PathValue("token"), c, clubCompOffers), Form: form,
 	}))
 }
 
@@ -205,6 +211,11 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 	page.Tools = views.ListTools{ID: "officials", Noun: "people", Total: len(people), Filters: []views.ListFilter{
 		clubFilter(clubs), canDoFilter(), judgesFilter(c.Competition), qualifiedFilter(),
 	}}
+	quals, err := p.st.OfficialsJudgeQualifications(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	for _, o := range people {
 		key := officialKey(o, keys)
 		row := views.OfficialRow{ID: o.ID, Name: o.Name, Club: o.ClubName, Offer: o.Offer.Describe(), Qualified: o.Qualified, Added: o.Added,
@@ -212,6 +223,25 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 			List: views.ListRow{Name: o.Name, Values: map[string][]string{
 				"club": {clubValue(o.ClubName)}, "can": canDo(o.Offer), "judges": judges(c.Competition, o.Offer), "qualified": {qualifiedValue(o.Qualified)},
 			}}}
+		// Their qualifications, and where the competition approves judges,
+		// the disciplines they'd judge without one (where they could give
+		// them: not those the organiser added).
+		for _, q := range quals[o.ID] {
+			row.Judging = append(row.Judging, views.JudgingRow{Name: judgingName(q.Qualification), Certificate: page.Base + "/officials/" + o.ID + "/judging/" + q.ID})
+		}
+		if !o.Added && c.Officials.Judge == competitions.JudgeQualified {
+			for _, d := range c.Disciplines() {
+				if _, judges := o.Offer.Judge[d]; !judges {
+					continue
+				}
+				if !slices.ContainsFunc(quals[o.ID], func(q store.JudgeQualification) bool {
+					jq, ok := competitions.JudgeQualificationByKey(q.Qualification)
+					return ok && jq.Covers(d)
+				}) {
+					row.Unqualified = append(row.Unqualified, competitions.DisciplineName(d))
+				}
+			}
+		}
 		switch {
 		case o.Added:
 			row.Source = "added by you"

@@ -794,6 +794,23 @@ var migrations = []string{
 		UNIQUE (person_id, kind, source)
 	);
 	CREATE INDEX person_requirements_person ON person_requirements (person_id);`,
+
+	// 45: judging qualifications (ADR 0014), each with its certificate, as a
+	// coach's are (migration 10): a club member's, kept with them for the
+	// club's competitions, or an individual's, kept with one of their
+	// entries (and gone with it).
+	`CREATE TABLE judge_qualifications (
+		id            TEXT PRIMARY KEY,
+		member_id     TEXT REFERENCES members (id) ON DELETE CASCADE,
+		entry_id      TEXT REFERENCES entries (id) ON DELETE CASCADE,
+		qualification TEXT NOT NULL,
+		cert_type     TEXT NOT NULL,
+		certificate   BLOB NOT NULL,
+		uploaded_at   TEXT NOT NULL,
+		CHECK ((member_id IS NULL) <> (entry_id IS NULL))
+	);
+	CREATE INDEX judge_qualifications_member ON judge_qualifications (member_id);
+	CREATE INDEX judge_qualifications_entry ON judge_qualifications (entry_id);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

@@ -450,7 +450,8 @@ const maxCertificateBytes = store.MaxCertificateBytes
 // uploads says whether a path takes an upload, for its larger size limit.
 func uploads(path string) bool {
 	return strings.HasPrefix(path, "/clubs/admin/") && strings.HasSuffix(path, "/qualifications") ||
-		strings.HasPrefix(path, "/competitions/entry/") && strings.HasSuffix(path, "/coach")
+		strings.HasPrefix(path, "/competitions/entry/") && strings.HasSuffix(path, "/coach") ||
+		(strings.HasPrefix(path, "/clubs/") || strings.HasPrefix(path, "/competitions/entry/")) && strings.HasSuffix(path, "/judging")
 }
 
 // certificateType is the media type of a certificate from its own bytes:
@@ -546,30 +547,46 @@ func certificateRefused(err error) string {
 // postedCertificate is the qualification (its key) and certificate (a file)
 // a form uploads, or what's wrong with them.
 func postedCertificate(r *http.Request) (q competitions.Qualification, data []byte, certType, problem string) {
-	if err := r.ParseMultipartForm(1 << 20); err != nil {
-		var tooBig *http.MaxBytesError
-		if errors.As(err, &tooBig) {
-			return q, nil, "", "the certificate is over 3 MB. A photo or a smaller PDF will do."
-		}
-		return q, nil, "", "choose a qualification and its certificate."
+	if problem := parseUpload(r); problem != "" {
+		return q, nil, "", problem
 	}
 	q, ok := competitions.QualificationByKey(r.FormValue("qualification"))
 	if !ok {
 		return q, nil, "", "choose the coach's qualification."
 	}
+	data, certType, problem = postedFile(r)
+	return q, data, certType, problem
+}
+
+// parseUpload reads a form uploading a certificate, saying what's wrong
+// with it if it can't be read.
+func parseUpload(r *http.Request) string {
+	if err := r.ParseMultipartForm(1 << 20); err != nil {
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			return "the certificate is over 3 MB. A photo or a smaller PDF will do."
+		}
+		return "choose a qualification and its certificate."
+	}
+	return ""
+}
+
+// postedFile is the certificate an upload form sends (certificate), and its
+// type from its own bytes, or what's wrong with it.
+func postedFile(r *http.Request) (data []byte, certType, problem string) {
 	file, _, err := r.FormFile("certificate")
 	if err != nil {
-		return q, nil, "", "add the certificate, a photo or PDF of it."
+		return nil, "", "add the certificate, a photo or PDF of it."
 	}
 	defer file.Close()
 	data, err = io.ReadAll(io.LimitReader(file, maxCertificateBytes+1))
 	if err != nil || len(data) > maxCertificateBytes {
-		return q, nil, "", "the certificate is over 3 MB. A photo or a smaller PDF will do."
+		return nil, "", "the certificate is over 3 MB. A photo or a smaller PDF will do."
 	}
 	if certType = certificateType(data); certType == "" {
-		return q, nil, "", "the certificate should be a photo (JPEG, PNG or WebP) or a PDF."
+		return nil, "", "the certificate should be a photo (JPEG, PNG or WebP) or a PDF."
 	}
-	return q, data, certType, ""
+	return data, certType, ""
 }
 
 // removeQualification removes a coach's qualification and its certificate.

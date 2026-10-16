@@ -241,6 +241,9 @@ func (p *competitionPages) entryView(r *http.Request, e store.Entry, c store.Com
 	if offer, err := p.st.IndividualOffer(r.Context(), e.ID); err == nil {
 		form := offerForm(c.Competition, offer, path+"/offer")
 		form.Note = "One offer for the competition: it's the same on each of your entries."
+		if form.Judging, err = p.entryJudging(r.Context(), c, e, path+"/judging", r.URL.Path); err != nil {
+			return page, err
+		}
 		page.Offer = &form
 	}
 	page.Form.Problems = problems

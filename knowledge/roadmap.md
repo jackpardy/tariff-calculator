@@ -809,7 +809,10 @@ Notifications (7) are built; numbers 1–7 below are built.
   - **Entry fees**: each club marked paid or not, with an invoice per club
     to print. No money is handled.
   - **Limits per level, with a waiting list.**
-  - **Judges' qualifications**, approved like coaches'.
+  - **Judges' qualifications**, approved like coaches'. *Built 2026-10-16*
+    ([ADR 0014](../docs/adr/0014-judges-qualifications.md)): judges add
+    theirs with certificates beside their offer; the organiser sees them on
+    Officials before ticking Qualified.
 - **For attendees:**
   - **Add to calendar**: a person's or club's flights and duties as a
     calendar link that updates when the timetable is published again

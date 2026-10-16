@@ -237,7 +237,11 @@ and anyone you add.
 
 - **Add someone** (at the head of the list) who isn't entering, such as a judge with no club: their name,
   club (if any), and what they can judge and help with.
-- Tick **Qualified** for people qualified to judge.
+- Tick **Qualified** for people qualified to judge. Each person's judging
+  qualifications show under what they offer, with a link to each certificate.
+  Where only people you tick may judge, anyone offering to judge a
+  discipline with no qualification in it is flagged ("No judging
+  qualification for Tumbling").
 - Under **Panels and who may judge**, each discipline's panel starts as the
   FIG Code of Points' (a Chair of Judges Panel, 6 execution and 2 difficulty
   judges) plus a recorder and a marshal; change any of it. Where there's no
@@ -608,6 +612,10 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
 Under **Judging and helping**, say what you can do at the competition: judge a
 discipline (up to a level, and whether you can chair), or help as a recorder
 or marshal. Your comp sec can correct it, and sends it with the entries.
+Below it, **Your judging qualifications**: tap **Add a judging
+qualification**, choose it and add a photo or PDF of its certificate. They're
+kept with you at the club for every competition; the organiser sees them with
+your offer, and if they approve judges, your page says once you're approved.
 
 To change it, open the discipline's row, then **Change your entry**, above
 its card. To pull out of one discipline, tap

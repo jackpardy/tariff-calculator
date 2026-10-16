@@ -1204,6 +1204,9 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 		return mc, err
 	}
 	form := offerForm(c.Competition, offer, path+"/competitions/"+c.ID+"/offer")
+	if form.Judging, err = p.memberJudging(ctx, c, m, path+"/judging", own, "Your"); err != nil {
+		return mc, err
+	}
 	mc.Offer = &form
 	return mc, nil
 }

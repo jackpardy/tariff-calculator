@@ -56,7 +56,7 @@ func allowed(kind, pattern string) bool {
 	case store.LinkChair:
 		return viewing || get && (path == "/timetable/print" || path == "/timetable/timeline.csv" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/day/officials" || path == "/day/notify" || path == "/day/up" || path == "/day/times" || path == "/desk" || path == "/desk/screen" || path == "/desk/screen/{id}/remove")
 	case store.LinkTimetable:
-		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/day/officials" || path == "/day/notify" || path == "/day/up" || path == "/day/times" || path == "/desk" || path == "/desk/screen" || path == "/desk/screen/{id}/remove") ||
+		return viewing || get && (strings.HasPrefix(path, "/timetable") || path == "/officials" || path == "/officials/{id}/judging/{q}" || path == "/day" || path == "/screen" || path == "/desk") || post && (path == "/day/flight" || path == "/day/checkin" || path == "/day/clear" || path == "/day/officials" || path == "/day/notify" || path == "/day/up" || path == "/day/times" || path == "/desk" || path == "/desk/screen" || path == "/desk/screen/{id}/remove") ||
 			post && (strings.HasPrefix(path, "/timetable/") || strings.HasPrefix(path, "/officials/") || path == "/notify-now")
 	}
 	return false

@@ -124,6 +124,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerSkills(handle)
 	p.registerLevels(handle)
 	p.registerKept(handle)
+	p.registerJudging(handle)
 	p.registerLevelSharing(handle)
 	p.registerMine(handle)
 	p.registerTimelines(handle)

@@ -179,6 +179,10 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET`, `POST /clubs/join/{token}` | `name` | Joining a club: 303 to the member's page with `?new=joined` |
 | `GET /clubs/member/{token}` | optional `new`, `notice` | A member's Competitions tab (the default): a row for each competition the club is in, with its date and status |
 | `GET /clubs/member/{token}/competitions/{id}` | optional `notice`, `discipline` (the row to open) | A member's page for one competition: facts, links, each discipline's entry as a row that opens to its card and forms, officiating, and the judging offer; 404 if the club isn't entered |
+| `POST /clubs/member/{token}/judging`, `POST /clubs/admin/{token}/members/{member}/judging`, `POST /competitions/entry/{token}/judging` | `qualification` (a key of `competitions.JudgeQualifications`), `certificate` (a file), `back` | Adds a judging qualification with its certificate (ADR 0014): the member's, the comp sec's for a member, or an individual's; back to `back` at `#judging` with what happened. An upload, up to 3 MB |
+| `POST <those>/{q}/remove` | `back` | Removes one, with its certificate |
+| `GET <those>/{q}` | — | Its certificate, for the person (or the comp sec) |
+| `GET /competitions/admin/{token}/officials/{id}/judging/{q}` | — | An official's certificate, for the organiser and the timetable link |
 | `GET /clubs/member/{token}/details` | optional `notice` | A member's personal link, their coach and their other links |
 | `GET /clubs/member/{token}/requirements`, `GET /clubs/coach/{token}/requirements`, `GET /competitions/gymnast/{token}/requirements` | optional `notice` | The person's Requirements tab (ADR 0013): their kept requirements and levels, Take off, and Add from this browser |
 | `GET <personal link>/requirements.json` | — | The person's kept requirements as JSON, `{"sets": [...], "levels": [...]}`, each `{id, kind, data, described}`, for the Requirements page and the builder |
