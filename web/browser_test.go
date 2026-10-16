@@ -332,9 +332,17 @@ func TestBuildASetRoutineOnTheRequirementsPageInABrowser(t *testing.T) {
 		chromedp.Evaluate(`document.querySelectorAll('.set-routine-maker .picker-tab').length`, &tabs),
 		chromedp.Text(`#add-btn`, &label, chromedp.ByQuery),
 	)
+	// The search too is wired up just after the form is shown: it searches
+	// again until there are results.
 	step(t, ctx, "finding Seat Drop",
-		chromedp.Evaluate(`(() => { const m = Alpine.$data(document.querySelector('.set-routine-maker')); m.name = 'Club L1'; const i = document.getElementById('skill-search'); i.value = 'seat drop'; i.dispatchEvent(new Event('input', {bubbles: true})); })()`, nil),
-		chromedp.Poll(`!!document.querySelector('#search-results .picker-skill')`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+		chromedp.Evaluate(`Alpine.$data(document.querySelector('.set-routine-maker')).name = 'Club L1'`, nil),
+		chromedp.Poll(`(() => {
+			if (document.querySelector('#search-results .picker-skill')) { return true; }
+			const i = document.getElementById('skill-search');
+			i.value = 'seat drop';
+			i.dispatchEvent(new Event('input', {bubbles: true}));
+			return false;
+		})()`, nil, chromedp.WithPollingInterval(500*time.Millisecond)),
 	)
 	// htmx wires a result up just after it's shown: a click before then does
 	// nothing, so it clicks again until the card has it.
