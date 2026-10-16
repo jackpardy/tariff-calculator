@@ -46,8 +46,15 @@ back or front, so the tab isn't a wall of buttons.
   people use ("back salto", "back s/s", "3/4 front", "full in rudy out",
   "triffis") and word-level spellings (rudy → rudi, randy → randi).
 - **By FIG notation**: a query that looks like notation, e.g. `8 2 3 /`, is
-  parsed into a skill. Notation doesn't say which direction, so these results
-  are marked `FromNotation` and the user picks one.
+  parsed into a skill. Notation doesn't say which direction or where it takes
+  off, so each reading is offered forwards and backwards from feet, the back,
+  the front and the seat (2026-10-16: "6 0 /" lands only from the back or
+  front, and "5 0 /" is Ball-Out and Cody), named skills first, each saying
+  its take-off and landing. These results are marked `FromNotation`: the
+  first loads onto the skill card as it's typed, and one that isn't a named
+  skill opens **Build or adjust this skill** too, to finish it. Notation that
+  no take-off lands (`catalog.NotationReading`) still goes into the builder,
+  opened.
 
 A result loads into the skill editor (`POST /skill-inputs`, see
 [HTTP routes](../architecture/http-routes.md)).

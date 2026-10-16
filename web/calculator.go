@@ -204,7 +204,11 @@ func handleSkillSearch(w http.ResponseWriter, r *http.Request) {
 	if q == "" {
 		return
 	}
-	render(w, r, views.SearchResults(q, catalog.Search(q)))
+	var reading *skills.TrampolineSkill
+	if s, ok := catalog.NotationReading(q); ok {
+		reading = &s
+	}
+	render(w, r, views.SearchResults(q, catalog.Search(q), reading))
 }
 
 // parseSkillFromForm reads and validates the skill in the "Add a skill" form. The
