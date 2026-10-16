@@ -50,6 +50,9 @@ func checkinOf(f competitions.ScheduledFlight, byID map[string]store.Entry, chec
 			Entry: id, FlightGymnast: views.FlightGymnast{No: n + 1, Name: e.Entry.Gymnasts(), Club: clubOf(e)}, State: c.Status, Who: c.Who,
 			CanHere: c.Status != store.CheckedIn, CanScratch: c.Status != store.Scratched, CanClear: c.Status != "",
 		}
+		if len(keys[id]) > 0 {
+			g.Person = keys[id][0]
+		}
 		if notify && c.Status == "" && len(keys[id]) > 0 {
 			g.Notify = views.DayNotify{Person: keys[id][0], As: "gymnast", Club: !e.Individual && e.ClubID != ""}
 		}

@@ -76,7 +76,8 @@ templ TimetablePrint(s TimetableSheets) {
 											} else {
 												{ g.Name }
 											}
-											if g.Category != "" {
+											// A flight of one category says so in its name: not after each.
+											if g.Category != "" && !strings.Contains(f.Name, g.Category) {
 												<span class="is-size-7">({ g.Category })</span>
 											}
 										</td>

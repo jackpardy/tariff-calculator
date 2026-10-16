@@ -74,7 +74,7 @@ func TestOnTheDay(t *testing.T) {
 
 	day := admin + "/day?day=0"
 	area := panelOne(t, h, day)
-	if f := area.Flights[0]; f.Name != "BUCS L3" || f.State != "Not started" || f.Planned != "09:00–09:25" || !slices.Equal(f.Buttons, []string{"Started"}) || area.Status != "Nothing started yet" {
+	if f := area.Flights[0]; f.Name != "BUCS L3" || f.State != "Not started" || f.Planned != "09:00–09:25" || !slices.Equal(f.Buttons, []string{"Started"}) || area.Status != "" {
 		t.Errorf("each flight has a Started button only, and its planned time: %+v", area)
 	}
 	flight := firstFlightKey(t, h, day)
@@ -111,7 +111,7 @@ func TestOnTheDay(t *testing.T) {
 		t.Errorf("started at 09:20: %+v", area)
 	}
 	if u, err := url.Parse(area.WhatIf); err != nil || u.Path != admin+"/timetable/delay" ||
-		u.Query().Get("minutes") != "20" || u.Query().Get("from") != "09:20" || u.Query().Get("area") != "Panel 1" {
+		u.Query().Get("minutes") != "20" || u.Query().Get("from") != "09:00" || u.Query().Get("area") != "Panel 1" { // from its planned start
 		t.Errorf("the delay page, filled in: %q", area.WhatIf)
 	}
 	clock.set(onTheDay(9, 22)) // before its planned end, 09:25
@@ -138,7 +138,7 @@ func TestOnTheDay(t *testing.T) {
 		if to := mark("undo-start"); noticeOf(t, to) != "" {
 			t.Errorf("undo says nothing: %s", to)
 		}
-		if area := panelOne(t, h, day); area.Status != "Nothing started yet" || slices.Contains(area.Flights[0].Buttons, "Undo") {
+		if area := panelOne(t, h, day); area.Status != "" || slices.Contains(area.Flights[0].Buttons, "Undo") {
 			t.Errorf("undo again takes back the start: %+v", area)
 		}
 	}

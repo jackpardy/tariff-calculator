@@ -104,7 +104,7 @@ func nowOn(s competitions.Schedule, day int, area string, firstDay time.Time, ac
 	} else if onDay {
 		for _, b := range s.Blocks {
 			if b.Day == day && b.Start <= minute && minute < b.End && (len(b.Areas) == 0 || slices.Contains(b.Areas, area)) {
-				out.Break = b.Name
+				out.Break = b.Name + " until " + competitions.Clock(b.End)
 				break
 			}
 		}

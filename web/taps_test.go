@@ -270,7 +270,7 @@ func TestCorrectFlightTimes(t *testing.T) {
 		t.Errorf("a card checker can't: %d", rec.Code)
 	}
 	correct(admin, "", "")
-	if area := panelOne(t, h, day); area.Flights[0].Started != "" || area.Status != "Nothing started yet" {
+	if area := panelOne(t, h, day); area.Flights[0].Started != "" || area.Status != "" {
 		t.Errorf("cleared: %+v", area)
 	}
 	if rec := do(t, h, http.MethodPost, admin+"/day/times", url.Values{"flight": {"9|Nowhere|X||1"}, "started": {"09:00"}}); rec.Code != http.StatusBadRequest {

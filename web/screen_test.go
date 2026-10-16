@@ -68,11 +68,11 @@ func TestNowOn(t *testing.T) {
 			actual: map[string]competitions.Actual{key(a): {Started: at(16, 9, 0)}, key(b): {Started: at(16, 10, 5)}}},
 		{what: "a gap before the next flight", now: at(16, 11, 0), area: "Floor 1", on: "C", planned: true, next: "-",
 			actual: map[string]competitions.Actual{key(a): {Finished: at(16, 9, 55), Started: at(16, 9, 0)}, key(b): {Started: at(16, 10, 0), Finished: at(16, 10, 59)}}},
-		{what: "a break after the last flight", now: at(16, 12, 30), area: "Floor 1", on: "-", brk: "Lunch", next: "-",
+		{what: "a break after the last flight", now: at(16, 12, 30), area: "Floor 1", on: "-", brk: "Lunch until 13:00", next: "-",
 			actual: map[string]competitions.Actual{
 				key(a): {Started: at(16, 9, 0), Finished: at(16, 10, 0)}, key(b): {Started: at(16, 10, 0), Finished: at(16, 11, 0)}, key(c): {Started: at(16, 11, 0), Finished: at(16, 12, 0)}}},
 		{what: "a lunch on another area isn't this area's", now: at(16, 12, 30), area: "Floor 2", on: "-", next: "-"},
-		{what: "a break for every area", now: at(16, 13, 30), area: "Floor 2", on: "-", brk: "Awards", next: "-"},
+		{what: "a break for every area", now: at(16, 13, 30), area: "Floor 2", on: "-", brk: "Awards until 14:00", next: "-"},
 		{what: "not the day: nothing planned, the first flight is next", now: at(17, 9, 30), area: "Floor 1", on: "-", next: "A"},
 		{what: "not the day: no break", now: at(17, 12, 30), area: "Floor 1", on: "-", next: "A"},
 		{what: "running late: B's time has passed but it hasn't started, so it's still to come", now: at(16, 11, 30), area: "Floor 1", on: "B", planned: true, next: "C",

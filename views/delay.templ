@@ -133,15 +133,15 @@ templ Delay(p DelayPage) {
 				} else {
 					if len(r.Days) > 0 {
 						<div class="table-container">
-							<table class="table is-narrow mb-2">
+							<table class="table is-narrow mb-2 comp-stack">
 								<thead><tr><th>Day</th><th>Flights end</th><th>Must end by</th><th>Free after flights</th></tr></thead>
 								<tbody>
 									for _, d := range r.Days {
 										<tr>
 											<td>{ d.Name }</td>
-											<td>{ d.WasEnd } → <strong>{ d.NowEnd }</strong></td>
-											<td>{ d.End }</td>
-											<td class={ templ.KV("has-text-danger", d.NowFree < 0) }>{ durationWord(d.WasFree) } → <strong>{ signedDuration(d.NowFree) }</strong></td>
+											<td data-label="Flights end">{ d.WasEnd } → <strong>{ d.NowEnd }</strong></td>
+											<td data-label="Must end by">{ d.End }</td>
+											<td data-label="Free after flights" class={ templ.KV("has-text-danger", d.NowFree < 0) }>{ durationWord(d.WasFree) } → <strong>{ signedDuration(d.NowFree) }</strong></td>
 										</tr>
 									}
 								</tbody>
@@ -165,14 +165,14 @@ templ Delay(p DelayPage) {
 					}
 					<h2 class="title is-6 mt-3">Flights that change ({ strconv.Itoa(len(r.Changes)) })</h2>
 					<div class="table-container">
-						<table class="table is-narrow is-fullwidth comp-table">
+						<table class="table is-narrow is-fullwidth comp-table comp-stack">
 							<thead><tr><th>Flight</th><th>Was</th><th>Now</th><th></th></tr></thead>
 							<tbody>
 								for _, c := range r.Changes {
 									<tr>
 										<td>{ c.Flight }</td>
-										<td>{ c.Was }</td>
-										<td><strong>{ c.Now }</strong></td>
+										<td data-label="Was">{ c.Was }</td>
+										<td data-label="Now"><strong>{ c.Now }</strong></td>
 										<td class="is-size-7 comp-wrap">
 											if c.Why != "" {
 												{ c.Why }

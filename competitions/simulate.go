@@ -394,6 +394,24 @@ func (c Competition) Simulate(sc Scenario, setup Setup, seed uint64) (SimResult,
 	if len(officials) > maxSimPeople {
 		return SimResult{}, fmt.Errorf("a scenario can have up to %d judges and helpers, and this one has %d", maxSimPeople, len(officials))
 	}
+	return c.simulateWith(sc, setup, seed, entries, officials), nil
+}
+
+// SimulateAsEntered plans the competition as entered, with its real entries
+// and officials, and reports it as a scenario's result: what a scenario of
+// the entries so far, unchanged, comes to, so it matches the plan.
+func (c Competition) SimulateAsEntered(sc Scenario, setup Setup, seed uint64, entries []SchedEntry, officials []RotaPerson) (SimResult, error) {
+	events, _ := c.eventDisciplines()
+	if err := setup.Check(events); err != nil {
+		return SimResult{}, err
+	}
+	return c.simulateWith(sc, setup, seed, entries, officials), nil
+}
+
+// simulateWith plans entries with officials, as the timetable would, and
+// reports how it went.
+func (c Competition) simulateWith(sc Scenario, setup Setup, seed uint64, entries []SchedEntry, officials []RotaPerson) SimResult {
+	events, _ := c.eventDisciplines()
 	staff := &Staffing{Judges: map[string][]string{}, Need: map[string]int{}}
 	for _, d := range c.Disciplines() {
 		staff.Need[d] = c.Officials.Panel(d).Judges()
@@ -418,7 +436,7 @@ func (c Competition) Simulate(sc Scenario, setup Setup, seed uint64) (SimResult,
 	}
 	report := s.Report(people)
 	r := SimResult{
-		Basis: c.SimBasis(setup), Gymnasts: len(gymnasts), Entries: len(entries), Days: report.Days, ClubJudges: len(officials) - sc.judgePeople() - sc.Helpers,
+		Basis: c.SimBasis(setup), Gymnasts: len(gymnasts), Entries: len(entries), Days: report.Days, ClubJudges: max(len(officials)-sc.judgePeople()-sc.Helpers, 0),
 		Unplaced: report.Unplaced, UnplacedBlocks: report.UnplacedBlocks,
 	}
 	r.FlightsEnd = make([]string, len(setup.Days))
@@ -449,7 +467,7 @@ func (c Competition) Simulate(sc Scenario, setup Setup, seed uint64) (SimResult,
 			}
 		}
 	}
-	return r, nil
+	return r
 }
 
 // judgePeople is how many people the scenario's judges are.

@@ -22,7 +22,7 @@ func TestScreenFit(t *testing.T) {
 	busy := func(n int) []views.ScreenArea {
 		out := make([]views.ScreenArea, n)
 		for i := range out {
-			out[i] = views.ScreenArea{Name: "Area", Gymnasts: names(12), NextGymnasts: names(10)}
+			out[i] = views.ScreenArea{Name: "Area", Now: "BUCS L3", Gymnasts: names(12), NextGymnasts: names(10)}
 		}
 		return out
 	}
@@ -140,5 +140,15 @@ func TestScreenAnnouncements(t *testing.T) {
 	redirected(t, h, remove, url.Values{})
 	if page := do(t, h, http.MethodGet, screen+"/screen", nil).Body.String(); strings.Count(page, `class="screen-notice"`) != 1 || strings.Contains(page, "screen-notice-count") {
 		t.Error("one taken down, one left")
+	}
+}
+
+// With nothing on now, what's next names as many as now would have.
+func TestScreenNextTakesTheRoom(t *testing.T) {
+	names := make([]views.FlightGymnast, 10)
+	p := views.ScreenPage{Areas: []views.ScreenArea{{Name: "Panel 1", NextGymnasts: names}, {Name: "Panel 2", Now: "BUCS L3", NextGymnasts: names}, {Name: "Panel 3", Now: "BUCS L4", NextGymnasts: names}}}
+	p.Fit()
+	if empty, busy := p.Areas[0], p.Areas[1]; len(empty.NextGymnasts) != 8 || len(busy.NextGymnasts) != 6 {
+		t.Errorf("next names: %d with nothing on now, %d with something", len(empty.NextGymnasts), len(busy.NextGymnasts))
 	}
 }

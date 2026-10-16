@@ -150,3 +150,31 @@ func TestSimulationKeepsTheLatest(t *testing.T) {
 		t.Error("the last 8 scenarios are kept")
 	}
 }
+
+// The scenario the page fills in, run unchanged, plans the real entries and
+// officials, so it ends when the plan does rather than stand-ins'.
+func TestSimulationAsEntered(t *testing.T) {
+	h := competitionServer(t)
+	admin := created(t, h, newCompetition())
+	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
+	for _, name := range []string{"Ann", "Bea", "Cal", "Dan", "Eve", "Fay", "Gus"} {
+		redirected(t, h, enter, bucsEntry(name))
+	}
+	tt := admin + "/timetable"
+	planned := do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
+	end := regexp.MustCompile(`flights end (\d\d:\d\d)`).FindStringSubmatch(planned)
+	if end == nil {
+		t.Fatalf("the plan's end: %s", planned)
+	}
+	page := do(t, h, http.MethodGet, tt+"/simulate", nil).Body.String()
+	form := url.Values{}
+	for _, m := range regexp.MustCompile(`<input[^>]*name="([^"]+)"[^>]*value="([^"]*)"`).FindAllStringSubmatch(page, -1) {
+		form.Set(m[1], m[2])
+	}
+	redirected(t, h, tt+"/simulate", form)
+	text := strings.Join(strings.Fields(regexp.MustCompile(`<[^>]+>`).ReplaceAllString(do(t, h, http.MethodGet, tt+"/simulate", nil).Body.String(), " ")), " ")
+	if !strings.Contains(text, "flights end "+end[1]) {
+		t.Errorf("as entered, it ends when the plan does (%s): %s", end[1], text)
+	}
+}
