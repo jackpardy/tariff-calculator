@@ -1852,7 +1852,15 @@ levels to track gymnasts against ("Club Grade 1"), in order, up to 50.
   level's rule points at its link's list of club skills, `store.SharedItem`,
   and at the other club's own once added). A level saved before keeps its
   list of club skills (`club_items`) after its rules, until it's changed in
-  the editor, when they become rules at the end, to move.
+  the editor, when they become rules at the end, to move. A level needn't be
+  a set routine or any one kind of rule: a new one starts empty, and **Add a
+  skill** (searchable) adds each skill picked, a trampoline skill, a kind of
+  skill or one of the club's own, as a line of its own, so ten independent
+  skills are ten picks; **Or add another kind of rule** adds the rest (several
+  of a kind, a link, each by a different skill). On a club's level each line
+  is folded to its name (a single skill reads as just its name, "Tuck Jump",
+  there and on the Skills pages), with **Change** to open it; lines left open
+  stay open as the editor redraws.
 - **Progress, on every Skills page** (the member's, a coach's for a gymnast,
   the comp sec's and other members'): under **Levels**, each level with how
   many items each side has done (a gymnast chip, "2 of 5"; a coach chip) and

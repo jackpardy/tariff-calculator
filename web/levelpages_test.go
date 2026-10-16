@@ -305,9 +305,13 @@ func TestClubLevelEditor(t *testing.T) {
 		t.Error("rules about a single routine aren't offered")
 	}
 
-	// Pick the club's back tuck, name it, and save.
+	// A new level starts empty; Add a skill adds the club's back tuck as a
+	// line of its own. Named, and saved.
+	if strings.Contains(page, `class="rule-card"`) || !strings.Contains(page, `name="addpick"`) {
+		t.Errorf("a new level starts empty, with Add a skill: %s", page)
+	}
 	form.Set("name", "Grade 1")
-	form.Set("r0.m.pick", "club:Back tuck (club)")
+	form.Set("addpick", "club:Back tuck (club)")
 	edited := do(t, h, http.MethodPost, ann+"/levels/editor", form)
 	if edited.Code != http.StatusOK || !strings.Contains(edited.Body.String(), "At least 1 element: Back tuck (club)") {
 		t.Fatalf("picking the club's skill: %d %s", edited.Code, edited.Body.String())
@@ -383,7 +387,11 @@ func TestClubLevelEditor(t *testing.T) {
 		return doc
 	}())
 	form.Set("name", "Grade 2")
-	form.Set("r0.m.pick", "club:Back tuck (club)")
+	form.Set("addpick", "club:Back tuck (club)")
+	form = submitted(func() *nethtml.Node {
+		doc, _ := nethtml.Parse(strings.NewReader(do(t, h, http.MethodPost, ann+"/levels/editor", form).Body.String()))
+		return doc
+	}())
 	form.Set("add", "track")
 	added := do(t, h, http.MethodPost, ann+"/levels/editor", form).Body.String()
 	if !strings.Contains(added, `<option value="track" selected`) || !strings.Contains(added, ">Kaboom drill</option>") || !strings.Contains(added, "2. Kaboom drill") {
@@ -406,5 +414,22 @@ func TestClubLevelEditor(t *testing.T) {
 	grade2 := levels[strings.Index(levels, ">Grade 2</h3>"):]
 	if k, b := strings.Index(grade2, "<li>Kaboom drill</li>"), strings.Index(grade2, "Back tuck (club)"); k < 0 || b < k {
 		t.Errorf("Kaboom drill first, then the back tuck: %s", grade2)
+	}
+
+	// A level of independent skills: each picked from Add a skill is a line
+	// of its own, a trampoline skill or one of the club's own, in any mix.
+	page = do(t, h, http.MethodGet, ann+"/levels/new", nil).Body.String()
+	for _, pick := range []string{"skill:Tuck Jump", "skill:Seat Drop", "own:" + regexp.MustCompile(`value="own:([^"]+)"`).FindStringSubmatch(page)[1], "kind:single"} {
+		form = submitted(func() *nethtml.Node {
+			doc, _ := nethtml.Parse(strings.NewReader(page))
+			return doc
+		}())
+		form.Set("addpick", pick)
+		page = do(t, h, http.MethodPost, ann+"/levels/editor", form).Body.String()
+	}
+	for i, want := range []string{"1. Tuck Jump", "2. Seat Drop", "3. Kaboom drill", "4. Any single somersault (¾ to 1¼)"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("line %d should be %q: %s", i+1, want, page)
+		}
 	}
 }
