@@ -24,6 +24,9 @@ type SkillEditor struct {
 	Skill       skills.TrampolineSkill // named and priced
 	EditIndex   int                    // index of the routine skill being edited, or -1 when adding
 	BuilderOpen bool                   // whether "Build or adjust this skill" is expanded
+	// SetRoutine is the compact form building a set routine on the
+	// requirements page: Add puts the skill in the set routine.
+	SetRoutine bool
 }
 
 // Editing reports whether the editor is changing a routine skill rather than adding one.
@@ -198,6 +201,9 @@ templ SearchResults(query string, results []catalog.Result) {
 // SkillEditorView renders the builder and the skill card for the editor's skill.
 templ SkillEditorView(e SkillEditor) {
 	<input type="hidden" name="editIndex" value={ strconv.Itoa(e.EditIndex) }/>
+	if e.SetRoutine {
+		<input type="hidden" name="set_routine" value="1"/>
+	}
 	<input type="hidden" name="builder_open" value={ boolValue(e.BuilderOpen) }/>
 	<details
 		id="skill-builder"
@@ -277,7 +283,11 @@ templ editorCard(e SkillEditor) {
 					</div>
 				</div>
 				<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled="busy">
-					Add to routine
+					if e.SetRoutine {
+						Add to the set routine
+					} else {
+						Add to routine
+					}
 				</button>
 			}
 		</div>

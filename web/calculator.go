@@ -148,7 +148,13 @@ func handleSkillForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	editor.Skill = prepared(editor.Skill)
-	render(w, r, views.SkillFormView(views.SkillForm{Editor: editor, Categories: catalog.Categories()}))
+	form := views.SkillForm{Editor: editor, Categories: catalog.Categories()}
+	// compact=1: a cut-down form, the search, the builder and the card, for
+	// building a set routine on the Requirements page.
+	if r.FormValue("compact") == "1" {
+		form.Categories, form.Editor.SetRoutine = nil, true
+	}
+	render(w, r, views.SkillFormView(form))
 }
 
 // handleSkillInputs re-renders the editor (skill card and builder), either for a
@@ -157,7 +163,7 @@ func handleSkillForm(w http.ResponseWriter, r *http.Request) {
 // holds something unscorable (e.g. a rotation being typed), it answers 204 so
 // htmx leaves the user's input alone; Add reports the problem.
 func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
-	editor := views.SkillEditor{EditIndex: editIndexFrom(r), BuilderOpen: r.FormValue("builder_open") == "1"}
+	editor := views.SkillEditor{EditIndex: editIndexFrom(r), BuilderOpen: r.FormValue("builder_open") == "1", SetRoutine: r.FormValue("set_routine") == "1"}
 
 	var s skills.TrampolineSkill
 	switch r.FormValue("load") {

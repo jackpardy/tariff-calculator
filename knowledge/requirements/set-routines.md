@@ -39,8 +39,12 @@ after the set; a level's set tab is rendered from them read-only
 
 A set routine is built, not written: the whole routine is prescribed, so a
 coach builds it like any routine in the Routine Builder and chooses **More →
-Save as a set routine** (or, on the requirements page, **+ New set routine**
-from a routine already built). `POST /requirements/set-routine` turns the
+Save as a set routine**, or builds it on the requirements page itself
+(2026-10-16): **+ New set routine** has its name, its skills in order (move,
+remove) and a cut-down skill form, the builder's search, **Build or adjust
+this skill** and skill card without the category tabs (`/skill-form?compact=1`,
+in `setRoutineMaker`), whose **Add to the set routine** adds to the list; or
+from a routine already built. `POST /requirements/set-routine` turns the
 skills into requirements with `requirements.SetRoutineFrom`: one exact matcher
 per skill (`MatcherFor`: rotation, twist by phase through its FIG notation,
 direction, shape where it matters, take-off and landing, labelled with its

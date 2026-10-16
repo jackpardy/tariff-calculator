@@ -337,6 +337,13 @@ function requirementsPage() {
         requirementSets() { return this.sets.filter((s) => !this.isSetRoutine(s.set) && !s.inLevel); },
         // elementsOf is a set routine's elements by name.
         elementsOf(set) { return (set.rules.find((r) => r.type === 'sequence')?.sequence || []).map((m) => m.label || 'Element'); },
+        // addSetRoutine keeps a set routine built here (setRoutineMaker).
+        addSetRoutine(set) {
+            this.sets.push({ id: SetStore.newId(), set });
+            SetStore.save(this.sets);
+            this.makingSetRoutine = false;
+            this.flash(`Saved the set routine ${set.name}.`);
+        },
         // saveFromRoutine saves a routine already built as a set routine.
         async saveFromRoutine() {
             const routine = this.routines.find((r) => r.id === this.fromRoutine);
@@ -364,6 +371,69 @@ function requirementsPage() {
             this.toast = message;
             clearTimeout(this._toastTimer);
             this._toastTimer = setTimeout(() => { this.toast = ''; }, 3000);
+        },
+    };
+}
+
+// setRoutineMaker builds a set routine on the requirements page, skill by
+// skill, with the Routine Builder's own search, builder and skill card (the
+// compact /skill-form): the card's Add puts the skill on the list, and Save
+// set routine saves it (the page adds it, on set-routine-made). It gives the
+// form what the builder's component would: the search, the steppers, Add.
+function setRoutineMaker() {
+    return {
+        name: '',
+        skills: [],
+        busy: false,
+        query: '', pickerTab: '', picked: null, pickedShape: null, // the form's picker
+        routines: [], // no "Add to" choice: it's this list
+        addTargets() { return []; },
+        addToValue() { return ''; },
+        step(id, delta) {
+            const input = document.getElementById(id);
+            if (!input) { return; }
+            const min = parseInt(input.min), max = parseInt(input.max);
+            let value = (parseInt(input.value) || 0) + delta;
+            if (!isNaN(min)) { value = Math.max(min, value); }
+            if (!isNaN(max)) { value = Math.min(max, value); }
+            if (String(value) === input.value) { return; }
+            input.value = value;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        },
+        async addFromForm() {
+            if (this.busy) { return; }
+            this.busy = true;
+            try {
+                const response = await fetch('/calculate-skill', { method: 'POST', body: new URLSearchParams(new FormData(document.getElementById('main-form'))) });
+                if (!response.ok) { throw new Error((await response.text()).trim()); }
+                this.skills.push(await response.json());
+                const label = document.getElementById('custom-name');
+                if (label) { label.value = ''; label.closest('details')?.removeAttribute('open'); }
+                this.query = '';
+            } catch (e) {
+                this.$dispatch('flash', `Can't add that skill: ${e.message}`);
+            } finally {
+                this.busy = false;
+            }
+        },
+        updateFromForm() {},
+        cancelEdit() {},
+        move(i, by) {
+            const [s] = this.skills.splice(i, 1);
+            this.skills.splice(i + by, 0, s);
+        },
+        async save() {
+            const name = this.name.trim() || 'Set routine';
+            this.busy = true;
+            try {
+                const response = await fetch('/requirements/set-routine', { method: 'POST', body: new URLSearchParams({ routineData: JSON.stringify(this.skills), name }) });
+                if (!response.ok) { throw new Error((await response.text()).trim()); }
+                this.$dispatch('set-routine-made', await response.json());
+            } catch (e) {
+                this.$dispatch('flash', `Couldn't save it: ${e.message}`);
+            } finally {
+                this.busy = false;
+            }
         },
     };
 }
