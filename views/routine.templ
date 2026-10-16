@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -173,7 +174,7 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 			class={ "routine-skill", "box", "mb-2",
 				templ.KV("invalid-transition", sv.InvalidTransition || sv.IntermediateJump),
 				templ.KV("invalid-landing", sv.InvalidLanding),
-				templ.KV("duplicate-skill", sv.IsDuplicate || sv.ScoredEarlier),
+				templ.KV("duplicate-skill", (sv.IsDuplicate && !firstOfRepeat(message)) || sv.ScoredEarlier),
 				templ.KV("not-counted", sv.AfterInterruption),
 				templ.KV("differs", different) }
 		>
@@ -195,6 +196,8 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 						</p>
 						<p class="is-size-7 has-text-grey mb-0" style="white-space: nowrap; line-height: 1.2;">
 							{ sv.FIGNotation }
+							// Its tariff, without opening the card.
+							<strong class="has-text-primary ml-1">{ fmt.Sprintf("%.1f", sv.Skill.Tariff) }</strong>
 							// When only some elements score, the coach can choose which.
 							if canScore {
 								<label class={ "scores-toggle", templ.KV("is-scoring", sv.Counted) } x-on:click.stop>
@@ -203,8 +206,8 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 								</label>
 							}
 							// Flags a problem while the card is collapsed; the message is in the details.
-							if message != "" {
-								<span class="has-text-danger ml-1" title={ message } aria-label={ "Issue: " + message }>⚠️</span>
+							if text, problem := cardMessage(message); problem {
+								<span class="has-text-danger ml-1" title={ text } aria-label={ "Issue: " + text }>⚠️</span>
 							}
 						</p>
 					</div>
@@ -223,8 +226,8 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 			<div x-show={ side.expanded(i) } x-cloak>
 				<hr class="mt-2 mb-2"/>
 				<div class="skill-details-columns columns is-mobile is-multiline is-variable is-2 mb-0">
-					@detail("Rotation", rotationText(sv.Skill))
-					@detail("Twists", twistText(sv.Skill))
+					@detail("Somersault", rotationText(sv.Skill))
+					@detail("Twist", twistText(sv.Skill))
 					@detail("Landing", sv.Skill.TakeoffPosition.String()+" → "+sv.Landing.String())
 					@detail("Shape", sv.Skill.Shape.String())
 					<div class="column is-half-mobile is-narrow-tablet">
@@ -239,9 +242,9 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 						@judgingButton(sv.Skill, endsExercise(i, last))
 					</div>
 				}
-				if message != "" {
+				if text, problem := cardMessage(message); text != "" {
 					<div class="skill-validation-row mt-1">
-						<p class="transition-status is-size-7 has-text-danger">{ message }</p>
+						<p class={ "transition-status", "is-size-7", templ.KV("has-text-danger", problem), templ.KV("has-text-grey", !problem) }>{ text }</p>
 					</div>
 				}
 			</div>
@@ -290,10 +293,10 @@ templ results(rv skills.RoutineValidation, side RoutineSide) {
 				}
 				<div class="validation-messages mt-3">
 					if rv.RoutineTooLong {
-						<p class="has-text-warning mb-2">⚠️ Routine has more than 10 skills (skills after the 10th don't count toward Tariff).</p>
+						<p class="has-text-warning-dark mb-2">⚠️ More than 10 skills: those after the 10th don't count towards the tariff.</p>
 					}
 					if rv.HasDuplicates {
-						<p class="has-text-warning mb-2">⚠️ Duplicate skills only count once toward total!</p>
+						<p class="has-text-warning-dark mb-2">⚠️ A skill is repeated: the repeat scores nothing.</p>
 					}
 					if rv.HasInvalidTransitions {
 						<p class="has-text-danger">❌ Invalid transitions detected.</p>
@@ -488,21 +491,54 @@ func cardTitle(i int, s skills.TrampolineSkill) string {
 	return fmt.Sprintf("%d. %s", i+1, name)
 }
 
-func rotationText(s skills.TrampolineSkill) string {
-	direction := "F"
-	if s.Backward {
-		direction = "B"
-	}
-	return fmt.Sprintf("%d %s", s.Rotation, direction)
+// firstOfRepeat says a card's skill is the first of a repeat: the one that
+// counts (validation says "Duplicate (Counts Once)" of it).
+func firstOfRepeat(message string) bool {
+	return slices.Contains(strings.Split(message, " / "), "Duplicate (Counts Once)")
 }
 
+// cardMessage is a card's message in plain words, and whether it's a
+// problem: the first of a repeated skill counts, so it's only a note.
+func cardMessage(message string) (string, bool) {
+	if message == "" {
+		return "", false
+	}
+	var parts []string
+	problem := false
+	for _, m := range strings.Split(message, " / ") {
+		switch m {
+		case "Duplicate (Counts Once)":
+			parts = append(parts, "Repeated later: this one counts")
+		case "Duplicate":
+			parts, problem = append(parts, "A repeat: it scores nothing"), true
+		default:
+			parts, problem = append(parts, m), true
+		}
+	}
+	return strings.Join(parts, " · "), problem
+}
+
+// rotationText is a skill's somersault in words: "1¼ somersaults, backward".
+func rotationText(s skills.TrampolineSkill) string {
+	if s.Rotation == 0 {
+		return somersaultText(0)
+	}
+	direction := "forward"
+	if s.Backward {
+		direction = "backward"
+	}
+	return somersaultText(s.Rotation) + ", " + direction
+}
+
+// twistText is a skill's twist in words, by somersault where it has more than
+// one: "1 twist", "½ twist, then 1½ twists".
 func twistText(s skills.TrampolineSkill) string {
-	if len(s.TwistDistribution) == 0 {
-		return "0"
+	if s.TotalTwist() == 0 || len(s.TwistDistribution) <= 1 {
+		return twistAmountText(s.TotalTwist())
 	}
 	parts := make([]string, len(s.TwistDistribution))
 	for i, t := range s.TwistDistribution {
-		parts[i] = strconv.Itoa(t)
+		parts[i] = strings.ToLower(twistAmountText(t))
 	}
-	return strings.Join(parts, " | ")
+	return strings.ToUpper(parts[0][:1]) + parts[0][1:] + ", then " + strings.Join(parts[1:], ", then ")
 }

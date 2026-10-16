@@ -127,7 +127,10 @@ const DayTaps = (function () {
     // showUp puts a gymnast in a flight's who's up box, as the server would,
     // and in its form, so the next tap goes on from them.
     function showUp(up, g) {
-        const form = up.querySelector('form');
+        // On the last routine the box holds the flight's form (Finished) too:
+        // this is the who's-up form.
+        const form = up.querySelector('form[data-tap^="up:"]');
+        if (!form) { return; }
         for (const p of [...up.children].filter((el) => el.tagName === 'P' && el !== form)) { p.remove(); }
         const label = Object.assign(document.createElement('p'), { className: 'is-size-7 has-text-grey mb-0', textContent: 'On now' });
         const name = Object.assign(document.createElement('p'), { className: 'is-size-4 has-text-weight-bold mb-0' });
@@ -144,6 +147,10 @@ const DayTaps = (function () {
         form.querySelector('input[name="entry"]').value = g.entry;
         form.querySelector('input[name="round"]').value = g.round;
         button(form, 'back', 'Back', 'button is-light is-small').hidden = !g.canBack;
+        // Back from the last routine: Next gymnast again, in Finished's place.
+        button(form, 'next', 'Next gymnast', 'button is-link is-medium').hidden = !g.canNext;
+        const finish = up.querySelector('form[data-tap^="flight:"]');
+        if (finish) { finish.hidden = g.canNext; }
         if (!g.canNext) {
             up.append(Object.assign(document.createElement('p'), { className: 'is-size-7 mt-2', textContent: "The flight's last routine: tap Finished once it's done." }));
         }
@@ -173,22 +180,28 @@ const DayTaps = (function () {
         for (const [key, list] of byForm) {
             const form = document.querySelector(`form[data-tap="${CSS.escape(key)}"]`);
             if (!form) { continue; }
-            const last = list[list.length - 1];
-            if (key.startsWith('flight:')) {
-                markFlight(form, list);
-            } else if (key.startsWith('up:')) {
-                const g = list.map((t) => t.up).filter(Boolean).pop();
-                if (g) { showUp(form.closest('.comp-up'), g); }
-            } else {
-                for (const b of form.querySelectorAll('button[type="submit"]')) { b.hidden = b.value === last.value; }
-            }
-            const note = Object.assign(document.createElement('p'), {
-                className: 'help comp-tap-note',
-                textContent: `${last.label} at ${clock(last.tapped)}: waiting to send` + (list.length > 1 ? ` (${list.length} taps)` : ''),
-            });
-            note.dataset.tapNote = '';
-            form.after(note);
+            try { showWaiting(key, form, list); } catch (e) { console.error('Showing a tap waiting to send:', e); } // never in the way of sending
         }
+    }
+
+    // showWaiting shows taps kept on the phone on their form, as the server
+    // will show them once sent.
+    function showWaiting(key, form, list) {
+        const last = list[list.length - 1];
+        if (key.startsWith('flight:')) {
+            markFlight(form, list);
+        } else if (key.startsWith('up:')) {
+            const g = list.map((t) => t.up).filter(Boolean).pop();
+            if (g) { showUp(form.closest('.comp-up'), g); }
+        } else {
+            for (const b of form.querySelectorAll('button[type="submit"]')) { b.hidden = b.value === last.value; }
+        }
+        const note = Object.assign(document.createElement('p'), {
+            className: 'help comp-tap-note',
+            textContent: `${last.label} at ${clock(last.tapped)}: waiting to send` + (list.length > 1 ? ` (${list.length} taps)` : ''),
+        });
+        note.dataset.tapNote = '';
+        form.after(note);
     }
 
     // markFlight shows a flight's Started, Finished and Undo as they'll be

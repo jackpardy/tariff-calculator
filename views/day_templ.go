@@ -2944,11 +2944,11 @@ func dayUp(p DayPage, f DayFlight) templ.Component {
 			}
 		}
 		if finishesHere(f) {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 238, " <div class=\"comp-up-last\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 238, "  <div class=\"comp-up-last\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = dayFlightForm(p, f, true).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = dayFlightForm(p, f, false).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -3011,7 +3011,7 @@ func dayUpForm(p DayPage, f DayFlight, next bool) templ.Component {
 		var templ_7745c5c3_Var121 templ.SafeURL
 		templ_7745c5c3_Var121, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/day/up"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 762, Col: 63}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 763, Col: 63}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var121))
 		if templ_7745c5c3_Err != nil {
@@ -3024,7 +3024,7 @@ func dayUpForm(p DayPage, f DayFlight, next bool) templ.Component {
 		var templ_7745c5c3_Var122 string
 		templ_7745c5c3_Var122, templ_7745c5c3_Err = templ.ResolveAttributeValue("up:" + f.Key)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 762, Col: 111}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 763, Col: 111}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var122)
 		if templ_7745c5c3_Err != nil {
@@ -3037,7 +3037,7 @@ func dayUpForm(p DayPage, f DayFlight, next bool) templ.Component {
 		var templ_7745c5c3_Var123 string
 		templ_7745c5c3_Var123, templ_7745c5c3_Err = templ.ResolveAttributeValue(f.Key)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 763, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 764, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var123)
 		if templ_7745c5c3_Err != nil {
@@ -3058,7 +3058,7 @@ func dayUpForm(p DayPage, f DayFlight, next bool) templ.Component {
 		var templ_7745c5c3_Var124 string
 		templ_7745c5c3_Var124, templ_7745c5c3_Err = templ.ResolveAttributeValue(f.Up.Entry)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 765, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 766, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var124)
 		if templ_7745c5c3_Err != nil {
@@ -3071,7 +3071,7 @@ func dayUpForm(p DayPage, f DayFlight, next bool) templ.Component {
 		var templ_7745c5c3_Var125 string
 		templ_7745c5c3_Var125, templ_7745c5c3_Err = templ.ResolveAttributeValue(f.Up.Round)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 766, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 767, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var125)
 		if templ_7745c5c3_Err != nil {
@@ -3131,7 +3131,7 @@ func dayNotify(p DayPage, flight string, n DayNotify) templ.Component {
 		var templ_7745c5c3_Var127 string
 		templ_7745c5c3_Var127, templ_7745c5c3_Err = templ.ResolveAttributeValue("notify:" + n.As + ":" + flight + ":" + n.Person)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 779, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 780, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var127)
 		if templ_7745c5c3_Err != nil {
@@ -3144,7 +3144,7 @@ func dayNotify(p DayPage, flight string, n DayNotify) templ.Component {
 		var templ_7745c5c3_Var128 templ.SafeURL
 		templ_7745c5c3_Var128, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/day/notify"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 781, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 782, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var128))
 		if templ_7745c5c3_Err != nil {
@@ -3157,7 +3157,7 @@ func dayNotify(p DayPage, flight string, n DayNotify) templ.Component {
 		var templ_7745c5c3_Var129 string
 		templ_7745c5c3_Var129, templ_7745c5c3_Err = templ.ResolveAttributeValue(n.Person)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 782, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 783, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var129)
 		if templ_7745c5c3_Err != nil {
@@ -3170,7 +3170,7 @@ func dayNotify(p DayPage, flight string, n DayNotify) templ.Component {
 		var templ_7745c5c3_Var130 string
 		templ_7745c5c3_Var130, templ_7745c5c3_Err = templ.ResolveAttributeValue(flight)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 783, Col: 52}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 784, Col: 52}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var130)
 		if templ_7745c5c3_Err != nil {
@@ -3183,7 +3183,7 @@ func dayNotify(p DayPage, flight string, n DayNotify) templ.Component {
 		var templ_7745c5c3_Var131 string
 		templ_7745c5c3_Var131, templ_7745c5c3_Err = templ.ResolveAttributeValue(n.As)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 784, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 785, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var131)
 		if templ_7745c5c3_Err != nil {
@@ -3204,7 +3204,7 @@ func dayNotify(p DayPage, flight string, n DayNotify) templ.Component {
 		var templ_7745c5c3_Var132 string
 		templ_7745c5c3_Var132, templ_7745c5c3_Err = templ.ResolveAttributeValue(rand.Text())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 787, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/day.templ`, Line: 788, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var132)
 		if templ_7745c5c3_Err != nil {

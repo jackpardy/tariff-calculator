@@ -294,13 +294,16 @@ templ editorCard(e SkillEditor) {
 					<label class="add-to-label" for="add-to">Add to</label>
 					<div class="select is-small">
 						<select id="add-to" x-on:change="addTo = $event.target.value">
+							// No routine yet for a level's voluntary: none chosen, rather than the first.
+							<option value="" x-show="!addToValue()" x-bind:selected="!addToValue()">Choose a routine...</option>
 							<template x-for="t in addTargets()" x-bind:key="t.value">
 								<option x-bind:value="t.value" x-bind:selected="t.value === addToValue()" x-text="t.label"></option>
 							</template>
 						</select>
 					</div>
 				</div>
-				<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled="busy">
+				<p class="help mb-1" x-show="!addTarget()" x-cloak>Choose the routine doing this voluntary first (under its tab), or a routine above.</p>
+				<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled={ "busy || !addTarget()" + cantLand(e.Skill) }>
 					if e.SetRoutine {
 						Add to the set routine
 					} else {
@@ -428,6 +431,15 @@ func shapesFor(s skills.TrampolineSkill) []skills.Shape {
 }
 
 // loadSkill is the hx-vals that loads a skill (e.g. a search result) into the editor.
+// cantLand disables Add for a skill that can't land as it's built: added, it
+// would interrupt the routine.
+func cantLand(s skills.TrampolineSkill) string {
+	if s.LandingPosition() == skills.Invalid {
+		return " || true"
+	}
+	return ""
+}
+
 // loadReading loads what FIG notation says into the builder, opened, even
 // where it can't land as it is.
 func loadReading(s skills.TrampolineSkill) string {

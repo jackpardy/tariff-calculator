@@ -374,7 +374,7 @@ templ CoachClubSkills(p ClubSkillsPage) {
 
 // confirmRemoveClubSkill asks before a club skill goes, with its marks.
 script confirmRemoveClubSkill(name string) {
-	return confirm('Remove ' + name + '? Marks on something to track go with it; a name for a skill only stops showing.');
+	if (!confirm('Remove ' + name + '? Marks on something to track go with it; a name for a skill only stops showing.')) { event.preventDefault(); }
 }
 
 // levelsSection is how far a gymnast is through each of the club's levels:
@@ -516,7 +516,7 @@ templ CoachClubLevels(p ClubLevelsPage) {
 
 // confirmRemoveLevel asks before a level goes.
 script confirmRemoveLevel(name string) {
-	return confirm('Remove ' + name + '? Gymnasts\' marks stay.');
+	if (!confirm('Remove ' + name + '? Gymnasts\' marks stay.')) { event.preventDefault(); }
 }
 
 // FormValue is a named value: a form field to post on, or a choice.

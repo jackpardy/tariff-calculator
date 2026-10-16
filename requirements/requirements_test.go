@@ -424,7 +424,7 @@ func TestDifferentElements(t *testing.T) {
 		t.Errorf("no repeats: got %+v", r)
 	}
 	repeated := append(slices.Clone(sampleRoutine), skill(4, []int{0}, skills.Pike, false), frontTuck)
-	if r := Evaluate(set, skills.ValidateRoutine(repeated))[0]; r.Passed || !equalInts(r.Elements, []int{8}) || r.Detail != "8 repeats 1" {
+	if r := Evaluate(set, skills.ValidateRoutine(repeated))[0]; r.Passed || !equalInts(r.Elements, []int{8}) || r.Detail != "element 8 repeats element 1" {
 		t.Errorf("a front pike is a different element, a second front tuck isn't: got %+v", r)
 	}
 }

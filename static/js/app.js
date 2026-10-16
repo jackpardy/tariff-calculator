@@ -118,7 +118,7 @@ function tariffCalculatorStore() {
             if (!skills) { this.showToast("Couldn't open that set routine.", 'error'); return; }
             const editing = params.has('setRoutine');
             const name = this.customSets.find((s) => s.id === ref)?.set.name || Exercises.requirementName(ref);
-            const routine = { id: RoutineStore.newId(), name: (editing ? name : `${name} (copy)`).slice(0, 60), skills };
+            const routine = { id: RoutineStore.newId(), name: (editing ? name : `Copy of ${name}`).slice(0, 60), skills };
             if (editing) { routine.setRoutine = ref; }
             this.routines.push(routine);
             this.persist();
@@ -139,7 +139,9 @@ function tariffCalculatorStore() {
                 const routine = tab.set ? undefined : this.columnRoutine(side);
                 if (!tab.set && !routine) {
                     const p = document.querySelector(view);
-                    if (p) { p.innerHTML = '<p class="has-text-grey level-empty">No routine for this voluntary yet. Choose one above: a new routine, one you\'ve built, or start from a set.</p>'; }
+                    // Only a level with set routines can start the voluntary from one.
+                    const fromSet = this.entryTabs().some((t) => t.set) ? ', or start from a set' : '';
+                    if (p) { p.innerHTML = `<p class="has-text-grey level-empty">No routine for this voluntary yet. Choose one above: a new routine or one you've built${fromSet}.</p>`; }
                     return;
                 }
                 const entryValues = LevelEntries.values(this.entry(), tab.exercise, this.routines);
@@ -290,7 +292,7 @@ function tariffCalculatorStore() {
             const response = await fetch('/requirements/editor', { method: 'POST', body: new URLSearchParams(new FormData(form)) });
             if (!response.ok) { this.showToast(`Couldn't save: ${(await response.text()).trim()}`, 'error'); return; }
             const html = await response.text();
-            form.outerHTML = html;
+            swapIn(form, html);
             const fresh = document.querySelector('#requirements-writer-editor #set-editor');
             const set = JSON.parse(fresh.dataset.setJson);
             if (!set.name?.trim()) { this.showToast('Give the requirements a name first.', 'error'); fresh.querySelector('[name=name]')?.focus(); return; }
@@ -344,9 +346,12 @@ function tariffCalculatorStore() {
         // chooserShows reports whether an option (with its search text in
         // data-search) matches the search: every word of it, ignoring case and accents.
         chooserShows(el) {
-            const plain = (text) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            // Accents and case aside, any dash is a hyphen ("13-14" finds "13–14"),
+            // and "level 3" is "l3", as the levels are named.
+            const plain = (text) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[\u2010-\u2015]/g, '-');
             const text = plain(el.dataset.search || el.textContent);
-            return plain(this.chooser.q).split(/\s+/).every((word) => text.includes(word));
+            const query = plain(this.chooser.q).replace(/\blevel\s*(\d)/g, 'l$1');
+            return query.split(/\s+/).every((word) => text.includes(word));
         },
         // chooserAny reports whether any option inside el matches the search.
         chooserAny(el) {
@@ -590,8 +595,11 @@ function tariffCalculatorStore() {
         setBeside(key) {
             const entry = this.entry();
             entry.beside = key || null;
+            // Beside the open tab, another of the same exercise (Set 2 beside
+            // Set 1) is only to compare: the exercise's choice stays the open one.
             const tab = this.entryTabs().find((t) => t.key === key);
-            if (tab) { this.chooseOption(tab); }
+            const open = this.entryTabs().find((t) => t.key === entry.open);
+            if (tab && tab.exercise !== open?.exercise) { this.chooseOption(tab); }
             this.saveEntries();
             this.syncColumns();
         },
@@ -652,7 +660,13 @@ function tariffCalculatorStore() {
                 this.persist();
                 this.showToast(`${routine.name} starts from ${from.label}; change it from here.`, 'info');
             }
-            if (entry.open !== target.key && entry.beside !== target.key) { entry.beside = target.key; }
+            // On a phone, where there's no column beside, the voluntary opens.
+            if (window.matchMedia('(max-width: 768px)').matches) {
+                if (entry.beside === target.key) { entry.beside = entry.open; }
+                entry.open = target.key;
+            } else if (entry.open !== target.key && entry.beside !== target.key) {
+                entry.beside = target.key;
+            }
             this.chooseOption(target);
             this.saveEntries();
             this.syncColumns();
@@ -692,7 +706,7 @@ function tariffCalculatorStore() {
         },
         duplicateRoutine() {
             const source = this.currentRoutine();
-            const copy = { ...JSON.parse(JSON.stringify(source)), id: RoutineStore.newId(), name: `${source.name} (copy)`.slice(0, 60) };
+            const copy = { ...JSON.parse(JSON.stringify(source)), id: RoutineStore.newId(), name: `Copy of ${source.name}`.slice(0, 60) };
             delete copy.setRoutine; // a copy saves as a set routine of its own
             this.routines.splice(this.routines.indexOf(source) + 1, 0, copy);
             this.switchRoutine(copy.id);
@@ -758,8 +772,9 @@ function tariffCalculatorStore() {
 
         // --- Card expand/collapse ---
         toggleExpanded(index, side = 'a') { const e = this.expandedOf(side); e[index] = !e[index]; },
-        expandAll() { this.expanded = this.routine.map(() => true); },
-        collapseAll() { this.expanded = this.routine.map(() => false); },
+        // Both columns, when side by side.
+        expandAll() { this.expanded = this.routine.map(() => true); this.expandedB = this.routineB.map(() => true); },
+        collapseAll() { this.expanded = this.routine.map(() => false); this.expandedB = this.routineB.map(() => false); },
 
         // --- Adding and editing skills ---
         // calculateFormSkill posts the form and returns the skill as the routine stores it.

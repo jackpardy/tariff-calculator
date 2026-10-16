@@ -179,7 +179,7 @@ templ keepRoutinesForm(p RoutinesPart, button string, unticked bool) {
 
 // confirmDelete asks before a routine is deleted from a member's page.
 script confirmDelete(name string) {
-	return confirm('Delete ' + name + ' from your page? The routines saved in this browser stay.');
+	if (!confirm('Delete ' + name + ' from your page? The routines saved in this browser stay.')) { event.preventDefault(); }
 }
 
 // MemberRoutines is a member's Routines tab: their kept routines, and adding

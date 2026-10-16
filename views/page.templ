@@ -244,7 +244,7 @@ templ levelsBar(groups []requirements.BuiltinGroup) {
 				</div>
 			</template>
 			<div class="select is-small">
-				<select aria-label="Start a level" x-on:change="newEntry($event.target.value); $event.target.value = ''">
+				<select aria-label="Start a level" data-search-select="Find a level, e.g. BUCS L7 or AG3" x-on:change="newEntry($event.target.value); $event.target.value = ''">
 					<option value="" selected>+ New level...</option>
 					for _, g := range groups {
 						if len(g.Levels) > 0 {

@@ -675,11 +675,11 @@ func keepRoutinesForm(p RoutinesPart, button string, unticked bool) templ.Compon
 // confirmDelete asks before a routine is deleted from a member's page.
 func confirmDelete(name string) templ.ComponentScript {
 	return templ.ComponentScript{
-		Name: `__templ_confirmDelete_9682`,
-		Function: `function __templ_confirmDelete_9682(name){return confirm('Delete ' + name + ' from your page? The routines saved in this browser stay.');
+		Name: `__templ_confirmDelete_de76`,
+		Function: `function __templ_confirmDelete_de76(name){if (!confirm('Delete ' + name + ' from your page? The routines saved in this browser stay.')) { event.preventDefault(); }
 }`,
-		Call:       templ.SafeScript(`__templ_confirmDelete_9682`, name),
-		CallInline: templ.SafeScriptInline(`__templ_confirmDelete_9682`, name),
+		Call:       templ.SafeScript(`__templ_confirmDelete_de76`, name),
+		CallInline: templ.SafeScriptInline(`__templ_confirmDelete_de76`, name),
 	}
 }
 

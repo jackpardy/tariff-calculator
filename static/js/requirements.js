@@ -172,7 +172,7 @@ function requirementsPage() {
             const response = await fetch('/requirements/editor', { method: 'POST', body: new URLSearchParams(new FormData(form)) });
             if (!response.ok) { this.flash(`Couldn't save: ${(await response.text()).trim()}`); return; }
             const html = await response.text();
-            form.outerHTML = html;
+            swapIn(form, html);
             const fresh = new DOMParser().parseFromString(html, 'text/html').getElementById('set-editor');
             const set = JSON.parse(fresh.dataset.setJson);
             const described = JSON.parse(fresh.dataset.described);
@@ -197,7 +197,7 @@ function requirementsPage() {
             const response = await fetch('/requirements/level-editor', { method: 'POST', body: new URLSearchParams(new FormData(form)) });
             if (!response.ok) { this.flash(`Couldn't save: ${(await response.text()).trim()}`); return; }
             const html = await response.text();
-            form.outerHTML = html;
+            swapIn(form, html);
             const fresh = new DOMParser().parseFromString(html, 'text/html').getElementById('level-editor');
             const level = JSON.parse(fresh.dataset.levelJson);
             if (!level.name) { this.flash('Give the level a name first.'); return; }
@@ -255,7 +255,7 @@ function requirementsPage() {
             const response = await fetch('/requirements/editor', { method: 'POST', body: new URLSearchParams(new FormData(form)) });
             if (!response.ok) { this.flash(`Couldn't save: ${(await response.text()).trim()}`); return; }
             const html = await response.text();
-            form.outerHTML = html;
+            swapIn(form, html);
             const fresh = document.querySelector('#level-write-area #set-editor');
             const set = JSON.parse(fresh.dataset.setJson);
             if (!set.name) { this.flash('Give the requirements a name first.'); fresh.querySelector('[name=name]')?.focus(); return; }
@@ -388,6 +388,7 @@ function setRoutineMaker() {
         query: '', pickerTab: '', picked: null, pickedShape: null, // the form's picker
         routines: [], // no "Add to" choice: it's this list
         addTargets() { return []; },
+        addTarget() { return true; }, // always this list
         addToValue() { return ''; },
         step(id, delta) {
             const input = document.getElementById(id);
