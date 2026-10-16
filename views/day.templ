@@ -737,8 +737,9 @@ templ dayUp(p DayPage, f DayFlight) {
 		}
 		if finishesHere(f) {
 			// The last routine: Finished takes Next gymnast's place, Back beside it.
+			// No Undo here: beside Finished it would take back the flight's start.
 			<div class="comp-up-last">
-				@dayFlightForm(p, f, true)
+				@dayFlightForm(p, f, false)
 				// Back, if there's one to go back to; the form stays either way, for a tap kept on the phone.
 				@dayUpForm(p, f, false)
 			</div>

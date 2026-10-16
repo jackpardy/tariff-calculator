@@ -460,7 +460,7 @@ func levelsBar(groups []requirements.BuiltinGroup) templ.Component {
 			templ_7745c5c3_Var20 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<div class=\"levels-bar\" x-show=\"mode === 'levels'\" x-cloak><div class=\"routine-switcher\"><template x-if=\"levelState.entries.length > 0\"><div class=\"select is-small\"><select aria-label=\"Level\" x-on:change=\"switchEntry($event.target.value)\"><template x-for=\"e in levelState.entries\" x-bind:key=\"e.id\"><option x-bind:value=\"e.id\" x-bind:selected=\"e.id === levelState.current\" x-text=\"e.name\"></option></template></select></div></template><div class=\"select is-small\"><select aria-label=\"Start a level\" x-on:change=\"newEntry($event.target.value); $event.target.value = ''\"><option value=\"\" selected>+ New level...</option> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<div class=\"levels-bar\" x-show=\"mode === 'levels'\" x-cloak><div class=\"routine-switcher\"><template x-if=\"levelState.entries.length > 0\"><div class=\"select is-small\"><select aria-label=\"Level\" x-on:change=\"switchEntry($event.target.value)\"><template x-for=\"e in levelState.entries\" x-bind:key=\"e.id\"><option x-bind:value=\"e.id\" x-bind:selected=\"e.id === levelState.current\" x-text=\"e.name\"></option></template></select></div></template><div class=\"select is-small\"><select aria-label=\"Start a level\" data-search-select=\"Find a level, e.g. BUCS L7 or AG3\" x-on:change=\"newEntry($event.target.value); $event.target.value = ''\"><option value=\"\" selected>+ New level...</option> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

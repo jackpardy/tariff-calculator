@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/chromedp/cdproto/network"
+	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 )
 
@@ -357,5 +358,65 @@ func TestTapsWithoutSignalInABrowser(t *testing.T) {
 	step(t, ctx, "reading the page", chromedp.Text(`.comp-flight p:nth-of-type(3)`, &started, chromedp.ByQuery))
 	if !strings.Contains(started, "09:50") {
 		t.Errorf("the page shows the server's times: %q", started)
+	}
+}
+
+// Back on the flight's last routine, without signal: who's up goes back,
+// Next gymnast is offered again in Finished's place, and the tap is sent
+// once the signal comes back (it once threw, and nothing more was sent).
+func TestBackFromTheLastRoutineWithoutSignalInABrowser(t *testing.T) {
+	ctx := browser(t)
+	h, clock := competitionServerAt(t, dayBefore)
+	admin := created(t, h, newCompetition())
+	publishedWith(t, h, admin, "Ann", "Bea", "Cal")
+	clock.set(onTheDay(10, 0))
+	day := admin + "/day?day=0"
+	flight := panelOne(t, h, day).Flights[0].Key
+	redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"start"}, "day": {"0"}})
+	for range 20 {
+		if panelOne(t, h, day).Flights[0].Last {
+			break
+		}
+		tapUp(t, h, admin, flight, "next")
+	}
+	if !panelOne(t, h, day).Flights[0].Last {
+		t.Fatal("never reached the last routine")
+	}
+	last := panelOne(t, h, day).Flights[0].Up
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+
+	var errs []string
+	chromedp.ListenTarget(ctx, func(ev any) {
+		if e, ok := ev.(*runtime.EventExceptionThrown); ok {
+			errs = append(errs, e.ExceptionDetails.Error())
+		}
+	})
+	var nextShown, finishHidden bool
+	step(t, ctx, "losing the signal on the last routine",
+		chromedp.Navigate(srv.URL+day+"&area=Panel+1"),
+		chromedp.WaitVisible(`.comp-up-last`, chromedp.ByQuery),
+		runtime.Enable(),
+		network.Enable(),
+		network.EmulateNetworkConditions(true, 0, -1, -1),
+	)
+	step(t, ctx, "tapping Back",
+		chromedp.Click(`.comp-up form[data-tap^="up:"] button[value="back"]`, chromedp.ByQuery),
+		chromedp.WaitVisible(`#day-taps`, chromedp.ByQuery),
+		chromedp.Evaluate(`!!document.querySelector('.comp-up form[data-tap^="up:"] button[value="next"]:not([hidden])')`, &nextShown),
+		chromedp.Evaluate(`!!document.querySelector('.comp-up form[data-tap^="flight:"]')?.hidden`, &finishHidden),
+	)
+	if len(errs) > 0 {
+		t.Errorf("no errors: %v", errs)
+	}
+	if !nextShown || !finishHidden {
+		t.Errorf("Next gymnast again in Finished's place: next %v, finish hidden %v", nextShown, finishHidden)
+	}
+	step(t, ctx, "the signal coming back, and Back sent",
+		network.EmulateNetworkConditions(false, 0, -1, -1),
+		chromedp.WaitNotVisible(`#day-taps`, chromedp.ByQuery),
+	)
+	if f := panelOne(t, h, day).Flights[0]; f.Up == last || f.Last {
+		t.Errorf("back on the server: %+v", f)
 	}
 }

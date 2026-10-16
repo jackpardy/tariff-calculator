@@ -1454,11 +1454,11 @@ func CoachClubSkills(p ClubSkillsPage) templ.Component {
 // confirmRemoveClubSkill asks before a club skill goes, with its marks.
 func confirmRemoveClubSkill(name string) templ.ComponentScript {
 	return templ.ComponentScript{
-		Name: `__templ_confirmRemoveClubSkill_9530`,
-		Function: `function __templ_confirmRemoveClubSkill_9530(name){return confirm('Remove ' + name + '? Marks on something to track go with it; a name for a skill only stops showing.');
+		Name: `__templ_confirmRemoveClubSkill_d420`,
+		Function: `function __templ_confirmRemoveClubSkill_d420(name){if (!confirm('Remove ' + name + '? Marks on something to track go with it; a name for a skill only stops showing.')) { event.preventDefault(); }
 }`,
-		Call:       templ.SafeScript(`__templ_confirmRemoveClubSkill_9530`, name),
-		CallInline: templ.SafeScriptInline(`__templ_confirmRemoveClubSkill_9530`, name),
+		Call:       templ.SafeScript(`__templ_confirmRemoveClubSkill_d420`, name),
+		CallInline: templ.SafeScriptInline(`__templ_confirmRemoveClubSkill_d420`, name),
 	}
 }
 
@@ -2018,11 +2018,11 @@ func CoachClubLevels(p ClubLevelsPage) templ.Component {
 // confirmRemoveLevel asks before a level goes.
 func confirmRemoveLevel(name string) templ.ComponentScript {
 	return templ.ComponentScript{
-		Name: `__templ_confirmRemoveLevel_1b16`,
-		Function: `function __templ_confirmRemoveLevel_1b16(name){return confirm('Remove ' + name + '? Gymnasts\' marks stay.');
+		Name: `__templ_confirmRemoveLevel_23eb`,
+		Function: `function __templ_confirmRemoveLevel_23eb(name){if (!confirm('Remove ' + name + '? Gymnasts\' marks stay.')) { event.preventDefault(); }
 }`,
-		Call:       templ.SafeScript(`__templ_confirmRemoveLevel_1b16`, name),
-		CallInline: templ.SafeScriptInline(`__templ_confirmRemoveLevel_1b16`, name),
+		Call:       templ.SafeScript(`__templ_confirmRemoveLevel_23eb`, name),
+		CallInline: templ.SafeScriptInline(`__templ_confirmRemoveLevel_23eb`, name),
 	}
 }
 

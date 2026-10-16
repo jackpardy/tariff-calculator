@@ -45,6 +45,7 @@ func routesWithPages(pages *competitionPages) http.Handler {
 	mux.HandleFunc("POST /skill-form", handleSkillForm)
 	mux.HandleFunc("POST /skill-inputs", handleSkillInputs)
 	mux.HandleFunc("GET /skill-search", handleSkillSearch)
+	mux.HandleFunc("GET /requirements/pick-search", handlePickSearch)
 	mux.HandleFunc("POST /calculate-skill", handleCalculateSkill)
 	mux.HandleFunc("GET /judging", handleJudging)
 	mux.HandleFunc("POST /routine", handleRoutineView)
@@ -215,6 +216,22 @@ func handleSkillSearch(w http.ResponseWriter, r *http.Request) {
 		reading = &s
 	}
 	render(w, r, views.SearchResults(q, catalog.Search(q), reading))
+}
+
+// handlePickSearch finds the requirements editor's picks (requirements.Picks)
+// for a search, as the skill search finds skills: by any name for a skill or
+// by FIG notation (q). It answers their IDs as JSON, best first, for the
+// editor's searchable lists (static/js/selectsearch.js), which match labels
+// themselves too.
+func handlePickSearch(w http.ResponseWriter, r *http.Request) {
+	ids := []string{}
+	for _, res := range catalog.Search(strings.TrimSpace(r.FormValue("q"))) {
+		if id := requirements.PickOf(requirements.SkillMatch(res.Skill)); id != "" && !slices.Contains(ids, id) {
+			ids = append(ids, id)
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(ids)
 }
 
 // parseSkillFromForm reads and validates the skill in the "Add a skill" form. The

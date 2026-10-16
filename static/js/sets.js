@@ -189,6 +189,9 @@ const LevelEntries = {
         const m = n === 2 ? 1 : 2;
         const ref = this.chosen(entry, m);
         const routine = Exercises.isSetRoutine(ref) ? undefined : this.routineFor(entry, m, routines);
+        // A voluntary with no routine yet isn't checked: the level says so,
+        // rather than counting an empty routine's requirements as unmet.
+        if (!Exercises.isSetRoutine(ref) && !routine) { return values; }
         values.pairData = routine ? JSON.stringify(routine.skills) : '';
         values.pairSet = SetStore.payload(ref);
         values.pairChecks = JSON.stringify(routine?.checks || {});
@@ -366,3 +369,17 @@ const KeptRequirements = (() => {
 
     return { links, sync, save, drop, addFrom };
 })();
+
+// swapIn puts an editor's fresh HTML in place of its form (a save posts the
+// form once more and shows the server's answer) and wires it up as htmx
+// wires what it swaps in: its own triggers, and htmx:load for the
+// searchable lists. Without it the redrawn editor does nothing.
+function swapIn(form, html) {
+    const holder = document.createElement('div');
+    holder.innerHTML = html;
+    const fresh = holder.firstElementChild;
+    form.replaceWith(fresh);
+    htmx.process(fresh);
+    fresh.dispatchEvent(new CustomEvent('htmx:load', { bubbles: true, detail: { elt: fresh } }));
+    return fresh;
+}

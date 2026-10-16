@@ -536,7 +536,7 @@ templ SetEditor(e SetEditorData) {
 			<div class="field">
 				<label class="label is-small" for="add-pick">Add a skill</label>
 				<div class="select is-small">
-					<select id="add-pick" name="addpick" data-search-select="Search to add, e.g. seat drop or a drill">
+					<select id="add-pick" name="addpick" data-search-select="Search to add, e.g. seat drop, a drill or 4 1 o" data-search-url="/requirements/pick-search">
 						<option value="">Choose a skill to add...</option>
 						if len(e.Club.Own) > 0 {
 							<optgroup label="Your club's own skills (not trampoline skills)">
@@ -659,7 +659,7 @@ templ ruleBody(e *SetEditorData, i int, rule requirements.Rule, p, kind string) 
 		</div>
 		<div class="field">
 			<label class="label is-small" for={ p + "label" }>Wording (optional)</label>
-			<input class="input is-small" id={ p + "label" } name={ p + "label" } value={ rule.Label } placeholder="e.g. A back somersault"/>
+			<input class="input is-small" id={ p + "label" } name={ p + "label" } value={ rule.Label } placeholder={ wordingPlaceholder(kind) }/>
 		</div>
 	</div>
 	switch rule.Type {
@@ -824,7 +824,7 @@ templ matcherFields(e *SetEditorData, prefix string, m *requirements.Matcher, ti
 		<div class="field matcher-pick">
 			<label class="label is-small" for={ prefix + "pick" }>A skill, or a kind of skill</label>
 			<div class="select is-small is-fullwidth">
-				<select id={ prefix + "pick" } name={ prefix + "pick" } data-search-select="Search, e.g. barani or tuck jump">
+				<select id={ prefix + "pick" } name={ prefix + "pick" } data-search-select="Search, e.g. barani, back s/s or 8 1 1 <" data-search-url="/requirements/pick-search">
 					<option value="" selected?={ picked == "" }>
 						if own {
 							Your own description, below
@@ -1088,4 +1088,27 @@ func setRoutineSteps(set requirements.Set) []string {
 		}
 	}
 	return nil
+}
+
+// wordingPlaceholder suggests wording that fits a kind of rule.
+func wordingPlaceholder(kind string) string {
+	switch kind {
+	case requirements.Elements:
+		return "e.g. Exactly 10 elements"
+	case requirements.Difficulty:
+		return "e.g. Tariff 1.6 to 2.3"
+	case requirements.Different:
+		return "e.g. 10 different skills"
+	case requirements.Separate:
+		return "e.g. Special requirements"
+	case requirements.Sequence:
+		return "e.g. Set routine"
+	case requirements.Track:
+		return "e.g. Handstand hold"
+	case "then":
+		return "e.g. Back drop, then back to feet"
+	case requirements.Linked:
+		return "e.g. No linked somersaults"
+	}
+	return "e.g. A back somersault"
 }

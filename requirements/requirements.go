@@ -466,7 +466,7 @@ func Evaluate(set Set, rv skills.RoutineValidation) []Result {
 				for k := range j {
 					if routine[j].Equal(&routine[k]) {
 						res.Elements = append(res.Elements, j+1)
-						repeats = append(repeats, fmt.Sprintf("%d repeats %d", j+1, k+1))
+						repeats = append(repeats, fmt.Sprintf("element %d repeats element %d", j+1, k+1))
 						break
 					}
 				}

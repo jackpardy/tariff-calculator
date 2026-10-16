@@ -55,8 +55,8 @@ func TestRoutineViewFlagsSkills(t *testing.T) {
 	want := []struct{ class, message string }{
 		{"invalid-transition", "Must Start From Feet"},
 		{"invalid-transition", "Straight Jump Interrupts Routine"},
-		{"duplicate-skill", "Duplicate (Counts Once)"},
-		{"duplicate-skill", "Duplicate"},
+		{"", "Repeated later: this one counts"}, // the first of a repeat counts: a note, not a problem
+		{"duplicate-skill", "A repeat: it scores nothing"},
 		{"", ""},
 	}
 	for i, w := range want {
@@ -66,6 +66,9 @@ func TestRoutineViewFlagsSkills(t *testing.T) {
 		if w.message != "" && !strings.Contains(cards[i], w.message) {
 			t.Errorf("card %d is missing message %q", i+1, w.message)
 		}
+	}
+	if strings.Contains(cards[2], "duplicate-skill") {
+		t.Error("the first of a repeat isn't marked as one")
 	}
 	for i := 2; i < 5; i++ {
 		if !strings.Contains(cards[i], "not-counted") || !strings.Contains(cards[i], "After Interruption (No Tariff)") {
@@ -95,7 +98,7 @@ func TestRoutineViewFlagsSkills(t *testing.T) {
 		"Total Tariff: 0.10", // the straight jump (skill 2) interrupts; only skill 1 counts
 		"(Raw Total: 1.40)",
 		"5 of 10 skills",
-		"Duplicate skills only count once",
+		"A skill is repeated: the repeat scores nothing",
 		"Invalid transitions detected",
 		"Routine interrupted at skill 2",
 		"2. Straight Jump",
@@ -982,7 +985,7 @@ func TestRoutineChecks(t *testing.T) {
 	}
 
 	html = view(`{"difficulty":true,"repeats":true}`)
-	if !strings.Contains(html, "Duplicate (Counts Once)") || !strings.Contains(html, "Total Tariff") {
+	if !strings.Contains(html, "Repeated later: this one counts") || !strings.Contains(html, "A repeat: it scores nothing") || !strings.Contains(html, "Total Tariff") {
 		t.Errorf("with both checks turned back on, repeats are flagged and difficulty scored")
 	}
 	if got := boxes(html); got != "difficulty on, repeats on" {

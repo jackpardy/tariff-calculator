@@ -554,6 +554,8 @@ details > summary.button::before, .routine-menu > summary::before { content: non
     /* Keep the skill card (and its Add button) on screen while choosing and adjusting,
        but not while typing elsewhere: with the keyboard up it would cover the field. */
     .skill-card { position: sticky; bottom: 0.5rem; z-index: 5; box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12); }
+    /* While the builder is open, the card waits below it rather than covering it. */
+    .skill-builder[open] ~ .skill-card { position: static; box-shadow: none; }
     #main-form:has(input:focus:not(#custom-name)) .skill-card { position: static; box-shadow: none; }
     .builder-label { min-width: 100%; }
 }
@@ -1162,3 +1164,12 @@ html:has(.set-editor) { overflow-anchor: none; }
 .set-routine-skills { margin: 0.25rem 0 0.5rem 1.25rem; }
 .set-routine-skills li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.2rem 0; }
 .set-routine-skills .buttons { margin-left: auto; }
+/* No messages: no box, so its line doesn't sit alone above the checks. */
+.validation-messages:not(:has(*)) { display: none; }
+/* The requirements editor under Check against: its dropdowns fill their fields
+   (Check against's own are kept narrow), and its tick boxes have a gap. */
+.requirements-writer .select select, .requirements-writer .select.is-fullwidth select { max-width: none; }
+.requirements-writer .select.is-fullwidth select { width: 100%; }
+.set-scoring .checkbox { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
+/* On a phone the skill picker's tabs wrap, rather than running off the side unseen. */
+@media screen and (max-width: 768px) { .picker-tabs { flex-wrap: wrap; overflow-x: visible; } }
