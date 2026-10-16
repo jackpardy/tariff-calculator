@@ -75,6 +75,22 @@ func DescribeMatcher(m Matcher) string {
 	if strings.TrimSpace(m.Label) != "" {
 		return m.Label
 	}
+	// "a front somersault, no twist, or a barani": each alternative in turn.
+	if len(m.Or) > 0 {
+		parts := []string{describeOne(Matcher{Label: m.Label, Rotation: m.Rotation, Direction: m.Direction, Twist: m.Twist, Shapes: m.Shapes, Takeoff: m.Takeoff, Landing: m.Landing, Tariff: m.Tariff, FIG: m.FIG})}
+		for _, o := range m.Or {
+			parts = append(parts, describeOne(o))
+		}
+		return strings.Join(parts, ", or ")
+	}
+	return describeOne(m)
+}
+
+// describeOne is one matcher in words, leaving its alternatives aside.
+func describeOne(m Matcher) string {
+	if strings.TrimSpace(m.Label) != "" {
+		return m.Label
+	}
 	if id := PickOf(m); id != "" {
 		p, _ := PickByID(id)
 		if p.Group == KindsGroup {

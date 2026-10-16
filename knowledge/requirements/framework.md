@@ -128,6 +128,12 @@ offered (2026-10-16): leaving **Elements may be repeated** unticked already
 flags repeats and scores them nothing; requirements that have the rule keep
 it, and having both is flagged as rules that can't all be met.
 
+**More than one kind of skill.** Under every "Skills that count" (and each
+special requirement or step), **+ Or another skill** adds another skill or
+kind of skill that counts too, picked or described as the first is, with
+**Remove this one** (the matcher's `or`); so "at most 2 linked: front
+somersaults or baranis" is one rule.
+
 **Picking the skills.** Wherever a rule describes skills (a count, linked
 pairs, every skill, a position, each special requirement, each step of
 "this, then this"), one dropdown offers **kinds of skill** (any somersault,

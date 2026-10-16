@@ -50,6 +50,7 @@ left out matches anything.
 | `takeoff`, `landing` | list | `feet`, `front`, `back`, `seat` |
 | `tariff` | `{min, max}` | The skill's tariff |
 | `fig` | text | Exact FIG notation; brackets and spaces are ignored, so `4-o` equals `(4 - o)` |
+| `or` | list of matchers | Other skills that count too, which needn't fit the same description: a skill matches if it fits this matcher **or** any of these ("a front somersault, or a barani"). They have no `or` of their own. Added 2026-10-16, without bumping `format`. |
 
 Matchers cover nearly every element requirement in the known rule books. The
 `cel-go` expression rule that ADR 0001 planned was dropped until a real rule

@@ -151,7 +151,7 @@ func sameMatcher(a, b Matcher) bool {
 	sameTariff := func(x, y *TariffRange) bool {
 		return (x == nil || x.Min == nil && x.Max == nil) && (y == nil || y.Min == nil && y.Max == nil)
 	}
-	return sameRange(a.Rotation, b.Rotation) && sameRange(a.Twist, b.Twist) && a.Direction == b.Direction &&
+	return len(a.Or) == 0 && len(b.Or) == 0 && sameRange(a.Rotation, b.Rotation) && sameRange(a.Twist, b.Twist) && a.Direction == b.Direction &&
 		slices.Equal(a.Shapes, b.Shapes) && slices.Equal(a.Takeoff, b.Takeoff) && slices.Equal(a.Landing, b.Landing) &&
 		a.FIG == b.FIG && sameTariff(a.Tariff, b.Tariff)
 }
@@ -239,6 +239,10 @@ func (m Matcher) Clone() Matcher {
 		out.Tariff = &t
 	}
 	out.Shapes, out.Takeoff, out.Landing = slices.Clone(m.Shapes), slices.Clone(m.Takeoff), slices.Clone(m.Landing)
+	out.Or = nil
+	for _, o := range m.Or {
+		out.Or = append(out.Or, o.Clone())
+	}
 	return out
 }
 
