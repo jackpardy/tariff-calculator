@@ -160,8 +160,28 @@ templ voluntarySlot(e LevelEditorData, key, title, ref string) {
 				</select>
 			</div>
 		</div>
-		<p class="matcher-hint">New requirements: "+ New" under Your requirements.</p>
+		// Requirements written for this exercise, here: opened under the level
+		// (a form can't hold another), saved into it (requirementsPage's
+		// writeForLevel).
+		<div class="buttons are-small mt-2 mb-0">
+			if isCustom(e.Custom, ref) {
+				<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("writeForLevel('%s', '%s', %q)", key, ref, title) }>Change these</button>
+			} else if ref != "" {
+				<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("writeForLevel('%s', '%s', %q)", key, ref, title) }>Copy and change</button>
+			}
+			<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("writeForLevel('%s', '', %q)", key, title) }>+ Write new requirements</button>
+		</div>
 	</div>
+}
+
+// isCustom says whether a reference is one of the user's own requirements.
+func isCustom(custom []CustomRequirements, ref string) bool {
+	for _, c := range custom {
+		if c.ID == ref {
+			return true
+		}
+	}
+	return false
 }
 
 // setRoutineChoices are the built-in set routines and the user's own.

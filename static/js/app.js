@@ -363,7 +363,7 @@ function tariffCalculatorStore() {
         // or 'set'): those kept on your page first.
         yourChoices(kind) {
             return this.customSets
-                .filter((s) => this.isSetRoutine(s.set) === (kind === 'set'))
+                .filter((s) => this.isSetRoutine(s.set) === (kind === 'set') && !s.inLevel) // a level's own are its
                 .map((s) => ({ ref: s.id, name: s.set.name, kept: !!s.kept, search: `${s.set.name} ${s.kept ? 'on your page' : ''}` }))
                 .sort((a, b) => Number(b.kept) - Number(a.kept));
         },

@@ -56,6 +56,21 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 							</div>
 						</div>
 						<div id="editor-area" hx-sync="this:replace"></div>
+						// Requirements written for one of the level's exercises,
+						// under it (writeForLevel in static/js/requirements.js).
+						<div class="level-writer" x-show="levelWriting" x-cloak>
+							<h3 class="title is-6 mb-1" x-text="levelWriting?.title"></h3>
+							<p class="matcher-hint mb-3">Saved into this level. Tick below to keep them in Your requirements too, to use in other levels or check routines against.</p>
+							<div id="level-write-area"></div>
+							<label class="checkbox mt-3">
+								<input type="checkbox" x-model="levelKeepToo"/>
+								Also keep them in Your requirements
+							</label>
+							<div class="buttons mt-3 mb-0">
+								<button class="button is-primary is-small" type="button" x-on:click="saveForLevel()">Use in this level</button>
+								<button class="button is-text is-small" type="button" x-on:click="cancelForLevel()">Cancel</button>
+							</div>
+						</div>
 					</div>
 					<div class="box">
 						<div class="box-head">

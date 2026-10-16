@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-16
+* **Update**: [Levels](requirements/levels.md): in a level's editor, a voluntary exercise has **+ Write new requirements** (and **Copy and change** or **Change these**), written right there under the level and chosen for it with **Use in this level**; they're the level's own unless **Also keep them in Your requirements** is ticked. Keeping a level on your page keeps the requirements it uses too.
 * **Fix**: FIG notation in the skill search finds skills from every take-off, not only feet ("6 0 /" found nothing; "5 0 /" now finds Ball-Out and Cody), each saying where it takes off and lands; the first loads onto the card as it's typed, and one that isn't a named skill opens **Build or adjust this skill** to finish it. The builder ends with "Shape: choose it on the card below."
 * **Fix**: The skill card's name stands out again and **How it's judged** is a small link beside its take-off and landing, not a full-width grey bar (the card's column layout had stretched the button); a plain straight jump, which isn't judged, has no judging link, on the card or in the routine.
 * **Update**: [The requirements editor](requirements/framework.md#the-editor): "Skills that count" can be several kinds of skill that don't fit one description: **+ Or another skill** adds one (picked or described like the first), **Remove this one** takes it off; a skill counts if it fits any of them (the matcher's new `or`; [rule types](requirements/rule-types.md)).

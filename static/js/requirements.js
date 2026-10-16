@@ -11,6 +11,8 @@ function requirementsPage() {
         builtinLevels: {}, // built-in levels by reference, for duplicating
         requirementNames: {}, // built-in requirements' names by reference
         editing: null, // {id, title, kind}: the set or level ('set' or 'level') open in the editor (id null until first saved)
+        levelWriting: null, // requirements written for one of the open level's exercises: {key, id, title}
+        levelKeepToo: false, // and kept in Your requirements too
         importing: false,
         routines: [], // the routines saved in this browser, to make a set routine of
         makingSetRoutine: false,
@@ -75,6 +77,12 @@ function requirementsPage() {
         async keepOnPage(link, kind, saved) {
             try {
                 await KeptRequirements.save(link.url, kind, saved);
+                // A level's own requirements go with it, so it works on any phone.
+                if (kind === 'level') {
+                    for (const set of this.levelSets(saved.level)) {
+                        if (!set.kept) { await KeptRequirements.save(link.url, 'set', set); }
+                    }
+                }
             } catch (e) {
                 this.flash(`Couldn't keep it on your page: ${e.message}`);
                 return;
@@ -125,12 +133,22 @@ function requirementsPage() {
             this.openLevel(copy, 'New level (copy)');
         },
         duplicateBuiltinLevel(ref) { if (this.builtinLevels[ref]) { this.duplicateLevel(this.builtinLevels[ref]); } },
+        // levelSets are the user's own requirements a level uses.
+        levelSets(level) {
+            const refs = [...(level.first?.options || []), ...(level.second?.options || [])];
+            return this.sets.filter((s) => refs.includes(s.id));
+        },
         removeLevel(id) {
             const saved = this.levels.find((l) => l.id === id);
             if (!saved || !confirm(`Delete ${saved.level.name}${saved.kept ? ', here and from your page' : ''}? Routines doing its exercises will stop being paired by it.`)) { return; }
             KeptRequirements.drop('level', saved);
             this.levels = this.levels.filter((l) => l.id !== id);
             LevelStore.save(this.levels);
+            // Requirements written for it alone go with it, unless another level uses them.
+            const orphans = this.levelSets(saved.level).filter((s) => s.inLevel && !this.levels.some((l) => this.levelSets(l.level).includes(s)));
+            for (const s of orphans) { KeptRequirements.drop('set', s); }
+            this.sets = this.sets.filter((s) => !orphans.includes(s));
+            SetStore.save(this.sets);
             if (this.editing?.id === id) { this.closeEditor(); }
             this.flash(`Deleted ${saved.level.name}.`);
         },
@@ -199,7 +217,83 @@ function requirementsPage() {
         },
         closeEditor() {
             this.editing = null;
+            this.cancelForLevel();
             document.getElementById('editor-area').replaceChildren();
+        },
+
+        // --- Requirements written for one of a level's exercises ---
+        // writeForLevel opens the requirements editor under the level editor,
+        // for its exercise key ("first" or "second"): on its own requirements
+        // (ref, changed in place), a copy of a built-in one, or new ('').
+        writeForLevel(key, ref, exercise) {
+            const saved = this.sets.find((s) => s.id === ref);
+            let values;
+            if (saved) {
+                this.levelWriting = { key, id: saved.id, title: `Change ${saved.set.name} · ${exercise}` };
+                this.levelKeepToo = !saved.inLevel;
+                values = { set: JSON.stringify(saved.set) };
+            } else if (ref.startsWith('builtin:')) {
+                this.levelWriting = { key, id: null, title: `A copy of ${this.requirementName(ref)} · ${exercise}` };
+                this.levelKeepToo = false;
+                values = { copy: ref };
+            } else {
+                const name = document.getElementById('level-name')?.value.trim();
+                this.levelWriting = { key, id: null, title: `New requirements · ${exercise}` };
+                this.levelKeepToo = false;
+                values = { set: JSON.stringify({ format: 1, name: name ? `${name} · ${exercise.split(':')[0].toLowerCase()}` : '', rules: [] }) };
+            }
+            htmx.ajax('POST', '/requirements/editor', { source: '#level-write-area', target: '#level-write-area', swap: 'innerHTML', values })
+                .then(() => document.querySelector('.level-writer')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        },
+        // saveForLevel saves the requirements written for the level's
+        // exercise, as the editor has them, and chooses them for it: kept in
+        // Your requirements only if ticked (otherwise they're the level's).
+        async saveForLevel() {
+            const form = document.querySelector('#level-write-area #set-editor');
+            const writing = this.levelWriting;
+            if (!form || !writing) { return; }
+            const response = await fetch('/requirements/editor', { method: 'POST', body: new URLSearchParams(new FormData(form)) });
+            if (!response.ok) { this.flash(`Couldn't save: ${(await response.text()).trim()}`); return; }
+            const html = await response.text();
+            form.outerHTML = html;
+            const fresh = document.querySelector('#level-write-area #set-editor');
+            const set = JSON.parse(fresh.dataset.setJson);
+            if (!set.name) { this.flash('Give the requirements a name first.'); fresh.querySelector('[name=name]')?.focus(); return; }
+            if (fresh.dataset.problems !== '0' && !confirm('These requirements have problems (listed in the editor). Save them anyway?')) { return; }
+            const described = JSON.parse(fresh.dataset.described || '[]');
+            let saved = this.sets.find((s) => s.id === writing.id);
+            if (saved) {
+                Object.assign(saved, { set, described });
+            } else {
+                saved = { id: SetStore.newId(), set, described };
+                this.sets.push(saved);
+            }
+            if (this.levelKeepToo) { delete saved.inLevel; } else { saved.inLevel = true; }
+            SetStore.save(this.sets);
+            await this.keepAgain('set', saved);
+            this.chooseForLevel(writing.key, saved);
+            this.cancelForLevel();
+            this.flash(`Saved ${set.name}, for this level.`);
+        },
+        // chooseForLevel puts saved requirements in the level editor's
+        // exercise (key), and redraws it.
+        chooseForLevel(key, saved) {
+            const editor = document.getElementById('level-editor');
+            if (!editor) { return; }
+            const custom = editor.querySelector('[name=custom]');
+            const list = JSON.parse(custom.value || '[]').filter((c) => c.id !== saved.id);
+            list.push({ id: saved.id, name: saved.set.name, set_routine: false });
+            custom.value = JSON.stringify(list);
+            const select = editor.querySelector(`[name="${key}.0"]`);
+            if (!select) { return; }
+            let option = [...select.options].find((o) => o.value === saved.id);
+            if (!option) { option = new Option(saved.set.name, saved.id); select.add(option); }
+            select.value = saved.id;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        },
+        cancelForLevel() {
+            this.levelWriting = null;
+            document.getElementById('level-write-area')?.replaceChildren();
         },
         remove(id) {
             const saved = this.sets.find((s) => s.id === id);
@@ -238,7 +332,9 @@ function requirementsPage() {
         // --- Set routines: built in the Routine Builder, kept with the requirements ---
         isSetRoutine(set) { return (set?.rules || []).some((r) => r.type === 'sequence'); },
         setRoutines() { return this.sets.filter((s) => this.isSetRoutine(s.set)); },
-        requirementSets() { return this.sets.filter((s) => !this.isSetRoutine(s.set)); },
+        // requirementSets are Your requirements: not set routines, nor those
+        // written for a level only (inLevel), which its exercise lists.
+        requirementSets() { return this.sets.filter((s) => !this.isSetRoutine(s.set) && !s.inLevel); },
         // elementsOf is a set routine's elements by name.
         elementsOf(set) { return (set.rules.find((r) => r.type === 'sequence')?.sequence || []).map((m) => m.label || 'Element'); },
         // saveFromRoutine saves a routine already built as a set routine.

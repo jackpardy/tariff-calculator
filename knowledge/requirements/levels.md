@@ -129,7 +129,16 @@ editor's pattern. It asks for the **structure** first, then fills its slots:
 | Set routine for both exercises | set routines | (the same) |
 
 A set routine slot offers only set routines and a voluntary slot only
-requirements, built-in or the user's own; changing the structure keeps what
+requirements, built-in or the user's own. A voluntary slot also has **+ Write
+new requirements** (and **Copy and change** or **Change these** for the one
+chosen), opening the requirements editor under the level editor (a form can't
+hold another; `writeForLevel` in `static/js/requirements.js`), named after the
+level and exercise; **Use in this level** saves the set and chooses it for the
+exercise. It's the level's own (`inLevel` on its SetStore entry: not in Your
+requirements nor Check against) unless **Also keep them in Your requirements**
+is ticked. Keeping a level on a person's page keeps the user's own
+requirements it uses too, and deleting it deletes its own that no other level
+uses (2026-10-16); changing the structure keeps what
 still fits (`parseLevelForm`). An opened level's structure is worked out from
 it (`levelStructure`). Description and source fold away under "More details".
 Any built-in level can be duplicated to start from. Levels are shared by link like requirements, bringing the custom
