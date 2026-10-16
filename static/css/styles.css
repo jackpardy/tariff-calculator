@@ -810,7 +810,14 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 }
 
 /* --- Officials (views/officials.templ) --- */
-.comp-offer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.8rem; }
+/* Judging and helping: the discipline, its level and "can chair" line up
+   down the rows (a grid), and stay on one line at phone width. */
+.comp-offer-row { display: grid; grid-template-columns: minmax(9rem, max-content) auto auto; justify-content: start; align-items: center; gap: 0.4rem 0.8rem; }
+.comp-offer .checkbox input { margin-right: 0.3rem; }
+@media screen and (max-width: 480px) {
+  .comp-offer-row { grid-template-columns: 1fr auto; }
+  .comp-offer-row > .checkbox:first-child { grid-column: 1 / -1; }
+}
 .comp-num { width: 4.5rem; }
 .comp-table td.comp-wrap { white-space: normal; min-width: 14rem; }
 .comp-setup-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; margin-bottom: 0.4rem; }

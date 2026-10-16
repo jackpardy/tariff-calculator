@@ -37,7 +37,7 @@ func TestLimitsAndWaitingLists(t *testing.T) {
 	}
 
 	// Bea withdraws: Cat is in.
-	if rec := do(t, h, http.MethodPost, links[1]+"/withdraw", url.Values{"confirm": {"1"}}); !strings.Contains(rec.Body.String(), "Entry withdrawn") {
+	if to := redirected(t, h, links[1]+"/withdraw", url.Values{"confirm": {"1"}}); !strings.Contains(noticeOf(t, to), "Withdrawn") {
 		t.Fatal("Bea withdraws")
 	}
 	if got := do(t, h, http.MethodGet, links[2], nil).Body.String(); strings.Contains(got, "waiting list") {

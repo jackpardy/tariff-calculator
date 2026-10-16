@@ -111,6 +111,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("GET /competitions/entry/{token}", p.ownEntry)
 	handle("POST /competitions/entry/{token}", p.replaceEntry)
 	handle("POST /competitions/entry/{token}/withdraw", p.withdraw)
+	handle("POST /competitions/entry/{token}/restore", p.restore)
 	p.registerClubs(mux)
 	p.registerTimetable(handle)
 	p.registerPartners(handle)

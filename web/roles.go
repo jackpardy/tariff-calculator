@@ -235,6 +235,12 @@ func (p *competitionPages) addOtherLink(w http.ResponseWriter, r *http.Request) 
 	case kind == "":
 		notice = "That's a link for joining a club or entering a competition, which anyone can be sent, not one of your own. Add the link of the page it gave you."
 	default:
+		if r.FormValue("sure") == "" {
+			if ask, ok := p.sameLink(r, token, pasted); ok {
+				render(w, r, views.SameLink(ask))
+				return
+			}
+		}
 		role, err := p.st.Tie(r.Context(), token, kind, pasted)
 		switch {
 		case errors.Is(err, store.ErrOwnLink):
@@ -253,6 +259,53 @@ func (p *competitionPages) addOtherLink(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	seeOther(w, r, detailsOf(r)+"#other-links", notice)
+}
+
+// sameLink is the question to ask before adding a pasted personal link
+// whose name isn't this person's (by first name): ok is false for one that
+// is, or that isn't a person's.
+func (p *competitionPages) sameLink(r *http.Request, token, pasted string) (views.SameLinkPage, bool) {
+	_, mine, err := p.st.Roles(r.Context(), token)
+	if err != nil {
+		return views.SameLinkPage{}, false
+	}
+	_, theirs, err := p.st.Roles(r.Context(), pasted)
+	if err != nil {
+		return views.SameLinkPage{}, false
+	}
+	var other *store.Role
+	for i, role := range theirs {
+		if role.Own {
+			other = &theirs[i]
+		}
+	}
+	if other == nil || other.Name == "" {
+		return views.SameLinkPage{}, false
+	}
+	yours := ""
+	for _, role := range mine {
+		if role.Name == "" {
+			continue
+		}
+		if sameFirstName(role.Name, other.Name) {
+			return views.SameLinkPage{}, false
+		}
+		if role.Own {
+			yours = role.Name
+		}
+	}
+	if yours == "" {
+		return views.SameLinkPage{}, false
+	}
+	return views.SameLinkPage{Link: r.FormValue("link"), Add: r.URL.Path, Back: detailsOf(r) + "#other-links",
+		Yours: yours, Theirs: other.Name, What: roleDescription(*other)}, true
+}
+
+// sameFirstName says two names start with the same word, ignoring case:
+// "Evan" and "Evan Kelly" may be one person, "Evan" and "Declan" aren't.
+func sameFirstName(a, b string) bool {
+	fa, fb := strings.Fields(a), strings.Fields(b)
+	return len(fa) > 0 && len(fb) > 0 && strings.EqualFold(fa[0], fb[0])
 }
 
 // removeOtherLink takes one of the person's other roles off their page.

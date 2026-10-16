@@ -240,9 +240,35 @@
 
     // enterAs offers the own pages, member pages and entries saved in this
     // browser for entering a competition as someone who has a page already.
+    // Choosing someone fills in the gymnast's name, the part of the saved
+    // name before " · " (unless it's been typed over).
     function enterAs() {
-        savedPeople(document.querySelector('[data-saved-as]'), document.getElementById('enter-as'),
+        const field = document.querySelector('[data-saved-as]');
+        savedPeople(field, document.getElementById('enter-as'),
             [...loadLinks(linkKeys.gymnasts), ...loadLinks(linkKeys.members), ...loadLinks(linkKeys.entries)], 'Someone new, or another page (paste its link)');
+        const name = field?.closest('form')?.querySelector('input[name="gymnast"]');
+        const select = field?.querySelector('select');
+        if (!name || !select) { return; }
+        let filled = '';
+        const fill = () => {
+            if (name.value !== filled && name.value !== '') { return; }
+            const chosen = select.value ? select.selectedOptions[0].text.split(' · ')[0] : '';
+            name.value = filled = chosen;
+        };
+        select.addEventListener('change', fill);
+        fill();
+    }
+
+    // partnerClubs fill in a synchro partner's club when they're chosen from
+    // the club's members (the list on the partner's name), unless typed.
+    function partnerClubs() {
+        for (const name of document.querySelectorAll('input[name="partnerName"][list]')) {
+            const club = name.form.querySelector('input[name="partnerClub"]');
+            const members = [...(document.getElementById(name.getAttribute('list'))?.options || [])].map((o) => o.value);
+            name.addEventListener('change', () => {
+                if (club && club.value === '' && members.includes(name.value)) { club.value = name.dataset.club || ''; }
+            });
+        }
     }
 
     // videoChoices select "Video of some skills" when one of its skills is chosen.
@@ -776,6 +802,7 @@
         clubLink();
         partnerLink();
         enterAs();
+        partnerClubs();
         videoChoices();
         entryForms();
         keepRoutines();

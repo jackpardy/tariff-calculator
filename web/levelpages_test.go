@@ -186,7 +186,7 @@ func TestSavingLevelsAsAMemberWhoCoaches(t *testing.T) {
 	// Coaching in a second club too, they're asked which.
 	dcu := aClub(t, h, admin, "DCU", false)
 	bob := pathIn(t, do(t, h, http.MethodPost, dcu.page+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
-	redirected(t, h, murphy+"/links", url.Values{"link": {"http://example.com" + bob}})
+	redirected(t, h, murphy+"/links", url.Values{"link": {"http://example.com" + bob}, "sure": {"1"}})
 	page := do(t, h, http.MethodPost, "/clubs/levels/save", url.Values{"link": {murphy}, "set": {set}, "id": {"b2"}}).Body.String()
 	choice := regexp.MustCompile(`(?s)<input type="hidden" name="role" value="([^"]+)">\s*<button class="button is-fullwidth" type="submit">DCU</button>`).FindStringSubmatch(page)
 	if !strings.Contains(page, "Which club?") || choice == nil {

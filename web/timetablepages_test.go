@@ -195,7 +195,7 @@ func TestClubsSeeTheirFlights(t *testing.T) {
 	// so either may come first.
 	page := clubEntriesPage(t, h, club)
 	flightOf := func(level string) string {
-		m := regexp.MustCompile(`<td[^>]*>` + level + `</td>.*?has-text-info-dark">([^<]*)`).FindStringSubmatch(page)
+		m := regexp.MustCompile(`<td[^>]*>` + level + `</td>.*?comp-flight-line">([^<]*)`).FindStringSubmatch(page)
 		if m == nil {
 			return ""
 		}

@@ -13,6 +13,7 @@ type OfferForm struct {
 	Recorder    bool
 	Marshal     bool
 	Summary     string // what they offer now, "" for nothing
+	Note        string // e.g. that an individual's offer is the same on each of their entries
 	Problems    []string
 }
 
@@ -56,7 +57,12 @@ templ offerForm(f OfferForm) {
 			<label class="checkbox"><input type="checkbox" name="marshal" value="1" checked?={ f.Marshal }/> Marshal</label>
 		</div>
 		<button class="button is-small is-primary" type="submit">Save</button>
-		<p class="help">The organiser puts officials on panels around their own turns. Untick everything to offer nothing.</p>
+		<p class="help">
+			if f.Note != "" {
+				{ f.Note }
+			}
+			The organiser puts officials on panels around their own turns. Untick everything to offer nothing.
+		</p>
 	</form>
 }
 

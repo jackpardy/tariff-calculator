@@ -183,9 +183,36 @@ func TestIndividualEntries(t *testing.T) {
 	}
 	now = c.Deadline.Add(-time.Minute)
 	must(t, s.WithdrawIndividualEntry(ctx, token))
-	if _, err := s.IndividualEntry(ctx, token); !errors.Is(err, ErrNotFound) {
-		t.Error("withdrawn")
+	if got, err := s.IndividualEntry(ctx, token); err != nil || got.Removal != Withdrew {
+		t.Errorf("withdrawn, and still there to see: %v %+v", err, got)
 	}
+	if list, _ := s.Entries(ctx, c.ID); slices.ContainsFunc(list, func(e Entry) bool { return e.Removal == Withdrew }) {
+		t.Error("out of the competition's entries")
+	}
+	if err := s.ReplaceIndividualEntry(ctx, token, entry("C. Ryan")); !errors.Is(err, ErrRemoved) {
+		t.Errorf("not changed while withdrawn: %v", err)
+	}
+	// They can put it back, until the deadline.
+	must(t, s.RestoreIndividualEntry(ctx, token))
+	if got, _ := s.IndividualEntry(ctx, token); got.Removal != "" {
+		t.Errorf("put back: %+v", got)
+	}
+	must(t, s.WithdrawIndividualEntry(ctx, token))
+	if err := s.RestoreEntry(ctx, c.ID, mustEntry(t, s, token).ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("only they can put it back, not the organiser: %v", err)
+	}
+	now = c.Deadline.Add(time.Minute)
+	if err := s.RestoreIndividualEntry(ctx, token); !errors.Is(err, ErrClosed) {
+		t.Errorf("not after the deadline: %v", err)
+	}
+}
+
+// mustEntry is the entry an individual's link opens.
+func mustEntry(t *testing.T, s *Store, token string) Entry {
+	t.Helper()
+	e, err := s.IndividualEntry(ctx, token)
+	must(t, err)
+	return e
 }
 
 func TestClubsAndMembers(t *testing.T) {
@@ -972,6 +999,19 @@ func TestOfficials(t *testing.T) {
 	if o, _ := s.IndividualOffer(ctx, ind.ID); !o.Recorder {
 		t.Error("the individual's offer")
 	}
+	// It's one offer for the competition: their other entry has it, and
+	// changing it there changes the one offer.
+	tumbling := entry("I")
+	tumbling.Discipline = competitions.Tumbling
+	other, _, err := s.AddIndividualEntry(ctx, c.ID, token, tumbling)
+	must(t, err)
+	if o, _ := s.IndividualOffer(ctx, other.ID); !o.Recorder {
+		t.Error("the same offer on their other entry")
+	}
+	must(t, s.SetIndividualOffer(ctx, Via(personalOf(token), other.ID), competitions.Offer{Marshal: true}))
+	if o, _ := s.IndividualOffer(ctx, ind.ID); o.Recorder || !o.Marshal {
+		t.Errorf("changed on the other entry: %+v", o)
+	}
 	added, err := s.AddOfficial(ctx, c.ID, "Judge J", "", judge)
 	must(t, err)
 	list, _ = s.Officials(ctx, c.ID)
@@ -983,8 +1023,13 @@ func TestOfficials(t *testing.T) {
 	}
 	must(t, s.RemoveOfficial(ctx, c.ID, added.ID))
 
-	// Withdrawing the individual's entry takes their offer too.
+	// Withdrawing one of the individual's entries keeps their offer, on the
+	// other; withdrawing the other too takes it.
 	must(t, s.WithdrawIndividualEntry(ctx, token))
+	if o, _ := s.IndividualOffer(ctx, other.ID); !o.Marshal {
+		t.Error("the offer stays with their other entry")
+	}
+	must(t, s.WithdrawIndividualEntry(ctx, Via(personalOf(token), other.ID)))
 	if list, _ := s.Officials(ctx, c.ID); len(list) != 1 {
 		t.Errorf("only A is left: %+v", list)
 	}
@@ -1883,4 +1928,10 @@ func TestWrites(t *testing.T) {
 	if s.Writes() != was {
 		t.Error("a lookup in a transaction that changes nothing isn't a change")
 	}
+}
+
+// personalOf is the personal link of a token made by Via.
+func personalOf(token string) string {
+	personal, _, _ := splitVia(token)
+	return personal
 }

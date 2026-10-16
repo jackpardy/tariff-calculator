@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"net/http"
 	"slices"
 	"strings"
@@ -202,6 +203,14 @@ func (p *competitionPages) entryView(r *http.Request, e store.Entry, c store.Com
 		page.LateAsk = path + "/late"
 	}
 	switch {
+	case e.Removal == store.Withdrew:
+		page.Removal = "You withdrew this entry: it isn't in the competition."
+		if page.Competition.ChangesOpen {
+			page.Removal += " You can put it back until " + cmp.Or(page.Competition.ChangesUntil, page.Competition.Deadline) + "."
+			page.Restore = path + "/restore"
+		}
+		page.Competition.Open, page.Competition.ChangesOpen = false, false
+		page.SignoffLink = ""
 	case e.Removal == store.Removed:
 		page.Removal = strings.TrimSpace("The organiser removed this entry, so it can't be changed. " + e.RemovalNote)
 		page.Competition.Open, page.Competition.ChangesOpen = false, false
@@ -231,6 +240,7 @@ func (p *competitionPages) entryView(r *http.Request, e store.Entry, c store.Com
 	}
 	if offer, err := p.st.IndividualOffer(r.Context(), e.ID); err == nil {
 		form := offerForm(c.Competition, offer, path+"/offer")
+		form.Note = "One offer for the competition: it's the same on each of your entries."
 		page.Offer = &form
 	}
 	page.Form.Problems = problems
@@ -267,7 +277,19 @@ func (p *competitionPages) withdraw(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	message(w, r, http.StatusOK, "Entry withdrawn", "Your entry for "+c.Name+" has been withdrawn and deleted.")
+	seeOther(w, r, "/competitions/entry/"+r.PathValue("token"), "Withdrawn from "+c.Name+".")
+}
+
+// restore puts back an entry its gymnast withdrew.
+func (p *competitionPages) restore(w http.ResponseWriter, r *http.Request) {
+	if _, _, ok := p.own(w, r); !ok {
+		return
+	}
+	if err := p.st.RestoreIndividualEntry(r.Context(), r.PathValue("token")); err != nil {
+		failed(w, r, err)
+		return
+	}
+	seeOther(w, r, "/competitions/entry/"+r.PathValue("token"), "Put back: you're entered again.")
 }
 
 func signoffPath(token string) string { return "/competitions/signoff/" + token }
@@ -290,6 +312,10 @@ func (p *competitionPages) signoffEntry(w http.ResponseWriter, r *http.Request) 
 		return e, c, false
 	}
 	feedbackOn(r, c)
+	if e.Removal == store.Withdrew {
+		message(w, r, http.StatusOK, "Withdrawn", e.Entry.Gymnasts()+" withdrew this entry from "+c.Name+", so there's nothing to sign off.")
+		return e, c, false
+	}
 	return e, c, true
 }
 

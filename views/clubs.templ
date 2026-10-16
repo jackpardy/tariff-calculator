@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"tariffCalculator/competitions"
+	"tariffCalculator/static"
 )
 
 // ClubPage is a club's competition secretary's page.
@@ -82,6 +85,11 @@ type ClubCompetition struct {
 	Coaches        []ClubSendCoach
 	MyLinks
 	Fees           *FeesSummary // what the club owes, if the competition charges
+	// Enter a member: where it goes, and who and what to choose from (none
+	// while entries are closed).
+	EnterMember string
+	Members     []FlightOption
+	Disciplines []FlightOption
 }
 
 // ClubSendCoach is one of the club's coaches, to send to a competition.
@@ -131,6 +139,8 @@ type ClubEntryEdit struct {
 	Partner     *PartnerView // a synchro entry's partner, and whether they've confirmed
 	Form        EntryForm
 	Menu        []MenuSection
+	Withdraw    string // where withdrawing their entry posts, while changes are open
+	Notice      string
 }
 
 // JoinPage is where a club's members join it.
@@ -371,6 +381,32 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 				</div>
 			</form>
 		}
+		// A member entered by the comp sec, as they'd enter themselves.
+		if len(comp.Members) > 0 {
+			<script defer src={ static.URL("js/selectsearch.js") }></script>
+			@opens("", "", "Enter a member", false) {
+				<form method="get" action={ templ.SafeURL(comp.EnterMember) } class="comp-flight-actions">
+					<div class="select is-small">
+						<select name="member" required aria-label="Member" data-search-select="Search the members">
+							<option value="" disabled selected>Choose a member</option>
+							for _, m := range comp.Members {
+								<option value={ m.Value }>{ m.Label }</option>
+							}
+						</select>
+					</div>
+					if len(comp.Disciplines) > 1 {
+						<div class="select is-small">
+							<select name="discipline" aria-label="Discipline">
+								for _, d := range comp.Disciplines {
+									<option value={ d.Value }>{ d.Label }</option>
+								}
+							</select>
+						</div>
+					}
+					<button class="button is-small is-primary" type="submit">Enter them</button>
+				</form>
+			}
+		}
 		if len(comp.Rows) == 0 {
 			<p class="has-text-grey is-size-7">No member has entered yet.</p>
 		} else {
@@ -419,7 +455,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 										}
 										if row.Flight != "" {
 											<br/>
-											<span class="is-size-7 has-text-info-dark">{ row.Flight }</span>
+											<span class="is-size-7 has-text-grey-dark comp-flight-line">{ row.Flight }</span>
 										}
 										if row.Late.Text != "" {
 											<br/>
@@ -805,19 +841,29 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 				and { e.Partner.Name }
 			}
 		</h1>
+		if e.Notice != "" {
+			<div class="notification is-success is-light">{ e.Notice }</div>
+		}
 		if e.Card != nil {
 			<p class="subtitle is-6">{ e.Competition.Name } · { e.Card.Level }</p>
 			@partnerBox(e.Partner)
-			@entryCardChecks(*e.Card)
-			// Collapsed under the card, so the entry is what shows; open when a save had problems.
-			<div class="mt-4">
+			// Above the card, by its problems, so fixing them is where they're
+			// read; collapsed so the entry is what shows, open when a save had
+			// problems.
+			<div class="mb-4">
 				@opens("", "", "Change the entry", len(e.Form.Problems) > 0) {
 					@entryForm(e.Form)
 				}
 			</div>
+			@entryCardChecks(*e.Card)
+			if e.Withdraw != "" {
+				<div class="mt-4">
+					@withdrawForm(e.Withdraw, e.Form.Discipline)
+				</div>
+			}
 		} else {
-			<p class="subtitle is-6">{ e.Competition.Name }</p>
-			<h2 class="title is-5 mt-5">Enter them</h2>
+			<p class="subtitle is-6">{ e.Competition.Name } · { competitions.DisciplineName(e.Form.Discipline) }</p>
+			<h2 class="title is-5 mt-5">Enter them in { strings.ToLower(competitions.DisciplineName(e.Form.Discipline)) }</h2>
 			@entryForm(e.Form)
 		}
 	}
@@ -982,20 +1028,23 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 				@videoReviewNote(ev.VideoReview, ev.VideoNote)
 				@partnerBox(ev.Partner)
 				if ev.Card != nil {
-					@entryCardChecks(*ev.Card)
-				}
-				if comp.ChangesOpen {
-					if ev.Card != nil {
-						// Collapsed under the card; open when a save had problems.
-						<div class="mt-4">
+					// Change above the card, by its problems (open when a save
+					// had problems); Withdraw, rare, below it.
+					if comp.ChangesOpen {
+						<div class="mb-4">
 							@opens("", "", "Change your entry", len(ev.Form.Problems) > 0) {
 								@entryForm(ev.Form)
 							}
 						</div>
-						@withdrawForm(ev.Withdraw, ev.Discipline)
-					} else {
-						@entryForm(ev.Form)
 					}
+					@entryCardChecks(*ev.Card)
+					if comp.ChangesOpen {
+						<div class="mt-4">
+							@withdrawForm(ev.Withdraw, ev.Discipline)
+						</div>
+					}
+				} else if comp.ChangesOpen {
+					@entryForm(ev.Form)
 				}
 			</div>
 		</details>

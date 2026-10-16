@@ -250,7 +250,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, e := range removed {
 		d.Removed = append(d.Removed, views.RemovedRow{ID: e.ID, Gymnast: e.Entry.Gymnasts(), Club: clubOf(e), Level: e.Entry.Event(),
-			Held: e.Removal == store.Held, Resent: e.Resent, Note: e.RemovalNote, To: reasonTo(e)})
+			Held: e.Removal == store.Held, Withdrawn: e.Removal == store.Withdrew, Resent: e.Resent, Note: e.RemovalNote, To: reasonTo(e)})
 	}
 	if d.New != "" && !store.IsVia(r.PathValue("token")) {
 		d.Links.Admin = origin(r) + adminPath(r.PathValue("token"))

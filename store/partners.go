@@ -117,7 +117,7 @@ func (s *Store) pairEntries(ctx context.Context, cond string, args ...any) ([]Pa
 		WHERE me.partner_confirmed AND %[1]s
 		UNION ALL
 		SELECT e.competition_id, e.entry, e.gymnast, '', '', COALESCE(e.partner_member, ''), COALESCE(e.partner_entry, ''), e.id, COALESCE(e.signed_at, ''), e.signed_by
-		FROM entries e WHERE e.individual AND e.partner_confirmed AND %[2]s`, fmt.Sprintf(cond, "me"), fmt.Sprintf(cond, "e")), args...)
+		FROM entries e WHERE e.individual AND e.partner_confirmed AND e.removal <> 'withdrawn' AND %[2]s`, fmt.Sprintf(cond, "me"), fmt.Sprintf(cond, "e")), args...)
 	if err != nil {
 		return nil, err
 	}

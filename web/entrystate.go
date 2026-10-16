@@ -10,13 +10,14 @@ import (
 type standing int
 
 const (
-	entrySent    standing = iota // sent, and nothing more to say
-	entryRemoved                 // removed by the organiser
-	entryHeld                    // held by the organiser for changes
-	entryNotSent                 // saved by a member, not sent by the club yet
-	entryWaiting                 // on its event's waiting list
-	entryChanged                 // changed since the club sent it
-	entryChecked                 // checked by the organiser
+	entrySent      standing = iota // sent, and nothing more to say
+	entryRemoved                   // removed by the organiser
+	entryWithdrawn                 // withdrawn by its gymnast, entering on their own
+	entryHeld                      // held by the organiser for changes
+	entryNotSent                   // saved by a member, not sent by the club yet
+	entryWaiting                   // on its event's waiting list
+	entryChanged                   // changed since the club sent it
+	entryChecked                   // checked by the organiser
 )
 
 // stateOf is where an entry stands, the first of these that holds: removed
@@ -26,6 +27,8 @@ func stateOf(removal string, sent, changed bool, place int, checked bool) standi
 	switch {
 	case removal == store.Removed:
 		return entryRemoved
+	case removal == store.Withdrew:
+		return entryWithdrawn
 	case removal == store.Held:
 		return entryHeld
 	case !sent:
@@ -77,7 +80,7 @@ func memberStatus(s standing, removal store.Entry, changed bool) string {
 // done.
 func stateOfStanding(s standing) views.State {
 	switch s {
-	case entryRemoved:
+	case entryRemoved, entryWithdrawn:
 		return views.Stopped
 	case entryHeld, entryChanged:
 		return views.Attention
@@ -96,6 +99,8 @@ func brief(s standing, problems, place int, sent string) (string, views.State) {
 	switch {
 	case s == entryRemoved:
 		return "Removed", views.Stopped
+	case s == entryWithdrawn:
+		return "Withdrawn", views.Stopped
 	case s == entryHeld:
 		return "On hold", views.Attention
 	case problems > 0:

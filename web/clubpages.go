@@ -43,7 +43,9 @@ func (p *competitionPages) registerClubs(mux *http.ServeMux) {
 	handle("POST /clubs/admin/{token}/competitions/{id}/send", p.send)
 	handle("POST /clubs/admin/{token}/competitions/{id}/coaches", p.sendCoaches)
 	handle("GET /clubs/admin/{token}/members/{member}/competitions/{id}", p.editMemberEntry)
+	handle("GET /clubs/admin/{token}/competitions/{id}/enter-member", p.enterMember)
 	handle("POST /clubs/admin/{token}/members/{member}/competitions/{id}", p.saveMemberEntryForMember)
+	handle("POST /clubs/admin/{token}/members/{member}/competitions/{id}/withdraw", p.withdrawForMember)
 	handle("POST /clubs/admin/{token}/members/{member}/new-link", p.newMemberLink)
 	handle("POST /clubs/admin/{token}/members/{member}/remove", p.removeMember)
 	handle("POST /clubs/admin/{token}/replace-link", p.replaceClubLink)
@@ -454,15 +456,27 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			return nil, err
 		}
 		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c, p.now()), ApproveCoaches: c.ApproveCoaches && c.Signoff,
+			EnterMember: base + "/competitions/" + c.ID + "/enter-member",
 			MyLinks: p.competitionLinks(ctx, c, linksFor{base: base + "/competitions/" + c.ID,
 				people: memberKeys(members), clubs: clubIDs(club.ID), staff: clubIDs(club.ID)})}
 		cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
+		// To enter a member: who, and in what, while entries are open.
+		if cc.Competition.Open {
+			for _, m := range members {
+				cc.Members = append(cc.Members, views.FlightOption{Value: m.ID, Label: m.Name})
+			}
+			for _, d := range c.Disciplines() {
+				cc.Disciplines = append(cc.Disciplines, views.FlightOption{Value: d, Label: competitions.DisciplineName(d)})
+			}
+		}
 		waitingPlace := map[string]int{} // member and discipline → place on a waiting list
 		copyOf := map[string]string{}    // member and discipline → the competition's copy
+		copyEvent := map[string]string{} // and the event it's at
 		for _, e := range sent {
 			if e.ClubID == club.ID {
 				waitingPlace[e.MemberID+"/"+e.Entry.Discipline] = e.Waiting
 				copyOf[e.MemberID+"/"+e.Entry.Discipline] = e.ID
+				copyEvent[e.MemberID+"/"+e.Entry.Discipline] = e.Entry.Event()
 			}
 		}
 		removals, err := p.st.ClubRemovals(ctx, club.ID, c.ID)
@@ -526,7 +540,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 					row.LateAsk = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "/late?discipline=" + url.QueryEscape(e.Discipline)
 				}
 			}
-			if at := placement(c, copyOf[e.MemberID+"/"+e.Discipline]); at != nil {
+			// Its flight, while it's still at the level sent: changed to another,
+			// the old flight isn't theirs to go to.
+			if at := placement(c, copyOf[e.MemberID+"/"+e.Discipline]); at != nil && copyEvent[e.MemberID+"/"+e.Discipline] == e.Entry.Event() {
 				row.Flight = fmt.Sprintf("%s · %s · warm-up %s", at.Flight, at.Panel, at.Time)
 			}
 			row.List = views.ListRow{Name: row.Member, Values: map[string][]string{"problems": {hasValue(row.Problems > 0)}, "sent": {sentValue(cc.ToSend > toSend)}}}
@@ -575,16 +591,20 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 	}
 	compID := r.PathValue("id")
 	var members []string
+	changed := -1 // the entries new or changed, as the button counted them
 	if r.FormValue("which") != "all" {
 		mine, err := p.st.ClubEntries(r.Context(), club.ID, compID)
 		if err != nil {
 			failed(w, r, err)
 			return
 		}
-		members = []string{}
+		members, changed = []string{}, 0
 		for _, e := range mine {
 			if !e.Sent() || e.ChangedSinceSent() {
-				members = append(members, e.MemberID)
+				changed++
+				if !slices.Contains(members, e.MemberID) {
+					members = append(members, e.MemberID)
+				}
 			}
 		}
 	}
@@ -597,6 +617,11 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		failed(w, r, err)
 		return
+	}
+	// Their other entries go again with them, as they are: the notice counts
+	// the new and changed, as the button did.
+	if changed >= 0 {
+		n = changed
 	}
 	notice := fmt.Sprintf("Sent %s to %s.", views.Count(n, "entry", "entries"), c.Name)
 	seeOther(w, r, clubCompetitionPath(r.PathValue("token"), compID), notice)
@@ -681,6 +706,20 @@ func (p *competitionPages) renderMemberEdit(w http.ResponseWriter, r *http.Reque
 		Menu: clubCompetitionMenu(r.PathValue("token"), c, clubCompEntries), Form: entryForm(c.Competition, form, r.URL.Path, "Save"),
 	}
 	page.Form.Member, page.Form.Problems = true, problems
+	page.Notice = r.URL.Query().Get("notice")
+	if page.Form.Synchro {
+		members, err := p.st.Members(r.Context(), club.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		for _, other := range members {
+			if other.ID != m.ID {
+				page.Form.Partners = append(page.Form.Partners, other.Name)
+			}
+		}
+		page.Form.Club = club.Name
+	}
 	kept, err := p.keptForEntry(r, m.ID)
 	if err != nil {
 		failed(w, r, err)
@@ -695,6 +734,9 @@ func (p *competitionPages) renderMemberEdit(w http.ResponseWriter, r *http.Reque
 			return
 		}
 		page.Card = &shown
+		if c.ChangesOpen(p.now()) {
+			page.Withdraw = r.URL.Path + "/withdraw"
+		}
 		if existing.Entry.Partner != nil {
 			page.Partner = &views.PartnerView{Name: existing.Entry.Partner.Name, Link: origin(r) + partnerPath(existing.PartnerLink), Confirmed: existing.PartnerConfirmed}
 		}
@@ -703,6 +745,29 @@ func (p *competitionPages) renderMemberEdit(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}
 	render(w, r, views.ClubEntryEditPage(page))
+}
+
+// withdrawForMember is the comp sec withdrawing a member's entry, as the
+// member can.
+func (p *competitionPages) withdrawForMember(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	m, c, ok := p.memberOfClub(w, r, club)
+	if !ok {
+		return
+	}
+	back := clubCompetitionPath(r.PathValue("token"), c.ID)
+	if r.FormValue("confirm") != "1" {
+		http.Redirect(w, r, back, http.StatusSeeOther)
+		return
+	}
+	if err := p.st.WithdrawMemberEntry(r.Context(), m.ID, c.ID, r.FormValue("discipline")); err != nil {
+		failed(w, r, err)
+		return
+	}
+	seeOther(w, r, back, "Withdrew "+m.Name+"'s entry. If it was sent, it stays with the competition until you send again.")
 }
 
 func (p *competitionPages) saveMemberEntryForMember(w http.ResponseWriter, r *http.Request) {
@@ -1274,4 +1339,25 @@ func removalStatus(e store.Entry, changed bool) string {
 		return "On hold: changed, send it again"
 	}
 	return "On hold: the organiser asks for changes"
+}
+
+// enterMember is Enter a member on a competition's Entries: the member's
+// entry for it (member, discipline), to make or change.
+func (p *competitionPages) enterMember(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	base := clubPath(r.PathValue("token"))
+	member := r.URL.Query().Get("member")
+	members, err := p.st.Members(r.Context(), club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if !slices.ContainsFunc(members, func(m store.Member) bool { return m.ID == member }) {
+		seeOther(w, r, clubCompetitionPath(r.PathValue("token"), r.PathValue("id")), "Choose a member to enter.")
+		return
+	}
+	http.Redirect(w, r, base+"/members/"+url.PathEscape(member)+"/competitions/"+url.PathEscape(r.PathValue("id"))+"?discipline="+url.QueryEscape(r.URL.Query().Get("discipline")), http.StatusSeeOther)
 }
