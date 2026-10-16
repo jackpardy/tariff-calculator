@@ -58,3 +58,19 @@ func TestCompSecEntersAndWithdraws(t *testing.T) {
 		t.Error("not entered any more")
 	}
 }
+
+// The comp sec adds a helping offer for a member who hasn't made one.
+func TestCompSecAddsAnOffer(t *testing.T) {
+	h := competitionServer(t)
+	club := aClub(t, h, created(t, h, newCompetition()), "UCD", false, "A. Murphy")
+	offers := do(t, h, http.MethodGet, strings.TrimSuffix(regexp.MustCompile(`action="([^"]+)/enter-member"`).FindStringSubmatch(clubEntriesPage(t, h, club.page))[1], "")+"/offers", nil).Body.String()
+	action := regexp.MustCompile(`action="([^"]+/add-offer)"`).FindStringSubmatch(offers)
+	member := regexp.MustCompile(`<option value="([^"]+)">A. Murphy</option>`).FindStringSubmatch(offers)
+	if action == nil || member == nil {
+		t.Fatalf("Add an offer, with those who haven't: %s", offers)
+	}
+	to := do(t, h, http.MethodGet, action[1]+"?member="+member[1], nil).Header().Get("Location")
+	if rec := do(t, h, http.MethodGet, to, nil); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Recorder") {
+		t.Errorf("their offer form: %s %d", to, rec.Code)
+	}
+}

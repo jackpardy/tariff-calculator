@@ -688,6 +688,13 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-row-more .comp-opens-action { margin-bottom: 0; }
 .comp-row-more .comp-opens-form { margin: 0.25rem 0 0; padding: 0.1rem 0.75rem 0.1rem 0; border-left: 0; border-right: 3px solid #dbdbdb; }
 @media (max-width: 768px) { .comp-row-more { text-align: left; width: auto; } .comp-row-more .comp-opens-form { padding: 0.1rem 0 0.1rem 0.75rem; border-right: 0; border-left: 3px solid #dbdbdb; } }
+/* On a wide screen a row's More opens over the rows below, as a menu, so
+   the table's columns don't move when it opens. */
+@media (min-width: 769px) {
+  .comp-row-more { position: relative; }
+  .comp-row-more details[open] > .comp-opens-form { position: absolute; right: 0.5rem; top: 100%; z-index: 5; margin: 0; padding: 0.5rem 0.75rem;
+    background: #fff; border: 1px solid #dbdbdb; border-radius: 4px; box-shadow: 0 4px 12px rgba(10, 10, 10, 0.12); }
+}
 /* The timetable's status card: published or not with its buttons, then what
    to look at in the flights and the officials, each a section of the card. */
 .comp-tt-publish { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem 1.5rem; }
@@ -819,6 +826,7 @@ details > summary.button::before, .routine-menu > summary::before { content: non
   .comp-offer-row > .checkbox:first-child { grid-column: 1 / -1; }
 }
 .comp-num { width: 4.5rem; }
+.comp-offers td { vertical-align: middle; }
 .comp-table td.comp-wrap { white-space: normal; min-width: 14rem; }
 .comp-setup-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; margin-bottom: 0.4rem; }
 .comp-setup-row .input:not(.comp-num) { width: auto; max-width: 11rem; }

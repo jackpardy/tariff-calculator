@@ -114,7 +114,7 @@ func brief(s standing, problems, place int, sent string) (string, views.State) {
 	case entryChanged:
 		return "Changed, send again", views.Attention
 	case entryChecked:
-		return "Checked", views.Done
+		return "Organiser checked", views.Done
 	}
 	return sent, views.InProgress
 }

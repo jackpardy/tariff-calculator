@@ -109,13 +109,23 @@ func TestClubLevels(t *testing.T) {
 	if link == nil {
 		t.Fatalf("the link is marked as a whole: %s", levelIn(page, "Grade 1"))
 	}
-	if got := levelIn(page, "Grade 1"); !strings.Contains(got, "Gymnast 1 of 3") || !strings.Contains(got, "A back somersault From the skills marked Gymnast · You ✓ Can do") || !strings.Contains(got, "Done in Drops") {
+	if got := levelIn(page, "Grade 1"); !strings.Contains(got, "Gymnast 1 of 3") || !strings.Contains(got, "A back somersault From the skills marked You ✓ Can do") || !strings.Contains(got, "Done in Drops") {
 		t.Errorf("the derived item, and the routine doing the link: %q", got)
 	}
 	if notice := noticeOf(t, redirected(t, h, member+"/skills", url.Values{"item": {link[1]}, "state": {"learning"}})); notice != "Back drop, then back to feet: Learning." {
 		t.Errorf("marking the link: %q", notice)
 	}
-	redirected(t, h, member+"/skills", url.Values{"club": {kaboom}, "state": {"can"}})
+	// Marking comes back to the skill's row, where it was marked.
+	at := regexp.MustCompile(`id="(mark-level0-[0-9a-f]{8})"`).FindStringSubmatch(page)
+	if at == nil {
+		t.Fatalf("the level's rows have anchors: %s", levelIn(page, "Grade 1"))
+	}
+	if to := redirected(t, h, member+"/skills", url.Values{"club": {kaboom}, "state": {"can"}, "at": {at[1]}}); !strings.HasSuffix(to, "#"+at[1]) {
+		t.Errorf("back to the row: %s", to)
+	}
+	if to := redirected(t, h, member+"/skills", url.Values{"club": {kaboom}, "state": {"can"}, "at": {"elsewhere"}}); strings.Contains(to, "#") {
+		t.Errorf("only a row's anchor: %s", to)
+	}
 
 	// The coach marks the link Can do; both sides show, and the counts.
 	gymnasts := do(t, h, http.MethodGet, ann+"/gymnasts", nil).Body.String()
@@ -123,7 +133,7 @@ func TestClubLevels(t *testing.T) {
 	redirected(t, h, open+"/skills", url.Values{"item": {link[1]}, "state": {"can"}})
 	page = do(t, h, http.MethodGet, member+"/skills", nil).Body.String()
 	got := levelIn(page, "Grade 1")
-	if !strings.Contains(got, "Gymnast 2 of 3 Coach 1 of 3") || !strings.Contains(got, "Back drop, then back to feet Done in Drops Gymnast · You ◐ Learning") || !strings.Contains(got, "Coach · Ann ✓ Can do") {
+	if !strings.Contains(got, "Gymnast 2 of 3 Coach 1 of 3") || !strings.Contains(got, "Back drop, then back to feet Done in Drops You ◐ Learning") || !strings.Contains(got, "Coach · Ann ✓ Can do") {
 		t.Errorf("after the coach marks the link: %q", got)
 	}
 	if rec := do(t, h, http.MethodPost, member+"/skills", url.Values{"item": {"r:nope"}, "state": {"can"}}); rec.Code != http.StatusNotFound {

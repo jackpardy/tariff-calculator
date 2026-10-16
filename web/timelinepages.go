@@ -97,6 +97,40 @@ func timelineHeaderRows(officials bool) int {
 // one for each seat on its panel, a name to a cell.
 func timeline(s competitions.Schedule, name func(key string) string, officials bool, focus *timelineFocus) views.Timeline {
 	items := timelineItems(s)
+	// With only what's picked out, the days and areas with none of it are
+	// left out, and the hours around it: from the hour before the first to
+	// the hour after the last.
+	var keep func(day int, area string) bool
+	if focus != nil && focus.only {
+		days, areas := map[int]bool{}, map[string]bool{}
+		from, to := -1, -1
+		for _, it := range items {
+			if mine, _ := focus.mark(it); mine {
+				days[it.day], areas[fmt.Sprint(it.day, " ", it.area)] = true, true
+				if from < 0 || it.start < from {
+					from = it.start
+				}
+				to = max(to, it.end)
+			}
+		}
+		if from >= 0 {
+			keep = func(day int, area string) bool {
+				if area == "" {
+					return days[day]
+				}
+				return areas[fmt.Sprint(day, " ", area)]
+			}
+			from, to = max(0, from/60*60-60), (to+59)/60*60+60
+			var within []timelineItem
+			for _, it := range items {
+				if it.end > from && it.start < to {
+					it.start, it.end = max(it.start, from), min(it.end, to)
+					within = append(within, it)
+				}
+			}
+			items = within
+		}
+	}
 	// The minutes shown: from the earliest start to the latest end, of every
 	// day side by side; with officials, a sheet to a page, of its own day.
 	span := func(day int) (first, last int) {
@@ -108,7 +142,7 @@ func timeline(s competitions.Schedule, name func(key string) string, officials b
 			last = max(last, end)
 		}
 		for d, dd := range s.Setup.Days {
-			if day < 0 || d == day {
+			if (day < 0 || d == day) && keep == nil {
 				widen(dd.Hours())
 			}
 		}
@@ -142,6 +176,9 @@ func timeline(s competitions.Schedule, name func(key string) string, officials b
 	}
 
 	for d, day := range s.Setup.Days {
+		if keep != nil && !keep(d, "") {
+			continue
+		}
 		dayStart, dayEnd := day.Hours()
 		if officials {
 			first, last = span(d)
@@ -156,6 +193,9 @@ func timeline(s competitions.Schedule, name func(key string) string, officials b
 			newSheet(day.Name)
 		}
 		for _, area := range dayAreas(s.Setup, day) {
+			if keep != nil && !keep(d, area) {
+				continue
+			}
 			if officials {
 				newSheet(day.Name + " · " + area)
 			}

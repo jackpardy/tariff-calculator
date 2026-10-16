@@ -220,7 +220,7 @@ func TestCoachEntriesListFilters(t *testing.T) {
 		t.Errorf("the tools, without a competition filter for one competition: %s", page)
 	}
 	for _, want := range []string{`<option value="BUCS L3">BUCS L3</option>`, `<option value="yes">Has problems</option><option value="no">No problems</option>`,
-		`<option value="signed">Signed off</option><option value="not-yet">Not yet</option><option value="waiting">Waiting</option>`} {
+		`<option value="signed">Signed off</option><option value="not-yet">Needs changes</option><option value="waiting">Waiting</option>`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the tools have %s", want)
 		}

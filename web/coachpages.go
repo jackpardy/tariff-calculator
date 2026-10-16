@@ -368,7 +368,7 @@ func (p *competitionPages) coachEntry(w http.ResponseWriter, r *http.Request) {
 	withSignoff(&shown, memberSignoff(c.Competition, e))
 	page := views.SignoffPage{
 		Back: coachPath(r.PathValue("token")), Competition: summary(c, p.now()),
-		Card: shown, Signoff: shown.Signoff, Action: r.URL.Path + "?discipline=" + e.Discipline,
+		Card: shown, Signoff: shown.Signoff, Action: r.URL.Path + "?discipline=" + e.Discipline, Notice: r.URL.Query().Get("notice"),
 	}
 	if !coach.SignsOff {
 		page.Cannot = "Your club hasn't set you to sign off routines, so you can see this entry but not sign it off."
@@ -415,7 +415,32 @@ func (p *competitionPages) signOff(w http.ResponseWriter, r *http.Request) {
 	if !signed {
 		notice = fmt.Sprintf("Told %s their %s entry for %s isn't ready yet.", e.MemberName, e.Entry.Event(), c.Name)
 	}
-	seeOther(w, r, coachPath(r.PathValue("token")), notice)
+	// On to the next entry at the competition waiting for a sign-off, after
+	// this one in the list (by name); back to the list once there's none.
+	entries, err := p.st.CoachEntries(r.Context(), coach)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	var waiting []store.MemberEntry
+	for _, o := range entries {
+		if o.CompetitionID == c.ID && !o.SignedOff() && o.SignedBy == "" && (o.MemberID != e.MemberID || o.Discipline != e.Discipline) {
+			waiting = append(waiting, o)
+		}
+	}
+	if len(waiting) == 0 {
+		seeOther(w, r, coachPath(r.PathValue("token")), notice+" Nothing else is waiting for you there.")
+		return
+	}
+	next := waiting[0]
+	for _, o := range waiting {
+		if competitions.CompareNames(o.MemberName, e.MemberName) > 0 {
+			next = o
+			break
+		}
+	}
+	seeOther(w, r, coachPath(r.PathValue("token"))+"/members/"+next.MemberID+"/competitions/"+c.ID+"?discipline="+next.Discipline,
+		fmt.Sprintf("%s Next waiting: %s (%d left).", notice, next.MemberName, len(waiting)))
 }
 
 // maxCertificateBytes is the largest certificate (ADR 0007 Decision 4).

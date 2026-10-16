@@ -39,6 +39,7 @@ func (p *competitionPages) registerClubs(mux *http.ServeMux) {
 	handle("GET /clubs/admin/{token}/competitions/{id}", p.clubCompetitionEntries)
 	handle("GET /clubs/admin/{token}/competitions/{id}/coaches", p.clubCompetitionCoaches)
 	handle("GET /clubs/admin/{token}/competitions/{id}/offers", p.clubCompetitionOffers)
+	handle("GET /clubs/admin/{token}/competitions/{id}/add-offer", p.addMemberOffer)
 	handle("GET /clubs/admin/{token}/competitions/{id}/fees", p.clubCompetitionFees)
 	handle("POST /clubs/admin/{token}/competitions/{id}/send", p.send)
 	handle("POST /clubs/admin/{token}/competitions/{id}/coaches", p.sendCoaches)
@@ -442,6 +443,15 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 	if err != nil {
 		return nil, err
 	}
+	pairs, err := p.st.ClubPairEntries(ctx, club.ID)
+	if err != nil {
+		return nil, err
+	}
+	ours := map[string]bool{}
+	for _, m := range members {
+		ours[m.ID] = true
+	}
+	seen := p.seenFor(r)
 	var out []views.ClubCompetition
 	for _, c := range comps {
 		if only != "" && c.ID != only {
@@ -460,6 +470,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			MyLinks: p.competitionLinks(ctx, c, linksFor{base: base + "/competitions/" + c.ID,
 				people: memberKeys(members), clubs: clubIDs(club.ID), staff: clubIDs(club.ID)})}
 		cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
+		if cc.Pairs, err = seen.pairViews(pairs, func(pe store.PairEntry) bool { return pe.CompetitionID != c.ID || ours[pe.EntrantMemberID] }); err != nil {
+			return nil, err
+		}
 		// To enter a member: who, and in what, while entries are open.
 		if cc.Competition.Open {
 			for _, m := range members {
@@ -565,7 +578,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 				return nil, err
 			}
 		}
-		if cc.Offers, err = p.clubOffers(r, base, club, c, members); err != nil {
+		if cc.Offers, cc.NoOffer, err = p.clubOffers(r, base, club, c, members); err != nil {
 			return nil, err
 		}
 		out = append(out, cc)
@@ -1343,6 +1356,26 @@ func removalStatus(e store.Entry, changed bool) string {
 
 // enterMember is Enter a member on a competition's Entries: the member's
 // entry for it (member, discipline), to make or change.
+// addMemberOffer is the comp sec adding a helping offer for a member who
+// hasn't made one: their offer page.
+func (p *competitionPages) addMemberOffer(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	member := r.URL.Query().Get("member")
+	members, err := p.st.Members(r.Context(), club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if !slices.ContainsFunc(members, func(m store.Member) bool { return m.ID == member }) {
+		seeOther(w, r, clubCompetitionPath(r.PathValue("token"), r.PathValue("id"))+"/offers", "Choose a member.")
+		return
+	}
+	http.Redirect(w, r, clubPath(r.PathValue("token"))+"/members/"+url.PathEscape(member)+"/competitions/"+url.PathEscape(r.PathValue("id"))+"/offer", http.StatusSeeOther)
+}
+
 func (p *competitionPages) enterMember(w http.ResponseWriter, r *http.Request) {
 	club, ok := p.clubAdmin(w, r)
 	if !ok {

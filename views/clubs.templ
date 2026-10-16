@@ -90,6 +90,8 @@ type ClubCompetition struct {
 	EnterMember string
 	Members     []FlightOption
 	Disciplines []FlightOption
+	Pairs       []PairView // synchro entries others made, with one of the members as partner
+	NoOffer     []FlightOption // members who haven't offered to help, while offers can change
 }
 
 // ClubSendCoach is one of the club's coaches, to send to a competition.
@@ -493,6 +495,9 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 				</div>
 			}
 		}
+		// Synchro entries other clubs' gymnasts made with one of ours as
+		// partner: not the club's to send, but their members compete in them.
+		@pairEntries(comp.Pairs)
 	}
 }
 
@@ -546,6 +551,12 @@ templ ClubCompetitionCoaches(c ClubPage, comp ClubCompetition) {
 	}
 }
 
+// offerAddPath is where adding a member's offer goes: beside the
+// competition's Enter a member.
+func offerAddPath(comp ClubCompetition) string {
+	return strings.TrimSuffix(comp.EnterMember, "/enter-member") + "/add-offer"
+}
+
 // ClubCompetitionOffers is what members offer to judge and help with at a
 // competition, sent with the entries.
 templ ClubCompetitionOffers(c ClubPage, comp ClubCompetition) {
@@ -554,19 +565,38 @@ templ ClubCompetitionOffers(c ClubPage, comp ClubCompetition) {
 		if len(comp.Offers) == 0 {
 			<p class="has-text-grey mt-4">No member has offered to judge or help yet. Members say what they can do on their page for the competition.</p>
 		}
+		// An offer for a member who told the comp sec rather than adding it.
+		if len(comp.NoOffer) > 0 {
+			<script defer src={ static.URL("js/selectsearch.js") }></script>
+			<div class="mt-3">
+				@opens("", "", "Add an offer", false) {
+					<form method="get" action={ templ.SafeURL(offerAddPath(comp)) } class="comp-flight-actions">
+						<div class="select is-small">
+							<select name="member" required aria-label="Member" data-search-select="Search the members">
+								<option value="">Choose a member</option>
+								for _, m := range comp.NoOffer {
+									<option value={ m.Value }>{ m.Label }</option>
+								}
+							</select>
+						</div>
+						<button class="button is-small is-primary" type="submit">Add their offer</button>
+					</form>
+				}
+			</div>
+		}
 		if len(comp.Offers) > 0 {
 			@listSection("Judging and helping", len(comp.Offers)) {
 				<p class="help mb-2">What members offer, sent with the entries.</p>
 				<div class="table-container">
-					<table class="table is-fullwidth is-narrow">
+					<table class="table is-fullwidth is-narrow comp-offers">
 						<tbody>
 							for _, o := range comp.Offers {
 								<tr>
 									<td>{ o.Member }</td>
-									<td class="is-size-7">{ o.Offer }</td>
-									<td>
+									<td>{ o.Offer }</td>
+									<td class="has-text-right">
 										if o.Edit != "" {
-											<a href={ templ.SafeURL(o.Edit) }>Change</a>
+											<a class="button is-small is-text" href={ templ.SafeURL(o.Edit) }>Change</a>
 										}
 									</td>
 								</tr>
@@ -917,7 +947,6 @@ templ MemberHome(p MemberPage) {
 		if len(p.Competitions) == 0 {
 			<p class="has-text-grey">Your club isn't entered in any competitions yet. When it is, you'll enter here.</p>
 		}
-		@pairEntries(p.Pairs)
 		for _, c := range p.Competitions {
 			<a class="box comp-member-row" href={ templ.SafeURL(c.Page) }>
 				<strong>{ c.Competition.Name }</strong>
@@ -936,6 +965,8 @@ templ MemberHome(p MemberPage) {
 				</span>
 			</a>
 		}
+		// Below their own entries: the other gymnast's, which they're in.
+		@pairEntries(p.Pairs)
 	}
 }
 

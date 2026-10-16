@@ -320,7 +320,7 @@ func TestEntryBrief(t *testing.T) {
 	}{
 		{"saved", store.MemberEntry{}, store.Entry{}, false, 0, 0, "Saved, not sent", views.NotYet},
 		{"sent", sent, store.Entry{}, false, 0, 0, "Sent", views.InProgress},
-		{"checked", checked, store.Entry{}, false, 0, 0, "Checked", views.Done},
+		{"checked", checked, store.Entry{}, false, 0, 0, "Organiser checked", views.Done},
 		{"changed", changed, store.Entry{}, false, 0, 0, "Changed, send again", views.Attention},
 		{"one problem", checked, store.Entry{}, false, 1, 0, "1 problem", views.Attention},
 		{"problems", checked, store.Entry{}, false, 2, 0, "2 problems", views.Attention},
@@ -372,7 +372,7 @@ func TestEntryStanding(t *testing.T) {
 	if got, _ := brief(individualState(in, 2), 0, 2, "Entered"); got != "Waiting list, 2nd" {
 		t.Errorf("an individual on a waiting list: %q", got)
 	}
-	if got, _ := brief(individualState(in, 0), 0, 0, "Entered"); got != "Checked" {
+	if got, _ := brief(individualState(in, 0), 0, 0, "Entered"); got != "Organiser checked" {
 		t.Errorf("an individual checked: %q", got)
 	}
 }

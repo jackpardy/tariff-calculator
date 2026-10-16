@@ -92,6 +92,9 @@ func TestCoachSignoff(t *testing.T) {
 	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "Signed off X&#39;s BUCS L3 entry") {
 		t.Error("signed off")
 	}
+	if !strings.Contains(noticeOf(t, location), "Next waiting: Y (1 left).") || !strings.Contains(location, "/members/") {
+		t.Errorf("on to Y, the next waiting: %s", location)
+	}
 	if page := memberCompetitionPage(t, h, x); !signedOffBy(t, page, "Bob") || !strings.Contains(page, "Ready") {
 		t.Error("the member sees who signed it off")
 	}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -111,7 +112,7 @@ func (p *competitionPages) markOwnSkill(w http.ResponseWriter, r *http.Request) 
 		markFailed(w, r, err)
 		return
 	}
-	seeOther(w, r, withQuery(memberSkillsPath(r.PathValue("token")), r.URL.Query().Get("q")), markNotice(name, in.State))
+	seeOther(w, r, withQuery(memberSkillsPath(r.PathValue("token")), r.URL.Query().Get("q"))+markAt(r), markNotice(name, in.State))
 }
 
 // otherMemberSkills is another member's skills, where the club shares them.
@@ -177,7 +178,12 @@ func (p *competitionPages) markGymnastSkill(w http.ResponseWriter, r *http.Reque
 		markFailed(w, r, err)
 		return
 	}
-	seeOther(w, r, withQuery(coachGymnastsPath(r.PathValue("token"))+"/"+member+"/skills", r.URL.Query().Get("q")), markNotice(name, in.State))
+	if back := r.FormValue("back"); routineAnchorRE.MatchString(back) {
+		// Marked on the gymnast's page, by a routine: back there.
+		seeOther(w, r, coachGymnastsPath(r.PathValue("token"))+"/"+member+"#"+back, markNotice(name, in.State))
+		return
+	}
+	seeOther(w, r, withQuery(coachGymnastsPath(r.PathValue("token"))+"/"+member+"/skills", r.URL.Query().Get("q"))+markAt(r), markNotice(name, in.State))
 }
 
 // clubMemberSkills shows the comp sec a member's skills.
@@ -218,6 +224,20 @@ func (p *competitionPages) skillsOpen(w http.ResponseWriter, r *http.Request) {
 	}
 	seeOther(w, r, clubSettingsPath(r.PathValue("token")), notice)
 }
+
+// markAt is the anchor of the skill row a mark was posted from, to come
+// back to it ("" for none, or one that isn't a skill row's).
+func markAt(r *http.Request) string {
+	if at := r.FormValue("at"); markAnchorRE.MatchString(at) {
+		return "#" + at
+	}
+	return ""
+}
+
+var (
+	markAnchorRE    = regexp.MustCompile(`^mark-[a-z0-9]+-[0-9a-f]{8}$`)
+	routineAnchorRE = regexp.MustCompile(`^routine-[A-Za-z0-9_-]+$`)
+)
 
 // postedMark is the mark posted: the skill (as JSON, checked as the builder
 // checks a skill), or one of the club's own skills to track (club: its id),

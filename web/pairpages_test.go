@@ -44,4 +44,13 @@ func TestPartnerSeesThePair(t *testing.T) {
 	if page := do(t, h, http.MethodGet, b, nil).Body.String(); !strings.Contains(page, "Sent to the competition") {
 		t.Error("B sees it sent")
 	}
+
+	// Entered in the competition too, DCU sees it with its own entries.
+	redirected(t, h, clubLink, url.Values{"clubAdmin": {dcu}})
+	if page := clubEntriesPage(t, h, dcu); !strings.Contains(page, "Synchro as a partner") || !strings.Contains(page, "Synchro BUCS L3 · A and B") {
+		t.Error("DCU's entries list the pair B is in")
+	}
+	if strings.Contains(clubEntriesPage(t, h, ucd), "Synchro as a partner") {
+		t.Error("not UCD's, whose own entry it is")
+	}
 }

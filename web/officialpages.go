@@ -319,16 +319,21 @@ func (p *competitionPages) removeOfficial(w http.ResponseWriter, r *http.Request
 }
 
 // clubOffers are what a club's members offer at a competition, as the club
-// page lists them.
-func (p *competitionPages) clubOffers(r *http.Request, base string, club store.Club, c store.Competition, members []store.Member) ([]views.ClubOfferRow, error) {
+// page lists them, and while offers can change, the members who haven't
+// offered, for the comp sec to add one (their offer page by their name).
+func (p *competitionPages) clubOffers(r *http.Request, base string, club store.Club, c store.Competition, members []store.Member) ([]views.ClubOfferRow, []views.FlightOption, error) {
 	offers, err := p.st.ClubOffers(r.Context(), club.ID, c.ID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var out []views.ClubOfferRow
+	var none []views.FlightOption
 	for _, m := range members {
 		o, ok := offers[m.ID]
 		if !ok {
+			if c.ChangesOpen(p.now()) {
+				none = append(none, views.FlightOption{Value: m.ID, Label: m.Name})
+			}
 			continue
 		}
 		row := views.ClubOfferRow{Member: m.Name, Offer: o.Describe()}
@@ -337,5 +342,5 @@ func (p *competitionPages) clubOffers(r *http.Request, base string, club store.C
 		}
 		out = append(out, row)
 	}
-	return out, nil
+	return out, none, nil
 }

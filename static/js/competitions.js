@@ -748,6 +748,17 @@
         form.hidden = false;
     }
 
+    // openToAnchor opens the folded lists (details) that hold the element
+    // the address's #anchor names, and scrolls it into view: a skill marked
+    // in a folded list comes back to it, open.
+    function openToAnchor() {
+        if (!location.hash.startsWith('#mark-')) { return; }
+        const target = document.getElementById(location.hash.slice(1));
+        if (!target) { return; }
+        for (let d = target.closest('details'); d; d = d.parentElement.closest('details')) { d.open = true; }
+        target.scrollIntoView({ block: 'center' });
+    }
+
     // sharedLevel reads a shared club level from its link's fragment
     // ("#share=j" and base64url JSON, as the server writes it) and posts it to
     // be shown; on the page that shows it, it offers the coach pages saved in
@@ -803,6 +814,7 @@
         partnerLink();
         enterAs();
         partnerClubs();
+        openToAnchor();
         videoChoices();
         entryForms();
         keepRoutines();
