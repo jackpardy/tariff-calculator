@@ -344,6 +344,14 @@ templ TimelinePrint(t Timeline) {
 				}
 			</div>
 		</section>
+		// A focused timeline opens on the first of what's picked out, not on
+		// the first day's first hour, where there may be nothing of theirs.
+		<script>
+			(() => {
+				const mine = document.querySelector('.comp-tl-mine');
+				if (mine) { mine.scrollIntoView({ block: 'center', inline: 'center' }); }
+			})();
+		</script>
 	}
 }
 

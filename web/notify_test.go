@@ -149,10 +149,14 @@ func TestIndividualNotificationsOutliveAnEntry(t *testing.T) {
 	confirm := strings.TrimPrefix(regexp.MustCompile(`https://tariff\.example(/notify/confirm/\S+)`).FindString(mail.sent[0].body), "https://tariff.example")
 	do(t, h, http.MethodPost, confirm, nil)
 
-	if rec := do(t, h, http.MethodPost, own+"/withdraw", url.Values{"confirm": {"1"}}); rec.Code != http.StatusOK {
+	if rec := do(t, h, http.MethodPost, own+"/withdraw", url.Values{"confirm": {"1"}}); rec.Code != http.StatusSeeOther {
 		t.Fatalf("withdrawn: %d", rec.Code)
 	}
-	entries := regexp.MustCompile(`href="(`+regexp.QuoteMeta(admin)+`/entries/[^"]+)"`).FindAllStringSubmatch(do(t, h, http.MethodGet, admin, nil).Body.String(), -1)
+	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
+	if i := strings.Index(dash, `class="comp-removed"`); i >= 0 {
+		dash = dash[:i] // the withdrawn one is listed apart
+	}
+	entries := regexp.MustCompile(`href="(`+regexp.QuoteMeta(admin)+`/entries/[^"]+)"`).FindAllStringSubmatch(dash, -1)
 	if len(entries) != 1 {
 		t.Fatalf("one entry left: %v", entries)
 	}

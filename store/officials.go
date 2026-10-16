@@ -118,8 +118,16 @@ func sendOffers(ctx context.Context, tx *sql.Tx, clubID, clubName, competitionID
 	return err
 }
 
-// SetIndividualOffer keeps what an individual offers, on their entry, until
-// the deadline. An empty offer removes it.
+// sameGymnast are an individual's entries at the competition of entry $1
+// for the same gymnast, that entry among them: their offer is one for the
+// competition, kept on one of them.
+const sameGymnast = `SELECT $1 UNION SELECT e.id FROM entries e JOIN individuals i ON i.id = e.individual_id
+	JOIN entries x ON x.id = $1 JOIN individuals xi ON xi.id = x.individual_id
+	WHERE e.individual AND e.competition_id = x.competition_id AND i.person_id = xi.person_id AND lower(e.gymnast) = lower(x.gymnast)`
+
+// SetIndividualOffer keeps what an individual offers at the competition of
+// their entry (one offer whichever of their entries it's made on), until the
+// deadline. An empty offer removes it.
 func (s *Store) SetIndividualOffer(ctx context.Context, token string, o competitions.Offer) error {
 	return s.tx(ctx, func(tx *sql.Tx) error {
 		id, err := individualEntryID(ctx, tx, token)
@@ -134,8 +142,7 @@ func (s *Store) SetIndividualOffer(ctx context.Context, token string, o competit
 		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
-		if o.Empty() {
-			_, err := tx.ExecContext(ctx, `DELETE FROM officials WHERE entry_id = $1`, id)
+		if _, err := tx.ExecContext(ctx, `DELETE FROM officials WHERE entry_id IN (`+sameGymnast+`)`, id); err != nil || o.Empty() {
 			return err
 		}
 		data, err := json.Marshal(o)
@@ -149,11 +156,12 @@ func (s *Store) SetIndividualOffer(ctx context.Context, token string, o competit
 	})
 }
 
-// IndividualOffer is what an individual offers, on their entry.
+// IndividualOffer is what an individual offers at the competition of their
+// entry, made on it or another of theirs there.
 func (s *Store) IndividualOffer(ctx context.Context, entryID string) (competitions.Offer, error) {
 	var o competitions.Offer
 	var data string
-	err := s.db.QueryRowContext(ctx, `SELECT offer FROM officials WHERE entry_id = $1`, entryID).Scan(&data)
+	err := s.db.QueryRowContext(ctx, `SELECT offer FROM officials WHERE entry_id IN (`+sameGymnast+`) ORDER BY updated_at DESC LIMIT 1`, entryID).Scan(&data)
 	if err == sql.ErrNoRows {
 		return o, nil
 	} else if err != nil {

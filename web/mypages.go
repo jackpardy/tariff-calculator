@@ -143,7 +143,7 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 			ev.Status, ev.StatusState = views.Count(len(j.problems), "problem", "problems")+" to sort out", views.Attention
 			ev.Problems = j.problems
 		default:
-			ev.Status, ev.StatusState = "Sent, not checked yet", views.InProgress
+			ev.Status, ev.StatusState = "Sent: the organiser hasn't checked it yet", views.InProgress
 		}
 		ev.Scratched = f.checkins[j.ID].Status == store.Scratched
 		if published {

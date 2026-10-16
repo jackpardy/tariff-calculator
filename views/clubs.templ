@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"tariffCalculator/competitions"
+	"tariffCalculator/static"
 )
 
 // ClubPage is a club's competition secretary's page.
@@ -82,6 +85,13 @@ type ClubCompetition struct {
 	Coaches        []ClubSendCoach
 	MyLinks
 	Fees           *FeesSummary // what the club owes, if the competition charges
+	// Enter a member: where it goes, and who and what to choose from (none
+	// while entries are closed).
+	EnterMember string
+	Members     []FlightOption
+	Disciplines []FlightOption
+	Pairs       []PairView // synchro entries others made, with one of the members as partner
+	NoOffer     []FlightOption // members who haven't offered to help, while offers can change
 }
 
 // ClubSendCoach is one of the club's coaches, to send to a competition.
@@ -131,6 +141,8 @@ type ClubEntryEdit struct {
 	Partner     *PartnerView // a synchro entry's partner, and whether they've confirmed
 	Form        EntryForm
 	Menu        []MenuSection
+	Withdraw    string // where withdrawing their entry posts, while changes are open
+	Notice      string
 }
 
 // JoinPage is where a club's members join it.
@@ -371,6 +383,32 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 				</div>
 			</form>
 		}
+		// A member entered by the comp sec, as they'd enter themselves.
+		if len(comp.Members) > 0 {
+			<script defer src={ static.URL("js/selectsearch.js") }></script>
+			@opens("", "", "Enter a member", false) {
+				<form method="get" action={ templ.SafeURL(comp.EnterMember) } class="comp-flight-actions">
+					<div class="select is-small">
+						<select name="member" required aria-label="Member" data-search-select="Search the members">
+							<option value="" disabled selected>Choose a member</option>
+							for _, m := range comp.Members {
+								<option value={ m.Value }>{ m.Label }</option>
+							}
+						</select>
+					</div>
+					if len(comp.Disciplines) > 1 {
+						<div class="select is-small">
+							<select name="discipline" aria-label="Discipline">
+								for _, d := range comp.Disciplines {
+									<option value={ d.Value }>{ d.Label }</option>
+								}
+							</select>
+						</div>
+					}
+					<button class="button is-small is-primary" type="submit">Enter them</button>
+				</form>
+			}
+		}
 		if len(comp.Rows) == 0 {
 			<p class="has-text-grey is-size-7">No member has entered yet.</p>
 		} else {
@@ -419,7 +457,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 										}
 										if row.Flight != "" {
 											<br/>
-											<span class="is-size-7 has-text-info-dark">{ row.Flight }</span>
+											<span class="is-size-7 has-text-grey-dark comp-flight-line">{ row.Flight }</span>
 										}
 										if row.Late.Text != "" {
 											<br/>
@@ -457,6 +495,9 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 				</div>
 			}
 		}
+		// Synchro entries other clubs' gymnasts made with one of ours as
+		// partner: not the club's to send, but their members compete in them.
+		@pairEntries(comp.Pairs)
 	}
 }
 
@@ -510,6 +551,12 @@ templ ClubCompetitionCoaches(c ClubPage, comp ClubCompetition) {
 	}
 }
 
+// offerAddPath is where adding a member's offer goes: beside the
+// competition's Enter a member.
+func offerAddPath(comp ClubCompetition) string {
+	return strings.TrimSuffix(comp.EnterMember, "/enter-member") + "/add-offer"
+}
+
 // ClubCompetitionOffers is what members offer to judge and help with at a
 // competition, sent with the entries.
 templ ClubCompetitionOffers(c ClubPage, comp ClubCompetition) {
@@ -518,19 +565,38 @@ templ ClubCompetitionOffers(c ClubPage, comp ClubCompetition) {
 		if len(comp.Offers) == 0 {
 			<p class="has-text-grey mt-4">No member has offered to judge or help yet. Members say what they can do on their page for the competition.</p>
 		}
+		// An offer for a member who told the comp sec rather than adding it.
+		if len(comp.NoOffer) > 0 {
+			<script defer src={ static.URL("js/selectsearch.js") }></script>
+			<div class="mt-3">
+				@opens("", "", "Add an offer", false) {
+					<form method="get" action={ templ.SafeURL(offerAddPath(comp)) } class="comp-flight-actions">
+						<div class="select is-small">
+							<select name="member" required aria-label="Member" data-search-select="Search the members">
+								<option value="">Choose a member</option>
+								for _, m := range comp.NoOffer {
+									<option value={ m.Value }>{ m.Label }</option>
+								}
+							</select>
+						</div>
+						<button class="button is-small is-primary" type="submit">Add their offer</button>
+					</form>
+				}
+			</div>
+		}
 		if len(comp.Offers) > 0 {
 			@listSection("Judging and helping", len(comp.Offers)) {
 				<p class="help mb-2">What members offer, sent with the entries.</p>
 				<div class="table-container">
-					<table class="table is-fullwidth is-narrow">
+					<table class="table is-fullwidth is-narrow comp-offers">
 						<tbody>
 							for _, o := range comp.Offers {
 								<tr>
 									<td>{ o.Member }</td>
-									<td class="is-size-7">{ o.Offer }</td>
-									<td>
+									<td>{ o.Offer }</td>
+									<td class="has-text-right">
 										if o.Edit != "" {
-											<a href={ templ.SafeURL(o.Edit) }>Change</a>
+											<a class="button is-small is-text" href={ templ.SafeURL(o.Edit) }>Change</a>
 										}
 									</td>
 								</tr>
@@ -551,12 +617,13 @@ templ ClubCompetitionFees(c ClubPage, comp ClubCompetition, invoice *InvoicePage
 		if invoice == nil {
 			<p class="has-text-grey mt-4">There's nothing to pay for this competition yet.</p>
 		} else {
+			// What's to pay and how, first: the lines can run long.
 			<div class="comp-send">
 				<div class="comp-send-state">
 					if invoice.Settled {
 						@StateChip(Done, "Paid in full")
 					} else {
-						@StateChip(Attention, invoice.Balance+" to pay")
+						<p class="title is-5 mb-1">{ invoice.Balance } to pay</p>
 					}
 					<span class="comp-send-note">Removed, held and withdrawn entries aren't charged. If something here is wrong, ask the organiser.</span>
 				</div>
@@ -564,6 +631,7 @@ templ ClubCompetitionFees(c ClubPage, comp ClubCompetition, invoice *InvoicePage
 					<a class="button is-small" href={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/invoice") }>Print the invoice</a>
 				</div>
 			</div>
+			@howToPay(*invoice)
 			@invoiceTable(*invoice)
 		}
 	}
@@ -586,7 +654,7 @@ templ ClubMembers(c ClubPage) {
 									<td>
 										{ m.Name }
 										if m.AlsoCoach {
-											@WhoChip(RoleCoach, "")
+											@WhoLink(RoleCoach, "", c.Base+"/coaches")
 										}
 									</td>
 									<td class="has-text-grey is-size-7">
@@ -650,7 +718,13 @@ templ ClubCoaches(c ClubPage) {
 											<span class="is-block has-text-grey is-size-7">A member too: opens from their member link</span>
 										}
 									</td>
-									<td class="has-text-grey is-size-7">{ Count(coach.Members, "member chose them", "members chose them") }</td>
+									<td class="is-size-7">
+										if coach.Members > 0 {
+											<a href={ templ.SafeURL(c.Base + "/members?coach=" + coach.ID) }>{ Count(coach.Members, "member chose them", "members chose them") }</a>
+										} else {
+											<span class="has-text-grey">No member chose them</span>
+										}
+									</td>
 									<td class="comp-row-more">
 										@opens("", "", "More", false) {
 											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") }>
@@ -673,8 +747,8 @@ templ ClubCoaches(c ClubPage) {
 											<noscript><button class="button is-small" type="submit">Change</button></noscript>
 										</form>
 										for _, q := range coach.Qualifications {
-											<div>
-												{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a>
+											<div class="comp-qualification">
+												<span>{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a></span>
 												<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/qualifications/" + q.ID + "/remove") } class="is-inline">
 													<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
 												</form>
@@ -691,7 +765,7 @@ templ ClubCoaches(c ClubPage) {
 														}
 													</select>
 												</div>
-												<input class="input is-small" type="file" name="certificate" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label={ coach.Name + "'s certificate" }/>
+												<input class="input is-small comp-file" type="file" name="certificate" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label={ coach.Name + "'s certificate" }/>
 												<button class="button is-small" type="submit">Add</button>
 											</form>
 											<p class="help">The certificate: a photo or PDF, up to 3 MB. It's kept until you remove it or the coach.</p>
@@ -805,19 +879,29 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 				and { e.Partner.Name }
 			}
 		</h1>
+		if e.Notice != "" {
+			<div class="notification is-success is-light">{ e.Notice }</div>
+		}
 		if e.Card != nil {
 			<p class="subtitle is-6">{ e.Competition.Name } · { e.Card.Level }</p>
 			@partnerBox(e.Partner)
-			@entryCardChecks(*e.Card)
-			// Collapsed under the card, so the entry is what shows; open when a save had problems.
-			<div class="mt-4">
+			// Above the card, by its problems, so fixing them is where they're
+			// read; collapsed so the entry is what shows, open when a save had
+			// problems.
+			<div class="mb-4">
 				@opens("", "", "Change the entry", len(e.Form.Problems) > 0) {
 					@entryForm(e.Form)
 				}
 			</div>
+			@entryCardChecks(*e.Card)
+			if e.Withdraw != "" {
+				<div class="mt-4">
+					@withdrawForm(e.Withdraw, e.Form.Discipline)
+				</div>
+			}
 		} else {
-			<p class="subtitle is-6">{ e.Competition.Name }</p>
-			<h2 class="title is-5 mt-5">Enter them</h2>
+			<p class="subtitle is-6">{ e.Competition.Name } · { competitions.DisciplineName(e.Form.Discipline) }</p>
+			<h2 class="title is-5 mt-5">Enter them in { strings.ToLower(competitions.DisciplineName(e.Form.Discipline)) }</h2>
 			@entryForm(e.Form)
 		}
 	}
@@ -871,7 +955,6 @@ templ MemberHome(p MemberPage) {
 		if len(p.Competitions) == 0 {
 			<p class="has-text-grey">Your club isn't entered in any competitions yet. When it is, you'll enter here.</p>
 		}
-		@pairEntries(p.Pairs)
 		for _, c := range p.Competitions {
 			<a class="box comp-member-row" href={ templ.SafeURL(c.Page) }>
 				<strong>{ c.Competition.Name }</strong>
@@ -890,6 +973,8 @@ templ MemberHome(p MemberPage) {
 				</span>
 			</a>
 		}
+		// Below their own entries: the other gymnast's, which they're in.
+		@pairEntries(p.Pairs)
 	}
 }
 
@@ -982,20 +1067,23 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 				@videoReviewNote(ev.VideoReview, ev.VideoNote)
 				@partnerBox(ev.Partner)
 				if ev.Card != nil {
-					@entryCardChecks(*ev.Card)
-				}
-				if comp.ChangesOpen {
-					if ev.Card != nil {
-						// Collapsed under the card; open when a save had problems.
-						<div class="mt-4">
+					// Change above the card, by its problems (open when a save
+					// had problems); Withdraw, rare, below it.
+					if comp.ChangesOpen {
+						<div class="mb-4">
 							@opens("", "", "Change your entry", len(ev.Form.Problems) > 0) {
 								@entryForm(ev.Form)
 							}
 						</div>
-						@withdrawForm(ev.Withdraw, ev.Discipline)
-					} else {
-						@entryForm(ev.Form)
 					}
+					@entryCardChecks(*ev.Card)
+					if comp.ChangesOpen {
+						<div class="mt-4">
+							@withdrawForm(ev.Withdraw, ev.Discipline)
+						</div>
+					}
+				} else if comp.ChangesOpen {
+					@entryForm(ev.Form)
 				}
 			</div>
 		</details>

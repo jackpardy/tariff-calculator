@@ -479,7 +479,16 @@ The club fixes it and sends it again.
 An entry the club sent for a member who has since withdrawn it, or left the
 club, is marked **Withdrawn** and isn't counted or printed. It goes when the
 club sends everyone's entries again: the organiser only sees what the club
-sends (ADR 0004 Decision 2).
+sends (ADR 0004 Decision 2). The comp sec can withdraw a member's entry too,
+from the member's entry page.
+
+An entry someone made on their own and withdrew is kept, marked withdrawn
+(`removal = 'withdrawn'`, `store.Withdrew`): left out of everything counted,
+printed or timetabled as a removed entry is, but still on their page with its
+links working, saying so, with **Put it back** until entries close (at the
+back of any waiting list). The organiser sees it under **Removed, withdrawn
+and on hold**, without Restore: only they can put it back. Its sign-off link
+says it was withdrawn, and the coach they named goes, with the certificate.
 
 ## Printing and export
 
@@ -600,8 +609,11 @@ is open, so ticking someone qualified keeps the list as it was
 
 - **Offers.** On their page, a member says what they can do at each
   competition: judge a discipline (up to a level, perhaps chairing), and help
-  as a recorder or marshal. The comp sec can correct it, and it goes to the
-  competition with every send. An individual offers on their entry.
+  as a recorder or marshal. The comp sec can correct it, or add one for a
+  member who hasn't, and it goes to the competition with every send. An
+  individual offers on their entry, one offer for the competition: made on
+  any of their entries there (for the same gymnast), it's the same on each
+  (`store.sameGymnast`), and withdrawing one entry moves it to another.
 - **People the organiser adds:** judges or helpers who aren't entering, with
   or without a club.
 - **Panels:** each discipline's starts as the FIG Code of Points' (a Chair of

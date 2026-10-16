@@ -227,7 +227,7 @@ func coachEntryFilters(competitionOptions []views.ListOption, levels []string) [
 	slices.SortFunc(level.Options, func(a, b views.ListOption) int { return cmp.Compare(a.Label, b.Label) })
 	return append(out, level, hasFilter("problems", "Problems", "Problems or not", "Has problems", "No problems"),
 		views.ListFilter{Key: "signoff", Label: "Sign-off", Any: "Any sign-off", Options: []views.ListOption{
-			{Value: "signed", Label: "Signed off"}, {Value: "not-yet", Label: "Not yet"}, {Value: "waiting", Label: "Waiting"},
+			{Value: "signed", Label: "Signed off"}, {Value: "not-yet", Label: "Needs changes"}, {Value: "waiting", Label: "Waiting"},
 		}})
 }
 

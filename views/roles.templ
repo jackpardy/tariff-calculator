@@ -149,3 +149,28 @@ func coachesToo(ctx context.Context) bool {
 	}
 	return false
 }
+
+// SameLinkPage asks before adding another person's own link to a page: a
+// member who pastes their coach's link would become their coach.
+type SameLinkPage struct {
+	Link, Add, Back string
+	Yours, Theirs   string // the names on this page's link and on the pasted one
+	What            string // the pasted link's role, e.g. "Coach at UCD, as Declan Ward"
+}
+
+// SameLink asks whether the pasted link is really the person's own.
+templ SameLink(p SameLinkPage) {
+	@competitionLayout("Is this you?") {
+		<h1 class="title is-4">Is { p.Theirs } you?</h1>
+		<div class="box">
+			<p class="mb-2">That link is { p.What }. This page is { p.Yours }'s.</p>
+			<p class="mb-3">Adding it makes you and { p.Theirs } one person: either link opens both pages, and the club sees { p.Yours } as { p.Theirs } too. Only add it if it's yours. To follow someone, such as your coach, you don't need their link.</p>
+			<form method="post" action={ templ.SafeURL(p.Add) } class="buttons">
+				<input type="hidden" name="link" value={ p.Link }/>
+				<input type="hidden" name="sure" value="1"/>
+				<button class="button is-small is-link" type="submit">It's mine: add it</button>
+				<a class="button is-small" href={ templ.SafeURL(p.Back) }>Cancel</a>
+			</form>
+		</div>
+	}
+}

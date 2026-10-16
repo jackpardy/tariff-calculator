@@ -49,7 +49,7 @@ func TestPersonalAndClubTimetables(t *testing.T) {
 	if !strings.Contains(mine, "Your timetable") || !strings.Contains(mine, "comp-tl-mine") || !strings.Contains(mine, "You compete") {
 		t.Error("Ann's flight picked out")
 	}
-	if only := do(t, h, http.MethodGet, ann+"/competitions/"+compID+"/timeline?only=1", nil).Body.String(); strings.Count(only, "comp-tl-mine") != 1 || strings.Contains(only, `comp-tl-flight comp-tl-faint`) {
+	if only := do(t, h, http.MethodGet, ann+"/competitions/"+compID+"/timeline?only=1", nil).Body.String(); strings.Count(only, " comp-tl-mine") != 1 || strings.Contains(only, `comp-tl-flight comp-tl-faint`) {
 		t.Error("only Ann's")
 	}
 

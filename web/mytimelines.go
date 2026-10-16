@@ -122,7 +122,8 @@ func (p *competitionPages) clubTimeline(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	t.Title, t.Heading = club.name+" · "+c.Name, club.name+"'s timetable"
-	t.Intro = "Every flight with one of " + club.name + "'s gymnasts competing, or one of its people officiating, picked out in green and named; the rest of the timetable faint."
+	t.Intro = "Every flight with one of " + club.name + "'s gymnasts competing, or one of its people officiating, picked out in green and named; the rest of the timetable faint. " +
+		"Officials' seats: Chair, D difficulty, HD horizontal displacement, S synchronisation, E execution, Rec recorder, Mar marshal. Hover over a short block to read it all."
 	render(w, r, views.TimelinePrint(t))
 }
 

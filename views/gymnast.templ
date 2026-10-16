@@ -24,6 +24,7 @@ type GymnastCompetition struct {
 	Page        string // their page for it
 	Competition CompetitionSummary
 	Status      string // e.g. "2 entries"
+	Problems    int    // on their entries' cards, for the list's chip
 	Events      []GymnastEvent
 	Day         string // their My competition page
 	Enter       string // where to enter another discipline, while entries are open
@@ -68,7 +69,18 @@ templ GymnastHome(p GymnastPage) {
 			<a class="box comp-member-row" href={ templ.SafeURL(c.Page) }>
 				<strong>{ c.Competition.Name }</strong>
 				<span class="is-block has-text-grey is-size-7">{ c.Competition.Date }</span>
-				<span class="is-block is-size-7">{ c.Status }</span>
+				<span class="is-block is-size-7">
+					{ c.Status }
+					if c.Problems > 0 {
+						@StateChip(Attention, Count(c.Problems, "problem", "problems"))
+					}
+					if c.Timeline != "" {
+						@StateChip(Done, "Timetable published")
+					}
+					if len(c.Desk) > 0 {
+						@StateChip(Attention, "Message from the organisers")
+					}
+				</span>
 			</a>
 		}
 		<p class="help">Entering another competition? Open its entry link and give this page's link there, so the entry joins this page.</p>

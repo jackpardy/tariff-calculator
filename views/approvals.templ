@@ -232,7 +232,8 @@ templ pairEntries(list []PairView) {
 					<summary>{ v.Title } <span class="has-text-grey is-size-7">· { v.Competition }</span></summary>
 					<p class="is-size-7 mt-1">Entered by { v.EnteredBy } · { v.Status }</p>
 					@placementLine(v.Placement)
-					@entryCard(v.Card)
+					// The summary names the pair: no page-sized heading again.
+					@entryCardChecks(v.Card)
 				</details>
 			}
 		</div>

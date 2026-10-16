@@ -18,6 +18,10 @@ import (
 const (
 	Removed = "removed" // taken out, and can't be sent again
 	Held    = "held"    // taken out until changed, sent again and accepted
+	// Withdrew is an entry made on one's own that its gymnast withdrew: kept,
+	// so it stays listed and its links work, and they can put it back until
+	// the deadline. Only they can.
+	Withdrew = "withdrawn"
 )
 
 // Who sees the reason an entry was removed or held.
@@ -60,7 +64,7 @@ func (s *Store) RemoveEntries(ctx context.Context, competitionID string, ids []s
 // or a held one accepted.
 func (s *Store) RestoreEntry(ctx context.Context, competitionID, id string) error {
 	return affected(s.db.ExecContext(ctx, `UPDATE entries SET removal = '', removal_note = '', removal_to = '', resent = FALSE
-		WHERE competition_id = $1 AND id = $2 AND removal <> ''`, competitionID, id))
+		WHERE competition_id = $1 AND id = $2 AND removal IN ($3, $4)`, competitionID, id, Removed, Held))
 }
 
 // RemovedEntries are a competition's removed and held entries, by gymnast.

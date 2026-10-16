@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"hash/fnv"
 	"strconv"
 )
 
@@ -92,7 +93,12 @@ func markLabel(state string) string {
 templ sideMark(r Role, m *SideMark) {
 	if m != nil {
 		<span class="skill-side">
-			@WhoChip(r, m.By)
+			// Your own mark says "You", in your side's colour: not "Gymnast · You".
+			if m.By == "You" {
+				<span class={ "chip", "chip-who", "chip-who-" + string(r) } title={ r.word() }><span class="chip-role">You</span></span>
+			} else {
+				@WhoChip(r, m.By)
+			}
 			@StateChip(markState(m.State), markLabel(m.State))
 			<span class="has-text-grey is-size-7">{ m.At }</span>
 		</span>
@@ -101,8 +107,10 @@ templ sideMark(r Role, m *SideMark) {
 
 // markButtons change the viewer's own mark on a skill: Learning, Can do, or
 // take it off; for a coach, Confirm makes the gymnast's mark theirs too.
-templ markButtons(action string, m MarkView) {
+templ markButtons(action, at string, m MarkView) {
 	<form method="post" action={ templ.SafeURL(action) } class="buttons are-small mb-0 skill-mark-buttons">
+		// Where the page comes back to after marking (markAnchor).
+		<input type="hidden" name="at" value={ at }/>
 		if m.Club != "" {
 			<input type="hidden" name="club" value={ m.Club }/>
 		} else if m.Item != "" {
@@ -125,9 +133,10 @@ templ markButtons(action string, m MarkView) {
 	</form>
 }
 
-// skillRow is a skill with both sides' marks, and the viewer's buttons.
-templ skillRow(action string, m MarkView) {
-	<div class="skill-mark">
+// skillRow is a skill with both sides' marks, and the viewer's buttons;
+// place is which list on the page it's in, for its anchor.
+templ skillRow(action, place string, m MarkView) {
+	<div class="skill-mark" id={ markAnchor(place, m) }>
 		<div>
 			<strong>{ m.Name }</strong>
 			<span class="has-text-grey is-size-7 ml-1">{ m.FIG }</span>
@@ -142,9 +151,17 @@ templ skillRow(action string, m MarkView) {
 			</div>
 		}
 		if action != "" && !m.Derived {
-			@markButtons(action, m)
+			@markButtons(action, markAnchor(place, m), m)
 		}
 	</div>
+}
+
+// markAnchor is a skill row's id: the list it's in (place) and the skill,
+// so marking it comes back to it there.
+func markAnchor(place string, m MarkView) string {
+	h := fnv.New32a()
+	h.Write([]byte(m.Skill + "\x00" + m.Club + "\x00" + m.Item))
+	return fmt.Sprintf("mark-%s-%08x", place, h.Sum32())
 }
 
 // skillMarks is a member's marked skills, by how they stand.
@@ -161,7 +178,7 @@ templ skillMarks(p SkillsPart) {
 			<p class="has-text-grey is-size-7">None yet.</p>
 		}
 		for _, m := range g.Skills {
-			@skillRow(p.Action, m)
+			@skillRow(p.Action, "marked", m)
 		}
 	}
 }
@@ -182,22 +199,22 @@ templ skillsAdd(p SkillsPart) {
 				<p class="has-text-grey is-size-7 mb-3">No skill found for that.</p>
 			}
 			for _, m := range p.Results {
-				@skillRow(p.Action, m)
+				@skillRow(p.Action, "found", m)
 			}
 		}
 		if len(p.Routines) > 0 {
 			<details class="mt-3" open?={ p.Query == "" }>
 				<summary class="has-text-weight-semibold">In { p.Whose } routines</summary>
 				for _, m := range p.Routines {
-					@skillRow(p.Action, m)
+					@skillRow(p.Action, "routines", m)
 				}
 			</details>
 		}
-		for _, g := range p.Browse {
+		for i, g := range p.Browse {
 			<details class="mt-3">
 				<summary class="has-text-weight-semibold">{ g.Title }</summary>
 				for _, m := range g.Skills {
-					@skillRow(p.Action, m)
+					@skillRow(p.Action, "browse"+strconv.Itoa(i), m)
 				}
 			</details>
 		}
@@ -382,7 +399,7 @@ script confirmRemoveClubSkill(name string) {
 templ levelsSection(p SkillsPart) {
 	if len(p.Levels) > 0 {
 		<h3 class="title is-5 mt-5 mb-2">Levels</h3>
-		for _, l := range p.Levels {
+		for li, l := range p.Levels {
 			<details class="box comp-level-progress">
 				<summary>
 					<strong>{ l.Name }</strong>
@@ -398,7 +415,7 @@ templ levelsSection(p SkillsPart) {
 						@StateChip(Attention, l.Broken)
 					}
 					for _, m := range l.Items {
-						@skillRow(p.Action, m)
+						@skillRow(p.Action, "level"+strconv.Itoa(li), m)
 					}
 				</div>
 			</details>
@@ -482,32 +499,33 @@ templ CoachClubLevels(p ClubLevelsPage) {
 						<li>{ rule }</li>
 					}
 				</ol>
-				if l.Share != "" {
-					<details class="mb-2">
-						<summary class="is-size-7">Share with another club</summary>
-						@linkBox("Link to this level", l.Share, "Send it to a coach of another club: they add a copy to theirs, with the club skills it tracks. No one's marks go with it.")
-					</details>
-				}
-				<div class="buttons are-small">
+				// Three kinds of control: Change, the main one; plain buttons for
+				// the rest; Remove in red, last.
+				<div class="buttons are-small mb-1">
 					if l.Edit != "" {
 						<a class="button is-link is-light" href={ templ.SafeURL(l.Edit) }>Change</a>
 						<a class="button" href={ templ.SafeURL(l.Copy) }>Copy as a new level</a>
 					}
 					if l.Open != "" {
-						<a class="button is-text" href={ templ.SafeURL(l.Open) }>Open in the Requirements page</a>
+						<a class="button" href={ templ.SafeURL(l.Open) }>Open in the Requirements page</a>
 					}
 					<form method="post" action={ templ.SafeURL(l.Move) } class="is-inline">
 						<input type="hidden" name="by" value="-1"/>
-						<button class="button" type="submit" disabled?={ l.First }>Earlier</button>
+						<button class="button" type="submit" disabled?={ l.First } title="Move it up the list">↑ Earlier</button>
 					</form>
 					<form method="post" action={ templ.SafeURL(l.Move) } class="is-inline">
 						<input type="hidden" name="by" value="1"/>
-						<button class="button" type="submit" disabled?={ l.Last }>Later</button>
+						<button class="button" type="submit" disabled?={ l.Last } title="Move it down the list">↓ Later</button>
 					</form>
 					<form method="post" action={ templ.SafeURL(l.Remove) } class="is-inline" onsubmit={ confirmRemoveLevel(l.Name) }>
-						<button class="button is-text" type="submit">Remove</button>
+						<button class="button is-danger is-light" type="submit">Remove</button>
 					</form>
 				</div>
+				if l.Share != "" {
+					@opens("", "", "Share with another club", false) {
+						@linkBox("Link to this level", l.Share, "Send it to a coach of another club: they add a copy to theirs, with the club skills it tracks. No one's marks go with it.")
+					}
+				}
 			</div>
 		}
 		<p class="help">{ "Up to " + strconv.Itoa(p.Max) + " levels." }</p>

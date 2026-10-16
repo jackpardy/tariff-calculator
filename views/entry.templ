@@ -39,6 +39,10 @@ type EntryForm struct {
 	// page, "your page" or "their page".
 	Kept   []KeptRoutine
 	KeptOn string
+	// Partners are the club's members, for a comp sec choosing a synchro
+	// partner (Club is the club's name, filled in for one of them).
+	Partners []string
+	Club     string
 }
 
 // KeptRoutine is a routine kept on a member's page, to choose for an entry.
@@ -108,6 +112,7 @@ type EntryPage struct {
 	Notice      string
 	Pairs       []PairView   // synchro entries they're the partner in
 	Removal     string       // what the organiser did with it, and why, if anything
+	Restore     string       // where putting back an entry they withdrew posts, while they can
 	Fees        *FeesSummary // what they owe, if the competition charges
 }
 
@@ -161,7 +166,7 @@ templ CompetitionEnter(p EnterPage) {
 
 // withdrawForm withdraws an entry (discipline, where the form needs it),
 // out of the way behind a button until asked for, then ticked to be sure:
-// it's rare, and can't be undone.
+// it's rare.
 templ withdrawForm(action, discipline string) {
 	@opens("", "", "Withdraw", false) {
 		<form method="post" action={ templ.SafeURL(action) }>
@@ -209,9 +214,22 @@ templ entryForm(f EntryForm) {
 		if f.Synchro {
 			<div class="field">
 				<label class="label" for={ "entry-partner" + f.Key }>Synchro partner</label>
-				<input class="input" id={ "entry-partner" + f.Key } name="partnerName" required maxlength="80" value={ f.PartnerName } placeholder="Their name"/>
+				if len(f.Partners) > 0 {
+					<input class="input" id={ "entry-partner" + f.Key } name="partnerName" required maxlength="80" value={ f.PartnerName } placeholder="Choose a member, or type a name" list={ "entry-partners" + f.Key } data-club={ f.Club } autocomplete="off"/>
+					<datalist id={ "entry-partners" + f.Key }>
+						for _, name := range f.Partners {
+							<option value={ name }></option>
+						}
+					</datalist>
+				} else {
+					<input class="input" id={ "entry-partner" + f.Key } name="partnerName" required maxlength="80" value={ f.PartnerName } placeholder="Their name"/>
+				}
 				<input class="input mt-1" name="partnerClub" maxlength="80" value={ f.PartnerClub } placeholder="Their club (leave blank if none)" aria-label="Synchro partner's club"/>
-				<p class="help">Any gymnast, from any club or none. You'll get a link to send them to confirm the pair.</p>
+				if len(f.Partners) > 0 {
+					<p class="help">One of the club's members, or anyone from another club or none. You'll get a link to send them to confirm the pair.</p>
+				} else {
+					<p class="help">Any gymnast, from any club or none. You'll get a link to send them to confirm the pair.</p>
+				}
 			</div>
 		}
 		if f.Unchecked {
@@ -257,7 +275,7 @@ templ entryForm(f EntryForm) {
 				<textarea class="textarea is-small" id={ "entry-note" + f.Key } name="note" rows="2" maxlength="500" placeholder="e.g. She's been moved up a level by her coach">{ f.NoteText }</textarea>
 			</div>
 		}
-		<button class="button is-primary is-fullwidth mt-4" type="submit">{ f.Submit }</button>
+		<button class="button is-primary mt-4" type="submit">{ f.Submit }</button>
 	</form>
 }
 
@@ -371,7 +389,14 @@ templ entryBody(p EntryPage) {
 		<span class="has-text-grey is-size-7">Entered { p.Sent }.</span>
 	</p>
 	if p.Removal != "" {
-		<div class="notification is-warning is-light">{ p.Removal }</div>
+		<div class="notification is-warning is-light">
+			{ p.Removal }
+			if p.Restore != "" {
+				<form method="post" action={ templ.SafeURL(p.Restore) } class="mt-2">
+					<button class="button is-small is-link" type="submit">Put it back</button>
+				</form>
+			}
+		</div>
 	}
 	@waitingLine(p.Waiting)
 	@lateLine(p.Late, p.LateAsk)
@@ -379,12 +404,17 @@ templ entryBody(p EntryPage) {
 	@organiserNote(p.Note)
 	@videoReviewNote(p.VideoReview, p.VideoNote)
 	@partnerBox(p.Partner)
-	@entryCardChecks(p.Card)
+	// Change above the card, by its problems; Withdraw, rare, below it.
 	if p.Competition.ChangesOpen {
-		<div class="mt-4">
+		<div class="mb-4">
 			@opens("", "", "Change the entry", len(p.Form.Problems) > 0) {
 				@entryForm(p.Form)
 			}
+		</div>
+	}
+	@entryCardChecks(p.Card)
+	if p.Competition.ChangesOpen {
+		<div class="mt-4">
 			@withdrawForm(p.Withdraw, "")
 		</div>
 	}

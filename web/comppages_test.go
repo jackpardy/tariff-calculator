@@ -247,9 +247,17 @@ func TestIndividualEntry(t *testing.T) {
 		t.Error("the individual link stops working")
 	}
 
-	do(t, h, http.MethodPost, own+"/withdraw", url.Values{"confirm": {"1"}})
-	if do(t, h, http.MethodGet, own, nil).Code != http.StatusNotFound {
-		t.Error("withdrawn")
+	// Withdrawn, it stays on their page, to put back until the deadline.
+	if to := redirected(t, h, own+"/withdraw", url.Values{"confirm": {"1"}}); !strings.Contains(noticeOf(t, to), "Withdrawn from") {
+		t.Errorf("withdrawn: %s", to)
+	}
+	page = do(t, h, http.MethodGet, own, nil).Body.String()
+	if !strings.Contains(page, "You withdrew this entry") || !strings.Contains(page, `action="`+own+`/restore"`) || strings.Contains(page, "Change the entry") {
+		t.Errorf("withdrawn, with Put it back: %s", page)
+	}
+	redirected(t, h, own+"/restore", nil)
+	if strings.Contains(do(t, h, http.MethodGet, own, nil).Body.String(), "You withdrew this entry") {
+		t.Error("put back")
 	}
 }
 

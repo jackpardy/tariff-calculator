@@ -47,6 +47,7 @@ type Dashboard struct {
 type RemovedRow struct {
 	ID, Gymnast, Club, Level string
 	Held                     bool   // on hold for changes, not removed
+	Withdrawn                bool   // withdrawn by the gymnast entering on their own: only they can put it back
 	Resent                   bool   // held, changed and sent again: waiting to be accepted
 	Note                     string // the reason
 	To                       string // who sees it, e.g. "the club"
@@ -608,7 +609,7 @@ templ removeForm(base string) {
 // removedList is the entries removed or held, to restore or accept.
 templ removedList(base string, rows []RemovedRow) {
 	if len(rows) > 0 {
-		@listSection("Removed and on hold", len(rows)) {
+		@listSection("Removed, withdrawn and on hold", len(rows)) {
 			<ul class="comp-removed">
 				for _, r := range rows {
 					<li class="comp-removed-row">
@@ -621,6 +622,8 @@ templ removedList(base string, rows []RemovedRow) {
 								@StateChip(Attention, "Changed and sent again: waiting for you")
 							} else if r.Held {
 								@StateChip(Attention, "On hold for changes")
+							} else if r.Withdrawn {
+								@StateChip(Stopped, "Withdrawn by them")
 							} else {
 								@StateChip(Stopped, "Removed")
 							}
@@ -628,15 +631,17 @@ templ removedList(base string, rows []RemovedRow) {
 								<span class="is-size-7 has-text-grey">{ r.Note } ({ r.To })</span>
 							}
 						</div>
-						<form method="post" action={ templ.SafeURL(base + "/entries/" + r.ID + "/restore") }>
-							<button class="button is-small" type="submit">
-								if r.Resent {
-									Accept back in
-								} else {
-									Restore
-								}
-							</button>
-						</form>
+						if !r.Withdrawn {
+							<form method="post" action={ templ.SafeURL(base + "/entries/" + r.ID + "/restore") }>
+								<button class="button is-small" type="submit">
+									if r.Resent {
+										Accept back in
+									} else {
+										Restore
+									}
+								</button>
+							</form>
+						}
 					</li>
 				}
 			</ul>

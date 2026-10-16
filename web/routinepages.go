@@ -336,9 +336,9 @@ func (p *competitionPages) coachGymnast(w http.ResponseWriter, r *http.Request) 
 		clubItems[c.Item()] = c
 	}
 	can := trackingOf(marks, clubItems).sideSkills[store.SideCoach][store.CanDo]
-	notCan := map[string][]string{}
+	notCan, notCanJSON := map[string][]string{}, map[string][]string{}
 	for _, kept := range list {
-		notCan[kept.ID] = notMarkedCan(kept, can, named)
+		notCan[kept.ID], notCanJSON[kept.ID] = notMarkedCan(kept, can, named)
 	}
 	choices, against := checkChoices(levels), map[string]string{}
 	for _, l := range levels {
@@ -356,6 +356,7 @@ func (p *competitionPages) coachGymnast(w http.ResponseWriter, r *http.Request) 
 	page.Routines = routinesPart(list, named, m.Name+" hasn't kept any routines on their page yet.", func(v *views.RoutineView) {
 		v.NoteAction = base + "/" + m.ID + "/routines/" + v.ID + "/note"
 		v.NotCan, v.SkillsLink = notCan[v.ID], page.Skills
+		v.MarkCan, v.NotCanSkills = page.Skills, notCanJSON[v.ID]
 		v.Check = &views.RoutineCheck{Action: base + "/" + m.ID, Choices: choices}
 	})
 	if chosen != "" {
@@ -372,18 +373,35 @@ func (p *competitionPages) coachGymnast(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	page.Routines.Add = base + "/" + m.ID + "/routines"
+	entries, err := p.st.MemberEntries(ctx, m.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	comps := map[string]store.Competition{}
+	for _, e := range entries {
+		c, ok := comps[e.CompetitionID]
+		if !ok {
+			if c, err = p.st.Competition(ctx, e.CompetitionID); err != nil {
+				failed(w, r, err)
+				return
+			}
+			comps[c.ID] = c
+		}
+		page.Entries = append(page.Entries, views.CoachGymnastEntry{Competition: c.Name, Event: e.Entry.Event(), Signoff: memberSignoff(c.Competition, e),
+			Open: coachPath(r.PathValue("token")) + "/members/" + m.ID + "/competitions/" + c.ID + "?discipline=" + e.Discipline})
+	}
 	render(w, r, views.CoachGymnastPage(page))
 }
 
 // notMarkedCan are the skills of a kept routine that aren't among those a
 // coach has marked Can do (can), each once, by the club's name where it has
-// one (named).
-func notMarkedCan(kept store.Routine, can, named []skills.TrampolineSkill) []string {
+// one (named), and as JSON, to mark.
+func notMarkedCan(kept store.Routine, can, named []skills.TrampolineSkill) (out, asJSON []string) {
 	routine, err := parseRoutineJSON(kept.Skills)
 	if err != nil {
-		return nil
+		return nil, nil
 	}
-	var out []string
 	var seen []skills.TrampolineSkill
 	for _, s := range routine {
 		same := func(o skills.TrampolineSkill) bool { return o.Equal(&s) }
@@ -395,9 +413,10 @@ func notMarkedCan(kept store.Routine, can, named []skills.TrampolineSkill) []str
 		if name == "" {
 			name = skillName(s)
 		}
-		out = append(out, name)
+		data, _ := json.Marshal(s)
+		out, asJSON = append(out, name), append(asJSON, string(data))
 	}
-	return out
+	return out, asJSON
 }
 
 // checkChoices are the levels a coach can check a routine against: the
@@ -498,6 +517,11 @@ func routineView(kept store.Routine, named []skills.TrampolineSkill) views.Routi
 		Validation: checked.Validation, Checks: checked.Checks, Results: checked.Results, Required: checked.Required}
 	if checked.SetErr != nil {
 		v.Card.SetErr = checked.SetErr.Error()
+	}
+	for _, res := range checked.Results {
+		if !res.Passed {
+			v.Unmet++
+		}
 	}
 	if v.Card.Requirements == "" {
 		v.Card.Requirements = "Checked against the Code of Points only"

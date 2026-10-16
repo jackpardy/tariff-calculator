@@ -1,9 +1,11 @@
 package competitions
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -87,13 +89,19 @@ type InvoiceLine struct {
 }
 
 // Invoice is what one club or individual owes for their entries: a line for
-// each entry, and the club fee for a club.
+// each entry, by gymnast and then discipline in the usual order, and the
+// club fee for a club.
 func (f Fees) Invoice(entries []Entry, club bool) ([]InvoiceLine, int) {
 	var lines []InvoiceLine
 	total := 0
 	if club && f.PerClub > 0 && len(entries) > 0 {
 		lines, total = append(lines, InvoiceLine{"Club fee", f.PerClub}), f.PerClub
 	}
+	entries = slices.Clone(entries)
+	slices.SortStableFunc(entries, func(a, b Entry) int {
+		return cmp.Or(CompareNames(a.Gymnast, b.Gymnast),
+			cmp.Compare(slices.Index(AllDisciplines, a.Discipline), slices.Index(AllDisciplines, b.Discipline)))
+	})
 	for _, e := range entries {
 		amount := f.PerEntry[e.Discipline]
 		if amount == 0 {

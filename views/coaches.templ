@@ -149,7 +149,6 @@ templ CoachHome(p CoachPage) {
 		if len(p.Competitions) == 0 {
 			<p class="has-text-grey">The club isn't entered in any competitions yet.</p>
 		}
-		@pairEntries(p.Pairs)
 		if p.Tools.Total > 0 {
 			@listTools(p.Tools)
 		}
@@ -193,7 +192,8 @@ templ CoachHome(p CoachPage) {
 										</td>
 										<td data-label="Sign-off">
 											@StateChip(signoffState(r.Signoff))
-											if r.Signoff.By != "" {
+											// Another coach's name; not their own on every row.
+											if r.Signoff.By != "" && r.Signoff.By != p.Coach {
 												@WhoChip(RoleCoach, r.Signoff.By)
 											}
 										</td>
@@ -206,12 +206,15 @@ templ CoachHome(p CoachPage) {
 			</div>
 		}
 		</div>
+		// Below the club's entries: synchro entries others made, with one of the club's members as partner.
+		@pairEntries(p.Pairs)
 	}
 }
 
 // SignoffPage is a coach looking at one entry to sign it off: a club's
 // member's (with a coach link) or an individual's (with a sign-off link).
 type SignoffPage struct {
+	Frame       *CoachFrame // a club's coach's tabs; nil for an individual's coach
 	Back        string // "" for an individual's coach, who has no coach page
 	Late        []CoachLate // a late change to sign off, through an individual's link
 	Competition CompetitionSummary
@@ -251,16 +254,26 @@ templ signoffForm(p SignoffPage) {
 // SignoffEntry is the page where a coach signs off an entry.
 templ SignoffEntry(p SignoffPage) {
 	@competitionLayout("Sign off · " + p.Card.Gymnast) {
-		if p.Back != "" {
-			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Your members</a></p>
+		if p.Frame != nil {
+			@coachFrame(*p.Frame)
 		}
-		<p class="has-text-grey mb-1">{ p.Competition.Name }</p>
+		if p.Back != "" {
+			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Entries</a></p>
+		}
+		// Whose entry first, then the competition's facts.
+		if p.Frame != nil {
+			<h2 class="title is-5 mb-2">{ p.Card.Gymnast }</h2>
+			<p class="has-text-grey mb-2">{ p.Competition.Name } · { p.Card.Level }</p>
+		} else {
+			<h1 class="title is-4 mb-2">{ p.Card.Gymnast }</h1>
+			<p class="has-text-grey mb-2">{ p.Competition.Name } · { p.Card.Club } · { p.Card.Level }</p>
+		}
 		@competitionFacts(p.Competition)
-		if p.Notice != "" {
+		if p.Notice != "" && p.Frame == nil {
 			<div class="notification is-success is-light">{ p.Notice }</div>
 		}
 		@coachLates(p.Late)
-		@entryCard(p.Card)
+		@entryCardChecks(p.Card)
 		if p.Cannot != "" {
 			<p class="has-text-grey mt-4">{ p.Cannot }</p>
 		} else if p.Competition.SignoffsOpen && p.Signoff.Signed && len(p.Problems) == 0 {

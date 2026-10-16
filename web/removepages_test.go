@@ -46,7 +46,7 @@ func TestRemovingEntriesPages(t *testing.T) {
 		t.Errorf("removed: %s", location)
 	}
 	dash = do(t, h, http.MethodGet, admin, nil).Body.String()
-	if strings.Contains(dash, `aria-label="Tick X"`) || !strings.Contains(dash, "Removed and on hold") || !strings.Contains(dash, chip(t, views.Stopped, "Removed")) || !strings.Contains(dash, "Not paid (the club sees it)") {
+	if strings.Contains(dash, `aria-label="Tick X"`) || !strings.Contains(dash, "Removed, withdrawn and on hold") || !strings.Contains(dash, chip(t, views.Stopped, "Removed")) || !strings.Contains(dash, "Not paid (the club sees it)") {
 		t.Error("X is out of the tables, listed to restore")
 	}
 	if csv := do(t, h, http.MethodGet, admin+"/entries.csv", nil).Body.String(); strings.Contains(csv, "\nX,") {

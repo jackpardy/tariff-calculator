@@ -53,7 +53,7 @@ func TestMemberKeepsRoutines(t *testing.T) {
 		t.Errorf("notice: %q", notice)
 	}
 	page = do(t, h, http.MethodGet, member+"/routines", nil).Body.String()
-	for _, want := range []string{"Comp vol", "2 skills", "BUCS L3 · second exercise", "Open in the Routine Builder", "Delete from your page"} {
+	for _, want := range []string{"Comp vol", "2 skills", "2 requirements not met", "BUCS L3 · second exercise", "Open in the Routine Builder", "Delete from your page"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the kept routine should show %q", want)
 		}
@@ -251,12 +251,17 @@ func TestCoachRoutineTools(t *testing.T) {
 	// doesn't count, a coach's does.
 	backTuck := `{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}`
 	barani := `{"rotation":4,"twist_distribution":[1],"takeoff_position":"Feet","shape":"Tuck"}`
-	if page := do(t, h, http.MethodGet, open, nil).Body.String(); !strings.Contains(page, "2 skills not marked Can do") || !strings.Contains(page, "Mark them on Skills") {
-		t.Errorf("both skills to mark: %s", page)
+	page := do(t, h, http.MethodGet, open, nil).Body.String()
+	if !strings.Contains(page, "2 skills not marked Can do") || strings.Count(page, `name="back" value="routine-`) != 2 || !strings.Contains(page, `action="`+open+`/skills"`) {
+		t.Errorf("both skills to mark, here: %s", page)
 	}
 	redirected(t, h, member+"/skills", url.Values{"skill": {barani}, "state": {"can"}})
-	redirected(t, h, open+"/skills", url.Values{"skill": {backTuck}, "state": {"can"}})
-	page := do(t, h, http.MethodGet, open, nil).Body.String()
+	// Marked from the routine, back to it.
+	back := regexp.MustCompile(`name="back" value="(routine-[^"]+)"`).FindStringSubmatch(page)[1]
+	if to := redirected(t, h, open+"/skills", url.Values{"skill": {backTuck}, "state": {"can"}, "back": {back}}); !strings.HasPrefix(to, open+"?") || !strings.HasSuffix(to, "#"+back) {
+		t.Errorf("back to the routine: %s", to)
+	}
+	page = do(t, h, http.MethodGet, open, nil).Body.String()
 	marked := regexp.MustCompile(`No coach has marked these Can do: ([^.]*)\.`).FindStringSubmatch(page)
 	if !strings.Contains(page, "1 skill not marked Can do") || marked == nil || !strings.Contains(marked[1], "Barani") {
 		t.Errorf("only the barani is left to mark: %v", marked)

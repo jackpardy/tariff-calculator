@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -609,7 +610,7 @@ func (s *Store) ReplaceIndividualEntry(ctx context.Context, token string, e comp
 		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
-		if removal == Removed {
+		if removal == Removed || removal == Withdrew {
 			return ErrRemoved
 		}
 		partner, err := partnerToken(ctx, tx, `SELECT entry, partner_token FROM entries WHERE id = $1`, e, id)
@@ -632,8 +633,47 @@ func (s *Store) ReplaceIndividualEntry(ctx context.Context, token string, e comp
 	})
 }
 
-// WithdrawIndividualEntry removes an individual's entry, until the deadline.
+// WithdrawIndividualEntry withdraws an individual's entry (Withdrew), until
+// the deadline. Their offer to judge or help moves to another of their
+// entries there, or goes with the last.
 func (s *Store) WithdrawIndividualEntry(ctx context.Context, token string) error {
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		id, err := individualEntryID(ctx, tx, token)
+		if err != nil {
+			return err
+		}
+		var competitionID, removal string
+		if err := tx.QueryRowContext(ctx, `SELECT competition_id, removal FROM entries WHERE id = $1`, id).Scan(&competitionID, &removal); err != nil {
+			return notFound(err)
+		}
+		if err := s.open(ctx, tx, competitionID, changing); err != nil {
+			return err
+		}
+		if removal == Removed {
+			return ErrRemoved
+		}
+		if err := affected(tx.ExecContext(ctx, `UPDATE entries SET removal = $2, removal_note = '', removal_to = '', resent = FALSE WHERE id = $1`, id, Withdrew)); err != nil {
+			return err
+		}
+		// The coach they named goes, with its certificate: it was only for this entry.
+		if _, err := tx.ExecContext(ctx, `DELETE FROM entry_coaches WHERE entry_id = $1`, id); err != nil {
+			return err
+		}
+		var other string
+		err = tx.QueryRowContext(ctx, `SELECT id FROM entries WHERE id IN (`+sameGymnast+`) AND id <> $1 AND removal <> $2 ORDER BY id LIMIT 1`, id, Withdrew).Scan(&other)
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			_, err = tx.ExecContext(ctx, `DELETE FROM officials WHERE entry_id = $1`, id)
+		case err == nil:
+			_, err = tx.ExecContext(ctx, `UPDATE officials SET entry_id = $2 WHERE entry_id = $1`, id, other)
+		}
+		return err
+	})
+}
+
+// RestoreIndividualEntry puts back an entry its gymnast withdrew, until the
+// deadline.
+func (s *Store) RestoreIndividualEntry(ctx context.Context, token string) error {
 	return s.tx(ctx, func(tx *sql.Tx) error {
 		id, err := individualEntryID(ctx, tx, token)
 		if err != nil {
@@ -646,10 +686,7 @@ func (s *Store) WithdrawIndividualEntry(ctx context.Context, token string) error
 		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
-		if err := affected(tx.ExecContext(ctx, `DELETE FROM entries WHERE id = $1`, id)); err != nil {
-			return err
-		}
-		return dropEntryRows(ctx, tx, competitionID)
+		return affected(tx.ExecContext(ctx, `UPDATE entries SET removal = '', sent_at = $2, entered_at = $2 WHERE id = $1 AND removal = $3`, id, s.stamp(), Withdrew))
 	})
 }
 
