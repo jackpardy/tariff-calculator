@@ -478,18 +478,71 @@ func Evaluate(set Set, rv skills.RoutineValidation) []Result {
 		}
 		results[i] = res
 	}
+	// A rule that doesn't say which skill (a new Must include) isn't met
+	// until it does, rather than met by anything.
+	for i, res := range results {
+		if rule := set.Rules[res.Rule]; needsMatch(rule.Type) && rule.Match != nil && rule.Match.Open() {
+			results[i].Passed, results[i].Detail, results[i].Elements = false, "Choose which skill first", nil
+		}
+	}
 	return slices.DeleteFunc(results, func(res Result) bool { return set.Rules[res.Rule].Type == Track })
+}
+
+// needsMatch says whether a rule type is about elements fitting a description
+// that has to say something (a position's "any element" says there is one).
+func needsMatch(t string) bool { return t == Count || t == Linked || t == Every }
+
+// Open says whether a matcher fits any skill: nothing said about it but
+// perhaps its wording, and no other skills.
+func (m Matcher) Open() bool {
+	return m.Rotation == nil && m.Direction == "" && m.Twist == nil && len(m.Shapes) == 0 && len(m.Takeoff) == 0 &&
+		len(m.Landing) == 0 && m.Tariff == nil && m.FIG == "" && len(m.Or) == 0
+}
+
+// Vague lists the places a set doesn't say which skill, where it should: a
+// rule, another skill that counts, a link's element, one of a separate
+// rule's requirements. Each fits any skill, so it's met by anything (or, a
+// ban, by nothing). The editor lists them with the problems to fix.
+func Vague(s Set) []string {
+	var out []string
+	for i, r := range s.Rules {
+		n := i + 1
+		if needsMatch(r.Type) && r.Match != nil {
+			if r.Match.Open() {
+				out = append(out, fmt.Sprintf("rule %d doesn't say which skill", n))
+			}
+			for j, o := range r.Match.Or {
+				if o.Open() {
+					out = append(out, fmt.Sprintf("rule %d: other skill %d doesn't say which skill", n, j+1))
+				}
+			}
+		}
+		for o, option := range r.Options {
+			for e, m := range option {
+				if m.Open() {
+					out = append(out, fmt.Sprintf("rule %d: option %d, element %d doesn't say which skill", n, o+1, e+1))
+				}
+			}
+		}
+		for e, m := range r.Each {
+			if m.Open() {
+				out = append(out, fmt.Sprintf("rule %d: requirement %d doesn't say which skill", n, e+1))
+			}
+		}
+	}
+	return out
 }
 
 // RequiredElements is the set of elements (1-based) that satisfy a requirement:
 // those meeting a separate rule's requirements, those making up an includes
 // rule's option, and those matching a rule requiring at least one such
-// element. The tariff sheet ticks them.
+// element, while it's met (six somersaults for "1 or 2 somersault skills"
+// aren't ticked). The tariff sheet ticks them.
 func RequiredElements(set Set, results []Result) map[int]bool {
 	required := map[int]bool{}
 	for _, res := range results {
 		rule := set.Rules[res.Rule]
-		if rule.Type == Count && rule.Min != nil && *rule.Min >= 1 {
+		if rule.Type == Count && rule.Min != nil && *rule.Min >= 1 && res.Passed {
 			for _, e := range res.Elements {
 				required[e] = true
 			}

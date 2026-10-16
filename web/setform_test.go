@@ -373,7 +373,7 @@ func TestSetEditorPicks(t *testing.T) {
 	start.Set("r0.m.pick", "kind:barani")
 	set, doc := post(start)
 	barani, _ := requirements.PickByID("kind:barani")
-	if got := requirements.Describe(set.Rules[0]); got != "At least 1 element: a barani (front with a half twist)" || requirements.PickOf(*set.Rules[0].Match) != barani.ID {
+	if got := requirements.Describe(set.Rules[0]); got != "A barani (front with a half twist)" || requirements.PickOf(*set.Rules[0].Match) != barani.ID {
 		t.Errorf("picked a barani: %q", got)
 	}
 	again := submitted(doc)
@@ -418,6 +418,9 @@ func TestSetEditorPicks(t *testing.T) {
 // another skill" adds one under the first, picked as the first is, and
 // Remove takes it off again; each is kept through every redraw.
 func TestSetEditorAlternatives(t *testing.T) {
+	// want is how many problems there should be: one while a new skill that
+	// counts is still to choose (requirements.Vague).
+	want := "0"
 	post := func(values url.Values) (requirements.Set, url.Values) {
 		t.Helper()
 		doc, err := html.Parse(postForm(t, "/requirements/editor", values).Body)
@@ -425,8 +428,8 @@ func TestSetEditorAlternatives(t *testing.T) {
 			t.Fatal(err)
 		}
 		set, problems := editorSet(t, doc)
-		if problems != "0" {
-			t.Fatalf("problems: %s", problems)
+		if problems != want {
+			t.Fatalf("problems: %s, want %s", problems, want)
 		}
 		return set, submitted(doc)
 	}
@@ -434,7 +437,9 @@ func TestSetEditorAlternatives(t *testing.T) {
 	form.Set("r0.m.pick", "kind:front")
 	_, form = post(form)
 	form.Set("action", "or-add:r0.m.")
+	want = "1"
 	set, form := post(form)
+	want = "0"
 	if len(set.Rules[0].Match.Or) != 1 || form.Get("r0.m.ors") != "1" {
 		t.Fatalf("an alternative added: %+v %v", set.Rules[0].Match, form)
 	}

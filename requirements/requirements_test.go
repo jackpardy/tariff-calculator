@@ -162,6 +162,11 @@ func TestRequiredElements(t *testing.T) {
 	if len(got) != 2 || !got[2] || !got[5] {
 		t.Errorf("RequiredElements = %v, want elements 2 and 5", got)
 	}
+	// A rule that fails (at most 0 backward) ticks none of its elements.
+	set.Rules[0].Max = ptr(0.0)
+	if got := RequiredElements(set, Evaluate(set, skills.ValidateRoutine(sampleRoutine))); len(got) != 1 || !got[5] {
+		t.Errorf("RequiredElements = %v, want element 5 only", got)
+	}
 }
 
 func TestDescribe(t *testing.T) {
@@ -603,5 +608,23 @@ func TestSetRoutineFromSkills(t *testing.T) {
 	other[2] = skills.CommonSkills["frontDrop"]
 	if r := Evaluate(set, skills.ValidateRoutineWith(other, skills.ValidateOptions{AllowRepeats: true})); r[0].Passed {
 		t.Error("a front drop in place of a back drop isn't the set routine")
+	}
+}
+
+// A rule that doesn't say which skill is listed, and isn't met by anything
+// until it does; a position's "any element" is a rule of its own.
+func TestVague(t *testing.T) {
+	set := Set{Format: Format, Name: "x", Rules: []Rule{
+		{Type: Count, Match: &Matcher{}, Min: ptr(1.0)},
+		{Type: Count, Match: &Matcher{Direction: "backward", Or: []Matcher{{}}}, Min: ptr(1.0)},
+		{Type: Includes, Options: [][]Matcher{{{Direction: "backward"}, {}}}},
+		{Type: Position, Position: 1, Match: &Matcher{}},
+	}}
+	want := []string{"rule 1 doesn't say which skill", "rule 2: other skill 1 doesn't say which skill", "rule 3: option 1, element 2 doesn't say which skill"}
+	if got := Vague(set); !slices.Equal(got, want) {
+		t.Errorf("Vague = %q", got)
+	}
+	if res := Evaluate(set, skills.ValidateRoutine(sampleRoutine))[0]; res.Passed || res.Detail != "Choose which skill first" {
+		t.Errorf("an open Must include isn't met: %+v", res)
 	}
 }

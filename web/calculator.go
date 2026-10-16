@@ -657,7 +657,12 @@ func handleSetEditor(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	editor := views.SetEditorData{Set: set, JSON: string(data), Problems: problems, Conflicts: conflicts}
+	// Rules are folded to their names once there are several (OpenRule: none
+	// open but one just added).
+	editor := views.SetEditorData{Set: set, JSON: string(data), Problems: problems, Conflicts: conflicts, OpenRule: -1, Tried: r.FormValue("tried") == "1"}
+	if r.FormValue("add") != "" {
+		editor.OpenRule = len(set.Rules) - 1
+	}
 	// Beside a routine in the builder: how it does against each rule.
 	if raw := r.FormValue("routineData"); raw != "" {
 		editor.Routine = raw
@@ -670,6 +675,9 @@ func handleSetEditor(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	// A rule fitting any skill is met by anything: say which skill (after the
+	// results, so a new blank rule doesn't hide how the others stand).
+	editor.Problems = append(editor.Problems, requirements.Vague(set)...)
 	render(w, r, views.SetEditor(editor))
 }
 

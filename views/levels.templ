@@ -38,6 +38,8 @@ type LevelEditorData struct {
 	Structure  string   // one of the Structure constants
 	JSON       string   // the level as it would be saved
 	Problems   []string // what's wrong with it, if anything
+	Tried      bool     // a save tried: the problems show from then on
+	Held       string   // JSON: what was chosen that the structure doesn't use, kept for one that does
 	Groups     []requirements.BuiltinGroup
 	Custom     []CustomRequirements
 	CustomJSON string // Custom, carried through each re-render
@@ -61,6 +63,11 @@ templ LevelEditor(e LevelEditorData) {
 		x-on:submit.prevent
 	>
 		<input type="hidden" name="custom" value={ e.CustomJSON }/>
+		<input type="hidden" name="held" value={ e.Held }/>
+		if e.Tried {
+			<input type="hidden" name="tried" value="1"/>
+			@problemsToFix(e.Problems)
+		}
 		<div class="field">
 			<label class="label is-small" for="level-name">Name</label>
 			<input class="input" id="level-name" name="name" value={ e.Level.Name } placeholder="e.g. Student novice 2026–27"/>
@@ -101,16 +108,6 @@ templ LevelEditor(e LevelEditorData) {
 				<input class="input is-small" id="level-source" name="source" value={ e.Level.Source } placeholder="e.g. Competition handbook, September 2026"/>
 			</div>
 		</details>
-		if len(e.Problems) > 0 {
-			<div class="notification is-warning is-light set-problems">
-				<p class="has-text-weight-semibold">Fix before saving:</p>
-				<ul>
-					for _, p := range e.Problems {
-						<li>{ p }</li>
-					}
-				</ul>
-			</div>
-		}
 	</form>
 }
 
@@ -143,6 +140,8 @@ templ setSlots(e LevelEditorData, key, title string, ex requirements.Exercise) {
 		}
 		<div class="buttons are-small">
 			@levelAction("+ Add another set routine", "add:"+key, false)
+			// Built right here on the page, and chosen here once saved.
+			<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("makeSetRoutineFor('%s')", key) }>+ Build a new set routine</button>
 		</div>
 	</div>
 }

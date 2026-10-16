@@ -743,7 +743,7 @@ func TestRequirementsInTheRoutineView(t *testing.T) {
 
 	custom := `{"format":1,"name":"Our gala","rules":[{"type":"count","match":{"landing":["seat"]},"min":1},{"type":"count","match":{"direction":"forward","rotation":{"min":4}},"min":1}]}`
 	html = post(custom)
-	for _, want := range []string{"Our gala", "1 of 2 met", "At least 1 element: anything landing on the seat", "element 2", "found 0"} {
+	for _, want := range []string{"Our gala", "1 of 2 met", "Anything landing on the seat", "element 2", "found 0"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("custom check is missing %q", want)
 		}
