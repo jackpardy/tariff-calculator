@@ -617,12 +617,13 @@ templ ClubCompetitionFees(c ClubPage, comp ClubCompetition, invoice *InvoicePage
 		if invoice == nil {
 			<p class="has-text-grey mt-4">There's nothing to pay for this competition yet.</p>
 		} else {
+			// What's to pay and how, first: the lines can run long.
 			<div class="comp-send">
 				<div class="comp-send-state">
 					if invoice.Settled {
 						@StateChip(Done, "Paid in full")
 					} else {
-						@StateChip(Attention, invoice.Balance+" to pay")
+						<p class="title is-5 mb-1">{ invoice.Balance } to pay</p>
 					}
 					<span class="comp-send-note">Removed, held and withdrawn entries aren't charged. If something here is wrong, ask the organiser.</span>
 				</div>
@@ -630,6 +631,7 @@ templ ClubCompetitionFees(c ClubPage, comp ClubCompetition, invoice *InvoicePage
 					<a class="button is-small" href={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/invoice") }>Print the invoice</a>
 				</div>
 			</div>
+			@howToPay(*invoice)
 			@invoiceTable(*invoice)
 		}
 	}
@@ -652,7 +654,7 @@ templ ClubMembers(c ClubPage) {
 									<td>
 										{ m.Name }
 										if m.AlsoCoach {
-											@WhoChip(RoleCoach, "")
+											@WhoLink(RoleCoach, "", c.Base+"/coaches")
 										}
 									</td>
 									<td class="has-text-grey is-size-7">
@@ -716,7 +718,13 @@ templ ClubCoaches(c ClubPage) {
 											<span class="is-block has-text-grey is-size-7">A member too: opens from their member link</span>
 										}
 									</td>
-									<td class="has-text-grey is-size-7">{ Count(coach.Members, "member chose them", "members chose them") }</td>
+									<td class="is-size-7">
+										if coach.Members > 0 {
+											<a href={ templ.SafeURL(c.Base + "/members?coach=" + coach.ID) }>{ Count(coach.Members, "member chose them", "members chose them") }</a>
+										} else {
+											<span class="has-text-grey">No member chose them</span>
+										}
+									</td>
 									<td class="comp-row-more">
 										@opens("", "", "More", false) {
 											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") }>
@@ -739,8 +747,8 @@ templ ClubCoaches(c ClubPage) {
 											<noscript><button class="button is-small" type="submit">Change</button></noscript>
 										</form>
 										for _, q := range coach.Qualifications {
-											<div>
-												{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a>
+											<div class="comp-qualification">
+												<span>{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a></span>
 												<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/qualifications/" + q.ID + "/remove") } class="is-inline">
 													<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
 												</form>
@@ -757,7 +765,7 @@ templ ClubCoaches(c ClubPage) {
 														}
 													</select>
 												</div>
-												<input class="input is-small" type="file" name="certificate" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label={ coach.Name + "'s certificate" }/>
+												<input class="input is-small comp-file" type="file" name="certificate" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label={ coach.Name + "'s certificate" }/>
 												<button class="button is-small" type="submit">Add</button>
 											</form>
 											<p class="help">The certificate: a photo or PDF, up to 3 MB. It's kept until you remove it or the coach.</p>

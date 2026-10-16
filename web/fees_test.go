@@ -6,8 +6,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-
-	"tariffCalculator/views"
 )
 
 func TestEntryFees(t *testing.T) {
@@ -48,7 +46,7 @@ func TestEntryFees(t *testing.T) {
 	// UCD pays €25: €24 to come.
 	payer := "club:" + strings.Split(strings.Split(page, `name="payer" value="club:`)[1], `"`)[0]
 	redirected(t, h, fees+"/payments", url.Values{"payer": {payer}, "amount": {"25"}, "note": {"Transfer"}})
-	if page := clubCompetitionTab(t, h, club, "/fees"); !strings.Contains(page, chip(t, views.Attention, "€24 to pay")) || !strings.Contains(page, "<td>Ann · BUCS L3</td>") {
+	if page := clubCompetitionTab(t, h, club, "/fees"); !strings.Contains(page, ">€24 to pay</p>") || !strings.Contains(page, "<td>Ann · BUCS L3</td>") {
 		t.Error("the comp sec sees what's left to pay, on Fees")
 	}
 	invoiceLink := regexp.MustCompile(`href="(` + regexp.QuoteMeta(club) + `/competitions/[^"/]+/invoice)"`).FindStringSubmatch(clubCompetitionTab(t, h, club, "/fees"))[1]

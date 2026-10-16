@@ -230,12 +230,22 @@
     // partnerLink offers the member pages, own pages and entries saved in this
     // browser for a synchro partner to say who they are, starting on no one and
     // leaving out the synchro entry itself.
+    // The one saved under the partner's name, as entered, is chosen already.
     function partnerLink() {
         const field = document.querySelector('[data-saved-people]');
         const self = (field?.dataset.savedSelf || '').split('\n');
-        savedPeople(field, document.getElementById('partner-link'),
+        const input = document.getElementById('partner-link');
+        savedPeople(field, input,
             [...loadLinks(linkKeys.members), ...loadLinks(linkKeys.gymnasts), ...loadLinks(linkKeys.entries)].filter((p) => !self.includes(p.name)),
             'Someone else, or no other entry', 'Choose who you are');
+        const named = (field?.dataset.partner || '').trim().toLowerCase();
+        const select = field?.querySelector('select');
+        if (!named || !select || field.hidden) { return; }
+        const match = [...select.options].filter((o) => o.value && o.text.split(' · ')[0].trim().toLowerCase() === named);
+        if (match.length === 1) {
+            select.value = match[0].value;
+            select.dispatchEvent(new Event('change'));
+        }
     }
 
     // enterAs offers the own pages, member pages and entries saved in this
@@ -700,6 +710,13 @@
                         });
                     }
                 } catch (e) { /* nothing kept */ }
+                // A link can choose a filter by its key in the address
+                // (?coach=…: a coach's members), over what was kept.
+                const asked = new URLSearchParams(location.search);
+                for (const f of filters) {
+                    const v = asked.get(f.dataset.listFilter);
+                    if (v !== null && [...f.options].some((o) => o.value === v)) { f.value = v; }
+                }
             }
             search.addEventListener('input', apply);
             // Enter sends a form's search to the server, but must not send a

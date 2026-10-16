@@ -499,32 +499,33 @@ templ CoachClubLevels(p ClubLevelsPage) {
 						<li>{ rule }</li>
 					}
 				</ol>
-				if l.Share != "" {
-					<details class="mb-2">
-						<summary class="is-size-7">Share with another club</summary>
-						@linkBox("Link to this level", l.Share, "Send it to a coach of another club: they add a copy to theirs, with the club skills it tracks. No one's marks go with it.")
-					</details>
-				}
-				<div class="buttons are-small">
+				// Three kinds of control: Change, the main one; plain buttons for
+				// the rest; Remove in red, last.
+				<div class="buttons are-small mb-1">
 					if l.Edit != "" {
 						<a class="button is-link is-light" href={ templ.SafeURL(l.Edit) }>Change</a>
 						<a class="button" href={ templ.SafeURL(l.Copy) }>Copy as a new level</a>
 					}
 					if l.Open != "" {
-						<a class="button is-text" href={ templ.SafeURL(l.Open) }>Open in the Requirements page</a>
+						<a class="button" href={ templ.SafeURL(l.Open) }>Open in the Requirements page</a>
 					}
 					<form method="post" action={ templ.SafeURL(l.Move) } class="is-inline">
 						<input type="hidden" name="by" value="-1"/>
-						<button class="button" type="submit" disabled?={ l.First }>Earlier</button>
+						<button class="button" type="submit" disabled?={ l.First } title="Move it up the list">↑ Earlier</button>
 					</form>
 					<form method="post" action={ templ.SafeURL(l.Move) } class="is-inline">
 						<input type="hidden" name="by" value="1"/>
-						<button class="button" type="submit" disabled?={ l.Last }>Later</button>
+						<button class="button" type="submit" disabled?={ l.Last } title="Move it down the list">↓ Later</button>
 					</form>
 					<form method="post" action={ templ.SafeURL(l.Remove) } class="is-inline" onsubmit={ confirmRemoveLevel(l.Name) }>
-						<button class="button is-text" type="submit">Remove</button>
+						<button class="button is-danger is-light" type="submit">Remove</button>
 					</form>
 				</div>
+				if l.Share != "" {
+					@opens("", "", "Share with another club", false) {
+						@linkBox("Link to this level", l.Share, "Send it to a coach of another club: they add a copy to theirs, with the club skills it tracks. No one's marks go with it.")
+					}
+				}
 			</div>
 		}
 		<p class="help">{ "Up to " + strconv.Itoa(p.Max) + " levels." }</p>

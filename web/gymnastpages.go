@@ -2,6 +2,7 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"slices"
@@ -92,13 +93,13 @@ func (p *competitionPages) gymnastHome(w http.ResponseWriter, r *http.Request) {
 	}
 	page := p.gymnastPage(r, ind, gymnastCompetitions)
 	token := r.PathValue("token")
-	count := map[string]int{}
+	byComp := map[string][]store.Entry{}
 	var order []string
 	for _, e := range entries {
-		if count[e.CompetitionID] == 0 {
+		if len(byComp[e.CompetitionID]) == 0 {
 			order = append(order, e.CompetitionID)
 		}
-		count[e.CompetitionID]++
+		byComp[e.CompetitionID] = append(byComp[e.CompetitionID], e)
 	}
 	for _, id := range order {
 		c, err := p.st.Competition(r.Context(), id)
@@ -106,9 +107,26 @@ func (p *competitionPages) gymnastHome(w http.ResponseWriter, r *http.Request) {
 			failed(w, r, err)
 			return
 		}
-		page.Competitions = append(page.Competitions, views.GymnastCompetition{
-			Page: gymnastCompetitionPath(token, id), Competition: summary(c, p.now()), Status: views.Count(count[id], "entry", "entries"),
-		})
+		// As a member's card has: how many entries, their problems, and the
+		// timetable and messages chips.
+		mine, live, withdrawn := byComp[id], 0, 0
+		gc := views.GymnastCompetition{Page: gymnastCompetitionPath(token, id), Competition: summary(c, p.now())}
+		for _, e := range mine {
+			if e.Removal == store.Withdrew {
+				withdrawn++
+				continue
+			}
+			live++
+			if shown, err := card(c.Competition, e.Entry, onTheirOwn); err == nil {
+				gc.Problems += len(shown.Problems)
+			}
+		}
+		gc.Status = views.Count(live, "entry", "entries")
+		if withdrawn > 0 {
+			gc.Status += fmt.Sprintf(" · %d withdrawn", withdrawn)
+		}
+		gc.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: entryPath(token, mine[0]), key: mine[0].Key(), people: []string{mine[0].Key()}})
+		page.Competitions = append(page.Competitions, gc)
 	}
 	render(w, r, views.GymnastHome(page))
 }

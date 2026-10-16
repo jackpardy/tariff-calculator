@@ -726,6 +726,9 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-entries td:nth-child(6) { white-space: nowrap; min-width: 0; }
 .comp-entries tr.has-problems td:nth-child(6) { color: inherit; }
 .comp-entries td.comp-problem-cell { white-space: normal; min-width: 12rem; }
+/* A routine's table: the number, notation and difficulty as narrow as they
+   need, on one line; the name takes the rest. */
+.comp-skills td:first-child, .comp-skills td:nth-child(3), .comp-skills td:last-child { width: 1%; white-space: nowrap; }
 .comp-skills tr.not-counted td { color: #999; text-decoration: line-through; }
 /* The reason it doesn't count isn't struck through (an inline-block stops the line). */
 .comp-skills tr.not-counted td > .has-text-danger { display: inline-block; text-decoration: none; }
@@ -827,6 +830,13 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 }
 .comp-num { width: 4.5rem; }
 .comp-offers td { vertical-align: middle; }
+/* A coach's qualification: its name and Remove on one line, centred; the
+   certificate's file input as wide as it needs. */
+.comp-qualification { display: flex; align-items: center; gap: 0.5rem; }
+.comp-qualification .button { height: auto; padding-top: 0; padding-bottom: 0; }
+.input.comp-file { width: auto; max-width: 100%; height: auto; padding: 0.2rem; }
+/* The club's Members and a coach's Gymnasts: a row's cells on one line. */
+#members td, #gymnasts td { vertical-align: middle; }
 .comp-table td.comp-wrap { white-space: normal; min-width: 14rem; }
 .comp-setup-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; margin-bottom: 0.4rem; }
 .comp-setup-row .input:not(.comp-num) { width: auto; max-width: 11rem; }

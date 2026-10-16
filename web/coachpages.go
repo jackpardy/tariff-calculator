@@ -366,9 +366,10 @@ func (p *competitionPages) coachEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	withSignoff(&shown, memberSignoff(c.Competition, e))
+	frame := coachFrame(r, coach, club, coachEntriesTab)
 	page := views.SignoffPage{
-		Back: coachPath(r.PathValue("token")), Competition: summary(c, p.now()),
-		Card: shown, Signoff: shown.Signoff, Action: r.URL.Path + "?discipline=" + e.Discipline, Notice: r.URL.Query().Get("notice"),
+		Frame: &frame, Back: coachPath(r.PathValue("token")), Competition: summary(c, p.now()),
+		Card: shown, Signoff: shown.Signoff, Action: r.URL.Path + "?discipline=" + e.Discipline,
 	}
 	if !coach.SignsOff {
 		page.Cannot = "Your club hasn't set you to sign off routines, so you can see this entry but not sign it off."

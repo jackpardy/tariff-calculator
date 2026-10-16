@@ -183,6 +183,7 @@ templ Invoice(p InvoicePage) {
 		<p class="mb-1"><strong>{ p.Competition.Name }</strong> · { p.Competition.Date }</p>
 		<p class="mb-4">To <strong>{ p.To }</strong> · { p.Date }</p>
 		@invoiceTable(p)
+		@howToPay(p)
 		<p class="is-size-7 has-text-grey">Removed, held and withdrawn entries aren't charged. If something here is wrong, ask the organiser.</p>
 	}
 }
@@ -213,8 +214,8 @@ templ feesLine(f *FeesSummary) {
 	}
 }
 
-// invoiceTable is an invoice's lines, payments and what's left to pay, and
-// how to pay it: on the printed invoice, and on a club's Fees.
+// invoiceTable is an invoice's lines, payments and what's left to pay: on
+// the printed invoice, and on a club's Fees.
 templ invoiceTable(p InvoicePage) {
 	<table class="table is-fullwidth is-narrow">
 		<thead>
@@ -259,6 +260,11 @@ templ invoiceTable(p InvoicePage) {
 			</tr>
 		</tfoot>
 	</table>
+}
+
+// howToPay is the organiser's instructions for paying, while there's
+// something to pay.
+templ howToPay(p InvoicePage) {
 	if p.Instructions != "" && !p.Settled {
 		<div class="box">
 			<p class="label is-small mb-1">How to pay</p>

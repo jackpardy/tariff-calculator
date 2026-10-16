@@ -63,7 +63,7 @@ templ PartnerConfirm(p PartnerPage) {
 			<form method="post" action={ templ.SafeURL(p.Action) } class="comp-partner">
 				// Links saved in this browser (static/js/competitions.js), but
 				// not this entry's own.
-				<div class="field" data-saved-people data-saved-self={ strings.Join(p.Saved, "\n") } hidden>
+				<div class="field" data-saved-people data-saved-self={ strings.Join(p.Saved, "\n") } data-partner={ p.Partner } hidden>
 					<label class="label is-small" for="partner-saved">You are</label>
 					<div class="select is-fullwidth"><select id="partner-saved"></select></div>
 				</div>
