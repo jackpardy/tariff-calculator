@@ -117,18 +117,18 @@ func TestOrgMenuByAccess(t *testing.T) {
 
 	// A link for checking cards sees entries and history.
 	cards := views.Access{Check: true, People: true}
-	if got := labels(orgMenu(base, cards, m, menuEntries)); got != "Entries, History" {
+	if got := labels(orgMenu(base, cards, m, menuEntries)); got != "Entries" {
 		t.Errorf("a cards link: %s", got)
 	}
 	// A chair of judges: the sheets are buttons on the entries page, not in the menu.
 	chair := views.Access{Sheets: true, Day: true, Desk: true, Screen: true, People: true}
 	menu = orgMenu(base, chair, m, menuEntries)
-	if got := labels(menu); got != "Entries, On the day, History" {
+	if got := labels(menu); got != "Entries, On the day" {
 		t.Errorf("a chair's link: %s", got)
 	}
 	// Timetable team: the timetable and officials, not settings.
 	team := views.Access{Timetable: true, Sheets: true, Officials: true, Day: true, Desk: true, Screen: true, People: true}
-	if got := labels(orgMenu(base, team, m, menuEntries)); got != "Entries, Timetable, On the day, History" {
+	if got := labels(orgMenu(base, team, m, menuEntries)); got != "Entries, Timetable, On the day" {
 		t.Errorf("a timetable link: %s", got)
 	}
 }
@@ -211,17 +211,18 @@ func TestSettingsLimitedLinks(t *testing.T) {
 				t.Errorf("%s is offered the settings", link)
 			}
 		}
-		if !strings.Contains(strings.Join(menuLabels(page), ","), "History") {
-			t.Errorf("%s is offered the history: %v", link, menuLabels(page))
+		// The history says what was paid and what feedback was sent: not theirs to read.
+		if strings.Contains(strings.Join(menuLabels(page), ","), "History") {
+			t.Errorf("%s isn't offered the history: %v", link, menuLabels(page))
 		}
-		if rec := do(t, h, http.MethodGet, link+"/history", nil); rec.Code != http.StatusOK {
-			t.Errorf("%s opens the history: %d", link, rec.Code)
+		if rec := do(t, h, http.MethodGet, link+"/history", nil); rec.Code != http.StatusForbidden {
+			t.Errorf("%s doesn't open the history: %d", link, rec.Code)
 		}
 	}
 	if page := do(t, h, http.MethodGet, chair, nil).Body.String(); !strings.Contains(page, ">Score sheets</a>") || !strings.Contains(page, ">Panel timeline</a>") {
 		t.Error("a chair of judges has the sheets on the entries page")
 	}
-	if got := strings.Join(menuLabels(do(t, h, http.MethodGet, team, nil).Body.String()), ", "); got != "Entries, Timetable, History" {
+	if got := strings.Join(menuLabels(do(t, h, http.MethodGet, team, nil).Body.String()), ", "); got != "Entries, Timetable" {
 		t.Errorf("the timetable team's menu: %s", got)
 	}
 

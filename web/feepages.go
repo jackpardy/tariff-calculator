@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"tariffCalculator/competitions"
@@ -30,6 +31,10 @@ func (p *competitionPages) registerFees(handle func(string, http.HandlerFunc)) {
 // account is what one payer (a club, or an individual's entry) owes.
 type account struct {
 	key, name string
+	// aliases are its other keys: someone entering on their own pays once
+	// for all their entries, each entry's key (where payments were recorded
+	// before) finding the one account.
+	aliases   []string
 	club      bool
 	entries   []store.Entry
 	lines     []competitions.InvoiceLine
@@ -42,7 +47,8 @@ func clubPayer(clubID string) string   { return "club:" + clubID }
 func entryPayer(entryID string) string { return "entry:" + entryID }
 
 // accounts are every payer with entries (or payments): clubs as their
-// entries came, then individuals, each entry its own.
+// entries came, then individuals, each person one account however many
+// disciplines they enter (keyed by their first entry).
 func (p *competitionPages) accounts(ctx context.Context, c store.Competition) ([]account, error) {
 	all, err := p.entriesOf(ctx, c.ID)
 	if err != nil {
@@ -54,15 +60,24 @@ func (p *competitionPages) accounts(ctx context.Context, c store.Competition) ([
 	}
 	var out []account
 	index := map[string]int{}
+	person := map[string]int{} // an individual's account, by their person key
 	for _, e := range live(all) {
 		key, name, club := entryPayer(e.ID), e.Entry.Gymnast+" (on their own)", false
 		if !e.Individual {
 			key, name, club = clubPayer(e.ClubID), e.ClubName, true
 		}
 		i, ok := index[key]
+		if j, same := person[e.Key()]; !ok && e.Individual && same {
+			// Another of their entries: the same account, under this key too.
+			i, ok, index[key] = j, true, j
+			out[j].aliases = append(out[j].aliases, key)
+		}
 		if !ok {
 			i, index[key] = len(out), len(out)
 			out = append(out, account{key: key, name: name, club: club})
+			if e.Individual {
+				person[e.Key()] = i
+			}
 		}
 		out[i].entries = append(out[i].entries, e)
 	}
@@ -112,7 +127,7 @@ func (p *competitionPages) accountOf(ctx context.Context, c store.Competition, k
 		return account{}, false, err
 	}
 	for _, a := range all {
-		if a.key == key {
+		if a.key == key || slices.Contains(a.aliases, key) {
 			return a, true, nil
 		}
 	}
@@ -169,9 +184,18 @@ func (p *competitionPages) fees(w http.ResponseWriter, r *http.Request) {
 	due, paid, owed := 0, 0, 0
 	for _, a := range accounts {
 		v := views.AccountView{Payer: a.key, Name: a.name, Entries: len(a.entries), Due: f.Money(a.due), Paid: f.Money(a.paid),
-			Balance: f.Money(a.due - a.paid), Settled: a.paid >= a.due, Over: over(f, a), Invoice: base + "/fees/invoice?payer=" + url.QueryEscape(a.key)}
+			Balance: f.Money(a.due - a.paid), Settled: a.paid >= a.due, Over: over(f, a), Invoice: base + "/fees/invoice?payer=" + url.QueryEscape(a.key),
+			Anchor: payerAnchor(a.key)}
+		// A payment refused comes back to its row, open, as it was typed.
+		if q := r.URL.Query(); q.Get("payer") == a.key {
+			v.Open, v.Amount, v.Note, v.Refund = true, q.Get("amount"), q.Get("note"), q.Get("refund") == "1"
+		}
 		for _, pay := range a.payments {
-			v.Payments = append(v.Payments, views.PaymentView{ID: pay.ID, Amount: f.Money(pay.Amount), Note: pay.Note, Who: pay.Who,
+			amount := f.Money(pay.Amount)
+			if pay.Amount < 0 {
+				amount = f.Money(-pay.Amount) + " refunded"
+			}
+			v.Payments = append(v.Payments, views.PaymentView{ID: pay.ID, Amount: amount, Note: pay.Note, Who: pay.Who,
 				At: pay.At.In(local).Format("2 Jan")})
 		}
 		page.Accounts = append(page.Accounts, v)
@@ -242,22 +266,37 @@ func (p *competitionPages) addPayment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	payer := r.FormValue("payer")
 	back := adminPath(r.PathValue("token")) + "/fees"
-	cents, err := competitions.ParseMoney(r.FormValue("amount"))
-	if err != nil || cents == 0 {
-		seeOther(w, r, back, "Say how much was paid, like 12 or 12.50. Nothing was changed.")
-		return
-	}
-	if _, ok, err := p.accountOf(r.Context(), c, r.FormValue("payer")); err != nil || !ok {
+	a, ok, err := p.accountOf(r.Context(), c, payer)
+	if err != nil || !ok {
 		failed(w, r, errors.Join(err, store.ErrNotFound))
 		return
 	}
-	if err := p.st.AddPayment(r.Context(), c.ID, r.FormValue("payer"), cents, limitNote(strings.TrimSpace(r.FormValue("note"))), linkOf(r).Name); err != nil {
+	cents, err := competitions.ParseMoney(r.FormValue("amount"))
+	if err != nil || cents == 0 {
+		// Back at their row, the form open with what was typed.
+		again := url.Values{"payer": {payer}, "amount": {r.FormValue("amount")}, "note": {r.FormValue("note")}}
+		if r.FormValue("refund") == "1" {
+			again.Set("refund", "1")
+		}
+		seeOther(w, r, back+"?"+again.Encode()+"#"+payerAnchor(payer), "Say how much was paid, like 12 or 12.50. Nothing was changed.")
+		return
+	}
+	// A refund is money back to them: it takes off what they've paid.
+	notice := c.Fees.Money(cents) + " recorded from " + a.name + "."
+	if r.FormValue("refund") == "1" {
+		cents, notice = -cents, c.Fees.Money(cents)+" refunded to "+a.name+"."
+	}
+	if err := p.st.AddPayment(r.Context(), c.ID, payer, cents, limitNote(strings.TrimSpace(r.FormValue("note"))), linkOf(r).Name); err != nil {
 		failed(w, r, err)
 		return
 	}
-	seeOther(w, r, back, c.Fees.Money(cents)+" recorded.")
+	seeOther(w, r, back+"#"+payerAnchor(payer), notice)
 }
+
+// payerAnchor is a payer's row on the Fees page.
+func payerAnchor(payer string) string { return "payer-" + idPart(payer) }
 
 // removePayment takes back a payment recorded by mistake.
 func (p *competitionPages) removePayment(w http.ResponseWriter, r *http.Request) {

@@ -92,9 +92,10 @@ type PersonCoaching struct {
 
 // PersonCoached is one entry someone coaches.
 type PersonCoached struct {
-	People []PersonLink // the gymnast, or the pair
-	Event  string
-	Entry  string // the entry's page
+	People  []PersonLink // the gymnast, or the pair
+	Event   string
+	Entry   string      // the entry's page
+	Signoff SignoffView // where its sign-off stands, where one is needed
 }
 
 // PersonLink is a person and their page.
@@ -115,9 +116,11 @@ templ MyCompetition(p MyCompetitionPage) {
 				{ p.Competition.Name } · { p.Competition.Date }
 			</p>
 			@pageMenu(p.Menu)
-			<p class="tags mb-4">
+			// What they are here, as role chips: labels in the roles' colours,
+			// not buttons.
+			<p class="mb-4 comp-roles">
 				for _, r := range p.Admin.Roles {
-					<span class="tag is-info is-light">{ r }</span>
+					<span class={ "chip", "chip-who", "chip-who-" + roleClass(r), "mr-1" }>{ r }</span>
 				}
 			</p>
 		} else {
@@ -328,7 +331,8 @@ templ personCoaching(k *PersonCoaching) {
 			if len(k.Entries) == 0 {
 				<p class="is-size-7 has-text-grey">No entries yet.</p>
 			}
-			<ul class="is-size-7">
+			// A row each, with where its sign-off stands.
+			<ul class="comp-coached">
 				for _, e := range k.Entries {
 					<li>
 						for i, g := range e.People {
@@ -338,6 +342,9 @@ templ personCoaching(k *PersonCoaching) {
 							<a href={ templ.SafeURL(g.Href) }>{ g.Name }</a>
 						}
 						· <a href={ templ.SafeURL(e.Entry) }>{ e.Event }</a>
+						if e.Signoff.Required {
+							@StateChip(signoffState(e.Signoff))
+						}
 					</li>
 				}
 			</ul>
@@ -489,4 +496,16 @@ func timetableLinks(mine, club, calendar, clubCalendar string) []timetableLink {
 		}
 	}
 	return links
+}
+
+// roleClass is a role's colour on a person's page: a gymnast's or a coach's,
+// and the officials' (judge, recorder, marshal) the organiser's.
+func roleClass(r string) string {
+	switch r {
+	case "Gymnast", "Synchro partner":
+		return string(RoleGymnast)
+	case "Coach":
+		return string(RoleCoach)
+	}
+	return string(RoleOrganiser)
 }

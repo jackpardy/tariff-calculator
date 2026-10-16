@@ -419,7 +419,7 @@ func (c Card) Problems() []string {
 		}
 		for _, r := range ex.Results {
 			if !r.Passed {
-				out = append(out, prefix+r.Description)
+				out = append(out, prefix+r.Description+foundWords(r.Detail))
 			}
 		}
 		for _, note := range skills.RoutineNotes(ex.Validation.Messages) {
@@ -522,4 +522,19 @@ func (c Competition) CoachLevel(discipline string) int {
 		return n
 	}
 	return DefaultCoachLevel
+}
+
+// foundWords says what a rule not met found, after it: "Exactly 10
+// elements (it has 11)", "Difficulty 1.0 to 1.5 (it's 0.6)"; "" for nothing
+// to add.
+func foundWords(detail string) string {
+	switch {
+	case detail == "":
+		return ""
+	case strings.HasPrefix(detail, "has "):
+		return " (it " + detail + ")"
+	case strings.HasPrefix(detail, "is "):
+		return " (it's " + strings.TrimPrefix(detail, "is ") + ")"
+	}
+	return " (" + detail + ")"
 }

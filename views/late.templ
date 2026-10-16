@@ -49,6 +49,7 @@ type LateAdminPage struct {
 	Kinds        []LateKindField
 	Now          string // what can be asked for, in a line
 	Requests     []LateRequestView
+	Timetable    string // the timetable, when its draft has changes to publish; "" if not
 }
 
 // LateKindField is a kind of late change, for the form.
@@ -63,6 +64,7 @@ type LateRequestView struct {
 	Waiting                                                       bool // for the organiser to decide
 	ForCoach                                                      bool // waiting for a coach to sign it off
 	Checks                                                        []string
+	NewCard                                                       *EntryCard // the card as it would be, while waiting
 }
 
 // LateAdmin is the organiser's page of late changes.
@@ -73,6 +75,9 @@ templ LateAdmin(p LateAdminPage) {
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
+		if p.Timetable != "" {
+			<p class="mb-3 is-size-7">The draft timetable has changes not published yet. <a href={ templ.SafeURL(p.Timetable) }>Open the timetable to publish them →</a></p>
 		}
 		@changeLine("Late changes", p.Now, false) {
 			<form method="post" action={ templ.SafeURL(p.Base + "/late/settings") }>
@@ -110,7 +115,11 @@ templ LateAdmin(p LateAdminPage) {
 					}
 				</p>
 				<p class="is-size-7 has-text-grey">
-					Asked by { r.Who } · { r.At }
+					if r.Who == r.Gymnast {
+						Asked by them · { r.At }
+					} else {
+						Asked by { r.Who } · { r.At }
+					}
 					if r.Fee != "" {
 						· fee on accepting: { r.Fee }
 					}
@@ -124,6 +133,12 @@ templ LateAdmin(p LateAdminPage) {
 							<li>{ c }</li>
 						}
 					</ul>
+					if r.NewCard != nil {
+						<details class="mb-2">
+							<summary class="is-size-7">See the new card</summary>
+							@entryCard(*r.NewCard)
+						</details>
+					}
 					<div class="comp-flight-actions">
 						<form method="post" action={ templ.SafeURL(p.Base + "/late/" + r.ID + "/accept") } class="comp-flight-actions">
 							<input class="input is-small" name="note" maxlength="300" placeholder="Note (optional)" aria-label="Note with accepting"/>

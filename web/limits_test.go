@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -34,6 +35,17 @@ func TestLimitsAndWaitingLists(t *testing.T) {
 	}
 	if strings.Contains(do(t, h, http.MethodGet, admin+"/entries.csv", nil).Body.String(), "Cat Doyle") {
 		t.Error("waiting entries aren't exported")
+	}
+
+	// Let in over the limit, Cat can go back again from her entry's page.
+	cat := regexp.MustCompile(`action="([^"]+)/let-in"`).FindStringSubmatch(page)[1]
+	redirected(t, h, cat+"/let-in", url.Values{})
+	if entry := do(t, h, http.MethodGet, cat, nil).Body.String(); !strings.Contains(entry, "Put it back on the waiting list") {
+		t.Fatalf("a let-in entry can go back: %s", entry)
+	}
+	redirected(t, h, cat+"/let-in", url.Values{"on": {"0"}})
+	if got := do(t, h, http.MethodGet, links[2], nil).Body.String(); !strings.Contains(got, "On the waiting list for BUCS L3: 1st") {
+		t.Error("Cat is back on the waiting list, in her place")
 	}
 
 	// Bea withdraws: Cat is in.

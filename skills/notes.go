@@ -112,8 +112,9 @@ func RoutineNotes(messages []string) []string {
 			switch {
 			case label == "Skill >10 (No Tariff)":
 				past = append(past, i)
-			case label == "Duplicate (Counts Once)" && repeats == 0:
-				// Repeated only after the end, which doesn't count.
+			case label == "Duplicate (Counts Once)":
+				// The first of a repeat counts: not a problem. The later one
+				// says it repeats (or, repeated only after the end, nothing does).
 			default:
 				kept = append(kept, label)
 			}

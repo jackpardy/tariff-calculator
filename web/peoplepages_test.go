@@ -150,7 +150,7 @@ func TestPeople(t *testing.T) {
 	// The names link to the people's pages.
 	mo := personLink(t, list, admin, "Mo")
 	page := do(t, h, http.MethodGet, mo, nil).Body.String()
-	for _, want := range []string{"<h1 class=\"title is-4\">Mo</h1>", "UCD ·", `<span class="tag is-info is-light">Judge</span>`, `<span class="tag is-info is-light">Can chair</span>`,
+	for _, want := range []string{"<h1 class=\"title is-4\">Mo</h1>", "UCD ·", `<span class="chip chip-who chip-who-organiser mr-1">Judge</span>`, `<span class="chip chip-who chip-who-organiser mr-1">Can chair</span>`,
 		"← People", `href="` + admin + `/entries/`, "BUCS L3</a>", "to sort out", "Coach: <a href=\"" + admin + "/people/c:", ">Ann</a>",
 		"Judge Trampoline (can chair) · sent by their club", "Can judge:", "Judging rule: anyone, up to the level they say.", "No timetable is planned yet.",
 		"The timetable isn't published yet"} {
