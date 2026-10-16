@@ -366,7 +366,7 @@ func (p *competitionPages) delete(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	message(w, r, http.StatusOK, "Competition deleted", c.Name+" and all its entries have been deleted.")
+	render(w, r, views.DeadLink("Competition deleted", c.Name+" and all its entries have been deleted."))
 }
 
 // postedEvents reads the synchro levels ticked (synchroLevel), which to pair

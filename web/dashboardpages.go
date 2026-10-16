@@ -343,6 +343,15 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		d.Levels[n].Rows = append(d.Levels[n].Rows, row)
 	}
+	for i := range d.Levels {
+		l := &d.Levels[i]
+		l.NoFirst, l.NoSecond, l.NoRules = len(l.Rows) > 0, len(l.Rows) > 0, len(l.Rows) > 0
+		for _, row := range l.Rows {
+			l.NoFirst = l.NoFirst && row.Exercises[0] == ""
+			l.NoSecond = l.NoSecond && row.Exercises[1] == ""
+			l.NoRules = l.NoRules && row.Rules == 0
+		}
+	}
 	slices.SortFunc(d.Coaches, competitions.CompareNames)
 	slices.SortFunc(d.Clubs, competitions.CompareNames)
 	totals := map[string]int{}
@@ -446,7 +455,11 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", fileName(c.Name)+".csv"))
 	out := csv.NewWriter(w)
-	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent", "Video", "Withdrawn", "Signed off by", "Category"})
+	// Each exercise is what it's checked against (a set routine's name, or
+	// the level's voluntary), with its difficulty; one a discipline doesn't
+	// do (synchro's first) says so. Problems is how many, the last column
+	// what they are; yes-or-no columns say no, not nothing.
+	out.Write([]string{"Gymnast", "Club", "Level", "1st exercise", "1st difficulty", "2nd exercise", "2nd difficulty", "Problems", "Checked", "Note", "Sent", "Video", "Withdrawn", "Signed off by", "Category", "Problem details"})
 	q := r.URL.Query()
 	for _, level := range levelOrder(c.Competition, all) {
 		for _, j := range all {
@@ -457,10 +470,14 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 			if j.Individual {
 				club = onTheirOwn
 			}
-			row := []string{j.Entry.Entry.Gymnasts(), club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), "", "", j.Entry.Entry.Category}
+			row := []string{j.Entry.Entry.Gymnasts(), club, level, "", "", "", "", strconv.Itoa(len(j.problems)), "no", j.Note, j.SentAt.In(local).Format("2006-01-02 15:04"), videoStatus(c.Competition, j), "no", "", j.Entry.Entry.Category, strings.Join(j.problems, "; ")}
+			if j.err == nil && j.card.Unchecked {
+				row[3], row[5] = "level only", "level only"
+			}
 			if j.err == nil && !j.card.Unchecked {
 				for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
 					if !j.card.Does(i) {
+						row[3+2*i] = "not done in " + strings.ToLower(competitions.DisciplineName(j.Entry.Entry.Discipline))
 						continue
 					}
 					row[3+2*i] = ex.SetName

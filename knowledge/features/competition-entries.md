@@ -496,7 +496,8 @@ says it was withdrawn, and the coach they named goes, with the certificate.
   filled in from the entry: gymnast, club, level, competition and exercise.
 - **Print all** for a level, a club, or the entries not checked yet: one card
   per page, ready for the judges' table.
-- **CSV** for the scoring system (name, club, level, tariff per exercise). A
+- **CSV** for the scoring system (name, club, level, tariff per exercise,
+  problems counted and listed; checked and withdrawn are "yes" or "no"). A
   single PDF of all cards is the cards page saved as PDF from the browser's
   print dialog.
 

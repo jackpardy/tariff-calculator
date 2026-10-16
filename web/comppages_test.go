@@ -293,8 +293,9 @@ func TestOrganiserTools(t *testing.T) {
 	if rec.Header().Get("Content-Type") != "text/csv; charset=utf-8" || !strings.Contains(rec.Header().Get("Content-Disposition"), `filename="Student-Open.csv"`) {
 		t.Errorf("a CSV download: %v", rec.Header())
 	}
-	if !strings.HasPrefix(csv, "Gymnast,Club,Level,1st exercise,1st difficulty,2nd exercise,2nd difficulty,Problems,Checked,Note,Sent,Video,Withdrawn,Signed off by,Category\n") ||
-		!strings.Contains(csv, "'=SUM(A1),On their own,BUCS L3,BUCS L3 · option 1,,BUCS L3 · second exercise,1.1,2,,,") {
+	if !strings.HasPrefix(csv, "Gymnast,Club,Level,1st exercise,1st difficulty,2nd exercise,2nd difficulty,Problems,Checked,Note,Sent,Video,Withdrawn,Signed off by,Category,Problem details\n") ||
+		!strings.Contains(csv, "'=SUM(A1),On their own,BUCS L3,BUCS L3 · option 1,,BUCS L3 · second exercise,1.1,2,no,,") ||
+		!strings.Contains(csv, ",no,,,Second exercise: Exactly 10 elements") {
 		t.Errorf("CSV:\n%s", csv)
 	}
 

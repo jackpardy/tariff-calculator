@@ -27,13 +27,32 @@
         }
     }
 
-    // keepLink saves a link, replacing one with the same name (a replaced admin
-    // link) or URL, with anything more to know about it (extra: e.g. that a
-    // member coaches too).
-    function keepLink(key, name, url, extra = {}) {
-        const links = loadLinks(key).filter((l) => l.url !== url && l.name !== name);
+    // keepLink saves a link, replacing one with the same URL, with anything
+    // more to know about it (extra: e.g. that a member coaches too). A
+    // replaced admin link, or a personal link (named for the person and the
+    // club or competition), takes the place of the one with its name
+    // (replaces); otherwise two competitions or clubs of one name are both kept.
+    function keepLink(key, name, url, extra = {}, replaces = false) {
+        const links = loadLinks(key).filter((l) => l.url !== url && !(replaces && l.name === name));
         links.unshift({ name, url, ...extra });
         try { localStorage.setItem(key, JSON.stringify(links)); } catch (e) { /* not saved: the page says to copy it */ }
+    }
+
+    // forgetDeadLink drops, from every list of links saved in this browser,
+    // the one this page found leads nowhere: the link itself, or a
+    // competition's admin link just deleted (".../delete").
+    function forgetDeadLink() {
+        if (!document.querySelector('[data-dead-link]')) { return; }
+        const here = location.pathname.replace(/\/delete$/, '');
+        for (const key of Object.values(linkKeys)) {
+            const links = loadLinks(key);
+            const kept = links.filter((l) => {
+                try { return new URL(l.url, location.href).pathname !== here; } catch (e) { return true; }
+            });
+            if (kept.length !== links.length) {
+                try { localStorage.setItem(key, JSON.stringify(kept)); } catch (e) { /* nothing saved to change */ }
+            }
+        }
     }
 
     function copyButtons() {
@@ -51,17 +70,17 @@
 
     function saveLinks() {
         const admin = document.querySelector('[data-competition-admin]');
-        if (admin) { keepLink(linkKeys.competitions, admin.dataset.competitionName, admin.dataset.competitionAdmin); }
+        if (admin) { keepLink(linkKeys.competitions, admin.dataset.competitionName, admin.dataset.competitionAdmin, {}, admin.hasAttribute('data-replaces')); }
         const entry = document.querySelector('[data-entry-link]');
-        if (entry) { keepLink(linkKeys.entries, entry.dataset.entryName, entry.dataset.entryLink); }
+        if (entry) { keepLink(linkKeys.entries, entry.dataset.entryName, entry.dataset.entryLink, {}, true); }
         const club = document.querySelector('[data-club-admin]');
-        if (club) { keepLink(linkKeys.clubs, club.dataset.clubName, club.dataset.clubAdmin); }
+        if (club) { keepLink(linkKeys.clubs, club.dataset.clubName, club.dataset.clubAdmin, {}, club.hasAttribute('data-replaces')); }
         const member = document.querySelector('[data-member-link]');
-        if (member) { keepLink(linkKeys.members, member.dataset.memberName, member.dataset.memberLink, { coach: member.hasAttribute('data-member-coach') }); }
+        if (member) { keepLink(linkKeys.members, member.dataset.memberName, member.dataset.memberLink, { coach: member.hasAttribute('data-member-coach') }, true); }
         const coach = document.querySelector('[data-coach-link]');
-        if (coach) { keepLink(linkKeys.coaches, coach.dataset.coachName, coach.dataset.coachLink); }
+        if (coach) { keepLink(linkKeys.coaches, coach.dataset.coachName, coach.dataset.coachLink, {}, true); }
         const gymnast = document.querySelector('[data-gymnast-link]');
-        if (gymnast) { keepLink(linkKeys.gymnasts, gymnast.dataset.gymnastName, gymnast.dataset.gymnastLink); }
+        if (gymnast) { keepLink(linkKeys.gymnasts, gymnast.dataset.gymnastName, gymnast.dataset.gymnastLink, {}, true); }
         // An organiser's or comp sec's admin page saves its link whenever it's
         // opened, as the other pages do; never a helper's link or a page opened
         // through someone's own link (a "~" in the path), which isn't theirs to keep.
@@ -282,8 +301,18 @@
     }
 
     // videoChoices select "Video of some skills" when one of its skills is chosen.
+    // The tariff's box ticks when a tariff is typed, and unticking it empties
+    // the tariff.
     function videoChoices() {
         for (const fieldset of document.querySelectorAll('.comp-video')) {
+            const tick = fieldset.querySelector('[data-video-tariff]');
+            const tariff = fieldset.querySelector('input[name="videoTariff"]');
+            if (tick && tariff) {
+                tick.addEventListener('change', () => {
+                    if (!tick.checked) { tariff.value = ''; } else { tariff.focus(); }
+                });
+                tariff.addEventListener('input', () => { tick.checked = tariff.value !== ''; });
+            }
             const some = fieldset.querySelector('input[name="video"][value="skills"]');
             fieldset.querySelectorAll('.comp-video-skills input').forEach((input) => input.addEventListener('input', () => {
                 if (input.type !== 'checkbox' || input.checked) { some.checked = true; }
@@ -864,6 +893,7 @@
         enterAs();
         partnerClubs();
         openToAnchor();
+        forgetDeadLink();
         videoChoices();
         entryForms();
         keepRoutines();

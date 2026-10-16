@@ -1333,3 +1333,25 @@ form:has(input[name="to"][value="people"]:not(:checked)) .desk-to-people { displ
 .option-group.is-only { border: 0; background: none; padding: 0; margin-bottom: 0.25rem; }
 .option-group .matcher { border: 0; border-left: 3px solid #dbe0f5; border-radius: 0; padding: 0.25rem 0 0.25rem 0.6rem; margin: 0.25rem 0; }
 .item-wording { margin-top: 0; }
+
+/* Video proof: the skills to film are faint until "Video of some skills" is
+   chosen (ticking one chooses it). */
+.comp-video:has(input[name="video"][value="skills"]:not(:checked)) .comp-video-skills { opacity: 0.55; }
+
+/* The entries page's levels: a folded level is a line, not a heading's
+   worth of space; an open one keeps room above it. */
+.comp-dash-level > summary.comp-dash-level-head { margin: 0.35rem 0; }
+.comp-dash-level[open] > summary.comp-dash-level-head { margin: 1.25rem 0 0.75rem; }
+
+/* On a phone, an entry's card is short: its fields run on, several to a
+   line, the name and tick on the first, the problem on a line of its own;
+   a field with nothing to say ("–") is left out. */
+@media screen and (max-width: 768px) {
+  table.comp-entries.comp-stack > tbody > tr { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 1rem; row-gap: 0.1rem; }
+  table.comp-entries.comp-stack > tbody > tr > td { width: auto; flex: 0 1 auto; font-size: 0.875rem; }
+  table.comp-entries.comp-stack > tbody > tr > td.comp-stack-title { flex: 1 1 calc(100% - 2.5rem); order: -2; font-size: 1rem; }
+  table.comp-entries.comp-stack > tbody > tr > td.comp-stack-tick { float: none; order: -1; }
+  table.comp-entries.comp-stack > tbody > tr > td.comp-problem-cell { flex-basis: 100%; }
+  table.comp-entries.comp-stack > tbody > tr > td[data-label]::before { font-weight: 500; color: #7a7a7a; }
+  table.comp-entries.comp-stack > tbody > tr > td:has(> .comp-none:only-child) { display: none; }
+}

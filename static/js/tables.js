@@ -115,7 +115,9 @@
     // menu fills in a Columns menu: a tick for each column that can be hidden.
     function menu(details) {
         const id = details.dataset.tableMenu;
-        const table = document.querySelector(`table[data-table-view="${CSS.escape(id)}"]`);
+        // The table with the most columns: a level of tumbling has fewer.
+        const table = [...document.querySelectorAll(`table[data-table-view="${CSS.escape(id)}"]`)]
+            .reduce((most, t) => (!most || heads(t).length > heads(most).length ? t : most), null);
         const list = details.querySelector('[data-table-columns]');
         if (!table || !list) { details.hidden = true; return; }
         const view = load(id);

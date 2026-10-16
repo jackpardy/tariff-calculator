@@ -67,6 +67,9 @@ type DashboardLevel struct {
 	Total  int    // its entries, before the filters
 	Places string // with a limit, e.g. "88 of 90 places"
 	Rows   []DashboardRow
+	// Columns no row has anything in, left out: a level only (tumbling,
+	// DMT) has no routines or requirements, synchro no first exercise.
+	NoFirst, NoSecond, NoRules bool
 }
 
 // DashboardRow is one entry in a level's table.
@@ -160,7 +163,7 @@ templ CompetitionDashboard(d Dashboard) {
 		<div id="entries">
 			for _, l := range d.Levels {
 				<details class="comp-dash-level" id={ l.Anchor } data-level={ l.Name } data-remember?={ !filtered(d) } open?={ filtered(d) && len(l.Rows) > 0 } data-list-group>
-					<summary class="title is-5 mt-5">
+					<summary class="title is-5 comp-dash-level-head">
 						{ l.Name } <span class="has-text-grey is-size-6">(<span data-group-count={ strconv.Itoa(l.Total) }>{ shownCount(d, l) }</span>)</span>
 						if l.Places != "" {
 							<span class="tag is-light is-size-7 has-text-weight-normal ml-1">{ l.Places }</span>
@@ -181,9 +184,15 @@ templ CompetitionDashboard(d Dashboard) {
 										}
 										<th class="comp-stack-title">Gymnast</th>
 										<th>Club</th>
-										<th>1st exercise</th>
-										<th>2nd exercise</th>
-										<th>Requirements</th>
+										if !l.NoFirst {
+											<th>1st exercise</th>
+										}
+										if !l.NoSecond {
+											<th>2nd exercise</th>
+										}
+										if !l.NoRules {
+											<th>Requirements</th>
+										}
 										<th>Problems</th>
 										<th>Sent</th>
 										if d.Competition.Video != "" {
@@ -225,16 +234,22 @@ templ CompetitionDashboard(d Dashboard) {
 													<span class="tag is-light ml-1">{ r.Category }</span>
 												}
 											</td>
-											<td data-label="1st exercise">{ r.Exercises[0] }</td>
-											<td data-label="2nd exercise">{ r.Exercises[1] }</td>
-											<td data-label="Requirements">
-												if r.Rules > 0 {
-													{ fmt.Sprintf("%d/%d %s", r.Met, r.Rules, markFor(r.Met == r.Rules)) }
-												}
-											</td>
+											if !l.NoFirst {
+												<td data-label="1st exercise">{ r.Exercises[0] }</td>
+											}
+											if !l.NoSecond {
+												<td data-label="2nd exercise">{ r.Exercises[1] }</td>
+											}
+											if !l.NoRules {
+												<td data-label="Requirements">
+													if r.Rules > 0 {
+														{ fmt.Sprintf("%d/%d %s", r.Met, r.Rules, markFor(r.Met == r.Rules)) }
+													}
+												</td>
+											}
 											<td class="comp-problem-cell" data-label="Problems">
 												if len(r.Problems) == 0 {
-													–
+													<span class="comp-none">–</span>
 												} else {
 													// Opens the entry, where its problems are listed.
 													<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID + "#problems") } title={ r.Problems[0] }>
@@ -249,7 +264,7 @@ templ CompetitionDashboard(d Dashboard) {
 											if d.Competition.Video != "" {
 												<td data-label="Video">
 													if r.Video == "" {
-														–
+														<span class="comp-none">–</span>
 													} else {
 														@StateChip(videoState(r.Video))
 													}
@@ -258,7 +273,7 @@ templ CompetitionDashboard(d Dashboard) {
 											if d.Competition.Signoff {
 												<td title={ r.Signoff.Note } data-label="Coach">
 													if r.Withdrawn && !r.Signoff.Signed {
-														–
+														<span class="comp-none">–</span>
 													} else {
 														@StateChip(signoffState(r.Signoff))
 														if r.Signoff.By != "" {
@@ -273,7 +288,7 @@ templ CompetitionDashboard(d Dashboard) {
 												if r.Checked {
 													@StateChip(Done, "Checked")
 												} else {
-													–
+													<span class="comp-none">–</span>
 												}
 												if r.Note != "" {
 													<span class="has-text-grey" aria-label="Has a note">✎</span>
@@ -397,7 +412,7 @@ templ CompetitionEntry(d EntryDetail) {
 				<p class="mt-3">@StateChip(Done, "Checked") <span class="has-text-grey is-size-7 ml-1">{ d.Checked }</span></p>
 			}
 			if d.Note != "" {
-				<p class="is-size-7">The organiser's note: { d.Note }</p>
+				<p class="is-size-7">The note for the club or gymnast: { d.Note }</p>
 			}
 			<p class="mt-2"><a class="button is-small" href={ templ.SafeURL(d.Base + "/cards?entry=" + d.ID) }>Print card</a></p>
 		}

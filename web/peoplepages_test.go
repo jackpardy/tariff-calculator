@@ -96,7 +96,7 @@ func TestPeople(t *testing.T) {
 	// One row per person: Mo competes and judges, and is listed once; the
 	// individual, the unconfirmed partner, the added official and the coach
 	// are there too.
-	if !strings.Contains(list, `People <span class="has-text-grey has-text-weight-normal">· 7</span>`) {
+	if !strings.Contains(list, `Everyone <span class="has-text-grey has-text-weight-normal">· 7</span>`) {
 		t.Errorf("Mo, Ivy, Sam, Pat, Kit, Mary and Ann: %s", list)
 	}
 	for _, name := range []string{"Mo", "Ivy", "Sam", "Pat", "Mary", "Ann", "Kit O/Neil? 100% #1"} {
@@ -134,7 +134,7 @@ func TestPeople(t *testing.T) {
 			t.Errorf("the tools have %s", want)
 		}
 	}
-	if !regexp.MustCompile(`<section class="comp-list mt-5"><h2 class="title is-5 mb-3">People <span[^>]*>· 7</span></h2>`).MatchString(list) {
+	if !regexp.MustCompile(`<section class="comp-list mt-5"><h2 class="title is-5 mb-3">Everyone <span[^>]*>· 7</span></h2>`).MatchString(list) {
 		t.Error("the list is under its heading and count")
 	}
 	if kit := values["Kit O/Neil? 100% #1"]; !slices.Equal(kit["club"], []string{"On their own"}) {

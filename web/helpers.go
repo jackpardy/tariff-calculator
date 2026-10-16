@@ -47,7 +47,8 @@ func message(w http.ResponseWriter, r *http.Request, status int, title, text str
 func failed(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, store.ErrNotFound):
-		message(w, r, http.StatusNotFound, "Link not found", "This link doesn't lead anywhere. It may have been replaced, or the competition deleted.")
+		w.WriteHeader(http.StatusNotFound)
+		render(w, r, views.DeadLink("Link not found", "This link doesn't lead anywhere. It may have been replaced, or the competition deleted."))
 	case errors.Is(err, store.ErrNotOpen):
 		message(w, r, http.StatusConflict, "Entries aren't open", "The organiser hasn't opened entries for this competition, so they can't be sent or changed just now.")
 	case errors.Is(err, store.ErrClosed):
