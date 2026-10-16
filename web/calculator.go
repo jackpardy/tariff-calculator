@@ -659,7 +659,7 @@ func handleSetEditor(w http.ResponseWriter, r *http.Request) {
 	}
 	// Rules are folded to their names once there are several (OpenRule: none
 	// open but one just added).
-	editor := views.SetEditorData{Set: set, JSON: string(data), Problems: problems, Conflicts: conflicts, OpenRule: -1}
+	editor := views.SetEditorData{Set: set, JSON: string(data), Problems: problems, Conflicts: conflicts, OpenRule: -1, Tried: r.FormValue("tried") == "1"}
 	if r.FormValue("add") != "" {
 		editor.OpenRule = len(set.Rules) - 1
 	}

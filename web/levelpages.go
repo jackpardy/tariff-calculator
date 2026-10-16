@@ -176,6 +176,19 @@ func levelsProgress(levels []store.ClubLevel, clubItems map[string]store.ClubSki
 				}
 			} else {
 				v.Derived, v.FIG = true, "From the skills marked"
+				// One particular skill: marked right here, as that skill.
+				if ex, ok := oneSkill(rule); ok {
+					data, _ := json.Marshal(ex)
+					v.Derived, v.Skill = false, string(data)
+					for _, it := range t.items {
+						if it.club == nil && it.skill.Equal(&ex) {
+							fill(&v, it.sides)
+							break
+						}
+					}
+				}
+				// How it stands is from every skill marked that fits it.
+				v.Gymnast, v.Coach = nil, nil
 				if state := derived(store.SideGymnast, rule); state != "" {
 					v.Gymnast = &views.SideMark{State: state, By: gymnast}
 				}
@@ -241,6 +254,23 @@ func (p *competitionPages) coachLevels(w http.ResponseWriter, r *http.Request) {
 	}
 	base := coachLevelsPath(r.PathValue("token"))
 	page := views.ClubLevelsPage{Frame: coachFrame(r, coach, club, coachLevelsTab), Max: store.MaxClubLevels, New: base + "/new"}
+	// The coach's own set routines, kept on their page, first.
+	kept, err := p.st.KeptRequirements(r.Context(), coach.PersonID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	mine := views.SetRoutineGroup{Name: "Yours, kept on your page"}
+	for _, k := range kept {
+		if set, err := requirements.Parse([]byte(k.Data)); err == nil && k.Kind == store.KeptSet {
+			if _, isSet := requirements.SetRoutine(set); isSet {
+				mine.Routines = append(mine.Routines, views.SetRoutineChoice{Name: k.Name, Href: base + "/new?kept=" + url.QueryEscape(k.Source)})
+			}
+		}
+	}
+	if len(mine.Routines) > 0 {
+		page.Sets = append(page.Sets, mine)
+	}
 	for _, g := range requirements.BuiltinGroups() {
 		group := views.SetRoutineGroup{Name: g.Name}
 		for _, b := range g.SetRoutines() {
@@ -499,4 +529,23 @@ func levelFilter(levels []store.ClubLevel) views.ListFilter {
 			views.ListOption{Value: l.ID + ":" + levelWorking, Label: l.Name + ": working on", Group: l.Name})
 	}
 	return f
+}
+
+// oneSkill is the particular skill a level's line names (a skill picked from
+// the list, not a kind of skill), to mark from the line; false for another
+// kind of line.
+func oneSkill(rule requirements.Rule) (skills.TrampolineSkill, bool) {
+	if rule.Type != requirements.Count || rule.Match == nil || len(rule.Match.Or) > 0 || rule.Min == nil || *rule.Min != 1 || rule.Max != nil {
+		return skills.TrampolineSkill{}, false
+	}
+	if !strings.HasPrefix(requirements.PickOf(*rule.Match), "skill:") {
+		return skills.TrampolineSkill{}, false
+	}
+	ex, ok := rule.Match.Example()
+	if !ok {
+		return skills.TrampolineSkill{}, false
+	}
+	ex.SetTariff()
+	ex.Name = skills.FindCommonSkillName(ex)
+	return ex, true
 }

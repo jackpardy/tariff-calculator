@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -51,9 +52,17 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 					<div class="box" x-show="editing !== null" x-cloak>
 						<div class="box-head editor-head">
 							<h2 class="title is-5 mb-0" x-text="editing?.title"></h2>
-							<div class="buttons mb-0">
-								<button class="button is-primary is-small" type="button" x-on:click="saveEditing()">Save</button>
+							// While requirements are written for one of a level's exercises,
+							// the writer's own "Use in this level" is the one Save.
+							<div class="buttons mb-0" x-show="!confirmClose">
+								<button class="button is-primary is-small" type="button" x-show="!levelWriting" x-on:click="saveEditing()">Save</button>
 								<button class="button is-light is-small" type="button" x-on:click="closeEditor()">Close</button>
+							</div>
+							// Close with changes not saved asks first.
+							<div class="buttons mb-0 editor-discard" x-show="confirmClose" x-cloak>
+								<span class="is-size-7 mr-2">Discard your changes?</span>
+								<button class="button is-danger is-light is-small" type="button" x-on:click="closeEditor(true)">Discard</button>
+								<button class="button is-small" type="button" x-on:click="confirmClose = false">Keep editing</button>
 							</div>
 						</div>
 						<div id="editor-area" hx-sync="this:replace"></div>
@@ -97,6 +106,11 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 									<div class="buttons are-small mb-0">
 										<button class="button is-small" type="button" x-on:click="editLevel(l.id)">Edit</button>
 										<button class="button is-small" type="button" x-on:click="duplicateLevel(l.level)">Duplicate</button>
+										<button class="button is-small" type="button" x-on:click="exportLevel(l.level)">Export</button>
+										// A club level of the requirements its exercises are checked against (ADR 0011).
+										<template x-for="c in coachLinks" x-bind:key="c.url">
+											<button class="button is-small" type="button" x-on:click="saveLevelToClub(c, l)" x-text="coachLinks.length > 1 ? `Save to club levels: ${c.name}` : 'Save to club levels'"></button>
+										</template>
 										<button class="button is-small" type="button" x-on:click="Share.open('sets', [l.id])">Share</button>
 										// A personal page saved in this browser keeps it (ADR 0013).
 										<template x-for="p in personLinks" x-bind:key="p.url">
@@ -112,15 +126,16 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 						<div class="box-head">
 							<h2 class="title is-5 mb-0">Your set routines</h2>
 							<div class="buttons mb-0">
-								<button class="button is-primary is-small" type="button" x-on:click="makingSetRoutine = !makingSetRoutine">+ New set routine</button>
+								<button class="button is-primary is-small" type="button" x-on:click="makerFor = null; makerStart = null; makingSetRoutine = !makingSetRoutine">+ New set routine</button>
 							</div>
 						</div>
 						// A set routine is built, not written: right here, skill by skill
 						// (setRoutineMaker, with the builder's search, builder and card),
 						// in the Routine Builder, or from a routine already built.
-						<div class="import-panel" x-show="makingSetRoutine" x-cloak>
+						<div class="import-panel" id="set-routine-maker" x-show="makingSetRoutine" x-cloak>
+							<p class="is-size-7 mb-2" x-show="makerFor" x-cloak>For the level you're writing: once saved, it's chosen in its set routine slot.</p>
 							<template x-if="makingSetRoutine">
-								<div class="set-routine-maker" x-data="setRoutineMaker()" x-on:set-routine-made="addSetRoutine($event.detail)" x-on:flash="flash($event.detail)">
+								<div class="set-routine-maker" x-data="setRoutineMaker()" x-init="startFrom()" x-on:set-routine-made="addSetRoutine($event.detail)" x-on:flash="flash($event.detail)">
 									<div class="field">
 										<label class="label is-small" for="set-routine-name">Name</label>
 										<input class="input is-small" id="set-routine-name" type="text" maxlength="60" placeholder="e.g. Club L1" x-model="name"/>
@@ -185,6 +200,10 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 									<div class="buttons are-small mb-0">
 										<a class="button is-small" x-bind:href="`/?setRoutine=${s.id}`">Edit in the Routine Builder</a>
 										<button class="button is-small" type="button" x-on:click="Share.open('sets', [s.id])">Share</button>
+										// A coach's page saved in this browser takes it as a club level, the set routine its first item.
+										<template x-for="c in coachLinks" x-bind:key="c.url">
+											<button class="button is-small" type="button" x-on:click="saveToClub(c, s)" x-text="coachLinks.length > 1 ? `Save to club levels: ${c.name}` : 'Save to club levels'"></button>
+										</template>
 										// A personal page saved in this browser keeps it (ADR 0013).
 										<template x-for="p in personLinks" x-bind:key="p.url">
 											<button class="button is-small" type="button" x-show="!s.kept" x-on:click="keepOnPage(p, 'set', s)" x-text="personLinks.length > 1 ? `Save to my page: ${p.name}` : 'Save to my page'"></button>
@@ -204,10 +223,10 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 							</div>
 						</div>
 						<div class="import-panel" x-show="importing" x-cloak>
-							<p class="is-size-7 mb-2">Paste requirements someone shared, or choose a .json file.</p>
-							<textarea class="textarea is-small" rows="4" x-model="importText" placeholder="Paste requirements here"></textarea>
+							<p class="is-size-7 mb-2">Paste requirements or a level someone shared, or choose a .json file.</p>
+							<textarea class="textarea is-small" rows="4" x-model="importText" placeholder="Paste requirements or a level here"></textarea>
 							<div class="buttons mt-2">
-								<button class="button is-small is-primary" type="button" x-on:click="importPasted()">Open pasted requirements</button>
+								<button class="button is-small is-primary" type="button" x-on:click="importPasted()">Open what's pasted</button>
 								<label class="button is-small">
 									Choose file
 									<input type="file" accept=".json,application/json" class="is-hidden" x-on:change="importFile($event)"/>
@@ -396,6 +415,8 @@ type SetEditorData struct {
 	Set      requirements.Set
 	JSON     string   // the set as it would be saved
 	Problems []string // what's wrong with it, if anything
+	// Tried is a save tried: the problems show from then on, not on a fresh form.
+	Tried bool
 	// Conflicts are rules that can't be met, alone or together
 	// (requirements.Conflicts). They're warnings: the set can still be saved.
 	Conflicts []string
@@ -491,6 +512,13 @@ templ SetEditor(e SetEditorData) {
 			method="post"
 		}
 	>
+		if e.Tried {
+			<input type="hidden" name="tried" value="1"/>
+			// At the top, by the page's Save; a club's level has its Save below.
+			if e.Club == nil {
+				@problemsToFix(e.Problems)
+			}
+		}
 		<div class="field">
 			<label class="label is-small" for="set-name">Name</label>
 			<input class="input" id="set-name" name="name" value={ e.Set.Name } placeholder="e.g. Student novice 2026–27"/>
@@ -585,17 +613,10 @@ templ SetEditor(e SetEditorData) {
 				<p class="is-size-7 mt-2">No routine could meet these requirements as they stand. You can still save them.</p>
 			</div>
 		}
-		if len(e.Problems) > 0 {
-			<div class="notification is-warning is-light set-problems">
-				<p class="has-text-weight-semibold">Fix before saving:</p>
-				<ul>
-					for _, p := range e.Problems {
-						<li>{ p }</li>
-					}
-				</ul>
-			</div>
-		}
 		if e.Club != nil {
+			if e.Tried {
+				@problemsToFix(e.Problems)
+			}
 			<div class="buttons mt-4">
 				<button class="button is-primary" type="submit">Save level</button>
 				<a class="button is-text" href={ templ.SafeURL(e.Club.Back) }>Cancel</a>
@@ -754,12 +775,15 @@ templ ruleBody(e *SetEditorData, i int, rule requirements.Rule, p, kind string) 
 				<input type="hidden" name={ p + "item" } value={ rule.Item }/>
 			}
 		case requirements.Includes:
-			<p class="matcher-hint mb-2">These skills one straight after another: each a skill you pick, or a kind of skill (a back somersault, then a barani). Add another option for "or instead".</p>
+			<p class="matcher-hint mb-2">These skills one straight after another: each a skill you pick, or a kind of skill (a back somersault, then a barani). "Or another link instead" adds a different link that does too.</p>
 			<input type="hidden" name={ p + "opts" } value={ strconv.Itoa(len(rule.Options)) }/>
 			for k, option := range rule.Options {
 				{{ op := fmt.Sprintf("%so%d.", p, k) }}
-				<fieldset class="option-group">
-					<legend>Option { strconv.Itoa(k + 1) }</legend>
+				// One link is the rule itself, not boxed as an option of one.
+				<fieldset class={ "option-group", templ.KV("is-only", len(rule.Options) == 1) }>
+					if len(rule.Options) > 1 {
+						<legend>Link { strconv.Itoa(k + 1) }</legend>
+					}
 					<input type="hidden" name={ op + "seq" } value={ strconv.Itoa(len(option)) }/>
 					for j, m := range option {
 						@itemFields(e, fmt.Sprintf("%ss%d.", op, j), &m, stepTitle(j), "e.g. ¾ somersault to front or back")
@@ -769,12 +793,14 @@ templ ruleBody(e *SetEditorData, i int, rule requirements.Rule, p, kind string) 
 					}
 					<div class="buttons are-small">
 						@editorAction(e, "+ Then another skill", fmt.Sprintf("add-step:%d:%d", i, k), false)
-						@editorAction(e, fmt.Sprintf("Remove option %d", k+1), fmt.Sprintf("delete-option:%d:%d", i, k), len(rule.Options) == 1)
+						if len(rule.Options) > 1 {
+							@editorAction(e, fmt.Sprintf("Remove link %d", k+1), fmt.Sprintf("delete-option:%d:%d", i, k), false)
+						}
 					</div>
 				</fieldset>
 			}
 			<div class="buttons are-small">
-				@editorAction(e, "+ Or instead", fmt.Sprintf("add-option:%d", i), false)
+				@editorAction(e, "+ Or another link instead", fmt.Sprintf("add-option:%d", i), false)
 			</div>
 		case requirements.Different:
 			<p class="matcher-hint">No element may be repeated. Shapes count as different elements only where the Code of Points says they do (§14). Leaving "Elements may be repeated" unticked already flags repeats, so this rule only adds a line to the results.</p>
@@ -805,11 +831,12 @@ templ numberField(name, label, value, step string) {
 // itemFields is one element of a set routine or one special requirement: its
 // wording and which elements meet it.
 templ itemFields(e *SetEditorData, prefix string, m *requirements.Matcher, title, placeholder string) {
-	<div class="field mb-1">
-		<label class="label is-small" for={ prefix + "label" }>{ title }: wording (optional)</label>
-		<input class="input is-small" id={ prefix + "label" } name={ prefix + "label" } value={ m.Label } placeholder={ placeholder }/>
-	</div>
 	@matcherFields(e, prefix, m, title)
+	// Its own wording is rarely needed: folded under the skill.
+	<details class="matcher-more item-wording" open?={ m.Label != "" }>
+		<summary>{ title }: its wording (optional)</summary>
+		<input class="input is-small" id={ prefix + "label" } name={ prefix + "label" } value={ m.Label } placeholder={ placeholder } aria-label={ title + ": its wording" }/>
+	</details>
 }
 
 // matcherFields describes which skills a rule is about: picked, a skill or a
@@ -898,12 +925,21 @@ templ matcherFields(e *SetEditorData, prefix string, m *requirements.Matcher, ti
 					</div>
 				</div>
 			}
-			<div class="buttons are-small mb-0">
-				@editorAction(e, "+ Or another skill", "or-add:"+prefix, false)
-			</div>
+			// A link's step has its own "or" in the link's options, not here.
+			if !linkStep(prefix) || len(m.Or) > 0 {
+				<div class="buttons are-small mb-0">
+					@editorAction(e, "+ Or another skill", "or-add:"+prefix, false)
+				</div>
+			}
 		}
 	</fieldset>
 }
+
+// linkStep says whether a matcher's fields are a step of a link ("this,
+// then this"): r<i>.o<k>.s<j>.
+func linkStep(prefix string) bool { return linkStepPrefix.MatchString(prefix) }
+
+var linkStepPrefix = regexp.MustCompile(`^r\d+\.o\d+\.s\d+\.$`)
 
 // pickGroup is a heading of picks in the editor, and its picks.
 type pickGroup struct {
@@ -1074,7 +1110,9 @@ templ builtinGroup(name string, sets []requirements.Builtin) {
 					</div>
 					<div class="buttons are-small mb-0">
 						if b.IsSetRoutine() {
-							<a class="button is-small" href={ templ.SafeURL("/?fromSet=" + requirements.BuiltinPrefix + b.ID) }>Copy to the Routine Builder</a>
+							// A copy to change, here in the set routine maker, or in the builder.
+							<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("copyBuiltinSetRoutine('%s', %q)", requirements.BuiltinPrefix+b.ID, b.Set.Name) }>Copy and change</button>
+							<a class="button is-small is-text" href={ templ.SafeURL("/?fromSet=" + requirements.BuiltinPrefix + b.ID) }>In the Routine Builder</a>
 						} else {
 							<button class="button is-small" type="button" x-on:click={ fmt.Sprintf("duplicateBuiltin('%s')", b.ID) }>Duplicate</button>
 						}
@@ -1143,4 +1181,18 @@ templ keepRulesOpen() {
 			});
 		})();
 	</script>
+}
+
+// problemsToFix lists an editor's problems, once a save has been tried.
+templ problemsToFix(problems []string) {
+	if len(problems) > 0 {
+		<div class="notification is-warning is-light set-problems">
+			<p class="has-text-weight-semibold">Fix before saving:</p>
+			<ul>
+				for _, p := range problems {
+					<li>{ p }</li>
+				}
+			</ul>
+		</div>
+	}
 }

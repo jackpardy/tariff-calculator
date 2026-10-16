@@ -2,14 +2,17 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
 	"tariffCalculator/requirements"
+	"tariffCalculator/views"
 )
 
 // levelEditor posts to the level editor and returns the level it would save,
@@ -99,6 +102,11 @@ func TestLevelEditor(t *testing.T) {
 	}
 	form.Set("first.0", "set-gone")
 	form.Set("action", "")
+	// Its problems are counted, and listed once a save has been tried.
+	if _, _, body := levelEditor(t, form); strings.Contains(body, "Fix before saving") || strings.Contains(body, `data-problems="0"`) {
+		t.Errorf("a fresh form counts its problems without listing them")
+	}
+	form.Set("tried", "1")
 	if _, _, body := levelEditor(t, form); !strings.Contains(body, "the first exercise has a choice still to make") {
 		t.Errorf("a set routine no longer saved can't be kept in a set routine slot")
 	}
@@ -131,4 +139,38 @@ func getPage(t *testing.T, path string) string {
 		t.Fatalf("GET %s: status %d", path, rec.Code)
 	}
 	return rec.Body.String()
+}
+
+// Switching a level's structure and back keeps what was chosen: set routine
+// options while the first exercise is a voluntary, a voluntary while there's
+// no second exercise.
+func TestLevelStructureRoundTrip(t *testing.T) {
+	post := func(form url.Values) (requirements.Level, url.Values) {
+		t.Helper()
+		level, _, body := levelEditor(t, form)
+		held := regexp.MustCompile(`name="held" value="([^"]*)"`).FindStringSubmatch(body)
+		next := url.Values{"name": {"Club"}, "held": {unescape(held[1])}, "first.n": {strconv.Itoa(len(level.First.Options))}}
+		for i, ref := range level.First.Options {
+			next.Set(fmt.Sprintf("first.%d", i), ref)
+		}
+		if level.Second != nil {
+			next.Set("second.n", strconv.Itoa(len(level.Second.Options)))
+			for i, ref := range level.Second.Options {
+				next.Set(fmt.Sprintf("second.%d", i), ref)
+			}
+		}
+		return level, next
+	}
+	start := url.Values{"name": {"Club"}, "structure": {"set"}, "first.n": {"2"}, "first.0": {"builtin:bg-club-l1"}, "first.1": {"builtin:bg-club-l2"}, "second.n": {"1"}, "second.0": {"builtin:bucs-l1-second"}}
+	start.Set("structure", views.StructureSetVoluntary)
+	_, form := post(start)
+	for _, via := range []string{views.StructureTwoVoluntaries, views.StructureSet, views.StructureVoluntary} {
+		form.Set("structure", via)
+		_, back := post(form)
+		back.Set("structure", views.StructureSetVoluntary)
+		level, _ := post(back)
+		if strings.Join(level.First.Options, ",") != "builtin:bg-club-l1,builtin:bg-club-l2" || level.Second == nil || level.Second.Options[0] != "builtin:bucs-l1-second" {
+			t.Errorf("through %s and back: %+v %+v", via, level.First, level.Second)
+		}
+	}
 }

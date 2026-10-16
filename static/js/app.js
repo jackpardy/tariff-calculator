@@ -301,14 +301,14 @@ function tariffCalculatorStore() {
         async saveWriting() {
             const form = document.querySelector('#requirements-writer-editor #set-editor');
             if (!form || !this.writing) { return; }
-            const response = await fetch('/requirements/editor', { method: 'POST', body: new URLSearchParams(new FormData(form)) });
+            const response = await fetch('/requirements/editor', { method: 'POST', body: saveBody(form) });
             if (!response.ok) { this.showToast(`Couldn't save: ${(await response.text()).trim()}`, 'error'); return; }
             const html = await response.text();
             swapIn(form, html);
             const fresh = document.querySelector('#requirements-writer-editor #set-editor');
             const set = JSON.parse(fresh.dataset.setJson);
+            if (fresh.dataset.problems !== '0') { this.showToast('Fix the problems listed at the top first.', 'error'); fresh.scrollIntoView({ block: 'start' }); return; }
             if (!set.name?.trim()) { this.showToast('Give the requirements a name first.', 'error'); fresh.querySelector('[name=name]')?.focus(); return; }
-            if (fresh.dataset.problems !== '0') { this.showToast('Fix the problems listed in the editor first.', 'error'); return; }
             const sets = SetStore.load();
             let saved = sets.find((s) => s.id === this.writing.id);
             const described = JSON.parse(fresh.dataset.described || '[]');

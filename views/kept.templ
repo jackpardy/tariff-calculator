@@ -5,7 +5,9 @@ import "strconv"
 // KeptPart is a person's own requirements and levels, kept on their page
 // (ADR 0013), as their Requirements tab lists them.
 type KeptPart struct {
-	Sets, Levels []KeptView
+	// Sets are requirements, SetRoutines set routines, each kept on its own;
+	// those a level uses are listed under it (KeptView.Own).
+	Sets, SetRoutines, Levels []KeptView
 	Add          string // where requirements from this browser are posted to keep
 	Max          int    // the most of each kind a person keeps
 }
@@ -15,16 +17,20 @@ type KeptView struct {
 	Name, Updated string
 	Lines         []string // a set's rules, or a level's exercises, in words
 	Remove        string   // where taking it off posts
+	Own           []KeptView // a level's requirements and set routines, kept with it
 }
 
 // keptPart is the Requirements tab's list, Add from this browser, and what
 // it's for.
 templ keptPart(k KeptPart) {
 	<p class="mb-4 is-size-7 has-text-grey">
-		Your own requirements and levels, kept here so they open on any phone or computer, and aren't lost if this browser forgets them. On the <a href="/requirements">Requirements</a> page, <strong>Save to my page</strong> keeps one here; the Requirements page and the <a href="/">Routine Builder</a>'s <strong>Check against</strong> list them as <strong>On your page</strong> wherever this link is saved.
+		Your own requirements and competition levels (a competition's two exercises, as the Routine Builder's Levels mode uses them), kept here so they open on any phone or computer, and aren't lost if this browser forgets them. On the <a href="/requirements">Requirements</a> page, <strong>Save to my page</strong> keeps one here; the Requirements page and the <a href="/">Routine Builder</a>'s <strong>Check against</strong> list them as <strong>On your page</strong> wherever this link is saved.
 	</p>
 	@keptList("Requirements", k.Sets, "No requirements kept here yet.")
-	@keptList("Levels", k.Levels, "No levels kept here yet.")
+	if len(k.SetRoutines) > 0 {
+		@keptList("Set routines", k.SetRoutines, "")
+	}
+	@keptList("Competition levels", k.Levels, "No competition levels kept here yet.")
 	// Those saved in this browser and not kept here yet, posted in one go
 	// (KeptRequirements.addFrom in static/js/sets.js fills items and shows it).
 	<form method="post" action={ templ.SafeURL(k.Add) } class="mt-4" data-keep-from-browser hidden>
@@ -52,6 +58,17 @@ templ keptList(title string, items []KeptView, none string) {
 								<li>{ line }</li>
 							}
 						</ul>
+					}
+					// A level's own requirements, with it: taking it off takes them too.
+					for _, own := range it.Own {
+						<details class="is-size-7 mt-1 comp-kept-own">
+							<summary>{ own.Name }</summary>
+							<ul>
+								for _, line := range own.Lines {
+									<li>{ line }</li>
+								}
+							</ul>
+						</details>
 					}
 				</div>
 				<form method="post" action={ templ.SafeURL(it.Remove) }>
