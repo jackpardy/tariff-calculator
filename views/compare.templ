@@ -36,6 +36,7 @@ templ ComparePage() {
 		<body>
 			<section class="section">
 				<div class="container">
+					<p class="mb-3 compare-back"><a href="/">← Routine Builder</a></p>
 					<h1 class="title is-4">Compare routines</h1>
 					<div class="compare-choices">
 						<div class="field">
@@ -107,7 +108,10 @@ templ compareCell(side CompareSide, i int) {
 				<span class="compare-label">{ side.Validation.Skills[i].Skill.CustomName }</span>
 			}
 			<span class="compare-meta">
-				{ side.Validation.Skills[i].FIGNotation } · { fmt.Sprintf("%.1f", side.Validation.Skills[i].Skill.Tariff) }
+				if side.Validation.Skills[i].FIGNotation != "" {
+					{ side.Validation.Skills[i].FIGNotation } ·
+				}
+				{ fmt.Sprintf("%.1f", side.Validation.Skills[i].Skill.Tariff) }
 			</span>
 			if reason := notCountedReason(i, side.Validation.Skills[i]); reason != "" {
 				<span class="compare-note">not counted ({ reason })</span>

@@ -158,6 +158,10 @@ templ Screen(p ScreenPage) {
 			</header>
 			// One announcement at a time, latest first, taking turns
 			// (screen.js), so several never push the areas down.
+			if len(p.Notices) > 0 {
+			// One space, as tall as the tallest announcement, so the areas below
+			// stay still as they take turns.
+			<div class="screen-notices">
 			for i, n := range p.Notices {
 				<p class="screen-notice" data-notice hidden?={ i > 0 }>
 					<span class="screen-notice-text">{ n }</span>
@@ -165,6 +169,8 @@ templ Screen(p ScreenPage) {
 						<span class="screen-notice-count">{ strconv.Itoa(i + 1) } of { strconv.Itoa(len(p.Notices)) }</span>
 					}
 				</p>
+			}
+			</div>
 			}
 			<p class="screen-stale" data-stale hidden>Not updated since <span data-stale-since></span>: check the screen's connection.</p>
 			if !p.Published {

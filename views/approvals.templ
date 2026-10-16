@@ -1,6 +1,9 @@
 package views
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 // CoachApprovalForm is the dashboard's setting for approving coaches (ADR
 // 0007 Decision 2).
@@ -115,14 +118,7 @@ templ CompetitionApprovals(p ApprovalsPage) {
 											<li>{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a></li>
 										}
 									</ul>
-									<p class="is-size-7 has-text-grey">
-										for i, m := range k.Meets {
-											if i > 0 {
-												·
-											}
-											{ m }
-										}
-									</p>
+									<p class="is-size-7 has-text-grey">{ strings.Join(k.Meets, " · ") }</p>
 									if k.Note != "" {
 										<p class="is-size-7">Your note: { k.Note }</p>
 									}
@@ -137,7 +133,7 @@ templ CompetitionApprovals(p ApprovalsPage) {
 											}
 										}
 										if k.Approved {
-											<button class="button is-small is-warning is-light" type="submit" name="action" value="withdraw">Withdraw approval</button>
+											<button class="button is-small is-warning is-light" type="submit" name="action" value="withdraw" onclick={ confirmFirst("Withdraw " + k.Name + "'s approval? Their sign-offs stop counting.") }>Withdraw approval</button>
 										} else if !k.Withdrawn && k.Status != "Not approved" {
 											<button class="button is-small is-warning is-light" type="submit" name="action" value="refuse">Not approved</button>
 										}

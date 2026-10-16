@@ -165,7 +165,7 @@ func TestCoachSeesRoutines(t *testing.T) {
 		t.Errorf("noting: %s", location)
 	}
 	page = do(t, h, http.MethodGet, member+"/routines", nil).Body.String()
-	if !strings.Contains(page, "Straighter legs in the back") || !strings.Contains(page, "left a note") || !strings.Contains(page, `<span class="chip-role">Coach</span> <span class="chip-name">· Ann</span>`) {
+	if !strings.Contains(page, "Straighter legs in the back") || !strings.Contains(page, "left a note") || !strings.Contains(page, `<span class="chip-role">Coach</span> <span class="chip-name">· <span class="chip-name-text">Ann</span></span>`) {
 		t.Error("the member sees the coach's note")
 	}
 

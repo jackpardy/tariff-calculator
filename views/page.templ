@@ -100,7 +100,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 						@setRoutineStarter()
 						<button class="button is-small" type="button" x-on:click="Share.open('routines', [currentId])">Share</button>
 						<details class="routine-menu" data-menu>
-							<summary class="button is-small">More</summary>
+							<summary class="button is-small comp-opens-button">More</summary>
 							// Close the menu after any choice.
 							<div class="routine-menu-panel" x-on:click="$el.closest('details').removeAttribute('open')">
 								<button class="button is-small is-white" type="button" x-on:click="renameRoutine()">Rename</button>
@@ -179,7 +179,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 			x-show="toast.show"
 			x-transition
 			class="notification is-fixed-bottom-right"
-			x-bind:class="toast.type === 'error' ? 'is-danger' : 'is-info'"
+			x-bind:class="{ error: 'is-danger', warning: 'is-warning' }[toast.type] || 'is-info'"
 		>
 			<button class="delete" type="button" aria-label="Dismiss" x-on:click="toast.show = false"></button>
 			<span x-text="toast.message"></span>
@@ -266,7 +266,7 @@ templ levelsBar(groups []requirements.BuiltinGroup) {
 			</div>
 			<button class="button is-small" type="button" x-show="entry()" x-on:click="Share.open('entries', [levelState.current])">Share</button>
 			<details class="routine-menu" data-menu x-show="entry()">
-				<summary class="button is-small">More</summary>
+				<summary class="button is-small comp-opens-button">More</summary>
 				<div class="routine-menu-panel" x-on:click="$el.closest('details').removeAttribute('open')">
 					<button class="button is-small is-white" type="button" x-on:click="renameEntry()">Rename</button>
 					<button class="button is-small is-white has-text-danger" type="button" x-on:click="deleteEntry()">Delete level</button>

@@ -133,7 +133,7 @@ func TestVenueScreen(t *testing.T) {
 	// 09:00–09:14.
 	publishedWith(t, h, admin, "Ann", "Bea", "Cal")
 	day := admin + "/day?day=0"
-	if page := dayAll(t, h, day); !strings.Contains(page, `href="`+admin+`/screen"`) || !strings.Contains(page, "Venue screen") {
+	if page := dayAll(t, h, day); !strings.Contains(page, `href="`+admin+`/screen?day=0"`) || !strings.Contains(page, "Venue screen") {
 		t.Error("the organiser's On the day page links to the venue screen")
 	}
 	page := dayAll(t, h, day)
@@ -234,9 +234,10 @@ func TestVenueScreen(t *testing.T) {
 	if strings.Contains(body, "All entries") || strings.Contains(body, "<nav") {
 		t.Error("no navigation on the screen")
 	}
+	// Any other page it opens (the link as given, say) goes to the screen.
 	for _, path := range []string{"", "/day", "/day?day=0", "/cards", "/history", "/entries.csv", "/timetable"} {
-		if rec := do(t, h, http.MethodGet, screen+path, nil); rec.Code != http.StatusForbidden {
-			t.Errorf("a screen link can't GET %q: %d", path, rec.Code)
+		if rec := do(t, h, http.MethodGet, screen+path, nil); rec.Code != http.StatusFound || rec.Header().Get("Location") != screen+"/screen" {
+			t.Errorf("a screen link opening %q goes to the screen: %d %s", path, rec.Code, rec.Header().Get("Location"))
 		}
 	}
 	for _, path := range []string{"/concerns", "/day/flight", "/day/checkin", "/links"} {

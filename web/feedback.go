@@ -151,7 +151,10 @@ func (p *competitionPages) feedbackCompetition(w http.ResponseWriter, r *http.Re
 		if l := linkOf(r); l.Kind == store.LinkOrganiser {
 			role = "Organiser"
 		} else {
-			role = "Helper link: " + l.Name + " (" + linkKinds[l.Kind] + ")"
+			role = "Helper link: " + l.Name
+			if !strings.EqualFold(l.Name, linkKinds[l.Kind]) {
+				role += " (" + linkKinds[l.Kind] + ")"
+			}
 		}
 		return c, role, ok
 	case "/competitions/club/{token}":
@@ -320,7 +323,7 @@ func (p *competitionPages) feedbackPage(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return
 	}
-	page := views.FeedbackPage{Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuFeedback),
+	page := views.FeedbackPage{Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuFeedback),
 		Base: adminPath(r.PathValue("token")), Notice: r.URL.Query().Get("notice"), On: c.FeedbackButton}
 	for _, f := range all {
 		name := feedbackPages[f.Page]

@@ -129,7 +129,8 @@ type AreaView struct {
 // ItemView is a flight or blocked time on an area.
 type ItemView struct {
 	Flight     bool
-	Index      int // the flight's, for its controls
+	Index      int    // the flight's, for its controls
+	Discipline string // the flight's, for where its gymnasts can move to
 	Name       string
 	Start, End string
 	Gymnasts   []TimetableGymnast
@@ -144,11 +145,13 @@ type TimetableGymnast struct {
 	FlightGymnast
 	ID, Category string
 	Moved        string // the event they're entered at now, if not the flight's
+	Discipline   string // their entry's, for where they can move to
 }
 
 // FlightOption is somewhere to move a gymnast or flight to.
 type FlightOption struct {
 	Value, Label string
+	Group        string // a flight's discipline, for a move to offer only its own
 }
 
 // CompetitionTimetable is the organiser's timetable page.
@@ -265,7 +268,7 @@ templ timetableStatus(p TimetablePage) {
 							<button class="button is-small is-success" type="submit" name="action" value="publish">Publish changes</button>
 							<button class="button is-small" type="submit" name="action" value="discard" onclick="return confirm('Go back to the published timetable, losing your changes since?')">Discard changes</button>
 						}
-						<button class="button is-small is-text" type="submit" name="action" value="unpublish">Unpublish</button>
+						<button class="button is-small is-text" type="submit" name="action" value="unpublish" onclick="return confirm('Take the timetable down? Clubs, gymnasts and officials stop seeing their flights and duties until you publish again.')">Unpublish</button>
 					}
 				</form>
 				@printMenu(p.Base)
@@ -655,7 +658,7 @@ templ rotaReport(p TimetablePage) {
 			<p class="help">Clubs send their members' offers with their entries, and you can add people on the Officials page.</p>
 		}
 		@problemsList("Seats no one could take", p.Rota.Short)
-		@problemsList("Manual changes have broken", p.Rota.Problems)
+		@problemsList("Problems from changes made by hand", p.Rota.Problems)
 		@problemsList("Your rules about officials not kept", p.Rota.Broken)
 		@problemsList("Coaches needed in two places", p.Rota.Coaches)
 		@problemsList("Judging their own club's gymnasts, times by club", p.Rota.OwnClub)
@@ -671,10 +674,14 @@ templ reportView(r ReportView) {
 	<div class="comp-tt-check">
 		<p class="comp-tt-check-head">
 			<strong>Flights</strong>
-			if len(r.Unplaced) > 0 || len(r.Blocks) > 0 {
-				@StateChip(Attention, Count(len(r.Unplaced)+len(r.Blocks), "thing doesn't fit", "things don't fit"))
-			} else {
-				@StateChip(Done, "Everything fits")
+			switch {
+				case len(r.Unplaced) > 0 || len(r.Blocks) > 0:
+					@StateChip(Attention, Count(len(r.Unplaced)+len(r.Blocks), "thing doesn't fit", "things don't fit"))
+				// Everything fits, but changes made by hand broke something: not all well.
+				case len(r.Problems) > 0:
+					@StateChip(Attention, Count(len(r.Problems), "problem from changes", "problems from changes"))
+				default:
+					@StateChip(Done, "Everything fits")
 			}
 		</p>
 		<ul class="comp-tt-days">
@@ -709,7 +716,7 @@ templ reportView(r ReportView) {
 				}
 			</div>
 		}
-		@problemsList("Manual changes have broken", r.Problems)
+		@problemsList("Problems from changes made by hand", r.Problems)
 		@problemsList("Less rest than wanted", r.ShortRest)
 		@problemsList("Preferences not met", r.Broken)
 		if len(r.LookAlike) > 0 {
@@ -864,7 +871,11 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 templ fillOptions(id string, options []FlightOption) {
 	<template id={ id }>
 		for _, o := range options {
-			<option value={ o.Value }>{ o.Label }</option>
+			if id == "move-options" {
+				<option value={ o.Value } data-group={ o.Group }>{ o.Label }</option>
+			} else {
+				<option value={ o.Value }>{ o.Label }</option>
+			}
 		}
 	</template>
 }
@@ -879,7 +890,7 @@ templ moveGymnast(p TimetablePage, g TimetableGymnast, named bool) {
 			<span class="is-size-7">{ g.Name } <span class="has-text-grey">{ g.Club } { g.Category }</span></span>
 		}
 		<div class="select is-small">
-			<select name="to" aria-label={ "Flight for " + g.Name } data-fill="move-options">
+			<select name="to" aria-label={ "Flight for " + g.Name } data-fill="move-options" data-group={ g.Discipline }>
 				<option value="" disabled selected>Choose a flight</option>
 				<option value="">Take out of the timetable</option>
 			</select>
@@ -903,7 +914,8 @@ templ moveFromFlight(p TimetablePage, f ItemView) {
 			</select>
 		</div>
 		<div class="select is-small">
-			<select name="to" aria-label={ "Flight to move them to, from " + f.Name } data-fill="move-options">
+			// Only flights of its own discipline, and not this one.
+			<select name="to" aria-label={ "Flight to move them to, from " + f.Name } data-fill="move-options" data-group={ f.Discipline } data-except={ strconv.Itoa(f.Index) }>
 				<option value="" disabled selected>Choose a flight</option>
 				<option value="">Take out of the timetable</option>
 			</select>

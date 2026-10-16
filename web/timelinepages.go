@@ -262,7 +262,7 @@ func panelTimeline(r *http.Request, c store.Competition, s competitions.Schedule
 	_, names := peopleOf(entries)
 	t := timeline(s, officialNames(people, names, false), officials, nil)
 	t.Title, t.Back, t.CSV = "Panel timeline · "+c.Name, timetablePath(r), timetablePath(r)+"/timeline.csv"
-	t.Competition = summary(c.Competition, now)
+	t.Competition = summary(c, now)
 	if officials {
 		t.Title = "Timeline with officials · " + c.Name
 	}

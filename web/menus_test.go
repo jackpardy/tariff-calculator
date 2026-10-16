@@ -157,9 +157,13 @@ func TestSettingsPage(t *testing.T) {
 		t.Errorf("the menu shows the settings: %q, %q", section, item)
 	}
 
-	// The entries page keeps the entries, the menu and the way to go live; the settings have moved.
+	// The entries page keeps the entries, the menu and the way to go live; the
+	// settings have moved. With no entries yet, it has the links to send.
 	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
-	for _, gone := range []string{"Links and settings", `action="` + admin + `/deadline"`, `action="` + admin + `/links"`, "Club link", "← All entries", `class="button is-small is-link is-light" href="` + admin + `/timetable"`} {
+	if !strings.Contains(dash, "Club link") || strings.Contains(dash, "data-list-search") {
+		t.Error("with no entries, the links to send and no list tools")
+	}
+	for _, gone := range []string{"Links and settings", `action="` + admin + `/deadline"`, `action="` + admin + `/links"`, "← All entries", `class="button is-small is-link is-light" href="` + admin + `/timetable"`} {
 		if strings.Contains(dash, gone) {
 			t.Errorf("the entries page no longer has %q", gone)
 		}

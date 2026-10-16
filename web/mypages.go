@@ -117,7 +117,7 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 	if f.rotaFacts, err = p.liveRota(r.Context(), c); err != nil {
 		return views.MyCompetitionPage{}, f, err
 	}
-	page := views.MyCompetitionPage{Competition: summary(c.Competition, p.now()), Name: name, Mine: map[string]bool{}, Me: key}
+	page := views.MyCompetitionPage{Competition: summary(c, p.now()), Name: name, Mine: map[string]bool{}, Me: key}
 	t := c.Published
 	published := t != nil
 	page.Published = published

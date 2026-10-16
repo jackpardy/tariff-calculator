@@ -106,8 +106,8 @@ function requirementsPage() {
         },
         duplicate(set) {
             const copy = JSON.parse(JSON.stringify(set));
-            copy.name = `${set.name} (copy)`;
-            this.open(copy, 'New requirements (copy)');
+            copy.name = `Copy of ${set.name}`.slice(0, 80);
+            this.open(copy, copy.name);
         },
         duplicateBuiltin(id) { if (this.builtins[id]) { this.duplicate(this.builtins[id]); } },
 
@@ -129,8 +129,8 @@ function requirementsPage() {
         },
         duplicateLevel(level) {
             const copy = JSON.parse(JSON.stringify(level));
-            copy.name = `${level.name} (copy)`;
-            this.openLevel(copy, 'New level (copy)');
+            copy.name = `Copy of ${level.name}`.slice(0, 80);
+            this.openLevel(copy, copy.name);
         },
         duplicateBuiltinLevel(ref) { if (this.builtinLevels[ref]) { this.duplicateLevel(this.builtinLevels[ref]); } },
         // levelSets are the user's own requirements a level uses.
@@ -229,16 +229,16 @@ function requirementsPage() {
             const saved = this.sets.find((s) => s.id === ref);
             let values;
             if (saved) {
-                this.levelWriting = { key, id: saved.id, title: `Change ${saved.set.name} · ${exercise}` };
+                this.levelWriting = { key, id: saved.id, title: `Change ${saved.set.name} (${exercise})` };
                 this.levelKeepToo = !saved.inLevel;
                 values = { set: JSON.stringify(saved.set) };
             } else if (ref.startsWith('builtin:')) {
-                this.levelWriting = { key, id: null, title: `A copy of ${this.requirementName(ref)} · ${exercise}` };
+                this.levelWriting = { key, id: null, title: `A copy of ${this.requirementName(ref)} (${exercise})` };
                 this.levelKeepToo = false;
                 values = { copy: ref };
             } else {
                 const name = document.getElementById('level-name')?.value.trim();
-                this.levelWriting = { key, id: null, title: `New requirements · ${exercise}` };
+                this.levelWriting = { key, id: null, title: `New requirements (${exercise})` };
                 this.levelKeepToo = false;
                 values = { set: JSON.stringify({ format: 1, name: name ? `${name} · ${exercise.split(':')[0].toLowerCase()}` : '', rules: [] }) };
             }
@@ -297,7 +297,10 @@ function requirementsPage() {
         },
         remove(id) {
             const saved = this.sets.find((s) => s.id === id);
-            if (!saved || !confirm(`Delete ${saved.set.name}${saved.kept ? ', here and from your page' : ''}? Routines checked against it will stop being checked.`)) { return; }
+            // The levels using it say so, as they'll lose it.
+            const using = this.levels.filter((l) => this.levelSets(l.level).includes(saved)).map((l) => l.level.name);
+            const levels = using.length === 0 ? '' : ` ${using.length === 1 ? 'The level' : 'The levels'} ${using.join(', ')} ${using.length === 1 ? 'uses' : 'use'} it, and will lose it.`;
+            if (!saved || !confirm(`Delete ${saved.set.name}${saved.kept ? ', here and from your page' : ''}? Routines checked against it will stop being checked.${levels}`)) { return; }
             KeptRequirements.drop('set', saved);
             this.sets = this.sets.filter((s) => s.id !== id);
             SetStore.save(this.sets);

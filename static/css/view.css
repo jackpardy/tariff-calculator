@@ -68,6 +68,8 @@ body {
 .view-menu { position: relative; margin-left: auto; }
 .view-menu summary { cursor: pointer; list-style: none; user-select: none; }
 .view-menu summary::-webkit-details-marker { display: none; }
+.view-menu summary::after { content: " ▾"; }
+.view-menu[open] summary::after { content: " ▴"; }
 .view-menu-panel {
   position: absolute;
   right: 0;
@@ -176,9 +178,12 @@ body {
 }
 .display-row.is-blank { border-bottom-style: dashed; }
 .d-num { flex: none; width: 1.5em; color: var(--muted); font-variant-numeric: tabular-nums; }
-.d-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.d-name { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Short of room, the notation gives way long before the name. */
 .d-fig {
-  flex: none;
+  flex: 0 20 auto;
+  min-width: 0;
+  overflow: hidden;
   color: var(--muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85em;
@@ -233,3 +238,8 @@ body {
 .share-qr { display: flex; justify-content: center; margin-top: 0.75rem; }
 .share-qr svg { width: min(14rem, 70vw); height: auto; background: #fff; padding: 0.4rem; border-radius: 6px; }
 .share-note { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem !important; }
+
+/* Printed, the routines only: no toolbar. */
+@media print {
+  .view-bar { display: none; }
+}

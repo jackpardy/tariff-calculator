@@ -24,7 +24,7 @@ func TestMoveOptionsOnce(t *testing.T) {
 	if template == nil || !strings.Contains(template[1], "<option value=") || !strings.Contains(page, "js/fill.js") {
 		t.Fatalf("the flights to move to, once, with the script that fills the dropdowns: %s", page)
 	}
-	selects := regexp.MustCompile(`(?s)<select name="to"[^>]*data-fill="move-options">(.*?)</select>`).FindAllStringSubmatch(page, -1)
+	selects := regexp.MustCompile(`(?s)<select name="to"[^>]*data-fill="move-options"[^>]*>(.*?)</select>`).FindAllStringSubmatch(page, -1)
 	if len(selects) < 1 || strings.Count(page, "Move a gymnast") != len(selects) {
 		t.Fatalf("a Move a gymnast form per flight, not a dropdown per gymnast: %d", len(selects))
 	}
@@ -32,6 +32,12 @@ func TestMoveOptionsOnce(t *testing.T) {
 		if strings.Count(s[1], "<option") != 2 || !strings.Contains(s[1], `<option value="" disabled selected>Choose a flight</option>`) {
 			t.Errorf("a dropdown holds only its placeholder and Take out until it's opened: %s", s[1])
 		}
+	}
+
+	// Each option says its flight's discipline, and each dropdown its own,
+	// to offer only flights a gymnast can move to (fill.js).
+	if !strings.Contains(template[1], `data-group="`) || !strings.Contains(page, `data-fill="move-options" data-group="`) || !strings.Contains(page, `data-except="`) {
+		t.Error("moves are only to flights of the same discipline, not the one they're in")
 	}
 
 	// Left on "Choose a flight" (nothing sent): nothing changes.
@@ -58,5 +64,30 @@ func TestMoveOptionsOnce(t *testing.T) {
 	redirected(t, h, tt+"/entry", url.Values{"entry": {entry}, "to": {""}})
 	if after := do(t, h, http.MethodGet, tt, nil).Body.String(); after == page {
 		t.Error("taking someone out changes the timetable")
+	}
+}
+
+// A gymnast moves only to a flight of their own discipline.
+func TestMoveKeepsDiscipline(t *testing.T) {
+	h := competitionServer(t)
+	form := newCompetition()
+	form.Set("tumbling", "Novice")
+	admin := created(t, h, form)
+	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
+	redirected(t, h, enter, bucsEntry("Eve"))
+	redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "discipline": {"tumbling"}, "level": {"Novice"}})
+	tt := admin + "/timetable"
+	redirected(t, h, tt+"/plan", url.Values{})
+	page := do(t, h, http.MethodGet, tt, nil).Body.String()
+	trampoline := regexp.MustCompile(`<option value="(\d+)" data-group="">`).FindStringSubmatch(page)
+	if trampoline == nil {
+		t.Fatalf("each flight to move to says its discipline: %s", page)
+	}
+	id := regexp.MustCompile(`<option value="([^"]+)">1\. Dara`).FindStringSubmatch(page)[1]
+	if to := redirected(t, h, tt+"/entry", url.Values{"entry": {id}, "to": {trampoline[1]}}); !strings.Contains(to, "own+discipline") {
+		t.Errorf("a tumbler can't move to a trampoline flight: %s", to)
+	}
+	if after := do(t, h, http.MethodGet, tt, nil).Body.String(); after != page {
+		t.Error("nothing was changed")
 	}
 }

@@ -3,6 +3,7 @@ package views
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // Access is what the admin link a page was opened by can do (ADR 0009), so
@@ -57,9 +58,14 @@ templ linksBox(base string, links []LinkView) {
 					<li class="comp-other-link">
 						<span>
 							<strong>{ l.Name }</strong>
-							<span class="has-text-grey is-size-7">{ l.Kind } · made { l.Made }</span>
+							<span class="has-text-grey is-size-7">
+								if !strings.EqualFold(l.Name, l.Kind) {
+									{ l.Kind } ·
+								}
+								made { l.Made }
+							</span>
 						</span>
-						<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/remove") } class="is-inline">
+						<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/remove") } class="is-inline" onsubmit={ confirmFirst("Remove the link for " + l.Name + "? It stops working at once.") }>
 							<button class="button is-small is-text has-text-danger" type="submit" aria-label={ "Remove the link for " + l.Name }>Remove</button>
 						</form>
 					</li>
@@ -176,7 +182,7 @@ templ concernsBox(base string, concerns []ConcernView, open int, a Access) {
 			}
 		</section>
 	} else if len(concerns) > 0 {
-		<details class="comp-concerns-resolved mb-4">
+		<details class="comp-concerns-resolved mb-4" id="concerns">
 			<summary class="is-size-7">Concerns · none open, { strconv.Itoa(len(concerns)) } resolved</summary>
 			for _, c := range concerns {
 				@concernView(base, c, a)

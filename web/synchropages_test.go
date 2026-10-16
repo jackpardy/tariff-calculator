@@ -61,8 +61,12 @@ func TestPairedSynchro(t *testing.T) {
 		t.Error("the pair at the easier level is fine")
 	}
 
-	// Pairing a level not ticked is refused.
+	// Pairing a level not ticked is refused, and not in the history.
+	rows := len(tableRows(t, do(t, h, http.MethodGet, admin+"/history", nil).Body.String()))
 	if loc := redirected(t, h, admin+"/events", url.Values{"synchroLevel": {"builtin-level:bucs-l3"}, "synchroPairs": {"BUCS L3 + BUCS L5"}}); !strings.Contains(loc, "weren%27t+changed") && !strings.Contains(loc, "weren't+changed") {
 		t.Errorf("pairing a level not ticked: %s", loc)
+	}
+	if after := len(tableRows(t, do(t, h, http.MethodGet, admin+"/history", nil).Body.String())); after != rows {
+		t.Errorf("a refused change isn't in the history: %d rows, then %d", rows, after)
 	}
 }

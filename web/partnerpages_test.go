@@ -165,8 +165,13 @@ func TestMemberDisciplines(t *testing.T) {
 	if edit == nil {
 		t.Fatal("a link to change A's synchro entry")
 	}
-	if page := do(t, h, http.MethodGet, strings.ReplaceAll(edit[1], "&amp;", "&"), nil).Body.String(); !strings.Contains(page, `name="partnerName"`) || !strings.Contains(page, `value="B"`) {
+	page = do(t, h, http.MethodGet, strings.ReplaceAll(edit[1], "&amp;", "&"), nil).Body.String()
+	if !strings.Contains(page, `name="partnerName"`) || !strings.Contains(page, `value="B"`) {
 		t.Error("the comp sec edits the synchro entry, partner and all")
+	}
+	// They see the partner, whether they've confirmed, and the link to send.
+	if !strings.Contains(clubPage, "and B</span>") || !strings.Contains(page, "B hasn&#39;t confirmed the pair yet") && !strings.Contains(page, "B has confirmed the pair") {
+		t.Errorf("the comp sec sees the partner: %s", page)
 	}
 }
 

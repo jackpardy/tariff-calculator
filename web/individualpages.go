@@ -49,7 +49,7 @@ func chosenDiscipline(c competitions.Competition, asked string) string {
 // enterPage is the individual entry page, for one discipline, with a tab for
 // each the competition offers.
 func enterPage(c store.Competition, e competitions.Entry, path string, now time.Time) views.EnterPage {
-	page := views.EnterPage{Competition: summary(c.Competition, now), Form: entryForm(c.Competition, e, path, "Enter")}
+	page := views.EnterPage{Competition: summary(c, now), Form: entryForm(c.Competition, e, path, "Enter")}
 	for _, d := range c.Disciplines() {
 		page.Disciplines = append(page.Disciplines, views.DisciplineTab{
 			Name: competitions.DisciplineName(d), URL: path + "?discipline=" + d, Current: d == e.Discipline,
@@ -183,7 +183,7 @@ func (p *competitionPages) entryView(r *http.Request, e store.Entry, c store.Com
 	withSignoff(&shown, storedSignoff(c.Competition, e))
 	page := views.EntryPage{
 		Name:        e.Entry.Gymnast,
-		Competition: summary(c.Competition, p.now()),
+		Competition: summary(c, p.now()),
 		Sent:        e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
 		Placement:   placement(c, e.ID),
 		Waiting:     waitingText(p.waitingOf(r.Context(), c.ID, e.ID)),
@@ -310,8 +310,14 @@ func (p *competitionPages) renderIndividualSignoff(w http.ResponseWriter, r *htt
 	}
 	withSignoff(&shown, storedSignoff(c.Competition, e))
 	page := views.SignoffPage{
-		Competition: summary(c.Competition, p.now()), Card: shown, Signoff: shown.Signoff,
+		Competition: summary(c, p.now()), Card: shown, Signoff: shown.Signoff,
 		Action: r.URL.Path, AskName: true, Name: name, Problems: problems,
+	}
+	switch r.URL.Query().Get("done") {
+	case "signed":
+		page.Notice = "Signed off. Thank you: " + e.Entry.Gymnasts() + " sees it on their entry."
+	case "notyet":
+		page.Notice = "Saved: " + e.Entry.Gymnasts() + " sees it isn't ready yet, with your note."
 	}
 	if named, why, err := p.entryCoachFor(r, c, e); err != nil {
 		failed(w, r, err)
@@ -359,5 +365,9 @@ func (p *competitionPages) signOffIndividual(w http.ResponseWriter, r *http.Requ
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+	done := "notyet"
+	if r.FormValue("signed") == "1" {
+		done = "signed"
+	}
+	http.Redirect(w, r, r.URL.Path+"?done="+done, http.StatusSeeOther)
 }

@@ -197,7 +197,7 @@ func (p *competitionPages) renderLateSignoff(w http.ResponseWriter, r *http.Requ
 	if len(problems) > 0 {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}
-	render(w, r, views.LateSignoff(views.LateSignoffPage{Competition: summary(c.Competition, p.now()), Back: back, Action: r.URL.Path,
+	render(w, r, views.LateSignoff(views.LateSignoffPage{Competition: summary(c, p.now()), Back: back, Action: r.URL.Path,
 		What: competitions.LateKindName(req.Kind) + " to " + req.Entry.Event(), Card: shown, AskName: askName, Problems: problems, Note: req.Note}))
 }
 
@@ -313,7 +313,7 @@ func (p *competitionPages) lateRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}
-	page := views.LateRequestPage{Competition: summary(c.Competition, p.now()), Back: t.back, Gymnast: t.gymnast,
+	page := views.LateRequestPage{Competition: summary(c, p.now()), Back: t.back, Gymnast: t.gymnast,
 		Current: t.entry.Entry.Event(), Problems: problems, Form: entryForm(c.Competition, start, action, "Ask the organiser")}
 	page.Form.Problems, page.Form.Member, page.Form.Note, page.Form.NoteText = nil, true, true, r.FormValue("note")
 	for _, kind := range competitions.LateKinds {
@@ -412,7 +412,7 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	base := adminPath(r.PathValue("token"))
-	page := views.LateAdminPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuLate), Notice: r.URL.Query().Get("notice"),
+	page := views.LateAdminPage{Base: base, Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuLate), Notice: r.URL.Query().Get("notice"),
 		Signoff: c.Signoff, SignoffFirst: c.Late.SignoffFirst}
 	var allowed []string
 	for _, kind := range competitions.LateKinds {

@@ -28,9 +28,14 @@ func TestPayments(t *testing.T) {
 		t.Fatalf("UCD owes €49: %+v", ucd)
 	}
 	for _, amount := range []string{"", "abc", "0", "-5"} {
-		if notice := noticeOf(t, redirected(t, h, fees+"/payments", url.Values{"payer": {ucd.Payer}, "amount": {amount}})); notice != "Say how much was paid, like 12 or 12.50." {
+		if notice := noticeOf(t, redirected(t, h, fees+"/payments", url.Values{"payer": {ucd.Payer}, "amount": {amount}})); notice != "Say how much was paid, like 12 or 12.50. Nothing was changed." {
 			t.Errorf("amount %q: %q", amount, notice)
 		}
+	}
+	// A refused payment isn't in the history; nor is removing nothing.
+	redirected(t, h, admin+"/remove", url.Values{"action": {"remove"}})
+	if historyHas(t, h, admin, "Organiser", "Recorded a payment of abc from UCD") || historyHas(t, h, admin, "Organiser", "Removed 0 entries") {
+		t.Error("refused changes aren't recorded")
 	}
 	for _, payer := range []string{"", "club:nonsense", "entry:nonsense", "nonsense"} {
 		if rec := do(t, h, http.MethodPost, fees+"/payments", url.Values{"payer": {payer}, "amount": {"10"}}); rec.Code != http.StatusNotFound {
@@ -323,5 +328,28 @@ func TestDelayView(t *testing.T) {
 	v = delayView(competitions.DelayReport{Before: []competitions.DayReport{day, day}, After: []competitions.DayReport{later, day}}, nil)
 	if len(v.Days) != 1 || v.Days[0].WasEnd != "17:00" || v.Days[0].NowEnd != "17:20" || v.Days[0].NowFree != 10 {
 		t.Errorf("only the day that changes: %+v", v.Days)
+	}
+}
+
+// Paying more than due shows the credit, on Fees and the invoice, and the
+// "to come" headline counts only what's still owed.
+func TestOverpayment(t *testing.T) {
+	h := competitionServer(t)
+	admin := created(t, h, newCompetition())
+	aClub(t, h, admin, "UCD", true, "Ann", "Bea")
+	fees := admin + "/fees"
+	redirected(t, h, fees+"/settings", url.Values{"fee-": {"12"}, "club": {"25"}})
+	ucd := feeAccounts(t, do(t, h, http.MethodGet, fees, nil).Body.String())["UCD"]
+	redirected(t, h, fees+"/payments", url.Values{"payer": {ucd.Payer}, "amount": {"60"}})
+	page := do(t, h, http.MethodGet, fees, nil).Body.String()
+	if got := feeAccounts(t, page)["UCD"]; !strings.Contains(got.Balance, "€11 over") {
+		t.Errorf("the credit shows: %+v", got)
+	}
+	if !strings.Contains(page, `<p class="title is-5">€0</p><p class="heading">to come</p>`) {
+		t.Errorf("nothing to come: %s", page)
+	}
+	inv := do(t, h, http.MethodGet, ucd.Invoice, nil).Body.String()
+	if !strings.Contains(inv, "Paid more than due") || !strings.Contains(inv, "€11 over") || strings.Contains(inv, "−€11") {
+		t.Errorf("the invoice says so: %s", inv)
 	}
 }

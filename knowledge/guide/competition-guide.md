@@ -560,11 +560,13 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
 1. Open your club's **Join link**, type your name and tap **Join**. Your own
    page opens; it's saved in this browser, so on this phone your entries are
    simply there.
-2. Your page has three tabs. **Competitions** (the one it opens on) lists the
+2. Your page has five tabs. **Competitions** (the one it opens on) lists the
    competitions your club is in, each with its date and where your entries
    stand (for example **Not entered**, **Saved, not sent yet**, or **Timetable
    published**); tap one to open it. **Routines** has the routines you keep
    on your page (see [Keep your routines on your page](#keep-your-routines-on-your-page)).
+   **Skills** has the skills you're learning and can do, and your club's
+   levels. **Requirements** has requirements you've written or saved.
    **Your details** has your personal link,
    to keep, **Your coach** to choose if your club has coaches (**Change**), and **Your other
    links** (see [One link for all your roles](#6-one-link-for-all-your-roles)).
@@ -756,13 +758,13 @@ to track** and tap **Add**. Removing something to track removes its marks
 too.
 
 **Levels** (the fourth section) holds your club's levels, such as *Club
-Grade 1*, in order. Write a level on the **Requirements** page, as you would
-any requirements: a skill, a kind of skill (*any back somersault*), skills
+Grade 1*, in order. Tap **New level** and write it there, as you would any
+requirements: a skill, a kind of skill (*any back somersault*), skills
 linked one after another (*back drop, then back to feet*), a number of them,
-or a set routine. Then tap **Save to club levels** beside it (it's there once
-you've opened your coach page on that phone, or your member page if you're a
-member who coaches too). Rules about a whole routine,
-like its difficulty, are left out. A level can be any mix: under **Add a
+or a set routine. (Requirements written on the **Requirements** page can be
+saved to your club's levels too, with **Save to club levels** beside them.)
+Rules about a whole routine, like its difficulty, are left out. A level can
+be any mix: under **Add a
 skill**, type to find a skill (or a kind of skill, or one of your club's own,
 like a drill or a handstand) and pick it; each is a line of its own, so a
 level of ten skills is ten picks. **Or add another kind of rule** adds

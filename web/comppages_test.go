@@ -99,6 +99,13 @@ func TestCreateCompetition(t *testing.T) {
 		!strings.Contains(body, "The closing time has already passed.") || !strings.Contains(body, "The competition needs at least one level.") {
 		t.Errorf("problems are listed: %d %s", rec.Code, body)
 	}
+	// A competition in the past: its closing time has passed, and that's all.
+	past := newCompetition()
+	past.Set("date", "2025-03-20")
+	past.Set("deadlineDate", "2025-03-01")
+	if body := do(t, h, http.MethodPost, "/competitions", past).Body.String(); !strings.Contains(body, "The closing time has already passed.") || strings.Contains(body, "by the end of the competition date") {
+		t.Errorf("only the closing time is wrong: %s", body)
+	}
 
 	custom := newCompetition()
 	custom.Add("custom", `{"level":{"format":1,"name":"Club novice","first":{"options":["set-x"]}},"sets":{"set-x":{"format":1,"name":"Novice voluntary","rules":[]}}}`)

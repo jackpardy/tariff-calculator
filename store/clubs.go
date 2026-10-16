@@ -387,6 +387,8 @@ func (s *Store) SaveMemberEntry(ctx context.Context, memberID, competitionID str
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
 			ON CONFLICT (member_id, competition_id, discipline) DO UPDATE SET entry = excluded.entry, updated_at = excluded.updated_at,
 				signed_at = CASE WHEN member_entries.entry = excluded.entry THEN member_entries.signed_at ELSE NULL END,
+				signed_by = CASE WHEN member_entries.entry = excluded.entry THEN member_entries.signed_by ELSE '' END,
+				sign_note = CASE WHEN member_entries.entry = excluded.entry THEN member_entries.sign_note ELSE '' END,
 				partner_confirmed = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_confirmed ELSE FALSE END,
 				partner_member = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_member ELSE NULL END,
 				partner_entry = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_entry ELSE NULL END,

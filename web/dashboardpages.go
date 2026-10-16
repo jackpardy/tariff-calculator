@@ -61,7 +61,8 @@ func (p *competitionPages) reviewVideo(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id"), http.StatusSeeOther)
+	// Back to the check box, where it says Checked.
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id")+"#check", http.StatusSeeOther)
 }
 
 // judged is a stored entry checked, with who sent it ("individual" for an
@@ -221,7 +222,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	liveDate, liveTime := p.liveFields(c)
 	d := views.Dashboard{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuEntries),
+		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuEntries),
 		Club: q.Get("club"), ProblemsOnly: q.Get("problems") == "1",
 		Entries: len(entries), New: q.Get("new"), Notice: q.Get("notice"),
 		LiveDate: liveDate, LiveTime: liveTime,
@@ -231,6 +232,13 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	d.Waiting = waitingLists(c, waiting, d.Base)
 	d.Access = access(r)
+	// With no entries yet, the next step: the links to send.
+	if len(all) == 0 && d.Access.Settings {
+		d.Links.Club = origin(r) + "/competitions/club/" + c.ClubLink
+		if c.Individuals {
+			d.Links.Individual = origin(r) + "/competitions/enter/" + c.IndividualLink
+		}
+	}
 	if d.Concerns, d.OpenConcerns, err = p.concernViews(r.Context(), c, d.Base); err != nil {
 		failed(w, r, err)
 		return
@@ -514,7 +522,7 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 	}
 	withSignoff(&shown, signoff)
 	render(w, r, views.CompetitionEntry(views.EntryDetail{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuEntries),
+		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuEntries),
 		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
 		ID: e.ID, Checked: checkedText(e), Note: e.Note, VideoReview: e.VideoReview, VideoNote: e.VideoNote,
 		Withdrawn: e.Withdrawn, Access: access(r), Notice: r.URL.Query().Get("notice"),
@@ -554,9 +562,9 @@ func (p *competitionPages) removeEntries(w http.ResponseWriter, r *http.Request)
 		badRequest(w, err)
 		return
 	}
-	removal, done := store.Removed, "Removed"
+	removal, done := store.Removed, "Removed %s."
 	if r.FormValue("action") == "hold" {
-		removal, done = store.Held, "Put on hold"
+		removal, done = store.Held, "Put %s on hold."
 	}
 	to := r.FormValue("to")
 	if to != store.ToClub && to != store.ToMember {
@@ -570,7 +578,7 @@ func (p *competitionPages) removeEntries(w http.ResponseWriter, r *http.Request)
 	}
 	notice := "Tick the entries to remove or hold first; nothing was changed."
 	if n > 0 {
-		notice = fmt.Sprintf("%s %s. They're listed at the end, to restore.", done, views.Count(n, "entry", "entries"))
+		notice = fmt.Sprintf(done, views.Count(n, "entry", "entries")) + " They're listed at the end, to restore."
 	}
 	seeOther(w, r, adminPath(r.PathValue("token")), notice)
 }

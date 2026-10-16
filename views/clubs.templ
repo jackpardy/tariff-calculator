@@ -3,6 +3,7 @@ package views
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // ClubPage is a club's competition secretary's page.
@@ -103,6 +104,10 @@ type ClubOfferRow struct {
 // ClubEntryRow is one member's entry for a competition.
 type ClubEntryRow struct {
 	Member, Level string
+	// Partner is a synchro entry's partner, and Unconfirmed says they haven't
+	// confirmed the pair yet.
+	Partner     string
+	Unconfirmed bool
 	Status        string // "Not sent", "Sent", "Changed since sent", "Withdrawn"
 	State         State  // Status's state
 	Problems      int
@@ -123,6 +128,7 @@ type ClubEntryEdit struct {
 	Member      string
 	Competition CompetitionSummary
 	Card        *EntryCard // nil if they haven't entered
+	Partner     *PartnerView // a synchro entry's partner, and whether they've confirmed
 	Form        EntryForm
 	Menu        []MenuSection
 }
@@ -380,6 +386,12 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 								<tr { row.List.Attrs()... }>
 									<td>
 										{ row.Member }
+										if row.Partner != "" {
+											<span class="is-size-7 has-text-grey">and { row.Partner }</span>
+											if row.Unconfirmed {
+												@StateChip(InProgress, "Partner to confirm")
+											}
+										}
 										if row.Edit != "" {
 											<br/>
 											<a class="is-size-7" href={ templ.SafeURL(row.Edit) }>Change</a>
@@ -422,12 +434,16 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 										}
 										if row.Signoff.Status() != "" {
 											<br/>
-											<span title={ row.Signoff.Note }>
+											<span>
 												@StateChip(signoffState(row.Signoff))
 												if row.Signoff.By != "" {
 													@WhoLink(RoleCoach, row.Signoff.By, row.Signoff.Link)
 												}
 											</span>
+											if row.Signoff.Note != "" {
+												<br/>
+												<span class="is-size-7">Coach's note: { row.Signoff.Note }</span>
+											}
 										}
 										if row.Note != "" {
 											<br/>
@@ -783,9 +799,15 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 	@competitionLayout(e.Member + " · " + e.Competition.Name) {
 		@pageMenu(e.Menu)
 		<p class="mb-3"><a href={ templ.SafeURL(e.Back) }>← { e.Competition.Name }</a></p>
-		<h1 class="title is-4">{ e.Member }</h1>
+		<h1 class="title is-4">
+			{ e.Member }
+			if e.Partner != nil {
+				and { e.Partner.Name }
+			}
+		</h1>
 		if e.Card != nil {
 			<p class="subtitle is-6">{ e.Competition.Name } · { e.Card.Level }</p>
+			@partnerBox(e.Partner)
 			@entryCardChecks(*e.Card)
 			// Collapsed under the card, so the entry is what shows; open when a save had problems.
 			<div class="mt-4">
@@ -985,11 +1007,12 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 	}
 }
 
-// memberEventRow is the one line a discipline's entry takes in the list.
+// memberEventRow is the one line a discipline's entry takes in the list. A
+// synchro event's name says Synchro already: not twice.
 templ memberEventRow(ev MemberEvent) {
 	<strong>{ ev.Name }</strong>
 	if ev.Level != "" {
-		<span class="has-text-grey is-size-7">· { ev.Level }</span>
+		<span class="has-text-grey is-size-7">· { strings.TrimPrefix(ev.Level, ev.Name+" ") }</span>
 	}
 	@StateChip(ev.BriefState, ev.Brief)
 }
@@ -1028,7 +1051,7 @@ func skillsNow(open bool) string {
 	if open {
 		return "Every member sees everyone's skills"
 	}
-	return "Each member's are seen by them, their coaches and you"
+	return "Each member's skills are seen by them, their coaches and you"
 }
 
 // coachesSeeNow says which members coaches see, for Coaches.

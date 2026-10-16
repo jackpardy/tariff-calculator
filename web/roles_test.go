@@ -319,6 +319,14 @@ func TestIndividualPage(t *testing.T) {
 	if !strings.Contains(page, "Trampoline") || !strings.Contains(page, `action="`+first+`"`) || !strings.Contains(page, "Enter another discipline") {
 		t.Fatalf("a row per discipline: %s", page)
 	}
+	// Another discipline opens on one not entered, and a second trampoline
+	// entry is refused.
+	if !strings.Contains(page, `href="`+comp[1]+`/enter?discipline=tumbling"`) {
+		t.Error("Enter another discipline opens on one not entered")
+	}
+	if rec := do(t, h, http.MethodPost, comp[1]+"/enter", bucsEntry("Róisín O'Neill")); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "already entered Trampoline") {
+		t.Errorf("one entry a discipline: %d", rec.Code)
+	}
 	// Another discipline from their page, under the same link.
 	tumbling := url.Values{"gymnast": {"Róisín O'Neill"}, "discipline": {"tumbling"}, "level": {"Novice"}}
 	second := withoutQuery(redirected(t, h, comp[1]+"/enter", tumbling))

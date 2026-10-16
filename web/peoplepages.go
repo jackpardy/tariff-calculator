@@ -265,7 +265,7 @@ func (dp *dirPerson) does() string {
 	}
 	switch {
 	case len(dp.coachees) > 0:
-		parts = append(parts, fmt.Sprintf("coaches %d", len(dp.coachees)))
+		parts = append(parts, "coaches "+views.Count(len(dp.coachees), "gymnast", "gymnasts"))
 	case dp.coaches():
 		parts = append(parts, "coach")
 	}
@@ -289,7 +289,7 @@ func (p *competitionPages) people(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	base := adminPath(r.PathValue("token"))
-	page := views.PeoplePage{Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuPeople)}
+	page := views.PeoplePage{Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuPeople)}
 	var clubs []string
 	for _, dp := range dir.list {
 		clubs = append(clubs, dp.club)

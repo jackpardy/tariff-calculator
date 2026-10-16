@@ -3,7 +3,6 @@ package competitions
 import (
 	"errors"
 	"slices"
-	"strings"
 )
 
 // What if an official has to leave: from a time on a day (for the rest of
@@ -365,7 +364,7 @@ func (s Schedule) dutiesOn(key string, day int) int {
 // Describe says a step, e.g. "Mary moves from execution judge to chair of
 // judges", naming people with name.
 func (st SeatStep) Describe(name func(string) string) string {
-	to := strings.ToLower(RoleName(st.To))
+	to := RoleWord(st.To)
 	if st.On != "" {
 		to += " on " + st.On
 	}
@@ -373,7 +372,7 @@ func (st SeatStep) Describe(name func(string) string) string {
 	case st.From == "":
 		return name(st.Person) + " takes " + to
 	case st.Elsewhere != "":
-		return name(st.Person) + " moves from " + strings.ToLower(RoleName(st.From)) + " on " + st.Elsewhere + " to " + to
+		return name(st.Person) + " moves from " + RoleWord(st.From) + " on " + st.Elsewhere + " to " + to
 	}
-	return name(st.Person) + " moves from " + strings.ToLower(RoleName(st.From)) + " to " + to
+	return name(st.Person) + " moves from " + RoleWord(st.From) + " to " + to
 }

@@ -330,7 +330,8 @@ func TestBuildASetRoutineOnTheRequirementsPageInABrowser(t *testing.T) {
 	step(t, ctx, "the skill form loading",
 		chromedp.Poll(`!!document.getElementById('skill-search') && !!document.getElementById('add-btn')`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
 		chromedp.Evaluate(`document.querySelectorAll('.set-routine-maker .picker-tab').length`, &tabs),
-		chromedp.Text(`#add-btn`, &label, chromedp.ByQuery),
+		// textContent: innerText is "" for a moment while the form shows.
+		chromedp.Evaluate(`document.getElementById('add-btn').textContent.trim()`, &label),
 	)
 	// The search too is wired up just after the form is shown: it searches
 	// again until there are results.
@@ -338,8 +339,10 @@ func TestBuildASetRoutineOnTheRequirementsPageInABrowser(t *testing.T) {
 		chromedp.Evaluate(`Alpine.$data(document.querySelector('.set-routine-maker')).name = 'Club L1'`, nil),
 		chromedp.Poll(`(() => {
 			if (document.querySelector('#search-results .picker-skill')) { return true; }
+			// The search only runs when the text changes: each try differs by a
+			// space it ignores.
 			const i = document.getElementById('skill-search');
-			i.value = 'seat drop';
+			i.value = i.value === 'seat drop' ? 'seat drop ' : 'seat drop';
 			i.dispatchEvent(new Event('input', {bubbles: true}));
 			return false;
 		})()`, nil, chromedp.WithPollingInterval(500*time.Millisecond)),

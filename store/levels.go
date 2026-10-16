@@ -65,7 +65,9 @@ func (s *Store) SaveClubLevel(ctx context.Context, c Coach, source, name, set st
 	now := s.stamp()
 	err = s.tx(ctx, func(tx *sql.Tx) error {
 		if source != "" {
-			res, err := tx.ExecContext(ctx, `UPDATE club_levels SET name = $1, set_json = $2, by_name = $3, updated_at = $4 WHERE club_id = $5 AND source = $6`,
+			// The browser's id for the requirements, or the level's own id
+			// (opened from the level, in the Requirements page).
+			res, err := tx.ExecContext(ctx, `UPDATE club_levels SET name = $1, set_json = $2, by_name = $3, updated_at = $4 WHERE club_id = $5 AND (source = $6 OR id = $6)`,
 				name, set, c.Name, now, c.ClubID, source)
 			if err != nil {
 				return err

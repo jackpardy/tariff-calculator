@@ -48,7 +48,7 @@ func (p *competitionPages) settings(w http.ResponseWriter, r *http.Request) {
 	liveDate, liveTime := p.liveFields(c)
 	page := views.SettingsPage{
 		Base: adminPath(r.PathValue("token")), Notice: q.Get("notice"), New: q.Get("new"),
-		Menu: p.menuFor(r, c, menuSettings), Access: access(r), Competition: summary(c.Competition, p.now()),
+		Menu: p.menuFor(r, c, menuSettings), Access: access(r), Competition: summary(c, p.now()),
 		Links:        views.CompetitionLinks{Club: origin(r) + "/competitions/club/" + c.ClubLink, Individual: origin(r) + "/competitions/enter/" + c.IndividualLink},
 		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
 		ChangesDate: dateField(c.ChangesUntil, c.Deadline), ChangesTime: timeField(c.ChangesUntil, c.Deadline),

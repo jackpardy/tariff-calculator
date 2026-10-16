@@ -142,7 +142,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 									</ol>
 									<div id="skill-form-wrapper" class="mt-3" hx-post="/skill-form?compact=1" hx-trigger="load" hx-swap="innerHTML" x-init="htmx.process($el)"></div>
 									<div class="buttons mt-3">
-										<button class="button is-primary is-small" type="button" x-bind:disabled="skills.length === 0 || busy" x-on:click="save()">Save set routine</button>
+										<button class="button is-primary" type="button" x-bind:disabled="skills.length === 0 || busy" x-on:click="save()">Save set routine</button>
 									</div>
 								</div>
 							</template>
@@ -150,7 +150,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 								Or build it in the <a href="/">Routine Builder</a>, then choose
 								<strong>More → Save as a set routine</strong>.
 							</p>
-							<template x-if="routines.length > 0">
+							<template x-if="routines.some((r) => r.skills.length > 0)">
 								<div class="set-routine-from">
 									<span class="is-size-7">Or use a routine you've built:</span>
 									<div class="select is-small">
@@ -707,7 +707,11 @@ templ ruleBody(e *SetEditorData, i int, rule requirements.Rule, p, kind string) 
 			@matcherFields(e, p+"m.", rule.Match, "That skill must be")
 		case requirements.Sequence:
 			// A set routine is built in the Routine Builder, not written here.
-			<p class="matcher-hint mb-2">This is a set routine. Its elements are built in the Routine Builder: save these requirements, then use "Edit in the Routine Builder" under Your set routines.</p>
+			if e.Club != nil {
+				<p class="matcher-hint mb-2">A set routine: the gymnast does these elements, in order. To change them, build the routine in the Routine Builder and save it again (More → Save as a set routine).</p>
+			} else {
+				<p class="matcher-hint mb-2">This is a set routine. Its elements are built in the Routine Builder: save these requirements, then use "Edit in the Routine Builder" under Your set routines.</p>
+			}
 			<ol class="set-routine-elements">
 				for _, m := range rule.Sequence {
 					<li>{ requirements.DescribeMatcher(m) }</li>

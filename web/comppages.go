@@ -173,7 +173,8 @@ func timeField(t, deadline time.Time) string {
 }
 
 // summary is what the pages say about a competition.
-func summary(c competitions.Competition, now time.Time) views.CompetitionSummary {
+func summary(sc store.Competition, now time.Time) views.CompetitionSummary {
+	c := sc.Competition
 	out := views.CompetitionSummary{
 		Name: c.Name, Date: c.Date, Deadline: c.Deadline.In(local).Format("Monday 2 January 2006, 15:04"),
 		DeleteAfter: c.DeleteAfter().Format("2 January 2006"), Open: c.Open(now), Individuals: c.Individuals,
@@ -190,9 +191,25 @@ func summary(c competitions.Competition, now time.Time) views.CompetitionSummary
 		out.SignoffsUntil = c.SignoffsClose().In(local).Format("Monday 2 January 2006, 15:04")
 	}
 	if day, err := c.Day(); err == nil {
-		out.Date = day.Format("Monday 2 January 2006")
+		out.Date = dateRange(day, len(schedule(sc).Setup.Days))
 	}
 	return out
+}
+
+// dateRange is a competition's dates: its first day, or over several days
+// "Friday 26 – Sunday 28 February 2027".
+func dateRange(first time.Time, days int) string {
+	if days <= 1 {
+		return first.Format("Monday 2 January 2006")
+	}
+	last := first.AddDate(0, 0, days-1)
+	switch {
+	case first.Year() != last.Year():
+		return first.Format("Monday 2 January 2006") + " – " + last.Format("Monday 2 January 2006")
+	case first.Month() != last.Month():
+		return first.Format("Monday 2 January") + " – " + last.Format("Monday 2 January 2006")
+	}
+	return first.Format("Monday 2") + " – " + last.Format("Monday 2 January 2006")
 }
 
 // admin is the competition an admin link opens, or a page saying it doesn't.

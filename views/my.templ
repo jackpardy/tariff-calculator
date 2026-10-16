@@ -169,7 +169,13 @@ templ MyCompetition(p MyCompetitionPage) {
 					if ev.Scratched {
 						@StateChip(Stopped, "Scratched")
 					}
-					@StateChip(ev.StatusState, ev.Status)
+					if len(ev.Problems) > 0 && ev.Link != "" {
+						<a href={ templ.SafeURL(ev.Link + "#problems") } title="See the problems">
+							@StateChip(ev.StatusState, ev.Status)
+						</a>
+					} else {
+						@StateChip(ev.StatusState, ev.Status)
+					}
 				</p>
 				if ev.Coach != "" {
 					<p class="is-size-7">

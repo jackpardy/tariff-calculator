@@ -71,8 +71,9 @@ func askedLevels(c competitions.Competition) string {
 	return competitions.JoinList(asked)
 }
 
-// meets says, for each discipline asked about, whether the qualifications
-// (by key) meet its level, e.g. "Trampoline Level 2 ✓".
+// meets says, for each discipline asked about that the coach has a
+// qualification in, whether it meets the level, e.g. "Trampoline Level 2 ✓";
+// with none in any of them, each is a ✗.
 func meets(c competitions.Competition, keys []string) []string {
 	var quals []competitions.Qualification
 	for _, k := range keys {
@@ -81,7 +82,14 @@ func meets(c competitions.Competition, keys []string) []string {
 		}
 	}
 	var out []string
+	has := func(d string) bool {
+		return slices.ContainsFunc(quals, func(q competitions.Qualification) bool { return q.Meets(d, 0) })
+	}
+	coaches := slices.ContainsFunc(coachDisciplines(c), has)
 	for _, d := range coachDisciplines(c) {
+		if coaches && !has(d) {
+			continue // a discipline they don't coach
+		}
 		mark := " ✗"
 		if slices.ContainsFunc(quals, func(q competitions.Qualification) bool { return q.Meets(d, c.CoachLevel(d)) }) {
 			mark = " ✓"
@@ -137,7 +145,7 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	page := views.ApprovalsPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuCoaches), Notice: r.URL.Query().Get("notice"), Asked: askedLevels(c.Competition)}
+	page := views.ApprovalsPage{Base: base, Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuCoaches), Notice: r.URL.Query().Get("notice"), Asked: askedLevels(c.Competition)}
 	var clubs []string
 	for _, s := range sent {
 		row := views.ApprovalRow{ID: s.CoachID, Name: s.Name, Person: personPath(base, store.CoachKey(s.CoachID)), Action: base + "/coaches/" + s.CoachID, Status: coachStatus(s.Status), Approved: s.Approved(),

@@ -1,7 +1,8 @@
 // tables.js: wide tables on the competition pages.
 //
-// A table that scrolls sideways (in a .table-container) shows a line at the
-// edge where there's more to see, left or right, so it's plain there is.
+// A table that scrolls sideways (in a .table-container), or a row of tabs
+// wider than a phone, shows a line at the edge where there's more to see,
+// left or right, so it's plain there is.
 //
 // Tables marked data-table-view="<id>" (each level's entries, say, all with
 // the same columns) can be set up by whoever is looking, with the Columns
@@ -17,7 +18,7 @@
         box.classList.toggle('has-more-right', more && box.scrollLeft + box.clientWidth < box.scrollWidth - 1);
     }
     function watchEdges() {
-        document.querySelectorAll('.table-container').forEach((box) => {
+        document.querySelectorAll('.table-container, .tabs').forEach((box) => {
             if (!box.dataset.edges) {
                 box.dataset.edges = '';
                 box.addEventListener('scroll', () => edges(box), { passive: true });
@@ -159,6 +160,9 @@
     }
     // Levels open later: their tables' edges are measured then.
     document.addEventListener('toggle', (event) => { if (event.target.open) { watchEdges(); } }, true);
-    window.addEventListener('resize', () => { document.querySelectorAll('table[data-table-view]').forEach((t) => apply(t.dataset.tableView)); });
+    window.addEventListener('resize', () => {
+        document.querySelectorAll('table[data-table-view]').forEach((t) => apply(t.dataset.tableView));
+        watchEdges();
+    });
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
 })();

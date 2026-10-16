@@ -57,7 +57,7 @@ func (p *competitionPages) focusedTimeline(w http.ResponseWriter, r *http.Reques
 	name := f.name(false)
 	only := r.URL.Query().Get("only") == "1"
 	out := timeline(*t, name, false, &timelineFocus{mark: mark(f), only: only})
-	out.Competition, out.Back, out.BackLabel = summary(c.Competition, p.now()), back, "← Back"
+	out.Competition, out.Back, out.BackLabel = summary(c, p.now()), back, "← Back"
 	out.Other, out.OtherLabel = r.URL.Path+"?only=1", "Only these"
 	if only {
 		out.Other, out.OtherLabel = r.URL.Path, "Everything"

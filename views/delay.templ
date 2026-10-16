@@ -56,7 +56,7 @@ templ Delay(p DelayPage) {
 		<h1 class="title is-4">What if there's a delay?</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		@pageMenu(p.Menu)
-		<p class="mb-4">Say which areas are held up, from when and for how long. Their later flights shift back as little as they can (any slack takes some of it), around blocked time; a flight that would then run past the end of the day, or need someone in two places, moves to another area if one is free. Nothing is saved: the timetable stays as it is.</p>
+		<p class="mb-4">Say which areas are held up, from when and for how long. Their later flights shift back as little as they can (any slack takes some of it), around blocked time; a flight that would then run past the end of the day, or need someone in two places, moves to another area if one is free. Nothing changes until you choose <strong>Keep this in the draft timetable</strong>, and even then clubs see it only once you publish.</p>
 		@problemList(p.Problems)
 		<form method="get" action={ templ.SafeURL(p.Base + "/timetable/delay") } class="box">
 			<div class="comp-setup-row">

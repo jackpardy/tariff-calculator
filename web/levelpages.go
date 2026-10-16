@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -258,7 +259,7 @@ func (p *competitionPages) coachLevels(w http.ResponseWriter, r *http.Request) {
 				v.Rules = append(v.Rules, describeLevelRule(rule, own))
 			}
 			v.Edit, v.Copy = base+"/"+l.ID+"/edit", base+"/new?from="+l.ID
-			v.Open = requirementsLink(l.Set)
+			v.Open = requirementsLink(l.Set, cmp.Or(l.Source, l.ID))
 			v.Share = levelShareLink(r, l, own)
 		} else {
 			v.Broken = "Its requirements couldn't be read."
@@ -271,8 +272,10 @@ func (p *competitionPages) coachLevels(w http.ResponseWriter, r *http.Request) {
 // requirementsLink opens the Requirements page with requirements to add, as
 // a share link (static/js/share.js) does, so they can be edited and saved to
 // the club again.
-func requirementsLink(set string) string {
-	data, err := json.Marshal(map[string]any{"v": 1, "sets": []json.RawMessage{json.RawMessage(set)}})
+func requirementsLink(set, id string) string {
+	// The id goes with it, so Save to club levels there changes this level
+	// rather than adding another (store.SaveClubLevel).
+	data, err := json.Marshal(map[string]any{"v": 1, "sets": []json.RawMessage{json.RawMessage(set)}, "ids": []string{id}})
 	if err != nil {
 		return ""
 	}

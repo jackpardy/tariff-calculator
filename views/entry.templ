@@ -215,7 +215,7 @@ templ entryForm(f EntryForm) {
 			</div>
 		}
 		if f.Unchecked {
-			<p class="help mb-3">Tumbling and DMT entries are a level only: their passes aren't checked yet.</p>
+			<p class="help mb-3">Tumbling and DMT entries are a level only, for now.</p>
 		}
 		<div class="field">
 			<label class="label" for={ "entry-level" + f.Key }>Level</label>
@@ -304,6 +304,8 @@ templ entryExercise(n int, ex EntryExercise, f EntryForm) {
 			</div>
 			if len(f.Kept) > 0 {
 				<p class="help">{ "One kept on " + f.KeptOn + ", or saved in this browser." }</p>
+			} else if f.KeptOn != "" {
+				<p class="help">{ "None kept on " + f.KeptOn + " yet: one saved in this browser, built in the Routine Builder." }</p>
 			} else {
 				<p class="help">One of the routines saved in this browser. Build it in the Routine Builder first.</p>
 			}
@@ -393,7 +395,7 @@ templ entryBody(p EntryPage) {
 		<div class="mt-4">
 			// Open until a coach signs it off: until then, sending it is what's left to do.
 			@opens("Sign-off link for your coach", "This competition needs a coach's sign-off. Send it to your coach: they see your entry and sign it off.", "Show", !p.Card.Signoff.Signed) {
-				@linkBox("Sign-off link for your coach", p.SignoffLink, "")
+				@linkBox("The link", p.SignoffLink, "")
 			}
 		</div>
 	}
