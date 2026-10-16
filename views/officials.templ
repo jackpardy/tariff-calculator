@@ -280,7 +280,8 @@ templ CompetitionOfficials(p OfficialsPage) {
 									<td>
 										<a href={ templ.SafeURL(o.Person) }>{ o.Name }</a>
 										// Sent by their club, as most are, needs no chip: their club is beside it.
-										if o.Who != RoleClub {
+										// Only how they came differently shows: added by you, or on their own.
+										if o.Who != RoleClub && o.Source != "sent by their club" {
 											@WhoChip(o.Who, o.Source)
 										}
 									</td>

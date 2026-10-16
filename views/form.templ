@@ -59,6 +59,8 @@ templ picker(cats []catalog.Category) {
 	<div class="picker">
 		<label class="label" for="skill-search">Choose a skill</label>
 		// Search by name or FIG notation; while there's a query, its results replace the tabs.
+		// Enter searches at once and picks the first result of what's typed now, not of the
+		// last search to come back (the typing waits 200 ms before it searches).
 		<input
 			class="input"
 			type="search"
@@ -71,7 +73,7 @@ templ picker(cats []catalog.Category) {
 			hx-trigger="input changed delay:200ms, search"
 			hx-target="#search-results"
 			hx-sync="this:replace"
-			x-on:keydown.enter.prevent="document.querySelector('#search-results .picker-skill')?.click()"
+			x-on:keydown.enter.prevent="htmx.ajax('GET', '/skill-search?q=' + encodeURIComponent($el.value), { target: '#search-results', swap: 'innerHTML' }).then(() => document.querySelector('#search-results .picker-skill')?.click())"
 		/>
 		<div id="search-results" class="picker-results" x-show="query.trim() !== ''" x-cloak></div>
 		<div class="picker-tabs" role="tablist" aria-label="Skill categories" x-show="query.trim() === ''">

@@ -22,13 +22,14 @@ func TestManualChangeAsksFirst(t *testing.T) {
 	page := do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
 	flight := regexp.MustCompile(`name="flight" value="(\d+)"`).FindStringSubmatch(page)[1]
 
-	// To Panel 2 breaks the (prefer) rule: asked, with Panel 1 offered.
+	// To Panel 2 breaks the (prefer) rule: asked. Where it is now, Panel 1,
+	// isn't offered as a fix: that's no move.
 	move := url.Values{"flight": {flight}, "action": {"move"}, "to": {"0:Panel 2"}}
 	rec := do(t, h, http.MethodPost, tt+"/flight", move)
 	ask := rec.Body.String()
 	if rec.Code != http.StatusOK || !strings.Contains(ask, "Before you change it") || !strings.Contains(ask, "Move BUCS L3 to") ||
-		!strings.Contains(ask, "Breaks the rule: BUCS L3 on Panel 1 (prefer)") || !strings.Contains(ask, "Move it to") || !strings.Contains(ask, `value="0:Panel 1"`) {
-		t.Fatalf("asked first, with a fix: %d %s", rec.Code, ask)
+		!strings.Contains(ask, "Breaks the rule: BUCS L3 on Panel 1 (prefer)") || strings.Contains(ask, `value="0:Panel 1"`) {
+		t.Fatalf("asked first, not offering where it is: %d %s", rec.Code, ask)
 	}
 	if strings.Contains(do(t, h, http.MethodGet, tt, nil).Body.String(), "Changes not published") {
 		t.Error("nothing changed yet")

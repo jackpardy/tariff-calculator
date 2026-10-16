@@ -64,6 +64,7 @@ type keptItem struct {
 	Kind      string          `json:"kind"`
 	Data      json.RawMessage `json:"data"`
 	Described []string        `json:"described,omitempty"`
+	InLevel   bool            `json:"inLevel,omitempty"` // a set written for a level only
 }
 
 // keptJSON is the person's kept requirements, for the browser:
@@ -80,7 +81,7 @@ func (p *competitionPages) keptJSON(w http.ResponseWriter, r *http.Request) {
 	}
 	out := map[string][]keptItem{"sets": {}, "levels": {}}
 	for _, k := range kept {
-		item := keptItem{ID: k.Source, Kind: k.Kind, Data: json.RawMessage(k.Data)}
+		item := keptItem{ID: k.Source, Kind: k.Kind, Data: json.RawMessage(k.Data), InLevel: k.InLevel}
 		if k.Kind == store.KeptSet {
 			item.Described = describedSet(k.Data)
 			out["sets"] = append(out["sets"], item)
@@ -141,7 +142,7 @@ func (p *competitionPages) keepRequirements(w http.ResponseWriter, r *http.Reque
 			refused = append(refused, "one without a name")
 			continue
 		}
-		isNew, err := p.st.KeepRequirements(r.Context(), person, it.Kind, it.ID, named.Name, string(it.Data))
+		isNew, err := p.st.KeepRequirementsIn(r.Context(), person, it.Kind, it.ID, named.Name, string(it.Data), it.InLevel)
 		switch {
 		case errors.Is(err, store.ErrLimit):
 			refused = append(refused, fmt.Sprintf("%s (you keep %d already, the most there's room for)", named.Name, store.MaxKept))

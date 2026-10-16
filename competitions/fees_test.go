@@ -15,7 +15,10 @@ func TestFees(t *testing.T) {
 			t.Errorf("%q: %d %v", in, got, err)
 		}
 	}
-	for _, bad := range []string{"-1", "abc", "5000"} {
+	if got, err := ParsePayment("1500"); err != nil || got != 150000 {
+		t.Errorf("a payment over one fee's most: %d %v", got, err)
+	}
+	for _, bad := range []string{"-1", "abc", "5000", "1,000", "1.000"} {
 		if _, err := ParseMoney(bad); err == nil {
 			t.Errorf("%q should be refused", bad)
 		}

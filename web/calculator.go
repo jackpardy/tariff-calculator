@@ -63,6 +63,11 @@ func routesWithPages(pages *competitionPages) http.Handler {
 	mux.HandleFunc("POST /tariff-sheet", handleTariffSheet)
 	mux.HandleFunc("GET /sw.js", handleServiceWorker)
 	mux.HandleFunc("GET /manifest.webmanifest", handleManifest)
+	// No icon of its own yet: say so, rather than a 404 logged on every page.
+	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		w.WriteHeader(http.StatusNoContent)
+	})
 	pages.register(mux)
 
 	return withGzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -164,6 +164,15 @@ func (p *competitionPages) letIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	on := r.FormValue("on") != "0"
+	e, err := p.st.CompetitionEntry(r.Context(), c.ID, r.PathValue("id"))
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if e.LetIn == on { // let in already, or never was: nothing to do (nor to record)
+		backToDashboard(w, r, "It's like that already; nothing was changed.")
+		return
+	}
 	p.notify.changing(r.Context(), c)
 	if err := p.st.LetIn(r.Context(), c.ID, r.PathValue("id"), on); err != nil {
 		failed(w, r, err)

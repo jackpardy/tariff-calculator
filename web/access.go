@@ -249,7 +249,7 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 			who = a.name
 		}
 		amount := f("amount")
-		if cents, err := competitions.ParseMoney(amount); err == nil {
+		if cents, err := competitions.ParsePayment(amount); err == nil {
 			amount = c.Fees.Money(cents)
 		}
 		if f("refund") == "1" {
@@ -474,7 +474,7 @@ func (p *competitionPages) flagConcern(w http.ResponseWriter, r *http.Request) {
 		back = adminPath(r.PathValue("token")) + "/entries/" + entryID + "#entry-notice"
 	}
 	if text == "" {
-		seeOther(w, r, back, "Say what the concern is.")
+		seeOther(w, r, back, "Say what the concern is; nothing was changed.")
 		return
 	}
 	if _, err := p.st.FlagConcern(r.Context(), c.ID, entryID, linkOf(r).Name, text); err != nil {
@@ -490,7 +490,14 @@ func (p *competitionPages) resolveConcern(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	if err := p.st.ResolveConcern(r.Context(), c.ID, r.PathValue("id"), linkOf(r).Name, limitNote(strings.TrimSpace(r.FormValue("note")))); err != nil && err != store.ErrNotFound {
+	err := p.st.ResolveConcern(r.Context(), c.ID, r.PathValue("id"), linkOf(r).Name, limitNote(strings.TrimSpace(r.FormValue("note"))))
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		// Resolved already (from another page or link), or not there: say so,
+		// so the history doesn't record it again.
+		seeOther(w, r, adminPath(r.PathValue("token"))+"#concerns", "That concern was resolved already; nothing was changed.")
+		return
+	case err != nil:
 		failed(w, r, err)
 		return
 	}

@@ -347,6 +347,12 @@ func TestSending(t *testing.T) {
 	if mine, _ := s.MemberEntries(ctx, a.ID); len(mine) != 1 || mine[0].ChangedSinceSent() {
 		t.Errorf("A's entry is up to date: %+v", mine)
 	}
+	// Saved again as it was: still up to date, nothing to send.
+	now = now.Add(time.Hour)
+	must(t, s.SaveMemberEntry(ctx, a.ID, c.ID, changed))
+	if mine, _ := s.MemberEntries(ctx, a.ID); len(mine) != 1 || mine[0].ChangedSinceSent() {
+		t.Errorf("an unchanged save isn't a change: %+v", mine)
+	}
 
 	// B withdraws; sending everyone's takes B's entry back.
 	must(t, s.WithdrawMemberEntry(ctx, b.ID, c.ID, ""))

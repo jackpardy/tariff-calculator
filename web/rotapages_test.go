@@ -146,7 +146,7 @@ func TestOfficialsRota(t *testing.T) {
 		t.Fatal("Dara's page links to her panels' score sheets")
 	}
 	sheets := do(t, h, http.MethodGet, dara+"/score-sheets", nil).Body.String()
-	if !strings.Contains(sheets, "<h1 class=\"title is-5 mb-1\">BUCS L3") || strings.Contains(sheets, "Tumbling Novice</h1>") || !strings.Contains(sheets, "you don&#39;t need to") && !strings.Contains(sheets, "you don't need to") {
+	if !strings.Contains(sheets, "<h1 class=\"title is-5 mb-1 comp-score-heading\">BUCS L3") || strings.Contains(sheets, ">Tumbling Novice") || !strings.Contains(sheets, "you don&#39;t need to") && !strings.Contains(sheets, "you don't need to") {
 		t.Errorf("BUCS L3's sheet, not tumbling's: %s", sheets)
 	}
 	// They go back to My competition, as a member's do.

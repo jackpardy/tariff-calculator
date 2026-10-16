@@ -827,9 +827,10 @@
 
     // openToAnchor opens the folded lists (details) that hold the element
     // the address's #anchor names, and scrolls it into view: a skill marked
-    // in a folded list comes back to it, open.
+    // in a folded list comes back to it, open, and a routine a coach marked
+    // a skill on (#routine-…) is open again for the next.
     function openToAnchor() {
-        if (!location.hash.startsWith('#mark-')) { return; }
+        if (!location.hash.startsWith('#mark-') && !location.hash.startsWith('#routine-')) { return; }
         const target = document.getElementById(location.hash.slice(1));
         if (!target) { return; }
         for (let d = target.closest('details'); d; d = d.parentElement.closest('details')) { d.open = true; }

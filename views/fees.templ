@@ -43,6 +43,7 @@ type AccountView struct {
 // PaymentView is a payment recorded.
 type PaymentView struct {
 	ID, Amount, Note, At, Who string
+	Refund                    bool // money paid back to them: Amount is what was refunded, without a sign
 }
 
 // FeesAdmin is the organiser's fees page.
@@ -238,12 +239,22 @@ templ invoiceTable(p InvoicePage) {
 			for _, pay := range p.Payments {
 				<tr>
 					<td>
-						Paid { pay.At }
+						if pay.Refund {
+							Refunded { pay.At }
+						} else {
+							Paid { pay.At }
+						}
 						if pay.Note != "" {
 							· { pay.Note }
 						}
 					</td>
-					<td class="has-text-right comp-nowrap">−{ pay.Amount }</td>
+					<td class="has-text-right comp-nowrap">
+						if pay.Refund {
+							+{ pay.Amount }
+						} else {
+							−{ pay.Amount }
+						}
+					</td>
 				</tr>
 			}
 			<tr>

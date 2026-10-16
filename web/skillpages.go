@@ -371,6 +371,9 @@ func skillName(s skills.TrampolineSkill) string {
 // skillNameBeside is skillName where the notation shows beside it, so it
 // isn't said twice: "Skill: from back, forward".
 func skillNameBeside(s skills.TrampolineSkill) string {
+	if s.FIGNotation() == "" {
+		return skillName(s) // a seat drop: nothing to take out ("SeatDrop" otherwise)
+	}
 	return strings.Replace(skillName(s), " "+s.FIGNotation(), "", 1)
 }
 

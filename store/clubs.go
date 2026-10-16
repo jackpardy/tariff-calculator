@@ -385,7 +385,9 @@ func (s *Store) SaveMemberEntry(ctx context.Context, memberID, competitionID str
 		now := s.stamp()
 		if _, err := tx.ExecContext(ctx, `INSERT INTO member_entries (member_id, competition_id, discipline, entry, updated_at, partner_token, partner_hash)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
-			ON CONFLICT (member_id, competition_id, discipline) DO UPDATE SET entry = excluded.entry, updated_at = excluded.updated_at,
+			ON CONFLICT (member_id, competition_id, discipline) DO UPDATE SET entry = excluded.entry,
+				updated_at = CASE WHEN member_entries.entry = excluded.entry AND member_entries.partner_token = excluded.partner_token
+					THEN member_entries.updated_at ELSE excluded.updated_at END, -- saved as it was: not "changed since sent"
 				signed_at = CASE WHEN member_entries.entry = excluded.entry THEN member_entries.signed_at ELSE NULL END,
 				signed_by = CASE WHEN member_entries.entry = excluded.entry THEN member_entries.signed_by ELSE '' END,
 				sign_note = CASE WHEN member_entries.entry = excluded.entry THEN member_entries.sign_note ELSE '' END,

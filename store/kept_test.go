@@ -33,8 +33,14 @@ func TestKeptRequirements(t *testing.T) {
 	must(t, err)
 	kept, err := s.KeptRequirements(ctx, person)
 	must(t, err)
-	if len(kept) != 2 || kept[0].Kind != KeptSet || kept[0].Name != "Grade 1 (2027)" || kept[1].Kind != KeptLevel {
+	if len(kept) != 2 || kept[0].Kind != KeptSet || kept[0].Name != "Grade 1 (2027)" || kept[1].Kind != KeptLevel || kept[0].InLevel {
 		t.Errorf("kept: %+v", kept)
+	}
+	// A set written for a level only says so, for another device.
+	_, err = s.KeepRequirementsIn(ctx, person, KeptSet, "set-a", "Grade 1 (2027)", `{"format":1,"name":"Grade 1 (2027)","rules":[]}`, true)
+	must(t, err)
+	if kept, _ := s.KeptRequirements(ctx, person); !kept[0].InLevel {
+		t.Error("kept as the level's own")
 	}
 
 	if _, err := s.KeepRequirements(ctx, person, KeptSet, "big", "Big", strings.Repeat("x", MaxKeptBytes+1)); !errors.Is(err, ErrTooBig) {

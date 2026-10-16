@@ -299,7 +299,7 @@ templ TimelinePrint(t Timeline) {
 			}
 			<div class="comp-tl-sheets">
 				for _, sh := range t.Sheets {
-					<div class="comp-tl-sheet" style={ fmt.Sprintf("grid-template-columns: %s; grid-template-rows: %s; --tl-areas: %d", sh.Columns, t.rows(sh), len(sh.Areas)) }>
+					<div class="comp-tl-sheet" data-day={ sh.Day } style={ fmt.Sprintf("grid-template-columns: %s; grid-template-rows: %s; --tl-areas: %d", sh.Columns, t.rows(sh), len(sh.Areas)) }>
 						<div class="comp-tl-head comp-tl-timehead" style={ gridAt(1, t.Header, 1, 1) }>Time</div>
 						<div class="comp-tl-head comp-tl-day" style={ fmt.Sprintf("grid-row: 1; grid-column: 2 / -1") }>{ sh.Title }</div>
 						for _, a := range sh.Areas {
@@ -345,11 +345,18 @@ templ TimelinePrint(t Timeline) {
 			</div>
 		</section>
 		// A focused timeline opens on the first of what's picked out, not on
-		// the first day's first hour, where there may be nothing of theirs.
+		// the first day's first hour, where there may be nothing of theirs:
+		// the earliest by day, then by time (its row), not the first in the
+		// page, which goes area by area.
 		<script>
 			(() => {
-				const mine = document.querySelector('.comp-tl-mine');
-				if (mine) { mine.scrollIntoView({ block: 'center', inline: 'center' }); }
+				const sheets = [...document.querySelectorAll('.comp-tl-sheet')];
+				const days = [...new Set(sheets.map((s) => s.dataset.day))];
+				const mine = sheets.flatMap((s) => [...s.querySelectorAll('.comp-tl-mine')].map((c) => ({
+					c, day: days.indexOf(s.dataset.day), row: parseInt(getComputedStyle(c).gridRowStart, 10) || 0,
+				})));
+				mine.sort((a, b) => a.day - b.day || a.row - b.row);
+				if (mine.length) { mine[0].c.scrollIntoView({ block: 'center', inline: 'center' }); }
 			})();
 		</script>
 	}
@@ -422,7 +429,7 @@ templ ScorePrint(s ScoreSheets) {
 		}
 		for _, f := range s.Flights {
 			<section class="comp-sheet">
-				<h1 class="title is-5 mb-1">{ f.Name }</h1>
+				<h1 class="title is-5 mb-1 comp-score-heading">{ f.Name }</h1>
 				<p class="mb-1">{ s.Competition.Name } · { f.Area } · { f.Day } · warm-up { f.Start } · Recorder's score sheet</p>
 				if len(f.Seats) > 0 {
 					<p class="is-size-7 mb-2">{ panelLine(f.Seats) }</p>
@@ -430,6 +437,11 @@ templ ScorePrint(s ScoreSheets) {
 				<div class="table-container">
 				<table class="table is-fullwidth is-bordered comp-score-table">
 					<thead>
+						// Printed, the flight's name heads the table, so a flight running onto a
+						// second page says whose it is there too (a table's head repeats).
+						<tr class="comp-score-flight">
+							<th colspan={ strconv.Itoa(5 + 2*len(f.Marks)) }>{ f.Name } · { f.Area }</th>
+						</tr>
 						<tr>
 							<th rowspan="2">#</th>
 							<th rowspan="2">Gymnast</th>

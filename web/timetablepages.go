@@ -392,10 +392,12 @@ func (p *competitionPages) editFlight(w http.ResponseWriter, r *http.Request) {
 		what := "Move " + draft.Flights[flight].Group() + " to " + placeName(draft, r.FormValue("to"))
 		if p.askFirst(w, r, c, draft, f, what, apply, func(clean func(func(*competitions.Schedule) bool) bool) []views.ChangeFix {
 			var fixes []views.ChangeFix
+			now := draft.Flights[flight]
 			for d := range draft.Setup.Days {
 				for _, a := range draft.Setup.Areas {
 					to := fmt.Sprintf("%d:%s", d, a.Name)
-					if len(fixes) == maxFixes || to == r.FormValue("to") {
+					// Not the place asked for, nor where it is now: that's no move.
+					if len(fixes) == maxFixes || to == r.FormValue("to") || d == now.Day && a.Name == now.Area {
 						continue
 					}
 					if clean(func(t *competitions.Schedule) bool { return t.MoveFlight(flight, d, a.Name) }) {

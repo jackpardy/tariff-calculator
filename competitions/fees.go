@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -64,21 +65,37 @@ func (f Fees) Money(cents int) string {
 	return fmt.Sprintf("%s%s%s.%02d", sign, symbol, whole, cents%100)
 }
 
+// thousands is an amount whose separator is followed by three digits.
+var thousands = regexp.MustCompile(`[.,]\d{3}$`)
+
+// MaxPayment is the most one payment can be, in cents: a club's whole bill,
+// not one fee.
+const MaxPayment = 10000000
+
 // ParseMoney reads an amount as typed, e.g. "12", "12.5" or "€12.50", in
-// cents; "" is 0.
-func ParseMoney(s string) (int, error) {
+// cents; "" is 0. It's a fee: at most MaxFee.
+func ParseMoney(s string) (int, error) { return parseAmount(s, MaxFee) }
+
+// ParsePayment is ParseMoney for a payment, up to MaxPayment.
+func ParsePayment(s string) (int, error) { return parseAmount(s, MaxPayment) }
+
+func parseAmount(s string, most int) (int, error) {
 	s = strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(s), "€£"))
 	if s == "" {
 		return 0, nil
+	}
+	// "1,000" or "1.000" may be a thousand or one: ask, rather than take €1.
+	if thousands.MatchString(s) {
+		return 0, errors.New("write an amount without a thousands separator, like 1000 or 12.50")
 	}
 	v, err := strconv.ParseFloat(strings.ReplaceAll(s, ",", "."), 64)
 	if err != nil || v < 0 || math.IsInf(v, 0) || math.IsNaN(v) {
 		return 0, errors.New("an amount should be a number, like 12 or 12.50")
 	}
-	cents := int(math.Round(v * 100))
-	if cents > MaxFee {
-		return 0, fmt.Errorf("an amount can be at most %d", MaxFee/100)
+	if v > float64(most)/100 {
+		return 0, fmt.Errorf("an amount can be at most %d", most/100)
 	}
+	cents := int(math.Round(v * 100))
 	return cents, nil
 }
 
