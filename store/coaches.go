@@ -265,9 +265,8 @@ func (s *Store) AddQualification(ctx context.Context, clubID, coachID, qualifica
 		if n >= MaxQualifications {
 			return ErrLimit
 		}
-		var used int64
-		if err := tx.QueryRowContext(ctx, `SELECT COALESCE(SUM(length(q.certificate)), 0) FROM coach_qualifications q
-			JOIN coaches c ON c.id = q.coach_id WHERE c.club_id = $1`, clubID).Scan(&used); err != nil {
+		used, err := clubCertificateBytes(ctx, tx, clubID)
+		if err != nil {
 			return err
 		}
 		if err := s.roomFor(certificate, used, MaxClubCertificateBytes); err != nil {

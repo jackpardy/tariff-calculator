@@ -615,6 +615,17 @@ is open, so ticking someone qualified keeps the list as it was
   individual offers on their entry, one offer for the competition: made on
   any of their entries there (for the same gymnast), it's the same on each
   (`store.sameGymnast`), and withdrawing one entry moves it to another.
+- **Judging qualifications** ([ADR 0014](../../docs/adr/0014-judges-qualifications.md)):
+  beside the offer, **Your judging qualifications** lists a judge's, each
+  with its certificate, with **Add a judging qualification** (one from the
+  built-in list, `competitions.JudgeQualifications`, and a photo or PDF,
+  as a coach's) and Remove. A member's are kept with them at the club
+  (`judge_qualifications.member_id`; the comp sec can add them too, on the
+  member's offer), an individual's with their entry. On **Officials** each
+  official shows theirs, the certificates opening for the organiser and the
+  timetable link; where only those marked qualified judge, someone offering
+  to judge a discipline with no qualification in it is flagged ("No judging
+  qualification for Tumbling"), and the judge sees whether they're approved.
 - **People the organiser adds:** judges or helpers who aren't entering, with
   or without a club.
 - **Panels:** each discipline's starts as the FIG Code of Points' (a Chair of

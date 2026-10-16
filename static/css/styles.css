@@ -822,10 +822,11 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 /* --- Officials (views/officials.templ) --- */
 /* Judging and helping: the discipline, its level and "can chair" line up
    down the rows (a grid), and stay on one line at phone width. */
-.comp-offer-row { display: grid; grid-template-columns: minmax(9rem, max-content) auto auto; justify-content: start; align-items: center; gap: 0.4rem 0.8rem; }
+.comp-offer-row { display: grid; grid-template-columns: 11.5rem auto auto; justify-content: start; align-items: center; gap: 0.4rem 0.8rem; }
+.comp-offer-row > .select { justify-self: start; }
 .comp-offer .checkbox input { margin-right: 0.3rem; }
 @media screen and (max-width: 480px) {
-  .comp-offer-row { grid-template-columns: 1fr auto; }
+  .comp-offer-row { grid-template-columns: auto auto; }
   .comp-offer-row > .checkbox:first-child { grid-column: 1 / -1; }
 }
 .comp-num { width: 4.5rem; }
@@ -1355,3 +1356,11 @@ form:has(input[name="to"][value="people"]:not(:checked)) .desk-to-people { displ
   table.comp-entries.comp-stack > tbody > tr > td[data-label]::before { font-weight: 500; color: #7a7a7a; }
   table.comp-entries.comp-stack > tbody > tr > td:has(> .comp-none:only-child) { display: none; }
 }
+
+/* A judge's qualifications: Add opens its form below, a dropdown of its
+   own (not nested in the offer's open box, whose styles it would take). */
+.comp-judging-add > summary { list-style: none; }
+.comp-judging-add > summary::-webkit-details-marker { display: none; }
+.comp-judging-add[open] > .comp-opens-button::after { transform: translateY(0.1em) rotate(-135deg); }
+.comp-opens[open] .comp-judging-add:not([open]) > .comp-opens-button::after { transform: translateY(-0.15em) rotate(45deg); }
+.comp-judging-add > form { margin-top: 0.5rem; }

@@ -15,6 +15,26 @@ type OfferForm struct {
 	Summary     string // what they offer now, "" for nothing
 	Note        string // e.g. that an individual's offer is the same on each of their entries
 	Problems    []string
+	Judging     *JudgingBox // their judging qualifications, with adding them; nil where there's nowhere to keep them
+}
+
+// JudgingBox is a judge's qualifications (ADR 0014), each with its
+// certificate, and how to add and remove them.
+type JudgingBox struct {
+	Whose   string // "Your", or the member's name and "'s"
+	List    []JudgingRow
+	Add     string // where adding posts (an upload)
+	Back    string // the page to come back to
+	Options []FlightOption
+	Full    bool   // as many as a judge can have
+	Status  string // the organiser's approval, where the competition approves judges
+	Done    bool   // approved
+	Kept    string // where they're kept and who sees them, a sentence
+}
+
+// JudgingRow is one judging qualification.
+type JudgingRow struct {
+	Name, Certificate, Remove string
 }
 
 // OfferDiscipline is judging one discipline: whether, up to which level, and
@@ -64,6 +84,57 @@ templ offerForm(f OfferForm) {
 			The organiser puts officials on panels around their own turns. Untick everything to offer nothing.
 		</p>
 	</form>
+	if f.Judging != nil {
+		@judgingBox(*f.Judging)
+	}
+}
+
+// judgingBox lists a judge's qualifications with their certificates, and
+// adds one (an upload, its own form, outside the offer's).
+templ judgingBox(b JudgingBox) {
+	<div class="mt-4" id="judging">
+		<p class="label is-small mb-1">{ b.Whose } judging qualifications</p>
+		if b.Status != "" {
+			<p class="mb-2">
+				if b.Done {
+					@StateChip(Done, b.Status)
+				} else {
+					@StateChip(InProgress, b.Status)
+				}
+			</p>
+		}
+		if len(b.List) == 0 {
+			<p class="is-size-7 has-text-grey mb-2">None added. An organiser may ask for them before you judge.</p>
+		}
+		for _, q := range b.List {
+			<div class="comp-qualification">
+				<span>{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a></span>
+				<form method="post" action={ templ.SafeURL(q.Remove) } class="is-inline">
+					<input type="hidden" name="back" value={ b.Back }/>
+					<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+				</form>
+			</div>
+		}
+		if !b.Full {
+			<details class="comp-judging-add mt-2">
+				<summary class="button is-small comp-opens-button">Add a judging qualification</summary>
+				<form method="post" action={ templ.SafeURL(b.Add) } enctype="multipart/form-data" class="comp-flight-actions">
+					<input type="hidden" name="back" value={ b.Back }/>
+					<div class="select is-small">
+						<select name="qualification" required aria-label="Judging qualification">
+							<option value="">Choose the qualification</option>
+							for _, o := range b.Options {
+								<option value={ o.Value }>{ o.Label }</option>
+							}
+						</select>
+					</div>
+					<input class="input is-small comp-file" type="file" name="certificate" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label="Its certificate"/>
+					<button class="button is-small is-primary" type="submit">Add</button>
+				</form>
+				<p class="help">A photo or PDF of its certificate, up to 3 MB. { b.Kept }</p>
+			</details>
+		}
+	</div>
 }
 
 // offerBox is what someone offers, with the form to change it, collapsed.
@@ -121,6 +192,8 @@ type OfficialRow struct {
 	ID, Name, Club, Source, Offer string
 	Person                        string // their page
 	Qualified, Added              bool
+	Judging                       []JudgingRow // their judging qualifications, each with its certificate (ADR 0014)
+	Unqualified                   []string     // disciplines they offer to judge with no qualification in, by name
 	Who                           Role    // who they are on a seat: a gymnast, a club's judge or the organiser's own
 	List                          ListRow // what the People list's search and filters see
 }
@@ -212,7 +285,18 @@ templ CompetitionOfficials(p OfficialsPage) {
 										}
 									</td>
 									<td data-label="Club">{ o.Club }</td>
-									<td class="comp-wrap" data-label="Can do">{ o.Offer }</td>
+									<td class="comp-wrap" data-label="Can do">
+										{ o.Offer }
+										// What they've shown they're qualified to judge, to look at before ticking Qualified.
+										for _, q := range o.Judging {
+											<span class="is-block is-size-7">{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a></span>
+										}
+										if len(o.Unqualified) > 0 {
+											<span class="is-block">
+												@StateChip(Attention, "No judging qualification for "+strings.Join(o.Unqualified, " or "))
+											</span>
+										}
+									</td>
 									<td data-label="Qualified">
 										<form method="post" action={ templ.SafeURL(p.Base + "/officials/" + o.ID + "/qualified") }>
 											<input type="hidden" name="on" value={ boolValue(!o.Qualified) }/>

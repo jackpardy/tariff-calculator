@@ -610,7 +610,7 @@ builds on copying last year's.
 
 Then, by when ISTO needs them: link the calculator (before entries open),
 the "what ifs'" missing checks (8, built 2026-10-16) and saying what a manual change breaks
-(9, built 2026-10-16), judges' qualifications, and details like better defaults (14);
+(9, built 2026-10-16), judges' qualifications (built 2026-10-16), and details like better defaults (14);
 splitting an event by routine (10) if ISTO's timetable needs it. A dry run of the core tools in late 2026 (above), a full rehearsal of the day in March, and nothing but fixes in the last two weeks.
 After ISTO: copying last year's competition, results history, the club
 tools and the possible additions.
@@ -815,7 +815,10 @@ Notifications (7) are built; numbers 1–7 below are built.
   - **Entry fees**: each club marked paid or not, with an invoice per club
     to print. No money is handled.
   - **Limits per level, with a waiting list.**
-  - **Judges' qualifications**, approved like coaches'.
+  - **Judges' qualifications**, approved like coaches'. *Built 2026-10-16*
+    ([ADR 0014](../docs/adr/0014-judges-qualifications.md)): judges add
+    theirs with certificates beside their offer; the organiser sees them on
+    Officials before ticking Qualified.
 - **For attendees:**
   - **Add to calendar**: a person's or club's flights and duties as a
     calendar link that updates when the timetable is published again
