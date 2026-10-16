@@ -610,7 +610,7 @@ builds on copying last year's.
 
 Then, by when ISTO needs them: link the calculator (before entries open),
 the "what ifs'" missing checks (8, built 2026-10-16) and saying what a manual change breaks
-(9, built 2026-10-16), judges' qualifications, and details like better defaults (14);
+(9, built 2026-10-16), judges' qualifications (built 2026-10-16), and details like better defaults (14);
 splitting an event by routine (10) if ISTO's timetable needs it. A dry run of the core tools in late 2026 (above), a full rehearsal of the day in March, and nothing but fixes in the last two weeks.
 After ISTO: copying last year's competition, results history, the club
 tools and the possible additions.
