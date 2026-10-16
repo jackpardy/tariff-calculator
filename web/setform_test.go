@@ -413,3 +413,43 @@ func TestSetEditorPicks(t *testing.T) {
 		t.Error("the barani first doesn't")
 	}
 }
+
+// Skills that count can be several, not fitting one description: "+ Or
+// another skill" adds one under the first, picked as the first is, and
+// Remove takes it off again; each is kept through every redraw.
+func TestSetEditorAlternatives(t *testing.T) {
+	post := func(values url.Values) (requirements.Set, url.Values) {
+		t.Helper()
+		doc, err := html.Parse(postForm(t, "/requirements/editor", values).Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		set, problems := editorSet(t, doc)
+		if problems != "0" {
+			t.Fatalf("problems: %s", problems)
+		}
+		return set, submitted(doc)
+	}
+	form := submitted(editorFor(t, `{"format":1,"name":"Alts","rules":[{"type":"count","min":2,"match":{}}]}`))
+	form.Set("r0.m.pick", "kind:front")
+	_, form = post(form)
+	form.Set("action", "or-add:r0.m.")
+	set, form := post(form)
+	if len(set.Rules[0].Match.Or) != 1 || form.Get("r0.m.ors") != "1" {
+		t.Fatalf("an alternative added: %+v %v", set.Rules[0].Match, form)
+	}
+	form.Del("action")
+	form.Set("r0.m.or0.pick", "kind:barani")
+	set, form = post(form)
+	if got := requirements.Describe(set.Rules[0]); got != "At least 2 elements: a front somersault, no twist, or a barani (front with a half twist)" {
+		t.Errorf("both count: %q", got)
+	}
+	if form.Get("r0.m.pick") != "kind:front" || form.Get("r0.m.or0.picked") != "kind:barani" {
+		t.Errorf("each shows its pick: %v", form)
+	}
+	form.Set("action", "or-del:r0.m.:0")
+	set, _ = post(form)
+	if len(set.Rules[0].Match.Or) != 0 || requirements.PickOf(*set.Rules[0].Match) != "kind:front" {
+		t.Errorf("removed again: %+v", set.Rules[0].Match)
+	}
+}

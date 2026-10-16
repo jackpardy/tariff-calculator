@@ -768,7 +768,10 @@ templ matcherFields(e *SetEditorData, prefix string, m *requirements.Matcher, ti
 		if m == nil {
 			m = &requirements.Matcher{}
 		}
-		picked := requirements.PickIn(e.picks(), *m)
+		base := *m
+		base.Or = nil // its alternatives are picked below it
+		picked := requirements.PickIn(e.picks(), base)
+		alternative := strings.Contains(prefix, ".or")
 		own := picked == "" && requirements.DescribeMatcher(requirements.Matcher{Rotation: m.Rotation, Direction: m.Direction, Twist: m.Twist, Shapes: m.Shapes, Takeoff: m.Takeoff, Landing: m.Landing, Tariff: m.Tariff, FIG: m.FIG}) != "any element"
 	}}
 	<fieldset class="matcher">
@@ -830,6 +833,21 @@ templ matcherFields(e *SetEditorData, prefix string, m *requirements.Matcher, ti
 			</details>
 			<p class="matcher-hint">4 quarters = 1 somersault; 2 half twists = 1 twist. Leave a field empty to allow anything.</p>
 		</details>
+		// Other skills that count too, which needn't fit the same description.
+		if !alternative {
+			<input type="hidden" name={ prefix + "ors" } value={ strconv.Itoa(len(m.Or)) }/>
+			for k, alt := range m.Or {
+				<div class="matcher-or">
+					@matcherFields(e, fmt.Sprintf("%sor%d.", prefix, k), &alt, "Or")
+					<div class="buttons are-small mb-2">
+						@editorAction(e, "Remove this one", fmt.Sprintf("or-del:%s:%d", prefix, k), false)
+					</div>
+				</div>
+			}
+			<div class="buttons are-small mb-0">
+				@editorAction(e, "+ Or another skill", "or-add:"+prefix, false)
+			</div>
+		}
 	</fieldset>
 }
 

@@ -102,6 +102,10 @@ type Matcher struct {
 	Landing   []string     `json:"landing,omitempty"`   // feet, front, back, seat
 	Tariff    *TariffRange `json:"tariff,omitempty"`
 	FIG       string       `json:"fig,omitempty"` // exact FIG notation, e.g. "4 - o"
+	// Or are other skills that count too, which needn't fit the same
+	// description: a skill counts if it fits this one or any of these
+	// ("a front somersault, or a barani"). They have no Or of their own.
+	Or []Matcher `json:"or,omitempty"`
 }
 
 var (
@@ -231,6 +235,14 @@ func (m Matcher) Validate() error { return m.validate() }
 
 func (m Matcher) validate() error {
 	var errs []error
+	for k, o := range m.Or {
+		if len(o.Or) > 0 {
+			errs = append(errs, fmt.Errorf("alternative %d can't have alternatives of its own", k+1))
+		}
+		if err := o.validate(); err != nil {
+			errs = append(errs, fmt.Errorf("alternative %d: %w", k+1, err))
+		}
+	}
 	checkRange := func(name string, r *Range) {
 		if r == nil {
 			return
@@ -267,6 +279,12 @@ func (m Matcher) validate() error {
 
 // Matches reports whether a skill meets every condition of the matcher.
 func (m Matcher) Matches(s skills.TrampolineSkill) bool {
+	return m.matchesOwn(s) || slices.ContainsFunc(m.Or, func(o Matcher) bool { return o.matchesOwn(s) })
+}
+
+// matchesOwn reports whether the skill fits the matcher's own description,
+// leaving its alternatives (Or) aside.
+func (m Matcher) matchesOwn(s skills.TrampolineSkill) bool {
 	if !inRange(m.Rotation, s.Rotation) || !inRange(m.Twist, s.TotalTwist()) {
 		return false
 	}

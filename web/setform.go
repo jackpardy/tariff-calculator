@@ -58,7 +58,8 @@ func parseSetForm(r *http.Request, extra ...requirements.Pick) (requirements.Set
 		n, _ := strconv.Atoi(r.FormValue(name))
 		return max(n, 0)
 	}
-	matcher := func(prefix string) requirements.Matcher {
+	var matcher func(prefix string) requirements.Matcher
+	matcher = func(prefix string) requirements.Matcher {
 		m := requirements.Matcher{
 			Direction: r.FormValue(prefix + "dir"),
 			Shapes:    r.Form[prefix+"shape"],
@@ -88,6 +89,18 @@ func parseSetForm(r *http.Request, extra ...requirements.Pick) (requirements.Set
 		// A club's own skill keeps the club's name for it.
 		if id := requirements.PickIn(extra, m); id != "" {
 			m.Label = extra[slices.IndexFunc(extra, func(p requirements.Pick) bool { return p.ID == id })].Label
+		}
+		// Other skills that count too (alternatives, prefix "<prefix>or<k>."):
+		// "+ Or another skill" adds one ("or-add:<prefix>"), Remove takes one
+		// off ("or-del:<prefix>:<k>"). Alternatives have none of their own.
+		action := r.FormValue("action")
+		for k := range count(prefix + "ors") {
+			if action != fmt.Sprintf("or-del:%s:%d", prefix, k) {
+				m.Or = append(m.Or, matcher(fmt.Sprintf("%sor%d.", prefix, k)))
+			}
+		}
+		if action == "or-add:"+prefix {
+			m.Or = append(m.Or, requirements.Matcher{})
 		}
 		return m
 	}

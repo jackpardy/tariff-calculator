@@ -162,7 +162,8 @@ You write them beside your routine, which is checked against them as you go:
    Every skill must be, or Special requirements (each met by a different
    skill). Pick the skill or kind of skill (any single somersault, a
    barani…) from the list, or describe it by somersault, twist, direction
-   and shape. Add your own **Wording** so the rule reads the way your
+   and shape. **+ Or another skill** adds another that counts too, so one
+   rule can count, say, front somersaults or baranis. Add your own **Wording** so the rule reads the way your
    handbook says it.
 4. Each rule says **Met** or **Not met** for the routine on screen, and the
    routine below is checked against them as they are.

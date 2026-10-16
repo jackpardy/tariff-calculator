@@ -1152,3 +1152,5 @@ a:hover > .chip { text-decoration: underline; }
    browser's scroll anchoring then held the page to something below it, so
    typing in a field jumped to the bottom: no anchoring while there's one. */
 html:has(.set-editor) { overflow-anchor: none; }
+/* Another skill that counts too, under the first (views.matcherFields). */
+.matcher-or > .matcher { border-color: #c5cdf0; }
