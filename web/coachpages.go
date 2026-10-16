@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 
 	"tariffCalculator/competitions"
@@ -61,6 +62,17 @@ func (p *competitionPages) addCoach(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
 	if err := competitions.CheckName("coach", name); err != nil {
 		seeOther(w, r, clubCoachesPath(r.PathValue("token")), strings.Join(sentences(err), " "))
+		return
+	}
+	// A name names one coach, so reloading the page showing the new link
+	// doesn't add them again; a second coach of the same name needs telling apart.
+	coaches, err := p.st.Coaches(r.Context(), club.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if slices.ContainsFunc(coaches, func(c store.Coach) bool { return store.NameKey(c.Name) == store.NameKey(name) }) {
+		seeOther(w, r, clubCoachesPath(r.PathValue("token")), name+" is already one of your coaches; nothing was changed. For a new link for them, use New link on their row; for another coach of that name, add something to tell them apart, e.g. a middle initial.")
 		return
 	}
 	coach, token, err := p.st.CreateCoach(r.Context(), club.ID, name)
@@ -254,7 +266,7 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 	var levels []string
 	var competitionOptions []views.ListOption
 	for _, c := range comps {
-		cc := views.CoachCompetition{Competition: summary(c.Competition, p.now()), Cannot: notApproved(c, sentTo),
+		cc := views.CoachCompetition{Competition: summary(c, p.now()), Cannot: notApproved(c, sentTo),
 			MyLinks: p.competitionLinks(ctx, c, linksFor{base: path + "/competitions/" + c.ID,
 				people: memberKeys(coached), clubs: clubIDs(coach.ClubID), staff: clubIDs(coach.ClubID)})}
 		seen := map[string]bool{}
@@ -355,7 +367,7 @@ func (p *competitionPages) coachEntry(w http.ResponseWriter, r *http.Request) {
 	}
 	withSignoff(&shown, memberSignoff(c.Competition, e))
 	page := views.SignoffPage{
-		Back: coachPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()),
+		Back: coachPath(r.PathValue("token")), Competition: summary(c, p.now()),
 		Card: shown, Signoff: shown.Signoff, Action: r.URL.Path + "?discipline=" + e.Discipline,
 	}
 	if !coach.SignsOff {

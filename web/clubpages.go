@@ -453,7 +453,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		if err != nil {
 			return nil, err
 		}
-		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c.Competition, p.now()), ApproveCoaches: c.ApproveCoaches && c.Signoff,
+		cc := views.ClubCompetition{ID: c.ID, Competition: summary(c, p.now()), ApproveCoaches: c.ApproveCoaches && c.Signoff,
 			MyLinks: p.competitionLinks(ctx, c, linksFor{base: base + "/competitions/" + c.ID,
 				people: memberKeys(members), clubs: clubIDs(club.ID), staff: clubIDs(club.ID)})}
 		cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
@@ -474,6 +474,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			has[e.MemberID] = true
 			toSend := cc.ToSend // counted on, if this one is to send
 			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Event(), Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
+			if e.Entry.Partner != nil {
+				row.Partner, row.Unconfirmed = e.Entry.Partner.Name, !e.PartnerConfirmed
+			}
 			// The coach's chip opens their row on the club's Coaches page.
 			if i := slices.IndexFunc(coaches, func(co store.Coach) bool { return co.Name == e.SignedBy }); e.SignedBy != "" && i >= 0 {
 				row.Signoff.Link = base + "/coaches#" + coachAnchor(coaches[i].ID)
@@ -674,7 +677,7 @@ func (p *competitionPages) editMemberEntry(w http.ResponseWriter, r *http.Reques
 
 func (p *competitionPages) renderMemberEdit(w http.ResponseWriter, r *http.Request, club store.Club, m store.Member, c store.Competition, existing *store.MemberEntry, form competitions.Entry, problems []string) {
 	page := views.ClubEntryEdit{
-		Back: clubCompetitionPath(r.PathValue("token"), c.ID), Club: club.Name, Member: m.Name, Competition: summary(c.Competition, p.now()),
+		Back: clubCompetitionPath(r.PathValue("token"), c.ID), Club: club.Name, Member: m.Name, Competition: summary(c, p.now()),
 		Menu: clubCompetitionMenu(r.PathValue("token"), c, clubCompEntries), Form: entryForm(c.Competition, form, r.URL.Path, "Save"),
 	}
 	page.Form.Member, page.Form.Problems = true, problems
@@ -692,6 +695,9 @@ func (p *competitionPages) renderMemberEdit(w http.ResponseWriter, r *http.Reque
 			return
 		}
 		page.Card = &shown
+		if existing.Entry.Partner != nil {
+			page.Partner = &views.PartnerView{Name: existing.Entry.Partner.Name, Link: origin(r) + partnerPath(existing.PartnerLink), Confirmed: existing.PartnerConfirmed}
+		}
 	}
 	if len(problems) > 0 {
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -808,7 +814,7 @@ func (p *competitionPages) clubLink(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	render(w, r, views.ClubLink(views.ClubLinkPage{Competition: summary(c.Competition, p.now()), Action: r.URL.Path}))
+	render(w, r, views.ClubLink(views.ClubLinkPage{Competition: summary(c, p.now()), Action: r.URL.Path}))
 }
 
 // enterClub enters the club whose admin link is posted (clubAdmin: the link,
@@ -827,7 +833,7 @@ func (p *competitionPages) enterClub(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		render(w, r, views.ClubLink(views.ClubLinkPage{
-			Competition: summary(c.Competition, p.now()), Action: r.URL.Path,
+			Competition: summary(c, p.now()), Action: r.URL.Path,
 			Problems: []string{"That isn't a club's admin link. Copy it from your club's page, or create the club first."},
 		}))
 		return
@@ -1038,7 +1044,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 		return views.MemberCompetition{}, err
 	}
 	own := memberCompetitionPath(r.PathValue("token"), c.ID)
-	mc := views.MemberCompetition{ID: c.ID, Page: own, Competition: summary(c.Competition, now), Day: dayPath(path, c.ID),
+	mc := views.MemberCompetition{ID: c.ID, Page: own, Competition: summary(c, now), Day: dayPath(path, c.ID),
 		MyLinks: p.competitionLinks(ctx, c, linksFor{base: own, key: store.MemberKey(m.ID), member: true,
 			people: []string{store.MemberKey(m.ID)}, clubs: clubIDs(m.ClubID)})}
 	var sent []store.Entry

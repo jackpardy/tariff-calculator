@@ -97,8 +97,8 @@ func TestClubs(t *testing.T) {
 	if page := do(t, h, http.MethodGet, location, nil).Body.String(); !strings.Contains(page, "UCD is entered in Student Open") || !strings.Contains(page, "No member has entered yet") {
 		t.Error("entered: the club page says so and lists the competition")
 	}
-	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, `<option value="UCD">UCD</option>`) {
-		t.Error("the organiser's dashboard lists the club")
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, `<p class="title is-4">1</p><p class="heading">clubs</p>`) {
+		t.Error("the organiser's dashboard counts the club")
 	}
 
 	// A member joins and enters.

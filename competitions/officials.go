@@ -162,9 +162,14 @@ func (c Competition) CanJudge(o Offer, qualified bool, competing map[string]stri
 	return true
 }
 
-// Describe says what an offer offers, e.g. "Judge trampoline up to BUCS L5
-// (can chair), synchro; recorder".
+// Describe says what an offer offers, e.g. "Judge Trampoline up to BUCS L5
+// (can chair) and Synchro at any level; recorder": "at any level" where
+// another discipline has a limit, so it doesn't read as sharing it.
 func (o Offer) Describe() string {
+	limited := false
+	for _, j := range o.Judge {
+		limited = limited || j.UpTo != ""
+	}
 	var parts []string
 	for _, d := range AllDisciplines {
 		j, ok := o.Judge[d]
@@ -174,6 +179,8 @@ func (o Offer) Describe() string {
 		part := DisciplineName(d)
 		if j.UpTo != "" {
 			part += " up to " + j.UpTo
+		} else if limited {
+			part += " at any level"
 		}
 		if j.Chair {
 			part += " (can chair)"

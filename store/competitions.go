@@ -622,6 +622,8 @@ func (s *Store) ReplaceIndividualEntry(ctx context.Context, token string, e comp
 			checked_at = CASE WHEN entry = $1 THEN checked_at ELSE NULL END,
 			video_review = CASE WHEN entry = $1 THEN video_review ELSE '' END,
 			signed_at = CASE WHEN entry = $1 THEN signed_at ELSE NULL END,
+			signed_by = CASE WHEN entry = $1 THEN signed_by ELSE '' END,
+			sign_note = CASE WHEN entry = $1 THEN sign_note ELSE '' END,
 			partner_confirmed = CASE WHEN partner_token = $6 THEN partner_confirmed ELSE FALSE END,
 			partner_member = CASE WHEN partner_token = $6 THEN partner_member ELSE NULL END,
 			partner_entry = CASE WHEN partner_token = $6 THEN partner_entry ELSE NULL END,

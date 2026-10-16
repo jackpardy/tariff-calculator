@@ -133,7 +133,7 @@ templ setSlots(e LevelEditorData, key, title string, ex requirements.Exercise) {
 			<div class="level-option">
 				<span class="level-option-label">{ fmt.Sprintf("Option %d", i+1) }</span>
 				<div class="select is-small">
-					<select name={ fmt.Sprintf("%s.%d", key, i) } aria-label={ fmt.Sprintf("%s, option %d", title, i+1) }>
+					<select name={ fmt.Sprintf("%s.%d", key, i) } aria-label={ fmt.Sprintf("%s, option %d", title, i+1) } data-search-select="Search the set routines">
 						<option value="" selected?={ ref == "" }>Choose a set routine...</option>
 						@setRoutineChoices(e, ref)
 					</select>
@@ -154,7 +154,7 @@ templ voluntarySlot(e LevelEditorData, key, title, ref string) {
 		<input type="hidden" name={ key + ".n" } value="1"/>
 		<div class="level-option">
 			<div class="select is-small">
-				<select name={ key + ".0" } aria-label={ title }>
+				<select name={ key + ".0" } aria-label={ title } data-search-select="Search the requirements">
 					<option value="" selected?={ ref == "" }>Choose requirements...</option>
 					@voluntaryChoices(e, ref)
 				</select>

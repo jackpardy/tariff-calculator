@@ -239,7 +239,7 @@ func (p *competitionPages) simulation(w http.ResponseWriter, r *http.Request) {
 	}
 	start.Name = competitions.SimName(scenarios)
 	page := views.SimulationPage{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuSimulate), Notice: r.URL.Query().Get("notice"),
+		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuSimulate), Notice: r.URL.Query().Get("notice"),
 		Form: scenarioForm(c.Competition, start), From: from, Entries: len(f.entries), Max: competitions.MaxScenarios,
 	}
 	if err := s.Setup.Check(c.EventNames()); err != nil {

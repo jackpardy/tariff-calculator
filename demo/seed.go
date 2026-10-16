@@ -636,7 +636,7 @@ func (s *seeder) run(out io.Writer) error {
 	}
 	judges, chairs := helper("Difficulty judges", "cards"), helper("Chairs of judges", "chair")
 	helper("Timetable team", "timetable")
-	entryLinks := regexp.MustCompile(`href="`+regexp.QuoteMeta(admin)+`/entries/([^"]+)"`).FindAllStringSubmatch(s.get(admin), 4)
+	entryLinks := regexp.MustCompile(`href="`+regexp.QuoteMeta(admin)+`/entries/([^"#]+)"`).FindAllStringSubmatch(s.get(admin), 4)
 	for i, m := range entryLinks {
 		if i < 3 {
 			s.post(judges+"/entries/"+m[1]+"/check", url.Values{"checked": {"1"}})

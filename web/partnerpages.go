@@ -39,7 +39,7 @@ func (p *competitionPages) invite(w http.ResponseWriter, r *http.Request) (store
 
 func (p *competitionPages) renderPartner(w http.ResponseWriter, r *http.Request, inv store.PartnerInvite, c store.Competition, problems []string) {
 	page := views.PartnerPage{
-		Competition: summary(c.Competition, p.now()), Gymnast: inv.Entry.Gymnast, Club: inv.Club,
+		Competition: summary(c, p.now()), Gymnast: inv.Entry.Gymnast, Club: inv.Club,
 		Event: inv.Entry.Event(), Confirmed: inv.Confirmed, Action: r.URL.Path, Problems: problems,
 		// As the entry's page saves it (data-gymnast-name, the gymnast's own
 		// name; data-entry-name), and the pair's name it was saved under before.

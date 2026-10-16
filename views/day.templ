@@ -23,6 +23,7 @@ type DayPage struct {
 	Scratched   []DayScratched // scratched gymnasts who officiate or compete that day
 	Correct     bool           // this link can put a flight's times right
 	DayName     string         // the day shown, e.g. "Saturday", for the times put right
+	DayDate     string         // its date, e.g. "Saturday 27 February 2027"
 }
 
 // DayScratched is a scratched gymnast who also holds seats that day, or is
@@ -124,7 +125,15 @@ type DayGymnast struct {
 templ Day(p DayPage) {
 	@competitionLayout("On the day · " + p.Competition.Name) {
 		<h1 class="title is-4">On the day</h1>
-		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
+		// The day shown, not the competition's dates.
+		<p class="subtitle is-6">
+			{ p.Competition.Name } ·
+			if p.DayDate != "" {
+				{ p.DayDate }
+			} else {
+				{ p.Competition.Date }
+			}
+		</p>
 		@pageMenu(p.Menu)
 		// Taps kept on this phone until the signal is back (static/js/taps.js).
 		<div id="day-taps" class="notification is-warning is-light comp-day-taps" aria-live="polite" hidden></div>

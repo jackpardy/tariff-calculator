@@ -130,7 +130,7 @@ func (p *competitionPages) feesSummary(ctx context.Context, c store.Competition,
 		return nil
 	}
 	return &views.FeesSummary{Due: c.Fees.Money(a.due), Paid: c.Fees.Money(a.paid), Balance: c.Fees.Money(a.due - a.paid),
-		Settled: a.paid >= a.due, Invoice: invoice}
+		Settled: a.paid >= a.due, Over: over(c.Fees, a), Invoice: invoice}
 }
 
 // fees is the organiser's page: the fees, and each payer's account.
@@ -146,7 +146,7 @@ func (p *competitionPages) fees(w http.ResponseWriter, r *http.Request) {
 	}
 	base := adminPath(r.PathValue("token"))
 	f := c.Fees
-	page := views.FeesPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuFees), Notice: r.URL.Query().Get("notice"), On: f.On(),
+	page := views.FeesPage{Base: base, Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuFees), Notice: r.URL.Query().Get("notice"), On: f.On(),
 		GBP: f.Currency == competitions.CurrencyGBP, PerClub: amountField(f.PerClub), Instructions: f.Instructions}
 	var charged []string // what's charged, for the line saying so
 	for _, d := range c.Disciplines() {
@@ -166,19 +166,28 @@ func (p *competitionPages) fees(w http.ResponseWriter, r *http.Request) {
 	if len(charged) > 0 {
 		page.Now = strings.Join(charged, ", ")
 	}
-	due, paid := 0, 0
+	due, paid, owed := 0, 0, 0
 	for _, a := range accounts {
 		v := views.AccountView{Payer: a.key, Name: a.name, Entries: len(a.entries), Due: f.Money(a.due), Paid: f.Money(a.paid),
-			Balance: f.Money(a.due - a.paid), Settled: a.paid >= a.due, Invoice: base + "/fees/invoice?payer=" + url.QueryEscape(a.key)}
+			Balance: f.Money(a.due - a.paid), Settled: a.paid >= a.due, Over: over(f, a), Invoice: base + "/fees/invoice?payer=" + url.QueryEscape(a.key)}
 		for _, pay := range a.payments {
 			v.Payments = append(v.Payments, views.PaymentView{ID: pay.ID, Amount: f.Money(pay.Amount), Note: pay.Note, Who: pay.Who,
 				At: pay.At.In(local).Format("2 Jan")})
 		}
 		page.Accounts = append(page.Accounts, v)
 		due, paid = due+a.due, paid+a.paid
+		owed += max(a.due-a.paid, 0) // what's to come: one payer's credit isn't another's payment
 	}
-	page.Due, page.Paid, page.Balance = f.Money(due), f.Money(paid), f.Money(due-paid)
+	page.Due, page.Paid, page.Balance = f.Money(due), f.Money(paid), f.Money(owed)
 	render(w, r, views.FeesAdmin(page))
+}
+
+// over is how much more than due a payer has paid, "" for none.
+func over(f competitions.Fees, a account) string {
+	if a.paid <= a.due {
+		return ""
+	}
+	return f.Money(a.paid - a.due)
 }
 
 // amountField is an amount for a form: "" for nothing.
@@ -236,7 +245,7 @@ func (p *competitionPages) addPayment(w http.ResponseWriter, r *http.Request) {
 	back := adminPath(r.PathValue("token")) + "/fees"
 	cents, err := competitions.ParseMoney(r.FormValue("amount"))
 	if err != nil || cents == 0 {
-		seeOther(w, r, back, "Say how much was paid, like 12 or 12.50.")
+		seeOther(w, r, back, "Say how much was paid, like 12 or 12.50. Nothing was changed.")
 		return
 	}
 	if _, ok, err := p.accountOf(r.Context(), c, r.FormValue("payer")); err != nil || !ok {
@@ -317,8 +326,8 @@ func (p *competitionPages) invoicePage(ctx context.Context, c store.Competition,
 		return nil, false, err
 	}
 	f := c.Fees
-	page := views.InvoicePage{Competition: summary(c.Competition, p.now()), Back: back, To: a.name, Instructions: f.Instructions,
-		Total: f.Money(a.due), Paid: f.Money(a.paid), Balance: f.Money(a.due - a.paid), Settled: a.paid >= a.due, Date: p.now().In(local).Format("2 January 2006")}
+	page := views.InvoicePage{Competition: summary(c, p.now()), Back: back, To: a.name, Instructions: f.Instructions,
+		Total: f.Money(a.due), Paid: f.Money(a.paid), Balance: f.Money(a.due - a.paid), Settled: a.paid >= a.due, Over: over(f, a), Date: p.now().In(local).Format("2 January 2006")}
 	for _, l := range a.lines {
 		page.Lines = append(page.Lines, views.InvoiceLineView{What: l.What, Amount: f.Money(l.Amount)})
 	}

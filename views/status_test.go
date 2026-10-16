@@ -74,7 +74,7 @@ func TestChips(t *testing.T) {
 	}
 	for r, word := range map[Role]string{RoleGymnast: "Gymnast", RoleCoach: "Coach", RoleClub: "Club", RoleOrganiser: "Organiser"} {
 		got := render(t, WhoChip(r, "Declan O'Neill"))
-		if !strings.Contains(got, `class="chip chip-who chip-who-`+string(r)+`"`) || !strings.Contains(got, `<span class="chip-role">`+word+`</span>`) || !strings.Contains(got, "· Declan O&#39;Neill") {
+		if !strings.Contains(got, `class="chip chip-who chip-who-`+string(r)+`"`) || !strings.Contains(got, `<span class="chip-role">`+word+`</span>`) || !strings.Contains(got, `· <span class="chip-name-text">Declan O&#39;Neill</span>`) {
 			t.Errorf("%s: %s", r, got)
 		}
 		if got := render(t, WhoChip(r, "")); strings.Contains(got, "chip-name") {

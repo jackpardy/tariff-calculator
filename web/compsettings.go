@@ -87,7 +87,11 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 		c.Synchro = paired
 	}
 	if c.Deadline.IsZero() {
-		c.Deadline = time.Now() // reported above; let Validate report the rest
+		// Reported above; a stand-in that passes, so Validate reports only the rest.
+		c.Deadline = time.Now()
+		if day, err := c.Day(); err == nil {
+			c.Deadline = day
+		}
 	}
 	if err := c.Validate(); err != nil {
 		problems = append(problems, sentences(err)...)

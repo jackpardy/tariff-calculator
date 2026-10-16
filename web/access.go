@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"tariffCalculator/competitions"
@@ -108,6 +109,12 @@ func (p *competitionPages) gate(pattern string, h http.HandlerFunc) http.Handler
 			return
 		}
 		if !allowed(link.Kind, pattern) {
+			// A venue screen's link only shows the screen: opened as given
+			// (or at any page), it goes there.
+			if link.Kind == store.LinkScreen && r.Method == http.MethodGet {
+				http.Redirect(w, r, adminPath(r.PathValue("token"))+"/screen", http.StatusFound)
+				return
+			}
 			message(w, r, http.StatusForbidden, "Not with this link", "This link can't do that. Ask the organiser.")
 			return
 		}
@@ -121,7 +128,11 @@ func (p *competitionPages) gate(pattern string, h http.HandlerFunc) http.Handler
 		what := p.describe(r, c, pattern)
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		h(rec, r)
-		if rec.status < 400 && what != "" && !strings.HasSuffix(pattern, "/delete") {
+		// A refusal goes back saying "nothing was changed" (or "events
+		// weren't changed", "the closing time wasn't changed"): nothing to record.
+		to := strings.ToLower(rec.Header().Get("Location"))
+		refused := strings.Contains(to, "nothing+was+changed") || strings.Contains(to, "n%27t+changed")
+		if rec.status < 400 && !refused && what != "" && !strings.HasSuffix(pattern, "/delete") {
 			p.st.Record(context.WithoutCancel(r.Context()), c.ID, link.Name, what)
 		}
 	}
@@ -155,11 +166,24 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 	case "/entries/{id}/restore":
 		return "Put an entry back in" + entry()
 	case "/remove":
-		n := len(r.Form["entry"])
+		ids := r.Form["entry"]
+		what := "Removed " + views.Count(len(ids), "entry", "entries")
 		if f("action") == "hold" {
-			return fmt.Sprintf("Put %s on hold", views.Count(n, "entry", "entries"))
+			what = fmt.Sprintf("Put %s on hold", views.Count(len(ids), "entry", "entries"))
 		}
-		return "Removed " + views.Count(n, "entry", "entries")
+		// Who, for a few.
+		if len(ids) <= 3 {
+			var names []string
+			for _, id := range ids {
+				if e, err := p.st.CompetitionEntry(r.Context(), c.ID, id); err == nil {
+					names = append(names, e.Entry.Gymnasts()+" · "+e.Entry.Event())
+				}
+			}
+			if len(names) > 0 {
+				what += ": " + strings.Join(names, "; ")
+			}
+		}
+		return what
 	case "/later-deadlines":
 		return "Changed when changes and sign-offs close"
 	case "/deadline":
@@ -182,6 +206,11 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 	case "/replace-link":
 		return "Replaced the admin link"
 	case "/concerns":
+		if id := f("entry"); id != "" {
+			if e, err := p.st.CompetitionEntry(r.Context(), c.ID, id); err == nil {
+				return "Flagged a concern: " + e.Entry.Gymnasts() + " · " + e.Entry.Event()
+			}
+		}
 		return "Flagged a concern"
 	case "/concerns/{id}/resolve":
 		return "Resolved a concern"
@@ -271,13 +300,46 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 	}
 	switch {
 	case strings.HasPrefix(path, "/timetable/setup/"):
-		return "Changed the timetable's setup (" + strings.TrimPrefix(path, "/timetable/setup/") + ")"
+		if part, ok := setupWords[strings.TrimPrefix(path, "/timetable/setup/")]; ok {
+			return "Changed the timetable's " + part
+		}
+		return "Changed the timetable's setup"
 	case strings.HasPrefix(path, "/officials"):
 		return "Changed the officials"
 	case strings.HasPrefix(path, "/coaches/") || strings.HasPrefix(path, "/entry-coaches/"):
-		return "Decided about a coach (" + f("action") + ")"
+		if what, ok := coachDecisions[f("action")]; ok {
+			return what
+		}
+		return "Decided about a coach"
 	}
-	return "Changed the settings (" + strings.TrimPrefix(path, "/") + ")"
+	if what, ok := settingWords[path]; ok {
+		return what
+	}
+	return "Changed the settings"
+}
+
+// settingWords say, for the history, what a settings form changes.
+var settingWords = map[string]string{
+	"/approve-coaches": "Changed whether coaches need approving",
+	"/events":          "Changed the synchro, tumbling and DMT levels",
+	"/individuals":     "Changed whether gymnasts can enter on their own",
+	"/levels/move":     "Changed the order of the levels",
+	"/no-wait":         "Changed the wait before telling people of changes",
+	"/signoff":         "Changed coaches' sign-off",
+	"/split":           "Changed whether men and women are ranked separately",
+	"/ties/remove":     "Stopped someone's own link opening the admin pages",
+	"/video":           "Changed the video proof asked for",
+}
+
+// setupWords name the parts of the timetable's setup, for the history.
+var setupWords = map[string]string{
+	"areas": "days and areas", "days": "days and areas", "timings": "timings and rest",
+	"blocks": "blocked time", "rules": "rules",
+}
+
+// coachDecisions say, for the history, what was decided about a coach.
+var coachDecisions = map[string]string{
+	"approve": "Approved a coach", "refuse": "Didn't approve a coach", "withdraw": "Withdrew a coach's approval",
 }
 
 // linkKinds name the kinds of extra link.
@@ -309,6 +371,17 @@ func (p *competitionPages) addLink(w http.ResponseWriter, r *http.Request) {
 		backToSettings(w, r, "Give the link a name (who it's for) and say what it can do.")
 		return
 	}
+	// A name names one link, so a reload of the page showing a new link
+	// doesn't make another.
+	links, err := p.st.Links(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if slices.ContainsFunc(links, func(l store.Link) bool { return strings.EqualFold(l.Name, name) }) {
+		backToSettings(w, r, fmt.Sprintf("There's already a link called %s; nothing was changed. Give this one another name, or remove that one first.", name))
+		return
+	}
 	l, token, err := p.st.AddLink(r.Context(), c.ID, name, r.FormValue("kind"))
 	if err != nil {
 		if err == store.ErrLimit {
@@ -319,7 +392,7 @@ func (p *competitionPages) addLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render(w, r, views.NewLink(views.NewLinkPage{
-		Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuSettings),
+		Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuSettings),
 		Name: l.Name, Kind: linkKinds[l.Kind], Link: origin(r) + adminPath(token),
 	}))
 }
@@ -370,7 +443,7 @@ func (p *competitionPages) history(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	page := views.HistoryPage{Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuHistory)}
+	page := views.HistoryPage{Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuHistory)}
 	for _, ch := range changes {
 		page.Changes = append(page.Changes, views.HistoryChange{At: ch.At.In(local).Format("Mon 2 Jan, 15:04"), Who: ch.Who, What: ch.What})
 	}
@@ -384,14 +457,16 @@ func (p *competitionPages) flagConcern(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	text := limitNote(strings.TrimSpace(r.FormValue("text")))
-	back := adminPath(r.PathValue("token"))
+	// Back to where it says so: by the form on an entry's page, or the
+	// concerns on the dashboard.
+	back := adminPath(r.PathValue("token")) + "#concerns"
 	entryID := r.FormValue("entry")
 	if entryID != "" {
 		if _, err := p.st.CompetitionEntry(r.Context(), c.ID, entryID); err != nil {
 			failed(w, r, err)
 			return
 		}
-		back += "/entries/" + entryID
+		back = adminPath(r.PathValue("token")) + "/entries/" + entryID + "#entry-notice"
 	}
 	if text == "" {
 		seeOther(w, r, back, "Say what the concern is.")
@@ -414,7 +489,7 @@ func (p *competitionPages) resolveConcern(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return
 	}
-	backToDashboard(w, r, "Concern resolved.")
+	seeOther(w, r, adminPath(r.PathValue("token"))+"#concerns", "Concern resolved.")
 }
 
 // concernViews are a competition's concerns, for the dashboard, with the

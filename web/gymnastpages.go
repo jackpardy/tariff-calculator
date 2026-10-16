@@ -3,6 +3,8 @@ package web
 import (
 	"errors"
 	"net/http"
+	"net/url"
+	"slices"
 
 	"tariffCalculator/competitions"
 	"tariffCalculator/store"
@@ -105,7 +107,7 @@ func (p *competitionPages) gymnastHome(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		page.Competitions = append(page.Competitions, views.GymnastCompetition{
-			Page: gymnastCompetitionPath(token, id), Competition: summary(c.Competition, p.now()), Status: views.Count(count[id], "entry", "entries"),
+			Page: gymnastCompetitionPath(token, id), Competition: summary(c, p.now()), Status: views.Count(count[id], "entry", "entries"),
 		})
 	}
 	render(w, r, views.GymnastHome(page))
@@ -187,11 +189,12 @@ func (p *competitionPages) renderGymnastCompetition(w http.ResponseWriter, r *ht
 	feedbackOn(r, c)
 	page := p.gymnastPageOf(r, token, ind, gymnastCompetitions)
 	first := entryPath(token, mine[0])
-	gc := views.GymnastCompetition{Competition: summary(c.Competition, p.now()), Status: views.Count(len(mine), "entry", "entries"), Day: first + "/day",
+	gc := views.GymnastCompetition{Competition: summary(c, p.now()), Status: views.Count(len(mine), "entry", "entries"), Day: first + "/day",
 		Saved: r.URL.Query().Get("saved") == "1"}
 	gc.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: first, key: mine[0].Key(), people: []string{mine[0].Key()}})
-	if gc.Competition.Open && c.Individuals {
-		gc.Enter = gymnastCompetitionPath(token, c.ID) + "/enter"
+	// Another discipline: the first not entered yet, if there's one.
+	if left := notEntered(c.Competition, mine); gc.Competition.Open && c.Individuals && len(left) > 0 {
+		gc.Enter = gymnastCompetitionPath(token, c.ID) + "/enter?discipline=" + url.QueryEscape(left[0])
 	}
 	open := r.URL.Query().Get("entry")
 	for _, e := range mine {
@@ -227,7 +230,7 @@ func (p *competitionPages) gymnastEnter(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	c, _, ok := p.gymnastEntered(w, r, entries)
+	c, mine, ok := p.gymnastEntered(w, r, entries)
 	if !ok {
 		return
 	}
@@ -236,11 +239,19 @@ func (p *competitionPages) gymnastEnter(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if r.Method == http.MethodGet {
-		e := competitions.Entry{Gymnast: ind.Name, Discipline: chosenDiscipline(c.Competition, r.URL.Query().Get("discipline"))}
+		asked := r.URL.Query().Get("discipline")
+		if left := notEntered(c.Competition, mine); !r.URL.Query().Has("discipline") && len(left) > 0 {
+			asked = left[0]
+		}
+		e := competitions.Entry{Gymnast: ind.Name, Discipline: chosenDiscipline(c.Competition, asked)}
 		render(w, r, views.CompetitionEnter(enterPage(c, e, r.URL.Path, p.now())))
 		return
 	}
 	e, problems := postedEntry(r, c.Competition, "")
+	// One entry a discipline: a second is a change to the first.
+	if slices.ContainsFunc(mine, func(m store.Entry) bool { return m.Entry.Discipline == e.Discipline }) {
+		problems = append(problems, "You've already entered "+competitions.DisciplineName(e.Discipline)+" here: change that entry instead, on the competition's page.")
+	}
 	if len(problems) > 0 {
 		page := enterPage(c, e, r.URL.Path, p.now())
 		page.Form.Problems = problems
@@ -282,4 +293,16 @@ func asProblem(err error) string {
 		return "That link doesn't lead anywhere: it may have been replaced. Check you copied all of it, or leave it blank."
 	}
 	return ""
+}
+
+// notEntered are the disciplines a competition offers that these entries
+// aren't in, in its order.
+func notEntered(c competitions.Competition, mine []store.Entry) []string {
+	var out []string
+	for _, d := range c.Disciplines() {
+		if !slices.ContainsFunc(mine, func(m store.Entry) bool { return m.Entry.Discipline == d }) {
+			out = append(out, d)
+		}
+	}
+	return out
 }

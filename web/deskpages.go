@@ -285,7 +285,7 @@ func (p *competitionPages) desk(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	page := views.DeskPage{Base: adminPath(r.PathValue("token")), Notice: r.URL.Query().Get("notice"), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuDesk),
+	page := views.DeskPage{Base: adminPath(r.PathValue("token")), Notice: r.URL.Query().Get("notice"), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuDesk),
 		Screen: screenNotices(notices), ScreenFor: noticeFor, ScreenMax: maxNotice}
 	for _, cl := range clubs {
 		page.Clubs = append(page.Clubs, views.DeskOption{Value: cl.ID, Label: cl.Name})

@@ -191,14 +191,14 @@ func Fixes(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) 
 		less := t
 		less.PerCompetitor = max(0.5, t.PerCompetitor-0.5)
 		c.Timings[d] = less
-		tries = append(tries, Fix{Change: fmt.Sprintf("%s at %g minutes per competitor, not %g", DisciplineName(d), less.PerCompetitor, t.PerCompetitor), Setup: c})
+		tries = append(tries, Fix{Change: fmt.Sprintf("%s at %s per competitor, not %g", DisciplineName(d), minutesWord(less.PerCompetitor), t.PerCompetitor), Setup: c})
 
 		if t.Between > 5 {
 			c = clone()
 			less := t
 			less.Between = t.Between - 5
 			c.Timings[d] = less
-			tries = append(tries, Fix{Change: fmt.Sprintf("%s with %d minutes between flights, not %d", DisciplineName(d), less.Between, t.Between), Setup: c})
+			tries = append(tries, Fix{Change: fmt.Sprintf("%s with %s between flights, not %d", DisciplineName(d), minutesWord(float64(less.Between)), t.Between), Setup: c})
 		}
 		c = clone()
 		more := t
@@ -319,4 +319,12 @@ func (s Schedule) wholeVenue(d Day, b ScheduledBlock) bool {
 		}
 	}
 	return true
+}
+
+// minutesWord is a number of minutes in words: "1 minute", "2.5 minutes".
+func minutesWord(n float64) string {
+	if n == 1 {
+		return "1 minute"
+	}
+	return fmt.Sprintf("%g minutes", n)
 }

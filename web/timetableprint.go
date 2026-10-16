@@ -41,7 +41,7 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 	}
 	if r.URL.Query().Get("sheet") == "rota" {
 		render(w, r, views.RotaPrint(views.RotaSheet{
-			Title: "Officials rota · " + c.Name, Back: timetablePath(r), Competition: summary(c.Competition, p.now()), People: rotaSheet(s, people),
+			Title: "Officials rota · " + c.Name, Back: timetablePath(r), Competition: summary(c, p.now()), People: rotaSheet(s, people),
 		}))
 		return
 	}
@@ -60,7 +60,7 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 		title = "Chair of judges sheets · " + c.Name
 	}
 	sheets := views.TimetableSheets{
-		Title: title, Back: timetablePath(r), Competition: summary(c.Competition, p.now()), Judges: judges,
+		Title: title, Back: timetablePath(r), Competition: summary(c, p.now()), Judges: judges,
 		Exercises: map[string][2]string{}, Notes: map[string]string{},
 	}
 	var arrived map[string]map[string]store.Checkin // panel check-ins, ticked on the chair of judges sheets
@@ -131,7 +131,7 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 // With a person's key, only the flights they have a seat on.
 // Scratched gymnasts (entry ids) are struck through.
 func scoreSheets(c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, scratched map[string]bool, back string, now time.Time, key string) views.ScoreSheets {
-	out := views.ScoreSheets{Title: "Score sheets · " + c.Name, Back: back, BackLabel: "← Timetable", Competition: summary(c.Competition, now)}
+	out := views.ScoreSheets{Title: "Score sheets · " + c.Name, Back: back, BackLabel: "← Timetable", Competition: summary(c, now)}
 	for _, day := range itemsOf(s, entries, people) {
 		for _, area := range day.Areas {
 			for _, it := range area.Items {

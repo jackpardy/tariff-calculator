@@ -38,7 +38,7 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 	}
 	q := r.URL.Query()
 	page := views.LeavePage{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuLeave),
+		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuLeave),
 		Person: q.Get("person"), Day: q.Get("day"), From: q.Get("from"), ForGood: q.Get("forgood") == "1", Prefer: q.Get("prefer"),
 	}
 	for i, d := range s.Setup.Days {
@@ -94,7 +94,7 @@ func leaveView(s competitions.Schedule, fills []competitions.SeatFill, name func
 		}
 		switch {
 		case f.Empty != "":
-			sv.Empty = "No one free can take it: " + strings.ToLower(competitions.RoleName(f.Empty)) + " is left empty."
+			sv.Empty = "No one free can take it: " + competitions.RoleWord(f.Empty) + " is left empty."
 			v.Empty++
 		case len(f.Steps) == 1:
 			v.Direct++
@@ -109,7 +109,7 @@ func leaveView(s competitions.Schedule, fills []competitions.SeatFill, name func
 			for _, k := range f.Others {
 				others = append(others, name(k))
 			}
-			sv.Others = fmt.Sprintf("Also free for %s: %s", strings.ToLower(competitions.RoleName(f.Steps[len(f.Steps)-1].To)), strings.Join(others, ", "))
+			sv.Others = fmt.Sprintf("Also free for %s: %s", competitions.RoleWord(f.Steps[len(f.Steps)-1].To), strings.Join(others, ", "))
 		}
 		v.Seats = append(v.Seats, sv)
 	}

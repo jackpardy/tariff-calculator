@@ -118,6 +118,15 @@ function tariffCalculatorStore() {
             if (!skills) { this.showToast("Couldn't open that set routine.", 'error'); return; }
             const editing = params.has('setRoutine');
             const name = this.customSets.find((s) => s.id === ref)?.set.name || Exercises.requirementName(ref);
+            // Editing it again goes back to the routine it's being edited in,
+            // as it was left (changes not saved yet stay), rather than adding another.
+            const open = editing && this.routines.find((r) => r.setRoutine === ref);
+            if (open) {
+                if (this.mode !== 'routines') { this.setMode('routines'); }
+                this.switchRoutine(open.id);
+                this.showToast(`Editing ${name}, as you left it here: change it, then More → Save as a set routine.`, 'info');
+                return;
+            }
             const routine = { id: RoutineStore.newId(), name: (editing ? name : `Copy of ${name}`).slice(0, 60), skills };
             if (editing) { routine.setRoutine = ref; }
             this.routines.push(routine);
@@ -832,8 +841,9 @@ function tariffCalculatorStore() {
                     this.renderRoutines(); // a level panel counts the other exercise
                 }
                 const where = target.side === 'a' && !this.twoColumns() ? '' : ` to ${target.label}`;
-                this.showToast(`Added ${skill.custom_name || skill.name} (${skill.tariff.toFixed(1)})${where}.`, 'info');
-                if (skills.length > 10) { this.showToast('Note: an exercise has 10 skills.', 'warning'); }
+                // One message: past ten, the note goes with what was added.
+                const over = skills.length > 10 ? ` Note: an exercise has 10 skills, and this has ${skills.length}.` : '';
+                this.showToast(`Added ${skill.custom_name || skill.name} (${skill.tariff.toFixed(1)})${where}.${over}`, over ? 'warning' : 'info');
                 this.clearLabel(); // a label belongs to one skill
                 this.query = '';   // back to the picker for the next skill
             } catch (error) {

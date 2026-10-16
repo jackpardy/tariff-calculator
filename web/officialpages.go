@@ -104,7 +104,7 @@ func (p *competitionPages) editMemberOffer(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	render(w, r, views.ClubOfferEditPage(views.ClubOfferEdit{
-		Back: clubCompetitionPath(r.PathValue("token"), c.ID) + "/offers", Club: club.Name, Member: m.Name, Competition: summary(c.Competition, p.now()),
+		Back: clubCompetitionPath(r.PathValue("token"), c.ID) + "/offers", Club: club.Name, Member: m.Name, Competition: summary(c, p.now()),
 		Menu: clubCompetitionMenu(r.PathValue("token"), c, clubCompOffers), Form: offerForm(c.Competition, o, r.URL.Path),
 	}))
 }
@@ -175,7 +175,7 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	page := views.OfficialsPage{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuOfficials), Notice: r.URL.Query().Get("notice"),
+		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuOfficials), Notice: r.URL.Query().Get("notice"),
 		Judge: c.Officials.Judge, RecordersChange: c.Officials.RecordersChange, MarshalsChange: c.Officials.MarshalsChange, Add: offerForm(c.Competition, competitions.Offer{}, ""),
 	}
 	for _, d := range c.Disciplines() {

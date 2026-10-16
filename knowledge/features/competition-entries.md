@@ -99,7 +99,9 @@ can ask to hear), Entering on their own, Feedback, and Admin link and deleting (
 organiser only). Each setting is a row saying how it's set, with **Change**
 opening its form (`changeLine`, rendering.md "Settings and forms on a
 page"); replacing the admin link and deleting each open a step before they
-act, and **Make a link** opens the helpers' link form. A co-organiser's link
+act, and **Make a link** opens the helpers' link form (a name names one link,
+so reloading the page that shows a new link makes no other; removing one asks
+first). A co-organiser's link
 opens it without the links box, replacing the admin link or deleting. Each
 form posts to its own route, which comes back to the Settings page with a
 notice (moving a level comes back to `#level-order`, which opens its row); the history records them as
@@ -741,8 +743,9 @@ are then filled flight by flight.
   redraw a flight's order, move a gymnast to another flight or take them
   out, and place entries made since planning. On a flight's card these are
   buttons at least 40px tall: **Move a gymnast**, one a flight, opening who
-  (the flight's gymnasts by running number) and where to (its flights
-  filled in by `static/js/fill.js` when it opens; left on "Choose a gymnast"
+  (the flight's gymnasts by running number) and where to (the other flights
+  of its discipline, filled in by `static/js/fill.js` when it opens; the
+  server refuses a flight of another discipline; left on "Choose a gymnast"
   or "Choose a flight", nothing changes), and **Move or redraw** opening **Redraw order**, **Earlier**, and a dropdown
   labelled **Move to** ("Move the event to") with **Move** or **Move
   event**. At the top of the timetable, a line of links to each day (or,
@@ -1472,7 +1475,9 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   competition's copy while it's what the member has, else from the member's
   own. Opening one shows it checked, with
   **Sign off** and **Not yet**, and a note the member and comp sec see.
-- A changed entry needs signing off again. The sign-off goes to the
+- A changed entry needs signing off again: the change clears the sign-off and
+  a coach's **Not yet** (who said it and their note), so it shows waiting for
+  sign-off, not "Needs changes". The sign-off goes to the
   competition with the entry when the club sends it.
 - Unsigned entries can still be sent: the organiser's dashboard has a Coach
   column, counts "Not signed off by a coach" as a problem, and the CSV says
@@ -1976,7 +1981,9 @@ officiating, then a row per discipline, with its status, that opens to all
 of that entry (`entryBody`): checked, the flight, the organiser's notes,
 the card, **Change the entry** and **Withdraw**, **Your coach** and the
 sign-off link for their coach, fees and Judging and helping; then
-**Enter another discipline** while entries are open. Each row's forms post
+**Enter another discipline** while entries are open, opening on the first
+discipline not entered yet (a second entry in one is refused: change that
+entry instead). Each row's forms post
 to the entry's own address, `/competitions/entry/{token}`, whose GET now
 redirects here with `entry=<id>` to open that row, so every entry link
 already sent lands on this page; a change with problems shows this page with

@@ -126,7 +126,7 @@ func Delay(p DelayPage) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, " <p class=\"mb-4\">Say which areas are held up, from when and for how long. Their later flights shift back as little as they can (any slack takes some of it), around blocked time; a flight that would then run past the end of the day, or need someone in two places, moves to another area if one is free. Nothing is saved: the timetable stays as it is.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, " <p class=\"mb-4\">Say which areas are held up, from when and for how long. Their later flights shift back as little as they can (any slack takes some of it), around blocked time; a flight that would then run past the end of the day, or need someone in two places, moves to another area if one is free. Nothing changes until you choose <strong>Keep this in the draft timetable</strong>, and even then clubs see it only once you publish.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

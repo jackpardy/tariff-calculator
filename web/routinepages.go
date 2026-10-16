@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"tariffCalculator/competitions"
 	"tariffCalculator/requirements"
 	"tariffCalculator/skills"
 	"tariffCalculator/store"
@@ -251,6 +252,8 @@ func (p *competitionPages) coachGymnasts(w http.ResponseWriter, r *http.Request)
 		failed(w, r, err)
 		return
 	}
+	// By name as people read it: Róisín before Ruairí.
+	slices.SortStableFunc(members, func(a, b store.Member) int { return competitions.CompareNames(a.Name, b.Name) })
 	counts, err := p.st.RoutineCounts(ctx, coach.ClubID)
 	if err != nil {
 		failed(w, r, err)

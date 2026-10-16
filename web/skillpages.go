@@ -325,12 +325,42 @@ func markNotice(name, state string) string {
 	return name + " taken off."
 }
 
-// skillName is a skill's name, or its notation where it has no name.
+// skillName is a skill's name, or where it has no name its notation and
+// what tells it from others with the same: where it takes off and lands, and
+// which way it turns, e.g. "Skill (4 1 /): from back, forward".
 func skillName(s skills.TrampolineSkill) string {
-	if name := skills.FindCommonSkillName(s); name != "Custom Skill" {
+	if name := skills.FindCommonSkillName(s); name != skills.UnnamedSkill {
 		return name
 	}
-	return "Skill " + s.FIGNotation()
+	var how []string
+	if s.TakeoffPosition != skills.Feet {
+		how = append(how, "from "+strings.ToLower(skills.BodyPositionName[s.TakeoffPosition]))
+	}
+	if s.Rotation > 0 {
+		how = append(how, map[bool]string{true: "backward", false: "forward"}[s.Backward])
+	}
+	if l := s.LandingPosition(); l != skills.Feet {
+		how = append(how, "to "+strings.ToLower(skills.BodyPositionName[l]))
+	}
+	if len(how) == 0 {
+		return "Skill " + s.FIGNotation()
+	}
+	return "Skill " + s.FIGNotation() + ": " + strings.Join(how, ", ")
+}
+
+// skillNameBeside is skillName where the notation shows beside it, so it
+// isn't said twice: "Skill: from back, forward".
+func skillNameBeside(s skills.TrampolineSkill) string {
+	return strings.Replace(skillName(s), " "+s.FIGNotation(), "", 1)
+}
+
+// skillWithNotation is a skill's name and its notation, once: an unnamed
+// skill's name already has it.
+func skillWithNotation(s skills.TrampolineSkill) string {
+	if skills.FindCommonSkillName(s) == skills.UnnamedSkill {
+		return skillName(s)
+	}
+	return skillName(s) + " " + s.FIGNotation()
 }
 
 // skillsPart is a member's skills as viewer sees them: their marks, both
@@ -385,12 +415,12 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 	}
 	// view is a skill as a row, with its marks.
 	view := func(s skills.TrampolineSkill, data string, club *store.ClubSkill, sides map[string]store.Mark) views.MarkView {
-		v := views.MarkView{Skill: data, Name: skillName(s), FIG: s.FIGNotation()}
+		v := views.MarkView{Skill: data, Name: skillNameBeside(s), FIG: s.FIGNotation()}
 		switch {
 		case club != nil:
 			v = views.MarkView{Club: club.ID, Name: club.Name, FIG: club.Note}
 		case clubName(named, s) != "":
-			v.Name, v.FIG = clubName(named, s), skillName(s)+" "+s.FIGNotation()
+			v.Name, v.FIG = clubName(named, s), skillWithNotation(s)
 		}
 		fill(&v, sides)
 		return v
@@ -536,7 +566,7 @@ func (p *competitionPages) clubSkillsPage(w http.ResponseWriter, r *http.Request
 		v := views.ClubSkillView{Name: c.Name, What: "To track", Note: c.Note, By: c.ByName, Remove: clubSkillsPath(token) + "/" + c.ID + "/remove"}
 		var s skills.TrampolineSkill
 		if c.Skill != "" && json.Unmarshal([]byte(c.Skill), &s) == nil {
-			v.What = skillName(s) + " " + s.FIGNotation()
+			v.What = skillWithNotation(s)
 			named = append(named, s)
 		}
 		page.Skills = append(page.Skills, v)
@@ -544,7 +574,7 @@ func (p *competitionPages) clubSkillsPage(w http.ResponseWriter, r *http.Request
 	for _, res := range catalog.Search(q) {
 		s := res.Skill
 		data, _ := json.Marshal(s)
-		page.Results = append(page.Results, views.CatalogChoice{Skill: string(data), Name: skillName(s), FIG: s.FIGNotation(), ClubName: clubName(named, s)})
+		page.Results = append(page.Results, views.CatalogChoice{Skill: string(data), Name: skillNameBeside(s), FIG: s.FIGNotation(), ClubName: clubName(named, s)})
 	}
 	render(w, r, views.CoachClubSkills(page))
 }

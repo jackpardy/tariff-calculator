@@ -204,10 +204,21 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	base := adminPath(r.PathValue("token"))
-	page := views.DayPage{Base: base, Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuDay), Notice: r.URL.Query().Get("notice"), Day: day}
+	page := views.DayPage{Base: base, Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuDay), Notice: r.URL.Query().Get("notice"), Day: day}
 	page.Correct = can(r, "POST", "/day/times")
 	if day < len(s.Setup.Days) {
 		page.DayName = s.Setup.Days[day].Name
+		if first, err := c.Competition.Day(); err == nil {
+			page.DayDate = first.AddDate(0, 0, day).Format("Monday 2 January 2006")
+		}
+	}
+	// The venue screen opens on the day shown.
+	for i := range page.Menu {
+		for j := range page.Menu[i].Items {
+			if strings.HasSuffix(page.Menu[i].Items[j].Href, menuScreen) {
+				page.Menu[i].Items[j].Href += "?day=" + strconv.Itoa(day)
+			}
+		}
 	}
 	whatIf := ""
 	if can(r, "GET", "/timetable/leave") {

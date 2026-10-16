@@ -55,7 +55,7 @@ templ entryCardChecks(c EntryCard) {
 			@StateChip(Done, "No problems found")
 		</p>
 	} else {
-		<div class="notification is-danger is-light">
+		<div class="notification is-danger is-light" id="problems">
 			<p><strong>{ Count(len(c.Problems), "problem", "problems") }</strong></p>
 			<ul>
 				for _, p := range c.Problems {
@@ -119,7 +119,7 @@ templ exerciseCard(ex ExerciseCard) {
 									<span class="is-size-7 has-text-danger">{ skills.ElementNote(i, ex.Validation.Messages[i]) }</span>
 								}
 							</td>
-							<td class="has-text-grey">{ sv.FIGNotation }</td>
+							<td class="has-text-grey comp-nowrap">{ sv.FIGNotation }</td>
 							<td class="has-text-right">
 								if ex.Checks.ScoreDifficulty {
 									{ fmt.Sprintf("%.1f", sv.Skill.Tariff) }

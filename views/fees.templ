@@ -29,6 +29,7 @@ type AccountView struct {
 	Entries              int
 	Due, Paid, Balance   string
 	Settled              bool
+	Over                 string // paid more than due, by this much; "" if not
 	Invoice              string
 	Payments             []PaymentView
 }
@@ -105,7 +106,7 @@ templ FeesAdmin(p FeesPage) {
 												· { pay.Note }
 											}
 											· { pay.Who }
-											<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments/" + pay.ID + "/remove") } class="is-inline">
+											<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments/" + pay.ID + "/remove") } class="is-inline" onsubmit={ confirmFirst("Remove the payment of " + pay.Amount + "?") }>
 												<button class="button is-small is-text has-text-danger p-0 ml-1 comp-inline-button" type="submit" aria-label={ "Remove the payment of " + pay.Amount }>Remove</button>
 											</form>
 										</div>
@@ -117,6 +118,10 @@ templ FeesAdmin(p FeesPage) {
 								<td data-label="Balance">
 									if a.Settled {
 										@StateChip(Done, "Paid")
+										// More than due: a credit to refund, or to take off a later bill.
+										if a.Over != "" {
+											<span class="is-size-7 has-text-warning-dark comp-nowrap">{ a.Over } over</span>
+										}
 									} else {
 										<strong>{ a.Balance }</strong>
 									}
@@ -158,6 +163,7 @@ type InvoicePage struct {
 	Lines                         []InvoiceLineView
 	Total, Paid, Balance          string
 	Settled                       bool
+	Over                          string // paid more than due, by this much; "" if not
 	Payments                      []PaymentView
 }
 
@@ -185,6 +191,7 @@ templ Invoice(p InvoicePage) {
 type FeesSummary struct {
 	Due, Paid, Balance string
 	Settled            bool
+	Over               string // paid more than due, by this much; "" if not
 	Invoice            string
 }
 
@@ -195,6 +202,9 @@ templ feesLine(f *FeesSummary) {
 			<strong>Fees:</strong> { f.Due }
 			if f.Settled {
 				@StateChip(Done, "Paid")
+				if f.Over != "" {
+					· { f.Over } paid over
+				}
 			} else {
 				· { f.Paid } paid · <strong>{ f.Balance } to pay</strong>
 			}
@@ -230,13 +240,22 @@ templ invoiceTable(p InvoicePage) {
 			}
 			<tr>
 				<th>
-					if p.Settled {
-						Paid in full
-					} else {
-						To pay
+					switch {
+						case p.Over != "":
+							Paid more than due
+						case p.Settled:
+							Paid in full
+						default:
+							To pay
 					}
 				</th>
-				<th class="has-text-right">{ p.Balance }</th>
+				<th class="has-text-right">
+					if p.Over != "" {
+						{ p.Over } over
+					} else {
+						{ p.Balance }
+					}
+				</th>
 			</tr>
 		</tfoot>
 	</table>

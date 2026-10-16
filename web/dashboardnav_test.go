@@ -38,7 +38,7 @@ func TestDashboardNavigation(t *testing.T) {
 	}
 	// The levels open and close, so there's no list of them to jump to; the
 	// entries come before the competition's facts and counts.
-	if !strings.Contains(page, "(1 of 3)") || strings.Contains(page, `href="#level-0"`) || strings.Contains(page, "Jump to") || !strings.Contains(page, `id="level-0"`) {
+	if !strings.Contains(page, `(<span data-group-count="3">1 of 3</span>)`) || strings.Contains(page, `href="#level-0"`) || strings.Contains(page, "Jump to") || !strings.Contains(page, `id="level-0"`) {
 		t.Error("each level says how many are shown, with no jump list")
 	}
 	if e, about := strings.Index(page, `<div id="entries">`), strings.Index(page, `class="comp-dash-about`); e < 0 || about < e || strings.Index(page, "comp-counts") < e {

@@ -317,26 +317,37 @@ func whoChipText(r Role, name string) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if name != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<span class=\"chip-name\">· ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<span class=\"chip-name\">· <span class=\"chip-name-text\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/status.templ`, Line: 93, Col: 35}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/status.templ`, Line: 93, Col: 64}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</span></span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
 		return nil
 	})
+}
+
+// confirmFirst asks before a form does something hard to take back.
+func confirmFirst(question string) templ.ComponentScript {
+	return templ.ComponentScript{
+		Name: `__templ_confirmFirst_1f14`,
+		Function: `function __templ_confirmFirst_1f14(question){if (!confirm(question)) { event.preventDefault(); }
+}`,
+		Call:       templ.SafeScript(`__templ_confirmFirst_1f14`, question),
+		CallInline: templ.SafeScriptInline(`__templ_confirmFirst_1f14`, question),
+	}
 }
 
 var _ = templruntime.GeneratedTemplate

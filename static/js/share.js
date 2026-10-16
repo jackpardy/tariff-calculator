@@ -47,7 +47,9 @@ const Share = (() => {
         const share = JSON.parse(new TextDecoder().decode(bytes));
         if (!share || share.v !== 1) { throw new Error('not a share link this app understands'); }
         const list = (v) => (Array.isArray(v) ? v : []);
-        return { routines: list(share.routines), sets: list(share.sets), levels: list(share.levels), entries: list(share.entries) };
+        // ids: a set's id where it has one to keep (a club level opened from
+        // its page, so saving it again changes that level).
+        return { routines: list(share.routines), sets: list(share.sets), levels: list(share.levels), entries: list(share.entries), ids: list(share.ids) };
     }
 
     // pack is the share for the chosen routines, sets, levels and level entries
@@ -284,7 +286,14 @@ const Share = (() => {
         const saveSet = (i) => {
             if (setIds.has(i) || !share.sets[i]) { return setIds.get(i); }
             const json = JSON.stringify(share.sets[i]);
-            let saved = sets.find((s) => JSON.stringify(s.set) === json);
+            const keep = typeof share.ids?.[i] === 'string' && share.ids[i].length <= 40 ? share.ids[i] : '';
+            let saved = keep ? sets.find((s) => s.id === keep) : sets.find((s) => JSON.stringify(s.set) === json);
+            if (saved && keep) {
+                saved.set = { ...share.sets[i] }; // as the level is now
+            } else if (keep) {
+                saved = { id: keep, set: { ...share.sets[i] } };
+                sets.push(saved);
+            }
             if (!saved) {
                 const set = { ...share.sets[i], name: uniqueName(share.sets[i].name || 'Shared requirements', new Set(sets.map((s) => s.set.name))) };
                 saved = { id: SetStore.newId(), set };

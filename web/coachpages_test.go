@@ -36,6 +36,10 @@ func TestCoachSignoff(t *testing.T) {
 	}
 	ann := pathIn(t, rec.Body.String(), "/clubs/coach/")
 	bob := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
+	// Adding Bob again (a reload of the page with his link, say) adds no one.
+	if to := redirected(t, h, club+"/coaches", url.Values{"name": {"bob"}}); !strings.Contains(to, "already+one+of+your+coaches") {
+		t.Errorf("a coach of the same name: %s", to)
+	}
 	if location := redirected(t, h, club+"/coaches", url.Values{"name": {""}}); !strings.Contains(location, "needs+a+name") {
 		t.Errorf("a coach needs a name: %s", location)
 	}
@@ -92,7 +96,7 @@ func TestCoachSignoff(t *testing.T) {
 		t.Error("the member sees who signed it off")
 	}
 	clubPage := clubEntriesPage(t, h, club)
-	if x, y := rowOf(t, clubPage, "X"), rowOf(t, clubPage, "Y"); !strings.HasSuffix(x[3], "Signed off Coach · Bob") || !strings.HasSuffix(y[3], "Waiting for sign-off") {
+	if x, y := rowOf(t, clubPage, "X"), rowOf(t, clubPage, "Y"); !strings.HasSuffix(x[3], "Signed off Coach · Bob Coach's note: Ready") || !strings.HasSuffix(y[3], "Waiting for sign-off") {
 		t.Errorf("the comp sec sees each entry's sign-off: %q, %q", x, y)
 	}
 	// The comp sec and the coaches count an entry's problems as the
@@ -115,7 +119,7 @@ func TestCoachSignoff(t *testing.T) {
 	if !regexp.MustCompile(`<a href="` + regexp.QuoteMeta(club) + `/members/[^"]+/competitions/[^"]+" title="See the problems">`).MatchString(clubPage) {
 		t.Error("the problems chip opens the entry")
 	}
-	if m := regexp.MustCompile(`chip-link" href="(` + regexp.QuoteMeta(club) + `/coaches)#(coach-[^"]+)"><span class="chip-role">Coach</span> <span class="chip-name">· Bob`).FindStringSubmatch(clubPage); m == nil {
+	if m := regexp.MustCompile(`chip-link" href="(` + regexp.QuoteMeta(club) + `/coaches)#(coach-[^"]+)"><span class="chip-role">Coach</span> <span class="chip-name">· <span class="chip-name-text">Bob`).FindStringSubmatch(clubPage); m == nil {
 		t.Error("Bob's chip opens his row on the Coaches page")
 	} else if !strings.Contains(do(t, h, http.MethodGet, m[1], nil).Body.String(), `id="`+m[2]+`"`) {
 		t.Error("and the Coaches page has it")
@@ -193,15 +197,30 @@ func TestIndividualSignoff(t *testing.T) {
 	if rec := do(t, h, http.MethodPost, signoff, url.Values{"signed": {"1"}}); rec.Code != http.StatusUnprocessableEntity {
 		t.Errorf("the coach must give their name: %d", rec.Code)
 	}
-	redirected(t, h, signoff, url.Values{"signed": {"1"}, "coach": {"Coach C"}})
+	done := redirected(t, h, signoff, url.Values{"signed": {"1"}, "coach": {"Coach C"}})
+	if page := do(t, h, http.MethodGet, done, nil).Body.String(); !strings.Contains(page, "Signed off. Thank you") || !strings.Contains(page, "Change the sign-off") {
+		t.Error("the coach is thanked, and the form folds away")
+	}
 	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !signedOffBy(t, page, "Coach C") {
 		t.Error("the individual sees it signed off")
 	}
-	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, chip(t, views.Done, "Signed off")) || !strings.Contains(dash, "· Coach C") {
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, chip(t, views.Done, "Signed off")) || !strings.Contains(dash, `· <span class="chip-name-text">Coach C`) {
 		t.Error("the organiser sees it signed off")
 	}
 	if cards := do(t, h, http.MethodGet, admin+"/cards", nil).Body.String(); !strings.Contains(cards, `aria-label="Coach" value="Coach C"`) {
 		t.Error("the individual's cards name the coach who signed off")
+	}
+
+	// "Not yet" asks for changes; once the entry changes, it waits again.
+	redirected(t, h, signoff, url.Values{"signed": {"0"}, "coach": {"Coach C"}, "note": {"Fix the second"}})
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, chip(t, views.Attention, "Needs changes")) {
+		t.Error("the coach asked for changes")
+	}
+	changed := bucsEntry("I")
+	changed.Set("ex2Skills", strings.Replace(voluntary, `"shape":"Tuck"`, `"shape":"Pike"`, 1))
+	redirected(t, h, own, changed)
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); strings.Contains(dash, chip(t, views.Attention, "Needs changes")) || !strings.Contains(dash, chip(t, views.InProgress, "Waiting for sign-off")) {
+		t.Error("changed since: waiting for sign-off again")
 	}
 
 	// Without the requirement, there's no sign-off link.

@@ -422,7 +422,7 @@
                 plainSubmit(form, submitter);
                 return;
             }
-            show(fresh, form.closest('.comp-flight, .comp-day-card')?.id || 'day-areas', shut);
+            show(fresh, form.closest(submitter?.value === 'finish' ? '.comp-day-area, .comp-day-card' : '.comp-flight, .comp-day-card')?.id || 'day-areas', shut);
         };
 
         // One at a time, so a slow answer can't undo a newer one.
@@ -492,7 +492,10 @@
             const submitter = event.submitter;
             const tap = taps && DayTaps.tapOf(form, submitter, taps.load());
             if (tap && taps.add(tap)) {
-                tapAnchor = form.closest('.comp-flight, .comp-day-card')?.id || (form.closest('#day-warnings') ? 'day-warnings' : 'day-areas');
+                // Finished moves the flight down to those finished: keep the
+                // area where it is instead, so the next flight is in its place.
+                const at = submitter?.value === 'finish' ? '.comp-day-area, .comp-day-card' : '.comp-flight, .comp-day-card';
+                tapAnchor = form.closest(at)?.id || (form.closest('#day-warnings') ? 'day-warnings' : 'day-areas');
                 // Shown as done at once; the count only once it's waiting.
                 DayTaps.markWaiting(taps.load());
                 if (!navigator.onLine) { DayTaps.count(taps.load().length); }
@@ -623,6 +626,14 @@
                 // match opens, and closes again when the search is cleared.
                 for (const group of list.querySelectorAll('[data-list-group]')) {
                     const any = !!group.querySelector('[data-list-row]:not([hidden])');
+                    // A level's "12 of 96" follows the search too.
+                    const counted = group.querySelector(':scope > summary [data-group-count]');
+                    if (counted) {
+                        counted.dataset.shown ??= counted.textContent;
+                        const n = group.querySelectorAll('[data-list-row]:not([hidden])').length;
+                        const of = counted.dataset.groupCount;
+                        counted.textContent = words.length === 0 ? counted.dataset.shown : String(n) === of ? of : `${n} of ${of}`;
+                    }
                     group.hidden = filtered && !any;
                     if (group.tagName !== 'DETAILS') { continue; }
                     if (words.length > 0 && any && !group.open) {

@@ -2,6 +2,8 @@ package views
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"tariffCalculator/requirements"
 	"tariffCalculator/static"
@@ -198,7 +200,7 @@ templ NewCompetition(f CompetitionForm) {
 				</label>
 				<p class="help">Gymnasts say which when entering. Afterwards, under Settings, you can split only some levels; the timetable can still run them in mixed flights.</p>
 			</div>
-			<button class="button is-primary is-fullwidth" type="submit">Create competition</button>
+			<button class="button is-primary" type="submit">Create competition</button>
 		</form>
 		// The competitions already saved here, after the form this page is
 		// for (Competitions and clubs lists them too).
@@ -232,7 +234,7 @@ templ newAdminLink(c CompetitionSummary, link, which string) {
 			Save this page's link, the admin link: it's the only way back to the entries, and anyone who has it can manage the competition.
 		</p>
 		<div data-competition-admin={ link } data-competition-name={ c.Name }>
-			@linkBox("Admin link (keep it secret)", link, "Saved in this browser too, under New competition.")
+			@linkBox("Admin link (keep it secret)", link, "Saved in this browser too: it's under Your competitions in this browser, on the Competitions page.")
 		</div>
 	</div>
 }
@@ -444,18 +446,18 @@ templ otherEvents(f EventsForm) {
 				@levelGroups(f.Groups, "synchroLevel", f.Synchro)
 				<div class="field mt-2">
 					<label class="label is-small" for="events-synchro-pairs">Pair synchro levels into one event (optional)</label>
-					<textarea class="textarea is-small" id="events-synchro-pairs" name="synchroPairs" rows="2" placeholder="e.g. BUCS L1 + BUCS L2">{ f.Pairs }</textarea>
+					<textarea class="textarea is-small" id="events-synchro-pairs" name="synchroPairs" rows={ linesRows(f.Pairs) } placeholder="e.g. BUCS L1 + BUCS L2">{ f.Pairs }</textarea>
 					<p class="help">One event a line, levels joined by +: they're flighted and ranked as one (e.g. "BUCS L1/L2"), and each pair says which level they're doing: the one they both compete at, or the easier of two a level apart.</p>
 				</div>
 			</div>
 		</details>
 		<div class="field mt-2">
 			<label class="label is-small" for="events-tumbling">Tumbling levels, one a line, easiest first</label>
-			<textarea class="textarea is-small" id="events-tumbling" name="tumbling" rows="2" placeholder="e.g. Novice">{ f.Tumbling }</textarea>
+			<textarea class="textarea is-small" id="events-tumbling" name="tumbling" rows={ linesRows(f.Tumbling) } placeholder="e.g. Novice">{ f.Tumbling }</textarea>
 		</div>
 		<div class="field">
 			<label class="label is-small" for="events-dmt">DMT levels, one a line, easiest first</label>
-			<textarea class="textarea is-small" id="events-dmt" name="dmt" rows="2" placeholder="e.g. Novice">{ f.DMT }</textarea>
+			<textarea class="textarea is-small" id="events-dmt" name="dmt" rows={ linesRows(f.DMT) } placeholder="e.g. Novice">{ f.DMT }</textarea>
 		</div>
 	</fieldset>
 }
@@ -489,4 +491,9 @@ templ levelOrderForm(base string, order []LevelOrder) {
 			</ol>
 		}
 	</form>
+}
+
+// linesRows is a box's height for its text: every line, and one more to add.
+func linesRows(text string) string {
+	return strconv.Itoa(max(2, strings.Count(strings.TrimRight(text, "\n"), "\n")+2))
 }

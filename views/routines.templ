@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"tariffCalculator/static"
 )
 
 // A member's routines, kept on their page (ADR 0011 Decision 1): the member's
@@ -67,6 +69,8 @@ templ routinesList(p RoutinesPart) {
 	if len(p.Routines) == 0 {
 		<p class="has-text-grey mb-4">{ p.Empty }</p>
 	}
+	// The lists of levels to check against are long: searchable.
+	<script defer src={ static.URL("js/selectsearch.js") }></script>
 	for _, r := range p.Routines {
 		<details class="box comp-routine-row" id={ "routine-" + r.ID } open?={ checkedAgainst(r) }>
 			<summary>
@@ -98,7 +102,7 @@ templ routinesList(p RoutinesPart) {
 						<input type="hidden" name="routine" value={ r.ID }/>
 						<div class="control is-expanded">
 							<div class="select is-small is-fullwidth">
-								<select name="against" aria-label={ "Check " + r.Name + " against" }>
+								<select name="against" aria-label={ "Check " + r.Name + " against" } data-search-select="Search the levels">
 									<option value="">What it was checked against</option>
 									for _, group := range listGroups(r.Check.Choices) {
 										<optgroup label={ group[0].Group }>
@@ -188,7 +192,7 @@ templ MemberRoutines(p MemberPage) {
 	@memberFrame(p) {
 		<p class="mb-4 is-size-7 has-text-grey">
 			Routines kept here open on any phone, and your coaches and comp sec see them. To keep one, use
-			<strong>More</strong>, <strong>Save to my page</strong> in the <a href="/">Routine Builder</a>, or add them below.
+			<strong>More</strong>, <strong>Save to my page</strong> in the <a href="/">Routine Builder</a>.
 		</p>
 		@routinesList(p.Routines)
 		@keepRoutinesForm(p.Routines, "Add to my page", false)

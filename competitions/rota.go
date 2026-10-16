@@ -719,3 +719,13 @@ func (s Schedule) RotaProblems(people map[string][]string, officials []RotaPerso
 	}
 	return out
 }
+
+// RoleWord is a role's name inside a sentence: lower case, but where it
+// starts with an abbreviation ("HD judge").
+func RoleWord(r string) string {
+	name := RoleName(r)
+	if len(name) > 1 && name[1] >= 'A' && name[1] <= 'Z' {
+		return name
+	}
+	return strings.ToLower(name[:1]) + name[1:]
+}

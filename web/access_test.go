@@ -110,7 +110,7 @@ func TestAdminLinks(t *testing.T) {
 	for _, want := range []string{
 		"<td>Difficulty judges</td><td>Marked a card checked: Ann Ryan · BUCS L3</td>",
 		"<td>Organiser</td><td>Made a link for Difficulty judges (checking cards)</td>",
-		"<td>Chairs</td><td>Flagged a concern</td>",
+		"<td>Chairs</td><td>Flagged a concern: Ann Ryan · BUCS L3</td>",
 		"<td>Timetable team</td><td>Planned the timetable</td>",
 		"<td>Mary</td><td>Closed entries</td>",
 	} {

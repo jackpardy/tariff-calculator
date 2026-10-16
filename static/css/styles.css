@@ -345,9 +345,13 @@
 .set-routine-from { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .set-routine-from .input { max-width: 14rem; }
 .set-routine-elements { margin: 0.25rem 0 0 1.5rem; font-size: 0.9rem; }
-.level-option { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
-.level-option .select { min-width: 0; }
-.level-option .select select { max-width: 26rem; }
+/* An option's label, its search on a line of its own, then its list and
+   Remove: wrapping on a phone rather than running off the card. */
+.level-option { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem; margin-bottom: 0.5rem; }
+.level-option-label { flex: 1 1 100%; }
+.level-option .select-search { flex: 1 1 100%; margin-bottom: 0; }
+.level-option .select { flex: 0 1 26rem; min-width: 0; }
+.level-option .select select { width: 100%; max-width: 100%; }
 .level-exercises { font-size: 0.85rem; color: #555; margin: 0.15rem 0; }
 
 /* --- Add a skill (views.SkillFormView) --- */
@@ -531,6 +535,9 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .matcher-choices .checkbox:has(input:checked) { border-color: #485fc7; background: #eff1fa; color: #3850b7; font-weight: 600; }
 .matcher-more { margin: 0.25rem 0 0.5rem; }
 .matcher-more > summary { color: #485fc7; font-size: 0.85rem; padding: 0.35rem 0; }
+/* "Or describe it" is a small way in, like More conditions, not a heading. */
+.matcher-describe { margin: 0.25rem 0 0.5rem; }
+.matcher-describe > summary { color: #485fc7; font-size: 0.85rem; padding: 0.35rem 0; cursor: pointer; }
 .matcher-hint { color: #888; font-size: 0.75rem; }
 .set-problems ul, .set-conflicts ul { list-style: disc; padding-left: 1.2rem; }
 
@@ -645,7 +652,7 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-opens-action { border: 0; margin-bottom: 1rem; }
 .comp-opens-action > summary { display: block; padding: 0; }
 .comp-opens-button::after { content: ""; display: inline-block; width: 0.4em; height: 0.4em; margin-left: 0.5em; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-0.15em) rotate(45deg); transition: transform 0.15s; }
-.comp-opens[open] .comp-opens-button::after, .comp-popup[open] > .comp-opens-button::after { transform: translateY(0.1em) rotate(-135deg); }
+.comp-opens[open] .comp-opens-button::after, .comp-popup[open] > .comp-opens-button::after, .routine-menu[open] > .comp-opens-button::after { transform: translateY(0.1em) rotate(-135deg); }
 @media (prefers-reduced-motion: reduce) { .comp-opens-button::after { transition: none; } }
 .comp-opens[open] .comp-opens-label, .comp-opens:not([open]) .comp-opens-close { display: none; }
 .comp-opens-form { margin: 0 0 0.9rem; padding: 0.25rem 0 0.25rem 1rem; border-left: 3px solid #dbdbdb; }
@@ -713,6 +720,8 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-entries tr.has-problems td:nth-child(6) { color: inherit; }
 .comp-entries td.comp-problem-cell { white-space: normal; min-width: 12rem; }
 .comp-skills tr.not-counted td { color: #999; text-decoration: line-through; }
+/* The reason it doesn't count isn't struck through (an inline-block stops the line). */
+.comp-skills tr.not-counted td > .has-text-danger { display: inline-block; text-decoration: none; }
 .comp-results { list-style: none; margin: 0; font-size: 0.9rem; }
 .comp-results .is-unmet { color: #cc0f35; }
 .comp-option { display: flex; align-items: center; gap: 0.4rem; margin: 0 0 0.3rem 0 !important; }
@@ -866,7 +875,9 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .screen-title { font-size: 2rem; font-weight: 700; line-height: 1.15; }
 .screen-clock { font-size: 3.2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 .screen-notice { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; font-size: 1.8rem; font-weight: 700; background: #ffe08a; border: 3px solid #111; border-radius: 0.5rem; padding: 0.4rem 0.9rem; margin: 0; }
-.screen-notice[hidden] { display: none; }
+.screen-notices { display: grid; }
+.screen-notices > .screen-notice { grid-area: 1 / 1; }
+.screen-notice[hidden] { display: flex; visibility: hidden; }
 .screen-notice-count { flex-shrink: 0; font-size: 1.1rem; font-weight: 600; white-space: nowrap; }
 .screen-stale { font-size: 1.3rem; font-weight: 700; background: #111; color: #fff; border-radius: 0.4rem; padding: 0.3rem 0.8rem; margin: 0; }
 .screen-grid { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(var(--screen-columns), minmax(0, 1fr)); grid-template-rows: repeat(var(--screen-rows), minmax(0, 1fr)); gap: 0.9rem; }
@@ -1062,7 +1073,7 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .chip-who { background: #fff; border: 1.5px solid currentColor; padding: 0.05em 0.55em; }
 .chip-who .chip-name { font-weight: 400; }
 /* A chip that opens the person's page: the name underlined, as a link. */
-a.chip-link .chip-name { text-decoration: underline; text-underline-offset: 0.15em; }
+a.chip-link .chip-name-text { text-decoration: underline; text-underline-offset: 0.15em; }
 a.chip-link:hover { background: #f5f5ff; }
 .chip-who-gymnast { color: var(--role-gymnast); }
 .chip-who-coach { color: var(--role-coach); }
@@ -1119,6 +1130,10 @@ a.chip-link:hover { background: #f5f5ff; }
 .table-container { border-left: 3px solid transparent; border-right: 3px solid transparent; transition: border-color 0.15s ease; }
 .table-container.has-more-left { border-left-color: #8a8a8a; }
 .table-container.has-more-right { border-right-color: #8a8a8a; }
+/* A row of tabs wider than the screen: the same line where there are more. */
+.comp-page .tabs { border-left: 3px solid transparent; border-right: 3px solid transparent; }
+.comp-page .tabs.has-more-left { border-left-color: #8a8a8a; }
+.comp-page .tabs.has-more-right { border-right-color: #8a8a8a; }
 @media (prefers-reduced-motion: reduce) { .table-container { transition: none; } }
 table [hidden] { display: none !important; }
 table[data-table-view] th { position: relative; }
@@ -1136,6 +1151,9 @@ th:hover > .comp-col-grip::after { background: #485fc7; width: 2px; }
 .comp-table-menu-row { display: flex; align-items: center; gap: 0.4rem; min-height: 2rem; }
 .comp-table-menu-clip { margin-top: 0.4rem; border-top: 1px solid #eee; padding-top: 0.4rem; }
 .comp-table-menu-help { font-size: 0.75rem; color: #555; margin: 0.3rem 0; }
+.comp-table-menu [data-table-reset] { padding-left: 0; }
+/* On a phone the table is cards (comp-stack): nothing to clip or drag. */
+@media screen and (max-width: 768px) { .comp-table-menu-clip, .comp-table-menu-help { display: none; } }
 /* A row a link opened (a coach from their chip): picked out for a moment. */
 .comp-target:target { animation: comp-target 2.5s ease-out; }
 @keyframes comp-target { from { background: #fff3c4; } to { background: transparent; } }
@@ -1173,3 +1191,25 @@ html:has(.set-editor) { overflow-anchor: none; }
 .set-scoring .checkbox { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
 /* On a phone the skill picker's tabs wrap, rather than running off the side unseen. */
 @media screen and (max-width: 768px) { .picker-tabs { flex-wrap: wrap; overflow-x: visible; } }
+
+/* The entries removed and on hold (views/dashboard.templ): rows that wrap
+   on a phone rather than a table squeezed into one-word columns. */
+.comp-removed { margin: 0; list-style: none; }
+.comp-removed-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid #ededed; }
+.comp-removed-who { flex: 1 1 12rem; min-width: 0; }
+.comp-removed-who a { margin-right: 0.35rem; }
+.comp-removed-state { flex: 2 1 16rem; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
+.comp-removed-row > form { margin-left: auto; }
+.comp-nowrap { white-space: nowrap; }
+
+/* Dates and times are short: as wide as they need, not the whole row. */
+input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100%; }
+
+/* Compare, printed: the two routines, not the choosers or the way back. */
+@media print {
+  .compare-choices, .compare-back { display: none; }
+}
+
+/* The set routine maker (Requirements page): Add as wide as its words, not
+   the whole card, so Save below isn't lost under it. */
+.set-routine-maker #add-btn { width: auto; }

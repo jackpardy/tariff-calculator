@@ -285,9 +285,10 @@ func TestPeopleAccess(t *testing.T) {
 	path := strings.TrimPrefix(mo, admin)
 
 	screen := madeLink(t, h, admin, "Lobby", "screen")
+	// It never shows people: it goes to the screen.
 	for _, p := range []string{"/people", path} {
-		if got := do(t, h, http.MethodGet, screen+p, nil).Code; got != http.StatusForbidden {
-			t.Errorf("the venue screen link opens %s: %d", p, got)
+		if rec := do(t, h, http.MethodGet, screen+p, nil); rec.Code != http.StatusFound || rec.Header().Get("Location") != screen+"/screen" {
+			t.Errorf("the venue screen link opens %s: %d", p, rec.Code)
 		}
 	}
 	// Every link that sees the dashboard sees the people, and the menu offers them.

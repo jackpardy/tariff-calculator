@@ -222,6 +222,30 @@ type SignoffPage struct {
 	Name        string // as given before
 	Problems    []string
 	Cannot      string // why they can't sign it off, if they can't
+	Notice      string // what was just done
+}
+
+// signoffForm asks the coach to sign off the entry, or say not yet.
+templ signoffForm(p SignoffPage) {
+	@problemList(p.Problems)
+	<form method="post" action={ templ.SafeURL(p.Action) }>
+		<p class="mb-2">Have you seen { p.Card.Gymnast } perform this safely and is it ready to compete?</p>
+		if p.AskName {
+			<div class="field">
+				<label class="label is-small" for="coach-name">Your name (coach)</label>
+				<input class="input is-small" id="coach-name" name="coach" required maxlength="80" value={ p.Name }/>
+			</div>
+		}
+		<div class="field">
+			<label class="label is-small" for="signoff-note">Note for the gymnast (optional)</label>
+			<input class="input is-small" id="signoff-note" name="note" maxlength="300" value={ p.Signoff.Note } placeholder="e.g. Not the full-in until we've done it on the big trampoline"/>
+		</div>
+		<div class="buttons">
+			<button class="button is-success is-small" type="submit" name="signed" value="1">Sign off</button>
+			<button class="button is-warning is-light is-small" type="submit" name="signed" value="0">Not yet</button>
+		</div>
+		<p class="help">If the entry changes after you sign it off, it needs signing off again.</p>
+	</form>
 }
 
 // SignoffEntry is the page where a coach signs off an entry.
@@ -232,31 +256,23 @@ templ SignoffEntry(p SignoffPage) {
 		}
 		<p class="has-text-grey mb-1">{ p.Competition.Name }</p>
 		@competitionFacts(p.Competition)
+		if p.Notice != "" {
+			<div class="notification is-success is-light">{ p.Notice }</div>
+		}
 		@coachLates(p.Late)
 		@entryCard(p.Card)
 		if p.Cannot != "" {
 			<p class="has-text-grey mt-4">{ p.Cannot }</p>
+		} else if p.Competition.SignoffsOpen && p.Signoff.Signed && len(p.Problems) == 0 {
+			// Signed off: the form folds away, to change the answer.
+			<div class="mt-4">
+				@opens("", "", "Change the sign-off", false) {
+					@signoffForm(p)
+				}
+			</div>
 		} else if p.Competition.SignoffsOpen {
 			<div class="box mt-4">
-				@problemList(p.Problems)
-				<form method="post" action={ templ.SafeURL(p.Action) }>
-					<p class="mb-2">Have you seen { p.Card.Gymnast } perform this safely and is it ready to compete?</p>
-					if p.AskName {
-						<div class="field">
-							<label class="label is-small" for="coach-name">Your name (coach)</label>
-							<input class="input is-small" id="coach-name" name="coach" required maxlength="80" value={ p.Name }/>
-						</div>
-					}
-					<div class="field">
-						<label class="label is-small" for="signoff-note">Note for the gymnast (optional)</label>
-						<input class="input is-small" id="signoff-note" name="note" maxlength="300" value={ p.Signoff.Note } placeholder="e.g. Not the full-in until we've done it on the big trampoline"/>
-					</div>
-					<div class="buttons">
-						<button class="button is-success is-small" type="submit" name="signed" value="1">Sign off</button>
-						<button class="button is-warning is-light is-small" type="submit" name="signed" value="0">Not yet</button>
-					</div>
-					<p class="help">If the entry changes after you sign it off, it needs signing off again.</p>
-				</form>
+				@signoffForm(p)
 			</div>
 		} else {
 			if p.Competition.Live {

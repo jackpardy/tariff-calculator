@@ -151,7 +151,7 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 				if f.Day != d || f.Area != a.Name {
 					continue
 				}
-				it := views.ItemView{Flight: true, Index: i, Name: f.Name(), Start: competitions.Clock(f.Start), End: competitions.Clock(f.End), Seats: seatsOf(f, people, names),
+				it := views.ItemView{Flight: true, Index: i, Discipline: f.Discipline, Name: f.Name(), Start: competitions.Clock(f.Start), End: competitions.Clock(f.End), Seats: seatsOf(f, people, names),
 					Pairs: f.Discipline == competitions.Synchro, InRun: f.Of > 1, Earlier: f.Number > 1}
 				for n, id := range f.Entries {
 					e, ok := byID[id]
@@ -197,7 +197,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := views.TimetablePage{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuTimetable), Notice: r.URL.Query().Get("notice"),
+		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuTimetable), Notice: r.URL.Query().Get("notice"),
 		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Published: c.Published != nil, Changes: c.Published != nil && !sameTimetable(s, *c.Published), Entries: len(entries), Version: s.Version(),
 	}
 	if s.Planned {
@@ -228,7 +228,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 		}
 		page.Days = itemsOf(s, entries, officials)
 		for i, f := range s.Flights {
-			page.Moves = append(page.Moves, views.FlightOption{Value: strconv.Itoa(i), Label: fmt.Sprintf("%s · %s %s · %s", f.Name(), s.Setup.Days[f.Day].Name, competitions.Clock(f.Start), f.Area)})
+			page.Moves = append(page.Moves, views.FlightOption{Value: strconv.Itoa(i), Label: fmt.Sprintf("%s · %s %s · %s", f.Name(), s.Setup.Days[f.Day].Name, competitions.Clock(f.Start), f.Area), Group: f.Discipline})
 		}
 		for d, day := range s.Setup.Days {
 			for _, a := range s.Setup.Areas {
@@ -241,6 +241,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 			if _, placed := s.Find(e.ID); !placed {
 				page.Unplaced = append(page.Unplaced, views.TimetableGymnast{
 					ID: e.ID, FlightGymnast: views.FlightGymnast{Name: e.Entry.Gymnasts(), Club: clubOf(e)}, Category: strings.TrimSpace(e.Entry.Event() + " " + e.Entry.Category),
+					Discipline: e.Entry.Discipline,
 				})
 			}
 		}
@@ -261,7 +262,7 @@ func (p *competitionPages) timetableSetup(w http.ResponseWriter, r *http.Request
 		return
 	}
 	render(w, r, views.TimetableSetup(views.TimetablePage{
-		Base: adminPath(r.PathValue("token")), Competition: summary(c.Competition, p.now()), Menu: p.menuFor(r, c, menuSetup), Notice: r.URL.Query().Get("notice"),
+		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuSetup), Notice: r.URL.Query().Get("notice"),
 		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Entries: len(entries), Version: s.Version(),
 	}))
 }
@@ -374,7 +375,14 @@ func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
 			return nil
 		}
 		flight, err := strconv.Atoi(to)
-		if err != nil || !s.MoveEntry(id, flight) {
+		if err != nil || flight < 0 || flight >= len(s.Flights) {
+			return refused("That flight has moved since; nothing was changed.")
+		}
+		// A gymnast moves only to a flight of their own discipline.
+		if i := slices.IndexFunc(entries, func(e store.Entry) bool { return e.ID == id }); i >= 0 && entries[i].Entry.Discipline != s.Flights[flight].Discipline {
+			return refused("They can only move to a flight of their own discipline; nothing was changed.")
+		}
+		if !s.MoveEntry(id, flight) {
 			return refused("That flight has moved since; nothing was changed.")
 		}
 		return nil

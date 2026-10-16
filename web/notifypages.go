@@ -107,7 +107,7 @@ func (p *competitionPages) notifyPage(w http.ResponseWriter, r *http.Request) {
 			email = &subs[i]
 		}
 	}
-	page := views.NotifyPage{Competition: summary(t.c.Competition, p.now()), Back: t.back, Action: r.URL.Path, For: t.who,
+	page := views.NotifyPage{Competition: summary(t.c, p.now()), Back: t.back, Action: r.URL.Path, For: t.who,
 		EmailOn: p.notify != nil && p.notify.mail != nil, Notice: r.URL.Query().Get("notice")}
 	if r.Method == http.MethodPost {
 		switch r.FormValue("action") {

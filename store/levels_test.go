@@ -32,6 +32,13 @@ func TestClubLevels(t *testing.T) {
 	if len(levels) != 2 || levels[0].Name != "Grade 1a" || levels[1].Name != "Grade 2" || levels[0].ByName != "Ann" || !levels[0].UpdatedAt.Equal(now) {
 		t.Fatalf("levels = %+v", levels)
 	}
+	// Opened from the level in another browser, it's saved by the level's own id.
+	if added, _ = s.SaveClubLevel(ctx, ann, levels[1].ID, "Grade 2b", set); added {
+		t.Error("saving by the level's id changes it")
+	}
+	if levels, _ = s.ClubLevels(ctx, club.ID); len(levels) != 2 || levels[1].Name != "Grade 2b" {
+		t.Fatalf("levels = %+v", levels)
+	}
 
 	// Its club skills to track: only the club's own, and only ones to track.
 	must(t, s.AddClubSkill(ctx, ann, "Kaboom drill", "", ""))
@@ -44,7 +51,7 @@ func TestClubLevels(t *testing.T) {
 
 	// Moving and removing; another club's coach can do neither.
 	must(t, s.MoveClubLevel(ctx, ann, levels[1].ID, -1))
-	if levels, _ = s.ClubLevels(ctx, club.ID); levels[0].Name != "Grade 2" {
+	if levels, _ = s.ClubLevels(ctx, club.ID); levels[0].Name != "Grade 2b" {
 		t.Errorf("moved: %+v", levels)
 	}
 	other, _, _ := s.CreateClub(ctx, "DCU")

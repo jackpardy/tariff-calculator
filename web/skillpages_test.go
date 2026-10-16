@@ -157,7 +157,7 @@ func TestClubSkills(t *testing.T) {
 		t.Errorf("a name already used: %q", notice)
 	}
 	page = do(t, h, http.MethodGet, ann+"/club-skills", nil).Body.String()
-	for _, want := range []string{"Swivel Hips", "Seat Half Twist To Seat", "Kaboom drill", "On the crash mat", "To track", `<span class="chip-role">Coach</span> <span class="chip-name">· Ann</span>`} {
+	for _, want := range []string{"Swivel Hips", "Seat Half Twist To Seat", "Kaboom drill", "On the crash mat", "To track", `<span class="chip-role">Coach</span> <span class="chip-name">· <span class="chip-name-text">Ann</span></span>`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the club's skills should show %q", want)
 		}

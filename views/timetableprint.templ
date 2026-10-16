@@ -257,6 +257,14 @@ templ TimelinePrint(t Timeline) {
 	@competitionLayout(t.Title) {
 		if len(t.Menu) > 0 {
 			<div class="screen-only">
+				<h1 class="title is-4">
+					if t.Officials {
+						Timeline with officials
+					} else {
+						Panel timeline
+					}
+				</h1>
+				<p class="subtitle is-6">{ t.Competition.Name } · { t.Competition.Date }</p>
 				@pageMenu(t.Menu)
 			</div>
 		}
