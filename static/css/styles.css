@@ -1154,3 +1154,5 @@ a:hover > .chip { text-decoration: underline; }
 html:has(.set-editor) { overflow-anchor: none; }
 /* Another skill that counts too, under the first (views.matcherFields). */
 .matcher-or > .matcher { border-color: #c5cdf0; }
+/* Requirements written for a level's exercise, under the level editor. */
+.level-writer { margin-top: 1rem; padding: 0.75rem; border: 1px solid #485fc7; border-radius: 8px; }

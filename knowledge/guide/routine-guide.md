@@ -204,6 +204,11 @@ On the requirements page, under **Your levels**, tap **+ New**, or
 
 Then choose the set routine(s) and requirements for each exercise. Add more
 than one set routine when the gymnast chooses between them (option 1 or 2).
+For a voluntary, **+ Write new requirements** writes them right there, under
+the level (**Copy and change** starts from the built-in ones chosen, **Change
+these** changes your own); **Use in this level** saves them and chooses them.
+They belong to the level, unless you tick **Also keep them in Your
+requirements**, to use them elsewhere too.
 Your level then appears under **+ New level...** in Levels mode.
 
 To pass them on, use **Share** to send a link, or **Export** to save a file that

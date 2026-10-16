@@ -266,3 +266,47 @@ func TestEditorKeepsItsPlaceInABrowser(t *testing.T) {
 		t.Errorf("the page moved from %v to %v", before, after)
 	}
 }
+
+// In a level's editor, requirements are written for an exercise right
+// there: saved into the level and chosen for it, kept out of Your
+// requirements unless ticked.
+func TestWriteRequirementsInALevelInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := httptest.NewServer(routes())
+	defer srv.Close()
+
+	var chosen, listed bool
+	var name string
+	var inLevel bool
+	step(t, ctx, "writing requirements for a level's exercise",
+		chromedp.Navigate(srv.URL+"/requirements"),
+		chromedp.WaitReady(`[x-data]`, chromedp.ByQuery),
+		chromedp.Sleep(300*time.Millisecond),
+		chromedp.Evaluate(`Alpine.$data(document.querySelector('[x-data]')).newLevel()`, nil),
+		chromedp.WaitVisible(`#level-editor input[name=structure][value=voluntary]`, chromedp.ByQuery),
+		chromedp.Sleep(300*time.Millisecond),
+		chromedp.Evaluate(`(() => {
+			document.getElementById('level-name').value = 'Club open';
+			const v = document.querySelector('#level-editor input[name=structure][value=voluntary]');
+			v.checked = true;
+			v.dispatchEvent(new Event('change', {bubbles: true}));
+		})()`, nil),
+		chromedp.Poll(`!!document.querySelector('#level-editor [name="first.0"]')`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+		chromedp.Sleep(300*time.Millisecond),
+		chromedp.Evaluate(`[...document.querySelectorAll('#level-editor button')].find((b) => b.textContent.includes('Write new')).click()`, nil),
+		chromedp.Poll(`!!document.querySelector('#level-write-area #set-editor')`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+		chromedp.Evaluate(`document.querySelector('#level-write-area [name=name]').value`, &name),
+		chromedp.Evaluate(`Alpine.$data(document.querySelector('[x-data]')).saveForLevel()`, nil),
+		chromedp.Poll(`!Alpine.$data(document.querySelector('[x-data]')).levelWriting`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+		chromedp.Poll(`(() => { const s = JSON.parse(localStorage.getItem('trampolineRequirementSets') || '[]')[0]; return !!s && document.querySelector('#level-editor [name="first.0"]')?.value === s.id; })()`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+		chromedp.Evaluate(`(() => { const s = JSON.parse(localStorage.getItem('trampolineRequirementSets'))[0]; return document.querySelector('#level-editor [name="first.0"]').value === s.id; })()`, &chosen),
+		chromedp.Evaluate(`JSON.parse(localStorage.getItem('trampolineRequirementSets'))[0].inLevel === true`, &inLevel),
+		chromedp.Evaluate(`Alpine.$data(document.querySelector('[x-data]')).requirementSets().length > 0`, &listed),
+	)
+	if name != "Club open · both exercises" {
+		t.Errorf("named after the level: %q", name)
+	}
+	if !chosen || !inLevel || listed {
+		t.Errorf("chosen for the exercise %v, the level's own %v, in Your requirements %v", chosen, inLevel, listed)
+	}
+}
