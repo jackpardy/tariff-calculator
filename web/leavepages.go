@@ -68,18 +68,20 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 			page.Problems = []string{"Give the day and the time they leave (e.g. 13:00)."}
 		} else {
 			l := competitions.Leave{Person: page.Person, Day: day, From: from, ForGood: page.ForGood, Prefer: page.Prefer}
-			_, fills, err := s.Left(l, people, f.officials)
+			coaches := coachesOf(f.entries, f.same)
+			out, fills, err := s.Left(l, people, coaches, f.officials)
 			if err != nil {
 				page.Problems = sentences(err)
 			} else if r.Method == http.MethodPost {
 				p.keepWhatIf(w, r, c, func(s competitions.Schedule) (competitions.Schedule, error) {
-					out, _, err := s.Left(l, people, f.officials)
+					out, _, err := s.Left(l, people, coaches, f.officials)
 					return out, err
 				}, name(page.Person)+"'s seats are filled in the draft.")
 				return
 			} else {
 				page.Keep, page.Version = r.URL.RequestURI(), s.Version()
 				page.Result = leaveView(s, fills, name, page.Person)
+				page.Result.Breaking = competitions.NewBreaks(f.whatIfBreaks(s), f.whatIfBreaks(out))
 			}
 		}
 	}

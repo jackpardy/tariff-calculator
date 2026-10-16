@@ -56,7 +56,7 @@ func (p *competitionPages) delay(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			people, names := f.one, f.clashNames()
-			_, report, err := s.Delayed(d, people)
+			out, report, err := s.Delayed(d, people)
 			if err != nil {
 				page.Problems = sentences(err)
 			} else if r.Method == http.MethodPost {
@@ -69,6 +69,7 @@ func (p *competitionPages) delay(w http.ResponseWriter, r *http.Request) {
 				page.Keep, page.Version = r.URL.RequestURI(), s.Version()
 				page.Result = delayView(report, names)
 				page.Result.Easing = easing
+				page.Result.Breaking = competitions.NewBreaks(f.whatIfBreaks(s), f.whatIfBreaks(out))
 				if d.Eased() {
 					plain := competitions.Delay{Day: d.Day, Areas: d.Areas, From: d.From, Minutes: d.Minutes}
 					if _, without, err := s.Delayed(plain, people); err == nil {

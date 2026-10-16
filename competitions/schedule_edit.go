@@ -193,6 +193,14 @@ func (s *Schedule) number() {
 // while their gymnasts compete elsewhere. people and coaches are each entry's
 // people and coaches, by entry id, keyed so that one person has one key.
 func (s Schedule) Problems(people, coaches map[string][]string, names map[string]string) []string {
+	out := s.pastEnd()
+	out = append(out, s.runProblems()...)
+	out = append(out, s.personClashes(people, names)...)
+	return append(out, s.coachCompeting(people, coaches, names)...)
+}
+
+// pastEnd are flights past their day's end.
+func (s Schedule) pastEnd() []string {
 	var out []string
 	for _, f := range s.Flights {
 		if f.Day < len(s.Setup.Days) {
@@ -201,7 +209,12 @@ func (s Schedule) Problems(people, coaches map[string][]string, names map[string
 			}
 		}
 	}
-	out = append(out, s.runProblems()...)
+	return out
+}
+
+// personClashes are people competing in two flights at once.
+func (s Schedule) personClashes(people map[string][]string, names map[string]string) []string {
+	var out []string
 	type turn struct {
 		f      ScheduledFlight
 		person string
@@ -229,6 +242,14 @@ func (s Schedule) Problems(people, coaches map[string][]string, names map[string
 			}
 		}
 	}
+	return out
+}
+
+// coachCompeting are coaches competing while gymnasts they coach compete
+// elsewhere.
+func (s Schedule) coachCompeting(people, coaches map[string][]string, names map[string]string) []string {
+	var out []string
+	seen := map[string]bool{}
 	for i, a := range s.Flights {
 		coaching := map[string]bool{}
 		for _, id := range a.Entries {

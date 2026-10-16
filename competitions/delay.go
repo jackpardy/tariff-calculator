@@ -396,6 +396,9 @@ func (s Schedule) freeSlot(unit []int, notBefore, dayEnd int, people map[string]
 	}
 	bestArea, bestStart, found := "", 0, false
 	for _, area := range areas {
+		if !s.mustAllowArea(f.Event, area) {
+			continue
+		}
 		for t := notBefore; t+length <= dayEnd; {
 			t = s.afterBlocks(f.Day, area, t, length)
 			if t+length > dayEnd {
@@ -409,7 +412,7 @@ func (s Schedule) freeSlot(unit []int, notBefore, dayEnd int, people map[string]
 				if slices.Contains(unit, j) || g.Day != f.Day || !(t < g.End && g.Start < t+length) {
 					continue
 				}
-				if g.Area == area || slices.ContainsFunc(s.who(j, people), func(p string) bool { return slices.Contains(mine, p) }) {
+				if g.Area == area || slices.ContainsFunc(s.who(j, people), func(p string) bool { return slices.Contains(mine, p) }) || s.mustApart(f.Event, g.Event) {
 					blocked = max(blocked, g.End)
 				}
 			}
@@ -423,6 +426,27 @@ func (s Schedule) freeSlot(unit []int, notBefore, dayEnd int, people map[string]
 		}
 	}
 	return bestArea, bestStart, found
+}
+
+// mustAllowArea says whether an event's flights may go on an area: no must
+// rule puts the event on another.
+func (s Schedule) mustAllowArea(event, area string) bool {
+	for _, r := range s.Setup.Rules {
+		if r.Must && r.Kind == RuleArea && r.Event == event && r.Area != area {
+			return false
+		}
+	}
+	return true
+}
+
+// mustApart says whether a must rule keeps two events from running at once.
+func (s Schedule) mustApart(a, b string) bool {
+	for _, r := range s.Setup.Rules {
+		if r.Must && r.Kind == RuleApart && (r.Event == a && r.Event2 == b || r.Event == b && r.Event2 == a) {
+			return true
+		}
+	}
+	return false
 }
 
 // easedLength is a flight's length with the delay's changeovers and quicker

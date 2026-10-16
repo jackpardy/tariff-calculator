@@ -735,6 +735,32 @@ templ reportView(r ReportView) {
 	</div>
 }
 
+// newBreaks is what a change would break that isn't broken now
+// (competitions.NewBreaks): open, not folded, as it's what to weigh.
+templ newBreaks(items []string) {
+	if len(items) > 0 {
+		<div class="notification is-warning is-light comp-new-breaks">
+			<p class="mb-1"><strong>This would break { Count(len(items), "thing", "things") } that hold now:</strong></p>
+			<ul>
+				for _, it := range items[:min(len(items), 6)] {
+					<li>{ it }</li>
+				}
+			</ul>
+			// A long list folds after the first few.
+			if len(items) > 6 {
+				<details class="mt-1">
+					<summary class="is-size-7">{ strconv.Itoa(len(items) - 6) } more</summary>
+					<ul>
+						for _, it := range items[6:] {
+							<li>{ it }</li>
+						}
+					</ul>
+				</details>
+			}
+		</div>
+	}
+}
+
 templ problemsList(title string, items []string) {
 	if len(items) > 0 {
 		<details class="mt-2">

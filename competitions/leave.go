@@ -69,7 +69,7 @@ func (s Schedule) CheckLeave(l Leave) error {
 // Left is the schedule with the official gone from their seats from the
 // leave on, each seat filled again as the leave prefers, and how. people are
 // each entry's people, by entry id; officials are who can officiate.
-func (s Schedule) Left(l Leave, people map[string][]string, officials []RotaPerson) (Schedule, []SeatFill, error) {
+func (s Schedule) Left(l Leave, people, coaches map[string][]string, officials []RotaPerson) (Schedule, []SeatFill, error) {
 	if err := s.CheckLeave(l); err != nil {
 		return s, nil, err
 	}
@@ -113,7 +113,7 @@ func (s Schedule) Left(l Leave, people map[string][]string, officials []RotaPers
 			}
 			iv := out.span(st)
 			fill := SeatFill{Flight: out.stretchName(st), Area: out.Flights[i].Area, Day: iv.day, Start: iv.start, End: iv.end, Role: d.Role}
-			plan, others, ok := out.refill(st, l, people, byKey, officials)
+			plan, others, ok := out.refill(st, l, people, coaches, byKey, officials)
 			if !ok {
 				fill.Empty = d.Role
 			} else {
@@ -194,12 +194,12 @@ type refillPlan struct {
 // same time, for the rest of their own stretch there) and their seat filled
 // in turn, at most three moves. It also gives the others free who could take
 // the last seat.
-func (s Schedule) refill(first stretch, l Leave, people map[string][]string, byKey map[string]RotaPerson, officials []RotaPerson) (refillPlan, []string, bool) {
+func (s Schedule) refill(first stretch, l Leave, people, coaches map[string][]string, byKey map[string]RotaPerson, officials []RotaPerson) (refillPlan, []string, bool) {
 	free := func(st stretch, role string, ignore *stretch) []string {
 		f := s.Flights[st.flights[0]]
 		var out []string
 		for _, o := range officials {
-			if o.Key != l.Person && o.Can(role, f.Event) && s.freeIgnoring(o.Key, st, ignore, people) {
+			if o.Key != l.Person && o.Can(role, f.Event) && s.freeIgnoring(o.Key, st, ignore, people, coaches) {
 				out = append(out, o.Key)
 			}
 		}
@@ -264,7 +264,7 @@ func (s Schedule) refill(first stretch, l Leave, people map[string][]string, byK
 					continue // the panel's seat, from its first flight here
 				}
 				theirs := s.stretchFrom(gj, other)
-				if !own && !s.freeIgnoring(d.Person, st, &theirs, people) {
+				if !own && !s.freeIgnoring(d.Person, st, &theirs, people, coaches) {
 					continue
 				}
 				nextMoved := map[string]bool{d.Person: true}
@@ -317,8 +317,10 @@ func roleEase(role string) int {
 // freeIgnoring says whether a person is free for a stretch: not competing
 // or officiating in a flight at the same time (other than in ignore, a
 // stretch they'd leave), nor already on its panel, nor kept off any of its
-// flights by a must rule.
-func (s Schedule) freeIgnoring(key string, st stretch, ignore *stretch, people map[string][]string) bool {
+// flights by a must rule, nor on duty for blocked time then, nor coaching
+// gymnasts competing on another area then, nor, where rest is a must, too
+// soon before or after their own turn. coaches are each entry's coaches.
+func (s Schedule) freeIgnoring(key string, st stretch, ignore *stretch, people, coaches map[string][]string) bool {
 	iv := s.span(st)
 	for j, g := range s.Flights {
 		if !overlaps(iv, interval{g.Day, g.Start, g.End}) {
@@ -340,6 +342,30 @@ func (s Schedule) freeIgnoring(key string, st stretch, ignore *stretch, people m
 		for _, i := range st.flights {
 			if broken, _ := s.breaksPersonRule(rule, s.Flights[i], key); broken {
 				return false
+			}
+		}
+	}
+	// On duty for blocked time then (a judges' meeting, say).
+	for _, b := range s.Blocks {
+		if overlaps(iv, interval{b.Day, b.Start, b.End}) && slices.ContainsFunc(b.Officials, func(d Duty) bool { return d.Person == key }) {
+			return false
+		}
+	}
+	for _, g := range s.Flights {
+		// Coaching gymnasts who compete then, elsewhere: in two places.
+		if overlaps(iv, interval{g.Day, g.Start, g.End}) && g.Area != s.Flights[st.flights[0]].Area {
+			for _, id := range g.Entries {
+				if slices.Contains(coaches[id], key) {
+					return false
+				}
+			}
+		}
+		// Rest, where it's a must, between their own turn and the seat.
+		if rest := s.Setup.Rest; s.Setup.RestMust && rest > 0 && g.Day == iv.day {
+			for _, id := range g.Entries {
+				if slices.Contains(people[id], key) && (iv.start-g.End >= 0 && iv.start-g.End < rest || g.Start-iv.end >= 0 && g.Start-iv.end < rest) {
+					return false
+				}
 			}
 		}
 	}

@@ -584,32 +584,35 @@ func (s Schedule) RotaReport(clubs map[string]string, officials []RotaPerson) Ro
 	slices.SortFunc(rr.Busiest, func(a, b Workload) int { return cmp.Or(b.Minutes-a.Minutes, strings.Compare(a.Person, b.Person)) })
 	rr.Busiest = rr.Busiest[:min(len(rr.Busiest), 5)]
 
-	jobs, _ := s.jobs()
 	for _, rule := range s.Setup.Rules {
-		if !personRule(rule.Kind) {
-			continue
-		}
-		broken := false
-		for _, f := range jobs {
-			has, inRole := false, false
-			for _, d := range f.Officials {
-				if d.Person == rule.Person {
-					has, inRole = true, inRole || d.Role == rule.Role
-				}
-			}
-			if rule.Kind == RuleRole {
-				broken = broken || (f.Event == rule.Event && !inRole)
-				continue
-			}
-			if b, _ := s.breaksPersonRule(rule, f, rule.Person); has && b {
-				broken = true
-			}
-		}
-		if broken {
+		if personRule(rule.Kind) && s.personRuleBroken(rule) {
 			rr.Broken = append(rr.Broken, rule.Describe(s.Setup.Days))
 		}
 	}
 	return rr
+}
+
+// personRuleBroken says whether the rota breaks one of the organiser's rules
+// about a person (a role, off, hours).
+func (s Schedule) personRuleBroken(rule Rule) bool {
+	jobs, _ := s.jobs()
+	broken := false
+	for _, f := range jobs {
+		has, inRole := false, false
+		for _, d := range f.Officials {
+			if d.Person == rule.Person {
+				has, inRole = true, inRole || d.Role == rule.Role
+			}
+		}
+		if rule.Kind == RuleRole {
+			broken = broken || (f.Event == rule.Event && !inRole)
+			continue
+		}
+		if b, _ := s.breaksPersonRule(rule, f, rule.Person); has && b {
+			broken = true
+		}
+	}
+	return broken
 }
 
 // seatStretches are every flight's seats, each in the stretch one person

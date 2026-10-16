@@ -113,6 +113,20 @@ func (f rotaFacts) name(withClub bool) func(string) string {
 	return officialNames(f.officials, f.names, withClub)
 }
 
+// whatIfBreaks are what a schedule breaks, less what the "what ifs" show
+// themselves (competitions.Schedule.WhatIfBreaks), people and coaches each
+// keyed as one person, every one named.
+func (f rotaFacts) whatIfBreaks(s competitions.Schedule) []string {
+	names := f.clashNames()
+	coaches := coachesOf(f.entries, f.same)
+	for _, e := range f.entries {
+		if k := e.CoachKey(); k != "" && names[f.same.of(k)] == "" {
+			names[f.same.of(k)] = e.CoachName()
+		}
+	}
+	return s.WhatIfBreaks(f.one, coaches, names)
+}
+
 // clashNames are oneNames with the officials not competing named too.
 func (f rotaFacts) clashNames() map[string]string {
 	names := maps.Clone(f.oneNames)
