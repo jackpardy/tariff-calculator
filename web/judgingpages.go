@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"tariffCalculator/competitions"
@@ -72,14 +73,21 @@ func judgingBox(c store.Competition, quals []store.JudgeQualification, base, bac
 }
 
 // judgingBack is where a judging form comes back to: the page it was on (a
-// path on this site), at its qualifications, else fallback.
+// path on this site), at its qualifications (at: the box's id), else
+// fallback.
 func judgingBack(r *http.Request, fallback string) string {
 	back := r.FormValue("back")
 	if !strings.HasPrefix(back, "/") || strings.HasPrefix(back, "//") || strings.ContainsAny(back, "\\#?") {
 		back = fallback
 	}
-	return back + "#judging"
+	at := r.FormValue("at")
+	if !judgingAt.MatchString(at) {
+		at = "judging"
+	}
+	return back + "#" + at
 }
+
+var judgingAt = regexp.MustCompile(`^judging(-[A-Za-z0-9_-]+)?$`)
 
 // addJudging adds the posted qualification and certificate with add,
 // going back with what happened.
@@ -254,5 +262,7 @@ func (p *competitionPages) entryJudging(ctx context.Context, c store.Competition
 	if err != nil {
 		return nil, err
 	}
-	return judgingBox(c, quals, base, back, "Your", "It's kept with your entry, and deleted with the competition; only its organiser can open it.", made, qualified), nil
+	b := judgingBox(c, quals, base, back, "Your", "It's kept with your entry, and deleted with the competition; only its organiser can open it.", made, qualified)
+	b.ID = "judging-" + e.ID // one on each entry on their page for the competition
+	return b, nil
 }

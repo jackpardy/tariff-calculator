@@ -863,7 +863,7 @@ details > summary.button::before, .routine-menu > summary::before { content: non
   /* The whole width of the paper, not the screen's column, and no scroll box
      to cut the last columns (Total, Place) off. */
   .comp-page .container { max-width: none !important; width: auto !important; }
-  .comp-sheet .table-container { overflow: visible !important; }
+  .comp-sheet .table-container { overflow: visible !important; border: 0 !important; box-shadow: none !important; }
   .comp-score-mark { min-width: 1.9rem; }
   .comp-score-total { min-width: 2.6rem; }
   .comp-score-flight { display: table-row; }

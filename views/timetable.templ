@@ -668,7 +668,7 @@ templ rotaReport(p TimetablePage) {
 			<p class="help">Clubs send their members' offers with their entries, and you can add people on the Officials page.</p>
 		}
 		@problemsList("Seats no one could take", p.Rota.Short)
-		@problemsList("Problems from changes made by hand", p.Rota.Problems)
+		@problemsList("Problems with the seats", p.Rota.Problems)
 		@problemsList("Your rules about officials not kept", p.Rota.Broken)
 		@problemsList("Coaches needed in two places", p.Rota.Coaches)
 		@problemsList("Judging their own club's gymnasts, times by club", p.Rota.OwnClub)
@@ -687,9 +687,9 @@ templ reportView(r ReportView) {
 			switch {
 				case len(r.Unplaced) > 0 || len(r.Blocks) > 0:
 					@StateChip(Attention, Count(len(r.Unplaced)+len(r.Blocks), "thing doesn't fit", "things don't fit"))
-				// Everything fits, but changes made by hand broke something: not all well.
+				// Everything fits, but something's broken (by hand, or unavoidable): not all well.
 				case len(r.Problems) > 0:
-					@StateChip(Attention, Count(len(r.Problems), "problem from changes", "problems from changes"))
+					@StateChip(Attention, Count(len(r.Problems), "problem", "problems"))
 				default:
 					@StateChip(Done, "Everything fits")
 			}
@@ -726,7 +726,8 @@ templ reportView(r ReportView) {
 				}
 			</div>
 		}
-		@problemsList("Problems from changes made by hand", r.Problems)
+		// Changes made by hand, or what the plan couldn't avoid (a coach who also competes).
+		@problemsList("Problems to look at", r.Problems)
 		@problemsList("Less rest than wanted", r.ShortRest)
 		@problemsList("Preferences not met", r.Broken)
 		if len(r.LookAlike) > 0 {

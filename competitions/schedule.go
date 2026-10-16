@@ -688,11 +688,15 @@ func (p *planner) placeRun(run []ScheduledFlight, people, coaches map[string][]s
 	if best == nil {
 		return false
 	}
+	// The area is the run's from its first flight to its last, the wait for
+	// a break included (where events run across breaks): another event put
+	// in that wait would part the run, and one panel judges all of it.
+	first, last := best[0], best[len(best)-1]
+	p.busy[first.Area] = append(p.busy[first.Area], interval{first.Day, first.Start, last.End})
 	for k, f := range best {
 		p.placed = append(p.placed, f)
 		p.byEvent[f.Event] = append(p.byEvent[f.Event], f)
 		iv := interval{f.Day, f.Start, f.End}
-		p.busy[f.Area] = append(p.busy[f.Area], iv)
 		for person := range whos[k] {
 			p.people[person] = append(p.people[person], iv)
 		}

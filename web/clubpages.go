@@ -496,9 +496,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		if err != nil {
 			return nil, err
 		}
-		has := map[string]bool{}
+		has := map[string]bool{} // by member and discipline: a member may have withdrawn one of several
 		for _, e := range mine {
-			has[e.MemberID] = true
+			has[e.MemberID+"/"+e.Discipline] = true
 			toSend := cc.ToSend // counted on, if this one is to send
 			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Event(), Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
 			if e.Entry.Partner != nil {
@@ -563,7 +563,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		}
 		// Entries the club sent for members who've since withdrawn or left.
 		for _, e := range sent {
-			if e.ClubID == club.ID && !has[e.MemberID] {
+			if e.ClubID == club.ID && !has[e.MemberID+"/"+e.Entry.Discipline] {
 				row := views.ClubEntryRow{Member: e.Entry.Gymnasts(), Level: e.Entry.Event(), Status: "Withdrawn (still sent)", State: views.Stopped}
 				row.List = views.ListRow{Name: row.Member, Values: map[string][]string{"problems": {hasValue(false)}, "sent": {"sent"}}}
 				cc.Rows = append(cc.Rows, row)
