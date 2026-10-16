@@ -415,7 +415,7 @@
 /* The skill card: what Add will add. */
 .skill-card { border: 2px solid #485fc7; border-radius: 8px; padding: 0.5rem 0.75rem; background: #fff; }
 .skill-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
-.skill-card-name { font-size: 1.05rem; font-weight: 700; line-height: 1.2; }
+.skill-card-name { font-size: 1.15rem; font-weight: 800; line-height: 1.2; color: #222; }
 .skill-card-meta { color: #555; font-size: 0.85rem; margin-top: 0.1rem; }
 .skill-card-fig { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .skill-card-tariff { font-size: 1.35rem; font-weight: 700; color: #485fc7; line-height: 1; }
@@ -430,7 +430,7 @@
    Phones keep the compact card (shapes and Add on one row). */
 @media screen and (min-width: 769px) {
     .skill-card { display: flex; flex-direction: column; padding: 0.75rem 1rem; }
-    .skill-card-name { font-size: 1.2rem; }
+    .skill-card-name { font-size: 1.4rem; }
     .skill-card-meta { font-size: 0.9rem; margin-top: 0.15rem; }
     .skill-card-tariff { font-size: 1.6rem; }
     .skill-card-actions { display: contents; }
@@ -593,7 +593,9 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 
 /* --- How a skill is judged (views/judging.templ, static/js/judging.js) --- */
 .judging-row { margin-top: 0.4rem; }
-.skill-card .judging-button { margin: 0.1rem 0 0.4rem; }
+/* How it's judged, on the skill card: a small link on the name's details line. */
+.judging-link { border: 0; padding: 0; background: none; font: inherit; color: #485fc7; cursor: pointer; text-decoration: underline; text-underline-offset: 0.15em; }
+.judging-link:hover { color: #3a4fb0; }
 .judging-modal .modal-card { width: calc(100% - 2rem); max-width: 34rem; margin: 0 auto; max-height: calc(100vh - 2rem); border-radius: 10px; }
 .judging-modal .modal-card-head { align-items: flex-start; gap: 0.75rem; padding: 0.9rem 1rem; }
 .judging-head { flex: 1; min-width: 0; }

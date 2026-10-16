@@ -164,19 +164,35 @@ templ picker(cats []catalog.Category) {
 // SearchResults lists the matches for a picker search. Each loads its skill into
 // the editor; notation results say which direction they are, since notation
 // doesn't record it.
-templ SearchResults(query string, results []catalog.Result) {
+templ SearchResults(query string, results []catalog.Result, reading *skills.TrampolineSkill) {
 	if len(results) == 0 {
-		<p class="picker-hint">No skills match "{ query }". Try another name, or build it below.</p>
+		if reading != nil {
+			// FIG notation that no take-off lands: what it says goes into the
+			// builder, open, to finish.
+			<p class="picker-hint">No skill lands as "{ query }" from any take-off. It's in "Build or adjust this skill" below: set where it takes off and lands.</p>
+			<div hidden hx-post="/skill-inputs" hx-target="#skill-editor" hx-include="#main-form" hx-trigger="load" hx-vals={ loadReading(*reading) }></div>
+		} else {
+			<p class="picker-hint">No skills match "{ query }". Try another name, or build it below.</p>
+		}
 	} else {
+		// FIG notation loads its first reading onto the card as it's typed; one
+		// that isn't a named skill opens "Build or adjust" too, to finish it.
 		<div class="picker-list">
-			for _, r := range results {
+			for i, r := range results {
 				<button
 					type="button"
 					class="picker-skill"
 					hx-post="/skill-inputs"
 					hx-target="#skill-editor"
 					hx-include="#main-form"
-					hx-vals={ loadSkill(r.Skill) }
+					if i == 0 && r.FromNotation && r.Skill.Name == "Custom Skill" {
+						hx-vals={ loadReading(r.Skill) }
+					} else {
+						hx-vals={ loadSkill(r.Skill) }
+					}
+					if i == 0 && r.FromNotation {
+						hx-trigger="click, load"
+					}
 				>
 					<span>
 						<span class="picker-skill-name">{ catalog.PickerName(r.Skill) }</span>
@@ -187,7 +203,7 @@ templ SearchResults(query string, results []catalog.Result) {
 							}
 							{ r.Skill.FIGNotation() }
 							if r.FromNotation {
-								· { directionText(r.Skill) }
+								· { directionText(r.Skill) } · { r.Skill.TakeoffPosition.String() } → { landingText(r.Skill) }
 							}
 						</span>
 					</span>
@@ -230,21 +246,23 @@ templ editorCard(e SkillEditor) {
 						<span class="skill-card-fig">{ e.Skill.FIGNotation() }</span> ·
 					}
 					{ e.Skill.TakeoffPosition.String() } → { landingText(e.Skill) }
+					// Small and out of the way until it's wanted; a straight jump isn't judged.
+					if judged(e.Skill) {
+						{ " · " }
+						<button
+							type="button"
+							class="judging-link"
+							hx-get="/judging"
+							hx-include="#main-form"
+							hx-target="body"
+							hx-swap="beforeend"
+							data-judging
+						>How it's judged</button>
+					}
 				</p>
 			</div>
 			<p class="skill-card-tariff" title="Tariff (difficulty)">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</p>
 		</div>
-		if e.Skill.LandingPosition() != skills.Invalid {
-			<button
-				type="button"
-				class="button is-small is-light judging-button"
-				hx-get="/judging"
-				hx-include="#main-form"
-				hx-target="body"
-				hx-swap="beforeend"
-				data-judging
-			>How it's judged</button>
-		}
 		if e.Skill.LandingPosition() == skills.Invalid {
 			<p class="skill-card-problem">This skill can't land like that. Check the direction, somersault and twist.</p>
 		}
@@ -376,6 +394,8 @@ templ builderFields(s skills.TrampolineSkill) {
 			Lands on seat
 		</label>
 	</div>
+	// Shape is the card's: it shows only the shapes the skill allows, and what each does to its tariff.
+	<p class="builder-readout mt-3">Shape: choose it on the card below.</p>
 }
 
 // stepper is a number input with − and + buttons, for quarter somersaults and half twists.
@@ -408,6 +428,14 @@ func shapesFor(s skills.TrampolineSkill) []skills.Shape {
 }
 
 // loadSkill is the hx-vals that loads a skill (e.g. a search result) into the editor.
+// loadReading loads what FIG notation says into the builder, opened, even
+// where it can't land as it is.
+func loadReading(s skills.TrampolineSkill) string {
+	skill, _ := json.Marshal(s)
+	b, _ := json.Marshal(map[string]string{"load": "skill", "skill": string(skill), "builder_open": "1"})
+	return string(b)
+}
+
 func loadSkill(s skills.TrampolineSkill) string {
 	skill, _ := json.Marshal(s)
 	b, _ := json.Marshal(map[string]string{"load": "skill", "skill": string(skill)})
