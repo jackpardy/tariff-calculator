@@ -853,7 +853,7 @@ longer fits, who's needed in two places, short rest before and after, and
 each flight that changes (was, now, why). Above those, **This would break**
 lists what the delay breaks that holds in the timetable now
 (`Schedule.WhatIfBreaks` before and after, `NewBreaks`; the first six
-first, the rest folded), besides what the page shows already (past the end,
+shown, the rest folded), besides what the page shows already (past the end,
 in two places): the organiser's rules about events and about
 people, a coach with gymnasts on two areas (or competing while coaching), an
 official on a flight during blocked time they're on duty for, and, where rest
