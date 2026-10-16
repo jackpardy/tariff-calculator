@@ -313,7 +313,7 @@ func TestClubLevelEditor(t *testing.T) {
 	form.Set("name", "Grade 1")
 	form.Set("addpick", "club:Back tuck (club)")
 	edited := do(t, h, http.MethodPost, ann+"/levels/editor", form)
-	if edited.Code != http.StatusOK || !strings.Contains(edited.Body.String(), "At least 1 element: Back tuck (club)") {
+	if edited.Code != http.StatusOK || !strings.Contains(edited.Body.String(), `data-described="[&#34;Back tuck (club)&#34;]"`) {
 		t.Fatalf("picking the club's skill: %d %s", edited.Code, edited.Body.String())
 	}
 	// Saved as the editor now shows it, as the browser does.

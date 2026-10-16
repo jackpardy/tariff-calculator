@@ -16,6 +16,14 @@ import (
 // with none listed may still be impossible. The set should be valid (Validate)
 // first.
 func Conflicts(s Set) []string {
+	// A rule that doesn't say which skill yet (Vague) is listed as that; it
+	// conflicts with nothing meanwhile, so it stands aside, keeping its number.
+	s.Rules = slices.Clone(s.Rules)
+	for i, r := range s.Rules {
+		if needsMatch(r.Type) && r.Match != nil && r.Match.Open() {
+			s.Rules[i] = Rule{Type: Track, Item: "-"}
+		}
+	}
 	c := conflicts{set: s}
 	c.elementBounds()
 	c.unmatchable()

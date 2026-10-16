@@ -321,7 +321,7 @@ func calculator(groups []requirements.BuiltinGroup) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<div id=\"routine-view-b\" hx-sync=\"this:replace\"></div></div></div><p class=\"compare-legend\" x-show=\"mode === 'routines' && compareId\" x-cloak>Shaded skills differ from the other routine's skill at the same number.</p></div><div x-show=\"toast.show\" x-transition class=\"notification is-fixed-bottom-right\" x-bind:class=\"{ error: 'is-danger', warning: 'is-warning' }[toast.type] || 'is-info'\"><button class=\"delete\" type=\"button\" aria-label=\"Dismiss\" x-on:click=\"toast.show = false\"></button> <span x-text=\"toast.message\"></span></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<div id=\"routine-view-b\" hx-sync=\"this:replace\"></div></div></div><p class=\"compare-legend\" x-show=\"mode === 'routines' && compareId\" x-cloak>Shaded skills differ from the other routine's skill at the same number.</p></div><div x-show=\"toast.show\" x-transition class=\"notification is-fixed-bottom-right\" x-bind:class=\"{ error: 'is-danger', warning: 'is-warning' }[toast.type] || 'is-info'\"><button class=\"delete\" type=\"button\" aria-label=\"Dismiss\" x-on:click=\"toast.show = false\"></button> <span x-text=\"toast.message\"></span></div><div class=\"modal\" id=\"ask-dialog\" x-bind:class=\"{ 'is-active': ask.open }\" x-on:keydown.escape.window=\"ask.open && answerAsk(null)\"><div class=\"modal-background\" x-on:click=\"answerAsk(null)\"></div><div class=\"modal-card ask-card\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"ask-title\"><form class=\"modal-card-body\" x-on:submit.prevent=\"answerAsk((ask.buttons.find((b) => b.primary) || ask.buttons[0])?.value)\"><p class=\"title is-6 mb-2\" id=\"ask-title\" x-text=\"ask.title\"></p><p class=\"mb-3\" x-show=\"ask.text\" x-text=\"ask.text\"></p><template x-if=\"ask.value !== null\"><input class=\"input mb-3\" type=\"text\" maxlength=\"60\" aria-label=\"Name\" x-model=\"ask.value\"></template><div class=\"buttons is-right mb-0\"><button class=\"button\" type=\"button\" x-on:click=\"answerAsk(null)\">Cancel</button><template x-for=\"b in ask.buttons\" x-bind:key=\"b.value\"><button class=\"button\" type=\"button\" x-bind:class=\"{ 'is-primary': b.primary, 'is-danger': b.danger }\" x-text=\"b.label\" x-on:click=\"answerAsk(b.value)\"></button></template></div></form></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -361,7 +361,7 @@ func requirementPicker(groups []requirements.BuiltinGroup, side string) templ.Co
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("closeChooser('%s')", chooserKey(chooseCheck, side)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 195, Col: 118}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 214, Col: 118}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
 		if templ_7745c5c3_Err != nil {
@@ -473,7 +473,7 @@ func levelsBar(groups []requirements.BuiltinGroup) templ.Component {
 				var templ_7745c5c3_Var21 string
 				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.ResolveAttributeValue(g.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 251, Col: 31}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 270, Col: 31}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var21)
 				if templ_7745c5c3_Err != nil {
@@ -491,7 +491,7 @@ func levelsBar(groups []requirements.BuiltinGroup) templ.Component {
 					var templ_7745c5c3_Var22 string
 					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.ResolveAttributeValue(requirements.BuiltinLevelPrefix + l.ID)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 253, Col: 63}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 272, Col: 63}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var22)
 					if templ_7745c5c3_Err != nil {
@@ -504,7 +504,7 @@ func levelsBar(groups []requirements.BuiltinGroup) templ.Component {
 					var templ_7745c5c3_Var23 string
 					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(l.Level.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 253, Col: 80}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 272, Col: 80}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 					if templ_7745c5c3_Err != nil {
@@ -560,7 +560,7 @@ func levelColumnHead(side string) templ.Component {
 		var templ_7745c5c3_Var25 string
 		templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("mode === 'levels' && columnTab('%s')", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 312, Col: 75}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 331, Col: 75}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var25)
 		if templ_7745c5c3_Err != nil {
@@ -573,7 +573,7 @@ func levelColumnHead(side string) templ.Component {
 		var templ_7745c5c3_Var26 string
 		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("columnTab('%s').label", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 315, Col: 63}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 334, Col: 63}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var26)
 		if templ_7745c5c3_Err != nil {
@@ -586,7 +586,7 @@ func levelColumnHead(side string) templ.Component {
 		var templ_7745c5c3_Var27 string
 		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("requirementName(columnTab('%s').ref)", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 316, Col: 110}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 335, Col: 110}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
 		if templ_7745c5c3_Err != nil {
@@ -599,7 +599,7 @@ func levelColumnHead(side string) templ.Component {
 		var templ_7745c5c3_Var28 string
 		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("columnTab('%s').set", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 318, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 337, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var28)
 		if templ_7745c5c3_Err != nil {
@@ -612,7 +612,7 @@ func levelColumnHead(side string) templ.Component {
 		var templ_7745c5c3_Var29 string
 		templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("voluntaryFor('%s')", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 321, Col: 108}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 340, Col: 108}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var29)
 		if templ_7745c5c3_Err != nil {
@@ -625,7 +625,7 @@ func levelColumnHead(side string) templ.Component {
 		var templ_7745c5c3_Var30 string
 		templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("startVoluntaryFrom('%s')", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 321, Col: 169}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 340, Col: 169}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var30)
 		if templ_7745c5c3_Err != nil {
@@ -638,7 +638,7 @@ func levelColumnHead(side string) templ.Component {
 		var templ_7745c5c3_Var31 string
 		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("`Start the ${voluntaryFor('%s')?.label.toLowerCase()} from this set`", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 321, Col: 270}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 340, Col: 270}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var31)
 		if templ_7745c5c3_Err != nil {
@@ -651,7 +651,7 @@ func levelColumnHead(side string) templ.Component {
 		var templ_7745c5c3_Var32 string
 		templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("!columnTab('%s').set", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 324, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 343, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var32)
 		if templ_7745c5c3_Err != nil {
@@ -664,7 +664,7 @@ func levelColumnHead(side string) templ.Component {
 		var templ_7745c5c3_Var33 string
 		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("linkVoluntary('%s', $event.target.value)", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 328, Col: 135}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 347, Col: 135}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var33)
 		if templ_7745c5c3_Err != nil {
@@ -677,7 +677,7 @@ func levelColumnHead(side string) templ.Component {
 		var templ_7745c5c3_Var34 string
 		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("!columnRoutine('%s')", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 329, Col: 83}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 348, Col: 83}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var34)
 		if templ_7745c5c3_Err != nil {
@@ -690,7 +690,7 @@ func levelColumnHead(side string) templ.Component {
 		var templ_7745c5c3_Var35 string
 		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("r.id === columnRoutine('%s')?.id", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 332, Col: 107}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 351, Col: 107}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var35)
 		if templ_7745c5c3_Err != nil {
@@ -703,7 +703,7 @@ func levelColumnHead(side string) templ.Component {
 		var templ_7745c5c3_Var36 string
 		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("startVoluntaryFrom('%s', set)", side))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 337, Col: 124}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/page.templ`, Line: 356, Col: 124}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var36)
 		if templ_7745c5c3_Err != nil {
