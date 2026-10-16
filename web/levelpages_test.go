@@ -48,9 +48,12 @@ func TestClubLevels(t *testing.T) {
 	member := club.members["A. Murphy"]
 	ann := pathIn(t, do(t, h, http.MethodPost, club.page+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
 	redirected(t, h, ann+"/club-skills", url.Values{"name": {"Kaboom drill"}})
+	kaboom := regexp.MustCompile(`/club-skills/([^/"]+)/remove"`).FindStringSubmatch(do(t, h, http.MethodGet, ann+"/club-skills", nil).Body.String())[1]
 
+	// The club's own skill is one of the level's rules, in its place.
 	set := `{"format":1,"name":"Grade 1","rules":[
 		{"type":"count","label":"A back somersault","match":{"rotation":{"min":4,"max":4},"direction":"backward"},"min":1},
+		{"type":"track","item":"` + kaboom + `"},
 		{"type":"includes","label":"Back drop, then back to feet","options":[[{"takeoff":["feet"],"landing":["back"]},{"takeoff":["back"],"landing":["feet"]}]]},
 		{"type":"elements","min":10,"max":10}
 	]}`
@@ -70,6 +73,9 @@ func TestClubLevels(t *testing.T) {
 	if strings.Contains(page, "Exactly 10 elements") {
 		t.Error("the rule about a single routine is left out")
 	}
+	if a, k, b := strings.Index(page, "<li>A back somersault</li>"), strings.Index(page, "<li>Kaboom drill</li>"), strings.Index(page, "<li>Back drop, then back to feet</li>"); !(a >= 0 && a < k && k < b) {
+		t.Errorf("the club's own skill in its place among the rules: %d %d %d", a, k, b)
+	}
 	m := regexp.MustCompile(`href="/requirements#share=j([A-Za-z0-9_-]+)"`).FindStringSubmatch(page)
 	if m == nil {
 		t.Fatal("no link to edit the requirements")
@@ -77,9 +83,6 @@ func TestClubLevels(t *testing.T) {
 	if data, _ := base64.RawURLEncoding.DecodeString(m[1]); !strings.Contains(string(data), `"name":"Grade 1"`) || !strings.Contains(string(data), `"v":1`) {
 		t.Errorf("the requirements to edit: %s", data)
 	}
-	kaboom := regexp.MustCompile(`name="item" value="([^"]+)"`).FindStringSubmatch(page)[1]
-	items := regexp.MustCompile(`action="(` + regexp.QuoteMeta(ann) + `/levels/[^/"]+/items)"`).FindStringSubmatch(page)[1]
-	redirected(t, h, items, url.Values{"item": {kaboom}})
 
 	// Saving the same requirements again changes the level.
 	if notice := noticeOf(t, redirected(t, h, ann+"/levels", url.Values{"set": {strings.Replace(set, `,
@@ -91,6 +94,9 @@ func TestClubLevels(t *testing.T) {
 	page = do(t, h, http.MethodGet, member+"/skills", nil).Body.String()
 	if got := levelIn(page, "Grade 1"); !strings.HasPrefix(got, "Gymnast 0 of 3 Coach 0 of 3") {
 		t.Errorf("before: %q", got)
+	}
+	if got := levelIn(page, "Grade 1"); !(strings.Index(got, "A back somersault") < strings.Index(got, "Kaboom drill") && strings.Index(got, "Kaboom drill") < strings.Index(got, "Back drop, then back to feet")) {
+		t.Errorf("the gymnast's Skills page lists them in order: %q", got)
 	}
 
 	// A back somersault marked Can do meets the first item; the link is
@@ -200,13 +206,12 @@ func TestSharingClubLevels(t *testing.T) {
 	ucd := aClub(t, h, admin, "UCD", false, "A. Murphy")
 	ann := pathIn(t, do(t, h, http.MethodPost, ucd.page+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
 	redirected(t, h, ann+"/club-skills", url.Values{"name": {"Kaboom drill"}, "note": {"On the crash mat"}})
-	redirected(t, h, ann+"/levels", url.Values{"set": {`{"format":1,"name":"Grade 1","rules":[{"type":"count","label":"A back somersault","match":{"rotation":{"min":4,"max":4},"direction":"backward"},"min":1}]}`}, "id": {"b1"}})
-	page := do(t, h, http.MethodGet, ann+"/levels", nil).Body.String()
-	kaboom := regexp.MustCompile(`name="item" value="([^"]+)"`).FindStringSubmatch(page)[1]
-	redirected(t, h, regexp.MustCompile(`action="(` + regexp.QuoteMeta(ann) + `/levels/[^/"]+/items)"`).FindStringSubmatch(page)[1], url.Values{"item": {kaboom}})
+	kaboom := regexp.MustCompile(`/club-skills/([^/"]+)/remove"`).FindStringSubmatch(do(t, h, http.MethodGet, ann+"/club-skills", nil).Body.String())[1]
+	redirected(t, h, ann+"/levels", url.Values{"set": {`{"format":1,"name":"Grade 1","rules":[{"type":"track","item":"` + kaboom + `"},{"type":"count","label":"A back somersault","match":{"rotation":{"min":4,"max":4},"direction":"backward"},"min":1}]}`}, "id": {"b1"}})
 
-	// The link carries the level and its club skill, in its fragment.
-	page = do(t, h, http.MethodGet, ann+"/levels", nil).Body.String()
+	// The link carries the level and its club skill, in its fragment: the
+	// rule points at the link's list of club skills, not at UCD's.
+	page := do(t, h, http.MethodGet, ann+"/levels", nil).Body.String()
 	m := regexp.MustCompile(`data-copy="http://example.com/clubs/levels/shared#share=j([A-Za-z0-9_-]+)"`).FindStringSubmatch(page)
 	if m == nil {
 		t.Fatalf("no share link: %s", page)
@@ -215,7 +220,7 @@ func TestSharingClubLevels(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), `"name":"Kaboom drill","note":"On the crash mat"`) || strings.Contains(string(data), "A. Murphy") {
+	if !strings.Contains(string(data), `"name":"Kaboom drill","note":"On the crash mat"`) || !strings.Contains(string(data), `{"type":"track","item":"shared:0"}`) || strings.Contains(string(data), kaboom) || strings.Contains(string(data), "A. Murphy") {
 		t.Errorf("the link carries the level and its club skill, and no one's name: %s", data)
 	}
 	if rec := do(t, h, http.MethodGet, "/clubs/levels/shared", nil); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "data-shared-level") {
@@ -235,8 +240,9 @@ func TestSharingClubLevels(t *testing.T) {
 	if withoutQuery(location) != bob+"/levels" || noticeOf(t, location) != "Added Grade 1 to your club's levels. It brought 1 club skill to track, now on Club skills." {
 		t.Errorf("adding it: %s", location)
 	}
-	if page = do(t, h, http.MethodGet, bob+"/levels", nil).Body.String(); !strings.Contains(page, "Grade 1") || !strings.Contains(page, "A back somersault") || !strings.Contains(page, `checked>`) {
-		t.Errorf("DCU's copy, tracking Kaboom drill: %s", page)
+	// DCU's copy has Kaboom drill first, as UCD's does: DCU's own, new.
+	if page = do(t, h, http.MethodGet, bob+"/levels", nil).Body.String(); !strings.Contains(page, "Grade 1") || !(strings.Contains(page, "<li>Kaboom drill</li>") && strings.Index(page, "<li>Kaboom drill</li>") < strings.Index(page, "<li>A back somersault</li>")) {
+		t.Errorf("DCU's copy, tracking Kaboom drill first: %s", page)
 	}
 	if !strings.Contains(do(t, h, http.MethodGet, bob+"/club-skills", nil).Body.String(), "On the crash mat") {
 		t.Error("the club skill came with it")
@@ -299,9 +305,13 @@ func TestClubLevelEditor(t *testing.T) {
 		t.Error("rules about a single routine aren't offered")
 	}
 
-	// Pick the club's back tuck, name it, and save.
+	// A new level starts empty; Add a skill adds the club's back tuck as a
+	// line of its own. Named, and saved.
+	if strings.Contains(page, `class="rule-card"`) || !strings.Contains(page, `name="addpick"`) {
+		t.Errorf("a new level starts empty, with Add a skill: %s", page)
+	}
 	form.Set("name", "Grade 1")
-	form.Set("r0.m.pick", "club:Back tuck (club)")
+	form.Set("addpick", "club:Back tuck (club)")
 	edited := do(t, h, http.MethodPost, ann+"/levels/editor", form)
 	if edited.Code != http.StatusOK || !strings.Contains(edited.Body.String(), "At least 1 element: Back tuck (club)") {
 		t.Fatalf("picking the club's skill: %d %s", edited.Code, edited.Body.String())
@@ -363,5 +373,63 @@ func TestClubLevelEditor(t *testing.T) {
 	}
 	if levels = do(t, h, http.MethodGet, ann+"/levels", nil).Body.String(); !strings.Contains(levels, "<h3 class=\"title is-6 mb-1\">BG Club L1</h3>") {
 		t.Error("the level is the club's")
+	}
+
+	// One of the club's own skills, as a rule in its place: added, moved
+	// first, saved; a club with none isn't offered the kind.
+	if strings.Contains(page, `value="track"`) {
+		t.Error("no club skills of its own: no rule of one")
+	}
+	redirected(t, h, ann+"/club-skills", url.Values{"name": {"Kaboom drill"}})
+	page = do(t, h, http.MethodGet, ann+"/levels/new", nil).Body.String()
+	form = submitted(func() *nethtml.Node {
+		doc, _ := nethtml.Parse(strings.NewReader(page))
+		return doc
+	}())
+	form.Set("name", "Grade 2")
+	form.Set("addpick", "club:Back tuck (club)")
+	form = submitted(func() *nethtml.Node {
+		doc, _ := nethtml.Parse(strings.NewReader(do(t, h, http.MethodPost, ann+"/levels/editor", form).Body.String()))
+		return doc
+	}())
+	form.Set("add", "track")
+	added := do(t, h, http.MethodPost, ann+"/levels/editor", form).Body.String()
+	if !strings.Contains(added, `<option value="track" selected`) || !strings.Contains(added, ">Kaboom drill</option>") || !strings.Contains(added, "2. Kaboom drill") {
+		t.Fatalf("a rule of one of the club's own skills, the first chosen: %s", added)
+	}
+	form = submitted(func() *nethtml.Node {
+		doc, _ := nethtml.Parse(strings.NewReader(added))
+		return doc
+	}())
+	form.Set("action", "up:1")
+	moved := do(t, h, http.MethodPost, ann+"/levels/editor", form).Body.String()
+	form = submitted(func() *nethtml.Node {
+		doc, _ := nethtml.Parse(strings.NewReader(moved))
+		return doc
+	}())
+	if notice := noticeOf(t, redirected(t, h, ann+"/levels/new", form)); notice != "Grade 2 saved." {
+		t.Fatalf("saved: %q", notice)
+	}
+	levels = do(t, h, http.MethodGet, ann+"/levels", nil).Body.String()
+	grade2 := levels[strings.Index(levels, ">Grade 2</h3>"):]
+	if k, b := strings.Index(grade2, "<li>Kaboom drill</li>"), strings.Index(grade2, "Back tuck (club)"); k < 0 || b < k {
+		t.Errorf("Kaboom drill first, then the back tuck: %s", grade2)
+	}
+
+	// A level of independent skills: each picked from Add a skill is a line
+	// of its own, a trampoline skill or one of the club's own, in any mix.
+	page = do(t, h, http.MethodGet, ann+"/levels/new", nil).Body.String()
+	for _, pick := range []string{"skill:Tuck Jump", "skill:Seat Drop", "own:" + regexp.MustCompile(`value="own:([^"]+)"`).FindStringSubmatch(page)[1], "kind:single"} {
+		form = submitted(func() *nethtml.Node {
+			doc, _ := nethtml.Parse(strings.NewReader(page))
+			return doc
+		}())
+		form.Set("addpick", pick)
+		page = do(t, h, http.MethodPost, ann+"/levels/editor", form).Body.String()
+	}
+	for i, want := range []string{"1. Tuck Jump", "2. Seat Drop", "3. Kaboom drill", "4. Any single somersault (¾ to 1¼)"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("line %d should be %q: %s", i+1, want, page)
+		}
 	}
 }

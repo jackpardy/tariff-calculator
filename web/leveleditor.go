@@ -44,12 +44,59 @@ func (p *competitionPages) clubPicks(r *http.Request, clubID string) ([]requirem
 	return out, nil
 }
 
+// clubOwn are the club's own skills to track (not trampoline skills), for a
+// level's rule of one of them, by name.
+func (p *competitionPages) clubOwn(r *http.Request, clubID string) ([]views.ClubThing, error) {
+	_, other, err := p.clubSkillsOf(r, clubID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]views.ClubThing, 0, len(other))
+	for _, c := range other {
+		out = append(out, views.ClubThing{ID: c.ID, Name: c.Name})
+	}
+	slices.SortFunc(out, func(a, b views.ClubThing) int { return strings.Compare(a.Name, b.Name) })
+	return out, nil
+}
+
+// pickedRule is the rule for a skill picked from Add a skill (pick): one of
+// the club's own skills to track ("own:<id>"), or a skill or kind of skill
+// the gymnast can do (a pick's ID, the club's named skills among picks).
+func pickedRule(pick string, picks []requirements.Pick) (requirements.Rule, bool) {
+	if pick == "" {
+		return requirements.Rule{}, false
+	}
+	if id, own := strings.CutPrefix(pick, "own:"); own {
+		return requirements.Rule{Type: requirements.Track, Item: id}, id != ""
+	}
+	p, ok := requirements.PickByID(pick)
+	if i := slices.IndexFunc(picks, func(p requirements.Pick) bool { return p.ID == pick }); i >= 0 {
+		p, ok = picks[i], true
+	}
+	if !ok {
+		return requirements.Rule{}, false
+	}
+	rule := newRule("include")
+	m := p.Match.Clone()
+	if p.Group == "Your club's skills" {
+		m.Label = p.Label
+	}
+	rule.Match = &m
+	return rule, true
+}
+
 // levelEditorData is the editor as it shows a level being written: the
 // set, its problems and the rules that can't be met together, and where it
 // posts on the coach's page (token) for the level (id, "" for a new one).
-func levelEditorData(set requirements.Set, problems []string, token, id string, picks []requirements.Pick) views.SetEditorData {
+func levelEditorData(set requirements.Set, problems []string, token, id string, picks []requirements.Pick, own []views.ClubThing) views.SetEditorData {
 	if set.Rules == nil {
 		set.Rules = []requirements.Rule{}
+	}
+	// One of the club's own skills just added is the first, until chosen.
+	for i := range set.Rules {
+		if set.Rules[i].Type == requirements.Track && set.Rules[i].Item == "" && len(own) > 0 {
+			set.Rules[i].Item = own[0].ID
+		}
 	}
 	var conflicts []string
 	if err := set.Validate(); err != nil {
@@ -62,8 +109,8 @@ func levelEditorData(set requirements.Set, problems []string, token, id string, 
 	if id != "" {
 		save = coachLevelsPath(token) + "/" + id + "/edit"
 	}
-	return views.SetEditorData{Set: set, JSON: string(data), Problems: problems, Conflicts: conflicts, Club: &views.ClubEditor{
-		Endpoint: coachLevelsPath(token) + "/editor?level=" + id, Save: save, Back: coachLevelsPath(token), Picks: picks,
+	return views.SetEditorData{Set: set, JSON: string(data), Problems: problems, Conflicts: conflicts, OpenRule: -1, Club: &views.ClubEditor{
+		Endpoint: coachLevelsPath(token) + "/editor?level=" + id, Save: save, Back: coachLevelsPath(token), Picks: picks, Own: own,
 	}}
 }
 
@@ -74,7 +121,7 @@ func (p *competitionPages) newClubLevel(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	set := requirements.Set{Format: requirements.Format, Name: "New level", Rules: []requirements.Rule{newRule("include")}}
+	set := requirements.Set{Format: requirements.Format, Name: "New level", Rules: []requirements.Rule{}}
 	// A competition's set routine to start from: the level's first item.
 	if ref := r.URL.Query().Get("set"); ref != "" {
 		if builtin, ok := requirements.LookupBuiltin(ref); ok {
@@ -97,6 +144,7 @@ func (p *competitionPages) newClubLevel(w http.ResponseWriter, r *http.Request) 
 		if found {
 			if copied, err := requirements.Parse([]byte(level.Set)); err == nil {
 				set, set.Name = copied, "Copy of "+level.Name
+				set.Rules = withClubItems(set.Rules, level.ClubItems)
 			}
 		}
 	}
@@ -123,6 +171,9 @@ func (p *competitionPages) editClubLevel(w http.ResponseWriter, r *http.Request)
 		badRequest(w, fmt.Errorf("that level's requirements couldn't be read: %w", err))
 		return
 	}
+	// The club skills it lists after its rules (from before they could be
+	// rules) open as rules at the end, to move where they belong.
+	set.Rules = withClubItems(set.Rules, level.ClubItems)
 	p.showLevelEditor(w, r, coach, club, level.Name, set, nil, level.ID)
 }
 
@@ -133,9 +184,14 @@ func (p *competitionPages) showLevelEditor(w http.ResponseWriter, r *http.Reques
 		failed(w, r, err)
 		return
 	}
+	own, err := p.clubOwn(r, coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	render(w, r, views.ClubLevelEditor(views.LevelEditorPage{
 		Frame: coachFrame(r, coach, club, coachLevelsTab), Title: title,
-		Editor: levelEditorData(set, problems, r.PathValue("token"), id, picks),
+		Editor: levelEditorData(set, problems, r.PathValue("token"), id, picks, own),
 	}))
 }
 
@@ -151,9 +207,22 @@ func (p *competitionPages) clubLevelEditor(w http.ResponseWriter, r *http.Reques
 		failed(w, r, err)
 		return
 	}
+	own, err := p.clubOwn(r, coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	set, problems := parseSetForm(r, picks...)
 	applySetAction(&set, r.FormValue("action"), r.FormValue("add"))
-	render(w, r, views.SetEditor(levelEditorData(set, problems, r.PathValue("token"), r.URL.Query().Get("level"), picks)))
+	if rule, ok := pickedRule(r.FormValue("addpick"), picks); ok {
+		set.Rules = append(set.Rules, rule)
+	}
+	data := levelEditorData(set, problems, r.PathValue("token"), r.URL.Query().Get("level"), picks, own)
+	// Another kind of rule just added opens, to fill in.
+	if r.FormValue("add") != "" {
+		data.OpenRule = len(data.Set.Rules) - 1
+	}
+	render(w, r, views.SetEditor(data))
 }
 
 // saveNewClubLevel saves the editor's level as a new one of the club's,
@@ -201,6 +270,10 @@ func (p *competitionPages) saveLevelFromEditor(w http.ResponseWriter, r *http.Re
 		_, err = p.st.SaveClubLevel(r.Context(), coach, "", set.Name, string(data))
 	} else {
 		err = p.st.UpdateClubLevel(r.Context(), coach, id, set.Name, string(data))
+		// Its club skills are among its rules now, not a list after them.
+		if err == nil {
+			err = p.st.SetLevelClubItems(r.Context(), coach, id, nil)
+		}
 	}
 	switch {
 	case errors.Is(err, store.ErrLimit):

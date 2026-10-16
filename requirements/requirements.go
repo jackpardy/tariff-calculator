@@ -46,6 +46,11 @@ const (
 	Different  = "different"  // no element is repeated (CoP §14)
 	Includes   = "includes"   // at least one of Options appears: its elements, consecutively
 	Linked     = "linked"     // at least Min / at most Max pairs of elements one straight after another both match Match
+	// Track is one of a club's own skills to track on a club level (ADR
+	// 0011), Item its id: something no routine shows (a handstand, a drill),
+	// so a routine is never checked against it. It keeps its place among the
+	// level's rules.
+	Track = "track"
 )
 
 // RuleTypes lists the rule types in the order the editor offers them.
@@ -68,6 +73,8 @@ type Rule struct {
 	// rule, as in age-group competition: a harder element may be performed but
 	// counts as the cap (CoP §17.1).
 	Cap *float64 `json:"cap,omitempty"`
+	// Item is a track rule's club skill, by its id in the club.
+	Item string `json:"item,omitempty"`
 }
 
 // Range bounds a whole number; either end may be open.
@@ -95,6 +102,10 @@ type Matcher struct {
 	Landing   []string     `json:"landing,omitempty"`   // feet, front, back, seat
 	Tariff    *TariffRange `json:"tariff,omitempty"`
 	FIG       string       `json:"fig,omitempty"` // exact FIG notation, e.g. "4 - o"
+	// Or are other skills that count too, which needn't fit the same
+	// description: a skill counts if it fits this one or any of these
+	// ("a front somersault, or a barani"). They have no Or of their own.
+	Or []Matcher `json:"or,omitempty"`
 }
 
 var (
@@ -209,6 +220,10 @@ func (r Rule) validate() error {
 			}
 		}
 	case Different:
+	case Track:
+		if strings.TrimSpace(r.Item) == "" {
+			errs = append(errs, errors.New("needs one of the club's own skills"))
+		}
 	default:
 		errs = append(errs, fmt.Errorf("unknown rule type %q", r.Type))
 	}
@@ -220,6 +235,14 @@ func (m Matcher) Validate() error { return m.validate() }
 
 func (m Matcher) validate() error {
 	var errs []error
+	for k, o := range m.Or {
+		if len(o.Or) > 0 {
+			errs = append(errs, fmt.Errorf("alternative %d can't have alternatives of its own", k+1))
+		}
+		if err := o.validate(); err != nil {
+			errs = append(errs, fmt.Errorf("alternative %d: %w", k+1, err))
+		}
+	}
 	checkRange := func(name string, r *Range) {
 		if r == nil {
 			return
@@ -256,6 +279,12 @@ func (m Matcher) validate() error {
 
 // Matches reports whether a skill meets every condition of the matcher.
 func (m Matcher) Matches(s skills.TrampolineSkill) bool {
+	return m.matchesOwn(s) || slices.ContainsFunc(m.Or, func(o Matcher) bool { return o.matchesOwn(s) })
+}
+
+// matchesOwn reports whether the skill fits the matcher's own description,
+// leaving its alternatives (Or) aside.
+func (m Matcher) matchesOwn(s skills.TrampolineSkill) bool {
 	if !inRange(m.Rotation, s.Rotation) || !inRange(m.Twist, s.TotalTwist()) {
 		return false
 	}
@@ -314,7 +343,8 @@ type Result struct {
 }
 
 // Evaluate checks every rule of the set against a validated routine and reports
-// all results; it never stops at the first failure. Rules look at the routine
+// all results; it never stops at the first failure. A club's own skills to
+// track (Track) aren't about a routine, so they have no result. Rules look at the routine
 // as written (every element, counted or not), except difficulty, which is the
 // counted total.
 func Evaluate(set Set, rv skills.RoutineValidation) []Result {
@@ -448,7 +478,7 @@ func Evaluate(set Set, rv skills.RoutineValidation) []Result {
 		}
 		results[i] = res
 	}
-	return results
+	return slices.DeleteFunc(results, func(res Result) bool { return set.Rules[res.Rule].Type == Track })
 }
 
 // RequiredElements is the set of elements (1-based) that satisfy a requirement:
