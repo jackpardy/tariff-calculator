@@ -53,8 +53,10 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	// Named with their club, to tell people apart in a long list.
+	withClub := officialNames(f.officials, names, true)
 	for k := range seated {
-		page.People = append(page.People, views.FlightOption{Value: k, Label: name(k)})
+		page.People = append(page.People, views.FlightOption{Value: k, Label: withClub(k)})
 	}
 	slices.SortFunc(page.People, func(a, b views.FlightOption) int { return competitions.CompareNames(a.Label, b.Label) })
 

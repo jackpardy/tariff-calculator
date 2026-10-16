@@ -13,6 +13,8 @@ import (
 	nethtml "golang.org/x/net/html"
 
 	"tariffCalculator/skills"
+
+	"tariffCalculator/requirements"
 )
 
 // skillJSON is a common skill as the browser posts it.
@@ -323,7 +325,7 @@ func TestClubLevelEditor(t *testing.T) {
 	form.Set("name", "Grade 1")
 	form.Set("addpick", "club:Back tuck (club)")
 	edited := do(t, h, http.MethodPost, ann+"/levels/editor", form)
-	if edited.Code != http.StatusOK || !strings.Contains(edited.Body.String(), "At least 1 element: Back tuck (club)") {
+	if edited.Code != http.StatusOK || !strings.Contains(edited.Body.String(), `data-described="[&#34;Back tuck (club)&#34;]"`) {
 		t.Fatalf("picking the club's skill: %d %s", edited.Code, edited.Body.String())
 	}
 	// Saved as the editor now shows it, as the browser does.
@@ -441,5 +443,43 @@ func TestClubLevelEditor(t *testing.T) {
 		if !strings.Contains(page, want) {
 			t.Errorf("line %d should be %q: %s", i+1, want, page)
 		}
+	}
+}
+
+// A level's line naming one skill can be marked from the line; a kind of
+// skill is worked out from the skills marked.
+func TestLevelLineOneSkill(t *testing.T) {
+	one := func(id string) bool {
+		p, ok := requirements.PickByID(id)
+		if !ok {
+			t.Fatalf("no pick %s", id)
+		}
+		m := p.Match.Clone()
+		_, ok = oneSkill(requirements.Rule{Type: requirements.Count, Match: &m, Min: ptrFloat(1)})
+		return ok
+	}
+	if !one("skill:Barani") || one("kind:back") {
+		t.Error("a skill is marked from its line, a kind of skill isn't")
+	}
+}
+
+func ptrFloat(v float64) *float64 { return &v }
+
+// A coach's own set routines, kept on their page, are offered to start a
+// level from, as competitions' are.
+func TestLevelFromKeptSetRoutine(t *testing.T) {
+	h := competitionServer(t)
+	club := aClub(t, h, created(t, h, newCompetition()), "UCD", false, "A. Murphy")
+	ann := pathIn(t, do(t, h, http.MethodPost, club.page+"/coaches", url.Values{"name": {"Ann"}}).Body.String(), "/clubs/coach/")
+	set := `{"format":1,"name":"Club L1 set","rules":[{"type":"sequence","sequence":[{"label":"Tuck Jump","rotation":{"min":0,"max":0},"shapes":["tuck"]}]}]}`
+	if rec := do(t, h, http.MethodPost, ann+"/requirements", url.Values{"items": {`[{"id":"set-l1","kind":"set","data":` + set + `}]`}}); rec.Code != http.StatusOK {
+		t.Fatalf("keeping: %d %s", rec.Code, rec.Body)
+	}
+	levels := do(t, h, http.MethodGet, ann+"/levels", nil).Body.String()
+	if !strings.Contains(levels, "Yours, kept on your page") || !strings.Contains(levels, `href="`+ann+`/levels/new?kept=set-l1"`) {
+		t.Fatalf("the coach's own set routine to start from: %s", levels)
+	}
+	if page := do(t, h, http.MethodGet, ann+"/levels/new?kept=set-l1", nil).Body.String(); !strings.Contains(page, `value="Club L1 set"`) || !strings.Contains(page, "sequence") {
+		t.Errorf("the level starts from it: %s", page)
 	}
 }

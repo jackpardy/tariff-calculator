@@ -54,7 +54,7 @@ func TestMoveOptionsOnce(t *testing.T) {
 	}
 	// The seat dropdowns fill from one list of people too, and a seat left
 	// on "Choose a person" (nothing sent) isn't emptied.
-	if !strings.Contains(page, `<template id="seat-options">`) || !regexp.MustCompile(`data-fill="seat-options"><option value="" disabled selected>Choose a person</option>\s*<option value="">No one</option></select>`).MatchString(page) {
+	if !strings.Contains(page, `<template id="seat-options">`) || !regexp.MustCompile(`data-fill="seat-options" data-search-select="Search people"><option value="" disabled selected>Choose a person</option>\s*<option value="">No one</option></select>`).MatchString(page) {
 		t.Error("seat dropdowns hold only their placeholder and No one until opened")
 	}
 	if to := redirected(t, h, tt+"/officials", url.Values{"action": {"seat"}, "flight": {"0"}, "seat": {"0"}}); !strings.Contains(to, "Choose+who+takes+the+seat") {

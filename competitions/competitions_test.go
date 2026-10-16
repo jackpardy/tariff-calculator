@@ -185,3 +185,12 @@ func TestNamedAsSet(t *testing.T) {
 		t.Errorf("named as the set: %+v", routine)
 	}
 }
+
+// A rule not met says what was found.
+func TestFoundWords(t *testing.T) {
+	for detail, want := range map[string]string{"": "", "has 11": " (it has 11)", "is 0.6": " (it's 0.6)", "not found": " (not found)"} {
+		if got := foundWords(detail); got != want {
+			t.Errorf("foundWords(%q) = %q, want %q", detail, got, want)
+		}
+	}
+}

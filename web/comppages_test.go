@@ -207,7 +207,7 @@ func TestIndividualEntry(t *testing.T) {
 
 	// The organiser sees it, checked, with its problems.
 	dash := do(t, h, http.MethodGet, admin, nil).Body.String()
-	if row := rowOf(t, dash, "C. Ryan"); !slices.Contains(row, "Gymnast · on their own") || !slices.Contains(row, "2 problems Second exercise: Exactly 10 elements") {
+	if row := rowOf(t, dash, "C. Ryan"); !slices.Contains(row, "Gymnast · on their own") || !slices.Contains(row, "2 problems Second exercise: Exactly 10 elements (it has 2)") {
 		t.Errorf("the dashboard lists the entry as an individual's, with its problems: %q", row)
 	}
 	if problems := do(t, h, http.MethodGet, admin+"?problems=1", nil).Body.String(); !strings.Contains(problems, "C. Ryan") {
@@ -277,7 +277,7 @@ func TestOrganiserTools(t *testing.T) {
 	// Printing: two exercises, two cards, filled in.
 	cards := do(t, h, http.MethodGet, admin+"/cards", nil).Body.String()
 	if strings.Count(cards, `class="card-page"`) != 2 || !strings.Contains(cards, `value="=SUM(A1)"`) ||
-		!strings.Contains(cards, `value="1st exercise · BUCS L3 · option 1"`) || !strings.Contains(cards, `value="Student Open"`) {
+		!strings.Contains(cards, `value="1st exercise · option 1"`) || !strings.Contains(cards, `value="Student Open"`) {
 		t.Error("each exercise prints on its own card, with the gymnast, level, competition and exercise filled in")
 	}
 	if one := do(t, h, http.MethodGet, admin+"/cards?entry="+id, nil).Body.String(); strings.Count(one, `class="card-page"`) != 2 {

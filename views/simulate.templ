@@ -107,7 +107,7 @@ templ Simulation(p SimulationPage) {
 // there are scenarios to look at (open before the first, or to change one).
 templ scenarioFormView(p SimulationPage) {
 	@opens("", "", "New scenario", len(p.Scenarios) == 0 || p.From) {
-		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/simulate") }>
+		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/simulate") } class="comp-sim-form">
 			<p class="help mb-3">
 				if p.Entries > 0 {
 					Filled in from the entries and offers so far ({ Count(p.Entries, "entry", "entries") }); change any number.
@@ -331,7 +331,7 @@ templ scenarioTable(p SimulationPage) {
 								if s.Stale {
 									<p class="is-size-7 has-text-warning-dark mb-1">Planned with an earlier setup.</p>
 								}
-								<div class="buttons are-small">
+								<div class="buttons are-small comp-sim-actions">
 									<form method="post" action={ templ.SafeURL(p.Base + "/timetable/simulate") }>
 										<input type="hidden" name="again" value={ strconv.Itoa(s.Index) }/>
 										<button class={ "button", templ.KV("is-warning", s.Stale) } type="submit">Run again</button>

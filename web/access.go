@@ -47,7 +47,9 @@ func allowed(kind, pattern string) bool {
 	if post && (path == "/concerns" || path == "/feedback") {
 		return true // anyone can flag a concern, or send feedback about the app
 	}
-	viewing := get && (path == "" || path == "/entries/{id}" || path == "/cards" || path == "/entries.csv" || path == "/history" || path == "/people" || path == "/people/{key}")
+	// The history isn't among them: it says what was paid and sent about the
+	// app, which these links can't see (only the organiser's and everything links).
+	viewing := get && (path == "" || path == "/entries/{id}" || path == "/cards" || path == "/entries.csv" || path == "/people" || path == "/people/{key}")
 	switch kind {
 	case store.LinkCards:
 		return viewing || post && (path == "/entries/{id}/check" || path == "/entries/{id}/video")
@@ -249,6 +251,9 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		amount := f("amount")
 		if cents, err := competitions.ParseMoney(amount); err == nil {
 			amount = c.Fees.Money(cents)
+		}
+		if f("refund") == "1" {
+			return "Recorded a refund of " + amount + " to " + who
 		}
 		return "Recorded a payment of " + amount + " from " + who
 	case "/fees/payments/{id}/remove":

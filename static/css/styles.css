@@ -840,7 +840,12 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-table td.comp-wrap { white-space: normal; min-width: 14rem; }
 .comp-setup-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; margin-bottom: 0.4rem; }
 .comp-setup-row .input:not(.comp-num) { width: auto; max-width: 11rem; }
-.comp-block { padding: 0.6rem 1rem; background: #f5f5f5; box-shadow: none; }
+/* Blocked time (warm-up, lunch) on the timetable: a light row, not a card. */
+.comp-block { padding: 0.35rem 0.75rem; background: transparent; box-shadow: none; border: 1px dashed #d5d5d5; font-size: 0.9rem; }
+.comp-block > strong { font-weight: 600; }
+.comp-flight-moves { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: flex-start; margin-top: 0.5rem; }
+.comp-flight-moves > details { margin: 0; }
+.comp-flight-moves > details[open] { flex-basis: 100%; }
 
 /* --- My competition (views/my.templ) --- */
 .comp-my-flight { border-left: 3px solid #485fc7; padding-left: 0.75rem; }
@@ -869,7 +874,7 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-checkin-row { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; align-items: center; padding: 0.35rem 0; border-top: 1px solid #eee; }
 /* On the day uses the screen's width, three areas at most side by side, so a
    gymnast's name and their Here and Scratched share a line on a laptop. */
-.comp-page .container:has(#day-areas) { max-width: none; }
+.comp-page .container:has(#day-areas), .comp-page .container:has(.comp-tt-areas) { max-width: none; }
 .comp-checkin-row .comp-checkin-name { flex: 1 1 7rem; }
 .comp-checkin-row form { display: flex; gap: 0.3rem; margin: 0; }
 .comp-checkin-row .comp-panel-name { flex: 1 1 8rem; }
@@ -983,10 +988,10 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-menu .tabs a { white-space: nowrap; }
 .comp-menu .comp-submenu { margin-top: 0.5rem; }
 .comp-menu .comp-submenu ul { border-bottom: none; }
-/* A section's pages wrap onto a second line rather than scroll, so none is
-   cut off on a phone (the timetable has seven). */
-.comp-menu .comp-submenu { overflow: visible; white-space: normal; }
-.comp-menu .comp-submenu ul { flex-wrap: wrap; flex-shrink: 1; justify-content: flex-start; }
+/* A section's pages scroll sideways on a phone, as the sections do, the one
+   open in view and a line at the edge with more (static/js/tables.js),
+   rather than wrapping into ragged rows (the timetable has seven). */
+.comp-menu .comp-submenu ul { justify-content: flex-start; }
 .comp-menu .comp-submenu li.is-active a { border-bottom-color: #485fc7; color: #485fc7; font-weight: 600; }
 /* A member's pages (views/clubs.templ): the competitions as rows to open, and
    each discipline's entry as a one-line row that opens to its card. */
@@ -1202,7 +1207,7 @@ html:has(.set-editor) { overflow-anchor: none; }
 /* Another skill that counts too, under the first (views.matcherFields). */
 .matcher-or > .matcher { border-color: #c5cdf0; }
 /* Requirements written for a level's exercise, under the level editor. */
-.level-writer { margin-top: 1rem; padding: 0.75rem; border: 1px solid #485fc7; border-radius: 8px; }
+.level-writer { margin-top: 1rem; padding: 0.75rem; border: 1px solid #485fc7; border-radius: 8px; scroll-margin-top: 4rem; } /* clear of the editor's sticky head */
 /* A set routine built on the requirements page (setRoutineMaker): its skills, in order. */
 .set-routine-skills { margin: 0.25rem 0 0.5rem 1.25rem; }
 .set-routine-skills li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.2rem 0; }
@@ -1238,3 +1243,93 @@ input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100
 /* The set routine maker (Requirements page): Add as wide as its words, not
    the whole card, so Save below isn't lost under it. */
 .set-routine-maker #add-btn { width: auto; }
+
+/* Entries ticked: a bar at the foot of the screen with Remove and Hold. */
+.comp-tick-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); z-index: 40; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.9rem; background: #fff; border: 1px solid #dbdbdb; border-radius: 8px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15); max-width: calc(100% - 2rem); }
+.comp-tick-bar .button { margin: 0; }
+
+/* Fees: Record a payment opens as a panel under its button, so the table's
+   columns don't move; on a phone, where rows are cards, in place. */
+@media screen and (min-width: 769px) {
+  .comp-pay-cell { position: relative; }
+  .comp-pay-cell .comp-opens-form { position: absolute; right: 0; top: 100%; z-index: 20; background: #fff; border: 1px solid #dbdbdb; border-radius: 6px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12); padding: 0.6rem; min-width: 22rem; }
+}
+
+/* A coach's page: the gymnasts they coach, a row each. */
+.comp-coached { margin: 0; }
+.comp-coached li { padding: 0.35rem 0; border-bottom: 1px solid #ededed; }
+.comp-coached .chip { margin-left: 0.4rem; }
+
+/* The entries table on a wide screen: the page's full width, the gymnast's
+   name (and tick) staying in view as the rest scrolls, and a problem's
+   chip alone so rows stay one line. */
+.comp-page .container:has(#entries) { max-width: none; }
+@media screen and (min-width: 769px) {
+  .comp-entries .comp-problem-first { display: none; }
+  .comp-entries td.comp-stack-title, .comp-entries th.comp-stack-title { position: sticky; left: 0; z-index: 1; background: #fff; box-shadow: 1px 0 0 #ededed; }
+  .comp-entries.has-ticks td.comp-stack-tick, .comp-entries.has-ticks th:first-child { position: sticky; left: 0; z-index: 2; background: #fff; width: 2.25rem; min-width: 2.25rem; }
+  .comp-entries.has-ticks td.comp-stack-title, .comp-entries.has-ticks th.comp-stack-title { left: 2.25rem; }
+}
+
+/* A notice that stays in sight while the page goes to where a change is. */
+.comp-sticky-notice { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); }
+
+/* The timetable's areas on a day: one column each, side by side. */
+.comp-tt-areas { display: grid; grid-template-columns: repeat(var(--areas), minmax(15rem, 1fr)); gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; border-left: 3px solid transparent; border-right: 3px solid transparent; }
+.comp-tt-areas.has-more-left { border-left-color: #8a8a8a; }
+.comp-tt-areas.has-more-right { border-right-color: #8a8a8a; }
+.comp-tt-area { min-width: 0; }
+@media screen and (max-width: 768px) { .comp-tt-areas { grid-template-columns: minmax(0, 1fr); } }
+
+/* Nothing on now: "Now —" takes a line, and what's next the card's room. */
+.screen-card > .screen-part.is-empty { flex: 0 0 auto; }
+.screen-card:has(> .screen-part.is-empty) > .screen-next { flex: 1 1 auto; background: transparent; }
+
+/* Notify sits beside the row's buttons, a line of its own only when open. */
+.comp-notify:not([open]) { flex: 0 0 auto; }
+.comp-notify:not([open]) > summary { margin: 0; }
+
+/* Find a name on On the day: a card's people it found come first, under
+   the area's name, above its flight. */
+.comp-day-card { display: flex; flex-direction: column; }
+.comp-day-card > h2 { order: -2; }
+.comp-day-card > .comp-day-people[open] { order: -1; margin-bottom: 0.75rem; }
+/* An action's button (no row naming it) keeps its name open, its arrow up,
+   so two open side by side still say which is which. */
+.comp-opens.comp-opens-action[open] .comp-opens-label { display: inline; }
+.comp-opens.comp-opens-action[open] .comp-opens-close { display: none; }
+
+/* The desk's To: each choice's controls only while it's chosen. */
+form:has(input[name="to"][value="club"]:not(:checked)) .desk-to-club,
+form:has(input[name="to"][value="flight"]:not(:checked)) .desk-to-flight,
+form:has(input[name="to"][value="panel"]:not(:checked)) .desk-to-panel,
+form:has(input[name="to"][value="people"]:not(:checked)) .desk-to-people { display: none; }
+/* A stacked table's number boxes sit beside their labels. */
+@media screen and (max-width: 768px) {
+  table.comp-stack > tbody > tr > td > .comp-num { display: inline-block; width: 5rem; margin-left: 0.4rem; }
+}
+/* A seat a discipline doesn't have: a dash on a wide screen, left out on a phone. */
+@media screen and (min-width: 769px) { .comp-panels td:empty::after { content: "—"; color: #999; } }
+
+/* Simulate: its form as wide as reads well, each label by its box; a
+   scenario's buttons spaced. */
+.comp-sim-form { max-width: 44rem; }
+.comp-sim-actions { gap: 0.4rem; }
+.comp-sim-actions > form, .comp-sim-actions > .button { margin: 0 !important; }
+
+/* A question on the builder's page (askUser), in place of the browser's own. */
+.ask-card { width: calc(100% - 2rem); max-width: 28rem; }
+.ask-card .modal-card-body { border-radius: 8px; }
+
+/* A rule folded to its name (a club level's line, or one of several) is one
+   compact row: its name, Change, and the move and remove buttons. */
+.rule-card:has(> .rule-card-body:not([open])) { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.35rem 0.6rem; margin-bottom: 0.35rem; }
+.rule-card:has(> .rule-card-body:not([open])) > .rule-card-head { flex: 1 1 16rem; order: 0; margin-bottom: 0; align-items: center; }
+.rule-card:has(> .rule-card-body:not([open])) > .rule-card-body { order: 1; }
+.rule-card:has(> .rule-card-body:not([open])) > .rule-card-body > summary { margin-top: 0; }
+
+/* A link ("this, then this"): its steps without boxes of their own, and one
+   link without the box an option of several has. */
+.option-group.is-only { border: 0; background: none; padding: 0; margin-bottom: 0.25rem; }
+.option-group .matcher { border: 0; border-left: 3px solid #dbe0f5; border-radius: 0; padding: 0.25rem 0 0.25rem 0.6rem; margin: 0.25rem 0; }
+.item-wording { margin-top: 0; }

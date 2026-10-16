@@ -97,8 +97,13 @@ func (p *ScreenPage) Fit() {
 		if more := len(a.Gymnasts) - now; more > 0 {
 			a.Gymnasts, a.More = a.Gymnasts[:now], more
 		}
-		if more := len(a.NextGymnasts) - next; more > 0 {
-			a.NextGymnasts, a.NextMore = a.NextGymnasts[:next], more
+		// With nothing on now, what's next has the card's room.
+		nx := next
+		if a.Now == "" {
+			nx = now
+		}
+		if more := len(a.NextGymnasts) - nx; more > 0 {
+			a.NextGymnasts, a.NextMore = a.NextGymnasts[:nx], more
 		}
 	}
 }
@@ -212,7 +217,7 @@ templ screenCard(a ScreenArea) {
 				<span class={ "screen-late", templ.KV("is-behind", a.Behind) }>{ a.Late }</span>
 			}
 		</header>
-		<div class="screen-part">
+		<div class={ "screen-part", templ.KV("is-empty", a.Now == "") }>
 			<p class="screen-label">Now</p>
 			if a.Now == "" {
 				<p class="screen-flight">—</p>

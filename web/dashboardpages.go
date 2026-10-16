@@ -53,6 +53,18 @@ func (p *competitionPages) reviewVideo(w http.ResponseWriter, r *http.Request) {
 	if len([]rune(note)) > 300 {
 		note = string([]rune(note)[:300])
 	}
+	// OK says it of a video: with none linked, there's nothing to say it of.
+	if r.FormValue("review") == "ok" {
+		e, err := p.st.CompetitionEntry(r.Context(), c.ID, r.PathValue("id"))
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		if !slices.ContainsFunc(e.Entry.Exercises[:], func(ex competitions.Exercise) bool { return ex.Video != "" }) {
+			seeOther(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id")+"#video", "There's no video yet to say OK to; nothing was changed.")
+			return
+		}
+	}
 	if err := p.st.ReviewVideo(r.Context(), c.ID, r.PathValue("id"), r.FormValue("review"), note); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			failed(w, r, err)
@@ -61,8 +73,8 @@ func (p *competitionPages) reviewVideo(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	// Back to the check box, where it says Checked.
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id")+"#check", http.StatusSeeOther)
+	// Back to the video box, where it says how it was reviewed.
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id")+"#video", http.StatusSeeOther)
 }
 
 // judged is a stored entry checked, with who sent it ("individual" for an
@@ -381,11 +393,17 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 				if j.card.Only > 0 {
 					round = "Routine"
 				}
+				// Its set's name, less what the card says already (the level,
+				// "first exercise"): "1st exercise · option 2".
+				set := strings.TrimPrefix(ex.SetName, j.Entry.Entry.Event()+" · ")
+				if set != "" && !strings.Contains(strings.ToLower(set), "exercise") && set != j.Entry.Entry.Event() {
+					round += " · " + set
+				}
 				page.Cards = append(page.Cards, views.PrintedCard{
 					Validation: ex.Validation, Required: ex.Required, Checks: ex.Checks,
 					Details: views.SheetDetails{
 						"gymnast": j.Entry.Entry.Gymnasts(), "club": club, "category": strings.TrimSpace(j.Entry.Entry.Event() + " " + j.Entry.Entry.Category),
-						"competition": c.Name, "round": round + " · " + ex.SetName,
+						"competition": c.Name, "round": round,
 						"coach": j.CoachName(),
 					},
 				})
@@ -485,7 +503,46 @@ func (p *competitionPages) check(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id"), http.StatusSeeOther)
+	base := adminPath(r.PathValue("token"))
+	// Mark checked and next: the next entry still to check, in the same
+	// level first, as the entries list has them.
+	if r.FormValue("next") == "1" {
+		entries, err := p.entriesOf(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		if next := nextToCheck(live(entries), r.PathValue("id")); next != "" {
+			seeOther(w, r, base+"/entries/"+next+"#check", "Checked. This is the next to check.")
+			return
+		}
+		seeOther(w, r, base, "Checked: that was the last to check.")
+		return
+	}
+	// Back to the check box, where it says Checked.
+	http.Redirect(w, r, base+"/entries/"+r.PathValue("id")+"#check", http.StatusSeeOther)
+}
+
+// nextToCheck is the entry to check after the one with id: the next in its
+// level not checked, else the first in any level; "" when none is left.
+func nextToCheck(entries []store.Entry, id string) string {
+	i := slices.IndexFunc(entries, func(e store.Entry) bool { return e.ID == id })
+	if i < 0 {
+		return ""
+	}
+	level := entries[i].Entry.Event()
+	open := func(e store.Entry) bool { return e.ID != id && !e.Checked() && !e.Withdrawn }
+	for _, e := range slices.Concat(entries[i+1:], entries[:i]) {
+		if e.Entry.Event() == level && open(e) {
+			return e.ID
+		}
+	}
+	for _, e := range entries {
+		if open(e) {
+			return e.ID
+		}
+	}
+	return ""
 }
 
 // exerciseSummary is an exercise in a dashboard row: a set routine performed as
@@ -525,7 +582,7 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuEntries),
 		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
 		ID: e.ID, Checked: checkedText(e), Note: e.Note, VideoReview: e.VideoReview, VideoNote: e.VideoNote,
-		Withdrawn: e.Withdrawn, Access: access(r), Notice: r.URL.Query().Get("notice"),
+		Withdrawn: e.Withdrawn, Access: access(r), Notice: r.URL.Query().Get("notice"), LetIn: e.LetIn,
 	}))
 }
 

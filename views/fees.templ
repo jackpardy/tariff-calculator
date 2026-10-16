@@ -32,6 +32,12 @@ type AccountView struct {
 	Over                 string // paid more than due, by this much; "" if not
 	Invoice              string
 	Payments             []PaymentView
+	Anchor               string // its row's id, to come back to
+	// Open is a payment refused, come back to: the form open, with what was
+	// typed (Amount, Note, Refund).
+	Open                 bool
+	Amount, Note         string
+	Refund               bool
 }
 
 // PaymentView is a payment recorded.
@@ -96,7 +102,7 @@ templ FeesAdmin(p FeesPage) {
 					</thead>
 					<tbody>
 						for _, a := range p.Accounts {
-							<tr>
+							<tr id={ a.Anchor } class="comp-target">
 								<td>
 									{ a.Name }
 									for _, pay := range a.Payments {
@@ -129,11 +135,12 @@ templ FeesAdmin(p FeesPage) {
 								<td class="comp-pay-cell">
 									<a class="is-size-7" href={ templ.SafeURL(a.Invoice) }>Invoice</a>
 									// Recording a payment is for one row at a time, so it opens from a button.
-									@opens("", "", "Record a payment", false) {
+									@opens("", "", "Record a payment", a.Open) {
 										<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments") } class="comp-pay-form">
 											<input type="hidden" name="payer" value={ a.Payer }/>
-											<input class="input is-small comp-num" name="amount" inputmode="decimal" required placeholder="Amount" aria-label={ "Amount paid by " + a.Name }/>
-											<input class="input is-small" name="note" maxlength="300" placeholder="Note" aria-label="Note"/>
+											<input class="input is-small comp-num" name="amount" inputmode="decimal" required placeholder="Amount" value={ a.Amount } aria-label={ "Amount paid by " + a.Name }/>
+											<input class="input is-small" name="note" maxlength="300" placeholder="Note" value={ a.Note } aria-label="Note"/>
+											<label class="checkbox is-size-7"><input type="checkbox" name="refund" value="1" checked?={ a.Refund }/> A refund to them</label>
 											<button class="button is-small" type="submit">Record</button>
 										</form>
 									}

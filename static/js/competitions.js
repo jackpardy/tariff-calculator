@@ -314,6 +314,37 @@
         levels.forEach((d) => d.addEventListener('toggle', save));
     }
 
+    // tickBar is the Entries page's bar once entries are ticked: how many, and
+    // Remove or Hold, which open the form below with that chosen.
+    function tickBar() {
+        const bar = document.getElementById('tick-bar');
+        const form = document.getElementById('remove-form');
+        if (!bar || !form) { return; }
+        const boxes = () => [...document.querySelectorAll('input[name="entry"][form="remove-form"]')];
+        const update = () => {
+            const n = boxes().filter((b) => b.checked).length;
+            bar.hidden = n === 0;
+            bar.querySelector('[data-tick-count]').textContent = n === 1 ? '1 ticked' : `${n} ticked`;
+        };
+        document.addEventListener('change', (e) => { if (e.target.closest?.('table')) { update(); } });
+        bar.addEventListener('click', (e) => {
+            const go = e.target.closest('[data-tick-go]');
+            if (go) {
+                const choice = form.querySelector(`input[name="action"][value="${go.dataset.tickGo}"]`);
+                if (choice) { choice.checked = true; }
+                const opens = form.closest('details');
+                if (opens) { opens.open = true; }
+                form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                form.querySelector('input[name="note"]')?.focus({ preventScroll: true });
+            }
+            if (e.target.closest('[data-tick-clear]')) {
+                document.querySelectorAll('table input[type="checkbox"]').forEach((b) => { if (b.name === 'entry' || /^Tick all/.test(b.getAttribute('aria-label') || '')) { b.checked = false; } });
+                update();
+            }
+        });
+        update();
+    }
+
     // menuInView scrolls each row of the page's menu sideways so its current
     // tab shows: on a phone the rows are wider than the screen.
     function menuInView() {
@@ -822,6 +853,7 @@
         offlineBanner();
         openLevels();
         menuInView();
+        tickBar();
         dayPage();
         copyButtons();
         saveLinks();

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log"
@@ -292,6 +293,21 @@ func (p *competitionPages) desk(w http.ResponseWriter, r *http.Request) {
 	}
 	if s := c.Published; s != nil {
 		page.Published = true
+		// The flight to start with: the first, by day and time, not finished.
+		times, err := p.st.FlightTimes(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		first := ""
+		order := slices.Clone(s.Flights)
+		slices.SortStableFunc(order, func(x, y competitions.ScheduledFlight) int { return cmp.Or(x.Day-y.Day, x.Start-y.Start) })
+		for _, f := range order {
+			if times[competitions.FlightKey(f)].Finished.IsZero() {
+				first = competitions.FlightKey(f)
+				break
+			}
+		}
 		for i, d := range s.Setup.Days {
 			for _, a := range s.Setup.Areas {
 				var group views.DeskGroup
@@ -300,7 +316,7 @@ func (p *competitionPages) desk(w http.ResponseWriter, r *http.Request) {
 					if f.Day != i || f.Area != a.Name {
 						continue
 					}
-					group.Options = append(group.Options, views.DeskOption{Value: competitions.FlightKey(f), Label: competitions.Clock(f.Start) + " · " + f.Name()})
+					group.Options = append(group.Options, views.DeskOption{Value: competitions.FlightKey(f), Label: competitions.Clock(f.Start) + " · " + f.Name(), Selected: competitions.FlightKey(f) == first})
 					seats = seats || slices.ContainsFunc(f.Officials, func(o competitions.Duty) bool { return o.Person != "" })
 				}
 				if len(group.Options) == 0 {

@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"tariffCalculator/store"
@@ -18,7 +19,24 @@ func settingsPath(token string) string { return adminPath(token) + "/settings" }
 // backToSettings goes back to the settings page, saying what happened ("" to
 // say nothing).
 func backToSettings(w http.ResponseWriter, r *http.Request, notice string) {
-	seeOther(w, r, settingsPath(r.PathValue("token")), notice)
+	to := settingsPath(r.PathValue("token"))
+	// Back at the setting's own section, not the top of the page.
+	if group := settingsGroups[strings.TrimPrefix(strings.TrimPrefix(r.Pattern, "POST "), adminPrefix)]; group != "" {
+		to += "#" + group
+	}
+	seeOther(w, r, to, notice)
+}
+
+// settingsGroups are the Settings page's sections (their ids), by the route
+// that changes a setting in each.
+var settingsGroups = map[string]string{
+	"/links": "links", "/links/{id}/remove": "links", "/ties/remove": "links",
+	"/deadline": "deadlines", "/later-deadlines": "deadlines",
+	"/limits": "limits",
+	"/events": "events", "/split": "events",
+	"/signoff": "signoff", "/approve-coaches": "signoff",
+	"/video": "video", "/live": "live", "/no-wait": "notify", "/individuals": "individuals",
+	"/feedback-button": "feedback", "/replace-link": "admin-link",
 }
 
 // liveFields are the date and time to suggest for going live: when it's due

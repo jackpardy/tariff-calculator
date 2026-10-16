@@ -101,6 +101,7 @@ type EntryDetail struct {
 	VideoReview string // "", "ok" or "more"
 	VideoNote   string
 	Withdrawn   bool // withdrawn since the club sent it
+	LetIn       bool // let in from its event's waiting list, over the limit
 }
 
 // Dashboard is the organiser's overview: every entry, by level, with its problems.
@@ -172,13 +173,13 @@ templ CompetitionDashboard(d Dashboard) {
 							<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) } data-list-carry>Print this level's cards</a>
 						</div>
 						<div class="table-container">
-							<table class="table is-fullwidth is-narrow comp-table comp-entries comp-stack" data-table-view="entries">
+							<table class={ "table", "is-fullwidth", "is-narrow", "comp-table", "comp-entries", "comp-stack", templ.KV("has-ticks", d.Access.Remove) } data-table-view="entries">
 								<thead>
 									<tr>
 										if d.Access.Remove {
 											<th><input type="checkbox" aria-label={ "Tick all of " + l.Name } onchange="this.closest('table').querySelectorAll('input[name=entry]').forEach(c => c.checked = this.checked)"/></th>
 										}
-										<th>Gymnast</th>
+										<th class="comp-stack-title">Gymnast</th>
 										<th>Club</th>
 										<th>1st exercise</th>
 										<th>2nd exercise</th>
@@ -236,10 +237,12 @@ templ CompetitionDashboard(d Dashboard) {
 													–
 												} else {
 													// Opens the entry, where its problems are listed.
-													<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID + "#problems") } title="See the problems">
+													<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID + "#problems") } title={ r.Problems[0] }>
 														@StateChip(Attention, Count(len(r.Problems), "problem", "problems"))
 													</a>
-													{ r.Problems[0] }
+													// The first in words on a phone's card; on a wide screen, the chip
+													// alone keeps rows one line (the first is its tooltip).
+													<span class="comp-problem-first">{ r.Problems[0] }</span>
 												}
 											</td>
 											<td data-label="Sent">{ r.Sent }</td>
@@ -304,6 +307,15 @@ templ CompetitionDashboard(d Dashboard) {
 		}
 		if d.Entries > 0 && d.Access.Remove {
 			@removeForm(d.Base)
+			// Once entries are ticked, a bar on the screen says how many and
+			// goes to Remove or hold, wherever the tables have got to
+			// (competitions.js, tickBar).
+			<div class="comp-tick-bar" id="tick-bar" hidden>
+				<span class="has-text-weight-semibold" data-tick-count></span>
+				<button class="button is-small is-danger is-light" type="button" data-tick-go="remove">Remove…</button>
+				<button class="button is-small is-warning is-light" type="button" data-tick-go="hold">Hold for changes…</button>
+				<button class="button is-small is-text" type="button" data-tick-clear>Untick all</button>
+			</div>
 		}
 		@concernsBox(d.Base, d.Concerns, d.OpenConcerns, d.Access)
 		if !d.Access.Organiser {
@@ -363,6 +375,18 @@ templ CompetitionEntry(d EntryDetail) {
 				<p><strong>Withdrawn.</strong> { d.Card.Gymnast } has withdrawn this entry, or left the club, since { d.Card.Club } sent it. It goes when the club sends its entries again; until then it isn't counted or printed.</p>
 			</div>
 		}
+		// Let in over the limit: it can go back, in its place, if that was a mistake.
+		if d.LetIn {
+			<div class="notification is-info is-light comp-let-in">
+				<p class="mb-2">Let in from its event's waiting list, over the limit.</p>
+				if d.Access.Settings {
+					<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/let-in") }>
+						<input type="hidden" name="on" value="0"/>
+						<button class="button is-small" type="submit">Put it back on the waiting list</button>
+					</form>
+				}
+			</div>
+		}
 		@entryCardChecks(d.Card)
 		<p class="has-text-grey is-size-7 mt-4">Sent { d.Sent }.</p>
 		if d.Notice != "" {
@@ -393,6 +417,9 @@ templ CompetitionEntry(d EntryDetail) {
 					<div class="buttons">
 						if d.Checked == "" {
 							<button class="button is-primary is-small" type="submit" name="checked" value="1">Mark checked</button>
+							// And on to the next entry still to check.
+							<input type="hidden" name="next" value=""/>
+							<button class="button is-primary is-light is-small" type="submit" name="checked" value="1" onclick="this.form.elements.next.value = '1'">Mark checked and next</button>
 							<button class="button is-small" type="submit" name="checked" value="0">Save the note</button>
 						} else {
 							<button class="button is-small" type="submit" name="checked" value="1">Save the note</button>
@@ -405,7 +432,7 @@ templ CompetitionEntry(d EntryDetail) {
 			</div>
 		}
 		if d.Competition.Video != "" && d.Access.Check {
-			<div class="box mt-4">
+			<div class="box mt-4" id="video">
 				<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/video") }>
 					<p class="mb-2">
 						<strong>Video</strong>
@@ -421,7 +448,12 @@ templ CompetitionEntry(d EntryDetail) {
 						<input class="input is-small" id="video-note" name="note" maxlength="300" value={ d.VideoNote } placeholder="e.g. The full-in isn't in the video"/>
 					</div>
 					<div class="buttons">
-						<button class="button is-small is-success is-light" type="submit" name="review" value="ok">Video OK</button>
+						// OK waits for a video to say it of.
+						if hasVideo(d.Card) {
+							<button class="button is-small is-success is-light" type="submit" name="review" value="ok">Video OK</button>
+						} else {
+							<span class="is-size-7 has-text-grey mr-2">No video yet: OK once there's one.</span>
+						}
 						<button class="button is-small is-warning is-light" type="submit" name="review" value="more">Need more</button>
 						if d.VideoReview != "" {
 							<button class="button is-small" type="submit" name="review" value="">Clear</button>
@@ -553,7 +585,7 @@ templ tableViewMenu(id string) {
 // removeForm removes or holds the entries ticked in the tables.
 templ removeForm(base string) {
 	@opens("", "", "Remove or hold entries", false) {
-		<p class="mb-2">Tick them in the tables below, then:</p>
+		<p class="mb-2">Tick them in the tables above (a bar at the foot of the screen says how many), then:</p>
 		<form id="remove-form" method="post" action={ templ.SafeURL(base + "/remove") }>
 			<div class="field">
 				<label class="radio comp-option"><input type="radio" name="action" value="remove" checked/> <span><strong>Remove</strong>: they can't be sent or changed again unless you restore them</span></label>
@@ -685,4 +717,14 @@ func problemsValue(only bool) string {
 		return "1"
 	}
 	return ""
+}
+
+// hasVideo says whether an entry has a video linked, for any exercise.
+func hasVideo(c EntryCard) bool {
+	for _, ex := range c.Exercises {
+		if ex.Video.Link != "" {
+			return true
+		}
+	}
+	return false
 }

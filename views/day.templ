@@ -2,7 +2,9 @@ package views
 
 import (
 	"crypto/rand"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"tariffCalculator/static"
 )
@@ -24,6 +26,7 @@ type DayPage struct {
 	Correct     bool           // this link can put a flight's times right
 	DayName     string         // the day shown, e.g. "Saturday", for the times put right
 	DayDate     string         // its date, e.g. "Saturday 27 February 2027"
+	People      bool           // this link opens people's pages: names link to them
 }
 
 // DayScratched is a scratched gymnast who also holds seats that day, or is
@@ -53,6 +56,16 @@ type DayArea struct {
 	Since   string // what it's measured from, e.g. "Finished BUCS L3 at 10:40"
 	WhatIf  string // where to see the rest of the day if it's late; "" for none
 	Flights []DayFlight
+	// Breaks are its blocked time that day (lunch, awards, an event taking
+	// entries on the day), as the timetable plans them.
+	Breaks []DayBreak
+}
+
+// DayBreak is an area's blocked time on the day: what, when, and for an
+// event with a panel, who's on it.
+type DayBreak struct {
+	Name, Times string
+	Officials   []string
 }
 
 // DayFlight is a flight on the day: planned, and as it happened.
@@ -85,6 +98,8 @@ type DayUp struct {
 	Scratched bool   // scratched since the marshal reached them
 	Last      bool   // the flight's last routine: Finished comes next
 	CanBack   bool
+	Next      string // who's next and their routine, "" for none
+	NotHere   bool   // who's on hasn't been checked in
 }
 
 // DayNotify is the Notify form beside someone who isn't here; Person is ""
@@ -112,6 +127,7 @@ type DaySeat struct {
 type DayGymnast struct {
 	FlightGymnast
 	Entry       string
+	Person      string // their person key, for their page
 	State       string // "here", "scratched" or "" for not marked
 	Who         string // who marked them
 	CanHere     bool
@@ -297,16 +313,24 @@ func seatCount(ss []DaySeat) checkCount {
 }
 
 // countChips shows a check-in's counts: how many are here (done once
-// everyone is here or out), how many out, and the seats that need someone.
+// everyone is here or scratched; an official missing leaves their seat to
+// fill, so a panel is done only with everyone here), how many out, and the
+// seats that need someone.
 templ countChips(c checkCount) {
+	{{ missing := c.OutWord == "missing" && c.Out > 0 }}
 	if c.Of > 0 {
-		if c.Here+c.Out == c.Of {
-			@StateChip(Done, strconv.Itoa(c.Here)+" of "+strconv.Itoa(c.Of)+" here")
-		} else {
-			@StateChip(NotYet, strconv.Itoa(c.Here)+" of "+strconv.Itoa(c.Of)+" here")
+		switch {
+			case missing:
+				@StateChip(Attention, strconv.Itoa(c.Here)+" of "+strconv.Itoa(c.Of)+" here")
+			case c.Here+c.Out == c.Of:
+				@StateChip(Done, strconv.Itoa(c.Here)+" of "+strconv.Itoa(c.Of)+" here")
+			default:
+				@StateChip(NotYet, strconv.Itoa(c.Here)+" of "+strconv.Itoa(c.Of)+" here")
 		}
 	}
-	if c.Out > 0 {
+	if missing {
+		@StateChip(Attention, strconv.Itoa(c.Out)+" "+c.OutWord)
+	} else if c.Out > 0 {
 		@StateChip(Stopped, strconv.Itoa(c.Out)+" "+c.OutWord)
 	}
 	if c.Empty > 0 {
@@ -341,18 +365,29 @@ func currentFlight(a DayArea) int {
 // dayAreaStatus is how an area is running, and from what, with where to see
 // the rest of the day if it's late.
 templ dayAreaStatus(a DayArea) {
-	<p class="mb-2">
-		if a.Status == "" {
-			@StateChip(NotYet, "Nothing started yet")
-		} else {
+	// Nothing started: its flight says so ("Not started"), not the area too.
+	if a.Status != "" {
+		<p class="mb-2 comp-area-status">
 			@StateChip(areaState(a), a.Status)
-		}
-		if a.Since != "" {
-			<span class="is-size-7 has-text-grey">{ a.Since }</span>
-		}
-	</p>
+			if a.Since != "" {
+				<span class="is-size-7 has-text-grey">{ a.Since }</span>
+			}
+		</p>
+	}
 	if a.WhatIf != "" {
 		<p class="is-size-7 mb-3"><a class="comp-tap-link" href={ templ.SafeURL(a.WhatIf) }>What if: see the rest of the day</a></p>
+	}
+	if len(a.Breaks) > 0 {
+		<ul class="is-size-7 mb-3 comp-day-breaks">
+			for _, b := range a.Breaks {
+				<li>
+					<strong>{ b.Name }</strong> { b.Times }
+					if len(b.Officials) > 0 {
+						<span class="has-text-grey">· { strings.Join(b.Officials, ", ") }</span>
+					}
+				</li>
+			}
+		</ul>
 	}
 }
 
@@ -614,7 +649,11 @@ templ dayCheckinRows(p DayPage, f DayFlight) {
 		<div class="comp-checkin-row" { ListRow{Name: g.Name}.Attrs()... } data-entry={ g.Entry } data-no={ strconv.Itoa(g.No) } data-club={ g.Club } data-routines={ g.Routines } data-state={ g.State }>
 			<span class="comp-checkin-name">
 				@runNo(g.No)
-				<span class={ templ.KV("comp-scratched", g.State == "scratched") }>{ g.Name }</span>
+				if g.Person != "" && p.People {
+					<a class={ templ.KV("comp-scratched", g.State == "scratched") } href={ templ.SafeURL(p.Base + "/people/" + url.PathEscape(g.Person)) }>{ g.Name }</a>
+				} else {
+					<span class={ templ.KV("comp-scratched", g.State == "scratched") }>{ g.Name }</span>
+				}
 				<span class="has-text-grey is-size-7">{ g.Club }</span>
 				@StateChip(checkinState(g.State))
 				if g.Who != "" {
@@ -735,6 +774,8 @@ templ dayUp(p DayPage, f DayFlight) {
 				<span class={ templ.KV("comp-scratched", f.Up.Scratched) }>{ f.Up.Name }</span>
 				if f.Up.Scratched {
 					@StateChip(Stopped, "Scratched")
+				} else if f.Up.NotHere {
+					@StateChip(Attention, "Not checked in")
 				}
 			</p>
 			<p class="mb-2">
@@ -743,6 +784,9 @@ templ dayUp(p DayPage, f DayFlight) {
 				}
 				<strong>{ f.Up.Routine }</strong>
 			</p>
+			if f.Up.Next != "" {
+				<p class="is-size-7 has-text-grey mb-2">Next: { f.Up.Next }</p>
+			}
 		}
 		if finishesHere(f) {
 			// The last routine: Finished takes Next gymnast's place, Back beside it.

@@ -509,6 +509,10 @@ func coachingOf(c store.Competition, dp *dirPerson, dir *directory, base string)
 	}
 	for _, e := range dp.coached {
 		pc := views.PersonCoached{Event: competitions.DisciplineName(e.Entry.Discipline) + " " + e.Entry.Level, Entry: base + "/entries/" + e.ID}
+		// Where its sign-off stands, where the competition asks for one.
+		if c.Signoff {
+			pc.Signoff = storedSignoff(c.Competition, e)
+		}
 		for _, key := range dir.keys[e.ID] {
 			if g := dir.byKey[key]; g != nil {
 				pc.People = append(pc.People, views.PersonLink{Name: g.name, Href: personPath(base, key)})

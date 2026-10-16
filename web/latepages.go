@@ -347,7 +347,7 @@ func lateStatusText(c store.Competition, r store.LateRequest) string {
 			s += " (" + c.Fees.Money(r.Fee) + ", on the invoice)"
 		}
 		if r.Reason != "" {
-			s += ". " + r.Reason
+			s += ". The organiser's note: " + r.Reason
 		}
 		return s
 	case store.LateRejected:
@@ -437,8 +437,16 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 		}
 		if v.Waiting {
 			v.Checks = p.lateChecks(ctx, c, req, e, entries, f)
+			// The card as it would be, to see before deciding.
+			if shown, err := card(c.Competition, req.Entry, clubOf(e)); err == nil {
+				v.NewCard = &shown
+			}
 		}
 		page.Requests = append(page.Requests, v)
+	}
+	// A change accepted lands in the draft timetable: the way there to publish it.
+	if c.Published != nil && c.Timetable != nil && !sameTimetable(*c.Timetable, *c.Published) {
+		page.Timetable = base + "/timetable"
 	}
 	render(w, r, views.LateAdmin(page))
 }

@@ -83,7 +83,7 @@ templ Routine(rv skills.RoutineValidation, check *RequirementCheck, side Routine
 			<p class="has-text-grey">Add skills using the form above.</p>
 		} else {
 			for i, sv := range rv.Skills {
-				@skillCard(i, sv, rv.Messages[i], i == len(rv.Skills)-1, side, side.Other != nil && differs(CompareSide{Validation: rv}, *side.Other, i), !side.ReadOnly && rv.ScoredElements > 0 && (sv.Counted || sv.Unscored), ticked(rv, sv))
+				@skillCard(i, sv, rv.Messages[i], i == len(rv.Skills)-1, side, side.Other != nil && differs(CompareSide{Validation: rv}, *side.Other, i), !side.ReadOnly && rv.ScoredElements > 0 && (sv.Counted || sv.Unscored), ticked(rv, sv), scoringFull(rv))
 			}
 		}
 	</div>
@@ -168,7 +168,7 @@ func titleCase(s string) string {
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
-templ skillCard(i int, sv skills.SkillValidation, message string, last bool, side RoutineSide, different bool, canScore, scoresTicked bool) {
+templ skillCard(i int, sv skills.SkillValidation, message string, last bool, side RoutineSide, different bool, canScore, scoresTicked, scoresFull bool) {
 	<div class="routine-skill-container" x-bind:class={ fmt.Sprintf("{ 'editing': editingIndex === %d && editingSide === '%s' }", i, side.Side) }>
 		<div
 			class={ "routine-skill", "box", "mb-2",
@@ -201,7 +201,8 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 							// When only some elements score, the coach can choose which.
 							if canScore {
 								<label class={ "scores-toggle", templ.KV("is-scoring", sv.Counted) } x-on:click.stop>
-									<input type="checkbox" checked?={ scoresTicked } x-on:change={ fmt.Sprintf("toggleScores(%d, '%s', $event.target.checked)", i, side.Side) }/>
+									// Once as many score as may, another waits for one to be unticked.
+									<input type="checkbox" checked?={ scoresTicked } disabled?={ scoresFull && !scoresTicked } title={ scoresTitle(scoresFull && !scoresTicked) } x-on:change={ fmt.Sprintf("toggleScores(%d, '%s', $event.target.checked)", i, side.Side) }/>
 									Scores
 								</label>
 							}
@@ -439,6 +440,25 @@ func ticked(rv skills.RoutineValidation, sv skills.SkillValidation) bool {
 		return sv.Skill.Scores
 	}
 	return sv.Counted
+}
+
+// scoringFull says whether as many elements are ticked to score as may.
+func scoringFull(rv skills.RoutineValidation) bool {
+	n := 0
+	for _, sv := range rv.Skills {
+		if ticked(rv, sv) {
+			n++
+		}
+	}
+	return rv.ScoredElements > 0 && n >= rv.ScoredElements
+}
+
+// scoresTitle explains a Scores box that can't be ticked.
+func scoresTitle(waiting bool) string {
+	if waiting {
+		return "As many score as may: untick one first"
+	}
+	return ""
 }
 
 // scoringElements are the elements (0-based) that score when only some do,

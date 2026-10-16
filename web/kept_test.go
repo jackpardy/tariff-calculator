@@ -64,6 +64,10 @@ func TestKeptRequirements(t *testing.T) {
 	if strings.Count(page, "Grade 1 (2027)") < 1 || strings.Contains(page, ">Grade 1<") {
 		t.Error("saved again, it changed in place")
 	}
+	// The level's requirements are listed under it, not on their own.
+	if !strings.Contains(page, `<details class="is-size-7 mt-1 comp-kept-own"><summary>Grade 1 (2027)</summary>`) || !strings.Contains(page, "No requirements kept here yet.") {
+		t.Error("a level's requirements are under it")
+	}
 
 	// Taken off from the tab.
 	location := redirected(t, h, ann+"/requirements/set/set-1/remove", url.Values{"back": {"1"}})
@@ -73,6 +77,14 @@ func TestKeptRequirements(t *testing.T) {
 	json.Unmarshal(do(t, h, http.MethodGet, ann+"/requirements.json", nil).Body.Bytes(), &kept)
 	if len(kept.Sets) != 0 || len(kept.Levels) != 1 {
 		t.Errorf("after taking it off: %+v", kept)
+	}
+	// Taking a level off takes the requirements only it uses.
+	keep(ann, `[{"id":"set-1","kind":"set","data":`+set+`}]`)
+	redirected(t, h, ann+"/requirements/level/level-1/remove", url.Values{"back": {"1"}})
+	kept.Sets, kept.Levels = nil, nil
+	json.Unmarshal(do(t, h, http.MethodGet, ann+"/requirements.json", nil).Body.Bytes(), &kept)
+	if len(kept.Sets) != 0 || len(kept.Levels) != 0 {
+		t.Errorf("after taking the level off: %+v", kept)
 	}
 
 	// Someone entering on their own keeps them on their personal page.
