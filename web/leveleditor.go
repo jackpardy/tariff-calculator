@@ -104,6 +104,8 @@ func levelEditorData(set requirements.Set, problems []string, token, id string, 
 	} else {
 		conflicts = requirements.Conflicts(set)
 	}
+	// A rule fitting any skill is met by anything: say which skill.
+	problems = append(problems, requirements.Vague(set)...)
 	data, _ := json.Marshal(set)
 	save := coachLevelsPath(token) + "/new"
 	if id != "" {

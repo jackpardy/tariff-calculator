@@ -184,6 +184,25 @@ templ calculator(groups []requirements.BuiltinGroup) {
 			<button class="delete" type="button" aria-label="Dismiss" x-on:click="toast.show = false"></button>
 			<span x-text="toast.message"></span>
 		</div>
+		// A question on the page (askUser), in place of the browser's own.
+		<div class="modal" id="ask-dialog" x-bind:class="{ 'is-active': ask.open }" x-on:keydown.escape.window="ask.open && answerAsk(null)">
+			<div class="modal-background" x-on:click="answerAsk(null)"></div>
+			<div class="modal-card ask-card" role="dialog" aria-modal="true" aria-labelledby="ask-title">
+				<form class="modal-card-body" x-on:submit.prevent="answerAsk((ask.buttons.find((b) => b.primary) || ask.buttons[0])?.value)">
+					<p class="title is-6 mb-2" id="ask-title" x-text="ask.title"></p>
+					<p class="mb-3" x-show="ask.text" x-text="ask.text"></p>
+					<template x-if="ask.value !== null">
+						<input class="input mb-3" type="text" maxlength="60" aria-label="Name" x-model="ask.value"/>
+					</template>
+					<div class="buttons is-right mb-0">
+						<button class="button" type="button" x-on:click="answerAsk(null)">Cancel</button>
+						<template x-for="b in ask.buttons" x-bind:key="b.value">
+							<button class="button" type="button" x-bind:class="{ 'is-primary': b.primary, 'is-danger': b.danger }" x-text="b.label" x-on:click="answerAsk(b.value)"></button>
+						</template>
+					</div>
+				</form>
+			</div>
+		</div>
 	</div>
 }
 

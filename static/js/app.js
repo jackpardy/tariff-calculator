@@ -39,6 +39,9 @@ function tariffCalculatorStore() {
         memberLinks: [], // club member pages saved in this browser, to keep routines on (ADR 0011)
         chooser: { open: '', q: '' }, // the open chooser ('check-a', 'check-b' or 'set') and its search
         recent: { check: [], set: [] }, // the built-in requirements and set routines chosen lately, latest first
+        // ask is a question on the page, in place of the browser's prompt and
+        // confirm: {title, text, value (a name to type, or null), buttons}.
+        ask: { open: false, title: '', text: '', value: null, buttons: [] },
         writing: null, // requirements being written beside the routine: {id (the saved set, or null), title, draft (the last valid set's JSON)}
 
         init() {
@@ -423,8 +426,16 @@ function tariffCalculatorStore() {
             if (routine.skills.length === 0) { this.showToast('Add the set routine\'s skills first.', 'error'); return; }
             const sets = SetStore.load();
             let existing = sets.find((s) => s.id === routine.setRoutine);
-            if (existing && !confirm(`Update the set routine ${existing.set.name} to this routine? Cancel to save a new one.`)) { existing = undefined; }
-            const name = existing ? existing.set.name : prompt('Name the set routine', routine.name)?.trim();
+            if (existing) {
+                const choice = await this.askUser({
+                    title: `Save as the set routine ${existing.set.name}`,
+                    text: 'Change that set routine to this routine, or save this as a new one?',
+                    buttons: [{ label: `Update ${existing.set.name}`, value: 'update', primary: true }, { label: 'Save as a new one', value: 'new' }],
+                });
+                if (choice === null) { return; }
+                if (choice === 'new') { existing = undefined; }
+            }
+            const name = existing ? existing.set.name : await this.askName('Name the set routine', routine.name);
             if (!name) { return; }
             const body = new URLSearchParams({ routineData: JSON.stringify(routine.skills), name, source: existing?.set.source || '' });
             const response = await fetch('/requirements/set-routine', { method: 'POST', body });
@@ -564,16 +575,16 @@ function tariffCalculatorStore() {
             this.saveEntries();
             this.syncColumns();
         },
-        renameEntry() {
+        async renameEntry() {
             const entry = this.entry();
-            const name = entry && prompt('Name this level (e.g. the gymnast)', entry.name);
-            if (!name || !name.trim()) { return; }
-            entry.name = name.trim().slice(0, 60);
+            const name = entry && await this.askName('Name this level (e.g. the gymnast)', entry.name);
+            if (!name) { return; }
+            entry.name = name.slice(0, 60);
             this.saveEntries();
         },
-        deleteEntry() {
+        async deleteEntry() {
             const entry = this.entry();
-            if (!entry || !confirm(`Delete ${entry.name}? Its voluntary routines are kept under Routines.`)) { return; }
+            if (!entry || !await this.askSure(`Delete ${entry.name}? Its voluntary routines are kept under Routines.`)) { return; }
             this.levelState.entries = this.levelState.entries.filter((e) => e !== entry);
             this.levelState.current = this.levelState.entries[0]?.id || null;
             this.saveEntries();
@@ -622,8 +633,12 @@ function tariffCalculatorStore() {
             const routine = this.routines.find((r) => r.id === id);
             entry.exercises[tab.exercise - 1].routine = routine?.id;
             if (routine && routine.requirements !== tab.ref) {
+                const was = routine.requirements;
                 routine.requirements = tab.ref;
                 delete routine.checks;
+                // Say so: Routines mode now checks it against the voluntary's requirements.
+                const from = was ? ` instead of ${Exercises.requirementName(was) || 'what it was'}` : '';
+                this.showToast(`${routine.name} is now checked against ${Exercises.requirementName(tab.ref) || tab.label}${from}.`, 'info');
             }
             this.saveEntries();
             this.syncColumns();
@@ -664,7 +679,7 @@ function tariffCalculatorStore() {
             if (!routine) {
                 this.newVoluntary(target, skills);
             } else {
-                if (routine.skills.length > 0 && !confirm(`Replace the ${routine.skills.length} skills in ${routine.name} with ${from.label}?`)) { return; }
+                if (routine.skills.length > 0 && !await this.askSure(`Replace the ${routine.skills.length} skills in ${routine.name} with ${from.label}?`, 'Replace them')) { return; }
                 routine.skills.splice(0, routine.skills.length, ...skills);
                 this.persist();
                 this.showToast(`${routine.name} starts from ${from.label}; change it from here.`, 'info');
@@ -721,11 +736,11 @@ function tariffCalculatorStore() {
             this.switchRoutine(copy.id);
             this.showToast(`Duplicated as ${copy.name}.`, 'info');
         },
-        renameRoutine() {
+        async renameRoutine() {
             const routine = this.currentRoutine();
-            const name = prompt('Name this routine', routine.name);
-            if (name === null || name.trim() === '') { return; }
-            routine.name = name.trim().slice(0, 60);
+            const name = await this.askName('Name this routine', routine.name);
+            if (!name) { return; }
+            routine.name = name.slice(0, 60);
             this.persist();
         },
         // --- Side by side ---
@@ -762,9 +777,9 @@ function tariffCalculatorStore() {
             this.routineB = this.compareRoutine().skills;
         },
 
-        deleteRoutine() {
+        async deleteRoutine() {
             const routine = this.currentRoutine(), name = routine.name;
-            if (!confirm(`Delete ${name}? This can't be undone.`)) { return; }
+            if (!await this.askSure(`Delete ${name}? This can't be undone.`)) { return; }
             this.stopComparing();
             if (this.routines.length === 1) {
                 // Always keep one routine: emptying the last one is the same as clearing it.
@@ -922,8 +937,8 @@ function tariffCalculatorStore() {
             else if (from < this.editingIndex && to >= this.editingIndex) { this.editingIndex--; }
             else if (from > this.editingIndex && to <= this.editingIndex) { this.editingIndex++; }
         },
-        clearRoutine() {
-            if (this.routine.length === 0 || !confirm(`Remove every skill from ${this.currentRoutine().name}?`)) { return; }
+        async clearRoutine() {
+            if (this.routine.length === 0 || !await this.askSure(`Remove every skill from ${this.currentRoutine().name}?`, 'Remove them')) { return; }
             this.routine = [];
             this.expanded = [];
             this.showToast('Routine cleared.', 'info');
@@ -947,6 +962,30 @@ function tariffCalculatorStore() {
                     this.moveSkill(from, to, side);
                 },
             });
+        },
+
+        // askUser asks on the page, answering with the button chosen (its
+        // value), or null on Cancel; where a name is typed (value), Save
+        // answers with what was typed.
+        askUser({ title, text = '', value = null, buttons = [] }) {
+            return new Promise((resolve) => {
+                this.ask = { open: true, title, text, value, buttons, resolve };
+                this.$nextTick(() => document.querySelector('#ask-dialog input, #ask-dialog .button.is-primary')?.focus());
+            });
+        },
+        // askName asks for a name, answering with it trimmed, or null.
+        async askName(title, value) {
+            const answer = await this.askUser({ title, value, buttons: [{ label: 'Save', value: 'save', primary: true }] });
+            return answer === 'save' && this.ask.value.trim() ? this.ask.value.trim() : null;
+        },
+        // askSure asks before something hard to take back.
+        async askSure(title, label = 'Delete') {
+            return (await this.askUser({ title, buttons: [{ label, value: 'yes', danger: true }] })) === 'yes';
+        },
+        answerAsk(value) {
+            const resolve = this.ask.resolve;
+            this.ask.open = false;
+            resolve?.(value);
         },
 
         showToast(message, type = 'info') {

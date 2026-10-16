@@ -195,11 +195,11 @@ templ SearchResults(query string, results []catalog.Result, reading *skills.Tram
 					}
 				>
 					<span>
-						<span class="picker-skill-name">{ catalog.PickerName(r.Skill) }</span>
+						// The card's name for it, shape and all, and the rule books' where it differs.
+						<span class="picker-skill-name">{ r.Skill.Name }</span>
 						<span class="picker-skill-meta">
-							// The name leaves the shape out; say it here, as one skill can come up in several.
-							if !r.Skill.IsBasicJump() && r.Skill.ShapeIsRelevant() {
-								{ r.Skill.Shape.String() } ·
+							if also := catalog.AlsoCalled(r.Skill); also != "" {
+								also called { also } ·
 							}
 							{ r.Skill.FIGNotation() }
 							if r.FromNotation {

@@ -19,7 +19,7 @@ func TestNotationSearchLoadsTheCard(t *testing.T) {
 		return rec.Body.String()
 	}
 	cody := search("5 0 /")
-	if !strings.Contains(cody, ">Cody<") || !strings.Contains(cody, "Front → Feet") || strings.Count(cody, `hx-trigger="click, load"`) != 1 {
+	if !strings.Contains(cody, ">Cody Straight<") || !strings.Contains(cody, "Front → Feet") || strings.Count(cody, `hx-trigger="click, load"`) != 1 {
 		t.Errorf("5 0 /: Cody among them, from the front, the first loaded: %s", cody)
 	}
 	if strings.Contains(cody[:strings.Index(cody, `hx-trigger="click, load"`)], "builder_open") {

@@ -601,6 +601,7 @@ templ SetEditor(e SetEditorData) {
 				<a class="button is-text" href={ templ.SafeURL(e.Club.Back) }>Cancel</a>
 			</div>
 		}
+		@keepRulesOpen()
 	</form>
 }
 
@@ -629,10 +630,11 @@ templ ruleCard(e *SetEditorData, i int, rule requirements.Rule, total int) {
 				@editorAction(e, "Remove", fmt.Sprintf("delete:%d", i), false)
 			</div>
 		</div>
-		// On a club's level, a line is folded to its name, with Change to open
-		// it: a level is mostly a list of skills. Open ones stay open as the
-		// editor redraws (ClubLevelEditor's script); one just added opens.
-		if e.Club != nil {
+		// On a club's level, and wherever there are several, a line is folded
+		// to its name, with Change to open it, so the rules (and the routine
+		// checked beside them) aren't pushed out of sight. Open ones stay open
+		// as the editor redraws (keepRulesOpen); one just added opens.
+		if e.Club != nil || total > foldAfter {
 			<details class="rule-card-body" data-rule={ strconv.Itoa(i) } open?={ e.OpenRule == i }>
 				<summary class="is-size-7">Change</summary>
 				@ruleBody(e, i, rule, p, kind)
@@ -642,6 +644,9 @@ templ ruleCard(e *SetEditorData, i int, rule requirements.Rule, total int) {
 		}
 	</div>
 }
+
+// foldAfter is how many rules show open before they fold to their names.
+const foldAfter = 4
 
 // ruleBody is a rule card's fields: its kind, wording, and what the kind needs.
 templ ruleBody(e *SetEditorData, i int, rule requirements.Rule, p, kind string) {
@@ -1115,4 +1120,27 @@ func wordingPlaceholder(kind string) string {
 		return "e.g. No linked somersaults"
 	}
 	return "e.g. A back somersault"
+}
+
+// keepRulesOpen keeps the lines a coach opened open as the editor redraws
+// itself (htmx swaps the whole form).
+templ keepRulesOpen() {
+	<script>
+		(function () {
+			// Once a page: the editor runs this again each time it's redrawn.
+			if (window.keepRulesOpen) { return; }
+			window.keepRulesOpen = true;
+			let open = [];
+			document.body.addEventListener('htmx:beforeSwap', (event) => {
+				if (event.detail.target.id !== 'set-editor') { return; }
+				open = [...document.querySelectorAll('#set-editor details.rule-card-body[open]')].map((d) => d.dataset.rule);
+			});
+			document.body.addEventListener('htmx:afterSwap', () => {
+				for (const n of open) {
+					const d = document.querySelector(`#set-editor details.rule-card-body[data-rule="${n}"]`);
+					if (d) { d.open = true; }
+				}
+			});
+		})();
+	</script>
 }

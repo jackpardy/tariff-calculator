@@ -1213,3 +1213,7 @@ input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100
 /* The set routine maker (Requirements page): Add as wide as its words, not
    the whole card, so Save below isn't lost under it. */
 .set-routine-maker #add-btn { width: auto; }
+
+/* A question on the builder's page (askUser), in place of the browser's own. */
+.ask-card { width: calc(100% - 2rem); max-width: 28rem; }
+.ask-card .modal-card-body { border-radius: 8px; }

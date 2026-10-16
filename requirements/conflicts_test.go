@@ -81,3 +81,18 @@ func TestBuiltinsHaveNoConflicts(t *testing.T) {
 		}
 	}
 }
+
+// A blank Must not include (fitting any skill) is listed by Vague, and
+// conflicts with nothing meanwhile.
+func TestBlankRuleNoConflicts(t *testing.T) {
+	min1 := 1.0
+	zero := 0.0
+	set := Set{Format: Format, Name: "x", Rules: []Rule{
+		{Type: Count, Match: &Matcher{Direction: "backward"}, Min: &min1},
+		{Type: Count, Match: &Matcher{Shapes: []string{"tuck"}}, Min: &min1},
+		{Type: Count, Match: &Matcher{}, Max: &zero},
+	}}
+	if got := Conflicts(set); len(got) != 0 {
+		t.Errorf("Conflicts = %q", got)
+	}
+}

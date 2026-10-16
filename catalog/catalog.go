@@ -148,9 +148,10 @@ func categoryOf(s skills.TrampolineSkill) string {
 	}
 }
 
-// somersaultNames name base names that don't say they're somersaults once the
-// shape is dropped, as rule books write them ("Back Tuck" becomes "Back s/s",
-// not "Back").
+// somersaultNames are what rule books call the skills whose names don't say
+// they're somersaults ("Back s/s" for a Back): said beside the app's own name
+// in a search (AlsoCalled), so either finds it and the card's name is the one
+// it goes by everywhere.
 var somersaultNames = map[string]string{
 	"Back":          "Back s/s",
 	"Front":         "Front s/s",
@@ -158,18 +159,28 @@ var somersaultNames = map[string]string{
 	"Front To Seat": "Front s/s To Seat",
 }
 
-// PickerName is a skill's name in the picker: without its shape, which is
-// chosen on the skill card, except for shaped jumps, where the shape is the
-// skill ("Tuck Jump").
+// PickerName is a skill's name in the picker: the card's name without its
+// shape, which is chosen beside it, except for shaped jumps, where the shape
+// is the skill ("Tuck Jump").
 func PickerName(s skills.TrampolineSkill) string {
 	name := skills.FindCommonSkillName(s)
 	if !s.IsBasicJump() && s.ShapeIsRelevant() {
 		name = strings.TrimPrefix(strings.TrimSuffix(name, " "+s.Shape.String()), s.Shape.String()+" ")
 	}
-	if full, ok := somersaultNames[name]; ok {
-		return full
-	}
 	return name
+}
+
+// AlsoCalled is what rule books call a skill where it isn't the app's name,
+// with its shape ("Back s/s Tuck" for a Tuck Back); "" where it's the same.
+func AlsoCalled(s skills.TrampolineSkill) string {
+	full, ok := somersaultNames[PickerName(s)]
+	if !ok {
+		return ""
+	}
+	if s.ShapeIsRelevant() {
+		return full + " " + s.Shape.String()
+	}
+	return full
 }
 
 // Categories lists the common skills by category, in picker order, each
