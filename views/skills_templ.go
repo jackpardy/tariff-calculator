@@ -1598,24 +1598,16 @@ func levelsSection(p SkillsPart) templ.Component {
 	})
 }
 
-// LevelClubSkill is one of the club's own skills to track, for a level to
-// track too.
-type LevelClubSkill struct {
-	ID, Name string
-	In       bool // the level tracks it
-}
-
 // ClubLevelView is one of the club's levels, on the coaches' list.
 type ClubLevelView struct {
-	Name, By, Updated   string
-	Rules               []string // its requirements, in words
-	Broken              string
-	ClubSkills          []LevelClubSkill
-	Edit, Copy          string // the level editor, for it and for a new level copying it
-	Open                string // the Requirements page, with its requirements to edit
-	Share               string // a link sharing it with other clubs
-	Items, Move, Remove string // where its club skills, moving it and removing it post
-	First, Last         bool
+	Name, By, Updated string
+	Rules             []string // its requirements, in words
+	Broken            string
+	Edit, Copy        string // the level editor, for it and for a new level copying it
+	Open              string // the Requirements page, with its requirements to edit
+	Share             string // a link sharing it with other clubs
+	Move, Remove      string // where moving it and removing it post
+	First, Last       bool
 }
 
 // ClubLevelsPage is the coaches' page for the club's levels.
@@ -1684,7 +1676,7 @@ func CoachClubLevels(p ClubLevelsPage) templ.Component {
 			var templ_7745c5c3_Var69 templ.SafeURL
 			templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.New))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 458, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 450, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var69))
 			if templ_7745c5c3_Err != nil {
@@ -1707,7 +1699,7 @@ func CoachClubLevels(p ClubLevelsPage) templ.Component {
 					var templ_7745c5c3_Var70 string
 					templ_7745c5c3_Var70, templ_7745c5c3_Err = templ.JoinStringErrs(g.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 465, Col: 47}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 457, Col: 47}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var70))
 					if templ_7745c5c3_Err != nil {
@@ -1725,7 +1717,7 @@ func CoachClubLevels(p ClubLevelsPage) templ.Component {
 						var templ_7745c5c3_Var71 templ.SafeURL
 						templ_7745c5c3_Var71, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(s.Href))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 467, Col: 39}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 459, Col: 39}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var71))
 						if templ_7745c5c3_Err != nil {
@@ -1738,7 +1730,7 @@ func CoachClubLevels(p ClubLevelsPage) templ.Component {
 						var templ_7745c5c3_Var72 string
 						templ_7745c5c3_Var72, templ_7745c5c3_Err = templ.JoinStringErrs(s.Name)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 467, Col: 50}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 459, Col: 50}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var72))
 						if templ_7745c5c3_Err != nil {
@@ -1773,7 +1765,7 @@ func CoachClubLevels(p ClubLevelsPage) templ.Component {
 				var templ_7745c5c3_Var73 string
 				templ_7745c5c3_Var73, templ_7745c5c3_Err = templ.JoinStringErrs(l.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 479, Col: 40}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 471, Col: 40}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var73))
 				if templ_7745c5c3_Err != nil {
@@ -1786,7 +1778,7 @@ func CoachClubLevels(p ClubLevelsPage) templ.Component {
 				var templ_7745c5c3_Var74 string
 				templ_7745c5c3_Var74, templ_7745c5c3_Err = templ.JoinStringErrs(" ")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 481, Col: 18}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 473, Col: 18}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var74))
 				if templ_7745c5c3_Err != nil {
@@ -1803,7 +1795,7 @@ func CoachClubLevels(p ClubLevelsPage) templ.Component {
 				var templ_7745c5c3_Var75 string
 				templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.JoinStringErrs(l.Updated)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 483, Col: 49}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 475, Col: 49}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var75))
 				if templ_7745c5c3_Err != nil {
@@ -1831,7 +1823,7 @@ func CoachClubLevels(p ClubLevelsPage) templ.Component {
 					var templ_7745c5c3_Var76 string
 					templ_7745c5c3_Var76, templ_7745c5c3_Err = templ.JoinStringErrs(rule)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 490, Col: 16}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 482, Col: 16}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var76))
 					if templ_7745c5c3_Err != nil {
@@ -1846,73 +1838,8 @@ func CoachClubLevels(p ClubLevelsPage) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				if len(l.ClubSkills) > 0 {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 130, "<form method=\"post\" action=\"")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var77 templ.SafeURL
-					templ_7745c5c3_Var77, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Items))
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 494, Col: 56}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var77))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 131, "\" class=\"mb-2\"><p class=\"is-size-7 has-text-weight-semibold mb-1\">Your club's skills to track too</p>")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					for _, c := range l.ClubSkills {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 132, "<label class=\"checkbox is-block is-size-7\"><input type=\"checkbox\" name=\"item\" value=\"")
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-						var templ_7745c5c3_Var78 string
-						templ_7745c5c3_Var78, templ_7745c5c3_Err = templ.ResolveAttributeValue(c.ID)
-						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 498, Col: 55}
-						}
-						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var78)
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 133, "\"")
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-						if c.In {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 134, " checked")
-							if templ_7745c5c3_Err != nil {
-								return templ_7745c5c3_Err
-							}
-						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 135, "> ")
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-						var templ_7745c5c3_Var79 string
-						templ_7745c5c3_Var79, templ_7745c5c3_Err = templ.JoinStringErrs(c.Name)
-						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 499, Col: 16}
-						}
-						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var79))
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 136, "</label> ")
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 137, "<button class=\"button is-small mt-1\" type=\"submit\">Save</button></form>")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-				}
 				if l.Share != "" {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 138, "<details class=\"mb-2\"><summary class=\"is-size-7\">Share with another club</summary>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 130, "<details class=\"mb-2\"><summary class=\"is-size-7\">Share with another club</summary>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -1920,113 +1847,113 @@ func CoachClubLevels(p ClubLevelsPage) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 139, "</details>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 131, "</details>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 140, "<div class=\"buttons are-small\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 132, "<div class=\"buttons are-small\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if l.Edit != "" {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 141, "<a class=\"button is-link is-light\" href=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 133, "<a class=\"button is-link is-light\" href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var80 templ.SafeURL
-					templ_7745c5c3_Var80, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Edit))
+					var templ_7745c5c3_Var77 templ.SafeURL
+					templ_7745c5c3_Var77, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Edit))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 513, Col: 69}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 493, Col: 69}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var80))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 142, "\">Change</a> <a class=\"button\" href=\"")
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var77))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var81 templ.SafeURL
-					templ_7745c5c3_Var81, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Copy))
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 514, Col: 52}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var81))
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 134, "\">Change</a> <a class=\"button\" href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 143, "\">Copy as a new level</a> ")
+					var templ_7745c5c3_Var78 templ.SafeURL
+					templ_7745c5c3_Var78, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Copy))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 494, Col: 52}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var78))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 135, "\">Copy as a new level</a> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
 				if l.Open != "" {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 144, "<a class=\"button is-text\" href=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 136, "<a class=\"button is-text\" href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var82 templ.SafeURL
-					templ_7745c5c3_Var82, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Open))
+					var templ_7745c5c3_Var79 templ.SafeURL
+					templ_7745c5c3_Var79, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Open))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 517, Col: 60}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 497, Col: 60}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var82))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var79))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 145, "\">Open in the Requirements page</a>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 137, "\">Open in the Requirements page</a>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 146, "<form method=\"post\" action=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 138, "<form method=\"post\" action=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var83 templ.SafeURL
-				templ_7745c5c3_Var83, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Move))
+				var templ_7745c5c3_Var80 templ.SafeURL
+				templ_7745c5c3_Var80, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Move))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 519, Col: 55}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 499, Col: 55}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var83))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var80))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 147, "\" class=\"is-inline\"><input type=\"hidden\" name=\"by\" value=\"-1\"> <button class=\"button\" type=\"submit\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 139, "\" class=\"is-inline\"><input type=\"hidden\" name=\"by\" value=\"-1\"> <button class=\"button\" type=\"submit\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if l.First {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 148, " disabled")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 140, " disabled")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 149, ">Earlier</button></form><form method=\"post\" action=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 141, ">Earlier</button></form><form method=\"post\" action=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var84 templ.SafeURL
-				templ_7745c5c3_Var84, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Move))
+				var templ_7745c5c3_Var81 templ.SafeURL
+				templ_7745c5c3_Var81, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Move))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 523, Col: 55}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 503, Col: 55}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var84))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var81))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 150, "\" class=\"is-inline\"><input type=\"hidden\" name=\"by\" value=\"1\"> <button class=\"button\" type=\"submit\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 142, "\" class=\"is-inline\"><input type=\"hidden\" name=\"by\" value=\"1\"> <button class=\"button\" type=\"submit\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if l.Last {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 151, " disabled")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 143, " disabled")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 152, ">Later</button></form>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 144, ">Later</button></form>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -2034,47 +1961,47 @@ func CoachClubLevels(p ClubLevelsPage) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 153, "<form method=\"post\" action=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 145, "<form method=\"post\" action=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var85 templ.SafeURL
-				templ_7745c5c3_Var85, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Remove))
+				var templ_7745c5c3_Var82 templ.SafeURL
+				templ_7745c5c3_Var82, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Remove))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 527, Col: 57}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 507, Col: 57}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var85))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 154, "\" class=\"is-inline\" onsubmit=\"")
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var82))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var86 templ.ComponentScript = confirmRemoveLevel(l.Name)
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var86.Call)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 146, "\" class=\"is-inline\" onsubmit=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 155, "\"><button class=\"button is-text\" type=\"submit\">Remove</button></form></div></div>")
+				var templ_7745c5c3_Var83 templ.ComponentScript = confirmRemoveLevel(l.Name)
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var83.Call)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 147, "\"><button class=\"button is-text\" type=\"submit\">Remove</button></form></div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 156, " <p class=\"help\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 148, " <p class=\"help\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var87 string
-			templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinStringErrs("Up to " + strconv.Itoa(p.Max) + " levels.")
+			var templ_7745c5c3_Var84 string
+			templ_7745c5c3_Var84, templ_7745c5c3_Err = templ.JoinStringErrs("Up to " + strconv.Itoa(p.Max) + " levels.")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 533, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 513, Col: 63}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var84))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 157, "</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 149, "</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -2132,12 +2059,12 @@ func ChooseCoach(p ChooseCoachPage) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var88 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var88 == nil {
-			templ_7745c5c3_Var88 = templ.NopComponent
+		templ_7745c5c3_Var85 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var85 == nil {
+			templ_7745c5c3_Var85 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Var89 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_Var86 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 			if !templ_7745c5c3_IsBuffer {
@@ -2149,107 +2076,107 @@ func ChooseCoach(p ChooseCoachPage) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 158, "<h1 class=\"title is-4\">Which club?</h1><p class=\"mb-4\">You coach in more than one club. Which is this for?</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 150, "<h1 class=\"title is-4\">Which club?</h1><p class=\"mb-4\">You coach in more than one club. Which is this for?</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, c := range p.Choices {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 159, "<form method=\"post\" action=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 151, "<form method=\"post\" action=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var90 templ.SafeURL
-				templ_7745c5c3_Var90, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Action))
+				var templ_7745c5c3_Var87 templ.SafeURL
+				templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Action))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 564, Col: 55}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 544, Col: 55}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var90))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 160, "\" class=\"mb-2\"><input type=\"hidden\" name=\"link\" value=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 152, "\" class=\"mb-2\"><input type=\"hidden\" name=\"link\" value=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var88 string
+				templ_7745c5c3_Var88, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Link)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 545, Col: 51}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var88)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 153, "\"> ")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				for _, k := range p.Keep {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 154, "<input type=\"hidden\" name=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var89 string
+					templ_7745c5c3_Var89, templ_7745c5c3_Err = templ.ResolveAttributeValue(k.Name)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 547, Col: 39}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var89)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 155, "\" value=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var90 string
+					templ_7745c5c3_Var90, templ_7745c5c3_Err = templ.ResolveAttributeValue(k.Value)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 547, Col: 57}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var90)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 156, "\"> ")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 157, "<input type=\"hidden\" name=\"role\" value=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var91 string
-				templ_7745c5c3_Var91, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Link)
+				templ_7745c5c3_Var91, templ_7745c5c3_Err = templ.ResolveAttributeValue(c.Value)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 565, Col: 51}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 549, Col: 52}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var91)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 161, "\"> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 158, "\"> <button class=\"button is-fullwidth\" type=\"submit\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				for _, k := range p.Keep {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 162, "<input type=\"hidden\" name=\"")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var92 string
-					templ_7745c5c3_Var92, templ_7745c5c3_Err = templ.ResolveAttributeValue(k.Name)
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 567, Col: 39}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var92)
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 163, "\" value=\"")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var93 string
-					templ_7745c5c3_Var93, templ_7745c5c3_Err = templ.ResolveAttributeValue(k.Value)
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 567, Col: 57}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var93)
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 164, "\"> ")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
+				var templ_7745c5c3_Var92 string
+				templ_7745c5c3_Var92, templ_7745c5c3_Err = templ.JoinStringErrs(c.Name)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 550, Col: 62}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 165, "<input type=\"hidden\" name=\"role\" value=\"")
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var92))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var94 string
-				templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.ResolveAttributeValue(c.Value)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 569, Col: 52}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var94)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 166, "\"> <button class=\"button is-fullwidth\" type=\"submit\">")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var95 string
-				templ_7745c5c3_Var95, templ_7745c5c3_Err = templ.JoinStringErrs(c.Name)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 570, Col: 62}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var95))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 167, "</button></form>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 159, "</button></form>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = competitionLayout("Which club?").Render(templ.WithChildren(ctx, templ_7745c5c3_Var89), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = competitionLayout("Which club?").Render(templ.WithChildren(ctx, templ_7745c5c3_Var86), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2276,12 +2203,12 @@ func SharedLevelOpen() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var96 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var96 == nil {
-			templ_7745c5c3_Var96 = templ.NopComponent
+		templ_7745c5c3_Var93 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var93 == nil {
+			templ_7745c5c3_Var93 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Var97 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_Var94 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 			if !templ_7745c5c3_IsBuffer {
@@ -2293,13 +2220,13 @@ func SharedLevelOpen() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 168, "<h1 class=\"title is-4\">A shared club level</h1><form method=\"post\" action=\"/clubs/levels/shared\" data-shared-level><input type=\"hidden\" name=\"level\"></form><p class=\"has-text-grey\" data-shared-level-wait>Opening the level…</p><noscript><p>This page needs JavaScript to read the level from its link.</p></noscript>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 160, "<h1 class=\"title is-4\">A shared club level</h1><form method=\"post\" action=\"/clubs/levels/shared\" data-shared-level><input type=\"hidden\" name=\"level\"></form><p class=\"has-text-grey\" data-shared-level-wait>Opening the level…</p><noscript><p>This page needs JavaScript to read the level from its link.</p></noscript>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = competitionLayout("A shared club level").Render(templ.WithChildren(ctx, templ_7745c5c3_Var97), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = competitionLayout("A shared club level").Render(templ.WithChildren(ctx, templ_7745c5c3_Var94), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2333,12 +2260,12 @@ func SharedLevel(p SharedLevelPage) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var98 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var98 == nil {
-			templ_7745c5c3_Var98 = templ.NopComponent
+		templ_7745c5c3_Var95 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var95 == nil {
+			templ_7745c5c3_Var95 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Var99 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_Var96 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 			if !templ_7745c5c3_IsBuffer {
@@ -2350,118 +2277,118 @@ func SharedLevel(p SharedLevelPage) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 169, "<p class=\"has-text-grey mb-1\">A shared club level</p><h1 class=\"title is-4\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 161, "<p class=\"has-text-grey mb-1\">A shared club level</p><h1 class=\"title is-4\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var100 string
-			templ_7745c5c3_Var100, templ_7745c5c3_Err = templ.JoinStringErrs(p.Name)
+			var templ_7745c5c3_Var97 string
+			templ_7745c5c3_Var97, templ_7745c5c3_Err = templ.JoinStringErrs(p.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 603, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 583, Col: 33}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var100))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var97))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 170, "</h1><ol class=\"ml-4 mb-3\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 162, "</h1><ol class=\"ml-4 mb-3\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, rule := range p.Rules {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 171, "<li>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 163, "<li>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var101 string
-				templ_7745c5c3_Var101, templ_7745c5c3_Err = templ.JoinStringErrs(rule)
+				var templ_7745c5c3_Var98 string
+				templ_7745c5c3_Var98, templ_7745c5c3_Err = templ.JoinStringErrs(rule)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 606, Col: 14}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 586, Col: 14}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var101))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var98))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 172, "</li>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 164, "</li>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 173, "</ol>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 165, "</ol>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if p.Left > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 174, "<p class=\"is-size-7 has-text-grey mb-3\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 166, "<p class=\"is-size-7 has-text-grey mb-3\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var102 string
-				templ_7745c5c3_Var102, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d of its requirements are about a single routine and aren't tracked.", p.Left))
+				var templ_7745c5c3_Var99 string
+				templ_7745c5c3_Var99, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d of its requirements are about a single routine and aren't tracked.", p.Left))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 610, Col: 137}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 590, Col: 137}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var102))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var99))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 175, "</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 167, "</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 176, " ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 168, " ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if len(p.Track) > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 177, "<p class=\"is-size-7 mb-1\">It tracks these club skills too, which come with it:</p><ul class=\"ml-4 mb-3 is-size-7\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 169, "<p class=\"is-size-7 mb-1\">It tracks these club skills too, which come with it:</p><ul class=\"ml-4 mb-3 is-size-7\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				for _, t := range p.Track {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 178, "<li>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 170, "<li>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var103 string
-					templ_7745c5c3_Var103, templ_7745c5c3_Err = templ.JoinStringErrs(t)
+					var templ_7745c5c3_Var100 string
+					templ_7745c5c3_Var100, templ_7745c5c3_Err = templ.JoinStringErrs(t)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 616, Col: 12}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 596, Col: 12}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var103))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var100))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 179, "</li>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 171, "</li>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 180, "</ul>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 172, "</ul>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 181, " <form method=\"post\" action=\"/clubs/levels/import\" class=\"box\"><input type=\"hidden\" name=\"level\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 173, " <form method=\"post\" action=\"/clubs/levels/import\" class=\"box\"><input type=\"hidden\" name=\"level\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var104 string
-			templ_7745c5c3_Var104, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Level)
+			var templ_7745c5c3_Var101 string
+			templ_7745c5c3_Var101, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Level)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 621, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/skills.templ`, Line: 601, Col: 52}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var104)
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var101)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 182, "\"><div class=\"field\" data-saved-coaches hidden><label class=\"label is-small\" for=\"saved-coach\">Add it to</label><div class=\"select is-fullwidth\"><select id=\"saved-coach\"></select></div></div><div class=\"field\"><label class=\"label is-small\" for=\"coach-link\">Your coach page's link</label> <input class=\"input\" id=\"coach-link\" name=\"link\" required placeholder=\"https://.../clubs/coach/...\" autocomplete=\"off\"><p class=\"help\">Or your member page's link, if you coach in your club too.</p><p class=\"help\">Your club gets its own copy of the level, to track your gymnasts against and change. Club skills it tracks that your club hasn't got are added to it.</p></div><button class=\"button is-primary\" type=\"submit\">Add to my club's levels</button></form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 174, "\"><div class=\"field\" data-saved-coaches hidden><label class=\"label is-small\" for=\"saved-coach\">Add it to</label><div class=\"select is-fullwidth\"><select id=\"saved-coach\"></select></div></div><div class=\"field\"><label class=\"label is-small\" for=\"coach-link\">Your coach page's link</label> <input class=\"input\" id=\"coach-link\" name=\"link\" required placeholder=\"https://.../clubs/coach/...\" autocomplete=\"off\"><p class=\"help\">Or your member page's link, if you coach in your club too.</p><p class=\"help\">Your club gets its own copy of the level, to track your gymnasts against and change. Club skills it tracks that your club hasn't got are added to it.</p></div><button class=\"button is-primary\" type=\"submit\">Add to my club's levels</button></form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = competitionLayout(p.Name+" · shared level").Render(templ.WithChildren(ctx, templ_7745c5c3_Var99), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = competitionLayout(p.Name+" · shared level").Render(templ.WithChildren(ctx, templ_7745c5c3_Var96), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

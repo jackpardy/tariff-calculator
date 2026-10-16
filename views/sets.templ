@@ -371,6 +371,33 @@ type ClubEditor struct {
 	Save     string // where Save level posts the level
 	Back     string // the Levels page
 	Picks    []requirements.Pick
+	// Own are the club's own skills to track (not trampoline skills), for a
+	// rule of one of them (requirements.Track).
+	Own []ClubThing
+}
+
+// ClubThing is one of a club's own skills to track, as the editor offers it.
+type ClubThing struct{ ID, Name string }
+
+// ownName is one of the club's own skills' name, by id; "" if it isn't one.
+func (e *SetEditorData) ownName(id string) string {
+	if e.Club != nil {
+		for _, c := range e.Club.Own {
+			if c.ID == id {
+				return c.Name
+			}
+		}
+	}
+	return ""
+}
+
+// ruleTitle is a rule in words, heading its card: one of the club's own
+// skills by its name.
+func (e *SetEditorData) ruleTitle(rule requirements.Rule) string {
+	if name := e.ownName(rule.Item); rule.Type == requirements.Track && strings.TrimSpace(rule.Label) == "" && name != "" {
+		return name
+	}
+	return describeSafely(rule)
 }
 
 // endpoint is where the editor posts as it changes.
@@ -497,7 +524,7 @@ templ ruleCard(e *SetEditorData, i int, rule requirements.Rule, total int) {
 	<div class="rule-card">
 		<div class="rule-card-head">
 			<p class="rule-card-title">
-				{ fmt.Sprintf("%d. ", i+1) }{ describeSafely(rule) }
+				{ fmt.Sprintf("%d. ", i+1) }{ e.ruleTitle(rule) }
 				// Beside the routine: whether it meets this rule as it stands.
 				if res, ok := e.Results[i]; ok {
 					if res.Passed {
@@ -597,6 +624,24 @@ templ ruleCard(e *SetEditorData, i int, rule requirements.Rule, total int) {
 				<div class="buttons are-small">
 					@editorAction(e, "+ Add requirement", fmt.Sprintf("add-element:%d", i), false)
 				</div>
+			case requirements.Track:
+				// One of the club's own skills, which no routine shows: chosen
+				// from the club's list, or kept as it is where there's none.
+				if e.Club != nil && len(e.Club.Own) > 0 {
+					<div class="field">
+						<label class="label is-small" for={ p + "item" }>Which of your club's skills</label>
+						<div class="select is-small">
+							<select id={ p + "item" } name={ p + "item" }>
+								for _, c := range e.Club.Own {
+									<option value={ c.ID } selected?={ c.ID == rule.Item }>{ c.Name }</option>
+								}
+							</select>
+						</div>
+					</div>
+				} else {
+					<p class="matcher-hint mb-2">One of a club's own skills to track. Only the club's page tracks it; a routine isn't checked against it.</p>
+					<input type="hidden" name={ p + "item" } value={ rule.Item }/>
+				}
 			case requirements.Includes:
 				<p class="matcher-hint mb-2">These skills one straight after another: each a skill you pick, or a kind of skill (a back somersault, then a barani). Add another option for "or instead".</p>
 				<input type="hidden" name={ p + "opts" } value={ strconv.Itoa(len(rule.Options)) }/>
@@ -800,6 +845,12 @@ func editorKinds(e *SetEditorData, current string) []requirements.RuleKind {
 	out := slices.Clone(requirements.RuleKinds)
 	if e.Club != nil {
 		out = slices.Clone(requirements.LevelKinds)
+		// One of the club's own skills, where it has some to choose.
+		if len(e.Club.Own) == 0 && current != requirements.Track {
+			out = slices.DeleteFunc(out, func(k requirements.RuleKind) bool { return k.ID == requirements.Track })
+		}
+	} else if current == requirements.Track {
+		out = append(out, requirements.RuleKind{ID: requirements.Track, Label: "One of a club's own skills"})
 	}
 	if current == requirements.Sequence {
 		out = append(out, requirements.SetRoutineKind)

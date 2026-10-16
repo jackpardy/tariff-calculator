@@ -46,6 +46,11 @@ const (
 	Different  = "different"  // no element is repeated (CoP §14)
 	Includes   = "includes"   // at least one of Options appears: its elements, consecutively
 	Linked     = "linked"     // at least Min / at most Max pairs of elements one straight after another both match Match
+	// Track is one of a club's own skills to track on a club level (ADR
+	// 0011), Item its id: something no routine shows (a handstand, a drill),
+	// so a routine is never checked against it. It keeps its place among the
+	// level's rules.
+	Track = "track"
 )
 
 // RuleTypes lists the rule types in the order the editor offers them.
@@ -68,6 +73,8 @@ type Rule struct {
 	// rule, as in age-group competition: a harder element may be performed but
 	// counts as the cap (CoP §17.1).
 	Cap *float64 `json:"cap,omitempty"`
+	// Item is a track rule's club skill, by its id in the club.
+	Item string `json:"item,omitempty"`
 }
 
 // Range bounds a whole number; either end may be open.
@@ -209,6 +216,10 @@ func (r Rule) validate() error {
 			}
 		}
 	case Different:
+	case Track:
+		if strings.TrimSpace(r.Item) == "" {
+			errs = append(errs, errors.New("needs one of the club's own skills"))
+		}
 	default:
 		errs = append(errs, fmt.Errorf("unknown rule type %q", r.Type))
 	}
@@ -314,7 +325,8 @@ type Result struct {
 }
 
 // Evaluate checks every rule of the set against a validated routine and reports
-// all results; it never stops at the first failure. Rules look at the routine
+// all results; it never stops at the first failure. A club's own skills to
+// track (Track) aren't about a routine, so they have no result. Rules look at the routine
 // as written (every element, counted or not), except difficulty, which is the
 // counted total.
 func Evaluate(set Set, rv skills.RoutineValidation) []Result {
@@ -448,7 +460,7 @@ func Evaluate(set Set, rv skills.RoutineValidation) []Result {
 		}
 		results[i] = res
 	}
-	return results
+	return slices.DeleteFunc(results, func(res Result) bool { return set.Rules[res.Rule].Type == Track })
 }
 
 // RequiredElements is the set of elements (1-based) that satisfy a requirement:

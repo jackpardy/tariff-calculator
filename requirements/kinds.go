@@ -247,6 +247,7 @@ var LevelKinds = []RuleKind{
 	{"count", "Several of a kind (at least, at most)"},
 	{"then", "A link: this, then this"},
 	{Separate, "Each by a different skill"},
+	{Track, "One of your club's own skills"},
 }
 
 // PickIn is PickOf over picks: the first that describes the same skills as

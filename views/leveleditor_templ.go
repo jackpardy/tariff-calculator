@@ -101,7 +101,7 @@ func ClubLevelEditor(p LevelEditorPage) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</h2><p class=\"is-size-7 has-text-grey mb-4\">What a gymnast has to be able to do for this level: each a skill or a kind of skill, several of a kind, or a link of skills one after another. Pick from the lists, your club's own skills first. Each gymnast's Skills page shows how far through it they are.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</h2><p class=\"is-size-7 has-text-grey mb-4\">What a gymnast has to be able to do for this level: each a skill or a kind of skill, several of a kind, a link of skills one after another, or one of your club's own skills (a handstand, a drill), each in the order you want them. Pick from the lists, your club's own skills first. Each gymnast's Skills page shows how far through it they are.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

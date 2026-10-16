@@ -1843,9 +1843,16 @@ levels to track gymnasts against ("Club Grade 1"), in order, up to 50.
 - **The coach's Levels section** (`/clubs/coach/{token}/levels`): each level
   with its requirements in words (`requirements.Describe`), who saved it
   (`WhoChip`), **Open in the Requirements page** (a share link,
-  `/requirements#share=j…`, to change it and save again), the club's own
-  skills to track too (ticked, kept after its requirements), **Earlier**,
-  **Later** and **Remove** (marks stay).
+  `/requirements#share=j…`, to change it and save again), **Earlier**,
+  **Later** and **Remove** (marks stay). The club's own skills to track
+  (a drill, a handstand) are rules of the level like any other
+  (`requirements.Track`, 2026-10-16), each where the coach put it, chosen in
+  the editor as **One of your club's own skills**; the Levels page, the
+  Skills pages and a shared level's link all keep that order (a shared
+  level's rule points at its link's list of club skills, `store.SharedItem`,
+  and at the other club's own once added). A level saved before keeps its
+  list of club skills (`club_items`) after its rules, until it's changed in
+  the editor, when they become rules at the end, to move.
 - **Progress, on every Skills page** (the member's, a coach's for a gymnast,
   the comp sec's and other members'): under **Levels**, each level with how
   many items each side has done (a gymnast chip, "2 of 5"; a coach chip) and

@@ -14,6 +14,8 @@ func Describe(r Rule) string {
 		return r.Label
 	}
 	switch r.Type {
+	case Track:
+		return "One of the club's own skills"
 	case Count:
 		return countPhrase(r.Min, r.Max) + ": " + DescribeMatcher(*r.Match)
 	case Linked:
