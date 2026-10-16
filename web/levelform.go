@@ -59,6 +59,7 @@ func handleLevelEditor(w http.ResponseWriter, r *http.Request) {
 		level, structure = parseLevelForm(r, isSet)
 		applyLevelAction(&level, r.FormValue("action"))
 	}
+	heldJSON, _ := json.Marshal(heldOf(r, level))
 	if level.First.Options == nil {
 		level.First.Options = []string{}
 	}
@@ -92,7 +93,7 @@ func handleLevelEditor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render(w, r, views.LevelEditor(views.LevelEditorData{
-		Level: level, Structure: structure, JSON: string(data), Problems: problems,
+		Level: level, Structure: structure, JSON: string(data), Problems: problems, Tried: r.FormValue("tried") == "1", Held: string(heldJSON),
 		Groups: requirements.BuiltinGroups(), Custom: custom, CustomJSON: string(customJSON),
 	}))
 }
@@ -123,7 +124,9 @@ func levelStructure(l requirements.Level, isSet func(string) bool) string {
 // parseLevelForm reads the editor's form into a level of the structure chosen.
 // Each slot keeps only what fits it (set routines in a set routine slot,
 // requirements in a voluntary one), so changing the structure carries over
-// what still makes sense. Validation happens afterwards.
+// what still makes sense; what doesn't fit is held (held: a JSON list of
+// references) and comes back when a structure it fits is chosen again.
+// Validation happens afterwards.
 func parseLevelForm(r *http.Request, isSet func(string) bool) (requirements.Level, string) {
 	options := func(prefix string) []string {
 		n, _ := strconv.Atoi(r.FormValue(prefix + ".n"))
@@ -134,12 +137,22 @@ func parseLevelForm(r *http.Request, isSet func(string) bool) (requirements.Leve
 		return out
 	}
 	first, second := options("first"), options("second")
-	// sets are the set routines chosen, at least one slot to choose in.
+	var held []string
+	if raw := r.FormValue("held"); raw != "" {
+		_ = json.Unmarshal([]byte(raw), &held) // a bad one holds nothing
+	}
+	// sets are the set routines chosen, at least one slot to choose in; with
+	// none chosen, those held from before.
 	sets := func() []string {
 		var out []string
 		for _, ref := range first {
 			if ref == "" || isSet(ref) {
 				out = append(out, ref)
+			}
+		}
+		if !slices.ContainsFunc(out, func(ref string) bool { return ref != "" }) {
+			if back := slices.DeleteFunc(slices.Clone(held), func(ref string) bool { return !isSet(ref) }); len(back) > 0 {
+				out = back
 			}
 		}
 		if len(out) == 0 {
@@ -168,18 +181,45 @@ func parseLevelForm(r *http.Request, isSet func(string) bool) (requirements.Leve
 	structure := r.FormValue("structure")
 	switch structure {
 	case views.StructureVoluntary:
-		level.First = requirements.Exercise{Options: voluntary(first, second)}
+		level.First = requirements.Exercise{Options: voluntary(first, second, held)}
 	case views.StructureTwoVoluntaries:
-		level.First = requirements.Exercise{Options: voluntary(first)}
-		level.Second = &requirements.Exercise{Options: voluntary(second)}
+		level.First = requirements.Exercise{Options: voluntary(first, held)}
+		level.Second = &requirements.Exercise{Options: voluntary(second, slices.DeleteFunc(slices.Clone(held), func(ref string) bool { return ref == level.First.Options[0] }))}
 	case views.StructureSet:
 		level.First = requirements.Exercise{Options: sets()}
 	default:
 		structure = views.StructureSetVoluntary
 		level.First = requirements.Exercise{Options: sets()}
-		level.Second = &requirements.Exercise{Options: voluntary(second, first)}
+		level.Second = &requirements.Exercise{Options: voluntary(second, first, held)}
 	}
 	return level, structure
+}
+
+// heldOf is what a level's slots don't use of what the form had: chosen
+// before, held for a structure that fits it.
+func heldOf(r *http.Request, level requirements.Level) []string {
+	used := slices.Concat(level.First.Options)
+	if level.Second != nil {
+		used = slices.Concat(used, level.Second.Options)
+	}
+	var pool []string
+	for _, prefix := range []string{"first", "second"} {
+		n, _ := strconv.Atoi(r.FormValue(prefix + ".n"))
+		for i := range max(n, 0) {
+			pool = append(pool, strings.TrimSpace(r.FormValue(fmt.Sprintf("%s.%d", prefix, i))))
+		}
+	}
+	var held []string
+	if raw := r.FormValue("held"); raw != "" {
+		_ = json.Unmarshal([]byte(raw), &held)
+	}
+	var out []string
+	for _, ref := range slices.Concat(pool, held) {
+		if ref != "" && !slices.Contains(used, ref) && !slices.Contains(out, ref) {
+			out = append(out, ref)
+		}
+	}
+	return out
 }
 
 // applyLevelAction applies an editor button: "add:first" or "add:second" adds

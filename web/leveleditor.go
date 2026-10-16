@@ -124,16 +124,34 @@ func (p *competitionPages) newClubLevel(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	set := requirements.Set{Format: requirements.Format, Name: "New level", Rules: []requirements.Rule{}}
-	// A competition's set routine to start from: the level's first item.
+	// A set routine to start from, a competition's or one the coach keeps on
+	// their page (kept: its id): the level's first item.
+	start := func(from requirements.Set) {
+		if _, isSet := requirements.SetRoutine(from); isSet {
+			i := slices.IndexFunc(from.Rules, func(rule requirements.Rule) bool { return rule.Type == requirements.Sequence })
+			rule := from.Rules[i]
+			if rule.Label == "" {
+				rule.Label = from.Name
+			}
+			set.Name, set.Rules = from.Name, []requirements.Rule{rule}
+		}
+	}
 	if ref := r.URL.Query().Get("set"); ref != "" {
 		if builtin, ok := requirements.LookupBuiltin(ref); ok {
-			if _, isSet := requirements.SetRoutine(builtin); isSet {
-				i := slices.IndexFunc(builtin.Rules, func(rule requirements.Rule) bool { return rule.Type == requirements.Sequence })
-				rule := builtin.Rules[i]
-				if rule.Label == "" {
-					rule.Label = builtin.Name
+			start(builtin)
+		}
+	}
+	if source := r.URL.Query().Get("kept"); source != "" {
+		kept, err := p.st.KeptRequirements(r.Context(), coach.PersonID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		for _, k := range kept {
+			if k.Kind == store.KeptSet && k.Source == source {
+				if from, err := requirements.Parse([]byte(k.Data)); err == nil {
+					start(from)
 				}
-				set.Name, set.Rules = builtin.Name, []requirements.Rule{rule}
 			}
 		}
 	}
@@ -191,9 +209,11 @@ func (p *competitionPages) showLevelEditor(w http.ResponseWriter, r *http.Reques
 		failed(w, r, err)
 		return
 	}
+	editor := levelEditorData(set, problems, r.PathValue("token"), id, picks, own)
+	// Shown again after a save with problems: they show, by Save.
+	editor.Tried = r.Method == http.MethodPost
 	render(w, r, views.ClubLevelEditor(views.LevelEditorPage{
-		Frame: coachFrame(r, coach, club, coachLevelsTab), Title: title,
-		Editor: levelEditorData(set, problems, r.PathValue("token"), id, picks, own),
+		Frame: coachFrame(r, coach, club, coachLevelsTab), Title: title, Editor: editor,
 	}))
 }
 
@@ -220,6 +240,7 @@ func (p *competitionPages) clubLevelEditor(w http.ResponseWriter, r *http.Reques
 		set.Rules = append(set.Rules, rule)
 	}
 	data := levelEditorData(set, problems, r.PathValue("token"), r.URL.Query().Get("level"), picks, own)
+	data.Tried = r.FormValue("tried") == "1"
 	// Another kind of rule just added opens, to fill in.
 	if r.FormValue("add") != "" {
 		data.OpenRule = len(data.Set.Rules) - 1
@@ -252,7 +273,8 @@ func (p *competitionPages) saveLevelFromEditor(w http.ResponseWriter, r *http.Re
 	}
 	set, problems := parseSetForm(r, picks...)
 	set.Rules = slices.DeleteFunc(set.Rules, func(rule requirements.Rule) bool { return !trackable(rule) })
-	if err := set.Validate(); err != nil || len(problems) > 0 {
+	// A line that doesn't say which skill is ticked off by anything: not saved.
+	if err := set.Validate(); err != nil || len(problems) > 0 || len(requirements.Vague(set)) > 0 {
 		title := "New level"
 		if id != "" {
 			title = set.Name

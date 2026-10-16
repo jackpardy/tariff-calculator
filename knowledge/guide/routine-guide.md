@@ -208,7 +208,8 @@ On the requirements page, under **Your levels**, tap **+ New**, or
 - **Set routine for both exercises** (e.g. BG Club L1–L3).
 
 Then choose the set routine(s) and requirements for each exercise. Add more
-than one set routine when the gymnast chooses between them (option 1 or 2).
+than one set routine when the gymnast chooses between them (option 1 or 2);
+**+ Build a new set routine** builds one right there and chooses it.
 For a voluntary, **+ Write new requirements** writes them right there, under
 the level (**Copy and change** starts from the built-in ones chosen, **Change
 these** changes your own); **Use in this level** saves them and chooses them.
@@ -217,7 +218,7 @@ requirements**, to use them elsewhere too.
 Your level then appears under **+ New level...** in Levels mode.
 
 To pass them on, use **Share** to send a link, or **Export** to save a file that
-someone else can **Import**.
+someone else can **Import** (a level's file brings the requirements it uses).
 
 # 6. View, print and share
 

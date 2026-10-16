@@ -350,10 +350,13 @@ const KeptRequirements = (() => {
 
     // addFrom fills a person's Requirements tab's "Add from this browser"
     // form (form[data-keep-from-browser]) with what's saved in this browser
-    // and isn't kept on a page yet, and shows it if there's any.
-    function addFrom() {
+    // and isn't kept on a page yet, and shows it if there's any. It reads
+    // the pages first (sync), so what was just added counts as kept and what
+    // was taken off is offered again.
+    async function addFrom() {
         const form = document.querySelector('form[data-keep-from-browser]');
         if (!form) { return; }
+        await sync().catch(() => false);
         const items = [
             ...SetStore.load().filter((s) => !s.kept).map((s) => ({ id: s.id, kind: 'set', data: s.set })),
             ...LevelStore.load().filter((l) => !l.kept).map((l) => ({ id: l.id, kind: 'level', data: l.level })),
@@ -383,3 +386,56 @@ function swapIn(form, html) {
     fresh.dispatchEvent(new CustomEvent('htmx:load', { bubbles: true, detail: { elt: fresh } }));
     return fresh;
 }
+
+// saveBody is an editor's form to post for a save: as it is, marked tried,
+// so the editor shows its problems from then on (a fresh form doesn't nag).
+function saveBody(form) {
+    const body = new URLSearchParams(new FormData(form));
+    body.set('tried', '1');
+    return body;
+}
+
+// firstTry says whether a save is the editor's first: its problems, shown
+// now at its top, are then for fixing, not yet for saving anyway.
+function firstTry(form) {
+    return !form.querySelector('input[name="tried"]');
+}
+
+// Text typed into an editor while it's redrawing itself (each change posts
+// the whole form, and the server's answer replaces it) isn't lost: each
+// field's value is noted as the form is sent, and one typed into since is
+// put back, with the cursor, once the answer is in. The next change sends it.
+(function () {
+    const editors = '#set-editor, #level-editor';
+    let sent = null;
+    const fields = (form) => [...form.querySelectorAll('input[type="text"], input[type="search"], input[type="number"], input:not([type]), textarea')].filter((el) => el.name);
+    document.addEventListener('htmx:beforeRequest', (event) => {
+        const form = event.detail.elt.closest?.(editors) || (event.detail.elt.matches?.(editors) ? event.detail.elt : null);
+        if (!form) { return; }
+        sent = new Map(fields(form).map((el) => [el.name, el.value]));
+    });
+    document.addEventListener('htmx:beforeSwap', (event) => {
+        const target = event.detail.target;
+        if (!sent || !target.matches?.(editors)) { return; }
+        const typed = fields(target).filter((el) => sent.has(el.name) && el.value !== sent.get(el.name)).map((el) => ({
+            name: el.name, value: el.value, focused: el === document.activeElement, start: el.selectionStart, end: el.selectionEnd,
+        }));
+        sent = null;
+        if (typed.length === 0) { return; }
+        // The answer takes the form's place, in the same parent.
+        const parent = target.parentElement;
+        document.addEventListener('htmx:afterSwap', function putBack() {
+            document.removeEventListener('htmx:afterSwap', putBack);
+            const form = parent?.querySelector(editors);
+            for (const t of typed) {
+                const el = form?.querySelector(`[name="${CSS.escape(t.name)}"]`);
+                if (!el) { continue; }
+                el.value = t.value;
+                if (t.focused) {
+                    el.focus();
+                    try { el.setSelectionRange(t.start, t.end); } catch (e) { /* not a text field */ }
+                }
+            }
+        });
+    });
+})();
