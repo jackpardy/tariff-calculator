@@ -1,8 +1,11 @@
 package catalog
 
 import (
+	"slices"
 	"strings"
 	"testing"
+
+	"tariffCalculator/skills"
 )
 
 func names(rs []Result) []string {
@@ -114,11 +117,50 @@ func TestNotationOffersBothDirections(t *testing.T) {
 	}
 
 	// Impossible notation finds nothing rather than guessing.
-	for _, q := range []string{"17 0", "4 1 1 1", "20"} {
+	for _, q := range []string{"17 0", "4 1 1 1"} {
 		if rs := Search(q); len(rs) != 0 {
 			t.Errorf("Search(%q) = %v, want nothing", q, names(rs))
 		}
 	}
+}
+
+// Notation doesn't say where a skill takes off: it's offered from feet, the
+// back, front and seat, named skills first (Cody, from the front).
+func TestNotationFromEveryTakeoff(t *testing.T) {
+	takeoffs := func(q string) []string {
+		var out []string
+		for _, r := range Search(q) {
+			out = append(out, r.Skill.TakeoffPosition.String()+" "+directionText(r.Skill.Backward))
+		}
+		return out
+	}
+	// 1¼ straight, no twist: from feet both ways, and Cody (from the front).
+	got := strings.Join(takeoffs("5 0 /"), ", ")
+	if !strings.Contains(got, "Feet forward") || !strings.Contains(got, "Front backward") || strings.Index(got, "Front backward") > strings.Index(got, "Feet forward") {
+		t.Errorf("5 0 /: %s", got)
+	}
+	// 1½ with no twist can't land from feet, but can from the back or front.
+	if got := takeoffs("6 0 /"); len(got) == 0 || slices.ContainsFunc(got, func(s string) bool { return strings.HasPrefix(s, "Feet") }) {
+		t.Errorf("6 0 /: %v", got)
+	}
+	// A half turn is back to front or front to back.
+	if got := names(Search("20")); !slices.Contains(got, "Back To Front") {
+		t.Errorf("20: %v", got)
+	}
+	// What the notation says, for the builder, even where nothing lands.
+	if s, ok := NotationReading("6 0 /"); !ok || s.Rotation != 6 || s.TotalTwist() != 0 || s.Shape != skills.Straight {
+		t.Errorf("reading of 6 0 /: %+v %v", s, ok)
+	}
+	if _, ok := NotationReading("barani"); ok {
+		t.Error("a name isn't notation")
+	}
+}
+
+func directionText(backward bool) string {
+	if backward {
+		return "backward"
+	}
+	return "forward"
 }
 
 // The picker names somersaults "Back s/s" and so on, so searching that way finds them.

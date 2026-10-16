@@ -213,11 +213,48 @@ func looksLikeNotation(q string) bool {
 
 // fromNotation parses FIG notation such as "8 1 1 <", "(4 - o)", "811<" or the
 // CoP's "8 01 <": quarter somersaults, then half twists per somersault ("-" is
-// none), then an optional shape mark. Notation doesn't record direction, so each
-// reading is offered forwards and backwards (named skills first); without a
-// shape mark, a skill whose shape matters is offered in each shape. Skills take
-// off from feet; readings that can't land are left out.
+// none), then an optional shape mark. Notation doesn't record direction or
+// take-off, so each reading is offered forwards and backwards, from feet first
+// and then from the back, front and seat (named skills first); without a
+// shape mark, a skill whose shape matters is offered in each shape. Readings
+// that can't land are left out.
 func fromNotation(q string) []Result {
+	readings, shape := notationReadings(q)
+	var named, unnamed []Result
+	seen := map[string]bool{}
+	for _, takeoff := range []skills.BodyPosition{skills.Feet, skills.Back, skills.Front, skills.Seat} {
+		for _, reading := range readings {
+			base := reading
+			base.TakeoffPosition = takeoff
+			for _, backward := range []bool{false, true} {
+				for _, sh := range shapesToTry(base, shape) {
+					s := base
+					s.Backward, s.Shape = backward, sh
+					// Skip what can't be scored or can't land (e.g. "20", landing on the head).
+					if s.Validate() != nil || s.LandingPosition() == skills.Invalid {
+						continue
+					}
+					s = priced(s)
+					key := s.FIGNotation() + strconv.FormatBool(backward) + takeoff.String()
+					if seen[key] {
+						continue
+					}
+					seen[key] = true
+					if s.Name == "Custom Skill" {
+						unnamed = append(unnamed, Result{Skill: s, FromNotation: true})
+					} else {
+						named = append(named, Result{Skill: s, FromNotation: true})
+					}
+				}
+			}
+		}
+	}
+	return append(named, unnamed...)
+}
+
+// notationReadings are the skills FIG notation could be, from feet (its
+// rotation and twists read each way they can be), and its shape mark, if any.
+func notationReadings(q string) ([]skills.TrampolineSkill, *skills.Shape) {
 	q = strings.TrimSpace(strings.Trim(strings.TrimSpace(q), "()"))
 	var shape *skills.Shape
 	if r := []rune(q); len(r) > 0 {
@@ -227,7 +264,6 @@ func fromNotation(q string) []Result {
 		}
 	}
 	q = strings.ReplaceAll(q, "-", " 0 ")
-
 	var readings []skills.TrampolineSkill
 	for _, rt := range rotationReadings(q) {
 		phases := skills.CalculatePhases(rt.rotation)
@@ -238,33 +274,34 @@ func fromNotation(q string) []Result {
 		copy(twists, rt.twists)
 		readings = append(readings, skills.TrampolineSkill{Rotation: rt.rotation, TwistDistribution: twists, TakeoffPosition: skills.Feet})
 	}
+	return readings, shape
+}
 
-	var named, unnamed []Result
-	seen := map[string]bool{}
-	for _, base := range readings {
-		for _, backward := range []bool{false, true} {
-			for _, sh := range shapesToTry(base, shape) {
-				s := base
-				s.Backward, s.Shape = backward, sh
-				// Skip what can't be scored or can't land (e.g. "20", landing on the head).
-				if s.Validate() != nil || s.LandingPosition() == skills.Invalid {
-					continue
-				}
-				s = priced(s)
-				key := s.FIGNotation() + strconv.FormatBool(backward)
-				if seen[key] {
-					continue
-				}
-				seen[key] = true
-				if s.Name == "Custom Skill" {
-					unnamed = append(unnamed, Result{Skill: s, FromNotation: true})
-				} else {
-					named = append(named, Result{Skill: s, FromNotation: true})
-				}
-			}
-		}
+// NotationReading is what FIG notation says of a skill, for the builder to
+// finish when no reading of it can land: its first reading, from feet, in its
+// shape (straight, or tuck where the shape matters, without a mark). ok is
+// false when the query isn't notation it can read.
+func NotationReading(q string) (skills.TrampolineSkill, bool) {
+	q = strings.TrimSpace(q)
+	if !looksLikeNotation(q) {
+		return skills.TrampolineSkill{}, false
 	}
-	return append(named, unnamed...)
+	readings, shape := notationReadings(q)
+	if len(readings) == 0 {
+		return skills.TrampolineSkill{}, false
+	}
+	s := readings[0]
+	s.Shape = skills.Straight
+	if shape != nil {
+		s.Shape = *shape
+	} else if s.ShapeIsRelevant() {
+		s.Shape = skills.Tuck
+	}
+	if s.Validate() != nil {
+		return skills.TrampolineSkill{}, false
+	}
+	s.NormalizePhases()
+	return s, true
 }
 
 // shapesToTry is the given shape, or each shape that makes a different skill.

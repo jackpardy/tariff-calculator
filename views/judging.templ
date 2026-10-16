@@ -36,6 +36,12 @@ func endsExercise(i int, last bool) bool {
 	return i == skills.RoutineLength-1 || (last && i < skills.RoutineLength)
 }
 
+// judged says whether a skill has a judging guide: it can land, and it isn't
+// a plain straight jump, which isn't judged as an element.
+func judged(s skills.TrampolineSkill) bool {
+	return s.LandingPosition() != skills.Invalid && !s.IsStraightJump()
+}
+
 // judgingButton opens the judging guide for a routine's skill.
 templ judgingButton(s skills.TrampolineSkill, last bool) {
 	<button
