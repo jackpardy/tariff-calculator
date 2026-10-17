@@ -111,6 +111,7 @@ went from 65 ms and 88 MB allocated to 6 ms and 12 MB, the dashboard from
 | `GET /clubs/member/{token}/competitions/{id}/calendar.ics`, `/competitions/entry/{token}/calendar.ics` | — | A person's published flights and duties as an iCalendar file to add or subscribe to; empty until published |
 | `GET /clubs/member/{token}/competitions/{id}/club-calendar.ics`, `/clubs/admin/{token}/competitions/{id}/calendar.ics`, `/clubs/coach/{token}/competitions/{id}/calendar.ics` | — | The club's: every flight one of its gymnasts competes in, and every seat one of its people holds, named |
 | `GET /sw.js` | — | The service worker, for push notifications and offline copies of pages (dropped after 30 days, or on a 404 or 410) |
+| `GET /favicon.ico` | — | Nothing (204, cached a day): the site has no icon, so browsers stop asking |
 | `GET /manifest.webmanifest` | — | The web manifest, for adding a page to the home screen (no `start_url`) |
 | `GET`, `POST /notify/confirm/{token}` | — | Confirms an email (a button, then done) |
 | `GET`, `POST /notify/off/{token}` | — (or `List-Unsubscribe=One-Click`) | Stops every email to that address for the competition |

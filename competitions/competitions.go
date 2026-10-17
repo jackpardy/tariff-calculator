@@ -504,7 +504,7 @@ func (s Split) validate(levels []string) error {
 	case SplitSome:
 		for _, l := range s.Levels {
 			if !slices.Contains(levels, l) {
-				return fmt.Errorf("the competition doesn't offer the level %q to split", l)
+				return fmt.Errorf("%s is ranked men and women separately, so it can't be taken away: untick it under Men and women first", l)
 			}
 		}
 		return nil

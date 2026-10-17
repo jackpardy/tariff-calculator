@@ -276,6 +276,8 @@ const KeptRequirements = (() => {
             const existing = list.find((x) => x.id === item.id);
             const fresh = { id: item.id, [key]: item.data, kept: link };
             if (item.described) { fresh.described = item.described; }
+            // Written for a level only: listed under it here too.
+            if (item.inLevel) { fresh.inLevel = true; }
             if (!existing) {
                 list.push(fresh);
                 changed = true;
@@ -298,11 +300,15 @@ const KeptRequirements = (() => {
     // sync reads every saved personal link's kept requirements into the
     // browser's stores; it resolves to whether anything changed. Without a
     // signal it changes nothing: the browser's copies stand.
-    async function sync() {
+    async function sync(also = []) {
         let changed = false;
         const sets = SetStore.load();
         const levels = LevelStore.load();
-        for (const link of links()) {
+        const all = links();
+        for (const url of also) {
+            if (!all.some((l) => l.url === url)) { all.push({ name: 'My page', url }); }
+        }
+        for (const link of all) {
             try {
                 const response = await fetch(`${link.url}/requirements.json`, { credentials: 'same-origin', cache: 'no-store' });
                 if (!response.ok) { continue; }
@@ -333,7 +339,7 @@ const KeptRequirements = (() => {
     // LevelStore's entry) on a link's page, and marks it kept.
     async function save(link, kind, saved) {
         const data = kind === 'set' ? saved.set : saved.level;
-        const answer = await post(link, [{ id: saved.id, kind, data }]);
+        const answer = await post(link, [{ id: saved.id, kind, data, inLevel: Boolean(saved.inLevel) }]);
         if (answer.kept !== 1) { throw new Error((answer.refused || []).join('; ') || 'not kept'); }
         const store = kind === 'set' ? SetStore : LevelStore;
         const list = store.load();
@@ -356,9 +362,12 @@ const KeptRequirements = (() => {
     async function addFrom() {
         const form = document.querySelector('form[data-keep-from-browser]');
         if (!form) { return; }
-        await sync().catch(() => false);
+        // This page's own link too: on its first visit it isn't saved in the
+        // browser yet, and what it keeps would be counted as not kept.
+        const own = new URL(form.getAttribute('action'), location.href).pathname.replace(/\/requirements$/, '');
+        await sync([location.origin + own]).catch(() => false);
         const items = [
-            ...SetStore.load().filter((s) => !s.kept).map((s) => ({ id: s.id, kind: 'set', data: s.set })),
+            ...SetStore.load().filter((s) => !s.kept).map((s) => ({ id: s.id, kind: 'set', data: s.set, inLevel: Boolean(s.inLevel) })),
             ...LevelStore.load().filter((l) => !l.kept).map((l) => ({ id: l.id, kind: 'level', data: l.level })),
         ];
         if (items.length === 0) { return; }

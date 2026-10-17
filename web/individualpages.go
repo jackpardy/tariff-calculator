@@ -247,6 +247,7 @@ func (p *competitionPages) entryView(r *http.Request, e store.Entry, c store.Com
 		page.Offer = &form
 	}
 	page.Form.Problems = problems
+	page.Form.Key = "-" + e.ID // its own field ids: their competition page shows each entry's form
 	return page, nil
 }
 

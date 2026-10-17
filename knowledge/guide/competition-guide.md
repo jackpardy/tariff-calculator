@@ -395,7 +395,7 @@ a **Change** button to open it.
    a message saying where they should be. To find someone at the desk, type
    part of their name in **Find a name**: only the flights with them show,
    with their Check-in or Panel list open, and it stays that way as you tap
-   Here. **Jump to** goes straight to an area.
+   Here. Each area's card has **Open**, which goes straight to that area's own page.
    **What the colours mean.** Each state is a small label with a mark, the
    same on every page: grey ○ not yet (not started, not checked in), blue ◐
    under way or waiting on someone, green ✓ done (finished, here), amber !

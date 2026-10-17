@@ -271,8 +271,13 @@ func (p *competitionPages) deadline(w http.ResponseWriter, r *http.Request) {
 		deadline, err = time.ParseInLocation("2006-01-02 15:04", r.FormValue("deadlineDate")+" "+r.FormValue("deadlineTime"), local)
 		changed := c.Competition
 		changed.Deadline = deadline
-		if err != nil || changed.Validate() != nil {
-			backToSettings(w, r, "Entries must close by the end of the competition date; the closing time wasn't changed.")
+		if err != nil {
+			backToSettings(w, r, "Give the date and time entries close; the closing time wasn't changed.")
+			return
+		}
+		if bad := changed.Validate(); bad != nil {
+			// The real reason: by the end of the competition date, or after they open.
+			backToSettings(w, r, strings.TrimSuffix(strings.Join(sentences(bad), " "), ".")+"; the closing time wasn't changed.")
 			return
 		}
 		notice = "Entries now close " + deadline.Format("Monday 2 January 2006, 15:04") + "."
@@ -438,6 +443,29 @@ func (p *competitionPages) setEvents(w http.ResponseWriter, r *http.Request) {
 	} else if err := p.st.SetEvents(r.Context(), c.ID, changed.Synchro, changed.Tumbling, changed.DMT); err != nil {
 		failed(w, r, err)
 		return
+	} else {
+		// Entries in a level taken away stay, each with a problem: say how many.
+		entries, err := p.entriesOf(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		offered := changed.EventNames()
+		left := map[string]int{}
+		for _, e := range live(entries) {
+			if ev := e.Entry.Event(); !slices.Contains(offered, ev) {
+				left[ev]++
+			}
+		}
+		if n := 0; len(left) > 0 {
+			var names []string
+			for ev, k := range left {
+				names, n = append(names, ev), n+k
+			}
+			slices.Sort(names)
+			notice += fmt.Sprintf(" %s in a level no longer offered (%s): each shows a problem on Entries until moved or removed.",
+				views.Count(n, "entry is", "entries are"), strings.Join(names, ", "))
+		}
 	}
 	backToSettings(w, r, notice)
 }

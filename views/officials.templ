@@ -30,6 +30,7 @@ type JudgingBox struct {
 	Status  string // the organiser's approval, where the competition approves judges
 	Done    bool   // approved
 	Kept    string // where they're kept and who sees them, a sentence
+	ID      string // its id on the page, where several entries each show one; "" for "judging"
 }
 
 // JudgingRow is one judging qualification.
@@ -89,10 +90,18 @@ templ offerForm(f OfferForm) {
 	}
 }
 
+// judgingID is a judging box's id: "judging", or its own where there are several.
+func judgingID(b JudgingBox) string {
+	if b.ID != "" {
+		return b.ID
+	}
+	return "judging"
+}
+
 // judgingBox lists a judge's qualifications with their certificates, and
 // adds one (an upload, its own form, outside the offer's).
 templ judgingBox(b JudgingBox) {
-	<div class="mt-4" id="judging">
+	<div class="mt-4" id={ judgingID(b) }>
 		<p class="label is-small mb-1">{ b.Whose } judging qualifications</p>
 		if b.Status != "" {
 			<p class="mb-2">
@@ -111,6 +120,7 @@ templ judgingBox(b JudgingBox) {
 				<span>{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a></span>
 				<form method="post" action={ templ.SafeURL(q.Remove) } class="is-inline">
 					<input type="hidden" name="back" value={ b.Back }/>
+					<input type="hidden" name="at" value={ judgingID(b) }/>
 					<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
 				</form>
 			</div>
@@ -120,6 +130,7 @@ templ judgingBox(b JudgingBox) {
 				<summary class="button is-small comp-opens-button">Add a judging qualification</summary>
 				<form method="post" action={ templ.SafeURL(b.Add) } enctype="multipart/form-data" class="comp-flight-actions">
 					<input type="hidden" name="back" value={ b.Back }/>
+					<input type="hidden" name="at" value={ judgingID(b) }/>
 					<div class="select is-small">
 						<select name="qualification" required aria-label="Judging qualification">
 							<option value="">Choose the qualification</option>
@@ -280,7 +291,8 @@ templ CompetitionOfficials(p OfficialsPage) {
 									<td>
 										<a href={ templ.SafeURL(o.Person) }>{ o.Name }</a>
 										// Sent by their club, as most are, needs no chip: their club is beside it.
-										if o.Who != RoleClub {
+										// Only how they came differently shows: added by you, or on their own.
+										if o.Who != RoleClub && o.Source != "sent by their club" {
 											@WhoChip(o.Who, o.Source)
 										}
 									</td>

@@ -811,6 +811,11 @@ var migrations = []string{
 	);
 	CREATE INDEX judge_qualifications_member ON judge_qualifications (member_id);
 	CREATE INDEX judge_qualifications_entry ON judge_qualifications (entry_id);`,
+
+	// 46: a kept set of requirements written for a level only (ADR 0013): kept
+	// with it, so another device lists it under its level, not with the
+	// person's own requirements.
+	`ALTER TABLE person_requirements ADD COLUMN in_level INTEGER NOT NULL DEFAULT 0;`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

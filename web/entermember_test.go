@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"tariffCalculator/views"
 )
 
 // The comp sec enters a member from the competition's Entries: who, and
@@ -72,5 +74,25 @@ func TestCompSecAddsAnOffer(t *testing.T) {
 	to := do(t, h, http.MethodGet, action[1]+"?member="+member[1], nil).Header().Get("Location")
 	if rec := do(t, h, http.MethodGet, to, nil); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Recorder") {
 		t.Errorf("their offer form: %s %d", to, rec.Code)
+	}
+}
+
+// A sent entry the member withdraws stays on the comp sec's list, marked,
+// though they still have another entry.
+func TestWithdrawnOfSeveralStaysListed(t *testing.T) {
+	h := competitionServer(t)
+	form := newCompetition()
+	form.Set("tumbling", "Novice")
+	club := aClub(t, h, created(t, h, form), "UCD", false, "A. Murphy")
+	page := clubEntriesPage(t, h, club.page)
+	action := regexp.MustCompile(`action="([^"]+/enter-member)"`).FindStringSubmatch(page)[1]
+	member := regexp.MustCompile(`<option value="([^"]+)">A. Murphy</option>`).FindStringSubmatch(page)[1]
+	entry := strings.SplitN(do(t, h, http.MethodGet, action+"?member="+member+"&discipline=", nil).Header().Get("Location"), "?", 2)[0]
+	redirected(t, h, entry, bucsEntry(""))
+	redirected(t, h, entry, url.Values{"discipline": {"tumbling"}, "level": {"Novice"}})
+	redirected(t, h, formAction(t, clubEntriesPage(t, h, club.page), club.page+"/competitions/"), url.Values{"which": {"all"}})
+	redirected(t, h, entry+"/withdraw", url.Values{"confirm": {"1"}, "discipline": {""}})
+	if page := clubEntriesPage(t, h, club.page); !strings.Contains(page, chip(t, views.Stopped, "Withdrawn (still sent)")) {
+		t.Errorf("the withdrawn trampoline entry is still listed: %s", page)
 	}
 }

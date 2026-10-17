@@ -35,12 +35,13 @@ type Kept struct {
 	Name     string
 	Data     string    // as the browser keeps it, JSON
 	Updated  time.Time // when it was last saved
+	InLevel  bool      // a set written for a level only, listed under its level
 }
 
 // KeptRequirements are a person's kept requirement sets and levels, by kind
 // then name.
 func (s *Store) KeptRequirements(ctx context.Context, personID string) ([]Kept, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, kind, source, name, data, updated_at FROM person_requirements WHERE person_id = $1 ORDER BY kind DESC, name, updated_at`, personID)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, kind, source, name, data, updated_at, in_level FROM person_requirements WHERE person_id = $1 ORDER BY kind DESC, name, updated_at`, personID)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +50,7 @@ func (s *Store) KeptRequirements(ctx context.Context, personID string) ([]Kept, 
 	for rows.Next() {
 		var k Kept
 		var at string
-		if err := rows.Scan(&k.ID, &k.Kind, &k.Source, &k.Name, &k.Data, &at); err != nil {
+		if err := rows.Scan(&k.ID, &k.Kind, &k.Source, &k.Name, &k.Data, &at, &k.InLevel); err != nil {
 			return nil, err
 		}
 		k.Updated = parseTime(at)
@@ -64,6 +65,12 @@ func (s *Store) KeptRequirements(ctx context.Context, personID string) ([]Kept, 
 // whether it's newly kept; ErrLimit when the person keeps MaxKept of the
 // kind already, ErrTooBig past MaxKeptBytes.
 func (s *Store) KeepRequirements(ctx context.Context, personID, kind, source, name, data string) (added bool, err error) {
+	return s.KeepRequirementsIn(ctx, personID, kind, source, name, data, false)
+}
+
+// KeepRequirementsIn is KeepRequirements, saying whether a set was written for
+// a level only (inLevel).
+func (s *Store) KeepRequirementsIn(ctx context.Context, personID, kind, source, name, data string, inLevel bool) (added bool, err error) {
 	switch {
 	case kind != KeptSet && kind != KeptLevel, source == "", len(source) > 60:
 		return false, errors.New("not something to keep")
@@ -73,8 +80,8 @@ func (s *Store) KeepRequirements(ctx context.Context, personID, kind, source, na
 	name = clip(strings.TrimSpace(name), 120)
 	now := s.stamp()
 	err = s.tx(ctx, func(tx *sql.Tx) error {
-		res, err := tx.ExecContext(ctx, `UPDATE person_requirements SET name = $1, data = $2, updated_at = $3 WHERE person_id = $4 AND kind = $5 AND source = $6`,
-			name, data, now, personID, kind, source)
+		res, err := tx.ExecContext(ctx, `UPDATE person_requirements SET name = $1, data = $2, updated_at = $3, in_level = $7 WHERE person_id = $4 AND kind = $5 AND source = $6`,
+			name, data, now, personID, kind, source, inLevel)
 		if err != nil {
 			return err
 		}
@@ -89,8 +96,8 @@ func (s *Store) KeepRequirements(ctx context.Context, personID, kind, source, na
 			return ErrLimit
 		}
 		added = true
-		_, err = tx.ExecContext(ctx, `INSERT INTO person_requirements (id, person_id, kind, source, name, data, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-			newID(), personID, kind, source, name, data, now)
+		_, err = tx.ExecContext(ctx, `INSERT INTO person_requirements (id, person_id, kind, source, name, data, updated_at, in_level) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+			newID(), personID, kind, source, name, data, now, inLevel)
 		return err
 	})
 	return added, err

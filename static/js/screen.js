@@ -41,6 +41,7 @@
     function fit() {
         const cards = [...main.querySelectorAll('.screen-card')];
         if (cards.length === 0) { return; }
+        untrim();
         cards.forEach((c) => { c.style.fontSize = ''; });
         let size = parseFloat(getComputedStyle(cards[0]).fontSize);
         const over = () => cards.some((c) => [...c.querySelectorAll('.screen-part')].some(overflows));
@@ -49,6 +50,21 @@
             cards.forEach((c) => { c.style.fontSize = size + 'px'; });
         }
         cards.forEach(trim);
+    }
+
+    // untrim shows again the names an earlier fit hid, with the "+N more"
+    // as the server sent it, so a fit with more room (an announcement gone)
+    // starts afresh.
+    function untrim() {
+        for (const list of main.querySelectorAll('.screen-names')) {
+            list.querySelectorAll('li[hidden]').forEach((li) => { li.hidden = false; });
+            const more = list.querySelector('.screen-more');
+            if (!more) { continue; }
+            if (more.dataset.added) { more.remove(); continue; }
+            more.dataset.base ??= more.dataset.more;
+            more.dataset.more = more.dataset.base;
+            more.textContent = `+${more.dataset.base} more`;
+        }
     }
 
     // trim hides names from the end of an overflowing part's list until it
@@ -66,6 +82,7 @@
                     more = document.createElement('li');
                     more.className = 'screen-more';
                     more.dataset.more = '0';
+                    more.dataset.added = '1';
                     list.append(more);
                 }
                 more.dataset.more = String(Number(more.dataset.more) + 1);
@@ -84,9 +101,12 @@
         noticeAt %= notices.length;
         notices.forEach((n, i) => { n.hidden = i !== noticeAt; });
     }
+    // Each announcement takes its own room: the cards fit again around it,
+    // or the last names are cut by the card's edge.
     function nextNotice() {
         noticeAt++;
         showNotice();
+        fit();
     }
 
     async function refresh() {
@@ -115,6 +135,7 @@
         }
     }
 
+    showNotice();
     fit();
     window.addEventListener('resize', fit);
     tick();

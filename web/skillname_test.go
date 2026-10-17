@@ -20,3 +20,17 @@ func TestSkillNamesApart(t *testing.T) {
 		}
 	}
 }
+
+// A skill with no notation (a seat drop) keeps its name whole beside where
+// its notation would be.
+func TestSkillNameBesideWithoutNotation(t *testing.T) {
+	for _, r := range catalog.Search("seat drop") {
+		if r.Skill.FIGNotation() == "" {
+			if got := skillNameBeside(r.Skill); got != skillName(r.Skill) {
+				t.Errorf("%q, not %q", got, skillName(r.Skill))
+			}
+			return
+		}
+	}
+	t.Skip("no seat drop without notation in the catalog")
+}

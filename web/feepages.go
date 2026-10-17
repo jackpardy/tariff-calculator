@@ -273,7 +273,7 @@ func (p *competitionPages) addPayment(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, errors.Join(err, store.ErrNotFound))
 		return
 	}
-	cents, err := competitions.ParseMoney(r.FormValue("amount"))
+	cents, err := competitions.ParsePayment(r.FormValue("amount"))
 	if err != nil || cents == 0 {
 		// Back at their row, the form open with what was typed.
 		again := url.Values{"payer": {payer}, "amount": {r.FormValue("amount")}, "note": {r.FormValue("note")}}
@@ -371,7 +371,11 @@ func (p *competitionPages) invoicePage(ctx context.Context, c store.Competition,
 		page.Lines = append(page.Lines, views.InvoiceLineView{What: l.What, Amount: f.Money(l.Amount)})
 	}
 	for _, pay := range a.payments {
-		page.Payments = append(page.Payments, views.PaymentView{Amount: f.Money(pay.Amount), Note: pay.Note, At: pay.At.In(local).Format("2 January")})
+		pv := views.PaymentView{Amount: f.Money(pay.Amount), Note: pay.Note, At: pay.At.In(local).Format("2 January")}
+		if pay.Amount < 0 { // a refund: said as one, not "Paid −−€400"
+			pv.Amount, pv.Refund = f.Money(-pay.Amount), true
+		}
+		page.Payments = append(page.Payments, pv)
 	}
 	return &page, true, nil
 }

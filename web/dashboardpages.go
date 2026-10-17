@@ -65,6 +65,10 @@ func (p *competitionPages) reviewVideo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if c.Video.Need == competitions.VideoNone {
+		seeOther(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id"), "This competition doesn't ask for video; nothing was changed.")
+		return
+	}
 	if err := p.st.ReviewVideo(r.Context(), c.ID, r.PathValue("id"), r.FormValue("review"), note); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			failed(w, r, err)

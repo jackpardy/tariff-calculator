@@ -22,7 +22,14 @@ const ctx = {
 };
 vm.createContext(ctx);
 vm.runInContext(src, ctx);
-const page = ctx.page;
+// page runs sw.js's page with a fetch event, and waits for what it kept or
+// dropped after answering.
+const page = async (request) => {
+    const waits = [];
+    const r = await ctx.page(request, { waitUntil: (p) => waits.push(p) });
+    await Promise.all(waits);
+    return r;
+};
 const ok = (body, date) => { const r = new Response(body, { status: 200, headers: { Date: date.toUTCString(), 'Content-Type': 'text/html' } }); Object.defineProperty(r, 'type', { value: 'basic' }); return r; };
 const day = 24 * 3600 * 1000;
 let fails = 0;
@@ -65,6 +72,14 @@ nextFetch = ok('new', new Date());
 await page({ url: 'https://x/competitions/new' });
 check('old copies trimmed', !store.has('https://x/competitions/admin/old2'));
 check('at most 60 kept, the oldest dropped', store.size <= 60 && !store.has('https://x/p0') && store.has('https://x/p69') && store.has('https://x/competitions/new'));
+
+// A page that stops arriving partway leaves the older copy.
+store.set('https://x/competitions/slow', ok('older', new Date()));
+const broken = new Response(new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('part')); c.error(new Error('dropped')); } }), { status: 200 });
+Object.defineProperty(broken, 'type', { value: 'basic' });
+nextFetch = broken;
+r = await page({ url: 'https://x/competitions/slow' });
+check('a page cut off partway keeps the older copy', store.has('https://x/competitions/slow') && (await store.get('https://x/competitions/slow').clone().text()) === 'older');
 
 // activate trims too.
 store.set('https://x/competitions/admin/old3', ok('old', new Date(Date.now() - 40 * day)));

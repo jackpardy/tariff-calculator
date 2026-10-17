@@ -202,8 +202,9 @@ club, the organiser's On the day page and the venue screen). Then, at once:
 - **steady use** for `-steady`: each opens it again every `-think` or so,
   `-staff` people reload On the day every 10 seconds, and `-screens` venue
   screens refresh every 30 seconds;
-- **taps**: a gymnast checked in or cleared every `-taps`, so the pages'
-  cache is refreshed as it would be on the day.
+- **taps**: a gymnast checked in or cleared every `-taps`, from the first
+  day's area pages (where the check-ins are), so the pages' cache is
+  refreshed as it would be on the day.
 
 It ends with each kind of page's loads, failures, median, 90th and 99th
 percentile and slowest time. **Never point it at the live site**: the taps
@@ -226,6 +227,10 @@ their page within 2 seconds:
 | Gymnasts' pages in the burst | 191 of 343 failed (timed out); median 4.8 s, slowest 28.6 s | none failed; median 171 ms, slowest 1.0 s |
 | Gymnasts' pages after it | median 3.3 s, 99% within 23 s | median 9 ms, 99% within 125 ms |
 | Taps | 1 of 4 failed; median 2.8 s | none failed; median 5 ms |
+
+Once check-ins moved to each area's own page, the test found none to tap
+until it was fixed (17 October 2026), so runs between then had no taps and
+the cache was never dropped: run it again for numbers with the taps in.
 
 The server is slower per processor than the laptop and shared with other
 services, so run it there too before the dry run, on a test copy: the steps

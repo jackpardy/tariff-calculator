@@ -29,9 +29,25 @@
         box.append(input, list);
         (select.closest('.select') || select).before(box);
 
-        const options = () => [...select.options].filter((o) => o.value !== '').map((o) => ({
-            o, text: plain(o.textContent + ' ' + (o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : '')),
+        // Every option but a "Choose…" prompt: "Any skill" is a choice too.
+        const options = () => [...select.options].filter((o) => o.value !== '' || !/^choose/i.test(o.textContent.trim())).map((o) => ({
+            o, label: plain(o.textContent).trim(),
+            text: plain(o.textContent + ' ' + (o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : '')),
         }));
+        // rank orders the matches, best first: the option itself, one that
+        // starts with what's typed, one with each word starting a word of it,
+        // then the rest; "no twist" for "twist" after those, and a match only
+        // through its group's name last.
+        const escape = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rank = (x, words) => {
+            const q = words.join(' ');
+            if (x.label === q) { return 0; }
+            if (x.label.startsWith(q)) { return 1; }
+            if (!words.every((w) => x.label.includes(w))) { return 5; }
+            if (words.some((w) => new RegExp('\\bno ' + escape(w)).test(x.label))) { return 4; }
+            if (words.every((w) => new RegExp('(^|[^a-z0-9])' + escape(w)).test(x.label))) { return 2; }
+            return 3;
+        };
         const choose = (option) => {
             select.value = option.value;
             input.value = '';
@@ -57,8 +73,14 @@
         let timer;
         const matching = () => {
             const words = plain(input.value).split(/\s+/).filter(Boolean);
-            const byLabel = options().filter((x) => words.every((w) => x.text.includes(w)));
-            const bySearch = asked.map((v) => options().find((x) => x.o.value === v)).filter((x) => x && !byLabel.includes(x));
+            const all = options();
+            const byLabel = all.filter((x) => words.every((w) => x.text.includes(w)))
+                .map((x, i) => ({ x, i, r: rank(x, words) }))
+                .sort((a, b) => a.r - b.r || a.i - b.i).map(({ x }) => x);
+            // The search URL's finds the labels didn't (compared by option:
+            // each call of options() makes new objects).
+            const bySearch = asked.map((v) => all.find((x) => x.o.value === v))
+                .filter((x) => x && !byLabel.some((y) => y.o === x.o));
             return [...byLabel, ...bySearch];
         };
         const show = () => {
