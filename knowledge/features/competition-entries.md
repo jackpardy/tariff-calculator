@@ -550,7 +550,9 @@ A competition offers **events**: a discipline at a level.
   discipline (enter, change, withdraw each on its own), the club page and
   dashboard list each entry under its event ("Synchro BUCS L3", "Tumbling
   Novice"), and an individual enters each discipline separately.
-- **Synchro pairs** can be any two gymnasts. The entry names the partner and
+- **Synchro pairs** can be any two gymnasts, and a gymnast can be in two
+  pairs in the same event with different partners, so being confirmed into
+  a second pair isn't a problem (confirmed by the owner, 2026-10-17). The entry names the partner and
   shows a **partner link** to send them; the partner confirms who they are
   with their own member page or entry link (or as having no other entry), so
   the timetable can later check their clashes. Where links are saved in their
