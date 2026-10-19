@@ -108,7 +108,7 @@ type PersonLink struct {
 templ MyCompetition(p MyCompetitionPage) {
 	@competitionLayout(myTitle(p)) {
 		if p.Admin != nil {
-			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>{ p.BackLabel }</a></p>
+			<p class="comp-back"><a href={ templ.SafeURL(p.Back) }>{ p.BackLabel }</a></p>
 			<h1 class="title is-4">{ p.Name }</h1>
 			<p class="subtitle is-6">
 				if p.Admin.Club != "" {
@@ -132,7 +132,7 @@ templ MyCompetition(p MyCompetitionPage) {
 			}
 			<h1 class="title is-4">{ p.Name }</h1>
 			@pageMenu(p.Menu)
-			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>{ p.BackLabel }</a></p>
+			<p class="comp-back"><a href={ templ.SafeURL(p.Back) }>{ p.BackLabel }</a></p>
 			<h2 class="title is-5">My competition</h2>
 			<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		}
@@ -146,7 +146,7 @@ templ MyCompetition(p MyCompetitionPage) {
 			<div class="notification is-warning is-light">
 				<p>You're scratched from { p.Here.Scratched }. If you're still here for { p.Here.For }, tell the organisers:</p>
 				<form method="post" action={ templ.SafeURL(p.Here.Action) } class="mt-2">
-					<button class="button is-warning" type="submit">I'm here for the rest</button>
+					<button class="button is-primary" type="submit">I'm here for the rest</button>
 				</form>
 			</div>
 		}
@@ -438,7 +438,7 @@ func ordinal(n int) string {
 templ dayLink(href string) {
 	if href != "" {
 		<p class="mb-3">
-			<a class="button is-small is-info is-light" href={ templ.SafeURL(href) }>My competition →</a>
+			<a class="button is-small" href={ templ.SafeURL(href) }>My competition →</a>
 			<span class="is-block help">Your flights and times, the timetable, your calendar and news of changes.</span>
 		</p>
 	}
@@ -467,7 +467,7 @@ templ timelineLinks(mine, club, notify, calendar, clubCalendar string) {
 				// Yours and the club's, timetable and calendar: one menu rather
 				// than a row of four alike.
 				<details class="comp-popup comp-popup-left" data-menu>
-					<summary class="button is-small is-light comp-opens-button">Timetables and calendars</summary>
+					<summary class="button is-small comp-opens-button">Timetables and calendars</summary>
 					<div class="comp-popup-panel">
 						for _, l := range timetableLinks(mine, club, calendar, clubCalendar) {
 							<a href={ templ.SafeURL(l.Href) } { l.attrs()... }>{ l.Label }</a>
@@ -476,11 +476,11 @@ templ timelineLinks(mine, club, notify, calendar, clubCalendar string) {
 				</details>
 			} else {
 				for _, l := range timetableLinks(mine, club, calendar, clubCalendar) {
-					<a class="button is-small is-light" href={ templ.SafeURL(l.Href) } { l.attrs()... }>{ l.Label }</a>
+					<a class="button is-small" href={ templ.SafeURL(l.Href) } { l.attrs()... }>{ l.Label }</a>
 				}
 			}
 			if notify != "" {
-				<a class="button is-small is-light" href={ templ.SafeURL(notify) }>Tell me about changes</a>
+				<a class="button is-small" href={ templ.SafeURL(notify) }>Tell me about changes</a>
 			}
 		</div>
 	}

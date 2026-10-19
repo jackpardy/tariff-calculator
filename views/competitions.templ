@@ -117,7 +117,7 @@ templ DeadLink(title, text string) {
 // or to the links saved in this browser.
 templ messageOnward() {
 	<p class="buttons mt-4">
-		<button type="button" class="button is-small" onclick="history.back()">← Back</button>
+		<button type="button" class="button is-small" onclick="history.back()">← The page before</button>
 		<a class="button is-small" href="/competitions">Your competitions and pages</a>
 	</p>
 }
@@ -310,7 +310,7 @@ templ liveBox(base string, c CompetitionSummary, liveDate, liveTime, from string
 			<form method="post" action={ templ.SafeURL(base + "/live") } class="mb-2">
 				<input type="hidden" name="opens" value="now"/>
 				@backField(from)
-				<button class="button is-small is-success" type="submit">Go live now</button>
+				<button class="button is-small is-primary" type="submit">Go live now</button>
 			</form>
 			<p class="is-size-7 mb-1">
 				if c.Opens != "" {

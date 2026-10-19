@@ -117,7 +117,7 @@ templ routinesList(p RoutinesPart) {
 									<input type="hidden" name="skill" value={ r.NotCanSkills[i] }/>
 									<input type="hidden" name="state" value="can"/>
 									<input type="hidden" name="back" value={ "routine-" + r.ID }/>
-									<button class="button is-light" type="submit">✓ { name }</button>
+									<button class="button" type="submit">✓ { name }</button>
 								</form>
 							}
 						</div>
@@ -202,7 +202,7 @@ templ keepRoutinesForm(p RoutinesPart, button string, unticked bool) {
 			<div class="comp-keep-list mb-3"></div>
 			<input type="hidden" name="routines"/>
 			<p class="help mb-2">{ fmt.Sprintf("Up to %d routines on a page. One added already from this browser is changed to match.", p.Max) }</p>
-			<button class="button is-primary is-small" type="submit">{ button }</button>
+			<button class="button is-small is-primary" type="submit">{ button }</button>
 		</form>
 	}
 }
@@ -313,7 +313,7 @@ templ CoachGymnasts(p CoachGymnastsPage) {
 templ CoachGymnastPage(p CoachGymnastsPage) {
 	@competitionLayout(p.Gymnast + " · " + p.Frame.Coach) {
 		@coachFrame(p.Frame)
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Gymnasts</a></p>
+		@backLink(p.Back, "Gymnasts")
 		<h2 class="title is-5">{ p.Gymnast }</h2>
 		<p class="mb-3"><a class="button is-small" href={ templ.SafeURL(p.Skills) }>Skills: what they're learning and can do →</a></p>
 		if len(p.Entries) > 0 {
@@ -346,7 +346,7 @@ type ClubMemberRoutinesPage struct {
 // ClubMemberRoutines shows the comp sec a member's routines.
 templ ClubMemberRoutines(p ClubMemberRoutinesPage) {
 	@clubFrame(p.Club) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Members</a></p>
+		@backLink(p.Back, "Members")
 		<h2 class="title is-5">{ p.Member }</h2>
 		@routinesList(p.Routines)
 	}

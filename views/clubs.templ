@@ -271,7 +271,7 @@ templ NewClub(name string, problems []string) {
 				<label class="label" for="club-name">Club</label>
 				<input class="input" id="club-name" name="name" required maxlength="80" value={ name } placeholder="e.g. UCD Trampoline Club"/>
 			</div>
-			<button class="button is-primary is-fullwidth" type="submit">Create club</button>
+			<button class="button is-primary" type="submit">Create club</button>
 		</form>
 		<p class="help mt-4">We keep the club's name and its members' names, entries and routines, nothing else. A club is deleted 13 months after anyone last used it.</p>
 	}
@@ -314,7 +314,7 @@ templ clubFrame(c ClubPage) {
 				<p class="mb-3">{ a.Text }</p>
 				<form method="post" action={ templ.SafeURL(a.Action) } class="buttons">
 					<input type="hidden" name="anyway" value="1"/>
-					<button class="button is-small is-warning" type="submit">{ a.Button }</button>
+					<button class="button is-small is-primary" type="submit">{ a.Button }</button>
 					<a class="button is-small" href={ templ.SafeURL(a.Back) }>Cancel</a>
 				</form>
 			</div>
@@ -401,7 +401,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 					<span class="comp-send-note">The organiser sees only what you send, with what members offer to judge and help with. Sending all again also takes back withdrawn entries.</span>
 				</div>
 				<div class="comp-send-actions">
-					<button class="button is-primary is-small" type="submit" name="which" value="changed" disabled?={ comp.ToSend == 0 }>
+					<button class="button is-small is-primary" type="submit" name="which" value="changed" disabled?={ comp.ToSend == 0 }>
 						{ fmt.Sprintf("Send new and changed (%d)", comp.ToSend) }
 					</button>
 					<button class="button is-small is-text" type="submit" name="which" value="all" title="Sends every entry again, and takes back withdrawn ones">Send all again</button>
@@ -628,7 +628,7 @@ templ ClubCompetitionOffers(c ClubPage, comp ClubCompetition) {
 									<td>{ o.Offer }</td>
 									<td class="has-text-right">
 										if o.Edit != "" {
-											<a class="button is-small is-text" href={ templ.SafeURL(o.Edit) }>Change</a>
+											<a class="button is-small" href={ templ.SafeURL(o.Edit) }>Change</a>
 										}
 									</td>
 								</tr>
@@ -885,7 +885,7 @@ templ ClubSettings(c ClubPage) {
 					<input type="checkbox" name="confirm" value="1" required/>
 					Delete the club, its members and their entries, now
 				</label>
-				<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
+				<button class="button is-small is-text has-text-danger ml-2" type="submit">Delete</button>
 			</form>
 		}
 		if c.KeptUntil != "" {
@@ -907,7 +907,7 @@ script confirmRemove(name string) {
 templ ClubEntryEditPage(e ClubEntryEdit) {
 	@competitionLayout(e.Member + " · " + e.Competition.Name) {
 		@pageMenu(e.Menu)
-		<p class="mb-3"><a href={ templ.SafeURL(e.Back) }>← { e.Competition.Name }</a></p>
+		@backLink(e.Back, e.Competition.Name)
 		<h1 class="title is-4">
 			{ e.Member }
 			if e.Partner != nil {
@@ -953,7 +953,7 @@ templ ClubJoin(p JoinPage) {
 				<label class="label" for="member-name">Your name</label>
 				<input class="input" id="member-name" name="name" required maxlength="80" value={ p.Name } placeholder="As on the results"/>
 			</div>
-			<button class="button is-primary is-fullwidth" type="submit">Join</button>
+			<button class="button is-primary" type="submit">Join</button>
 		</form>
 		<p class="help mt-4">We keep your name, your entries, and any routines and skills you keep on your page, which your club sees, and your entries the competitions they're sent to. Nothing else, and no account.</p>
 	}
@@ -1018,7 +1018,7 @@ templ MemberHome(p MemberPage) {
 // forms, what they officiate and what they offer to judge and help with.
 templ MemberCompetitionPage(p MemberPage) {
 	@memberFrame(p) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Home) }>← Competitions</a></p>
+		@backLink(p.Home, "Competitions")
 		if p.Competition != nil {
 			@memberCompetitionBody(*p.Competition)
 		}
@@ -1078,7 +1078,7 @@ templ ClubLink(p ClubLinkPage) {
 				<input class="input" id="club-admin" name="clubAdmin" required placeholder="https://.../clubs/admin/..."/>
 				<p class="help">The link you got when you created the club. No club yet? <a href="/clubs/new">Create one</a>, then open this link again.</p>
 			</div>
-			<button class="button is-primary is-fullwidth" type="submit">Enter the club</button>
+			<button class="button is-primary" type="submit">Enter the club</button>
 		</form>
 	}
 }
@@ -1152,7 +1152,7 @@ type ClubOfferEdit struct {
 templ ClubOfferEditPage(e ClubOfferEdit) {
 	@competitionLayout(e.Member + " · judging and helping") {
 		@pageMenu(e.Menu)
-		<p class="mb-3"><a href={ templ.SafeURL(e.Back) }>← { e.Competition.Name }</a></p>
+		@backLink(e.Back, e.Competition.Name)
 		<h1 class="title is-4">{ e.Member }</h1>
 		<p class="subtitle is-6">Judging and helping at { e.Competition.Name }</p>
 		@offerForm(e.Form)

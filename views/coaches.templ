@@ -266,8 +266,8 @@ templ signoffForm(p SignoffPage) {
 			<input class="input is-small" id="signoff-note" name="note" maxlength="300" value={ p.Signoff.Note } placeholder="e.g. Not the full-in until we've done it on the big trampoline"/>
 		</div>
 		<div class="buttons">
-			<button class="button is-success is-small" type="submit" name="signed" value="1">Sign off</button>
-			<button class="button is-warning is-light is-small" type="submit" name="signed" value="0">Not yet</button>
+			<button class="button is-small is-primary" type="submit" name="signed" value="1">Sign off</button>
+			<button class="button is-small" type="submit" name="signed" value="0">Not yet</button>
 		</div>
 		<p class="help">If the entry changes after you sign it off, it needs signing off again.</p>
 	</form>
@@ -280,7 +280,7 @@ templ SignoffEntry(p SignoffPage) {
 			@coachFrame(*p.Frame)
 		}
 		if p.Back != "" {
-			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Entries</a></p>
+			@backLink(p.Back, "Entries")
 		}
 		// Whose entry first, then the competition's facts.
 		if p.Frame != nil {

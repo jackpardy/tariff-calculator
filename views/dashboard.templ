@@ -257,8 +257,8 @@ templ CompetitionDashboard(d Dashboard) {
 			// (competitions.js, tickBar).
 			<div class="comp-tick-bar" id="tick-bar" hidden>
 				<span class="has-text-weight-semibold" data-tick-count></span>
-				<button class="button is-small is-danger is-light" type="button" data-tick-go="remove">Remove…</button>
-				<button class="button is-small is-warning is-light" type="button" data-tick-go="hold">Hold for changes…</button>
+				<button class="button is-small is-text has-text-danger" type="button" data-tick-go="remove">Remove…</button>
+				<button class="button is-small" type="button" data-tick-go="hold">Hold for changes…</button>
 				<button class="button is-small is-text" type="button" data-tick-clear>Untick all</button>
 			</div>
 		}
@@ -312,7 +312,7 @@ templ CompetitionEntry(d EntryDetail) {
 	@competitionLayout(d.Card.Gymnast + " · " + d.Competition.Name) {
 		// Back, the name and the menu, in the order a person's page has them.
 		// Back goes to the entries page filtered as it was, at this entry's row.
-		<p class="mb-3"><a href={ templ.SafeURL(d.Base + d.List + "#entry-" + d.ID) }>← Entries</a></p>
+		@backLink(d.Base + d.List + "#entry-" + d.ID, "Entries")
 		<h1 class="title is-4">{ d.Card.Gymnast }</h1>
 		<p class="subtitle is-6">{ d.Card.Club } · { d.Card.Level }</p>
 		@pageMenu(d.Menu)
@@ -364,10 +364,10 @@ templ CompetitionEntry(d EntryDetail) {
 					</div>
 					<div class="buttons">
 						if d.Checked == "" {
-							<button class="button is-primary is-small" type="submit" name="checked" value="1">Mark checked</button>
+							<button class="button is-small is-primary" type="submit" name="checked" value="1">Mark checked</button>
 							// And on to the next entry still to check.
 							<input type="hidden" name="next" value=""/>
-							<button class="button is-primary is-light is-small" type="submit" name="checked" value="1" onclick="this.form.elements.next.value = '1'">Mark checked and next</button>
+							<button class="button is-small" type="submit" name="checked" value="1" onclick="this.form.elements.next.value = '1'">Mark checked and next</button>
 							<button class="button is-small" type="submit" name="checked" value="0">Save the note</button>
 						} else {
 							<button class="button is-small" type="submit" name="checked" value="1">Save the note</button>
@@ -398,11 +398,11 @@ templ CompetitionEntry(d EntryDetail) {
 					<div class="buttons">
 						// OK waits for a video to say it of.
 						if hasVideo(d.Card) {
-							<button class="button is-small is-success is-light" type="submit" name="review" value="ok">Video OK</button>
+							<button class="button is-small" type="submit" name="review" value="ok">Video OK</button>
 						} else {
 							<span class="is-size-7 has-text-grey mr-2">No video yet: OK once there's one.</span>
 						}
-						<button class="button is-small is-warning is-light" type="submit" name="review" value="more">Need more</button>
+						<button class="button is-small" type="submit" name="review" value="more">Need more</button>
 						if d.VideoReview != "" {
 							<button class="button is-small" type="submit" name="review" value="">Clear</button>
 						}
@@ -605,7 +605,7 @@ templ removeForm(base, list string) {
 				<label class="radio"><input type="radio" name="to" value="member"/> the gymnast</label>
 				<label class="radio"><input type="radio" name="to" value="both" checked/> both</label>
 			</div>
-			<button class="button is-small is-danger is-light" type="submit">Apply to the ticked entries</button>
+			<button class="button is-small is-primary" type="submit">Apply to the ticked entries</button>
 			<p class="help">To take a whole club, filter by the club above, then tick each table's header. Removed and held entries aren't counted, printed or timetabled.</p>
 		</form>
 	}

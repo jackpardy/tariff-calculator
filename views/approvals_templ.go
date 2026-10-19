@@ -546,7 +546,7 @@ func CompetitionApprovals(p ApprovalsPage) templ.Component {
 							}
 							if !k.Approved {
 								if k.Withdrawn {
-									templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<button class=\"button is-small is-success\" type=\"submit\" name=\"action\" value=\"approve\">Approve, with their sign-offs before</button> <button class=\"button is-small is-success is-light\" type=\"submit\" name=\"action\" value=\"afresh\">Approve, sign-offs from now on</button> ")
+									templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<button class=\"button is-small is-primary\" type=\"submit\" name=\"action\" value=\"approve\">Approve, with their sign-offs before</button> <button class=\"button is-small\" type=\"submit\" name=\"action\" value=\"afresh\">Approve, sign-offs from now on</button> ")
 									if templ_7745c5c3_Err != nil {
 										return templ_7745c5c3_Err
 									}
@@ -559,7 +559,7 @@ func CompetitionApprovals(p ApprovalsPage) templ.Component {
 									if templ_7745c5c3_Err != nil {
 										return templ_7745c5c3_Err
 									}
-									templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "<button class=\"button is-small is-success\" type=\"submit\" name=\"action\" value=\"approve\" onclick=\"")
+									templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "<button class=\"button is-small is-primary\" type=\"submit\" name=\"action\" value=\"approve\" onclick=\"")
 									if templ_7745c5c3_Err != nil {
 										return templ_7745c5c3_Err
 									}
@@ -573,7 +573,7 @@ func CompetitionApprovals(p ApprovalsPage) templ.Component {
 										return templ_7745c5c3_Err
 									}
 								} else {
-									templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "<button class=\"button is-small is-success\" type=\"submit\" name=\"action\" value=\"approve\">Approve</button> ")
+									templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "<button class=\"button is-small is-primary\" type=\"submit\" name=\"action\" value=\"approve\">Approve</button> ")
 									if templ_7745c5c3_Err != nil {
 										return templ_7745c5c3_Err
 									}
@@ -584,7 +584,7 @@ func CompetitionApprovals(p ApprovalsPage) templ.Component {
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "<button class=\"button is-small is-warning is-light\" type=\"submit\" name=\"action\" value=\"withdraw\" onclick=\"")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "<button class=\"button is-small\" type=\"submit\" name=\"action\" value=\"withdraw\" onclick=\"")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -598,7 +598,7 @@ func CompetitionApprovals(p ApprovalsPage) templ.Component {
 									return templ_7745c5c3_Err
 								}
 							} else if !k.Withdrawn && k.Status != "Not approved" {
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "<button class=\"button is-small is-warning is-light\" type=\"submit\" name=\"action\" value=\"refuse\">Not approved</button>")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "<button class=\"button is-small\" type=\"submit\" name=\"action\" value=\"refuse\">Not approved</button>")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}

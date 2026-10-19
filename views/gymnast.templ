@@ -104,7 +104,7 @@ templ GymnastHome(p GymnastPage) {
 // member's page has (an entry's own link opens this page at its row).
 templ GymnastCompetitionPage(p GymnastPage) {
 	@gymnastFrame(p) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Home) }>← Competitions</a></p>
+		@backLink(p.Home, "Competitions")
 		if c := p.Competition; c != nil {
 			if c.Saved && p.Link != "" {
 				<div class="notification is-success is-light">
@@ -133,7 +133,7 @@ templ GymnastCompetitionPage(p GymnastPage) {
 			}
 			@pairEntries(c.Pairs)
 			if c.Enter != "" {
-				<a class="button is-primary is-outlined" href={ templ.SafeURL(c.Enter) }>Enter another discipline</a>
+				<a class="button" href={ templ.SafeURL(c.Enter) }>Enter another discipline</a>
 			}
 			if c.Competition.ChangesOpen {
 				@privacyNote(c.Competition)
@@ -147,7 +147,7 @@ templ GymnastCompetitionPage(p GymnastPage) {
 templ GymnastEnterPage(p GymnastPage) {
 	@gymnastFrame(p) {
 		if e := p.Enter; e != nil {
-			<p class="mb-3"><a href={ templ.SafeURL(e.Back) }>{ "← " + e.Competition.Name }</a></p>
+			@backLink(e.Back, e.Competition.Name)
 			<h2 class="title is-5">Enter another discipline</h2>
 			if e.Already != nil {
 				<div class="notification is-warning is-light">

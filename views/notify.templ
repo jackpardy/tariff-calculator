@@ -11,6 +11,7 @@ import (
 type NotifyPage struct {
 	Competition CompetitionSummary
 	Back        string
+	BackTo      string // the page Back is, e.g. "My competition"
 	Action      string // where the form posts
 	For         string // whose changes, e.g. "you", "UCD's members"
 	Notice      string
@@ -53,7 +54,7 @@ type NotifyTopic struct {
 // NotifyCompetition is the page for opting in.
 templ NotifyCompetition(p NotifyPage) {
 	@competitionLayout("Changes · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Back</a></p>
+		@backLink(p.Back, p.BackTo)
 		<h1 class="title is-4">Tell me about changes</h1>
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		if p.Notice != "" {

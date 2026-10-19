@@ -334,12 +334,12 @@ templ scenarioTable(p SimulationPage) {
 								<div class="buttons are-small comp-sim-actions">
 									<form method="post" action={ templ.SafeURL(p.Base + "/timetable/simulate") }>
 										<input type="hidden" name="again" value={ strconv.Itoa(s.Index) }/>
-										<button class={ "button", templ.KV("is-warning", s.Stale) } type="submit">Run again</button>
+										<button class={ "button", templ.KV("is-primary", s.Stale) } type="submit">Run again</button>
 									</form>
 									<a class="button" href={ templ.SafeURL(fmt.Sprintf("%s/timetable/simulate?from=%d#sim-name", p.Base, s.Index)) }>Change</a>
 									<form method="post" action={ templ.SafeURL(p.Base + "/timetable/simulate/delete") }>
 										<input type="hidden" name="remove" value={ strconv.Itoa(s.Index) }/>
-										<button class="button is-text" type="submit">Remove</button>
+										<button class="button is-text has-text-danger" type="submit">Remove</button>
 									</form>
 								</div>
 							</td>

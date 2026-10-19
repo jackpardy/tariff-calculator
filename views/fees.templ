@@ -114,7 +114,7 @@ templ FeesAdmin(p FeesPage) {
 											}
 											· { pay.Who }
 											<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments/" + pay.ID + "/remove") } class="is-inline" onsubmit={ confirmFirst("Remove the payment of " + pay.Amount + "?") }>
-												<button class="button is-small is-text has-text-danger p-0 ml-1 comp-inline-button" type="submit" aria-label={ "Remove the payment of " + pay.Amount }>Remove</button>
+												<button class="button is-small is-text has-text-danger ml-1 comp-inline-button" type="submit" aria-label={ "Remove the payment of " + pay.Amount }>Remove</button>
 											</form>
 										</div>
 									}
@@ -134,7 +134,7 @@ templ FeesAdmin(p FeesPage) {
 									}
 								</td>
 								<td class="comp-pay-cell">
-									<a class="is-size-7" href={ templ.SafeURL(a.Invoice) }>Invoice</a>
+									<a class="button is-small" href={ templ.SafeURL(a.Invoice) }>Invoice</a>
 									// Recording a payment is for one row at a time, so it opens from a button.
 									@opens("", "", "Record a payment", a.Open) {
 										<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments") } class="comp-pay-form">
@@ -168,6 +168,7 @@ templ moneyCount(amount, label string) {
 type InvoicePage struct {
 	Competition                   CompetitionSummary
 	Back, To, Date, Instructions  string
+	BackTo                        string // the page Back is, e.g. "Fees"
 	Lines                         []InvoiceLineView
 	Total, Paid, Balance          string
 	Settled                       bool
@@ -184,7 +185,7 @@ type InvoiceLineView struct {
 templ Invoice(p InvoicePage) {
 	@competitionLayout("Invoice · " + p.To + " · " + p.Competition.Name) {
 		<div class="comp-print-bar screen-only">
-			<a href={ templ.SafeURL(p.Back) }>← Back</a>
+			<a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a>
 			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
 		</div>
 		<h1 class="title is-4">Invoice</h1>

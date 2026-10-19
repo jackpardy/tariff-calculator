@@ -286,10 +286,10 @@ templ timetableStatus(p TimetablePage) {
 				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/publish") } class="comp-tt-publish-form">
 					@versionField(p.Version)
 					if !p.Published {
-						<button class="button is-small is-success" type="submit" name="action" value="publish">Publish</button>
+						<button class="button is-small is-primary" type="submit" name="action" value="publish">Publish</button>
 					} else {
 						if p.Changes {
-							<button class="button is-small is-success" type="submit" name="action" value="publish">Publish changes</button>
+							<button class="button is-small is-primary" type="submit" name="action" value="publish">Publish changes</button>
 							<button class="button is-small" type="submit" name="action" value="discard" onclick="return confirm('Go back to the published timetable, losing your changes since?')">Discard changes</button>
 						}
 						<button class="button is-small is-text" type="submit" name="action" value="unpublish" onclick="return confirm('Take the timetable down? Clubs, gymnasts and officials stop seeing their flights and duties until you publish again.')">Unpublish</button>
@@ -871,9 +871,9 @@ templ flightBox(p TimetablePage, f ItemView) {
 				@versionField(p.Version)
 				<input type="hidden" name="flight" value={ strconv.Itoa(f.Index) }/>
 				<div class="buttons mb-2">
-					<button class="button is-small is-light" type="submit" name="action" value="redraw">Redraw order</button>
+					<button class="button is-small" type="submit" name="action" value="redraw">Redraw order</button>
 					if f.Earlier {
-						<button class="button is-small is-light" type="submit" name="action" value="earlier">Earlier</button>
+						<button class="button is-small" type="submit" name="action" value="earlier">Earlier</button>
 					}
 				</div>
 				<div class="comp-flight-actions">
@@ -1170,7 +1170,7 @@ templ ChangeCheck(p ChangeCheckPage) {
 							for _, v := range f.Fields {
 								<input type="hidden" name={ v.Name } value={ v.Value }/>
 							}
-							<button class="button is-small is-link is-light" type="submit">{ f.Label }</button>
+							<button class="button is-small" type="submit">{ f.Label }</button>
 						</form>
 					}
 				</div>
@@ -1182,7 +1182,7 @@ templ ChangeCheck(p ChangeCheckPage) {
 					<input type="hidden" name={ v.Name } value={ v.Value }/>
 				}
 				<input type="hidden" name="anyway" value="1"/>
-				<button class="button is-small is-warning" type="submit">
+				<button class="button is-small is-text" type="submit">
 					if p.Anyway != "" {
 						{ p.Anyway }
 					} else {

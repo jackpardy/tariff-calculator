@@ -128,19 +128,19 @@ templ CompetitionApprovals(p ApprovalsPage) {
 										<input class="input is-small" name="note" maxlength="300" placeholder="Note for the club (optional)" aria-label={ "Note about " + k.Name }/>
 										if !k.Approved {
 											if k.Withdrawn {
-												<button class="button is-small is-success" type="submit" name="action" value="approve">Approve, with their sign-offs before</button>
-												<button class="button is-small is-success is-light" type="submit" name="action" value="afresh">Approve, sign-offs from now on</button>
+												<button class="button is-small is-primary" type="submit" name="action" value="approve">Approve, with their sign-offs before</button>
+												<button class="button is-small" type="submit" name="action" value="afresh">Approve, sign-offs from now on</button>
 											} else if len(k.Qualifications) == 0 {
 												// Asks first: there's nothing to check.
-												<button class="button is-small is-success" type="submit" name="action" value="approve" onclick={ confirmFirst("Approve " + k.Name + "? Their club hasn't sent any qualifications.") }>Approve</button>
+												<button class="button is-small is-primary" type="submit" name="action" value="approve" onclick={ confirmFirst("Approve " + k.Name + "? Their club hasn't sent any qualifications.") }>Approve</button>
 											} else {
-												<button class="button is-small is-success" type="submit" name="action" value="approve">Approve</button>
+												<button class="button is-small is-primary" type="submit" name="action" value="approve">Approve</button>
 											}
 										}
 										if k.Approved {
-											<button class="button is-small is-warning is-light" type="submit" name="action" value="withdraw" onclick={ confirmFirst("Withdraw " + k.Name + "'s approval? Their sign-offs stop counting.") }>Withdraw approval</button>
+											<button class="button is-small" type="submit" name="action" value="withdraw" onclick={ confirmFirst("Withdraw " + k.Name + "'s approval? Their sign-offs stop counting.") }>Withdraw approval</button>
 										} else if !k.Withdrawn && k.Status != "Not approved" {
-											<button class="button is-small is-warning is-light" type="submit" name="action" value="refuse">Not approved</button>
+											<button class="button is-small" type="submit" name="action" value="refuse">Not approved</button>
 										}
 									</form>
 								</div>

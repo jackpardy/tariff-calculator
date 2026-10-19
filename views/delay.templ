@@ -116,7 +116,7 @@ templ Delay(p DelayPage) {
 					</label>
 				</div>
 			</details>
-			<button class="button is-primary is-small" type="submit">Show what happens</button>
+			<button class="button is-small is-primary" type="submit">Show what happens</button>
 		</form>
 		if r := p.Result; r != nil {
 			<div class="box">
@@ -190,7 +190,7 @@ templ Delay(p DelayPage) {
 			// Kept once it's been read, so below what happens.
 			<form method="post" action={ templ.SafeURL(p.Keep) } class="mb-4">
 				@versionField(p.Version)
-				<button class="button is-small is-success" type="submit">Keep this in the draft timetable</button>
+				<button class="button is-small is-primary" type="submit">Keep this in the draft timetable</button>
 				<span class="help is-inline ml-2">Attendees see it once you publish the timetable again.</span>
 			</form>
 		} else if !p.Asked {
