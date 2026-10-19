@@ -25,8 +25,10 @@ an odd number of half twists turns a somersault round, so a half-in (Half
 Half, Half-In Rudi-Out, Miller) is taken off backwards and an odd twist out
 (half, rudi, randi) is forwards. Added 2026-10-19 after the audit found
 everyday doubles named "Custom Skill". Body landings with names of their own
-(a cradle, a cat twist, swivel hips) keep their descriptive names ("Back Half
-Twist To Back"), with the coaches' name said beside them in a search.
+(a cradle, a corkscrew, a cat twist, swivel hips) keep their descriptive names
+("Back Half Twist To Back"; the corkscrew, `2 3` back to back, is "Back 1½
+Twist To Back", added 2026-10-19), with the coaches' name said beside them in
+a search.
 
 Where the shape matters it's part of the name: first for the single somersaults
 (Front, Back, Barani, Back Half), as coaches say them ("Tuck Back", "Pike Barani"), and
@@ -60,7 +62,7 @@ back or front, so the tab isn't a wall of buttons.
   "half twist jump", "back drop to feet", "rudi out triffis", the CoP's own
   "back in full out" and "front front half"), the rule books' and coaches'
   names said beside a result (`AlsoCalled`: "Back s/s", "Swivel Hips",
-  "Cradle", "Cat Twist"), and word-level spellings (rudy → rudi, randy →
+  "Cradle", "Corkscrew", "Cat Twist"), and word-level spellings (rudy → rudi, randy →
   randi). "½", "1/2" and "half" are the same, and a shape word (tuck/tucked,
   pike/piked, straight/layout/laid out, straddle) picks the shape rather than
   being looked for in the name, so "tuck back s/s" is the Tuck Back. Exact

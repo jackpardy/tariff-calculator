@@ -200,6 +200,7 @@ func TestSearchEverydayNames(t *testing.T) {
 		"double back pike":     "Double Back Pike",
 		"swivel hips":          "Seat Half Twist To Seat",
 		"cradle":               "Back Half Twist To Back",
+		"corkscrew":            "Back 1½ Twist To Back",
 		"cat twist":            "Back Full Twist To Back",
 		"back half":            "Tuck Back Half",
 		"straight back half":   "Straight Back Half",
@@ -239,7 +240,7 @@ func TestSearchEverydayNames(t *testing.T) {
 
 // What coaches call a skill is said beside the app's name.
 func TestAlsoCalledCoachesNames(t *testing.T) {
-	for query, want := range map[string]string{"swivel hips": "Swivel Hips", "cradle": "Cradle", "cat twist": "Cat Twist"} {
+	for query, want := range map[string]string{"swivel hips": "Swivel Hips", "cradle": "Cradle", "corkscrew": "Corkscrew", "cat twist": "Cat Twist"} {
 		rs := Search(query)
 		if len(rs) == 0 {
 			t.Errorf("%s: nothing found", query)

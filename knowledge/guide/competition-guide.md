@@ -94,7 +94,7 @@ asked, when it was sent, and whether you've checked it. To find entries:
 "marykate" finds Mary Kate, and synchro partners count), filter by club, coach (or no coach), checked or not, signed off or
 not, video, men or women, or **Problems only**, and sort by club, gymnast,
 latest sent or coach. The filters stay in the page's address, so you can
-bookmark or share a view; **Print** and **Download CSV**, below the entries, use them too. The page opens on the entries; the competition's dates and counts are at the bottom. With many filters, they're under **Filters**, which says how many are on. Each event's table starts folded (tap its heading to open it) and
+bookmark or share a view; **Print** and **Download CSV**, below the entries, use them too. The page opens on the entries; the competition's dates and counts are at the bottom. With many filters, they're under **Filters**, which says how many are on. Each choice says how many entries it would leave ("UCD (12)"), and one that would leave none is greyed out. The filters you've chosen are listed under the search ("Club: UCD ×"): tap one to take it off. Each event's table starts folded (tap its heading to open it) and
 says how many of its entries are shown ("12 of 96"); **Columns** chooses which columns show (Sent is hidden until you tick it, so the rest fit a laptop's screen) and can clip long text to one line, and dragging the edge of a heading makes a column wider or narrower; a table's edge fades where there's more to scroll to. The Coach column names the coach and says **Signed off**, **Needs changes** or **Waiting**; an asterisk after a coach's name means they aren't approved to sign off for this competition, so their sign-off doesn't count. **Expand all** opens every one (it then reads **Collapse all**, to fold them again), and
 your browser remembers which you left open. A search or filter opens the
 events it finds people in. Tap a gymnast to see both exercises in full (a synchro
@@ -226,8 +226,12 @@ list, each person once: gymnasts (and synchro partners), officials and coaches.
 A member who competes and judges is one row. The list shows their name, club
 and what they do ("Trampoline BUCS L7, Synchro BUCS L6/L7 · judge, can chair ·
 coaches 6"), with the number of people at the top. Type part of a name in
-**Find a name**, or narrow the list by club or by what they do (gymnast,
-official or coach). **Clear** shows everyone again.
+**Find a name**, or narrow the list by club, by what they do (gymnast,
+official or coach) or by the level they can judge. Each choice says how many
+people it would leave, and one that would leave nobody is greyed out, so
+looking for a judge from a club for a level, you see at once whether there's
+anyone. The filters you've chosen are listed under the search: tap one to
+take it off. **Clear** shows everyone again.
 
 Tap a name to see everything that person is doing, in one page for you to read
 (they can't be changed from it): their entries and the status of each card, with
@@ -275,8 +279,10 @@ and anyone you add.
   on the Settings page.
   To find people in a long list, type part of a name in **Find a name**, or
   narrow it by club, what they can do, the level they can judge (a level
-  shows everyone who can judge it or a harder one) or qualified. **Clear**
-  shows everyone again.
+  shows everyone who can judge it or a harder one) or qualified. Each choice
+  says how many it would leave, greyed out if none; the filters chosen are
+  listed under the search, each with × to take it off. **Clear** shows
+  everyone again.
 
 ## Plan the timetable
 

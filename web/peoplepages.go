@@ -300,11 +300,21 @@ func (p *competitionPages) people(w http.ResponseWriter, r *http.Request) {
 	for _, dp := range dir.list {
 		clubs = append(clubs, dp.club)
 	}
-	page.Tools = views.ListTools{ID: "people", Noun: "people", Total: len(dir.list), Filters: []views.ListFilter{clubFilter(clubs), peopleDoFilter()}}
+	// Can judge too, so the organiser looking for a judge from a club for a
+	// level sees whether there's anyone.
+	page.Tools = views.ListTools{ID: "people", Noun: "people", Total: len(dir.list), Filters: []views.ListFilter{clubFilter(clubs), peopleDoFilter(), judgesFilter(c.Competition)}}
 	for _, dp := range dir.list {
 		words, _ := dp.roles()
+		var judging []string
+		for _, o := range dp.officials {
+			for _, j := range judges(c.Competition, o.Offer) {
+				if !slices.Contains(judging, j) {
+					judging = append(judging, j)
+				}
+			}
+		}
 		page.People = append(page.People, views.PersonRow{Name: dp.name, Club: dp.club, Href: personPath(base, dp.key), Does: dp.does(),
-			List: views.ListRow{Name: dp.name, Values: map[string][]string{"club": {clubValue(dp.club)}, "does": peopleDo(words)}}})
+			List: views.ListRow{Name: dp.name, Values: map[string][]string{"club": {clubValue(dp.club)}, "does": peopleDo(words), "judges": judging}}})
 	}
 	render(w, r, views.People(page))
 }

@@ -512,6 +512,9 @@ features that show that, in this order:
    organiser's Coaches, the desk's People I pick, the club's Members and
    Coaches, and a coach's own entries
    ([how](architecture/rendering.md#lists-of-people-search-and-filters)).
+   **2026-10-19:** each choice says how many it would leave, greyed out when
+   none; the filters chosen are chips under the search, each taking its
+   filter off; All people filters by the level someone can judge.
 7. **Venue screen changes**: **built 2026-10-14.** Colours per area, cards
    that fill the screen for up to seven busy areas (quiet ones as strips),
    gymnasts with clubs and running numbers for now and next, lateness beside

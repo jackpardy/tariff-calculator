@@ -426,7 +426,7 @@ func (p *competitionPages) clubCoachesPart(r *http.Request, club store.Club, pag
 	}
 	page.CoachesTools = views.ListTools{ID: "coaches", Noun: "coaches", Total: len(coaches), Filters: []views.ListFilter{
 		hasFilter("signs", "Signs off", "Signs off or not", "Signs off routines", "Doesn't sign off"),
-		hasFilter("quals", "Qualifications", "Any qualifications", "Has qualifications", "None"),
+		hasFilter("quals", "Qualifications", "Any qualifications", "Has qualifications", "No qualifications"),
 	}}
 	for _, m := range members {
 		if m.AlsoCoach == "" {

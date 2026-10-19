@@ -347,9 +347,10 @@ var CommonSkills = map[string]TrampolineSkill{
 	"fullRudi":        {Name: "Full Rudi", Rotation: 8, TwistDistribution: []int{2, 3}, TakeoffPosition: Feet, Backward: false, Shape: Straight, SeatLanding: false},
 	"miller":          {Name: "Miller", Rotation: 8, TwistDistribution: []int{3, 3}, TakeoffPosition: Feet, Backward: true, Shape: Straight, SeatLanding: false},
 
-	// A cradle and a cat twist, back drop to back drop.
-	"cradle":   {Name: "Back Half Twist To Back", Rotation: 2, TwistDistribution: []int{1}, TakeoffPosition: Back, Backward: false, Shape: Straight},
-	"catTwist": {Name: "Back Full Twist To Back", Rotation: 0, TwistDistribution: []int{2}, TakeoffPosition: Back, Shape: Straight},
+	// A cradle, a corkscrew and a cat twist, back drop to back drop.
+	"cradle":    {Name: "Back Half Twist To Back", Rotation: 2, TwistDistribution: []int{1}, TakeoffPosition: Back, Backward: false, Shape: Straight},
+	"corkscrew": {Name: "Back 1½ Twist To Back", Rotation: 2, TwistDistribution: []int{3}, TakeoffPosition: Back, Backward: false, Shape: Straight},
+	"catTwist":  {Name: "Back Full Twist To Back", Rotation: 0, TwistDistribution: []int{2}, TakeoffPosition: Back, Shape: Straight},
 
 	// Twisting singles, doubles and triples, as the Code of Points' examples
 	// have them (Part II §C, skills/cop_examples_test.go). Where the twist goes

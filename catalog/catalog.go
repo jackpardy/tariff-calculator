@@ -119,7 +119,7 @@ var groups = []struct {
 	{"drops", "To seat", [][2]string{{"seatDrop", "Seat Drop"}, {"halfToSeat", "½ Twist To Seat"}}},
 	{"drops", "From seat", [][2]string{{"seatToFeet", "To Feet"}, {"seatHalfToFeet", "½ Twist To Feet"}, {"seatHalfToSeat", "½ Twist To Seat"}, {"seatHalfToFront", "½ Twist To Front"}}},
 	{"drops", "To back or front", [][2]string{{"backDrop", "Back Drop"}, {"halfToBack", "½ Twist To Back"}, {"frontDrop", "Front Drop"}, {"halfToFront", "½ Twist To Front"}}},
-	{"drops", "From back or front", [][2]string{{"backToFeet", "Back To Feet"}, {"backHalfToFeet", "Back ½ Twist To Feet"}, {"frontToFeet", "Front To Feet"}, {"cradle", "Back ½ Twist To Back"}, {"catTwist", "Back Full Twist To Back"}}},
+	{"drops", "From back or front", [][2]string{{"backToFeet", "Back To Feet"}, {"backHalfToFeet", "Back ½ Twist To Feet"}, {"frontToFeet", "Front To Feet"}, {"cradle", "Back ½ Twist To Back"}, {"corkscrew", "Back 1½ Twist To Back"}, {"catTwist", "Back Full Twist To Back"}}},
 }
 
 // categoryOrder is the picker's tab order, from the simplest skills up.
@@ -160,6 +160,7 @@ var otherNames = map[string]string{
 	"Front To Seat":           "Front s/s To Seat",
 	"Seat Half Twist To Seat": "Swivel Hips",
 	"Back Half Twist To Back": "Cradle",
+	"Back 1½ Twist To Back":   "Corkscrew",
 	"Back Full Twist To Back": "Cat Twist",
 }
 

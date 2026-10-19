@@ -186,7 +186,7 @@ func TestClubCoachesListFilters(t *testing.T) {
 		t.Errorf("the tools, with signs off and qualifications: %s", page)
 	}
 	for _, want := range []string{`<option value="yes">Signs off routines</option><option value="no">Doesn&#39;t sign off</option>`,
-		`<option value="yes">Has qualifications</option><option value="no">None</option>`} {
+		`<option value="yes">Has qualifications</option><option value="no">No qualifications</option>`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the tools have %s", want)
 		}
