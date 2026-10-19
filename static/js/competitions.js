@@ -400,9 +400,28 @@
         const days = [...document.querySelectorAll('.comp-tt-dayrow > .comp-tt-day')];
         const dayOf = (id) => document.getElementById(id)?.closest('details');
         const key = 'timetableDays:' + location.pathname;
-        const sync = () => pick.querySelectorAll('[data-day]').forEach((b) => {
-            b.setAttribute('aria-pressed', dayOf(b.dataset.day)?.open ? 'true' : 'false');
-        });
+        const row = document.querySelector('.comp-tt-dayrow');
+        // tail leaves room after the last day shown when the days don't all
+        // fit, so it can scroll to the left edge rather than stop part-way.
+        // Measured where the last day ends, not by taking the room away first,
+        // which would pull back a row scrolled to the end.
+        const tail = () => {
+            const shown = days.filter((d) => d.open);
+            const last = shown[shown.length - 1];
+            let room = 0;
+            if (wide.matches && last) {
+                const end = last.getBoundingClientRect().right - row.getBoundingClientRect().left - row.clientLeft + row.scrollLeft;
+                if (end > row.clientWidth + 1) { room = Math.max(0, row.clientWidth - last.offsetWidth); }
+            }
+            row.style.setProperty('--tail', room + 'px');
+        };
+        const sync = () => {
+            pick.querySelectorAll('[data-day]').forEach((b) => {
+                b.setAttribute('aria-pressed', dayOf(b.dataset.day)?.open ? 'true' : 'false');
+            });
+            tail();
+        };
+        window.addEventListener('resize', tail);
         const save = () => {
             const shown = days.filter((d) => d.open).map((d) => d.querySelector('summary').id);
             try { localStorage.setItem(key, JSON.stringify(shown)); } catch (e) { /* this visit only */ }

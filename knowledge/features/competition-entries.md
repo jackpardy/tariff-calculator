@@ -793,7 +793,9 @@ are then filled flight by flight.
   days (`dayPick`, the owner's choice 2026-10-19). On a phone they're tabs,
   one day shown at a time; on a wider screen each shows or hides its day,
   the days shown side by side, the row scrolling sideways when they don't
-  fit, and the choice is kept in the browser. The page opens on today's (on
+  fit (with room after the last, so it scrolls to the left edge as the
+  others do; no snapping, which made small scrolls jump back), and the
+  choice is kept in the browser. The page opens on today's (on
   the competition's days, `todayIndex`) or the first; the others' flights
   wait in a template until shown, searched or gone to (the `#area` a change
   comes back to: `competitions.js`, `reveal`). A day's heading doesn't fold.

@@ -1318,6 +1318,9 @@ details.comp-tt-day > summary::before { content: none; }
   .comp-tt-dayrow.has-more-right { border-right-color: #8a8a8a; }
   .comp-tt-dayrow > .comp-tt-day { flex: 1 0 calc(var(--areas) * 15rem + (var(--areas) - 1) * 1rem); min-width: 0; }
   .comp-tt-dayrow .comp-tt-areas { overflow-x: visible; border-color: transparent !important; } /* the row scrolls, not each day */
+  /* Room after the last day shown, so it scrolls to the left edge as the
+     others do (--tail, set by dayPick when the days don't all fit). */
+  .comp-tt-dayrow::after { content: ""; flex: 0 0 var(--tail, 0px); margin-left: -2rem; }
 }
 
 /* Nothing on now: "Now —" takes a line, and what's next the card's room. */
