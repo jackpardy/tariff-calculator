@@ -82,7 +82,13 @@ func TestCoachApprovalPages(t *testing.T) {
 	if page := do(t, h, http.MethodGet, admin+"/history", nil).Body.String(); !strings.Contains(page, `1<span class="comp-badge-word">&nbsp;waiting</span>`) {
 		t.Error("every page's menu says a coach is waiting")
 	}
-	redirected(t, h, admin+"/coaches/"+annID, url.Values{"action": {"approve"}})
+	// Approving comes back to her, where it shows.
+	if to := redirected(t, h, admin+"/coaches/"+annID, url.Values{"action": {"approve"}}); !strings.HasSuffix(to, "#coach-"+annID) || noticeOf(t, to) != "Approved Ann." {
+		t.Errorf("back to Ann: %s", to)
+	}
+	if page := do(t, h, http.MethodGet, admin+"/coaches", nil).Body.String(); !strings.Contains(page, `class="mb-4 comp-target" id="coach-`+annID+`"`) {
+		t.Error("each coach has an anchor")
+	}
 
 	// Approved, she signs off; sent, it counts.
 	redirected(t, h, open, url.Values{"signed": {"1"}})
@@ -131,6 +137,18 @@ func TestCoachApprovalPages(t *testing.T) {
 	redirected(t, h, admin+"/coaches/"+annID, url.Values{"action": {"approve"}})
 	if p := problems(); strings.Contains(p, "approved coach") || strings.Contains(p, "Not signed off") {
 		t.Error("approved again with her sign-offs")
+	}
+
+	// Cy is sent with no qualifications: Approve asks first, and approving
+	// says so.
+	do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Cy"}})
+	cy := regexp.MustCompile(regexp.QuoteMeta(club)+`/coaches/([^/"]+)/signs-off`).FindAllStringSubmatch(do(t, h, http.MethodGet, club+"/coaches", nil).Body.String(), -1)[2][1]
+	redirected(t, h, club+"/competitions/"+comp[1]+"/coaches", url.Values{"coach": {annID, cy}})
+	if page := do(t, h, http.MethodGet, admin+"/coaches", nil).Body.String(); !strings.Contains(page, "sent any qualifications.") {
+		t.Errorf("Approve asks first for Cy: %s", page)
+	}
+	if to := redirected(t, h, admin+"/coaches/"+cy, url.Values{"action": {"approve"}}); noticeOf(t, to) != "Approved Cy, though their club hasn't sent any qualifications." || !strings.HasSuffix(to, "#coach-"+cy) {
+		t.Errorf("approving Cy says so: %s", to)
 	}
 }
 

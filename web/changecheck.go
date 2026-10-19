@@ -55,6 +55,21 @@ func (p *competitionPages) askFirst(w http.ResponseWriter, r *http.Request, c st
 	return true
 }
 
+// askBefore asks before a change outside the timetable that does a lot at
+// once (turning on coach approval, changing limits), saying what it does in
+// page, with the change as posted to make it anyway (anyway=1). The caller
+// works out whether there's anything to ask, and checks asked first.
+func (p *competitionPages) askBefore(w http.ResponseWriter, r *http.Request, c store.Competition, menu string, page views.AskFirstPage) {
+	r.ParseForm()
+	page.Base, page.Competition, page.Menu = adminPath(r.PathValue("token")), summary(c, p.now()), p.menuFor(r, c, menu)
+	page.Action, page.Fields = r.URL.Path, postedFields(r)
+	render(w, r, views.AskFirst(page))
+}
+
+// asked says whether a change was asked about already (askBefore) and is
+// to be made anyway.
+func asked(r *http.Request) bool { return r.FormValue("anyway") == "1" }
+
 // postedFields are the form as posted, but anyway: to post it again.
 func postedFields(r *http.Request) []views.FormValue {
 	var out []views.FormValue

@@ -30,7 +30,7 @@ func setLimit(t *testing.T, h http.Handler, admin, event string, n string) {
 	if m == nil {
 		t.Fatalf("no limit for %s on the Settings page", event)
 	}
-	redirected(t, h, admin+"/limits", url.Values{m[1]: {n}})
+	redirected(t, h, admin+"/limits", url.Values{m[1]: {n}, "anyway": {"1"}}) // past asking what it changes
 }
 
 // lateSetup is a competition with sign-off and BUCS L3 and L4, its

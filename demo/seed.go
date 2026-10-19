@@ -612,6 +612,7 @@ func (s *seeder) run(out io.Writer) error {
 			limits.Set(m[1], limit)
 		}
 	}
+	limits.Set("anyway", "1") // past the question: it moves some to the waiting lists
 	s.post(admin+"/limits", limits)
 	s.post(tt+"/plan", url.Values{})
 	s.post(tt+"/publish", url.Values{"on": {"1"}})

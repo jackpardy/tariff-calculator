@@ -325,7 +325,12 @@ without moving anyone else. The dashboard shows "88 of 90 places" beside a
 limited event and a **Waiting lists** box; the comp sec sees "Sent ·
 waiting list, 3rd", and a member or individual "On the waiting list for
 BUCS L1: 3rd". Notifications (cards) say when an entry goes on or comes
-off a waiting list, when the organiser's change does it.
+off a waiting list, when the organiser's change does it. New limits that
+let entries in from a waiting list, or move entries in onto one, ask first
+on **Before you change it** (`askBefore`, `views.AskFirst`), naming each
+(`store.WithLimits` works out the places the new limits would give); the
+notice after saving says what they did ("Let 13 entries in from the
+waiting lists.").
 
 Every page says where an entry stands in the same order (`stateOf` in
 `web/entrystate.go`), the comp sec's: removed, on hold, not sent, on a
@@ -383,7 +388,11 @@ on, on any list. The tables have a **Columns** menu (`static/js/tables.js`):
 tick which columns show (the gymnast's always does), **Clip long text to one
 line**, and drag a heading's edge to resize its column; kept in the browser
 for every level's table, and on a phone (where they're cards) only hidden
-columns count. Any table that scrolls sideways shows a line at the edge
+columns count. Until the viewer chooses, the columns named in the tables'
+`data-table-hidden` are hidden: Sent, so the rest fit a 1,300 px window
+(two-word headings, a long club and the coach's chips wrap, a set is named
+without its level: "option 2"), Coach and Checked in sight; measured at
+1,198 px wide in a 1,198 px box at 1,300, 1,338 in 1,338 at 1,440. Any table that scrolls sideways shows a line at the edge
 with more to see.
 Levels start folded, with **Expand all** and **Collapse all**; the browser
 remembers which were left open, and a search or filter opens the levels it
@@ -469,7 +478,14 @@ off from front, but element 3 lands on back.", on the card's rows and in the
 problem lists gymnasts, comp secs, coaches and the organiser see. The buttons:
 
 - **Mark checked**, with an optional note. The note is shown to the club's comp
-  sec and the member.
+  sec and the member. **Mark checked and next** opens the next entry still
+  to check that the entries page's search, filters and sort show (`listed`,
+  `nextToCheck`), in its level first. An entry opened from the entries page
+  carries them in its address (`listQuery`: the filter keys and `sort`; the
+  page's script adds a search typed since, `data-list-carry-links`), its
+  forms post them back, and **← Entries** goes to the list as it was at
+  `#entry-<id>`, where the script opens the entry's level and picks out its
+  row (`backToEntry`). Removing or holding entries comes back filtered too.
 - **Print card.**
 
 If the competition asks for video, the entry also lists the skills that need
@@ -608,7 +624,7 @@ each discipline's panel needs. The People list can be searched by name and
 filtered by club, what they can do (judge, chair, recorder, marshal), the
 discipline and level they can judge (a level shows everyone who judges it or
 a harder one), and qualified or not. The search and filters stay while the tab
-is open, so ticking someone qualified keeps the list as it was
+is open, so ticking someone qualified keeps the list as it was, back at their row with a notice saying so
 ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
 
 - **Offers.** On their page, a member says what they can do at each
@@ -1519,7 +1535,13 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   (opened only for coaches sent there), whether they meet each level, and
   **Approve**, **Not approved** or **Withdraw approval**, with a note;
   approving a withdrawn coach again asks whether their earlier sign-offs
-  count, or only those from then (`counts_from`). A sign-off records which
+  count, or only those from then (`counts_from`). Deciding comes back to
+  the coach (`#coach-<id>`, `#named-<entry>`), the notice staying in sight;
+  **Approve** for a coach sent with no qualifications asks first, and the
+  notice says so. Turning approval on where entries are signed off by
+  coaches not approved asks first, saying how many entries that leaves
+  waiting for a coach's sign-off (`waitingOnApproval`,
+  `Store.UnapprovedSignoffs`). A sign-off records which
   coach gave it (`signed_coach`); it counts only while that coach is
   approved, worked out as entries are read, so nothing is erased. An
   unapproved coach sees why on their page and can't sign off; the
