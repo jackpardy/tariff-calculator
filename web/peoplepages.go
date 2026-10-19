@@ -235,7 +235,7 @@ func (dp *dirPerson) roles() (words, tags []string) {
 		add("judge", "Judge")
 	}
 	if chair {
-		add("chair", "Can chair")
+		add("chair", "Chair")
 	}
 	if recorder {
 		add("recorder", "Recorder")
@@ -261,7 +261,7 @@ func (dp *dirPerson) does() string {
 	for _, h := range []struct {
 		on   bool
 		word string
-	}{{judge, "judge"}, {chair, "can chair"}, {recorder, "recorder"}, {marshal, "marshal"}} {
+	}{{judge, "Judge"}, {chair, "Chair"}, {recorder, "Recorder"}, {marshal, "Marshal"}} {
 		if h.on {
 			help = append(help, h.word)
 		}
@@ -365,7 +365,7 @@ func (p *competitionPages) person(w http.ResponseWriter, r *http.Request) {
 			case store.Scratched:
 				ev.Checkin = "Scratched"
 			default:
-				ev.Checkin = "Not marked yet"
+				ev.Checkin = "Not checked in"
 			}
 		}
 		page.Events[i] = ev
@@ -500,7 +500,7 @@ func panelStatus(s competitions.Schedule, person string, official map[string]map
 	case missing == total:
 		return "Missing"
 	case here == 0 && missing == 0:
-		return "Not marked yet"
+		return "Not checked in"
 	}
 	out := fmt.Sprintf("Here for %d of %s", here, views.Count(total, "flight", "flights"))
 	if missing > 0 {

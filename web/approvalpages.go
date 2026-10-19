@@ -202,9 +202,6 @@ func (p *competitionPages) renderApprovals(w http.ResponseWriter, r *http.Reques
 	for _, s := range sent {
 		row := views.ApprovalRow{ID: s.CoachID, Anchor: "coach-" + s.CoachID, Name: s.Name, Person: personPath(base, store.CoachKey(s.CoachID)), Action: base + "/coaches/" + s.CoachID, Status: coachStatus(s.Status), Approved: s.Approved(),
 			Withdrawn: s.Status == store.CoachWithdrawn, Note: s.Note, Changed: s.Changed}
-		if s.Status == store.CoachWaiting {
-			row.Status = "Waiting"
-		}
 		var keys []string
 		for _, q := range s.Qualifications {
 			row.Qualifications = append(row.Qualifications, views.ApprovalQualification{Name: qualificationName(q.Qualification),
@@ -230,9 +227,6 @@ func (p *competitionPages) renderApprovals(w http.ResponseWriter, r *http.Reques
 				Qualifications: []views.ApprovalQualification{{Name: qualificationName(n.Qualification), Certificate: base + "/entry-coaches/" + n.EntryID + "/certificate"}},
 				Meets:          meets(c.Competition, []string{n.Qualification})}
 			row.List = views.ListRow{Name: row.Name, Values: map[string][]string{"club": {individualsClub}, "status": {coachStatusValue(n.Status)}}}
-			if n.Status == store.CoachWaiting {
-				row.Status = "Waiting"
-			}
 			individuals.Coaches = append(individuals.Coaches, row)
 		}
 		page.Clubs = append(page.Clubs, individuals)
@@ -394,8 +388,7 @@ func (p *competitionPages) entryCoachView(r *http.Request, c store.Competition, 
 		return nil, err
 	}
 	v.Name, v.Qualification, v.Status, v.Approved, v.Note = named.Name, qualificationName(named.Qualification), coachStatus(named.Status), named.Approved(), named.Note
-	// The chip has its own mark, so the status loses its tick.
-	v.Status, v.State = strings.TrimSuffix(v.Status, " ✓"), coachState(named.Status)
+	v.State = coachState(named.Status)
 	return v, nil
 }
 

@@ -45,7 +45,7 @@ type ApprovalRow struct {
 	Anchor         string // its id on the page, to come back to after deciding
 	Person         string // their page
 	Action         string // where deciding posts
-	Status         string // e.g. "Waiting", "Approved ✓"
+	Status         string // e.g. "Waiting for approval", "Approved"
 	Approved       bool
 	Withdrawn      bool // approved before, so approving again asks about their sign-offs
 	Note           string
@@ -249,7 +249,7 @@ templ pairEntries(list []PairView) {
 // approvalState is the organiser's decision about a coach as a state chip,
 // in the palette's colours: approved, not approved or withdrawn, or waiting.
 func approvalState(k ApprovalRow) (State, string) {
-	label := strings.TrimSuffix(k.Status, " ✓")
+	label := k.Status
 	switch {
 	case k.Approved:
 		return Done, label

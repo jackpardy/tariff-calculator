@@ -151,7 +151,7 @@ templ judgingBox(b JudgingBox) {
 // offerBox is what someone offers, with the form to change it, collapsed.
 templ offerBox(f OfferForm) {
 	<div class="mt-4">
-		@changeLine("Judging and helping", offerNow(f), len(f.Problems) > 0) {
+		@changeLine("Offer to officiate", offerNow(f), len(f.Problems) > 0) {
 			@offerForm(f)
 		}
 	</div>

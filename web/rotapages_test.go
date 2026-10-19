@@ -134,7 +134,7 @@ func TestOfficialsRota(t *testing.T) {
 	}
 
 	// Published, Dara sees her duties.
-	if strings.Contains(do(t, h, http.MethodGet, dara, nil).Body.String(), "Officiating") {
+	if strings.Contains(do(t, h, http.MethodGet, dara, nil).Body.String(), "<p><strong>Officiating</strong></p>") {
 		t.Error("not before publishing")
 	}
 	redirected(t, h, tt+"/publish", url.Values{"on": {"1"}})

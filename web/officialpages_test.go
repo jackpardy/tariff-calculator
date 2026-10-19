@@ -35,7 +35,7 @@ func TestOfficialPages(t *testing.T) {
 	}
 	offer := regexp.MustCompile(`action="(` + regexp.QuoteMeta(a) + `/competitions/[^"]+/offer)"`).FindStringSubmatch(page)[1]
 	redirected(t, h, offer, url.Values{"judge-trampoline": {"1"}, "upto-trampoline": {"BUCS L3"}, "chair-trampoline": {"1"}, "recorder": {"1"}})
-	if page := memberCompetitionPage(t, h, a); !strings.Contains(page, "Judge Trampoline up to BUCS L3 (can chair); recorder") {
+	if page := memberCompetitionPage(t, h, a); !strings.Contains(page, "Judge Trampoline up to BUCS L3 (can chair); Recorder") {
 		t.Error("the member sees what they offer")
 	}
 	if rec := do(t, h, http.MethodPost, offer, url.Values{"judge-tumbling": {"1"}, "upto-tumbling": {"Master"}}); rec.Code != http.StatusBadRequest {
@@ -43,7 +43,7 @@ func TestOfficialPages(t *testing.T) {
 	}
 	clubPage := clubCompetitionTab(t, h, club, "/offers")
 	edit := regexp.MustCompile(`href="(` + regexp.QuoteMeta(club) + `/members/[^"]+/offer)"`).FindStringSubmatch(clubPage)
-	if edit == nil || !strings.Contains(clubPage, `Judging and helping <span class="has-text-grey has-text-weight-normal">· 1</span>`) {
+	if edit == nil || !strings.Contains(clubPage, `Officiating <span class="has-text-grey has-text-weight-normal">· 1</span>`) {
 		t.Fatal("the comp sec sees the offer, with a link to change it")
 	}
 	redirected(t, h, edit[1], url.Values{"judge-trampoline": {"1"}, "judge-tumbling": {"1"}, "marshal": {"1"}})
@@ -52,7 +52,7 @@ func TestOfficialPages(t *testing.T) {
 	}
 	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 	page = do(t, h, http.MethodGet, officials, nil).Body.String()
-	if !strings.Contains(page, "Judge Trampoline and Tumbling; marshal") {
+	if !strings.Contains(page, "Judge Trampoline and Tumbling; Marshal") {
 		t.Error("the club's offer reaches the organiser, as the comp sec corrected it")
 	}
 

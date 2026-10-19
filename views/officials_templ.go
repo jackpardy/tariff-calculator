@@ -605,7 +605,7 @@ func offerBox(f OfferForm) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = changeLine("Judging and helping", offerNow(f), len(f.Problems) > 0).Render(templ.WithChildren(ctx, templ_7745c5c3_Var26), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = changeLine("Offer to officiate", offerNow(f), len(f.Problems) > 0).Render(templ.WithChildren(ctx, templ_7745c5c3_Var26), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

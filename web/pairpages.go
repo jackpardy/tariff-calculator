@@ -100,9 +100,9 @@ func (cs *competitionsSeen) pairViews(pairs []store.PairEntry, skip func(store.P
 		}
 		signoff := views.SignoffView{Required: s.c.Signoff, Signed: !pe.SignedAt.IsZero(), By: pe.SignedBy}
 		if copy, ok := s.byID[pe.CopyID]; ok {
-			v.Status = "Sent to the competition"
+			v.Status = "Sent by your club"
 			if copy.Checked() {
-				v.Status += " · checked by the organiser ✓"
+				v.Status = "Checked by the organiser"
 			}
 			signoff = storedSignoff(s.c.Competition, copy)
 			v.Placement = placement(s.c, copy.ID)

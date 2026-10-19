@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: The shared look
-description: The rules every competition and club page keeps to, so the app reads as one thing - one page width, buttons by role, one open arrow, one notice, ways back that say where, the scroll fade, contrast and tap sizes, chips without marks, empty states, not-found pages and print - and where each lives in the code.
+description: The rules every competition and club page keeps to, so the app reads as one thing - one page width, buttons by role, one open arrow, one notice, ways back that say where, the scroll fade, contrast and tap sizes, chips without marks, empty states, not-found pages, print, asking first without browser pop-ups, and one wording for each state - and where each lives in the code.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/views/look.templ
 tags: [architecture, ui, look, css, accessibility]
 generated: { by: claude-code/cli, at: 2026-10-19T12:00:00Z }
@@ -176,3 +176,81 @@ How every list's search and filters look (built in `views/lists.templ` and
   chip takes its filter off; Clear takes them all.
 - The Filters button's number is the number of chips.
 - Don't add a second way to show a list's filters; use `ListTools`.
+
+# Asking first
+
+No browser pop-ups (`confirm()`, `alert()`) on the competition and club
+pages: they look like the browser, not the app, and cover what's being
+read (`TestNoBrowserPopups`, `views/look_test.go`). A change asks the way
+its weight calls for, and only once:
+
+| How | When | For example |
+| --- | --- | --- |
+| **On a page of its own**, "Before you change it" (`askBefore` and `views.AskFirst`; the timetable's `askFirst` and `askDayMarks`, `views.ChangeCheck`) | It does a lot at once: changes what many people see, or loses work done by hand | The timetable's Plan again, Assign officials again, Discard changes, Unpublish; publishing that drops what was marked on the day; turning on coach approval; lowering a limit; a change by hand that breaks a rule |
+| **On the page it was asked from**, a box at its top (`views.Ask`, `askBox`; `inPlace` in `web/changecheck.go`) | It changes one person or thing and can't be put back, or is made without what it usually needs | Removing a member, a coach, a helper's link, a payment, a club skill or level; deleting a kept routine; New link; Replace the admin link (the organiser's and the comp sec's); approving a coach with no qualifications |
+| **Done, with Undo** in its notice (`views.Undo`, `undoNotice`) | It's put back exactly with one tap | Withdrawing a coach's approval (Undo approves them again, with their sign-offs before) |
+| **Typed** "delete" (`typeToDelete`) | Deleting a whole competition or club | |
+
+- The ask says what the change does and to whom, plainly, then the button
+  that makes it (named for the change: "Remove Ann Ryan", "Plan again") and
+  Cancel, which goes back to where it was asked from.
+- The ask posts the change again, as it was posted, with `anyway=1`. The
+  server checks: without `anyway=1` these changes are never made, whatever
+  the page sent (`asked`). An ask isn't recorded in the history
+  (`noteAsked`).
+- A button that asks first can say so in its title ("You're asked first").
+- Once the competition has begun, Plan again is refused, not asked about.
+
+# The same words
+
+One state, one wording, on every competition and club page; the colour is
+the state's (`StateChip`). The short form is for lists, rows and chips; the
+long form where the page is about that one thing and there's room to say
+who.
+
+**Entries**
+
+| State | Short | Long form, where |
+| --- | --- | --- |
+| Saved by a member, not sent by the club | Not sent | "Saved, not sent yet": the member's own page |
+| Sent, not checked yet | Sent | "Sent by your club" (a member's page); "Sent Monday 19 October, 14:56." (an individual's entry). Never "Entered" for this |
+| Checked by the organiser | Checked | "Checked by the organiser": the entry's own page |
+| Changed since it was sent | Changed since sent | "Changed since your club sent it": the member's page |
+| On a waiting list | Waiting list, 3rd | |
+| Held for changes | On hold | "On hold: the organiser asks for changes" / "On hold: changed, send it again" |
+| Problems on its card | 1 problem, 2 problems | the problems listed under the chip |
+| Removed / withdrawn | Removed / Withdrawn | "Removed by the organiser" |
+
+**Sign-off**
+
+| State | Wording |
+| --- | --- |
+| Waiting for a coach | Waiting for sign-off, in full. Only in the organiser's Entries Coach column, beside the coach's name, is it "Waiting" |
+| Signed off | Signed off by Declan Ward: the chip, then "by" and the name in small text, a link where there's a page (`signoffLine`; an entry's card too) |
+| The coach asks for changes | Needs changes |
+| By a coach not approved | the name with an asterisk, explained under the table |
+
+**Coaches' approval**: Approved, Waiting for approval, Not approved,
+Approval withdrawn. No ✓ after the words: the chip's colour says it.
+
+**Check-in** is a chip wherever it shows: Here, Not checked in, Scratched,
+Missing (an official); "Not yet" only in the day's check-in rows, where
+everything is check-in.
+
+**Who and what they do**
+
+- **Officiating** is judging, chairing, recording and marshalling: the comp
+  sec's tab (not "Judging and helping"), a person's duties and the
+  organiser's page of a person. What someone offers is their **Offer to
+  officiate**. The people are **officials** (the organiser's Officials page).
+- Panel roles are names, so capitalised standing alone (a chip, a column, a
+  list after "·"): Chair, Judge, Recorder, Marshal; in a sentence they're
+  lowercase ("plus a recorder and a marshal"). On a person's role chips it's
+  **Chair**, not "Can chair".
+- A coach named as someone's coach is "Coach: Declan Ward", the name a link
+  to their page. A role chip (`WhoChip`) says who did something where it
+  isn't otherwise said (added it, left a note, marked it); a sign-off says
+  it in its words, so it's "by" and the name.
+- The first of a repeated element counts: its note on a card is grey, not
+  red. Only what's wrong is red.
+- No space before a colon: "Resolved by Organiser: asked UCD to fix it".

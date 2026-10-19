@@ -567,12 +567,12 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 				row.Status = "Not sent"
 				cc.ToSend++
 			case entryWaiting:
-				row.Status = "Sent · waiting list, " + waitingWord(place)
+				row.Status = "Waiting list, " + waitingWord(place)
 			case entryChanged:
 				row.Status = "Changed since sent"
 				cc.ToSend++
 			case entryChecked:
-				row.Status = "Sent · checked"
+				row.Status = "Checked"
 			}
 			row.Problems = len(memberProblems(c.Competition, e, sent, all))
 			if checked, err := c.Check(e.Entry); err == nil {
@@ -1264,7 +1264,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 			}
 			state := memberState(e, rem, removed, place)
 			ev.Status = memberStatus(state, rem, e.ChangedSinceSent())
-			ev.Brief, ev.BriefState = brief(state, len(shown.Problems), place, "Sent")
+			ev.Brief, ev.BriefState = brief(state, len(shown.Problems), place)
 			mc.Problems += len(shown.Problems)
 		}
 		key := c.ID + "/" + d
@@ -1376,7 +1376,7 @@ func (p *competitionPages) clubSendCoaches(r *http.Request, club store.Club, com
 		k := views.ClubSendCoach{ID: c.ID, Name: c.Name, Ticked: entered[c.ID] && len(sent) == 0, NoQualifications: len(quals[c.ID]) == 0}
 		if s, ok := sent[c.ID]; ok {
 			k.Ticked, k.Status, k.Approved, k.Note, k.Changed = true, coachStatus(s.Status), s.Approved(), s.Note, s.Changed
-			k.Status, k.State = strings.TrimSuffix(k.Status, " ✓"), coachState(s.Status)
+			k.State = coachState(s.Status)
 		}
 		out = append(out, k)
 	}
@@ -1387,13 +1387,13 @@ func (p *competitionPages) clubSendCoaches(r *http.Request, club store.Club, com
 func coachStatus(status string) string {
 	switch status {
 	case store.CoachApproved:
-		return "Approved ✓"
+		return "Approved"
 	case store.CoachRefused:
 		return "Not approved"
 	case store.CoachWithdrawn:
 		return "Approval withdrawn"
 	}
-	return "Waiting for the organiser"
+	return "Waiting for approval"
 }
 
 // coachState is the state of what an organiser has decided about a coach:

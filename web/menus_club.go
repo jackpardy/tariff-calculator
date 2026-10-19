@@ -57,7 +57,7 @@ func clubCompetitionMenu(token string, c store.Competition, current string) []vi
 	if c.ApproveCoaches && c.Signoff {
 		items = append(items, views.MenuItem{Label: "Coaches", Href: page + "/coaches", Current: current == clubCompCoaches})
 	}
-	items = append(items, views.MenuItem{Label: "Judging and helping", Href: page + "/offers", Current: current == clubCompOffers})
+	items = append(items, views.MenuItem{Label: "Officiating", Href: page + "/offers", Current: current == clubCompOffers})
 	if c.Fees.On() {
 		items = append(items, views.MenuItem{Label: "Fees", Href: page + "/fees", Current: current == clubCompFees})
 	}

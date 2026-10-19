@@ -46,7 +46,7 @@ func TestOffers(t *testing.T) {
 	if err := c.ValidateOffer(o); err != nil {
 		t.Fatal(err)
 	}
-	if got := o.Describe(); got != "Judge Trampoline up to FIG AG3 (17–21) (can chair) and Tumbling at any level; recorder" {
+	if got := o.Describe(); got != "Judge Trampoline up to FIG AG3 (17–21) (can chair) and Tumbling at any level; Recorder" {
 		t.Errorf("described as %q", got)
 	}
 	if (Offer{}).Describe() != "" || !(Offer{}).Empty() || o.Empty() {

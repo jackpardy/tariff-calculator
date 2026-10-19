@@ -62,7 +62,7 @@ func TestCoachApprovalPages(t *testing.T) {
 		t.Fatal("the club's coaches to send: Ann ticked, Bob not offered")
 	}
 	redirected(t, h, club+"/competitions/"+comp[1]+"/coaches", url.Values{"coach": {annID}})
-	if page := clubCompetitionTab(t, h, club, "/coaches"); !strings.Contains(page, "Waiting for the organiser") {
+	if page := clubCompetitionTab(t, h, club, "/coaches"); !strings.Contains(page, "Waiting for approval") {
 		t.Error("the club sees Ann waiting")
 	}
 
@@ -199,7 +199,7 @@ func TestIndividualCoachPages(t *testing.T) {
 	if location := rec.Header().Get("Location"); !strings.Contains(location, "Sent+Ann+to+the+organiser") {
 		t.Fatalf("named: %d %s", rec.Code, location)
 	}
-	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Gymnastics Ireland Level 2 Trampoline Coach") || !strings.Contains(page, "Waiting for the organiser") {
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Gymnastics Ireland Level 2 Trampoline Coach") || !strings.Contains(page, "Waiting for approval") {
 		t.Error("Mary sees Ann waiting")
 	}
 	if page := do(t, h, http.MethodGet, signoff, nil).Body.String(); !strings.Contains(page, "Waiting for the organiser to approve Ann") {

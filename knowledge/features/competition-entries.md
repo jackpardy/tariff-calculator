@@ -134,7 +134,7 @@ the first key found, and another of their keys redirects to it.
 Each row has the name (a link), the club ("On their own" for someone entering
 without a club, nothing for an official with no club) and **what they do**: the
 events they compete in ("Trampoline BUCS L7, Synchro BUCS L6/L7"), what they
-offered ("judge, can chair, recorder, marshal") and "coaches 6" (the gymnasts
+offered ("Judge, Chair, Recorder, Marshal") and "coaches 6" (the gymnasts
 they coach). The list can be searched by name and filtered by club and by what
 they do (gymnast, official, coach; judging, chairing, recording or marshalling
 makes an official), from the same pieces as the Officials list
@@ -155,8 +155,8 @@ calendar, "I'm here for the rest", the score sheets link) and these added:
 - **Who they are**: name, club, and a tag for each role.
 - **Entries**: each event with its card status and a link to the entry, who
   coaches it (linking to the coach's page), and once the timetable is
-  published their flight, place, rough times and check-in (here, scratched or
-  not marked yet).
+  published their flight, place, rough times and check-in, as a chip (Here,
+  Scratched or Not checked in).
 - **Officiating**: what they offered and who sent it, which events they may
   judge under the judging rule (and can chair), whether they're marked
   qualified where the rule asks, their seats (the published timetable's, or
@@ -350,7 +350,8 @@ Removed, held and withdrawn entries aren't charged (`Fees.Invoice`). The
 page lists each club, and each individual's entry, with entries, due, paid
 and balance (the Paid chip once settled), and totals; the organiser records
 each payment (**Record a payment**, opening the amount and note, with who
-recorded it) and can remove one made by mistake. An amount is whole and
+recorded it) and can remove one made by mistake (asked first, at the top of
+Fees: it's typed again to put it back). An amount is whole and
 cents ("12.50" or "12,50"; "1,000" is refused rather than read as 1), a fee
 up to 1,000 and a payment up to 100,000 (a club's whole bill) (`ParseMoney`, `ParsePayment`),
 and a refund shows on the invoice as "Refunded … +€X". Each has an **invoice** to print: a line per entry and the club
@@ -448,7 +449,7 @@ and no Bulma colour for a state (buttons keep theirs):
 | A member's or individual's disciplines, and their competitions list | the same states in a word or two; problems; timetable published; a message from the organisers | |
 | The rota (timetable) and Officials | a seat with no one; every seat filled; everything fits; a gymnast moved since | who fills a seat or offered: a gymnast if they compete, else the organiser's own (added on the Officials page) or a club's judge (`seatRole`) |
 | A coach's entries | how many to sign off; problems; the sign-off, as on the comp sec's; can't sign off (not approved) | the coach who signed off |
-| My competition (and the organiser's page of a person) | each event checked by the organiser, problems to sort out, or sent, not checked yet; Scratched | |
+| My competition (and the organiser's page of a person) | each event Checked, N problems, or Sent; Scratched; check-in (Here, Not checked in) | |
 | Tell me about changes | an email On, or waiting for you to confirm it | |
 | Every entry card (step 3: the organiser's, the comp sec's, a member's, an individual's, a coach's sign-off page) | the sign-off, as on the rows (signed off, waiting, needs changes, coach not approved); No problems found | the coach who signed off |
 | Late changes (an entry's row, the comp sec's rows, asking for one) | asked and waiting, accepted, or not accepted, as a "Late change" chip before what it is | |
@@ -718,7 +719,8 @@ are then filled flight by flight.
   busiest officials.
 - **Manually:** give any seat to anyone who's offered, or empty it; the change
   goes on the event's other flights the same person had that seat for.
-  **Assign officials again** starts the rota afresh, keeping the flights.
+  **Assign officials again** starts the rota afresh, keeping the flights;
+  it asks first on a page of its own, as what was changed by hand is lost.
 - **Coaches** aren't checked (the owner's decision, 2026-10-19): the
   planner doesn't keep a coach's gymnasts apart, and nothing reports a coach
   needed on two areas or coaching while they compete.
@@ -895,7 +897,9 @@ are then filled flight by flight.
   which every attendee page reads (placements, duties, "My competition",
   personal and club timetables). With changes not published, the page says
   so: **Publish changes** copies the draft over, **Discard changes** copies
-  the published one back, **Unpublish** takes it down. Timetables published
+  the published one back, **Unpublish** takes it down. Discarding and
+  unpublishing ask first, on **Before you change it**, never in a browser
+  pop-up ([asking first](../architecture/ui.md#asking-first)). Timetables published
   before this became their own published copy (migration 14).
 - **Changes at once** (built 2026-10-15): every change to the draft (setup,
   plan, a move, a redraw, a seat, a rota rule, a kept "what if", an accepted
@@ -933,7 +937,9 @@ are then filled flight by flight.
   a gymnast checked in or scratched), the timetable isn't planned again
   (the owner, 2026-10-19: what's run has run, and a fresh plan starts from
   the first morning): Setup shows a note in place of **Plan again**, and a
-  plan posted anyway is refused, nothing changed. Changes by hand (moves,
+  plan posted anyway is refused, nothing changed. Before then, **Plan again**
+  asks once, on **Before you change it** (what was changed by hand is lost),
+  with no browser pop-up first. Changes by hand (moves,
   seats, redraws) and the "what ifs" still work. **Publish changes** says
   first what a new draft would no longer show (`dayMarks.lost`): flights started or finished
   that aren't in it (their times and who's up are dropped, by name), panel
@@ -1612,8 +1618,10 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   approving a withdrawn coach again asks whether their earlier sign-offs
   count, or only those from then (`counts_from`). Deciding comes back to
   the coach (`#coach-<id>`, `#named-<entry>`), the notice staying in sight;
-  **Approve** for a coach sent with no qualifications asks first, and the
-  notice says so. Turning approval on where entries are signed off by
+  **Approve** for a coach sent with no qualifications asks first, in a box
+  at the top of Coaches (the note typed kept), and the notice says so.
+  **Withdraw approval** isn't asked about: its notice has **Undo**, which
+  approves them again with their sign-offs before (`undo=coach-<id>`). Turning approval on where entries are signed off by
   coaches not approved asks first, saying how many entries that leaves
   waiting for a coach's sign-off (`waitingOnApproval`,
   `Store.UnapprovedSignoffs`). A sign-off records which
@@ -1692,15 +1700,15 @@ your way round; the menu is `views/menu.templ`, built for each page in
     to send.
   - **Coaches** (`/coaches`, only where it approves coaches): the coaches
     to send, ticked, each with where they stand.
-  - **Judging and helping** (`/offers`): what members offer, each with
-    **Change**.
+  - **Officiating** (`/offers`): what members offer to officiate, each
+    with **Change**.
   - **Fees** (`/fees`, only where it charges): what's left to pay as a
     chip, the invoice's lines and payments, how to pay, and **Print the
     invoice** (the printable invoice's Back returns here).
 
   The pages for editing a member's entry or offer are in this section too,
   with the competition's tabs; each names the member once, at its head, and
-  goes back (and saving goes back) to Entries or Judging and helping.
+  goes back (and saving goes back) to Entries or Officiating.
   Sending, sending coaches and entering the club through its club link land
   on the competition's page.
 - **Members** (`/members`): the join link, the members (a coach to choose,
@@ -1747,9 +1755,11 @@ link opens the coach's page. Members shows them with a Coach chip, Coaches as
 member's or coach's **New link** and **Replace the admin link** post once
 to show the section with a box saying the old link stops working at once,
 wherever it's saved, what stays, and where the new one shows; its button
-posts again with `anyway=1` to replace it (`askReplace`), and **Cancel**
+posts again with `anyway=1` to replace it (`askClub`), and **Cancel**
 goes back to the row. No browser `confirm()`. Individuals have no way to
-replace their own link.
+replace their own link. **Remove** on a member or a coach asks the same way
+(2026-10-19): a member's entries go with them, a coach's members have no
+coach until one is chosen ([asking first](../architecture/ui.md#asking-first)).
 
 **Who signs off** (built 2026-10-19): an entry waiting for a coach's
 sign-off (`whoSignsOff`) says who can give it: the club's coaches who sign
@@ -2171,7 +2181,7 @@ facts, the My competition link, messages, Tell me about changes and their
 officiating, then a row per discipline, with its status, that opens to all
 of that entry (`entryBody`): checked, the flight, the organiser's notes,
 the card, **Change the entry** and **Withdraw**, **Your coach** and the
-sign-off link for their coach, fees and Judging and helping; then
+sign-off link for their coach, fees and their offer to officiate; then
 **Enter another discipline** while entries are open, opening on the first
 discipline not entered yet. It's one of their pages (their tabs, **← the
 competition** back to it, `GymnastEnterPage`): a tab for each discipline not
@@ -2227,8 +2237,8 @@ Tell me about changes), not the timetables and calendars as well.
 
 - Every event they're in that has reached the competition (a member's sent
   entries; an individual's entries, as one person; synchro as either
-  partner), with its card's status: checked, problems to sort out (listed),
-  or not checked yet.
+  partner), with its card's status as a chip: Checked, N problems (listed),
+  or Sent ([the same words](../architecture/ui.md#the-same-words)).
 - Once the timetable is published, their events come in the order they warm
   up (`byWarmUp`), any not in a flight last, each with its flight, area, day
   and warm-up, where

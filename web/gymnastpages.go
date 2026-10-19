@@ -227,7 +227,7 @@ func (p *competitionPages) renderGymnastCompetition(w http.ResponseWriter, r *ht
 		}
 		gc.Pairs = append(gc.Pairs, ev.Pairs...)
 		waiting := p.waitingOf(r.Context(), c.ID, e.ID)
-		word, state := brief(individualState(e, waiting.Waiting), len(ev.Card.Problems), waiting.Waiting, "Entered")
+		word, state := brief(individualState(e, waiting.Waiting), len(ev.Card.Problems), waiting.Waiting)
 		gc.Events = append(gc.Events, views.GymnastEvent{
 			Row:   views.MemberEvent{Discipline: e.Entry.Discipline, Name: competitions.DisciplineName(e.Entry.Discipline), Level: ev.Card.Level, Brief: word, BriefState: state},
 			Open:  e.ID == open || len(mine) == 1 || len(problems) > 0,
