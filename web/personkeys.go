@@ -117,20 +117,8 @@ func clashPeople(entries []store.Entry, same samePeople) (map[string][]string, m
 	return people, names
 }
 
-// coachesOf are each entry's coaches, by entry id, keyed as their people
-// (same).
-func coachesOf(entries []store.Entry, same samePeople) map[string][]string {
-	out := map[string][]string{}
-	for _, e := range entries {
-		if k := e.CoachKey(); k != "" {
-			out[e.ID] = []string{same.of(k)}
-		}
-	}
-	return out
-}
-
 // schedEntries are entries as the scheduler needs them, with their people
-// and coaches keyed as their people (same).
+// keyed as their people (same).
 func schedEntries(entries []store.Entry, same samePeople) []competitions.SchedEntry {
 	keys := personKeys(entries)
 	out := make([]competitions.SchedEntry, len(entries))
@@ -142,9 +130,6 @@ func schedEntries(entries []store.Entry, same samePeople) []competitions.SchedEn
 		out[i] = competitions.SchedEntry{
 			PlanEntry:  competitions.PlanEntry{ID: e.ID, Level: e.Entry.Event(), Category: e.Entry.Category, Club: club},
 			Discipline: e.Entry.Discipline, People: same.all(keys[e.ID]),
-		}
-		if k := e.CoachKey(); k != "" {
-			out[i].Coaches = []string{same.of(k)}
 		}
 	}
 	return out

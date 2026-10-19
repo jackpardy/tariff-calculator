@@ -1,0 +1,64 @@
+package views
+
+import "strconv"
+
+// AskFirstPage asks before a change that does a lot at once, outside the
+// timetable (turning on coach approval, changing limits): what it does, who
+// it changes, and the change as posted, to make it anyway (anyway=1).
+type AskFirstPage struct {
+	Base        string
+	Competition CompetitionSummary
+	Menu        []MenuSection
+	What        string      // the change, e.g. "Turn on coach approval"
+	Says        string      // what it does, e.g. "This makes 548 entries wait for a coach's sign-off."
+	Items       []string    // who it changes, e.g. "Ann Ryan (UCD) · BUCS L3"
+	Then        string      // what to know before going ahead
+	Action      string      // where the change posts
+	Fields      []FormValue // the change as posted
+	Do          string      // the button that makes it, e.g. "Turn it on"
+	Back        string      // where it was asked from
+}
+
+// AskFirst is the page.
+templ AskFirst(p AskFirstPage) {
+	@competitionLayout("Before you change it · " + p.Competition.Name) {
+		<h1 class="title is-4">Before you change it</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		@pageMenu(p.Menu)
+		<p class="mb-3"><strong>{ p.What }</strong></p>
+		<div class="notification is-warning is-light">
+			<p>{ p.Says }</p>
+			if len(p.Items) > 0 {
+				<ul class="mt-1">
+					for _, it := range p.Items[:min(len(p.Items), 6)] {
+						<li>{ it }</li>
+					}
+				</ul>
+				// A long list folds after the first few.
+				if len(p.Items) > 6 {
+					<details class="mt-1">
+						<summary class="is-size-7">{ strconv.Itoa(len(p.Items) - 6) } more</summary>
+						<ul>
+							for _, it := range p.Items[6:] {
+								<li>{ it }</li>
+							}
+						</ul>
+					</details>
+				}
+			}
+		</div>
+		if p.Then != "" {
+			<p class="mb-3">{ p.Then }</p>
+		}
+		<div class="buttons">
+			<form method="post" action={ templ.SafeURL(p.Action) } class="is-inline mr-2">
+				for _, v := range p.Fields {
+					<input type="hidden" name={ v.Name } value={ v.Value }/>
+				}
+				<input type="hidden" name="anyway" value="1"/>
+				<button class="button is-small is-warning" type="submit">{ p.Do }</button>
+			</form>
+			<a class="button is-small" href={ templ.SafeURL(p.Back) }>Cancel</a>
+		</div>
+	}
+}

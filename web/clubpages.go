@@ -161,10 +161,27 @@ func (p *competitionPages) clubSettingsPage(w http.ResponseWriter, r *http.Reque
 // renderClub shows one section of the comp sec's pages, with a member's or
 // coach's new link if one was just made.
 func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, club store.Club, section string, newLink *views.MemberLink) {
+	p.renderClubWith(w, r, club, section, newLink, nil)
+}
+
+// askReplace shows a section of the comp sec's pages asking before a link
+// is replaced (ADR 0004: the old one stops working), unless the form was
+// posted again to replace it anyway; it says whether it asked.
+func (p *competitionPages) askReplace(w http.ResponseWriter, r *http.Request, club store.Club, section string, ask views.LinkAsk) bool {
+	if r.FormValue("anyway") == "1" {
+		return false
+	}
+	ask.Action = r.URL.Path
+	p.renderClubWith(w, r, club, section, nil, &ask)
+	return true
+}
+
+// renderClubWith is renderClub, asking before a link is replaced (ask).
+func (p *competitionPages) renderClubWith(w http.ResponseWriter, r *http.Request, club store.Club, section string, newLink *views.MemberLink, ask *views.LinkAsk) {
 	token := r.PathValue("token")
 	base := clubPath(token)
 	page := views.ClubPage{
-		Base: base, Name: club.Name, New: r.URL.Query().Get("new"), NewLink: newLink, Notice: r.URL.Query().Get("notice"),
+		Base: base, Name: club.Name, New: r.URL.Query().Get("new"), NewLink: newLink, Ask: ask, Notice: r.URL.Query().Get("notice"), NoticeAt: r.URL.Query().Get("at"),
 		JoinLink: origin(r) + "/clubs/join/" + club.JoinLink, CoachesSeeAll: club.CoachesSeeAll, Menu: clubMenu(token, section),
 	}
 	if page.New != "" && !store.IsVia(token) {
@@ -451,8 +468,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		return nil, err
 	}
 	ours := map[string]bool{}
+	byID := map[string]store.Member{}
 	for _, m := range members {
-		ours[m.ID] = true
+		ours[m.ID], byID[m.ID] = true, m
 	}
 	seen := p.seenFor(r)
 	home := only == "" // the counts alone (views.ClubAdmin): faster with many entries
@@ -479,6 +497,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 				return nil, err
 			}
 		}
+		cc.NoSigner = c.Signoff && !slices.ContainsFunc(coaches, func(co store.Coach) bool { return co.SignsOff })
 		// To enter a member: who, and in what, while entries are open.
 		if cc.Competition.Open {
 			for _, m := range members {
@@ -514,6 +533,13 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			has[e.MemberID+"/"+e.Discipline] = true
 			toSend := cc.ToSend // counted on, if this one is to send
 			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Event(), Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
+			// Who signs it off, only where no one can: it's the same on every row otherwise.
+			if !cc.NoSigner {
+				whoSignsOff(&row.Signoff, byID[e.MemberID], coaches, club.CoachesSeeAll, base+"/coaches")
+				if row.Signoff.Coaches == "" {
+					row.Signoff.Waiting = ""
+				}
+			}
 			if e.Entry.Partner != nil {
 				row.Partner, row.Unconfirmed = e.Entry.Partner.Name, !e.PartnerConfirmed
 			}
@@ -758,11 +784,20 @@ func (p *competitionPages) renderMemberEdit(w http.ResponseWriter, r *http.Reque
 	page.Form.Kept, page.Form.KeptOn = kept, "their page"
 	if existing != nil {
 		shown, err := card(c.Competition, existing.Entry, club.Name)
-		withSignoff(&shown, memberSignoff(c.Competition, *existing))
 		if err != nil {
 			failed(w, r, err)
 			return
 		}
+		signoff := memberSignoff(c.Competition, *existing)
+		if signoff.Required {
+			coaches, err := p.st.Coaches(r.Context(), club.ID)
+			if err != nil {
+				failed(w, r, err)
+				return
+			}
+			whoSignsOff(&signoff, m, coaches, club.CoachesSeeAll, clubCoachesPath(r.PathValue("token")))
+		}
+		withSignoff(&shown, signoff)
 		page.Card = &shown
 		if c.ChangesOpen(p.now()) {
 			page.Withdraw = r.URL.Path + "/withdraw"
@@ -837,6 +872,13 @@ func (p *competitionPages) newMemberLink(w http.ResponseWriter, r *http.Request)
 		failed(w, r, err)
 		return
 	}
+	if p.askReplace(w, r, club, clubMembers, views.LinkAsk{
+		Title:  "Make a new link for " + m.Name + "?",
+		Text:   "Their old link stops working at once, wherever it's saved: in their browser, on their phone's home screen or in their bookmarks. Their entries, routines and skills stay. You see the new link once, here, to send them.",
+		Button: "Make a new link", Back: clubMembersPath(r.PathValue("token")) + "#" + views.MemberAnchor(m.ID),
+	}) {
+		return
+	}
 	token, err := p.st.ReplaceMemberLink(r.Context(), club.ID, m.ID)
 	if err != nil {
 		failed(w, r, err)
@@ -866,6 +908,13 @@ func (p *competitionPages) removeMember(w http.ResponseWriter, r *http.Request) 
 func (p *competitionPages) replaceClubLink(w http.ResponseWriter, r *http.Request) {
 	club, ok := p.clubAdmin(w, r)
 	if !ok {
+		return
+	}
+	if p.askReplace(w, r, club, clubSettings, views.LinkAsk{
+		Title:  "Replace the admin link?",
+		Text:   "The old one stops working at once, for everyone who has it, wherever it's saved: in browsers, on home screens, in bookmarks or in a chat. The new one is saved in this browser; send it to anyone else who should have it.",
+		Button: "Replace the admin link", Back: clubSettingsPath(r.PathValue("token")),
+	}) {
 		return
 	}
 	admin, err := p.st.ReplaceClubAdmin(r.Context(), club.ID)
@@ -1143,6 +1192,8 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 		MyLinks: p.competitionLinks(ctx, c, linksFor{base: own, key: store.MemberKey(m.ID), member: true,
 			people: []string{store.MemberKey(m.ID)}, clubs: clubIDs(m.ClubID)})}
 	var sent []store.Entry
+	var coaches []store.Coach // who can sign off, read once an entry needs it
+	seeAll := false
 	disciplines := c.Disciplines()
 	entered := 0
 	for _, d := range disciplines {
@@ -1178,7 +1229,17 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 			if err != nil {
 				return mc, err
 			}
-			withSignoff(&shown, memberSignoff(c.Competition, e))
+			signoff := memberSignoff(c.Competition, e)
+			if signoff.Required && coaches == nil {
+				if coaches, err = p.st.Coaches(ctx, m.ClubID); err != nil {
+					return mc, err
+				}
+				if seeAll, err = p.st.CoachesSeeAll(ctx, m.ClubID); err != nil {
+					return mc, err
+				}
+			}
+			whoSignsOff(&signoff, m, coaches, seeAll, "")
+			withSignoff(&shown, signoff)
 			if warn, err := seen.pairWarning(c.ID, copyID); err != nil {
 				return mc, err
 			} else if warn != "" {

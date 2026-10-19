@@ -10,53 +10,77 @@ import (
 // (roadmap 9). The planner keeps all of it where it can; a change made by
 // hand, or a "what if", may not.
 
-// Breaks is everything the schedule breaks, each in words: a flight past its
-// day's end; an event's flights apart; someone in two places at once (a
-// gymnast, an official, an official on blocked time they staff); a coach with
-// gymnasts on two areas at once, or competing while they coach; the
+// Break is one thing a schedule breaks: the line that says it, whose it is
+// (a person's key, or "" for no one's), and how serious it is.
+type Break struct {
+	Line   string
+	Person string
+	Rank   int // TwoPlaces first, then MustBreak, then PreferBreak
+}
+
+// How serious a break is, most first.
+const (
+	TwoPlaces   = iota // someone in two places at once
+	MustBreak          // past the day's end, an event's flights apart, a must rule or rest broken, a seat its holder can't have
+	PreferBreak        // a preference not met
+)
+
+// Breaks is everything the schedule breaks, each in words: someone in two
+// places at once (a gymnast, an official, an official on blocked time they
+// staff); a flight past its day's end; an event's flights apart; the
 // organiser's rules about events and about people; and, where rest is a
-// must, too little rest between someone's turns. people and coaches are each
-// entry's people and coaches by entry id, keyed so one person has one key;
-// names names those keys.
-func (s Schedule) Breaks(people, coaches map[string][]string, names map[string]string) []string {
-	return s.breaks(people, coaches, names, true)
+// must, too little rest between someone's turns. people are each entry's
+// people by entry id, keyed so one person has one key; names names those
+// keys. Coaches aren't checked: where a coach's gymnasts are is for the coach
+// to manage.
+func (s Schedule) Breaks(people map[string][]string, names map[string]string) []Break {
+	return s.breaks(people, names, true)
 }
 
 // WhatIfBreaks is Breaks less what the "what ifs" report for themselves:
 // flights past the end of the day, and people in two places at once.
-func (s Schedule) WhatIfBreaks(people, coaches map[string][]string, names map[string]string) []string {
-	return s.breaks(people, coaches, names, false)
+func (s Schedule) WhatIfBreaks(people map[string][]string, names map[string]string) []Break {
+	return s.breaks(people, names, false)
 }
 
-func (s Schedule) breaks(people, coaches map[string][]string, names map[string]string, all bool) []string {
-	var out []string
+func (s Schedule) breaks(people map[string][]string, names map[string]string, all bool) []Break {
+	var out []Break
 	seen := map[string]bool{}
-	add := func(lines ...string) {
-		for _, l := range lines {
-			if !seen[l] {
-				seen[l] = true
-				out = append(out, l)
+	add := func(bs ...Break) {
+		for _, b := range bs {
+			if !seen[b.Line] {
+				seen[b.Line] = true
+				out = append(out, b)
 			}
 		}
 	}
-	if all {
-		add(s.pastEnd()...)
+	lines := func(rank int, ls []string) []Break {
+		var bs []Break
+		for _, l := range ls {
+			bs = append(bs, Break{Line: l, Rank: rank})
+		}
+		return bs
 	}
-	add(s.runProblems()...)
 	if all {
 		add(s.personClashes(people, names)...)
 	}
-	add(s.coachCompeting(people, coaches, names)...)
-	add(s.CoachClashes(coaches, names)...)
 	add(s.blockDutyClashes(names)...)
+	if all {
+		add(lines(MustBreak, s.pastEnd())...)
+	}
+	add(lines(MustBreak, s.runProblems())...)
 	for _, rule := range s.Setup.Rules {
 		if broken := personRule(rule.Kind) && s.personRuleBroken(rule) || !personRule(rule.Kind) && s.eventRuleBroken(rule); broken {
-			add("Breaks the rule: " + rule.Describe(s.Setup.Days))
+			b := Break{Line: "Breaks the rule: " + rule.Describe(s.Setup.Days), Person: rule.Person, Rank: PreferBreak}
+			if rule.Must {
+				b.Rank = MustBreak
+			}
+			add(b)
 		}
 	}
 	if s.Setup.RestMust && s.Setup.Rest > 0 {
 		for _, sr := range s.Report(people).ShortRest {
-			add(fmt.Sprintf("%s has %s between %s and %s (rest is a must: %d min)", nameOr(names, sr.Person), minutesWord(float64(sr.Minutes)), sr.First, sr.Second, s.Setup.Rest))
+			add(Break{Line: fmt.Sprintf("%s has %s between %s and %s (rest is a must: %d min)", nameOr(names, sr.Person), minutesWord(float64(sr.Minutes)), sr.First, sr.Second, s.Setup.Rest), Person: sr.Person, Rank: MustBreak})
 		}
 	}
 	return out
@@ -82,13 +106,45 @@ func (s Schedule) Copy() Schedule {
 	return out
 }
 
-// NewBreaks are the lines of after that before doesn't have: what a change
+// NewBreaks are the breaks of after that before doesn't have: what a change
 // breaks that wasn't broken already.
-func NewBreaks(before, after []string) []string {
-	var out []string
-	for _, l := range after {
-		if !slices.Contains(before, l) {
-			out = append(out, l)
+func NewBreaks(before, after []Break) []Break {
+	var out []Break
+	for _, b := range after {
+		if !slices.ContainsFunc(before, func(o Break) bool { return o.Line == b.Line }) {
+			out = append(out, b)
+		}
+	}
+	return out
+}
+
+// BreakLines are breaks in words, the most serious first (people in two
+// places at once), each person's breaks of one rank folded into the line of
+// their first with how many more, e.g. "Ann is in L1 and L2 at once, and 3
+// more times".
+func BreakLines(bs []Break) []string {
+	bs = slices.Clone(bs)
+	slices.SortStableFunc(bs, func(a, b Break) int { return a.Rank - b.Rank })
+	type whose struct {
+		rank   int
+		person string
+	}
+	more := map[whose]int{}
+	var keep []Break
+	for _, b := range bs {
+		w := whose{b.Rank, b.Person}
+		if _, seen := more[w]; seen && b.Person != "" {
+			more[w]++
+			continue
+		}
+		more[w] = 0
+		keep = append(keep, b)
+	}
+	out := make([]string, len(keep))
+	for i, b := range keep {
+		out[i] = b.Line
+		if n := more[whose{b.Rank, b.Person}]; b.Person != "" && n > 0 {
+			out[i] += fmt.Sprintf(", and %d more time%s", n, plural(n))
 		}
 	}
 	return out
@@ -96,8 +152,8 @@ func NewBreaks(before, after []string) []string {
 
 // blockDutyClashes are officials seated on a flight and on blocked time that
 // needs officials (a judges' meeting, say) at once.
-func (s Schedule) blockDutyClashes(names map[string]string) []string {
-	var out []string
+func (s Schedule) blockDutyClashes(names map[string]string) []Break {
+	var out []Break
 	for _, b := range s.Blocks {
 		for _, bd := range b.Officials {
 			if bd.Person == "" {
@@ -108,7 +164,7 @@ func (s Schedule) blockDutyClashes(names map[string]string) []string {
 					continue
 				}
 				if slices.ContainsFunc(f.Officials, func(d Duty) bool { return d.Person == bd.Person }) {
-					out = append(out, fmt.Sprintf("%s officiates %s during %s, which they're on duty for", nameOr(names, bd.Person), f.Name(), b.Name))
+					out = append(out, Break{Line: fmt.Sprintf("%s officiates %s during %s, which they're on duty for", nameOr(names, bd.Person), f.Name(), b.Name), Person: bd.Person, Rank: TwoPlaces})
 				}
 			}
 		}
@@ -127,10 +183,10 @@ func nameOr(names map[string]string, key string) string {
 // FreeForSeat are the officials who could take a flight's seat, for the
 // stretch of its event's run that seat covers, as an official leaving is
 // replaced: allowed the role there, and free for all of it (not competing,
-// officiating or on blocked-time duty then, not coaching someone competing
-// elsewhere, rested where rest is a must, nor kept off by a must rule).
-// Those with fewest duties that day come first; the seat's holder isn't one.
-func (s Schedule) FreeForSeat(flight, seat int, people, coaches map[string][]string, officials []RotaPerson) []string {
+// officiating or on blocked-time duty then, rested where rest is a must, nor
+// kept off by a must rule), in the order sortForSeat gives; the seat's holder
+// isn't one.
+func (s Schedule) FreeForSeat(flight, seat int, people map[string][]string, officials []RotaPerson) []string {
 	if flight < 0 || flight >= len(s.Flights) || seat < 0 || seat >= len(s.Flights[flight].Officials) {
 		return nil
 	}
@@ -142,10 +198,10 @@ func (s Schedule) FreeForSeat(flight, seat int, people, coaches map[string][]str
 	f, d := s.Flights[flight], s.Flights[flight].Officials[seat]
 	var out []string
 	for _, o := range officials {
-		if o.Key != d.Person && o.Can(d.Role, f.Event) && s.freeIgnoring(o.Key, st, nil, people, coaches) {
+		if o.Key != d.Person && o.Can(d.Role, f.Event) && s.freeIgnoring(o.Key, st, nil, people) {
 			out = append(out, o.Key)
 		}
 	}
-	slices.SortStableFunc(out, func(a, b string) int { return s.dutiesOn(a, f.Day) - s.dutiesOn(b, f.Day) })
+	s.sortForSeat(out, d.Role, f.Day)
 	return out
 }

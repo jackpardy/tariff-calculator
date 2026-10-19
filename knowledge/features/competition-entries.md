@@ -325,7 +325,12 @@ without moving anyone else. The dashboard shows "88 of 90 places" beside a
 limited event and a **Waiting lists** box; the comp sec sees "Sent ·
 waiting list, 3rd", and a member or individual "On the waiting list for
 BUCS L1: 3rd". Notifications (cards) say when an entry goes on or comes
-off a waiting list, when the organiser's change does it.
+off a waiting list, when the organiser's change does it. New limits that
+let entries in from a waiting list, or move entries in onto one, ask first
+on **Before you change it** (`askBefore`, `views.AskFirst`), naming each
+(`store.WithLimits` works out the places the new limits would give); the
+notice after saving says what they did ("Let 13 entries in from the
+waiting lists.").
 
 Every page says where an entry stands in the same order (`stateOf` in
 `web/entrystate.go`), the comp sec's: removed, on hold, not sent, on a
@@ -383,11 +388,18 @@ on, on any list. The tables have a **Columns** menu (`static/js/tables.js`):
 tick which columns show (the gymnast's always does), **Clip long text to one
 line**, and drag a heading's edge to resize its column; kept in the browser
 for every level's table, and on a phone (where they're cards) only hidden
-columns count. Any table that scrolls sideways shows a line at the edge
+columns count. Until the viewer chooses, the columns named in the tables'
+`data-table-hidden` are hidden: Sent, so the rest fit a 1,300 px window
+(two-word headings, a long club and the coach's chips wrap, a set is named
+without its level: "option 2"), Coach and Checked in sight; measured at
+1,198 px wide in a 1,198 px box at 1,300, 1,338 in 1,338 at 1,440. Any table that scrolls sideways shows a line at the edge
 with more to see.
 Levels start folded, with **Expand all** and **Collapse all**; the browser
 remembers which were left open, and a search or filter opens the levels it
-finds people in. Finding entries (roadmap 2026-10-08), all in
+finds people in. A folded level's rows come in a `<template data-lazy>`, put in
+the page when it opens or a search needs them (`competitions.js`, `lazyRows`;
+`tables.js` then hides their hidden columns): every level's rows at once were
+16,000 elements for a phone to lay out. Levels a filter opens come in the page. Finding entries (roadmap 2026-10-08), all in
 the page's address so a view can be kept or shared:
 
 - **search** (`q`): every word in the gymnast's or synchro partner's name,
@@ -469,7 +481,14 @@ off from front, but element 3 lands on back.", on the card's rows and in the
 problem lists gymnasts, comp secs, coaches and the organiser see. The buttons:
 
 - **Mark checked**, with an optional note. The note is shown to the club's comp
-  sec and the member.
+  sec and the member. **Mark checked and next** opens the next entry still
+  to check that the entries page's search, filters and sort show (`listed`,
+  `nextToCheck`), in its level first. An entry opened from the entries page
+  carries them in its address (`listQuery`: the filter keys and `sort`; the
+  page's script adds a search typed since, `data-list-carry-links`), its
+  forms post them back, and **← Entries** goes to the list as it was at
+  `#entry-<id>`, where the script opens the entry's level and picks out its
+  row (`backToEntry`). Removing or holding entries comes back filtered too.
 - **Print card.**
 
 If the competition asks for video, the entry also lists the skills that need
@@ -498,7 +517,12 @@ says it was withdrawn, and the coach they named goes, with the certificate.
 - The [tariff sheet](tariff-sheet.md) (competition card) with its details
   filled in from the entry: gymnast, club, level, competition and exercise.
 - **Print all** for a level, a club, or the entries not checked yet: one card
-  per page, ready for the judges' table.
+  per page, ready for the judges' table. A selection of more than 100 cards
+  (`cardsAtOnce`) over more than one level lists its levels instead, each
+  with its cards and a link to print it (a level of more than 100 in parts by
+  category, `part=Men`), and **Every level on one page** (`all=1`); a level's
+  page has **Other levels** and **Next: …**. All 899 of the demo's cards on
+  one page were 3.9 MB and 112,000 elements, freezing a phone.
 - **CSV** for the scoring system (name, club, level, tariff per exercise,
   problems counted and listed; checked and withdrawn are "yes" or "no"). A
   single PDF of all cards is the cards page saved as PDF from the browser's
@@ -550,7 +574,9 @@ A competition offers **events**: a discipline at a level.
   discipline (enter, change, withdraw each on its own), the club page and
   dashboard list each entry under its event ("Synchro BUCS L3", "Tumbling
   Novice"), and an individual enters each discipline separately.
-- **Synchro pairs** can be any two gymnasts. The entry names the partner and
+- **Synchro pairs** can be any two gymnasts, and a gymnast can be in two
+  pairs in the same event with different partners, so being confirmed into
+  a second pair isn't a problem (confirmed by the owner, 2026-10-17). The entry names the partner and
   shows a **partner link** to send them; the partner confirms who they are
   with their own member page or entry link (or as having no other entry), so
   the timetable can later check their clashes. Where links are saved in their
@@ -608,7 +634,7 @@ each discipline's panel needs. The People list can be searched by name and
 filtered by club, what they can do (judge, chair, recorder, marshal), the
 discipline and level they can judge (a level shows everyone who judges it or
 a harder one), and qualified or not. The search and filters stay while the tab
-is open, so ticking someone qualified keeps the list as it was
+is open, so ticking someone qualified keeps the list as it was, back at their row with a notice saying so
 ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
 
 - **Offers.** On their page, a member says what they can do at each
@@ -676,13 +702,14 @@ are then filled flight by flight.
 - **The report:** seats no one could take, a seat for the whole event it's
   on (counted, with the panels they're on: "11, on 3 panels"), manual changes that break the rota
   (someone officiating while competing, in two places, or in a role they
-  can't take), rules not kept, coaches needed on two areas at once, times
-  each club judged its own, and the busiest officials.
+  can't take), rules not kept, times each club judged its own, and the
+  busiest officials.
 - **Manually:** give any seat to anyone who's offered, or empty it; the change
   goes on the event's other flights the same person had that seat for.
   **Assign officials again** starts the rota afresh, keeping the flights.
-- **Coaches:** planning keeps a coach's gymnasts off two areas at once where
-  that can be done (by club and coach name), and reports where it can't.
+- **Coaches** aren't checked (the owner's decision, 2026-10-19): the
+  planner doesn't keep a coach's gymnasts apart, and nothing reports a coach
+  needed on two areas or coaching while they compete.
 - **Printed:** each flight's panel on the marshal and chair of judges sheets;
   the recorders' **score sheets** (asked 2026-10-08, as ISTO records scores
   online and on paper): a landscape page a flight, its panel named, a row
@@ -746,12 +773,10 @@ are then filled flight by flight.
   several disciplines, the person they entered as (ADR 0010); a confirmed
   synchro partner is the same person as their own entries. Records joined
   as one person ([one link, several roles](#one-link-several-roles-adr-0010))
-  are one person here too: a member who also enters on their own, or also
-  coaches, gets rest and clash warnings against themselves, and isn't put
-  on a panel while they compete under another of their keys. Planning
-  avoids someone coaching while they compete (as costly as a broken
-  prefer), and the report lists it ("Ann coaches in L2 while competing in
-  L1"). The keys saved in seats and rules stay as they were; only the
+  are one person here too: a member who also enters on their own gets rest
+  and clash warnings against themselves, and isn't put on a panel while
+  they compete under another of their keys (coaching isn't checked). The
+  keys saved in seats and rules stay as they were; only the
   working out sees them as one (`samePeople` in `web/personkeys.go`).
 - **The report:** for each day, when its flights end, when it finishes
   (blocked time such as awards included) against its end, and the time free
@@ -781,7 +806,24 @@ are then filled flight by flight.
   heading, since days can use different areas, and **Find a name**, which searches the
   running orders, the gymnasts not in a flight and the seated officials,
   hiding days, areas, flights and blocked time with nobody it finds and
-  opening the Panel lists with someone. Changing the setup marks the
+  opening the Panel lists with someone. Each day has a button above the
+  days (`dayPick`, the owner's choice 2026-10-19). On a phone they're tabs,
+  one day shown at a time; on a wider screen each shows or hides its day,
+  the days shown side by side, the row scrolling sideways when they don't
+  fit (with room after the last, so it scrolls to the left edge as the
+  others do; no snapping, which made small scrolls jump back), and the
+  choice is kept in the browser. Where there's more to scroll the row
+  fades out at that edge (a mask, `--fade-left`/`--fade-right`), in the
+  page's side margin so it never covers what's in view, the fade stepping
+  aside while it's scrolled and easing back once stopped; **‹** and **›** beside the day
+  buttons move it an area at a time, for a mouse without sideways
+  scrolling. The page opens on today's (on
+  the competition's days, `todayIndex`) or the first; the others' flights
+  wait in a template until shown, searched or gone to (the `#area` a change
+  comes back to: `competitions.js`, `reveal`). A day's heading doesn't fold.
+  A flight's **Move a gymnast** fills its gymnasts from the running order, and
+  **Move to** its days and areas from one list (`place-options`), rather than
+  each flight repeating them. Changing the setup marks the
   plan out of date until **Plan** again; moves are rechecked and listed as
   problems: clashes, and an event whose flights aren't back to back on one
   area, or run either side of a break that isn't allowed (timetables
@@ -789,8 +831,9 @@ are then filled flight by flight.
 - **Saying what a change breaks** (roadmap 9): moving an event, moving a
   gymnast, or giving someone a seat is first tried on a copy of the draft
   (`Schedule.Copy`, `askFirst` in `web/changecheck.go`). What it would newly
-  break (`Schedule.Breaks` with the rota's `RotaProblems`, before and after:
-  `NewBreaks`) is shown on **Before you change it**, with up to three
+  break (`Schedule.Breaks` with the rota's `RotaBreaks`, before and after:
+  `NewBreaks`, put in words by `BreakLines`) is shown on **Before you
+  change it**, with up to three
   changes that break nothing new, each a button: another day and area for
   the event (each tried with `MoveFlight`), another flight of the same
   event and category for the gymnast, or someone free for the seat
@@ -861,9 +904,32 @@ are then filled flight by flight.
   plan's seed) and kept by every change: moving its event, Earlier,
   redrawing, renumbering, a delay merging another into it. A flight made any
   other way gets a new one when the draft is saved (`Schedule.Identify`).
-  Planning again makes new flights, with new IDs. What happens to a flight on
-  the day is kept by its ID (`competitions.FlightKey`), so it follows the
-  flight when the organiser moves or renumbers it and publishes again.
+  What happens to a flight on the day is kept by its ID
+  (`competitions.FlightKey`), so it follows the flight when the organiser
+  moves or renumbers it and publishes again.
+- **Re-planning keeps what's marked on the day** (built 2026-10-19, audit
+  finding 6). A gymnast's check-in or scratch is kept by their entry, so it
+  stays with them wherever their flight goes. Planning again makes new
+  flights, but each takes the ID of the flight it was (`Schedule.KeepIDs`,
+  against the published flights, then the draft's): first one of its event
+  with the same gymnasts (in any order, on any day or area), so a flight
+  that ran keeps its times and who's up; failing that, one of its event with
+  the same number that nothing has happened to yet, so its panel's
+  check-ins follow the seat where the person still has it. A new flight
+  never takes an old flight's ID. Once the day has begun (something marked
+  for a published flight: started or finished, who's up, a panel check-in,
+  a gymnast checked in or scratched), the timetable isn't planned again
+  (the owner, 2026-10-19: what's run has run, and a fresh plan starts from
+  the first morning): Setup shows a note in place of **Plan again**, and a
+  plan posted anyway is refused, nothing changed. Changes by hand (moves,
+  seats, redraws) and the "what ifs" still work. **Publish changes** says
+  first what a new draft would no longer show (`dayMarks.lost`): flights started or finished
+  that aren't in it (their times and who's up are dropped, by name), panel
+  check-ins for seats no longer in it (the flight's gone, or the person's no
+  longer on it), and gymnasts checked in or scratched who aren't in it, with
+  **Publish anyway**. The dropped rows stay in the database, unseen. Moves,
+  redraws, seats and a kept "what if" keep IDs, so they drop only what the
+  change itself takes away. A page that only asks isn't recorded in History.
 
 ## What if there's a delay
 
@@ -892,10 +958,14 @@ each flight that changes (was, now, why). Above those, **This would break**
 lists what the delay breaks that holds in the timetable now
 (`Schedule.WhatIfBreaks` before and after, `NewBreaks`; the first six
 shown, the rest folded), besides what the page shows already (past the end,
-in two places): the organiser's rules about events and about
-people, a coach with gymnasts on two areas (or competing while coaching), an
-official on a flight during blocked time they're on duty for, and, where rest
-is a must, too little rest between someone's turns.
+in two places): an official on a flight during blocked time they're on duty
+for, the organiser's rules about events and about people, and, where rest is
+a must, too little rest between someone's turns. Coaches aren't checked
+(2026-10-19). `BreakLines` orders every "This would break" list (here, a
+leave and **Before you change it**) by how serious: people in two places at
+once first, then must rules, rest, past the end and runs apart, then
+preferences; one person's lines of one kind fold into the first, with "and
+3 more times".
 
 The organiser can **ease** it on the held-up areas, from the delay: breaks
 (lunch and other blocked time) wait (the default), **move later** keeping
@@ -919,11 +989,16 @@ to someone free for all of them (not competing or on another panel then, allowed
 and by the must rules about people), or is reached by moving others round, at
 most three moves: someone on that panel up a role, or someone across from a
 panel at the same time, their seat filled in turn. Free means, too, not on
-duty for blocked time then, not coaching a gymnast competing on another area
-then, and, where rest is a must, not too soon before or after their own turn. Two ways to choose:
-**easiest to fill** (the default) ends the chain at the seat the most free
-people could take (recorder or marshal before HD or execution, before chair),
-fewer moves breaking ties; **fewest changes** takes the shortest chain. Each
+duty for blocked time then, and, where rest is a must, not too soon before
+or after their own turn. Someone free taking the seat comes first; failing
+that, the fewest moves, and of as many moves, the chain whose last seat the
+most free people could take (recorder or marshal before HD or execution,
+before chair). Among those free, the least busy that day goes first, then
+someone who's had the role elsewhere in the timetable, then the least busy
+over the competition (`sortForSeat`; the same order for **Before you change
+it**'s someone free for the seat). Until 2026-10-19 the organiser chose
+**easiest to fill** or **fewest changes**; easiest made three moves where one
+free person could take the seat, so there's now one way. Each
 seat shows the moves and who else was free for the last one; a seat no one
 can reach is left empty. What the result would break that holds now is
 listed above the seats, as for a delay.
@@ -1519,7 +1594,13 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   (opened only for coaches sent there), whether they meet each level, and
   **Approve**, **Not approved** or **Withdraw approval**, with a note;
   approving a withdrawn coach again asks whether their earlier sign-offs
-  count, or only those from then (`counts_from`). A sign-off records which
+  count, or only those from then (`counts_from`). Deciding comes back to
+  the coach (`#coach-<id>`, `#named-<entry>`), the notice staying in sight;
+  **Approve** for a coach sent with no qualifications asks first, and the
+  notice says so. Turning approval on where entries are signed off by
+  coaches not approved asks first, saying how many entries that leaves
+  waiting for a coach's sign-off (`waitingOnApproval`,
+  `Store.UnapprovedSignoffs`). A sign-off records which
   coach gave it (`signed_coach`); it counts only while that coach is
   approved, worked out as entries are read, so nothing is erased. An
   unapproved coach sees why on their page and can't sign off; the
@@ -1609,7 +1690,10 @@ your way round; the menu is `views/menu.templ`, built for each page in
 - **Members** (`/members`): the join link, the members (a coach to choose,
   and under each one's **More**: **Make a coach too**, **New link** for one
   who lost theirs, which ends the old one, and **Remove**) and the synchro
-  entries other clubs' gymnasts made with them.
+  entries other clubs' gymnasts made with them. Choosing a coach comes back
+  to the member's row (`?at=<member>#member-<id>`), the notice ("Ciarán's
+  coach is now Declan.") at the top and on the row, the list's search and
+  filters kept for the tab as ever.
 - **Coaches** (`/coaches`): the coaches (each with **More** for New link and
   Remove), their qualifications and whether they sign off; **Add a coach**
   opens the forms to add one, by name or from the members; **Who coaches
@@ -1642,6 +1726,24 @@ On Members, **More**, **Make a coach too** beside a member (and on Coaches, a me
 choose) makes them a coach of the club as well: no coach link, their member
 link opens the coach's page. Members shows them with a Coach chip, Coaches as
 "A member too: opens from their member link".
+
+**Replacing a link asks first** (audit 2026-10-16, built 2026-10-19): a
+member's or coach's **New link** and **Replace the admin link** post once
+to show the section with a box saying the old link stops working at once,
+wherever it's saved, what stays, and where the new one shows; its button
+posts again with `anyway=1` to replace it (`askReplace`), and **Cancel**
+goes back to the row. No browser `confirm()`. Individuals have no way to
+replace their own link.
+
+**Who signs off** (built 2026-10-19): an entry waiting for a coach's
+sign-off (`whoSignsOff`) says who can give it: the club's coaches who sign
+off routines and see the member, by name up to three ("Declan signs it off,
+on their coach page."). Where no one can (no coach signs off, or the
+member's own coach doesn't), it says why, and that it can still be sent;
+the member is told to ask the comp sec, the comp sec gets a link to
+Coaches. On the comp sec's Entries, a club with no coach who signs off gets
+one notice above the entries (`NoSigner`) rather than a line on every row,
+and rows say only when that member's coach doesn't sign off.
 
 Each form returns to the section it's on, with its notice. The exceptions are
 replacing the admin link, which shows the new link on Competitions (where it's
@@ -1697,6 +1799,14 @@ The entry form (`entryForm` in `views/entry.templ`, used by members, the
 comp sec and individuals) has one Men or Women choice, shown only while the
 chosen level ranks them separately; changing level keeps what's ticked, and an
 existing entry opens with its own ticked.
+
+**No routine yet** (built 2026-10-19): under each voluntary's routine,
+**Open the Routine Builder →** opens `/?back=<the form's address>?discipline=<d>`
+(`routineBuilder`); the builder shows **← go back to your entry** at the top
+(`builderBack` takes only a path under `/clubs/` or `/competitions/`, and the
+page is then `no-referrer`, `no-store`). Back on the form, its row open, the
+routine just built is under Saved in this browser. "Choose a routine for the
+first exercise" says to use that link.
 
 ## Requirements on your page (ADR 0013)
 
@@ -2047,8 +2157,11 @@ of that entry (`entryBody`): checked, the flight, the organiser's notes,
 the card, **Change the entry** and **Withdraw**, **Your coach** and the
 sign-off link for their coach, fees and Judging and helping; then
 **Enter another discipline** while entries are open, opening on the first
-discipline not entered yet (a second entry in one is refused: change that
-entry instead). Each row's forms post
+discipline not entered yet. It's one of their pages (their tabs, **← the
+competition** back to it, `GymnastEnterPage`): a tab for each discipline not
+entered yet, a link to each entered one (its row, `?entry=<id>`), and their
+name fixed, not a field. A second entry in one is refused with a link to
+change that entry instead. Each row's forms post
 to the entry's own address, `/competitions/entry/{token}`, whose GET now
 redirects here with `entry=<id>` to open that row, so every entry link
 already sent lands on this page; a change with problems shows this page with
@@ -2105,9 +2218,12 @@ Tell me about changes), not the timetables and calendars as well.
   and warm-up, where
   they are in the running order ("3rd of 12"), and about when each routine
   is, worked out from the flight's timings (a guide only).
-- What they officiate, and the whole timetable, every day and area, with
-  their name in bold and the flights they're in or on the panel of open and
-  outlined.
+- What they officiate, and the flights they're in or on the panel of (and
+  blocked time they have a seat in), by day and area, with their name in bold
+  (`theirItems`). **Show the whole timetable** (`?timetable=all`) shows every
+  flight, theirs open and outlined, and **Only yours** goes back: the whole of
+  it made the page 11,000–13,700 px long on a phone. The organiser's page of a
+  person does the same ("Their flights and panels").
 
 ## Personal and club timetables
 

@@ -75,7 +75,7 @@ func TestRoleTabs(t *testing.T) {
 	get := func(path string) string { return dayAll(t, h, path) }
 	do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"A. Murphy"}})
 	// A coach's link is shown once, when made.
-	coach := pathIn(t, do(t, h, http.MethodPost, club+"/coaches/"+regexp.MustCompile(regexp.QuoteMeta(club) + `/coaches/([^/"]+)/new-link`).FindStringSubmatch(get(club + "/coaches"))[1]+"/new-link", nil).Body.String(), "/clubs/coach/")
+	coach := pathIn(t, do(t, h, http.MethodPost, club+"/coaches/"+regexp.MustCompile(regexp.QuoteMeta(club) + `/coaches/([^/"]+)/new-link`).FindStringSubmatch(get(club + "/coaches"))[1]+"/new-link", url.Values{"anyway": {"1"}}).Body.String(), "/clubs/coach/")
 
 	for _, page := range []string{member, member + "/details", coach} {
 		if tabs := roleTabsIn(get(page)); len(tabs) != 0 {
@@ -104,7 +104,7 @@ func TestRoleTabs(t *testing.T) {
 	// Someone else's link (by first name) is asked about first: a member
 	// adding their coach's would become them.
 	do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob Byrne"}})
-	bob := pathIn(t, do(t, h, http.MethodPost, club+"/coaches/"+regexp.MustCompile(`/coaches/([^/"]+)/new-link`).FindAllStringSubmatch(get(club+"/coaches"), -1)[1][1]+"/new-link", nil).Body.String(), "/clubs/coach/")
+	bob := pathIn(t, do(t, h, http.MethodPost, club+"/coaches/"+regexp.MustCompile(`/coaches/([^/"]+)/new-link`).FindAllStringSubmatch(get(club+"/coaches"), -1)[1][1]+"/new-link", url.Values{"anyway": {"1"}}).Body.String(), "/clubs/coach/")
 	if page := do(t, h, http.MethodPost, member+"/links", url.Values{"link": {"http://example.com" + bob}}).Body.String(); !strings.Contains(page, "Is Bob Byrne you?") || !strings.Contains(page, `name="sure" value="1"`) {
 		t.Errorf("asked first: %s", page)
 	}
@@ -260,7 +260,7 @@ func TestSharedLinkOneWay(t *testing.T) {
 	if rec := do(t, h, http.MethodGet, asCompSec, nil); rec.Code != http.StatusOK {
 		t.Fatalf("added again: %d", rec.Code)
 	}
-	redirected(t, h, club+"/replace-link", nil)
+	redirected(t, h, club+"/replace-link", url.Values{"anyway": {"1"}})
 	if rec := do(t, h, http.MethodGet, asCompSec, nil); rec.Code != http.StatusNotFound {
 		t.Errorf("a replaced admin link ends it: %d", rec.Code)
 	}

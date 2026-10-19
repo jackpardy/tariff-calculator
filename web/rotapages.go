@@ -114,32 +114,18 @@ func (f rotaFacts) name(withClub bool) func(string) string {
 }
 
 // whatIfBreaks are what a schedule breaks, less what the "what ifs" show
-// themselves (competitions.Schedule.WhatIfBreaks), people and coaches each
-// keyed as one person, every one named.
-func (f rotaFacts) whatIfBreaks(s competitions.Schedule) []string {
-	return s.WhatIfBreaks(f.one, f.coaches(), f.breakNames())
+// themselves (competitions.Schedule.WhatIfBreaks), people each keyed as one
+// person, every one named.
+func (f rotaFacts) whatIfBreaks(s competitions.Schedule) []competitions.Break {
+	return s.WhatIfBreaks(f.one, f.clashNames())
 }
 
 // manualBreaks are everything a schedule breaks (competitions.Schedule.Breaks),
-// and what its rota does (RotaProblems), for a manual change to say what it
+// and what its rota does (RotaBreaks), for a manual change to say what it
 // would newly break.
-func (f rotaFacts) manualBreaks(s competitions.Schedule) []string {
-	names := f.breakNames()
-	return append(s.Breaks(f.one, f.coaches(), names), s.RotaProblems(f.one, f.officials, names)...)
-}
-
-// coaches are each live entry's coaches, keyed as one person.
-func (f rotaFacts) coaches() map[string][]string { return coachesOf(f.entries, f.same) }
-
-// breakNames are clashNames with the coaches named too.
-func (f rotaFacts) breakNames() map[string]string {
+func (f rotaFacts) manualBreaks(s competitions.Schedule) []competitions.Break {
 	names := f.clashNames()
-	for _, e := range f.entries {
-		if k := e.CoachKey(); k != "" && names[f.same.of(k)] == "" {
-			names[f.same.of(k)] = e.CoachName()
-		}
-	}
-	return names
+	return append(s.Breaks(f.one, names), s.RotaBreaks(f.one, f.officials, names)...)
 }
 
 // clashNames are oneNames with the officials not competing named too.
@@ -261,7 +247,7 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 		what := "Give " + name(person) + " the " + competitions.RoleWord(d.Role) + " seat on " + fl.Name()
 		if p.askFirst(w, r, c, draft, f, what, apply, func(clean func(func(*competitions.Schedule) bool) bool) []views.ChangeFix {
 			var fixes []views.ChangeFix
-			for _, other := range draft.FreeForSeat(flight, seat, f.one, f.coaches(), f.officials) {
+			for _, other := range draft.FreeForSeat(flight, seat, f.one, f.officials) {
 				if len(fixes) == maxFixes {
 					break
 				}
@@ -305,7 +291,6 @@ func rotaView(s competitions.Schedule, entries []store.Entry, people []competiti
 	for _, e := range schedEntries(entries, same) {
 		clubs[e.ID] = e.Club
 	}
-	coaches := coachesOf(entries, same)
 	for _, o := range people {
 		if names[o.Key] == "" {
 			names[o.Key] = o.Name
@@ -313,7 +298,7 @@ func rotaView(s competitions.Schedule, entries []store.Entry, people []competiti
 	}
 	rr := s.RotaReport(clubs, people)
 	v := views.RotaView{People: len(people), Short: rr.Short, Empty: rr.Empty, Broken: rr.Broken,
-		Problems: s.RotaProblems(keys, people, names), Coaches: s.CoachClashes(coaches, names)}
+		Problems: s.RotaProblems(keys, people, names)}
 	for _, c := range rr.OwnClub {
 		v.OwnClub = append(v.OwnClub, fmt.Sprintf("%s %d", c.Club, c.Times))
 	}

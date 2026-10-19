@@ -64,7 +64,7 @@ built on the one engine, so rules exist only in Go ([rendering](architecture/ren
 |---|---|---|---|
 | 1 | **Card collection and checking** (built, live at `/competitions` since 2026-10-06; [what each person sees](features/competition-entries.md)) | Members keep their entries with their club and change them freely; the club's competition secretary sends them to the competition (individuals can enter directly where allowed); the organiser and difficulty judges see every card already checked against its level, print them, mark them checked, and export CSV; optionally asks for video proof by link (an unlisted YouTube video, say) for chosen skills. Synchro (2026-10-07): levels paired into one event (e.g. L1/L2), a pair entering one routine (the level's voluntary), and a pair at the wrong level for their individual ones flagged; levels kept easiest first, which judging "up to" goes by | requirements, levels, tariff sheet, sharing |
 | 3 | Timetable and flight planner (built: every step of [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md), 2026-10-07: [timetable](features/competition-entries.md#timetable-adr-0005-step-4), [simulation](features/competition-entries.md#simulation-adr-0005-step-6)) | Entries per category, panels and minutes per competitor give flights, running orders and estimated times over days and named areas, around blocked time and the organiser's rules; printable marshal and chair-of-judges sheets; a panel timeline at an even time scale, with or without each official's seat; simulation of entry numbers, judges and the judges each club must bring. On the day: [what if there's a delay](features/competition-entries.md#what-if-theres-a-delay) (shift or move flights, eased by moving or shortening breaks, shorter changeovers, quicker turns, bigger flights or running over) | — |
-| 4 | Officials rota (built, ADR 0005 step 5: [officials rota](features/competition-entries.md#officials-rota-adr-0005-step-5)) | Judges, recorders and marshals per panel and flight (spotters aren't scheduled), drawn from competitors and the organiser's own judges, with clashes flagged and own-club judging balanced; HD and synchronisation judges where no machine measures. On the day: [what if an official has to leave](features/competition-entries.md#what-if-an-official-has-to-leave) (each seat filled by someone free or by moving others round, easiest to fill or fewest changes) | 3 |
+| 4 | Officials rota (built, ADR 0005 step 5: [officials rota](features/competition-entries.md#officials-rota-adr-0005-step-5)) | Judges, recorders and marshals per panel and flight (spotters aren't scheduled), drawn from competitors and the organiser's own judges, with clashes flagged and own-club judging balanced; HD and synchronisation judges where no machine measures. On the day: [what if an official has to leave](features/competition-entries.md#what-if-an-official-has-to-leave) (each seat filled by someone free or, failing that, by moving others round, as few as will do) | 3 |
 | 5 | "My competition" page (built: [my competition](features/competition-entries.md#my-competition-roadmap-competitions-5)) | For attendees: flight, panel, time, card status | 1, 3 |
 | 6 | Results history | Import results CSVs (TrampOnline, TScore) for personal bests and progression, and for next year's level planning | — |
 | 7 | Later, if wanted | Entries, scoring with time of flight and displacement, live results: the "replace" path | 1–6 |
@@ -531,6 +531,26 @@ govulncheck in CI; `/healthz` and a graceful shutdown; an end-to-end test on a
 fixed clock; the timetable page 6.1 MB to 0.8 MB; search on the day and
 timetable pages; wide tables as cards on a phone.
 
+**Checking entries, from the full audit: built 2026-10-19.** Filters and
+sort carry through checking (Mark checked and next, ← Entries, removing);
+the entries table fits 1,300 px with Coach and Checked in sight; turning on
+coach approval and changing limits ask first, with counts; Qualified and a
+coach's decision come back to the row with a notice.
+
+**Full audit fixes (decided 2026-10-19).** The owner's choices from the
+second full audit, built on their own branches. Clubs and people's dead ends
+(**built 2026-10-19**): replacing a link asks first, choosing a member's coach
+comes back to their row, no routine yet leads to the Routine Builder and back,
+a waiting sign-off says who gives it, and entering another discipline on your
+own is on your page.
+
+**Skill names and search (full audit, built 2026-10-19).** The catalogue
+has the common twisting singles, doubles and triples, named and placed as the
+Code of Points' examples (Full-In Back, Rudi-Out, Half-In Rudi-Out, Triple
+Full Back…), and search finds skills by the names people type ("½ twist
+jump", "piked back", "back drop to feet", "swivel hips", "cradle"). See
+[skill catalog](domain/skill-catalog.md).
+
 **One palette for states and roles (planned 2026-10-15).** Fixed colours for
 states (grey not yet, blue in progress, green done, amber needs attention,
 red stopped) and for who did something (gymnast, coach, club, organiser),
@@ -591,6 +611,11 @@ December. Before it:
   every tap on On the day, who's up included, recorded at the time tapped
   by the server's clock, with rules for two phones' taps, and **Correct the
   times** under each flight.
+- **Re-planning keeps what's marked on the day** (built 2026-10-19, from
+  the full audit): planning again and publishing no longer wipe check-ins,
+  flight times, who's up or panel check-ins; once the day has begun it isn't
+  planned again (changes by hand still are), and Publish changes says what it would drop
+  ([how](features/competition-entries.md#timetable-adr-0005-step-4)).
 - **One palette on the day's pages**: **built 2026-10-15.** On the day
   (flights, check-in, panels and their empty seats), the dashboard's and the
   club's entry rows and who fills each rota seat show states and roles with
@@ -603,6 +628,15 @@ December. Before it:
   from 191 of 343 failing to none, with a median of 171 ms, and (taps
   included, 2026-10-19) to a median of 3–4 ms. Still to do: a run on the
   server.
+
+  from 191 of 343 failing to none, with a median of 171 ms. Still to do: a
+  run on the server.
+- **Lighter pages for phones**: **built 2026-10-19**, after the full audit.
+  Cards a level at a time past 100 (the demo's 899 were one page of 3.9 MB),
+  My competition and a person's page with only their flights and panels
+  (the whole timetable a link away), the timetable a day at a time and the
+  entries page's folded levels sent inert until opened. Still heavy on a
+  phone: the open day of the timetable (about 5,000 elements, 17,800 px).
 
 For ISTO itself: a 4G/5G router for the organiser, marshals and chairs
 (and a cable for the venue screen); everyone's times by push and email
@@ -747,8 +781,12 @@ Notifications (7) are built; numbers 1–7 below are built.
    officials on blocked time, and rest as a must. *Built 2026-10-16:* a
    delay moves flights only where the must rules allow and says what it
    newly breaks (all of these); filling a leaving official's seats skips
-   anyone on blocked-time duty, coaching someone competing elsewhere or short
-   of rest where it's a must, and says the same (`Schedule.Breaks`).
+   anyone on blocked-time duty or short of rest where it's a must, and says
+   the same (`Schedule.Breaks`). *Changed 2026-10-19:* coaches aren't
+   checked anywhere any more (the owner's decision, as coach lines flooded
+   the list); **This would break** puts people in two places first and folds
+   one person's repeats into a line with a count; a leaving official's seat
+   goes to someone free when there is one, then the fewest moves.
 9. **Say what a manual change breaks, and how to fix it** (proposed
    2026-10-08). Today a manual change (moving a flight or a gymnast, giving
    someone a seat) is made, and what it broke is listed afterwards under
@@ -759,7 +797,9 @@ Notifications (7) are built; numbers 1–7 below are built.
    flight), to apply or to make the change anyway. With drafts (8), nothing
    reaches attendees until it's published. *Built 2026-10-16:* moving an
    event or a gymnast, or giving a seat, that breaks something new asks
-   first, with up to three fixes that break nothing.
+   first, with up to three fixes that break nothing. *Changed 2026-10-19:*
+   coaches aren't checked; what it breaks lists people in two places first,
+   one line a person with a count.
 10. **One panel for a whole event** (decided 2026-10-07; designed in
    [ADR 0006](../docs/adr/0006-one-panel-per-event.md); runs and
    one panel per run built 2026-10-08; splitting by routine is left). Everyone on an

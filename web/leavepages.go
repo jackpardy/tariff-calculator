@@ -39,7 +39,7 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	page := views.LeavePage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuLeave),
-		Person: q.Get("person"), Day: q.Get("day"), From: q.Get("from"), ForGood: q.Get("forgood") == "1", Prefer: q.Get("prefer"),
+		Person: q.Get("person"), Day: q.Get("day"), From: q.Get("from"), ForGood: q.Get("forgood") == "1",
 	}
 	for i, d := range s.Setup.Days {
 		page.Days = append(page.Days, views.FlightOption{Value: strconv.Itoa(i), Label: d.Name})
@@ -67,21 +67,20 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 		if err1 != nil || err2 != nil {
 			page.Problems = []string{"Give the day and the time they leave (e.g. 13:00)."}
 		} else {
-			l := competitions.Leave{Person: page.Person, Day: day, From: from, ForGood: page.ForGood, Prefer: page.Prefer}
-			coaches := coachesOf(f.entries, f.same)
-			out, fills, err := s.Left(l, people, coaches, f.officials)
+			l := competitions.Leave{Person: page.Person, Day: day, From: from, ForGood: page.ForGood}
+			out, fills, err := s.Left(l, people, f.officials)
 			if err != nil {
 				page.Problems = sentences(err)
 			} else if r.Method == http.MethodPost {
 				p.keepWhatIf(w, r, c, func(s competitions.Schedule) (competitions.Schedule, error) {
-					out, _, err := s.Left(l, people, coaches, f.officials)
+					out, _, err := s.Left(l, people, f.officials)
 					return out, err
 				}, name(page.Person)+"'s seats are filled in the draft.")
 				return
 			} else {
 				page.Keep, page.Version = r.URL.RequestURI(), s.Version()
 				page.Result = leaveView(s, fills, name, page.Person)
-				page.Result.Breaking = competitions.NewBreaks(f.whatIfBreaks(s), f.whatIfBreaks(out))
+				page.Result.Breaking = competitions.BreakLines(competitions.NewBreaks(f.whatIfBreaks(s), f.whatIfBreaks(out)))
 			}
 		}
 	}

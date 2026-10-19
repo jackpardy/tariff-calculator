@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -22,6 +23,49 @@ func coachPath(token string) string { return "/clubs/coach/" + token }
 // memberSignoff is a member's entry's sign-off, as the pages show it.
 func memberSignoff(c competitions.Competition, e store.MemberEntry) views.SignoffView {
 	return views.SignoffView{Required: c.Signoff, Signed: e.SignedOff(), By: e.SignedBy, Note: e.SignNote}
+}
+
+// whoSignsOff says, on a member's entry waiting for a coach's sign-off
+// (s), who can give it: the club's coaches who sign off routines and see
+// them (their own coach, or any while they have none or the club lets every
+// coach see every member). Where no one can, it says why, and what to do:
+// on the comp sec's Coaches (coachesPage), or else asking the comp sec.
+func whoSignsOff(s *views.SignoffView, m store.Member, coaches []store.Coach, seeAll bool, coachesPage string) {
+	if !s.Required || s.Signed || s.By != "" {
+		return
+	}
+	var names []string
+	var theirs string
+	for _, c := range coaches {
+		if c.ID == m.CoachID {
+			theirs = c.Name
+		}
+		if c.SignsOff && (seeAll || m.CoachID == "" || c.ID == m.CoachID) {
+			names = append(names, c.Name)
+		}
+	}
+	switch {
+	case len(names) == 1:
+		s.Waiting = names[0] + " signs it off, on their coach page."
+	case len(names) > 1 && len(names) <= 3:
+		s.Waiting = strings.Join(names[:len(names)-1], ", ") + " or " + names[len(names)-1] + " signs it off, on their coach page."
+	case len(names) > 3:
+		s.Waiting = fmt.Sprintf("Any of the club's %d coaches who sign off routines can sign it off, on their coach page.", len(names))
+	default:
+		whose := "Your coach"
+		if coachesPage != "" {
+			whose = m.Name + "'s coach"
+		}
+		why := "No coach of the club signs off routines yet, so no one can sign it off."
+		if theirs != "" && slices.ContainsFunc(coaches, func(c store.Coach) bool { return c.SignsOff }) {
+			why = whose + ", " + theirs + ", doesn't sign off routines, so no one can sign it off."
+		}
+		if coachesPage != "" {
+			s.Waiting, s.Coaches = why+" It can still be sent: the organiser sees it isn't signed off.", coachesPage
+		} else {
+			s.Waiting = why + " Ask your comp sec to add a coach who does. It can still be sent: the organiser sees it isn't signed off."
+		}
+	}
 }
 
 // memberProblems are a member's entry's problems as the organiser sees them
@@ -93,6 +137,13 @@ func (p *competitionPages) newCoachLink(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return
 	}
+	if p.askReplace(w, r, club, clubCoaches, views.LinkAsk{
+		Title:  "Make a new link for " + coach.Name + "?",
+		Text:   "Their old coach link stops working at once, wherever it's saved: in their browser, on their phone's home screen or in their bookmarks. Their sign-offs and notes stay. You see the new link once, here, to send them.",
+		Button: "Make a new link", Back: clubCoachesPath(r.PathValue("token")) + "#" + coachAnchor(coach.ID),
+	}) {
+		return
+	}
 	token, err := p.st.ReplaceCoachLink(r.Context(), club.ID, coach.ID)
 	if err != nil {
 		failed(w, r, err)
@@ -155,11 +206,29 @@ func (p *competitionPages) assignCoach(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := p.st.SetMemberCoach(r.Context(), club.ID, r.PathValue("member"), r.FormValue("coach")); err != nil {
+	m, err := p.st.Member(r.Context(), club.ID, r.PathValue("member"))
+	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, clubMembersPath(r.PathValue("token")), http.StatusSeeOther)
+	if err := p.st.SetMemberCoach(r.Context(), club.ID, m.ID, r.FormValue("coach")); err != nil {
+		failed(w, r, err)
+		return
+	}
+	notice := m.Name + " has no coach chosen now."
+	if id := r.FormValue("coach"); id != "" {
+		coaches, err := p.st.Coaches(r.Context(), club.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		if i := slices.IndexFunc(coaches, func(c store.Coach) bool { return c.ID == id }); i >= 0 {
+			notice = m.Name + "'s coach is now " + coaches[i].Name + "."
+		}
+	}
+	// Back to their row, which says it too, as the page opens there: the
+	// list's search and filters are kept for the tab.
+	seeOther(w, r, clubMembersPath(r.PathValue("token"))+"?at="+url.QueryEscape(m.ID)+"#"+views.MemberAnchor(m.ID), notice)
 }
 
 // --- Members ---

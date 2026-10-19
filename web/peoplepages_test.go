@@ -237,7 +237,7 @@ func TestPeoplePlannedAndPublished(t *testing.T) {
 	if !strings.Contains(page, "(planned, not published yet)") || !strings.Contains(page, "Chair of judges") || strings.Contains(page, "Panel check-in") {
 		t.Errorf("Mary's seats once planned: %s", page)
 	}
-	if strings.Contains(page, "The timetable</h2>") || !strings.Contains(page, "Can judge:") {
+	if strings.Contains(page, `id="timetable"`) || !strings.Contains(page, "Can judge:") {
 		t.Error("an official not competing has no timetable of her own, but can judge")
 	}
 
@@ -247,11 +247,15 @@ func TestPeoplePlannedAndPublished(t *testing.T) {
 		t.Errorf("Mary's seats once published: %s", page)
 	}
 	page = do(t, h, http.MethodGet, mo, nil).Body.String()
-	for _, want := range []string{"<strong>BUCS L3</strong> · Panel 1 · Saturday", "Warm-up <strong>09:00</strong>", "Check-in: <strong>Not marked yet</strong>", "The timetable</h2>",
-		"Mo is picked out in bold", "<strong>Mo</strong>"} {
+	for _, want := range []string{"<strong>BUCS L3</strong> · Panel 1 · Saturday", "Warm-up <strong>09:00</strong>", "Check-in: <strong>Not marked yet</strong>", "Their flights and panels",
+		"<strong>Mo</strong>", `href="?timetable=all#timetable">Show the whole timetable`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("Mo's page once published has %q", want)
 		}
+	}
+	// The whole timetable is a link away.
+	if whole := do(t, h, http.MethodGet, mo+"?timetable=all", nil).Body.String(); !strings.Contains(whole, "The timetable") || !strings.Contains(whole, "Mo is picked out in bold") || !strings.Contains(whole, ">Only theirs</a>") {
+		t.Error("Mo's page with the whole timetable")
 	}
 	if strings.Contains(page, "you're") || strings.Contains(page, "ask the organiser") {
 		t.Error("the organiser's page doesn't speak to the person")
@@ -326,7 +330,7 @@ func TestMemberPageUnchangedByPeople(t *testing.T) {
 		t.Fatal("the member page links to their competition")
 	}
 	page := dayAll(t, h, day[1])
-	for _, want := range []string{"← Student Open: your entries", "<h1 class=\"title is-4\">Mo</h1>", "My competition</h2>", "<p class=\"subtitle is-6\">Student Open · ", "Your details", "you're <strong>", "You're picked out in bold", "Your timetable", "Add to calendar"} {
+	for _, want := range []string{"← Student Open: your entries", "<h1 class=\"title is-4\">Mo</h1>", "My competition</h2>", "<p class=\"subtitle is-6\">Student Open · ", "Your details", "you're <strong>", "Your flights and panels", "Your timetable", "Add to calendar"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the member's page has %q", want)
 		}

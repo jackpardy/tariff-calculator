@@ -16,6 +16,18 @@ type GymnastPage struct {
 	Competition  *GymnastCompetition  // the one competition's page shows
 	Other        *OtherLinks          // on their details
 	Kept         KeptPart             // their own requirements and levels, on Requirements (ADR 0013)
+	Enter        *GymnastEnter        // entering another discipline
+}
+
+// GymnastEnter enters another discipline of a competition an individual has
+// entered, under their name.
+type GymnastEnter struct {
+	Back        string // their page for the competition
+	Competition CompetitionSummary
+	Form        *EntryForm      // nil for a discipline they've entered already
+	Disciplines []DisciplineTab // those not entered yet, as tabs when there are several
+	Entered     []DisciplineTab // those entered, each opening its entry on Back
+	Already     *DisciplineTab  // the discipline asked for, entered already
 }
 
 // GymnastCompetition is one competition an individual entered, with their
@@ -125,6 +137,53 @@ templ GymnastCompetitionPage(p GymnastPage) {
 			}
 			if c.Competition.ChangesOpen {
 				@privacyNote(c.Competition)
+			}
+		}
+	}
+}
+
+// GymnastEnterPage is entering another discipline, from an individual's page
+// for the competition and back to it.
+templ GymnastEnterPage(p GymnastPage) {
+	@gymnastFrame(p) {
+		if e := p.Enter; e != nil {
+			<p class="mb-3"><a href={ templ.SafeURL(e.Back) }>{ "← " + e.Competition.Name }</a></p>
+			<h2 class="title is-5">Enter another discipline</h2>
+			if e.Already != nil {
+				<div class="notification is-warning is-light">
+					{ "You've already entered " + e.Already.Name + " here." }
+					<a href={ templ.SafeURL(e.Already.URL) }>Change that entry →</a>
+				</div>
+			}
+			if len(e.Entered) > 0 {
+				<p class="mb-3 is-size-7">
+					Entered already, to change on the competition's page:
+					for i, d := range e.Entered {
+						if i > 0 {
+							{ ", " }
+						}
+						<a href={ templ.SafeURL(d.URL) }>{ d.Name + " →" }</a>
+					}
+				</p>
+			}
+			if !e.Competition.Open {
+				<p class="has-text-grey">Entries are closed.</p>
+			} else if len(e.Disciplines) == 0 {
+				<p class="has-text-grey">You've entered every discipline this competition has.</p>
+			} else {
+				if len(e.Disciplines) > 1 {
+					<div class="tabs is-small">
+						<ul>
+							for _, d := range e.Disciplines {
+								<li class={ templ.KV("is-active", d.Current) }><a href={ templ.SafeURL(d.URL) }>{ d.Name }</a></li>
+							}
+						</ul>
+					</div>
+				}
+				if e.Form != nil {
+					@entryForm(*e.Form)
+					@privacyNote(e.Competition)
+				}
 			}
 		}
 	}

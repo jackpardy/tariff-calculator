@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -78,7 +79,7 @@ func (p *competitionPages) reviewVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Back to the video box, where it says how it was reviewed.
-	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id")+"#video", http.StatusSeeOther)
+	http.Redirect(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id")+listQuery(r.URL.Query())+"#video", http.StatusSeeOther)
 }
 
 // judged is a stored entry checked, with who sent it ("individual" for an
@@ -199,6 +200,19 @@ func dashboardFilter(q url.Values) url.Values {
 	return out
 }
 
+// listQuery is the request's filters and sort, as a query to carry from the
+// entries page to an entry and back ("?club=UCD&sort=gymnast"); "" for none.
+func listQuery(q url.Values) string {
+	list := dashboardFilter(q)
+	if sort := q.Get("sort"); sort != "" {
+		list.Set("sort", sort)
+	}
+	if len(list) == 0 {
+		return ""
+	}
+	return "?" + list.Encode()
+}
+
 // sortRows orders a level's rows by gymnast, club, sent (latest first) or
 // coach; otherwise as they came (by club, then gymnast).
 func sortRows(rows []views.DashboardRow, sentAt map[string]time.Time, by string) {
@@ -241,7 +255,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuEntries),
 		Club: q.Get("club"), ProblemsOnly: q.Get("problems") == "1",
 		Entries: len(entries), New: q.Get("new"), Notice: q.Get("notice"),
-		LiveDate: liveDate, LiveTime: liveTime,
+		LiveDate: liveDate, LiveTime: liveTime, List: listQuery(q),
 	}
 	if !c.NotifyDue.IsZero() {
 		d.NotifyAt = c.NotifyDue.In(local).Format("15:04")
@@ -337,7 +351,8 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 					continue
 				}
 				row.Met, row.Rules = row.Met+ex.Met(), row.Rules+len(ex.Results)
-				row.Exercises[i] = exerciseSummary(j.Entry.Entry.Exercises[i], ex)
+				// "option 2", not "BUCS L7 · option 2": the table is the level's.
+				row.Exercises[i] = strings.TrimPrefix(exerciseSummary(j.Entry.Entry.Exercises[i], ex), j.Entry.Entry.Event()+" · ")
 			}
 		}
 		n, ok := byLevel[j.Entry.Entry.Event()]
@@ -374,9 +389,16 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.CompetitionDashboard(d))
 }
 
+// cardsAtOnce is the most cards the cards page shows without being asked: a
+// selection of more, over several levels, lists its levels to print one at a
+// time instead, as every card on one page was megabytes that froze a phone.
+var cardsAtOnce = 100
+
 // cards prints the competition cards of the entries the dashboard's filter
 // selects (club, problems, unchecked, level, entry), one exercise per page, by
-// level then as listed.
+// level then as listed. More than cardsAtOnce over more than one level lists
+// the levels instead, each to print on its own, with all of them on one page
+// a link away (all=1).
 func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
 	if !ok {
@@ -389,41 +411,121 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	// The selection's levels with their cards, whichever level was asked for,
+	// so a level's page can go on to the next. A level with more than
+	// cardsAtOnce is in parts, a category each (part=Men), where it has more
+	// than one.
+	selection := url.Values{}
+	for k, v := range q {
+		if k != "level" && k != "part" && k != "all" {
+			selection[k] = v
+		}
+	}
 	for _, level := range levelOrder(c.Competition, all) {
+		var parts []string
+		count := map[string]int{}
 		for _, j := range all {
-			if j.Entry.Entry.Event() != level || !j.matches(q) || j.err != nil || j.card.Unchecked || (j.Withdrawn && q.Get("entry") == "") {
+			if j.Entry.Entry.Event() != level || !printsCard(j, selection) {
 				continue
 			}
-			club := j.ClubName
-			if j.Individual {
-				club = ""
+			category := j.Entry.Entry.Category
+			if _, ok := count[category]; !ok {
+				parts = append(parts, category)
 			}
-			for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
-				if !j.card.Does(i) {
-					continue
+			for i := range 2 {
+				if j.card.Does(i) {
+					count[category]++
 				}
-				round := [...]string{"1st exercise", "2nd exercise"}[i]
-				if j.card.Only > 0 {
-					round = "Routine"
-				}
-				// Its set's name, less what the card says already (the level,
-				// "first exercise"): "1st exercise · option 2".
-				set := strings.TrimPrefix(ex.SetName, j.Entry.Entry.Event()+" · ")
-				if set != "" && !strings.Contains(strings.ToLower(set), "exercise") && set != j.Entry.Entry.Event() {
-					round += " · " + set
-				}
-				page.Cards = append(page.Cards, views.PrintedCard{
-					Validation: ex.Validation, Required: ex.Required, Checks: ex.Checks,
-					Details: views.SheetDetails{
-						"gymnast": j.Entry.Entry.Gymnasts(), "club": club, "category": strings.TrimSpace(j.Entry.Entry.Event() + " " + j.Entry.Entry.Category),
-						"competition": c.Name, "round": round,
-						"coach": j.CoachName(),
-					},
-				})
+			}
+		}
+		n := 0
+		for _, k := range count {
+			n += k
+		}
+		page.Total += n
+		at := maps.Clone(selection)
+		at.Set("level", level)
+		if n <= cardsAtOnce || len(parts) < 2 {
+			if n > 0 {
+				page.Levels = append(page.Levels, views.CardsLevel{Name: level, Cards: n, Href: "?" + at.Encode()})
+			}
+			continue
+		}
+		slices.SortFunc(parts, competitions.CompareNames)
+		for _, part := range parts {
+			at.Set("part", part)
+			name := level + " · " + part
+			if part == "" {
+				name = level + " · no category"
+			}
+			page.Levels = append(page.Levels, views.CardsLevel{Name: name, Cards: count[part], Href: "?" + at.Encode(), Level: level, Part: part, Parted: true})
+		}
+	}
+	if len(page.Levels) > 1 && page.Total > cardsAtOnce {
+		every := maps.Clone(selection)
+		every.Set("all", "1")
+		page.LevelsHref, page.AllHref = "?"+selection.Encode(), "?"+every.Encode()
+		if q.Get("level") == "" && q.Get("entry") == "" && q.Get("all") == "" {
+			page.Choose = true
+			render(w, r, views.CompetitionCards(page))
+			return
+		}
+		for i, l := range page.Levels {
+			this := l.Name == q.Get("level") || (l.Parted && l.Level == q.Get("level") && q.Has("part") && l.Part == q.Get("part"))
+			if this && i+1 < len(page.Levels) {
+				page.Next = &page.Levels[i+1]
+			}
+		}
+	}
+	for _, level := range levelOrder(c.Competition, all) {
+		for _, j := range all {
+			// A part is a category of the level.
+			if j.Entry.Entry.Event() == level && printsCard(j, q) && (!q.Has("part") || j.Entry.Entry.Category == q.Get("part")) {
+				page.Cards = append(page.Cards, cardsOf(c.Name, j)...)
 			}
 		}
 	}
 	render(w, r, views.CompetitionCards(page))
+}
+
+// printsCard says whether an entry's cards print for the cards page's
+// selection: checked, chosen by the filters, and not withdrawn unless asked
+// for by itself.
+func printsCard(j judged, q url.Values) bool {
+	return j.matches(q) && j.err == nil && !j.card.Unchecked && (!j.Withdrawn || q.Get("entry") != "")
+}
+
+// cardsOf is an entry's competition cards, one for each exercise it does.
+func cardsOf(competition string, j judged) []views.PrintedCard {
+	club := j.ClubName
+	if j.Individual {
+		club = ""
+	}
+	var out []views.PrintedCard
+	for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
+		if !j.card.Does(i) {
+			continue
+		}
+		round := [...]string{"1st exercise", "2nd exercise"}[i]
+		if j.card.Only > 0 {
+			round = "Routine"
+		}
+		// Its set's name, less what the card says already (the level,
+		// "first exercise"): "1st exercise · option 2".
+		set := strings.TrimPrefix(ex.SetName, j.Entry.Entry.Event()+" · ")
+		if set != "" && !strings.Contains(strings.ToLower(set), "exercise") && set != j.Entry.Entry.Event() {
+			round += " · " + set
+		}
+		out = append(out, views.PrintedCard{
+			Validation: ex.Validation, Required: ex.Required, Checks: ex.Checks,
+			Details: views.SheetDetails{
+				"gymnast": j.Entry.Entry.Gymnasts(), "club": club, "category": strings.TrimSpace(j.Entry.Entry.Event() + " " + j.Entry.Entry.Category),
+				"competition": competition, "round": round,
+				"coach": j.CoachName(),
+			},
+		})
+	}
+	return out
 }
 
 // levelOrder is the competition's levels in order, then any level entries
@@ -520,41 +622,79 @@ func (p *competitionPages) check(w http.ResponseWriter, r *http.Request) {
 		note = string([]rune(note)[:500])
 	}
 	p.notify.changing(r.Context(), c)
-	if err := p.st.MarkChecked(r.Context(), c.ID, r.PathValue("id"), r.FormValue("checked") == "1", note); err != nil {
+	// The posted checked, not the list's filter of the same name.
+	if err := p.st.MarkChecked(r.Context(), c.ID, r.PathValue("id"), r.PostFormValue("checked") == "1", note); err != nil {
 		failed(w, r, err)
 		return
 	}
 	base := adminPath(r.PathValue("token"))
-	// Mark checked and next: the next entry still to check, in the same
-	// level first, as the entries list has them.
-	if r.FormValue("next") == "1" {
-		entries, err := p.entriesOf(r.Context(), c.ID)
+	// The entries page's filters and sort, which the entry was opened with,
+	// carry on: to the next entry, and back to the list.
+	list := listQuery(r.URL.Query())
+	// Mark checked and next: the next entry still to check that the filters
+	// show, in the same level first, as the entries list has them.
+	if r.PostFormValue("next") == "1" {
+		all, err := p.judgedOf(r.Context(), c.ID, false)
 		if err != nil {
 			failed(w, r, err)
 			return
 		}
-		if next := nextToCheck(live(entries), r.PathValue("id")); next != "" {
-			seeOther(w, r, base+"/entries/"+next+"#check", "Checked. This is the next to check.")
+		if next := nextToCheck(listed(c.Competition, all, r.URL.Query(), r.PathValue("id")), r.PathValue("id")); next != "" {
+			seeOther(w, r, base+"/entries/"+next+list+"#check", "Checked. This is the next to check.")
 			return
 		}
-		seeOther(w, r, base, "Checked: that was the last to check.")
+		notice := "Checked: that was the last to check."
+		if list != "" {
+			notice = "Checked: that was the last to check of those shown."
+		}
+		seeOther(w, r, base+list, notice)
 		return
 	}
 	// Back to the check box, where it says Checked.
-	http.Redirect(w, r, base+"/entries/"+r.PathValue("id")+"#check", http.StatusSeeOther)
+	http.Redirect(w, r, base+"/entries/"+r.PathValue("id")+list+"#check", http.StatusSeeOther)
 }
 
-// nextToCheck is the entry to check after the one with id: the next in its
-// level not checked, else the first in any level; "" when none is left.
-func nextToCheck(entries []store.Entry, id string) string {
-	i := slices.IndexFunc(entries, func(e store.Entry) bool { return e.ID == id })
+// listed are the entries the entries page shows with the filters and sort q,
+// in its order: by level, then as sorted. The entry with id is listed too,
+// where it would be, though the filters may no longer show it (once checked,
+// it isn't "not checked").
+func listed(c competitions.Competition, all []judged, q url.Values, id string) []judged {
+	byID := map[string]judged{}
+	byLevel := map[string][]views.DashboardRow{}
+	sentAt := map[string]time.Time{}
+	filter := dashboardFilter(q)
+	for _, j := range all {
+		if j.ID != id && !j.matches(filter) {
+			continue
+		}
+		byID[j.ID], sentAt[j.ID] = j, j.SentAt
+		byLevel[j.Entry.Entry.Event()] = append(byLevel[j.Entry.Entry.Event()], views.DashboardRow{
+			ID: j.ID, Gymnast: j.Entry.Entry.Gymnasts(), Club: j.club, Coach: j.CoachName(), Signoff: storedSignoff(c, j.Entry),
+		})
+	}
+	var out []judged
+	for _, level := range levelOrder(c, all) {
+		rows := byLevel[level]
+		sortRows(rows, sentAt, q.Get("sort"))
+		for _, row := range rows {
+			out = append(out, byID[row.ID])
+		}
+	}
+	return out
+}
+
+// nextToCheck is the entry to check after the one with id, of those listed
+// (in the entries page's order): the next in its level not checked, else the
+// first in any level; "" when none is left.
+func nextToCheck(entries []judged, id string) string {
+	i := slices.IndexFunc(entries, func(e judged) bool { return e.ID == id })
 	if i < 0 {
 		return ""
 	}
-	level := entries[i].Entry.Event()
-	open := func(e store.Entry) bool { return e.ID != id && !e.Checked() && !e.Withdrawn }
+	level := entries[i].Entry.Entry.Event()
+	open := func(e judged) bool { return e.ID != id && !e.Checked() && !e.Withdrawn }
 	for _, e := range slices.Concat(entries[i+1:], entries[:i]) {
-		if e.Entry.Event() == level && open(e) {
+		if e.Entry.Entry.Event() == level && open(e) {
 			return e.ID
 		}
 	}
@@ -604,6 +744,7 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
 		ID: e.ID, Checked: checkedText(e), Note: e.Note, VideoReview: e.VideoReview, VideoNote: e.VideoNote,
 		Withdrawn: e.Withdrawn, Access: access(r), Notice: r.URL.Query().Get("notice"), LetIn: e.LetIn,
+		List: listQuery(r.URL.Query()),
 	}))
 }
 
@@ -658,7 +799,8 @@ func (p *competitionPages) removeEntries(w http.ResponseWriter, r *http.Request)
 	if n > 0 {
 		notice = fmt.Sprintf(done, views.Count(n, "entry", "entries")) + " They're listed at the end, to restore."
 	}
-	seeOther(w, r, adminPath(r.PathValue("token")), notice)
+	// Back to the list filtered as it was (the form carries its filters).
+	seeOther(w, r, adminPath(r.PathValue("token"))+listQuery(r.URL.Query()), notice)
 }
 
 // restoreEntry puts a removed or held entry back in the competition.

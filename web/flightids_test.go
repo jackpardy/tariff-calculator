@@ -105,8 +105,8 @@ func TestDayMarksFollowTheFlight(t *testing.T) {
 // the timetable page.
 func checkinEntryOnTimetable(t *testing.T, page, name string) string {
 	t.Helper()
-	// A flight's Move a gymnast lists its gymnasts by running number.
-	m := regexp.MustCompile(`<option value="([^"]+)">\d+\. ` + regexp.QuoteMeta(name) + `</option>`).FindStringSubmatch(page)
+	// A flight's running order has its gymnasts' entries.
+	m := regexp.MustCompile(`data-entry="([^"]+)" data-list-row="" data-name="` + regexp.QuoteMeta(name) + `"`).FindStringSubmatch(page)
 	if m == nil {
 		t.Fatalf("%s isn't in a flight's Move a gymnast: %s", name, page)
 	}

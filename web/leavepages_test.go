@@ -44,18 +44,18 @@ func TestLeavePage(t *testing.T) {
 	if chair == nil {
 		t.Fatalf("%s isn't among those who can leave", seats[1])
 	}
-	// The seat is filled, one way or the other (who the rota seated
-	// varies: unit tests cover how).
-	for _, prefer := range []string{"fewest", ""} {
-		got := text(tt + "/leave?person=" + url.QueryEscape(chair[1]) + "&day=0&from=09:00&prefer=" + prefer)
-		for _, want := range []string{seats[1] + "'s 1 seat:", "BUCS L3 · Panel 1 · Day 1 09:00–09:15 · Chair of judges", "chair of judges"} {
-			if !strings.Contains(got, want) {
-				t.Errorf("prefer %q shows %q: %s", prefer, want, got)
-			}
+	// The seat is filled (who the rota seated varies: unit tests cover how).
+	got := text(tt + "/leave?person=" + url.QueryEscape(chair[1]) + "&day=0&from=09:00")
+	for _, want := range []string{seats[1] + "'s 1 seat:", "BUCS L3 · Panel 1 · Day 1 09:00–09:15 · Chair of judges", "chair of judges"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("shows %q: %s", want, got)
 		}
-		if strings.Contains(got, "left empty") || !regexp.MustCompile(`(takes|moves from \w+ judge to) chair of judges`).MatchString(got) {
-			t.Errorf("prefer %q fills the chair: %s", prefer, got)
-		}
+	}
+	if strings.Contains(got, "left empty") || !regexp.MustCompile(`(takes|moves from \w+ judge to) chair of judges`).MatchString(got) {
+		t.Errorf("fills the chair: %s", got)
+	}
+	if strings.Contains(form, `name="prefer"`) {
+		t.Error("there's one way to fill a seat, not a choice")
 	}
 	if got := text(tt + "/leave?person=" + url.QueryEscape(chair[1]) + "&day=0&from=soon"); !strings.Contains(got, "Give the day and the time") {
 		t.Errorf("a bad time is refused: %s", got)

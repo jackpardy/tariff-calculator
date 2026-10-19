@@ -85,7 +85,13 @@ func TestOfficialPages(t *testing.T) {
 		t.Error("who can judge and chair each discipline, against a panel")
 	}
 	ids := regexp.MustCompile(regexp.QuoteMeta(officials)+`/([^/"]+)/qualified`).FindAllStringSubmatch(page, -1)
-	redirected(t, h, officials+"/"+ids[0][1]+"/qualified", url.Values{"on": {"1"}})
+	// Ticking Qualified comes back to their row, saying so.
+	if to := redirected(t, h, officials+"/"+ids[0][1]+"/qualified", url.Values{"on": {"1"}}); !strings.HasSuffix(to, "#official-"+ids[0][1]) || !strings.HasSuffix(noticeOf(t, to), " is marked qualified.") {
+		t.Errorf("back to the row, with a notice: %s", to)
+	}
+	if page := do(t, h, http.MethodGet, officials, nil).Body.String(); !strings.Contains(page, `<tr id="official-`+ids[0][1]+`" class="comp-target"`) {
+		t.Error("each row has its anchor")
+	}
 	redirected(t, h, officials+"/settings", url.Values{"judge": {"qualified"},
 		"panel-trampoline-chair": {"1"}, "panel-trampoline-execution": {"4"}, "panel-trampoline-difficulty": {"1"}, "panel-trampoline-recorder": {"1"}, "panel-trampoline-marshal": {"0"},
 		"panel-tumbling-chair": {"1"}, "panel-tumbling-execution": {"6"}, "panel-tumbling-difficulty": {"2"}, "panel-tumbling-recorder": {"1"}, "panel-tumbling-marshal": {"1"}})

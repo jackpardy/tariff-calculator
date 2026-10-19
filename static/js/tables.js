@@ -8,7 +8,8 @@
 // the same columns) can be set up by whoever is looking, with the Columns
 // menu (data-table-menu="<id>"): which columns show, long text wrapped or
 // clipped to one line, and how wide each column is, by dragging the edge of
-// its heading. The choice is kept in this browser, for every table of that id.
+// its heading. The choice is kept in this browser, for every table of that id;
+// until there is one, the columns in data-table-hidden are hidden.
 // On a phone, where such tables stack as cards, only hidden columns count.
 (function () {
     // --- Lines at the edges with more to scroll ---
@@ -18,7 +19,7 @@
         box.classList.toggle('has-more-right', more && box.scrollLeft + box.clientWidth < box.scrollWidth - 1);
     }
     function watchEdges() {
-        document.querySelectorAll('.table-container, .tabs, .comp-tt-areas').forEach((box) => {
+        document.querySelectorAll('.table-container, .tabs, .comp-tt-areas, .comp-tt-dayrow').forEach((box) => {
             if (!box.dataset.edges) {
                 box.dataset.edges = '';
                 box.addEventListener('scroll', () => edges(box), { passive: true });
@@ -30,8 +31,15 @@
     // --- Set up by the viewer ---
     const wide = window.matchMedia('(min-width: 769px)');
     const key = (id) => 'tableView:' + id;
+    // The columns hidden until the viewer chooses: the least used, named in
+    // the tables' data-table-hidden ("Sent"), so the rest fit.
+    function hiddenFirst(id) {
+        const table = document.querySelector(`table[data-table-view="${CSS.escape(id)}"][data-table-hidden]`);
+        return table ? table.dataset.tableHidden.split(',').filter(Boolean) : [];
+    }
     function load(id) {
-        try { return { hidden: [], widths: {}, clip: false, ...JSON.parse(localStorage.getItem(key(id)) || '{}') }; } catch (e) { return { hidden: [], widths: {}, clip: false }; }
+        const start = { hidden: hiddenFirst(id), widths: {}, clip: false };
+        try { return { ...start, ...JSON.parse(localStorage.getItem(key(id)) || '{}') }; } catch (e) { return start; }
     }
     function save(id, view) {
         try { localStorage.setItem(key(id), JSON.stringify(view)); } catch (e) { /* this visit only */ }
@@ -160,8 +168,14 @@
         ids.forEach(apply);
         watchEdges();
     }
-    // Levels open later: their tables' edges are measured then.
-    document.addEventListener('toggle', (event) => { if (event.target.open) { watchEdges(); } }, true);
+    // Levels open later: their tables' edges are measured then. A timetable
+    // day shown or hidden changes how wide its row is, either way.
+    document.addEventListener('toggle', watchEdges, true);
+    // A folded level's rows come into the page when it opens (competitions.js,
+    // lazyRows): its hidden columns are hidden in them too.
+    document.addEventListener('lazy-rows', () => {
+        new Set(Array.from(document.querySelectorAll('table[data-table-view]'), (t) => t.dataset.tableView)).forEach(apply);
+    });
     window.addEventListener('resize', () => {
         document.querySelectorAll('table[data-table-view]').forEach((t) => apply(t.dataset.tableView));
         watchEdges();

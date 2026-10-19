@@ -16,8 +16,8 @@ import (
 // My competition (roadmap: competitions 5): one page for someone at the
 // competition, from their member page or their own entry. It has every event
 // they're in, its card's status, their flight, where they are in its running
-// order and about when they go, what they officiate, and the whole published
-// timetable with them picked out.
+// order and about when they go, what they officiate, and the flights and
+// panels they're in (the whole published timetable, ?timetable=all).
 
 func (p *competitionPages) registerMine(handle func(string, http.HandlerFunc)) {
 	for _, own := range []string{"/clubs/member/{token}/competitions/{id}", "/competitions/entry/{token}"} {
@@ -184,8 +184,43 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		if page.Days, err = p.publishedDays(r.Context(), c.ID); err != nil {
 			return page, f, err
 		}
+		page.Whole = r.URL.Query().Get("timetable") == "all"
+		if !page.Whole {
+			// theirItems copies what it keeps: the cached days aren't changed.
+			page.Days = theirItems(page.Days, page.Mine, key)
+		}
 	}
 	return page, f, nil
+}
+
+// theirItems is the timetable cut to the flights someone competes in or sits
+// on the panel of, and the blocked time they have a seat in: the whole of it
+// made a phone's page over 10,000 px long.
+func theirItems(days []views.DayView, mine map[string]bool, key string) []views.DayView {
+	theirs := func(it views.ItemView) bool {
+		for _, g := range it.Gymnasts {
+			if mine[g.ID] {
+				return true
+			}
+		}
+		return slices.ContainsFunc(it.Seats, func(s views.SeatView) bool { return s.Person != "" && s.Person == key })
+	}
+	var out []views.DayView
+	for _, d := range days {
+		day := d
+		day.Areas = nil
+		for _, a := range d.Areas {
+			area := a
+			area.Items = slices.DeleteFunc(slices.Clone(a.Items), func(it views.ItemView) bool { return !theirs(it) })
+			if len(area.Items) > 0 {
+				day.Areas = append(day.Areas, area)
+			}
+		}
+		if len(day.Areas) > 0 {
+			out = append(out, day)
+		}
+	}
+	return out
 }
 
 // byWarmUp orders someone's events by when they warm up (warmUp, by entry,
