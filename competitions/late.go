@@ -75,8 +75,8 @@ type ChangePlace struct {
 // running order; the timetable with it there; and what that changes. With
 // no flight of the event, Flight is -1 and the timetable is as it was, less
 // the entry.
-func (s Schedule) PlaceChange(entryID, event, category string, people, coaches map[string][]string, names map[string]string) (Schedule, ChangePlace) {
-	before := s.Problems(people, coaches, names)
+func (s Schedule) PlaceChange(entryID, event, category string, people map[string][]string, names map[string]string) (Schedule, ChangePlace) {
+	before := s.Problems(people, names)
 	out := s
 	out.Flights = make([]ScheduledFlight, len(s.Flights))
 	for i, f := range s.Flights {
@@ -126,7 +126,7 @@ func (s Schedule) PlaceChange(entryID, event, category string, people, coaches m
 			place.Moves++
 		}
 	}
-	for _, p := range out.Problems(people, coaches, names) {
+	for _, p := range out.Problems(people, names) {
 		if !slices.Contains(before, p) {
 			place.Problems = append(place.Problems, p)
 		}

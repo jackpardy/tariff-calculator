@@ -199,25 +199,6 @@ func TestRotaSharesOwnClubJudging(t *testing.T) {
 	}
 }
 
-func TestCoachClashes(t *testing.T) {
-	setup := venue()
-	setup.Areas = setup.Areas[:2]
-	a, b := people("BUCS L3", Trampoline, 6), people("BUCS L5", Trampoline, 6)
-	a[0].Coaches, b[0].Coaches = []string{"c:sam"}, []string{"c:sam"}
-	entries := append(a, b...)
-	s := PlanSchedule(entries, []string{"BUCS L3", "BUCS L5"}, setup, 1)
-	coaches := map[string][]string{a[0].ID: {"c:sam"}, b[0].ID: {"c:sam"}}
-	if c := s.CoachClashes(coaches, map[string]string{"c:sam": "Sam"}); len(c) != 0 {
-		t.Errorf("the planner keeps Sam's gymnasts apart where it can: %v", c)
-	}
-	// Put side by side by hand, it's reported.
-	s.MoveFlight(1, 0, s.Flights[0].Area)
-	s.Flights[1].Area, s.Flights[1].Start, s.Flights[1].End = "Panel 2", s.Flights[0].Start, s.Flights[0].End
-	if c := s.CoachClashes(coaches, map[string]string{"c:sam": "Sam"}); len(c) != 1 || !strings.Contains(c[0], "Sam coaches in") {
-		t.Errorf("clash: %v", c)
-	}
-}
-
 func TestPlacedWhereJudgesAreFree(t *testing.T) {
 	// L5's only judges compete in L3. Unstaffed, L5 runs alongside L3 on the
 	// second panel; staffed, it waits until L3 is over, when they're free.

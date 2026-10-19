@@ -10,17 +10,10 @@ import (
 // someone free, or by moving others round (someone on the panel up a role, or
 // across from a panel at the same time), their seat filled in turn. A seat is
 // filled for the rest of its event's run, one person for all its flights
-// (ADR 0006). Two ways,
-// the organiser's choice: make the gap the easiest seat to fill, the seat left
-// at the end one the most free people can take (a marshal or recorder before
-// an HD or execution judge, before a chair); or change as few seats as
-// possible. Nothing is saved.
-
-// What a leave prefers when filling a seat.
-const (
-	PreferEasiest = ""       // the gap ends at the seat the most free people can take
-	PreferFewest  = "fewest" // as few seats change as can be
-)
+// (ADR 0006). Someone free taking the seat comes first; failing that, the
+// fewest moves, and of those the one whose last seat the most free people
+// could take (a marshal or recorder before an HD or execution judge, before
+// a chair). Nothing is saved.
 
 // Leave is an official leaving.
 type Leave struct {
@@ -28,7 +21,6 @@ type Leave struct {
 	Day     int
 	From    int  // minutes since midnight
 	ForGood bool // for the rest of the competition, not just the day
-	Prefer  string
 }
 
 // SeatStep is one change: Person takes the To role, leaving From ("" if they
@@ -60,16 +52,13 @@ func (s Schedule) CheckLeave(l Leave) error {
 	if l.Person == "" {
 		errs = append(errs, errors.New("choose who leaves"))
 	}
-	if l.Prefer != PreferEasiest && l.Prefer != PreferFewest {
-		errs = append(errs, errors.New("choose easiest to fill or fewest changes"))
-	}
 	return errors.Join(errs...)
 }
 
 // Left is the schedule with the official gone from their seats from the
-// leave on, each seat filled again as the leave prefers, and how. people are
-// each entry's people, by entry id; officials are who can officiate.
-func (s Schedule) Left(l Leave, people, coaches map[string][]string, officials []RotaPerson) (Schedule, []SeatFill, error) {
+// leave on, each seat filled again, and how. people are each entry's people,
+// by entry id; officials are who can officiate.
+func (s Schedule) Left(l Leave, people map[string][]string, officials []RotaPerson) (Schedule, []SeatFill, error) {
 	if err := s.CheckLeave(l); err != nil {
 		return s, nil, err
 	}
@@ -113,7 +102,7 @@ func (s Schedule) Left(l Leave, people, coaches map[string][]string, officials [
 			}
 			iv := out.span(st)
 			fill := SeatFill{Flight: out.stretchName(st), Area: out.Flights[i].Area, Day: iv.day, Start: iv.start, End: iv.end, Role: d.Role}
-			plan, others, ok := out.refill(st, l, people, coaches, byKey, officials)
+			plan, others, ok := out.refill(st, l, people, byKey, officials)
 			if !ok {
 				fill.Empty = d.Role
 			} else {
@@ -188,22 +177,23 @@ type refillPlan struct {
 	ease  int        // how many free people could take that last seat
 }
 
-// refill finds the way to fill an empty stretch of seat that the leave
-// prefers: someone free for all of it taking it, or someone who can take it
-// moving into it (from another seat on the panel, or from a panel at the
-// same time, for the rest of their own stretch there) and their seat filled
-// in turn, at most three moves. It also gives the others free who could take
-// the last seat.
-func (s Schedule) refill(first stretch, l Leave, people, coaches map[string][]string, byKey map[string]RotaPerson, officials []RotaPerson) (refillPlan, []string, bool) {
+// refill finds the best way to fill an empty stretch of seat: someone free
+// for all of it taking it, or else someone who can take it moving into it
+// (from another seat on the panel, or from a panel at the same time, for the
+// rest of their own stretch there) and their seat filled in turn, at most
+// three moves, the fewest that will do. Of as many moves, it's the one whose
+// last seat the most free people could take. It also gives the others free
+// who could take the last seat.
+func (s Schedule) refill(first stretch, l Leave, people map[string][]string, byKey map[string]RotaPerson, officials []RotaPerson) (refillPlan, []string, bool) {
 	free := func(st stretch, role string, ignore *stretch) []string {
 		f := s.Flights[st.flights[0]]
 		var out []string
 		for _, o := range officials {
-			if o.Key != l.Person && o.Can(role, f.Event) && s.freeIgnoring(o.Key, st, ignore, people, coaches) {
+			if o.Key != l.Person && o.Can(role, f.Event) && s.freeIgnoring(o.Key, st, ignore, people) {
 				out = append(out, o.Key)
 			}
 		}
-		slices.SortStableFunc(out, func(a, b string) int { return s.dutiesOn(a, f.Day) - s.dutiesOn(b, f.Day) })
+		s.sortForSeat(out, role, f.Day)
 		return out
 	}
 	var best refillPlan
@@ -212,12 +202,10 @@ func (s Schedule) refill(first stretch, l Leave, people, coaches map[string][]st
 		switch {
 		case !found:
 			return true
-		case l.Prefer == PreferFewest && len(p.steps) != len(best.steps):
+		case len(p.steps) != len(best.steps):
 			return len(p.steps) < len(best.steps)
 		case p.ease != best.ease:
 			return p.ease > best.ease
-		case len(p.steps) != len(best.steps):
-			return len(p.steps) < len(best.steps)
 		}
 		return roleEase(p.last) > roleEase(best.last)
 	}
@@ -240,7 +228,7 @@ func (s Schedule) refill(first stretch, l Leave, people, coaches map[string][]st
 				best, found = p, true
 			}
 		}
-		if len(steps) >= 2 { // three moves at most
+		if len(steps) >= 2 || found && len(best.steps) <= len(steps)+1 { // three moves at most, and no more than the best so far
 			return
 		}
 		// Someone who can take it moves into it: from another seat on this
@@ -264,7 +252,7 @@ func (s Schedule) refill(first stretch, l Leave, people, coaches map[string][]st
 					continue // the panel's seat, from its first flight here
 				}
 				theirs := s.stretchFrom(gj, other)
-				if !own && !s.freeIgnoring(d.Person, st, &theirs, people, coaches) {
+				if !own && !s.freeIgnoring(d.Person, st, &theirs, people) {
 					continue
 				}
 				nextMoved := map[string]bool{d.Person: true}
@@ -317,10 +305,9 @@ func roleEase(role string) int {
 // freeIgnoring says whether a person is free for a stretch: not competing
 // or officiating in a flight at the same time (other than in ignore, a
 // stretch they'd leave), nor already on its panel, nor kept off any of its
-// flights by a must rule, nor on duty for blocked time then, nor coaching
-// gymnasts competing on another area then, nor, where rest is a must, too
-// soon before or after their own turn. coaches are each entry's coaches.
-func (s Schedule) freeIgnoring(key string, st stretch, ignore *stretch, people, coaches map[string][]string) bool {
+// flights by a must rule, nor on duty for blocked time then, nor, where rest
+// is a must, too soon before or after their own turn.
+func (s Schedule) freeIgnoring(key string, st stretch, ignore *stretch, people map[string][]string) bool {
 	iv := s.span(st)
 	for j, g := range s.Flights {
 		if !overlaps(iv, interval{g.Day, g.Start, g.End}) {
@@ -352,14 +339,6 @@ func (s Schedule) freeIgnoring(key string, st stretch, ignore *stretch, people, 
 		}
 	}
 	for _, g := range s.Flights {
-		// Coaching gymnasts who compete then, elsewhere: in two places.
-		if overlaps(iv, interval{g.Day, g.Start, g.End}) && g.Area != s.Flights[st.flights[0]].Area {
-			for _, id := range g.Entries {
-				if slices.Contains(coaches[id], key) {
-					return false
-				}
-			}
-		}
 		// Rest, where it's a must, between their own turn and the seat.
 		if rest := s.Setup.Rest; s.Setup.RestMust && rest > 0 && g.Day == iv.day {
 			for _, id := range g.Entries {
@@ -372,19 +351,46 @@ func (s Schedule) freeIgnoring(key string, st stretch, ignore *stretch, people, 
 	return true
 }
 
-// dutiesOn counts a person's seats on a day.
-func (s Schedule) dutiesOn(key string, day int) int {
-	n := 0
+// sortForSeat orders who could take a seat in a role on a day: the least
+// busy that day first, then those who've had a seat in the role elsewhere in
+// the timetable, then the least busy over the competition. Ties keep the
+// order they came in.
+func (s Schedule) sortForSeat(keys []string, role string, day int) {
+	type load struct {
+		day, all int
+		had      bool
+	}
+	loads := map[string]load{}
+	for _, k := range keys {
+		loads[k] = load{}
+	}
 	for _, f := range s.Flights {
-		if f.Day == day {
-			for _, d := range f.Officials {
-				if d.Person == key {
-					n++
-				}
+		for _, d := range f.Officials {
+			l, ok := loads[d.Person]
+			if !ok {
+				continue
 			}
+			l.all++
+			if f.Day == day {
+				l.day++
+			}
+			l.had = l.had || d.Role == role
+			loads[d.Person] = l
 		}
 	}
-	return n
+	slices.SortStableFunc(keys, func(a, b string) int {
+		la, lb := loads[a], loads[b]
+		switch {
+		case la.day != lb.day:
+			return la.day - lb.day
+		case la.had != lb.had:
+			if la.had {
+				return -1
+			}
+			return 1
+		}
+		return la.all - lb.all
+	})
 }
 
 // Describe says a step, e.g. "Mary moves from execution judge to chair of
