@@ -80,20 +80,45 @@ entries, the officials as the rota needs them, who's the same person, each
 entry's people and their names, keyed by person or as one person each.
 
 **Kept between requests** (`web/facts.go`). A competition's entries
-(`entriesOf`, as `Store.Entries` has them), its `liveRota` and its checked
-cards (`judgedOf`: the entries not waiting, or only the live ones) are
-worked out by the first page that needs them and shared until anything is
-saved. The store counts its changes (`Store.Writes`: each statement, or
-each committed transaction, that changed a row), and a page that finds the
-count moved reads them again; one request does it while the others wait.
-What the cache hands out is shared: read it, never change it. Slices are
-copies, but the entries' own maps and pointers and `rotaFacts`' maps are
-not. Every web test checks, after each request, that the cache still
-matches the store read afresh (`checkingFacts` in `web/facts_test.go`). It
-counts only this process's changes: nothing else may write to the database
-while the app runs. On the full demo (700 entries) a gymnast's own page
-went from 65 ms and 88 MB allocated to 6 ms and 12 MB, the dashboard from
-61 ms to 7 ms, a club's page from 58 ms to 18 ms.
+(`entriesOf`, as `Store.Entries` has them), its `liveRota`, its checked
+cards (`judgedOf`: the entries not waiting, or only the live ones) and its
+published timetable as the pages show it (`publishedDays`, for everyone's
+My competition) are worked out by the first page that needs them and shared
+until something they're read from changes. The store counts those changes
+for each competition (`Store.Writes(id)`, `store/changes.go`): every
+statement and transaction runs on a connection watching each row it
+changes (SQLite's pre-update hook), and once it's done the count moves for
+the competition the row is part of. Only the tables the cache reads count
+(`watched`: competitions, entries, member entries, officials, the club and
+coach links to a competition, and members, coaches and individuals, who
+may be in any competition, so a change to one of those counts for every
+competition, unless it only touches columns the pages don't read, such as
+when a club was last used). Check-ins, who's up, flight times, desk
+messages, notices, feedback, push subscriptions, marks and other
+competitions' changes leave a competition's facts as they are.
+`TestWatchedTables` makes every new table go in `watched` or not, and
+`TestWrites` lists each kind of change and whose count it moves. A page
+that finds the count moved reads them again; one request does it while the
+others wait. What the cache hands out is shared: read it, never change it.
+Slices are copies, but the entries' own maps and pointers, `rotaFacts`'
+maps and the timetable's days are not. Every web test checks, after each
+request, that the cache still matches the store read afresh
+(`checkingFacts` in `web/facts_test.go`), which also catches a change the
+count missed. It counts only this process's changes: nothing else may
+write to the database while the app runs. On the full demo (700 entries),
+a gymnast's own page went from 65 ms and 88 MB allocated to 6 ms and 12 MB
+(2026-10-15), and, as a check-in no longer drops the cache, to 2 ms and
+3 MB just after one (2026-10-19), not 64 ms and 88 MB.
+
+A timetable that doesn't fit lists changes that might make it (`fixesOf`,
+`web/fixcache.go`), each a plan made again: they're kept for each
+competition until its entries, events or setup change.
+
+The database has at most four connections (`maxConns`, `store/store.go`),
+kept open: SQLite writes one at a time anyway, and a connection for each
+request in a burst made hundreds. No change holds a connection while it
+asks for another. Opening a member's or coach's page reads without a
+transaction, and marks their club used (once a day) only when it's due.
 
 | Method and path | Input | Returns |
 |---|---|---|

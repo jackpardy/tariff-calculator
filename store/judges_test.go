@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -64,6 +65,16 @@ func TestJudgeQualifications(t *testing.T) {
 	byOfficial, err := s.OfficialsJudgeQualifications(ctx, c.ID)
 	must(t, err)
 	for _, o := range officials {
+		// The same as each official's own, read one at a time.
+		var own []JudgeQualification
+		if o.MemberID != "" {
+			own, _ = s.MemberJudgeQualifications(ctx, o.MemberID)
+		} else {
+			own, _ = s.EntryJudgeQualifications(ctx, o.EntryID)
+		}
+		if !reflect.DeepEqual(byOfficial[o.ID], own) {
+			t.Errorf("%s's, read at once: %+v; one at a time: %+v", o.Name, byOfficial[o.ID], own)
+		}
 		want := map[string]int{"Ann": 3, "Ivy": 1}[o.Name]
 		if len(byOfficial[o.ID]) != want {
 			t.Errorf("%s's: %+v", o.Name, byOfficial[o.ID])

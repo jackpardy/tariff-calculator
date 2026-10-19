@@ -178,29 +178,35 @@ func (s *Store) EntryJudgeCertificate(ctx context.Context, entryID, id string) (
 
 // OfficialsJudgeQualifications are the judging qualifications of a
 // competition's officials, by official id: a club's member's, or an
-// individual's.
+// individual's (MemberJudgeQualifications, EntryJudgeQualifications), read
+// at once rather than an official at a time.
 func (s *Store) OfficialsJudgeQualifications(ctx context.Context, competitionID string) (map[string][]JudgeQualification, error) {
-	officials, err := s.Officials(ctx, competitionID)
+	rows, err := s.db.QueryContext(ctx, `WITH official_entries (official, entry) AS (
+			SELECT o.id, o.entry_id FROM officials o
+				WHERE o.competition_id = $1 AND COALESCE(o.member_id, '') = '' AND COALESCE(o.entry_id, '') <> ''
+			UNION SELECT o.id, e.id FROM officials o JOIN entries x ON x.id = o.entry_id JOIN individuals xi ON xi.id = x.individual_id
+				JOIN entries e ON e.individual AND e.competition_id = x.competition_id JOIN individuals i ON i.id = e.individual_id
+				WHERE o.competition_id = $1 AND COALESCE(o.member_id, '') = '' AND i.person_id = xi.person_id AND lower(e.gymnast) = lower(x.gymnast))
+		SELECT official, id, qualification, cert_type, uploaded_at FROM (
+			SELECT o.id AS official, `+judgeQualificationColumns+`, q.rowid AS added FROM officials o JOIN judge_qualifications q ON q.member_id = o.member_id
+				WHERE o.competition_id = $1 AND COALESCE(o.member_id, '') <> ''
+			UNION ALL SELECT oe.official, `+judgeQualificationColumns+`, q.rowid FROM official_entries oe JOIN judge_qualifications q ON q.entry_id = oe.entry)
+		ORDER BY official, uploaded_at, added`, competitionID)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	out := map[string][]JudgeQualification{}
-	for _, o := range officials {
-		var qs []JudgeQualification
-		switch {
-		case o.MemberID != "":
-			qs, err = s.MemberJudgeQualifications(ctx, o.MemberID)
-		case o.EntryID != "":
-			qs, err = s.EntryJudgeQualifications(ctx, o.EntryID)
-		}
-		if err != nil {
+	for rows.Next() {
+		var official, at string
+		var q JudgeQualification
+		if err := rows.Scan(&official, &q.ID, &q.Qualification, &q.CertType, &at); err != nil {
 			return nil, err
 		}
-		if len(qs) > 0 {
-			out[o.ID] = qs
-		}
+		q.UploadedAt = parseTime(at)
+		out[official] = append(out[official], q)
 	}
-	return out, nil
+	return out, rows.Err()
 }
 
 // OfficialJudgeCertificate is the certificate of one of the judging

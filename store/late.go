@@ -145,6 +145,25 @@ func (s *Store) LatestLateRequest(ctx context.Context, competitionID, entryID st
 	return r, err == nil, err
 }
 
+// LatestLateRequests are the latest request to change each of a
+// competition's entries that has one (LatestLateRequest), by entry id.
+func (s *Store) LatestLateRequests(ctx context.Context, competitionID string) (map[string]LateRequest, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT `+lateColumns+` FROM late_requests WHERE competition_id = $1 ORDER BY at, rowid`, competitionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]LateRequest{}
+	for rows.Next() {
+		r, err := scanLate(rows)
+		if err != nil {
+			return nil, err
+		}
+		out[r.EntryID] = r // the latest comes last
+	}
+	return out, rows.Err()
+}
+
 // RejectLateChange turns a waiting request down, with a reason.
 func (s *Store) RejectLateChange(ctx context.Context, competitionID, id, reason, who string) error {
 	return affected(s.db.ExecContext(ctx, `UPDATE late_requests SET status = $1, reason = $2, decided_at = $3, decided_by = $4

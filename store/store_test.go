@@ -1897,45 +1897,6 @@ func TestMembersByName(t *testing.T) {
 	}
 }
 
-// The count of changes moves after each change saved, and not after a
-// lookup: the pages keep what they've worked out until it moves.
-func TestWrites(t *testing.T) {
-	now := time.Date(2030, 3, 1, 12, 0, 0, 0, time.UTC)
-	s := open(t, &now)
-	was := s.Writes()
-	club, admin, err := s.CreateClub(ctx, "UCD")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if s.Writes() == was {
-		t.Fatal("making a club is a change")
-	}
-	was = s.Writes()
-	if _, err := s.ClubByAdmin(ctx, admin); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.Members(ctx, club.ID); err != nil {
-		t.Fatal(err)
-	}
-	if s.Writes() != was {
-		t.Error("looking a club up, just after it was used, changes nothing")
-	}
-	now = now.Add(usedEvery + time.Hour)
-	if _, err := s.ClubByAdmin(ctx, admin); err != nil {
-		t.Fatal(err)
-	}
-	if s.Writes() == was {
-		t.Error("marking a club used again, after a while, is a change")
-	}
-	was = s.Writes()
-	if _, err := s.MemberByLink(ctx, "no-such-link"); !errors.Is(err, ErrNotFound) {
-		t.Fatalf("a wrong link: %v", err)
-	}
-	if s.Writes() != was {
-		t.Error("a lookup in a transaction that changes nothing isn't a change")
-	}
-}
-
 // personalOf is the personal link of a token made by Via.
 func personalOf(token string) string {
 	personal, _, _ := splitVia(token)

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"tariffCalculator/store"
+	"tariffCalculator/views"
 )
 
 // What a competition's pages work out from its entries, kept between
@@ -14,7 +15,10 @@ import (
 // and 85 MB a load on the demo's 700 entries, so a burst of gymnasts opening
 // their pages after a desk message could stall the server. Now the first
 // page after a change works them out, and the pages share that until the
-// store's next change (Store.Writes), of anything at all.
+// store's next change to what they're read from (Store.Writes): a
+// competition's own rows, or a person who may be in it. Check-ins, who's
+// up, desk messages and the like, and other competitions' changes, keep
+// them.
 //
 // What the cache hands out is shared between requests: read it, never
 // change it. Slices of entries and cards are copies, so sorting or
@@ -29,7 +33,7 @@ type factCache struct {
 }
 
 // competitionFacts are what one competition's pages share, as read when the
-// store's count of changes stood at writes.
+// store's count of its changes stood at writes.
 type competitionFacts struct {
 	mu     sync.Mutex // held while they're read or worked out, so one request does it
 	writes uint64
@@ -40,6 +44,11 @@ type competitionFacts struct {
 	// The checked cards (judge), worked out when a page first asks: of the
 	// entries not waiting (withdrawn too), and of the live entries.
 	judgedIn, judgedLive []judged
+	// The published timetable's days as the pages show them (itemsOf), with
+	// the live entries and officials, worked out when a page first asks
+	// (days set); nil with none published.
+	days    []views.DayView
+	daysSet bool
 }
 
 // factsOf are a competition's facts, read again if anything has changed
@@ -56,9 +65,8 @@ func (p *competitionPages) factsOf(ctx context.Context, id string) (*competition
 		f = &competitionFacts{}
 		fc.by[id] = f
 	}
-	now := p.st.Writes()
 	for other, o := range fc.by {
-		if other != id && o.writes != now && o.mu.TryLock() {
+		if other != id && o.writes != p.st.Writes(other) && o.mu.TryLock() {
 			delete(fc.by, other) // out of date: free it rather than keep it
 			o.mu.Unlock()
 		}
@@ -66,7 +74,7 @@ func (p *competitionPages) factsOf(ctx context.Context, id string) (*competition
 	fc.mu.Unlock()
 
 	f.mu.Lock()
-	if f.read && f.writes == p.st.Writes() {
+	if f.read && f.writes == p.st.Writes(id) {
 		return f, nil
 	}
 	// One request reads them for everyone waiting, so it carries on if
@@ -83,8 +91,9 @@ func (p *competitionPages) factsOf(ctx context.Context, id string) (*competition
 // taken first, so a change saved while they're read moves it past them, and
 // the next request reads them again.
 func (f *competitionFacts) readFrom(ctx context.Context, p *competitionPages, id string) error {
-	f.writes = p.st.Writes()
+	f.writes = p.st.Writes(id)
 	f.judgedIn, f.judgedLive = nil, nil
+	f.days, f.daysSet = nil, false
 	var err error
 	if f.c, err = p.st.Competition(ctx, id); err != nil {
 		return err
@@ -142,4 +151,28 @@ func (p *competitionPages) judgedOf(ctx context.Context, id string, onlyLive boo
 		f.judgedIn = judge(f.c.Competition, in)
 	}
 	return slices.Clone(f.judgedIn), nil
+}
+
+// publishedDays are a competition's published timetable's days as the
+// pages show them (itemsOf), nil with none published: each gymnast's page
+// shows the whole of it.
+func (p *competitionPages) publishedDays(ctx context.Context, id string) ([]views.DayView, error) {
+	f, err := p.factsOf(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	defer f.mu.Unlock()
+	if !f.daysSet {
+		f.days, f.daysSet = daysOf(f.c, f.rota), true
+	}
+	return f.days, nil
+}
+
+// daysOf are a competition's published timetable's days as the pages show
+// them, with its live entries and officials (publishedDays).
+func daysOf(c store.Competition, r rotaFacts) []views.DayView {
+	if c.Published == nil {
+		return nil
+	}
+	return itemsOf(*c.Published, r.entries, r.officials)
 }

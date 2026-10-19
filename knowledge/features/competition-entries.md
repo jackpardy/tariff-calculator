@@ -2335,7 +2335,7 @@ then the page comes through however slowly, as it would without the worker),
 else the copy last opened, else a short page saying this one hasn't been
 opened on this phone before. A page is kept only once all of it has
 arrived, so a page cut off partway leaves the older copy. Static files are kept as first fetched (their addresses change
-with each version). Only successful pages are kept, never what a form
+with each version), and keeping a file's new version drops its older ones. Only successful pages are kept, never what a form
 posted, and at most 60 pages per phone, the oldest dropped first.
 A copy is dropped after 30 days (by the date the server sent it), and when
 the server answers 404 or 410 for its page (a link replaced or deleted), so

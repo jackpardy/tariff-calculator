@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -93,6 +94,9 @@ func TestLateChangesStore(t *testing.T) {
 	}
 	if all, _ := s.LateRequests(ctx, c.ID); len(all) != 2 {
 		t.Errorf("both kept: %+v", all)
+	}
+	if latest, err := s.LatestLateRequests(ctx, c.ID); err != nil || len(latest) != 1 || !reflect.DeepEqual(latest[e.ID], got) {
+		t.Errorf("each entry's latest, at once: %+v, %v; want %+v", latest, err, got)
 	}
 	if changed, _ := s.CompetitionEntry(ctx, c.ID, e.ID); changed.Entry.Level != "BUCS L4" {
 		t.Error("a rejected change leaves the entry as it was")

@@ -571,7 +571,13 @@ December. Before it:
   scratch; now each competition's are kept until something is saved. On
   the full demo a gymnast's own page went from 65 ms to 6 ms, the
   dashboard from 61 ms to 7 ms and a club's page from 58 ms to 18 ms
-  ([how](architecture/http-routes.md)).
+  ([how](architecture/http-routes.md)). *Again 2026-10-19*: a check-in,
+  who's up, a desk message or another competition's change no longer drops
+  what's kept, opening a page no longer waits on a change being saved, the
+  database has a few connections rather than hundreds, and the garbage
+  collector runs less often. 400 people within 2 seconds, with a tap every
+  2 seconds: the burst's median from 80–175 ms to 3–4 ms, its slowest from
+  0.5–0.9 s to 80 ms ([load test](operations/deploy.md#load-test)).
 - **Smaller pages** (built 2026-10-15). The app gzips its own text
   responses and, once, its static files ([compression](architecture/static-assets.md#compression)):
   on the demo the organiser's dashboard went from 674 KB to 57 KB, On the
@@ -619,6 +625,10 @@ December. Before it:
   the server, to get real numbers before the dry run. The script is built
   (2026-10-15, [load test](operations/deploy.md#load-test)): on a laptop
   held to two cores, 400 people opening their pages within 2 seconds went
+  from 191 of 343 failing to none, with a median of 171 ms, and (taps
+  included, 2026-10-19) to a median of 3–4 ms. Still to do: a run on the
+  server.
+
   from 191 of 343 failing to none, with a median of 171 ms. Still to do: a
   run on the server.
 - **Lighter pages for phones**: **built 2026-10-19**, after the full audit.

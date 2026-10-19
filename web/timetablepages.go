@@ -253,7 +253,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 			page.Report.ShortRest = append(page.Report.ShortRest, fmt.Sprintf("%s: %d minutes between %s and %s", names[sr.Person], sr.Minutes, sr.First, sr.Second))
 		}
 		if len(report.Unplaced)+len(report.UnplacedBlocks) > 0 {
-			for _, f := range competitions.Fixes(schedEntries(entries, same), c.EventNames(), s.Setup, 1) {
+			for _, f := range p.fixesOf(c.ID, schedEntries(entries, same), c.EventNames(), s.Setup) {
 				page.Report.Fixes = append(page.Report.Fixes, views.FixView{Change: f.Change, Fits: f.Fits})
 			}
 		}

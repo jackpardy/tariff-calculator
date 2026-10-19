@@ -16,10 +16,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync/atomic"
 	"time"
-
-	_ "modernc.org/sqlite"
 )
 
 var (
@@ -45,6 +42,8 @@ const (
 	MaxMembers = 300
 	// MaxEntries is the most entries a competition can hold.
 	MaxEntries = 2000
+	// maxConns is the most connections to the database open at once.
+	maxConns = 4
 	// timeLayout keeps times in UTC with a fixed width, so they sort as text.
 	timeLayout = "2006-01-02T15:04:05.000000Z"
 )
@@ -70,8 +69,20 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("opening the database: %w", err)
 	}
+	// A few connections, each kept open, serve every request (faster pages,
+	// for the dry run): SQLite runs one write at a time anyway, and with a
+	// connection to each request in a burst of 400 the server held hundreds,
+	// opening new ones all the time, and slowed down. No change holds a
+	// connection while it asks for another, so a request waits its turn
+	// rather than for itself.
+	db.SetMaxOpenConns(maxConns)
+	db.SetMaxIdleConns(maxConns)
 	s := &Store{db: &database{DB: db}, now: func() time.Time { return time.Now().UTC() }, free: func() (uint64, error) { return diskFree(dir) }}
 	if err := s.migrate(ctx); err != nil {
+		db.Close()
+		return nil, err
+	}
+	if err := s.db.readColumns(ctx); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -81,36 +92,6 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 // Close closes the database.
 func (s *Store) Close() error {
 	return s.db.Close()
-}
-
-// database is the store's connection pool, counting the changes made
-// through it: each statement run outside a transaction, and each
-// transaction committed (Store.tx), that changed a row. The pages keep what they work out from a
-// competition's entries until the count moves (Writes).
-type database struct {
-	*sql.DB
-	writes atomic.Uint64
-}
-
-// ExecContext runs a statement, counting it as a change once it's done,
-// unless it changed no rows (as marking a link used does on most visits).
-func (d *database) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
-	res, err := d.DB.ExecContext(ctx, query, args...)
-	if err == nil {
-		if n, rerr := res.RowsAffected(); rerr == nil && n == 0 {
-			return res, nil
-		}
-	}
-	d.writes.Add(1)
-	return res, err
-}
-
-// Writes counts the changes made so far: it moves after each one is saved,
-// so what was read when it stood at a number is out of date once it moves.
-// It counts only this process's changes; the app is the database's only
-// writer while it runs.
-func (s *Store) Writes() uint64 {
-	return s.db.writes.Load()
 }
 
 // migrations upgrade the schema, in order. Each runs once, in a transaction;
@@ -929,28 +910,20 @@ func dropEntryRows(ctx context.Context, tx *sql.Tx, competitionID string) error 
 	return nil
 }
 
-// tx runs fn in a transaction, committing if it returns nil.
+// tx runs fn in a transaction, committing if it returns nil, and counts
+// what it changed (database.watching).
 func (s *Store) tx(ctx context.Context, fn func(*sql.Tx) error) error {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	// Changes made on its connection before and after, to count it as a
-	// change only if it made one: most only look something up, now and then
-	// marking a link used.
-	var before, after int64
-	if err := tx.QueryRowContext(ctx, `SELECT total_changes()`).Scan(&before); err != nil {
-		tx.Rollback()
-		return err
-	}
-	if err := fn(tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-	if err := tx.QueryRowContext(ctx, `SELECT total_changes()`).Scan(&after); err != nil || after != before {
-		defer s.db.writes.Add(1)
-	}
-	return tx.Commit()
+	return s.db.watching(ctx, func(conn *sql.Conn) error {
+		tx, err := conn.BeginTx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		if err := fn(tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+		return tx.Commit()
+	})
 }
 
 // stamp is the time now, as stored.

@@ -319,8 +319,12 @@ func shapeOf(s skills.TrampolineSkill) string {
 
 // compactFIG drops brackets and spaces so "(4 - o)" and "4-o" compare equal.
 func compactFIG(f string) string {
-	return strings.NewReplacer("(", "", ")", "", " ", "").Replace(f)
+	return figCompactor.Replace(f)
 }
+
+// figCompactor is compactFIG's replacer, made once: making one for each
+// skill compared took most of the calculator page's time.
+var figCompactor = strings.NewReplacer("(", "", ")", "", " ", "")
 
 func inRange(r *Range, v int) bool {
 	return r == nil || (r.Min == nil || v >= *r.Min) && (r.Max == nil || v <= *r.Max)

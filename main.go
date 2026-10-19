@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 
 // --- Main Function ---
 func main() {
+	gcDefaults()
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -67,12 +69,14 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/", app.Handler())
 	mux.HandleFunc("GET /healthz", healthz(dir != "", st))
+	// A page slowed by a crowd still arrives: at 10 seconds to write it,
+	// one that took longer was cut off with no page at all.
 	srv := &http.Server{
 		Addr:              ":" + port,
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      10 * time.Second,
+		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 		MaxHeaderBytes:    web.MaxHeaderBytes,
 	}
@@ -100,6 +104,28 @@ func main() {
 		}
 	}
 	log.Print("Stopped")
+}
+
+// The garbage collector's defaults for the app, unless GOGC or GOMEMLIMIT
+// are set. What it keeps is small (about 14 MB on the demo), but a page
+// can make 10 to 100 MB of garbage on the way, so at Go's default the
+// collector ran about 14 times a second under load. Letting the heap grow
+// to four times what's kept, but no further than about 400 MiB, cut the
+// time each page took by a third or more (knowledge/operations/deploy.md).
+const (
+	gcPercent   = 300
+	memoryLimit = 400 << 20
+)
+
+// gcDefaults sets the garbage collector's defaults for the app, where the
+// environment doesn't.
+func gcDefaults() {
+	if os.Getenv("GOGC") == "" {
+		debug.SetGCPercent(gcPercent)
+	}
+	if os.Getenv("GOMEMLIMIT") == "" {
+		debug.SetMemoryLimit(memoryLimit)
+	}
 }
 
 // healthz answers 200 while the app is fit to serve: always for the

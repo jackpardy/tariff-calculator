@@ -71,9 +71,8 @@ func whoSignsOff(s *views.SignoffView, m store.Member, coaches []store.Coach, se
 // memberProblems are a member's entry's problems as the organiser sees them
 // (entryProblems): the competition's copy's, while it's what the member has;
 // otherwise the member's own, worked out the same way, with its sign-off as
-// it stands. sent are the competition's entries.
-func memberProblems(c competitions.Competition, e store.MemberEntry, sent []store.Entry) []string {
-	all := enteredAll(c, sent)
+// it stands. sent are the competition's entries, all those enteredAll.
+func memberProblems(c competitions.Competition, e store.MemberEntry, sent []store.Entry, all []competitions.Entered) []string {
 	people := []string{store.MemberKey(e.MemberID)}
 	for _, s := range sent {
 		if s.MemberID != e.MemberID || s.Entry.Discipline != e.Discipline {
@@ -359,13 +358,14 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 			failed(w, r, err)
 			return
 		}
+		all := enteredAll(c.Competition, sent)
 		for _, e := range entries {
 			if e.CompetitionID != c.ID {
 				continue
 			}
 			row := views.CoachRow{Member: e.MemberName, Level: e.Entry.Event(), Signoff: memberSignoff(c.Competition, e),
 				Open: path + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline}
-			row.Problems = len(memberProblems(c.Competition, e, sent))
+			row.Problems = len(memberProblems(c.Competition, e, sent, all))
 			if !e.SignedOff() {
 				cc.Waiting++
 			}
