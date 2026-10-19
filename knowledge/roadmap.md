@@ -544,6 +544,17 @@ comes back to their row, no routine yet leads to the Routine Builder and back,
 a waiting sign-off says who gives it, and entering another discipline on your
 own is on your page.
 
+**One look for the competition pages (full audit, built 2026-10-19).**
+The building blocks every page uses, written down in
+[the shared look](architecture/ui.md): one page width so the menu never
+moves, buttons by role (teal for the one main action, red text for remove),
+one arrow for what opens, one green notice with ×, ways back that say where,
+the scroll fade (with an arrow on tab rows) in place of grey bars, text at
+4.5:1, tap sizes on a phone, a real not-found page, print without the menu
+and buttons, chips without marks and a one-line Coach column with an
+asterisk for a coach not approved. The Routine Builder and Requirements pages
+follow on their own.
+
 **Skill names and search (full audit, built 2026-10-19).** The catalogue
 has the common twisting singles, doubles and triples, named and placed as the
 Code of Points' examples (Full-In Back, Rudi-Out, Half-In Rudi-Out, Triple
