@@ -413,3 +413,34 @@ func TestLandingTilesFollowInABrowser(t *testing.T) {
 		}
 	}
 }
+
+// Typing a landing in the search ("to feet") puts its tile first, which
+// takes off where the skill before landed: after a back drop, Back To Feet.
+func TestLandingSearchFollowsInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := httptest.NewServer(routes())
+	defer srv.Close()
+
+	const backDrop = `{"rotation":1,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Straight","backward":true}`
+	var name, note string
+	step(t, ctx, "opening the builder after a back drop",
+		chromedp.Navigate(srv.URL+"/"),
+		chromedp.Evaluate(`localStorage.setItem('trampolineRoutines', `+"`"+`{"current":"r1","routines":[{"id":"r1","name":"Test","skills":[`+backDrop+`]}]}`+"`"+`)`, nil),
+		chromedp.Reload(),
+		chromedp.WaitReady(`#skill-editor .skill-card-name`, chromedp.ByQuery),
+		chromedp.SendKeys(`#skill-search`, "to feet", chromedp.ByQuery),
+		chromedp.WaitVisible(`#search-results .picker-skill`, chromedp.ByQuery),
+	)
+	step(t, ctx, "choosing the first result",
+		chromedp.Poll(`(() => {
+			if (document.querySelector('#skill-editor .skill-card-follows')) { return true; }
+			document.querySelector('#search-results .picker-skill').click();
+			return false;
+		})()`, nil, chromedp.WithPollingInterval(300*time.Millisecond)),
+		chromedp.Text(`#skill-editor .skill-card-name`, &name, chromedp.ByQuery),
+		chromedp.Text(`#skill-editor .skill-card-follows`, &note, chromedp.ByQuery),
+	)
+	if strings.TrimSpace(name) != "Back To Feet" || strings.TrimSpace(note) != "From back, after Back Drop" {
+		t.Errorf("searching to feet after a back drop: %q (%q), want Back To Feet (From back, after Back Drop)", name, note)
+	}
+}

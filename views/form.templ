@@ -183,8 +183,25 @@ templ picker(cats []catalog.Category) {
 // SearchResults lists the matches for a picker search. Each loads its skill into
 // the editor; notation results say which direction they are, since notation
 // doesn't record it.
-templ SearchResults(query string, results []catalog.Result, reading *skills.TrampolineSkill) {
-	if len(results) == 0 {
+templ SearchResults(query string, results []catalog.Result, reading *skills.TrampolineSkill, tiles []catalog.Entry) {
+	// A landing typed ("to feet") first, as its tile: it takes off where the
+	// skill before landed (the form's previous_skill), so the card shows the
+	// right version.
+	if len(tiles) > 0 {
+		<div class="picker-list">
+			for _, e := range tiles {
+				<button type="button" class="picker-skill" hx-post="/skill-inputs" hx-target="#skill-editor" hx-include="#main-form" hx-vals={ loadLanding(e.Key) }>
+					<span>
+						<span class="picker-skill-name">{ e.Label }</span>
+						<span class="picker-skill-meta">from where the skill before lands</span>
+					</span>
+				</button>
+			}
+		</div>
+	}
+	if len(results) == 0 && len(tiles) > 0 {
+		// The tiles are the answer.
+	} else if len(results) == 0 {
 		if reading != nil {
 			// FIG notation that no take-off lands: what it says goes into the
 			// builder, open, to finish.

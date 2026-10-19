@@ -88,8 +88,10 @@ Every body landing in the catalogue is some tile after some landing, so none
 is a box of its own (`Categories` would list one that weren't). The tiles
 show no tariff, as it depends on the skill before; the card shows the version
 chosen, its tariff, and why ("From seat, after Seat Drop · also called Swivel Hips"). The club skills
-page lists each tile's catalogue versions. Search is unchanged: it finds
-exact skills by name or notation, and the names say where they take off.
+page lists each tile's catalogue versions. Search finds exact skills by name or notation, as before; and a landing
+typed word for word ("to feet", "½ twist to s") puts that tile first, so it
+too takes off where the skill before landed (`LandingTiles`). The set routine
+maker, with search only, gets it the same way.
 
 - The basic jump appears once per shape (Tuck, Pike, Straddle Jump), because
   for a jump the shape is the skill.

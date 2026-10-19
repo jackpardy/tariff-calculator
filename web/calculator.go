@@ -298,7 +298,7 @@ func handleSkillSearch(w http.ResponseWriter, r *http.Request) {
 	if s, ok := catalog.NotationReading(q); ok {
 		reading = &s
 	}
-	render(w, r, views.SearchResults(q, catalog.Search(q), reading))
+	render(w, r, views.SearchResults(q, catalog.Search(q), reading, catalog.LandingTiles(q)))
 }
 
 // handlePickSearch finds the requirements editor's picks (requirements.Picks)
