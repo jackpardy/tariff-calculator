@@ -227,8 +227,11 @@ func TestClubs(t *testing.T) {
 		t.Error("a removed member's link stops working")
 	}
 
-	// Deleting the club.
-	if rec := do(t, h, http.MethodPost, club+"/delete", url.Values{"confirm": {"1"}}); rec.Code != http.StatusOK || do(t, h, http.MethodGet, club, nil).Code != http.StatusNotFound {
+	// Deleting the club needs "delete" typed (in any case).
+	if got := redirected(t, h, club+"/delete", url.Values{"confirm": {"1"}}); !strings.Contains(got, "Type+delete") || do(t, h, http.MethodGet, club, nil).Code != http.StatusOK {
+		t.Errorf("the old tick box's 1 deletes nothing, and says why: %s", got)
+	}
+	if rec := do(t, h, http.MethodPost, club+"/delete", url.Values{"confirm": {"Delete "}}); rec.Code != http.StatusOK || do(t, h, http.MethodGet, club, nil).Code != http.StatusNotFound {
 		t.Errorf("deleted: %d", rec.Code)
 	}
 }

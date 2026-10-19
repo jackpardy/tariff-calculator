@@ -58,6 +58,8 @@ the marker on a summary: the rule does. A summary that is deliberately
 something else opts out by `content: none` on its `::before`, in the same block:
 `summary.button`, the routine menu (`.routine-menu`), or any summary given the class `no-arrow`. The tariff sheet and
 the view page have their own stylesheets and menus, so the rule doesn't reach them.
+A button that opens something has the same triangle after its words,
+pointing down (`.comp-opens-button`; [the shared look](ui.md#things-that-open)).
 
 # Settings and forms on a page
 
@@ -135,7 +137,10 @@ page's People list is the example to copy.
   `qualifiedValue`. Add a new filter there, next to its row values, as a
   `views.ListFilter{Key, Label, Any, Options}`. `Any` is the first choice,
   which matches everyone (for example "Every club"). Group long choices with
-  `ListOption.Group`.
+  `ListOption.Group`. Mark a filter `Plain` when its choices say what they
+  are on their own ("Has entries", "Not checked"): its chip is then the
+  choice alone, not "Entries: Has entries". `hasFilter` and the yes/no
+  filters are plain.
 - **The script.** `listTools` in `static/js/competitions.js` does the rest
   on the phone:
   - it searches a name's letters only, ignoring case, accents, spaces and
@@ -143,6 +148,15 @@ page's People list is the example to copy.
     "oneill" finds "O'Neill", "o briain" finds "Ó Briain" and "marykate"
     finds "Mary Kate";
   - it shows "12 of 323 people", a Clear button, and "Nobody matches";
+  - it puts on each choice how many it would leave ("UCD (12)"), given the
+    search and the other filters chosen, as they change, the rows still
+    folded away (`lazyRows`) counted from their templates without putting
+    them in the page; a choice that would leave nobody is greyed out
+    (a disabled `<option>`), unless it's the one chosen, so it can be seen
+    and taken off;
+  - it lists the filters chosen after the count, each a chip ("Club: UCD ×")
+    that takes it off; the Filters button's number is how many chips there
+    are;
   - it reads the list's rows each time it filters, so a page that swaps in
     fresh content (On the day's in-place taps) keeps its search: `dayPage`
     runs the search again after each swap;
@@ -168,6 +182,13 @@ and `Clear` come from the server.
 - Groups that are dropdowns (the levels) open while a search finds a match,
   as on every list.
 - Extra controls that aren't filters (the sort) go in the tools' children.
+- Its chips are drawn by the server, each a link to the page without that
+  filter (`ListFilter.Remove`), carrying the search as it's typed.
+- Only the rows shown are in the page, so to count each choice the server
+  also sends every row's values (`ListTools.All`), small, as JSON in a
+  script element (`listAll`); the script counts from those, with the search
+  as typed. An entry's values (`judged.filterValues`) are exactly what
+  `judged.matches` reads, which `TestDashboardFilterValuesMatch` holds to.
 
 Test a list with `listRows` in `web/lists_test.go`, which reads each row's
 name and values from the page.
@@ -189,16 +210,17 @@ What state something is in, and who did it, are shown with two chips from
 thing on every page (the plan is in the
 [cleanup audit](../audits/2026-10-cleanup.md#colour-and-status-added-15-october-2026)).
 
-- **`@views.StateChip(state, label)`**: a filled chip with a mark and a short
-  label. Pick the state by what it means for the reader, not by the word:
+- **`@views.StateChip(state, label)`**: a filled chip with a short label, and
+  no mark before it (dropped 2026-10-19: the words and the colour say it).
+  Pick the state by what it means for the reader, not by the word:
 
-  | State | Mark | Means | For example |
-  | --- | --- | --- | --- |
-  | `NotYet` | ○ | not started, not yet | Not checked in, Saved not sent, On the waiting list |
-  | `InProgress` | ◐ | under way, or waiting on someone else | Sent, Waiting for sign-off, Learning |
-  | `Done` | ✓ | finished, fine | Checked, Signed off, Here, Paid, Can do |
-  | `Attention` | ! | someone should look | Has problems, Changed since sent, Waiting for you |
-  | `Stopped` | ✕ | out, ended or refused | Withdrawn, Removed, Scratched, Missing, Not approved |
+  | State | Means | For example |
+  | --- | --- | --- |
+  | `NotYet` | not started, not yet | Not checked in, Saved not sent, On the waiting list |
+  | `InProgress` | under way, or waiting on someone else | Sent, Waiting for sign-off, Learning |
+  | `Done` | finished, fine | Checked, Signed off, Here, Paid, Can do |
+  | `Attention` | someone should look | Has problems, Changed since sent, Waiting for you |
+  | `Stopped` | out, ended or refused | Withdrawn, Removed, Scratched, Missing, Not approved |
 
 - **`@views.WhoChip(role, name)`**: an outlined chip that always says the
   role (Gymnast, Coach, Club, Organiser) and the name if there is one: who
@@ -217,9 +239,10 @@ pages have moved
 ([what each shows](../features/competition-entries.md#states-and-roles-on-the-pages-one-palette-step-2)),
 and `TestStatesUseChips` (`views/status_test.go`) fails if one of their
 templates shows a state in Bulma's colours again: add a page to its list
-once it moves over. Buttons keep Bulma's colours, as they do something
-rather than show a state. Notices after an action and the venue screen's
-area colours aren't states and stay as they are.
+once it moves over. Buttons have a look by role ([the shared look](ui.md#buttons-by-role)):
+only a button that sets a state (On the day's Here, Scratched) takes that
+state's colours. Notices after an action are `@notice` (green, with ×), and
+the venue screen's area colours aren't states.
 
 A chip placed after a name or another chip gets a small gap from the CSS.
 After text on the same line, templ reads `@StateChip(...)` as more text, so

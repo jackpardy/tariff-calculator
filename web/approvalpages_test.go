@@ -111,9 +111,10 @@ func TestCoachApprovalPages(t *testing.T) {
 	if p := problems(); !strings.Contains(p, "Signed off by Ann, who isn&#39;t an approved coach") && !strings.Contains(p, "Signed off by Ann, who isn't an approved coach") {
 		t.Error("an unapproved coach's sign-off is a problem")
 	}
-	// Her chip opens her page, though she isn't approved now: she's someone at the competition.
-	if link := regexp.MustCompile(`<a class="chip chip-who chip-who-coach chip-link" href="([^"]+)">`).FindStringSubmatch(problems()); link == nil {
-		t.Error("the coach's chip links to their page")
+	// Her name opens her page, though she isn't approved now: she's someone
+	// at the competition. Its asterisk says she isn't approved.
+	if link := regexp.MustCompile(`<a href="([^"]+)">Ann</a>\s*<abbr class="comp-unapproved" title="Not approved to sign off here">\*</abbr>`).FindStringSubmatch(problems()); link == nil {
+		t.Error("the coach's name links to their page, with an asterisk")
 	} else if page := do(t, h, http.MethodGet, link[1], nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "Ann") {
 		t.Errorf("their page opens: %d", page.Code)
 	}

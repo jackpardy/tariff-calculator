@@ -217,7 +217,7 @@ templ CompetitionOfficials(p OfficialsPage) {
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			// Stays in sight as the page goes to the person changed.
-			<div class="notification is-success is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
+			@stickyNotice(p.Notice)
 		}
 		<div class="table-container">
 			<table class="table is-narrow">
@@ -280,7 +280,7 @@ templ CompetitionOfficials(p OfficialsPage) {
 		@listSection("People", len(p.Officials)) {
 			@addOfficial(p)
 			if len(p.Officials) == 0 {
-				<p class="has-text-grey">Nobody yet. Gymnasts offer when they enter (clubs send members' offers with their entries), or add someone above.</p>
+				@emptyLine("Nobody yet. Gymnasts offer when they enter (clubs send members' offers with their entries), or add someone above.")
 			} else {
 				@listTools(p.Tools)
 				<div class="table-container">

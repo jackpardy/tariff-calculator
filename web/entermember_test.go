@@ -83,7 +83,8 @@ func TestWithdrawnOfSeveralStaysListed(t *testing.T) {
 	h := competitionServer(t)
 	form := newCompetition()
 	form.Set("tumbling", "Novice")
-	club := aClub(t, h, created(t, h, form), "UCD", false, "A. Murphy")
+	admin := created(t, h, form)
+	club := aClub(t, h, admin, "UCD", false, "A. Murphy")
 	page := clubEntriesPage(t, h, club.page)
 	action := regexp.MustCompile(`action="([^"]+/enter-member)"`).FindStringSubmatch(page)[1]
 	member := regexp.MustCompile(`<option value="([^"]+)">A. Murphy</option>`).FindStringSubmatch(page)[1]
@@ -94,5 +95,18 @@ func TestWithdrawnOfSeveralStaysListed(t *testing.T) {
 	redirected(t, h, entry+"/withdraw", url.Values{"confirm": {"1"}, "discipline": {""}})
 	if page := clubEntriesPage(t, h, club.page); !strings.Contains(page, chip(t, views.Stopped, "Withdrawn (still sent)")) {
 		t.Errorf("the withdrawn trampoline entry is still listed: %s", page)
+	}
+	// The organiser's list shows both, but counts only the live one: "N of
+	// M" and what each filter choice would leave agree with the total.
+	for _, path := range []string{admin, admin + "?club=UCD"} {
+		dash := do(t, h, http.MethodGet, path, nil).Body.String()
+		all := dash[strings.Index(dash, `id="entries-all"`):]
+		all = all[:strings.Index(all, "</script>")]
+		if strings.Count(dash, "data-list-uncounted") != 1 || strings.Count(all, `"A. Murphy"`) != 1 {
+			t.Errorf("%s: the withdrawn entry is listed but not counted", path)
+		}
+		if strings.Contains(path, "club=") && (!strings.Contains(dash, `<span data-list-count aria-live="polite">1 entries</span>`) || strings.Contains(dash, "2 of 1")) {
+			t.Errorf("%s: filtered, the live one counted alone (not \"2 of 1\")", path)
+		}
 	}
 }

@@ -392,9 +392,13 @@ columns count. Until the viewer chooses, the columns named in the tables'
 `data-table-hidden` are hidden: Sent, so the rest fit a 1,300 px window
 (two-word headings, a long club and the coach's chips wrap, a set is named
 without its level: "option 2"), Coach and Checked in sight; measured at
-1,198 px wide in a 1,198 px box at 1,300, 1,338 in 1,338 at 1,440. Any table that scrolls sideways shows a line at the edge
-with more to see.
-Levels start folded, with **Expand all** and **Collapse all**; the browser
+1,198 px wide in a 1,198 px box at 1,300, 1,338 in 1,338 at 1,440. Any table that scrolls sideways fades at the edge
+with more to see ([the shared look](../architecture/ui.md#scrolling-sideways)).
+The Coach column is the coach's name, then **Signed off**, **Needs changes**
+or **Waiting**, on one line; a coach not approved to sign off has an asterisk
+instead, explained under the table (`views.signoffCell`).
+Levels start folded, with one **Expand all** button (it reads **Collapse all**
+once every level is open); the browser
 remembers which were left open, and a search or filter opens the levels it
 finds people in. A folded level's rows come in a `<template data-lazy>`, put in
 the page when it opens or a search needs them (`competitions.js`, `lazyRows`;
@@ -613,7 +617,15 @@ pieces ([how](../architecture/rendering.md#lists-of-people-search-and-filters)).
 "Find a name" looks at a name's letters only, ignoring case, accents, spaces
 and punctuation, the same in the browser as on the server, so "marykate"
 finds Mary Kate and "oneill" finds O'Néill; the count says how many are
-shown, and Clear shows everyone again. The lists are the dashboard's
+shown, and Clear shows everyone again. Each filter's choices say how many
+they would leave given the search and the other filters ("UCD (12)"),
+greyed out when that's nobody (but the one chosen); the filters chosen are
+chips after the count ("Club: UCD ×"), each taking its filter off. A
+withdrawn entry is listed, marked, but counted nowhere: not in "N of M", a
+level's count or what a choice would leave (`ListRow.Uncounted`), as it isn't
+in the total. All
+people can also be narrowed by the level someone can judge, so a judge from
+a club for a level is found, or plainly not there. The lists are the dashboard's
 entries, All people, Officials, the organiser's Coaches, the desk's People I
 pick, the club's Members, Coaches and each competition's entries, a
 coach's own entries, and the names on the timetable and On the day. On the dashboard the filters work on the server, so its

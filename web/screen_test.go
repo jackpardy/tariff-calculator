@@ -245,6 +245,7 @@ func TestVenueScreen(t *testing.T) {
 			t.Errorf("a screen link can't POST %q: %d", path, rec.Code)
 		}
 	}
+	// A TV left on a day that isn't one still shows something: the default.
 	if got := screenCards(t, show("?day=99")); len(got) != 2 {
 		t.Errorf("a day that isn't one shows the default: %+v", got)
 	}

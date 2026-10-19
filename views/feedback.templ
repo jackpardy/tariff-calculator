@@ -44,7 +44,7 @@ templ feedbackButton(f *FeedbackForm) {
 		<div class="comp-feedback" id="feedback-sent">
 			<p class="comp-feedback-thanks is-size-7 mb-2">Thanks: your feedback is sent.</p>
 			<details>
-				<summary>Feedback</summary>
+				<summary class="button is-small comp-opens-button">Feedback</summary>
 				<form method="post" action={ templ.SafeURL(f.Action) } class="comp-feedback-form" data-feedback>
 					<input type="hidden" name="competition" value={ f.Competition }/>
 					<input type="hidden" name="page" value={ f.Page }/>
@@ -52,7 +52,7 @@ templ feedbackButton(f *FeedbackForm) {
 					<p class="is-size-7 mb-2">Something confusing, wrong or missing? Tell the people who make this app. The organiser sees it too.</p>
 					<textarea class="textarea is-small mb-2" name="text" required maxlength="2000" rows="3" placeholder="What happened, or what you think" aria-label="What happened, or what you think"></textarea>
 					<input class="input is-small mb-2" name="reply" maxlength="200" autocomplete="email" placeholder="Your name or email, for a reply (optional)" aria-label="Your name or email, for a reply (optional)"/>
-					<button class="button is-small is-link" type="submit">Send</button>
+					<button class="button is-small is-primary" type="submit">Send</button>
 					<p class="comp-feedback-said is-size-7 mt-2" role="status" data-feedback-said></p>
 				</form>
 			</details>
@@ -87,7 +87,7 @@ templ Feedback(p FeedbackPage) {
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		<p class="mb-3">
 			What people said with the Feedback button, about the app rather than the competition. It goes to the people who make the app too.
@@ -99,7 +99,7 @@ templ Feedback(p FeedbackPage) {
 			<a href={ templ.SafeURL(p.Base + "/settings#feedback") }>change it in Settings</a>.
 		</p>
 		if len(p.Items) == 0 {
-			<p class="has-text-grey">Nothing yet.</p>
+			@emptyLine("Nothing yet.")
 		} else {
 			<p class="is-size-7 has-text-grey mb-2">{ Count(len(p.Items), "message", "messages") }, { p.Waiting } not dealt with.</p>
 			<div class="comp-feedback-list">
