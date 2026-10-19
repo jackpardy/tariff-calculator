@@ -312,22 +312,24 @@ func panelTimeline(r *http.Request, c store.Competition, s competitions.Schedule
 // printTimeline is the panel timeline as a printout, for a link that prints
 // the timetable's sheets: without officials (sheet=timeline), or with a
 // column for each seat (sheet=timeline-officials).
-func printTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, s competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, now time.Time, officials bool) {
+func printTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, s competitions.Schedule, from views.PrintedFrom, entries []store.Entry, people []competitions.RotaPerson, now time.Time, officials bool) {
 	t := panelTimeline(r, c, s, entries, people, now, officials)
 	t.Other, t.OtherLabel = timetablePath(r)+"/print?sheet=timeline-officials", "With officials"
 	if officials {
 		t.Other, t.OtherLabel = timetablePath(r)+"/print?sheet=timeline", "Without officials"
 	}
+	t.From, t.Other, t.CSV = from, keepDraft(t.Other, from), keepDraft(t.CSV, from)
 	render(w, r, views.TimelinePrint(t))
 }
 
 // panelTimelinePage is the panel timeline as a page of the Timetable menu, to
 // look at as much as to print: officials=1 adds a column for each seat.
 func (p *competitionPages) panelTimelinePage(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, draft, entries, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
+	s, from := printedTimetable(r, c, draft)
 	if !s.Planned {
 		back(w, r, "Plan the timetable first.")
 		return
@@ -344,16 +346,18 @@ func (p *competitionPages) panelTimelinePage(w http.ResponseWriter, r *http.Requ
 	if officials {
 		t.Other, t.OtherLabel = timetablePath(r)+"/timeline", "Without officials"
 	}
+	t.From, t.Other, t.CSV = from, keepDraft(t.Other, from), keepDraft(t.CSV, from)
 	render(w, r, views.TimelinePrint(t))
 }
 
 // timelineCSV is the panel timeline as CSV: a row per flight or blocked time
 // on each area, in time order, with who officiates it, by role.
 func (p *competitionPages) timelineCSV(w http.ResponseWriter, r *http.Request) {
-	c, s, _, ok := p.timetableOf(w, r)
+	c, draft, _, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
+	s, from := printedTimetable(r, c, draft)
 	if !s.Planned {
 		back(w, r, "Plan the timetable first.")
 		return
@@ -379,11 +383,25 @@ func (p *competitionPages) timelineCSV(w http.ResponseWriter, r *http.Request) {
 		return areaAt[a.area] - areaAt[b.area]
 	})
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", fileName(c.Name)+" timeline.csv"))
+	file := fileName(c.Name) + " timeline.csv"
+	if from.Draft {
+		file = fileName(c.Name) + " timeline (draft).csv"
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", file))
 	out := csv.NewWriter(w)
 	header := []string{"Day", "Area", "Starts", "Ends", "What", "Gymnasts"}
 	for _, role := range competitions.Roles {
 		header = append(header, competitions.RoleName(role))
+	}
+	if from.Draft {
+		// Said first, so a spreadsheet of the draft can't pass for what's
+		// published; as wide as the rest, so the file still reads as one table.
+		note := make([]string, len(header))
+		note[0] = "DRAFT: the timetable isn't published yet"
+		if from.Published {
+			note[0] = "DRAFT: changes not published; phones and the venue screen show what's published"
+		}
+		out.Write(note)
 	}
 	out.Write(header)
 	for _, it := range items {

@@ -277,7 +277,7 @@ templ timetableStatus(p TimetablePage) {
 						<button class="button is-small is-text" type="submit" name="action" value="unpublish" onclick="return confirm('Take the timetable down? Clubs, gymnasts and officials stop seeing their flights and duties until you publish again.')">Unpublish</button>
 					}
 				</form>
-				@printMenu(p.Base)
+				@printMenu(p.Base, p.Changes)
 			</div>
 		</div>
 		@reportView(p.Report)
@@ -285,11 +285,15 @@ templ timetableStatus(p TimetablePage) {
 	</div>
 }
 
-// printMenu is the timetable's printed sheets, under one button.
-templ printMenu(base string) {
+// printMenu is the timetable's printed sheets, under one button. They're of
+// what's published, so with changes not published it says so.
+templ printMenu(base string, changes bool) {
 	<details class="comp-popup" data-menu>
 		<summary class="button is-small comp-opens-button">Print</summary>
 		<div class="comp-popup-panel">
+			if changes {
+				<p class="is-size-7 comp-popup-note">These print what's published, as phones show it. Each has <strong>Use the draft instead</strong>, marked Draft.</p>
+			}
 			<a href={ templ.SafeURL(base + "/timetable/print?sheet=marshal") }>Marshal sheets</a>
 			<a href={ templ.SafeURL(base + "/timetable/print?sheet=judges") }>Chair of judges sheets</a>
 			<a href={ templ.SafeURL(base + "/timetable/print?sheet=scores") }>Score sheets</a>

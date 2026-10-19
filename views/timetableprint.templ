@@ -14,6 +14,7 @@ import (
 type TimetableSheets struct {
 	Title       string
 	Back        string
+	From        PrintedFrom
 	Competition CompetitionSummary
 	Judges      bool
 	Sheets      []SheetView
@@ -27,15 +28,61 @@ type SheetView struct {
 	Flights   []ItemView
 }
 
+// PrintedFrom says which timetable printed sheets are from: what's published,
+// so the paper matches the phones, or the draft, marked on every page. Other,
+// if set, links to the other one.
+type PrintedFrom struct {
+	Draft             bool
+	Published         bool // there's a published timetable to differ from
+	Other, OtherLabel string
+}
+
+// printedFrom is the line in a sheet's print bar saying which timetable it's
+// from, with a link to the other.
+templ printedFrom(f PrintedFrom) {
+	if f.Draft || f.Other != "" {
+		<span class="comp-printed-from">
+			switch {
+				case f.Draft && f.Published:
+					@StateChip(Attention, "Draft")
+					The draft, with changes not published: phones and the venue screen show what's published.
+				case f.Draft:
+					@StateChip(NotYet, "Draft")
+					The timetable isn't published yet.
+				default:
+					What's published, as phones show it. You have changes not published.
+			}
+			if f.Other != "" {
+				<a class="button is-small" href={ templ.SafeURL(f.Other) }>{ f.OtherLabel }</a>
+			}
+		</span>
+	}
+}
+
+// draftMark marks a printed page as from the draft.
+templ draftMark(f PrintedFrom) {
+	if f.Draft {
+		<span class="comp-draft-mark">
+			if f.Published {
+				Draft · not published
+			} else {
+				Draft · timetable not published
+			}
+		</span>
+	}
+}
+
 // TimetablePrint prints the marshal or chair of judges sheets.
 templ TimetablePrint(s TimetableSheets) {
 	@competitionLayout(s.Title) {
 		<div class="comp-print-bar screen-only">
 			<a href={ templ.SafeURL(s.Back) }>← Timetable</a>
 			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
+			@printedFrom(s.From)
 		</div>
 		for _, sheet := range s.Sheets {
 			<section class="comp-sheet">
+				@draftMark(s.From)
 				<h1 class="title is-5 mb-1">{ s.Competition.Name } · { sheet.Area } · { sheet.Day }</h1>
 				<p class="mb-3">
 					if s.Judges {
@@ -45,7 +92,11 @@ templ TimetablePrint(s TimetableSheets) {
 					}
 				</p>
 				for _, f := range sheet.Flights {
-					<h2 class="title is-6 mt-4 mb-1">{ f.Name }</h2>
+					<h2 class="title is-6 mt-4 mb-1">
+						{ f.Name }
+						// Each flight says so too, as a day's sheet runs over pages.
+						@draftMark(s.From)
+					</h2>
 					<p class="is-size-7 mb-1">Warm-up { f.Start } · finishes about { f.End }</p>
 					if len(f.Seats) > 0 {
 						<p class="is-size-7 mb-1">{ panelLine(f.Seats) }</p>
@@ -105,6 +156,7 @@ templ TimetablePrint(s TimetableSheets) {
 type RotaSheet struct {
 	Title       string
 	Back        string
+	From        PrintedFrom
 	Competition CompetitionSummary
 	People      []PersonDuties
 }
@@ -121,14 +173,22 @@ templ RotaPrint(s RotaSheet) {
 		<div class="comp-print-bar screen-only">
 			<a href={ templ.SafeURL(s.Back) }>← Timetable</a>
 			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
+			@printedFrom(s.From)
 		</div>
+		@draftMark(s.From)
 		<h1 class="title is-5 mb-3">{ s.Competition.Name } · Officials rota</h1>
 		if len(s.People) == 0 {
 			<p>No one has a duty yet.</p>
 		}
 		<div class="table-container">
 			<table class="table is-fullwidth is-narrow is-bordered comp-sheet-table">
-				<thead><tr><th>Name</th><th>Club</th><th>Duties</th></tr></thead>
+				<thead>
+					if s.From.Draft {
+						// A table's head repeats on each printed page.
+						<tr><th colspan="3">@draftMark(s.From)</th></tr>
+					}
+					<tr><th>Name</th><th>Club</th><th>Duties</th></tr>
+				</thead>
 				<tbody>
 					for _, p := range s.People {
 						<tr>
@@ -172,6 +232,7 @@ type Timeline struct {
 	Title, Back, CSV  string
 	Other, OtherLabel string // the other kind of timeline
 	Officials         bool   // a column for each seat
+	From              PrintedFrom
 	Competition       CompetitionSummary
 	Header            int // rows above the minutes
 	Sheets            []TimelineSheet
@@ -282,8 +343,10 @@ templ TimelinePrint(t Timeline) {
 				<a class="button is-small" href={ templ.SafeURL(t.CSV) }>Download CSV</a>
 			}
 			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
+			@printedFrom(t.From)
 		</div>
 		<section class={ "comp-timeline", templ.KV("comp-timeline-officials", t.Officials) }>
+			@draftMark(t.From)
 			<h1 class="title is-5 mb-3">
 				{ t.Competition.Name } ·
 				if t.Heading != "" {
@@ -301,7 +364,12 @@ templ TimelinePrint(t Timeline) {
 				for _, sh := range t.Sheets {
 					<div class="comp-tl-sheet" data-day={ sh.Day } style={ fmt.Sprintf("grid-template-columns: %s; grid-template-rows: %s; --tl-areas: %d", sh.Columns, t.rows(sh), len(sh.Areas)) }>
 						<div class="comp-tl-head comp-tl-timehead" style={ gridAt(1, t.Header, 1, 1) }>Time</div>
-						<div class="comp-tl-head comp-tl-day" style={ fmt.Sprintf("grid-row: 1; grid-column: 2 / -1") }>{ sh.Title }</div>
+						<div class="comp-tl-head comp-tl-day" style={ fmt.Sprintf("grid-row: 1; grid-column: 2 / -1") }>
+							{ sh.Title }
+							if t.From.Draft {
+								· DRAFT
+							}
+						</div>
 						for _, a := range sh.Areas {
 							if !t.Officials {
 								<div class="comp-tl-head comp-tl-areahead" style={ gridAt(2, 1, a.Column, a.Columns) }>{ a.Name }</div>
@@ -398,6 +466,7 @@ type ScoreSheets struct {
 	Title, Back string
 	BackLabel   string // e.g. "← Timetable"
 	Intro       string // for an official: whose flights these are
+	From        PrintedFrom
 	Competition CompetitionSummary
 	Flights     []ScoreFlight
 }
@@ -418,6 +487,7 @@ templ ScorePrint(s ScoreSheets) {
 			<a href={ templ.SafeURL(s.Back) }>{ s.BackLabel }</a>
 			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
 			<span class="is-size-7">Landscape, a page a flight.</span>
+			@printedFrom(s.From)
 		</div>
 		if s.Intro != "" {
 			<p class="mb-4 screen-only">{ s.Intro }</p>
@@ -440,7 +510,10 @@ templ ScorePrint(s ScoreSheets) {
 						// Printed, the flight's name heads the table, so a flight running onto a
 						// second page says whose it is there too (a table's head repeats).
 						<tr class="comp-score-flight">
-							<th colspan={ strconv.Itoa(5 + 2*len(f.Marks)) }>{ f.Name } · { f.Area }</th>
+							<th colspan={ strconv.Itoa(5 + 2*len(f.Marks)) }>
+								{ f.Name } · { f.Area }
+								@draftMark(s.From)
+							</th>
 						</tr>
 						<tr>
 							<th rowspan="2">#</th>
