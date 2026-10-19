@@ -466,7 +466,15 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 											<a class="is-size-7" href={ templ.SafeURL(row.Edit) }>Change</a>
 										}
 									</td>
-									<td data-label="Level">{ row.Level }</td>
+									<td data-label="Level">
+										{ row.Level }
+										// Its flight under its level, once the timetable is published
+										// (row.Flight is "" until then).
+										if row.Flight != "" {
+											<br/>
+											<span class="is-size-7 has-text-grey-dark comp-flight-line">{ row.Flight }</span>
+										}
+									</td>
 									<td data-label="Problems">
 										// Empty when there are none, so a phone's card leaves the line out.
 										if row.Problems > 0 {
@@ -514,11 +522,6 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 										if row.Note != "" {
 											<br/>
 											<span class="is-size-7 has-text-info-dark">Organiser: { row.Note }</span>
-										}
-										// Where and when, last: the rest is about the entry itself.
-										if row.Flight != "" {
-											<br/>
-											<span class="is-size-7 has-text-grey-dark comp-flight-line">{ row.Flight }</span>
 										}
 									</td>
 								</tr>
