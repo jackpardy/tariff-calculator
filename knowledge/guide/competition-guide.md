@@ -40,7 +40,9 @@ checked like a trampoline routine; tumbling and DMT entries are a level only,
 for now.
 
 Routines come from the Routine Builder: build each voluntary there first, on
-the same phone, then choose it when entering. A set routine needs nothing: it's
+the same phone, then choose it when entering. With none yet, the entry form's
+**Open the Routine Builder →** opens it with **← go back to your entry** at the
+top, to choose the routine once it's built. A set routine needs nothing: it's
 performed as written.
 
 # 1. Run a competition (organisers)
@@ -93,14 +95,17 @@ asked, when it was sent, and whether you've checked it. To find entries:
 not, video, men or women, or **Problems only**, and sort by club, gymnast,
 latest sent or coach. The filters stay in the page's address, so you can
 bookmark or share a view; **Print** and **Download CSV**, below the entries, use them too. The page opens on the entries; the competition's dates and counts are at the bottom. With many filters, they're under **Filters**, which says how many are on. Each event's table starts folded (tap its heading to open it) and
-says how many of its entries are shown ("12 of 96"); **Columns** chooses which columns show and can clip long text to one line, and dragging the edge of a heading makes a column wider or narrower; a line at a table's edge means there's more to scroll to. **Expand all** and **Collapse all** open or fold every one, and
+says how many of its entries are shown ("12 of 96"); **Columns** chooses which columns show (Sent is hidden until you tick it, so the rest fit a laptop's screen) and can clip long text to one line, and dragging the edge of a heading makes a column wider or narrower; a line at a table's edge means there's more to scroll to. **Expand all** and **Collapse all** open or fold every one, and
 your browser remembers which you left open. A search or filter opens the
 events it finds people in. Tap a gymnast to see both exercises in full (a synchro
 pair's one routine), checked as the Routine Builder checks them.
 
 - **Mark checked** once you're happy, with a **note** for the club or gymnast
   if something needs fixing ("element 7 repeats element 3"). If they change
-  the entry, it needs checking again.
+  the entry, it needs checking again. **Mark checked and next** opens the
+  next entry to check. Your search, filters and sort go with you: the next
+  entry is the next one they show, and **← Entries** takes you back to the
+  list as you left it, at the entry you were on.
 - **Video**: open each video (it opens in a new tab), then **Video OK** or
   **Need more** with a note of what's missing.
 - **Print** opens a menu: **Cards** prints a competition card per exercise,
@@ -158,6 +163,8 @@ pair's one routine), checked as the Routine Builder checks them.
   is withdrawn or removed, or you raise the limit; **Let in** takes someone
   in over the limit. Clubs and gymnasts see their place ("waiting list,
   3rd"); waiting entries aren't counted, charged, printed or timetabled.
+  A change of limits that lets entries in from a waiting list, or moves
+  entries already in onto one, asks first, naming who.
 - **Fees:** tap **Fees** to set what you charge (euro or sterling, an
   amount per entry for each discipline, a synchro pair counting as one,
   and a club fee if you have one) and how to pay. Each club and individual
@@ -192,6 +199,10 @@ pair's one routine), checked as the Routine Builder checks them.
   an entry signed off by anyone else says so. **Withdraw approval** stops a
   coach's sign-offs counting; approving them again, choose whether the
   sign-offs they gave before count again or only those from now on.
+  Turning approval on when entries are already signed off asks first,
+  saying how many entries it leaves waiting for a coach's sign-off.
+  Approving a coach whose club sent no qualifications asks first too, and
+  after deciding you're back at that coach.
 
 **Remove or hold entries**: tick entries in the tables (a table's header
 ticks them all; filter by club first to take a whole club), then choose
@@ -240,7 +251,8 @@ and anyone you add.
 
 - **Add someone** (at the head of the list) who isn't entering, such as a judge with no club: their name,
   club (if any), and what they can judge and help with.
-- Tick **Qualified** for people qualified to judge. Each person's judging
+- Tick **Qualified** for people qualified to judge; the page comes back to
+  that person, saying what changed. Each person's judging
   qualifications show under what they offer, with a link to each certificate.
   Where only people you tick may judge, anyone offering to judge a
   discipline with no qualification in it is flagged ("No judging
@@ -307,13 +319,11 @@ a **Change** button to open it.
    little rest, names that look like one person entered twice, and changes
    that would make it all fit (including capping an event's entries, or
    letting events run across breaks).
-   Planning tries to keep a coach's gymnasts off two areas at once; where it
-   can't, **Coaches needed in two places** lists them, so you can move a
-   flight, or the club can bring another coach.
-   Someone who is a member and also a coach, or also enters on their own
-   (one person, with one link), counts as one person: planning keeps their
-   turns apart, tries not to put their gymnasts on while they compete, and
-   the report says if they're coaching while competing, or short of rest.
+   Coaches aren't checked: where a coach's gymnasts are is for the coach and
+   club to manage.
+   Someone who is a member and also enters on their own (one person, with
+   one link) counts as one person: planning keeps their turns apart, and the
+   report says if they're short of rest.
    Planning also fills every panel from the people who've offered to judge
    and help (see **Officials**): never someone competing or on another panel
    at the time, and only in roles they may take. Each event's panel is
@@ -338,9 +348,9 @@ a **Change** button to open it.
    to give a seat to someone else, for all the event's flights they had it
    for; **Assign officials again** redoes every panel and keeps the flights.
    Moving an event or a gymnast, or giving someone a seat, that would break
-   something that holds now (someone in two places, a coach needed on two
-   areas, a flight past the end of the day, one of your rules, rest where
-   it's a must) asks first: **Before you change it** says what, offers other
+   something that holds now (someone in two places, a flight past the end of
+   the day, one of your rules, rest where it's a must) asks first: **Before
+   you change it** says what, people in two places first, offers other
    changes that break nothing (another day or area for the event, another
    of the event's flights for the gymnast, someone else free for the seat),
    and has **Make the change anyway** and **Cancel**.
@@ -374,6 +384,15 @@ a **Change** button to open it.
    still sees what you published until you tap **Publish changes**. The page
    says when there are changes not published yet; **Discard changes** goes
    back to what's published, and **Unpublish** takes it down.
+   What's been marked on the day stays when you change the plan: check-ins
+   stay with each gymnast, and a flight keeps its times, who's up and its
+   panel's check-ins when you move it, and when you plan again if it keeps
+   the same gymnasts. Once the competition has begun, the timetable can't
+   be planned again (what's run has run): change flights, gymnasts and
+   seats by hand, or use the "what ifs". If publishing would
+   drop anything (a flight that has run but is no longer in the plan, or a
+   panel check-in for a seat that's gone), **Publish changes** says what
+   first, and you choose **Publish anyway** or **Cancel**.
 11. **On the day** (a button on the entries page once you've published; chairs
    of judges' and timetable links get it too): pick the day. Each area is a
    card saying how it's running, the flight it's on, who's up, how many are
@@ -474,10 +493,10 @@ day, when the hold-up starts, how many minutes and which areas (none ticked
 for all). It shows which flights now start later or move to another area, when
 each day's flights end, anything that no longer fits, and anyone needed in two
 places. Above those, **This would break** lists anything the delay breaks
-that holds now: your rules (an event's area, day, order or keeping two events
-apart; a person's hours or role), a coach needed on two areas, an official on
-a flight during blocked time they're on duty for, and short rest where rest is
-a must. A flight that moves to another area only goes where your must rules
+that holds now: an official on a flight during blocked time they're on duty
+for first, then your rules (an event's area, day, order or keeping two events
+apart; a person's hours or role) and short rest where rest is a must. One
+person's repeats show as one line, with how many more. A flight that moves to another area only goes where your must rules
 let it. An event's flights stay together: if one would no longer finish
 before a break, the rest of the event waits for it too (unless events can run
 across breaks), and an event moves to another area with all its flights still
@@ -491,12 +510,13 @@ publish the changes when you're ready.
 **What if an official leaves?** (under **Timetable**, once planned):
 choose who, the day and time they go, and whether for good. Each of their
 seats is filled for the rest of its event, by one person: someone free for
-all of it, or by moving others round: a judge on the panel moving up to
-chair, or someone moving across from another panel, their seat filled in
-turn. Free means not competing, judging or on duty for blocked time then,
-not coaching someone competing elsewhere, rested where rest is a must, and
-allowed by your rules. Choose **easiest to fill** (the gap ends at a seat many
-can take, such as recorder) or **fewest changes**. Anything the result would
+all of it if there is anyone, the least busy that day first (then someone
+who's had that role already, then the least busy over the competition).
+If no one free can take it, others move round, as few as will do: a judge
+on the panel moving up to chair, or someone moving across from another
+panel, their seat filled in turn. Free means not competing, judging or on
+duty for blocked time then, rested where rest is a must, and allowed by
+your rules. Anything the result would
 break that holds now is listed above the seats. Nothing is changed unless
 you tap **Keep this in the draft timetable**.
 
@@ -550,7 +570,11 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   choose who and in what, and tap **Enter them**; for synchro, choose their
   partner from your members or type someone from another club. Synchro
   entries that gymnasts from other clubs made with one of your members are
-  listed below, under **Synchro as a partner**.
+  listed below, under **Synchro as a partner**. Where the competition needs
+  a coach's sign-off and none of your coaches signs off routines, the page
+  says so above the entries, with a link to **Coaches** to add one; an entry
+  whose member's coach doesn't sign off says so on its row. Entries can still
+  be sent: the organiser sees they aren't signed off.
 - **Send new and changed**, above the entries with how many are still to
   send, sends the entries the competition doesn't have yet, or that changed
   since you sent them. **Send all again**, the quiet button beside it, sends
@@ -569,10 +593,12 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   lines (by gymnast) and payments; **Print the invoice** opens it to print or
   save as a PDF.
 - **Members** (its own section): the **Join link**, then each member: choose
-  their coach from the list. Under **More** beside them, give a member who
-  lost their link a **New link** (their old one stops working, and the new
-  one opens only their pages at your club: they add their other links
-  again), or **Remove** them. A member who also coaches needs no coach link:
+  their coach from the list, and the page comes back to their row, saying
+  who their coach is now (your search and filters stay as they were). Under
+  **More** beside them, give a member who lost their link a **New link**: the
+  page asks first, as their old one stops working wherever it's saved, and
+  then shows the new one, once, to send them (it opens only their pages at
+  your club: they add their other links again), or **Remove** them. A member who also coaches needs no coach link:
   tap **More**, **Make a coach too**,
   and their member link opens their coach's page as well. Making that coach a
   link of their own (**New link**) parts it from the member. Synchro entries that gymnasts from
@@ -585,7 +611,8 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
 - **Coaches** (its own section; search by name, or narrow by who signs off
   and who has qualifications): tap **Add a coach**, type a name and tap
   **Add coach**, then send them the coach link shown (it's shown only then;
-  **More**, **New link** makes another, and **Remove** takes them off). How
+  **More**, **New link** makes another, asking first as the old one stops
+  working, and **Remove** takes them off). How
   many members chose each coach links to those members. **Who
   coaches see**, **Change**: tick **Every coach sees every member** if your
   coaches share everyone. Untick a coach's
@@ -599,7 +626,8 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   the right. **Members' skills**, **Change**: **Let every member see
   everyone's skills** shares members' skills with the whole club (otherwise
   each member's are seen by them, their coaches and you). **Admin link**,
-  **Replace**, and **Delete the club**, **Delete**, open to do it. A
+  **Replace**, and **Delete the club**, **Delete**, open to do it; replacing
+  the admin link asks first, as the old one stops working for everyone who has it. A
   club is deleted 13 months after anyone last used it (you, a coach or a
   member opening their page); Settings says when. **Opened from people's own
   links** lists anyone who added the admin link to their own page (see
@@ -627,15 +655,18 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
    **Trampoline** (or Synchro, Tumbling, DMT), choose your **Level**, and Men
    or Women if asked. For trampoline, choose which set
    routine you're doing where there's a choice, and the routine for each
-   voluntary from the routines kept on your page or saved in this browser;
-   for synchro, just the
+   voluntary from the routines kept on your page or saved in this browser
+   (none yet? **Open the Routine Builder →** under it, build it, then **← go
+   back to your entry**); for synchro, just the
    pair's one routine, the level's voluntary. Add a **video link**
    if the competition asks (a YouTube video must be **unlisted, not private**;
    a Google Drive file shared with **anyone with the link**). Tap **Save**.
    Tumbling and DMT need only the level.
 4. Your entry shows checked, with any problems; a row with problems to fix opens
    by itself when you save. Your comp sec sends it to the competition: the
-   status says whether it's been sent, or changed since.
+   status says whether it's been sent, or changed since. Where it needs a
+   coach's sign-off, it says who signs it off, or, if no coach of your club
+   can, to ask your comp sec to add one.
 
 Under **Judging and helping**, say what you can do at the competition: judge a
 discipline (up to a level, and whether you can chair), or help as a recorder
@@ -859,7 +890,8 @@ confirm.
    **Competitions** (each competition you entered: tap one for a row per
    discipline, which opens to everything about that entry, with **Change the
    entry** and **Withdraw**, and **Enter another discipline**, under the same
-   link) and **Your details** (your link,
+   link and your name: it has a tab for each discipline you haven't entered,
+   links to those you have, and **←** back to the competition) and **Your details** (your link,
    and your other links). A withdrawn entry stays on your page, marked
    **Withdrawn**: **Put it back** enters it again, until entries close. On an
    entry, under **Judging and helping**, say what you can judge or help with:

@@ -329,11 +329,26 @@ func (p *competitionPages) markQualified(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	if err := p.st.SetQualified(r.Context(), c.ID, r.PathValue("id"), r.FormValue("on") == "1"); err != nil {
+	on := r.FormValue("on") == "1"
+	if err := p.st.SetQualified(r.Context(), c.ID, r.PathValue("id"), on); err != nil {
 		failed(w, r, err)
 		return
 	}
-	http.Redirect(w, r, officialsPath(r), http.StatusSeeOther)
+	// Back to their row, saying what changed.
+	people, err := p.st.Officials(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	name := "They're"
+	if i := slices.IndexFunc(people, func(o store.Official) bool { return o.ID == r.PathValue("id") }); i >= 0 {
+		name = people[i].Name + " is"
+	}
+	notice := name + " marked qualified."
+	if !on {
+		notice = name + " no longer marked qualified."
+	}
+	seeOther(w, r, officialsPath(r)+"#official-"+r.PathValue("id"), notice)
 }
 
 func (p *competitionPages) removeOfficial(w http.ResponseWriter, r *http.Request) {

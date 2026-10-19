@@ -216,7 +216,8 @@ templ CompetitionOfficials(p OfficialsPage) {
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			// Stays in sight as the page goes to the person changed.
+			<div class="notification is-success is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
 		}
 		<div class="table-container">
 			<table class="table is-narrow">
@@ -287,7 +288,7 @@ templ CompetitionOfficials(p OfficialsPage) {
 						<thead><tr><th>Name</th><th>Club</th><th>Can do</th><th>Qualified</th><th></th></tr></thead>
 						<tbody>
 							for _, o := range p.Officials {
-								<tr { o.List.Attrs()... }>
+								<tr id={ "official-" + o.ID } class="comp-target" { o.List.Attrs()... }>
 									<td>
 										<a href={ templ.SafeURL(o.Person) }>{ o.Name }</a>
 										// Sent by their club, as most are, needs no chip: their club is beside it.

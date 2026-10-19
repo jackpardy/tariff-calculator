@@ -190,7 +190,7 @@
                 const kept = select.querySelector('optgroup[data-kept]');
                 if (!select.querySelector('option[value="current"]')) {
                     const any = routines.length > 0 || kept;
-                    const prompt = new Option(any ? 'Choose a routine' : 'No routines saved in this browser', '');
+                    const prompt = new Option(any ? 'Choose a routine' : 'No routines yet: build one (link below)', '');
                     select.prepend(prompt);
                     prompt.selected = true;
                 }
@@ -913,7 +913,10 @@
                 list.hidden = shown === 0;
                 if (form) {
                     try { history.replaceState(history.state, '', carry(location.href)); } catch (e) { /* the address keeps the old search */ }
-                    for (const a of document.querySelectorAll('a[data-list-carry]')) { a.setAttribute('href', carry(a.getAttribute('href'))); }
+                    for (const el of document.querySelectorAll('[data-list-carry]')) {
+                        const attr = el.tagName === 'FORM' ? 'action' : 'href';
+                        el.setAttribute(attr, carry(el.getAttribute(attr)));
+                    }
                     return;
                 }
                 try {
@@ -945,6 +948,17 @@
             // form the list sits in (the desk's).
             search.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !form) { e.preventDefault(); } });
             for (const f of filters) { f.addEventListener('change', form ? () => tools.submit() : apply); }
+            // An entry opened from a list the server filters (marked
+            // data-list-carry-links) carries the search too, as it's opened,
+            // so its page comes back to the list as it was.
+            const links = document.getElementById(tools.dataset.listTools);
+            if (form && links && links.hasAttribute('data-list-carry-links')) {
+                const carryLink = (e) => {
+                    const a = e.target.closest?.('a[href*="/entries/"]');
+                    if (a && links.contains(a)) { a.setAttribute('href', carry(a.getAttribute('href'))); }
+                };
+                for (const type of ['click', 'auxclick', 'contextmenu']) { links.addEventListener(type, carryLink, true); }
+            }
             // A form sends only the filters chosen, keeping the address short.
             tools.addEventListener('formdata', (e) => {
                 for (const [k, v] of [...e.formData]) { if (v === '') { e.formData.delete(k); } }
@@ -992,11 +1006,25 @@
     // in a folded list comes back to it, open, and a routine a coach marked
     // a skill on (#routine-…) is open again for the next.
     function openToAnchor() {
+        if (location.hash.startsWith('#entry-')) { backToEntry(location.hash.slice('#entry-'.length)); return; }
         if (!location.hash.startsWith('#mark-') && !location.hash.startsWith('#routine-')) { return; }
         const target = document.getElementById(location.hash.slice(1));
         if (!target) { return; }
         for (let d = target.closest('details'); d; d = d.parentElement.closest('details')) { d.open = true; }
         target.scrollIntoView({ block: 'center' });
+    }
+
+    // backToEntry is the Entries page come back to from an entry (#entry-<id>):
+    // its row, found by its link, in its level opened, picked out for a
+    // moment. A row the filters no longer show leaves the page at the top.
+    function backToEntry(id) {
+        const list = document.getElementById('entries');
+        const link = list && [...list.querySelectorAll('td.comp-stack-title > a')].find((a) => new URL(a.href).pathname.endsWith('/entries/' + id));
+        if (!link) { return; }
+        const row = link.closest('tr');
+        for (let d = row.closest('details'); d; d = d.parentElement.closest('details')) { d.open = true; }
+        row.scrollIntoView({ block: 'center' });
+        row.classList.add('comp-picked');
     }
 
     // sharedLevel reads a shared club level from its link's fragment

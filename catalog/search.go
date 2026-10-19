@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -18,32 +19,66 @@ type Result struct {
 // maxResults caps how many matches Search returns.
 const maxResults = 12
 
-// aliases are other names people use for common skills (by CommonSkills key).
+// aliases are other names people use for common skills (by CommonSkills key),
+// besides the rule books' names in otherNames. Written as people type them:
+// they're read the same way as a query ("½", "1/2" and "half" alike).
 var aliases = map[string][]string{
-	"backSomersault": {"back somersault", "back salto", "back s/s"},
-	"front":          {"front somersault", "front salto", "front s/s"},
-	"backToSeat":     {"back s/s to seat", "back somersault to seat"},
-	"frontToSeat":    {"front s/s to seat", "front somersault to seat"},
-	"crashDive":      {"3/4 front"},
-	"lazyBack":       {"3/4 back"},
-	"halfOut":        {"barani out", "half in"},
-	"halfhalf":       {"half in half out"},
-	"fullFull":       {"full in full out"},
-	"fullRudi":       {"full in rudy out", "full in rudi out"},
-	"miller":         {"1 1/2 in 1 1/2 out"},
-	"doubleBack":     {"double back somersault"},
-	"tripleBack":     {"triffis"},
+	"halfTwist":         {"half twist jump"},
+	"fullTwist":         {"full twist jump"},
+	"seatToFeet":        {"seat drop to feet"},
+	"seatHalfToFeet":    {"seat drop half twist to feet"},
+	"backToFeet":        {"back drop to feet"},
+	"backHalfToFeet":    {"back drop half twist to feet"},
+	"frontToFeet":       {"front drop to feet"},
+	"backSomersault":    {"back somersault", "back salto"},
+	"front":             {"front somersault", "front salto"},
+	"backToSeat":        {"back somersault to seat"},
+	"frontToSeat":       {"front somersault to seat"},
+	"crashDive":         {"3/4 front"},
+	"lazyBack":          {"3/4 back"},
+	"backHalf":          {"back half twist", "back somersault with 1/2 twist", "back s/s half twist"},
+	"frontFull":         {"front full twist", "full front"},
+	"fullBack":          {"back full", "full twist back"},
+	"doubleFullBack":    {"double full", "back double full"},
+	"tripleFullBack":    {"triple full", "back triple full"},
+	"ada":               {"adolph", "adolf", "3 1/2 twisting front"},
+	"doubleBack":        {"double back somersault", "double back s/s"},
+	"doubleFront":       {"double front somersault", "double front s/s"},
+	"halfOut":           {"barani out"},
+	"halfhalf":          {"half in half out"},
+	"fullInBack":        {"full in", "full in double back"},
+	"fullOutBack":       {"full out", "back in full out", "full out double back"},
+	"fullFull":          {"full in full out"},
+	"fullRudi":          {"full in rudi out"},
+	"miller":            {"1 1/2 in 1 1/2 out"},
+	"tripleBack":        {"triple back somersault"},
+	"trifHalfOut":       {"half out triffis", "barani out triffis", "front front half"},
+	"trifRudiOut":       {"rudi out triffis", "front front rudi"},
+	"trifHalfHalf":      {"half in half out triffis", "half front half"},
+	"trifHalfInRudiOut": {"half in rudi out triffis", "half front rudi"},
+	"trifFullInHalfOut": {"full in half out triffis", "full front half"},
+	"fullInHalfOut":     {"full half"},
+	"fullRandi":         {"full in randi out"},
 }
 
-// tokenAliases rewrite single words people spell differently from the app's names.
+// tokenAliases rewrite single words people spell differently from the app's
+// names, and the other words for a shape.
 var tokenAliases = map[string]string{
 	"rudy": "rudi", "rudolph": "rudi", "randy": "randi", "randolph": "randi",
-	"jumps": "jump",
+	"jumps":  "jump",
+	"tucked": "tuck", "piked": "pike", "layout": "straight", "straddled": "straddle",
 }
 
+// phrases rewrite what's written more than one way before it's split into
+// words: "½ twist", "1/2 twist" and "half twist" are the same.
+var phrases = strings.NewReplacer("½", " half ", "1/2", " half ", "laid out", "layout")
+
+// shapeWords are the words that name a shape (after tokenAliases).
+var shapeWords = map[string]skills.Shape{"tuck": skills.Tuck, "pike": skills.Pike, "straight": skills.Straight, "straddle": skills.Straddle}
+
 // Search finds skills for a query: by name (each common skill in each shape it
-// can be done in, plus a few aliases) or, if the query looks like FIG notation,
-// by parsing it. An empty query matches nothing.
+// can be done in, plus aliases) or, if the query looks like FIG notation, by
+// parsing it. An empty query matches nothing.
 func Search(query string) []Result {
 	query = strings.TrimSpace(query)
 	if query == "" {
@@ -75,10 +110,11 @@ func normalize(s string) string {
 	return b.String()
 }
 
-// tokens splits a query into normalised words, applying tokenAliases.
-func tokens(query string) []string {
+// tokens splits text into normalised words, after phrases and applying
+// tokenAliases.
+func tokens(text string) []string {
 	var out []string
-	for _, word := range strings.FieldsFunc(strings.ToLower(query), func(r rune) bool {
+	for _, word := range strings.FieldsFunc(phrases.Replace(strings.ToLower(text)), func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '/'
 	}) {
 		w := normalize(word)
@@ -118,34 +154,81 @@ func priced(s skills.TrampolineSkill) skills.TrampolineSkill {
 	return s
 }
 
+// texts are what a query is matched against for a skill, as runs of
+// normalised words: its name without its shape (which a query's shape word
+// picks), its rule books' name and its aliases.
+func texts(key string, s skills.TrampolineSkill) []string {
+	shaped := s.IsBasicJump() || s.ShapeIsRelevant()
+	var name []string
+	for _, w := range tokens(s.Name) {
+		if shaped && w == strings.ToLower(s.Shape.String()) {
+			shaped = false // only the once: the shape in "Tuck Jump", not a word of the name
+			continue
+		}
+		name = append(name, w)
+	}
+	out := []string{strings.Join(name, "")}
+	others := aliases[key]
+	if other, ok := otherNames[PickerName(s)]; ok {
+		others = append([]string{other}, others...)
+	}
+	for _, a := range others {
+		out = append(out, strings.Join(tokens(a), ""))
+	}
+	return out
+}
+
+// byName matches each common skill in each shape against a query's words:
+// any shape word picks the shape, and the other words must all be in the
+// skill's name or one of its other names. Exact names come first, then names
+// starting with the query, then the rest, shorter names first.
 func byName(query string) []Result {
-	words := tokens(query)
-	if len(words) == 0 {
+	var words []string
+	var shape *skills.Shape
+	for _, w := range tokens(query) {
+		if sh, ok := shapeWords[w]; ok {
+			shape = &sh
+			continue
+		}
+		words = append(words, w)
+	}
+	if len(words) == 0 && shape == nil {
 		return nil
 	}
-	whole := normalize(query)
+	whole := strings.Join(words, "")
 
 	type match struct {
-		skill  skills.TrampolineSkill
-		prefix bool // the name starts with the query
+		skill skills.TrampolineSkill
+		rank  int // 0 an exact name, 1 one starting with the query, 2 the rest
 	}
 	var matches []match
 	for key, common := range skills.CommonSkills {
 		for _, s := range variants(common) {
-			texts := []string{normalize(s.Name)}
-			for _, a := range aliases[key] {
-				texts = append(texts, normalize(a))
-			}
-			if !anyContainsAll(texts, words) {
+			if shape != nil && (s.Shape != *shape || !(s.IsBasicJump() || s.ShapeIsRelevant())) {
 				continue
 			}
-			matches = append(matches, match{skill: s, prefix: strings.HasPrefix(normalize(s.Name), whole) || strings.HasPrefix(normalize(shapeLast(s)), whole)})
+			rank, found := 2, false
+			for _, text := range texts(key, s) {
+				if !containsAll(text, words) {
+					continue
+				}
+				found = true
+				switch {
+				case text == whole:
+					rank = 0
+				case strings.HasPrefix(text, whole):
+					rank = min(rank, 1)
+				}
+			}
+			if found {
+				matches = append(matches, match{s, rank})
+			}
 		}
 	}
 	sort.Slice(matches, func(i, j int) bool {
 		a, b := matches[i], matches[j]
-		if a.prefix != b.prefix {
-			return a.prefix
+		if a.rank != b.rank {
+			return a.rank < b.rank
 		}
 		// Shorter names are closer matches: "Barani Tuck" before "Barani To Front Tuck".
 		if len(a.skill.Name) != len(b.skill.Name) {
@@ -153,6 +236,10 @@ func byName(query string) []Result {
 		}
 		if a.skill.Tariff != b.skill.Tariff {
 			return a.skill.Tariff < b.skill.Tariff
+		}
+		// Tuck, pike, then straight, as the picker has them.
+		if sa, sb := slices.Index(pickerShapes, a.skill.Shape), slices.Index(pickerShapes, b.skill.Shape); sa != sb {
+			return sa < sb
 		}
 		return a.skill.Name < b.skill.Name
 	})
@@ -163,31 +250,14 @@ func byName(query string) []Result {
 	return out
 }
 
-// shapeLast is a skill's name with any leading shape moved to the end, so
-// "barani pike" is as close a match for "Pike Barani" as "barani" is.
-func shapeLast(s skills.TrampolineSkill) string {
-	shape := s.Shape.String() + " "
-	if strings.HasPrefix(s.Name, shape) {
-		return strings.TrimPrefix(s.Name, shape) + " " + s.Shape.String()
-	}
-	return s.Name
-}
-
-// anyContainsAll reports whether one of texts contains every word.
-func anyContainsAll(texts, words []string) bool {
-	for _, text := range texts {
-		all := true
-		for _, w := range words {
-			if !strings.Contains(text, normalize(w)) {
-				all = false
-				break
-			}
-		}
-		if all {
-			return true
+// containsAll reports whether text contains every word.
+func containsAll(text string, words []string) bool {
+	for _, w := range words {
+		if !strings.Contains(text, w) {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 // --- By FIG notation ---
@@ -217,7 +287,8 @@ func looksLikeNotation(q string) bool {
 // take-off, so each reading is offered forwards and backwards, from feet first
 // and then from the back, front and seat (named skills first); without a
 // shape mark, a skill whose shape matters is offered in each shape. Readings
-// that can't land are left out.
+// that can't land are left out, and so are unnamed ones from the body when
+// another reading has a name.
 func fromNotation(q string) []Result {
 	readings, shape := notationReadings(q)
 	var named, unnamed []Result
@@ -248,6 +319,11 @@ func fromNotation(q string) []Result {
 				}
 			}
 		}
+	}
+	// Where a reading has a name, the unnamed ones from the back, front or
+	// seat are only noise: "8 2 - o" is a Full-In Back, or a front one.
+	if len(named) > 0 {
+		unnamed = slices.DeleteFunc(unnamed, func(r Result) bool { return r.Skill.TakeoffPosition != skills.Feet })
 	}
 	return append(named, unnamed...)
 }

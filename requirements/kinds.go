@@ -80,6 +80,10 @@ var Picks = sync.OnceValue(func() []Pick {
 	slices.SortFunc(named, func(a, b skills.TrampolineSkill) int {
 		return cmp.Or(cmp.Compare(a.Rotation, b.Rotation), cmp.Compare(a.TotalTwist(), b.TotalTwist()), strings.Compare(a.Name, b.Name))
 	})
+	// Skills that are one pick (a full-in and a full-out back) share it,
+	// labelled with each name: "Full-In Back, Full-Out Back or Half Half".
+	first := len(out)
+	names := map[int][]string{}
 	for _, s := range named {
 		group := JumpsGroup
 		switch {
@@ -88,7 +92,19 @@ var Picks = sync.OnceValue(func() []Pick {
 		case s.Rotation >= 3:
 			group = SinglesGroup
 		}
-		out = append(out, Pick{ID: "skill:" + s.Name, Label: s.Name, Group: group, Match: SkillMatch(s)})
+		m := SkillMatch(s)
+		if i := slices.IndexFunc(out[first:], func(p Pick) bool { return sameMatcher(p.Match, m) }); i >= 0 {
+			names[first+i] = append(names[first+i], s.Name)
+			continue
+		}
+		names[len(out)] = []string{s.Name}
+		out = append(out, Pick{ID: "skill:" + s.Name, Group: group, Match: m})
+	}
+	for i, n := range names {
+		out[i].Label = n[0]
+		if len(n) > 1 {
+			out[i].Label = strings.Join(n[:len(n)-1], ", ") + " or " + n[len(n)-1]
+		}
 	}
 	return out
 })

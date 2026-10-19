@@ -40,6 +40,7 @@ type ApprovalClub struct {
 // ApprovalRow is one coach sent, to approve.
 type ApprovalRow struct {
 	ID, Name       string
+	Anchor         string // its id on the page, to come back to after deciding
 	Person         string // their page
 	Action         string // where deciding posts
 	Status         string // e.g. "Waiting", "Approved ✓"
@@ -89,7 +90,8 @@ templ CompetitionApprovals(p ApprovalsPage) {
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			// Stays in sight as the page goes to the coach decided on.
+			<div class="notification is-success is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
 		}
 		<p class="mb-4">Only coaches you approve can sign off. You ask for at least { p.Asked }. Open each certificate to check it; clubs see your note.</p>
 		@listSection("Coaches", p.Total) {
@@ -102,7 +104,7 @@ templ CompetitionApprovals(p ApprovalsPage) {
 						<div class="box" data-list-group>
 							<h2 class="title is-6">{ c.Club }</h2>
 							for _, k := range c.Coaches {
-								<div class="mb-4" { k.List.Attrs()... }>
+								<div class="mb-4 comp-target" id={ k.Anchor } { k.List.Attrs()... }>
 									<p>
 										<strong><a href={ templ.SafeURL(k.Person) }>{ k.Name }</a></strong>
 										@StateChip(approvalState(k))
@@ -128,6 +130,9 @@ templ CompetitionApprovals(p ApprovalsPage) {
 											if k.Withdrawn {
 												<button class="button is-small is-success" type="submit" name="action" value="approve">Approve, with their sign-offs before</button>
 												<button class="button is-small is-success is-light" type="submit" name="action" value="afresh">Approve, sign-offs from now on</button>
+											} else if len(k.Qualifications) == 0 {
+												// Asks first: there's nothing to check.
+												<button class="button is-small is-success" type="submit" name="action" value="approve" onclick={ confirmFirst("Approve " + k.Name + "? Their club hasn't sent any qualifications.") }>Approve</button>
 											} else {
 												<button class="button is-small is-success" type="submit" name="action" value="approve">Approve</button>
 											}

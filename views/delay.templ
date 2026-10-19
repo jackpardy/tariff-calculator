@@ -31,7 +31,7 @@ type DelayResult struct {
 	Without   string       // what the delay alone would do, when eased
 	Merged    []string
 	Breaks    []string // breaks (lunch, say) moved, shortened or worked through
-	Breaking  []string // what the delay breaks that holds now: rules, coaches, rest, duties
+	Breaking  []string // what the delay breaks that holds now: duties, rules, rest (competitions.BreakLines)
 	Days      []DelayDay
 	Changes   []DelayChangeView
 	Unplaced  []string

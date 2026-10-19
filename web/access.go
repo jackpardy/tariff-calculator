@@ -90,10 +90,12 @@ func access(r *http.Request) views.Access {
 	}
 }
 
-// statusRecorder notes a response's status.
+// statusRecorder notes a response's status, and whether the handler only
+// asked first (askFirst): nothing changed, so nothing to record.
 type statusRecorder struct {
 	http.ResponseWriter
 	status int
+	asked  bool
 }
 
 func (s *statusRecorder) WriteHeader(code int) {
@@ -134,7 +136,7 @@ func (p *competitionPages) gate(pattern string, h http.HandlerFunc) http.Handler
 		// weren't changed", "the closing time wasn't changed"): nothing to record.
 		to := strings.ToLower(rec.Header().Get("Location"))
 		refused := strings.Contains(to, "nothing+was+changed") || strings.Contains(to, "n%27t+changed")
-		if rec.status < 400 && !refused && what != "" && !strings.HasSuffix(pattern, "/delete") {
+		if rec.status < 400 && !refused && !rec.asked && what != "" && !strings.HasSuffix(pattern, "/delete") {
 			p.st.Record(context.WithoutCancel(r.Context()), c.ID, link.Name, what)
 		}
 	}

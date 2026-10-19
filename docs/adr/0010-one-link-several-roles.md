@@ -115,7 +115,8 @@ Asked on the roadmap (item 5, 2026-10-13 and 2026-10-14).
    one standing for the person (their official's key if they officiate, as
    seats are saved under it), and works out with those; the keys saved stay
    as they were. Someone coaching while they compete is a problem, and the
-   planner avoids it. An individual's notifications belong to the
+   planner avoids it (*no longer, 2026-10-19:* coaches aren't checked, see
+   the note in ADR 0005; a person's own turns still are). An individual's notifications belong to the
    individual, not the entry they asked on (migration 35).
 
 ## Alternatives considered

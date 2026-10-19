@@ -1191,6 +1191,8 @@ a.chip-link:hover { background: #f5f5ff; }
 table [hidden] { display: none !important; }
 table[data-table-view] th { position: relative; }
 .comp-col-grip { position: absolute; top: 0; right: -4px; width: 9px; height: 100%; cursor: col-resize; z-index: 2; }
+/* The last column's grip stays inside the table, which would otherwise scroll by it. */
+th:last-child > .comp-col-grip { right: 0; }
 .comp-col-grip::after { content: ""; position: absolute; top: 25%; bottom: 25%; left: 4px; width: 1px; background: #c8c8c8; }
 th:hover > .comp-col-grip::after { background: #485fc7; width: 2px; }
 @media screen and (max-width: 768px) { .comp-col-grip { display: none; } }
@@ -1208,9 +1210,11 @@ th:hover > .comp-col-grip::after { background: #485fc7; width: 2px; }
 /* On a phone the table is cards (comp-stack): nothing to clip or drag. */
 @media screen and (max-width: 768px) { .comp-table-menu-clip, .comp-table-menu-help { display: none; } }
 /* A row a link opened (a coach from their chip): picked out for a moment. */
-.comp-target:target { animation: comp-target 2.5s ease-out; }
+.comp-target:target, .comp-picked { animation: comp-target 2.5s ease-out; }
 @keyframes comp-target { from { background: #fff3c4; } to { background: transparent; } }
-@media (prefers-reduced-motion: reduce) { .comp-target:target { animation: none; background: #fff8dd; } }
+@media (prefers-reduced-motion: reduce) { .comp-target:target, .comp-picked { animation: none; background: #fff8dd; } }
+/* Clear of a notice that stays in sight above it (comp-sticky-notice). */
+.comp-target { scroll-margin-top: 6rem; }
 a > .chip { cursor: pointer; }
 a:hover > .chip { text-decoration: underline; }
 /* A club level's line, folded to its name (views.ruleCard): Change opens it. */
@@ -1292,6 +1296,13 @@ input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100
   .comp-entries td.comp-stack-title, .comp-entries th.comp-stack-title { position: sticky; left: 0; z-index: 1; background: #fff; box-shadow: 1px 0 0 #ededed; }
   .comp-entries.has-ticks td.comp-stack-tick, .comp-entries.has-ticks th:first-child { position: sticky; left: 0; z-index: 2; background: #fff; width: 2.25rem; min-width: 2.25rem; }
   .comp-entries.has-ticks td.comp-stack-title, .comp-entries.has-ticks th.comp-stack-title { left: 2.25rem; }
+  /* Narrow enough for Coach and Checked to be in sight at 1,300 px: headings
+     of two words, a long club and a coach's chip and name wrap, and the
+     problem's chip needs no more room than it takes. */
+  .comp-entries th { white-space: normal; vertical-align: bottom; }
+  .comp-entries td[data-label="Club"] { white-space: normal; min-width: 7rem; }
+  .comp-entries td[data-label="Coach"] { white-space: normal; min-width: 9rem; }
+  .comp-entries td.comp-problem-cell { min-width: 0; }
 }
 
 /* A notice that stays in sight while the page goes to where a change is. */

@@ -22,6 +22,7 @@ type TimetablePage struct {
 	Stale       bool // the setup changed since planning
 	Published   bool
 	Changes     bool // the draft differs from what's published
+	Begun       bool // the competition has begun (something's marked on the day), so it isn't planned again
 	Report      ReportView
 	Days        []DayView
 	OpenDay     int                // the day that starts open: today, or the first
@@ -43,7 +44,6 @@ type RotaView struct {
 	Busiest  []string
 	Broken   []string // the organiser's rules about people not kept
 	Problems []string // what manual changes broke
-	Coaches  []string // coaches needed in two places at once
 }
 
 // SeatView is one seat on a flight's panel.
@@ -182,7 +182,7 @@ templ CompetitionTimetable(p TimetablePage) {
 				<a class="button is-primary" href={ templ.SafeURL(p.Base + "/timetable/setup") }>Go to Setup</a>
 			</div>
 		} else {
-			if p.Stale {
+			if p.Stale && !p.Begun {
 				<div class="notification is-warning is-light">The setup has changed since this was planned. <a href={ templ.SafeURL(p.Base + "/timetable/setup") }>Plan again on Setup</a> to use it.</div>
 			}
 			@timetableStatus(p)
@@ -232,11 +232,18 @@ templ TimetableSetup(p TimetablePage) {
 			// Stays in sight as the page goes to where the change is.
 			<div class="notification is-info is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
 		}
-		if p.Stale {
+		if p.Stale && !p.Begun {
 			<div class="notification is-warning is-light">The setup has changed since the timetable was planned. Plan again to use it.</div>
 		}
 		<p class="mb-3">What the timetable is made from. Change any of it, then plan.</p>
 		@setupSections(p)
+		if p.Begun {
+			<div class="notification is-light my-4">
+				<strong>The competition has begun</strong>, so the timetable isn't planned again: what's run has run.
+				Change flights, gymnasts and seats by hand on <a href={ templ.SafeURL(p.Base + "/timetable") }>Timetable</a>,
+				or use What if there's a delay and What if an official leaves.
+			</div>
+		} else {
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/plan") } class="my-4">
 			<button class="button is-primary" type="submit" onclick={ confirmReplan(p.Planned) }>
 				if p.Planned {
@@ -252,6 +259,7 @@ templ TimetableSetup(p TimetablePage) {
 				}
 			</p>
 		</form>
+		}
 	}
 }
 
@@ -710,7 +718,6 @@ templ rotaReport(p TimetablePage) {
 		@problemsList("Seats no one could take", p.Rota.Short)
 		@problemsList("Problems with the seats", p.Rota.Problems)
 		@problemsList("Your rules about officials not kept", p.Rota.Broken)
-		@problemsList("Coaches needed in two places", p.Rota.Coaches)
 		@problemsList("Judging their own club's gymnasts, times by club", p.Rota.OwnClub)
 		@problemsList("Busiest officials", p.Rota.Busiest)
 	</div>
@@ -766,7 +773,7 @@ templ reportView(r ReportView) {
 				}
 			</div>
 		}
-		// Changes made by hand, or what the plan couldn't avoid (a coach who also competes).
+		// Changes made by hand.
 		@problemsList("Problems to look at", r.Problems)
 		@problemsList("Less rest than wanted", r.ShortRest)
 		@problemsList("Preferences not met", r.Broken)
@@ -1120,6 +1127,13 @@ type ChangeCheckPage struct {
 	Fields      []FormValue // the change as posted, to make it anyway
 	Fixes       []ChangeFix
 	Back        string // the timetable, where it was asked from
+	// What's been marked on the day that the change would drop or upset,
+	// under a heading (DayTitle); the button for the change anyway, and a
+	// line under it, if not the usual ones.
+	DayTitle string
+	DayMarks []string
+	Anyway   string
+	Help     string
 }
 
 // ChangeFix is another change that does what was meant without breaking
@@ -1137,6 +1151,16 @@ templ ChangeCheck(p ChangeCheckPage) {
 		@pageMenu(p.Menu)
 		<p class="mb-3"><strong>{ p.What }</strong></p>
 		@newBreaks(p.Breaks)
+		if len(p.DayMarks) > 0 {
+			<div class="notification is-warning is-light">
+				<p class="mb-1"><strong>{ p.DayTitle }</strong></p>
+				<ul>
+					for _, it := range p.DayMarks {
+						<li>{ it }</li>
+					}
+				</ul>
+			</div>
+		}
 		if len(p.Fixes) > 0 {
 			<div class="box">
 				<p class="label is-small mb-2">Instead, without breaking anything</p>
@@ -1158,10 +1182,20 @@ templ ChangeCheck(p ChangeCheckPage) {
 					<input type="hidden" name={ v.Name } value={ v.Value }/>
 				}
 				<input type="hidden" name="anyway" value="1"/>
-				<button class="button is-small is-warning" type="submit">Make the change anyway</button>
+				<button class="button is-small is-warning" type="submit">
+					if p.Anyway != "" {
+						{ p.Anyway }
+					} else {
+						Make the change anyway
+					}
+				</button>
 			</form>
 			<a class="button is-small" href={ templ.SafeURL(p.Back) }>Cancel</a>
 		</div>
-		<p class="help">Either way it goes into the draft: attendees see it only once you publish.</p>
+		if p.Help != "" {
+			<p class="help">{ p.Help }</p>
+		} else {
+			<p class="help">Either way it goes into the draft: attendees see it only once you publish.</p>
+		}
 	}
 }

@@ -9,7 +9,8 @@ import (
 
 // Page is the calculator page. The form and routine are empty placeholders that
 // the page's Alpine component (static/js/app.js) fills from the server on load.
-templ Page(groups []requirements.BuiltinGroup) {
+// Opened from an entry form, back is the way back to it ("" otherwise).
+templ Page(groups []requirements.BuiltinGroup, back string) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -44,6 +45,11 @@ templ Page(groups []requirements.BuiltinGroup) {
 			</section>
 			<section class="section">
 				<div class="container">
+					if back != "" {
+						<div class="notification is-info is-light" id="builder-back">
+							Build the routine here: it's saved in this browser as you go. Then <a href={ templ.SafeURL(back) }><strong>← go back to your entry</strong></a> and choose it there.
+						</div>
+					}
 					@calculator(groups)
 				</div>
 			</section>

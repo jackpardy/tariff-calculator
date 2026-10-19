@@ -14,6 +14,10 @@ type SignoffView struct {
 	// Link is the signing coach's page, for a link that has one (the
 	// organiser's People); "" for none.
 	Link string
+	// Waiting says, while it waits for a coach, who signs it off, or why no
+	// one can; Coaches is where the comp sec adds or changes coaches, when
+	// no one can.
+	Waiting, Coaches string
 }
 
 // Problem is what's missing, as the organiser counts it, or "".
@@ -57,7 +61,21 @@ templ signoffBox(s SignoffView) {
 			if s.Note != "" {
 				<span class="is-size-7 ml-1">{ s.Note }</span>
 			}
+			@signoffWaiting(s)
 		</p>
+	}
+}
+
+// signoffWaiting says who signs off an entry waiting for a coach, or why no
+// one can and what to do.
+templ signoffWaiting(s SignoffView) {
+	if s.Waiting != "" {
+		<span class="is-block is-size-7 mt-1">
+			{ s.Waiting }
+			if s.Coaches != "" {
+				<a href={ templ.SafeURL(s.Coaches) }>Add a coach or let one sign off, on Coaches →</a>
+			}
+		</span>
 	}
 }
 

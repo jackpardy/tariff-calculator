@@ -262,19 +262,16 @@ func (p *competitionPages) gymnastEnter(w http.ResponseWriter, r *http.Request) 
 			asked = left[0]
 		}
 		e := competitions.Entry{Gymnast: ind.Name, Discipline: chosenDiscipline(c.Competition, asked)}
-		render(w, r, views.CompetitionEnter(enterPage(c, e, r.URL.Path, p.now())))
+		render(w, r, views.GymnastEnterPage(p.gymnastEnterPage(r, ind, c, mine, e, nil)))
 		return
 	}
-	e, problems := postedEntry(r, c.Competition, "")
-	// One entry a discipline: a second is a change to the first.
-	if slices.ContainsFunc(mine, func(m store.Entry) bool { return m.Entry.Discipline == e.Discipline }) {
-		problems = append(problems, "You've already entered "+competitions.DisciplineName(e.Discipline)+" here: change that entry instead, on the competition's page.")
-	}
-	if len(problems) > 0 {
-		page := enterPage(c, e, r.URL.Path, p.now())
-		page.Form.Problems = problems
+	// Under their name: it's the same person's page.
+	e, problems := postedEntry(r, c.Competition, ind.Name)
+	// One entry a discipline: a second is a change to the first, which the
+	// page links to in place of the form.
+	if page := p.gymnastEnterPage(r, ind, c, mine, e, problems); page.Enter.Already != nil || len(problems) > 0 {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		render(w, r, views.CompetitionEnter(page))
+		render(w, r, views.GymnastEnterPage(page))
 		return
 	}
 	token := r.PathValue("token")
@@ -284,6 +281,35 @@ func (p *competitionPages) gymnastEnter(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	http.Redirect(w, r, entryPath(token, added)+"?saved=1", http.StatusSeeOther)
+}
+
+// gymnastEnterPage is entering e's discipline of competition c on the
+// individual's page, with the form's problems: tabs for the disciplines
+// they haven't entered, links to those they have (mine), and in place of
+// the form, a link to the entry if they've entered e's already.
+func (p *competitionPages) gymnastEnterPage(r *http.Request, ind store.Individual, c store.Competition, mine []store.Entry, e competitions.Entry, problems []string) views.GymnastPage {
+	back := gymnastCompetitionPath(r.PathValue("token"), c.ID)
+	page := p.gymnastPage(r, ind, gymnastCompetitions)
+	enter := &views.GymnastEnter{Back: back, Competition: summary(c, p.now())}
+	for _, m := range mine {
+		tab := views.DisciplineTab{Name: competitions.DisciplineName(m.Entry.Discipline), URL: back + "?entry=" + url.QueryEscape(m.ID)}
+		enter.Entered = append(enter.Entered, tab)
+		if m.Entry.Discipline == e.Discipline {
+			enter.Already = &tab
+		}
+	}
+	for _, d := range notEntered(c.Competition, mine) {
+		enter.Disciplines = append(enter.Disciplines, views.DisciplineTab{
+			Name: competitions.DisciplineName(d), URL: r.URL.Path + "?discipline=" + url.QueryEscape(d), Current: d == e.Discipline,
+		})
+	}
+	if enter.Already == nil {
+		form := entryForm(c.Competition, e, r.URL.Path, "Enter")
+		form.Member, form.Problems = true, problems
+		enter.Form = &form
+	}
+	page.Enter = enter
+	return page
 }
 
 // enterAs is the person an entry through a competition's individual link is

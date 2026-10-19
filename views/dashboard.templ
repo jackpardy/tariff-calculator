@@ -41,6 +41,7 @@ type Dashboard struct {
 	CanSplit                                 bool     // some levels rank men and women apart
 	Coaches                                  []string // the coaches entries have, to filter by
 	Shown                                    int      // entries the filters show
+	List                                     string   // the filters and sort as a query ("?club=UCD"), for an entry's page to carry and come back to; "" for none
 }
 
 // RemovedRow is an entry the organiser removed or holds.
@@ -104,7 +105,8 @@ type EntryDetail struct {
 	VideoReview string // "", "ok" or "more"
 	VideoNote   string
 	Withdrawn   bool // withdrawn since the club sent it
-	LetIn       bool // let in from its event's waiting list, over the limit
+	LetIn       bool   // let in from its event's waiting list, over the limit
+	List        string // the entries page's filters and sort it was opened from, as a query (Dashboard.List)
 }
 
 // Dashboard is the organiser's overview: every entry, by level, with its problems.
@@ -160,7 +162,7 @@ templ CompetitionDashboard(d Dashboard) {
 				}
 			</div>
 		}
-		<div id="entries">
+		<div id="entries" data-list-carry-links>
 			for _, l := range d.Levels {
 				<details class="comp-dash-level" id={ l.Anchor } data-level={ l.Name } data-remember?={ !filtered(d) } open?={ levelOpen(d, l) } data-list-group>
 					<summary class="title is-5 comp-dash-level-head">
@@ -176,7 +178,7 @@ templ CompetitionDashboard(d Dashboard) {
 							<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) } data-list-carry>Print this level's cards</a>
 						</div>
 						<div class="table-container">
-							<table class={ "table", "is-fullwidth", "is-narrow", "comp-table", "comp-entries", "comp-stack", templ.KV("has-ticks", d.Access.Remove) } data-table-view="entries">
+							<table class={ "table", "is-fullwidth", "is-narrow", "comp-table", "comp-entries", "comp-stack", templ.KV("has-ticks", d.Access.Remove) } data-table-view="entries" data-table-hidden="Sent">
 								<thead>
 									<tr>
 										if d.Access.Remove {
@@ -245,7 +247,7 @@ templ CompetitionDashboard(d Dashboard) {
 			</div>
 		}
 		if d.Entries > 0 && d.Access.Remove {
-			@removeForm(d.Base)
+			@removeForm(d.Base, d.List)
 			// Once entries are ticked, a bar on the screen says how many and
 			// goes to Remove or hold, wherever the tables have got to
 			// (competitions.js, tickBar).
@@ -305,7 +307,8 @@ templ count(n int, label string) {
 templ CompetitionEntry(d EntryDetail) {
 	@competitionLayout(d.Card.Gymnast + " · " + d.Competition.Name) {
 		// Back, the name and the menu, in the order a person's page has them.
-		<p class="mb-3"><a href={ templ.SafeURL(d.Base) }>← Entries</a></p>
+		// Back goes to the entries page filtered as it was, at this entry's row.
+		<p class="mb-3"><a href={ templ.SafeURL(d.Base + d.List + "#entry-" + d.ID) }>← Entries</a></p>
 		<h1 class="title is-4">{ d.Card.Gymnast }</h1>
 		<p class="subtitle is-6">{ d.Card.Club } · { d.Card.Level }</p>
 		@pageMenu(d.Menu)
@@ -345,7 +348,7 @@ templ CompetitionEntry(d EntryDetail) {
 		}
 		if d.Access.Check {
 			<div class="box mt-4" id="check">
-				<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/check") }>
+				<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/check" + d.List) }>
 					if d.Checked != "" {
 						<p class="mb-2">@StateChip(Done, "Checked") <span class="has-text-grey is-size-7 ml-1">{ d.Checked }</span></p>
 					}
@@ -372,7 +375,7 @@ templ CompetitionEntry(d EntryDetail) {
 		}
 		if d.Competition.Video != "" && d.Access.Check {
 			<div class="box mt-4" id="video">
-				<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/video") }>
+				<form method="post" action={ templ.SafeURL(d.Base + "/entries/" + d.ID + "/video" + d.List) }>
 					<p class="mb-2">
 						<strong>Video</strong>
 						switch d.VideoReview {
@@ -522,10 +525,10 @@ templ tableViewMenu(id string) {
 }
 
 // removeForm removes or holds the entries ticked in the tables.
-templ removeForm(base string) {
+templ removeForm(base, list string) {
 	@opens("", "", "Remove or hold entries", false) {
 		<p class="mb-2">Tick them in the tables above (a bar at the foot of the screen says how many), then:</p>
-		<form id="remove-form" method="post" action={ templ.SafeURL(base + "/remove") }>
+		<form id="remove-form" method="post" action={ templ.SafeURL(base + "/remove" + list) } data-list-carry>
 			<div class="field">
 				<label class="radio comp-option"><input type="radio" name="action" value="remove" checked/> <span><strong>Remove</strong>: they can't be sent or changed again unless you restore them</span></label>
 				<label class="radio comp-option"><input type="radio" name="action" value="hold"/> <span><strong>Hold, asking for changes</strong>: the club or gymnast changes the entry and sends it again, and you accept it back in</span></label>
@@ -679,7 +682,7 @@ templ dashboardRow(d Dashboard, l DashboardLevel, r DashboardRow) {
 			<td class="comp-stack-tick"><input type="checkbox" name="entry" value={ r.ID } form="remove-form" aria-label={ "Tick " + r.Gymnast }/></td>
 		}
 		<td class="comp-stack-title">
-			<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID) }>{ r.Gymnast }</a>
+			<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID + d.List) }>{ r.Gymnast }</a>
 			if r.Person != "" {
 				<a class="is-size-7 ml-1" href={ templ.SafeURL(r.Person) } title="Everything this person is doing">person</a>
 			}
@@ -720,7 +723,7 @@ templ dashboardRow(d Dashboard, l DashboardLevel, r DashboardRow) {
 				<span class="comp-none">–</span>
 			} else {
 				// Opens the entry, where its problems are listed.
-				<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID + "#problems") } title={ r.Problems[0] }>
+				<a href={ templ.SafeURL(d.Base + "/entries/" + r.ID + d.List + "#problems") } title={ r.Problems[0] }>
 					@StateChip(Attention, Count(len(r.Problems), "problem", "problems"))
 				</a>
 				// The first in words on a phone's card; on a wide screen, the chip
