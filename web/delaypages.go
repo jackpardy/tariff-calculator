@@ -69,7 +69,7 @@ func (p *competitionPages) delay(w http.ResponseWriter, r *http.Request) {
 				page.Keep, page.Version = r.URL.RequestURI(), s.Version()
 				page.Result = delayView(report, names)
 				page.Result.Easing = easing
-				page.Result.Breaking = competitions.NewBreaks(f.whatIfBreaks(s), f.whatIfBreaks(out))
+				page.Result.Breaking = competitions.BreakLines(competitions.NewBreaks(f.whatIfBreaks(s), f.whatIfBreaks(out)))
 				if d.Eased() {
 					plain := competitions.Delay{Day: d.Day, Areas: d.Areas, From: d.From, Minutes: d.Minutes}
 					if _, without, err := s.Delayed(plain, people); err == nil {

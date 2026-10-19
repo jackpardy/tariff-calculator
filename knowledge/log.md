@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-19
+* **Update**: Coaches aren't checked any more, anywhere (the owner's decision): the planner doesn't keep a coach's gymnasts apart, and the timetable's report, **This would break** (a delay, an official leaving) and **Before you change it** no longer list a coach needed on two areas or coaching while they compete; a leaving official's seat can go to someone coaching then. Those lists now put people in two places first, and fold one person's repeats into one line ("and 3 more times"). **What if an official leaves?** gives a seat to someone free when there is anyone, then makes as few moves as will do, choosing the least busy that day, then someone who's had the role, then the least busy overall; the choice of easiest to fill or fewest changes is gone.
 * **Update**: Printed sheets match the phones. Once the timetable is published, the marshal, chair of judges and score sheets, the officials rota, the panel timeline and its CSV are of what's published (as On the day, the venue screen and everyone's phones are), not the draft. With changes not published, each offers **Use the draft instead**, printed **Draft · not published** on every page (each flight, each score sheet page, the rota's repeating head; the CSV's first line and its file name); the Print menu says so. Before publishing they're of the draft, marked. A chair of judges' link gets only what's published (`printedTimetable`, `draft=1`).
 
 ## 2026-10-17

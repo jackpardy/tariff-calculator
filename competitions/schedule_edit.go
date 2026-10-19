@@ -189,14 +189,15 @@ func (s *Schedule) number() {
 
 // Problems are what manual changes have broken: a flight past its day's end, an
 // event's flights not back to back on one area (or across a break, where
-// that isn't allowed), a person in two places at once, or a coach competing
-// while their gymnasts compete elsewhere. people and coaches are each entry's
-// people and coaches, by entry id, keyed so that one person has one key.
-func (s Schedule) Problems(people, coaches map[string][]string, names map[string]string) []string {
-	out := s.pastEnd()
-	out = append(out, s.runProblems()...)
-	out = append(out, s.personClashes(people, names)...)
-	return append(out, s.coachCompeting(people, coaches, names)...)
+// that isn't allowed), or a person in two places at once. people are each
+// entry's people, by entry id, keyed so that one person has one key.
+func (s Schedule) Problems(people map[string][]string, names map[string]string) []string {
+	var out []string
+	for _, b := range s.personClashes(people, names) {
+		out = append(out, b.Line)
+	}
+	out = append(out, s.pastEnd()...)
+	return append(out, s.runProblems()...)
 }
 
 // pastEnd are flights past their day's end.
@@ -213,7 +214,7 @@ func (s Schedule) pastEnd() []string {
 }
 
 // personClashes are people competing in two flights at once.
-func (s Schedule) personClashes(people map[string][]string, names map[string]string) []string {
+func (s Schedule) personClashes(people map[string][]string, names map[string]string) []Break {
 	// Each person's flights, by index, people in the order they first come:
 	// pairs only within a person, not every turn against every other.
 	var order []string
@@ -230,7 +231,7 @@ func (s Schedule) personClashes(people map[string][]string, names map[string]str
 			}
 		}
 	}
-	var out []string
+	var out []Break
 	seen := map[string]bool{}
 	for _, p := range order {
 		ts := turns[p]
@@ -242,37 +243,7 @@ func (s Schedule) personClashes(people map[string][]string, names map[string]str
 					msg := fmt.Sprintf("%s is in %s and %s at once", names[p], a.Name(), b.Name())
 					if !seen[msg] {
 						seen[msg] = true
-						out = append(out, msg)
-					}
-				}
-			}
-		}
-	}
-	return out
-}
-
-// coachCompeting are coaches competing while gymnasts they coach compete
-// elsewhere.
-func (s Schedule) coachCompeting(people, coaches map[string][]string, names map[string]string) []string {
-	var out []string
-	seen := map[string]bool{}
-	for i, a := range s.Flights {
-		coaching := map[string]bool{}
-		for _, id := range a.Entries {
-			for _, c := range coaches[id] {
-				coaching[c] = true
-			}
-		}
-		for j, b := range s.Flights {
-			if i == j || !overlaps(interval{a.Day, a.Start, a.End}, interval{b.Day, b.Start, b.End}) {
-				continue
-			}
-			for _, id := range b.Entries {
-				for _, p := range people[id] {
-					msg := fmt.Sprintf("%s coaches in %s while competing in %s", names[p], a.Name(), b.Name())
-					if coaching[p] && !seen[msg] {
-						seen[msg] = true
-						out = append(out, msg)
+						out = append(out, Break{Line: msg, Person: p, Rank: TwoPlaces})
 					}
 				}
 			}

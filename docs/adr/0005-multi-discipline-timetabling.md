@@ -49,6 +49,13 @@ Constraints, in order of weight:
 | Blocked time (lunch, awards, ad hoc events) at its fixed time or within its window | Hard |
 | The organiser's own rules: what happens where, who does what | Hard or soft: the organiser chooses for each |
 
+*Note (2026-10-19):* the coach constraint is dropped. The owner decided
+that coaches aren't checked anywhere: the planner no longer keeps a coach's
+gymnasts apart, and nothing reports a coach needed on two areas, or coaching
+while they compete. The checks flooded what a change would break (a delay
+listed a coach dozens of times) and hid the serious lines; where a coach's
+gymnasts are is for the coach and club to manage.
+
 ## Decision
 
 1. **Events: a discipline at a level.** A competition offers **events**:
