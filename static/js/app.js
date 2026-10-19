@@ -976,7 +976,7 @@ function tariffCalculatorStore() {
             if (!list || !window.Sortable || 'readOnly' in list.dataset) { return; } // a prescribed set routine stays as it is
             Sortable.create(list, {
                 draggable: '.routine-skill-container',
-                filter: 'button', preventOnFilter: false, // the card's buttons stay clickable
+                filter: 'button:not(.card-toggle)', preventOnFilter: false, // the card's buttons stay clickable; its head (a button too) still drags, and a tap on it still opens it
                 delay: 200, delayOnTouchOnly: true,       // on touch, press and hold so the page still scrolls
                 animation: 150,
                 onEnd: (event) => {
