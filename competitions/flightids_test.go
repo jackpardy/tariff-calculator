@@ -66,3 +66,48 @@ func TestFlightIDs(t *testing.T) {
 		t.Errorf("one without, by its place: %s", FlightKey(f))
 	}
 }
+
+// A fresh plan's flights take the IDs of the flights they were: the one of
+// their event with the same gymnasts, or else the one with the same number
+// that nothing has happened to yet. One that's neither never takes an old
+// flight's ID, even one its own plan gave it.
+func TestKeepIDs(t *testing.T) {
+	flight := func(id, event string, number int, entries ...string) ScheduledFlight {
+		return ScheduledFlight{ID: id, Flight: Flight{Event: event, Number: number, Entries: entries}}
+	}
+	old := []ScheduledFlight{
+		flight("ran", "L3", 1, "ann", "bea"),
+		flight("waiting", "L3", 2, "cal", "dee"),
+		flight("started", "L5", 1, "eve"),
+		flight("other", "L7", 1, "fay"),
+	}
+	started := map[string]bool{"ran": true, "started": true}
+	fresh := func(id string) bool { return !started[id] }
+	s := Schedule{
+		Flights: []ScheduledFlight{
+			flight("x1", "L3", 1, "cal", "ann"),  // neither the same gymnasts, nor fresh at its number
+			flight("x2", "L3", 2, "bea", "dee"),  // the same number as one not started
+			flight("ran", "L5", 1, "eve", "gus"), // its plan gave it an old ID, but it's not that flight
+		},
+		Unplaced: []ScheduledFlight{flight("x4", "L7", 2, "fay")}, // the same gymnasts, unplaced
+	}
+	s.KeepIDs(old, fresh)
+	if s.Flights[1].ID != "waiting" || s.Unplaced[0].ID != "other" {
+		t.Errorf("kept: %q, %q", s.Flights[1].ID, s.Unplaced[0].ID)
+	}
+	if s.Flights[0].ID != "x1" {
+		t.Errorf("a flight that's no old one keeps its own ID: %q", s.Flights[0].ID)
+	}
+	if id := s.Flights[2].ID; id == "" || id == "ran" || id == "started" {
+		t.Errorf("a flight that's no old one has an ID of its own: %q", id)
+	}
+
+	// The same gymnasts in another order, on another day, are the same
+	// flight, started or not.
+	s = Schedule{Flights: []ScheduledFlight{flight("new", "L3", 1, "bea", "ann")}}
+	s.Flights[0].Day = 1
+	s.KeepIDs(old, fresh)
+	if s.Flights[0].ID != "ran" {
+		t.Errorf("the flight that ran: %q", s.Flights[0].ID)
+	}
+}

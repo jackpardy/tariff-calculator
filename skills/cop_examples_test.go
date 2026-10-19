@@ -3,6 +3,7 @@ package skills
 import (
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 )
 
@@ -172,5 +173,88 @@ func TestSetTariffCoPExamples(t *testing.T) {
 				t.Errorf("SetTariff = %.2f, want %.2f", got, c.want)
 			}
 		})
+	}
+}
+
+// copNames are the app's names for the Code of Points' examples it has a
+// common name for, so a named skill's direction and twist placement are the
+// CoP's.
+var copNames = map[string]string{
+	"Back Somersault with 1/2 Twist": "Back Half",
+	"Back Full":                      "Full Back",
+	"Double Full":                    "Double Full Back",
+	"Triple Full":                    "Triple Full Back",
+	"3 1/2 Twisting Front":           "Ada",
+	"Rudolph (Rudy)":                 "Rudi",
+	"Randolph (Randy)":               "Randi",
+	"Barani":                         "Barani",
+	"Half Out":                       "Half-Out",
+	"Double Back":                    "Double Back",
+	"Rudy Out":                       "Rudi-Out",
+	"Randy Out":                      "Randi-Out",
+	"Half In Half Out":               "Half Half",
+	"Half In Rudy Out":               "Half-In Rudi-Out",
+	"Half In Randy Out":              "Half-In Randi-Out",
+	"Back In Full Out":               "Full-Out Back",
+	"Full Half":                      "Full-In Half-Out",
+	"Full Rudy":                      "Full Rudi",
+	"Full Randy":                     "Full Randi",
+	"Full In Full Out":               "Full Full",
+	"1 1/2 In 1 1/2 Out":             "Miller",
+	"Triple Back":                    "Triple Back",
+	"Front Front Half":               "Trif Half-Out",
+	"Front Front Rudy":               "Trif Rudi-Out",
+	"Half Front Half":                "Trif Half-In Half-Out",
+	"Half Front Rudy":                "Trif Half-In Rudi-Out",
+	"Full Front Half":                "Trif Full-In Half-Out",
+	"Full Full Full":                 "Full Full Full",
+}
+
+func TestCommonNamesAreTheCoPs(t *testing.T) {
+	found := map[string]bool{}
+	for _, c := range copExamples {
+		want, ok := copNames[c.name]
+		if !ok {
+			continue
+		}
+		found[c.name] = true
+		twists := make([]int, CalculatePhases(c.rotation))
+		copy(twists, c.twists)
+		s := skill(c.rotation, twists, Feet, c.shape, c.backward, false)
+		got := FindCommonSkillName(s)
+		if s.ShapeIsRelevant() {
+			got = strings.TrimPrefix(strings.TrimSuffix(got, " "+c.shape.String()), c.shape.String()+" ")
+		}
+		if got != want {
+			t.Errorf("the CoP's %s %s is named %q, want %q", c.name, c.shape, got, want)
+		}
+	}
+	for name := range copNames {
+		if !found[name] {
+			t.Errorf("no CoP example %q", name)
+		}
+	}
+}
+
+// Every common skill lands, and is named back as itself: no two have the
+// same rotation, twists, direction and positions.
+func TestCommonSkillsAreDistinct(t *testing.T) {
+	for key, s := range CommonSkills {
+		if s.LandingPosition() == Invalid {
+			t.Errorf("%s doesn't land", key)
+		}
+		if s.Validate() != nil {
+			t.Errorf("%s: %v", key, s.Validate())
+		}
+		got := FindCommonSkillName(s)
+		if s.IsBasicJump() {
+			continue
+		}
+		if s.ShapeIsRelevant() {
+			got = strings.TrimPrefix(strings.TrimSuffix(got, " "+s.Shape.String()), s.Shape.String()+" ")
+		}
+		if got != s.Name {
+			t.Errorf("%s is named %q, want %q", key, got, s.Name)
+		}
 	}
 }

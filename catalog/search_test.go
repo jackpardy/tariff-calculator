@@ -58,11 +58,12 @@ func TestSearchByName(t *testing.T) {
 }
 
 func TestSearchRanksClosestNamesFirst(t *testing.T) {
-	rs := Search("back")
-	if len(rs) == 0 || !strings.HasPrefix(rs[0].Skill.Name, "Back") {
-		t.Errorf("names starting with the query should come first, got %v", names(rs))
+	// The Back itself (its shape aside), then names starting with "Back".
+	got := names(Search("back"))
+	if len(got) < 4 || got[0] != "Tuck Back" || !strings.HasPrefix(got[3], "Back") {
+		t.Errorf("the exact name, then names starting with the query, should come first, got %v", got)
 	}
-	got := names(Search("barani"))
+	got = names(Search("barani"))
 	if len(got) < 3 || !strings.HasSuffix(got[0], " Barani") || strings.Contains(strings.Join(got[:3], ","), " To ") {
 		t.Errorf("the Barani itself should come before longer names, got %v", got)
 	}
@@ -170,5 +171,113 @@ func TestSearchSlashS(t *testing.T) {
 		if len(results) == 0 || results[0].Skill.Name != want {
 			t.Errorf("%q: first result %v, want %s", query, results, want)
 		}
+	}
+}
+
+// The names people type find the skill they mean first: "½", "1/2" and
+// "half" alike, other words for a shape, and coaches' names.
+func TestSearchEverydayNames(t *testing.T) {
+	for query, want := range map[string]string{
+		"½ twist jump":         "Half Twist",
+		"1/2 twist jump":       "Half Twist",
+		"1/2 twist":            "Half Twist",
+		"½ twist":              "Half Twist",
+		"half twist":           "Half Twist",
+		"full twist jump":      "Full Twist",
+		"twist jump":           "Half Twist",
+		"piked back":           "Pike Back",
+		"back pike":            "Pike Back",
+		"tucked front":         "Tuck Front",
+		"layout back":          "Straight Back",
+		"laid out barani":      "Straight Barani",
+		"straddle":             "Straddle Jump",
+		"back drop":            "Back Drop",
+		"back drop to feet":    "Back To Feet",
+		"front drop to feet":   "Front To Feet",
+		"seat drop to feet":    "Seat To Feet",
+		"tuck back s/s":        "Tuck Back",
+		"double front":         "Double Front Tuck",
+		"double back pike":     "Double Back Pike",
+		"swivel hips":          "Seat Half Twist To Seat",
+		"cradle":               "Back Half Twist To Back",
+		"cat twist":            "Back Full Twist To Back",
+		"back half":            "Tuck Back Half",
+		"straight back half":   "Straight Back Half",
+		"triple full":          "Triple Full Back",
+		"full in back":         "Full-In Back Tuck",
+		"full-in":              "Full-In Back Tuck",
+		"full out":             "Full-Out Back Tuck",
+		"rudy out":             "Rudi-Out Tuck",
+		"randy out":            "Randi-Out Tuck",
+		"half in rudy out":     "Half-In Rudi-Out Tuck",
+		"half-in half-out":     "Half Half Tuck",
+		"½ in ½ out":           "Half Half Tuck",
+		"barani out":           "Half-Out Tuck",
+		"full half":            "Full-In Half-Out Tuck",
+		"rudi out triffis":     "Trif Rudi-Out Tuck",
+		"half out triffis":     "Trif Half-Out Tuck",
+		"adolph":               "Ada",
+		"3 1/2 twisting front": "Ada",
+	} {
+		got := names(Search(query))
+		if len(got) == 0 || got[0] != want {
+			t.Errorf("Search(%q) = %v, want %s first", query, got, want)
+		}
+	}
+
+	// A shape word on its own finds that shape.
+	for _, s := range Search("piked") {
+		if s.Skill.Shape != skills.Pike {
+			t.Errorf("piked found %s", s.Skill.Name)
+		}
+	}
+	// "½ twist" is no full twist.
+	if got := names(Search("½ twist")); slices.Contains(got, "Full Twist") {
+		t.Errorf("½ twist found a Full Twist: %v", got)
+	}
+}
+
+// What coaches call a skill is said beside the app's name.
+func TestAlsoCalledCoachesNames(t *testing.T) {
+	for query, want := range map[string]string{"swivel hips": "Swivel Hips", "cradle": "Cradle", "cat twist": "Cat Twist"} {
+		rs := Search(query)
+		if len(rs) == 0 {
+			t.Errorf("%s: nothing found", query)
+		} else if got := AlsoCalled(rs[0].Skill); got != want {
+			t.Errorf("%s: also called %q", query, got)
+		}
+	}
+}
+
+// The reviewer's notation finds the named skill first, backwards where
+// that's the one with a name.
+func TestNotationNamesTwistingSkills(t *testing.T) {
+	for query, want := range map[string]string{
+		"8 2 - o":    "Full-In Back Tuck",
+		"8 - 2 /":    "Full-Out Back Straight",
+		"8 - 3 o":    "Rudi-Out Tuck",
+		"8 - 5 /":    "Randi-Out Straight",
+		"8 1 3 <":    "Half-In Rudi-Out Pike",
+		"8 1 5 o":    "Half-In Randi-Out Tuck",
+		"8 2 1 o":    "Full-In Half-Out Tuck",
+		"8 2 5 /":    "Full Randi Straight",
+		"8 - - o":    "Double Front Tuck",
+		"4 6":        "Triple Full Back",
+		"4 7":        "Ada",
+		"4 2":        "Front Full",
+		"12 - - 3 o": "Trif Rudi-Out Tuck",
+		"12 1 - 1 <": "Trif Half-In Half-Out Pike",
+		"12 1 - 3 o": "Trif Half-In Rudi-Out Tuck",
+		"12 2 - 1 o": "Trif Full-In Half-Out Tuck",
+		"12 2 2 2 o": "Full Full Full Tuck",
+	} {
+		rs := Search(query)
+		if len(rs) == 0 || rs[0].Skill.Name != want {
+			t.Errorf("Search(%q) = %v, want %s first", query, names(rs), want)
+		}
+	}
+	// 4 1 is a Barani forwards and a Back Half backwards; both are named.
+	if got := names(Search("4 1 o")); len(got) < 2 || got[0] != "Tuck Barani" || got[1] != "Tuck Back Half" {
+		t.Errorf("4 1 o: %v", got)
 	}
 }

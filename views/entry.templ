@@ -43,6 +43,8 @@ type EntryForm struct {
 	// partner (Club is the club's name, filled in for one of them).
 	Partners []string
 	Club     string
+	// Builder opens the Routine Builder, with a way back to this form.
+	Builder string
 }
 
 // KeptRoutine is a routine kept on a member's page, to choose for an entry.
@@ -320,13 +322,16 @@ templ entryExercise(n int, ex EntryExercise, f EntryForm) {
 					}
 				</select>
 			</div>
-			if len(f.Kept) > 0 {
-				<p class="help">{ "One kept on " + f.KeptOn + ", or saved in this browser." }</p>
-			} else if f.KeptOn != "" {
-				<p class="help">{ "None kept on " + f.KeptOn + " yet: one saved in this browser, built in the Routine Builder." }</p>
-			} else {
-				<p class="help">One of the routines saved in this browser. Build it in the Routine Builder first.</p>
-			}
+			<p class="help">
+				if len(f.Kept) > 0 {
+					{ "One kept on " + f.KeptOn + ", or saved in this browser. For a new one, build it in the Routine Builder, which links back here to choose it:" }
+				} else if f.KeptOn != "" {
+					{ "None kept on " + f.KeptOn + " yet. Build one in the Routine Builder, which links back here to choose it:" }
+				} else {
+					One of the routines saved in this browser. None yet? Build one in the Routine Builder, which links back here to choose it:
+				}
+				<a href={ templ.SafeURL(f.Builder) } data-builder>Open the Routine Builder →</a>
+			</p>
 		</div>
 		<input type="hidden" name={ prefix + "Skills" } value={ ex.Skills }/>
 		if video != "" {

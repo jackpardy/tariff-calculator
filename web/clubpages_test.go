@@ -170,9 +170,18 @@ func TestClubs(t *testing.T) {
 		t.Error("saved on the member's behalf")
 	}
 
-	// A member who lost their link gets a new one.
+	// A member who lost their link gets a new one, once the comp sec says
+	// yes: the old one stops working.
 	newLink := formAction(t, do(t, h, http.MethodGet, club+"/members", nil).Body.String(), club+"/members/")
 	rec := do(t, h, http.MethodPost, newLink, url.Values{})
+	if page := rec.Body.String(); rec.Code != http.StatusOK || !strings.Contains(page, "Make a new link for A. Murphy?") || !strings.Contains(page, "stops working at once") ||
+		!strings.Contains(page, `name="anyway" value="1"`) || strings.Contains(page, "/clubs/member/") {
+		t.Fatalf("a new member link is asked about first: %d", rec.Code)
+	}
+	if do(t, h, http.MethodGet, member, nil).Code != http.StatusOK {
+		t.Error("asking leaves the old link working")
+	}
+	rec = do(t, h, http.MethodPost, newLink, url.Values{"anyway": {"1"}})
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "A. Murphy&#39;s new link") {
 		t.Fatalf("new member link: %d", rec.Code)
 	}
