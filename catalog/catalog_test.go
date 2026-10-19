@@ -144,6 +144,7 @@ func TestPickerGroups(t *testing.T) {
 		}
 	}
 	want := []string{
+		"drops From feet: Seat Drop, ½ Twist To Seat, Back Drop, ½ Twist To Back, Front Drop, ½ Twist To Front",
 		"drops To feet: To Feet, ½ Twist To Feet",
 		"drops To seat: To Seat, ½ Twist To Seat",
 		"drops To back: To Back, ½ Twist To Back, Full Twist To Back, 1½ Twist To Back",
@@ -175,6 +176,9 @@ func TestLandingTilesFollow(t *testing.T) {
 	for _, c := range Categories() {
 		for _, g := range c.Groups {
 			for _, e := range g.Options {
+				if e.Tile == nil {
+					continue // the drops from the feet, fixed tiles of their own
+				}
 				tiles++
 				w, ok := want[e.Label]
 				if !ok {

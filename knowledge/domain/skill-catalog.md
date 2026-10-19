@@ -47,8 +47,12 @@ Back s/s To Seat and Ball-Out, are Singles.
 
 ## Body landings follow the skill before
 
-The Body landings tab is grouped by where the skill lands: **To feet**,
-**To seat**, **To back**, **To front**. Each tile is a landing and a twist
+The Body landings tab starts with **From feet**: the drops from the feet
+(Seat Drop, ½ Twist To Seat, Back Drop, ½ Twist To Back, Front Drop, ½ Twist
+To Front), fixed tiles with their tariffs, as before (`fromFeet`). Then, under
+"From a body landing: each takes off from where the skill before it lands"
+(`Group.Lead`), it's grouped by where the skill lands: **To feet**,
+**To seat**, **To back**, **To front**. Each of those tiles is a landing and a twist
 (`catalog.Tile`), not a take-off: "½ Twist To Seat" takes off from wherever
 the skill before it landed (the end of the routine Add puts it in, or the one
 before the skill being edited; feet at the start). The server works the

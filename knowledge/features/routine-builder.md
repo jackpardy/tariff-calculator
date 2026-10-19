@@ -14,7 +14,8 @@ notation and tariff. There are three ways to set it:
 
 - **Picker**: big buttons by category, with tuck, pike or straight where the
   shape matters ([skill catalog](../domain/skill-catalog.md)). Body landings
-  are grouped by where they land (To feet, To seat, To back, To front), and a
+  start with the drops from the feet (fixed tiles); then, from a body landing,
+  they're grouped by where they land (To feet, To seat, To back, To front), and a
   tile takes off from where the skill before it landed: the last skill of the
   routine Add puts it in, or the one before the skill being edited (feet at
   the start). The form posts that skill (`previous_skill`, from

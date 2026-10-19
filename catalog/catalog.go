@@ -27,6 +27,11 @@ type Entry struct {
 
 // ID tells entries apart in the picker: the key, plus the shape for a jump.
 func (e Entry) ID() string {
+	if e.Tile != nil {
+		// A tile that follows the skill before isn't the fixed drop from the
+		// feet that shares its usual skill ("½ Twist To Front").
+		return "landing-" + e.Key
+	}
 	if e.Skill.IsBasicJump() {
 		return e.Key + "-" + strings.ToLower(e.Skill.Shape.String())
 	}
@@ -113,6 +118,9 @@ type Category struct {
 type Group struct {
 	Title   string
 	Options []Entry
+	// Lead is a line shown above the group, for what it and those after it
+	// share ("From a body landing: …"); "" for none.
+	Lead string
 }
 
 // Tile is a body-landing tile in the picker: where the skill lands and how
@@ -135,6 +143,18 @@ var landingGroups = []struct {
 	{"To back", []landingTile{{"backDrop", "To Back", skills.Back, 0}, {"halfToBack", "½ Twist To Back", skills.Back, 1}, {"catTwist", "Full Twist To Back", skills.Back, 2}, {"corkscrew", "1½ Twist To Back", skills.Back, 3}}},
 	{"To front", []landingTile{{"frontDrop", "To Front", skills.Front, 0}, {"halfToFront", "½ Twist To Front", skills.Front, 1}}},
 }
+
+// fromFeet are the drops from the feet, fixed tiles of their own at the top
+// of the Body landings tab, as before (the owner, 2026-10-19): the tiles that
+// follow the skill before are for what comes after a body landing.
+var fromFeet = [][2]string{ // CommonSkills key, label
+	{"seatDrop", "Seat Drop"}, {"halfToSeat", "½ Twist To Seat"},
+	{"backDrop", "Back Drop"}, {"halfToBack", "½ Twist To Back"},
+	{"frontDrop", "Front Drop"}, {"halfToFront", "½ Twist To Front"},
+}
+
+// fromALanding is the line above the tiles that follow the skill before.
+const fromALanding = "From a body landing: each takes off from where the skill before it lands."
 
 type landingTile struct {
 	key, label string
@@ -323,8 +343,20 @@ func Categories() []Category {
 	// box of its own as well.
 	grouped := map[string]bool{}
 	byCategory := map[string][]Group{}
-	for _, g := range landingGroups {
+	feet := Group{Title: "From feet"}
+	for _, o := range fromFeet {
+		s := skills.CommonSkills[o[0]]
+		s.Name = skills.FindCommonSkillName(s)
+		s.SetTariff()
+		feet.Options = append(feet.Options, Entry{Key: o[0], Skill: s, Label: o[1]})
+		grouped[o[0]] = true
+	}
+	byCategory["drops"] = append(byCategory["drops"], feet)
+	for i, g := range landingGroups {
 		group := Group{Title: g.title}
+		if i == 0 {
+			group.Lead = fromALanding
+		}
 		for _, t := range g.tiles {
 			e := t.entry()
 			group.Options = append(group.Options, e)
