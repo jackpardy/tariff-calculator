@@ -160,8 +160,9 @@
         ids.forEach(apply);
         watchEdges();
     }
-    // Levels open later: their tables' edges are measured then.
-    document.addEventListener('toggle', (event) => { if (event.target.open) { watchEdges(); } }, true);
+    // Levels open later: their tables' edges are measured then. A timetable
+    // day shown or hidden changes how wide its row is, either way.
+    document.addEventListener('toggle', watchEdges, true);
     // A folded level's rows come into the page when it opens (competitions.js,
     // lazyRows): its hidden columns are hidden in them too.
     document.addEventListener('lazy-rows', () => {

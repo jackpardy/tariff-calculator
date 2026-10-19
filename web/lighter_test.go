@@ -110,6 +110,32 @@ func TestTimetableDaysFoldInABrowser(t *testing.T) {
 	if !jumped.SundayOpen || !jumped.Dara || !jumped.Eve || !strings.Contains(jumped.Order, "1. Eve") {
 		t.Fatalf("on a wide screen Sunday's button shows it beside Saturday; Move a gymnast lists the running order: %+v", jumped)
 	}
+	// Too wide to fit: › moves the days along, an area at a time, and the
+	// row fades at the edge with more.
+	type along struct {
+		Hidden       bool
+		Moved        int
+		Class        string
+		LeftDisabled bool
+	}
+	var moved along
+	step(t, ctx, "moving along with ›",
+		chromedp.EmulateViewport(800, 900),
+		// Two small days fit at 800 px: the row is made narrower than them.
+		chromedp.Evaluate(`{const row = document.querySelector('.comp-tt-dayrow'); row.style.width = '300px'; row.scrollLeft = 0; window.dispatchEvent(new Event('resize'))}`, nil),
+		chromedp.Sleep(300*time.Millisecond),
+		chromedp.Click(`.comp-tt-scroll [data-scroll="1"]`, chromedp.ByQuery),
+		chromedp.Sleep(800*time.Millisecond),
+		chromedp.Evaluate(`({
+			Hidden: document.querySelector('.comp-tt-scroll').hidden,
+			Moved: Math.round(document.querySelector('.comp-tt-dayrow').scrollLeft),
+			Class: document.querySelector('.comp-tt-dayrow').className,
+			LeftDisabled: document.querySelector('.comp-tt-scroll [data-scroll="-1"]').disabled,
+		})`, &moved),
+	)
+	if moved.Hidden || moved.Moved < 200 || !strings.Contains(moved.Class, "has-more-left") || moved.LeftDisabled {
+		t.Errorf("› moves the days along an area, the row fading at the edge behind: %+v", moved)
+	}
 	var phone view
 	var saturdayOpen bool
 	step(t, ctx, "a day's tab on a phone",

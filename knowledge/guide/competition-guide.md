@@ -328,8 +328,8 @@ a **Change** button to open it.
    competition's days, else the first), with a button for each day above
    it. On a phone they're tabs: tap a day to see it. On a bigger screen
    each button shows or hides its day, the days you choose side by side
-   (scroll sideways if they don't all fit); the page remembers your
-   choice. To find someone on a long timetable, type part of their name in
+   (scroll sideways if they don't all fit, or use **‹** and **›** to move
+   an area at a time); the page remembers your choice. To find someone on a long timetable, type part of their name in
    **Find a name**: only the flights with them show, on whichever day. The
    area links under a day's name go straight to an area. If an event's flights end up
    apart, or either side of a break you haven't allowed, it's listed as a

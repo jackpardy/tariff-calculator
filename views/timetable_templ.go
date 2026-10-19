@@ -1104,6 +1104,10 @@ func timetableJump(p TimetablePage) templ.Component {
 // dayPick is a button for each day, above the days: on a phone they're tabs,
 // one day shown at a time; on a wider screen each shows or hides its day,
 // those shown side by side (dayPick in static/js/competitions.js).
+//
+// On a wider screen ‹ and › beside them move the days shown along an area
+// at a time, when they don't all fit (scrolling sideways with a mouse wheel
+// needs Shift, which few know).
 func dayPick(p TimetablePage) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -1125,7 +1129,7 @@ func dayPick(p TimetablePage) templ.Component {
 			templ_7745c5c3_Var34 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 82, "<div class=\"comp-tt-daypick\" role=\"group\" aria-label=\"Days\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 82, "<div class=\"comp-tt-daypick\"><div class=\"comp-tt-daybuttons\" role=\"group\" aria-label=\"Days\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1137,7 +1141,7 @@ func dayPick(p TimetablePage) templ.Component {
 			var templ_7745c5c3_Var35 string
 			templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.ResolveAttributeValue(d.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 376, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 381, Col: 65}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var35)
 			if templ_7745c5c3_Err != nil {
@@ -1150,7 +1154,7 @@ func dayPick(p TimetablePage) templ.Component {
 			var templ_7745c5c3_Var36 string
 			templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprint(i == p.OpenDay))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 376, Col: 108}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 381, Col: 109}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var36)
 			if templ_7745c5c3_Err != nil {
@@ -1163,7 +1167,7 @@ func dayPick(p TimetablePage) templ.Component {
 			var templ_7745c5c3_Var37 string
 			templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(d.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 376, Col: 119}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 381, Col: 120}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 			if templ_7745c5c3_Err != nil {
@@ -1174,7 +1178,7 @@ func dayPick(p TimetablePage) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "</div><div class=\"comp-tt-scroll\" hidden><button type=\"button\" class=\"button is-small\" data-scroll=\"-1\" aria-label=\"Earlier areas\" title=\"Earlier areas\">‹</button> <button type=\"button\" class=\"button is-small\" data-scroll=\"1\" aria-label=\"Later areas\" title=\"Later areas\">›</button></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1222,7 +1226,7 @@ func areaJump(d DayView) templ.Component {
 			var templ_7745c5c3_Var39 templ.SafeURL
 			templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("#" + a.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 388, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 398, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 			if templ_7745c5c3_Err != nil {
@@ -1235,7 +1239,7 @@ func areaJump(d DayView) templ.Component {
 			var templ_7745c5c3_Var40 string
 			templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(a.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 388, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 398, Col: 49}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 			if templ_7745c5c3_Err != nil {
@@ -1314,7 +1318,7 @@ func versionField(version string) templ.Component {
 		var templ_7745c5c3_Var42 string
 		templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.ResolveAttributeValue(version)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 420, Col: 52}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 430, Col: 52}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var42)
 		if templ_7745c5c3_Err != nil {
@@ -1368,7 +1372,7 @@ func setupSections(p TimetablePage) templ.Component {
 			var templ_7745c5c3_Var45 templ.SafeURL
 			templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/setup/days"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 425, Col: 78}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 435, Col: 78}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 			if templ_7745c5c3_Err != nil {
@@ -1394,7 +1398,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var46 string
 				templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("day-%d-name", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 430, Col: 71}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 440, Col: 71}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var46)
 				if templ_7745c5c3_Err != nil {
@@ -1407,7 +1411,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var47 string
 				templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.ResolveAttributeValue(d.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 430, Col: 88}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 440, Col: 88}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var47)
 				if templ_7745c5c3_Err != nil {
@@ -1420,7 +1424,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var48 string
 				templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("day-%d-start", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 431, Col: 84}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 441, Col: 84}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var48)
 				if templ_7745c5c3_Err != nil {
@@ -1433,7 +1437,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var49 string
 				templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.ResolveAttributeValue(d.Start)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 431, Col: 102}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 441, Col: 102}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var49)
 				if templ_7745c5c3_Err != nil {
@@ -1446,7 +1450,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var50 string
 				templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("day-%d-end", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 432, Col: 82}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 442, Col: 82}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var50)
 				if templ_7745c5c3_Err != nil {
@@ -1459,7 +1463,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var51 string
 				templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.ResolveAttributeValue(d.End)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 432, Col: 98}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 442, Col: 98}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var51)
 				if templ_7745c5c3_Err != nil {
@@ -1477,7 +1481,7 @@ func setupSections(p TimetablePage) templ.Component {
 					var templ_7745c5c3_Var52 string
 					templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("day-%d-area", i))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 435, Col: 99}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 445, Col: 99}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var52)
 					if templ_7745c5c3_Err != nil {
@@ -1490,7 +1494,7 @@ func setupSections(p TimetablePage) templ.Component {
 					var templ_7745c5c3_Var53 string
 					templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.ResolveAttributeValue(a)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 435, Col: 111}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 445, Col: 111}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var53)
 					if templ_7745c5c3_Err != nil {
@@ -1513,7 +1517,7 @@ func setupSections(p TimetablePage) templ.Component {
 					var templ_7745c5c3_Var54 string
 					templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(a)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 435, Col: 143}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 445, Col: 143}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 					if templ_7745c5c3_Err != nil {
@@ -1531,7 +1535,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var55 string
 				templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 437, Col: 112}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 447, Col: 112}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var55)
 				if templ_7745c5c3_Err != nil {
@@ -1549,7 +1553,7 @@ func setupSections(p TimetablePage) templ.Component {
 			var templ_7745c5c3_Var56 templ.SafeURL
 			templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/setup/areas"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 446, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 456, Col: 79}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
 			if templ_7745c5c3_Err != nil {
@@ -1575,7 +1579,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var57 string
 				templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 451, Col: 84}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 461, Col: 84}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var57)
 				if templ_7745c5c3_Err != nil {
@@ -1598,7 +1602,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var58 string
 				templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.ResolveAttributeValue("Move " + a.Name + " earlier")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 451, Col: 150}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 461, Col: 150}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var58)
 				if templ_7745c5c3_Err != nil {
@@ -1611,7 +1615,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var59 string
 				templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("area-%d-name", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 452, Col: 72}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 462, Col: 72}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var59)
 				if templ_7745c5c3_Err != nil {
@@ -1624,7 +1628,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var60 string
 				templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.ResolveAttributeValue(a.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 452, Col: 89}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 462, Col: 89}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var60)
 				if templ_7745c5c3_Err != nil {
@@ -1637,7 +1641,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var61 string
 				templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("area-%d-discipline", i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 454, Col: 57}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 464, Col: 57}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var61)
 				if templ_7745c5c3_Err != nil {
@@ -1680,7 +1684,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var62 string
 				templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 460, Col: 112}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 470, Col: 112}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var62)
 				if templ_7745c5c3_Err != nil {
@@ -1720,7 +1724,7 @@ func setupSections(p TimetablePage) templ.Component {
 			var templ_7745c5c3_Var64 templ.SafeURL
 			templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/setup/timings"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 470, Col: 81}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 480, Col: 81}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var64))
 			if templ_7745c5c3_Err != nil {
@@ -1746,7 +1750,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var65 string
 				templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.JoinStringErrs(t.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 478, Col: 20}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 488, Col: 20}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var65))
 				if templ_7745c5c3_Err != nil {
@@ -1759,7 +1763,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var66 string
 				templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.ResolveAttributeValue("per-" + t.Key)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 479, Col: 143}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 489, Col: 143}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var66)
 				if templ_7745c5c3_Err != nil {
@@ -1772,7 +1776,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var67 string
 				templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.PerCompetitor)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 479, Col: 169}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 489, Col: 169}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var67)
 				if templ_7745c5c3_Err != nil {
@@ -1785,7 +1789,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var68 string
 				templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.Name + " minutes per competitor")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 479, Col: 219}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 489, Col: 219}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var68)
 				if templ_7745c5c3_Err != nil {
@@ -1798,7 +1802,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var69 string
 				templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.ResolveAttributeValue("between-" + t.Key)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 480, Col: 135}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 490, Col: 135}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var69)
 				if templ_7745c5c3_Err != nil {
@@ -1811,7 +1815,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var70 string
 				templ_7745c5c3_Var70, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.Between)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 480, Col: 155}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 490, Col: 155}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var70)
 				if templ_7745c5c3_Err != nil {
@@ -1824,7 +1828,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var71 string
 				templ_7745c5c3_Var71, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.Name + " minutes between flights")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 480, Col: 206}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 490, Col: 206}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var71)
 				if templ_7745c5c3_Err != nil {
@@ -1837,7 +1841,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var72 string
 				templ_7745c5c3_Var72, templ_7745c5c3_Err = templ.ResolveAttributeValue("max-" + t.Key)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 481, Col: 122}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 491, Col: 122}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var72)
 				if templ_7745c5c3_Err != nil {
@@ -1850,7 +1854,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var73 string
 				templ_7745c5c3_Var73, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.MaxFlight)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 481, Col: 144}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 491, Col: 144}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var73)
 				if templ_7745c5c3_Err != nil {
@@ -1863,7 +1867,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var74 string
 				templ_7745c5c3_Var74, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.Name + " largest flight")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 481, Col: 186}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 491, Col: 186}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var74)
 				if templ_7745c5c3_Err != nil {
@@ -1881,7 +1885,7 @@ func setupSections(p TimetablePage) templ.Component {
 			var templ_7745c5c3_Var75 string
 			templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(p.Setup.Rest))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 490, Col: 127}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 500, Col: 127}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var75)
 			if templ_7745c5c3_Err != nil {
@@ -1946,7 +1950,7 @@ func setupSections(p TimetablePage) templ.Component {
 			var templ_7745c5c3_Var77 templ.SafeURL
 			templ_7745c5c3_Var77, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/setup/blocks"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 503, Col: 81}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 513, Col: 81}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var77))
 			if templ_7745c5c3_Err != nil {
@@ -1982,7 +1986,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var78 templ.SafeURL
 				templ_7745c5c3_Var78, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/setup/blocks"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 510, Col: 82}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 520, Col: 82}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var78))
 				if templ_7745c5c3_Err != nil {
@@ -2003,7 +2007,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var79 string
 				templ_7745c5c3_Var79, templ_7745c5c3_Err = templ.JoinStringErrs(b)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 512, Col: 14}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 522, Col: 14}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var79))
 				if templ_7745c5c3_Err != nil {
@@ -2016,7 +2020,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var80 string
 				templ_7745c5c3_Var80, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 513, Col: 112}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 523, Col: 112}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var80)
 				if templ_7745c5c3_Err != nil {
@@ -2034,7 +2038,7 @@ func setupSections(p TimetablePage) templ.Component {
 			var templ_7745c5c3_Var81 templ.SafeURL
 			templ_7745c5c3_Var81, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/setup/blocks"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 516, Col: 81}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 526, Col: 81}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var81))
 			if templ_7745c5c3_Err != nil {
@@ -2060,7 +2064,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var82 string
 				templ_7745c5c3_Var82, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 524, Col: 39}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 534, Col: 39}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var82)
 				if templ_7745c5c3_Err != nil {
@@ -2073,7 +2077,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var83 string
 				templ_7745c5c3_Var83, templ_7745c5c3_Err = templ.JoinStringErrs(d)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 524, Col: 45}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 534, Col: 45}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var83))
 				if templ_7745c5c3_Err != nil {
@@ -2096,7 +2100,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var84 string
 				templ_7745c5c3_Var84, templ_7745c5c3_Err = templ.ResolveAttributeValue(a)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 540, Col: 84}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 550, Col: 84}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var84)
 				if templ_7745c5c3_Err != nil {
@@ -2109,7 +2113,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var85 string
 				templ_7745c5c3_Var85, templ_7745c5c3_Err = templ.JoinStringErrs(a)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 540, Col: 92}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 550, Col: 92}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var85))
 				if templ_7745c5c3_Err != nil {
@@ -2154,7 +2158,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var87 templ.SafeURL
 				templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/setup/rules"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 562, Col: 81}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 572, Col: 81}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
 				if templ_7745c5c3_Err != nil {
@@ -2175,7 +2179,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var88 string
 				templ_7745c5c3_Var88, templ_7745c5c3_Err = templ.JoinStringErrs(r)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 564, Col: 14}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 574, Col: 14}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var88))
 				if templ_7745c5c3_Err != nil {
@@ -2188,7 +2192,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var89 string
 				templ_7745c5c3_Var89, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 565, Col: 112}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 575, Col: 112}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var89)
 				if templ_7745c5c3_Err != nil {
@@ -2206,7 +2210,7 @@ func setupSections(p TimetablePage) templ.Component {
 			var templ_7745c5c3_Var90 templ.SafeURL
 			templ_7745c5c3_Var90, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/setup/rules"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 568, Col: 80}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 578, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var90))
 			if templ_7745c5c3_Err != nil {
@@ -2232,7 +2236,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var91 string
 				templ_7745c5c3_Var91, templ_7745c5c3_Err = templ.ResolveAttributeValue(e)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 574, Col: 25}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 584, Col: 25}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var91)
 				if templ_7745c5c3_Err != nil {
@@ -2245,7 +2249,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var92 string
 				templ_7745c5c3_Var92, templ_7745c5c3_Err = templ.JoinStringErrs(e)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 574, Col: 31}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 584, Col: 31}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var92))
 				if templ_7745c5c3_Err != nil {
@@ -2268,7 +2272,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var93 string
 				templ_7745c5c3_Var93, templ_7745c5c3_Err = templ.ResolveAttributeValue(a)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 589, Col: 25}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 599, Col: 25}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var93)
 				if templ_7745c5c3_Err != nil {
@@ -2281,7 +2285,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var94 string
 				templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.JoinStringErrs(a)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 589, Col: 31}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 599, Col: 31}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var94))
 				if templ_7745c5c3_Err != nil {
@@ -2304,7 +2308,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var95 string
 				templ_7745c5c3_Var95, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 596, Col: 39}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 606, Col: 39}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var95)
 				if templ_7745c5c3_Err != nil {
@@ -2317,7 +2321,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var96 string
 				templ_7745c5c3_Var96, templ_7745c5c3_Err = templ.JoinStringErrs(d)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 596, Col: 45}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 606, Col: 45}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var96))
 				if templ_7745c5c3_Err != nil {
@@ -2340,7 +2344,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var97 string
 				templ_7745c5c3_Var97, templ_7745c5c3_Err = templ.ResolveAttributeValue(e)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 603, Col: 25}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 613, Col: 25}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var97)
 				if templ_7745c5c3_Err != nil {
@@ -2353,7 +2357,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var98 string
 				templ_7745c5c3_Var98, templ_7745c5c3_Err = templ.JoinStringErrs(e)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 603, Col: 31}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 613, Col: 31}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var98))
 				if templ_7745c5c3_Err != nil {
@@ -2376,7 +2380,7 @@ func setupSections(p TimetablePage) templ.Component {
 				var templ_7745c5c3_Var99 templ.SafeURL
 				templ_7745c5c3_Var99, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/setup/rules"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 616, Col: 81}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 626, Col: 81}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var99))
 				if templ_7745c5c3_Err != nil {
@@ -2402,7 +2406,7 @@ func setupSections(p TimetablePage) templ.Component {
 					var templ_7745c5c3_Var100 string
 					templ_7745c5c3_Var100, templ_7745c5c3_Err = templ.ResolveAttributeValue(o.Value)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 623, Col: 32}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 633, Col: 32}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var100)
 					if templ_7745c5c3_Err != nil {
@@ -2415,7 +2419,7 @@ func setupSections(p TimetablePage) templ.Component {
 					var templ_7745c5c3_Var101 string
 					templ_7745c5c3_Var101, templ_7745c5c3_Err = templ.JoinStringErrs(o.Label)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 623, Col: 44}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 633, Col: 44}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var101))
 					if templ_7745c5c3_Err != nil {
@@ -2438,7 +2442,7 @@ func setupSections(p TimetablePage) templ.Component {
 					var templ_7745c5c3_Var102 string
 					templ_7745c5c3_Var102, templ_7745c5c3_Err = templ.ResolveAttributeValue(ro.Value)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 637, Col: 33}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 647, Col: 33}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var102)
 					if templ_7745c5c3_Err != nil {
@@ -2451,7 +2455,7 @@ func setupSections(p TimetablePage) templ.Component {
 					var templ_7745c5c3_Var103 string
 					templ_7745c5c3_Var103, templ_7745c5c3_Err = templ.JoinStringErrs(ro.Label)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 637, Col: 46}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 647, Col: 46}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var103))
 					if templ_7745c5c3_Err != nil {
@@ -2474,7 +2478,7 @@ func setupSections(p TimetablePage) templ.Component {
 					var templ_7745c5c3_Var104 string
 					templ_7745c5c3_Var104, templ_7745c5c3_Err = templ.ResolveAttributeValue(e)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 645, Col: 26}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 655, Col: 26}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var104)
 					if templ_7745c5c3_Err != nil {
@@ -2487,7 +2491,7 @@ func setupSections(p TimetablePage) templ.Component {
 					var templ_7745c5c3_Var105 string
 					templ_7745c5c3_Var105, templ_7745c5c3_Err = templ.JoinStringErrs(e)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 645, Col: 32}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 655, Col: 32}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var105))
 					if templ_7745c5c3_Err != nil {
@@ -2510,7 +2514,7 @@ func setupSections(p TimetablePage) templ.Component {
 					var templ_7745c5c3_Var106 string
 					templ_7745c5c3_Var106, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(i))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 654, Col: 40}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 664, Col: 40}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var106)
 					if templ_7745c5c3_Err != nil {
@@ -2523,7 +2527,7 @@ func setupSections(p TimetablePage) templ.Component {
 					var templ_7745c5c3_Var107 string
 					templ_7745c5c3_Var107, templ_7745c5c3_Err = templ.JoinStringErrs(d)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 654, Col: 46}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 664, Col: 46}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var107))
 					if templ_7745c5c3_Err != nil {
@@ -2607,7 +2611,7 @@ func rotaReport(p TimetablePage) templ.Component {
 		var templ_7745c5c3_Var109 string
 		templ_7745c5c3_Var109, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(p.Rota.People))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 690, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 700, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var109))
 		if templ_7745c5c3_Err != nil {
@@ -2620,7 +2624,7 @@ func rotaReport(p TimetablePage) templ.Component {
 		var templ_7745c5c3_Var110 templ.SafeURL
 		templ_7745c5c3_Var110, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/officials"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 692, Col: 78}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 702, Col: 78}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var110))
 		if templ_7745c5c3_Err != nil {
@@ -2757,7 +2761,7 @@ func reportView(r ReportView) templ.Component {
 			var templ_7745c5c3_Var113 string
 			templ_7745c5c3_Var113, templ_7745c5c3_Err = templ.JoinStringErrs(d.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 730, Col: 21}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 740, Col: 21}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var113))
 			if templ_7745c5c3_Err != nil {
@@ -2780,7 +2784,7 @@ func reportView(r ReportView) templ.Component {
 				var templ_7745c5c3_Var114 string
 				templ_7745c5c3_Var114, templ_7745c5c3_Err = templ.JoinStringErrs(d.FlightsEnd)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 734, Col: 32}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 744, Col: 32}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var114))
 				if templ_7745c5c3_Err != nil {
@@ -2798,7 +2802,7 @@ func reportView(r ReportView) templ.Component {
 			var templ_7745c5c3_Var115 string
 			templ_7745c5c3_Var115, templ_7745c5c3_Err = templ.JoinStringErrs(d.Finish)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 736, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 746, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var115))
 			if templ_7745c5c3_Err != nil {
@@ -2811,7 +2815,7 @@ func reportView(r ReportView) templ.Component {
 			var templ_7745c5c3_Var116 string
 			templ_7745c5c3_Var116, templ_7745c5c3_Err = templ.JoinStringErrs(d.End)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 736, Col: 37}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 746, Col: 37}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var116))
 			if templ_7745c5c3_Err != nil {
@@ -2824,7 +2828,7 @@ func reportView(r ReportView) templ.Component {
 			var templ_7745c5c3_Var117 string
 			templ_7745c5c3_Var117, templ_7745c5c3_Err = templ.JoinStringErrs(durationWord(d.Free))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 736, Col: 65}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 746, Col: 65}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var117))
 			if templ_7745c5c3_Err != nil {
@@ -2847,7 +2851,7 @@ func reportView(r ReportView) templ.Component {
 			var templ_7745c5c3_Var118 string
 			templ_7745c5c3_Var118, templ_7745c5c3_Err = templ.JoinStringErrs(joinNames(append(r.Unplaced, r.Blocks...)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 742, Col: 81}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 752, Col: 81}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var118))
 			if templ_7745c5c3_Err != nil {
@@ -2875,7 +2879,7 @@ func reportView(r ReportView) templ.Component {
 						var templ_7745c5c3_Var119 string
 						templ_7745c5c3_Var119, templ_7745c5c3_Err = templ.JoinStringErrs(f.Change)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 749, Col: 23}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 759, Col: 23}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var119))
 						if templ_7745c5c3_Err != nil {
@@ -2893,7 +2897,7 @@ func reportView(r ReportView) templ.Component {
 						var templ_7745c5c3_Var120 string
 						templ_7745c5c3_Var120, templ_7745c5c3_Err = templ.JoinStringErrs(f.Change)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 751, Col: 23}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 761, Col: 23}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var120))
 						if templ_7745c5c3_Err != nil {
@@ -2976,7 +2980,7 @@ func newBreaks(items []string) templ.Component {
 			var templ_7745c5c3_Var122 string
 			templ_7745c5c3_Var122, templ_7745c5c3_Err = templ.JoinStringErrs(Count(len(items), "thing", "things"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 774, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 784, Col: 82}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var122))
 			if templ_7745c5c3_Err != nil {
@@ -2994,7 +2998,7 @@ func newBreaks(items []string) templ.Component {
 				var templ_7745c5c3_Var123 string
 				templ_7745c5c3_Var123, templ_7745c5c3_Err = templ.JoinStringErrs(it)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 777, Col: 13}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 787, Col: 13}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var123))
 				if templ_7745c5c3_Err != nil {
@@ -3017,7 +3021,7 @@ func newBreaks(items []string) templ.Component {
 				var templ_7745c5c3_Var124 string
 				templ_7745c5c3_Var124, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(items) - 6))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 783, Col: 62}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 793, Col: 62}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var124))
 				if templ_7745c5c3_Err != nil {
@@ -3035,7 +3039,7 @@ func newBreaks(items []string) templ.Component {
 					var templ_7745c5c3_Var125 string
 					templ_7745c5c3_Var125, templ_7745c5c3_Err = templ.JoinStringErrs(it)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 786, Col: 15}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 796, Col: 15}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var125))
 					if templ_7745c5c3_Err != nil {
@@ -3089,7 +3093,7 @@ func problemsList(title string, items []string) templ.Component {
 			var templ_7745c5c3_Var127 string
 			templ_7745c5c3_Var127, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 798, Col: 45}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 808, Col: 45}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var127))
 			if templ_7745c5c3_Err != nil {
@@ -3102,7 +3106,7 @@ func problemsList(title string, items []string) templ.Component {
 			var templ_7745c5c3_Var128 string
 			templ_7745c5c3_Var128, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(items)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 798, Col: 84}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 808, Col: 84}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var128))
 			if templ_7745c5c3_Err != nil {
@@ -3120,7 +3124,7 @@ func problemsList(title string, items []string) templ.Component {
 				var templ_7745c5c3_Var129 string
 				templ_7745c5c3_Var129, templ_7745c5c3_Err = templ.JoinStringErrs(it)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 801, Col: 13}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 811, Col: 13}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var129))
 				if templ_7745c5c3_Err != nil {
@@ -3179,7 +3183,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var131 string
 		templ_7745c5c3_Var131, templ_7745c5c3_Err = templ.JoinStringErrs(f.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 821, Col: 34}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 831, Col: 34}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var131))
 		if templ_7745c5c3_Err != nil {
@@ -3192,7 +3196,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var132 string
 		templ_7745c5c3_Var132, templ_7745c5c3_Err = templ.JoinStringErrs(f.Start)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 822, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 832, Col: 59}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var132))
 		if templ_7745c5c3_Err != nil {
@@ -3205,7 +3209,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var133 string
 		templ_7745c5c3_Var133, templ_7745c5c3_Err = templ.JoinStringErrs(f.End)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 822, Col: 87}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 832, Col: 87}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var133))
 		if templ_7745c5c3_Err != nil {
@@ -3218,7 +3222,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var134 string
 		templ_7745c5c3_Var134, templ_7745c5c3_Err = templ.JoinStringErrs(flightCount(len(f.Gymnasts), f.Pairs))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 822, Col: 132}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 832, Col: 132}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var134))
 		if templ_7745c5c3_Err != nil {
@@ -3236,7 +3240,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 			var templ_7745c5c3_Var135 string
 			templ_7745c5c3_Var135, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(g.No))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 825, Col: 34}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 835, Col: 34}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var135)
 			if templ_7745c5c3_Err != nil {
@@ -3249,7 +3253,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 			var templ_7745c5c3_Var136 string
 			templ_7745c5c3_Var136, templ_7745c5c3_Err = templ.ResolveAttributeValue(g.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 825, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 835, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var136)
 			if templ_7745c5c3_Err != nil {
@@ -3275,7 +3279,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 				var templ_7745c5c3_Var137 templ.SafeURL
 				templ_7745c5c3_Var137, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/people/" + url.PathEscape(g.Person)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 828, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 838, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var137))
 				if templ_7745c5c3_Err != nil {
@@ -3288,7 +3292,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 				var templ_7745c5c3_Var138 string
 				templ_7745c5c3_Var138, templ_7745c5c3_Err = templ.JoinStringErrs(g.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 828, Col: 88}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 838, Col: 88}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var138))
 				if templ_7745c5c3_Err != nil {
@@ -3302,7 +3306,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 				var templ_7745c5c3_Var139 string
 				templ_7745c5c3_Var139, templ_7745c5c3_Err = templ.JoinStringErrs(g.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 830, Col: 14}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 840, Col: 14}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var139))
 				if templ_7745c5c3_Err != nil {
@@ -3320,7 +3324,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 			var templ_7745c5c3_Var140 string
 			templ_7745c5c3_Var140, templ_7745c5c3_Err = templ.JoinStringErrs(g.Club)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 832, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 842, Col: 63}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var140))
 			if templ_7745c5c3_Err != nil {
@@ -3402,7 +3406,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 			var templ_7745c5c3_Var143 templ.SafeURL
 			templ_7745c5c3_Var143, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/flight"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 853, Col: 75}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 863, Col: 75}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var143))
 			if templ_7745c5c3_Err != nil {
@@ -3423,7 +3427,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 			var templ_7745c5c3_Var144 string
 			templ_7745c5c3_Var144, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(f.Index))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 855, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 865, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var144)
 			if templ_7745c5c3_Err != nil {
@@ -3446,7 +3450,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 			var templ_7745c5c3_Var145 string
 			templ_7745c5c3_Var145, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("flight-%d-to", f.Index))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 863, Col: 72}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 873, Col: 72}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var145)
 			if templ_7745c5c3_Err != nil {
@@ -3474,7 +3478,7 @@ func flightBox(p TimetablePage, f ItemView) templ.Component {
 			var templ_7745c5c3_Var146 string
 			templ_7745c5c3_Var146, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("flight-%d-to", f.Index))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 871, Col: 65}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 881, Col: 65}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var146)
 			if templ_7745c5c3_Err != nil {
@@ -3542,7 +3546,7 @@ func blockBox(p TimetablePage, b ItemView) templ.Component {
 		var templ_7745c5c3_Var148 string
 		templ_7745c5c3_Var148, templ_7745c5c3_Err = templ.JoinStringErrs(b.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 888, Col: 18}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 898, Col: 18}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var148))
 		if templ_7745c5c3_Err != nil {
@@ -3555,7 +3559,7 @@ func blockBox(p TimetablePage, b ItemView) templ.Component {
 		var templ_7745c5c3_Var149 string
 		templ_7745c5c3_Var149, templ_7745c5c3_Err = templ.JoinStringErrs(b.Start)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 888, Col: 77}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 898, Col: 77}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var149))
 		if templ_7745c5c3_Err != nil {
@@ -3568,7 +3572,7 @@ func blockBox(p TimetablePage, b ItemView) templ.Component {
 		var templ_7745c5c3_Var150 string
 		templ_7745c5c3_Var150, templ_7745c5c3_Err = templ.JoinStringErrs(b.End)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 888, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 898, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var150))
 		if templ_7745c5c3_Err != nil {
@@ -3621,7 +3625,7 @@ func seatsEditor(p TimetablePage, it ItemView, field string) templ.Component {
 		var templ_7745c5c3_Var152 string
 		templ_7745c5c3_Var152, templ_7745c5c3_Err = templ.JoinStringErrs(seatsSummary(it.Seats))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 898, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 908, Col: 76}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var152))
 		if templ_7745c5c3_Err != nil {
@@ -3647,7 +3651,7 @@ func seatsEditor(p TimetablePage, it ItemView, field string) templ.Component {
 			var templ_7745c5c3_Var153 string
 			templ_7745c5c3_Var153, templ_7745c5c3_Err = templ.JoinStringErrs(s.Role)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 902, Col: 13}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 912, Col: 13}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var153))
 			if templ_7745c5c3_Err != nil {
@@ -3666,7 +3670,7 @@ func seatsEditor(p TimetablePage, it ItemView, field string) templ.Component {
 				var templ_7745c5c3_Var154 string
 				templ_7745c5c3_Var154, templ_7745c5c3_Err = templ.JoinStringErrs(s.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 906, Col: 14}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 916, Col: 14}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var154))
 				if templ_7745c5c3_Err != nil {
@@ -3679,7 +3683,7 @@ func seatsEditor(p TimetablePage, it ItemView, field string) templ.Component {
 				var templ_7745c5c3_Var155 string
 				templ_7745c5c3_Var155, templ_7745c5c3_Err = templ.JoinStringErrs(s.Club)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 906, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 916, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var155))
 				if templ_7745c5c3_Err != nil {
@@ -3706,7 +3710,7 @@ func seatsEditor(p TimetablePage, it ItemView, field string) templ.Component {
 		var templ_7745c5c3_Var156 templ.SafeURL
 		templ_7745c5c3_Var156, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/officials"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 912, Col: 77}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 922, Col: 77}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var156))
 		if templ_7745c5c3_Err != nil {
@@ -3727,7 +3731,7 @@ func seatsEditor(p TimetablePage, it ItemView, field string) templ.Component {
 		var templ_7745c5c3_Var157 string
 		templ_7745c5c3_Var157, templ_7745c5c3_Err = templ.ResolveAttributeValue(field)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 915, Col: 36}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 925, Col: 36}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var157)
 		if templ_7745c5c3_Err != nil {
@@ -3740,7 +3744,7 @@ func seatsEditor(p TimetablePage, it ItemView, field string) templ.Component {
 		var templ_7745c5c3_Var158 string
 		templ_7745c5c3_Var158, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(it.Index))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 915, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 925, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var158)
 		if templ_7745c5c3_Err != nil {
@@ -3753,7 +3757,7 @@ func seatsEditor(p TimetablePage, it ItemView, field string) templ.Component {
 		var templ_7745c5c3_Var159 string
 		templ_7745c5c3_Var159, templ_7745c5c3_Err = templ.ResolveAttributeValue("Seat on " + it.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 917, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 927, Col: 57}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var159)
 		if templ_7745c5c3_Err != nil {
@@ -3771,7 +3775,7 @@ func seatsEditor(p TimetablePage, it ItemView, field string) templ.Component {
 			var templ_7745c5c3_Var160 string
 			templ_7745c5c3_Var160, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(i))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 919, Col: 37}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 929, Col: 37}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var160)
 			if templ_7745c5c3_Err != nil {
@@ -3784,7 +3788,7 @@ func seatsEditor(p TimetablePage, it ItemView, field string) templ.Component {
 			var templ_7745c5c3_Var161 string
 			templ_7745c5c3_Var161, templ_7745c5c3_Err = templ.JoinStringErrs(s.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 919, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 929, Col: 49}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var161))
 			if templ_7745c5c3_Err != nil {
@@ -3802,7 +3806,7 @@ func seatsEditor(p TimetablePage, it ItemView, field string) templ.Component {
 		var templ_7745c5c3_Var162 string
 		templ_7745c5c3_Var162, templ_7745c5c3_Err = templ.ResolveAttributeValue("Person for " + it.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 924, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 934, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var162)
 		if templ_7745c5c3_Err != nil {
@@ -3859,7 +3863,7 @@ func fillOptions(id string, options []FlightOption) templ.Component {
 		var templ_7745c5c3_Var164 string
 		templ_7745c5c3_Var164, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 943, Col: 18}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 953, Col: 18}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var164)
 		if templ_7745c5c3_Err != nil {
@@ -3878,7 +3882,7 @@ func fillOptions(id string, options []FlightOption) templ.Component {
 				var templ_7745c5c3_Var165 string
 				templ_7745c5c3_Var165, templ_7745c5c3_Err = templ.ResolveAttributeValue(o.Value)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 946, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 956, Col: 27}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var165)
 				if templ_7745c5c3_Err != nil {
@@ -3891,7 +3895,7 @@ func fillOptions(id string, options []FlightOption) templ.Component {
 				var templ_7745c5c3_Var166 string
 				templ_7745c5c3_Var166, templ_7745c5c3_Err = templ.ResolveAttributeValue(o.Group)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 946, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 956, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var166)
 				if templ_7745c5c3_Err != nil {
@@ -3904,7 +3908,7 @@ func fillOptions(id string, options []FlightOption) templ.Component {
 				var templ_7745c5c3_Var167 string
 				templ_7745c5c3_Var167, templ_7745c5c3_Err = templ.JoinStringErrs(o.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 946, Col: 62}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 956, Col: 62}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var167))
 				if templ_7745c5c3_Err != nil {
@@ -3922,7 +3926,7 @@ func fillOptions(id string, options []FlightOption) templ.Component {
 				var templ_7745c5c3_Var168 string
 				templ_7745c5c3_Var168, templ_7745c5c3_Err = templ.ResolveAttributeValue(o.Value)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 948, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 958, Col: 27}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var168)
 				if templ_7745c5c3_Err != nil {
@@ -3935,7 +3939,7 @@ func fillOptions(id string, options []FlightOption) templ.Component {
 				var templ_7745c5c3_Var169 string
 				templ_7745c5c3_Var169, templ_7745c5c3_Err = templ.JoinStringErrs(o.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 948, Col: 39}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 958, Col: 39}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var169))
 				if templ_7745c5c3_Err != nil {
@@ -3985,7 +3989,7 @@ func moveGymnast(p TimetablePage, g TimetableGymnast, named bool) templ.Componen
 		var templ_7745c5c3_Var171 templ.SafeURL
 		templ_7745c5c3_Var171, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/entry"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 957, Col: 72}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 967, Col: 72}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var171))
 		if templ_7745c5c3_Err != nil {
@@ -4006,7 +4010,7 @@ func moveGymnast(p TimetablePage, g TimetableGymnast, named bool) templ.Componen
 		var templ_7745c5c3_Var172 string
 		templ_7745c5c3_Var172, templ_7745c5c3_Err = templ.ResolveAttributeValue(g.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 959, Col: 48}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 969, Col: 48}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var172)
 		if templ_7745c5c3_Err != nil {
@@ -4024,7 +4028,7 @@ func moveGymnast(p TimetablePage, g TimetableGymnast, named bool) templ.Componen
 			var templ_7745c5c3_Var173 string
 			templ_7745c5c3_Var173, templ_7745c5c3_Err = templ.JoinStringErrs(g.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 961, Col: 35}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 971, Col: 35}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var173))
 			if templ_7745c5c3_Err != nil {
@@ -4037,7 +4041,7 @@ func moveGymnast(p TimetablePage, g TimetableGymnast, named bool) templ.Componen
 			var templ_7745c5c3_Var174 string
 			templ_7745c5c3_Var174, templ_7745c5c3_Err = templ.JoinStringErrs(g.Club)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 961, Col: 74}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 971, Col: 74}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var174))
 			if templ_7745c5c3_Err != nil {
@@ -4050,7 +4054,7 @@ func moveGymnast(p TimetablePage, g TimetableGymnast, named bool) templ.Componen
 			var templ_7745c5c3_Var175 string
 			templ_7745c5c3_Var175, templ_7745c5c3_Err = templ.JoinStringErrs(g.Category)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 961, Col: 89}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 971, Col: 89}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var175))
 			if templ_7745c5c3_Err != nil {
@@ -4068,7 +4072,7 @@ func moveGymnast(p TimetablePage, g TimetableGymnast, named bool) templ.Componen
 		var templ_7745c5c3_Var176 string
 		templ_7745c5c3_Var176, templ_7745c5c3_Err = templ.ResolveAttributeValue("Flight for " + g.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 964, Col: 56}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 974, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var176)
 		if templ_7745c5c3_Err != nil {
@@ -4081,7 +4085,7 @@ func moveGymnast(p TimetablePage, g TimetableGymnast, named bool) templ.Componen
 		var templ_7745c5c3_Var177 string
 		templ_7745c5c3_Var177, templ_7745c5c3_Err = templ.ResolveAttributeValue(g.Discipline)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 964, Col: 109}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 974, Col: 109}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var177)
 		if templ_7745c5c3_Err != nil {
@@ -4127,7 +4131,7 @@ func moveFromFlight(p TimetablePage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var179 templ.SafeURL
 		templ_7745c5c3_Var179, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/timetable/entry"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 978, Col: 72}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 988, Col: 72}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var179))
 		if templ_7745c5c3_Err != nil {
@@ -4148,7 +4152,7 @@ func moveFromFlight(p TimetablePage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var180 string
 		templ_7745c5c3_Var180, templ_7745c5c3_Err = templ.ResolveAttributeValue("Who to move from " + f.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 981, Col: 65}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 991, Col: 65}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var180)
 		if templ_7745c5c3_Err != nil {
@@ -4161,7 +4165,7 @@ func moveFromFlight(p TimetablePage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var181 string
 		templ_7745c5c3_Var181, templ_7745c5c3_Err = templ.ResolveAttributeValue("Flight to move them to, from " + f.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 987, Col: 74}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 997, Col: 74}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var181)
 		if templ_7745c5c3_Err != nil {
@@ -4174,7 +4178,7 @@ func moveFromFlight(p TimetablePage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var182 string
 		templ_7745c5c3_Var182, templ_7745c5c3_Err = templ.ResolveAttributeValue(f.Discipline)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 987, Col: 127}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 997, Col: 127}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var182)
 		if templ_7745c5c3_Err != nil {
@@ -4187,7 +4191,7 @@ func moveFromFlight(p TimetablePage, f ItemView) templ.Component {
 		var templ_7745c5c3_Var183 string
 		templ_7745c5c3_Var183, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(f.Index))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 987, Col: 165}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 997, Col: 165}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var183)
 		if templ_7745c5c3_Err != nil {
@@ -4288,7 +4292,7 @@ func placementLine(p *Placement) templ.Component {
 			var templ_7745c5c3_Var185 string
 			templ_7745c5c3_Var185, templ_7745c5c3_Err = templ.JoinStringErrs(p.Flight)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1057, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1067, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var185))
 			if templ_7745c5c3_Err != nil {
@@ -4301,7 +4305,7 @@ func placementLine(p *Placement) templ.Component {
 			var templ_7745c5c3_Var186 string
 			templ_7745c5c3_Var186, templ_7745c5c3_Err = templ.JoinStringErrs(p.Panel)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1057, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1067, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var186))
 			if templ_7745c5c3_Err != nil {
@@ -4314,7 +4318,7 @@ func placementLine(p *Placement) templ.Component {
 			var templ_7745c5c3_Var187 string
 			templ_7745c5c3_Var187, templ_7745c5c3_Err = templ.JoinStringErrs(p.Time)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1057, Col: 70}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1067, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var187))
 			if templ_7745c5c3_Err != nil {
@@ -4358,7 +4362,7 @@ func runNo(n int) templ.Component {
 			var templ_7745c5c3_Var189 string
 			templ_7745c5c3_Var189, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(n))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1064, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1074, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var189))
 			if templ_7745c5c3_Err != nil {
@@ -4468,7 +4472,7 @@ func ChangeCheck(p ChangeCheckPage) templ.Component {
 			var templ_7745c5c3_Var192 string
 			templ_7745c5c3_Var192, templ_7745c5c3_Err = templ.JoinStringErrs(p.Competition.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1126, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1136, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var192))
 			if templ_7745c5c3_Err != nil {
@@ -4489,7 +4493,7 @@ func ChangeCheck(p ChangeCheckPage) templ.Component {
 			var templ_7745c5c3_Var193 string
 			templ_7745c5c3_Var193, templ_7745c5c3_Err = templ.JoinStringErrs(p.What)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1128, Col: 34}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1138, Col: 34}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var193))
 			if templ_7745c5c3_Err != nil {
@@ -4520,7 +4524,7 @@ func ChangeCheck(p ChangeCheckPage) templ.Component {
 					var templ_7745c5c3_Var194 templ.SafeURL
 					templ_7745c5c3_Var194, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Action))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1135, Col: 58}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1145, Col: 58}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var194))
 					if templ_7745c5c3_Err != nil {
@@ -4538,7 +4542,7 @@ func ChangeCheck(p ChangeCheckPage) templ.Component {
 						var templ_7745c5c3_Var195 string
 						templ_7745c5c3_Var195, templ_7745c5c3_Err = templ.ResolveAttributeValue(v.Name)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1137, Col: 42}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1147, Col: 42}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var195)
 						if templ_7745c5c3_Err != nil {
@@ -4551,7 +4555,7 @@ func ChangeCheck(p ChangeCheckPage) templ.Component {
 						var templ_7745c5c3_Var196 string
 						templ_7745c5c3_Var196, templ_7745c5c3_Err = templ.ResolveAttributeValue(v.Value)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1137, Col: 60}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1147, Col: 60}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var196)
 						if templ_7745c5c3_Err != nil {
@@ -4569,7 +4573,7 @@ func ChangeCheck(p ChangeCheckPage) templ.Component {
 					var templ_7745c5c3_Var197 string
 					templ_7745c5c3_Var197, templ_7745c5c3_Err = templ.JoinStringErrs(f.Label)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1139, Col: 79}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1149, Col: 79}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var197))
 					if templ_7745c5c3_Err != nil {
@@ -4592,7 +4596,7 @@ func ChangeCheck(p ChangeCheckPage) templ.Component {
 			var templ_7745c5c3_Var198 templ.SafeURL
 			templ_7745c5c3_Var198, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Action))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1146, Col: 55}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1156, Col: 55}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var198))
 			if templ_7745c5c3_Err != nil {
@@ -4610,7 +4614,7 @@ func ChangeCheck(p ChangeCheckPage) templ.Component {
 				var templ_7745c5c3_Var199 string
 				templ_7745c5c3_Var199, templ_7745c5c3_Err = templ.ResolveAttributeValue(v.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1148, Col: 39}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1158, Col: 39}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var199)
 				if templ_7745c5c3_Err != nil {
@@ -4623,7 +4627,7 @@ func ChangeCheck(p ChangeCheckPage) templ.Component {
 				var templ_7745c5c3_Var200 string
 				templ_7745c5c3_Var200, templ_7745c5c3_Err = templ.ResolveAttributeValue(v.Value)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1148, Col: 57}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1158, Col: 57}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var200)
 				if templ_7745c5c3_Err != nil {
@@ -4641,7 +4645,7 @@ func ChangeCheck(p ChangeCheckPage) templ.Component {
 			var templ_7745c5c3_Var201 templ.SafeURL
 			templ_7745c5c3_Var201, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Back))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1153, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/timetable.templ`, Line: 1163, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var201))
 			if templ_7745c5c3_Err != nil {

@@ -370,11 +370,21 @@ templ timetableJump(p TimetablePage) {
 // dayPick is a button for each day, above the days: on a phone they're tabs,
 // one day shown at a time; on a wider screen each shows or hides its day,
 // those shown side by side (dayPick in static/js/competitions.js).
+//
+// On a wider screen ‹ and › beside them move the days shown along an area
+// at a time, when they don't all fit (scrolling sideways with a mouse wheel
+// needs Shift, which few know).
 templ dayPick(p TimetablePage) {
-	<div class="comp-tt-daypick" role="group" aria-label="Days">
-		for i, d := range p.Days {
-			<button type="button" class="button is-small" data-day={ d.ID } aria-pressed={ fmt.Sprint(i == p.OpenDay) }>{ d.Name }</button>
-		}
+	<div class="comp-tt-daypick">
+		<div class="comp-tt-daybuttons" role="group" aria-label="Days">
+			for i, d := range p.Days {
+				<button type="button" class="button is-small" data-day={ d.ID } aria-pressed={ fmt.Sprint(i == p.OpenDay) }>{ d.Name }</button>
+			}
+		</div>
+		<div class="comp-tt-scroll" hidden>
+			<button type="button" class="button is-small" data-scroll="-1" aria-label="Earlier areas" title="Earlier areas">‹</button>
+			<button type="button" class="button is-small" data-scroll="1" aria-label="Later areas" title="Later areas">›</button>
+		</div>
 	</div>
 }
 

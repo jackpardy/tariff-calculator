@@ -795,7 +795,11 @@ are then filled flight by flight.
   the days shown side by side, the row scrolling sideways when they don't
   fit (with room after the last, so it scrolls to the left edge as the
   others do; no snapping, which made small scrolls jump back), and the
-  choice is kept in the browser. The page opens on today's (on
+  choice is kept in the browser. Where there's more to scroll the row
+  fades out at that edge (a mask, `--fade-left`/`--fade-right`), the fade
+  stepping aside while it's scrolled; **‹** and **›** beside the day
+  buttons move it an area at a time, for a mouse without sideways
+  scrolling. The page opens on today's (on
   the competition's days, `todayIndex`) or the first; the others' flights
   wait in a template until shown, searched or gone to (the `#area` a change
   comes back to: `competitions.js`, `reveal`). A day's heading doesn't fold.

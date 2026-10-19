@@ -415,13 +415,47 @@
             }
             row.style.setProperty('--tail', room + 'px');
         };
+        // ‹ and › move the row along an area at a time, to the next area's
+        // edge; they show only when the days shown don't all fit, and each
+        // is greyed out at its end.
+        const arrows = pick.querySelector('.comp-tt-scroll');
+        const edgesOf = () => [...row.querySelectorAll('.comp-tt-area')].filter((a) => a.offsetParent)
+            .map((a) => Math.round(a.getBoundingClientRect().left - row.getBoundingClientRect().left - row.clientLeft + row.scrollLeft));
+        const arrowsNow = () => {
+            const max = row.scrollWidth - row.clientWidth;
+            arrows.hidden = !wide.matches || max <= 1;
+            arrows.querySelector('[data-scroll="-1"]').disabled = row.scrollLeft <= 1;
+            arrows.querySelector('[data-scroll="1"]').disabled = row.scrollLeft >= max - 1;
+        };
+        arrows.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-scroll]');
+            if (!b) { return; }
+            const at = row.scrollLeft;
+            const edges = edgesOf();
+            // An edge a few pixels off isn't a move (each day's areas start
+            // just inside it), and one that close to the start is the start.
+            let to = b.dataset.scroll === '1' ? edges.find((x) => x > at + 8) : edges.reverse().find((x) => x < at - 8);
+            to = to ?? (b.dataset.scroll === '1' ? row.scrollWidth : 0);
+            const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            row.scrollTo({ left: to <= 8 ? 0 : to, behavior: smooth ? 'smooth' : 'auto' });
+        });
+        // While the row is being scrolled its edges' fade steps aside
+        // (is-scrolling, in styles.css), coming back once it stops.
+        let still;
+        row.addEventListener('scroll', () => {
+            row.classList.add('is-scrolling');
+            clearTimeout(still);
+            still = setTimeout(() => row.classList.remove('is-scrolling'), 200);
+            arrowsNow();
+        }, { passive: true });
         const sync = () => {
             pick.querySelectorAll('[data-day]').forEach((b) => {
                 b.setAttribute('aria-pressed', dayOf(b.dataset.day)?.open ? 'true' : 'false');
             });
             tail();
+            arrowsNow();
         };
-        window.addEventListener('resize', tail);
+        window.addEventListener('resize', () => { tail(); arrowsNow(); });
         const save = () => {
             const shown = days.filter((d) => d.open).map((d) => d.querySelector('summary').id);
             try { localStorage.setItem(key, JSON.stringify(shown)); } catch (e) { /* this visit only */ }
