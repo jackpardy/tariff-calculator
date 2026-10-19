@@ -435,7 +435,10 @@ func (p *competitionPages) clubSettingsPart(r *http.Request, club store.Club, pa
 func coachAnchor(id string) string { return "coach-" + id }
 
 // clubCompetitions are the competitions the club is entered in, each with its
-// members' entries and what the comp sec can send.
+// members' entries and what the comp sec can send: every one's, for the
+// club's home page, which shows how many entries each has, how many to send
+// and with problems, and its messages; or one's (only), with all its page
+// shows.
 func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, base string, members []store.Member, coaches []store.Coach,
 	quals map[string][]store.CoachQualification, only string) ([]views.ClubCompetition, error) {
 	ctx := r.Context()
@@ -452,6 +455,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		ours[m.ID] = true
 	}
 	seen := p.seenFor(r)
+	home := only == "" // the counts alone (views.ClubAdmin): faster with many entries
 	var out []views.ClubCompetition
 	for _, c := range comps {
 		if only != "" && c.ID != only {
@@ -469,9 +473,11 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			EnterMember: base + "/competitions/" + c.ID + "/enter-member",
 			MyLinks: p.competitionLinks(ctx, c, linksFor{base: base + "/competitions/" + c.ID,
 				people: memberKeys(members), clubs: clubIDs(club.ID), staff: clubIDs(club.ID)})}
-		cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
-		if cc.Pairs, err = seen.pairViews(pairs, func(pe store.PairEntry) bool { return pe.CompetitionID != c.ID || ours[pe.EntrantMemberID] }); err != nil {
-			return nil, err
+		if !home {
+			cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
+			if cc.Pairs, err = seen.pairViews(pairs, func(pe store.PairEntry) bool { return pe.CompetitionID != c.ID || ours[pe.EntrantMemberID] }); err != nil {
+				return nil, err
+			}
 		}
 		// To enter a member: who, and in what, while entries are open.
 		if cc.Competition.Open {
@@ -495,6 +501,13 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		removals, err := p.st.ClubRemovals(ctx, club.ID, c.ID)
 		if err != nil {
 			return nil, err
+		}
+		all := enteredAll(c.Competition, sent)
+		var late map[string]store.LateRequest // each entry's latest late change
+		if !home {
+			if late, err = p.st.LatestLateRequests(ctx, c.ID); err != nil {
+				return nil, err
+			}
 		}
 		has := map[string]bool{} // by member and discipline: a member may have withdrawn one of several
 		for _, e := range mine {
@@ -535,7 +548,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			case entryChecked:
 				row.Status = "Sent · checked"
 			}
-			row.Problems = len(memberProblems(c.Competition, e, sent))
+			row.Problems = len(memberProblems(c.Competition, e, sent, all))
 			if checked, err := c.Check(e.Entry); err == nil {
 				if competitions.VideoMissing(e.Entry, c.VideoNeeds(checked)) {
 					row.Video = "missing"
@@ -547,8 +560,10 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			if cc.Competition.ChangesOpen {
 				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline
 			}
-			if id := copyOf[e.MemberID+"/"+e.Discipline]; id != "" {
-				row.Late = p.lateStatusOf(ctx, c, id)
+			if id := copyOf[e.MemberID+"/"+e.Discipline]; id != "" && !home {
+				if lr, ok := late[id]; ok {
+					row.Late = views.LateStatus{Text: lateStatusText(c, lr), State: lateState(lr)}
+				}
 				if lateOpen(c, p.now()) {
 					row.LateAsk = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "/late?discipline=" + url.QueryEscape(e.Discipline)
 				}
@@ -573,13 +588,15 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			hasFilter("problems", "Problems", "Problems or not", "Has problems", "No problems"),
 			{Key: "sent", Label: "Sending", Any: "Sent or not", Options: []views.ListOption{{Value: "tosend", Label: "To send"}, {Value: "sent", Label: "Sent"}}},
 		}}
-		if cc.ApproveCoaches {
+		if cc.ApproveCoaches && !home {
 			if cc.Coaches, err = p.clubSendCoaches(r, club, c.ID, coaches, quals, members, mine); err != nil {
 				return nil, err
 			}
 		}
-		if cc.Offers, cc.NoOffer, err = p.clubOffers(r, base, club, c, members); err != nil {
-			return nil, err
+		if !home {
+			if cc.Offers, cc.NoOffer, err = p.clubOffers(r, base, club, c, members); err != nil {
+				return nil, err
+			}
 		}
 		out = append(out, cc)
 	}
