@@ -216,7 +216,7 @@ templ CoachHome(p CoachPage) {
 											if r.Signoff.By != "" && r.Signoff.By == p.Coach && !r.Signoff.Unapproved {
 												@StateChip(signoffState(r.Signoff))
 											} else {
-												@signoffCell(SignoffView{Signed: r.Signoff.Signed, By: r.Signoff.By, Unapproved: r.Signoff.Unapproved}, "")
+												@signoffLine(SignoffView{Signed: r.Signoff.Signed, By: r.Signoff.By, Unapproved: r.Signoff.Unapproved})
 											}
 										</td>
 									</tr>

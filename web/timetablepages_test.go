@@ -201,10 +201,10 @@ func TestClubsSeeTheirFlights(t *testing.T) {
 		}
 		return m[1]
 	}
-	if at := flightOf("BUCS L3"); !regexp.MustCompile(`^BUCS L3 · Panel 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
-		t.Errorf("the comp sec sees the trampoline entry's flight: %q", at)
+	if at := flightOf("BUCS L3"); !regexp.MustCompile(`^Panel 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
+		t.Errorf("the comp sec sees the trampoline entry's flight, not repeating its level: %q", at)
 	}
-	if at := flightOf("Tumbling Novice"); !regexp.MustCompile(`^[^·]*Novice[^·]* · Track 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
+	if at := flightOf("Tumbling Novice"); !regexp.MustCompile(`^Track 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
 		t.Errorf("the comp sec sees the tumbling entry's flight: %q", at)
 	}
 	if page := memberCompetitionPage(t, h, member); !regexp.MustCompile(`Panel 1 · warm-up Saturday \d\d:\d\d`).MatchString(page) {

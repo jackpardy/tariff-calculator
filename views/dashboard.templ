@@ -496,6 +496,27 @@ templ signoffCell(s SignoffView, coach string) {
 	</span>
 }
 
+// signoffLine is an entry's sign-off where the coach isn't a column of
+// their own (the comp sec's entries, a coach's list): what it is first, in
+// full ("Waiting for sign-off"), then who, in the small text around it
+// ("by Declan Ward"), so the name doesn't outweigh the state. A coach not
+// approved has the asterisk, and their sign-off shows as still waiting.
+templ signoffLine(s SignoffView) {
+	<span class="comp-signoff">
+		if s.Unapproved {
+			@StateChip(InProgress, "Waiting for sign-off")
+		} else {
+			@StateChip(signoffState(s))
+		}
+		if s.By != "" {
+			<span class="is-size-7">
+				{ "by " }
+				@coachName(s.By, s.Link, s.Unapproved)
+			</span>
+		}
+	</span>
+}
+
 // coachName is a coach's name in a row's Coach column, a link to their page
 // where there is one, with an asterisk when they aren't approved to sign off.
 templ coachName(name, href string, unapproved bool) {

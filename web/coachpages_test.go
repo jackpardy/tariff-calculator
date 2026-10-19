@@ -99,7 +99,7 @@ func TestCoachSignoff(t *testing.T) {
 		t.Error("the member sees who signed it off")
 	}
 	clubPage := clubEntriesPage(t, h, club)
-	if x, y := rowOf(t, clubPage, "X"), rowOf(t, clubPage, "Y"); !strings.HasSuffix(x[3], "Bob Signed off Coach's note: Ready") || !strings.HasSuffix(y[3], "Waiting") {
+	if x, y := rowOf(t, clubPage, "X"), rowOf(t, clubPage, "Y"); !strings.HasSuffix(x[3], "Signed off by Bob Coach's note: Ready") || !strings.HasSuffix(y[3], "Waiting for sign-off") {
 		t.Errorf("the comp sec sees each entry's sign-off: %q, %q", x, y)
 	}
 	// The comp sec and the coaches count an entry's problems as the

@@ -1065,6 +1065,9 @@ func gymnastCount(n int) string {
 // Placement is where an attendee competes, on a published timetable.
 type Placement struct {
 	Flight, Panel, Time string
+	// Part is which of its event's flights it is ("Flight 2 of 4"), "" for
+	// an event of one, for a line beside the level, which needn't repeat it.
+	Part string
 }
 
 // placementLine says where a gymnast competes, once the timetable is published.

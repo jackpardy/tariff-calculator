@@ -486,10 +486,6 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 											<br/>
 											@StateChip(Attention, "Video "+row.Video)
 										}
-										if row.Flight != "" {
-											<br/>
-											<span class="is-size-7 has-text-grey-dark comp-flight-line">{ row.Flight }</span>
-										}
 										if row.Late.Text != "" {
 											<br/>
 											<span class="is-size-7">
@@ -504,7 +500,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 										if row.Signoff.Status() != "" {
 											<br/>
 											<span>
-												@signoffCell(row.Signoff, "")
+												@signoffLine(row.Signoff)
 												@signoffWaiting(row.Signoff)
 												if row.Signoff.Unapproved {
 													@unapprovedKey()
@@ -518,6 +514,11 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 										if row.Note != "" {
 											<br/>
 											<span class="is-size-7 has-text-info-dark">Organiser: { row.Note }</span>
+										}
+										// Where and when, last: the rest is about the entry itself.
+										if row.Flight != "" {
+											<br/>
+											<span class="is-size-7 has-text-grey-dark comp-flight-line">{ row.Flight }</span>
 										}
 									</td>
 								</tr>
