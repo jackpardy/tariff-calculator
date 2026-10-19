@@ -28,7 +28,8 @@ func overlapping(s competitions.Schedule, a, b string) bool {
 
 // One person's keys as a gymnast and as a coach are one person in the
 // timetable (ADR 0010): Ann competes in L1 and coaches Bob in L2, and also
-// enters L3 on her own.
+// enters L3 on her own. Coaching isn't checked (2026-10-19): only her own
+// turns count.
 func TestOnePersonAcrossRoles(t *testing.T) {
 	ann := memberEntryIn("e1", "ann", "Ann", "L1", "")
 	bob := memberEntryIn("e2", "bob", "Bob", "L2", "annCoach")
@@ -57,33 +58,66 @@ func TestOnePersonAcrossRoles(t *testing.T) {
 		flight("L1", "Panel 1", 540, 560, "e1"), flight("L2", "Panel 2", 540, 560, "e2"), flight("L3", "Panel 1", 565, 585, "e3"),
 	}}
 	people, names := clashPeople(entries, same)
-	problems := strings.Join(s.Problems(people, coachesOf(entries, same), names), "; ")
-	if !strings.Contains(problems, "Ann coaches in L2 while competing in L1") {
-		t.Errorf("Ann coaching while she competes is a problem: %s", problems)
+	if p := s.Problems(people, names); len(p) != 0 {
+		t.Errorf("Ann coaching Bob while she competes isn't a problem: %v", p)
 	}
 	if r := s.Report(people); len(r.ShortRest) != 1 || names[r.ShortRest[0].Person] != "Ann" || r.ShortRest[0].Minutes != 5 {
 		t.Errorf("Ann has 5 minutes' rest between L1 and L3, as a member and on her own: %+v", r.ShortRest)
 	}
 	// Keyed apart, as before, nothing's wrong.
 	apart, apartNames := clashPeople(entries, nil)
-	if p := s.Problems(apart, coachesOf(entries, nil), apartNames); len(p) != 0 {
+	if p := s.Problems(apart, apartNames); len(p) != 0 {
 		t.Errorf("by key alone, no problem: %v", p)
 	}
 	if r := s.Report(apart); len(r.ShortRest) != 0 {
 		t.Errorf("by key alone, no short rest: %+v", r.ShortRest)
 	}
 
-	// The planner keeps her apart from herself; by key alone it doesn't.
-	order := []string{"L1", "L2", "L3"}
+	// The planner keeps her two turns apart; by key alone it doesn't.
+	order := []string{"L1", "L3", "L2"}
 	planned := competitions.PlanSchedule(schedEntries(entries, same), order, setup, 1)
-	if overlapping(planned, "e1", "e2") || overlapping(planned, "e1", "e3") || overlapping(planned, "e2", "e3") {
-		t.Errorf("Ann's flights and the one she coaches are apart: %+v", planned.Flights)
+	if overlapping(planned, "e1", "e3") {
+		t.Errorf("Ann's two flights are apart: %+v", planned.Flights)
 	}
-	if p := planned.Problems(people, coachesOf(entries, same), names); len(p) != 0 {
+	if p := planned.Problems(people, names); len(p) != 0 {
 		t.Errorf("as planned, no problems: %v", p)
 	}
-	if blind := competitions.PlanSchedule(schedEntries(entries, nil), order, setup, 1); !overlapping(blind, "e1", "e2") {
-		t.Errorf("by key alone, L1 and L2 go side by side: %+v", blind.Flights)
+	if blind := competitions.PlanSchedule(schedEntries(entries, nil), order, setup, 1); !overlapping(blind, "e1", "e3") {
+		t.Errorf("by key alone, L1 and L3 go side by side: %+v", blind.Flights)
+	}
+}
+
+// A coach whose gymnasts are on two areas at once breaks nothing; a gymnast
+// in two places does, and says so first.
+func TestCoachesArentChecked(t *testing.T) {
+	entries := []store.Entry{
+		memberEntryIn("e1", "ann", "Ann", "L1", "sam"), memberEntryIn("e2", "bob", "Bob", "L2", "sam"),
+		memberEntryIn("e3", "ann", "Ann", "L3", "sam"),
+	}
+	f := rotaFacts{entries: entries}
+	f.one, f.oneNames = clashPeople(entries, nil)
+	flight := func(level, area string, start int, ids ...string) competitions.ScheduledFlight {
+		return competitions.ScheduledFlight{Flight: competitions.Flight{Event: level, Entries: ids, Of: 1, Number: 1}, Discipline: competitions.Trampoline, Area: area, Start: start, End: start + 20}
+	}
+	s := competitions.Schedule{Planned: true, Setup: competitions.Setup{
+		Areas: []competitions.Area{{Name: "Panel 1"}, {Name: "Panel 2"}},
+		Days:  []competitions.Day{{Name: "Saturday", Start: "09:00", End: "18:00"}},
+		Rules: []competitions.Rule{{Kind: competitions.RuleArea, Event: "L2", Area: "Panel 1"}},
+	}, Flights: []competitions.ScheduledFlight{flight("L1", "Panel 1", 540, "e1"), flight("L2", "Panel 2", 540, "e2"), flight("L3", "Panel 1", 600, "e3")}}
+	if got := competitions.BreakLines(f.manualBreaks(s)); len(got) != 1 || !strings.HasPrefix(got[0], "Breaks the rule") {
+		t.Errorf("Sam's gymnasts on two panels at once break nothing new: %v", got)
+	}
+	// L3 moved alongside L1: Ann's in two places, and that comes first.
+	moved := s.Copy()
+	moved.Flights[2].Area, moved.Flights[2].Start, moved.Flights[2].End = "Panel 2", 545, 565
+	got := competitions.BreakLines(competitions.NewBreaks(f.manualBreaks(s), f.manualBreaks(moved)))
+	if len(got) == 0 || got[0] != "Ann is in L1 and L3 at once" {
+		t.Errorf("Ann in two places comes first: %v", got)
+	}
+	for _, l := range got {
+		if strings.Contains(l, "Sam") || strings.Contains(l, "coach") {
+			t.Errorf("no coach is checked: %q", l)
+		}
 	}
 }
 

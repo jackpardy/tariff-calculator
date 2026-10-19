@@ -374,12 +374,11 @@ type Schedule struct {
 
 // SchedEntry is an entry as the scheduler needs it: its event, discipline,
 // category and club, and the people in it (one, or a synchro pair), by a key
-// that's the same wherever the same person appears, as a gymnast or coach.
+// that's the same wherever the same person appears.
 type SchedEntry struct {
 	PlanEntry
 	Discipline string
 	People     []string
-	Coaches    []string // who coaches its gymnasts, by a key: kept from being needed in two places where that can be done
 }
 
 // interval is a span of minutes on a day.
@@ -394,7 +393,6 @@ type planner struct {
 	days    [][2]int              // each day's start and end
 	busy    map[string][]interval // by area
 	people  map[string][]interval // by person
-	coaches map[string][]interval // by coach
 	staff   *Staffing
 	placed  []ScheduledFlight
 	blocks  []ScheduledBlock
@@ -403,12 +401,12 @@ type planner struct {
 }
 
 // flightsOf builds each event's flights, in event order, with their people.
-func flightsOf(entries []SchedEntry, eventOrder []string, setup Setup, rng *rand.Rand) ([]ScheduledFlight, map[string][]string, map[string][]string) {
-	people, coaches := map[string][]string{}, map[string][]string{}
+func flightsOf(entries []SchedEntry, eventOrder []string, setup Setup, rng *rand.Rand) ([]ScheduledFlight, map[string][]string) {
+	people := map[string][]string{}
 	discipline := map[string]string{}
 	var plan []PlanEntry
 	for _, e := range entries {
-		people[e.ID], coaches[e.ID] = e.People, e.Coaches
+		people[e.ID] = e.People
 		discipline[e.Level] = e.Discipline
 		plan = append(plan, e.PlanEntry)
 	}
@@ -419,7 +417,7 @@ func flightsOf(entries []SchedEntry, eventOrder []string, setup Setup, rng *rand
 			out = append(out, ScheduledFlight{Flight: f, Discipline: d})
 		}
 	}
-	return out, people, coaches
+	return out, people
 }
 
 // duration is how long a flight takes, in whole minutes.
@@ -447,7 +445,7 @@ func PlanSchedule(entries []SchedEntry, eventOrder []string, setup Setup, seed u
 // event's judges are free to fill its panel.
 func PlanStaffed(entries []SchedEntry, eventOrder []string, setup Setup, staff *Staffing, seed uint64) Schedule {
 	rng := rand.New(rand.NewPCG(seed, 7))
-	flights, people, coaches := flightsOf(entries, eventOrder, setup, rng)
+	flights, people := flightsOf(entries, eventOrder, setup, rng)
 	runs := runsOf(flights)
 	// Longest first packs the days best, after the events a must ties to a
 	// day or area, which have least choice.
@@ -497,7 +495,7 @@ func PlanStaffed(entries []SchedEntry, eventOrder []string, setup Setup, staff *
 		var unplaced []ScheduledFlight
 		var missed []int
 		for _, i := range order {
-			if !p.placeRun(runs[i], people, coaches) {
+			if !p.placeRun(runs[i], people) {
 				unplaced = append(unplaced, runs[i]...)
 				missed = append(missed, i)
 			}
@@ -574,7 +572,7 @@ func beforeOrder(order []int, runs [][]ScheduledFlight, rules []Rule) []int {
 // newPlanner starts an attempt with the blocks placed; with rng, windowed
 // blocks try a random time in their window first.
 func newPlanner(setup Setup, rng *rand.Rand) *planner {
-	p := &planner{setup: setup, areas: setup.Areas, busy: map[string][]interval{}, people: map[string][]interval{}, coaches: map[string][]interval{}, byEvent: map[string][]ScheduledFlight{}}
+	p := &planner{setup: setup, areas: setup.Areas, busy: map[string][]interval{}, people: map[string][]interval{}, byEvent: map[string][]ScheduledFlight{}}
 	for _, d := range setup.Days {
 		start, end := d.Hours()
 		p.days = append(p.days, [2]int{start, end})
@@ -638,17 +636,14 @@ func (p *planner) placeBlocks(rng *rand.Rand) {
 
 // placeRun puts an event's flights, in order, back to back on one area and
 // day (ADR 0006 Decision 2), where they fit best, if they fit anywhere.
-func (p *planner) placeRun(run []ScheduledFlight, people, coaches map[string][]string) bool {
-	whos, coacheds := make([]map[string]bool, len(run)), make([]map[string]bool, len(run))
+func (p *planner) placeRun(run []ScheduledFlight, people map[string][]string) bool {
+	whos := make([]map[string]bool, len(run))
 	lengths := make([]int, len(run))
 	for k, f := range run {
-		whos[k], coacheds[k] = map[string]bool{}, map[string]bool{}
+		whos[k] = map[string]bool{}
 		for _, id := range f.Entries {
 			for _, person := range people[id] {
 				whos[k][person] = true
-			}
-			for _, c := range coaches[id] {
-				coacheds[k][c] = true
 			}
 		}
 		lengths[k] = p.setup.duration(f)
@@ -668,7 +663,7 @@ func (p *planner) placeRun(run []ScheduledFlight, people, coaches map[string][]s
 			cost := 0.0
 			all := map[string]bool{}
 			for k, f := range cand {
-				cost += p.score(f, whos[k], coacheds[k])
+				cost += p.score(f, whos[k])
 				for person := range whos[k] {
 					all[person] = true
 				}
@@ -699,9 +694,6 @@ func (p *planner) placeRun(run []ScheduledFlight, people, coaches map[string][]s
 		iv := interval{f.Day, f.Start, f.End}
 		for person := range whos[k] {
 			p.people[person] = append(p.people[person], iv)
-		}
-		for c := range coacheds[k] {
-			p.coaches[c] = append(p.coaches[c], iv)
 		}
 	}
 	p.cost += bestCost
@@ -876,7 +868,7 @@ func (p *planner) clear(iv interval, area string, who map[string]bool, rest int,
 
 // score is how good a placement is: lower is better. Earlier is better
 // (later days much worse), and each broken prefer costs.
-func (p *planner) score(f ScheduledFlight, who, coached map[string]bool) float64 {
+func (p *planner) score(f ScheduledFlight, who map[string]bool) float64 {
 	cost := float64(f.Day*24*60 + f.End)
 	if p.broken(f.Event, f.Area, f.Day, false) {
 		cost += 120
@@ -908,33 +900,6 @@ func (p *planner) score(f ScheduledFlight, who, coached map[string]bool) float64
 			giv := interval{g.Day, g.Start, g.End}
 			if overlaps(iv, giv) {
 				cost += 30 * float64(p.short(g, giv, who)-p.short(g, giv, nil))
-			}
-		}
-	}
-	// A coach needed on two areas at once.
-	for c := range coached {
-		for _, iv := range p.coaches[c] {
-			if overlaps(iv, interval{f.Day, f.Start, f.End}) {
-				cost += 40
-				break
-			}
-		}
-	}
-	// Someone coaching while they compete (a coach who is also a gymnast, by
-	// one key): as costly as a broken prefer, as they can't do both at all.
-	for c := range coached {
-		for _, iv := range p.people[c] {
-			if overlaps(iv, interval{f.Day, f.Start, f.End}) {
-				cost += 120
-				break
-			}
-		}
-	}
-	for person := range who {
-		for _, iv := range p.coaches[person] {
-			if overlaps(iv, interval{f.Day, f.Start, f.End}) {
-				cost += 120
-				break
 			}
 		}
 	}

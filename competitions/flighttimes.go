@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -48,6 +49,61 @@ func (s *Schedule) identify(next func() uint64) {
 			}
 		}
 	}
+}
+
+// KeepIDs gives a fresh plan's flights the IDs of the flights they were in
+// the timetable it replaces (old: the published flights, then the draft's),
+// so what's marked on the day stays with them. A flight takes the ID of one
+// of its event with the same gymnasts; failing that, of one of its event with
+// the same number that nothing has happened to yet (fresh says so, by ID):
+// its panel's check-ins follow the seat. A flight that's none of them never
+// has an old flight's ID.
+func (s *Schedule) KeepIDs(old []ScheduledFlight, fresh func(id string) bool) {
+	gymnasts := func(f ScheduledFlight) []string {
+		out := slices.Clone(f.Entries)
+		slices.Sort(out)
+		return out
+	}
+	byGymnasts := func(f, g ScheduledFlight) bool {
+		return f.Group() == g.Group() && slices.Equal(gymnasts(f), gymnasts(g))
+	}
+	byNumber := func(f, g ScheduledFlight) bool {
+		return f.Group() == g.Group() && f.Number == g.Number && fresh(g.ID)
+	}
+	was := map[string]bool{}
+	var olds []ScheduledFlight
+	for _, g := range old {
+		if g.ID != "" && !was[g.ID] {
+			was[g.ID] = true
+			olds = append(olds, g)
+		}
+	}
+	kept := map[*ScheduledFlight]bool{}
+	used := map[string]bool{}
+	for _, match := range []func(f, g ScheduledFlight) bool{byGymnasts, byNumber} {
+		for _, fs := range [][]ScheduledFlight{s.Flights, s.Unplaced} {
+			for i := range fs {
+				f := &fs[i]
+				if kept[f] {
+					continue
+				}
+				for _, g := range olds {
+					if !used[g.ID] && match(*f, g) {
+						f.ID, kept[f], used[g.ID] = g.ID, true, true
+						break
+					}
+				}
+			}
+		}
+	}
+	for _, fs := range [][]ScheduledFlight{s.Flights, s.Unplaced} {
+		for i := range fs {
+			if !kept[&fs[i]] && was[fs[i].ID] {
+				fs[i].ID = ""
+			}
+		}
+	}
+	s.Identify()
 }
 
 // Actual is when a flight really started and finished (zero for not yet).

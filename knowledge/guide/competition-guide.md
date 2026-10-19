@@ -306,13 +306,11 @@ a **Change** button to open it.
    little rest, names that look like one person entered twice, and changes
    that would make it all fit (including capping an event's entries, or
    letting events run across breaks).
-   Planning tries to keep a coach's gymnasts off two areas at once; where it
-   can't, **Coaches needed in two places** lists them, so you can move a
-   flight, or the club can bring another coach.
-   Someone who is a member and also a coach, or also enters on their own
-   (one person, with one link), counts as one person: planning keeps their
-   turns apart, tries not to put their gymnasts on while they compete, and
-   the report says if they're coaching while competing, or short of rest.
+   Coaches aren't checked: where a coach's gymnasts are is for the coach and
+   club to manage.
+   Someone who is a member and also enters on their own (one person, with
+   one link) counts as one person: planning keeps their turns apart, and the
+   report says if they're short of rest.
    Planning also fills every panel from the people who've offered to judge
    and help (see **Officials**): never someone competing or on another panel
    at the time, and only in roles they may take. Each event's panel is
@@ -333,9 +331,9 @@ a **Change** button to open it.
    to give a seat to someone else, for all the event's flights they had it
    for; **Assign officials again** redoes every panel and keeps the flights.
    Moving an event or a gymnast, or giving someone a seat, that would break
-   something that holds now (someone in two places, a coach needed on two
-   areas, a flight past the end of the day, one of your rules, rest where
-   it's a must) asks first: **Before you change it** says what, offers other
+   something that holds now (someone in two places, a flight past the end of
+   the day, one of your rules, rest where it's a must) asks first: **Before
+   you change it** says what, people in two places first, offers other
    changes that break nothing (another day or area for the event, another
    of the event's flights for the gymnast, someone else free for the seat),
    and has **Make the change anyway** and **Cancel**.
@@ -369,6 +367,15 @@ a **Change** button to open it.
    still sees what you published until you tap **Publish changes**. The page
    says when there are changes not published yet; **Discard changes** goes
    back to what's published, and **Unpublish** takes it down.
+   What's been marked on the day stays when you change the plan: check-ins
+   stay with each gymnast, and a flight keeps its times, who's up and its
+   panel's check-ins when you move it, and when you plan again if it keeps
+   the same gymnasts. Once the competition has begun, the timetable can't
+   be planned again (what's run has run): change flights, gymnasts and
+   seats by hand, or use the "what ifs". If publishing would
+   drop anything (a flight that has run but is no longer in the plan, or a
+   panel check-in for a seat that's gone), **Publish changes** says what
+   first, and you choose **Publish anyway** or **Cancel**.
 11. **On the day** (a button on the entries page once you've published; chairs
    of judges' and timetable links get it too): pick the day. Each area is a
    card saying how it's running, the flight it's on, who's up, how many are
@@ -469,10 +476,10 @@ day, when the hold-up starts, how many minutes and which areas (none ticked
 for all). It shows which flights now start later or move to another area, when
 each day's flights end, anything that no longer fits, and anyone needed in two
 places. Above those, **This would break** lists anything the delay breaks
-that holds now: your rules (an event's area, day, order or keeping two events
-apart; a person's hours or role), a coach needed on two areas, an official on
-a flight during blocked time they're on duty for, and short rest where rest is
-a must. A flight that moves to another area only goes where your must rules
+that holds now: an official on a flight during blocked time they're on duty
+for first, then your rules (an event's area, day, order or keeping two events
+apart; a person's hours or role) and short rest where rest is a must. One
+person's repeats show as one line, with how many more. A flight that moves to another area only goes where your must rules
 let it. An event's flights stay together: if one would no longer finish
 before a break, the rest of the event waits for it too (unless events can run
 across breaks), and an event moves to another area with all its flights still
@@ -486,12 +493,13 @@ publish the changes when you're ready.
 **What if an official leaves?** (under **Timetable**, once planned):
 choose who, the day and time they go, and whether for good. Each of their
 seats is filled for the rest of its event, by one person: someone free for
-all of it, or by moving others round: a judge on the panel moving up to
-chair, or someone moving across from another panel, their seat filled in
-turn. Free means not competing, judging or on duty for blocked time then,
-not coaching someone competing elsewhere, rested where rest is a must, and
-allowed by your rules. Choose **easiest to fill** (the gap ends at a seat many
-can take, such as recorder) or **fewest changes**. Anything the result would
+all of it if there is anyone, the least busy that day first (then someone
+who's had that role already, then the least busy over the competition).
+If no one free can take it, others move round, as few as will do: a judge
+on the panel moving up to chair, or someone moving across from another
+panel, their seat filled in turn. Free means not competing, judging or on
+duty for blocked time then, rested where rest is a must, and allowed by
+your rules. Anything the result would
 break that holds now is listed above the seats. Nothing is changed unless
 you tap **Keep this in the draft timetable**.
 
