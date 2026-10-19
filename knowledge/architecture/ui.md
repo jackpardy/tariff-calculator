@@ -244,10 +244,13 @@ everything is check-in.
 
 **Who and what they do**
 
-- **Officiating** is judging, chairing, recording and marshalling: the comp
-  sec's tab (not "Judging and helping"), a person's duties and the
-  organiser's page of a person. What someone offers is their **Offer to
-  officiate**. The people are **officials** (the organiser's Officials page).
+- **Judging and helping** is what members, gymnasts entering on their own
+  and comp secs see: the comp sec's tab, and the line where someone says
+  what they'll do (the owner, 2026-10-19: "officiating" may scare people
+  off; keep a "help" in it). Once they have seats, the box listing them is
+  **Your duties**. The organiser's pages say **officials** and
+  **officiating** (the Officials page, a person's page), as that's their
+  word for it.
 - Panel roles are names, so capitalised standing alone (a chip, a column, a
   list after "·"): Chair, Judge, Recorder, Marshal; in a sentence they're
   lowercase ("plus a recorder and a marshal"). On a person's role chips it's

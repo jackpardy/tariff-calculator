@@ -43,7 +43,7 @@ func TestOfficialPages(t *testing.T) {
 	}
 	clubPage := clubCompetitionTab(t, h, club, "/offers")
 	edit := regexp.MustCompile(`href="(` + regexp.QuoteMeta(club) + `/members/[^"]+/offer)"`).FindStringSubmatch(clubPage)
-	if edit == nil || !strings.Contains(clubPage, `Officiating <span class="has-text-grey has-text-weight-normal">· 1</span>`) {
+	if edit == nil || !strings.Contains(clubPage, `Judging and helping <span class="has-text-grey has-text-weight-normal">· 1</span>`) {
 		t.Fatal("the comp sec sees the offer, with a link to change it")
 	}
 	redirected(t, h, edit[1], url.Values{"judge-trampoline": {"1"}, "judge-tumbling": {"1"}, "marshal": {"1"}})

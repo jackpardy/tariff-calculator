@@ -603,7 +603,7 @@ templ ClubCompetitionOffers(c ClubPage, comp ClubCompetition) {
 			</div>
 		}
 		if len(comp.Offers) > 0 {
-			@listSection("Officiating", len(comp.Offers)) {
+			@listSection("Judging and helping", len(comp.Offers)) {
 				<p class="help mb-2">What members offer, sent with the entries.</p>
 				<div class="table-container">
 					<table class="table is-fullwidth is-narrow comp-offers">
@@ -1120,7 +1120,7 @@ templ memberEventRow(ev MemberEvent) {
 
 // ClubOfferEdit is the comp sec changing what a member offers.
 type ClubOfferEdit struct {
-	Back, Club, Member string // Back: the competition's Officiating
+	Back, Club, Member string // Back: the competition's Judging and helping
 	Competition        CompetitionSummary
 	Form               OfferForm
 	Menu               []MenuSection
@@ -1132,7 +1132,7 @@ templ ClubOfferEditPage(e ClubOfferEdit) {
 		@pageMenu(e.Menu)
 		@backLink(e.Back, e.Competition.Name)
 		<h1 class="title is-4">{ e.Member }</h1>
-		<p class="subtitle is-6">Officiating at { e.Competition.Name }</p>
+		<p class="subtitle is-6">Judging and helping at { e.Competition.Name }</p>
 		@offerForm(e.Form)
 	}
 }

@@ -1700,7 +1700,7 @@ your way round; the menu is `views/menu.templ`, built for each page in
     to send.
   - **Coaches** (`/coaches`, only where it approves coaches): the coaches
     to send, ticked, each with where they stand.
-  - **Officiating** (`/offers`): what members offer to officiate, each
+  - **Judging and helping** (`/offers`): what members offer to officiate, each
     with **Change**.
   - **Fees** (`/fees`, only where it charges): what's left to pay as a
     chip, the invoice's lines and payments, how to pay, and **Print the

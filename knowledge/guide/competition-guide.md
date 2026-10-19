@@ -570,7 +570,7 @@ row for each competition your club is in, saying how many entries it has,
 how many are still to send or have problems, and whether the timetable is
 published or there's a message from the organisers. Tap one to open its
 page, which has its own tabs under the menu: **Entries**, **Coaches** (where
-it approves coaches), **Officiating** and **Fees** (where it
+it approves coaches), **Judging and helping** and **Fees** (where it
 charges). Your club's pages save their link in your browser each time you
 open them, so **tariff.pardy.ie/competitions** lists the club.
 
@@ -603,7 +603,7 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   coaches**. Each shows whether the organiser has approved them, with their
   note. If you change a coach's qualifications, send them again for the
   organiser to approve again.
-- **Officiating** lists what each member offers to do; **Change** corrects
+- **Judging and helping** lists what each member offers to do; **Change** corrects
   it, and **Add an offer** adds one for a member who told you rather than
   adding it themselves.
 - **Fees** says what's left to pay and how to pay first, then the invoice's
@@ -687,7 +687,7 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
    coach's sign-off, it says who signs it off, or, if no coach of your club
    can, to ask your comp sec to add one.
 
-Under **Offer to officiate**, say what you can do at the competition: judge a
+Under **Judging and helping**, say what you can do at the competition: judge a
 discipline (up to a level, and whether you can chair), or help as a recorder
 or marshal. Your comp sec can correct it, and sends it with the entries.
 Below it, **Your judging qualifications**: tap **Add a judging
@@ -699,7 +699,7 @@ To change it, open the discipline's row, then **Change your entry**, above
 its card. To pull out of one discipline, tap
 **Withdraw** under the card, tick **Withdraw this entry** and tap **Withdraw**. Notes from the organiser
 and your coach show on your entry, and once the organiser publishes the
-timetable, your flight, area and warm-up time, and under **Officiating**
+timetable, your flight, area and warm-up time, and under **Your duties**
 when and where you judge or help.
 
 **My competition** (the one link on the competition's page) is the page for
@@ -913,9 +913,9 @@ confirm.
    links to those you have, and **←** back to the competition) and **Your details** (your link,
    and your other links). A withdrawn entry stays on your page, marked
    **Withdrawn**: **Put it back** enters it again, until entries close. On an
-   entry, under **Offer to officiate**, say what you can judge or help with:
+   entry, under **Judging and helping**, say what you can judge or help with:
    it's one offer for the competition, the same on each of your entries. Once the timetable is published, your entry
-   shows your flight and, under **Officiating**, when and where you judge or
+   shows your flight and, under **Your duties**, when and where you judge or
    help. **My competition** gathers all your entries (each discipline),
    times, your flights and panels, your timetable and calendar on one page (the whole timetable a tap away).
 

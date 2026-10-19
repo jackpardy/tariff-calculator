@@ -1887,7 +1887,7 @@ func ClubCompetitionOffers(c ClubPage, comp ClubCompetition) templ.Component {
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = listSection("Officiating", len(comp.Offers)).Render(templ.WithChildren(ctx, templ_7745c5c3_Var63), templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = listSection("Judging and helping", len(comp.Offers)).Render(templ.WithChildren(ctx, templ_7745c5c3_Var63), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -4340,7 +4340,7 @@ func memberEventRow(ev MemberEvent) templ.Component {
 
 // ClubOfferEdit is the comp sec changing what a member offers.
 type ClubOfferEdit struct {
-	Back, Club, Member string // Back: the competition's Officiating
+	Back, Club, Member string // Back: the competition's Judging and helping
 	Competition        CompetitionSummary
 	Form               OfferForm
 	Menu               []MenuSection
@@ -4405,14 +4405,14 @@ func ClubOfferEditPage(e ClubOfferEdit) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 318, "</h1><p class=\"subtitle is-6\">Officiating at ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 318, "</h1><p class=\"subtitle is-6\">Judging and helping at ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var172 string
 			templ_7745c5c3_Var172, templ_7745c5c3_Err = templ.JoinStringErrs(e.Competition.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/clubs.templ`, Line: 1135, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/clubs.templ`, Line: 1135, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var172))
 			if templ_7745c5c3_Err != nil {
