@@ -177,6 +177,11 @@ func (e Entry) Follow(from skills.BodyPosition) (s skills.TrampolineSkill, ok bo
 	if e.Tile == nil || (from == skills.Feet && e.Tile.To == skills.Feet) {
 		return e.Skill, false
 	}
+	// Seat to seat, back to back or front to front with no twist isn't a
+	// skill: it's a bounce, like a straight jump (the owner, 2026-10-19).
+	if from == e.Tile.To && e.Tile.Twist == 0 {
+		return e.Skill, false
+	}
 	// Up to a half somersault: any more is a somersault, not a body landing.
 	for rotation := 0; rotation <= 2; rotation++ {
 		var found []skills.TrampolineSkill

@@ -61,19 +61,21 @@ forward. It must have a name: the catalogue's, or one `FindCommonSkillName`
 makes from its parts, as long as that isn't another skill's name (a back drop
 to seat would read "Back To Seat", the somersault's name). Otherwise, and from
 feet to feet (a jump), it's the tile's usual skill, and the routine flags the
-bad transition as before.
+bad transition as before. So is a landing in the position it took off from
+with no twist (seat to seat, back to back, front to front): that's a bounce,
+like a straight jump, not a skill (the owner, 2026-10-19).
 
 | Tile | after feet | after seat | after back | after front |
 |---|---|---|---|---|
 | To Feet | Seat To Feet* | Seat To Feet | Back To Feet | Front To Feet |
 | ½ Twist To Feet | Seat Half Twist To Feet* | Seat Half Twist To Feet | Back Half Twist To Feet | Front Half Twist To Feet |
-| To Seat | Seat Drop | Seat To Seat | Seat Drop* | Seat Drop* |
+| To Seat | Seat Drop | Seat Drop* | Seat Drop* | Seat Drop* |
 | ½ Twist To Seat | Half Twist To Seat | Seat Half Twist To Seat (Swivel Hips) | Back Half Twist To Seat | Front Half Twist To Seat |
-| To Back | Back Drop | Seat To Back | Back To Back | Front To Back |
+| To Back | Back Drop | Seat To Back | Back Drop* | Front To Back |
 | ½ Twist To Back | Half Twist To Back | Seat Half Twist To Back | Back Half Twist To Back (Cradle) | Front Half Twist To Back |
 | Full Twist To Back | Full Twist To Back | Seat Full Twist To Back | Back Full Twist To Back (Cat Twist) | Front Full Twist To Back |
 | 1½ Twist To Back | 1½ Twist To Back | Seat 1½ Twist To Back | Back 1½ Twist To Back (Corkscrew) | Front 1½ Twist To Back |
-| To Front | Front Drop | Seat To Front | Back To Front | Front To Front |
+| To Front | Front Drop | Seat To Front | Back To Front | Front Drop* |
 | ½ Twist To Front | Half Twist To Front | Seat Half Twist To Front | Back Half Twist To Front | Front Half Twist To Front |
 
 \* the tile's usual skill: nothing lands like that from there.

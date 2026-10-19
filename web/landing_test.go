@@ -26,13 +26,13 @@ func TestLandingTileFollowsThePreviousSkill(t *testing.T) {
 	want := map[string][]string{ // the card's name, by tile, after each of previous; "*" where it's the usual one, with no note
 		"seatToFeet":     {"*Seat To Feet", "*Seat To Feet", "Seat To Feet", "Back To Feet", "Front To Feet"},
 		"seatHalfToFeet": {"*Seat Half Twist To Feet", "*Seat Half Twist To Feet", "Seat Half Twist To Feet", "Back Half Twist To Feet", "Front Half Twist To Feet"},
-		"seatDrop":       {"Seat Drop", "Seat Drop", "Seat To Seat", "*Seat Drop", "*Seat Drop"},
+		"seatDrop":       {"Seat Drop", "Seat Drop", "*Seat Drop", "*Seat Drop", "*Seat Drop"},
 		"halfToSeat":     {"Half Twist To Seat", "Half Twist To Seat", "Seat Half Twist To Seat", "Back Half Twist To Seat", "Front Half Twist To Seat"},
-		"backDrop":       {"Back Drop", "Back Drop", "Seat To Back", "Back To Back", "Front To Back"},
+		"backDrop":       {"Back Drop", "Back Drop", "Seat To Back", "*Back Drop", "Front To Back"},
 		"halfToBack":     {"Half Twist To Back", "Half Twist To Back", "Seat Half Twist To Back", "Back Half Twist To Back", "Front Half Twist To Back"},
 		"catTwist":       {"Full Twist To Back", "Full Twist To Back", "Seat Full Twist To Back", "Back Full Twist To Back", "Front Full Twist To Back"},
 		"corkscrew":      {"1½ Twist To Back", "1½ Twist To Back", "Seat 1½ Twist To Back", "Back 1½ Twist To Back", "Front 1½ Twist To Back"},
-		"frontDrop":      {"Front Drop", "Front Drop", "Seat To Front", "Back To Front", "Front To Front"},
+		"frontDrop":      {"Front Drop", "Front Drop", "Seat To Front", "Back To Front", "*Front Drop"},
 		"halfToFront":    {"Half Twist To Front", "Half Twist To Front", "Seat Half Twist To Front", "Back Half Twist To Front", "Front Half Twist To Front"},
 	}
 	for key, names := range want {

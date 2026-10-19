@@ -162,13 +162,13 @@ func TestLandingTilesFollow(t *testing.T) {
 	want := map[string][4]string{
 		"To Feet":            {"Seat To Feet 0.1 (usual)", "Seat To Feet 0.1", "Back To Feet 0.1", "Front To Feet 0.1"},
 		"½ Twist To Feet":    {"Seat Half Twist To Feet 0.1 (usual)", "Seat Half Twist To Feet 0.1", "Back Half Twist To Feet 0.2", "Front Half Twist To Feet 0.2"},
-		"To Seat":            {"Seat Drop 0.1", "Seat To Seat 0.0", "Seat Drop 0.1 (usual)", "Seat Drop 0.1 (usual)"},
+		"To Seat":            {"Seat Drop 0.1", "Seat Drop 0.1 (usual)", "Seat Drop 0.1 (usual)", "Seat Drop 0.1 (usual)"},
 		"½ Twist To Seat":    {"Half Twist To Seat 0.1", "Seat Half Twist To Seat 0.1", "Back Half Twist To Seat 0.2", "Front Half Twist To Seat 0.2"},
-		"To Back":            {"Back Drop 0.1", "Seat To Back 0.1", "Back To Back 0.0", "Front To Back 0.2"},
+		"To Back":            {"Back Drop 0.1", "Seat To Back 0.1", "Back Drop 0.1 (usual)", "Front To Back 0.2"},
 		"½ Twist To Back":    {"Half Twist To Back 0.2", "Seat Half Twist To Back 0.2", "Back Half Twist To Back 0.3", "Front Half Twist To Back 0.1"},
 		"Full Twist To Back": {"Full Twist To Back 0.3", "Seat Full Twist To Back 0.3", "Back Full Twist To Back 0.2", "Front Full Twist To Back 0.4"},
 		"1½ Twist To Back":   {"1½ Twist To Back 0.4", "Seat 1½ Twist To Back 0.4", "Back 1½ Twist To Back 0.5", "Front 1½ Twist To Back 0.3"},
-		"To Front":           {"Front Drop 0.1", "Seat To Front 0.1", "Back To Front 0.2", "Front To Front 0.0"},
+		"To Front":           {"Front Drop 0.1", "Seat To Front 0.1", "Back To Front 0.2", "Front Drop 0.1 (usual)"},
 		"½ Twist To Front":   {"Half Twist To Front 0.2", "Seat Half Twist To Front 0.2", "Back Half Twist To Front 0.1", "Front Half Twist To Front 0.3"},
 	}
 	tiles := 0
