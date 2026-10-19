@@ -173,11 +173,28 @@ func elementNumbers(ns []int) string {
 	return out
 }
 
-// CardsPage is a set of competition cards to print, one exercise per page.
+// CardsPage is a set of competition cards to print, one exercise per page;
+// or, for more than fit on a phone's page, the levels to print one at a time.
 type CardsPage struct {
-	Title string
-	Back  string
-	Cards []PrintedCard
+	Title      string
+	Back       string
+	Cards      []PrintedCard
+	Levels     []CardsLevel // the selection's levels with cards
+	Total      int          // the selection's cards, every level
+	Choose     bool         // list the levels rather than print
+	LevelsHref string       // back to the levels, where they're listed
+	AllHref    string       // every level's cards on one page, where they're listed
+	Next       *CardsLevel  // the level after this one, where they're listed
+}
+
+// CardsLevel is a level's cards, of a selection, or (Parted) a category's
+// of a level with more than fit on a phone.
+type CardsLevel struct {
+	Name        string // e.g. "BUCS L7", or a part "BUCS L7 · Men"
+	Cards       int
+	Href        string
+	Level, Part string // a part's level and category
+	Parted      bool
 }
 
 // PrintedCard is one exercise's card, its details filled in.
@@ -202,23 +219,52 @@ templ CompetitionCards(p CardsPage) {
 			<link rel="stylesheet" href={ static.URL("css/sheet.css") }/>
 		</head>
 		<body>
-			<div class="toolbar screen-only">
-				<a href={ templ.SafeURL(p.Back) }>← Entries</a>
-				<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
-				<span>{ Count(len(p.Cards), "card", "cards") }</span>
-			</div>
-			if len(p.Cards) == 0 {
-				<p class="hint">No entries to print.</p>
-			}
-			for _, c := range p.Cards {
-				<section class="card-page">
-					// Whose card, on screen: its warnings are about it.
-					<p class="hint screen-only card-who"><strong>{ c.Details["gymnast"] }</strong> · { c.Details["category"] } · { c.Details["round"] }</p>
-					@TariffSheet(c.Validation, c.Required, c.Checks, c.Details)
-				</section>
+			if p.Choose {
+				<div class="toolbar screen-only">
+					<a href={ templ.SafeURL(p.Back) }>← Entries</a>
+					<span>{ Count(p.Total, "card", "cards") }</span>
+				</div>
+				// Too many for one page on a phone: a level at a time, each
+				// printed on its own, or all of them for a computer.
+				<div class="hint">
+					<p>Print the cards a level at a time:</p>
+					<ul class="card-levels">
+						for _, l := range p.Levels {
+							<li><a href={ templ.SafeURL(l.Href) }>{ l.Name }</a> · { Count(l.Cards, "card", "cards") }</li>
+						}
+					</ul>
+					<p><a href={ templ.SafeURL(p.AllHref) }>Every level on one page</a> · { Count(p.Total, "card", "cards") }, slow on a phone</p>
+				</div>
+			} else {
+				<div class="toolbar screen-only">
+					<a href={ templ.SafeURL(p.Back) }>← Entries</a>
+					if p.LevelsHref != "" {
+						<a href={ templ.SafeURL(p.LevelsHref) }>Other levels</a>
+					}
+					<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
+					<span>{ Count(len(p.Cards), "card", "cards") }</span>
+					if p.Next != nil {
+						<a href={ templ.SafeURL(p.Next.Href) }>Next: { p.Next.Name } →</a>
+					}
+				</div>
+				@printedCards(p)
 			}
 		</body>
 	</html>
+}
+
+// printedCards are the cards to print, one a page.
+templ printedCards(p CardsPage) {
+	if len(p.Cards) == 0 {
+		<p class="hint">No entries to print.</p>
+	}
+	for _, c := range p.Cards {
+		<section class="card-page">
+			// Whose card, on screen: its warnings are about it.
+			<p class="hint screen-only card-who"><strong>{ c.Details["gymnast"] }</strong> · { c.Details["category"] } · { c.Details["round"] }</p>
+			@TariffSheet(c.Validation, c.Required, c.Checks, c.Details)
+		</section>
+	}
 }
 
 // VideoView is an exercise's video: whether it's needed, for which skills,

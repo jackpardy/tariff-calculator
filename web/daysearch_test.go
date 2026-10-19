@@ -145,7 +145,7 @@ func TestTimetableSearchAndJump(t *testing.T) {
 }
 
 // A timetable flight card's controls are labelled buttons: one Move a
-// gymnast form, choosing who from the flight (its flights still filled in by
+// gymnast form, choosing who from the flight (who and its flights filled in by
 // fill.js), and a labelled dropdown to move the flight.
 func TestTimetableFlightCardButtons(t *testing.T) {
 	s := newTestServer(t, atTime(dayBefore))
@@ -168,7 +168,7 @@ func TestTimetableFlightCardButtons(t *testing.T) {
 			t.Errorf("it opens from Move a gymnast: %s", renderNode(card))
 		}
 		sel := byTag(forms[0], "select")
-		if len(sel) != 2 || attrOf(sel[0], "name") != "entry" || len(byTag(sel[0], "option")) < 2 || attrOf(sel[1], "data-fill") != "move-options" {
+		if len(sel) != 2 || attrOf(sel[0], "name") != "entry" || attrOf(sel[0], "data-fill") != "order" || attrOf(sel[1], "data-fill") != "move-options" {
 			t.Errorf("who, from the flight, and where to, filled from the page's list: %s", renderNode(forms[0]))
 		}
 		actions := firstByClass(card, "comp-tt-actions")

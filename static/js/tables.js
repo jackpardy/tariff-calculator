@@ -162,6 +162,11 @@
     }
     // Levels open later: their tables' edges are measured then.
     document.addEventListener('toggle', (event) => { if (event.target.open) { watchEdges(); } }, true);
+    // A folded level's rows come into the page when it opens (competitions.js,
+    // lazyRows): its hidden columns are hidden in them too.
+    document.addEventListener('lazy-rows', () => {
+        new Set(Array.from(document.querySelectorAll('table[data-table-view]'), (t) => t.dataset.tableView)).forEach(apply);
+    });
     window.addEventListener('resize', () => {
         document.querySelectorAll('table[data-table-view]').forEach((t) => apply(t.dataset.tableView));
         watchEdges();

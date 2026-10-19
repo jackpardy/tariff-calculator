@@ -24,6 +24,7 @@ type TimetablePage struct {
 	Changes     bool // the draft differs from what's published
 	Report      ReportView
 	Days        []DayView
+	OpenDay     int                // the day that starts open: today, or the first
 	Unplaced    []TimetableGymnast // entries in no flight
 	Moves       []FlightOption     // flights a gymnast can move to
 	Places      []FlightOption     // day and area a flight can move to
@@ -162,6 +163,7 @@ templ CompetitionTimetable(p TimetablePage) {
 	@competitionLayout("Timetable · " + p.Competition.Name) {
 		@fillOptions("move-options", p.Moves)
 		@fillOptions("seat-options", p.Rota.Options)
+		@fillOptions("place-options", p.Places)
 		<script defer src={ static.URL("js/fill.js") }></script>
 		<script defer src={ static.URL("js/selectsearch.js") }></script>
 		<h1 class="title is-4">Timetable</h1>
@@ -192,7 +194,7 @@ templ CompetitionTimetable(p TimetablePage) {
 					@timetableJump(p)
 				}
 			</div>
-			<div id="timetable-flights">
+			<div id="timetable-flights" data-reveal>
 				if len(p.Unplaced) > 0 {
 					<div class="box" data-list-group>
 						<p class="mb-2"><strong>{ gymnastCount(len(p.Unplaced)) } not in a flight</strong> (entered since you planned, or moved out).</p>
@@ -203,8 +205,8 @@ templ CompetitionTimetable(p TimetablePage) {
 						}
 					</div>
 				}
-				for _, day := range p.Days {
-					@timetableDay(p, day)
+				for i, day := range p.Days {
+					@timetableDay(p, day, i == p.OpenDay || len(p.Days) == 1)
 				}
 			</div>
 		}
@@ -302,35 +304,49 @@ templ printMenu(base string, changes bool) {
 	</details>
 }
 
-// timetableDay is a day's areas side by side, each with its flights and
-// blocked time.
-templ timetableDay(p TimetablePage, day DayView) {
-	<section data-list-group>
-		<h2 class="title is-5 mt-5 mb-1" id={ day.ID }>{ day.Name }</h2>
-		if len(p.Days) > 1 && len(day.Areas) > 1 {
-			@areaJump(day)
+// timetableDay is a day, folding: its areas side by side, each with its
+// flights and blocked time. One day starts open (today's, or the first); the
+// others' flights wait in a template until opened, jumped to or searched
+// (static/js/competitions.js, lazyRows and reveal), as every day at once was
+// 11,000 elements and 35,000 px on a phone.
+templ timetableDay(p TimetablePage, day DayView, open bool) {
+	<details class="comp-tt-day" data-list-group open?={ open }>
+		<summary class="title is-5 mt-5 mb-1" id={ day.ID }>{ day.Name }</summary>
+		if open {
+			@timetableAreas(p, day)
+		} else {
+			<template data-lazy>
+				@timetableAreas(p, day)
+			</template>
 		}
-		// The day's areas side by side, as many as it uses: a row that
-		// scrolls sideways when there are more than fit (static/js/tables.js
-		// marks the edges), stacked on a phone.
-		<div class="comp-tt-areas" style={ fmt.Sprintf("--areas: %d", max(len(day.Areas), 1)) }>
-			for _, area := range day.Areas {
-				<div class="comp-tt-area" id={ area.ID } data-list-group>
-					<h3 class="title is-6">{ area.Name }</h3>
-					if len(area.Items) == 0 {
-						<p class="has-text-grey is-size-7">Nothing</p>
+	</details>
+}
+
+// timetableAreas are a day's areas, under links to each.
+templ timetableAreas(p TimetablePage, day DayView) {
+	if len(p.Days) > 1 && len(day.Areas) > 1 {
+		@areaJump(day)
+	}
+	// The day's areas side by side, as many as it uses: a row that
+	// scrolls sideways when there are more than fit (static/js/tables.js
+	// marks the edges), stacked on a phone.
+	<div class="comp-tt-areas" style={ fmt.Sprintf("--areas: %d", max(len(day.Areas), 1)) }>
+		for _, area := range day.Areas {
+			<div class="comp-tt-area" id={ area.ID } data-list-group>
+				<h3 class="title is-6">{ area.Name }</h3>
+				if len(area.Items) == 0 {
+					<p class="has-text-grey is-size-7">Nothing</p>
+				}
+				for _, it := range area.Items {
+					if it.Flight {
+						@flightBox(p, it)
+					} else {
+						@blockBox(p, it)
 					}
-					for _, it := range area.Items {
-						if it.Flight {
-							@flightBox(p, it)
-						} else {
-							@blockBox(p, it)
-						}
-					}
-				</div>
-			}
-		</div>
-	</section>
+				}
+			</div>
+		}
+	</div>
 }
 
 // timetableJump links to each day, on one line beside "Find a name": on a
@@ -796,7 +812,7 @@ templ flightBox(p TimetablePage, f ItemView) {
 		<p class="is-size-7 has-text-grey mb-2">Warm-up { f.Start } · finishes about { f.End } · { flightCount(len(f.Gymnasts), f.Pairs) }</p>
 		<ol class="comp-order">
 			for _, g := range f.Gymnasts {
-				<li value={ strconv.Itoa(g.No) } { ListRow{Name: g.Name}.Attrs()... }>
+				<li value={ strconv.Itoa(g.No) } data-entry={ g.ID } { ListRow{Name: g.Name}.Attrs()... }>
 					// Their page, with everything they're doing.
 					if g.Person != "" {
 						<a href={ templ.SafeURL(p.Base + "/people/" + url.PathEscape(g.Person)) }>{ g.Name }</a>
@@ -842,11 +858,7 @@ templ flightBox(p TimetablePage, f ItemView) {
 						}
 					</label>
 					<div class="select is-small">
-						<select name="to" id={ fmt.Sprintf("flight-%d-to", f.Index) }>
-							for _, o := range p.Places {
-								<option value={ o.Value }>{ o.Label }</option>
-							}
-						</select>
+						<select name="to" id={ fmt.Sprintf("flight-%d-to", f.Index) } data-fill="place-options"></select>
 					</div>
 					if f.InRun {
 						<button class="button is-small" type="submit" name="action" value="move">Move event</button>
@@ -950,16 +962,14 @@ templ moveGymnast(p TimetablePage, g TimetableGymnast, named bool) {
 
 // moveFromFlight moves one of a flight's gymnasts (chosen) to another flight,
 // or out of the timetable, posting as moveGymnast does. Its list of flights is
-// filled from fillOptions when it opens.
+// filled from fillOptions when it opens, and its gymnasts from the flight's
+// running order.
 templ moveFromFlight(p TimetablePage, f ItemView) {
 	<form method="post" action={ templ.SafeURL(p.Base + "/timetable/entry") } class="comp-move-form">
 		@versionField(p.Version)
 		<div class="select is-small">
-			<select name="entry" aria-label={ "Who to move from " + f.Name }>
+			<select name="entry" aria-label={ "Who to move from " + f.Name } data-fill="order">
 				<option value="" disabled selected>Choose a gymnast</option>
-				for _, g := range f.Gymnasts {
-					<option value={ g.ID }>{ strconv.Itoa(g.No) }. { g.Name }</option>
-				}
 			</select>
 		</div>
 		<div class="select is-small">

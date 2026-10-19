@@ -68,6 +68,10 @@ th.element { text-align: center; border-bottom: 1px solid #000; }
 .options fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
 .options legend { font-size: 0.75rem; font-weight: 600; color: #666; text-transform: uppercase; padding: 0 0 0.2rem; }
 
+/* The levels to print one at a time (views.CompetitionCards): rows a finger can tap. */
+.card-levels { padding-left: 1.25rem; }
+.card-levels li { padding: 0.35rem 0; }
+
 .loading { max-width: 186mm; margin: 2rem auto; padding: 0 12mm; color: #444; }
 
 @media print {

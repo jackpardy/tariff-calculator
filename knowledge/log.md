@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-19
+* **Update**: Lighter pages for a phone at the venue. More than 100 cards to print (Print → Cards, Cards not checked, over several levels) list the levels to print one at a time (a big level by category, "BUCS L7 · Men"), each with **Next**, and **Every level on one page** for a computer: the demo's 899 cards were one page of 3.9 MB and 112,000 elements. My competition and the organiser's page of a person show only the flights and panels they're in, with **Show the whole timetable** (12,600 px on a phone to 4,500). The timetable opens on today's day (or the first), the others folded and sent inert until opened, searched or jumped to; each flight's Move a gymnast and Move to fill from the page rather than repeating their lists (11,100 elements to 5,000). The entries page's folded levels send their rows inert until opened or searched (15,900 elements to 740).
 * **Update**: Printed sheets match the phones. Once the timetable is published, the marshal, chair of judges and score sheets, the officials rota, the panel timeline and its CSV are of what's published (as On the day, the venue screen and everyone's phones are), not the draft. With changes not published, each offers **Use the draft instead**, printed **Draft · not published** on every page (each flight, each score sheet page, the rota's repeating head; the CSV's first line and its file name); the Print menu says so. Before publishing they're of the draft, marked. A chair of judges' link gets only what's published (`printedTimetable`, `draft=1`).
 
 ## 2026-10-17

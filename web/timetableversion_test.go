@@ -35,7 +35,7 @@ func TestStaleTimetableForm(t *testing.T) {
 	}
 	opened := do(t, h, http.MethodGet, tt, nil).Body.String()
 	old := versionIn(opened)
-	entry := regexp.MustCompile(`<option value="([^"]+)">\d+\. `).FindStringSubmatch(opened)[1]
+	entry := regexp.MustCompile(`data-entry="([^"]+)"`).FindStringSubmatch(opened)[1]
 
 	// A helper takes a gymnast out, from the page as it was.
 	redirected(t, h, tt+"/entry", url.Values{"entry": {entry}, "to": {""}, "version": {old}})

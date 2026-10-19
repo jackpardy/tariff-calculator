@@ -343,6 +343,51 @@
         levels.forEach((d) => d.addEventListener('toggle', save));
     }
 
+    // lazyRows puts rows that wait in a <template data-lazy> (a folded level
+    // of the dashboard, views/dashboard.templ) in the page: those inside a
+    // <details> when it opens, and every one in root when a search needs
+    // them. tables.js hears "lazy-rows" and sets the new rows' columns.
+    function lazyRows(root) {
+        const waiting = root.querySelectorAll('template[data-lazy]');
+        if (waiting.length === 0) { return; }
+        waiting.forEach((t) => t.replaceWith(t.content));
+        document.dispatchEvent(new CustomEvent('lazy-rows'));
+    }
+    document.addEventListener('toggle', (e) => {
+        if (e.target.tagName === 'DETAILS' && e.target.open) { lazyRows(e.target); }
+    }, true);
+
+    // reveal goes to a place in a list marked data-reveal (the timetable's
+    // days) that may be folded away: the address's #id after a change, or a
+    // link to a day or area. Its rows come into the page, the days around it
+    // open, and it scrolls into view.
+    function reveal(id) {
+        const list = document.querySelector('[data-reveal]');
+        if (!list || !id) { return false; }
+        const waiting = [...list.querySelectorAll('template[data-lazy]')].find((t) => t.content.getElementById(id));
+        if (waiting) {
+            const details = waiting.closest('details');
+            if (details) { details.open = true; }
+            lazyRows(details || list);
+        }
+        const target = document.getElementById(id);
+        if (!target || !list.contains(target)) { return false; }
+        for (let d = target.closest('details'); d; d = d.parentElement.closest('details')) {
+            // Its rows now, not when the toggle event comes, so the page is
+            // as long as it will be before it scrolls.
+            if (d.classList.contains('comp-tt-day')) { d.open = true; lazyRows(d); }
+        }
+        target.scrollIntoView();
+        return true;
+    }
+    document.addEventListener('click', (e) => {
+        const a = e.target.closest?.('a[href^="#"]');
+        if (a && reveal(decodeURIComponent(a.getAttribute('href').slice(1)))) {
+            e.preventDefault();
+            try { history.replaceState(history.state, '', a.getAttribute('href')); } catch (err) { /* the address keeps its old place */ }
+        }
+    });
+
     // tickBar is the Entries page's bar once entries are ticked: how many, and
     // Remove or Hold, which open the form below with that chosen.
     function tickBar() {
@@ -706,9 +751,11 @@
             const apply = () => {
                 const list = document.getElementById(tools.dataset.listTools);
                 if (!list) { return; }
-                const rows = readRows(list);
-                const total = form ? Number(tools.dataset.total) : rows.length;
                 const words = searchWords(search.value);
+                // A search looks through every row, folded ones too.
+                if (words.length > 0) { lazyRows(list); }
+                const rows = readRows(list);
+                let total = form ? Number(tools.dataset.total) : rows.length;
                 const chosen = filters.filter((f) => f.value !== '');
                 let shown = 0;
                 for (const row of rows) {
@@ -717,6 +764,8 @@
                     if (show) { shown++; }
                 }
                 const filtered = words.length > 0 || chosen.length > 0;
+                // Rows still folded away (lazyRows) count, unfiltered.
+                if (!filtered && list.querySelector('template[data-lazy]')) { shown = total = Number(tools.dataset.total) || shown; }
                 // A group of rows (a club's box, a level) hides while filtering
                 // finds none of its rows. While searching, a closed group with a
                 // match opens, and closes again when the search is cleared.
@@ -894,6 +943,7 @@
         enterAs();
         partnerClubs();
         openToAnchor();
+        reveal(decodeURIComponent(location.hash.slice(1)));
         forgetDeadLink();
         videoChoices();
         entryForms();

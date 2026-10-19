@@ -596,6 +596,12 @@ December. Before it:
   held to two cores, 400 people opening their pages within 2 seconds went
   from 191 of 343 failing to none, with a median of 171 ms. Still to do: a
   run on the server.
+- **Lighter pages for phones**: **built 2026-10-19**, after the full audit.
+  Cards a level at a time past 100 (the demo's 899 were one page of 3.9 MB),
+  My competition and a person's page with only their flights and panels
+  (the whole timetable a link away), the timetable a day at a time and the
+  entries page's folded levels sent inert until opened. Still heavy on a
+  phone: the open day of the timetable (about 5,000 elements, 17,800 px).
 
 For ISTO itself: a 4G/5G router for the organiser, marshals and chairs
 (and a cable for the venue screen); everyone's times by push and email

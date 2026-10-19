@@ -110,7 +110,7 @@ templ listTools(t ListTools) {
 			}
 		</form>
 	} else {
-		<div class="comp-list-tools mb-3" data-list-tools={ t.ID } data-noun={ t.Noun } hidden>
+		<div class="comp-list-tools mb-3" data-list-tools={ t.ID } data-noun={ t.Noun } data-total={ strconv.Itoa(t.Total) } hidden>
 			@listControls(t) {
 				{ children... }
 			}
