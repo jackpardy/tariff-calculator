@@ -155,7 +155,7 @@ templ Day(p DayPage) {
 		<div id="day-taps" class="notification is-warning is-light comp-day-taps" aria-live="polite" hidden></div>
 		<div id="day-notice" class="comp-day-notice" aria-live="polite">
 			if p.Notice != "" {
-				<div class="notification is-info is-light">{ p.Notice }</div>
+				@notice(p.Notice)
 			}
 		</div>
 		if len(p.Days) > 1 {

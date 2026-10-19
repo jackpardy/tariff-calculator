@@ -363,7 +363,7 @@ templ CompetitionEntryPage(p EntryPage) {
 			</div>
 		}
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		@dayLink(p.Day)
 		@deskMessages(p.Desk)

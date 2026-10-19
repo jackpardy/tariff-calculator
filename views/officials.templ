@@ -217,7 +217,7 @@ templ CompetitionOfficials(p OfficialsPage) {
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			// Stays in sight as the page goes to the person changed.
-			<div class="notification is-success is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
+			@stickyNotice(p.Notice)
 		}
 		<div class="table-container">
 			<table class="table is-narrow">

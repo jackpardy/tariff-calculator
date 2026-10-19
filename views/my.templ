@@ -138,7 +138,7 @@ templ MyCompetition(p MyCompetitionPage) {
 		}
 		@timelineLinks(p.Timeline, p.ClubTimeline, p.Notify, p.Calendar, p.ClubCalendar)
 		if p.Notice != "" {
-			<div class="notification is-info is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		@latenessNotes(p.Lateness)
 		@deskMessages(p.Desk)

@@ -51,12 +51,15 @@ func (s SignoffView) Status() string {
 templ signoffBox(s SignoffView) {
 	if s.Status() != "" {
 		<p class="mb-3">
-			@StateChip(signoffState(s))
-			if s.By != "" {
-				@WhoLink(RoleCoach, s.By, s.Link)
-			}
 			if s.Unapproved {
-				<span class="is-size-7 has-text-grey ml-1">The competition hasn't approved them as a coach, so it doesn't count.</span>
+				Signed off by
+				@coachName(s.By, s.Link, true)
+				<span class="is-size-7 has-text-grey ml-1">* The competition hasn't approved them as a coach, so it doesn't count.</span>
+			} else {
+				@StateChip(signoffState(s))
+				if s.By != "" {
+					@WhoLink(RoleCoach, s.By, s.Link)
+				}
 			}
 			if s.Note != "" {
 				<span class="is-size-7 ml-1">{ s.Note }</span>
@@ -209,10 +212,11 @@ templ CoachHome(p CoachPage) {
 											}
 										</td>
 										<td data-label="Sign-off">
-											@StateChip(signoffState(r.Signoff))
 											// Another coach's name; not their own on every row.
-											if r.Signoff.By != "" && r.Signoff.By != p.Coach {
-												@WhoChip(RoleCoach, r.Signoff.By)
+											if r.Signoff.By != "" && r.Signoff.By == p.Coach && !r.Signoff.Unapproved {
+												@StateChip(signoffState(r.Signoff))
+											} else {
+												@signoffCell(SignoffView{Signed: r.Signoff.Signed, By: r.Signoff.By, Unapproved: r.Signoff.Unapproved}, "")
 											}
 										</td>
 									</tr>
@@ -288,7 +292,7 @@ templ SignoffEntry(p SignoffPage) {
 		}
 		@competitionFacts(p.Competition)
 		if p.Notice != "" && p.Frame == nil {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		@coachLates(p.Late)
 		@entryCardChecks(p.Card)

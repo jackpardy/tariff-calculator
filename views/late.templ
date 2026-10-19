@@ -74,7 +74,7 @@ templ LateAdmin(p LateAdminPage) {
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		if p.Timetable != "" {
 			<p class="mb-3 is-size-7">The draft timetable has changes not published yet. <a href={ templ.SafeURL(p.Timetable) }>Open the timetable to publish them →</a></p>

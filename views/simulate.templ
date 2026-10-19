@@ -79,7 +79,7 @@ templ Simulation(p SimulationPage) {
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
-			<div class="notification is-info is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		<p class="mb-4">
 			Try numbers of entries, judges and helpers against your venue setup, before entries arrive or alongside them. Made-up gymnasts and officials are planned just as the timetable plans the real ones, with your days, areas, blocked time, rules, timings and panels. Your real timetable isn't changed.

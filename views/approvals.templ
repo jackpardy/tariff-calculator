@@ -91,7 +91,7 @@ templ CompetitionApprovals(p ApprovalsPage) {
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			// Stays in sight as the page goes to the coach decided on.
-			<div class="notification is-success is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
+			@stickyNotice(p.Notice)
 		}
 		<p class="mb-4">Only coaches you approve can sign off. You ask for at least { p.Asked }. Open each certificate to check it; clubs see your note.</p>
 		@listSection("Coaches", p.Total) {

@@ -57,7 +57,7 @@ templ CompetitionSettings(p SettingsPage) {
 		}
 		if p.Notice != "" {
 			// Stays in sight as the page goes to the setting changed.
-			<div class="notification is-success is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
+			@stickyNotice(p.Notice)
 		}
 		<p class="is-size-7 mb-4">
 			Jump to:

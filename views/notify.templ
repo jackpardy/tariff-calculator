@@ -57,7 +57,7 @@ templ NotifyCompetition(p NotifyPage) {
 		<h1 class="title is-4">Tell me about changes</h1>
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		@problemList(p.Problems)
 		<p class="mb-4">Hear when the organiser changes something for { p.For }: one message for all of it, a few minutes after they publish, with what was and what is now.</p>

@@ -53,7 +53,7 @@ templ FeesAdmin(p FeesPage) {
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		@changeLine("What you charge", p.Now, !p.On) {
 			<form method="post" action={ templ.SafeURL(p.Base + "/fees/settings") }>

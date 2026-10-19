@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 // The organiser's dashboard: every entry by level, filtered, removed and
@@ -122,7 +123,7 @@ templ CompetitionDashboard(d Dashboard) {
 			@newAdminLink(d.Competition, d.Links.Admin, d.New)
 		}
 		if d.Notice != "" {
-			<div class="notification is-success is-light">{ d.Notice }</div>
+			@notice(d.Notice)
 		}
 		if !d.Access.Organiser {
 			<p class="is-size-7 has-text-grey mb-3">You're using the link for <strong>{ d.Access.Who }</strong>.</p>
@@ -201,7 +202,7 @@ templ CompetitionDashboard(d Dashboard) {
 											<th>Video</th>
 										}
 										if d.Competition.Signoff {
-											<th>Coach</th>
+											<th title={ "Who signs it off; * " + strings.ToLower(unapprovedTitle) }>Coach</th>
 										}
 										<th>Checked</th>
 									</tr>
@@ -225,6 +226,9 @@ templ CompetitionDashboard(d Dashboard) {
 								</tbody>
 							</table>
 						</div>
+						if d.Competition.Signoff && anyUnapproved(l.Rows) {
+							@unapprovedKey()
+						}
 					}
 				</details>
 			}
@@ -332,7 +336,9 @@ templ CompetitionEntry(d EntryDetail) {
 		@entryCardChecks(d.Card)
 		<p class="has-text-grey is-size-7 mt-4">Sent { d.Sent }.</p>
 		if d.Notice != "" {
-			<div class="notification is-success is-light mt-3" id="entry-notice">{ d.Notice }</div>
+			<div class="mt-3" id="entry-notice">
+				@notice(d.Notice)
+			</div>
 		}
 		if !d.Access.Check {
 			if d.Checked != "" {
@@ -460,6 +466,63 @@ func signoffState(s SignoffView) (State, string) {
 		return Attention, "Needs changes"
 	}
 	return InProgress, "Waiting for sign-off"
+}
+
+// signoffCell is an entry's sign-off on one line of a row: the coach's
+// name, then what they did (Signed off, Needs changes); a coach the
+// competition hasn't approved has an asterisk instead, as their sign-off
+// doesn't count (unapprovedKey says so under the table). Waiting for a
+// coach, it says Waiting, after the coach named for it if there is one.
+// coach is the coach named for the entry, "" for none or not to show.
+templ signoffCell(s SignoffView, coach string) {
+	<span class="comp-signoff">
+		if s.By != "" {
+			@coachName(s.By, s.Link, s.Unapproved)
+			if !s.Unapproved {
+				@StateChip(signoffState(s))
+			}
+		} else {
+			if coach != "" {
+				@coachName(coach, "", false)
+			}
+			if s.Signed {
+				@StateChip(signoffState(s))
+			} else {
+				@StateChip(InProgress, "Waiting")
+			}
+		}
+	</span>
+}
+
+// coachName is a coach's name in a row's Coach column, a link to their page
+// where there is one, with an asterisk when they aren't approved to sign off.
+templ coachName(name, href string, unapproved bool) {
+	if href != "" {
+		<a href={ templ.SafeURL(href) }>{ name }</a>
+	} else {
+		{ name }
+	}
+	if unapproved {
+		<abbr class="comp-unapproved" title={ unapprovedTitle }>*</abbr>
+	}
+}
+
+// unapprovedTitle is what a coach's asterisk means.
+const unapprovedTitle = "Not approved to sign off here"
+
+// unapprovedKey explains the asterisk once, under a table with one.
+templ unapprovedKey() {
+	<span class="comp-key">* Not approved to sign off for this competition, so their sign-off doesn't count.</span>
+}
+
+// anyUnapproved says whether a level's rows have a coach not approved.
+func anyUnapproved(rows []DashboardRow) bool {
+	for _, r := range rows {
+		if r.Signoff.Unapproved {
+			return true
+		}
+	}
+	return false
 }
 
 // filtered says whether any filter is on.
@@ -746,12 +809,7 @@ templ dashboardRow(d Dashboard, l DashboardLevel, r DashboardRow) {
 				if r.Withdrawn && !r.Signoff.Signed {
 					<span class="comp-none">–</span>
 				} else {
-					@StateChip(signoffState(r.Signoff))
-					if r.Signoff.By != "" {
-						@WhoLink(RoleCoach, r.Signoff.By, r.Signoff.Link)
-					} else if r.Coach != "" {
-						@WhoLink(RoleCoach, r.Coach, "")
-					}
+					@signoffCell(r.Signoff, r.Coach)
 				}
 			</td>
 		}

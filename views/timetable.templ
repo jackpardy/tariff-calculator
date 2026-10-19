@@ -171,7 +171,7 @@ templ CompetitionTimetable(p TimetablePage) {
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			// Stays in sight as the page goes to where the change is.
-			<div class="notification is-info is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
+			@stickyNotice(p.Notice)
 		}
 		if !p.Planned {
 			<div class="box">
@@ -230,7 +230,7 @@ templ TimetableSetup(p TimetablePage) {
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			// Stays in sight as the page goes to where the change is.
-			<div class="notification is-info is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
+			@stickyNotice(p.Notice)
 		}
 		if p.Stale && !p.Begun {
 			<div class="notification is-warning is-light">The setup has changed since the timetable was planned. Plan again to use it.</div>

@@ -1,0 +1,51 @@
+package views
+
+// The small pieces every competition and club page shares, so each looks
+// and reads the same wherever it is (knowledge/architecture/ui.md).
+
+// notice says what a change just did ("Saved."): green, with × to put it
+// away. Nothing when there's nothing to say.
+templ notice(text string) {
+	if text != "" {
+		<div class="notification is-success is-light comp-notice" role="status">
+			@noticeClose()
+			{ text }
+		</div>
+	}
+}
+
+// stickyNotice is a notice that stays in sight while the page goes to where
+// the change is (the row changed, further down).
+templ stickyNotice(text string) {
+	if text != "" {
+		<div class="notification is-success is-light comp-notice comp-sticky-notice" role="status">
+			@noticeClose()
+			{ text }
+		</div>
+	}
+}
+
+templ noticeClose() {
+	<button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>
+}
+
+// backLink is the way back, above a page's heading: an arrow and the name of
+// the page it goes to, never just "Back".
+templ backLink(href, to string) {
+	<p class="comp-back"><a href={ templ.SafeURL(href) }>← { to }</a></p>
+}
+
+// emptyLine says there's nothing to show yet, and what brings something:
+// one line, the same size and grey on every page.
+templ emptyLine(text string) {
+	<p class="comp-empty">{ text }</p>
+}
+
+// pageHead is a page's heading: the page's name, and under it what it's of
+// (the competition's name).
+templ pageHead(title, of string) {
+	<h1 class="title is-4">{ title }</h1>
+	if of != "" {
+		<p class="subtitle is-6">{ of }</p>
+	}
+}

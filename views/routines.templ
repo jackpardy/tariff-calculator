@@ -238,7 +238,7 @@ templ coachFrame(f CoachFrame) {
 	<h1 class="title is-4">{ f.Coach }</h1>
 	@pageMenu(f.Menu)
 	if f.Notice != "" {
-		<div class="notification is-success is-light">{ f.Notice }</div>
+		@notice(f.Notice)
 	}
 }
 

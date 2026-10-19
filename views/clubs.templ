@@ -306,7 +306,7 @@ templ clubFrame(c ClubPage) {
 			</div>
 		}
 		if c.Notice != "" {
-			<div class="notification is-success is-light">{ c.Notice }</div>
+			@notice(c.Notice)
 		}
 		if a := c.Ask; a != nil {
 			<div class="notification is-warning is-light" id="ask">
@@ -504,11 +504,11 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 										if row.Signoff.Status() != "" {
 											<br/>
 											<span>
-												@StateChip(signoffState(row.Signoff))
-												if row.Signoff.By != "" {
-													@WhoLink(RoleCoach, row.Signoff.By, row.Signoff.Link)
-												}
+												@signoffCell(row.Signoff, "")
 												@signoffWaiting(row.Signoff)
+												if row.Signoff.Unapproved {
+													@unapprovedKey()
+												}
 											</span>
 											if row.Signoff.Note != "" {
 												<br/>
@@ -915,7 +915,7 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 			}
 		</h1>
 		if e.Notice != "" {
-			<div class="notification is-success is-light">{ e.Notice }</div>
+			@notice(e.Notice)
 		}
 		if e.Card != nil {
 			<p class="subtitle is-6">{ e.Competition.Name } · { e.Card.Level }</p>
@@ -978,7 +978,7 @@ templ memberFrame(p MemberPage) {
 			</div>
 		}
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		{ children... }
 	}

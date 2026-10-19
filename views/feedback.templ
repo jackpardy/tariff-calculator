@@ -87,7 +87,7 @@ templ Feedback(p FeedbackPage) {
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		<p class="mb-3">
 			What people said with the Feedback button, about the app rather than the competition. It goes to the people who make the app too.

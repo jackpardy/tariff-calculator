@@ -65,7 +65,7 @@ templ gymnastFrame(p GymnastPage) {
 			<span hidden data-gymnast-link={ p.Link } data-gymnast-name={ p.Name }></span>
 		}
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		{ children... }
 	}

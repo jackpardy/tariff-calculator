@@ -696,7 +696,14 @@
         const say = (notices) => {
             const box = document.getElementById('day-notice');
             if (!box || notices.length === 0) { return; }
-            box.replaceChildren(...[...new Set(notices)].map((n) => Object.assign(document.createElement('div'), { className: 'notification is-info is-light', textContent: n })));
+            // As views.notice: green, with × to put it away.
+            box.replaceChildren(...[...new Set(notices)].map((n) => {
+                const note = Object.assign(document.createElement('div'), { className: 'notification is-success is-light comp-notice', role: 'status' });
+                const close = Object.assign(document.createElement('button'), { className: 'delete', type: 'button', onclick: () => note.remove() });
+                close.setAttribute('aria-label', 'Dismiss');
+                note.append(close, n);
+                return note;
+            }));
         };
         const sendTaps = () => {
             if (!taps) { return; }
