@@ -181,7 +181,9 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		if f.clears, err = p.st.ScratchClears(r.Context(), c.ID); err != nil {
 			return page, f, err
 		}
-		page.Days = itemsOf(*t, f.entries, f.officials)
+		if page.Days, err = p.publishedDays(r.Context(), c.ID); err != nil {
+			return page, f, err
+		}
 	}
 	return page, f, nil
 }

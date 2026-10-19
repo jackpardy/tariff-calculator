@@ -187,14 +187,21 @@ func Builtins() []Builtin {
 
 // LookupBuiltin finds a built-in set by its reference ("builtin:<ID>") or ID.
 func LookupBuiltin(ref string) (Set, bool) {
-	id := strings.TrimPrefix(ref, BuiltinPrefix)
+	s, ok := builtinsByID[strings.TrimPrefix(ref, BuiltinPrefix)]
+	return s, ok
+}
+
+// builtinsByID are the built-in sets by ID, built once: pages look them up
+// for every routine they check.
+var builtinsByID = func() map[string]Set {
+	out := map[string]Set{}
 	for _, b := range Builtins() {
-		if b.ID == id {
-			return b.Set, true
+		if _, ok := out[b.ID]; !ok { // the first, as a search finds
+			out[b.ID] = b.Set
 		}
 	}
-	return Set{}, false
-}
+	return out
+}()
 
 // BuiltinLevels lists every built-in level, group by group.
 func BuiltinLevels() []BuiltinLevel {

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"tariffCalculator/store"
+	"tariffCalculator/views"
 )
 
 // What a competition's pages work out from its entries, kept between
@@ -43,6 +44,11 @@ type competitionFacts struct {
 	// The checked cards (judge), worked out when a page first asks: of the
 	// entries not waiting (withdrawn too), and of the live entries.
 	judgedIn, judgedLive []judged
+	// The published timetable's days as the pages show them (itemsOf), with
+	// the live entries and officials, worked out when a page first asks
+	// (days set); nil with none published.
+	days    []views.DayView
+	daysSet bool
 }
 
 // factsOf are a competition's facts, read again if anything has changed
@@ -87,6 +93,7 @@ func (p *competitionPages) factsOf(ctx context.Context, id string) (*competition
 func (f *competitionFacts) readFrom(ctx context.Context, p *competitionPages, id string) error {
 	f.writes = p.st.Writes(id)
 	f.judgedIn, f.judgedLive = nil, nil
+	f.days, f.daysSet = nil, false
 	var err error
 	if f.c, err = p.st.Competition(ctx, id); err != nil {
 		return err
@@ -144,4 +151,28 @@ func (p *competitionPages) judgedOf(ctx context.Context, id string, onlyLive boo
 		f.judgedIn = judge(f.c.Competition, in)
 	}
 	return slices.Clone(f.judgedIn), nil
+}
+
+// publishedDays are a competition's published timetable's days as the
+// pages show them (itemsOf), nil with none published: each gymnast's page
+// shows the whole of it.
+func (p *competitionPages) publishedDays(ctx context.Context, id string) ([]views.DayView, error) {
+	f, err := p.factsOf(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	defer f.mu.Unlock()
+	if !f.daysSet {
+		f.days, f.daysSet = daysOf(f.c, f.rota), true
+	}
+	return f.days, nil
+}
+
+// daysOf are a competition's published timetable's days as the pages show
+// them, with its live entries and officials (publishedDays).
+func daysOf(c store.Competition, r rotaFacts) []views.DayView {
+	if c.Published == nil {
+		return nil
+	}
+	return itemsOf(*c.Published, r.entries, r.officials)
 }

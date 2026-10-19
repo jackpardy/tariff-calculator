@@ -87,4 +87,14 @@ let waited;
 listeners.activate({ waitUntil: (p) => { waited = p; } });
 await waited;
 check('activate drops old copies', !store.has('https://x/competitions/admin/old3'));
+// A new version of a static file drops the older ones of it, and no other.
+store.set('https://x/static/js/app.js?v=old', ok('old', new Date()));
+store.set('https://x/static/css/app.css?v=old', ok('css', new Date()));
+nextFetch = ok('new', new Date());
+const assetWaits = [];
+r = await ctx.asset({ url: 'https://x/static/js/app.js?v=new' }, { waitUntil: (p) => assetWaits.push(p) });
+await Promise.all(assetWaits);
+check('a new version of a static file is kept', (await r.text()) === 'new' && store.has('https://x/static/js/app.js?v=new'));
+check('the older version is dropped', !store.has('https://x/static/js/app.js?v=old'));
+check('other files are left', store.has('https://x/static/css/app.css?v=old'));
 process.exit(fails ? 1 : 0);

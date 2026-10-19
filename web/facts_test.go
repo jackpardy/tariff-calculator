@@ -49,6 +49,9 @@ func checkFacts(t *testing.T, p *competitionPages, after string) {
 				if f.judgedLive != nil {
 					fresh.judgedLive = judge(fresh.c.Competition, fresh.rota.entries)
 				}
+				if f.daysSet {
+					fresh.days = daysOf(fresh.c, fresh.rota)
+				}
 				for _, d := range []struct {
 					what        string
 					cached, now any
@@ -58,6 +61,7 @@ func checkFacts(t *testing.T, p *competitionPages, after string) {
 					{"rota", f.rota, fresh.rota},
 					{"cards", f.judgedIn, fresh.judgedIn},
 					{"live cards", f.judgedLive, fresh.judgedLive},
+					{"timetable", f.days, fresh.days},
 				} {
 					if !reflect.DeepEqual(d.cached, d.now) {
 						t.Errorf("after %s: the cached %s of competition %s were changed", after, d.what, id)

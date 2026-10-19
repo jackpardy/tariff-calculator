@@ -158,8 +158,9 @@ async function page(request, event) {
 }
 
 // asset is cache first: static URLs carry a version (?v=hash), so a cached one
-// is never stale.
-async function asset(request) {
+// is never stale. Keeping a new version of a file drops the older ones, which
+// would otherwise pile up with every release.
+async function asset(request, event) {
     const cache = await caches.open(STATIC);
     const cached = await cache.match(request);
     if (cached) {
@@ -167,9 +168,22 @@ async function asset(request) {
     }
     const response = await fetch(request);
     if (response.ok && response.type === 'basic') {
-        await cache.put(request, response.clone());
+        await cache.put(request.url, response.clone());
+        event.waitUntil(dropOlder(cache, request.url).catch(() => {}));
     }
     return response;
+}
+
+// dropOlder deletes the kept copies of the static file at url other than
+// that version.
+async function dropOlder(cache, url) {
+    const path = new URL(url).pathname;
+    for (const key of await cache.keys()) {
+        const kept = new URL(key.url);
+        if (kept.pathname === path && kept.href !== url) {
+            await cache.delete(key);
+        }
+    }
 }
 
 self.addEventListener('fetch', (event) => {
@@ -184,7 +198,7 @@ self.addEventListener('fetch', (event) => {
     if (request.mode === 'navigate' && isPage(url.pathname)) {
         event.respondWith(page(request, event));
     } else if (url.pathname.startsWith('/static/')) {
-        event.respondWith(asset(request));
+        event.respondWith(asset(request, event));
     }
     // Anything else (the calculator's pages and APIs) goes to the network.
 });
