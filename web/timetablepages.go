@@ -223,6 +223,14 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuTimetable), Notice: r.URL.Query().Get("notice"),
 		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Published: c.Published != nil, Changes: c.Published != nil && !sameTimetable(s, *c.Published), Entries: len(entries), Version: s.Version(),
 	}
+	if c.Published != nil && s.Stale {
+		marks, err := p.dayMarksOf(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		page.Begun = len(marks.begun(*c.Published)) > 0 // no "plan again" once it has
+	}
 	if s.Planned {
 		officials := people
 		page.Rota = rotaView(s, entries, officials, same)
@@ -284,9 +292,18 @@ func (p *competitionPages) timetableSetup(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return
 	}
+	begun := false
+	if c.Published != nil {
+		marks, err := p.dayMarksOf(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		begun = len(marks.begun(*c.Published)) > 0
+	}
 	render(w, r, views.TimetableSetup(views.TimetablePage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuSetup), Notice: r.URL.Query().Get("notice"),
-		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Entries: len(entries), Version: s.Version(),
+		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Begun: begun, Entries: len(entries), Version: s.Version(),
 	}))
 }
 
@@ -306,16 +323,12 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 		failed(w, r, err)
 		return
 	}
-	// Once the day has begun, a fresh plan asks first: it starts again from
-	// the first morning, flights that have run and all.
-	if c.Published != nil && r.FormValue("anyway") != "1" {
-		if begun := marks.begun(*c.Published); len(begun) > 0 {
-			p.askDayMarks(w, r, c, "Plan the timetable again", "The competition has begun:", begun, "Plan again anyway",
-				"A fresh plan starts again from the first morning: it can move flights that have run, change who's in them and put flights at times already gone. "+
-					"Check-ins stay with each gymnast, and a flight's times stay with it if it keeps the same gymnasts. Publish changes says what would be dropped before it is. "+
-					"For a delay or an official leaving, What if there's a delay and What if an official leaves change only what they must.")
-			return
-		}
+	// Once the day has begun the timetable isn't planned again: a fresh plan
+	// starts from the first morning, and what's run has run. Changes on the
+	// day are made by hand or with the "what ifs".
+	if c.Published != nil && len(marks.begun(*c.Published)) > 0 {
+		changed(w, r, refused(dayBegunNote), "")
+		return
 	}
 	notice := fmt.Sprintf("Planned %s.", gymnastsWord(len(entries)))
 	err = p.changeDraft(r, c, func(s *competitions.Schedule) error {
@@ -339,6 +352,11 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 	})
 	changed(w, r, err, notice)
 }
+
+// dayBegunNote says why the timetable isn't planned again once the
+// competition has begun, and what to do instead.
+const dayBegunNote = "The competition has begun, so the timetable isn't planned again; nothing was changed. " +
+	"Change flights and seats by hand, or use What if there's a delay and What if an official leaves."
 
 func gymnastsWord(n int) string {
 	if n == 1 {

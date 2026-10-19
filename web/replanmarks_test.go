@@ -13,12 +13,10 @@ import (
 	"tariffCalculator/store"
 )
 
-// Nothing marked on the day is lost without a word. Planning again on the
-// day asks first; a fresh plan keeps the flight that ran, with its times,
-// who's up and its panel's check-ins, while it keeps its gymnasts, and the
-// gymnasts keep theirs: On the day, the area's page and the venue screen
-// show it all after publishing again. When a fresh plan does change the
-// flight, Publish changes says what would be dropped before it is.
+// Nothing marked on the day is lost without a word. Once the day has begun
+// the timetable isn't planned again (what's run has run); changes by hand
+// still are, and when one would drop something marked, Publish changes says
+// what before it does.
 func TestReplanKeepsDayMarks(t *testing.T) {
 	s := newTestServer(t, atTime(dayBefore))
 	h := s.h
@@ -102,49 +100,39 @@ func TestReplanKeepsDayMarks(t *testing.T) {
 	}
 	check("before")
 
-	// Plan again asks first now the day has begun; nothing changes, and
-	// nothing goes in the history, until the organiser says so.
-	asked := do(t, h, http.MethodPost, tt+"/plan", url.Values{})
-	page := asked.Body.String()
-	if asked.Code != http.StatusOK || !strings.Contains(page, "The competition has begun") {
-		t.Fatalf("Plan again asks first: %d %s", asked.Code, page)
+	// Once the day has begun the timetable isn't planned again: Setup says
+	// so in place of Plan again, and a plan posted anyway is refused, with
+	// nothing changed or recorded.
+	if setup := get(tt + "/setup"); strings.Contains(setup, `action="`+tt+`/plan"`) || !strings.Contains(setup, "The competition has begun") {
+		t.Errorf("Setup offers no Plan again once the day has begun: %s", setup)
 	}
-	for _, line := range []string{"1 flight has started or finished.", "1 official is checked in or marked missing on a panel.", "2 gymnasts are checked in or scratched.", "Plan again anyway"} {
-		if !strings.Contains(page, line) {
-			t.Errorf("the question says %q: %s", line, page)
+	for _, form := range []url.Values{{}, {"anyway": {"1"}}} {
+		if to := redirected(t, h, tt+"/plan", form); !strings.Contains(to, "has+begun") {
+			t.Errorf("Plan again is refused once the day has begun: %s", to)
 		}
 	}
 	if strings.Count(get(admin+"/history"), "Planned the timetable") != 1 {
-		t.Error("asking isn't recorded as planning")
+		t.Error("a refused plan isn't recorded")
 	}
-	s.clock.set(onTheDay(10, 0)) // another seed: a plan of its own
-	redirected(t, h, tt+"/plan", url.Values{"anyway": {"1"}})
-	if r := publish(); r.Code != http.StatusSeeOther {
-		t.Fatalf("nothing to drop, so it publishes straight away: %d %s", r.Code, r.Body)
-	}
-	check("planned again")
-	// Who's up is kept too: taking back Finished shows where the marshal was.
-	redirected(t, h, admin+"/day/flight", url.Values{"flight": {flight}, "what": {"undo-finish"}, "day": {"0"}})
-	if got, card := upNow(); got.Up != wantUp.Up || got.Routine != wantUp.Routine || len(card.Up) == 0 || card.Up[0] != wantCard.Up[0] {
-		t.Errorf("planned again: who's up %+v, on the screen %+v; was %+v, %+v", got, card, wantUp, wantCard)
-	}
+	check("refused a plan")
 
-	// Flights are made smaller and the timetable planned again: BUCS L3 is
-	// now two flights, neither the one that ran. Publishing says first that
-	// its times and who's up go, and so does Mary's check-in on its panel;
-	// Ann's and Cal's stay with them.
-	redirected(t, h, tt+"/setup/timings", url.Values{"per-trampoline": {"5"}, "between-trampoline": {"10"}, "max-trampoline": {"2"},
-		"per-tumbling": {"2"}, "between-tumbling": {"10"}, "max-tumbling": {"15"}, "rest": {"20"}, "restMust": {"0"}, "separate": {"all"}})
-	redirected(t, h, tt+"/plan", url.Values{"anyway": {"1"}})
-	asked = publish()
+	// Changes by hand still work on the day. One that drops something
+	// marked (Mary's chair given to Tom) is asked about before it's
+	// published: her check-in on the panel goes; the gymnasts' stay.
+	page := get(tt)
+	seatForm := regexp.MustCompile(`name="flight" value="(\d+)">\s*<div class="select is-small"><select name="seat" aria-label="Seat on BUCS L3`).FindStringSubmatch(page)
+	tom := regexp.MustCompile(`<option value="([^"]+)"[^>]*>Tom\b`).FindStringSubmatch(page)
+	if seatForm == nil || tom == nil {
+		t.Fatalf("BUCS L3's seat form, and Tom to choose: %s", page)
+	}
+	seat := url.Values{"action": {"seat"}, "flight": {seatForm[1]}, "seat": {"0"}, "person": {tom[1]}, "anyway": {"1"}}
+	redirected(t, h, tt+"/officials", seat)
+	asked := publish()
 	page = asked.Body.String()
 	if asked.Code != http.StatusOK || !strings.Contains(page, "Publishing drops what was marked on the day") {
 		t.Fatalf("Publish changes asks first: %d %s", asked.Code, page)
 	}
-	for _, line := range []string{
-		"1 flight that has started or finished isn&#39;t in the plan any more: its times and who&#39;s up are dropped (BUCS L3).",
-		"1 panel check-in is for seats no longer in the plan.", "Publish anyway",
-	} {
+	for _, line := range []string{"1 panel check-in is for seats no longer in the plan.", "Publish anyway"} {
 		if !strings.Contains(page, line) {
 			t.Errorf("the question says %q: %s", line, page)
 		}
@@ -155,22 +143,14 @@ func TestReplanKeepsDayMarks(t *testing.T) {
 	if got := dayPageAreas(t, get(day))["Panel 1"].Flights; len(got) != 1 || got[0].Key != flight || got[0].Started != "09:00" {
 		t.Errorf("nothing published until the organiser says: %+v", got)
 	}
-	if strings.Count(get(admin+"/history"), "Published the timetable") != 2 {
+	if strings.Count(get(admin+"/history"), "Published the timetable") != 1 {
 		t.Error("asking isn't recorded as publishing")
 	}
 	redirected(t, h, tt+"/publish", url.Values{"action": {"publish"}, "version": {version()}, "anyway": {"1"}})
-	gymnasts := map[string]string{}
-	flights := dayFlights(t, get(day))
-	for _, f := range flights {
-		if f.Key == flight || f.Started != "" || f.Finished != "" {
-			t.Errorf("published anyway: new flights, not started: %+v", f)
-		}
-		for name, mark := range f.Gymnasts {
-			gymnasts[name] = mark
-		}
-	}
-	if len(flights) != 2 || gymnasts["Ann"] != "here" || gymnasts["Bea"] != "" || gymnasts["Cal"] != "scratched" {
-		t.Errorf("published anyway: two flights, the gymnasts' check-ins kept: %+v", flights)
+	got := dayPageAreas(t, get(day))["Panel 1"].Flights
+	if len(got) != 1 || got[0].Key != flight || got[0].Started != "09:00" || got[0].Finished != "09:40" ||
+		got[0].Gymnasts["Ann"] != "here" || got[0].Gymnasts["Cal"] != "scratched" || got[0].Panel == want.Panel {
+		t.Errorf("published anyway: the flight keeps its times and the gymnasts theirs; the panel changed: %+v", got)
 	}
 }
 

@@ -22,6 +22,7 @@ type TimetablePage struct {
 	Stale       bool // the setup changed since planning
 	Published   bool
 	Changes     bool // the draft differs from what's published
+	Begun       bool // the competition has begun (something's marked on the day), so it isn't planned again
 	Report      ReportView
 	Days        []DayView
 	Unplaced    []TimetableGymnast // entries in no flight
@@ -180,7 +181,7 @@ templ CompetitionTimetable(p TimetablePage) {
 				<a class="button is-primary" href={ templ.SafeURL(p.Base + "/timetable/setup") }>Go to Setup</a>
 			</div>
 		} else {
-			if p.Stale {
+			if p.Stale && !p.Begun {
 				<div class="notification is-warning is-light">The setup has changed since this was planned. <a href={ templ.SafeURL(p.Base + "/timetable/setup") }>Plan again on Setup</a> to use it.</div>
 			}
 			@timetableStatus(p)
@@ -222,11 +223,18 @@ templ TimetableSetup(p TimetablePage) {
 			// Stays in sight as the page goes to where the change is.
 			<div class="notification is-info is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
 		}
-		if p.Stale {
+		if p.Stale && !p.Begun {
 			<div class="notification is-warning is-light">The setup has changed since the timetable was planned. Plan again to use it.</div>
 		}
 		<p class="mb-3">What the timetable is made from. Change any of it, then plan.</p>
 		@setupSections(p)
+		if p.Begun {
+			<div class="notification is-light my-4">
+				<strong>The competition has begun</strong>, so the timetable isn't planned again: what's run has run.
+				Change flights, gymnasts and seats by hand on <a href={ templ.SafeURL(p.Base + "/timetable") }>Timetable</a>,
+				or use What if there's a delay and What if an official leaves.
+			</div>
+		} else {
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/plan") } class="my-4">
 			<button class="button is-primary" type="submit" onclick={ confirmReplan(p.Planned) }>
 				if p.Planned {
@@ -242,6 +250,7 @@ templ TimetableSetup(p TimetablePage) {
 				}
 			</p>
 		</form>
+		}
 	}
 }
 

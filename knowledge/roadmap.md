@@ -587,8 +587,8 @@ December. Before it:
   times** under each flight.
 - **Re-planning keeps what's marked on the day** (built 2026-10-19, from
   the full audit): planning again and publishing no longer wipe check-ins,
-  flight times, who's up or panel check-ins; Plan again asks first once the
-  day has begun, and Publish changes says what it would drop
+  flight times, who's up or panel check-ins; once the day has begun it isn't
+  planned again (changes by hand still are), and Publish changes says what it would drop
   ([how](features/competition-entries.md#timetable-adr-0005-step-4)).
 - **One palette on the day's pages**: **built 2026-10-15.** On the day
   (flights, check-in, panels and their empty seats), the dashboard's and the

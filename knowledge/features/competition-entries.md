@@ -875,12 +875,12 @@ are then filled flight by flight.
   check-ins follow the seat where the person still has it. A new flight
   never takes an old flight's ID. Once the day has begun (something marked
   for a published flight: started or finished, who's up, a panel check-in,
-  a gymnast checked in or scratched), **Plan again** asks first on **Before
-  you change it**, with counts ("1 flight has started or finished.") and
-  **Plan again anyway**: a fresh plan starts again from the first morning,
-  so it can move flights that have run and put flights at times gone; it
-  doesn't hold them fixed. **Publish changes** then says first what the new
-  draft would no longer show (`dayMarks.lost`): flights started or finished
+  a gymnast checked in or scratched), the timetable isn't planned again
+  (the owner, 2026-10-19: what's run has run, and a fresh plan starts from
+  the first morning): Setup shows a note in place of **Plan again**, and a
+  plan posted anyway is refused, nothing changed. Changes by hand (moves,
+  seats, redraws) and the "what ifs" still work. **Publish changes** says
+  first what a new draft would no longer show (`dayMarks.lost`): flights started or finished
   that aren't in it (their times and who's up are dropped, by name), panel
   check-ins for seats no longer in it (the flight's gone, or the person's no
   longer on it), and gymnasts checked in or scratched who aren't in it, with
