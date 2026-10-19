@@ -37,7 +37,7 @@ func TestMyCompetition(t *testing.T) {
 	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
 
 	page := dayAll(t, h, day)
-	if !strings.Contains(page, "2 problems to sort out") || !strings.Contains(page, "Second exercise: Exactly 10 elements") || !strings.Contains(page, "The timetable isn't published yet") {
+	if !strings.Contains(page, chip(t, views.Attention, "2 problems")) || !strings.Contains(page, "Second exercise: Exactly 10 elements") || !strings.Contains(page, "The timetable isn't published yet") {
 		i := strings.Index(page, "<h1")
 		t.Errorf("sent, not yet published: %s", page[i:min(len(page), i+1500)])
 	}

@@ -17,7 +17,7 @@ type ClubPage struct {
 	AdminLink            string // set only when New is
 	JoinLink             string
 	NewLink              *MemberLink // a member's or coach's link just made, to send them
-	Ask                  *LinkAsk    // asking before a link is replaced
+	Ask                  *Ask        // asking before a change that can't be put back
 	Notice               string      // what just happened, e.g. "Sent 4 entries to Student Open"
 	NoticeAt             string      // the member the notice is about, whose row says it too, where the page opens
 	Members              []ClubMember
@@ -53,15 +53,6 @@ type ClubCoach struct {
 type QualificationView struct {
 	ID, Name    string
 	Certificate string // where to open it
-}
-
-// LinkAsk asks before a link is replaced, as the old one stops working:
-// the same form posts again with anyway=1 to replace it.
-type LinkAsk struct {
-	Title, Text string
-	Action      string // where replacing it posts
-	Button      string
-	Back        string // where Cancel goes
 }
 
 // MemberLink is a member's personal link.
@@ -179,6 +170,7 @@ type MemberPage struct {
 	Link         string // their personal link, as a full URL
 	New          bool   // just joined
 	Notice       string
+	Ask          *Ask // asking before a routine is deleted
 	Competitions []MemberCompetition // the list
 	Competition  *MemberCompetition  // the one competition's page shows
 	Pairs        []PairView          // synchro entries they're the partner in
@@ -308,17 +300,7 @@ templ clubFrame(c ClubPage) {
 		if c.Notice != "" {
 			@notice(c.Notice)
 		}
-		if a := c.Ask; a != nil {
-			<div class="notification is-warning is-light" id="ask">
-				<p class="mb-2"><strong>{ a.Title }</strong></p>
-				<p class="mb-3">{ a.Text }</p>
-				<form method="post" action={ templ.SafeURL(a.Action) } class="buttons">
-					<input type="hidden" name="anyway" value="1"/>
-					<button class="button is-small is-primary" type="submit">{ a.Button }</button>
-					<a class="button is-small" href={ templ.SafeURL(a.Back) }>Cancel</a>
-				</form>
-			</div>
-		}
+		@askBox(c.Ask)
 		if c.NewLink != nil {
 			<div class="notification is-info is-light">
 				if c.NewLink.Coach {
@@ -722,7 +704,7 @@ templ ClubMembers(c ClubPage) {
 											<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/new-link") }>
 												<button class="button is-small is-text" type="submit" title="For a member who lost their link: you're asked first, as their old one stops working">New link</button>
 											</form>
-											<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/remove") } onsubmit={ confirmRemove(m.Name) }>
+											<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/remove") }>
 												<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
 											</form>
 										}
@@ -769,7 +751,7 @@ templ ClubCoaches(c ClubPage) {
 											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") }>
 												<button class="button is-small is-text" type="submit" title="You're asked first, as their old link stops working">New link</button>
 											</form>
-											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/remove") } onsubmit={ confirmRemoveCoach(coach.Name) }>
+											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/remove") }>
 												<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
 											</form>
 										}
@@ -896,14 +878,6 @@ templ ClubSettings(c ClubPage) {
 	}
 }
 
-script confirmRemoveCoach(name string) {
-	if (!confirm("Remove " + name + " as a coach? Their members will have no coach until one is chosen.")) { event.preventDefault(); }
-}
-
-script confirmRemove(name string) {
-	if (!confirm("Remove " + name + " and their entries from the club?")) { event.preventDefault(); }
-}
-
 // ClubEntryEditPage is the comp sec changing a member's entry.
 templ ClubEntryEditPage(e ClubEntryEdit) {
 	@competitionLayout(e.Member + " · " + e.Competition.Name) {
@@ -981,6 +955,7 @@ templ memberFrame(p MemberPage) {
 		if p.Notice != "" {
 			@notice(p.Notice)
 		}
+		@askBox(p.Ask)
 		{ children... }
 	}
 }

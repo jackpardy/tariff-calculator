@@ -222,7 +222,13 @@ func TestClubs(t *testing.T) {
 
 	// Removing a member ends their link.
 	remove := strings.TrimSuffix(newLink, "/new-link") + "/remove"
-	redirected(t, h, remove, url.Values{})
+	// Asked first, on Members, with no browser pop-up: nothing goes until yes.
+	if page := do(t, h, http.MethodPost, remove, url.Values{}).Body.String(); !strings.Contains(page, "Their entries go with them") ||
+		!strings.Contains(page, `action="`+remove+`"`) || !strings.Contains(page, `name="anyway" value="1"`) || strings.Contains(page, "confirm(") ||
+		do(t, h, http.MethodGet, fresh, nil).Code != http.StatusOK {
+		t.Errorf("removing a member asks first: %s", page)
+	}
+	redirected(t, h, remove, url.Values{"anyway": {"1"}})
 	if do(t, h, http.MethodGet, fresh, nil).Code != http.StatusNotFound {
 		t.Error("a removed member's link stops working")
 	}

@@ -344,7 +344,7 @@ templ CoachClubSkills(p ClubSkillsPage) {
 					Added by{ " " }
 					@WhoChip(RoleCoach, c.By)
 				</p>
-				<form method="post" action={ templ.SafeURL(c.Remove) } class="mt-1" onsubmit={ confirmRemoveClubSkill(c.Name) }>
+				<form method="post" action={ templ.SafeURL(c.Remove) } class="mt-1">
 					<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
 				</form>
 			</div>
@@ -387,11 +387,6 @@ templ CoachClubSkills(p ClubSkillsPage) {
 			<p class="help mt-2">{ "Up to " + strconv.Itoa(p.Max) + " club skills. Members and coaches mark it like any skill; it's not for routines." }</p>
 		</form>
 	}
-}
-
-// confirmRemoveClubSkill asks before a club skill goes, with its marks.
-script confirmRemoveClubSkill(name string) {
-	if (!confirm('Remove ' + name + '? Marks on something to track go with it; a name for a skill only stops showing.')) { event.preventDefault(); }
 }
 
 // levelsSection is how far a gymnast is through each of the club's levels:
@@ -517,7 +512,7 @@ templ CoachClubLevels(p ClubLevelsPage) {
 						<input type="hidden" name="by" value="1"/>
 						<button class="button" type="submit" disabled?={ l.Last } title="Move it down the list">↓ Later</button>
 					</form>
-					<form method="post" action={ templ.SafeURL(l.Remove) } class="is-inline" onsubmit={ confirmRemoveLevel(l.Name) }>
+					<form method="post" action={ templ.SafeURL(l.Remove) } class="is-inline">
 						<button class="button is-text has-text-danger" type="submit">Remove</button>
 					</form>
 				</div>
@@ -530,11 +525,6 @@ templ CoachClubLevels(p ClubLevelsPage) {
 		}
 		<p class="help">{ "Up to " + strconv.Itoa(p.Max) + " levels." }</p>
 	}
-}
-
-// confirmRemoveLevel asks before a level goes.
-script confirmRemoveLevel(name string) {
-	if (!confirm('Remove ' + name + '? Gymnasts\' marks stay.')) { event.preventDefault(); }
 }
 
 // FormValue is a named value: a form field to post on, or a choice.

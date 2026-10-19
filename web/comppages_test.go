@@ -126,8 +126,17 @@ func TestCreateCompetition(t *testing.T) {
 		t.Errorf("a wrong admin link: %d", rec.Code)
 	}
 
-	// Replacing the admin link ends the old one.
+	// Replacing the admin link asks first, on Settings, then ends the old one.
 	rec = do(t, h, http.MethodPost, admin+"/replace-link", url.Values{})
+	if page := rec.Body.String(); rec.Code != http.StatusOK || !strings.Contains(page, "Replace the admin link?") ||
+		!strings.Contains(page, "stops working at once, for everyone who has it, wherever it&#39;s saved") || !strings.Contains(page, `name="anyway" value="1"`) ||
+		do(t, h, http.MethodGet, admin, nil).Code != http.StatusOK {
+		t.Fatalf("replacing the admin link asks first: %d %s", rec.Code, page)
+	}
+	if history := do(t, h, http.MethodGet, admin+"/history", nil).Body.String(); strings.Contains(history, "admin link") {
+		t.Error("asking isn't in the history")
+	}
+	rec = do(t, h, http.MethodPost, admin+"/replace-link", url.Values{"anyway": {"1"}})
 	fresh := strings.TrimSuffix(rec.Header().Get("Location"), "/settings?new=replaced")
 	if page := do(t, h, http.MethodGet, rec.Header().Get("Location"), nil).Body.String(); !strings.Contains(page, "Your new admin link.") {
 		t.Error("the new link is shown")

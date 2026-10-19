@@ -310,7 +310,7 @@ func (p *competitionPages) timetableSetup(w http.ResponseWriter, r *http.Request
 
 // planTimetable plans afresh with the setup, keeping whether it's published.
 func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request) {
-	c, _, entries, ok := p.timetableOf(w, r)
+	c, draft, entries, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -329,6 +329,19 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 	// day are made by hand or with the "what ifs".
 	if c.Published != nil && len(marks.begun(*c.Published)) > 0 {
 		changed(w, r, refused(dayBegunNote), "")
+		return
+	}
+	// Planning again loses what was changed by hand: asked first, once.
+	if draft.Planned && !asked(r) {
+		then := "The setup stays as it is."
+		if c.Published != nil {
+			then += " Clubs, gymnasts and officials keep seeing what you last published until you publish again."
+		}
+		p.askBefore(w, r, c, menuSetup, views.AskFirstPage{
+			What: "Plan the timetable again",
+			Says: "Planning again starts afresh: every flight, running order and seat is made anew, and what you changed by hand is lost.",
+			Then: then, Do: "Plan again", Back: timetablePath(r) + "/setup",
+		})
 		return
 	}
 	notice := fmt.Sprintf("Planned %s.", gymnastsWord(len(entries)))
@@ -612,6 +625,15 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 		}
 		notice = "Published: clubs, members and gymnasts entering on their own see their flight, area and time, and officials their duties."
 	case "unpublish":
+		if !asked(r) {
+			p.askBefore(w, r, c, menuTimetable, views.AskFirstPage{
+				What: "Unpublish the timetable",
+				Says: "Clubs, members, gymnasts and officials stop seeing their flights, times and duties until you publish again.",
+				Then: "The timetable stays here as it is, for you to change and publish again.",
+				Do:   "Unpublish", Back: timetablePath(r),
+			})
+			return
+		}
 		p.notify.changing(r.Context(), c)
 		if err := p.st.PublishTimetable(r.Context(), c.ID, nil); err != nil {
 			failed(w, r, err)
@@ -621,6 +643,15 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 	case "discard":
 		if c.Published == nil {
 			back(w, r, "There's nothing published to go back to.")
+			return
+		}
+		if !asked(r) {
+			p.askBefore(w, r, c, menuTimetable, views.AskFirstPage{
+				What: "Discard your changes",
+				Says: "The timetable goes back to what you last published, and every change you've made since is lost.",
+				Then: "Clubs, gymnasts and officials see no change: they still see what you published.",
+				Do:   "Discard changes", Back: timetablePath(r),
+			})
 			return
 		}
 		draft := *c.Published

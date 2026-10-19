@@ -201,7 +201,10 @@ func TestClubSkills(t *testing.T) {
 	if rec := do(t, h, http.MethodPost, bob+strings.TrimPrefix(remove, ann), nil); rec.Code != http.StatusNotFound {
 		t.Errorf("another club's coach removes it: %d", rec.Code)
 	}
-	redirected(t, h, remove, nil)
+	if page := do(t, h, http.MethodPost, remove, nil).Body.String(); !strings.Contains(page, "marks on it go with it") || !strings.Contains(page, `name="anyway" value="1"`) {
+		t.Errorf("removing a club skill asks first: %s", page)
+	}
+	redirected(t, h, remove, url.Values{"anyway": {"1"}})
 	if page = do(t, h, http.MethodGet, member+"/skills", nil).Body.String(); strings.Contains(page, "Kaboom drill") {
 		t.Error("its marks go with it")
 	}

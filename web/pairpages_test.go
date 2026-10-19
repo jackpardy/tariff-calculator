@@ -41,7 +41,7 @@ func TestPartnerSeesThePair(t *testing.T) {
 
 	// Sent by UCD: B sees it's sent.
 	redirected(t, h, formAction(t, clubEntriesPage(t, h, ucd), ucd+"/competitions/"), url.Values{"which": {"all"}})
-	if page := do(t, h, http.MethodGet, b, nil).Body.String(); !strings.Contains(page, "Sent to the competition") {
+	if page := do(t, h, http.MethodGet, b, nil).Body.String(); !strings.Contains(page, "Sent by your club") {
 		t.Error("B sees it sent")
 	}
 

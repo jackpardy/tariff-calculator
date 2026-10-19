@@ -397,7 +397,7 @@ templ entryBody(p EntryPage) {
 		if p.Checked {
 			@StateChip(Done, "Checked by the organiser")
 		}
-		<span class="has-text-grey is-size-7">Entered { p.Sent }.</span>
+		<span class="has-text-grey is-size-7">Sent { p.Sent }.</span>
 	</p>
 	if p.Removal != "" {
 		<div class="notification is-warning is-light">
