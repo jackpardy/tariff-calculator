@@ -883,15 +883,18 @@ templ ClubSettings(c ClubPage) {
 				<button class="button is-small" type="submit">Replace the admin link</button>
 			</form>
 		}
-		@opens("Delete the club", "Its members and their entries, now. Entries already sent stay with each competition.", "Delete", false) {
-			<form method="post" action={ templ.SafeURL(c.Base + "/delete") }>
-				<label class="checkbox comp-check is-size-7">
-					<input type="checkbox" name="confirm" value="1" required/>
-					Delete the club, its members and their entries, now
-				</label>
-				<button class="button is-small is-text has-text-danger ml-2" type="submit">Delete</button>
-			</form>
-		}
+		// Deleting the whole club looks unlike any other remove.
+		<div class="comp-danger-zone">
+			@opens("Delete the club", "Its members and their entries, now. Entries already sent stay with each competition.", "Delete", false) {
+				<form method="post" action={ templ.SafeURL(c.Base + "/delete") }>
+					<label class="checkbox comp-check is-size-7">
+						<input type="checkbox" name="confirm" value="1" required/>
+						Delete the club, its members and their entries, now
+					</label>
+					<button class="button is-small is-danger ml-2" type="submit">Delete the club</button>
+				</form>
+			}
+		</div>
 		if c.KeptUntil != "" {
 			<p class="help mb-5">{ "The club is kept until " + c.KeptUntil + ": 13 months after anyone last opened its pages, or a member's or coach's. Each time someone does, that moves on." }</p>
 		}

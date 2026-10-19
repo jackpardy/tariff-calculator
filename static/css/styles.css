@@ -1557,3 +1557,10 @@ form:has(input[name="to"][value="people"]:not(:checked)) .desk-to-people { displ
 
 /* A discipline on a member's page: a heading, the size of the row's text. */
 .comp-event-name { display: inline; font-size: 1rem; font-weight: 700; margin-right: 0.3em; }
+
+/* Deleting a whole competition or club (comp-danger-zone): set apart by a red
+   edge, its Delete button outlined red and the last one solid red, unlike the
+   red-text removes of single things. */
+.comp-danger-zone { border-left: 3px solid var(--state-stopped-ink); padding-left: 0.75rem; margin-top: 0.5rem; }
+.comp-danger-zone .comp-opens-button { color: var(--state-stopped-ink); border-color: var(--state-stopped-ink); }
+.comp-danger-zone .button.is-danger { background: var(--state-stopped-ink); border-color: var(--state-stopped-ink); color: #fff; }

@@ -60,6 +60,7 @@ Every button on these pages has one of these looks
 | Ordinary | `button is-small` (or `button`) | Print this level's cards, Invoice, Not yet, Hold for changes, a Change that goes to another page |
 | Change: opens a form in place | `@changeLine(...)` / `@opens(...)`: `button is-small comp-opens-button` | Change, Add a coach, Record a payment |
 | Remove or delete | `button is-small is-text has-text-danger` | Remove, Delete, Withdraw, Delete from your page |
+| Delete a whole competition or club | `button is-small is-danger`, in a `comp-danger-zone` (red edge, red-outlined Delete) | Delete the competition, Delete the club: set apart from every other remove (the owner, 2026-10-19) |
 | Quiet, a link that's a button | `button is-small is-text` | Untick all, Send all again, Make the change anyway |
 | Sets a state (On the day) | `button is-small is-state-done` / `is-state-stopped` | Here; Scratched, Missing |
 

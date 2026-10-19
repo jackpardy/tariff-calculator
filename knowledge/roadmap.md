@@ -916,3 +916,7 @@ decisions.
 [^cop]: FIG Trampoline Code of Points 2025–2028
 [^club-software]: Gymnastics club management software round-up (2026)
 [^generators]: Vincent Beaulieu's trampoline routine generator
+
+**Archive a competition (noted 2026-10-19, later).** The owner would like a
+competition to be archived once it's over, rather than only deleted: kept,
+read-only, out of the way of the live ones. Not designed yet.
