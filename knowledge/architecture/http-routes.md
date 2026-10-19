@@ -19,7 +19,7 @@ the competition and club routes are registered by each page file in `web/`
 |---|---|---|
 | `GET /` | optional `back` (an entry form's address, under `/clubs/` or `/competitions/`) | The calculator page ([routine builder](../features/routine-builder.md)); with `back`, from an entry form's **Open the Routine Builder →**, a **← go back to your entry** link to it (`no-referrer`, `no-store`) |
 | `POST /skill-form` | optional `skill` (JSON) + `editIndex` | The "Add a skill" panel, for the default skill or the one being edited |
-| `POST /skill-inputs` | the form's fields, or `load=common` + `commonSkillKey` (+ `shape`), or `load=skill` + `skill` | The re-rendered editor; 204 while the form holds something unscorable |
+| `POST /skill-inputs` | the form's fields, or `load=common` + `commonSkillKey` (+ `shape`), or `load=landing` + `commonSkillKey` + `previous_skill` (a body-landing tile, taking off where that skill landed), or `load=skill` + `skill` | The re-rendered editor; 204 while the form holds something unscorable |
 | `GET /skill-search` | `q` | Search results ([skill catalog](../domain/skill-catalog.md)) |
 | `POST /calculate-skill` | the form's fields | The skill as JSON, named and priced, for the page to store |
 | `GET /judging` | the form's fields (query), optional `last=1` | The "How it's judged" pop-up ([execution judging](../domain/execution.md)); `last=1` adds the landing; 400 for a skill that can't land |

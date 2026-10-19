@@ -546,11 +546,18 @@ func (p *competitionPages) skillsPart(r *http.Request, m store.Member, viewer sk
 	}
 	for _, c := range catalog.Categories() {
 		g := views.SkillGroup{Title: c.Label}
-		var entries []catalog.Entry
+		// A body-landing tile is each of the catalogue's skills it gives,
+		// after one landing or another.
 		for _, group := range c.Groups {
-			entries = append(entries, group.Options...)
+			for _, e := range group.Options {
+				for _, s := range e.Versions() {
+					if catalog.InCatalogue(s) {
+						g.Skills = append(g.Skills, choice(s))
+					}
+				}
+			}
 		}
-		for _, e := range append(entries, c.Entries...) {
+		for _, e := range c.Entries {
 			shapes := e.Shapes()
 			if len(shapes) == 0 {
 				g.Skills = append(g.Skills, choice(e.Skill))
