@@ -51,6 +51,9 @@ func (p *competitionPages) askFirst(w http.ResponseWriter, r *http.Request, c st
 	if fixes != nil {
 		page.Fixes = fixes(clean)
 	}
+	if rec, ok := w.(*statusRecorder); ok {
+		rec.asked = true
+	}
 	render(w, r, views.ChangeCheck(page))
 	return true
 }

@@ -365,6 +365,15 @@ a **Change** button to open it.
    still sees what you published until you tap **Publish changes**. The page
    says when there are changes not published yet; **Discard changes** goes
    back to what's published, and **Unpublish** takes it down.
+   What's been marked on the day stays when you change the plan: check-ins
+   stay with each gymnast, and a flight keeps its times, who's up and its
+   panel's check-ins when you move it, and when you plan again if it keeps
+   the same gymnasts. Once the competition has begun, the timetable can't
+   be planned again (what's run has run): change flights, gymnasts and
+   seats by hand, or use the "what ifs". If publishing would
+   drop anything (a flight that has run but is no longer in the plan, or a
+   panel check-in for a seat that's gone), **Publish changes** says what
+   first, and you choose **Publish anyway** or **Cancel**.
 11. **On the day** (a button on the entries page once you've published; chairs
    of judges' and timetable links get it too): pick the day. Each area is a
    card saying how it's running, the flight it's on, who's up, how many are

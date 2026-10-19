@@ -863,9 +863,32 @@ are then filled flight by flight.
   plan's seed) and kept by every change: moving its event, Earlier,
   redrawing, renumbering, a delay merging another into it. A flight made any
   other way gets a new one when the draft is saved (`Schedule.Identify`).
-  Planning again makes new flights, with new IDs. What happens to a flight on
-  the day is kept by its ID (`competitions.FlightKey`), so it follows the
-  flight when the organiser moves or renumbers it and publishes again.
+  What happens to a flight on the day is kept by its ID
+  (`competitions.FlightKey`), so it follows the flight when the organiser
+  moves or renumbers it and publishes again.
+- **Re-planning keeps what's marked on the day** (built 2026-10-19, audit
+  finding 6). A gymnast's check-in or scratch is kept by their entry, so it
+  stays with them wherever their flight goes. Planning again makes new
+  flights, but each takes the ID of the flight it was (`Schedule.KeepIDs`,
+  against the published flights, then the draft's): first one of its event
+  with the same gymnasts (in any order, on any day or area), so a flight
+  that ran keeps its times and who's up; failing that, one of its event with
+  the same number that nothing has happened to yet, so its panel's
+  check-ins follow the seat where the person still has it. A new flight
+  never takes an old flight's ID. Once the day has begun (something marked
+  for a published flight: started or finished, who's up, a panel check-in,
+  a gymnast checked in or scratched), the timetable isn't planned again
+  (the owner, 2026-10-19: what's run has run, and a fresh plan starts from
+  the first morning): Setup shows a note in place of **Plan again**, and a
+  plan posted anyway is refused, nothing changed. Changes by hand (moves,
+  seats, redraws) and the "what ifs" still work. **Publish changes** says
+  first what a new draft would no longer show (`dayMarks.lost`): flights started or finished
+  that aren't in it (their times and who's up are dropped, by name), panel
+  check-ins for seats no longer in it (the flight's gone, or the person's no
+  longer on it), and gymnasts checked in or scratched who aren't in it, with
+  **Publish anyway**. The dropped rows stay in the database, unseen. Moves,
+  redraws, seats and a kept "what if" keep IDs, so they drop only what the
+  change itself takes away. A page that only asks isn't recorded in History.
 
 ## What if there's a delay
 
