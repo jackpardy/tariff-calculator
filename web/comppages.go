@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -278,7 +279,7 @@ func entryForm(c competitions.Competition, e competitions.Entry, action, submit 
 	d := e.Discipline
 	f := views.EntryForm{
 		Action: action, Submit: submit, Gymnast: e.Gymnast, Level: e.DoesLevel(), Category: e.Category, Video: c.Video.Describe(),
-		Discipline: d, Synchro: d == competitions.Synchro, Unchecked: !competitions.Checked(d),
+		Discipline: d, Synchro: d == competitions.Synchro, Unchecked: !competitions.Checked(d), Builder: routineBuilder(action, d),
 	}
 	if e.Partner != nil {
 		f.PartnerName, f.PartnerClub = e.Partner.Name, e.Partner.Club
@@ -333,6 +334,17 @@ func entryForm(c competitions.Competition, e competitions.Entry, action, submit 
 	return f
 }
 
+// routineBuilder opens the Routine Builder from an entry form posting to
+// action, with a way back to the form, at its discipline: a GET of the
+// form's address shows it.
+func routineBuilder(action, discipline string) string {
+	sep := "?"
+	if strings.Contains(action, "?") {
+		sep = "&"
+	}
+	return "/?back=" + url.QueryEscape(action+sep+"discipline="+url.QueryEscape(discipline))
+}
+
 // postedEntry reads an entry from the form: gymnast (unless given, as for a
 // club's member), level, and for each exercise its option (ex1Option,
 // ex2Option) and routine as JSON (ex1Skills, ex2Skills). A set routine's
@@ -373,7 +385,7 @@ func postedEntry(r *http.Request, c competitions.Competition, gymnast string) (c
 		}
 		raw := strings.TrimSpace(r.FormValue(fmt.Sprintf("ex%dSkills", i+1)))
 		if raw == "" {
-			problems = append(problems, fmt.Sprintf("Choose a routine for the %s exercise.", [...]string{"first", "second"}[i]))
+			problems = append(problems, fmt.Sprintf("Choose a routine for the %s exercise. None to choose? Build one with the Routine Builder link under it.", [...]string{"first", "second"}[i]))
 			continue
 		}
 		var routine []skills.TrampolineSkill

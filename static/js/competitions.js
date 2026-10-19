@@ -190,7 +190,7 @@
                 const kept = select.querySelector('optgroup[data-kept]');
                 if (!select.querySelector('option[value="current"]')) {
                     const any = routines.length > 0 || kept;
-                    const prompt = new Option(any ? 'Choose a routine' : 'No routines saved in this browser', '');
+                    const prompt = new Option(any ? 'Choose a routine' : 'No routines yet: build one (link below)', '');
                     select.prepend(prompt);
                     prompt.selected = true;
                 }

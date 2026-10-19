@@ -65,11 +65,11 @@ func TestClubSections(t *testing.T) {
 	if !strings.HasSuffix(assign, "/coach") {
 		assign = regexp.MustCompile(`action="(` + regexp.QuoteMeta(club) + `/members/[^"]+/coach)"`).FindStringSubmatch(page)[1]
 	}
-	if got := redirected(t, h, assign, url.Values{"coach": {""}}); got != club+"/members" {
-		t.Errorf("choosing a member's coach goes back to Members: %s", got)
+	if got := redirected(t, h, assign, url.Values{"coach": {""}}); !strings.HasPrefix(got, club+"/members?notice=A.+Murphy+has+no+coach") || !strings.Contains(got, "&at=") || !strings.Contains(got, "#member-") {
+		t.Errorf("choosing a member's coach goes back to their row on Members: %s", got)
 	}
 	newLink := regexp.MustCompile(`action="(` + regexp.QuoteMeta(club) + `/members/[^"]+/new-link)"`).FindStringSubmatch(page)[1]
-	if rec := do(t, h, http.MethodPost, newLink, url.Values{}); rec.Code != http.StatusOK || currentTab(t, rec.Body.String()) != "Members" || !strings.Contains(rec.Body.String(), "A. Murphy&#39;s new link") {
+	if rec := do(t, h, http.MethodPost, newLink, url.Values{"anyway": {"1"}}); rec.Code != http.StatusOK || currentTab(t, rec.Body.String()) != "Members" || !strings.Contains(rec.Body.String(), "A. Murphy&#39;s new link") {
 		t.Errorf("a member's new link is shown on Members: %d", rec.Code)
 	}
 	remove := strings.TrimSuffix(newLink, "/new-link") + "/remove"
@@ -123,8 +123,13 @@ func TestClubSections(t *testing.T) {
 	if got := redirected(t, h, club+"/delete", url.Values{}); got != club+"/settings" {
 		t.Errorf("deleting without confirming goes back to Settings: %s", got)
 	}
-	// A new admin link is shown on the default page, where it's saved.
-	if got := redirected(t, h, club+"/replace-link", url.Values{}); !strings.HasSuffix(got, "?new=replaced") || strings.Contains(got, "/settings") {
+	// Replacing the admin link asks first, on Settings; then the new one
+	// is shown on the default page, where it's saved.
+	if rec := do(t, h, http.MethodPost, club+"/replace-link", url.Values{}); rec.Code != http.StatusOK || currentTab(t, rec.Body.String()) != "Settings" ||
+		!strings.Contains(rec.Body.String(), "Replace the admin link?") || !strings.Contains(rec.Body.String(), `href="`+club+`/settings">Cancel`) {
+		t.Errorf("replacing the admin link asks first: %d", rec.Code)
+	}
+	if got := redirected(t, h, club+"/replace-link", url.Values{"anyway": {"1"}}); !strings.HasSuffix(got, "?new=replaced") || strings.Contains(got, "/settings") {
 		t.Errorf("replacing the admin link shows the new one on the default page: %s", got)
 	}
 }

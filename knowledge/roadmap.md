@@ -531,6 +531,13 @@ govulncheck in CI; `/healthz` and a graceful shutdown; an end-to-end test on a
 fixed clock; the timetable page 6.1 MB to 0.8 MB; search on the day and
 timetable pages; wide tables as cards on a phone.
 
+**Full audit fixes (decided 2026-10-19).** The owner's choices from the
+second full audit, built on their own branches. Clubs and people's dead ends
+(**built 2026-10-19**): replacing a link asks first, choosing a member's coach
+comes back to their row, no routine yet leads to the Routine Builder and back,
+a waiting sign-off says who gives it, and entering another discipline on your
+own is on your page.
+
 **Skill names and search (full audit, built 2026-10-19).** The catalogue
 has the common twisting singles, doubles and triples, named and placed as the
 Code of Points' examples (Full-In Back, Rudi-Out, Half-In Rudi-Out, Triple

@@ -17,7 +17,9 @@ type ClubPage struct {
 	AdminLink            string // set only when New is
 	JoinLink             string
 	NewLink              *MemberLink // a member's or coach's link just made, to send them
+	Ask                  *LinkAsk    // asking before a link is replaced
 	Notice               string      // what just happened, e.g. "Sent 4 entries to Student Open"
+	NoticeAt             string      // the member the notice is about, whose row says it too, where the page opens
 	Members              []ClubMember
 	Competitions         []ClubCompetition
 	Coaches              []ClubCoach
@@ -51,6 +53,15 @@ type ClubCoach struct {
 type QualificationView struct {
 	ID, Name    string
 	Certificate string // where to open it
+}
+
+// LinkAsk asks before a link is replaced, as the old one stops working:
+// the same form posts again with anyway=1 to replace it.
+type LinkAsk struct {
+	Title, Text string
+	Action      string // where replacing it posts
+	Button      string
+	Back        string // where Cancel goes
 }
 
 // MemberLink is a member's personal link.
@@ -92,6 +103,9 @@ type ClubCompetition struct {
 	Disciplines []FlightOption
 	Pairs       []PairView // synchro entries others made, with one of the members as partner
 	NoOffer     []FlightOption // members who haven't offered to help, while offers can change
+	// NoSigner says the competition needs a coach's sign-off, but no coach
+	// of the club signs off routines, so every entry waits.
+	NoSigner bool
 }
 
 // ClubSendCoach is one of the club's coaches, to send to a competition.
@@ -294,6 +308,17 @@ templ clubFrame(c ClubPage) {
 		if c.Notice != "" {
 			<div class="notification is-success is-light">{ c.Notice }</div>
 		}
+		if a := c.Ask; a != nil {
+			<div class="notification is-warning is-light" id="ask">
+				<p class="mb-2"><strong>{ a.Title }</strong></p>
+				<p class="mb-3">{ a.Text }</p>
+				<form method="post" action={ templ.SafeURL(a.Action) } class="buttons">
+					<input type="hidden" name="anyway" value="1"/>
+					<button class="button is-small is-warning" type="submit">{ a.Button }</button>
+					<a class="button is-small" href={ templ.SafeURL(a.Back) }>Cancel</a>
+				</form>
+			</div>
+		}
 		if c.NewLink != nil {
 			<div class="notification is-info is-light">
 				if c.NewLink.Coach {
@@ -382,6 +407,12 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 					<button class="button is-small is-text" type="submit" name="which" value="all" title="Sends every entry again, and takes back withdrawn ones">Send all again</button>
 				</div>
 			</form>
+		}
+		if comp.NoSigner {
+			<div class="notification is-warning is-light">
+				This competition needs a coach to sign off each entry, but no coach of the club signs off routines yet, so entries wait for sign-off. They can still be sent: the organiser sees they aren't signed off.
+				<a href={ templ.SafeURL(c.Base + "/coaches") }>Add a coach or let one sign off, on Coaches →</a>
+			</div>
 		}
 		// A member entered by the comp sec, as they'd enter themselves.
 		if len(comp.Members) > 0 {
@@ -477,6 +508,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 												if row.Signoff.By != "" {
 													@WhoLink(RoleCoach, row.Signoff.By, row.Signoff.Link)
 												}
+												@signoffWaiting(row.Signoff)
 											</span>
 											if row.Signoff.Note != "" {
 												<br/>
@@ -650,11 +682,14 @@ templ ClubMembers(c ClubPage) {
 					<table class="table is-fullwidth is-narrow comp-stack" id={ c.MembersTools.ID }>
 						<tbody>
 							for _, m := range c.Members {
-								<tr { m.List.Attrs()... }>
+								<tr id={ MemberAnchor(m.ID) } class="comp-target" { m.List.Attrs()... }>
 									<td>
 										{ m.Name }
 										if m.AlsoCoach {
 											@WhoLink(RoleCoach, "", c.Base+"/coaches")
+										}
+										if c.NoticeAt == m.ID && c.Notice != "" {
+											<span class="is-block is-size-7">{ c.Notice }</span>
 										}
 									</td>
 									<td class="has-text-grey is-size-7">
@@ -681,7 +716,7 @@ templ ClubMembers(c ClubPage) {
 												</form>
 											}
 											<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/new-link") }>
-												<button class="button is-small is-text" type="submit" title="For a member who lost their link: their old one stops working">New link</button>
+												<button class="button is-small is-text" type="submit" title="For a member who lost their link: you're asked first, as their old one stops working">New link</button>
 											</form>
 											<form method="post" action={ templ.SafeURL(c.Base + "/members/" + m.ID + "/remove") } onsubmit={ confirmRemove(m.Name) }>
 												<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
@@ -728,7 +763,7 @@ templ ClubCoaches(c ClubPage) {
 									<td class="comp-row-more">
 										@opens("", "", "More", false) {
 											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/new-link") }>
-												<button class="button is-small is-text" type="submit" title="Their old link stops working">New link</button>
+												<button class="button is-small is-text" type="submit" title="You're asked first, as their old link stops working">New link</button>
 											</form>
 											<form method="post" action={ templ.SafeURL(c.Base + "/coaches/" + coach.ID + "/remove") } onsubmit={ confirmRemoveCoach(coach.Name) }>
 												<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
@@ -1157,3 +1192,6 @@ func onIfNot(on bool) string {
 	}
 	return "1"
 }
+
+// MemberAnchor is a member's row on the comp sec's Members.
+func MemberAnchor(id string) string { return "member-" + id }

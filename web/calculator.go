@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -105,7 +106,25 @@ func defaultSkill() skills.TrampolineSkill {
 
 // handleIndex serves the calculator page; the form and routine load into it.
 func handleIndex(w http.ResponseWriter, r *http.Request) {
-	render(w, r, views.Page(requirements.BuiltinGroups()))
+	back := builderBack(r.URL.Query().Get("back"))
+	if back != "" {
+		// It's someone's own page, its link secret (ADR 0004).
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("Cache-Control", "no-store")
+	}
+	render(w, r, views.Page(requirements.BuiltinGroups(), back))
+}
+
+// builderBack is the entry form the Routine Builder was opened from, to go
+// back to (an entry form's Builder link): one of the competition or club
+// pages, on this site, or "" for any other.
+func builderBack(back string) string {
+	u, err := url.Parse(back)
+	if err != nil || u.Scheme != "" || u.Host != "" || strings.Contains(back, "\\") || strings.HasPrefix(back, "//") ||
+		!(strings.HasPrefix(u.Path, "/clubs/") || strings.HasPrefix(u.Path, "/competitions/")) {
+		return ""
+	}
+	return back
 }
 
 // prepared readies a skill for the editor: one twist per phase, straddle only for
