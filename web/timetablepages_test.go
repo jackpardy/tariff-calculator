@@ -190,21 +190,25 @@ func TestClubsSeeTheirFlights(t *testing.T) {
 	tt := admin + "/timetable"
 	redirected(t, h, tt+"/setup/days", url.Values{"day-0-name": {"Saturday"}, "day-0-start": {"08:30"}, "day-0-end": {"18:00"}})
 	redirected(t, h, tt+"/plan", url.Values{})
+	if strings.Contains(clubEntriesPage(t, h, club), "comp-flight-line") {
+		t.Error("planned but not published: no flights shown yet")
+	}
 	redirected(t, h, tt+"/publish", url.Values{"on": {"1"}})
 	// Each entry shows its own flight. The member's two flights can't overlap,
 	// so either may come first.
 	page := clubEntriesPage(t, h, club)
 	flightOf := func(level string) string {
-		m := regexp.MustCompile(`<td[^>]*>` + level + `</td>.*?comp-flight-line">([^<]*)`).FindStringSubmatch(page)
+		// Under its level, in the Level column.
+		m := regexp.MustCompile(`<td data-label="Level">\s*` + level + `\s*<br/?>\s*<span[^>]*comp-flight-line">([^<]*)`).FindStringSubmatch(page)
 		if m == nil {
 			return ""
 		}
 		return m[1]
 	}
-	if at := flightOf("BUCS L3"); !regexp.MustCompile(`^BUCS L3 · Panel 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
-		t.Errorf("the comp sec sees the trampoline entry's flight: %q", at)
+	if at := flightOf("BUCS L3"); !regexp.MustCompile(`^Panel 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
+		t.Errorf("the comp sec sees the trampoline entry's flight, not repeating its level: %q", at)
 	}
-	if at := flightOf("Tumbling Novice"); !regexp.MustCompile(`^[^·]*Novice[^·]* · Track 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
+	if at := flightOf("Tumbling Novice"); !regexp.MustCompile(`^Track 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
 		t.Errorf("the comp sec sees the tumbling entry's flight: %q", at)
 	}
 	if page := memberCompetitionPage(t, h, member); !regexp.MustCompile(`Panel 1 · warm-up Saturday \d\d:\d\d`).MatchString(page) {

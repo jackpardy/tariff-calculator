@@ -58,6 +58,8 @@ the marker on a summary: the rule does. A summary that is deliberately
 something else opts out by `content: none` on its `::before`, in the same block:
 `summary.button`, the routine menu (`.routine-menu`), or any summary given the class `no-arrow`. The tariff sheet and
 the view page have their own stylesheets and menus, so the rule doesn't reach them.
+A button that opens something has the same triangle after its words,
+pointing down (`.comp-opens-button`; [the shared look](ui.md#things-that-open)).
 
 # Settings and forms on a page
 
@@ -189,16 +191,17 @@ What state something is in, and who did it, are shown with two chips from
 thing on every page (the plan is in the
 [cleanup audit](../audits/2026-10-cleanup.md#colour-and-status-added-15-october-2026)).
 
-- **`@views.StateChip(state, label)`**: a filled chip with a mark and a short
-  label. Pick the state by what it means for the reader, not by the word:
+- **`@views.StateChip(state, label)`**: a filled chip with a short label, and
+  no mark before it (dropped 2026-10-19: the words and the colour say it).
+  Pick the state by what it means for the reader, not by the word:
 
-  | State | Mark | Means | For example |
-  | --- | --- | --- | --- |
-  | `NotYet` | ○ | not started, not yet | Not checked in, Saved not sent, On the waiting list |
-  | `InProgress` | ◐ | under way, or waiting on someone else | Sent, Waiting for sign-off, Learning |
-  | `Done` | ✓ | finished, fine | Checked, Signed off, Here, Paid, Can do |
-  | `Attention` | ! | someone should look | Has problems, Changed since sent, Waiting for you |
-  | `Stopped` | ✕ | out, ended or refused | Withdrawn, Removed, Scratched, Missing, Not approved |
+  | State | Means | For example |
+  | --- | --- | --- |
+  | `NotYet` | not started, not yet | Not checked in, Saved not sent, On the waiting list |
+  | `InProgress` | under way, or waiting on someone else | Sent, Waiting for sign-off, Learning |
+  | `Done` | finished, fine | Checked, Signed off, Here, Paid, Can do |
+  | `Attention` | someone should look | Has problems, Changed since sent, Waiting for you |
+  | `Stopped` | out, ended or refused | Withdrawn, Removed, Scratched, Missing, Not approved |
 
 - **`@views.WhoChip(role, name)`**: an outlined chip that always says the
   role (Gymnast, Coach, Club, Organiser) and the name if there is one: who
@@ -217,9 +220,10 @@ pages have moved
 ([what each shows](../features/competition-entries.md#states-and-roles-on-the-pages-one-palette-step-2)),
 and `TestStatesUseChips` (`views/status_test.go`) fails if one of their
 templates shows a state in Bulma's colours again: add a page to its list
-once it moves over. Buttons keep Bulma's colours, as they do something
-rather than show a state. Notices after an action and the venue screen's
-area colours aren't states and stay as they are.
+once it moves over. Buttons have a look by role ([the shared look](ui.md#buttons-by-role)):
+only a button that sets a state (On the day's Here, Scratched) takes that
+state's colours. Notices after an action are `@notice` (green, with ×), and
+the venue screen's area colours aren't states.
 
 A chip placed after a name or another chip gets a small gap from the CSS.
 After text on the same line, templ reads `@StateChip(...)` as more text, so

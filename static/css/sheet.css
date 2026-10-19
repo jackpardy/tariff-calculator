@@ -41,7 +41,7 @@ tfoot td { font-weight: 700; }
     display: flex; gap: 1rem; align-items: center; font-size: 0.9rem; color: #444; background: #f2f2f2;
 }
 .hint { font-size: 0.9rem; color: #444; margin-top: 0.25rem; }
-.print { flex-shrink: 0; white-space: nowrap; font: inherit; font-weight: 600; padding: 0.5rem 1rem; border: 0; border-radius: 4px; background: #485fc7; color: #fff; cursor: pointer; }
+.print { flex-shrink: 0; white-space: nowrap; font: inherit; font-weight: 600; padding: 0.5rem 1rem; border: 0; border-radius: 4px; background: #00796b; color: #fff; cursor: pointer; } /* the main action's teal, as on the app's pages */
 .warnings { font-size: 0.85rem; color: #8a2a00; }
 .warnings ul { margin: 0.25rem 0 0; padding-left: 1.25rem; }
 .option { display: inline-flex; gap: 0.3rem; align-items: center; white-space: nowrap; cursor: pointer; }
@@ -67,10 +67,6 @@ th.element { text-align: center; border-bottom: 1px solid #000; }
 }
 .options fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
 .options legend { font-size: 0.75rem; font-weight: 600; color: #666; text-transform: uppercase; padding: 0 0 0.2rem; }
-
-/* The levels to print one at a time (views.CompetitionCards): rows a finger can tap. */
-.card-levels { padding-left: 1.25rem; }
-.card-levels li { padding: 0.35rem 0; }
 
 .loading { max-width: 186mm; margin: 2rem auto; padding: 0 12mm; color: #444; }
 

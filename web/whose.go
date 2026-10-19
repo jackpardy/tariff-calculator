@@ -28,6 +28,16 @@ type asker struct {
 	entry store.Entry
 }
 
+// backTo names the page back is, for the way back to it: the person's or
+// club's page for the competition, by the competition's name, or a coach's
+// entries.
+func (a asker) backTo() string {
+	if a.kind == store.NotifyCoach {
+		return "Entries"
+	}
+	return a.c.Name
+}
+
 // person says whether a person is asking, rather than a club's comp sec or
 // coach.
 func (a asker) person() bool { return a.key != "" }

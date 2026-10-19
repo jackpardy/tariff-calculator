@@ -197,7 +197,11 @@ func (p *competitionPages) renderLateSignoff(w http.ResponseWriter, r *http.Requ
 	if len(problems) > 0 {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}
-	render(w, r, views.LateSignoff(views.LateSignoffPage{Competition: summary(c, p.now()), Back: back, Action: r.URL.Path,
+	backTo := "Entries" // a coach's page
+	if strings.HasPrefix(back, "/competitions/signoff/") {
+		backTo = "The entry to sign off"
+	}
+	render(w, r, views.LateSignoff(views.LateSignoffPage{Competition: summary(c, p.now()), Back: back, BackTo: backTo, Action: r.URL.Path,
 		What: competitions.LateKindName(req.Kind) + " to " + req.Entry.Event(), Card: shown, AskName: askName, Problems: problems, Note: req.Note}))
 }
 
@@ -214,6 +218,7 @@ type lateTarget struct {
 	who     string      // who's asking, e.g. "UCD (competition secretary)"
 	gymnast string      // fixed for a club's member
 	back    string
+	backTo  string // the page back is, for its link
 }
 
 // lateTargetOf is the entry a late change link is for, or a page saying why
@@ -223,7 +228,7 @@ func (p *competitionPages) lateTargetOf(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return lateTarget{}, false
 	}
-	t := lateTarget{c: a.c, entry: a.entry, who: a.name, gymnast: a.name, back: a.back}
+	t := lateTarget{c: a.c, entry: a.entry, who: a.name, gymnast: a.name, back: a.back, backTo: a.backTo()}
 	var memberID string
 	switch a.kind {
 	case store.NotifyIndividual:
@@ -313,7 +318,7 @@ func (p *competitionPages) lateRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}
-	page := views.LateRequestPage{Competition: summary(c, p.now()), Back: t.back, Gymnast: t.gymnast,
+	page := views.LateRequestPage{Competition: summary(c, p.now()), Back: t.back, BackTo: t.backTo, Gymnast: t.gymnast,
 		Current: t.entry.Entry.Event(), Problems: problems, Form: entryForm(c.Competition, start, action, "Ask the organiser")}
 	page.Form.Problems, page.Form.Member, page.Form.Note, page.Form.NoteText = nil, true, true, r.FormValue("note")
 	for _, kind := range competitions.LateKinds {

@@ -165,9 +165,11 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 		message(w, r, http.StatusConflict, "Publish the timetable first", "The on-the-day page works from the published timetable. Publish it, then come back.")
 		return
 	}
-	day, _ := todayIndex(c, s, p.now())
-	if v, err := strconv.Atoi(r.URL.Query().Get("day")); err == nil && v >= 0 && v < len(s.Setup.Days) {
-		day = v
+	today, _ := todayIndex(c, s, p.now())
+	day, ok := dayAsked(r, len(s.Setup.Days), today)
+	if !ok {
+		noSuchDay(w, r, len(s.Setup.Days))
+		return
 	}
 	times, err := p.st.FlightTimes(r.Context(), c.ID)
 	if err != nil {

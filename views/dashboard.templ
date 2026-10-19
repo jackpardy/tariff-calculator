@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 // The organiser's dashboard: every entry by level, filtered, removed and
@@ -112,7 +113,8 @@ type EntryDetail struct {
 // Dashboard is the organiser's overview: every entry, by level, with its problems.
 templ CompetitionDashboard(d Dashboard) {
 	@competitionLayout(d.Competition.Name) {
-		<h1 class="title is-4">{ d.Competition.Name }</h1>
+		// Headed as every organiser page is: the page, then the competition.
+		@pageHead("Entries", d.Competition.Name)
 		@pageMenu(d.Menu)
 		if d.Access.Organiser {
 			// Saves the admin link in this browser whenever it's opened (static/js/competitions.js).
@@ -122,7 +124,7 @@ templ CompetitionDashboard(d Dashboard) {
 			@newAdminLink(d.Competition, d.Links.Admin, d.New)
 		}
 		if d.Notice != "" {
-			<div class="notification is-success is-light">{ d.Notice }</div>
+			@notice(d.Notice)
 		}
 		if !d.Access.Organiser {
 			<p class="is-size-7 has-text-grey mb-3">You're using the link for <strong>{ d.Access.Who }</strong>.</p>
@@ -143,7 +145,7 @@ templ CompetitionDashboard(d Dashboard) {
 			</p>
 		}
 		if d.Entries == 0 {
-			<p class="has-text-grey mb-3">No entries yet. Clubs send theirs through the club link; gymnasts on their own enter through theirs.</p>
+			@emptyLine("No entries yet. Clubs send theirs through the club link; gymnasts on their own enter through theirs.")
 			if d.Links.Club != "" {
 				@linkBox("Club link", d.Links.Club, "Give it to clubs' competition secretaries: they enter their club and send its members' entries.")
 			}
@@ -155,8 +157,9 @@ templ CompetitionDashboard(d Dashboard) {
 		}
 		if len(d.Levels) > 0 {
 			<div class="buttons mt-4 mb-0">
-				<button class="button is-small" type="button" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = true)">Expand all</button>
-				<button class="button is-small" type="button" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = false)">Collapse all</button>
+				// One button: Expand all, or Collapse all once every level is open
+				// (static/js/competitions.js, expandAll).
+				<button class="button is-small" type="button" data-expand-all aria-expanded="false">Expand all</button>
 				if d.Entries > 0 {
 					@tableViewMenu("entries")
 				}
@@ -172,7 +175,7 @@ templ CompetitionDashboard(d Dashboard) {
 						}
 					</summary>
 					if len(l.Rows) == 0 {
-						<p class="has-text-grey is-size-7">None</p>
+						@emptyLine("None")
 					} else {
 						<div class="buttons mb-2">
 							<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) } data-list-carry>Print this level's cards</a>
@@ -201,7 +204,7 @@ templ CompetitionDashboard(d Dashboard) {
 											<th>Video</th>
 										}
 										if d.Competition.Signoff {
-											<th>Coach</th>
+											<th title={ "Who signs it off; * " + strings.ToLower(unapprovedTitle) }>Coach</th>
 										}
 										<th>Checked</th>
 									</tr>
@@ -225,6 +228,9 @@ templ CompetitionDashboard(d Dashboard) {
 								</tbody>
 							</table>
 						</div>
+						if d.Competition.Signoff && anyUnapproved(l.Rows) {
+							@unapprovedKey()
+						}
 					}
 				</details>
 			}
@@ -253,8 +259,8 @@ templ CompetitionDashboard(d Dashboard) {
 			// (competitions.js, tickBar).
 			<div class="comp-tick-bar" id="tick-bar" hidden>
 				<span class="has-text-weight-semibold" data-tick-count></span>
-				<button class="button is-small is-danger is-light" type="button" data-tick-go="remove">Remove…</button>
-				<button class="button is-small is-warning is-light" type="button" data-tick-go="hold">Hold for changes…</button>
+				<button class="button is-small is-text has-text-danger" type="button" data-tick-go="remove">Remove…</button>
+				<button class="button is-small" type="button" data-tick-go="hold">Hold for changes…</button>
 				<button class="button is-small is-text" type="button" data-tick-clear>Untick all</button>
 			</div>
 		}
@@ -308,7 +314,7 @@ templ CompetitionEntry(d EntryDetail) {
 	@competitionLayout(d.Card.Gymnast + " · " + d.Competition.Name) {
 		// Back, the name and the menu, in the order a person's page has them.
 		// Back goes to the entries page filtered as it was, at this entry's row.
-		<p class="mb-3"><a href={ templ.SafeURL(d.Base + d.List + "#entry-" + d.ID) }>← Entries</a></p>
+		@backLink(d.Base + d.List + "#entry-" + d.ID, "Entries")
 		<h1 class="title is-4">{ d.Card.Gymnast }</h1>
 		<p class="subtitle is-6">{ d.Card.Club } · { d.Card.Level }</p>
 		@pageMenu(d.Menu)
@@ -332,7 +338,9 @@ templ CompetitionEntry(d EntryDetail) {
 		@entryCardChecks(d.Card)
 		<p class="has-text-grey is-size-7 mt-4">Sent { d.Sent }.</p>
 		if d.Notice != "" {
-			<div class="notification is-success is-light mt-3" id="entry-notice">{ d.Notice }</div>
+			<div class="mt-3" id="entry-notice">
+				@notice(d.Notice)
+			</div>
 		}
 		if !d.Access.Check {
 			if d.Checked != "" {
@@ -358,10 +366,10 @@ templ CompetitionEntry(d EntryDetail) {
 					</div>
 					<div class="buttons">
 						if d.Checked == "" {
-							<button class="button is-primary is-small" type="submit" name="checked" value="1">Mark checked</button>
+							<button class="button is-small is-primary" type="submit" name="checked" value="1">Mark checked</button>
 							// And on to the next entry still to check.
 							<input type="hidden" name="next" value=""/>
-							<button class="button is-primary is-light is-small" type="submit" name="checked" value="1" onclick="this.form.elements.next.value = '1'">Mark checked and next</button>
+							<button class="button is-small" type="submit" name="checked" value="1" onclick="this.form.elements.next.value = '1'">Mark checked and next</button>
 							<button class="button is-small" type="submit" name="checked" value="0">Save the note</button>
 						} else {
 							<button class="button is-small" type="submit" name="checked" value="1">Save the note</button>
@@ -392,11 +400,11 @@ templ CompetitionEntry(d EntryDetail) {
 					<div class="buttons">
 						// OK waits for a video to say it of.
 						if hasVideo(d.Card) {
-							<button class="button is-small is-success is-light" type="submit" name="review" value="ok">Video OK</button>
+							<button class="button is-small" type="submit" name="review" value="ok">Video OK</button>
 						} else {
 							<span class="is-size-7 has-text-grey mr-2">No video yet: OK once there's one.</span>
 						}
-						<button class="button is-small is-warning is-light" type="submit" name="review" value="more">Need more</button>
+						<button class="button is-small" type="submit" name="review" value="more">Need more</button>
 						if d.VideoReview != "" {
 							<button class="button is-small" type="submit" name="review" value="">Clear</button>
 						}
@@ -460,6 +468,84 @@ func signoffState(s SignoffView) (State, string) {
 		return Attention, "Needs changes"
 	}
 	return InProgress, "Waiting for sign-off"
+}
+
+// signoffCell is an entry's sign-off on one line of a row: the coach's
+// name, then what they did (Signed off, Needs changes); a coach the
+// competition hasn't approved has an asterisk instead, as their sign-off
+// doesn't count (unapprovedKey says so under the table). Waiting for a
+// coach, it says Waiting, after the coach named for it if there is one.
+// coach is the coach named for the entry, "" for none or not to show.
+templ signoffCell(s SignoffView, coach string) {
+	<span class="comp-signoff">
+		if s.By != "" {
+			@coachName(s.By, s.Link, s.Unapproved)
+			if !s.Unapproved {
+				@StateChip(signoffState(s))
+			}
+		} else {
+			if coach != "" {
+				@coachName(coach, "", false)
+			}
+			if s.Signed {
+				@StateChip(signoffState(s))
+			} else {
+				@StateChip(InProgress, "Waiting")
+			}
+		}
+	</span>
+}
+
+// signoffLine is an entry's sign-off where the coach isn't a column of
+// their own (the comp sec's entries, a coach's list): what it is first, in
+// full ("Waiting for sign-off"), then who, in the small text around it
+// ("by Declan Ward"), so the name doesn't outweigh the state. A coach not
+// approved has the asterisk, and their sign-off shows as still waiting.
+templ signoffLine(s SignoffView) {
+	<span class="comp-signoff">
+		if s.Unapproved {
+			@StateChip(InProgress, "Waiting for sign-off")
+		} else {
+			@StateChip(signoffState(s))
+		}
+		if s.By != "" {
+			<span class="is-size-7">
+				{ "by " }
+				@coachName(s.By, s.Link, s.Unapproved)
+			</span>
+		}
+	</span>
+}
+
+// coachName is a coach's name in a row's Coach column, a link to their page
+// where there is one, with an asterisk when they aren't approved to sign off.
+templ coachName(name, href string, unapproved bool) {
+	if href != "" {
+		<a href={ templ.SafeURL(href) }>{ name }</a>
+	} else {
+		{ name }
+	}
+	if unapproved {
+		<abbr class="comp-unapproved" title={ unapprovedTitle }>*</abbr>
+	}
+}
+
+// unapprovedTitle is what a coach's asterisk means.
+const unapprovedTitle = "Not approved to sign off here"
+
+// unapprovedKey explains the asterisk once, under a table with one.
+templ unapprovedKey() {
+	<span class="comp-key">* Not approved to sign off for this competition, so their sign-off doesn't count.</span>
+}
+
+// anyUnapproved says whether a level's rows have a coach not approved.
+func anyUnapproved(rows []DashboardRow) bool {
+	for _, r := range rows {
+		if r.Signoff.Unapproved {
+			return true
+		}
+	}
+	return false
 }
 
 // filtered says whether any filter is on.
@@ -542,7 +628,7 @@ templ removeForm(base, list string) {
 				<label class="radio"><input type="radio" name="to" value="member"/> the gymnast</label>
 				<label class="radio"><input type="radio" name="to" value="both" checked/> both</label>
 			</div>
-			<button class="button is-small is-danger is-light" type="submit">Apply to the ticked entries</button>
+			<button class="button is-small is-primary" type="submit">Apply to the ticked entries</button>
 			<p class="help">To take a whole club, filter by the club above, then tick each table's header. Removed and held entries aren't counted, printed or timetabled.</p>
 		</form>
 	}
@@ -746,12 +832,7 @@ templ dashboardRow(d Dashboard, l DashboardLevel, r DashboardRow) {
 				if r.Withdrawn && !r.Signoff.Signed {
 					<span class="comp-none">–</span>
 				} else {
-					@StateChip(signoffState(r.Signoff))
-					if r.Signoff.By != "" {
-						@WhoLink(RoleCoach, r.Signoff.By, r.Signoff.Link)
-					} else if r.Coach != "" {
-						@WhoLink(RoleCoach, r.Coach, "")
-					}
+					@signoffCell(r.Signoff, r.Coach)
 				}
 			</td>
 		}

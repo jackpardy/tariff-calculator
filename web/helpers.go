@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -40,6 +41,44 @@ func seeOther(w http.ResponseWriter, r *http.Request, to, notice string) {
 func message(w http.ResponseWriter, r *http.Request, status int, title, text string) {
 	w.WriteHeader(status)
 	render(w, r, views.Message(title, text))
+}
+
+// notFound is the page for an address with nothing at it. The address may
+// hold a link's secret, so the page isn't kept, indexed or told to another
+// site, as a link's pages aren't (secret).
+func notFound(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Robots-Tag", "noindex")
+	message(w, r, http.StatusNotFound, "Page not found", "There's nothing at this address. Check the link, or go back to your competitions and pages.")
+}
+
+// dayAsked is the day a page's address asks for (?day=, counting from 0),
+// of days days: def when it doesn't ask; not ok when it asks for one there
+// isn't, which the page says rather than showing another day.
+func dayAsked(r *http.Request, days, def int) (int, bool) {
+	q := r.URL.Query().Get("day")
+	if q == "" {
+		return def, true
+	}
+	v, err := strconv.Atoi(q)
+	if err != nil || v < 0 || v >= days {
+		return def, false
+	}
+	return v, true
+}
+
+// noSuchDay says the address asks for a day the timetable hasn't.
+func noSuchDay(w http.ResponseWriter, r *http.Request, days int) {
+	message(w, r, http.StatusNotFound, "No such day", "The timetable has "+competitionsDays(days)+": this address asks for another. Open the page from the menu to see them.")
+}
+
+// competitionsDays is "one day" or "3 days".
+func competitionsDays(n int) string {
+	if n == 1 {
+		return "one day"
+	}
+	return strconv.Itoa(n) + " days"
 }
 
 // failed reports a store error as a page: a link that leads nowhere, a

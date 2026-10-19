@@ -155,7 +155,7 @@ templ Day(p DayPage) {
 		<div id="day-taps" class="notification is-warning is-light comp-day-taps" aria-live="polite" hidden></div>
 		<div id="day-notice" class="comp-day-notice" aria-live="polite">
 			if p.Notice != "" {
-				<div class="notification is-info is-light">{ p.Notice }</div>
+				@notice(p.Notice)
 			}
 		</div>
 		if len(p.Days) > 1 {
@@ -168,7 +168,7 @@ templ Day(p DayPage) {
 			</div>
 		}
 		if p.Area != "" {
-			<p class="mb-3"><a href={ templ.SafeURL(p.AllAreas) }>← All areas</a></p>
+			@backLink(p.AllAreas, "All areas")
 		}
 		if n := dayNames(p); n > 0 {
 			@listTools(ListTools{ID: "day-areas", Noun: "names", Total: n})
@@ -345,7 +345,7 @@ templ stillHereForm(p DayPage, s DayScratched, kind, label string) {
 		<input type="hidden" name="person" value={ s.Person }/>
 		<input type="hidden" name="kind" value={ kind }/>
 		@dayFields(p)
-		<button class="button is-small is-warning" type="submit">{ label }</button>
+		<button class="button is-small" type="submit">{ label }</button>
 	</form>
 }
 
@@ -622,14 +622,14 @@ templ dayFlightForm(p DayPage, f DayFlight, undo bool) {
 		<input type="hidden" name="flight" value={ f.Key }/>
 		@dayFields(p)
 		if f.CanStart {
-			<button class="button is-success" type="submit" name="what" value="start">Started</button>
+			<button class="button is-primary" type="submit" name="what" value="start">Started</button>
 		}
 		if f.CanFinish {
-			<button class={ "button is-success", templ.KV("is-medium", finishesHere(f)) } type="submit" name="what" value="finish">Finished</button>
+			<button class={ "button is-primary", templ.KV("is-medium", finishesHere(f)) } type="submit" name="what" value="finish">Finished</button>
 		}
 		if undo && f.Undo != "" {
 			// Says which, so the same tap sent twice takes back only the one.
-			<button class="button is-light is-small" type="submit" name="what" value={ f.Undo }>Undo</button>
+			<button class="button is-small" type="submit" name="what" value={ f.Undo }>Undo</button>
 		}
 	</form>
 }
@@ -664,13 +664,13 @@ templ dayCheckinRows(p DayPage, f DayFlight) {
 				<input type="hidden" name="entry" value={ g.Entry }/>
 				@dayFields(p)
 				if g.CanHere {
-					<button class="button is-small is-success is-light" type="submit" name="status" value="here">Here</button>
+					<button class="button is-small is-state-done" type="submit" name="status" value="here">Here</button>
 				}
 				if g.CanScratch {
-					<button class="button is-small is-danger is-light" type="submit" name="status" value="scratched">Scratched</button>
+					<button class="button is-small is-state-stopped" type="submit" name="status" value="scratched">Scratched</button>
 				}
 				if g.CanClear {
-					<button class="button is-small is-light" type="submit" name="status" value="">Clear</button>
+					<button class="button is-small" type="submit" name="status" value="">Clear</button>
 				}
 			</form>
 			if g.Notify.Person != "" {
@@ -706,13 +706,13 @@ templ daySeatRows(p DayPage, f DayFlight) {
 				<input type="hidden" name="flight" value={ f.Key }/>
 				@dayFields(p)
 				if s.CanHere {
-					<button class="button is-small is-success is-light" type="submit" name="status" value="here">Here</button>
+					<button class="button is-small is-state-done" type="submit" name="status" value="here">Here</button>
 				}
 				if s.CanMissing {
-					<button class="button is-small is-danger is-light" type="submit" name="status" value="missing">Missing</button>
+					<button class="button is-small is-state-stopped" type="submit" name="status" value="missing">Missing</button>
 				}
 				if s.CanClear {
-					<button class="button is-small is-light" type="submit" name="status" value="">Clear</button>
+					<button class="button is-small" type="submit" name="status" value="">Clear</button>
 				}
 			</form>
 			if s.WhatIf != "" {
@@ -746,7 +746,7 @@ templ dayCorrect(p DayPage, f DayFlight) {
 						<input class="input is-small" type="time" id={ f.ID + "-finished" } name="finished" value={ f.Finished }/>
 					</div>
 				</div>
-				<button class="button is-small is-link is-light" type="submit">Save times</button>
+				<button class="button is-small is-primary" type="submit">Save times</button>
 			</div>
 			<p class="help">
 				Clock times on { p.DayName }. Leave Finished empty if it hasn't finished, or both to clear them. The history says who changed them.
@@ -819,10 +819,10 @@ templ dayUpForm(p DayPage, f DayFlight, next bool) {
 		<input type="hidden" name="entry" value={ f.Up.Entry }/>
 		<input type="hidden" name="round" value={ f.Up.Round }/>
 		if next {
-			<button class="button is-link is-medium" type="submit" name="what" value="next">Next gymnast</button>
+			<button class="button is-primary is-medium" type="submit" name="what" value="next">Next gymnast</button>
 		}
 		if f.Up.CanBack {
-			<button class="button is-light is-small" type="submit" name="what" value="back">Back</button>
+			<button class="button is-small" type="submit" name="what" value="back">Back</button>
 		}
 	</form>
 }
@@ -831,7 +831,7 @@ templ dayUpForm(p DayPage, f DayFlight, next bool) {
 // should be: them, their club's comp sec and coaches, or both.
 templ dayNotify(p DayPage, flight string, n DayNotify) {
 	<details class="comp-notify" data-key={ "notify:" + n.As + ":" + flight + ":" + n.Person }>
-		<summary class="is-size-7">Notify</summary>
+		<summary class="button is-small comp-opens-button">Notify</summary>
 		<form method="post" action={ templ.SafeURL(p.Base + "/day/notify") }>
 			<input type="hidden" name="person" value={ n.Person }/>
 			<input type="hidden" name="flight" value={ flight }/>
@@ -844,7 +844,7 @@ templ dayNotify(p DayPage, flight string, n DayNotify) {
 				<label class="checkbox is-size-7"><input type="checkbox" name="club" value="1"/> Their club</label>
 			}
 			<input class="input is-small" type="text" name="note" maxlength="300" placeholder="Extra line (optional)" aria-label="Extra line"/>
-			<button class="button is-small is-link is-light" type="submit">Send</button>
+			<button class="button is-small is-primary" type="submit">Send</button>
 		</form>
 	</details>
 }

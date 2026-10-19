@@ -5,6 +5,7 @@ package views
 type LateRequestPage struct {
 	Competition CompetitionSummary
 	Back        string
+	BackTo      string // the page Back is, e.g. the competition's name
 	Gymnast     string
 	Current     string   // the entry's event now
 	Allowed     []string // the kinds of change allowed, with fees
@@ -17,7 +18,7 @@ type LateRequestPage struct {
 // LateRequest is the page for asking for a late change.
 templ LateRequest(p LateRequestPage) {
 	@competitionLayout("Late change · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Back</a></p>
+		@backLink(p.Back, p.BackTo)
 		<h1 class="title is-4">Ask for a late change</h1>
 		<p class="subtitle is-6">{ p.Gymnast } · { p.Current } · { p.Competition.Name }</p>
 		<p class="mb-2">Entries have closed. You can ask the organiser for:</p>
@@ -74,7 +75,7 @@ templ LateAdmin(p LateAdminPage) {
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		if p.Timetable != "" {
 			<p class="mb-3 is-size-7">The draft timetable has changes not published yet. <a href={ templ.SafeURL(p.Timetable) }>Open the timetable to publish them →</a></p>
@@ -102,7 +103,7 @@ templ LateAdmin(p LateAdminPage) {
 			</form>
 		}
 		if len(p.Requests) == 0 {
-			<p class="has-text-grey">No late changes asked for.</p>
+			@emptyLine("No late changes asked for.")
 		}
 		for _, r := range p.Requests {
 			<div class={ "box", templ.KV("has-text-grey", !r.Waiting) }>
@@ -142,18 +143,18 @@ templ LateAdmin(p LateAdminPage) {
 					<div class="comp-flight-actions">
 						<form method="post" action={ templ.SafeURL(p.Base + "/late/" + r.ID + "/accept") } class="comp-flight-actions">
 							<input class="input is-small" name="note" maxlength="300" placeholder="Note (optional)" aria-label="Note with accepting"/>
-							<button class="button is-small is-success" type="submit">Accept</button>
+							<button class="button is-small is-primary" type="submit">Accept</button>
 						</form>
 						<form method="post" action={ templ.SafeURL(p.Base + "/late/" + r.ID + "/reject") } class="comp-flight-actions">
 							<input class="input is-small" name="reason" required maxlength="300" placeholder="Why not (they see it)" aria-label="Reason for not accepting"/>
-							<button class="button is-small is-warning is-light" type="submit">Not accepted</button>
+							<button class="button is-small" type="submit">Not accepted</button>
 						</form>
 					</div>
 				} else if r.ForCoach {
 					<p class="is-size-7 has-text-grey">{ r.Status }</p>
 					<form method="post" action={ templ.SafeURL(p.Base + "/late/" + r.ID + "/reject") } class="comp-flight-actions mt-1">
 						<input class="input is-small" name="reason" required maxlength="300" placeholder="Why not (they see it)" aria-label="Reason for not accepting"/>
-						<button class="button is-small is-warning is-light" type="submit">Not accepted</button>
+						<button class="button is-small" type="submit">Not accepted</button>
 					</form>
 				} else {
 					<p class="is-size-7">{ r.Status }</p>
@@ -192,6 +193,7 @@ templ lateLine(status LateStatus, ask string) {
 type LateSignoffPage struct {
 	Competition    CompetitionSummary
 	Back, Action   string
+	BackTo         string // the page Back is, e.g. "Entries"
 	What, Note     string // e.g. "Level change to BUCS L5"; the gymnast's note
 	Card           EntryCard
 	AskName        bool // an individual's coach gives their name
@@ -201,7 +203,7 @@ type LateSignoffPage struct {
 // LateSignoff shows a late change's new card, for a coach to sign off.
 templ LateSignoff(p LateSignoffPage) {
 	@competitionLayout("Sign off a late change · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Back</a></p>
+		@backLink(p.Back, p.BackTo)
 		<h1 class="title is-4">Sign off a late change</h1>
 		<p class="subtitle is-6">{ p.Card.Gymnast } · { p.What } · { p.Competition.Name }</p>
 		if p.Note != "" {
@@ -222,7 +224,7 @@ templ LateSignoff(p LateSignoffPage) {
 					<label class="label is-small" for="late-note">Note (optional)</label>
 					<input class="input is-small" id="late-note" name="note" maxlength="300"/>
 				</div>
-				<button class="button is-success is-small" type="submit">Sign off</button>
+				<button class="button is-small is-primary" type="submit">Sign off</button>
 				<p class="help">Then it goes to the organiser, who accepts it or says why not. If accepted, the entry is signed off as you signed this.</p>
 			</form>
 		</div>

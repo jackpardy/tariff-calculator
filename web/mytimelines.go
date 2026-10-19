@@ -34,16 +34,17 @@ func (p *competitionPages) timelinePage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if a.clubWide(r) {
-		p.clubTimeline(w, r, a.c, a.club, a.back)
+		p.clubTimeline(w, r, a, a.club)
 		return
 	}
-	p.personalTimeline(w, r, a.c, a.key, a.back)
+	p.personalTimeline(w, r, a, a.key)
 }
 
 // focusedTimeline is the published timetable as a timeline focused by mark,
 // or a page saying it isn't published yet.
-func (p *competitionPages) focusedTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, back string,
+func (p *competitionPages) focusedTimeline(w http.ResponseWriter, r *http.Request, a asker,
 	mark func(f rotaFacts) func(timelineItem) (bool, []string)) (views.Timeline, bool) {
+	c := a.c
 	t := c.Published
 	if t == nil {
 		message(w, r, http.StatusNotFound, "No timetable yet", "The organiser hasn't published the timetable yet. It shows here once they do.")
@@ -57,7 +58,8 @@ func (p *competitionPages) focusedTimeline(w http.ResponseWriter, r *http.Reques
 	name := f.name(false)
 	only := r.URL.Query().Get("only") == "1"
 	out := timeline(*t, name, false, &timelineFocus{mark: mark(f), only: only})
-	out.Competition, out.Back, out.BackLabel = summary(c, p.now()), back, "← Back"
+	out.Competition = summary(c, p.now())
+	out.Back, out.BackLabel = timelineBack(a)
 	out.Other, out.OtherLabel = r.URL.Path+"?only=1", "Only these"
 	if only {
 		out.Other, out.OtherLabel = r.URL.Path, "Everything"
@@ -65,10 +67,21 @@ func (p *competitionPages) focusedTimeline(w http.ResponseWriter, r *http.Reques
 	return out, true
 }
 
+// timelineBack is where a timeline's way back goes, and its words: a
+// person's My competition, where they open it; a comp sec's page for the
+// competition; a coach's entries.
+func timelineBack(a asker) (string, string) {
+	if a.day != "" {
+		return a.day, "← My competition"
+	}
+	return a.back, "← " + a.backTo()
+}
+
 // personalTimeline is a person's (by key) timetable: the flights they
 // compete in and the panels they sit on, picked out.
-func (p *competitionPages) personalTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, key, back string) {
-	t, ok := p.focusedTimeline(w, r, c, back, func(f rotaFacts) func(timelineItem) (bool, []string) {
+func (p *competitionPages) personalTimeline(w http.ResponseWriter, r *http.Request, a asker, key string) {
+	c := a.c
+	t, ok := p.focusedTimeline(w, r, a, func(f rotaFacts) func(timelineItem) (bool, []string) {
 		return func(it timelineItem) (bool, []string) {
 			var notes []string
 			in, held := inSlot(key, f.people, it.entries, it.officials)
@@ -91,13 +104,14 @@ func (p *competitionPages) personalTimeline(w http.ResponseWriter, r *http.Reque
 
 // clubTimeline is a club's timetable: every flight one of its gymnasts
 // competes in, or one of its people officiates, picked out and named.
-func (p *competitionPages) clubTimeline(w http.ResponseWriter, r *http.Request, c store.Competition, clubID, back string) {
+func (p *competitionPages) clubTimeline(w http.ResponseWriter, r *http.Request, a asker, clubID string) {
+	c := a.c
 	club, err := p.clubPeople(r.Context(), clubID)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	t, ok := p.focusedTimeline(w, r, c, back, func(f rotaFacts) func(timelineItem) (bool, []string) {
+	t, ok := p.focusedTimeline(w, r, a, func(f rotaFacts) func(timelineItem) (bool, []string) {
 		ours, name := club.at(f), f.name(false)
 		return func(it timelineItem) (bool, []string) {
 			var competing, officiating []string
@@ -159,7 +173,7 @@ func (p *competitionPages) officialScoreSheets(w http.ResponseWriter, r *http.Re
 		return
 	}
 	sheets := scoreSheets(c, *t, f.entries, f.officials, scratched, back, p.now(), key)
-	sheets.BackLabel = "← Back"
+	sheets.BackLabel = "← My competition"
 	sheets.Intro = "The score sheets of the flights you're on the panel for. The organiser prints them for the day; you don't need to."
 	render(w, r, views.ScorePrint(sheets))
 }

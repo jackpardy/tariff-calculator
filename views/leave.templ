@@ -71,7 +71,7 @@ templ Leave(p LeavePage) {
 				<input type="checkbox" name="forgood" value="1" checked?={ p.ForGood }/>
 				For the rest of the competition, not just that day
 			</label>
-			<button class="button is-primary is-small mt-2" type="submit">Show what happens</button>
+			<button class="button is-small is-primary mt-2" type="submit">Show what happens</button>
 		</form>
 		if r := p.Result; r != nil {
 			<div class="box">
@@ -102,7 +102,7 @@ templ Leave(p LeavePage) {
 			// Kept once it's been read, so below what happens.
 			<form method="post" action={ templ.SafeURL(p.Keep) } class="mb-4">
 				@versionField(p.Version)
-				<button class="button is-small is-success" type="submit">Keep this in the draft timetable</button>
+				<button class="button is-small is-primary" type="submit">Keep this in the draft timetable</button>
 				<span class="help is-inline ml-2">Attendees see it once you publish the timetable again.</span>
 			</form>
 		}
