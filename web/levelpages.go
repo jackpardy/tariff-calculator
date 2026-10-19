@@ -418,7 +418,8 @@ func (p *competitionPages) removeClubLevel(w http.ResponseWriter, r *http.Reques
 	}
 	if !asked(r) {
 		p.renderCoachLevels(w, r, coach, club, inPlace(r, views.Ask{
-			Title: "Remove " + levels[i].Name + "?", Text: "It goes for every coach and member of the club. Gymnasts' marks on its skills stay.",
+			Remove: true, // takes something away: red
+			Title:  "Remove " + levels[i].Name + "?", Text: "It goes for every coach and member of the club. Gymnasts' marks on its skills stay.",
 			Button: "Remove " + levels[i].Name, Back: coachLevelsPath(r.PathValue("token")),
 		}))
 		return

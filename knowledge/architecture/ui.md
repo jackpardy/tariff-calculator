@@ -198,6 +198,11 @@ its weight calls for, and only once:
   server checks: without `anyway=1` these changes are never made, whatever
   the page sent (`asked`). An ask isn't recorded in the history
   (`noteAsked`).
+- An ask to take something away (`Ask.Remove`: a person, a link, a
+  payment, a skill, a level, a routine) has a red edge and a red-outlined
+  button, so it reads as removing (the owner, 2026-10-19); other asks'
+  button is the main action's teal. Solid red stays for deleting a whole
+  competition or club.
 - A button that asks first can say so in its title ("You're asked first").
 - Once the competition has begun, Plan again is refused, not asked about.
 

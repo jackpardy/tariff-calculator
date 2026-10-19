@@ -177,6 +177,7 @@ func (p *competitionPages) removeCoach(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if p.askClub(w, r, club, clubCoaches, views.Ask{
+		Remove: true, // takes something away: red
 		Title:  "Remove " + coach.Name + " as a coach?",
 		Text:   "Their coach link stops working at once. Members who chose them have no coach until one is chosen; their sign-offs stay.",
 		Button: "Remove " + coach.Name, Back: clubCoachesPath(r.PathValue("token")) + "#" + coachAnchor(coach.ID),

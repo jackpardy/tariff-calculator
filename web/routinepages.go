@@ -247,6 +247,7 @@ func (p *competitionPages) deleteRoutine(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		p.renderMemberRoutines(w, r, m, inPlace(r, views.Ask{
+			Remove: true, // takes something away: red
 			Title:  "Delete " + list[i].Name + " from your page?",
 			Text:   "Your coaches and comp sec stop seeing it, with any coach's note on it. A copy saved in this browser stays, to add again.",
 			Button: "Delete it", Back: memberRoutinesPath(r.PathValue("token")),

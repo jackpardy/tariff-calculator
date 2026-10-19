@@ -900,6 +900,7 @@ func (p *competitionPages) removeMember(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if p.askClub(w, r, club, clubMembers, views.Ask{
+		Remove: true, // takes something away: red
 		Title:  "Remove " + m.Name + "?",
 		Text:   "Their entries go with them, and their link stops working. Entries the club has sent already stay with each competition.",
 		Button: "Remove " + m.Name, Back: clubMembersPath(r.PathValue("token")) + "#" + views.MemberAnchor(m.ID),

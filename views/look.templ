@@ -75,12 +75,15 @@ type Ask struct {
 	Fields      []FormValue // the change as posted, but anyway
 	Button      string      // the button that makes it, e.g. "Remove Ann Ryan"
 	Back        string      // where Cancel goes
+	// Remove is an ask to take something away (a person, a link, a payment):
+	// its box has a red edge and its button is red, so it reads as removing.
+	Remove bool
 }
 
 // askBox is an Ask, at the top of the page. Nothing when there's no ask.
 templ askBox(a *Ask) {
 	if a != nil {
-		<div class="notification is-warning is-light comp-ask" id="ask" role="alert">
+		<div class={ "notification", "is-warning", "is-light", "comp-ask", templ.KV("is-remove", a.Remove) } id="ask" role="alert">
 			<p class="mb-2"><strong>{ a.Title }</strong></p>
 			<p class="mb-3">{ a.Text }</p>
 			<form method="post" action={ templ.SafeURL(a.Action) } class="buttons">
@@ -88,7 +91,11 @@ templ askBox(a *Ask) {
 					<input type="hidden" name={ v.Name } value={ v.Value }/>
 				}
 				<input type="hidden" name="anyway" value="1"/>
-				<button class="button is-small is-primary" type="submit">{ a.Button }</button>
+				if a.Remove {
+					<button class="button is-small is-danger is-outlined" type="submit">{ a.Button }</button>
+				} else {
+					<button class="button is-small is-primary" type="submit">{ a.Button }</button>
+				}
 				<a class="button is-small" href={ templ.SafeURL(a.Back) }>Cancel</a>
 			</form>
 		</div>

@@ -667,7 +667,8 @@ func (p *competitionPages) removeClubSkill(w http.ResponseWriter, r *http.Reques
 			text = "It's your club's name for a skill: the skill's own name shows again, and marks on the skill stay."
 		}
 		p.renderClubSkills(w, r, coach, club, inPlace(r, views.Ask{
-			Title: "Remove " + list[i].Name + "?", Text: text,
+			Remove: true, // takes something away: red
+			Title:  "Remove " + list[i].Name + "?", Text: text,
 			Button: "Remove " + list[i].Name, Back: clubSkillsPath(r.PathValue("token")),
 		}))
 		return

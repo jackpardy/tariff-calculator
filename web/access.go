@@ -421,6 +421,7 @@ func (p *competitionPages) removeLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if p.askSettings(w, r, c, views.Ask{
+		Remove: true, // takes something away: red
 		Title:  "Remove the link for " + links[i].Name + "?",
 		Text:   "It stops working at once, for everyone who has it. To let them in again, make a new link and send it to them.",
 		Button: "Remove the link", Back: settingsPath(r.PathValue("token")) + "#links",

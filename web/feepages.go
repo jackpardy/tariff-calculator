@@ -332,6 +332,7 @@ func (p *competitionPages) removePayment(w http.ResponseWriter, r *http.Request)
 				}
 				noteAsked(w)
 				p.renderFees(w, r, c, inPlace(r, views.Ask{
+					Remove: true, // takes something away: red
 					Title:  "Remove the payment of " + what + "?",
 					Text:   recorded + ". It comes off what they've paid; to put it back, record it again.",
 					Button: "Remove the payment", Back: back + "#" + payerAnchor(a.key),
