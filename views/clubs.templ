@@ -271,7 +271,7 @@ templ NewClub(name string, problems []string) {
 				<label class="label" for="club-name">Club</label>
 				<input class="input" id="club-name" name="name" required maxlength="80" value={ name } placeholder="e.g. UCD Trampoline Club"/>
 			</div>
-			<button class="button is-primary is-fullwidth" type="submit">Create club</button>
+			<button class="button is-primary" type="submit">Create club</button>
 		</form>
 		<p class="help mt-4">We keep the club's name and its members' names, entries and routines, nothing else. A club is deleted 13 months after anyone last used it.</p>
 	}
@@ -306,7 +306,7 @@ templ clubFrame(c ClubPage) {
 			</div>
 		}
 		if c.Notice != "" {
-			<div class="notification is-success is-light">{ c.Notice }</div>
+			@notice(c.Notice)
 		}
 		if a := c.Ask; a != nil {
 			<div class="notification is-warning is-light" id="ask">
@@ -314,7 +314,7 @@ templ clubFrame(c ClubPage) {
 				<p class="mb-3">{ a.Text }</p>
 				<form method="post" action={ templ.SafeURL(a.Action) } class="buttons">
 					<input type="hidden" name="anyway" value="1"/>
-					<button class="button is-small is-warning" type="submit">{ a.Button }</button>
+					<button class="button is-small is-primary" type="submit">{ a.Button }</button>
 					<a class="button is-small" href={ templ.SafeURL(a.Back) }>Cancel</a>
 				</form>
 			</div>
@@ -337,7 +337,7 @@ templ clubFrame(c ClubPage) {
 templ ClubAdmin(c ClubPage) {
 	@clubFrame(c) {
 		if len(c.Competitions) == 0 {
-			<p class="has-text-grey">Not entered in any yet. Open the club link a competition's organiser gave you to enter the club.</p>
+			@emptyLine("Not entered in any yet. Open the club link a competition's organiser gave you to enter the club.")
 		}
 		for _, comp := range c.Competitions {
 			<a class="box comp-member-row" href={ templ.SafeURL(c.Base + "/competitions/" + comp.ID) }>
@@ -401,7 +401,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 					<span class="comp-send-note">The organiser sees only what you send, with what members offer to judge and help with. Sending all again also takes back withdrawn entries.</span>
 				</div>
 				<div class="comp-send-actions">
-					<button class="button is-primary is-small" type="submit" name="which" value="changed" disabled?={ comp.ToSend == 0 }>
+					<button class="button is-small is-primary" type="submit" name="which" value="changed" disabled?={ comp.ToSend == 0 }>
 						{ fmt.Sprintf("Send new and changed (%d)", comp.ToSend) }
 					</button>
 					<button class="button is-small is-text" type="submit" name="which" value="all" title="Sends every entry again, and takes back withdrawn ones">Send all again</button>
@@ -441,7 +441,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 			}
 		}
 		if len(comp.Rows) == 0 {
-			<p class="has-text-grey is-size-7">No member has entered yet.</p>
+			@emptyLine("No member has entered yet.")
 		} else {
 			@listSection("Entries", len(comp.Rows)) {
 				@listTools(comp.Tools)
@@ -466,7 +466,15 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 											<a class="is-size-7" href={ templ.SafeURL(row.Edit) }>Change</a>
 										}
 									</td>
-									<td data-label="Level">{ row.Level }</td>
+									<td data-label="Level">
+										{ row.Level }
+										// Its flight under its level, once the timetable is published
+										// (row.Flight is "" until then).
+										if row.Flight != "" {
+											<br/>
+											<span class="is-size-7 has-text-grey-dark comp-flight-line">{ row.Flight }</span>
+										}
+									</td>
 									<td data-label="Problems">
 										// Empty when there are none, so a phone's card leaves the line out.
 										if row.Problems > 0 {
@@ -486,10 +494,6 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 											<br/>
 											@StateChip(Attention, "Video "+row.Video)
 										}
-										if row.Flight != "" {
-											<br/>
-											<span class="is-size-7 has-text-grey-dark comp-flight-line">{ row.Flight }</span>
-										}
 										if row.Late.Text != "" {
 											<br/>
 											<span class="is-size-7">
@@ -504,11 +508,11 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 										if row.Signoff.Status() != "" {
 											<br/>
 											<span>
-												@StateChip(signoffState(row.Signoff))
-												if row.Signoff.By != "" {
-													@WhoLink(RoleCoach, row.Signoff.By, row.Signoff.Link)
-												}
+												@signoffLine(row.Signoff)
 												@signoffWaiting(row.Signoff)
+												if row.Signoff.Unapproved {
+													@unapprovedKey()
+												}
 											</span>
 											if row.Signoff.Note != "" {
 												<br/>
@@ -595,7 +599,7 @@ templ ClubCompetitionOffers(c ClubPage, comp ClubCompetition) {
 	@clubFrame(c) {
 		@clubCompetitionHead(comp)
 		if len(comp.Offers) == 0 {
-			<p class="has-text-grey mt-4">No member has offered to judge or help yet. Members say what they can do on their page for the competition.</p>
+			@emptyLine("No member has offered to judge or help yet. Members say what they can do on their page for the competition.")
 		}
 		// An offer for a member who told the comp sec rather than adding it.
 		if len(comp.NoOffer) > 0 {
@@ -628,7 +632,7 @@ templ ClubCompetitionOffers(c ClubPage, comp ClubCompetition) {
 									<td>{ o.Offer }</td>
 									<td class="has-text-right">
 										if o.Edit != "" {
-											<a class="button is-small is-text" href={ templ.SafeURL(o.Edit) }>Change</a>
+											<a class="button is-small" href={ templ.SafeURL(o.Edit) }>Change</a>
 										}
 									</td>
 								</tr>
@@ -675,7 +679,7 @@ templ ClubMembers(c ClubPage) {
 		@linkBox("Join link", c.JoinLink, "Share it in the club's chat: members join with it and keep their own entries.")
 		@listSection("Members", len(c.Members)) {
 			if len(c.Members) == 0 {
-				<p class="has-text-grey">No members yet. Share the join link.</p>
+				@emptyLine("No members yet. Share the join link.")
 			} else {
 				@listTools(c.MembersTools)
 				<div class="table-container">
@@ -739,7 +743,7 @@ templ ClubCoaches(c ClubPage) {
 	@clubFrame(c) {
 		@listSection("Coaches", len(c.Coaches)) {
 			if len(c.Coaches) == 0 {
-				<p class="has-text-grey">No coaches yet. Add one below.</p>
+				@emptyLine("No coaches yet. Add one below.")
 			} else {
 				@listTools(c.CoachesTools)
 				<div class="table-container">
@@ -879,15 +883,12 @@ templ ClubSettings(c ClubPage) {
 				<button class="button is-small" type="submit">Replace the admin link</button>
 			</form>
 		}
-		@opens("Delete the club", "Its members and their entries, now. Entries already sent stay with each competition.", "Delete", false) {
-			<form method="post" action={ templ.SafeURL(c.Base + "/delete") }>
-				<label class="checkbox comp-check is-size-7">
-					<input type="checkbox" name="confirm" value="1" required/>
-					Delete the club, its members and their entries, now
-				</label>
-				<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
-			</form>
-		}
+		// Deleting the whole club looks unlike any other remove.
+		<div class="comp-danger-zone">
+			@opens("Delete the club", "Its members and their entries, now. Entries already sent stay with each competition.", "Delete", false) {
+				@typeToDelete(c.Base+"/delete", "delete-club", "the club, its members and their entries, now", "Delete the club")
+			}
+		</div>
 		if c.KeptUntil != "" {
 			<p class="help mb-5">{ "The club is kept until " + c.KeptUntil + ": 13 months after anyone last opened its pages, or a member's or coach's. Each time someone does, that moves on." }</p>
 		}
@@ -907,7 +908,7 @@ script confirmRemove(name string) {
 templ ClubEntryEditPage(e ClubEntryEdit) {
 	@competitionLayout(e.Member + " · " + e.Competition.Name) {
 		@pageMenu(e.Menu)
-		<p class="mb-3"><a href={ templ.SafeURL(e.Back) }>← { e.Competition.Name }</a></p>
+		@backLink(e.Back, e.Competition.Name)
 		<h1 class="title is-4">
 			{ e.Member }
 			if e.Partner != nil {
@@ -915,7 +916,7 @@ templ ClubEntryEditPage(e ClubEntryEdit) {
 			}
 		</h1>
 		if e.Notice != "" {
-			<div class="notification is-success is-light">{ e.Notice }</div>
+			@notice(e.Notice)
 		}
 		if e.Card != nil {
 			<p class="subtitle is-6">{ e.Competition.Name } · { e.Card.Level }</p>
@@ -953,7 +954,7 @@ templ ClubJoin(p JoinPage) {
 				<label class="label" for="member-name">Your name</label>
 				<input class="input" id="member-name" name="name" required maxlength="80" value={ p.Name } placeholder="As on the results"/>
 			</div>
-			<button class="button is-primary is-fullwidth" type="submit">Join</button>
+			<button class="button is-primary" type="submit">Join</button>
 		</form>
 		<p class="help mt-4">We keep your name, your entries, and any routines and skills you keep on your page, which your club sees, and your entries the competitions they're sent to. Nothing else, and no account.</p>
 	}
@@ -978,7 +979,7 @@ templ memberFrame(p MemberPage) {
 			</div>
 		}
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		{ children... }
 	}
@@ -1018,7 +1019,7 @@ templ MemberHome(p MemberPage) {
 // forms, what they officiate and what they offer to judge and help with.
 templ MemberCompetitionPage(p MemberPage) {
 	@memberFrame(p) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Home) }>← Competitions</a></p>
+		@backLink(p.Home, "Competitions")
 		if p.Competition != nil {
 			@memberCompetitionBody(*p.Competition)
 		}
@@ -1078,7 +1079,7 @@ templ ClubLink(p ClubLinkPage) {
 				<input class="input" id="club-admin" name="clubAdmin" required placeholder="https://.../clubs/admin/..."/>
 				<p class="help">The link you got when you created the club. No club yet? <a href="/clubs/new">Create one</a>, then open this link again.</p>
 			</div>
-			<button class="button is-primary is-fullwidth" type="submit">Enter the club</button>
+			<button class="button is-primary" type="submit">Enter the club</button>
 		</form>
 	}
 }
@@ -1111,7 +1112,8 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 							}
 						</div>
 					}
-					@entryCardChecks(*ev.Card)
+					// Under the discipline's row, a heading of its own.
+					@entryCardChecks(cardUnder(*ev.Card, 4))
 					if comp.ChangesOpen {
 						<div class="mt-4">
 							@withdrawForm(ev.Withdraw, ev.Discipline)
@@ -1133,7 +1135,8 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 // memberEventRow is the one line a discipline's entry takes in the list. A
 // synchro event's name says Synchro already: not twice.
 templ memberEventRow(ev MemberEvent) {
-	<strong>{ ev.Name }</strong>
+	// The discipline is a heading, under the competition's.
+	<h3 class="comp-event-name">{ ev.Name }</h3>
 	if ev.Level != "" {
 		<span class="has-text-grey is-size-7">· { strings.TrimPrefix(ev.Level, ev.Name+" ") }</span>
 	}
@@ -1152,7 +1155,7 @@ type ClubOfferEdit struct {
 templ ClubOfferEditPage(e ClubOfferEdit) {
 	@competitionLayout(e.Member + " · judging and helping") {
 		@pageMenu(e.Menu)
-		<p class="mb-3"><a href={ templ.SafeURL(e.Back) }>← { e.Competition.Name }</a></p>
+		@backLink(e.Back, e.Competition.Name)
 		<h1 class="title is-4">{ e.Member }</h1>
 		<p class="subtitle is-6">Judging and helping at { e.Competition.Name }</p>
 		@offerForm(e.Form)

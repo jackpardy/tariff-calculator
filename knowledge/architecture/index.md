@@ -2,6 +2,7 @@
 
 * [Technology stack](stack.md) - Go 1.25 standard-library server, templ components, htmx 2, a little Alpine.js, SortableJS and Bulma, all vendored and embedded in one static binary, with SQLite on the way for competition entries.
 * [Server-rendered UI](rendering.md) - Every page and fragment is HTML rendered by the server from templ components; the browser posts the routine on each change and swaps in the result, and domain rules exist only in Go.
+* [The shared look](ui.md) - The rules every competition and club page keeps to: one page width, buttons by role, one open arrow, one notice, ways back that say where, the scroll fade, contrast and tap sizes, chips without marks, empty states, not-found pages and print.
 * [HTTP routes](http-routes.md) - Every route the server exposes, what it takes and what it returns, along with the limits applied to all requests.
 * [Static assets and versioning](static-assets.md) - CSS and JS are embedded in the binary and served at content-hashed URLs that are cached forever, and a version header tells open pages when a deploy has happened.
 * [Testing and checks](testing.md) - What the Go tests cover (the 139 CoP examples, the engine, requirements, catalog and rendered HTML) and the checks to run before every commit.

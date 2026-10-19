@@ -652,7 +652,11 @@ func placement(c store.Competition, entryID string) *views.Placement {
 	if f.Day < len(t.Setup.Days) {
 		day = t.Setup.Days[f.Day].Name + " "
 	}
-	return &views.Placement{Flight: f.Name(), Panel: f.Area, Time: day + competitions.Clock(f.Start)}
+	part := ""
+	if f.Of > 1 {
+		part = fmt.Sprintf("Flight %d of %d", f.Number, f.Of)
+	}
+	return &views.Placement{Flight: f.Name(), Panel: f.Area, Time: day + competitions.Clock(f.Start), Part: part}
 }
 
 // sameTimetable says whether a draft is what's published.

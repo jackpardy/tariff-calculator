@@ -51,12 +51,15 @@ func (s SignoffView) Status() string {
 templ signoffBox(s SignoffView) {
 	if s.Status() != "" {
 		<p class="mb-3">
-			@StateChip(signoffState(s))
-			if s.By != "" {
-				@WhoLink(RoleCoach, s.By, s.Link)
-			}
 			if s.Unapproved {
-				<span class="is-size-7 has-text-grey ml-1">The competition hasn't approved them as a coach, so it doesn't count.</span>
+				Signed off by
+				@coachName(s.By, s.Link, true)
+				<span class="is-size-7 has-text-grey ml-1">* The competition hasn't approved them as a coach, so it doesn't count.</span>
+			} else {
+				@StateChip(signoffState(s))
+				if s.By != "" {
+					@WhoLink(RoleCoach, s.By, s.Link)
+				}
 			}
 			if s.Note != "" {
 				<span class="is-size-7 ml-1">{ s.Note }</span>
@@ -190,7 +193,7 @@ templ CoachHome(p CoachPage) {
 					</p>
 				}
 				if len(c.Rows) == 0 {
-					<p class="has-text-grey is-size-7">None of your members has entered yet.</p>
+					@emptyLine("None of your members has entered yet.")
 				} else {
 					<div class="table-container">
 						<table class="table is-fullwidth is-narrow comp-table comp-stack">
@@ -209,10 +212,11 @@ templ CoachHome(p CoachPage) {
 											}
 										</td>
 										<td data-label="Sign-off">
-											@StateChip(signoffState(r.Signoff))
 											// Another coach's name; not their own on every row.
-											if r.Signoff.By != "" && r.Signoff.By != p.Coach {
-												@WhoChip(RoleCoach, r.Signoff.By)
+											if r.Signoff.By != "" && r.Signoff.By == p.Coach && !r.Signoff.Unapproved {
+												@StateChip(signoffState(r.Signoff))
+											} else {
+												@signoffLine(SignoffView{Signed: r.Signoff.Signed, By: r.Signoff.By, Unapproved: r.Signoff.Unapproved})
 											}
 										</td>
 									</tr>
@@ -262,8 +266,8 @@ templ signoffForm(p SignoffPage) {
 			<input class="input is-small" id="signoff-note" name="note" maxlength="300" value={ p.Signoff.Note } placeholder="e.g. Not the full-in until we've done it on the big trampoline"/>
 		</div>
 		<div class="buttons">
-			<button class="button is-success is-small" type="submit" name="signed" value="1">Sign off</button>
-			<button class="button is-warning is-light is-small" type="submit" name="signed" value="0">Not yet</button>
+			<button class="button is-small is-primary" type="submit" name="signed" value="1">Sign off</button>
+			<button class="button is-small" type="submit" name="signed" value="0">Not yet</button>
 		</div>
 		<p class="help">If the entry changes after you sign it off, it needs signing off again.</p>
 	</form>
@@ -276,7 +280,7 @@ templ SignoffEntry(p SignoffPage) {
 			@coachFrame(*p.Frame)
 		}
 		if p.Back != "" {
-			<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Entries</a></p>
+			@backLink(p.Back, "Entries")
 		}
 		// Whose entry first, then the competition's facts.
 		if p.Frame != nil {
@@ -288,7 +292,7 @@ templ SignoffEntry(p SignoffPage) {
 		}
 		@competitionFacts(p.Competition)
 		if p.Notice != "" && p.Frame == nil {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		@coachLates(p.Late)
 		@entryCardChecks(p.Card)

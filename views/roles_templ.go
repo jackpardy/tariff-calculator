@@ -432,7 +432,7 @@ func otherLinksBox(o OtherLinks) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\"><label class=\"label is-small\" for=\"other-link\">Your other link</label><div class=\"field has-addons\"><div class=\"control is-expanded\"><input class=\"input is-small\" id=\"other-link\" name=\"link\" required placeholder=\"Paste the link\" autocomplete=\"off\"></div><div class=\"control\"><button class=\"button is-small is-link\" type=\"submit\">Add</button></div></div><p class=\"help\">Only add links that are yours. A shared link, such as a club's comp sec link, opens from here, but never opens this page.</p></form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\"><label class=\"label is-small\" for=\"other-link\">Your other link</label><div class=\"field has-addons\"><div class=\"control is-expanded\"><input class=\"input is-small\" id=\"other-link\" name=\"link\" required placeholder=\"Paste the link\" autocomplete=\"off\"></div><div class=\"control\"><button class=\"button is-small is-primary\" type=\"submit\">Add</button></div></div><p class=\"help\">Only add links that are yours. A shared link, such as a club's comp sec link, opens from here, but never opens this page.</p></form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -606,7 +606,7 @@ func SameLink(p SameLinkPage) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "\"> <input type=\"hidden\" name=\"sure\" value=\"1\"> <button class=\"button is-small is-link\" type=\"submit\">It's mine: add it</button> <a class=\"button is-small\" href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "\"> <input type=\"hidden\" name=\"sure\" value=\"1\"> <button class=\"button is-small is-primary\" type=\"submit\">It's mine: add it</button> <a class=\"button is-small\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

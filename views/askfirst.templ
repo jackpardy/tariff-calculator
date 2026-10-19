@@ -56,7 +56,7 @@ templ AskFirst(p AskFirstPage) {
 					<input type="hidden" name={ v.Name } value={ v.Value }/>
 				}
 				<input type="hidden" name="anyway" value="1"/>
-				<button class="button is-small is-warning" type="submit">{ p.Do }</button>
+				<button class="button is-small is-primary" type="submit">{ p.Do }</button>
 			</form>
 			<a class="button is-small" href={ templ.SafeURL(p.Back) }>Cancel</a>
 		</div>

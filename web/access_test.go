@@ -108,11 +108,11 @@ func TestAdminLinks(t *testing.T) {
 	// The history says who did what.
 	history := do(t, h, http.MethodGet, admin+"/history", nil).Body.String()
 	for _, want := range []string{
-		"<td>Difficulty judges</td><td>Marked a card checked: Ann Ryan · BUCS L3</td>",
-		"<td>Organiser</td><td>Made a link for Difficulty judges (checking cards)</td>",
-		"<td>Chairs</td><td>Flagged a concern: Ann Ryan · BUCS L3</td>",
-		"<td>Timetable team</td><td>Planned the timetable</td>",
-		"<td>Mary</td><td>Closed entries</td>",
+		"<td data-label=\"Who\">Difficulty judges</td><td data-label=\"What\">Marked a card checked: Ann Ryan · BUCS L3</td>",
+		"<td data-label=\"Who\">Organiser</td><td data-label=\"What\">Made a link for Difficulty judges (checking cards)</td>",
+		"<td data-label=\"Who\">Chairs</td><td data-label=\"What\">Flagged a concern: Ann Ryan · BUCS L3</td>",
+		"<td data-label=\"Who\">Timetable team</td><td data-label=\"What\">Planned the timetable</td>",
+		"<td data-label=\"Who\">Mary</td><td data-label=\"What\">Closed entries</td>",
 	} {
 		if !strings.Contains(history, want) {
 			t.Errorf("the history has %q", want)

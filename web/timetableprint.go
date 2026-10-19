@@ -18,6 +18,10 @@ import (
 // The timetable's printed sheets: marshal, chair of judges, rota, timeline
 // and the recorders' score sheets.
 
+// printSheets are the sheets printTimetable prints, by their sheet= name;
+// none named is the marshal sheets.
+var printSheets = map[string]bool{"": true, "marshal": true, "judges": true, "scores": true, "rota": true, "timeline": true, "timeline-officials": true}
+
 // printTimetable prints the marshal sheets (sheet=marshal) or the chair of
 // judges sheets (sheet=judges), one area's day to a page, each flight with its
 // panel; the recorders' score sheets (sheet=scores), a flight to a page; the officials rota (sheet=rota), each person's duties; or the panel
@@ -26,6 +30,11 @@ import (
 func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request) {
 	c, draft, entries, ok := p.timetableOf(w, r)
 	if !ok {
+		return
+	}
+	sheet := r.URL.Query().Get("sheet")
+	if !printSheets[sheet] {
+		message(w, r, http.StatusNotFound, "No such sheet", "There's no sheet of that name to print. Choose one from the timetable's Print menu.")
 		return
 	}
 	s, from := printedTimetable(r, c, draft)
