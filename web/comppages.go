@@ -47,6 +47,7 @@ type competitionPages struct {
 	now                               func() time.Time
 	notify                            *notifier // nil when storage is off
 	facts                             factCache // what the pages work out from each competition's entries
+	fixes                             fixCache  // changes that might make each timetable fit
 	feedbackTo                        string    // where feedback is emailed (FEEDBACK_EMAIL); "" for nowhere
 }
 

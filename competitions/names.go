@@ -66,26 +66,26 @@ func CompareNames(a, b string) int {
 	return strings.Compare(a, b)
 }
 
-// distance is the edit distance between two strings, by rune.
-func distance(a, b string) int {
-	ra, rb := []rune(a), []rune(b)
-	prev := make([]int, len(rb)+1)
-	for j := range prev {
-		prev[j] = j
+// withinOne says whether two strings, as runes, are at most one edit apart:
+// a letter changed, added or taken away.
+func withinOne(a, b []rune) bool {
+	if len(a) > len(b) {
+		a, b = b, a
 	}
-	for i := 1; i <= len(ra); i++ {
-		cur := make([]int, len(rb)+1)
-		cur[0] = i
-		for j := 1; j <= len(rb); j++ {
-			cost := 1
-			if ra[i-1] == rb[j-1] {
-				cost = 0
-			}
-			cur[j] = min(prev[j]+1, cur[j-1]+1, prev[j-1]+cost)
-		}
-		prev = cur
+	if len(b)-len(a) > 1 {
+		return false
 	}
-	return prev[len(rb)]
+	i := 0
+	for i < len(a) && a[i] == b[i] {
+		i++
+	}
+	switch {
+	case i == len(a):
+		return true // the same, or b has one more at the end
+	case len(a) == len(b):
+		return slices.Equal(a[i+1:], b[i+1:])
+	}
+	return slices.Equal(a[i:], b[i+1:])
 }
 
 // LookAlike are pairs of different people whose names look like the same
@@ -93,25 +93,40 @@ func distance(a, b string) int {
 // accents), or one letter apart in a name of ten letters or more. names
 // are people's names, by key; each pair is sorted, and the pairs too.
 func LookAlike(names map[string]string) [][2]string {
-	var keys []string
-	for k := range names {
-		keys = append(keys, k)
+	// Each name is folded once, and compared only with those of the same
+	// length or one letter longer: about 400 gymnasts made 80,000 pairs,
+	// most of the timetable page's time.
+	type foldedName struct {
+		name  string
+		runes []rune
+		bytes int
 	}
-	slices.Sort(keys)
+	var folded []foldedName
+	byLength := map[int][]int{} // indexes into folded, by length in runes
+	for _, name := range names {
+		f := fold(name)
+		if f == "" {
+			continue
+		}
+		r := []rune(f)
+		byLength[len(r)] = append(byLength[len(r)], len(folded))
+		folded = append(folded, foldedName{name, r, len(f)})
+	}
 	var out [][2]string
-	for i, a := range keys {
-		fa := fold(names[a])
-		for _, b := range keys[i+1:] {
-			fb := fold(names[b])
-			if fa == "" || fb == "" {
-				continue
-			}
-			if fa == fb || (min(len(fa), len(fb)) >= 10 && distance(fa, fb) <= 1) {
-				pair := [2]string{names[a], names[b]}
-				if pair[1] < pair[0] {
-					pair[0], pair[1] = pair[1], pair[0]
+	for i, a := range folded {
+		for _, n := range []int{len(a.runes), len(a.runes) + 1} {
+			for _, j := range byLength[n] {
+				if n == len(a.runes) && j <= i {
+					continue // each pair of the same length once
 				}
-				out = append(out, pair)
+				b := folded[j]
+				if slices.Equal(a.runes, b.runes) || (min(a.bytes, b.bytes) >= 10 && withinOne(a.runes, b.runes)) {
+					pair := [2]string{a.name, b.name}
+					if pair[1] < pair[0] {
+						pair[0], pair[1] = pair[1], pair[0]
+					}
+					out = append(out, pair)
+				}
 			}
 		}
 	}
