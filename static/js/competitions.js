@@ -405,13 +405,20 @@
         // fit, so it can scroll to the left edge rather than stop part-way.
         // Measured where the last day ends, not by taking the room away first,
         // which would pull back a row scrolled to the end.
+        // The row is padded at each side (the fade's room, in styles.css):
+        // places are measured from inside that.
+        const pads = () => {
+            const cs = getComputedStyle(row);
+            return [parseFloat(cs.paddingLeft) || 0, parseFloat(cs.paddingRight) || 0];
+        };
         const tail = () => {
             const shown = days.filter((d) => d.open);
             const last = shown[shown.length - 1];
             let room = 0;
             if (wide.matches && last) {
+                const [left, right] = pads();
                 const end = last.getBoundingClientRect().right - row.getBoundingClientRect().left - row.clientLeft + row.scrollLeft;
-                if (end > row.clientWidth + 1) { room = Math.max(0, row.clientWidth - last.offsetWidth); }
+                if (end > row.clientWidth - right + 1) { room = Math.max(0, row.clientWidth - left - right - last.offsetWidth); }
             }
             row.style.setProperty('--tail', room + 'px');
         };
@@ -420,7 +427,7 @@
         // is greyed out at its end.
         const arrows = pick.querySelector('.comp-tt-scroll');
         const edgesOf = () => [...row.querySelectorAll('.comp-tt-area')].filter((a) => a.offsetParent)
-            .map((a) => Math.round(a.getBoundingClientRect().left - row.getBoundingClientRect().left - row.clientLeft + row.scrollLeft));
+            .map((a) => Math.round(a.getBoundingClientRect().left - row.getBoundingClientRect().left - row.clientLeft + row.scrollLeft - pads()[0]));
         const arrowsNow = () => {
             const max = row.scrollWidth - row.clientWidth;
             arrows.hidden = !wide.matches || max <= 1;

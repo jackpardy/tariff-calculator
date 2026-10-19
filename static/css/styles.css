@@ -1321,15 +1321,20 @@ details.comp-tt-day > summary::before { content: none; }
 @media screen and (min-width: 769px) {
   /* Where there's more to scroll, the row fades out at that edge; while it's
      being scrolled the fade steps aside quickly (is-scrolling), and once it
-     stops eases back in, so nothing moves at the edge but the timetable. */
+     stops eases back in, so nothing moves at the edge but the timetable.
+     The fade is in the page's side margin: the row reaches into it by
+     --room, padded back by as much, so at rest everything sits where it
+     would and the fade covers only what has slid out of view. */
   .comp-tt-dayrow { display: flex; align-items: flex-start; gap: 2rem; overflow-x: auto; padding-bottom: 0.5rem;
+    --room: 1.25rem; margin-inline: calc(-1 * var(--room)); padding-inline: var(--room);
     --fade-left: 0px; --fade-right: 0px; transition: --fade-left 0.6s ease-out, --fade-right 0.6s ease-out;
     -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade-left), #000 calc(100% - var(--fade-right)), transparent);
     mask-image: linear-gradient(to right, transparent, #000 var(--fade-left), #000 calc(100% - var(--fade-right)), transparent); }
-  .comp-tt-dayrow.has-more-left { --fade-left: 2.5rem; }
-  .comp-tt-dayrow.has-more-right { --fade-right: 2.5rem; }
+  .comp-tt-dayrow.has-more-left { --fade-left: var(--room); }
+  .comp-tt-dayrow.has-more-right { --fade-right: var(--room); }
   .comp-tt-dayrow.is-scrolling { --fade-left: 0px; --fade-right: 0px; transition-duration: 0.15s; }
   @media (prefers-reduced-motion: reduce) { .comp-tt-dayrow, .comp-tt-dayrow.is-scrolling { transition: none; } }
+  @media (min-width: 1024px) { .comp-tt-dayrow { --room: 2.5rem; } } /* the page's margin is 3rem here, 1.5rem below */
   .comp-tt-dayrow > .comp-tt-day { flex: 1 0 calc(var(--areas) * 15rem + (var(--areas) - 1) * 1rem); min-width: 0; }
   .comp-tt-dayrow .comp-tt-areas { overflow-x: visible; border-color: transparent !important; } /* the row scrolls, not each day */
   /* Room after the last day shown, so it scrolls to the left edge as the
