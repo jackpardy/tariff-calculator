@@ -1303,8 +1303,10 @@ input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100
 .comp-tt-areas.has-more-right { border-right-color: #8a8a8a; }
 .comp-tt-area { min-width: 0; }
 @media screen and (max-width: 768px) { .comp-tt-areas { grid-template-columns: minmax(0, 1fr); } }
-@property --fade-left { syntax: "<length>"; inherits: false; initial-value: 0rem; }
-@property --fade-right { syntax: "<length>"; inherits: false; initial-value: 0rem; }
+/* The fade's widths, registered so they can be animated (initial-value has
+   to be in px: a rem one makes browsers drop the rule, and the fade snaps). */
+@property --fade-left { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-right { syntax: "<length>"; inherits: false; initial-value: 0px; }
 /* Days: a button each above them (dayPick). On a phone they're tabs, one day
    shown; on a wider screen those chosen sit side by side, the row scrolling
    sideways (not each day) when they don't fit. A day's heading doesn't fold. */
@@ -1318,15 +1320,16 @@ input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100
 details.comp-tt-day > summary::before { content: none; }
 @media screen and (min-width: 769px) {
   /* Where there's more to scroll, the row fades out at that edge; while it's
-     being scrolled the fade steps aside (is-scrolling), so nothing moves at
-     the edge but the timetable. */
+     being scrolled the fade steps aside quickly (is-scrolling), and once it
+     stops eases back in, so nothing moves at the edge but the timetable. */
   .comp-tt-dayrow { display: flex; align-items: flex-start; gap: 2rem; overflow-x: auto; padding-bottom: 0.5rem;
-    --fade-left: 0rem; --fade-right: 0rem; transition: --fade-left 0.25s, --fade-right 0.25s;
+    --fade-left: 0px; --fade-right: 0px; transition: --fade-left 0.6s ease-out, --fade-right 0.6s ease-out;
     -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade-left), #000 calc(100% - var(--fade-right)), transparent);
     mask-image: linear-gradient(to right, transparent, #000 var(--fade-left), #000 calc(100% - var(--fade-right)), transparent); }
-  .comp-tt-dayrow.has-more-left { --fade-left: 4rem; }
-  .comp-tt-dayrow.has-more-right { --fade-right: 4rem; }
-  .comp-tt-dayrow.is-scrolling { --fade-left: 0rem; --fade-right: 0rem; }
+  .comp-tt-dayrow.has-more-left { --fade-left: 2.5rem; }
+  .comp-tt-dayrow.has-more-right { --fade-right: 2.5rem; }
+  .comp-tt-dayrow.is-scrolling { --fade-left: 0px; --fade-right: 0px; transition-duration: 0.15s; }
+  @media (prefers-reduced-motion: reduce) { .comp-tt-dayrow, .comp-tt-dayrow.is-scrolling { transition: none; } }
   .comp-tt-dayrow > .comp-tt-day { flex: 1 0 calc(var(--areas) * 15rem + (var(--areas) - 1) * 1rem); min-width: 0; }
   .comp-tt-dayrow .comp-tt-areas { overflow-x: visible; border-color: transparent !important; } /* the row scrolls, not each day */
   /* Room after the last day shown, so it scrolls to the left edge as the
