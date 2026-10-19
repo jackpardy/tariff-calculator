@@ -22,8 +22,8 @@ The **Add a skill** box is at the top.
    - **Tap it** in the picker. The tabs are Jumps, Body landings, Singles,
      Doubles and Triples. **Body landings** are the seat, back and front drops
      and their twists: first **From feet** (Seat Drop, Back Drop, Front Drop
-     and their ½ twists), then **From a body landing**, grouped by where they
-     land: To feet, To seat, To back and To front. Those take off from where
+     and their ½ twists), then **From a body landing**, in one group by where
+     they land (To Feet, ½ Twist To Feet, To Seat…). Those take off from where
      the skill before them lands, so
      after a seat drop, **½ Twist To Seat** gives a swivel hips (Seat Half
      Twist To Seat), and after a back drop, **To Feet** gives Back To Feet.

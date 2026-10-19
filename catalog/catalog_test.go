@@ -145,10 +145,7 @@ func TestPickerGroups(t *testing.T) {
 	}
 	want := []string{
 		"drops From feet: Seat Drop, ½ Twist To Seat, Back Drop, ½ Twist To Back, Front Drop, ½ Twist To Front",
-		"drops To feet: To Feet, ½ Twist To Feet",
-		"drops To seat: To Seat, ½ Twist To Seat",
-		"drops To back: To Back, ½ Twist To Back, Full Twist To Back, 1½ Twist To Back",
-		"drops To front: To Front, ½ Twist To Front",
+		"drops From a body landing: To Feet, ½ Twist To Feet, To Seat, ½ Twist To Seat, To Back, ½ Twist To Back, Full Twist To Back, 1½ Twist To Back, To Front, ½ Twist To Front",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("groups:\n%s", strings.Join(got, "\n"))

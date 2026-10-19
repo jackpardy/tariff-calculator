@@ -450,27 +450,25 @@ func LandingTiles(query string) []Entry {
 		return nil // "to" alone would be every tile
 	}
 	var exact, starts []Entry
-	for _, g := range landingGroups {
-		for _, t := range g.tiles {
-			label := tokens(t.label)
-			if len(q) > len(label) {
-				continue
+	for _, t := range landingTiles {
+		label := tokens(t.label)
+		if len(q) > len(label) {
+			continue
+		}
+		match := true
+		for i, w := range q {
+			last := i == len(q)-1
+			if label[i] != w && !(last && strings.HasPrefix(label[i], w)) {
+				match = false
+				break
 			}
-			match := true
-			for i, w := range q {
-				last := i == len(q)-1
-				if label[i] != w && !(last && strings.HasPrefix(label[i], w)) {
-					match = false
-					break
-				}
-			}
-			switch {
-			case !match:
-			case len(q) == len(label) && label[len(q)-1] == q[len(q)-1]:
-				exact = append(exact, t.entry())
-			default:
-				starts = append(starts, t.entry())
-			}
+		}
+		switch {
+		case !match:
+		case len(q) == len(label) && label[len(q)-1] == q[len(q)-1]:
+			exact = append(exact, t.entry())
+		default:
+			starts = append(starts, t.entry())
 		}
 	}
 	return append(exact, starts...)

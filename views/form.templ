@@ -96,14 +96,14 @@ templ picker(cats []catalog.Category) {
 		</div>
 		for _, c := range cats {
 			<div class="picker-list" role="tabpanel" aria-label={ c.Label } x-show={ fmt.Sprintf("query.trim() === '' && pickerTab === '%s'", c.Key) } x-cloak>
-				// Body landings: the drops from the feet, then by where they land,
-				// each taking off where the skill before it lands (g.Lead).
+				// Body landings: the drops from the feet, then those from a body
+				// landing, each taking off where the skill before it lands (g.Note).
 				for _, g := range c.Groups {
-					if g.Lead != "" {
-						<p class="picker-hint">{ g.Lead }</p>
-					}
 					<div class="picker-group" role="group" aria-label={ g.Title }>
 						<p class="picker-group-title">{ g.Title }</p>
+						if g.Note != "" {
+							<p class="picker-group-note">{ g.Note }</p>
+						}
 						<div class="picker-group-options">
 							for _, e := range g.Options {
 								<button

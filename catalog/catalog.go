@@ -118,9 +118,9 @@ type Category struct {
 type Group struct {
 	Title   string
 	Options []Entry
-	// Lead is a line shown above the group, for what it and those after it
-	// share ("From a body landing: …"); "" for none.
-	Lead string
+	// Note is a line under the title, saying what the group's tiles share
+	// ("Each takes off from …"); "" for none.
+	Note string
 }
 
 // Tile is a body-landing tile in the picker: where the skill lands and how
@@ -132,16 +132,14 @@ type Tile struct {
 	Twist int // half twists
 }
 
-// landingGroups are the Body landings tab: a group for each place to land,
-// a tile for each twist, with its usual skill (a CommonSkills key) and label.
-var landingGroups = []struct {
-	title string
-	tiles []landingTile
-}{
-	{"To feet", []landingTile{{"seatToFeet", "To Feet", skills.Feet, 0}, {"seatHalfToFeet", "½ Twist To Feet", skills.Feet, 1}}},
-	{"To seat", []landingTile{{"seatDrop", "To Seat", skills.Seat, 0}, {"halfToSeat", "½ Twist To Seat", skills.Seat, 1}}},
-	{"To back", []landingTile{{"backDrop", "To Back", skills.Back, 0}, {"halfToBack", "½ Twist To Back", skills.Back, 1}, {"catTwist", "Full Twist To Back", skills.Back, 2}, {"corkscrew", "1½ Twist To Back", skills.Back, 3}}},
-	{"To front", []landingTile{{"frontDrop", "To Front", skills.Front, 0}, {"halfToFront", "½ Twist To Front", skills.Front, 1}}},
+// landingTiles are the Body landings tab's tiles that follow the skill before,
+// in one group (the owner, 2026-10-19), by where they land: a tile for each
+// twist, with its usual skill (a CommonSkills key) and label.
+var landingTiles = []landingTile{
+	{"seatToFeet", "To Feet", skills.Feet, 0}, {"seatHalfToFeet", "½ Twist To Feet", skills.Feet, 1},
+	{"seatDrop", "To Seat", skills.Seat, 0}, {"halfToSeat", "½ Twist To Seat", skills.Seat, 1},
+	{"backDrop", "To Back", skills.Back, 0}, {"halfToBack", "½ Twist To Back", skills.Back, 1}, {"catTwist", "Full Twist To Back", skills.Back, 2}, {"corkscrew", "1½ Twist To Back", skills.Back, 3},
+	{"frontDrop", "To Front", skills.Front, 0}, {"halfToFront", "½ Twist To Front", skills.Front, 1},
 }
 
 // fromFeet are the drops from the feet, fixed tiles of their own at the top
@@ -153,8 +151,11 @@ var fromFeet = [][2]string{ // CommonSkills key, label
 	{"frontDrop", "Front Drop"}, {"halfToFront", "½ Twist To Front"},
 }
 
-// fromALanding is the line above the tiles that follow the skill before.
-const fromALanding = "From a body landing: each takes off from where the skill before it lands."
+// fromALanding is the group of tiles that follow the skill before, and its note.
+const (
+	fromALanding     = "From a body landing"
+	fromALandingNote = "Each takes off from where the skill before it lands."
+)
 
 type landingTile struct {
 	key, label string
@@ -167,11 +168,9 @@ var Takeoffs = []skills.BodyPosition{skills.Feet, skills.Front, skills.Back, ski
 
 // LandingTile is the Body landings tile whose usual skill is key, if any.
 func LandingTile(key string) (Entry, bool) {
-	for _, g := range landingGroups {
-		for _, t := range g.tiles {
-			if t.key == key {
-				return t.entry(), true
-			}
+	for _, t := range landingTiles {
+		if t.key == key {
+			return t.entry(), true
 		}
 	}
 	return Entry{}, false
@@ -352,24 +351,19 @@ func Categories() []Category {
 		grouped[o[0]] = true
 	}
 	byCategory["drops"] = append(byCategory["drops"], feet)
-	for i, g := range landingGroups {
-		group := Group{Title: g.title}
-		if i == 0 {
-			group.Lead = fromALanding
-		}
-		for _, t := range g.tiles {
-			e := t.entry()
-			group.Options = append(group.Options, e)
-			for _, v := range e.Versions() {
-				for key, c := range skills.CommonSkills {
-					if c.Equal(&v) {
-						grouped[key] = true
-					}
+	follow := Group{Title: fromALanding, Note: fromALandingNote}
+	for _, t := range landingTiles {
+		e := t.entry()
+		follow.Options = append(follow.Options, e)
+		for _, v := range e.Versions() {
+			for key, c := range skills.CommonSkills {
+				if c.Equal(&v) {
+					grouped[key] = true
 				}
 			}
 		}
-		byCategory["drops"] = append(byCategory["drops"], group)
 	}
+	byCategory["drops"] = append(byCategory["drops"], follow)
 
 	byKey := map[string][]Entry{}
 	add := func(key string, s skills.TrampolineSkill) {

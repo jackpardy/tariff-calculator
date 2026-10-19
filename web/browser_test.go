@@ -386,9 +386,9 @@ func TestLandingTilesFollowInABrowser(t *testing.T) {
 	for _, tc := range []struct {
 		name, before, group, tile, want, note string
 	}{
-		{"after a seat drop", seatDrop, "To seat", "½ Twist To Seat", "Seat Half Twist To Seat", "From seat, after Seat Drop · also called Swivel Hips"},
-		{"after a back drop", backDrop, "To feet", "To Feet", "Back To Feet", "From back, after Back Drop"},
-		{"first", "", "To seat", "½ Twist To Seat", "Half Twist To Seat", "From feet, at the start of the routine"},
+		{"after a seat drop", seatDrop, "From a body landing", "½ Twist To Seat", "Seat Half Twist To Seat", "From seat, after Seat Drop · also called Swivel Hips"},
+		{"after a back drop", backDrop, "From a body landing", "To Feet", "Back To Feet", "From back, after Back Drop"},
+		{"first", "", "From a body landing", "½ Twist To Seat", "Half Twist To Seat", "From feet, at the start of the routine"},
 	} {
 		var name, note string
 		step(t, ctx, "opening the builder "+tc.name,
