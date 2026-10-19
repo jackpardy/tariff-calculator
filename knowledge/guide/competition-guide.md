@@ -110,7 +110,9 @@ pair's one routine), checked as the Routine Builder checks them.
   **Need more** with a note of what's missing.
 - **Print** opens a menu: **Cards** prints a competition card per exercise,
   filled in, for everyone shown, and **Cards not checked** the entries you
-  haven't checked; one level's are inside the open level (**Print this
+  haven't checked. More than a hundred cards come a level at a time (a big
+  level by category, "BUCS L7 · Men"): choose one, print it, then **Next**;
+  **Every level on one page** prints them all at once, from a computer; one level's are inside the open level (**Print this
   level's cards**), and one gymnast's on their page (**Print card**). Save as
   PDF from the print dialog for one file. A chair of judges' link finds the
   timetable's sheets in the same menu.
@@ -231,7 +233,8 @@ a link to the entry; what they offered to officiate, which events they may
 judge, whether they're marked qualified and their seats on the panels; the
 gymnasts they coach, each a link to that gymnast; and, once the timetable is
 published, their flight, where they are in it, whether they're here, any
-scratch warning and the desk messages sent to them. Names on the entries page,
+scratch warning and the desk messages sent to them, and the flights and panels
+they're in (**Show the whole timetable** shows everyone's). Names on the entries page,
 the **Officials** page and the **Coaches** page open the same page (on the
 entries page it's the small **person** link beside the name, and **partner** for
 a synchro pair). A member who also coaches is one row too, once their club
@@ -331,10 +334,14 @@ a **Change** button to open it.
    **Earlier**, which swaps a flight with the one before it in its event, and
    **Redraw order**, which draws its running order again; a flight's **Move
    a gymnast** puts one of its gymnasts (choose who) in another flight, or
-   takes them out. To find someone
-   on a long timetable, type part of their name in **Find a name**: only
-   the flights with them show. The day and area links beside it go
-   straight to a day or an area. If an event's flights end up
+   takes them out. The timetable opens on one day (today's, on the
+   competition's days, else the first), with a button for each day above
+   it. On a phone they're tabs: tap a day to see it. On a bigger screen
+   each button shows or hides its day, the days you choose side by side
+   (scroll sideways if they don't all fit, or use **‹** and **›** to move
+   an area at a time); the page remembers your choice. To find someone on a long timetable, type part of their name in
+   **Find a name**: only the flights with them show, on whichever day. The
+   area links under a day's name go straight to an area. If an event's flights end up
    apart, or either side of a break you haven't allowed, it's listed as a
    problem. Entries made after planning are listed for you to place.
    Changing the setup asks you to **Plan** again, on **Setup**. Open a flight's **Panel**
@@ -680,7 +687,8 @@ when and where you judge or help.
 the day: each of your events and its card's status, and once the timetable is
 published, your events in the order you warm up, each with your flight, where
 you are in the running order and about when each routine is, what you
-officiate, and the whole timetable with you picked out. It has your tabs and a
+officiate, and the flights and panels you're in, each with its running order
+(**Show the whole timetable** shows everyone's, you picked out). It has your tabs and a
 link back to the competition's page. Once it's published, **Your timetable**
 (on My competition) shows it laid out like the organiser's panel
 timeline (days side by side, time running down evenly), with where you
@@ -890,7 +898,7 @@ confirm.
    it's one offer for the competition, the same on each of your entries. Once the timetable is published, your entry
    shows your flight and, under **Officiating**, when and where you judge or
    help. **My competition** gathers all your entries (each discipline),
-   times, your timetable and calendar and the whole timetable on one page.
+   times, your flights and panels, your timetable and calendar on one page (the whole timetable a tap away).
 
    Entered before, with a link for each entry? Each link still works and opens
    its entry on your page. Add the others under **Your details**, **Your other

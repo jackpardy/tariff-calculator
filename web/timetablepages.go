@@ -258,6 +258,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		page.Days = itemsOf(s, entries, officials)
+		page.OpenDay, _ = todayIndex(c, &s, p.now())
 		for i, f := range s.Flights {
 			page.Moves = append(page.Moves, views.FlightOption{Value: strconv.Itoa(i), Label: fmt.Sprintf("%s · %s %s · %s", f.Name(), s.Setup.Days[f.Day].Name, competitions.Clock(f.Start), f.Area), Group: f.Discipline})
 		}

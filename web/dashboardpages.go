@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -388,9 +389,16 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.CompetitionDashboard(d))
 }
 
+// cardsAtOnce is the most cards the cards page shows without being asked: a
+// selection of more, over several levels, lists its levels to print one at a
+// time instead, as every card on one page was megabytes that froze a phone.
+var cardsAtOnce = 100
+
 // cards prints the competition cards of the entries the dashboard's filter
 // selects (club, problems, unchecked, level, entry), one exercise per page, by
-// level then as listed.
+// level then as listed. More than cardsAtOnce over more than one level lists
+// the levels instead, each to print on its own, with all of them on one page
+// a link away (all=1).
 func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
 	if !ok {
@@ -403,41 +411,121 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	// The selection's levels with their cards, whichever level was asked for,
+	// so a level's page can go on to the next. A level with more than
+	// cardsAtOnce is in parts, a category each (part=Men), where it has more
+	// than one.
+	selection := url.Values{}
+	for k, v := range q {
+		if k != "level" && k != "part" && k != "all" {
+			selection[k] = v
+		}
+	}
 	for _, level := range levelOrder(c.Competition, all) {
+		var parts []string
+		count := map[string]int{}
 		for _, j := range all {
-			if j.Entry.Entry.Event() != level || !j.matches(q) || j.err != nil || j.card.Unchecked || (j.Withdrawn && q.Get("entry") == "") {
+			if j.Entry.Entry.Event() != level || !printsCard(j, selection) {
 				continue
 			}
-			club := j.ClubName
-			if j.Individual {
-				club = ""
+			category := j.Entry.Entry.Category
+			if _, ok := count[category]; !ok {
+				parts = append(parts, category)
 			}
-			for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
-				if !j.card.Does(i) {
-					continue
+			for i := range 2 {
+				if j.card.Does(i) {
+					count[category]++
 				}
-				round := [...]string{"1st exercise", "2nd exercise"}[i]
-				if j.card.Only > 0 {
-					round = "Routine"
-				}
-				// Its set's name, less what the card says already (the level,
-				// "first exercise"): "1st exercise · option 2".
-				set := strings.TrimPrefix(ex.SetName, j.Entry.Entry.Event()+" · ")
-				if set != "" && !strings.Contains(strings.ToLower(set), "exercise") && set != j.Entry.Entry.Event() {
-					round += " · " + set
-				}
-				page.Cards = append(page.Cards, views.PrintedCard{
-					Validation: ex.Validation, Required: ex.Required, Checks: ex.Checks,
-					Details: views.SheetDetails{
-						"gymnast": j.Entry.Entry.Gymnasts(), "club": club, "category": strings.TrimSpace(j.Entry.Entry.Event() + " " + j.Entry.Entry.Category),
-						"competition": c.Name, "round": round,
-						"coach": j.CoachName(),
-					},
-				})
+			}
+		}
+		n := 0
+		for _, k := range count {
+			n += k
+		}
+		page.Total += n
+		at := maps.Clone(selection)
+		at.Set("level", level)
+		if n <= cardsAtOnce || len(parts) < 2 {
+			if n > 0 {
+				page.Levels = append(page.Levels, views.CardsLevel{Name: level, Cards: n, Href: "?" + at.Encode()})
+			}
+			continue
+		}
+		slices.SortFunc(parts, competitions.CompareNames)
+		for _, part := range parts {
+			at.Set("part", part)
+			name := level + " · " + part
+			if part == "" {
+				name = level + " · no category"
+			}
+			page.Levels = append(page.Levels, views.CardsLevel{Name: name, Cards: count[part], Href: "?" + at.Encode(), Level: level, Part: part, Parted: true})
+		}
+	}
+	if len(page.Levels) > 1 && page.Total > cardsAtOnce {
+		every := maps.Clone(selection)
+		every.Set("all", "1")
+		page.LevelsHref, page.AllHref = "?"+selection.Encode(), "?"+every.Encode()
+		if q.Get("level") == "" && q.Get("entry") == "" && q.Get("all") == "" {
+			page.Choose = true
+			render(w, r, views.CompetitionCards(page))
+			return
+		}
+		for i, l := range page.Levels {
+			this := l.Name == q.Get("level") || (l.Parted && l.Level == q.Get("level") && q.Has("part") && l.Part == q.Get("part"))
+			if this && i+1 < len(page.Levels) {
+				page.Next = &page.Levels[i+1]
+			}
+		}
+	}
+	for _, level := range levelOrder(c.Competition, all) {
+		for _, j := range all {
+			// A part is a category of the level.
+			if j.Entry.Entry.Event() == level && printsCard(j, q) && (!q.Has("part") || j.Entry.Entry.Category == q.Get("part")) {
+				page.Cards = append(page.Cards, cardsOf(c.Name, j)...)
 			}
 		}
 	}
 	render(w, r, views.CompetitionCards(page))
+}
+
+// printsCard says whether an entry's cards print for the cards page's
+// selection: checked, chosen by the filters, and not withdrawn unless asked
+// for by itself.
+func printsCard(j judged, q url.Values) bool {
+	return j.matches(q) && j.err == nil && !j.card.Unchecked && (!j.Withdrawn || q.Get("entry") != "")
+}
+
+// cardsOf is an entry's competition cards, one for each exercise it does.
+func cardsOf(competition string, j judged) []views.PrintedCard {
+	club := j.ClubName
+	if j.Individual {
+		club = ""
+	}
+	var out []views.PrintedCard
+	for i, ex := range []requirements.Checked{j.card.First, j.card.Second} {
+		if !j.card.Does(i) {
+			continue
+		}
+		round := [...]string{"1st exercise", "2nd exercise"}[i]
+		if j.card.Only > 0 {
+			round = "Routine"
+		}
+		// Its set's name, less what the card says already (the level,
+		// "first exercise"): "1st exercise · option 2".
+		set := strings.TrimPrefix(ex.SetName, j.Entry.Entry.Event()+" · ")
+		if set != "" && !strings.Contains(strings.ToLower(set), "exercise") && set != j.Entry.Entry.Event() {
+			round += " · " + set
+		}
+		out = append(out, views.PrintedCard{
+			Validation: ex.Validation, Required: ex.Required, Checks: ex.Checks,
+			Details: views.SheetDetails{
+				"gymnast": j.Entry.Entry.Gymnasts(), "club": club, "category": strings.TrimSpace(j.Entry.Entry.Event() + " " + j.Entry.Entry.Category),
+				"competition": competition, "round": round,
+				"coach": j.CoachName(),
+			},
+		})
+	}
+	return out
 }
 
 // levelOrder is the competition's levels in order, then any level entries

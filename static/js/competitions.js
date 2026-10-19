@@ -343,6 +343,164 @@
         levels.forEach((d) => d.addEventListener('toggle', save));
     }
 
+    // lazyRows puts rows that wait in a <template data-lazy> (a folded level
+    // of the dashboard, views/dashboard.templ) in the page: those inside a
+    // <details> when it opens, and every one in root when a search needs
+    // them. tables.js hears "lazy-rows" and sets the new rows' columns.
+    function lazyRows(root) {
+        const waiting = root.querySelectorAll('template[data-lazy]');
+        if (waiting.length === 0) { return; }
+        waiting.forEach((t) => t.replaceWith(t.content));
+        document.dispatchEvent(new CustomEvent('lazy-rows'));
+    }
+    document.addEventListener('toggle', (e) => {
+        if (e.target.tagName === 'DETAILS' && e.target.open) { lazyRows(e.target); }
+    }, true);
+
+    // reveal goes to a place in a list marked data-reveal (the timetable's
+    // days) that may be folded away: the address's #id after a change, or a
+    // link to a day or area. Its rows come into the page, the days around it
+    // open, and it scrolls into view.
+    function reveal(id) {
+        const list = document.querySelector('[data-reveal]');
+        if (!list || !id) { return false; }
+        const waiting = [...list.querySelectorAll('template[data-lazy]')].find((t) => t.content.getElementById(id));
+        if (waiting) {
+            const details = waiting.closest('details');
+            if (details) { details.open = true; }
+            lazyRows(details || list);
+        }
+        const target = document.getElementById(id);
+        if (!target || !list.contains(target)) { return false; }
+        for (let d = target.closest('details'); d; d = d.parentElement.closest('details')) {
+            // Its rows now, not when the toggle event comes, so the page is
+            // as long as it will be before it scrolls.
+            if (d.classList.contains('comp-tt-day')) { d.open = true; lazyRows(d); }
+        }
+        target.scrollIntoView();
+        return true;
+    }
+    document.addEventListener('click', (e) => {
+        const a = e.target.closest?.('a[href^="#"]');
+        if (a && reveal(decodeURIComponent(a.getAttribute('href').slice(1)))) {
+            e.preventDefault();
+            try { history.replaceState(history.state, '', a.getAttribute('href')); } catch (err) { /* the address keeps its old place */ }
+        }
+    });
+
+    // dayPick is the timetable's button for each day (an open day is one
+    // shown). On a phone they're tabs: one day at a time. On a wider screen
+    // each shows or hides its day, those shown side by side, at least one;
+    // the choice is kept in this browser, unless the address goes to a place
+    // (after a change), which opens its own day.
+    function dayPick() {
+        const pick = document.querySelector('.comp-tt-daypick');
+        if (!pick) { return; }
+        const wide = window.matchMedia('(min-width: 769px)');
+        const days = [...document.querySelectorAll('.comp-tt-dayrow > .comp-tt-day')];
+        const dayOf = (id) => document.getElementById(id)?.closest('details');
+        const key = 'timetableDays:' + location.pathname;
+        const row = document.querySelector('.comp-tt-dayrow');
+        // tail leaves room after the last day shown when the days don't all
+        // fit, so it can scroll to the left edge rather than stop part-way.
+        // Measured where the last day ends, not by taking the room away first,
+        // which would pull back a row scrolled to the end.
+        // The row is padded at each side (the fade's room, in styles.css):
+        // places are measured from inside that.
+        const pads = () => {
+            const cs = getComputedStyle(row);
+            return [parseFloat(cs.paddingLeft) || 0, parseFloat(cs.paddingRight) || 0];
+        };
+        const tail = () => {
+            const shown = days.filter((d) => d.open);
+            const last = shown[shown.length - 1];
+            let room = 0;
+            if (wide.matches && last) {
+                const [left, right] = pads();
+                const end = last.getBoundingClientRect().right - row.getBoundingClientRect().left - row.clientLeft + row.scrollLeft;
+                if (end > row.clientWidth - right + 1) { room = Math.max(0, row.clientWidth - left - right - last.offsetWidth); }
+            }
+            row.style.setProperty('--tail', room + 'px');
+        };
+        // ‹ and › move the row along an area at a time, to the next area's
+        // edge; they show only when the days shown don't all fit, and each
+        // is greyed out at its end.
+        const arrows = pick.querySelector('.comp-tt-scroll');
+        const edgesOf = () => [...row.querySelectorAll('.comp-tt-area')].filter((a) => a.offsetParent)
+            .map((a) => Math.round(a.getBoundingClientRect().left - row.getBoundingClientRect().left - row.clientLeft + row.scrollLeft - pads()[0]));
+        const arrowsNow = () => {
+            const max = row.scrollWidth - row.clientWidth;
+            arrows.hidden = !wide.matches || max <= 1;
+            arrows.querySelector('[data-scroll="-1"]').disabled = row.scrollLeft <= 1;
+            arrows.querySelector('[data-scroll="1"]').disabled = row.scrollLeft >= max - 1;
+        };
+        arrows.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-scroll]');
+            if (!b) { return; }
+            const at = row.scrollLeft;
+            const edges = edgesOf();
+            // An edge a few pixels off isn't a move (each day's areas start
+            // just inside it), and one that close to the start is the start.
+            let to = b.dataset.scroll === '1' ? edges.find((x) => x > at + 8) : edges.reverse().find((x) => x < at - 8);
+            to = to ?? (b.dataset.scroll === '1' ? row.scrollWidth : 0);
+            const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            row.scrollTo({ left: to <= 8 ? 0 : to, behavior: smooth ? 'smooth' : 'auto' });
+        });
+        // While the row is being scrolled its edges' fade steps aside
+        // (is-scrolling, in styles.css), coming back once it stops.
+        let still;
+        row.addEventListener('scroll', () => {
+            row.classList.add('is-scrolling');
+            clearTimeout(still);
+            still = setTimeout(() => row.classList.remove('is-scrolling'), 200);
+            arrowsNow();
+        }, { passive: true });
+        const sync = () => {
+            pick.querySelectorAll('[data-day]').forEach((b) => {
+                b.setAttribute('aria-pressed', dayOf(b.dataset.day)?.open ? 'true' : 'false');
+            });
+            tail();
+            arrowsNow();
+        };
+        window.addEventListener('resize', () => { tail(); arrowsNow(); });
+        const save = () => {
+            const shown = days.filter((d) => d.open).map((d) => d.querySelector('summary').id);
+            try { localStorage.setItem(key, JSON.stringify(shown)); } catch (e) { /* this visit only */ }
+        };
+        if (wide.matches && !location.hash) {
+            let kept = null;
+            try { kept = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { /* none kept */ }
+            if (Array.isArray(kept) && days.some((d) => kept.includes(d.querySelector('summary').id))) {
+                days.forEach((d) => {
+                    d.open = kept.includes(d.querySelector('summary').id);
+                    if (d.open) { lazyRows(d); }
+                });
+            }
+        }
+        pick.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-day]');
+            const d = b && dayOf(b.dataset.day);
+            if (!d) { return; }
+            if (!wide.matches) {
+                days.forEach((x) => { x.open = x === d; });
+                lazyRows(d);
+                sync();
+                return;
+            }
+            if (d.open && days.filter((x) => x.open).length === 1) { return; }
+            d.open = !d.open;
+            if (d.open) { lazyRows(d); }
+            sync();
+            save();
+        });
+        days.forEach((d) => {
+            d.addEventListener('toggle', sync);
+            // A day's heading is a heading: the buttons show and hide days.
+            d.querySelector('summary').addEventListener('click', (e) => e.preventDefault());
+        });
+        sync();
+    }
+
     // tickBar is the Entries page's bar once entries are ticked: how many, and
     // Remove or Hold, which open the form below with that chosen.
     function tickBar() {
@@ -706,9 +864,11 @@
             const apply = () => {
                 const list = document.getElementById(tools.dataset.listTools);
                 if (!list) { return; }
-                const rows = readRows(list);
-                const total = form ? Number(tools.dataset.total) : rows.length;
                 const words = searchWords(search.value);
+                // A search looks through every row, folded ones too.
+                if (words.length > 0) { lazyRows(list); }
+                const rows = readRows(list);
+                let total = form ? Number(tools.dataset.total) : rows.length;
                 const chosen = filters.filter((f) => f.value !== '');
                 let shown = 0;
                 for (const row of rows) {
@@ -717,6 +877,8 @@
                     if (show) { shown++; }
                 }
                 const filtered = words.length > 0 || chosen.length > 0;
+                // Rows still folded away (lazyRows) count, unfiltered.
+                if (!filtered && list.querySelector('template[data-lazy]')) { shown = total = Number(tools.dataset.total) || shown; }
                 // A group of rows (a club's box, a level) hides while filtering
                 // finds none of its rows. While searching, a closed group with a
                 // match opens, and closes again when the search is cleared.
@@ -857,7 +1019,17 @@
     // moment. A row the filters no longer show leaves the page at the top.
     function backToEntry(id) {
         const list = document.getElementById('entries');
-        const link = list && [...list.querySelectorAll('td.comp-stack-title > a')].find((a) => new URL(a.href).pathname.endsWith('/entries/' + id));
+        if (!list) { return; }
+        const its = (a) => new URL(a.getAttribute('href'), location.href).pathname.endsWith('/entries/' + id);
+        // Its row may wait in a folded level's template (lazyRows): it comes
+        // into the page first.
+        const waiting = [...list.querySelectorAll('template[data-lazy]')].find((t) => [...t.content.querySelectorAll('td.comp-stack-title > a')].some(its));
+        if (waiting) {
+            const level = waiting.closest('details');
+            if (level) { level.open = true; }
+            lazyRows(level || list);
+        }
+        const link = [...list.querySelectorAll('td.comp-stack-title > a')].find(its);
         if (!link) { return; }
         const row = link.closest('tr');
         for (let d = row.closest('details'); d; d = d.parentElement.closest('details')) { d.open = true; }
@@ -912,6 +1084,7 @@
         openLevels();
         menuInView();
         tickBar();
+        dayPick();
         dayPage();
         copyButtons();
         saveLinks();
@@ -922,6 +1095,7 @@
         enterAs();
         partnerClubs();
         openToAnchor();
+        reveal(decodeURIComponent(location.hash.slice(1)));
         forgetDeadLink();
         videoChoices();
         entryForms();

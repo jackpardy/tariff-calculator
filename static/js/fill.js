@@ -1,6 +1,7 @@
 // fill.js: the organiser's timetable (views/timetable.templ). Long lists of
 // choices (the flights a gymnast can move to, the people who can take a
-// seat) are on the page once, in a <template>; each dropdown marked
+// seat, the days and areas a flight can move to) are on the page once, in a
+// <template>; each dropdown marked
 // data-fill="<its id>" fills from it the first time it's opened or focused,
 // after its first choice ("Choose a flight", "Choose a person").
 (function () {
@@ -19,6 +20,15 @@
     // A move puts its flights before "Take out of the timetable"; a seat puts
     // its people after "No one".
     const fillSelect = (select) => {
+        // A flight's "Move a gymnast" offers its running order, read from the
+        // page rather than repeated in every flight.
+        if (select.dataset.fill === 'order' && !select.dataset.filled) {
+            select.dataset.filled = '1';
+            for (const li of select.closest('.comp-flight')?.querySelectorAll('.comp-order li[data-entry]') || []) {
+                select.append(new Option(`${li.value}. ${li.dataset.name}`, li.dataset.entry));
+            }
+            return;
+        }
         if (select.dataset.fill === 'seat-options' && !select.dataset.filled) {
             const options = document.getElementById(select.dataset.fill);
             if (!options) { return; }

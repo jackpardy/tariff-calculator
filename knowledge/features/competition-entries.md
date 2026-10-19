@@ -396,7 +396,10 @@ without its level: "option 2"), Coach and Checked in sight; measured at
 with more to see.
 Levels start folded, with **Expand all** and **Collapse all**; the browser
 remembers which were left open, and a search or filter opens the levels it
-finds people in. Finding entries (roadmap 2026-10-08), all in
+finds people in. A folded level's rows come in a `<template data-lazy>`, put in
+the page when it opens or a search needs them (`competitions.js`, `lazyRows`;
+`tables.js` then hides their hidden columns): every level's rows at once were
+16,000 elements for a phone to lay out. Levels a filter opens come in the page. Finding entries (roadmap 2026-10-08), all in
 the page's address so a view can be kept or shared:
 
 - **search** (`q`): every word in the gymnast's or synchro partner's name,
@@ -514,7 +517,12 @@ says it was withdrawn, and the coach they named goes, with the certificate.
 - The [tariff sheet](tariff-sheet.md) (competition card) with its details
   filled in from the entry: gymnast, club, level, competition and exercise.
 - **Print all** for a level, a club, or the entries not checked yet: one card
-  per page, ready for the judges' table.
+  per page, ready for the judges' table. A selection of more than 100 cards
+  (`cardsAtOnce`) over more than one level lists its levels instead, each
+  with its cards and a link to print it (a level of more than 100 in parts by
+  category, `part=Men`), and **Every level on one page** (`all=1`); a level's
+  page has **Other levels** and **Next: …**. All 899 of the demo's cards on
+  one page were 3.9 MB and 112,000 elements, freezing a phone.
 - **CSV** for the scoring system (name, club, level, tariff per exercise,
   problems counted and listed; checked and withdrawn are "yes" or "no"). A
   single PDF of all cards is the cards page saved as PDF from the browser's
@@ -798,7 +806,24 @@ are then filled flight by flight.
   heading, since days can use different areas, and **Find a name**, which searches the
   running orders, the gymnasts not in a flight and the seated officials,
   hiding days, areas, flights and blocked time with nobody it finds and
-  opening the Panel lists with someone. Changing the setup marks the
+  opening the Panel lists with someone. Each day has a button above the
+  days (`dayPick`, the owner's choice 2026-10-19). On a phone they're tabs,
+  one day shown at a time; on a wider screen each shows or hides its day,
+  the days shown side by side, the row scrolling sideways when they don't
+  fit (with room after the last, so it scrolls to the left edge as the
+  others do; no snapping, which made small scrolls jump back), and the
+  choice is kept in the browser. Where there's more to scroll the row
+  fades out at that edge (a mask, `--fade-left`/`--fade-right`), in the
+  page's side margin so it never covers what's in view, the fade stepping
+  aside while it's scrolled and easing back once stopped; **‹** and **›** beside the day
+  buttons move it an area at a time, for a mouse without sideways
+  scrolling. The page opens on today's (on
+  the competition's days, `todayIndex`) or the first; the others' flights
+  wait in a template until shown, searched or gone to (the `#area` a change
+  comes back to: `competitions.js`, `reveal`). A day's heading doesn't fold.
+  A flight's **Move a gymnast** fills its gymnasts from the running order, and
+  **Move to** its days and areas from one list (`place-options`), rather than
+  each flight repeating them. Changing the setup marks the
   plan out of date until **Plan** again; moves are rechecked and listed as
   problems: clashes, and an event whose flights aren't back to back on one
   area, or run either side of a break that isn't allowed (timetables
@@ -2193,9 +2218,12 @@ Tell me about changes), not the timetables and calendars as well.
   and warm-up, where
   they are in the running order ("3rd of 12"), and about when each routine
   is, worked out from the flight's timings (a guide only).
-- What they officiate, and the whole timetable, every day and area, with
-  their name in bold and the flights they're in or on the panel of open and
-  outlined.
+- What they officiate, and the flights they're in or on the panel of (and
+  blocked time they have a seat in), by day and area, with their name in bold
+  (`theirItems`). **Show the whole timetable** (`?timetable=all`) shows every
+  flight, theirs open and outlined, and **Only yours** goes back: the whole of
+  it made the page 11,000–13,700 px long on a phone. The organiser's page of a
+  person does the same ("Their flights and panels").
 
 ## Personal and club timetables
 

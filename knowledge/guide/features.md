@@ -106,7 +106,7 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
   gymnasts.
 - **Your competition**: one page for each gymnast with their events, card
   status, flights, place in the running order, rough routine times, their
-  judging and the whole timetable.
+  judging and the flights they're in (the whole timetable a link away).
 - **The officials rota**: every panel filled from the people who offered to
   judge and help, never while they compete, own-club judging shared fairly,
   your rules about who does what, printed and shown to each official.

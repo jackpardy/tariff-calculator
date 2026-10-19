@@ -19,7 +19,7 @@
         box.classList.toggle('has-more-right', more && box.scrollLeft + box.clientWidth < box.scrollWidth - 1);
     }
     function watchEdges() {
-        document.querySelectorAll('.table-container, .tabs, .comp-tt-areas').forEach((box) => {
+        document.querySelectorAll('.table-container, .tabs, .comp-tt-areas, .comp-tt-dayrow').forEach((box) => {
             if (!box.dataset.edges) {
                 box.dataset.edges = '';
                 box.addEventListener('scroll', () => edges(box), { passive: true });
@@ -168,8 +168,14 @@
         ids.forEach(apply);
         watchEdges();
     }
-    // Levels open later: their tables' edges are measured then.
-    document.addEventListener('toggle', (event) => { if (event.target.open) { watchEdges(); } }, true);
+    // Levels open later: their tables' edges are measured then. A timetable
+    // day shown or hidden changes how wide its row is, either way.
+    document.addEventListener('toggle', watchEdges, true);
+    // A folded level's rows come into the page when it opens (competitions.js,
+    // lazyRows): its hidden columns are hidden in them too.
+    document.addEventListener('lazy-rows', () => {
+        new Set(Array.from(document.querySelectorAll('table[data-table-view]'), (t) => t.dataset.tableView)).forEach(apply);
+    });
     window.addEventListener('resize', () => {
         document.querySelectorAll('table[data-table-view]').forEach((t) => apply(t.dataset.tableView));
         watchEdges();

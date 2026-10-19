@@ -1314,6 +1314,44 @@ input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100
 .comp-tt-areas.has-more-right { border-right-color: #8a8a8a; }
 .comp-tt-area { min-width: 0; }
 @media screen and (max-width: 768px) { .comp-tt-areas { grid-template-columns: minmax(0, 1fr); } }
+/* The fade's widths, registered so they can be animated (initial-value has
+   to be in px: a rem one makes browsers drop the rule, and the fade snaps). */
+@property --fade-left { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-right { syntax: "<length>"; inherits: false; initial-value: 0px; }
+/* Days: a button each above them (dayPick). On a phone they're tabs, one day
+   shown; on a wider screen those chosen sit side by side, the row scrolling
+   sideways (not each day) when they don't fit. A day's heading doesn't fold. */
+.comp-tt-daypick { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.4rem 1rem; margin: 1.25rem 0 0.25rem; }
+.comp-tt-daybuttons, .comp-tt-scroll { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.comp-tt-scroll .button { min-width: 2.5rem; font-size: 1.1rem; line-height: 1; }
+.comp-tt-daypick .button[aria-pressed="true"] { background: var(--state-in-progress-bg); border-color: var(--state-in-progress-ink); color: var(--state-in-progress-ink); font-weight: 600; }
+.comp-tt-dayrow > .comp-tt-day:not([open]) { display: none; }
+.comp-tt-day > summary { list-style: none; cursor: default; }
+.comp-tt-day > summary::-webkit-details-marker { display: none; }
+details.comp-tt-day > summary::before { content: none; }
+@media screen and (min-width: 769px) {
+  /* Where there's more to scroll, the row fades out at that edge; while it's
+     being scrolled the fade steps aside quickly (is-scrolling), and once it
+     stops eases back in, so nothing moves at the edge but the timetable.
+     The fade is in the page's side margin: the row reaches into it by
+     --room, padded back by as much, so at rest everything sits where it
+     would and the fade covers only what has slid out of view. */
+  .comp-tt-dayrow { display: flex; align-items: flex-start; gap: 2rem; overflow-x: auto; padding-bottom: 0.5rem;
+    --room: 1.25rem; margin-inline: calc(-1 * var(--room)); padding-inline: var(--room);
+    --fade-left: 0px; --fade-right: 0px; transition: --fade-left 0.6s ease-out, --fade-right 0.6s ease-out;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade-left), #000 calc(100% - var(--fade-right)), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 var(--fade-left), #000 calc(100% - var(--fade-right)), transparent); }
+  .comp-tt-dayrow.has-more-left { --fade-left: var(--room); }
+  .comp-tt-dayrow.has-more-right { --fade-right: var(--room); }
+  .comp-tt-dayrow.is-scrolling { --fade-left: 0px; --fade-right: 0px; transition-duration: 0.15s; }
+  @media (prefers-reduced-motion: reduce) { .comp-tt-dayrow, .comp-tt-dayrow.is-scrolling { transition: none; } }
+  @media (min-width: 1024px) { .comp-tt-dayrow { --room: 2.5rem; } } /* the page's margin is 3rem here, 1.5rem below */
+  .comp-tt-dayrow > .comp-tt-day { flex: 1 0 calc(var(--areas) * 15rem + (var(--areas) - 1) * 1rem); min-width: 0; }
+  .comp-tt-dayrow .comp-tt-areas { overflow-x: visible; border-color: transparent !important; } /* the row scrolls, not each day */
+  /* Room after the last day shown, so it scrolls to the left edge as the
+     others do (--tail, set by dayPick when the days don't all fit). */
+  .comp-tt-dayrow::after { content: ""; flex: 0 0 var(--tail, 0px); margin-left: -2rem; }
+}
 
 /* Nothing on now: "Now —" takes a line, and what's next the card's room. */
 .screen-card > .screen-part.is-empty { flex: 0 0 auto; }

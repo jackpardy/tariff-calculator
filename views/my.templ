@@ -3,8 +3,8 @@ package views
 import "strconv"
 
 // MyCompetitionPage is one person's competition (roadmap: competitions 5):
-// their events, cards and flights, what they officiate, and the published
-// timetable with them picked out.
+// their events, cards and flights, what they officiate, and the flights and
+// panels they're in, or the published timetable with them picked out.
 type MyCompetitionPage struct {
 	Competition CompetitionSummary
 	Name        string
@@ -17,7 +17,8 @@ type MyCompetitionPage struct {
 	Here        *MyHere    // the box for someone scratched who may still be here; nil for none
 	Published   bool
 	Events      []MyEvent
-	Days        []DayView
+	Days        []DayView       // their flights and seats, or with Whole the whole timetable
+	Whole       bool            // the whole timetable asked for (?timetable=all)
 	Mine        map[string]bool // their entries, by id
 	Me          string          // their person key, for the seats they're in
 	Menu        []MenuSection   // the organiser's menu, on the organiser's page of a person; their own tabs on theirs
@@ -231,12 +232,30 @@ templ MyCompetition(p MyCompetitionPage) {
 		} else if !p.Published && showsTimetable(p) {
 			<div class="notification is-light">The timetable isn't published yet. Their flights, times and check-in show here once it is.</div>
 		} else if p.Published && showsTimetable(p) {
-			<h2 class="title is-5 mt-5">The timetable</h2>
-			if p.Admin != nil {
-				<p class="help mb-3">{ p.Name } is picked out in bold, and the panels they're on are marked.</p>
-			} else {
-				<p class="help mb-3">You're picked out in bold, and the panels you're on are marked.</p>
-			}
+			<h2 class="title is-5 mt-5" id="timetable">
+				if p.Whole {
+					The timetable
+				} else if p.Admin != nil {
+					Their flights and panels
+				} else {
+					Your flights and panels
+				}
+			</h2>
+			// Only theirs unless asked: the whole of it is many screens on a
+			// phone.
+			<p class="help mb-3">
+				if p.Whole && p.Admin != nil {
+					{ p.Name } is picked out in bold, and the panels they're on are marked. <a href="?#timetable">Only theirs</a>
+				} else if p.Whole {
+					You're picked out in bold, and the panels you're on are marked. <a href="?#timetable">Only yours</a>
+				} else if len(p.Days) == 0 && p.Admin != nil {
+					Not in a flight or on a panel. <a href="?timetable=all#timetable">Show the whole timetable</a>
+				} else if len(p.Days) == 0 {
+					You're not in a flight or on a panel. <a href="?timetable=all#timetable">Show the whole timetable</a>
+				} else {
+					Each with its running order and panel. <a href="?timetable=all#timetable">Show the whole timetable</a>
+				}
+			</p>
 			for _, day := range p.Days {
 				<h3 class="title is-6 mt-4">{ day.Name }</h3>
 				<div class="columns is-multiline">

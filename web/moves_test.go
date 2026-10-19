@@ -40,8 +40,15 @@ func TestMoveOptionsOnce(t *testing.T) {
 		t.Error("moves are only to flights of the same discipline, not the one they're in")
 	}
 
+	// A flight's Move a gymnast fills from its running order, and Move or
+	// redraw from one list of days and areas, rather than repeating them.
+	if !strings.Contains(page, `data-fill="order"><option value="" disabled selected>Choose a gymnast</option></select>`) ||
+		!strings.Contains(page, `<template id="place-options"><option value="0:Panel 1">`) || !strings.Contains(page, `data-fill="place-options"></select>`) {
+		t.Error("the gymnasts and places to move to are filled in when opened")
+	}
+
 	// Left on "Choose a flight" (nothing sent): nothing changes.
-	entry := regexp.MustCompile(`<option value="([^"]+)">\d+\. `).FindStringSubmatch(page)[1]
+	entry := regexp.MustCompile(`data-entry="([^"]+)"`).FindStringSubmatch(page)[1]
 	// Left on "Choose a gymnast": nothing changes either.
 	if to := redirected(t, h, tt+"/entry", url.Values{"to": {""}}); !strings.Contains(to, "Choose+a+gymnast") {
 		t.Errorf("a move with no gymnast chosen says so: %s", to)
@@ -83,7 +90,7 @@ func TestMoveKeepsDiscipline(t *testing.T) {
 	if trampoline == nil {
 		t.Fatalf("each flight to move to says its discipline: %s", page)
 	}
-	id := regexp.MustCompile(`<option value="([^"]+)">1\. Dara`).FindStringSubmatch(page)[1]
+	id := regexp.MustCompile(`data-entry="([^"]+)" data-list-row="" data-name="Dara"`).FindStringSubmatch(page)[1]
 	if to := redirected(t, h, tt+"/entry", url.Values{"entry": {id}, "to": {trampoline[1]}}); !strings.Contains(to, "own+discipline") {
 		t.Errorf("a tumbler can't move to a trampoline flight: %s", to)
 	}
