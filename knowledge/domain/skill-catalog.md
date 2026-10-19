@@ -9,14 +9,27 @@ generated: { by: claude-code/cli, at: 2026-10-05T15:30:00Z }
 
 # Common skills
 
-`skills.CommonSkills` is a map of 41 named skills, from Shape Jump and
-Seat Drop through Barani, Rudi, Randi, Ball-Out and Cody, to Full Full, Miller
-and Triple Back. These are the source of official names: a skill is named by
-matching it against this list ([skill model](skill-model.md#derived-rules)). To
-add a named skill, add an entry here.
+`skills.CommonSkills` is a map of 61 named skills, from Shape Jump and
+Seat Drop through Barani, Rudi, Randi, Ball-Out and Cody, to the twisting
+doubles (Full-In Back, Full-Out Back, Half-Out, Rudi-Out, Randi-Out, Half
+Half, Half-In Rudi-Out, Full Full, Full Rudi, Miller…) and triples (Triple
+Back, Trif Half-Out, Trif Rudi-Out, Trif Half-In Half-Out, Full Full Full…).
+These are the source of official names: a skill is named by matching it
+against this list ([skill model](skill-model.md#derived-rules)). To add a
+named skill, add an entry here.
+
+Its direction and where its twists go must be right, or it names the wrong
+skill. Each named twisting skill is checked against the Code of Points'
+worked examples (`skills/cop_examples_test.go`, `TestCommonNamesAreTheCoPs`):
+an odd number of half twists turns a somersault round, so a half-in (Half
+Half, Half-In Rudi-Out, Miller) is taken off backwards and an odd twist out
+(half, rudi, randi) is forwards. Added 2026-10-19 after the audit found
+everyday doubles named "Custom Skill". Body landings with names of their own
+(a cradle, a cat twist, swivel hips) keep their descriptive names ("Back Half
+Twist To Back"), with the coaches' name said beside them in a search.
 
 Where the shape matters it's part of the name: first for the single somersaults
-(Front, Back, Barani), as coaches say them ("Tuck Back", "Pike Barani"), and
+(Front, Back, Barani, Back Half), as coaches say them ("Tuck Back", "Pike Barani"), and
 after the name for everything else ("Ball-Out Pike", "Double Back Tuck"). The
 picker shows names without the shape, which is chosen on the skill card.
 
@@ -44,13 +57,24 @@ back or front, so the tab isn't a wall of buttons.
 
 - **By name**: each common skill in each shape it can be done in, plus aliases
   people use ("back salto", "back s/s", "3/4 front", "full in rudy out",
-  "triffis") and word-level spellings (rudy → rudi, randy → randi).
+  "half twist jump", "back drop to feet", "rudi out triffis", the CoP's own
+  "back in full out" and "front front half"), the rule books' and coaches'
+  names said beside a result (`AlsoCalled`: "Back s/s", "Swivel Hips",
+  "Cradle", "Cat Twist"), and word-level spellings (rudy → rudi, randy →
+  randi). "½", "1/2" and "half" are the same, and a shape word (tuck/tucked,
+  pike/piked, straight/layout/laid out, straddle) picks the shape rather than
+  being looked for in the name, so "tuck back s/s" is the Tuck Back. Exact
+  names come first, then names starting with the query, then the rest,
+  shorter first. "Triffis" means a twisting triple (as the CoP's
+  "quadriffis"), so it finds the Trif skills, not the Triple Back (2026-10-19).
 - **By FIG notation**: a query that looks like notation, e.g. `8 2 3 /`, is
   parsed into a skill. Notation doesn't say which direction or where it takes
   off, so each reading is offered forwards and backwards from feet, the back,
   the front and the seat (2026-10-16: "6 0 /" lands only from the back or
   front, and "5 0 /" is Ball-Out and Cody), named skills first, each saying
-  its take-off and landing. These results are marked `FromNotation`: the
+  its take-off and landing. Where one reading has a name, the unnamed ones
+  from the back, front or seat are left out ("8 2 - o" is the Full-In Back,
+  or one from feet forwards; 2026-10-19). These results are marked `FromNotation`: the
   first loads onto the skill card as it's typed, and one that isn't a named
   skill opens **Build or adjust this skill** too, to finish it. Notation that
   no take-off lands (`catalog.NotationReading`) still goes into the builder,

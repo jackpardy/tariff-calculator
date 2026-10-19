@@ -46,7 +46,7 @@ func (p *competitionPages) askFirst(w http.ResponseWriter, r *http.Request, c st
 	}
 	page := views.ChangeCheckPage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuTimetable),
-		What: what, Breaks: newly, Action: r.URL.Path, Fields: postedFields(r), Back: timetablePath(r),
+		What: what, Breaks: competitions.BreakLines(newly), Action: r.URL.Path, Fields: postedFields(r), Back: timetablePath(r),
 	}
 	if fixes != nil {
 		page.Fixes = fixes(clean)

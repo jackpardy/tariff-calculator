@@ -550,7 +550,9 @@ A competition offers **events**: a discipline at a level.
   discipline (enter, change, withdraw each on its own), the club page and
   dashboard list each entry under its event ("Synchro BUCS L3", "Tumbling
   Novice"), and an individual enters each discipline separately.
-- **Synchro pairs** can be any two gymnasts. The entry names the partner and
+- **Synchro pairs** can be any two gymnasts, and a gymnast can be in two
+  pairs in the same event with different partners, so being confirmed into
+  a second pair isn't a problem (confirmed by the owner, 2026-10-17). The entry names the partner and
   shows a **partner link** to send them; the partner confirms who they are
   with their own member page or entry link (or as having no other entry), so
   the timetable can later check their clashes. Where links are saved in their
@@ -676,13 +678,14 @@ are then filled flight by flight.
 - **The report:** seats no one could take, a seat for the whole event it's
   on (counted, with the panels they're on: "11, on 3 panels"), manual changes that break the rota
   (someone officiating while competing, in two places, or in a role they
-  can't take), rules not kept, coaches needed on two areas at once, times
-  each club judged its own, and the busiest officials.
+  can't take), rules not kept, times each club judged its own, and the
+  busiest officials.
 - **Manually:** give any seat to anyone who's offered, or empty it; the change
   goes on the event's other flights the same person had that seat for.
   **Assign officials again** starts the rota afresh, keeping the flights.
-- **Coaches:** planning keeps a coach's gymnasts off two areas at once where
-  that can be done (by club and coach name), and reports where it can't.
+- **Coaches** aren't checked (the owner's decision, 2026-10-19): the
+  planner doesn't keep a coach's gymnasts apart, and nothing reports a coach
+  needed on two areas or coaching while they compete.
 - **Printed:** each flight's panel on the marshal and chair of judges sheets;
   the recorders' **score sheets** (asked 2026-10-08, as ISTO records scores
   online and on paper): a landscape page a flight, its panel named, a row
@@ -746,12 +749,10 @@ are then filled flight by flight.
   several disciplines, the person they entered as (ADR 0010); a confirmed
   synchro partner is the same person as their own entries. Records joined
   as one person ([one link, several roles](#one-link-several-roles-adr-0010))
-  are one person here too: a member who also enters on their own, or also
-  coaches, gets rest and clash warnings against themselves, and isn't put
-  on a panel while they compete under another of their keys. Planning
-  avoids someone coaching while they compete (as costly as a broken
-  prefer), and the report lists it ("Ann coaches in L2 while competing in
-  L1"). The keys saved in seats and rules stay as they were; only the
+  are one person here too: a member who also enters on their own gets rest
+  and clash warnings against themselves, and isn't put on a panel while
+  they compete under another of their keys (coaching isn't checked). The
+  keys saved in seats and rules stay as they were; only the
   working out sees them as one (`samePeople` in `web/personkeys.go`).
 - **The report:** for each day, when its flights end, when it finishes
   (blocked time such as awards included) against its end, and the time free
@@ -789,8 +790,9 @@ are then filled flight by flight.
 - **Saying what a change breaks** (roadmap 9): moving an event, moving a
   gymnast, or giving someone a seat is first tried on a copy of the draft
   (`Schedule.Copy`, `askFirst` in `web/changecheck.go`). What it would newly
-  break (`Schedule.Breaks` with the rota's `RotaProblems`, before and after:
-  `NewBreaks`) is shown on **Before you change it**, with up to three
+  break (`Schedule.Breaks` with the rota's `RotaBreaks`, before and after:
+  `NewBreaks`, put in words by `BreakLines`) is shown on **Before you
+  change it**, with up to three
   changes that break nothing new, each a button: another day and area for
   the event (each tried with `MoveFlight`), another flight of the same
   event and category for the gymnast, or someone free for the seat
@@ -915,10 +917,14 @@ each flight that changes (was, now, why). Above those, **This would break**
 lists what the delay breaks that holds in the timetable now
 (`Schedule.WhatIfBreaks` before and after, `NewBreaks`; the first six
 shown, the rest folded), besides what the page shows already (past the end,
-in two places): the organiser's rules about events and about
-people, a coach with gymnasts on two areas (or competing while coaching), an
-official on a flight during blocked time they're on duty for, and, where rest
-is a must, too little rest between someone's turns.
+in two places): an official on a flight during blocked time they're on duty
+for, the organiser's rules about events and about people, and, where rest is
+a must, too little rest between someone's turns. Coaches aren't checked
+(2026-10-19). `BreakLines` orders every "This would break" list (here, a
+leave and **Before you change it**) by how serious: people in two places at
+once first, then must rules, rest, past the end and runs apart, then
+preferences; one person's lines of one kind fold into the first, with "and
+3 more times".
 
 The organiser can **ease** it on the held-up areas, from the delay: breaks
 (lunch and other blocked time) wait (the default), **move later** keeping
@@ -942,11 +948,16 @@ to someone free for all of them (not competing or on another panel then, allowed
 and by the must rules about people), or is reached by moving others round, at
 most three moves: someone on that panel up a role, or someone across from a
 panel at the same time, their seat filled in turn. Free means, too, not on
-duty for blocked time then, not coaching a gymnast competing on another area
-then, and, where rest is a must, not too soon before or after their own turn. Two ways to choose:
-**easiest to fill** (the default) ends the chain at the seat the most free
-people could take (recorder or marshal before HD or execution, before chair),
-fewer moves breaking ties; **fewest changes** takes the shortest chain. Each
+duty for blocked time then, and, where rest is a must, not too soon before
+or after their own turn. Someone free taking the seat comes first; failing
+that, the fewest moves, and of as many moves, the chain whose last seat the
+most free people could take (recorder or marshal before HD or execution,
+before chair). Among those free, the least busy that day goes first, then
+someone who's had the role elsewhere in the timetable, then the least busy
+over the competition (`sortForSeat`; the same order for **Before you change
+it**'s someone free for the seat). Until 2026-10-19 the organiser chose
+**easiest to fill** or **fewest changes**; easiest made three moves where one
+free person could take the seat, so there's now one way. Each
 seat shows the moves and who else was free for the last one; a seat no one
 can reach is left empty. What the result would break that holds now is
 listed above the seats, as for a delay.

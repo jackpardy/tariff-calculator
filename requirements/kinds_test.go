@@ -38,6 +38,21 @@ func TestPicks(t *testing.T) {
 	}
 }
 
+// Skills that differ only in where their twist is are one pick, named for
+// each of them, so a rule says what it matches.
+func TestPicksShareSkillsTwistedElsewhere(t *testing.T) {
+	p, ok := PickByID("skill:Full-In Back")
+	if !ok || p.Label != "Full-In Back, Full-Out Back or Half Half" {
+		t.Errorf("full-in back pick: %+v", p)
+	}
+	if _, ok := PickByID("skill:Half Half"); ok {
+		t.Error("Half Half should share the Full-In Back's pick")
+	}
+	if p, _ := PickByID("skill:Barani"); p.Label != "Barani" {
+		t.Errorf("a skill of its own keeps its name: %q", p.Label)
+	}
+}
+
 // A back somersault then a barani, as two kinds of skill, is met by a back
 // tuck then a barani straight, and not by the barani first.
 func TestThenWithKinds(t *testing.T) {

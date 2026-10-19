@@ -25,9 +25,11 @@ The **Add a skill** box is at the top.
      not, including those landing on the body (Crash Dive, Back s/s To Seat,
      Ball-Out).
    - **Search** in the box above the picker by name ("barani", "back s/s",
-     "full in rudy out") or by FIG notation ("4 1 o", "8 2 3 /"). Notation
-     doesn't say forward or backward, so the results show both directions to
-     choose from.
+     "½ twist jump", "piked back", "full in rudy out", "swivel hips") or by
+     FIG notation ("4 1 o", "8 2 3 /"). Type ½, 1/2 or half, and pike or
+     piked, straight or layout, as you like. Notation doesn't say forward or
+     backward, so the results show both directions to choose from, the one
+     with a name first.
    - **Build it**: open **Build or adjust this skill** and set the somersault
      (in quarters: 4 is one somersault), the half twists (one box for each
      somersault in a double or triple), the direction, what it takes off from,

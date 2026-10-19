@@ -346,6 +346,36 @@ var CommonSkills = map[string]TrampolineSkill{
 	"fullFull":        {Name: "Full Full", Rotation: 8, TwistDistribution: []int{2, 2}, TakeoffPosition: Feet, Backward: true, Shape: Straight, SeatLanding: false},
 	"fullRudi":        {Name: "Full Rudi", Rotation: 8, TwistDistribution: []int{2, 3}, TakeoffPosition: Feet, Backward: false, Shape: Straight, SeatLanding: false},
 	"miller":          {Name: "Miller", Rotation: 8, TwistDistribution: []int{3, 3}, TakeoffPosition: Feet, Backward: true, Shape: Straight, SeatLanding: false},
+
+	// A cradle and a cat twist, back drop to back drop.
+	"cradle":   {Name: "Back Half Twist To Back", Rotation: 2, TwistDistribution: []int{1}, TakeoffPosition: Back, Backward: false, Shape: Straight},
+	"catTwist": {Name: "Back Full Twist To Back", Rotation: 0, TwistDistribution: []int{2}, TakeoffPosition: Back, Shape: Straight},
+
+	// Twisting singles, doubles and triples, as the Code of Points' examples
+	// have them (Part II §C, skills/cop_examples_test.go). Where the twist goes
+	// decides the direction: an odd number of half twists turns the somersault
+	// round, so a half-in (or 1½-in) is taken off backwards and comes out
+	// forwards, where the odd twists out (half, rudi, randi) go; a full in
+	// keeps its direction, so a full-in rudi-out is taken off forwards and a
+	// full-in full-out backwards.
+	"backHalf":          {Name: "Back Half", Rotation: 4, TwistDistribution: []int{1}, TakeoffPosition: Feet, Backward: true, Shape: Tuck},
+	"frontFull":         {Name: "Front Full", Rotation: 4, TwistDistribution: []int{2}, TakeoffPosition: Feet, Backward: false, Shape: Straight},
+	"tripleFullBack":    {Name: "Triple Full Back", Rotation: 4, TwistDistribution: []int{6}, TakeoffPosition: Feet, Backward: true, Shape: Straight},
+	"ada":               {Name: "Ada", Rotation: 4, TwistDistribution: []int{7}, TakeoffPosition: Feet, Backward: false, Shape: Straight},
+	"doubleFront":       {Name: "Double Front", Rotation: 8, TwistDistribution: []int{0, 0}, TakeoffPosition: Feet, Backward: false, Shape: Tuck},
+	"fullInBack":        {Name: "Full-In Back", Rotation: 8, TwistDistribution: []int{2, 0}, TakeoffPosition: Feet, Backward: true, Shape: Tuck},
+	"fullOutBack":       {Name: "Full-Out Back", Rotation: 8, TwistDistribution: []int{0, 2}, TakeoffPosition: Feet, Backward: true, Shape: Tuck},
+	"rudiOut":           {Name: "Rudi-Out", Rotation: 8, TwistDistribution: []int{0, 3}, TakeoffPosition: Feet, Backward: false, Shape: Tuck},
+	"randiOut":          {Name: "Randi-Out", Rotation: 8, TwistDistribution: []int{0, 5}, TakeoffPosition: Feet, Backward: false, Shape: Tuck},
+	"halfInRudiOut":     {Name: "Half-In Rudi-Out", Rotation: 8, TwistDistribution: []int{1, 3}, TakeoffPosition: Feet, Backward: true, Shape: Tuck},
+	"halfInRandiOut":    {Name: "Half-In Randi-Out", Rotation: 8, TwistDistribution: []int{1, 5}, TakeoffPosition: Feet, Backward: true, Shape: Tuck},
+	"fullInHalfOut":     {Name: "Full-In Half-Out", Rotation: 8, TwistDistribution: []int{2, 1}, TakeoffPosition: Feet, Backward: false, Shape: Tuck},
+	"fullRandi":         {Name: "Full Randi", Rotation: 8, TwistDistribution: []int{2, 5}, TakeoffPosition: Feet, Backward: false, Shape: Straight},
+	"trifFullInHalfOut": {Name: "Trif Full-In Half-Out", Rotation: 12, TwistDistribution: []int{2, 0, 1}, TakeoffPosition: Feet, Backward: false, Shape: Tuck},
+	"fullFullFull":      {Name: "Full Full Full", Rotation: 12, TwistDistribution: []int{2, 2, 2}, TakeoffPosition: Feet, Backward: true, Shape: Tuck},
+	"trifRudiOut":       {Name: "Trif Rudi-Out", Rotation: 12, TwistDistribution: []int{0, 0, 3}, TakeoffPosition: Feet, Backward: false, Shape: Tuck},
+	"trifHalfHalf":      {Name: "Trif Half-In Half-Out", Rotation: 12, TwistDistribution: []int{1, 0, 1}, TakeoffPosition: Feet, Backward: true, Shape: Tuck},
+	"trifHalfInRudiOut": {Name: "Trif Half-In Rudi-Out", Rotation: 12, TwistDistribution: []int{1, 0, 3}, TakeoffPosition: Feet, Backward: true, Shape: Tuck},
 }
 
 func CalculatePhases(rotation int) int {
@@ -631,8 +661,9 @@ func describe(s TrampolineSkill) string {
 	return strings.Join(parts, " ")
 }
 
-// shapeLeads are the common skills named shape first: the single somersaults.
-var shapeLeads = map[string]bool{"Front": true, "Back": true, "Barani": true}
+// shapeLeads are the common skills named shape first: the single somersaults
+// whose shape matters.
+var shapeLeads = map[string]bool{"Front": true, "Back": true, "Barani": true, "Back Half": true}
 
 // SkillValidation is the per-skill outcome of validating a routine.
 type SkillValidation struct {
