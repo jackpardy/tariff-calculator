@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 	"unsafe"
 
 	"tariffCalculator/store"
@@ -36,7 +37,7 @@ func checkFacts(t *testing.T, p *competitionPages, after string) {
 	p.facts.mu.Unlock()
 	for id, f := range cached {
 		f.mu.Lock()
-		if f.read && f.writes == p.st.Writes() {
+		if f.read && f.writes == p.st.Writes(id) {
 			var fresh competitionFacts
 			if err := fresh.readFrom(context.Background(), p, id); err != nil {
 				t.Errorf("after %s: reading competition %s afresh: %v", after, id, err)
@@ -117,6 +118,36 @@ func TestFactsFollowChanges(t *testing.T) {
 	}
 	if page := do(t, s.h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(page, "Waiting list") {
 		t.Error("the dashboard shows the waiting list at once")
+	}
+
+	// What the pages don't read from, and other competitions' changes,
+	// keep them.
+	entries, err := s.st.Entries(ctx, c.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	other := created(t, s.h, newCompetition())
+	o, err := s.st.CompetitionByAdmin(ctx, strings.TrimPrefix(other, "/competitions/admin/"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	kept := shared()
+	for what, change := range map[string]func() error{
+		"a check-in":    func() error { return s.st.SetCheckin(ctx, c.ID, entries[0].ID, store.CheckedIn, "desk") },
+		"a notice":      func() error { return s.st.ShowOnScreen(ctx, c.ID, "Lunch", time.Now().Add(time.Hour), "desk") },
+		"another's":     func() error { return s.st.SetLimits(ctx, o.ID, map[string]int{"BUCS L3": 5}) },
+		"another's too": func() error { return s.st.MarkChecked(ctx, o.ID, "nope", true, "") },
+	} {
+		_ = change()
+		if shared() != kept {
+			t.Errorf("after %s, the entries are read again", what)
+		}
+	}
+	if err := s.st.SetLimits(ctx, c.ID, nil); err != nil {
+		t.Fatal(err)
+	}
+	if shared() == kept {
+		t.Error("after its own limits change, the entries are read again")
 	}
 }
 

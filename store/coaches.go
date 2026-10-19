@@ -85,22 +85,22 @@ func (s *Store) Coaches(ctx context.Context, clubID string) ([]Coach, error) {
 // them opens (ADR 0010). It marks their club used (markUsed).
 func (s *Store) CoachByLink(ctx context.Context, token string) (Coach, error) {
 	var c Coach
-	var created string
-	err := s.tx(ctx, func(tx *sql.Tx) error {
-		where, args, err := recordWhere(ctx, tx, token)
-		if err != nil {
-			return err
-		}
-		err = tx.QueryRowContext(ctx, `SELECT id, club_id, name, signs_off, created_at, COALESCE(person_id, id) FROM coaches WHERE `+where, args...).
-			Scan(&c.ID, &c.ClubID, &c.Name, &c.SignsOff, &created, &c.PersonID)
-		if err != nil {
-			return notFound(err)
-		}
-		_, err = s.markUsed(ctx, tx, c.ClubID)
-		return err
-	})
+	var created, used string
+	where, args, err := recordWhere(ctx, s.db, token)
+	if err != nil {
+		return Coach{}, err
+	}
+	err = s.db.QueryRowContext(ctx, `SELECT id, club_id, name, signs_off, created_at, COALESCE(person_id, id),
+		(SELECT last_used FROM clubs WHERE clubs.id = coaches.club_id) FROM coaches WHERE `+where, args...).
+		Scan(&c.ID, &c.ClubID, &c.Name, &c.SignsOff, &created, &c.PersonID, &used)
+	if err != nil {
+		return Coach{}, notFound(err)
+	}
 	c.CreatedAt = parseTime(created)
-	return c, err
+	if _, err := s.markUsed(ctx, c.ClubID, used); err != nil {
+		return Coach{}, err
+	}
+	return c, nil
 }
 
 // ReplaceCoachLink gives a coach a new link, which ends the old one. The comp

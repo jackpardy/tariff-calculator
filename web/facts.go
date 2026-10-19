@@ -14,7 +14,10 @@ import (
 // and 85 MB a load on the demo's 700 entries, so a burst of gymnasts opening
 // their pages after a desk message could stall the server. Now the first
 // page after a change works them out, and the pages share that until the
-// store's next change (Store.Writes), of anything at all.
+// store's next change to what they're read from (Store.Writes): a
+// competition's own rows, or a person who may be in it. Check-ins, who's
+// up, desk messages and the like, and other competitions' changes, keep
+// them.
 //
 // What the cache hands out is shared between requests: read it, never
 // change it. Slices of entries and cards are copies, so sorting or
@@ -29,7 +32,7 @@ type factCache struct {
 }
 
 // competitionFacts are what one competition's pages share, as read when the
-// store's count of changes stood at writes.
+// store's count of its changes stood at writes.
 type competitionFacts struct {
 	mu     sync.Mutex // held while they're read or worked out, so one request does it
 	writes uint64
@@ -56,9 +59,8 @@ func (p *competitionPages) factsOf(ctx context.Context, id string) (*competition
 		f = &competitionFacts{}
 		fc.by[id] = f
 	}
-	now := p.st.Writes()
 	for other, o := range fc.by {
-		if other != id && o.writes != now && o.mu.TryLock() {
+		if other != id && o.writes != p.st.Writes(other) && o.mu.TryLock() {
 			delete(fc.by, other) // out of date: free it rather than keep it
 			o.mu.Unlock()
 		}
@@ -66,7 +68,7 @@ func (p *competitionPages) factsOf(ctx context.Context, id string) (*competition
 	fc.mu.Unlock()
 
 	f.mu.Lock()
-	if f.read && f.writes == p.st.Writes() {
+	if f.read && f.writes == p.st.Writes(id) {
 		return f, nil
 	}
 	// One request reads them for everyone waiting, so it carries on if
@@ -83,7 +85,7 @@ func (p *competitionPages) factsOf(ctx context.Context, id string) (*competition
 // taken first, so a change saved while they're read moves it past them, and
 // the next request reads them again.
 func (f *competitionFacts) readFrom(ctx context.Context, p *competitionPages, id string) error {
-	f.writes = p.st.Writes()
+	f.writes = p.st.Writes(id)
 	f.judgedIn, f.judgedLive = nil, nil
 	var err error
 	if f.c, err = p.st.Competition(ctx, id); err != nil {

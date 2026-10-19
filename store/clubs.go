@@ -48,7 +48,7 @@ func (s *Store) clubBy(ctx context.Context, where string, args ...any) (Club, er
 		return Club{}, notFound(err)
 	}
 	c.CreatedAt, c.LastUsed = parseTime(created), parseTime(used)
-	if marked, err := s.markUsed(ctx, s.db, c.ID); err != nil {
+	if marked, err := s.markUsed(ctx, c.ID, used); err != nil {
 		return Club{}, err
 	} else if marked {
 		c.LastUsed = parseTime(formatTime(s.now()))
@@ -70,17 +70,18 @@ func KeptUntil(lastUsed time.Time) time.Time {
 // writes at most once a day (ADR 0011 Decision 7).
 const usedEvery = 24 * time.Hour
 
-// execer runs a statement, in a transaction or not.
-type execer interface {
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-}
-
-// markUsed marks a club used by a page being opened, unless it was marked in
-// the last day. It says whether it did.
-func (s *Store) markUsed(ctx context.Context, q execer, clubID string) (bool, error) {
+// markUsed marks a club used by a page being opened, unless it was marked
+// in the last day (lastUsed, as stored). It says whether it did. Most page
+// loads find it marked and write nothing, so they don't wait for a change
+// being saved.
+func (s *Store) markUsed(ctx context.Context, clubID, lastUsed string) (bool, error) {
 	now := s.now()
-	res, err := q.ExecContext(ctx, `UPDATE clubs SET last_used = $1 WHERE id = $2 AND last_used < $3`,
-		formatTime(now), clubID, formatTime(now.Add(-usedEvery)))
+	since := formatTime(now.Add(-usedEvery))
+	if lastUsed >= since {
+		return false, nil
+	}
+	res, err := s.db.ExecContext(ctx, `UPDATE clubs SET last_used = $1 WHERE id = $2 AND last_used < $3`,
+		formatTime(now), clubID, since)
 	if err != nil {
 		return false, err
 	}
@@ -176,22 +177,22 @@ func touch(ctx context.Context, tx *sql.Tx, clubID, now string) error {
 // link's Via to them opens (ADR 0010). It marks their club used (markUsed).
 func (s *Store) MemberByLink(ctx context.Context, token string) (Member, error) {
 	var m Member
-	var created string
-	err := s.tx(ctx, func(tx *sql.Tx) error {
-		where, args, err := recordWhere(ctx, tx, token)
-		if err != nil {
-			return err
-		}
-		err = tx.QueryRowContext(ctx, `SELECT id, club_id, name, COALESCE(coach_id, ''), created_at, COALESCE(person_id, id) FROM members WHERE `+where, args...).
-			Scan(&m.ID, &m.ClubID, &m.Name, &m.CoachID, &created, &m.PersonID)
-		if err != nil {
-			return notFound(err)
-		}
-		_, err = s.markUsed(ctx, tx, m.ClubID)
-		return err
-	})
+	var created, used string
+	where, args, err := recordWhere(ctx, s.db, token)
+	if err != nil {
+		return Member{}, err
+	}
+	err = s.db.QueryRowContext(ctx, `SELECT id, club_id, name, COALESCE(coach_id, ''), created_at, COALESCE(person_id, id),
+		(SELECT last_used FROM clubs WHERE clubs.id = members.club_id) FROM members WHERE `+where, args...).
+		Scan(&m.ID, &m.ClubID, &m.Name, &m.CoachID, &created, &m.PersonID, &used)
+	if err != nil {
+		return Member{}, notFound(err)
+	}
 	m.CreatedAt = parseTime(created)
-	return m, err
+	if _, err := s.markUsed(ctx, m.ClubID, used); err != nil {
+		return Member{}, err
+	}
+	return m, nil
 }
 
 // Members are a club's members, by name.
