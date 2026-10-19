@@ -149,7 +149,9 @@ or back), then every **named skill** of the catalogue, grouped as jumps
 and drops, singles, and doubles and more (`requirements.Picks`). Picking
 one fills the description in (`SkillMatch` for a skill: its somersault,
 twist, direction, take-off and landing, any shape but where the shape is
-the skill). The number fields sit under **Or describe it**, closed unless
+the skill). That doesn't say where the twist goes, so named skills that
+differ only there share one pick, named for each ("Full-In Back, Full-Out
+Back or Half Half", 2026-10-19). The number fields sit under **Or describe it**, closed unless
 the description is the coach's own. A picked description reads as its
 pick ("a barani (front with a half twist)", "Rudi") wherever rules are
 described. So "a back somersault, then a barani" is two picks in one
