@@ -128,7 +128,9 @@ pair's one routine), checked as the Routine Builder checks them.
   order, so check where your own levels sit), choose which
   levels rank men and women separately, turn entering on their own, video proof or
   coach sign-off on or off, **Replace the admin link** if it's been shared too
-  widely, or delete the competition (each of those last two asks once more).
+  widely, or delete the competition (each of those last two asks once more;
+  deleting needs the word **delete** typed in a box, so it can't happen by
+  accident).
 - **Links for your helpers** (under **Links** on the Settings page): tap
   **Make a link**, name it (who it's for) and choose what it can do: **Checking cards** (for
   difficulty judges: check cards, add notes, review videos), **Chairs of
@@ -627,7 +629,8 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   everyone's skills** shares members' skills with the whole club (otherwise
   each member's are seen by them, their coaches and you). **Admin link**,
   **Replace**, and **Delete the club**, **Delete**, open to do it; replacing
-  the admin link asks first, as the old one stops working for everyone who has it. A
+  the admin link asks first, as the old one stops working for everyone who has it, and
+  deleting the club needs the word **delete** typed in a box. A
   club is deleted 13 months after anyone last used it (you, a coach or a
   member opening their page); Settings says when. **Opened from people's own
   links** lists anyone who added the admin link to their own page (see

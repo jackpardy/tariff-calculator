@@ -120,7 +120,7 @@ func TestClubSections(t *testing.T) {
 	if !strings.Contains(page, "Replace the admin link") || !strings.Contains(page, "Delete the club") || strings.Contains(page, "Add coach") {
 		t.Error("Settings is the replace and delete forms")
 	}
-	if got := redirected(t, h, club+"/delete", url.Values{}); got != club+"/settings" {
+	if got := redirected(t, h, club+"/delete", url.Values{}); !strings.HasPrefix(got, club+"/settings?notice=") {
 		t.Errorf("deleting without confirming goes back to Settings: %s", got)
 	}
 	// Replacing the admin link asks first, on Settings; then the new one

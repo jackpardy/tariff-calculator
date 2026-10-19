@@ -231,13 +231,7 @@ templ CompetitionSettings(p SettingsPage) {
 			// Deleting the whole competition looks unlike any other remove.
 			<div class="comp-danger-zone">
 				@opens("Delete the competition", "and every entry, for good", "Delete", false) {
-					<form method="post" action={ templ.SafeURL(p.Base + "/delete") } class="mb-3">
-						<label class="checkbox is-size-7">
-							<input type="checkbox" name="confirm" value="1" required/>
-							Delete the competition and every entry, now
-						</label>
-						<button class="button is-small is-danger ml-2" type="submit">Delete the competition</button>
-					</form>
+					@typeToDelete(p.Base+"/delete", "delete-competition", "the competition and every entry, for good", "Delete the competition")
 				}
 			</div>
 		}

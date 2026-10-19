@@ -179,7 +179,7 @@ transaction, and marks their club used (once a day) only when it's due.
 
 Every `/competitions/admin/{token}` route takes the admin link or a helper's
 link of a kind that may use it (`allowed`, ADR 0009); others get 403.
-| `POST /competitions/admin/{token}/delete` | `confirm=1` | Deletes the competition and its entries |
+| `POST /competitions/admin/{token}/delete` | `confirm` (the word `delete`, typed) | Deletes the competition and its entries; anything else typed deletes nothing and says so |
 | `GET`, `POST /competitions/enter/{token}` | `gymnast`, `level`, `ex1Option`, `ex1Skills`, `ex2Option`, `ex2Skills`, and where video is asked for `ex1Video`, `ex1VideoNote`, `ex2Video`, `ex2VideoNote`; optional `as`, the link of the person's page (a member's, coach's or individual's, or an entry link) | The individual entry form; entering redirects to the entry, `/competitions/entry/{personal}~{entry id}?saved=1`, as that person or someone new; 422 for an `as` that isn't a page's link |
 | `GET`, `POST /competitions/entry/{token}` | as entering; `saved`, `notice` carried on | An individual's own entry: GET redirects (303) to their page for the competition with `entry=<id>`, opening its row, carrying the query; POST changes it until the deadline, back here, or with problems shows their page with the row and form open (422). `{token}` an entry link from before or a personal link's way to the entry; an entry on no one's page shows on its own |
 | `GET /competitions/gymnast/{token}` | optional `notice` | An individual's page: the competitions they entered. `{token}` their personal link or an entry link from before |
@@ -206,7 +206,7 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST /clubs/admin/{token}/members/{member}/competitions/{id}/withdraw` | `confirm=1`, `discipline` | Withdraws a member's entry, as they can; back to the competition's Entries |
 | `POST /clubs/admin/{token}/members/{member}/new-link` | `anyway=1` | Without `anyway`, Members asking first (the old link stops working), its button posting again with it; with it, the page with the member's new link, shown once |
 | `POST /clubs/admin/{token}/members/{member}/remove` | — | Removes the member and their entries |
-| `POST /clubs/admin/{token}/replace-link`, `/delete` | `anyway=1` to replace, `confirm=1` to delete | As for a competition, but replacing asks first on Settings without `anyway` |
+| `POST /clubs/admin/{token}/replace-link`, `/delete` | `anyway=1` to replace, `confirm` (the word `delete`, typed) to delete | As for a competition, but replacing asks first on Settings without `anyway` |
 | `GET`, `POST /clubs/join/{token}` | `name` | Joining a club: 303 to the member's page with `?new=joined` |
 | `GET /clubs/member/{token}` | optional `new`, `notice` | A member's Competitions tab (the default): a row for each competition the club is in, with its date and status |
 | `GET /clubs/member/{token}/competitions/{id}` | optional `notice`, `discipline` (the row to open) | A member's page for one competition: facts, links, each discipline's entry as a row that opens to its card and forms, officiating, and the judging offer; 404 if the club isn't entered |

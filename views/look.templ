@@ -49,3 +49,16 @@ templ pageHead(title, of string) {
 		<p class="subtitle is-6">{ of }</p>
 	}
 }
+
+// typeToDelete is the last step of deleting a whole competition or club: the
+// word "delete" typed into a box, so it can't happen by accident. Its button
+// waits for the word, and the server checks it too (deleteTyped in web).
+templ typeToDelete(action, id, what, button string) {
+	<form method="post" action={ templ.SafeURL(action) } class="comp-type-delete mb-3">
+		<label class="is-size-7" for={ id }>To delete { what }, type <strong>delete</strong>:</label>
+		<div class="comp-type-delete-row">
+			<input class="input is-small" type="text" id={ id } name="confirm" autocomplete="off" autocapitalize="off" spellcheck="false" required oninput="this.form.querySelector('button').disabled = this.value.trim().toLowerCase() !== 'delete'"/>
+			<button class="button is-small is-danger" type="submit" disabled>{ button }</button>
+		</div>
+	</form>
+}

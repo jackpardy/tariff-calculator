@@ -1564,3 +1564,5 @@ form:has(input[name="to"][value="people"]:not(:checked)) .desk-to-people { displ
 .comp-danger-zone { border-left: 3px solid var(--state-stopped-ink); padding-left: 0.75rem; margin-top: 0.5rem; }
 .comp-danger-zone .comp-opens-button { color: var(--state-stopped-ink); border-color: var(--state-stopped-ink); }
 .comp-danger-zone .button.is-danger { background: var(--state-stopped-ink); border-color: var(--state-stopped-ink); color: #fff; }
+.comp-type-delete-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.35rem; }
+.comp-type-delete-row .input { max-width: 12rem; }

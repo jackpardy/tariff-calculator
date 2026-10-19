@@ -363,8 +363,8 @@ func (p *competitionPages) delete(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if r.FormValue("confirm") != "1" {
-		backToSettings(w, r, "Tick the box to delete the competition; nothing was deleted.")
+	if !deleteTyped(r) {
+		backToSettings(w, r, "Type delete in the box to delete the competition; nothing was deleted.")
 		return
 	}
 	if err := p.st.DeleteCompetition(r.Context(), c.ID); err != nil {
@@ -566,4 +566,10 @@ func (p *competitionPages) setSignoff(w http.ResponseWriter, r *http.Request) {
 		notice = "Entries now need a coach's sign-off: those without one are flagged."
 	}
 	backToSettings(w, r, notice)
+}
+
+// deleteTyped says whether the word "delete" was typed to delete a whole
+// competition or club (views.typeToDelete), in any case and spacing.
+func deleteTyped(r *http.Request) bool {
+	return strings.EqualFold(strings.TrimSpace(r.PostFormValue("confirm")), "delete")
 }

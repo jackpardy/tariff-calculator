@@ -931,8 +931,8 @@ func (p *competitionPages) deleteClub(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if r.FormValue("confirm") != "1" {
-		http.Redirect(w, r, clubSettingsPath(r.PathValue("token")), http.StatusSeeOther)
+	if !deleteTyped(r) {
+		http.Redirect(w, r, clubSettingsPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Type delete in the box to delete the club; nothing was deleted."), http.StatusSeeOther)
 		return
 	}
 	if err := p.st.DeleteClub(r.Context(), club.ID); err != nil {
