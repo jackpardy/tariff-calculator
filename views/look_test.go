@@ -45,7 +45,7 @@ var buttonRoles = map[string]bool{
 	"button is-small is-text has-text-danger": true, "button is-text has-text-danger": true,
 	"button is-small is-text": true, "button is-text": true,
 	"button is-small is-state-done": true, "button is-small is-state-stopped": true,
-	"button is-small is-danger": true, // deleting a whole competition or club, and nothing else
+	"button is-small is-danger":             true, // deleting a whole competition or club, and nothing else
 	"button is-small is-danger is-outlined": true, // confirming a removal asked about in place
 }
 
