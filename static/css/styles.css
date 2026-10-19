@@ -888,7 +888,7 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
    its line of text rather than dropping below it. An invoice's amounts never wrap. */
 .comp-pay-cell .comp-opens { margin: 0.25rem 0 0; }
 .comp-pay-cell .comp-opens-form { margin-bottom: 0.25rem; }
-.comp-inline-button { height: auto; vertical-align: baseline; }
+.comp-inline-button { height: auto; vertical-align: baseline; padding-left: 0.3em; padding-right: 0.3em; }
 .comp-nowrap { white-space: nowrap; }
 /* Check-in and scratches on the day (views/day.templ, the printed sheets). */
 .comp-scratched { text-decoration: line-through; color: #6b6b6b; }
@@ -1012,6 +1012,9 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
    open in view and the edge with more faded (static/js/tables.js), rather
    than wrapping into ragged rows (the timetable has seven). */
 .comp-menu .comp-submenu ul { justify-content: flex-start; }
+/* A section's pages are a plain row: no line under them but the current one's, whatever
+   their badges do to the row's height. */
+.comp-menu .comp-submenu a { border-bottom-color: transparent; }
 .comp-menu .comp-submenu li.is-active a { border-bottom-color: #485fc7; color: #485fc7; font-weight: 600; }
 /* A member's pages (views/clubs.templ): the competitions as rows to open, and
    each discipline's entry as a one-line row that opens to its card. */
@@ -1498,7 +1501,7 @@ form:has(input[name="to"][value="people"]:not(:checked)) .desk-to-people { displ
 .comp-problems ul { list-style: disc; margin: 0.35rem 0 0 1.25rem; }
 
 /* The levels to print cards from (views.CompetitionCards): rows of the page. */
-.comp-card-levels { margin-bottom: 1rem; }
+.comp-card-levels { margin-bottom: 1rem; max-width: 32rem; }
 .comp-card-levels li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.25rem 1rem; padding: 0.4rem 0; border-bottom: 1px solid #ededed; }
 
 /* On a phone everything tapped is big enough for a finger: small buttons
@@ -1536,3 +1539,21 @@ form:has(input[name="to"][value="people"]:not(:checked)) .desk-to-people { displ
   .comp-entries td[data-label="Coach"] { white-space: nowrap; }
   .comp-entries td .chip { white-space: nowrap; overflow-wrap: normal; }
 }
+
+/* A row of tabs fades the same way, but by a white veil over its edge
+   rather than a mask, with a small arrow in it: a row can end between two
+   tabs at the screen's edge, leaving a mask nothing to fade. The veil sticks
+   to the row's edge as it scrolls, and comes and goes as the fade does. */
+.comp-page .tabs { -webkit-mask-image: none; mask-image: none; }
+.comp-page .tabs::before, .comp-page .tabs::after { position: sticky; z-index: 1; flex: 0 0 1.75rem; display: flex; align-items: center;
+  font-size: 1.2rem; line-height: 1; color: #4a4a4a; opacity: 0; transition: opacity 0.6s ease-out; pointer-events: none; }
+.comp-page .tabs::before { content: "‹"; order: -1; left: calc(-1 * var(--room)); margin-right: -1.75rem; justify-content: flex-start; padding-left: 0.1rem;
+  background: linear-gradient(to right, #fff 35%, rgba(255, 255, 255, 0)); }
+.comp-page .tabs::after { content: "›"; right: calc(-1 * var(--room)); margin-left: -1.75rem; justify-content: flex-end; padding-right: 0.1rem;
+  background: linear-gradient(to left, #fff 35%, rgba(255, 255, 255, 0)); }
+.comp-page .tabs.has-more-left::before, .comp-page .tabs.has-more-right::after { opacity: 1; }
+.comp-page .tabs.is-scrolling::before, .comp-page .tabs.is-scrolling::after { opacity: 0; transition-duration: 0.15s; }
+@media (prefers-reduced-motion: reduce) { .comp-page .tabs::before, .comp-page .tabs::after { transition: none; } }
+
+/* A discipline on a member's page: a heading, the size of the row's text. */
+.comp-event-name { display: inline; font-size: 1rem; font-weight: 700; margin-right: 0.3em; }

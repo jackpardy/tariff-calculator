@@ -157,7 +157,7 @@ templ routinesList(p RoutinesPart) {
 				if r.Broken != "" {
 					<p>@StateChip(Attention, r.Broken)</p>
 				} else {
-					@exerciseCard(r.Card)
+					@exerciseCard(r.Card, 3)
 				}
 				<div class="buttons mt-3">
 					if r.Open != "" {
@@ -285,7 +285,7 @@ templ CoachGymnasts(p CoachGymnastsPage) {
 			}
 		</p>
 		if len(p.Gymnasts) == 0 {
-			<p class="has-text-grey">No members yet.</p>
+			@emptyLine("No members yet.")
 		} else {
 			@listTools(p.Tools)
 			<div class="table-container">

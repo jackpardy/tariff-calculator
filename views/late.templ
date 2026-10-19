@@ -103,7 +103,7 @@ templ LateAdmin(p LateAdminPage) {
 			</form>
 		}
 		if len(p.Requests) == 0 {
-			<p class="has-text-grey">No late changes asked for.</p>
+			@emptyLine("No late changes asked for.")
 		}
 		for _, r := range p.Requests {
 			<div class={ "box", templ.KV("has-text-grey", !r.Waiting) }>

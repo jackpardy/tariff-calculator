@@ -337,7 +337,7 @@ templ clubFrame(c ClubPage) {
 templ ClubAdmin(c ClubPage) {
 	@clubFrame(c) {
 		if len(c.Competitions) == 0 {
-			<p class="has-text-grey">Not entered in any yet. Open the club link a competition's organiser gave you to enter the club.</p>
+			@emptyLine("Not entered in any yet. Open the club link a competition's organiser gave you to enter the club.")
 		}
 		for _, comp := range c.Competitions {
 			<a class="box comp-member-row" href={ templ.SafeURL(c.Base + "/competitions/" + comp.ID) }>
@@ -441,7 +441,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 			}
 		}
 		if len(comp.Rows) == 0 {
-			<p class="has-text-grey is-size-7">No member has entered yet.</p>
+			@emptyLine("No member has entered yet.")
 		} else {
 			@listSection("Entries", len(comp.Rows)) {
 				@listTools(comp.Tools)
@@ -595,7 +595,7 @@ templ ClubCompetitionOffers(c ClubPage, comp ClubCompetition) {
 	@clubFrame(c) {
 		@clubCompetitionHead(comp)
 		if len(comp.Offers) == 0 {
-			<p class="has-text-grey mt-4">No member has offered to judge or help yet. Members say what they can do on their page for the competition.</p>
+			@emptyLine("No member has offered to judge or help yet. Members say what they can do on their page for the competition.")
 		}
 		// An offer for a member who told the comp sec rather than adding it.
 		if len(comp.NoOffer) > 0 {
@@ -675,7 +675,7 @@ templ ClubMembers(c ClubPage) {
 		@linkBox("Join link", c.JoinLink, "Share it in the club's chat: members join with it and keep their own entries.")
 		@listSection("Members", len(c.Members)) {
 			if len(c.Members) == 0 {
-				<p class="has-text-grey">No members yet. Share the join link.</p>
+				@emptyLine("No members yet. Share the join link.")
 			} else {
 				@listTools(c.MembersTools)
 				<div class="table-container">
@@ -739,7 +739,7 @@ templ ClubCoaches(c ClubPage) {
 	@clubFrame(c) {
 		@listSection("Coaches", len(c.Coaches)) {
 			if len(c.Coaches) == 0 {
-				<p class="has-text-grey">No coaches yet. Add one below.</p>
+				@emptyLine("No coaches yet. Add one below.")
 			} else {
 				@listTools(c.CoachesTools)
 				<div class="table-container">
@@ -1111,7 +1111,8 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 							}
 						</div>
 					}
-					@entryCardChecks(*ev.Card)
+					// Under the discipline's row, a heading of its own.
+					@entryCardChecks(cardUnder(*ev.Card, 4))
 					if comp.ChangesOpen {
 						<div class="mt-4">
 							@withdrawForm(ev.Withdraw, ev.Discipline)
@@ -1133,7 +1134,8 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 // memberEventRow is the one line a discipline's entry takes in the list. A
 // synchro event's name says Synchro already: not twice.
 templ memberEventRow(ev MemberEvent) {
-	<strong>{ ev.Name }</strong>
+	// The discipline is a heading, under the competition's.
+	<h3 class="comp-event-name">{ ev.Name }</h3>
 	if ev.Level != "" {
 		<span class="has-text-grey is-size-7">· { strings.TrimPrefix(ev.Level, ev.Name+" ") }</span>
 	}

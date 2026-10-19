@@ -75,7 +75,7 @@ templ gymnastFrame(p GymnastPage) {
 templ GymnastHome(p GymnastPage) {
 	@gymnastFrame(p) {
 		if len(p.Competitions) == 0 {
-			<p class="has-text-grey">No entries now. To enter a competition, open the entry link its organiser shared and give this page's link there.</p>
+			@emptyLine("No entries now. To enter a competition, open the entry link its organiser shared and give this page's link there.")
 		}
 		for _, c := range p.Competitions {
 			<a class="box comp-member-row" href={ templ.SafeURL(c.Page) }>
@@ -127,7 +127,7 @@ templ GymnastCompetitionPage(p GymnastPage) {
 						@memberEventRow(ev.Row)
 					</summary>
 					<div class="mt-3">
-						@entryBody(ev.Entry)
+						@entryBody(entryUnder(ev.Entry, 4))
 					</div>
 				</details>
 			}

@@ -20,6 +20,23 @@ type EntryCard struct {
 	Problems             []string
 	Signoff              SignoffView
 	Unchecked            bool // tumbling or DMT: a level only
+	// Heading is its exercises' heading level: 2 (the default, 0) under the
+	// page's heading, 4 under a discipline's row on a member's page.
+	Heading int
+}
+
+// heading is the card's exercises' heading level.
+func (c EntryCard) heading() int {
+	if c.Heading == 0 {
+		return 2
+	}
+	return c.Heading
+}
+
+// cardUnder is the card with its exercises' headings at level.
+func cardUnder(c EntryCard, level int) EntryCard {
+	c.Heading = level
+	return c
 }
 
 // ExerciseCard is one exercise of an entry, checked.
@@ -72,7 +89,7 @@ templ entryCardChecks(c EntryCard) {
 			for _, ex := range c.Exercises {
 				if !ex.Skip {
 					<div class="column">
-						@exerciseCard(ex)
+						@exerciseCard(ex, c.heading())
 					</div>
 				}
 			}
@@ -90,9 +107,18 @@ func cardName(s skills.TrampolineSkill) string {
 	return skills.NameOf(s)
 }
 
-templ exerciseCard(ex ExerciseCard) {
+// exerciseCard is one exercise, checked, its title a heading at level (2 to
+// 4), under whatever heads it on the page.
+templ exerciseCard(ex ExerciseCard, level int) {
 	<div class="box comp-exercise">
-		<h2 class="title is-6 mb-1">{ ex.Title }</h2>
+		switch level {
+			case 3:
+				<h3 class="title is-6 mb-1">{ ex.Title }</h3>
+			case 4:
+				<h4 class="title is-6 mb-1">{ ex.Title }</h4>
+			default:
+				<h2 class="title is-6 mb-1">{ ex.Title }</h2>
+		}
 		<p class="is-size-7 has-text-grey mb-2">
 			{ ex.Requirements }
 			if ex.SetRoutine {

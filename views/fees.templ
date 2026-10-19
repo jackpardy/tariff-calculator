@@ -94,7 +94,7 @@ templ FeesAdmin(p FeesPage) {
 			</nav>
 		}
 		if len(p.Accounts) == 0 {
-			<p class="has-text-grey">No entries yet.</p>
+			@emptyLine("No entries yet.")
 		} else if p.On {
 			<div class="table-container">
 				<table class="table is-fullwidth is-narrow comp-stack">

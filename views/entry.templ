@@ -382,6 +382,12 @@ templ CompetitionEntryPage(p EntryPage) {
 // order it's looked at: where it stands, where they compete, its card, then
 // changing or withdrawing it, their coach, what they owe and what they
 // offer. A row of their competition's page opens to it.
+// entryUnder is the entry with its card's exercise headings at level.
+func entryUnder(p EntryPage, level int) EntryPage {
+	p.Card = cardUnder(p.Card, level)
+	return p
+}
+
 templ entryBody(p EntryPage) {
 	if p.Partner != nil {
 		// A pair: who, as the row names only the discipline.

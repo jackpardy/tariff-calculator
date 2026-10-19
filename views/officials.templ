@@ -280,7 +280,7 @@ templ CompetitionOfficials(p OfficialsPage) {
 		@listSection("People", len(p.Officials)) {
 			@addOfficial(p)
 			if len(p.Officials) == 0 {
-				<p class="has-text-grey">Nobody yet. Gymnasts offer when they enter (clubs send members' offers with their entries), or add someone above.</p>
+				@emptyLine("Nobody yet. Gymnasts offer when they enter (clubs send members' offers with their entries), or add someone above.")
 			} else {
 				@listTools(p.Tools)
 				<div class="table-container">

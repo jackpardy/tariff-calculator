@@ -352,7 +352,7 @@ templ timetableAreas(p TimetablePage, day DayView) {
 			<div class="comp-tt-area" id={ area.ID } data-list-group>
 				<h3 class="title is-6">{ area.Name }</h3>
 				if len(area.Items) == 0 {
-					<p class="has-text-grey is-size-7">Nothing</p>
+					@emptyLine("Nothing")
 				}
 				for _, it := range area.Items {
 					if it.Flight {

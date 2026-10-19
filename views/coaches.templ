@@ -193,7 +193,7 @@ templ CoachHome(p CoachPage) {
 					</p>
 				}
 				if len(c.Rows) == 0 {
-					<p class="has-text-grey is-size-7">None of your members has entered yet.</p>
+					@emptyLine("None of your members has entered yet.")
 				} else {
 					<div class="table-container">
 						<table class="table is-fullwidth is-narrow comp-table comp-stack">

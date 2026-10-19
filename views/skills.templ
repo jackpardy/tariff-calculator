@@ -175,7 +175,7 @@ templ skillMarks(p SkillsPart) {
 	for _, g := range p.Marked {
 		<h3 class="title is-6 mt-4 mb-2">{ g.Title } <span class="has-text-grey">({ strconv.Itoa(len(g.Skills)) })</span></h3>
 		if len(g.Skills) == 0 {
-			<p class="has-text-grey is-size-7">None yet.</p>
+			@emptyLine("None yet.")
 		}
 		for _, m := range g.Skills {
 			@skillRow(p.Action, "marked", m)
@@ -196,7 +196,7 @@ templ skillsAdd(p SkillsPart) {
 		</form>
 		if p.Query != "" {
 			if len(p.Results) == 0 {
-				<p class="has-text-grey is-size-7 mb-3">No skill found for that.</p>
+				@emptyLine("No skill found for that.")
 			}
 			for _, m := range p.Results {
 				@skillRow(p.Action, "found", m)
@@ -331,7 +331,7 @@ templ CoachClubSkills(p ClubSkillsPage) {
 			Skills of your club's own, for every coach and member to mark: your club's name for a skill (it shows in place of the skill's own name on your club's pages), or something else to track, like a drill.
 		</p>
 		if len(p.Skills) == 0 {
-			<p class="has-text-grey mb-4">No club skills yet.</p>
+			@emptyLine("No club skills yet.")
 		}
 		for _, c := range p.Skills {
 			<div class="skill-mark">
@@ -358,7 +358,7 @@ templ CoachClubSkills(p ClubSkillsPage) {
 				<div class="control"><button class="button" type="submit">Find</button></div>
 			</form>
 			if p.Query != "" && len(p.Results) == 0 {
-				<p class="has-text-grey is-size-7">No skill found for that.</p>
+				@emptyLine("No skill found for that.")
 			}
 			for _, c := range p.Results {
 				<form method="post" action={ templ.SafeURL(p.Action) } class="skill-mark">
@@ -481,7 +481,7 @@ templ CoachClubLevels(p ClubLevelsPage) {
 			}
 		</div>
 		if len(p.Levels) == 0 {
-			<p class="has-text-grey mb-4">No levels yet.</p>
+			@emptyLine("No levels yet.")
 		}
 		for _, l := range p.Levels {
 			<div class="box">

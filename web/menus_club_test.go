@@ -231,7 +231,7 @@ func TestMemberTabs(t *testing.T) {
 	if !strings.Contains(page, `href="`+member+`">← Competitions</a>`) || !strings.Contains(page, "Student Open") || !strings.Contains(page, "Entries close") {
 		t.Error("the competition's page has a way back and its facts")
 	}
-	if !strings.Contains(page, `<details class="box comp-event-row"><summary><strong>Trampoline</strong> `+chip(t, views.NotYet, "Not entered")+`</summary>`) {
+	if !strings.Contains(page, `<details class="box comp-event-row"><summary><h3 class="comp-event-name">Trampoline</h3>`+chip(t, views.NotYet, "Not entered")+`</summary>`) {
 		t.Errorf("an unentered discipline is a collapsed row saying so: %s", regexp.MustCompile(`<details class="box comp-event-row".{0,300}`).FindString(page))
 	}
 
@@ -252,7 +252,7 @@ func TestMemberTabs(t *testing.T) {
 		t.Error("the notice's entry is shown open")
 	}
 	page = do(t, h, http.MethodGet, compPath, nil).Body.String()
-	if !strings.Contains(page, `<details class="box comp-event-row"><summary><strong>Trampoline</strong> <span class="has-text-grey is-size-7">· BUCS L3</span>`+chip(t, views.Attention, "2 problems")+`</summary>`) ||
+	if !strings.Contains(page, `<details class="box comp-event-row"><summary><h3 class="comp-event-name">Trampoline</h3><span class="has-text-grey is-size-7">· BUCS L3</span>`+chip(t, views.Attention, "2 problems")+`</summary>`) ||
 		!strings.Contains(page, "Saved, not sent yet") {
 		t.Errorf("an entered discipline is a collapsed row with its level and status, opening to its card: %s", regexp.MustCompile(`<details class="box comp-event-row".{0,300}`).FindString(page))
 	}

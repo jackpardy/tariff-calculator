@@ -26,7 +26,7 @@ templ People(p PeoplePage) {
 		<p class="mb-3">Everyone at this competition, once: gymnasts, officials and coaches. Open a name to see everything they're doing.</p>
 		@listSection("Everyone", len(p.People)) {
 			if len(p.People) == 0 {
-				<p class="has-text-grey">Nobody yet. Gymnasts, officials and coaches show here once entries are sent.</p>
+				@emptyLine("Nobody yet. Gymnasts, officials and coaches show here once entries are sent.")
 			} else {
 				@listTools(p.Tools)
 				<div class="table-container">

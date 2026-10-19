@@ -99,7 +99,7 @@ templ Feedback(p FeedbackPage) {
 			<a href={ templ.SafeURL(p.Base + "/settings#feedback") }>change it in Settings</a>.
 		</p>
 		if len(p.Items) == 0 {
-			<p class="has-text-grey">Nothing yet.</p>
+			@emptyLine("Nothing yet.")
 		} else {
 			<p class="is-size-7 has-text-grey mb-2">{ Count(len(p.Items), "message", "messages") }, { p.Waiting } not dealt with.</p>
 			<div class="comp-feedback-list">

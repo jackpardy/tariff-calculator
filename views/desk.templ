@@ -169,7 +169,7 @@ templ Desk(p DeskPage) {
 		@deskScreen(p)
 		@listSection("Sent", len(p.Sent)) {
 			if len(p.Sent) == 0 {
-				<p class="has-text-grey">Nothing sent yet.</p>
+				@emptyLine("Nothing sent yet.")
 			}
 			for _, m := range p.Sent {
 				<div class="box py-3">

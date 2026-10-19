@@ -145,7 +145,7 @@ templ CompetitionDashboard(d Dashboard) {
 			</p>
 		}
 		if d.Entries == 0 {
-			<p class="has-text-grey mb-3">No entries yet. Clubs send theirs through the club link; gymnasts on their own enter through theirs.</p>
+			@emptyLine("No entries yet. Clubs send theirs through the club link; gymnasts on their own enter through theirs.")
 			if d.Links.Club != "" {
 				@linkBox("Club link", d.Links.Club, "Give it to clubs' competition secretaries: they enter their club and send its members' entries.")
 			}
@@ -175,7 +175,7 @@ templ CompetitionDashboard(d Dashboard) {
 						}
 					</summary>
 					if len(l.Rows) == 0 {
-						<p class="has-text-grey is-size-7">None</p>
+						@emptyLine("None")
 					} else {
 						<div class="buttons mb-2">
 							<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) } data-list-carry>Print this level's cards</a>

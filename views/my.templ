@@ -348,7 +348,7 @@ templ personCoaching(k *PersonCoaching) {
 				<p class="is-size-7 mb-2">{ k.Approval }</p>
 			}
 			if len(k.Entries) == 0 {
-				<p class="is-size-7 has-text-grey">No entries yet.</p>
+				@emptyLine("No entries yet.")
 			}
 			// A row each, with where its sign-off stands.
 			<ul class="comp-coached">
