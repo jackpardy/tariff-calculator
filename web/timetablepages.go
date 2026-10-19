@@ -301,12 +301,36 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 		failed(w, r, err)
 		return
 	}
+	marks, err := p.dayMarksOf(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	// Once the day has begun, a fresh plan asks first: it starts again from
+	// the first morning, flights that have run and all.
+	if c.Published != nil && r.FormValue("anyway") != "1" {
+		if begun := marks.begun(*c.Published); len(begun) > 0 {
+			p.askDayMarks(w, r, c, "Plan the timetable again", "The competition has begun:", begun, "Plan again anyway",
+				"A fresh plan starts again from the first morning: it can move flights that have run, change who's in them and put flights at times already gone. "+
+					"Check-ins stay with each gymnast, and a flight's times stay with it if it keeps the same gymnasts. Publish changes says what would be dropped before it is. "+
+					"For a delay or an official leaving, What if there's a delay and What if an official leaves change only what they must.")
+			return
+		}
+	}
 	notice := fmt.Sprintf("Planned %s.", gymnastsWord(len(entries)))
 	err = p.changeDraft(r, c, func(s *competitions.Schedule) error {
 		if err := s.Setup.Check(c.EventNames()); err != nil {
 			return refused("Fix the setup first: " + strings.Join(sentences(err), " "))
 		}
+		// The flights it replaces, the published ones first, for what's
+		// marked on the day to stay with them.
+		var old []competitions.ScheduledFlight
+		if c.Published != nil {
+			old = slices.Clone(c.Published.Flights)
+		}
+		old = slices.Concat(old, s.Flights, s.Unplaced)
 		*s = competitions.PlanStaffed(schedEntries(entries, same), c.EventNames(), s.Setup, staffing(c.Competition, people), uint64(p.now().UnixNano()))
+		s.KeepIDs(old, func(id string) bool { return !marks.underWay(id) })
 		p.staff(s, c, entries, people, same)
 		if n := len(s.Unplaced) + len(s.UnplacedBlocks); n > 0 {
 			notice += " Some of it doesn't fit: see below."
@@ -507,7 +531,7 @@ func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Request) {
-	c, s, _, ok := p.timetableOf(w, r)
+	c, s, entries, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -526,6 +550,30 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 		if v, ok := r.PostForm["version"]; ok && (len(v) != 1 || v[0] != s.Version()) {
 			back(w, r, string(staleTimetable))
 			return
+		}
+		// What's been marked on the day that this wouldn't show any more
+		// is said first.
+		if c.Published != nil && r.FormValue("anyway") != "1" {
+			marks, err := p.dayMarksOf(r.Context(), c.ID)
+			if err != nil {
+				failed(w, r, err)
+				return
+			}
+			names := map[string]string{}
+			for _, e := range entries {
+				names[e.ID] = e.Entry.Gymnasts()
+			}
+			name := func(id string) string {
+				if n, ok := names[id]; ok {
+					return n
+				}
+				return "someone no longer entered"
+			}
+			if lost := marks.lost(*c.Published, s, name); len(lost) > 0 {
+				p.askDayMarks(w, r, c, "Publish the changes", "Publishing drops what was marked on the day:", lost, "Publish anyway",
+					"Everything else marked on the day stays as it is.")
+				return
+			}
 		}
 		p.notify.changing(r.Context(), c)
 		if err := p.st.PublishTimetable(r.Context(), c.ID, &s); err != nil {

@@ -1090,6 +1090,13 @@ type ChangeCheckPage struct {
 	Fields      []FormValue // the change as posted, to make it anyway
 	Fixes       []ChangeFix
 	Back        string // the timetable, where it was asked from
+	// What's been marked on the day that the change would drop or upset,
+	// under a heading (DayTitle); the button for the change anyway, and a
+	// line under it, if not the usual ones.
+	DayTitle string
+	DayMarks []string
+	Anyway   string
+	Help     string
 }
 
 // ChangeFix is another change that does what was meant without breaking
@@ -1107,6 +1114,16 @@ templ ChangeCheck(p ChangeCheckPage) {
 		@pageMenu(p.Menu)
 		<p class="mb-3"><strong>{ p.What }</strong></p>
 		@newBreaks(p.Breaks)
+		if len(p.DayMarks) > 0 {
+			<div class="notification is-warning is-light">
+				<p class="mb-1"><strong>{ p.DayTitle }</strong></p>
+				<ul>
+					for _, it := range p.DayMarks {
+						<li>{ it }</li>
+					}
+				</ul>
+			</div>
+		}
 		if len(p.Fixes) > 0 {
 			<div class="box">
 				<p class="label is-small mb-2">Instead, without breaking anything</p>
@@ -1128,10 +1145,20 @@ templ ChangeCheck(p ChangeCheckPage) {
 					<input type="hidden" name={ v.Name } value={ v.Value }/>
 				}
 				<input type="hidden" name="anyway" value="1"/>
-				<button class="button is-small is-warning" type="submit">Make the change anyway</button>
+				<button class="button is-small is-warning" type="submit">
+					if p.Anyway != "" {
+						{ p.Anyway }
+					} else {
+						Make the change anyway
+					}
+				</button>
 			</form>
 			<a class="button is-small" href={ templ.SafeURL(p.Back) }>Cancel</a>
 		</div>
-		<p class="help">Either way it goes into the draft: attendees see it only once you publish.</p>
+		if p.Help != "" {
+			<p class="help">{ p.Help }</p>
+		} else {
+			<p class="help">Either way it goes into the draft: attendees see it only once you publish.</p>
+		}
 	}
 }
