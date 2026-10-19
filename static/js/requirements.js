@@ -7,9 +7,10 @@ function requirementsPage() {
     return {
         sets: [],
         levels: [],
-        builtins: {}, // built-in sets by id, for duplicating
         builtinLevels: {}, // built-in levels by reference, for duplicating
         confirmClose: false, // Close asked about changes not saved
+        asking: '', // the row asked about deleting: 'set:<id>' or 'level:<id>'
+        savingAnyway: null, // a save with problems asked about: {where ('editor' or 'writer'), text, resolve}
         requirementNames: {}, // built-in requirements' names by reference
         editing: null, // {id, title, kind}: the set or level ('set' or 'level') open in the editor (id null until first saved)
         levelWriting: null, // requirements written for one of the open level's exercises: {key, id, title}
@@ -40,7 +41,6 @@ function requirementsPage() {
                 const routine = this.routines.find((r) => r.id === id);
                 if (routine && !this.setRoutineName) { this.setRoutineName = routine.name; }
             });
-            try { this.builtins = JSON.parse(document.getElementById('builtin-sets').textContent); } catch (e) { this.builtins = {}; }
             try {
                 const data = JSON.parse(document.getElementById('level-data').textContent);
                 this.builtinLevels = data.levels || {};
@@ -85,12 +85,12 @@ function requirementsPage() {
         // saveLevelToClub saves a level as a club level: the rules of the
         // requirements its exercises are checked against (each exercise's
         // first choice), one after another, under the level's name.
-        saveLevelToClub(coach, saved) {
+        async saveLevelToClub(coach, saved) {
             const level = saved.level;
             const rules = [];
             for (const ex of [level.first, level.second].filter(Boolean)) {
                 const ref = (ex.options || []).find((r) => r);
-                const set = this.sets.find((s) => s.id === ref)?.set || this.builtins[String(ref).replace(/^builtin:/, '')];
+                const set = this.sets.find((s) => s.id === ref)?.set || await this.builtinSet(ref);
                 if (set) { rules.push(...JSON.parse(JSON.stringify(set.rules || []))); }
             }
             if (rules.length === 0) { this.flash(`${level.name} has nothing chosen to save as a club level yet.`); return; }
@@ -134,7 +134,28 @@ function requirementsPage() {
             copy.name = `Copy of ${set.name}`.slice(0, 80);
             this.open(copy, copy.name);
         },
-        duplicateBuiltin(id) { if (this.builtins[id]) { this.duplicate(this.builtins[id]); } },
+        // duplicateBuiltin opens a copy of built-in requirements in the
+        // editor: the server copies it (the page doesn't carry them all).
+        duplicateBuiltin(id) {
+            const ref = `builtin:${id}`;
+            this.editing = { id: null, title: `Copy of ${this.requirementName(ref)}`, kind: 'set' };
+            this.confirmClose = false;
+            htmx.ajax('POST', '/requirements/editor', { source: '#editor-area', target: '#editor-area', swap: 'innerHTML', values: { copy: ref } })
+                .then(() => { this.markClean(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+        },
+        // builtinSet is built-in requirements' JSON (ref "builtin:<id>"), as
+        // the server's copy of them has it, or undefined.
+        async builtinSet(ref) {
+            if (!String(ref).startsWith('builtin:')) { return undefined; }
+            try {
+                const response = await fetch('/requirements/editor', { method: 'POST', body: new URLSearchParams({ copy: ref }) });
+                if (!response.ok) { return undefined; }
+                const form = new DOMParser().parseFromString(await response.text(), 'text/html').getElementById('set-editor');
+                return JSON.parse(form.dataset.setJson);
+            } catch (e) {
+                return undefined;
+            }
+        },
 
         // --- Levels ---
         // openLevel shows a level in the level editor, which offers the sets
@@ -169,9 +190,13 @@ function requirementsPage() {
             const refs = [...(level.first?.options || []), ...(level.second?.options || [])];
             return this.sets.filter((s) => refs.includes(s.id));
         },
+        // levelDeleteText is what deleting a level loses, asked on its row.
+        levelDeleteText(saved) {
+            return `Delete ${saved.level.name}${saved.kept ? ', here and from your page' : ''}? Routines doing its exercises will stop being paired by it.`;
+        },
         removeLevel(id) {
             const saved = this.levels.find((l) => l.id === id);
-            if (!saved || !confirm(`Delete ${saved.level.name}${saved.kept ? ', here and from your page' : ''}? Routines doing its exercises will stop being paired by it.`)) { return; }
+            if (!saved) { return; }
             KeptRequirements.drop('level', saved);
             this.levels = this.levels.filter((l) => l.id !== id);
             LevelStore.save(this.levels);
@@ -210,7 +235,7 @@ function requirementsPage() {
             const described = JSON.parse(fresh.dataset.described);
             if (fresh.dataset.problems !== '0' && first) { this.flash('Fix the problems listed at the top first.'); shown.scrollIntoView({ block: 'start' }); return; }
             if (!set.name) { this.flash('Give the requirements a name first.'); return; }
-            if (fresh.dataset.problems !== '0' && !confirm('These requirements have problems (listed at the top). Save them anyway?')) { return; }
+            if (fresh.dataset.problems !== '0' && !await this.askSaveAnyway('editor', 'These have problems, listed at the top. Save them anyway?')) { return; }
 
             const existing = this.sets.find((s) => s.id === this.editing.id);
             if (existing) {
@@ -237,7 +262,7 @@ function requirementsPage() {
             const level = JSON.parse(fresh.dataset.levelJson);
             if (fresh.dataset.problems !== '0' && first) { this.flash('Fix the problems listed at the top first.'); shown.scrollIntoView({ block: 'start' }); return; }
             if (!level.name) { this.flash('Give the level a name first.'); return; }
-            if (fresh.dataset.problems !== '0' && !confirm('This level has problems (listed at the top). Save it anyway?')) { return; }
+            if (fresh.dataset.problems !== '0' && !await this.askSaveAnyway('editor', 'This level has problems, listed at the top. Save it anyway?')) { return; }
 
             // A level's own requirements are its own: one another level uses
             // too (this is a copy of it) is copied for this one.
@@ -277,6 +302,7 @@ function requirementsPage() {
                 return;
             }
             this.confirmClose = false;
+            this.answerSaveAnyway(false);
             this.editing = null;
             this.cancelForLevel();
             document.getElementById('editor-area').replaceChildren();
@@ -322,7 +348,7 @@ function requirementsPage() {
             const set = JSON.parse(fresh.dataset.setJson);
             if (fresh.dataset.problems !== '0' && first) { this.flash('Fix the problems listed at the top first.'); fresh.scrollIntoView({ block: 'start' }); return; }
             if (!set.name) { this.flash('Give the requirements a name first.'); fresh.querySelector('[name=name]')?.focus(); return; }
-            if (fresh.dataset.problems !== '0' && !confirm('These requirements have problems (listed at the top). Save them anyway?')) { return; }
+            if (fresh.dataset.problems !== '0' && !await this.askSaveAnyway('writer', 'These have problems, listed at the top. Save them anyway?')) { return; }
             const described = JSON.parse(fresh.dataset.described || '[]');
             let saved = this.sets.find((s) => s.id === writing.id);
             if (saved) {
@@ -358,12 +384,17 @@ function requirementsPage() {
             this.levelWriting = null;
             document.getElementById('level-write-area')?.replaceChildren();
         },
-        remove(id) {
-            const saved = this.sets.find((s) => s.id === id);
-            // The levels using it say so, as they'll lose it.
+        // setDeleteText is what deleting requirements or a set routine
+        // loses, asked on its row: the levels using it say so, as they'll lose it.
+        setDeleteText(saved) {
             const using = this.levels.filter((l) => this.levelSets(l.level).includes(saved)).map((l) => l.level.name);
             const levels = using.length === 0 ? '' : ` ${using.length === 1 ? 'The level' : 'The levels'} ${using.join(', ')} ${using.length === 1 ? 'uses' : 'use'} it, and will lose it.`;
-            if (!saved || !confirm(`Delete ${saved.set.name}${saved.kept ? ', here and from your page' : ''}? Routines checked against it will stop being checked.${levels}`)) { return; }
+            const what = this.isSetRoutine(saved.set) ? 'Routines started from it keep their skills.' : 'Routines checked against it will stop being checked.';
+            return `Delete ${saved.set.name}${saved.kept ? ', here and from your page' : ''}? ${what}${levels}`;
+        },
+        remove(id) {
+            const saved = this.sets.find((s) => s.id === id);
+            if (!saved) { return; }
             KeptRequirements.drop('set', saved);
             this.sets = this.sets.filter((s) => s.id !== id);
             SetStore.save(this.sets);
@@ -497,6 +528,17 @@ function requirementsPage() {
 
         rulesCount(set) { return set.rules.length === 1 ? '1 rule' : `${set.rules.length} rules`; },
 
+        // askSaveAnyway asks beside the Save just pressed (where: 'editor' or
+        // 'writer') whether to save with problems, answering true or false.
+        askSaveAnyway(where, text) {
+            this.savingAnyway?.resolve(false);
+            return new Promise((resolve) => { this.savingAnyway = { where, text, resolve }; });
+        },
+        answerSaveAnyway(yes) {
+            const resolve = this.savingAnyway?.resolve;
+            this.savingAnyway = null;
+            resolve?.(yes);
+        },
         flash(message) {
             this.toast = message;
             clearTimeout(this._toastTimer);

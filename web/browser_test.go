@@ -195,7 +195,7 @@ func TestWriteRequirementsInTheBuilderInABrowser(t *testing.T) {
 	if chips != "!Not met,!Not met,!Not met" { // one skill: too few, too easy, and not the elements allowed
 		t.Errorf("each rule says whether the routine meets it: %q", chips)
 	}
-	if name != "BUCS L7 · second exercise (copy)" {
+	if name != "Copy of BUCS L7 · second exercise" {
 		t.Errorf("a copy, named so: %q", name)
 	}
 	if strings.HasPrefix(saved, "builtin:") || setName != "Our L7" {

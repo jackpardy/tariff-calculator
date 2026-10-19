@@ -16,6 +16,10 @@ the next one. Whenever either choice changes, it posts both routines to
 ([routine validation](../domain/routine-validation.md)) and renders them side by
 side.
 
+The page has the routine tools' slim banner (views/tool.templ) and the
+competition pages' width. Each routine's problems are listed in the tariff
+sheet's words; one with none shows a "No problems" state chip.
+
 Requirements aren't applied here. To compare while editing, with requirements
 and checks, use the builder's [side by side](routine-builder.md#side-by-side)
 view instead.

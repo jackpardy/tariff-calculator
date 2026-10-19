@@ -33,20 +33,17 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 			<script defer src={ static.URL("js/requirements.js") }></script>
 			<script defer src={ static.URL("js/judging.js") }></script>
 			<script defer src={ static.URL("js/alpine.min.js") }></script>
-			@templ.JSONScript("builtin-sets", builtinSets(groups))
 			@templ.JSONScript("level-data", levelData(groups))
 		</head>
-		<body>
-			<section class="section">
-				<div class="container" x-data="requirementsPage()">
-					<a class="is-size-7" href="/">← Routine Builder</a>
-					<h1 class="title is-4 mt-1">Requirements</h1>
-					<p class="mb-4">
-						Requirements are the rules a routine is checked against: required or banned elements,
-						how many elements and difficulty limits. Choose them for a routine under "Check against"
-						in the Routine Builder. A level pairs requirements and set routines for a competition's
-						two exercises, e.g. a choice of set routines and then a voluntary: open it in the
-						Routine Builder's Levels mode.
+		<body class="tool-page">
+			@toolBanner("/requirements", false)
+			<main class="section tool-section">
+				<div class="container is-narrow-tool" x-data="requirementsPage()">
+					<h1 class="title is-4">Requirements</h1>
+					<p class="tool-intro">
+						The rules a routine is checked against, and levels: a competition level's two exercises,
+						e.g. a set routine and then a voluntary. Check a routine against them under "Check against"
+						in the Routine Builder; open a level there in Levels mode.
 					</p>
 					// The editor, when a set is open.
 					<div class="box" x-show="editing !== null" x-cloak>
@@ -54,16 +51,17 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 							<h2 class="title is-5 mb-0" x-text="editing?.title"></h2>
 							// While requirements are written for one of a level's exercises,
 							// the writer's own "Use in this level" is the one Save.
-							<div class="buttons mb-0" x-show="!confirmClose">
+							<div class="buttons mb-0" x-show="!confirmClose && savingAnyway?.where !== 'editor'">
 								<button class="button is-primary is-small" type="button" x-show="!levelWriting" x-on:click="saveEditing()">Save</button>
-								<button class="button is-light is-small" type="button" x-on:click="closeEditor()">Close</button>
+								<button class="button is-small" type="button" x-on:click="closeEditor()">Close</button>
 							</div>
 							// Close with changes not saved asks first.
-							<div class="buttons mb-0 editor-discard" x-show="confirmClose" x-cloak>
+							<div class="buttons mb-0 editor-ask" x-show="confirmClose" x-cloak>
 								<span class="is-size-7 mr-2">Discard your changes?</span>
-								<button class="button is-danger is-light is-small" type="button" x-on:click="closeEditor(true)">Discard</button>
+								<button class="button is-danger is-outlined is-small" type="button" x-on:click="closeEditor(true)">Discard</button>
 								<button class="button is-small" type="button" x-on:click="confirmClose = false">Keep editing</button>
 							</div>
+							@saveAnywayAsk("editor")
 						</div>
 						<div id="editor-area" hx-sync="this:replace"></div>
 						// Requirements written for one of the level's exercises,
@@ -76,24 +74,25 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 								<input type="checkbox" x-model="levelKeepToo"/>
 								Also keep them in Your requirements
 							</label>
-							<div class="buttons mt-3 mb-0">
+							<div class="buttons mt-3 mb-0" x-show="savingAnyway?.where !== 'writer'">
 								<button class="button is-primary is-small" type="button" x-on:click="saveForLevel()">Use in this level</button>
 								<button class="button is-text is-small" type="button" x-on:click="cancelForLevel()">Cancel</button>
 							</div>
-						</div>
-					</div>
-					<div class="box">
-						<div class="box-head">
-							<h2 class="title is-5 mb-0">Your levels</h2>
-							<div class="buttons mb-0">
-								<button class="button is-primary is-small" type="button" x-on:click="newLevel()">+ New</button>
+							<div class="mt-3">
+								@saveAnywayAsk("writer")
 							</div>
 						</div>
-						<p class="has-text-grey" x-show="levels.length === 0">None yet. Start a new one, or duplicate a built-in one.</p>
+					</div>
+					<section class="tool-list">
+						<div class="tool-list-head">
+							<h2 class="title is-5">Your levels <span class="tool-list-count" x-text="`· ${levels.length}`"></span></h2>
+							<button class="button is-small" type="button" x-on:click="newLevel()">+ New level</button>
+						</div>
+						<p class="tool-list-empty" x-show="levels.length === 0">None yet. Start a new one, or duplicate a built-in one below.</p>
 						<ul class="set-list">
 							<template x-for="l in levels" x-bind:key="l.id">
 								<li class="set-item">
-									<div>
+									<div class="set-what">
 										<p class="set-name"><span x-text="l.level.name"></span><span class="ml-1" x-show="l.kept" title="Kept on your page: on any phone, and safe if this browser forgets it">@StateChip(Done, "On your page")</span></p>
 										<p class="set-description" x-show="l.level.description" x-text="l.level.description"></p>
 										<ul class="level-exercises">
@@ -103,31 +102,35 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 										</ul>
 										<p class="set-meta" x-show="l.level.source" x-text="l.level.source"></p>
 									</div>
-									<div class="buttons are-small mb-0">
+									// The same buttons in the same order on every row: Edit, Share,
+									// then the rest under More, Delete last and asked on the row.
+									<div class="set-actions" x-show="asking !== 'level:' + l.id">
 										<button class="button is-small" type="button" x-on:click="editLevel(l.id)">Edit</button>
-										<button class="button is-small" type="button" x-on:click="duplicateLevel(l.level)">Duplicate</button>
-										<button class="button is-small" type="button" x-on:click="exportLevel(l.level)">Export</button>
-										// A club level of the requirements its exercises are checked against (ADR 0011).
-										<template x-for="c in coachLinks" x-bind:key="c.url">
-											<button class="button is-small" type="button" x-on:click="saveLevelToClub(c, l)" x-text="coachLinks.length > 1 ? `Save to club levels: ${c.name}` : 'Save to club levels'"></button>
-										</template>
 										<button class="button is-small" type="button" x-on:click="Share.open('sets', [l.id])">Share</button>
-										// A personal page saved in this browser keeps it (ADR 0013).
-										<template x-for="p in personLinks" x-bind:key="p.url">
-											<button class="button is-small" type="button" x-show="!l.kept" x-on:click="keepOnPage(p, 'level', l)" x-text="personLinks.length > 1 ? `Save to my page: ${p.name}` : 'Save to my page'"></button>
-										</template>
-										<button class="button is-small is-danger is-outlined" type="button" x-on:click="removeLevel(l.id)">Delete</button>
+										@rowMore() {
+											<button class="button is-small is-white" type="button" x-on:click="duplicateLevel(l.level)">Duplicate</button>
+											<button class="button is-small is-white" type="button" x-on:click="exportLevel(l.level)">Export</button>
+											// A club level of the requirements its exercises are checked against (ADR 0011).
+											<template x-for="c in coachLinks" x-bind:key="c.url">
+												<button class="button is-small is-white" type="button" x-on:click="saveLevelToClub(c, l)" x-text="coachLinks.length > 1 ? `Save to club levels: ${c.name}` : 'Save to club levels'"></button>
+											</template>
+											// A personal page saved in this browser keeps it (ADR 0013).
+											<template x-for="p in personLinks" x-bind:key="p.url">
+												<button class="button is-small is-white" type="button" x-show="!l.kept" x-on:click="keepOnPage(p, 'level', l)" x-text="personLinks.length > 1 ? `Save to my page: ${p.name}` : 'Save to my page'"></button>
+											</template>
+											<hr class="routine-menu-rule"/>
+											<button class="button is-small is-white has-text-danger" type="button" x-on:click="asking = 'level:' + l.id">Delete</button>
+										}
 									</div>
+									@deleteAsk("'level:' + l.id", "levelDeleteText(l)", "removeLevel(l.id)")
 								</li>
 							</template>
 						</ul>
-					</div>
-					<div class="box">
-						<div class="box-head">
-							<h2 class="title is-5 mb-0">Your set routines</h2>
-							<div class="buttons mb-0">
-								<button class="button is-primary is-small" type="button" x-on:click="makerFor = null; makerStart = null; makingSetRoutine = !makingSetRoutine">+ New set routine</button>
-							</div>
+					</section>
+					<section class="tool-list">
+						<div class="tool-list-head">
+							<h2 class="title is-5">Your set routines <span class="tool-list-count" x-text="`· ${setRoutines().length}`"></span></h2>
+							<button class="button is-small" type="button" x-on:click="makerFor = null; makerStart = null; makingSetRoutine = !makingSetRoutine">+ New set routine</button>
 						</div>
 						// A set routine is built, not written: right here, skill by skill
 						// (setRoutineMaker, with the builder's search, builder and card),
@@ -172,7 +175,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 										<select aria-label="Routine to make a set routine of" x-model="fromRoutine">
 											<option value="">Choose a routine...</option>
 											<template x-for="r in routines.filter((r) => r.skills.length > 0)" x-bind:key="r.id">
-												<option x-bind:value="r.id" x-text="`${r.name} (${r.skills.length})`"></option>
+												<option x-bind:value="r.id" x-text="RoutineStore.label(r)"></option>
 											</template>
 										</select>
 									</div>
@@ -181,11 +184,11 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 								</div>
 							</template>
 						</div>
-						<p class="has-text-grey" x-show="setRoutines().length === 0">None yet. Build one, or copy a built-in one below.</p>
+						<p class="tool-list-empty" x-show="setRoutines().length === 0">None yet. Build one, or copy a built-in one below.</p>
 						<ul class="set-list">
 							<template x-for="s in setRoutines()" x-bind:key="s.id">
 								<li class="set-item">
-									<div>
+									<div class="set-what">
 										<p class="set-name"><span x-text="s.set.name"></span><span class="ml-1" x-show="s.kept" title="Kept on your page: on any phone, and safe if this browser forgets it">@StateChip(Done, "On your page")</span></p>
 										<p class="set-meta" x-show="s.set.source" x-text="s.set.source"></p>
 										<details class="set-rules">
@@ -197,28 +200,35 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 											</ol>
 										</details>
 									</div>
-									<div class="buttons are-small mb-0">
-										<a class="button is-small" x-bind:href="`/?setRoutine=${s.id}`">Edit in the Routine Builder</a>
+									<div class="set-actions" x-show="asking !== 'set:' + s.id">
+										// A set routine is changed in the Routine Builder, skill by skill.
+										<a class="button is-small" x-bind:href="`/?setRoutine=${s.id}`">Edit</a>
 										<button class="button is-small" type="button" x-on:click="Share.open('sets', [s.id])">Share</button>
-										// A coach's page saved in this browser takes it as a club level, the set routine its first item.
-										<template x-for="c in coachLinks" x-bind:key="c.url">
-											<button class="button is-small" type="button" x-on:click="saveToClub(c, s)" x-text="coachLinks.length > 1 ? `Save to club levels: ${c.name}` : 'Save to club levels'"></button>
-										</template>
-										// A personal page saved in this browser keeps it (ADR 0013).
-										<template x-for="p in personLinks" x-bind:key="p.url">
-											<button class="button is-small" type="button" x-show="!s.kept" x-on:click="keepOnPage(p, 'set', s)" x-text="personLinks.length > 1 ? `Save to my page: ${p.name}` : 'Save to my page'"></button>
-										</template>
-										<button class="button is-small is-danger is-outlined" type="button" x-on:click="remove(s.id)">Delete</button>
+										@rowMore() {
+											// A coach's page saved in this browser takes it as a club level, the set routine its first item.
+											<template x-for="c in coachLinks" x-bind:key="c.url">
+												<button class="button is-small is-white" type="button" x-on:click="saveToClub(c, s)" x-text="coachLinks.length > 1 ? `Save to club levels: ${c.name}` : 'Save to club levels'"></button>
+											</template>
+											// A personal page saved in this browser keeps it (ADR 0013).
+											<template x-for="p in personLinks" x-bind:key="p.url">
+												<button class="button is-small is-white" type="button" x-show="!s.kept" x-on:click="keepOnPage(p, 'set', s)" x-text="personLinks.length > 1 ? `Save to my page: ${p.name}` : 'Save to my page'"></button>
+											</template>
+											<template x-if="coachLinks.length > 0 || personLinks.length > 0">
+												<hr class="routine-menu-rule"/>
+											</template>
+											<button class="button is-small is-white has-text-danger" type="button" x-on:click="asking = 'set:' + s.id">Delete</button>
+										}
 									</div>
+									@deleteAsk("'set:' + s.id", "setDeleteText(s)", "remove(s.id)")
 								</li>
 							</template>
 						</ul>
-					</div>
-					<div class="box">
-						<div class="box-head">
-							<h2 class="title is-5 mb-0">Your requirements</h2>
+					</section>
+					<section class="tool-list">
+						<div class="tool-list-head">
+							<h2 class="title is-5">Your requirements <span class="tool-list-count" x-text="`· ${requirementSets().length}`"></span></h2>
 							<div class="buttons mb-0">
-								<button class="button is-primary is-small" type="button" x-on:click="newSet()">+ New</button>
+								<button class="button is-small" type="button" x-on:click="newSet()">+ New requirements</button>
 								<button class="button is-small" type="button" x-on:click="importing = !importing">Import</button>
 							</div>
 						</div>
@@ -233,11 +243,11 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 								</label>
 							</div>
 						</div>
-						<p class="has-text-grey" x-show="requirementSets().length === 0">None yet. Start new ones, duplicate built-in ones, or import some.</p>
+						<p class="tool-list-empty" x-show="requirementSets().length === 0">None yet. Start new ones, duplicate built-in ones, or import some.</p>
 						<ul class="set-list">
 							<template x-for="s in requirementSets()" x-bind:key="s.id">
 								<li class="set-item">
-									<div>
+									<div class="set-what">
 										<p class="set-name"><span x-text="s.set.name"></span><span class="ml-1" x-show="s.kept" title="Kept on your page: on any phone, and safe if this browser forgets it">@StateChip(Done, "On your page")</span></p>
 										<p class="set-meta" x-show="s.set.source" x-text="s.set.source"></p>
 										<details class="set-rules" x-show="s.described?.length">
@@ -250,72 +260,99 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 										</details>
 										<p class="set-meta" x-show="!s.described?.length" x-text="rulesCount(s.set)"></p>
 									</div>
-									<div class="buttons are-small mb-0">
+									<div class="set-actions" x-show="asking !== 'set:' + s.id">
 										<button class="button is-small" type="button" x-on:click="edit(s.id)">Edit</button>
-										<button class="button is-small" type="button" x-on:click="duplicate(s.set)">Duplicate</button>
 										<button class="button is-small" type="button" x-on:click="Share.open('sets', [s.id])">Share</button>
-										<button class="button is-small" type="button" x-on:click="exportSet(s.set)">Export</button>
-										// A coach's page saved in this browser takes them as a club level (ADR 0011).
-										<template x-for="c in coachLinks" x-bind:key="c.url">
-											<button class="button is-small" type="button" x-on:click="saveToClub(c, s)" x-text="coachLinks.length > 1 ? `Save to club levels: ${c.name}` : 'Save to club levels'"></button>
-										</template>
-										// A personal page saved in this browser keeps it (ADR 0013).
-										<template x-for="p in personLinks" x-bind:key="p.url">
-											<button class="button is-small" type="button" x-show="!s.kept" x-on:click="keepOnPage(p, 'set', s)" x-text="personLinks.length > 1 ? `Save to my page: ${p.name}` : 'Save to my page'"></button>
-										</template>
-										<button class="button is-small is-danger is-outlined" type="button" x-on:click="remove(s.id)">Delete</button>
+										@rowMore() {
+											<button class="button is-small is-white" type="button" x-on:click="duplicate(s.set)">Duplicate</button>
+											<button class="button is-small is-white" type="button" x-on:click="exportSet(s.set)">Export</button>
+											// A coach's page saved in this browser takes them as a club level (ADR 0011).
+											<template x-for="c in coachLinks" x-bind:key="c.url">
+												<button class="button is-small is-white" type="button" x-on:click="saveToClub(c, s)" x-text="coachLinks.length > 1 ? `Save to club levels: ${c.name}` : 'Save to club levels'"></button>
+											</template>
+											// A personal page saved in this browser keeps it (ADR 0013).
+											<template x-for="p in personLinks" x-bind:key="p.url">
+												<button class="button is-small is-white" type="button" x-show="!s.kept" x-on:click="keepOnPage(p, 'set', s)" x-text="personLinks.length > 1 ? `Save to my page: ${p.name}` : 'Save to my page'"></button>
+											</template>
+											<hr class="routine-menu-rule"/>
+											<button class="button is-small is-white has-text-danger" type="button" x-on:click="asking = 'set:' + s.id">Delete</button>
+										}
 									</div>
+									@deleteAsk("'set:' + s.id", "setDeleteText(s)", "remove(s.id)")
 								</li>
 							</template>
 						</ul>
-					</div>
-					<div class="box">
+					</section>
+					<section class="tool-list">
 						<h2 class="title is-5">Built-in levels</h2>
-						<p class="is-size-7 has-text-grey mb-3">Each pairs a level's built-in requirements for its two exercises. Duplicate one to adjust it.</p>
+						<p class="tool-list-note">Each pairs a level's built-in requirements for its two exercises. Duplicate one to adjust it.</p>
 						for _, g := range groups {
 							if len(g.Levels) > 0 {
 								@builtinLevelGroup(g)
 							}
 						}
-					</div>
-					<div class="box">
+					</section>
+					<section class="tool-list">
 						<h2 class="title is-5">Built-in requirements</h2>
-						<p class="is-size-7 has-text-grey mb-3">Drafted from each organisation's published rules, which name their source. Rules change, so check them against the current rules; duplicate one to adjust it.</p>
+						<p class="tool-list-note">Drafted from each organisation's published rules, which name their source. Rules change, so check them against the current rules; duplicate one to adjust it.</p>
 						for _, g := range groups {
 							if sets := g.Requirements(); len(sets) > 0 {
 								@builtinGroup(g.Name, sets)
 							}
 						}
-					</div>
+					</section>
 					// Set (prescribed) routines, by source.
-					<div class="box">
-						<h2 class="title is-5">Set routines</h2>
-						<p class="is-size-7 has-text-grey mb-3">Prescribed routines. Start a routine from one with "Start from a set..." in the Routine Builder, or see them in a level.</p>
+					<section class="tool-list">
+						<h2 class="title is-5">Built-in set routines</h2>
+						<p class="tool-list-note">Prescribed routines. Start a routine from one with "Start from a set" in the Routine Builder, or see them in a level.</p>
 						for _, g := range groups {
 							if routines := g.SetRoutines(); len(routines) > 0 {
 								@builtinGroup(g.Name, routines)
 							}
 						}
-					</div>
-					<div x-show="toast" x-transition class="notification is-info is-fixed-bottom-right" x-cloak>
+					</section>
+					<div x-show="toast" x-transition class="notification is-info is-light is-fixed-bottom-right tool-toast" role="status" x-cloak>
 						<span x-text="toast"></span>
 					</div>
 				</div>
-			</section>
+			</main>
 		</body>
 	</html>
 }
 
+// rowMore is a saved row's More menu: its rarer actions, closed after any
+// choice, as the Routine Builder's More is.
+templ rowMore() {
+	<details class="routine-menu" data-menu>
+		<summary class="button is-small comp-opens-button">More</summary>
+		<div class="routine-menu-panel" x-on:click="$el.closest('details').removeAttribute('open')">
+			{ children... }
+		</div>
+	</details>
+}
 
-// builtinSets maps built-in set IDs to their sets, for duplicating one in the browser.
-func builtinSets(groups []requirements.BuiltinGroup) map[string]requirements.Set {
-	out := map[string]requirements.Set{}
-	for _, g := range groups {
-		for _, b := range g.Sets {
-			out[b.ID] = b.Set
-		}
-	}
-	return out
+// deleteAsk asks on the row before deleting it, in place of its buttons,
+// while asking (an Alpine expression: the page's asking key for the row)
+// is the one asked about: what's lost (text), then Delete (remove) or Keep it.
+templ deleteAsk(asking, text, remove string) {
+	<div class="set-ask" x-show={ "asking === " + asking } x-cloak>
+		<p class="set-ask-text" x-text={ text }></p>
+		<div class="buttons mb-0">
+			<button class="button is-small is-danger" type="button" x-on:click={ "asking = ''; " + remove }>Delete</button>
+			<button class="button is-small" type="button" x-on:click="asking = ''">Keep it</button>
+		</div>
+	</div>
+}
+
+// saveAnywayAsk asks, beside the Save it stands for, whether to save
+// requirements or a level that still have problems (where: "editor" or
+// "writer", the editor's Save or the level's Use in this level).
+templ saveAnywayAsk(where string) {
+	<div class="buttons mb-0 editor-ask" x-show={ "savingAnyway?.where === '" + where + "'" } x-cloak>
+		<span class="is-size-7 mr-2" x-text="savingAnyway?.text"></span>
+		<button class="button is-primary is-small" type="button" x-on:click="answerSaveAnyway(true)">Save anyway</button>
+		<button class="button is-small" type="button" x-on:click="answerSaveAnyway(false)">Keep editing</button>
+	</div>
 }
 
 // CheckOption is a voluntary's requirements, as "Check against" offers them.

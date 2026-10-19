@@ -625,17 +625,10 @@ func notCountedReason(i int, sv skills.SkillValidation) string {
 	}
 }
 
-// sheetIssues lists the routine's problems, for the on-screen check before printing.
+// sheetIssues lists the routine's problems, for the on-screen check before
+// printing, in the words the builder and the competition pages use.
 func sheetIssues(rv skills.RoutineValidation) []string {
-	var issues []string
-	if rv.InterruptedAt >= 0 {
-		issues = append(issues, interruptionText(rv.InterruptedAt))
-	}
-	for i, m := range rv.Messages {
-		if m != "" {
-			issues = append(issues, fmt.Sprintf("Element %d: %s", i+1, m))
-		}
-	}
+	issues := skills.RoutineNotes(rv.Messages)
 	if n := len(rv.Skills); n != skills.RoutineLength {
 		issues = append(issues, fmt.Sprintf("The routine has %d elements; an exercise has %d.", n, skills.RoutineLength))
 	}

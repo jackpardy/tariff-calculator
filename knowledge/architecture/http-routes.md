@@ -29,7 +29,7 @@ the competition and club routes are registered by each page file in `web/`
 | `POST /qr` | `text` | An SVG QR code ([sharing](../features/sharing.md)) |
 | `GET /compare`, `POST /compare` | `aData`, `aName`, `bData`, `bName` | The [compare page](../features/compare.md) and its comparison |
 | `GET /requirements` | — | The requirements page |
-| `POST /requirements/editor` | `set` (JSON), or the editor's form fields + `action`/`add` | The re-rendered editor with problems listed |
+| `POST /requirements/editor` | `set` (JSON), `copy` (a built-in's reference: a copy named "Copy of …"), or the editor's form fields + `action`/`add` | The re-rendered editor with problems listed. The Requirements page duplicates a built-in with `copy`, rather than carrying every built-in set in the page |
 | `POST /requirements/level-editor` | `level` (JSON) and `custom`, or the editor's own fields and `action` | The [level](../requirements/levels.md) editor |
 | `GET /tariff-sheet`, `POST /tariff-sheet` | as `/routine` | The [tariff sheet](../features/tariff-sheet.md) page and card |
 | `GET /view`, `POST /view` | as `/routine`, plus `routineName`, `optionRef`, `pairOptionRef`, `tabNames`, `optionSets` | The [view screen](../features/view.md) page, and a routine or level pair to fill it |
@@ -333,8 +333,9 @@ check rather than failing the request.
   A full routine is a few kilobytes.
 - Timeouts: read header 5 s, read 10 s, write 10 s, idle 60 s.
 - Every incoming skill is normalised to its phase count and validated (rotation
-  0–16, non-negative twists, known shape and positions). Errors are
-  `400 Bad Request: <message>`, which the page shows to the user.
+  0–16, non-negative twists, known shape and positions). Errors are a
+  `400` with the message alone, which the page shows to the user as the rest
+  of a sentence ("Can't add skill: rotation must be…").
 - Official names are always re-derived and never taken from input.
 - Every response carries `X-App-Version` ([static assets](static-assets.md#update-notice)).
 - Text responses are gzipped when the browser accepts it ([compression](static-assets.md#compression)).

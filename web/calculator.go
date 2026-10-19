@@ -94,9 +94,10 @@ func render(w http.ResponseWriter, r *http.Request, c templ.Component) {
 	}
 }
 
-// badRequest reports a client error with a message the page shows to the user.
+// badRequest reports a client error with a message the page shows to the
+// user, as the rest of a sentence ("Can't add skill: rotation must be…").
 func badRequest(w http.ResponseWriter, err error) {
-	http.Error(w, "Bad Request: "+err.Error(), http.StatusBadRequest)
+	http.Error(w, err.Error(), http.StatusBadRequest)
 }
 
 // defaultSkill is the skill the form starts with: a front somersault in the straight position.
@@ -654,7 +655,7 @@ func handleSetEditor(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		set = builtin
-		set.Name = builtin.Name + " (copy)"
+		set.Name = "Copy of " + builtin.Name
 	} else if raw := r.FormValue("set"); raw != "" {
 		if err := json.Unmarshal([]byte(raw), &set); err != nil {
 			badRequest(w, fmt.Errorf("those aren't requirements: %w", err))

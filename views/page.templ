@@ -34,16 +34,9 @@ templ Page(groups []requirements.BuiltinGroup, back string) {
 			<script defer src={ static.URL("js/alpine.min.js") }></script>
 			@templ.JSONScript("level-data", levelData(groups))
 		</head>
-		<body>
-			<section class="hero is-primary">
-				<div class="hero-body">
-					<div class="container">
-						<h1 class="title">Trampoline Tariff Calculator</h1>
-						<h2 class="subtitle">Calculate difficulty scores for skills and routines</h2>
-					</div>
-				</div>
-			</section>
-			<section class="section">
+		<body class="tool-page">
+			@toolBanner("/", true)
+			<main class="section tool-section">
 				<div class="container">
 					if back != "" {
 						<div class="notification is-info is-light" id="builder-back">
@@ -52,37 +45,35 @@ templ Page(groups []requirements.BuiltinGroup, back string) {
 					}
 					@calculator(groups)
 				</div>
-			</section>
-			<footer class="footer">
-				<div class="content has-text-centered">
-					<p>Trampoline Tariff Calculator · difficulty per the FIG Trampoline Code of Points 2025–2028</p>
-				</div>
-			</footer>
+			</main>
 		</body>
 	</html>
 }
 
+// calculator is the builder: Add a skill, and the routine it goes into. On a
+// laptop or wider they sit side by side, the routine on the right, so both
+// are on the first screen; while two routines are side by side on a laptop,
+// Add a skill goes above them, to give them the width.
 templ calculator(groups []requirements.BuiltinGroup) {
-	<div class="container" x-data="tariffCalculatorStore()">
+	<div class="builder" x-data="tariffCalculatorStore()" x-bind:class="{ 'is-two-routines': twoColumns() }">
 		// "Add a skill" panel: SkillFormView, loaded by the component.
-		<div class="box">
-			<h3 class="title is-4" x-text="editingIndex === null ? 'Add a skill' : `Edit skill ${editingIndex + 1}` + (compareId ? ` of ${routineFor(editingSide)?.name}` : '')">Add a skill</h3>
-			<div id="skill-form-wrapper" style="scroll-margin-top: 20px;" hx-sync="this:replace">
-				<p>Loading form...</p>
+		<section class="builder-add" aria-labelledby="builder-add-title">
+			<div class="builder-head">
+				<h2 class="title is-5" id="builder-add-title" x-text="editingIndex === null ? 'Add a skill' : `Edit skill ${editingIndex + 1}` + (compareId ? ` of ${routineFor(editingSide)?.name}` : '')">Add a skill</h2>
 			</div>
-		</div>
+			<div id="skill-form-wrapper" hx-sync="this:replace">
+				<p class="has-text-grey">Loading the form...</p>
+			</div>
+		</section>
 		// Routine builder: routines (Routines mode), or a level's exercises (Levels mode).
-		<div class="box" x-bind:class="mode === 'levels' && 'is-levels'">
-			<div class="level mb-3">
-				<div class="level-left">
-					<h3 class="title is-4 mb-0">Routine Builder</h3>
-				</div>
-				<div class="level-right">
-					<div class="buttons mb-0">
-						<a class="button is-link is-small" href="/view" x-bind:href="viewHref()" target="_blank" rel="noopener" title="Show full screen">View</a>
-						<a class="button is-primary is-small" href="/tariff-sheet" target="_blank" rel="noopener">Tariff Sheet</a>
-						<a class="button is-link is-light is-small" href="/compare" target="_blank" rel="noopener" x-show="routines.length > 1">Compare</a>
-					</div>
+		<section class="builder-routine" aria-labelledby="builder-routine-title" x-bind:class="mode === 'levels' && 'is-levels'">
+			<div class="builder-head">
+				<h2 class="title is-5" id="builder-routine-title" x-text="mode === 'levels' ? 'Your level' : 'Your routine'">Your routine</h2>
+				// Other ways to see it, each in a new tab: light buttons, as they don't change anything.
+				<div class="buttons are-small mb-0">
+					<a class="button" href="/view" x-bind:href="viewHref()" target="_blank" rel="noopener" title="Show full screen">View</a>
+					<a class="button" href="/tariff-sheet" target="_blank" rel="noopener">Tariff sheet</a>
+					<a class="button" href="/compare" target="_blank" rel="noopener" x-show="routines.length > 1">Compare</a>
 				</div>
 			</div>
 			<div class="tabs is-toggle is-small builder-mode">
@@ -98,7 +89,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 						<div class="select is-small">
 							<select aria-label="Routine" x-on:change="switchRoutine($event.target.value)">
 								<template x-for="r in routines" x-bind:key="r.id">
-									<option x-bind:value="r.id" x-bind:selected="r.id === currentId" x-text="`${r.name} (${r.skills.length})`"></option>
+									<option x-bind:value="r.id" x-bind:selected="r.id === currentId" x-text="RoutineStore.label(r)"></option>
 								</template>
 							</select>
 						</div>
@@ -118,6 +109,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 								</template>
 								<button class="button is-small is-white" type="button" x-on:click="expandAll()">Expand all</button>
 								<button class="button is-small is-white" type="button" x-on:click="collapseAll()">Collapse all</button>
+								<hr class="routine-menu-rule"/>
 								<button class="button is-small is-white has-text-danger" type="button" x-on:click="clearRoutine()" x-bind:disabled="routine.length === 0">Clear skills</button>
 								<button class="button is-small is-white has-text-danger" type="button" x-on:click="deleteRoutine()">Delete routine</button>
 							</div>
@@ -132,7 +124,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 						<select id="compare-with" x-on:change="compareWith($event.target.value)">
 							<option value="" x-bind:selected="!compareId">None</option>
 							<template x-for="r in routines.filter((r) => r.id !== currentId)" x-bind:key="r.id">
-								<option x-bind:value="r.id" x-bind:selected="r.id === compareId" x-text="`${r.name} (${r.skills.length})`"></option>
+								<option x-bind:value="r.id" x-bind:selected="r.id === compareId" x-text="RoutineStore.label(r)"></option>
 							</template>
 						</select>
 					</div>
@@ -180,15 +172,19 @@ templ calculator(groups []requirements.BuiltinGroup) {
 				</div>
 			</div>
 			<p class="compare-legend" x-show="mode === 'routines' && compareId" x-cloak>Shaded skills differ from the other routine's skill at the same number.</p>
-		</div>
+		</section>
+		// What just happened, for a few seconds; Undo where it can be taken back
+		// (toast.undo is a function: compared, as Alpine would call it if shown).
 		<div
 			x-show="toast.show"
 			x-transition
-			class="notification is-fixed-bottom-right"
+			class="notification is-light is-fixed-bottom-right tool-toast"
+			role="status"
 			x-bind:class="{ error: 'is-danger', warning: 'is-warning' }[toast.type] || 'is-info'"
 		>
 			<button class="delete" type="button" aria-label="Dismiss" x-on:click="toast.show = false"></button>
 			<span x-text="toast.message"></span>
+			<button class="button is-small tool-toast-undo" type="button" x-show="toast.undo !== null" x-on:click="undoToast()">Undo</button>
 		</div>
 		// A question on the page (askUser), in place of the browser's own.
 		<div class="modal" id="ask-dialog" x-bind:class="{ 'is-active': ask.open }" x-on:keydown.escape.window="ask.open && answerAsk(null)">
@@ -257,7 +253,7 @@ templ requirementsWriter() {
 // start one, rename or delete it), the level's tabs, and which tab to show
 // beside the open one. A level with nothing yet asks which level to start.
 templ levelsBar(groups []requirements.BuiltinGroup) {
-	<div class="levels-bar" x-show="mode === 'levels'" x-cloak>
+	<div class="levels-bar" x-show="mode === 'levels'" x-cloak x-on:click.outside="closeChooser('level')">
 		<div class="routine-switcher">
 			<template x-if="levelState.entries.length > 0">
 				<div class="select is-small">
@@ -268,27 +264,8 @@ templ levelsBar(groups []requirements.BuiltinGroup) {
 					</select>
 				</div>
 			</template>
-			<div class="select is-small">
-				<select aria-label="Start a level" data-search-select="Find a level, e.g. BUCS L7 or AG3" x-on:change="newEntry($event.target.value); $event.target.value = ''">
-					<option value="" selected>+ New level...</option>
-					for _, g := range groups {
-						if len(g.Levels) > 0 {
-							<optgroup label={ g.Name }>
-								for _, l := range g.Levels {
-									<option value={ requirements.BuiltinLevelPrefix + l.ID }>{ l.Level.Name }</option>
-								}
-							</optgroup>
-						}
-					}
-					<template x-if="customLevels.length > 0">
-						<optgroup label="Your levels">
-							<template x-for="l in customLevels" x-bind:key="l.id">
-								<option x-bind:value="l.id" x-text="l.level.name"></option>
-							</template>
-						</optgroup>
-					</template>
-				</select>
-			</div>
+			// One control to start a level: a chooser, as Check against is.
+			@chooserButton(chooseLevel, "", "'+ New level'")
 			<button class="button is-small" type="button" x-show="entry()" x-on:click="Share.open('entries', [levelState.current])">Share</button>
 			<details class="routine-menu" data-menu x-show="entry()">
 				<summary class="button is-small comp-opens-button">More</summary>
@@ -299,6 +276,7 @@ templ levelsBar(groups []requirements.BuiltinGroup) {
 			</details>
 			<a class="button is-small is-text" href="/requirements" target="_blank" rel="noopener">Manage levels</a>
 		</div>
+		@chooserPanel(chooseLevel, "", levelChoices(groups))
 		<p class="has-text-grey mt-3" x-show="!entry()">Choose a level under "+ New level" to see its set routines and build its voluntary.</p>
 		<template x-if="entry()">
 			<div class="level-tabs">
@@ -354,7 +332,7 @@ templ levelColumnHead(side string) {
 							<option value="" x-bind:selected={ fmt.Sprintf("!columnRoutine('%s')", side) }>Choose...</option>
 							<option value="new">+ New routine</option>
 							<template x-for="r in routines" x-bind:key="r.id">
-								<option x-bind:value="r.id" x-bind:selected={ fmt.Sprintf("r.id === columnRoutine('%s')?.id", side) } x-text="`${r.name} (${r.skills.length})`"></option>
+								<option x-bind:value="r.id" x-bind:selected={ fmt.Sprintf("r.id === columnRoutine('%s')?.id", side) } x-text="RoutineStore.label(r)"></option>
 							</template>
 						</select>
 					</div>

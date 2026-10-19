@@ -33,10 +33,10 @@ templ ComparePage() {
 			<script defer src={ static.URL("js/compare.js") }></script>
 			<script defer src={ static.URL("js/judging.js") }></script>
 		</head>
-		<body>
-			<section class="section">
-				<div class="container">
-					<p class="mb-3 compare-back"><a href="/">← Routine Builder</a></p>
+		<body class="tool-page">
+			@toolBanner("/compare", false)
+			<main class="section tool-section">
+				<div class="container is-narrow-tool">
 					<h1 class="title is-4">Compare routines</h1>
 					<div class="compare-choices">
 						<div class="field">
@@ -52,7 +52,7 @@ templ ComparePage() {
 						<p class="has-text-grey">Loading the routines saved in this browser...</p>
 					</div>
 				</div>
-			</section>
+			</main>
 		</body>
 	</html>
 }
@@ -124,7 +124,7 @@ templ compareIssues(side CompareSide) {
 	<div class="column is-half-tablet is-full-mobile">
 		<p class="has-text-weight-semibold">{ side.Name }</p>
 		if issues := sheetIssues(side.Validation); len(issues) == 0 {
-			<p class="is-size-7 has-text-success">No problems found.</p>
+			@StateChip(Done, "No problems")
 		} else {
 			<ul class="compare-issues">
 				for _, issue := range issues {

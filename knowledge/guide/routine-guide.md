@@ -16,7 +16,8 @@ that browser on that device. For an overview of what the app can do, see
 
 # 1. Add a skill
 
-The **Add a skill** box is at the top.
+The **Add a skill** box is at the top on a phone, and on the left on a laptop
+or bigger screen, beside your routine.
 
 1. **Find the skill**, in one of three ways:
    - **Tap it** in the picker. The tabs are Jumps, Body landings, Singles,
@@ -48,31 +49,34 @@ The **Add a skill** box is at the top.
 
 # 2. Build a routine
 
-Your routine is in the **Routine Builder**, below the skill box. Make sure
-**Routines** is selected at the top of it.
+Your routine is under **Your routine**: below the skill box on a phone, on
+the right on a laptop. Make sure **Routines** is selected at the top of it.
 
 - **Reorder** skills by dragging a card, or with **↑** and **↓**.
 - **Change a skill**: tap **Edit** on its card. It opens in the skill box, which
   now says "Edit skill 3". Change it, then tap **Update** (or **Cancel**).
-- **Remove a skill**: tap **Del**.
 - **See the details**: tap a card's name to open it.
+- **Remove a skill**: open its card and tap **Remove**. Changed your mind? Tap
+  **Undo** on the message that says so.
 - **How it's judged**: in an open card, this lists what the execution judges
   can take off for that skill, with the amounts and what each means: the
   shape, legs and feet, arms, opening and twist, and on the last skill the
   landing. It's from the FIG Code of Points 2025–2028 and works for any skill,
   including ones you build. The **Add a skill** box has the same button, to
   look a skill up before you add it.
-- **Total Tariff** is under the cards. It counts only what the judges count: the
+- **Total tariff** is under the cards. It counts only what the judges count: the
   first ten skills, a repeated skill once, and nothing after an interruption.
-  When something doesn't count, **Raw Total** shows what everything adds up
-  to.
-- **Warnings** show on the card (⚠️) and under the total. They cover repeated
-  skills, a take-off that doesn't match the last landing ("Bad Transition"), a
-  straight jump or impossible landing that interrupts the routine, a tenth skill
-  that doesn't land on feet, and more than ten skills.
+  When something doesn't count, the line under it says what everything adds up
+  to ("Counting every element: 6.5").
+- **Problems** are marked on the card (**!**) and listed under the total, in the
+  same words as the tariff sheet, e.g. "Element 10 repeats an earlier element,
+  so its difficulty doesn't count again." They cover repeated skills, a
+  take-off that doesn't match the last landing, a straight jump or impossible
+  landing that ends the routine, a tenth skill that doesn't land on feet, and
+  more than ten skills.
 
 **More than one routine.** The menu at the top lists your routines with their
-number of skills.
+number of skills ("Ciara voluntary · 10 skills").
 - **+ New** starts another.
 - **More** lets you **Rename**, **Duplicate** (good for trying out a change),
   **Save as a set routine** (see [section 5](#make-your-own-set-routine)),
@@ -91,8 +95,8 @@ number of skills.
    BUCS, FIG age groups, British Gymnastics): tap one to open it. Where a
    level's two voluntaries have different rules, they're listed separately,
    e.g. "BUCS L1 · first exercise" and "BUCS L1 · second exercise".
-2. Each requirement is listed below the routine with ✓ or ✗, and the top shows
-   how many are met (e.g. "4 of 5 met"). The skills that meet special
+2. How many are met shows straight under **Check against** (e.g. "4 of 5
+   met"); tap **See which** for the list below the routine, each with ✓ or ✗. The skills that meet special
    requirements are marked.
 3. **Checks** under the total let you change what is scored for this routine:
    - **Score difficulty**: untick it when difficulty isn't scored.
@@ -122,7 +126,8 @@ A level puts both exercises of a competition together, for example "set routine
 option 1 or 2, then a voluntary".
 
 1. At the top of the Routine Builder, choose **Levels**.
-2. Pick your level from **+ New level...**, for example "BUCS L7".
+2. Tap **+ New level** and pick your level, for example "BUCS L7". Type to
+   find one, and press Enter for the first match.
 3. The level's exercises are tabs, for example **Set 1 · Set 2 · Voluntary**.
    - A **set routine** tab shows the set exactly as prescribed. Opening it makes
      it your choice for that exercise, marked ●. **Start the voluntary from this
@@ -175,8 +180,10 @@ You write them beside your routine, which is checked against them as you go:
    (say, at least 12 elements, or a double back that another rule bans). It
    catches the obvious cases, not every one.
 
-**Manage requirements** (beside Check against) opens the requirements page,
-where you can do the same, and also export, import, delete and make levels.
+**Manage requirements** (beside Check against), or **Requirements** in the
+banner at the top, opens the requirements page, where you can do the same, and
+also export, import, delete and make levels. Saving there with problems still
+listed asks beside **Save**: **Save anyway** or **Keep editing**.
 
 Your requirements now appear under **Check against → Yours**.
 
@@ -195,12 +202,12 @@ Routine Builder:
 
 It then appears under **Start from a set → Yours**, and on the
 requirements page under **Your set routines** (**+ New set routine** there
-makes one from a routine you've already built). To change it later, use **Edit
-in the Routine Builder**.
+makes one from a routine you've already built). To change it later, tap its
+**Edit**, which opens it in the Routine Builder.
 
 ## Make your own level
 
-On the requirements page, under **Your levels**, tap **+ New**, or
+On the requirements page, under **Your levels**, tap **+ New level**, or
 **Duplicate** a built-in level. Choose what **The two exercises are**:
 
 - **Set routine, then a voluntary** (e.g. BUCS L3–L7);
@@ -217,14 +224,18 @@ the level (**Copy and change** starts from the built-in ones chosen, **Change
 these** changes your own); **Use in this level** saves them and chooses them.
 They belong to the level, unless you tick **Also keep them in Your
 requirements**, to use them elsewhere too.
-Your level then appears under **+ New level...** in Levels mode.
+Your level then appears under **+ New level** in Levels mode, under Yours.
 
-To pass them on, use **Share** to send a link, or **Export** to save a file that
-someone else can **Import** (a level's file brings the requirements it uses).
+Each of yours has the same buttons, in the same order: **Edit**, **Share**,
+and **More** for the rest (**Duplicate**, **Export**, saving to a club or to
+your page, and **Delete**, which asks on the row first: **Delete** or **Keep
+it**). To pass them on, use **Share** to send a link, or **More → Export** to
+save a file that someone else can **Import** (a level's file brings the
+requirements it uses).
 
 # 6. View, print and share
 
-- **View** (top of the Routine Builder) opens what's on screen full screen,
+- **View** (beside **Your routine**) opens what's on screen full screen,
   sized to fit without scrolling: one routine, both routines when you have one
   side by side (each column also has its own **View** for just that routine),
   or in **Levels** mode the whole level: your set routine, your voluntary and
@@ -233,7 +244,9 @@ someone else can **Import** (a level's file brings the requirements it uses).
   screen (the routine, both routines, or the level), as **Share** does in the
   Routine Builder. **Full screen** hides the
   browser bars (not on iPhone; add the page to your home screen instead).
-- **Tariff Sheet** opens a printable competition card for the current routine.
+- **Tariff sheet** opens a printable competition card for the current routine.
+  Its **Check before printing** lists the routine's problems in the builder's
+  words.
   Fill in the details (gymnast, club, category, competition, round, coach). Use
   **Show on sheet** to hide any column or field you don't need, then tap
   **Print / Save as PDF**. Both stay at the top of the screen as you scroll.
