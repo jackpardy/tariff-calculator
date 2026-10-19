@@ -354,6 +354,12 @@ a **Change** button to open it.
    down evenly; **Timeline with officials** shows each area's day with a
    column for each seat on its panel and who has it. Print either (A3
    landscape) or **Download CSV** for a spreadsheet.
+   Once published, the sheets, the panel timeline and its CSV are of **what's
+   published**, so the paper matches the phones and the venue screen. With
+   changes not published, each has **Use the draft instead**: those print
+   marked **Draft · not published** on every page (the CSV says so in its
+   first line and its name). Before you publish, they're of the draft,
+   marked the same way. A chair of judges' link always gets what's published.
 10. **Publish** to show clubs, members and gymnasts entering on their own their
    flight, area and warm-up time, and officials their duties. After that,
    anything you change (planning again, moving flights or gymnasts, giving

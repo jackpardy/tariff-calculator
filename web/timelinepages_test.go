@@ -40,6 +40,7 @@ func TestPanelTimeline(t *testing.T) {
 		t.Errorf("no CSV before planning: %q", loc)
 	}
 	page := do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
+	redirected(t, h, tt+"/publish", url.Values{"action": {"publish"}}) // the sheets are of what's published
 	// The timeline is a page of the Timetable menu, not one of the sheets to print.
 	if !strings.Contains(page, `/timetable/timeline"`) || strings.Contains(page, "sheet=timeline") {
 		t.Error("the timetable's menu has the timeline, its Print menu doesn't")

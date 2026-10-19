@@ -803,6 +803,18 @@ are then filled flight by flight.
   phone a sheet's table (and the rota's) scrolls sideways in its own box,
   and the toolbar wraps, so the page doesn't and **Print / Save as PDF**
   stays on screen; printed, nothing changes.
+- **Which timetable is printed** (2026-10-19, from the full audit): once
+  published, every sheet, the panel timeline and `timeline.csv` are of
+  `c.Published`, as On the day, the venue screen and people's pages are, so
+  the paper matches the phones. With changes not published, a link that can
+  change the timetable gets **Use the draft instead** (`draft=1`), which
+  marks every page **Draft · not published** (the section, each flight's
+  heading, the score sheet's repeating table head, the rota's head; the
+  CSV's first line and file name) and links back with **Use what's
+  published**. Before publishing it's the draft, marked, for anyone who can
+  print; after, a chair of judges' link only gets what's published
+  (`printedTimetable` in `web/timetableprint.go`). Delay, leave and the rota
+  still work on the draft, as they write to it.
 - **Panel timeline:** a page of the Timetable menu once it's planned
   (`/timetable/timeline`, `?officials=1` with officials), to look at as much
   as to print, not in the Print menu; a chair of judges' link prints it from

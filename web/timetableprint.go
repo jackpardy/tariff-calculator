@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -23,10 +24,11 @@ import (
 // timeline, without officials (sheet=timeline) or with them
 // (sheet=timeline-officials).
 func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request) {
-	c, s, entries, ok := p.timetableOf(w, r)
+	c, draft, entries, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
+	s, from := printedTimetable(r, c, draft)
 	if !s.Planned {
 		back(w, r, "Plan the timetable first.")
 		return
@@ -37,12 +39,12 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if sheet := r.URL.Query().Get("sheet"); sheet == "timeline" || sheet == "timeline-officials" {
-		printTimeline(w, r, c, s, entries, people, p.now(), sheet == "timeline-officials")
+		printTimeline(w, r, c, s, from, entries, people, p.now(), sheet == "timeline-officials")
 		return
 	}
 	if r.URL.Query().Get("sheet") == "rota" {
 		render(w, r, views.RotaPrint(views.RotaSheet{
-			Title: "Officials rota · " + c.Name, Back: timetablePath(r), Competition: summary(c, p.now()), People: rotaSheet(s, people),
+			Title: "Officials rota · " + c.Name, Back: timetablePath(r), From: from, Competition: summary(c, p.now()), People: rotaSheet(s, people),
 		}))
 		return
 	}
@@ -52,7 +54,9 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if r.URL.Query().Get("sheet") == "scores" {
-		render(w, r, views.ScorePrint(scoreSheets(c, s, entries, people, scratched, timetablePath(r), p.now(), "")))
+		sheets := scoreSheets(c, s, entries, people, scratched, timetablePath(r), p.now(), "")
+		sheets.From = from
+		render(w, r, views.ScorePrint(sheets))
 		return
 	}
 	judges := r.URL.Query().Get("sheet") == "judges"
@@ -61,7 +65,7 @@ func (p *competitionPages) printTimetable(w http.ResponseWriter, r *http.Request
 		title = "Chair of judges sheets · " + c.Name
 	}
 	sheets := views.TimetableSheets{
-		Title: title, Back: timetablePath(r), Competition: summary(c, p.now()), Judges: judges,
+		Title: title, Back: timetablePath(r), From: from, Competition: summary(c, p.now()), Judges: judges,
 		Exercises: map[string][2]string{}, Notes: map[string]string{},
 	}
 	var arrived map[string]map[string]store.Checkin // panel check-ins, ticked on the chair of judges sheets
@@ -182,4 +186,50 @@ func scoreMarks(p competitions.Panel) []string {
 	numbered("HD", p.HD)
 	numbered("S", p.Sync)
 	return append(out, "Pen", "Total")
+}
+
+// printedTimetable is the timetable the printed sheets, the panel timeline and
+// its CSV show: what's published, so the paper matches the phones and the
+// venue screen, or the draft, marked as such, when a link that can change the
+// timetable asks for it (draft=1). Before anything is published it's the
+// draft, marked, for anyone who can print (phones show nothing yet); after,
+// a link that can't change it (a chair of judges') only gets what's
+// published. from says which it is, and links to the other where they differ.
+func printedTimetable(r *http.Request, c store.Competition, draft competitions.Schedule) (competitions.Schedule, views.PrintedFrom) {
+	if c.Published == nil {
+		return draft, views.PrintedFrom{Draft: true}
+	}
+	published := *c.Published
+	if !can(r, http.MethodPost, "/timetable/publish") || sameTimetable(draft, published) {
+		return published, views.PrintedFrom{Published: true}
+	}
+	if r.URL.Query().Get("draft") == "1" {
+		return draft, views.PrintedFrom{Draft: true, Published: true, Other: withDraft(r.URL, false), OtherLabel: "Use what's published"}
+	}
+	return published, views.PrintedFrom{Published: true, Other: withDraft(r.URL, true), OtherLabel: "Use the draft instead"}
+}
+
+// withDraft is the page's address with draft=1 added, or taken off.
+func withDraft(u *url.URL, draft bool) string {
+	q := u.Query()
+	q.Del("draft")
+	if draft {
+		q.Set("draft", "1")
+	}
+	if len(q) == 0 {
+		return u.Path
+	}
+	return u.Path + "?" + q.Encode()
+}
+
+// keepDraft adds draft=1 to a link from a sheet of the draft, so the sheet
+// it goes to is of the draft too.
+func keepDraft(link string, from views.PrintedFrom) string {
+	if !from.Draft || !from.Published {
+		return link
+	}
+	if strings.Contains(link, "?") {
+		return link + "&draft=1"
+	}
+	return link + "?draft=1"
 }
