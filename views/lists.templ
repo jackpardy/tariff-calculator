@@ -11,16 +11,19 @@ import (
 //
 //   - listSection: the list's plain heading, with its count;
 //   - listTools: the name search, a select for each filter, how many are
-//     shown, and Clear; hidden until the page's script runs, since they need
-//     it;
+//     shown, the filters chosen (each a chip that takes it off), and Clear;
+//     hidden until the page's script runs, since they need it;
 //   - ListRow.Attrs on each row (a <tr>, <li> or <label>), giving its name
 //     and its values for each filter.
 //
 // static/js/competitions.js (listTools) does the filtering on the phone, and
 // keeps the search and filters while the tab is open, so a page that reloads
-// after a change (ticking someone qualified) comes back filtered the same. A
-// list the server filters (ListTools.Form) looks and works the same, but its
-// filters reload the page.
+// after a change (ticking someone qualified) comes back filtered the same.
+// Each choice of a filter says how many it would leave, given the search and
+// the other filters, and one that would leave nobody is greyed out. A list
+// the server filters (ListTools.Form) looks and works the same, but its
+// filters reload the page, and it sends every row's values (ListTools.All) for
+// the counts.
 
 // ListTools is a list's search and filters.
 type ListTools struct {
@@ -37,6 +40,9 @@ type ListTools struct {
 	Search string // the search the server filtered by
 	Shown  int    // how many rows the server shows
 	Clear  string // where Clear goes: the list unfiltered
+	// All is every row of a list the server filters, shown or not, for the
+	// script to count what each choice would leave (listAll).
+	All []ListRow
 }
 
 // ListFilter is one filter: a select whose choices each match rows with
@@ -52,6 +58,13 @@ type ListFilter struct {
 	// a row matches when it has the option's value.
 	AtLeast bool
 	Value   string // the choice the server filtered by (ListTools.Form)
+	// Plain filters' choices say what they are on their own, so a chosen
+	// one's chip is its label alone ("Not checked"), not "Checked: Not
+	// checked".
+	Plain bool
+	// Remove is the list's address without this filter, the rest kept
+	// (ListTools.Form): its chip's link.
+	Remove string
 }
 
 // ListOption is one choice of a filter, in a group of choices if Group is
@@ -143,12 +156,30 @@ templ listControls(t ListTools) {
 			}
 		}
 		{ children... }
+		if t.Form && len(t.All) > 0 {
+			@templ.JSONScript(t.ID+"-all", listAll(t))
+		}
 		if t.Form {
 			<noscript><button class="button is-small" type="submit">Show</button></noscript>
 		}
 	</div>
-	<p class="comp-list-count is-size-7 has-text-grey mt-1" aria-live="polite">
-		<span data-list-count>{ listCount(t) }</span>
+	<p class="comp-list-count is-size-7 has-text-grey mt-1">
+		<span data-list-count aria-live="polite">{ listCount(t) }</span>
+		// The filters chosen, each a chip that takes it off: links to the
+		// list without it when the server filters, otherwise drawn by the
+		// script (listTools), as it changes them.
+		<span class="comp-list-chips" data-list-chips>
+			if t.Form {
+				for _, f := range t.Filters {
+					if f.Value != "" {
+						<a class="tag is-link is-light comp-list-chip" href={ templ.SafeURL(f.Remove) } data-list-carry aria-label={ "Take off " + chipText(f, f.Value) }>
+							{ chipText(f, f.Value) }
+							<span class="delete is-small" aria-hidden="true"></span>
+						</a>
+					}
+				}
+			}
+		</span>
 		if t.Form {
 			<a class="button is-small is-text comp-list-clear" href={ templ.SafeURL(t.Clear) } data-list-clear hidden?={ t.Shown == t.Total && t.Search == "" }>Clear</a>
 		} else {
@@ -176,7 +207,7 @@ func filtersOn(t ListTools) int {
 // listFilter is one of a list's filters: a select of its options.
 templ listFilter(t ListTools, f ListFilter) {
 	<div class="select is-small">
-		<select aria-label={ f.Label } data-list-filter={ f.Key } data-at-least?={ f.AtLeast } { filterAttrs(t, f)... }>
+		<select aria-label={ f.Label } data-list-filter={ f.Key } data-at-least?={ f.AtLeast } data-plain?={ f.Plain } { filterAttrs(t, f)... }>
 			<option value="">{ f.Any }</option>
 			for _, group := range listGroups(f.Options) {
 				if group[0].Group != "" {
@@ -217,4 +248,55 @@ func listCount(t ListTools) string {
 		return strconv.Itoa(t.Shown) + " of " + strconv.Itoa(t.Total) + " " + t.Noun
 	}
 	return strconv.Itoa(t.Total) + " " + t.Noun
+}
+
+// chipText is what a chosen filter's chip says: "Club: UCD", or for a plain
+// filter the choice alone.
+func chipText(f ListFilter, value string) string {
+	for _, o := range f.Options {
+		if o.Value == value {
+			if f.Plain {
+				return o.Label
+			}
+			return f.Label + ": " + o.Label
+		}
+	}
+	return f.Label + ": " + value
+}
+
+// listAll is every row of a list the server filters, as JSON for the script
+// to count each choice by (in a script element, id t.ID+"-all"): the filters' keys, each key's values, and each
+// row as its name then, for each key, the place of its value in that key's
+// values (-1 for none, a list of places for several), which keeps it small.
+func listAll(t ListTools) map[string]any {
+	keys := make([]string, len(t.Filters))
+	values := make([][]string, len(t.Filters))
+	places := make([]map[string]int, len(t.Filters))
+	for i, f := range t.Filters {
+		keys[i], values[i], places[i] = f.Key, []string{}, map[string]int{}
+	}
+	rows := make([][]any, 0, len(t.All))
+	for _, r := range t.All {
+		row := []any{r.Name}
+		for i, k := range keys {
+			var at []int
+			for _, v := range r.Values[k] {
+				n, ok := places[i][v]
+				if !ok {
+					n, places[i][v], values[i] = len(values[i]), len(values[i]), append(values[i], v)
+				}
+				at = append(at, n)
+			}
+			switch len(at) {
+			case 0:
+				row = append(row, -1)
+			case 1:
+				row = append(row, at[0])
+			default:
+				row = append(row, at)
+			}
+		}
+		rows = append(rows, row)
+	}
+	return map[string]any{"keys": keys, "values": values, "rows": rows}
 }

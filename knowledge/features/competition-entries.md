@@ -613,7 +613,12 @@ pieces ([how](../architecture/rendering.md#lists-of-people-search-and-filters)).
 "Find a name" looks at a name's letters only, ignoring case, accents, spaces
 and punctuation, the same in the browser as on the server, so "marykate"
 finds Mary Kate and "oneill" finds O'Néill; the count says how many are
-shown, and Clear shows everyone again. The lists are the dashboard's
+shown, and Clear shows everyone again. Each filter's choices say how many
+they would leave given the search and the other filters ("UCD (12)"),
+greyed out when that's nobody (but the one chosen); the filters chosen are
+chips after the count ("Club: UCD ×"), each taking its filter off. All
+people can also be narrowed by the level someone can judge, so a judge from
+a club for a level is found, or plainly not there. The lists are the dashboard's
 entries, All people, Officials, the organiser's Coaches, the desk's People I
 pick, the club's Members, Coaches and each competition's entries, a
 coach's own entries, and the names on the timetable and On the day. On the dashboard the filters work on the server, so its

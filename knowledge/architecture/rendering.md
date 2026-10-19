@@ -135,7 +135,10 @@ page's People list is the example to copy.
   `qualifiedValue`. Add a new filter there, next to its row values, as a
   `views.ListFilter{Key, Label, Any, Options}`. `Any` is the first choice,
   which matches everyone (for example "Every club"). Group long choices with
-  `ListOption.Group`.
+  `ListOption.Group`. Mark a filter `Plain` when its choices say what they
+  are on their own ("Has entries", "Not checked"): its chip is then the
+  choice alone, not "Entries: Has entries". `hasFilter` and the yes/no
+  filters are plain.
 - **The script.** `listTools` in `static/js/competitions.js` does the rest
   on the phone:
   - it searches a name's letters only, ignoring case, accents, spaces and
@@ -143,6 +146,15 @@ page's People list is the example to copy.
     "oneill" finds "O'Neill", "o briain" finds "Ó Briain" and "marykate"
     finds "Mary Kate";
   - it shows "12 of 323 people", a Clear button, and "Nobody matches";
+  - it puts on each choice how many it would leave ("UCD (12)"), given the
+    search and the other filters chosen, as they change, the rows still
+    folded away (`lazyRows`) counted from their templates without putting
+    them in the page; a choice that would leave nobody is greyed out
+    (a disabled `<option>`), unless it's the one chosen, so it can be seen
+    and taken off;
+  - it lists the filters chosen after the count, each a chip ("Club: UCD ×")
+    that takes it off; the Filters button's number is how many chips there
+    are;
   - it reads the list's rows each time it filters, so a page that swaps in
     fresh content (On the day's in-place taps) keeps its search: `dayPage`
     runs the search again after each swap;
@@ -168,6 +180,13 @@ and `Clear` come from the server.
 - Groups that are dropdowns (the levels) open while a search finds a match,
   as on every list.
 - Extra controls that aren't filters (the sort) go in the tools' children.
+- Its chips are drawn by the server, each a link to the page without that
+  filter (`ListFilter.Remove`), carrying the search as it's typed.
+- Only the rows shown are in the page, so to count each choice the server
+  also sends every row's values (`ListTools.All`), small, as JSON in a
+  script element (`listAll`); the script counts from those, with the search
+  as typed. An entry's values (`judged.filterValues`) are exactly what
+  `judged.matches` reads, which `TestDashboardFilterValuesMatch` holds to.
 
 Test a list with `listRows` in `web/lists_test.go`, which reads each row's
 name and values from the page.

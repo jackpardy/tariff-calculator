@@ -213,7 +213,8 @@ func TestIndividualEntry(t *testing.T) {
 	if problems := do(t, h, http.MethodGet, admin+"?problems=1", nil).Body.String(); !strings.Contains(problems, "C. Ryan") {
 		t.Error("a two-skill voluntary has problems, so it's listed under problems only")
 	}
-	if other := do(t, h, http.MethodGet, admin+"?club=UCD", nil).Body.String(); strings.Contains(other, "C. Ryan") {
+	// (Its name is still sent for the filters' counts, but not as a row.)
+	if other := do(t, h, http.MethodGet, admin+"?club=UCD", nil).Body.String(); strings.Contains(other, `data-name="C. Ryan"`) {
 		t.Error("filtered to another club, it's not listed")
 	}
 	entry := regexp.MustCompile(`href="(` + regexp.QuoteMeta(admin) + `/entries/[A-Za-z0-9_-]+)"`).FindStringSubmatch(dash)

@@ -127,7 +127,7 @@ func judges(c competitions.Competition, o competitions.Offer) []string {
 // qualifiedFilter is a filter by whether the organiser has marked someone
 // qualified.
 func qualifiedFilter() views.ListFilter {
-	return views.ListFilter{Key: "qualified", Label: "Qualified", Any: "Qualified or not", Options: []views.ListOption{
+	return views.ListFilter{Key: "qualified", Label: "Qualified", Any: "Qualified or not", Plain: true, Options: []views.ListOption{
 		{Value: "yes", Label: "Qualified"}, {Value: "no", Label: "Not qualified"},
 	}}
 }
@@ -195,9 +195,9 @@ func memberCoachValue(coachID string) string {
 
 // hasFilter is a filter by whether a row has something (entries,
 // qualifications): has is the label of the rows that do, none of those that
-// don't.
+// don't, each saying so on its own ("No entries").
 func hasFilter(key, label, any, has, none string) views.ListFilter {
-	return views.ListFilter{Key: key, Label: label, Any: any, Options: []views.ListOption{
+	return views.ListFilter{Key: key, Label: label, Any: any, Plain: true, Options: []views.ListOption{
 		{Value: "yes", Label: has}, {Value: "no", Label: none},
 	}}
 }

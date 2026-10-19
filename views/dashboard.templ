@@ -42,6 +42,7 @@ type Dashboard struct {
 	Coaches                                  []string // the coaches entries have, to filter by
 	Shown                                    int      // entries the filters show
 	List                                     string   // the filters and sort as a query ("?club=UCD"), for an entry's page to carry and come back to; "" for none
+	All                                      []ListRow // every entry, shown or not, with its values for each filter, for the filters' counts
 }
 
 // RemovedRow is an entry the organiser removed or holds.
@@ -611,7 +612,7 @@ templ dashboardFilters(d Dashboard) {
 // dashboardTools are the entries' search and filters, sent to the server so
 // printing and the CSV follow them (views/lists.templ).
 func dashboardTools(d Dashboard) ListTools {
-	t := ListTools{ID: "entries", Noun: "entries", Total: d.Entries, Shown: d.Shown, Form: true, Search: d.Search, Clear: d.Base}
+	t := ListTools{ID: "entries", Noun: "entries", Total: d.Entries, Shown: d.Shown, Form: true, Search: d.Search, Clear: d.Base, All: d.All}
 	club := ListFilter{Key: "club", Label: "Club", Any: "Every club", Value: d.Club}
 	for _, c := range d.Clubs {
 		club.Options = append(club.Options, ListOption{Value: c, Label: c})
@@ -628,29 +629,50 @@ func dashboardTools(d Dashboard) ListTools {
 		coach.Options = append(coach.Options, ListOption{Value: "none", Label: "No coach"})
 		t.Filters = append(t.Filters, coach)
 	}
-	t.Filters = append(t.Filters, ListFilter{Key: "problems", Label: "Problems", Any: "Problems or not", Value: problemsValue(d.ProblemsOnly),
+	t.Filters = append(t.Filters, ListFilter{Key: "problems", Label: "Problems", Any: "Problems or not", Value: problemsValue(d.ProblemsOnly), Plain: true,
 		Options: []ListOption{{Value: "1", Label: "Problems only"}}})
 	t.Filters = append(t.Filters, yesNo("checked", "Checked", d.CheckedFilter, "Checked or not", "Checked", "Not checked"))
 	if d.Competition.Signoff {
 		t.Filters = append(t.Filters, yesNo("signedoff", "Signed off", d.SignedFilter, "Signed off or not", "Signed off", "Not signed off"))
 	}
 	if d.Competition.Video != "" {
-		t.Filters = append(t.Filters, ListFilter{Key: "video", Label: "Video", Any: "Any video", Value: d.VideoFilter, Options: []ListOption{
+		t.Filters = append(t.Filters, ListFilter{Key: "video", Label: "Video", Any: "Any video", Value: d.VideoFilter, Plain: true, Options: []ListOption{
 			{Value: "missing", Label: "Video missing"}, {Value: "provided", Label: "Video to review"},
 			{Value: "need more", Label: "Video: need more"}, {Value: "OK", Label: "Video OK"},
 		}})
 	}
 	if d.CanSplit {
-		t.Filters = append(t.Filters, ListFilter{Key: "category", Label: "Men or women", Any: "Men and women", Value: d.Category, Options: []ListOption{
+		t.Filters = append(t.Filters, ListFilter{Key: "category", Label: "Men or women", Any: "Men and women", Value: d.Category, Plain: true, Options: []ListOption{
 			{Value: "Men", Label: "Men"}, {Value: "Women", Label: "Women"},
 		}})
+	}
+	for i, f := range t.Filters {
+		t.Filters[i].Remove = withoutFilter(d, f.Key)
 	}
 	return t
 }
 
+// withoutFilter is the entries page's address with its filters and sort but
+// the one with key.
+func withoutFilter(d Dashboard, key string) string {
+	q := url.Values{}
+	for k, v := range d.Filter {
+		if k != key {
+			q[k] = v
+		}
+	}
+	if d.Sort != "" {
+		q.Set("sort", d.Sort)
+	}
+	if len(q) == 0 {
+		return d.Base
+	}
+	return d.Base + "?" + q.Encode()
+}
+
 // yesNo is a dashboard filter that's on, off or either.
 func yesNo(key, label, value, either, yes, no string) ListFilter {
-	return ListFilter{Key: key, Label: label, Any: either, Value: value, Options: []ListOption{{Value: "yes", Label: yes}, {Value: "no", Label: no}}}
+	return ListFilter{Key: key, Label: label, Any: either, Value: value, Plain: true, Options: []ListOption{{Value: "yes", Label: yes}, {Value: "no", Label: no}}}
 }
 
 // problemsValue is the problems filter's value: "1" for problems only.

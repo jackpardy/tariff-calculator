@@ -1053,8 +1053,13 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
 /* Filters under a button: a column of them in its panel, each full width. */
 .comp-list-filter-panel { display: grid; gap: 0.5rem; padding: 0.6rem; min-width: 15rem; }
 .comp-list-filter-panel .select, .comp-list-filter-panel .select select { width: 100%; }
-.comp-list-count { display: flex; align-items: center; gap: 0.5rem; min-height: 1.9rem; }
+.comp-list-count { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; min-height: 1.9rem; }
 .comp-list-clear { height: auto; padding: 0 0.25rem; }
+/* The filters chosen, after the count: each a chip, its whole width taking it off. */
+.comp-list-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.comp-list-chips:empty { display: none; }
+.comp-list-chip { border: 0; cursor: pointer; font-family: inherit; text-decoration: none; min-height: 1.75rem; }
+.comp-list-chip:hover { filter: brightness(0.95); }
 @media screen and (max-width: 768px) {
   .comp-list-controls .comp-list-search { flex-basis: 100%; max-width: none; }
   .comp-list-controls .select { flex: 1 1 calc(50% - 0.25rem); }
