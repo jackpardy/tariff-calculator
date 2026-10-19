@@ -1019,7 +1019,17 @@
     // moment. A row the filters no longer show leaves the page at the top.
     function backToEntry(id) {
         const list = document.getElementById('entries');
-        const link = list && [...list.querySelectorAll('td.comp-stack-title > a')].find((a) => new URL(a.href).pathname.endsWith('/entries/' + id));
+        if (!list) { return; }
+        const its = (a) => new URL(a.getAttribute('href'), location.href).pathname.endsWith('/entries/' + id);
+        // Its row may wait in a folded level's template (lazyRows): it comes
+        // into the page first.
+        const waiting = [...list.querySelectorAll('template[data-lazy]')].find((t) => [...t.content.querySelectorAll('td.comp-stack-title > a')].some(its));
+        if (waiting) {
+            const level = waiting.closest('details');
+            if (level) { level.open = true; }
+            lazyRows(level || list);
+        }
+        const link = [...list.querySelectorAll('td.comp-stack-title > a')].find(its);
         if (!link) { return; }
         const row = link.closest('tr');
         for (let d = row.closest('details'); d; d = d.parentElement.closest('details')) { d.open = true; }
