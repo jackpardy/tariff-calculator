@@ -70,6 +70,18 @@ func routesWithPages(pages *competitionPages) http.Handler {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	pages.register(mux)
+	// Any other address is a page saying there's nothing there, looking as
+	// the app's pages do, not Go's bare "404 page not found"; an address
+	// that only takes a POST still says the method is wrong.
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		post := r.Clone(r.Context())
+		post.Method = http.MethodPost
+		if _, pattern := mux.Handler(post); pattern != "" && pattern != "GET /" {
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+			return
+		}
+		notFound(w, r)
+	})
 
 	return withGzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limit := int64(maxRequestBytes)
