@@ -151,16 +151,21 @@ func (d *database) watching(ctx context.Context, fn func(*sql.Conn) error) error
 		}
 		return nil
 	})
+	done := false
+	defer func() { // after fn, even if it panics, and before the connection goes back
+		if hooked {
+			conn.Raw(func(dc any) error {
+				dc.(preUpdateHooker).RegisterPreUpdateHook(nil)
+				return nil
+			})
+		}
+		if !hooked || !done {
+			ch.all = true // can't tell what changed: count it for everyone
+		}
+		d.count(ch)
+	}()
 	err = fn(conn)
-	if hooked {
-		conn.Raw(func(dc any) error {
-			dc.(preUpdateHooker).RegisterPreUpdateHook(nil)
-			return nil
-		})
-	} else {
-		ch.all = true // can't tell what changed: count it for everyone
-	}
-	d.count(ch)
+	done = true
 	return err
 }
 
