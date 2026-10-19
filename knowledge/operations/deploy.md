@@ -162,6 +162,18 @@ the server yet.** The provider is Amazon SES in its Ireland region
    spam, and that SPF, DKIM and DMARC pass (Gmail's "Show original").
 7. Optionally have SES send bounces and complaints to an email address.
 
+# Garbage collector
+
+What the app keeps in memory is small (about 14 MB with the demo), but a
+page can make 10 to 100 MB of garbage on the way, so at Go's defaults the
+collector ran 14 times a second under load. The app sets its own defaults
+(`gcDefaults` in `main.go`): `GOGC=300` (the heap grows to four times what's
+kept before a collection) and `GOMEMLIMIT=400MiB` (it collects sooner rather
+than grow past that). The reviewer measured these cutting each page's
+processor time by a third or more. Setting `GOGC` or `GOMEMLIMIT` in the
+environment overrides them, e.g. a lower `GOMEMLIMIT` on a server with less
+memory to spare; nothing needs setting otherwise.
+
 # Demo competition
 
 `tariffCalculator demo` (`go run . demo` from a checkout) fills the storage in
@@ -219,18 +231,29 @@ go run ./cmd/loadtest -base http://localhost:8090 -pages /tmp/lt/pages.txt -peop
 ```
 
 On an M2 laptop held to two cores (`GOMAXPROCS=2`, like the server's two
-shared processors), 15 October 2026, the full demo, 400 people all opening
-their page within 2 seconds:
+shared processors), 19 October 2026, the full demo (700 entries), 400 people
+all opening their page within 2 seconds, then 40 seconds of steady use, a
+tap every 2 seconds; each run on a fresh copy of the same demo, twice before
+and twice after the changes of that day (a check-in or other change the
+pages don't read keeps their cache, no write lock to open a page, four
+database connections, the garbage collector's defaults (above), and the
+heaviest pages' work done once):
 
-| | Before the cache (aa111e8) | After |
+| | Before (5401983) | After |
 |---|---|---|
-| Gymnasts' pages in the burst | 191 of 343 failed (timed out); median 4.8 s, slowest 28.6 s | none failed; median 171 ms, slowest 1.0 s |
-| Gymnasts' pages after it | median 3.3 s, 99% within 23 s | median 9 ms, 99% within 125 ms |
-| Taps | 1 of 4 failed; median 2.8 s | none failed; median 5 ms |
+| Gymnasts' pages in the burst | median 85–175 ms, 99% within 430–744 ms, slowest 0.6–0.9 s | median 3–4 ms, 99% within 72–77 ms, slowest 80 ms |
+| Gymnasts' pages after it | median 9 ms, 99% within 93–156 ms, slowest 0.26–0.5 s | median 6 ms, 99% within 14 ms, slowest 17–22 ms |
+| Clubs' and coaches' pages in the burst | median 111–654 ms, slowest 0.34–0.89 s | median 6–7 ms, slowest 16–82 ms |
+| On the day | median 20–30 ms, slowest 0.26–0.5 s | median 14–15 ms, slowest 66–94 ms |
+| Taps | median 5–7 ms | median 6 ms |
+| The server's processor time, all of it | 26 s | 15 s |
+| The server's memory at most | 150–194 MB | 175–179 MB |
 
-Once check-ins moved to each area's own page, the test found none to tap
-until it was fixed (17 October 2026), so runs between then had no taps and
-the cache was never dropped: run it again for numbers with the taps in.
+None failed either way. Twice the crowd, 800 people within 2 seconds, each
+opening their page again every 5 seconds or so and a tap every second:
+before, the burst's median was 959 ms and its slowest 6.1 s, the server used
+68 s of processor time and up to 641 MB; after, 11 ms and 105 ms, 31 s and
+190 MB.
 
 The server is slower per processor than the laptop and shared with other
 services, so run it there too before the dry run, on a test copy: the steps

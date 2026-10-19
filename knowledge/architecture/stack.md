@@ -31,7 +31,7 @@ generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 | `competitions` | [Competition entries](../features/competition-entries.md): competitions, the levels they offer, entries, and checking an entry with `CheckPair`; the timetable, its planner and rota, delays, lateness and who's up. Framework-free. |
 | `judging` | [Execution judging](../domain/execution.md): how a skill is judged, for the calculator's pop-up. Framework-free. |
 | `demo` | The seeded demo competition (`tariffCalculator demo`), made through the app's own routes. |
-| `store` | SQLite storage for competitions, clubs, members and entries, reached by secret links (ADR 0004). Plain `database/sql`, numbered migrations. |
+| `store` | SQLite storage for competitions, clubs, members and entries, reached by secret links (ADR 0004). Plain `database/sql`, numbered migrations, at most four connections; each change counted for the competition it touches (`Store.Writes`), for the pages' cache. |
 | `views` | templ components: page, form, routine, sheet, compare, view screen, requirements page and the level editor. |
 | `static` | Embedded CSS/JS with content-hashed URLs ([static assets](static-assets.md)). |
 | `web` | Every handler: the calculator (`web/calculator.go`), the competition pages, notifications, push, mail and calendar, the requirements and level editors' form parsing (`web/setform.go`, `web/levelform.go`) and QR codes (`web/qrcode.go`). Exposes `web.New`, `Handler`, `Notify`, `Routes` and `DeleteExpired`. |
