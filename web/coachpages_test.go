@@ -176,7 +176,11 @@ func TestCoachSignoff(t *testing.T) {
 	// Removing a coach ends their link.
 	page = do(t, h, http.MethodGet, club+"/coaches", nil).Body.String()
 	remove := regexp.MustCompile(`action="(` + regexp.QuoteMeta(club) + `/coaches/[^"]+/remove)"`).FindStringSubmatch(page)[1]
-	redirected(t, h, remove, url.Values{})
+	if page := do(t, h, http.MethodPost, remove, url.Values{}).Body.String(); !strings.Contains(page, "as a coach?") || !strings.Contains(page, `name="anyway" value="1"`) ||
+		do(t, h, http.MethodGet, ann, nil).Code != http.StatusOK {
+		t.Errorf("removing a coach asks first, on Coaches: %s", page)
+	}
+	redirected(t, h, remove, url.Values{"anyway": {"1"}})
 	if do(t, h, http.MethodGet, ann, nil).Code != http.StatusNotFound {
 		t.Error("the removed coach's link stops working")
 	}

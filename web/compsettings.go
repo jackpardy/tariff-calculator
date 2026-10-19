@@ -350,6 +350,13 @@ func (p *competitionPages) replaceLink(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if p.askSettings(w, r, c, views.Ask{
+		Title:  "Replace the admin link?",
+		Text:   "The old one stops working at once, for everyone who has it, wherever it's saved: in browsers, on home screens, in bookmarks or in a chat. Your helpers' links keep working. The new one is saved in this browser; send it to anyone else who should have it.",
+		Button: "Replace the admin link", Back: settingsPath(r.PathValue("token")) + "#admin-link",
+	}) {
+		return
+	}
 	admin, err := p.st.ReplaceCompetitionAdmin(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)

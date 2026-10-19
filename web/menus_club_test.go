@@ -73,7 +73,7 @@ func TestClubSections(t *testing.T) {
 		t.Errorf("a member's new link is shown on Members: %d", rec.Code)
 	}
 	remove := strings.TrimSuffix(newLink, "/new-link") + "/remove"
-	if got := withoutQuery(redirected(t, h, remove, url.Values{})); got != club+"/members" {
+	if got := withoutQuery(redirected(t, h, remove, url.Values{"anyway": {"1"}})); got != club+"/members" {
 		t.Errorf("removing a member goes back to Members: %s", got)
 	}
 	_ = member
@@ -105,7 +105,7 @@ func TestClubSections(t *testing.T) {
 	}{
 		{club + "/coaches-see-all", url.Values{"on": {"1"}}},
 		{club + "/coaches/" + coachID + "/signs-off", url.Values{"on": {""}}},
-		{club + "/coaches/" + coachID + "/remove", url.Values{}},
+		{club + "/coaches/" + coachID + "/remove", url.Values{"anyway": {"1"}}},
 	} {
 		if got := withoutQuery(redirected(t, h, post.path, post.form)); got != club+"/coaches" {
 			t.Errorf("POST %s goes back to Coaches: %s", post.path, got)

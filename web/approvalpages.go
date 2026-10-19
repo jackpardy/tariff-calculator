@@ -179,6 +179,13 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	p.renderApprovals(w, r, c, nil)
+}
+
+// renderApprovals shows the Coaches page, asking before a change (ask). After
+// a coach's approval is withdrawn (undo: their row's anchor), its notice
+// offers Undo.
+func (p *competitionPages) renderApprovals(w http.ResponseWriter, r *http.Request, c store.Competition, ask *views.Ask) {
 	sent, err := p.st.CompetitionCoaches(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
@@ -190,7 +197,7 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	page := views.ApprovalsPage{Base: base, Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuCoaches), Notice: r.URL.Query().Get("notice"), Asked: askedLevels(c.Competition)}
+	page := views.ApprovalsPage{Base: base, Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuCoaches), Notice: r.URL.Query().Get("notice"), Ask: ask, Asked: askedLevels(c.Competition)}
 	var clubs []string
 	for _, s := range sent {
 		row := views.ApprovalRow{ID: s.CoachID, Anchor: "coach-" + s.CoachID, Name: s.Name, Person: personPath(base, store.CoachKey(s.CoachID)), Action: base + "/coaches/" + s.CoachID, Status: coachStatus(s.Status), Approved: s.Approved(),
@@ -234,6 +241,15 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 		page.Total += len(club.Coaches)
 	}
 	page.Tools = views.ListTools{ID: "coaches", Noun: "coaches", Total: page.Total, Filters: []views.ListFilter{clubFilter(clubs), coachStatusFilter()}}
+	if undo := r.URL.Query().Get("undo"); undo != "" && page.Notice != "" {
+		for _, club := range page.Clubs {
+			for _, k := range club.Coaches {
+				if k.Anchor == undo && k.Withdrawn {
+					page.Undo = &views.Undo{Action: k.Action, Fields: []views.FormValue{{Name: "action", Value: "approve"}, {Name: "anyway", Value: "1"}}}
+				}
+			}
+		}
+	}
 	render(w, r, views.CompetitionApprovals(page))
 }
 
@@ -261,6 +277,16 @@ func (p *competitionPages) decideCoach(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, adminPath(r.PathValue("token"))+"/coaches", http.StatusSeeOther)
 		return
 	}
+	// Approving a coach with nothing to check asks first.
+	if status == store.CoachApproved && len(coach.Qualifications) == 0 && !asked(r) {
+		noteAsked(w)
+		p.renderApprovals(w, r, c, inPlace(r, views.Ask{
+			Title:  "Approve " + coach.Name + "?",
+			Text:   "Their club hasn't sent any qualifications, so there's nothing to check. Once approved, their sign-offs count.",
+			Button: "Approve " + coach.Name, Back: adminPath(r.PathValue("token")) + "/coaches#coach-" + coach.CoachID,
+		}))
+		return
+	}
 	if err := p.st.DecideCoach(r.Context(), c.ID, coach.CoachID, status, note, afresh); err != nil {
 		failed(w, r, err)
 		return
@@ -269,7 +295,7 @@ func (p *competitionPages) decideCoach(w http.ResponseWriter, r *http.Request) {
 		notice = "Approved " + coach.Name + ", though their club hasn't sent any qualifications."
 	}
 	// Back to the coach, where it shows.
-	seeOther(w, r, adminPath(r.PathValue("token"))+"/coaches#coach-"+coach.CoachID, notice)
+	seeOther(w, r, decidedPath(r, "coach-"+coach.CoachID, status), notice)
 }
 
 // competitionCertificate shows the organiser a certificate of a coach sent
@@ -285,6 +311,17 @@ func (p *competitionPages) competitionCertificate(w http.ResponseWriter, r *http
 		return
 	}
 	serveCertificate(w, certType, data)
+}
+
+// decidedPath is the Coaches page at the coach decided on (anchor). A
+// withdrawal is easily put back, so it's made without asking, and the page
+// offers Undo.
+func decidedPath(r *http.Request, anchor, status string) string {
+	to := adminPath(r.PathValue("token")) + "/coaches"
+	if status == store.CoachWithdrawn {
+		to += "?undo=" + anchor
+	}
+	return to + "#" + anchor
 }
 
 // decision is what the organiser decided about a coach (action: approve,
@@ -323,7 +360,7 @@ func (p *competitionPages) decideEntryCoach(w http.ResponseWriter, r *http.Reque
 		failed(w, r, err)
 		return
 	}
-	seeOther(w, r, adminPath(r.PathValue("token"))+"/coaches#named-"+named.EntryID, notice)
+	seeOther(w, r, decidedPath(r, "named-"+named.EntryID, status), notice)
 }
 
 // entryCertificate shows the organiser the certificate of a coach an

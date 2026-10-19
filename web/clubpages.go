@@ -164,20 +164,20 @@ func (p *competitionPages) renderClub(w http.ResponseWriter, r *http.Request, cl
 	p.renderClubWith(w, r, club, section, newLink, nil)
 }
 
-// askReplace shows a section of the comp sec's pages asking before a link
-// is replaced (ADR 0004: the old one stops working), unless the form was
-// posted again to replace it anyway; it says whether it asked.
-func (p *competitionPages) askReplace(w http.ResponseWriter, r *http.Request, club store.Club, section string, ask views.LinkAsk) bool {
-	if r.FormValue("anyway") == "1" {
+// askClub shows a section of the comp sec's pages asking before a change
+// that can't be put back (a link replaced, ADR 0004: the old one stops
+// working; a member or coach removed), unless the form was posted again to
+// make it anyway; it says whether it asked.
+func (p *competitionPages) askClub(w http.ResponseWriter, r *http.Request, club store.Club, section string, ask views.Ask) bool {
+	if asked(r) {
 		return false
 	}
-	ask.Action = r.URL.Path
-	p.renderClubWith(w, r, club, section, nil, &ask)
+	p.renderClubWith(w, r, club, section, nil, inPlace(r, ask))
 	return true
 }
 
-// renderClubWith is renderClub, asking before a link is replaced (ask).
-func (p *competitionPages) renderClubWith(w http.ResponseWriter, r *http.Request, club store.Club, section string, newLink *views.MemberLink, ask *views.LinkAsk) {
+// renderClubWith is renderClub, asking before a change (ask).
+func (p *competitionPages) renderClubWith(w http.ResponseWriter, r *http.Request, club store.Club, section string, newLink *views.MemberLink, ask *views.Ask) {
 	token := r.PathValue("token")
 	base := clubPath(token)
 	page := views.ClubPage{
@@ -873,7 +873,7 @@ func (p *competitionPages) newMemberLink(w http.ResponseWriter, r *http.Request)
 		failed(w, r, err)
 		return
 	}
-	if p.askReplace(w, r, club, clubMembers, views.LinkAsk{
+	if p.askClub(w, r, club, clubMembers, views.Ask{
 		Title:  "Make a new link for " + m.Name + "?",
 		Text:   "Their old link stops working at once, wherever it's saved: in their browser, on their phone's home screen or in their bookmarks. Their entries, routines and skills stay. You see the new link once, here, to send them.",
 		Button: "Make a new link", Back: clubMembersPath(r.PathValue("token")) + "#" + views.MemberAnchor(m.ID),
@@ -899,6 +899,13 @@ func (p *competitionPages) removeMember(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return
 	}
+	if p.askClub(w, r, club, clubMembers, views.Ask{
+		Title:  "Remove " + m.Name + "?",
+		Text:   "Their entries go with them, and their link stops working. Entries the club has sent already stay with each competition.",
+		Button: "Remove " + m.Name, Back: clubMembersPath(r.PathValue("token")) + "#" + views.MemberAnchor(m.ID),
+	}) {
+		return
+	}
 	if err := p.st.RemoveMember(r.Context(), club.ID, m.ID); err != nil {
 		failed(w, r, err)
 		return
@@ -911,7 +918,7 @@ func (p *competitionPages) replaceClubLink(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
-	if p.askReplace(w, r, club, clubSettings, views.LinkAsk{
+	if p.askClub(w, r, club, clubSettings, views.Ask{
 		Title:  "Replace the admin link?",
 		Text:   "The old one stops working at once, for everyone who has it, wherever it's saved: in browsers, on home screens, in bookmarks or in a chat. The new one is saved in this browser; send it to anyone else who should have it.",
 		Button: "Replace the admin link", Back: clubSettingsPath(r.PathValue("token")),

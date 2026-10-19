@@ -160,7 +160,7 @@ func (p *competitionPages) coachGymnastSkills(w http.ResponseWriter, r *http.Req
 		failed(w, r, err)
 		return
 	}
-	render(w, r, views.CoachGymnastSkills(coachFrame(r, coach, club, coachGymnastsTab), views.SkillsViewPage{Back: base, BackTo: m.Name + "'s routines", Name: m.Name, Skills: part}))
+	render(w, r, views.CoachGymnastSkills(coachFrame(r, coach, club, coachGymnastsTab, nil), views.SkillsViewPage{Back: base, BackTo: m.Name + "'s routines", Name: m.Name, Skills: part}))
 }
 
 // markGymnastSkill is a coach marking a skill for a gymnast they see.
@@ -577,13 +577,18 @@ func (p *competitionPages) clubSkillsPage(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
+	p.renderClubSkills(w, r, coach, club, nil)
+}
+
+// renderClubSkills shows a coach's Club skills, asking before a change (ask).
+func (p *competitionPages) renderClubSkills(w http.ResponseWriter, r *http.Request, coach store.Coach, club string, ask *views.Ask) {
 	list, err := p.st.ClubSkills(r.Context(), coach.ClubID)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
 	token, q := r.PathValue("token"), r.URL.Query().Get("q")
-	page := views.ClubSkillsPage{Frame: coachFrame(r, coach, club, coachClubSkillsTab), Action: clubSkillsPath(token), Search: clubSkillsPath(token), Query: q, Max: store.MaxClubSkills}
+	page := views.ClubSkillsPage{Frame: coachFrame(r, coach, club, coachClubSkillsTab, ask), Action: clubSkillsPath(token), Search: clubSkillsPath(token), Query: q, Max: store.MaxClubSkills}
 	var named []skills.TrampolineSkill
 	for _, c := range list {
 		v := views.ClubSkillView{Name: c.Name, What: "To track", Note: c.Note, By: c.ByName, Remove: clubSkillsPath(token) + "/" + c.ID + "/remove"}
@@ -642,8 +647,29 @@ func (p *competitionPages) addClubSkill(w http.ResponseWriter, r *http.Request) 
 
 // removeClubSkill is a coach removing one of the club's own skills.
 func (p *competitionPages) removeClubSkill(w http.ResponseWriter, r *http.Request) {
-	coach, _, ok := p.coach(w, r)
+	coach, club, ok := p.coach(w, r)
 	if !ok {
+		return
+	}
+	list, err := p.st.ClubSkills(r.Context(), coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	i := slices.IndexFunc(list, func(c store.ClubSkill) bool { return c.ID == r.PathValue("id") })
+	if i < 0 {
+		failed(w, r, store.ErrNotFound)
+		return
+	}
+	if !asked(r) {
+		text := "Every member's and coach's marks on it go with it."
+		if list[i].Skill != "" {
+			text = "It's your club's name for a skill: the skill's own name shows again, and marks on the skill stay."
+		}
+		p.renderClubSkills(w, r, coach, club, inPlace(r, views.Ask{
+			Title: "Remove " + list[i].Name + "?", Text: text,
+			Button: "Remove " + list[i].Name, Back: clubSkillsPath(r.PathValue("token")),
+		}))
 		return
 	}
 	if err := p.st.RemoveClubSkill(r.Context(), coach, r.PathValue("id")); err != nil {

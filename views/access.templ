@@ -65,7 +65,7 @@ templ linksBox(base string, links []LinkView) {
 								made { l.Made }
 							</span>
 						</span>
-						<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/remove") } class="is-inline" onsubmit={ confirmFirst("Remove the link for " + l.Name + "? It stops working at once.") }>
+						<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/remove") } class="is-inline">
 							<button class="button is-small is-text has-text-danger" type="submit" aria-label={ "Remove the link for " + l.Name }>Remove</button>
 						</form>
 					</li>

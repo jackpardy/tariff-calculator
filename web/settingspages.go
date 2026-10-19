@@ -56,6 +56,11 @@ func (p *competitionPages) settings(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	p.renderSettings(w, r, c, nil)
+}
+
+// renderSettings shows the Settings page, asking before a change (ask).
+func (p *competitionPages) renderSettings(w http.ResponseWriter, r *http.Request, c store.Competition, ask *views.Ask) {
 	entries, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
@@ -65,7 +70,7 @@ func (p *competitionPages) settings(w http.ResponseWriter, r *http.Request) {
 	deadline := c.Deadline.In(local)
 	liveDate, liveTime := p.liveFields(c)
 	page := views.SettingsPage{
-		Base: adminPath(r.PathValue("token")), Notice: q.Get("notice"), New: q.Get("new"),
+		Base: adminPath(r.PathValue("token")), Notice: q.Get("notice"), New: q.Get("new"), Ask: ask,
 		Menu: p.menuFor(r, c, menuSettings), Access: access(r), Competition: summary(c, p.now()),
 		Links:        views.CompetitionLinks{Club: origin(r) + "/competitions/club/" + c.ClubLink, Individual: origin(r) + "/competitions/enter/" + c.IndividualLink},
 		DeadlineDate: deadline.Format("2006-01-02"), DeadlineTime: deadline.Format("15:04"),
@@ -117,4 +122,16 @@ func (p *competitionPages) settings(w http.ResponseWriter, r *http.Request) {
 		page.CoachApproval = coachApprovalForm(c.Competition, sent, named)
 	}
 	render(w, r, views.CompetitionSettings(page))
+}
+
+// askSettings shows the Settings page asking before a change that can't be
+// put back, unless the form was posted again to make it anyway; it says
+// whether it asked.
+func (p *competitionPages) askSettings(w http.ResponseWriter, r *http.Request, c store.Competition, ask views.Ask) bool {
+	if asked(r) {
+		return false
+	}
+	noteAsked(w)
+	p.renderSettings(w, r, c, inPlace(r, ask))
+	return true
 }

@@ -410,6 +410,23 @@ func (p *competitionPages) removeLink(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	links, err := p.st.Links(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	i := slices.IndexFunc(links, func(l store.Link) bool { return l.ID == r.PathValue("id") })
+	if i < 0 {
+		backToSettings(w, r, "That link was removed already.")
+		return
+	}
+	if p.askSettings(w, r, c, views.Ask{
+		Title:  "Remove the link for " + links[i].Name + "?",
+		Text:   "It stops working at once, for everyone who has it. To let them in again, make a new link and send it to them.",
+		Button: "Remove the link", Back: settingsPath(r.PathValue("token")) + "#links",
+	}) {
+		return
+	}
 	if err := p.st.RemoveLink(r.Context(), c.ID, r.PathValue("id")); err != nil {
 		failed(w, r, err)
 		return

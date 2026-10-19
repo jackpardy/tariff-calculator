@@ -71,7 +71,8 @@ func TestAdminLinks(t *testing.T) {
 		{co, "POST", "/replace-link", 403},
 		{co, "POST", "/delete", 403},
 	} {
-		form := url.Values{"checked": {"1"}, "close": {"1"}}
+		// anyway=1: a change that asks first (planning again) is made.
+		form := url.Values{"checked": {"1"}, "close": {"1"}, "anyway": {"1"}}
 		if tc.method == "GET" {
 			form = nil
 		}
@@ -124,7 +125,12 @@ func TestAdminLinks(t *testing.T) {
 
 	// Removed, a link stops working.
 	linkID := regexp.MustCompile(`/links/([^/"]+)/remove`).FindStringSubmatch(do(t, h, http.MethodGet, admin+"/settings", nil).Body.String())[1]
-	redirected(t, h, admin+"/links/"+linkID+"/remove", nil)
+	// Asked first, on Settings: the link works until the organiser says yes.
+	if page := do(t, h, http.MethodPost, admin+"/links/"+linkID+"/remove", url.Values{}).Body.String(); !strings.Contains(page, "Remove the link for Difficulty judges?") ||
+		!strings.Contains(page, `name="anyway" value="1"`) || code("GET", cards, nil) != http.StatusOK {
+		t.Errorf("removing a link asks first: %s", page)
+	}
+	redirected(t, h, admin+"/links/"+linkID+"/remove", url.Values{"anyway": {"1"}})
 	if got := code("GET", cards, nil); got != http.StatusNotFound {
 		t.Errorf("a removed link: %d", got)
 	}

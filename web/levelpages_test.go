@@ -149,7 +149,10 @@ func TestClubLevels(t *testing.T) {
 		t.Error("the comp sec sees the level")
 	}
 	remove := regexp.MustCompile(`action="(` + regexp.QuoteMeta(ann) + `/levels/[^/"]+/remove)"`).FindStringSubmatch(do(t, h, http.MethodGet, ann+"/levels", nil).Body.String())[1]
-	redirected(t, h, remove, nil)
+	if page := do(t, h, http.MethodPost, remove, nil).Body.String(); !strings.Contains(page, "Remove Grade 1?") || !strings.Contains(page, `name="anyway" value="1"`) {
+		t.Errorf("removing a level asks first: %s", page)
+	}
+	redirected(t, h, remove, url.Values{"anyway": {"1"}})
 	if strings.Contains(do(t, h, http.MethodGet, member+"/skills", nil).Body.String(), "Grade 1") {
 		t.Error("removed")
 	}

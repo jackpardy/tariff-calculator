@@ -101,7 +101,10 @@ func TestMemberKeepsRoutines(t *testing.T) {
 	if !strings.Contains(do(t, h, http.MethodGet, member+"/routines", nil).Body.String(), "Regionals") {
 		t.Error("renamed")
 	}
-	redirected(t, h, rename+"/delete", nil)
+	if page := do(t, h, http.MethodPost, rename+"/delete", nil).Body.String(); !strings.Contains(page, "Delete Regionals from your page?") || !strings.Contains(page, `name="anyway" value="1"`) {
+		t.Errorf("deleting a routine asks first: %s", page)
+	}
+	redirected(t, h, rename+"/delete", url.Values{"anyway": {"1"}})
 	if strings.Contains(do(t, h, http.MethodGet, member+"/routines", nil).Body.String(), "Regionals") {
 		t.Error("deleted")
 	}

@@ -62,3 +62,64 @@ templ typeToDelete(action, id, what, button string) {
 		</div>
 	</form>
 }
+
+// Ask asks, on the page it was asked from, before a change to one person or
+// thing that can't be put back (removing a member, a link, a payment;
+// replacing a link): the page again, with a box at its top saying what the
+// change does, and the change as posted to make it (anyway=1). A change that
+// does a lot at once asks on a page of its own (AskFirst, ChangeCheck); one
+// that's easily put back is made, with Undo (ui.md, "Asking first").
+type Ask struct {
+	Title, Text string
+	Action      string      // where the change posts
+	Fields      []FormValue // the change as posted, but anyway
+	Button      string      // the button that makes it, e.g. "Remove Ann Ryan"
+	Back        string      // where Cancel goes
+}
+
+// askBox is an Ask, at the top of the page. Nothing when there's no ask.
+templ askBox(a *Ask) {
+	if a != nil {
+		<div class="notification is-warning is-light comp-ask" id="ask" role="alert">
+			<p class="mb-2"><strong>{ a.Title }</strong></p>
+			<p class="mb-3">{ a.Text }</p>
+			<form method="post" action={ templ.SafeURL(a.Action) } class="buttons">
+				for _, v := range a.Fields {
+					<input type="hidden" name={ v.Name } value={ v.Value }/>
+				}
+				<input type="hidden" name="anyway" value="1"/>
+				<button class="button is-small is-primary" type="submit">{ a.Button }</button>
+				<a class="button is-small" href={ templ.SafeURL(a.Back) }>Cancel</a>
+			</form>
+		</div>
+	}
+}
+
+// Undo takes back a change just made that's easily put back (withdrawing a
+// coach's approval): it posts Fields to Action.
+type Undo struct {
+	Action string
+	Fields []FormValue
+}
+
+// undoNotice is a notice with Undo in it, for a change made without asking
+// because it's easily put back; sticky, it stays in sight as stickyNotice
+// does. Without an Undo it's the plain notice.
+templ undoNotice(text string, u *Undo, sticky bool) {
+	if u == nil && sticky {
+		@stickyNotice(text)
+	} else if u == nil {
+		@notice(text)
+	} else if text != "" {
+		<div class={ "notification", "is-success", "is-light", "comp-notice", templ.KV("comp-sticky-notice", sticky) } role="status">
+			@noticeClose()
+			{ text }
+			<form method="post" action={ templ.SafeURL(u.Action) } class="is-inline ml-1">
+				for _, v := range u.Fields {
+					<input type="hidden" name={ v.Name } value={ v.Value }/>
+				}
+				<button class="button is-small" type="submit">Undo</button>
+			</form>
+		</div>
+	}
+}

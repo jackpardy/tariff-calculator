@@ -23,8 +23,10 @@ type CoachLevelField struct {
 type ApprovalsPage struct {
 	Base        string // the admin link's path
 	Competition CompetitionSummary
-	Menu []MenuSection
+	Menu        []MenuSection
 	Notice      string
+	Undo        *Undo // takes back a withdrawal just made
+	Ask         *Ask  // asking before approving a coach with no qualifications
 	Asked       string // the levels asked for, e.g. "Trampoline Level 2, Tumbling Level 1"
 	Clubs       []ApprovalClub
 	Total       int       // coaches sent, over all the clubs
@@ -89,10 +91,9 @@ templ CompetitionApprovals(p ApprovalsPage) {
 		<h1 class="title is-4">Coaches</h1>
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
-		if p.Notice != "" {
-			// Stays in sight as the page goes to the coach decided on.
-			@stickyNotice(p.Notice)
-		}
+		// Stays in sight as the page goes to the coach decided on.
+		@undoNotice(p.Notice, p.Undo, true)
+		@askBox(p.Ask)
 		<p class="mb-4">Only coaches you approve can sign off. You ask for at least { p.Asked }. Open each certificate to check it; clubs see your note.</p>
 		@listSection("Coaches", p.Total) {
 			if len(p.Clubs) == 0 {
@@ -131,14 +132,14 @@ templ CompetitionApprovals(p ApprovalsPage) {
 												<button class="button is-small is-primary" type="submit" name="action" value="approve">Approve, with their sign-offs before</button>
 												<button class="button is-small" type="submit" name="action" value="afresh">Approve, sign-offs from now on</button>
 											} else if len(k.Qualifications) == 0 {
-												// Asks first: there's nothing to check.
-												<button class="button is-small is-primary" type="submit" name="action" value="approve" onclick={ confirmFirst("Approve " + k.Name + "? Their club hasn't sent any qualifications.") }>Approve</button>
+												// Asks first, on the page: there's nothing to check.
+												<button class="button is-small is-primary" type="submit" name="action" value="approve" title="You're asked first">Approve</button>
 											} else {
 												<button class="button is-small is-primary" type="submit" name="action" value="approve">Approve</button>
 											}
 										}
 										if k.Approved {
-											<button class="button is-small" type="submit" name="action" value="withdraw" onclick={ confirmFirst("Withdraw " + k.Name + "'s approval? Their sign-offs stop counting.") }>Withdraw approval</button>
+											<button class="button is-small" type="submit" name="action" value="withdraw">Withdraw approval</button>
 										} else if !k.Withdrawn && k.Status != "Not approved" {
 											<button class="button is-small" type="submit" name="action" value="refuse">Not approved</button>
 										}

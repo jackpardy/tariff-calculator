@@ -238,6 +238,11 @@ func (p *competitionPages) coachLevels(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	p.renderCoachLevels(w, r, coach, club, nil)
+}
+
+// renderCoachLevels shows a coach's Levels, asking before a change (ask).
+func (p *competitionPages) renderCoachLevels(w http.ResponseWriter, r *http.Request, coach store.Coach, club string, ask *views.Ask) {
 	levels, err := p.st.ClubLevels(r.Context(), coach.ClubID)
 	if err != nil {
 		failed(w, r, err)
@@ -253,7 +258,7 @@ func (p *competitionPages) coachLevels(w http.ResponseWriter, r *http.Request) {
 		own[c.ID] = c
 	}
 	base := coachLevelsPath(r.PathValue("token"))
-	page := views.ClubLevelsPage{Frame: coachFrame(r, coach, club, coachLevelsTab), Max: store.MaxClubLevels, New: base + "/new"}
+	page := views.ClubLevelsPage{Frame: coachFrame(r, coach, club, coachLevelsTab, ask), Max: store.MaxClubLevels, New: base + "/new"}
 	// The coach's own set routines, kept on their page, first.
 	kept, err := p.st.KeptRequirements(r.Context(), coach.PersonID)
 	if err != nil {
@@ -397,8 +402,25 @@ func (p *competitionPages) moveClubLevel(w http.ResponseWriter, r *http.Request)
 
 // removeClubLevel removes one of the club's levels.
 func (p *competitionPages) removeClubLevel(w http.ResponseWriter, r *http.Request) {
-	coach, _, ok := p.coach(w, r)
+	coach, club, ok := p.coach(w, r)
 	if !ok {
+		return
+	}
+	levels, err := p.st.ClubLevels(r.Context(), coach.ClubID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	i := slices.IndexFunc(levels, func(l store.ClubLevel) bool { return l.ID == r.PathValue("id") })
+	if i < 0 {
+		failed(w, r, store.ErrNotFound)
+		return
+	}
+	if !asked(r) {
+		p.renderCoachLevels(w, r, coach, club, inPlace(r, views.Ask{
+			Title: "Remove " + levels[i].Name + "?", Text: "It goes for every coach and member of the club. Gymnasts' marks on its skills stay.",
+			Button: "Remove " + levels[i].Name, Back: coachLevelsPath(r.PathValue("token")),
+		}))
 		return
 	}
 	if err := p.st.RemoveClubLevel(r.Context(), coach, r.PathValue("id")); err != nil {

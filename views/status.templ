@@ -80,8 +80,3 @@ templ whoChipText(r Role, name string) {
 		<span class="chip-name">· <span class="chip-name-text">{ name }</span></span>
 	}
 }
-
-// confirmFirst asks before a form does something hard to take back.
-script confirmFirst(question string) {
-	if (!confirm(question)) { event.preventDefault(); }
-}
