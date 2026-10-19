@@ -161,8 +161,10 @@ named by its key, the search is `q`, and `ListFilter.Value`, `Search`, `Shown`
 and `Clear` come from the server.
 - A filter reloads the page.
 - The search narrows the rows already on the page as it's typed, as on every
-  other list. It also keeps the page's address and every link marked
-  `data-list-carry` (Print, CSV) in step, and Enter sends it to the server.
+  other list. It also keeps the page's address, every link and form marked
+  `data-list-carry` (Print, CSV, Remove or hold) and, in a list marked
+  `data-list-carry-links`, an entry's link as it's opened, in step, and
+  Enter sends it to the server.
 - Groups that are dropdowns (the levels) open while a search finds a match,
   as on every list.
 - Extra controls that aren't filters (the sort) go in the tools' children.

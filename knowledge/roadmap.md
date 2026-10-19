@@ -531,6 +531,12 @@ govulncheck in CI; `/healthz` and a graceful shutdown; an end-to-end test on a
 fixed clock; the timetable page 6.1 MB to 0.8 MB; search on the day and
 timetable pages; wide tables as cards on a phone.
 
+**Checking entries, from the full audit: built 2026-10-19.** Filters and
+sort carry through checking (Mark checked and next, ← Entries, removing);
+the entries table fits 1,300 px with Coach and Checked in sight; turning on
+coach approval and changing limits ask first, with counts; Qualified and a
+coach's decision come back to the row with a notice.
+
 **Full audit fixes (decided 2026-10-19).** The owner's choices from the
 second full audit, built on their own branches. Clubs and people's dead ends
 (**built 2026-10-19**): replacing a link asks first, choosing a member's coach

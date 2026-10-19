@@ -329,11 +329,35 @@ func (e Entry) SignedOff() bool { return !e.SignedAt.IsZero() && !e.Unapproved }
 // coaches, or the coach who signed is approved there (and signed since, if
 // the organiser started their sign-offs afresh): a club's coach, or the
 // coach an individual named.
-const signoffCounts = `(NOT (SELECT approve_coaches FROM competitions WHERE id = entries.competition_id)
-	OR EXISTS (SELECT 1 FROM competition_coaches cc WHERE NOT entries.individual AND cc.competition_id = entries.competition_id
+const signoffCounts = `(NOT (SELECT approve_coaches FROM competitions WHERE id = entries.competition_id) OR ` + signoffApproved + `)`
+
+// signoffApproved is the condition for a sign-off to count where the
+// competition approves coaches.
+const signoffApproved = `(EXISTS (SELECT 1 FROM competition_coaches cc WHERE NOT entries.individual AND cc.competition_id = entries.competition_id
 		AND cc.coach_id = entries.signed_coach AND cc.status = 'approved' AND entries.signed_at >= cc.counts_from)
 	OR EXISTS (SELECT 1 FROM entry_coaches ec WHERE entries.individual AND ec.entry_id = entries.id
 		AND ec.status = 'approved' AND entries.signed_at >= ec.counts_from))`
+
+// UnapprovedSignoffs are a competition's entries (by id) signed off by a
+// coach it hasn't approved: those whose sign-off stops counting once it
+// approves coaches, or doesn't count now if it does.
+func (s *Store) UnapprovedSignoffs(ctx context.Context, competitionID string) (map[string]bool, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT id FROM entries
+		WHERE competition_id = $1 AND COALESCE(signed_at, '') != '' AND NOT `+signoffApproved, competitionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]bool{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out[id] = true
+	}
+	return out, rows.Err()
+}
 
 const (
 	// VideoOK and VideoMore are the organiser's review of an entry's videos:
@@ -401,6 +425,18 @@ func markWaiting(limits map[string]int, entries []Entry) {
 			}
 		}
 	}
+}
+
+// WithLimits are entries, as Entries reads them, with their places on the
+// waiting lists as other limits would make them: what changing the limits
+// would do.
+func WithLimits(limits map[string]int, entries []Entry) []Entry {
+	out := slices.Clone(entries)
+	for i := range out {
+		out[i].Waiting = 0
+	}
+	markWaiting(limits, out)
+	return out
 }
 
 // SetLimits changes the competition's limits, by event (0 or missing: no

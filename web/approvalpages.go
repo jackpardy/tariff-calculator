@@ -1,7 +1,9 @@
 package web
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
@@ -113,6 +115,25 @@ func (p *competitionPages) setApproveCoaches(w http.ResponseWriter, r *http.Requ
 			levels[d] = n
 		}
 	}
+	// Turning it on stops sign-offs by coaches not approved counting: it
+	// asks first, saying how many entries that leaves waiting.
+	waiting := 0
+	if on && !c.ApproveCoaches && c.Signoff {
+		var err error
+		if waiting, err = p.waitingOnApproval(r.Context(), c); err != nil {
+			failed(w, r, err)
+			return
+		}
+		if waiting > 0 && !asked(r) {
+			p.askBefore(w, r, c, menuSettings, views.AskFirstPage{
+				What: "Turn on coach approval",
+				Says: fmt.Sprintf("This makes %s wait for a coach's sign-off.", views.Count(waiting, "entry", "entries")),
+				Then: "Sign-offs by coaches you haven't approved stop counting. They count again once you approve those coaches on the Coaches page, after clubs send them.",
+				Do:   "Turn it on", Back: settingsPath(r.PathValue("token")) + "#signoff",
+			})
+			return
+		}
+	}
 	if err := p.st.SetApproveCoaches(r.Context(), c.ID, on, levels); err != nil {
 		failed(w, r, err)
 		return
@@ -121,7 +142,31 @@ func (p *competitionPages) setApproveCoaches(w http.ResponseWriter, r *http.Requ
 	if on {
 		notice = "Only coaches you approve can sign off: clubs send theirs, and you approve them on the Coaches page."
 	}
+	if waiting > 0 {
+		notice += fmt.Sprintf(" Waiting for a coach's sign-off until then: %s.", views.Count(waiting, "entry", "entries"))
+	}
 	backToSettings(w, r, notice)
+}
+
+// waitingOnApproval is how many of a competition's entries, signed off now,
+// would wait for a coach's sign-off once it approves coaches: those (in, not
+// withdrawn) signed off by a coach it hasn't approved.
+func (p *competitionPages) waitingOnApproval(ctx context.Context, c store.Competition) (int, error) {
+	unapproved, err := p.st.UnapprovedSignoffs(ctx, c.ID)
+	if err != nil || len(unapproved) == 0 {
+		return 0, err
+	}
+	entries, err := p.entriesOf(ctx, c.ID)
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, e := range live(entries) {
+		if e.SignedOff() && unapproved[e.ID] {
+			n++
+		}
+	}
+	return n, nil
 }
 
 // individualsClub is the heading of the coaches individuals name, who have
@@ -148,7 +193,7 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 	page := views.ApprovalsPage{Base: base, Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuCoaches), Notice: r.URL.Query().Get("notice"), Asked: askedLevels(c.Competition)}
 	var clubs []string
 	for _, s := range sent {
-		row := views.ApprovalRow{ID: s.CoachID, Name: s.Name, Person: personPath(base, store.CoachKey(s.CoachID)), Action: base + "/coaches/" + s.CoachID, Status: coachStatus(s.Status), Approved: s.Approved(),
+		row := views.ApprovalRow{ID: s.CoachID, Anchor: "coach-" + s.CoachID, Name: s.Name, Person: personPath(base, store.CoachKey(s.CoachID)), Action: base + "/coaches/" + s.CoachID, Status: coachStatus(s.Status), Approved: s.Approved(),
 			Withdrawn: s.Status == store.CoachWithdrawn, Note: s.Note, Changed: s.Changed}
 		if s.Status == store.CoachWaiting {
 			row.Status = "Waiting"
@@ -173,7 +218,7 @@ func (p *competitionPages) approvals(w http.ResponseWriter, r *http.Request) {
 		individuals := views.ApprovalClub{Club: individualsClub}
 		clubs = append(clubs, individualsClub)
 		for _, n := range named {
-			row := views.ApprovalRow{ID: n.EntryID, Name: n.Name + ", coach of " + n.Gymnast, Person: personPath(base, store.NamedCoachKey(n.Name)), Action: base + "/entry-coaches/" + n.EntryID,
+			row := views.ApprovalRow{ID: n.EntryID, Anchor: "named-" + n.EntryID, Name: n.Name + ", coach of " + n.Gymnast, Person: personPath(base, store.NamedCoachKey(n.Name)), Action: base + "/entry-coaches/" + n.EntryID,
 				Status: coachStatus(n.Status), Approved: n.Approved(), Withdrawn: n.Status == store.CoachWithdrawn, Note: n.Note,
 				Qualifications: []views.ApprovalQualification{{Name: qualificationName(n.Qualification), Certificate: base + "/entry-coaches/" + n.EntryID + "/certificate"}},
 				Meets:          meets(c.Competition, []string{n.Qualification})}
@@ -220,7 +265,11 @@ func (p *competitionPages) decideCoach(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	seeOther(w, r, adminPath(r.PathValue("token"))+"/coaches", notice)
+	if status == store.CoachApproved && len(coach.Qualifications) == 0 {
+		notice = "Approved " + coach.Name + ", though their club hasn't sent any qualifications."
+	}
+	// Back to the coach, where it shows.
+	seeOther(w, r, adminPath(r.PathValue("token"))+"/coaches#coach-"+coach.CoachID, notice)
 }
 
 // competitionCertificate shows the organiser a certificate of a coach sent
@@ -274,7 +323,7 @@ func (p *competitionPages) decideEntryCoach(w http.ResponseWriter, r *http.Reque
 		failed(w, r, err)
 		return
 	}
-	seeOther(w, r, adminPath(r.PathValue("token"))+"/coaches", notice)
+	seeOther(w, r, adminPath(r.PathValue("token"))+"/coaches#named-"+named.EntryID, notice)
 }
 
 // entryCertificate shows the organiser the certificate of a coach an

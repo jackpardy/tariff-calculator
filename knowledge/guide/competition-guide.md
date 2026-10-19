@@ -95,14 +95,17 @@ asked, when it was sent, and whether you've checked it. To find entries:
 not, video, men or women, or **Problems only**, and sort by club, gymnast,
 latest sent or coach. The filters stay in the page's address, so you can
 bookmark or share a view; **Print** and **Download CSV**, below the entries, use them too. The page opens on the entries; the competition's dates and counts are at the bottom. With many filters, they're under **Filters**, which says how many are on. Each event's table starts folded (tap its heading to open it) and
-says how many of its entries are shown ("12 of 96"); **Columns** chooses which columns show and can clip long text to one line, and dragging the edge of a heading makes a column wider or narrower; a line at a table's edge means there's more to scroll to. **Expand all** and **Collapse all** open or fold every one, and
+says how many of its entries are shown ("12 of 96"); **Columns** chooses which columns show (Sent is hidden until you tick it, so the rest fit a laptop's screen) and can clip long text to one line, and dragging the edge of a heading makes a column wider or narrower; a line at a table's edge means there's more to scroll to. **Expand all** and **Collapse all** open or fold every one, and
 your browser remembers which you left open. A search or filter opens the
 events it finds people in. Tap a gymnast to see both exercises in full (a synchro
 pair's one routine), checked as the Routine Builder checks them.
 
 - **Mark checked** once you're happy, with a **note** for the club or gymnast
   if something needs fixing ("element 7 repeats element 3"). If they change
-  the entry, it needs checking again.
+  the entry, it needs checking again. **Mark checked and next** opens the
+  next entry to check. Your search, filters and sort go with you: the next
+  entry is the next one they show, and **← Entries** takes you back to the
+  list as you left it, at the entry you were on.
 - **Video**: open each video (it opens in a new tab), then **Video OK** or
   **Need more** with a note of what's missing.
 - **Print** opens a menu: **Cards** prints a competition card per exercise,
@@ -158,6 +161,8 @@ pair's one routine), checked as the Routine Builder checks them.
   is withdrawn or removed, or you raise the limit; **Let in** takes someone
   in over the limit. Clubs and gymnasts see their place ("waiting list,
   3rd"); waiting entries aren't counted, charged, printed or timetabled.
+  A change of limits that lets entries in from a waiting list, or moves
+  entries already in onto one, asks first, naming who.
 - **Fees:** tap **Fees** to set what you charge (euro or sterling, an
   amount per entry for each discipline, a synchro pair counting as one,
   and a club fee if you have one) and how to pay. Each club and individual
@@ -192,6 +197,10 @@ pair's one routine), checked as the Routine Builder checks them.
   an entry signed off by anyone else says so. **Withdraw approval** stops a
   coach's sign-offs counting; approving them again, choose whether the
   sign-offs they gave before count again or only those from now on.
+  Turning approval on when entries are already signed off asks first,
+  saying how many entries it leaves waiting for a coach's sign-off.
+  Approving a coach whose club sent no qualifications asks first too, and
+  after deciding you're back at that coach.
 
 **Remove or hold entries**: tick entries in the tables (a table's header
 ticks them all; filter by club first to take a whole club), then choose
@@ -239,7 +248,8 @@ and anyone you add.
 
 - **Add someone** (at the head of the list) who isn't entering, such as a judge with no club: their name,
   club (if any), and what they can judge and help with.
-- Tick **Qualified** for people qualified to judge. Each person's judging
+- Tick **Qualified** for people qualified to judge; the page comes back to
+  that person, saying what changed. Each person's judging
   qualifications show under what they offer, with a link to each certificate.
   Where only people you tick may judge, anyone offering to judge a
   discipline with no qualification in it is flagged ("No judging

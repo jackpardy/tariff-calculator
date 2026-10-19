@@ -101,8 +101,8 @@ went from 65 ms and 88 MB allocated to 6 ms and 12 MB, the dashboard from
 | `POST /competitions` | `name`, `date`, `deadlineDate`, `deadlineTime` (Irish and UK time), `individuals`, `opens` (`later`, the default, for private; `now`; or `at` with `liveDate` and `liveTime`), each built-in `level`, each of the browser's own levels as `custom` (`{level, sets}`) | 303 to the dashboard with `?new=created`; 422 with the problems; 429 after 5 an hour from one address |
 | `GET /competitions/admin/{token}` | optional `club` (a club's name or `individual`), `problems=1`, `new` | The organiser's dashboard |
 | `GET /competitions/admin/{token}/settings` | optional `notice`, `new=replaced` | The Settings page: links and every setting, in groups (organiser and "everything" links only). The settings forms below come back to it |
-| `GET /competitions/admin/{token}/entries/{id}` | — | One entry, checked |
-| `POST /competitions/admin/{token}/entries/{id}/check` | `checked` (`1`/`0`), `note` | Marks the entry checked or not, with a note the club or gymnast sees |
+| `GET /competitions/admin/{token}/entries/{id}` | optional the dashboard's filters and `sort` (`club`, `problems`, `q`, `coach`, `checked`, `signedoff`, `video`, `category`), carried on | One entry, checked; **← Entries** goes back to the dashboard with those filters, at `#entry-<id>` |
+| `POST /competitions/admin/{token}/entries/{id}/check` | posted `checked` (`1`/`0`), `note`, `next=1`; the dashboard's filters and `sort` in the query | Marks the entry checked or not, with a note the club or gymnast sees; with `next=1`, on to the next entry to check that the filters show, keeping them |
 | `GET /competitions/admin/{token}/cards` | optional `club`, `problems=1`, `unchecked=1`, `level`, `entry` | Printable competition cards (the [tariff sheet](../features/tariff-sheet.md), filled in), one exercise per page |
 | `GET /competitions/admin/{token}/entries.csv` | — | Every entry as CSV: gymnast, club, level, each exercise and its difficulty, problems, checked, note, sent |
 | `POST /competitions/admin/{token}/deadline` | `close=1`, or `deadlineDate` and `deadlineTime` | Closes entries now, or changes when they close (by the end of the competition date) |
@@ -128,7 +128,7 @@ went from 65 ms and 88 MB allocated to 6 ms and 12 MB, the dashboard from
 | `POST /competitions/admin/{token}/late/{id}/accept` | `note` | Applies a late change: the entry, the draft timetable, the fee |
 | `POST /competitions/admin/{token}/late/{id}/reject` | `reason` | Turns a late change down |
 | `POST /competitions/admin/{token}/later-deadlines` | `changesDate`, `changesTime`, `signoffsDate`, `signoffsTime` (empty: with the deadline) | When changes to entries, and coaches' sign-offs, close |
-| `POST /competitions/admin/{token}/limits` | `limit-<n>` for each event, in the competition's order (empty: none) | Sets each event's limit (waiting lists) |
+| `POST /competitions/admin/{token}/limits` | `limit-<n>` for each event, in the competition's order (empty: none), `anyway=1` | Sets each event's limit (waiting lists). Limits that would let entries in from a waiting list, or move entries in onto one, show **Before you change it** (200), naming them, unless `anyway=1` |
 | `POST /competitions/admin/{token}/entries/{id}/let-in` | `on` (`1`/`0`) | Lets a waiting entry in over the limit, or back |
 | `GET /competitions/admin/{token}/fees` | — | Entry fees: what's charged, and each club's and individual's account |
 | `POST /competitions/admin/{token}/fees/settings` | `currency` (`GBP` or not), `fee-<discipline>`, `club`, `instructions` | Sets the fees |
@@ -239,7 +239,7 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET /competitions/admin/{token}/officials` | `notice` | The officials: who can judge and chair each discipline, the panels and judging rule, and everyone offered or added |
 | `POST /competitions/admin/{token}/officials/settings` | `judge` (`""`, `below`, `qualified`), `panel-<discipline>-<role>` | Panels per discipline and who may judge what |
 | `POST /competitions/admin/{token}/officials/add` | `name`, `club`, and an offer | Adds a judge or helper |
-| `POST /competitions/admin/{token}/officials/{id}/qualified`, `/remove` | `on` | Marks someone qualified; removes someone the organiser added |
+| `POST /competitions/admin/{token}/officials/{id}/qualified`, `/remove` | `on` | Marks someone qualified, back at their row (`#official-<id>`) with a notice; removes someone the organiser added |
 | `POST /clubs/member/{token}/competitions/{id}/offer`, `GET`/`POST /clubs/admin/{token}/members/{member}/competitions/{id}/offer`, `POST /competitions/entry/{token}/offer` | `judge-<discipline>`, `upto-<discipline>`, `chair-<discipline>`, `recorder`, `marshal` | What a member, the comp sec for a member, or an individual offers to judge and help with (the comp sec back to the competition's Judging and helping) |
 | `POST /competitions/admin/{token}/split` | `split` (`""`, `all`, `some`), `splitLevel` | Which levels rank men and women separately (also `split=all` on `POST /competitions`); entries then take `category` |
 | `GET /competitions/admin/{token}/timetable/setup` | `notice` | The timetable's Setup page: days and areas, timings and rest, blocked time, your rules, and **Plan**. The setup forms below come back to it |
@@ -280,12 +280,12 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET`, `POST /competitions/signoff/{token}/late` | `coach` (their name), `note` | An individual's coach signing off their late change |
 | `POST /competitions/entry/{token}/coach` | `name`, plus a `qualification` and its `certificate` (multipart) where the competition approves coaches | An individual names their coach, with the certificate the organiser checks |
 | `GET /competitions/admin/{token}/coaches` | — | Coaches (ADR 0007): each club's coaches sent for approval and individuals' coaches, with their qualifications and certificates, to approve or not |
-| `POST /competitions/admin/{token}/approve-coaches` | `on` (`1`/`0`) | Whether only approved coaches' sign-offs count |
-| `POST /competitions/admin/{token}/coaches/{coach}` | `action` (`approve`, `afresh` for sign-offs from now on, `refuse`, `withdraw`), `note` | The organiser's decision on a club's coach, with a note the club sees |
+| `POST /competitions/admin/{token}/approve-coaches` | `on` (`1`/`0`), `level-<discipline>`, `anyway=1` | Whether only approved coaches' sign-offs count. Turning it on where entries are signed off by coaches not approved shows **Before you change it** (200), with how many would wait, unless `anyway=1` |
+| `POST /competitions/admin/{token}/coaches/{coach}` | `action` (`approve`, `afresh` for sign-offs from now on, `refuse`, `withdraw`), `note` | The organiser's decision on a club's coach, with a note the club sees; back at the coach (`#coach-<id>`) |
 | `GET /competitions/admin/{token}/coaches/{coach}/certificates/{q}` | — | A club coach's certificate, as uploaded |
-| `POST /competitions/admin/{token}/entry-coaches/{entry}` | `action` (as above), `note` | The organiser's decision on an individual's coach |
+| `POST /competitions/admin/{token}/entry-coaches/{entry}` | `action` (as above), `note` | The organiser's decision on an individual's coach; back at the coach (`#named-<entry>`) |
 | `GET /competitions/admin/{token}/entry-coaches/{entry}/certificate` | — | An individual's coach's certificate |
-| `POST /competitions/admin/{token}/remove` | `entry` (repeated), `action` (`hold` to hold rather than remove), `note`, `to` (who the note is for: the club, the member or both) | Removes or holds the ticked entries, with a note |
+| `POST /competitions/admin/{token}/remove` | `entry` (repeated), `action` (`hold` to hold rather than remove), `note`, `to` (who the note is for: the club, the member or both) | Removes or holds the ticked entries, with a note; back to the dashboard with the filters and `sort` in its query |
 | `POST /competitions/admin/{token}/entries/{id}/restore` | — | Puts a removed or held entry back |
 | `POST /clubs/admin/{token}/competitions/{id}/coaches` | `coach` (ids, repeated) | Sends the ticked coaches to the competition for approval; back to its Coaches tab |
 | `POST /clubs/admin/{token}/coaches/{coach}/qualifications` | `qualification` (its key), `certificate` (a file, multipart, up to 3 MB) | Adds a qualification with its certificate to a coach |
