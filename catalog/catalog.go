@@ -119,7 +119,7 @@ var groups = []struct {
 	{"drops", "To seat", [][2]string{{"seatDrop", "Seat Drop"}, {"halfToSeat", "½ Twist To Seat"}}},
 	{"drops", "From seat", [][2]string{{"seatToFeet", "To Feet"}, {"seatHalfToFeet", "½ Twist To Feet"}, {"seatHalfToSeat", "½ Twist To Seat"}, {"seatHalfToFront", "½ Twist To Front"}}},
 	{"drops", "To back or front", [][2]string{{"backDrop", "Back Drop"}, {"halfToBack", "½ Twist To Back"}, {"frontDrop", "Front Drop"}, {"halfToFront", "½ Twist To Front"}}},
-	{"drops", "From back or front", [][2]string{{"backToFeet", "Back To Feet"}, {"backHalfToFeet", "Back ½ Twist To Feet"}, {"frontToFeet", "Front To Feet"}}},
+	{"drops", "From back or front", [][2]string{{"backToFeet", "Back To Feet"}, {"backHalfToFeet", "Back ½ Twist To Feet"}, {"frontToFeet", "Front To Feet"}, {"cradle", "Back ½ Twist To Back"}, {"catTwist", "Back Full Twist To Back"}}},
 }
 
 // categoryOrder is the picker's tab order, from the simplest skills up.
@@ -148,15 +148,19 @@ func categoryOf(s skills.TrampolineSkill) string {
 	}
 }
 
-// somersaultNames are what rule books call the skills whose names don't say
-// they're somersaults ("Back s/s" for a Back): said beside the app's own name
-// in a search (AlsoCalled), so either finds it and the card's name is the one
-// it goes by everywhere.
-var somersaultNames = map[string]string{
-	"Back":          "Back s/s",
-	"Front":         "Front s/s",
-	"Back To Seat":  "Back s/s To Seat",
-	"Front To Seat": "Front s/s To Seat",
+// otherNames are what rule books and coaches call skills where it isn't the
+// app's name: the somersaults whose names don't say so ("Back s/s" for a
+// Back), and body landings with names of their own ("Cradle"). Said beside
+// the app's own name in a search (AlsoCalled), so either finds it and the
+// card's name is the one it goes by everywhere.
+var otherNames = map[string]string{
+	"Back":                    "Back s/s",
+	"Front":                   "Front s/s",
+	"Back To Seat":            "Back s/s To Seat",
+	"Front To Seat":           "Front s/s To Seat",
+	"Seat Half Twist To Seat": "Swivel Hips",
+	"Back Half Twist To Back": "Cradle",
+	"Back Full Twist To Back": "Cat Twist",
 }
 
 // PickerName is a skill's name in the picker: the card's name without its
@@ -170,10 +174,11 @@ func PickerName(s skills.TrampolineSkill) string {
 	return name
 }
 
-// AlsoCalled is what rule books call a skill where it isn't the app's name,
-// with its shape ("Back s/s Tuck" for a Tuck Back); "" where it's the same.
+// AlsoCalled is what rule books or coaches call a skill where it isn't the
+// app's name, with its shape ("Back s/s Tuck" for a Tuck Back); "" where it's
+// the same.
 func AlsoCalled(s skills.TrampolineSkill) string {
-	full, ok := somersaultNames[PickerName(s)]
+	full, ok := otherNames[PickerName(s)]
 	if !ok {
 		return ""
 	}

@@ -531,6 +531,13 @@ govulncheck in CI; `/healthz` and a graceful shutdown; an end-to-end test on a
 fixed clock; the timetable page 6.1 MB to 0.8 MB; search on the day and
 timetable pages; wide tables as cards on a phone.
 
+**Skill names and search (full audit, built 2026-10-19).** The catalogue
+has the common twisting singles, doubles and triples, named and placed as the
+Code of Points' examples (Full-In Back, Rudi-Out, Half-In Rudi-Out, Triple
+Full Back…), and search finds skills by the names people type ("½ twist
+jump", "piked back", "back drop to feet", "swivel hips", "cradle"). See
+[skill catalog](domain/skill-catalog.md).
+
 **One palette for states and roles (planned 2026-10-15).** Fixed colours for
 states (grey not yet, blue in progress, green done, amber needs attention,
 red stopped) and for who did something (gymnast, coach, club, organiser),
