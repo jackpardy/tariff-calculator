@@ -198,6 +198,15 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 	notice := ""
 	switch r.FormValue("action") {
 	case "rota":
+		if draft.Planned && !asked(r) {
+			p.askBefore(w, r, c, menuTimetable, views.AskFirstPage{
+				What: "Assign officials again",
+				Says: "Every panel is assigned afresh from who has offered, and what you changed by hand on the panels is lost.",
+				Then: "The flights stay as they are.",
+				Do:   "Assign officials again", Back: timetablePath(r),
+			})
+			return
+		}
 		notice = "Officials assigned again."
 	case "seat":
 		if !r.Form.Has("person") {

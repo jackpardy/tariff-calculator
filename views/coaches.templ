@@ -46,20 +46,15 @@ func (s SignoffView) Status() string {
 	return ""
 }
 
-// signoffBox shows an entry's sign-off as a state chip, with the coach's
-// chip and their note, as the comp sec's and the organiser's rows show it.
+// signoffBox shows an entry's sign-off on its card as the comp sec's rows
+// show it (signoffLine): the state chip, then "by" and the coach in small
+// text, with their note.
 templ signoffBox(s SignoffView) {
 	if s.Status() != "" {
 		<p class="mb-3">
+			@signoffLine(s)
 			if s.Unapproved {
-				Signed off by
-				@coachName(s.By, s.Link, true)
 				<span class="is-size-7 has-text-grey ml-1">* The competition hasn't approved them as a coach, so it doesn't count.</span>
-			} else {
-				@StateChip(signoffState(s))
-				if s.By != "" {
-					@WhoLink(RoleCoach, s.By, s.Link)
-				}
 			}
 			if s.Note != "" {
 				<span class="is-size-7 ml-1">{ s.Note }</span>

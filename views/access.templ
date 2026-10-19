@@ -65,7 +65,7 @@ templ linksBox(base string, links []LinkView) {
 								made { l.Made }
 							</span>
 						</span>
-						<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/remove") } class="is-inline" onsubmit={ confirmFirst("Remove the link for " + l.Name + "? It stops working at once.") }>
+						<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/remove") } class="is-inline">
 							<button class="button is-small is-text has-text-danger" type="submit" aria-label={ "Remove the link for " + l.Name }>Remove</button>
 						</form>
 					</li>
@@ -206,9 +206,10 @@ templ concernView(base string, c ConcernView, a Access) {
 		<p class="is-size-7 has-text-grey">{ c.Who } · { c.At }</p>
 		if !c.Open {
 			<p class="is-size-7">
-				Resolved by { c.ResolvedBy }
 				if c.Resolution != "" {
-					: { c.Resolution }
+					{ "Resolved by " + c.ResolvedBy + ": " + c.Resolution }
+				} else {
+					Resolved by { c.ResolvedBy }
 				}
 			</p>
 		} else if a.Resolve {

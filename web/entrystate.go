@@ -69,7 +69,7 @@ func memberStatus(s standing, removal store.Entry, changed bool) string {
 	case entryChanged:
 		return "Changed since your club sent it"
 	case entryChecked:
-		return "Sent by your club · checked by the organiser ✓"
+		return "Checked by the organiser"
 	}
 	return "Sent by your club"
 }
@@ -93,9 +93,10 @@ func stateOfStanding(s standing) views.State {
 }
 
 // brief is where an entry stands in a word or two, for the list of a
-// competition's disciplines, and its state: problems are on its card, place
-// is its place on a waiting list, and sent is how a sent entry is put.
-func brief(s standing, problems, place int, sent string) (string, views.State) {
+// competition's disciplines, and its state: problems are on its card, and
+// place is its place on a waiting list. The words are the glossary's (ui.md),
+// the same for a member's entry and an individual's.
+func brief(s standing, problems, place int) (string, views.State) {
 	switch {
 	case s == entryRemoved:
 		return "Removed", views.Stopped
@@ -108,13 +109,13 @@ func brief(s standing, problems, place int, sent string) (string, views.State) {
 	}
 	switch s {
 	case entryNotSent:
-		return "Saved, not sent", views.NotYet
+		return "Not sent", views.NotYet
 	case entryWaiting:
 		return "Waiting list, " + waitingWord(place), views.InProgress
 	case entryChanged:
-		return "Changed, send again", views.Attention
+		return "Changed since sent", views.Attention
 	case entryChecked:
-		return "Organiser checked", views.Done
+		return "Checked", views.Done
 	}
-	return sent, views.InProgress
+	return "Sent", views.InProgress
 }

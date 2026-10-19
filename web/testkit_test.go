@@ -336,31 +336,16 @@ type dayFlight struct {
 	Order              []string          // the gymnasts in running order
 }
 
-// chip is a state chip as pages show it, to look for in one.
-// whoChip is a role chip as the pages show it, naming someone.
-func whoChip(t *testing.T, r views.Role, name string) string {
-	t.Helper()
-	var b strings.Builder
-	if err := views.WhoChip(r, name).Render(context.Background(), &b); err != nil {
-		t.Fatal(err)
-	}
-	return b.String()
-}
-
-// signedOffBy says a page shows an entry signed off by the coach named.
+// signedOffBy says a page shows an entry signed off by the coach named: the
+// chip, then "by" and their name in small text, a link where they have a page
+// (ui.md, "The same words").
 func signedOffBy(t *testing.T, page, coach string) bool {
 	t.Helper()
-	return strings.Contains(page, chip(t, views.Done, "Signed off")) && strings.Contains(page, whoChipText(t, views.RoleCoach, coach))
+	by := regexp.MustCompile(regexp.QuoteMeta(chip(t, views.Done, "Signed off")) + `\s*<span class="is-size-7">by (<a href="[^"]*">)?` + regexp.QuoteMeta(html.EscapeString(coach)) + `(</a>)?`)
+	return by.MatchString(page)
 }
 
-// whoChipText is what a role chip naming someone says, as a plain chip or
-// as a link to their page (views.WhoLink).
-func whoChipText(t *testing.T, r views.Role, name string) string {
-	t.Helper()
-	c := whoChip(t, r, name)
-	return strings.TrimSuffix(c[strings.Index(c, ">")+1:], "</span>")
-}
-
+// chip is a state chip as pages show it, to look for in one.
 func chip(t *testing.T, s views.State, label string) string {
 	t.Helper()
 	var b strings.Builder

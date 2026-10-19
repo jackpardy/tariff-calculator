@@ -45,7 +45,8 @@ var buttonRoles = map[string]bool{
 	"button is-small is-text has-text-danger": true, "button is-text has-text-danger": true,
 	"button is-small is-text": true, "button is-text": true,
 	"button is-small is-state-done": true, "button is-small is-state-stopped": true,
-	"button is-small is-danger": true, // deleting a whole competition or club, and nothing else
+	"button is-small is-danger":             true, // deleting a whole competition or club, and nothing else
+	"button is-small is-danger is-outlined": true, // confirming a removal asked about in place
 }
 
 // buttonClass is a button's classes in a template, written plainly or with
@@ -103,6 +104,42 @@ func TestNoticesAreShared(t *testing.T) {
 	}
 	if got := render(t, notice("")); got != "" {
 		t.Errorf("no notice: %q", got)
+	}
+}
+
+// No browser pop-ups: a change asks on its own page, in a box on the page
+// it's asked from (askBox), or is made with Undo (ui.md, "Asking first").
+// Every competition and club page's script is checked too.
+func TestNoBrowserPopups(t *testing.T) {
+	popup := regexp.MustCompile(`\b(confirm|alert|prompt)\(`)
+	files := competitionPages(t)
+	for _, js := range []string{"competitions.js", "tables.js", "menus.js", "taps.js", "fill.js", "judging.js", "feedback.js", "screen.js", "selectsearch.js", "push.js"} {
+		files = append(files, filepath.Join("..", "static", "js", js))
+	}
+	for _, name := range files {
+		src, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, line := range strings.Split(string(src), "\n") {
+			if popup.MatchString(line) {
+				t.Errorf("%s:%d: a browser pop-up: %s", name, i+1, strings.TrimSpace(line))
+			}
+		}
+	}
+	a := &Ask{Title: "Remove Ann?", Text: "Her entries go too.", Action: "/x/remove", Fields: []FormValue{{Name: "note", Value: "n"}}, Button: "Remove Ann", Back: "/x"}
+	got := render(t, askBox(a))
+	for _, want := range []string{`class="notification is-warning is-light comp-ask"`, "Remove Ann?", `action="/x/remove"`, `name="note" value="n"`, `name="anyway" value="1"`, ">Remove Ann</button>", `href="/x">Cancel`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("the ask has %q: %s", want, got)
+		}
+	}
+	if got := render(t, askBox(nil)); got != "" {
+		t.Errorf("no ask: %q", got)
+	}
+	got = render(t, undoNotice("Withdrew Ann's approval.", &Undo{Action: "/x/approve", Fields: []FormValue{{Name: "action", Value: "approve"}}}, false))
+	if !strings.Contains(got, "comp-notice") || !strings.Contains(got, `action="/x/approve"`) || !strings.Contains(got, ">Undo</button>") {
+		t.Errorf("a notice with Undo: %s", got)
 	}
 }
 

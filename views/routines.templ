@@ -183,7 +183,7 @@ templ routinesList(p RoutinesPart) {
 					</form>
 				}
 				if r.Delete != "" {
-					<form method="post" action={ templ.SafeURL(r.Delete) } onsubmit={ confirmDelete(r.Name) }>
+					<form method="post" action={ templ.SafeURL(r.Delete) }>
 						<button class="button is-small is-text has-text-danger" type="submit">Delete from your page</button>
 					</form>
 				}
@@ -207,11 +207,6 @@ templ keepRoutinesForm(p RoutinesPart, button string, unticked bool) {
 	}
 }
 
-// confirmDelete asks before a routine is deleted from a member's page.
-script confirmDelete(name string) {
-	if (!confirm('Delete ' + name + ' from your page? The routines saved in this browser stay.')) { event.preventDefault(); }
-}
-
 // MemberRoutines is a member's Routines tab: their kept routines, and adding
 // more from the routines saved in this browser.
 templ MemberRoutines(p MemberPage) {
@@ -230,6 +225,7 @@ templ MemberRoutines(p MemberPage) {
 type CoachFrame struct {
 	Club, Coach string
 	Notice      string
+	Ask         *Ask // asking before a club skill or level is removed
 	Menu        []MenuSection
 }
 
@@ -240,6 +236,7 @@ templ coachFrame(f CoachFrame) {
 	if f.Notice != "" {
 		@notice(f.Notice)
 	}
+	@askBox(f.Ask)
 }
 
 // CoachGymnast is a gymnast a coach sees, in their Gymnasts list.

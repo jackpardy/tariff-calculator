@@ -90,7 +90,7 @@ func TestOfficialsRota(t *testing.T) {
 		t.Fatal("Tom is in the rules form")
 	}
 	redirected(t, h, tt+"/setup/rules", url.Values{"add": {"1"}, "kind": {"off"}, "must": {"1"}, "person": {tom[1]}, "event": {""}})
-	page = do(t, h, http.MethodGet, redirected(t, h, tt+"/officials", url.Values{"action": {"rota"}}), nil).Body.String()
+	page = do(t, h, http.MethodGet, redirected(t, h, tt+"/officials", url.Values{"action": {"rota"}, "anyway": {"1"}}), nil).Body.String()
 	if setup := do(t, h, http.MethodGet, tt+"/setup", nil).Body.String(); !strings.Contains(setup, "Tom doesn&#39;t officiate (must)") {
 		t.Error("Tom's rule is in the setup")
 	}
@@ -134,7 +134,7 @@ func TestOfficialsRota(t *testing.T) {
 	}
 
 	// Published, Dara sees her duties.
-	if strings.Contains(do(t, h, http.MethodGet, dara, nil).Body.String(), "Officiating") {
+	if strings.Contains(do(t, h, http.MethodGet, dara, nil).Body.String(), "<p><strong>Your duties</strong></p>") {
 		t.Error("not before publishing")
 	}
 	redirected(t, h, tt+"/publish", url.Values{"on": {"1"}})

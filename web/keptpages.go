@@ -359,7 +359,7 @@ func (p *competitionPages) coachKept(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if part, ok := p.keptPart(w, r); ok {
-		render(w, r, views.CoachRequirements(coachFrame(r, coach, club, coachRequirementsTab), part))
+		render(w, r, views.CoachRequirements(coachFrame(r, coach, club, coachRequirementsTab, nil), part))
 	}
 }
 

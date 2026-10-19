@@ -143,7 +143,7 @@ templ exerciseCard(ex ExerciseCard, level int) {
 								}
 								if ex.Validation.Messages[i] != "" {
 									<br/>
-									<span class="is-size-7 has-text-danger">{ skills.ElementNote(i, ex.Validation.Messages[i]) }</span>
+									<span class={ "is-size-7", templ.KV("has-text-danger", !onlyCountsOnce(ex.Validation.Messages[i])), templ.KV("has-text-grey", onlyCountsOnce(ex.Validation.Messages[i])) }>{ skills.ElementNote(i, ex.Validation.Messages[i]) }</span>
 								}
 							</td>
 							<td class="has-text-grey comp-nowrap">{ sv.FIGNotation }</td>
@@ -341,4 +341,10 @@ templ videoBox(v VideoView) {
 			}
 		</div>
 	}
+}
+
+// onlyCountsOnce says an element's only note is that it's the first of a
+// repeat: its difficulty counts, so it's a note, not a problem.
+func onlyCountsOnce(message string) bool {
+	return message == "Duplicate (Counts Once)"
 }

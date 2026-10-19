@@ -288,7 +288,7 @@ func TestCompetitionLinksOnAPersonalPage(t *testing.T) {
 	}
 	settings := get(admin + "/settings")
 	for _, id := range regexp.MustCompile(`action="[^"]*/links/([^/"]+)/remove"`).FindAllStringSubmatch(settings, -1) {
-		redirected(t, h, admin+"/links/"+id[1]+"/remove", nil)
+		redirected(t, h, admin+"/links/"+id[1]+"/remove", url.Values{"anyway": {"1"}})
 	}
 	if rec := do(t, h, http.MethodGet, asChair, nil); rec.Code != http.StatusNotFound {
 		t.Errorf("a removed helper link ends it: %d", rec.Code)

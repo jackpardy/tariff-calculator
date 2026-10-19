@@ -51,9 +51,7 @@ func (p *competitionPages) askFirst(w http.ResponseWriter, r *http.Request, c st
 	if fixes != nil {
 		page.Fixes = fixes(clean)
 	}
-	if rec, ok := w.(*statusRecorder); ok {
-		rec.asked = true
-	}
+	noteAsked(w)
 	render(w, r, views.ChangeCheck(page))
 	return true
 }
@@ -66,12 +64,31 @@ func (p *competitionPages) askBefore(w http.ResponseWriter, r *http.Request, c s
 	r.ParseForm()
 	page.Base, page.Competition, page.Menu = adminPath(r.PathValue("token")), summary(c, p.now()), p.menuFor(r, c, menu)
 	page.Action, page.Fields = r.URL.Path, postedFields(r)
+	noteAsked(w)
 	render(w, r, views.AskFirst(page))
 }
 
-// asked says whether a change was asked about already (askBefore) and is
-// to be made anyway.
+// asked says whether a change was asked about already (askBefore, inPlace)
+// and is to be made anyway. Without it, a change that asks first is never
+// made.
 func asked(r *http.Request) bool { return r.FormValue("anyway") == "1" }
+
+// inPlace is an ask on the page it was asked from (views.Ask, ui.md "Asking
+// first"), with the change as posted to make it anyway. The caller shows the
+// page with it, and calls noteAsked.
+func inPlace(r *http.Request, a views.Ask) *views.Ask {
+	r.ParseForm()
+	a.Action, a.Fields = r.URL.Path, postedFields(r)
+	return &a
+}
+
+// noteAsked tells the history that the change only asked first: nothing
+// changed, so nothing to record.
+func noteAsked(w http.ResponseWriter) {
+	if rec, ok := w.(*statusRecorder); ok {
+		rec.asked = true
+	}
+}
 
 // postedFields are the form as posted, but anyway: to post it again.
 func postedFields(r *http.Request) []views.FormValue {

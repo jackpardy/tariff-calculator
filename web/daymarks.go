@@ -178,9 +178,7 @@ func someOf(names []string) string {
 // marked on the day (marks), and the change anyway (button), and notes that
 // it only asked: nothing changed, nothing to record.
 func (p *competitionPages) askDayMarks(w http.ResponseWriter, r *http.Request, c store.Competition, what, title string, marks []string, button, help string) {
-	if rec, ok := w.(*statusRecorder); ok {
-		rec.asked = true
-	}
+	noteAsked(w)
 	render(w, r, views.ChangeCheck(views.ChangeCheckPage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuTimetable),
 		What: what, DayTitle: title, DayMarks: marks, Anyway: button, Help: help,
