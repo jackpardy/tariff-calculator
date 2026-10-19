@@ -863,7 +863,7 @@ func skillCard(i int, sv skills.SkillValidation, message string, last bool, side
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = detail("Somersault", rotationText(sv.Skill)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = detail("Rotation", rotationText(sv.Skill)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -228,7 +228,7 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 			</div>
 			<div class="card-details" x-show={ side.expanded(i) } x-cloak>
 				<dl class="card-facts">
-					@detail("Somersault", rotationText(sv.Skill))
+					@detail("Rotation", rotationText(sv.Skill))
 					@detail("Twist", twistText(sv.Skill))
 					@detail("Landing", sv.Skill.TakeoffPosition.String()+" → "+sv.Landing.String())
 					@detail("Shape", sv.Skill.Shape.String())
