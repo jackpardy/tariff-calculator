@@ -21,8 +21,14 @@ The **Add a skill** box is at the top.
 1. **Find the skill**, in one of three ways:
    - **Tap it** in the picker. The tabs are Jumps, Body landings, Singles,
      Doubles and Triples. **Body landings** are the seat, back and front drops
-     and their twists. **Singles** are every single somersault, twisting or
-     not, including those landing on the body (Crash Dive, Back s/s To Seat,
+     and their twists, grouped by where they land: To feet, To seat, To back
+     and To front. Each takes off from where the skill before it lands, so
+     after a seat drop, **½ Twist To Seat** gives a swivel hips (Seat Half
+     Twist To Seat), and after a back drop, **To Feet** gives Back To Feet.
+     The skill card shows which one, its tariff, and why ("From seat, after
+     Seat Drop · also called Swivel Hips"). The first skill takes off from
+     feet. **Singles** are every single somersault, twisting or not,
+     including those landing on the body (Crash Dive, Back s/s To Seat,
      Ball-Out).
    - **Search** in the box above the picker by name ("barani", "back s/s",
      "½ twist jump", "piked back", "full in rudy out", "swivel hips") or by

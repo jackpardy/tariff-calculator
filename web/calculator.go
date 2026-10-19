@@ -216,6 +216,14 @@ func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
 			s.Shape = shape
 		}
 		s.CustomName = strings.TrimSpace(r.FormValue("custom_name"))
+	case "landing": // a body-landing tile, which takes off where the skill before it landed
+		tile, ok := catalog.LandingTile(r.FormValue("commonSkillKey"))
+		if !ok {
+			w.WriteHeader(http.StatusNoContent) // not a tile
+			return
+		}
+		s, editor.Follows = followLanding(tile, r.FormValue("previous_skill"))
+		s.CustomName = strings.TrimSpace(r.FormValue("custom_name"))
 	case "skill": // a search result
 		if err := json.Unmarshal([]byte(r.FormValue("skill")), &s); err != nil {
 			badRequest(w, fmt.Errorf("decoding skill: %w", err))
@@ -238,6 +246,45 @@ func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
 
 	editor.Skill = prepared(s)
 	render(w, r, views.SkillEditorView(editor))
+}
+
+// followLanding is a body-landing tile's skill after the skill before the
+// place it's going (previous, as JSON; "" at the start of the routine, which
+// takes off from feet), with a note saying why: "From seat, after Seat
+// Drop · also called Swivel Hips". After a skill that can't land, or where nothing lands like the tile
+// from there, it's the tile's usual skill, with no note; the routine flags
+// the transition.
+func followLanding(tile catalog.Entry, previous string) (skills.TrampolineSkill, string) {
+	if previous == "" {
+		s, ok := tile.Follow(skills.Feet)
+		if !ok {
+			return s, ""
+		}
+		return s, "From feet, at the start of the routine"
+	}
+	var prev skills.TrampolineSkill
+	if err := json.Unmarshal([]byte(previous), &prev); err != nil {
+		return tile.Skill, ""
+	}
+	prev.NormalizePhases()
+	landing := prev.LandingPosition()
+	if prev.Validate() != nil || landing == skills.Invalid {
+		return tile.Skill, ""
+	}
+	s, ok := tile.Follow(landing)
+	if !ok {
+		return s, ""
+	}
+	name := prev.CustomName
+	if name == "" {
+		name = skills.NameOf(prev)
+	}
+	note := fmt.Sprintf("From %s, after %s", strings.ToLower(landing.String()), name)
+	// The name it goes by may not be the one the coach had in mind.
+	if also := catalog.AlsoCalled(s); also != "" {
+		note += " · also called " + also
+	}
+	return s, note
 }
 
 // handleSkillSearch lists the skills matching the picker's search box, by name or

@@ -372,3 +372,44 @@ func TestBuildASetRoutineOnTheRequirementsPageInABrowser(t *testing.T) {
 		t.Errorf("saved: %q", saved)
 	}
 }
+
+// A body-landing tile takes off where the skill before it landed: after a
+// seat drop, ½ Twist To Seat is a swivel hips; after a back drop, To Feet is
+// back to feet; at the start of a routine, from feet.
+func TestLandingTilesFollowInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := httptest.NewServer(routes())
+	defer srv.Close()
+
+	const seatDrop = `{"rotation":0,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Straight","seat_landing":true}`
+	const backDrop = `{"rotation":1,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Straight","backward":true}`
+	for _, tc := range []struct {
+		name, before, group, tile, want, note string
+	}{
+		{"after a seat drop", seatDrop, "To seat", "½ Twist To Seat", "Seat Half Twist To Seat", "From seat, after Seat Drop · also called Swivel Hips"},
+		{"after a back drop", backDrop, "To feet", "To Feet", "Back To Feet", "From back, after Back Drop"},
+		{"first", "", "To seat", "½ Twist To Seat", "Half Twist To Seat", "From feet, at the start of the routine"},
+	} {
+		var name, note string
+		step(t, ctx, "opening the builder "+tc.name,
+			chromedp.Navigate(srv.URL+"/"),
+			chromedp.Evaluate(`localStorage.setItem('trampolineRoutines', `+"`"+`{"current":"r1","routines":[{"id":"r1","name":"Test","skills":[`+tc.before+`]}]}`+"`"+`)`, nil),
+			chromedp.Reload(),
+			chromedp.WaitReady(`#skill-editor .skill-card-name`, chromedp.ByQuery),
+			chromedp.Evaluate(`[...document.querySelectorAll('.picker-tab')].find((b) => b.textContent.trim() === 'Body landings').click()`, nil),
+		)
+		// htmx wires a tile up just after it's shown: it clicks again until the card has it.
+		step(t, ctx, "choosing "+tc.tile+" "+tc.name,
+			chromedp.Poll(`(() => {
+				if (document.querySelector('#skill-editor .skill-card-follows')) { return true; }
+				[...document.querySelectorAll('.picker-group[aria-label="`+tc.group+`"] .picker-option')].find((b) => b.textContent.trim() === '`+tc.tile+`').click();
+				return false;
+			})()`, nil, chromedp.WithPollingInterval(300*time.Millisecond)),
+			chromedp.Text(`#skill-editor .skill-card-name`, &name, chromedp.ByQuery),
+			chromedp.Text(`#skill-editor .skill-card-follows`, &note, chromedp.ByQuery),
+		)
+		if strings.TrimSpace(name) != tc.want || strings.TrimSpace(note) != tc.note {
+			t.Errorf("%s, %s: %q (%q), want %q (%q)", tc.name, tc.tile, name, note, tc.want, tc.note)
+		}
+	}
+}

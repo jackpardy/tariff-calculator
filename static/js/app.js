@@ -834,6 +834,15 @@ function tariffCalculatorStore() {
             }
             return { routine, side, label: routine.name };
         },
+        // previousSkill is the skill before where the card's skill goes, as JSON,
+        // for a body-landing tile to take off where it landed: the one before the
+        // skill being edited, or the last of the routine Add puts it in; '' at the
+        // start of a routine.
+        previousSkill() {
+            const skills = this.editingIndex !== null ? this.skillsOf(this.editingSide).slice(0, this.editingIndex) : this.addTarget()?.routine.skills || [];
+            const prev = skills[skills.length - 1];
+            return prev ? JSON.stringify(prev) : '';
+        },
         // addFromForm adds the skill shown on the card to the end of the routine
         // chosen under "Add to" (the one on screen unless another is chosen).
         async addFromForm() {

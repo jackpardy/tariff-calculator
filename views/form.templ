@@ -27,6 +27,9 @@ type SkillEditor struct {
 	// SetRoutine is the compact form building a set routine on the
 	// requirements page: Add puts the skill in the set routine.
 	SetRoutine bool
+	// Follows says why a body-landing tile gave this version of it, e.g.
+	// "From seat, after Seat Drop"; "" otherwise.
+	Follows string
 }
 
 // Editing reports whether the editor is changing a routine skill rather than adding one.
@@ -38,6 +41,9 @@ func (e SkillEditor) Editing() bool { return e.EditIndex >= 0 }
 templ SkillFormView(f SkillForm) {
 	<form id="main-form" class="skill-adder" x-on:submit.prevent>
 		@picker(f.Categories)
+		// The skill before the place Add (or Update) puts this one, as JSON, for
+		// a body-landing tile to take off where it landed.
+		<input type="hidden" name="previous_skill" x-bind:value="previousSkill()"/>
 		<div
 			id="skill-editor"
 			hx-post="/skill-inputs"
@@ -90,7 +96,11 @@ templ picker(cats []catalog.Category) {
 		</div>
 		for _, c := range cats {
 			<div class="picker-list" role="tabpanel" aria-label={ c.Label } x-show={ fmt.Sprintf("query.trim() === '' && pickerTab === '%s'", c.Key) } x-cloak>
-				// Related skills (e.g. those from seat) together in one box.
+				// Body landings, by where they land, each taking off where the
+				// skill before it lands.
+				if len(c.Groups) > 0 {
+					<p class="picker-hint">Each takes off from where the skill before it lands.</p>
+				}
 				for _, g := range c.Groups {
 					<div class="picker-group" role="group" aria-label={ g.Title }>
 						<p class="picker-group-title">{ g.Title }</p>
@@ -104,10 +114,17 @@ templ picker(cats []catalog.Category) {
 									hx-post="/skill-inputs"
 									hx-target="#skill-editor"
 									hx-include="#main-form"
-									hx-vals={ loadCommon(e.Key, e.Skill.Shape) }
+									if e.Tile != nil {
+										hx-vals={ loadLanding(e.Key) }
+									} else {
+										hx-vals={ loadCommon(e.Key, e.Skill.Shape) }
+									}
 								>
 									<span class="picker-skill-name">{ e.Label }</span>
-									<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</span>
+									// A tile's tariff depends on the skill before it: the card shows it.
+									if e.Tile == nil {
+										<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</span>
+									}
 								</button>
 							}
 						</div>
@@ -265,6 +282,9 @@ templ editorCard(e SkillEditor) {
 			</div>
 			<p class="skill-card-tariff" title="Tariff (difficulty)">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</p>
 		</div>
+		if e.Follows != "" {
+			<p class="help skill-card-follows">{ e.Follows }</p>
+		}
 		if e.Skill.LandingPosition() == skills.Invalid {
 			<p class="skill-card-problem">This skill can't land like that. Check the direction, somersault and twist.</p>
 		}
@@ -466,6 +486,13 @@ func directionText(s skills.TrampolineSkill) string {
 // loadCommon is the hx-vals that loads a common skill into the editor.
 func loadCommon(key string, shape skills.Shape) string {
 	b, _ := json.Marshal(map[string]string{"load": "common", "commonSkillKey": key, "shape": shape.String()})
+	return string(b)
+}
+
+// loadLanding is the hx-vals that loads a body-landing tile's skill, taking
+// off where the skill before it landed (previous_skill, from the form).
+func loadLanding(key string) string {
+	b, _ := json.Marshal(map[string]string{"load": "landing", "commonSkillKey": key})
 	return string(b)
 }
 
