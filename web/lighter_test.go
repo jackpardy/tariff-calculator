@@ -45,19 +45,23 @@ func TestTimetableDaysFold(t *testing.T) {
 	if !ok {
 		t.Fatalf("a heading for Sunday: %s", page)
 	}
-	if !strings.Contains(saturday, `<details class="comp-tt-day" data-list-group open>`) || !strings.Contains(saturday, `data-name="Eve"`) || strings.Contains(saturday, "<template data-lazy>") {
+	if !strings.Contains(saturday, `<details class="comp-tt-day" data-list-group open`) || !strings.Contains(saturday, `data-name="Eve"`) || strings.Contains(saturday, "<template data-lazy>") {
 		t.Error("Saturday is open, Eve's flight in the page")
 	}
 	if lazy, _, _ := strings.Cut(sunday, `data-name="Dara"`); !strings.Contains(lazy, "<template data-lazy>") {
 		t.Error("Sunday is folded, Dara's flight waiting in a template")
+	}
+	if !strings.Contains(page, `data-day="day-0" aria-pressed="true"`) || !strings.Contains(page, `data-day="day-1" aria-pressed="false"`) {
+		t.Error("a button for each day, Saturday's pressed")
 	}
 	if !strings.Contains(page, `data-list-tools="timetable-flights" data-noun="names" data-total="`) {
 		t.Error("Find a name knows how many names there are, folded ones too")
 	}
 }
 
-// In a browser: Find a name finds someone on a folded day, a link to the day
-// opens it, and a flight's Move a gymnast fills from its running order.
+// In a browser: Find a name finds someone on a folded day, a day's button
+// shows it (beside the other on a wide screen, in its place on a phone), and
+// a flight's Move a gymnast fills from its running order.
 func TestTimetableDaysFoldInABrowser(t *testing.T) {
 	ctx := browser(t)
 	s := newTestServer(t, atTime(dayBefore))
@@ -97,13 +101,28 @@ func TestTimetableDaysFoldInABrowser(t *testing.T) {
 		chromedp.Evaluate(`sessionStorage.clear()`, nil),
 		chromedp.Navigate(tt),
 		chromedp.WaitVisible(`[data-list-search]`, chromedp.ByQuery),
-		chromedp.Click(`.comp-jump a[href="#day-1"]`, chromedp.ByQuery),
+		chromedp.EmulateViewport(1280, 900),
+		chromedp.Click(`.comp-tt-daypick [data-day="day-1"]`, chromedp.ByQuery),
 		chromedp.Evaluate(`document.querySelector('[data-name="Eve"]').closest('.comp-flight').querySelector('details.comp-opens').open = true`, nil),
 		chromedp.Sleep(100*time.Millisecond),
 		chromedp.Evaluate(read, &jumped),
 	)
-	if !jumped.SundayOpen || !jumped.Dara || !strings.Contains(jumped.Order, "1. Eve") {
-		t.Fatalf("the link opens Sunday; Move a gymnast lists the running order: %+v", jumped)
+	if !jumped.SundayOpen || !jumped.Dara || !jumped.Eve || !strings.Contains(jumped.Order, "1. Eve") {
+		t.Fatalf("on a wide screen Sunday's button shows it beside Saturday; Move a gymnast lists the running order: %+v", jumped)
+	}
+	var phone view
+	var saturdayOpen bool
+	step(t, ctx, "a day's tab on a phone",
+		chromedp.EmulateViewport(390, 844),
+		chromedp.Evaluate(`localStorage.clear()`, nil),
+		chromedp.Navigate(tt),
+		chromedp.WaitVisible(`.comp-tt-daypick`, chromedp.ByQuery),
+		chromedp.Click(`.comp-tt-daypick [data-day="day-1"]`, chromedp.ByQuery),
+		chromedp.Evaluate(read, &phone),
+		chromedp.Evaluate(`document.getElementById('day-0').parentElement.open`, &saturdayOpen),
+	)
+	if !phone.SundayOpen || saturdayOpen {
+		t.Errorf("on a phone Sunday's tab shows Sunday alone: %+v, Saturday open %v", phone, saturdayOpen)
 	}
 }
 

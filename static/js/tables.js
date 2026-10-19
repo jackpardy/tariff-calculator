@@ -18,7 +18,7 @@
         box.classList.toggle('has-more-right', more && box.scrollLeft + box.clientWidth < box.scrollWidth - 1);
     }
     function watchEdges() {
-        document.querySelectorAll('.table-container, .tabs, .comp-tt-areas').forEach((box) => {
+        document.querySelectorAll('.table-container, .tabs, .comp-tt-areas, .comp-tt-dayrow').forEach((box) => {
             if (!box.dataset.edges) {
                 box.dataset.edges = '';
                 box.addEventListener('scroll', () => edges(box), { passive: true });

@@ -205,9 +205,17 @@ templ CompetitionTimetable(p TimetablePage) {
 						}
 					</div>
 				}
-				for i, day := range p.Days {
-					@timetableDay(p, day, i == p.OpenDay || len(p.Days) == 1)
+				// On a phone one day shows at a time, chosen by its tab; on a
+				// wider screen the days chosen sit side by side, scrolling
+				// sideways when they don't fit (dayPick in competitions.js).
+				if len(p.Days) > 1 {
+					@dayPick(p)
 				}
+				<div class="comp-tt-dayrow">
+					for i, day := range p.Days {
+						@timetableDay(p, day, i == p.OpenDay || len(p.Days) == 1)
+					}
+				</div>
 			</div>
 		}
 	}
@@ -308,9 +316,10 @@ templ printMenu(base string, changes bool) {
 // flights and blocked time. One day starts open (today's, or the first); the
 // others' flights wait in a template until opened, jumped to or searched
 // (static/js/competitions.js, lazyRows and reveal), as every day at once was
-// 11,000 elements and 35,000 px on a phone.
+// 11,000 elements and 35,000 px on a phone. An open day is one shown, chosen
+// with the buttons above (dayPick); its heading is a heading, not a fold.
 templ timetableDay(p TimetablePage, day DayView, open bool) {
-	<details class="comp-tt-day" data-list-group open?={ open }>
+	<details class="comp-tt-day" data-list-group open?={ open } style={ fmt.Sprintf("--areas: %d", max(len(day.Areas), 1)) }>
 		<summary class="title is-5 mt-5 mb-1" id={ day.ID }>{ day.Name }</summary>
 		if open {
 			@timetableAreas(p, day)
@@ -349,23 +358,24 @@ templ timetableAreas(p TimetablePage, day DayView) {
 	</div>
 }
 
-// timetableJump links to each day, on one line beside "Find a name": on a
-// phone the flights are a long way down. Each day's areas are linked under
-// its heading (areaJump), since days can use different areas; a competition
-// of one day links to its areas here instead.
+// timetableJump links a one-day competition's areas beside "Find a name".
+// With more days, each has a button above them (dayPick), and its areas are
+// linked under its heading (areaJump), since days can use different areas.
 templ timetableJump(p TimetablePage) {
 	if len(p.Days) == 1 {
 		@areaJump(p.Days[0])
-	} else {
-		<p class="comp-jump is-size-7">
-			for i, d := range p.Days {
-				if i > 0 {
-					<span>·</span>
-				}
-				<a href={ templ.SafeURL("#" + d.ID) }>{ d.Name }</a>
-			}
-		</p>
 	}
+}
+
+// dayPick is a button for each day, above the days: on a phone they're tabs,
+// one day shown at a time; on a wider screen each shows or hides its day,
+// those shown side by side (dayPick in static/js/competitions.js).
+templ dayPick(p TimetablePage) {
+	<div class="comp-tt-daypick" role="group" aria-label="Days">
+		for i, d := range p.Days {
+			<button type="button" class="button is-small" data-day={ d.ID } aria-pressed={ fmt.Sprint(i == p.OpenDay) }>{ d.Name }</button>
+		}
+	</div>
 }
 
 // areaJump links to a day's areas, on one line.

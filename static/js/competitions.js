@@ -388,6 +388,59 @@
         }
     });
 
+    // dayPick is the timetable's button for each day (an open day is one
+    // shown). On a phone they're tabs: one day at a time. On a wider screen
+    // each shows or hides its day, those shown side by side, at least one;
+    // the choice is kept in this browser, unless the address goes to a place
+    // (after a change), which opens its own day.
+    function dayPick() {
+        const pick = document.querySelector('.comp-tt-daypick');
+        if (!pick) { return; }
+        const wide = window.matchMedia('(min-width: 769px)');
+        const days = [...document.querySelectorAll('.comp-tt-dayrow > .comp-tt-day')];
+        const dayOf = (id) => document.getElementById(id)?.closest('details');
+        const key = 'timetableDays:' + location.pathname;
+        const sync = () => pick.querySelectorAll('[data-day]').forEach((b) => {
+            b.setAttribute('aria-pressed', dayOf(b.dataset.day)?.open ? 'true' : 'false');
+        });
+        const save = () => {
+            const shown = days.filter((d) => d.open).map((d) => d.querySelector('summary').id);
+            try { localStorage.setItem(key, JSON.stringify(shown)); } catch (e) { /* this visit only */ }
+        };
+        if (wide.matches && !location.hash) {
+            let kept = null;
+            try { kept = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { /* none kept */ }
+            if (Array.isArray(kept) && days.some((d) => kept.includes(d.querySelector('summary').id))) {
+                days.forEach((d) => {
+                    d.open = kept.includes(d.querySelector('summary').id);
+                    if (d.open) { lazyRows(d); }
+                });
+            }
+        }
+        pick.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-day]');
+            const d = b && dayOf(b.dataset.day);
+            if (!d) { return; }
+            if (!wide.matches) {
+                days.forEach((x) => { x.open = x === d; });
+                lazyRows(d);
+                sync();
+                return;
+            }
+            if (d.open && days.filter((x) => x.open).length === 1) { return; }
+            d.open = !d.open;
+            if (d.open) { lazyRows(d); }
+            sync();
+            save();
+        });
+        days.forEach((d) => {
+            d.addEventListener('toggle', sync);
+            // A day's heading is a heading: the buttons show and hide days.
+            d.querySelector('summary').addEventListener('click', (e) => e.preventDefault());
+        });
+        sync();
+    }
+
     // tickBar is the Entries page's bar once entries are ticked: how many, and
     // Remove or Hold, which open the form below with that chosen.
     function tickBar() {
@@ -933,6 +986,7 @@
         openLevels();
         menuInView();
         tickBar();
+        dayPick();
         dayPage();
         copyButtons();
         saveLinks();

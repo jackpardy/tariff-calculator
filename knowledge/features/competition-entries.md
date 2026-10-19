@@ -789,10 +789,14 @@ are then filled flight by flight.
   heading, since days can use different areas, and **Find a name**, which searches the
   running orders, the gymnasts not in a flight and the seated officials,
   hiding days, areas, flights and blocked time with nobody it finds and
-  opening the Panel lists with someone. Each day folds: the page opens on
-  today's (on the competition's days, `todayIndex`) or the first, the others'
-  flights waiting in a template until opened, searched or jumped to (a jump
-  link, or the `#area` a change comes back to: `competitions.js`, `reveal`).
+  opening the Panel lists with someone. Each day has a button above the
+  days (`dayPick`, the owner's choice 2026-10-19). On a phone they're tabs,
+  one day shown at a time; on a wider screen each shows or hides its day,
+  the days shown side by side, the row scrolling sideways when they don't
+  fit, and the choice is kept in the browser. The page opens on today's (on
+  the competition's days, `todayIndex`) or the first; the others' flights
+  wait in a template until shown, searched or gone to (the `#area` a change
+  comes back to: `competitions.js`, `reveal`). A day's heading doesn't fold.
   A flight's **Move a gymnast** fills its gymnasts from the running order, and
   **Move to** its days and areas from one list (`place-options`), rather than
   each flight repeating them. Changing the setup marks the

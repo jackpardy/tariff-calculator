@@ -325,11 +325,13 @@ a **Change** button to open it.
    **Redraw order**, which draws its running order again; a flight's **Move
    a gymnast** puts one of its gymnasts (choose who) in another flight, or
    takes them out. The timetable opens on one day (today's, on the
-   competition's days, else the first), the others folded: tap a day's
-   name to open it. To find someone
-   on a long timetable, type part of their name in **Find a name**: only
-   the flights with them show, on whichever day. The day and area links
-   beside it go straight to a day or an area, opening it. If an event's flights end up
+   competition's days, else the first), with a button for each day above
+   it. On a phone they're tabs: tap a day to see it. On a bigger screen
+   each button shows or hides its day, the days you choose side by side
+   (scroll sideways if they don't all fit); the page remembers your
+   choice. To find someone on a long timetable, type part of their name in
+   **Find a name**: only the flights with them show, on whichever day. The
+   area links under a day's name go straight to an area. If an event's flights end up
    apart, or either side of a break you haven't allowed, it's listed as a
    problem. Entries made after planning are listed for you to place.
    Changing the setup asks you to **Plan** again, on **Setup**. Open a flight's **Panel**

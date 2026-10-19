@@ -1303,6 +1303,22 @@ input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100
 .comp-tt-areas.has-more-right { border-right-color: #8a8a8a; }
 .comp-tt-area { min-width: 0; }
 @media screen and (max-width: 768px) { .comp-tt-areas { grid-template-columns: minmax(0, 1fr); } }
+/* Days: a button each above them (dayPick). On a phone they're tabs, one day
+   shown; on a wider screen those chosen sit side by side, the row scrolling
+   sideways (not each day) when they don't fit. A day's heading doesn't fold. */
+.comp-tt-daypick { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 1.25rem 0 0.25rem; }
+.comp-tt-daypick .button[aria-pressed="true"] { background: var(--state-in-progress-bg); border-color: var(--state-in-progress-ink); color: var(--state-in-progress-ink); font-weight: 600; }
+.comp-tt-dayrow > .comp-tt-day:not([open]) { display: none; }
+.comp-tt-day > summary { list-style: none; cursor: default; }
+.comp-tt-day > summary::-webkit-details-marker { display: none; }
+details.comp-tt-day > summary::before { content: none; }
+@media screen and (min-width: 769px) {
+  .comp-tt-dayrow { display: flex; align-items: flex-start; gap: 2rem; overflow-x: auto; padding-bottom: 0.5rem; border-left: 3px solid transparent; border-right: 3px solid transparent; }
+  .comp-tt-dayrow.has-more-left { border-left-color: #8a8a8a; }
+  .comp-tt-dayrow.has-more-right { border-right-color: #8a8a8a; }
+  .comp-tt-dayrow > .comp-tt-day { flex: 1 0 calc(var(--areas) * 15rem + (var(--areas) - 1) * 1rem); min-width: 0; }
+  .comp-tt-dayrow .comp-tt-areas { overflow-x: visible; border-color: transparent !important; } /* the row scrolls, not each day */
+}
 
 /* Nothing on now: "Now —" takes a line, and what's next the card's room. */
 .screen-card > .screen-part.is-empty { flex: 0 0 auto; }
