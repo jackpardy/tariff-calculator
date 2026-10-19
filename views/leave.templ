@@ -10,13 +10,13 @@ type LeavePage struct {
 	People      []FlightOption // officials with seats, by key
 	Days        []FlightOption
 	// As asked.
-	Person, Day, From, Prefer string
-	ForGood                   bool
-	Asked                     bool
-	Problems                  []string
-	Result                    *LeaveResult
-	Keep                      string // where keeping the result posts
-	Version                   string // the draft timetable's version, which keeping it posts back
+	Person, Day, From string
+	ForGood           bool
+	Asked             bool
+	Problems          []string
+	Result            *LeaveResult
+	Keep              string // where keeping the result posts
+	Version           string // the draft timetable's version, which keeping it posts back
 }
 
 // LeaveResult is how the leaver's seats are filled.
@@ -42,7 +42,7 @@ templ Leave(p LeavePage) {
 		<h1 class="title is-4">What if an official leaves?</h1>
 		<p class="subtitle is-6">{ p.Competition.Name } · { p.Competition.Date }</p>
 		@pageMenu(p.Menu)
-		<p class="mb-4">Choose who leaves and when. Each seat they'd have had from then is filled again by someone free (not competing, not on another panel or on duty for blocked time, not coaching someone competing elsewhere, rested where rest is a must, and allowed by your rules), or by moving others round where it helps: someone on that panel up a role, or someone across from a panel at the same time, their seat filled in turn (three moves at most). Nothing changes until you choose <strong>Keep this in the draft timetable</strong>, and even then officials see it only once you publish.</p>
+		<p class="mb-4">Choose who leaves and when. Each seat they'd have had from then is filled again by someone free (not competing, not on another panel or on duty for blocked time, rested where rest is a must, and allowed by your rules), the least busy that day first. If no one free can take it, others move round: someone on that panel up a role, or someone across from a panel at the same time, their seat filled in turn, with as few moves as will do (three at most). Nothing changes until you choose <strong>Keep this in the draft timetable</strong>, and even then officials see it only once you publish.</p>
 		<script defer src={ static.URL("js/selectsearch.js") }></script>
 		@problemList(p.Problems)
 		<form method="get" action={ templ.SafeURL(p.Base + "/timetable/leave") } class="box">
@@ -71,19 +71,7 @@ templ Leave(p LeavePage) {
 				<input type="checkbox" name="forgood" value="1" checked?={ p.ForGood }/>
 				For the rest of the competition, not just that day
 			</label>
-			<fieldset class="field mt-2">
-				<legend class="label is-small">Fill each seat by</legend>
-				<label class="radio comp-option mr-3">
-					<input type="radio" name="prefer" value="" checked?={ p.Prefer == "" }/>
-					Making the gap the easiest seat to fill
-				</label>
-				<label class="radio comp-option">
-					<input type="radio" name="prefer" value="fewest" checked?={ p.Prefer == "fewest" }/>
-					Changing as few seats as possible
-				</label>
-				<p class="help">Easiest to fill moves people up or across (an execution judge to chair, a recorder to judge) so the seat left is one the most free people can take, such as recorder or marshal.</p>
-			</fieldset>
-			<button class="button is-primary is-small" type="submit">Show what happens</button>
+			<button class="button is-primary is-small mt-2" type="submit">Show what happens</button>
 		</form>
 		if r := p.Result; r != nil {
 			<div class="box">

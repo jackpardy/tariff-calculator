@@ -42,7 +42,6 @@ type RotaView struct {
 	Busiest  []string
 	Broken   []string // the organiser's rules about people not kept
 	Problems []string // what manual changes broke
-	Coaches  []string // coaches needed in two places at once
 }
 
 // SeatView is one seat on a flight's panel.
@@ -674,7 +673,6 @@ templ rotaReport(p TimetablePage) {
 		@problemsList("Seats no one could take", p.Rota.Short)
 		@problemsList("Problems with the seats", p.Rota.Problems)
 		@problemsList("Your rules about officials not kept", p.Rota.Broken)
-		@problemsList("Coaches needed in two places", p.Rota.Coaches)
 		@problemsList("Judging their own club's gymnasts, times by club", p.Rota.OwnClub)
 		@problemsList("Busiest officials", p.Rota.Busiest)
 	</div>
@@ -730,7 +728,7 @@ templ reportView(r ReportView) {
 				}
 			</div>
 		}
-		// Changes made by hand, or what the plan couldn't avoid (a coach who also competes).
+		// Changes made by hand.
 		@problemsList("Problems to look at", r.Problems)
 		@problemsList("Less rest than wanted", r.ShortRest)
 		@problemsList("Preferences not met", r.Broken)

@@ -666,6 +666,15 @@ func (s *Schedule) SetDuty(flight, seat int, person string) bool {
 // rota: someone officiating while competing or officiating elsewhere, or in a
 // role they can't take. people are each entry's people; names name people.
 func (s Schedule) RotaProblems(people map[string][]string, officials []RotaPerson, names map[string]string) []string {
+	var out []string
+	for _, b := range s.RotaBreaks(people, officials, names) {
+		out = append(out, b.Line)
+	}
+	return out
+}
+
+// RotaBreaks are RotaProblems as breaks, for Breaks' company.
+func (s Schedule) RotaBreaks(people map[string][]string, officials []RotaPerson, names map[string]string) []Break {
 	byKey := map[string]RotaPerson{}
 	for _, p := range officials {
 		byKey[p.Key] = p
@@ -676,12 +685,12 @@ func (s Schedule) RotaProblems(people map[string][]string, officials []RotaPerso
 		}
 		return byKey[key].Name
 	}
-	var out []string
+	var out []Break
 	seen := map[string]bool{}
-	add := func(msg string) {
+	add := func(person string, rank int, msg string) {
 		if !seen[msg] {
 			seen[msg] = true
-			out = append(out, msg)
+			out = append(out, Break{Line: msg, Person: person, Rank: rank})
 		}
 	}
 	jobs, _ := s.jobs()
@@ -693,13 +702,13 @@ func (s Schedule) RotaProblems(people map[string][]string, officials []RotaPerso
 				continue
 			}
 			if seated[d.Person] {
-				add(fmt.Sprintf("%s has two seats on %s's panel", name(d.Person), f.Name()))
+				add(d.Person, TwoPlaces, fmt.Sprintf("%s has two seats on %s's panel", name(d.Person), f.Name()))
 			}
 			seated[d.Person] = true
 			if p, ok := byKey[d.Person]; !ok {
-				add(fmt.Sprintf("%s isn't an official any more (%s, %s)", name(d.Person), strings.ToLower(roleNames[d.Role]), f.Name()))
+				add(d.Person, MustBreak, fmt.Sprintf("%s isn't an official any more (%s, %s)", name(d.Person), strings.ToLower(roleNames[d.Role]), f.Name()))
 			} else if (i < len(s.Flights) && !p.Can(d.Role, f.Event)) || (i >= len(s.Flights) && !p.CanAny(d.Role)) {
-				add(fmt.Sprintf("%s can't be %s at %s", name(d.Person), strings.ToLower(roleNames[d.Role]), f.Event))
+				add(d.Person, MustBreak, fmt.Sprintf("%s can't be %s at %s", name(d.Person), strings.ToLower(roleNames[d.Role]), f.Event))
 			}
 			for j, g := range jobs {
 				if !overlaps(iv, interval{g.Day, g.Start, g.End}) {
@@ -707,13 +716,13 @@ func (s Schedule) RotaProblems(people map[string][]string, officials []RotaPerso
 				}
 				for _, id := range g.Entries {
 					if slices.Contains(people[id], d.Person) {
-						add(fmt.Sprintf("%s officiates %s while competing in %s", name(d.Person), f.Name(), g.Name()))
+						add(d.Person, TwoPlaces, fmt.Sprintf("%s officiates %s while competing in %s", name(d.Person), f.Name(), g.Name()))
 					}
 				}
 				if j > i {
 					for _, e := range g.Officials {
 						if e.Person == d.Person {
-							add(fmt.Sprintf("%s officiates %s and %s at once", name(d.Person), f.Name(), g.Name()))
+							add(d.Person, TwoPlaces, fmt.Sprintf("%s officiates %s and %s at once", name(d.Person), f.Name(), g.Name()))
 						}
 					}
 				}
