@@ -169,6 +169,17 @@ a.tool-banner-name:hover { color: #fff; text-decoration: underline; }
     /* Two picker boxes to a row in the narrower column. */
     .builder:not(.is-two-routines) .picker-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .builder:not(.is-two-routines) .picker-group-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* With two routines (or a level's two exercises) side by side, Add a skill
+       is full width above them: choosing a skill and the skill's card sit
+       side by side, so it takes half the height. */
+    .builder.is-two-routines .skill-adder { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 2rem; row-gap: 0.75rem; align-items: start; }
+    /* #skill-editor is display: contents, so its card and "Build or adjust"
+       are placed here: the card at the top of the right, the builder under it. */
+    .builder.is-two-routines .skill-adder > .picker { grid-column: 1; grid-row: 1 / span 2; }
+    .builder.is-two-routines #skill-editor > .skill-card { grid-column: 2; grid-row: 1; margin-top: 0; }
+    .builder.is-two-routines #skill-editor > .skill-builder { grid-column: 2; grid-row: 2; }
+    .builder.is-two-routines .picker-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .builder.is-two-routines .picker-group-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* A routine's cards (views.skillCard): the head opens the details; ↑, ↓ and
