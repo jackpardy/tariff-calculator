@@ -1609,7 +1609,10 @@ your way round; the menu is `views/menu.templ`, built for each page in
 - **Members** (`/members`): the join link, the members (a coach to choose,
   and under each one's **More**: **Make a coach too**, **New link** for one
   who lost theirs, which ends the old one, and **Remove**) and the synchro
-  entries other clubs' gymnasts made with them.
+  entries other clubs' gymnasts made with them. Choosing a coach comes back
+  to the member's row (`?at=<member>#member-<id>`), the notice ("Ciarán's
+  coach is now Declan.") at the top and on the row, the list's search and
+  filters kept for the tab as ever.
 - **Coaches** (`/coaches`): the coaches (each with **More** for New link and
   Remove), their qualifications and whether they sign off; **Add a coach**
   opens the forms to add one, by name or from the members; **Who coaches
@@ -1642,6 +1645,24 @@ On Members, **More**, **Make a coach too** beside a member (and on Coaches, a me
 choose) makes them a coach of the club as well: no coach link, their member
 link opens the coach's page. Members shows them with a Coach chip, Coaches as
 "A member too: opens from their member link".
+
+**Replacing a link asks first** (audit 2026-10-16, built 2026-10-19): a
+member's or coach's **New link** and **Replace the admin link** post once
+to show the section with a box saying the old link stops working at once,
+wherever it's saved, what stays, and where the new one shows; its button
+posts again with `anyway=1` to replace it (`askReplace`), and **Cancel**
+goes back to the row. No browser `confirm()`. Individuals have no way to
+replace their own link.
+
+**Who signs off** (built 2026-10-19): an entry waiting for a coach's
+sign-off (`whoSignsOff`) says who can give it: the club's coaches who sign
+off routines and see the member, by name up to three ("Declan signs it off,
+on their coach page."). Where no one can (no coach signs off, or the
+member's own coach doesn't), it says why, and that it can still be sent;
+the member is told to ask the comp sec, the comp sec gets a link to
+Coaches. On the comp sec's Entries, a club with no coach who signs off gets
+one notice above the entries (`NoSigner`) rather than a line on every row,
+and rows say only when that member's coach doesn't sign off.
 
 Each form returns to the section it's on, with its notice. The exceptions are
 replacing the admin link, which shows the new link on Competitions (where it's
@@ -1697,6 +1718,14 @@ The entry form (`entryForm` in `views/entry.templ`, used by members, the
 comp sec and individuals) has one Men or Women choice, shown only while the
 chosen level ranks them separately; changing level keeps what's ticked, and an
 existing entry opens with its own ticked.
+
+**No routine yet** (built 2026-10-19): under each voluntary's routine,
+**Open the Routine Builder →** opens `/?back=<the form's address>?discipline=<d>`
+(`routineBuilder`); the builder shows **← go back to your entry** at the top
+(`builderBack` takes only a path under `/clubs/` or `/competitions/`, and the
+page is then `no-referrer`, `no-store`). Back on the form, its row open, the
+routine just built is under Saved in this browser. "Choose a routine for the
+first exercise" says to use that link.
 
 ## Requirements on your page (ADR 0013)
 
@@ -2047,8 +2076,11 @@ of that entry (`entryBody`): checked, the flight, the organiser's notes,
 the card, **Change the entry** and **Withdraw**, **Your coach** and the
 sign-off link for their coach, fees and Judging and helping; then
 **Enter another discipline** while entries are open, opening on the first
-discipline not entered yet (a second entry in one is refused: change that
-entry instead). Each row's forms post
+discipline not entered yet. It's one of their pages (their tabs, **← the
+competition** back to it, `GymnastEnterPage`): a tab for each discipline not
+entered yet, a link to each entered one (its row, `?entry=<id>`), and their
+name fixed, not a field. A second entry in one is refused with a link to
+change that entry instead. Each row's forms post
 to the entry's own address, `/competitions/entry/{token}`, whose GET now
 redirects here with `entry=<id>` to open that row, so every entry link
 already sent lands on this page; a change with problems shows this page with
