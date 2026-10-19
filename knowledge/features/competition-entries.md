@@ -392,9 +392,13 @@ columns count. Until the viewer chooses, the columns named in the tables'
 `data-table-hidden` are hidden: Sent, so the rest fit a 1,300 px window
 (two-word headings, a long club and the coach's chips wrap, a set is named
 without its level: "option 2"), Coach and Checked in sight; measured at
-1,198 px wide in a 1,198 px box at 1,300, 1,338 in 1,338 at 1,440. Any table that scrolls sideways shows a line at the edge
-with more to see.
-Levels start folded, with **Expand all** and **Collapse all**; the browser
+1,198 px wide in a 1,198 px box at 1,300, 1,338 in 1,338 at 1,440. Any table that scrolls sideways fades at the edge
+with more to see ([the shared look](../architecture/ui.md#scrolling-sideways)).
+The Coach column is the coach's name, then **Signed off**, **Needs changes**
+or **Waiting**, on one line; a coach not approved to sign off has an asterisk
+instead, explained under the table (`views.signoffCell`).
+Levels start folded, with one **Expand all** button (it reads **Collapse all**
+once every level is open); the browser
 remembers which were left open, and a search or filter opens the levels it
 finds people in. A folded level's rows come in a `<template data-lazy>`, put in
 the page when it opens or a search needs them (`competitions.js`, `lazyRows`;

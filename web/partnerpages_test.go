@@ -117,7 +117,7 @@ func TestMemberDisciplines(t *testing.T) {
 
 	page := memberCompetitionPage(t, h, a)
 	for _, want := range []string{"Trampoline", "Synchro", "Tumbling", "DMT"} {
-		if !strings.Contains(page, "<strong>"+want+"</strong>") {
+		if !strings.Contains(page, `<h3 class="comp-event-name">`+want+"</h3>") {
 			t.Errorf("the member page offers %q", want)
 		}
 	}

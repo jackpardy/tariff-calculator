@@ -57,7 +57,7 @@ templ CompetitionSettings(p SettingsPage) {
 		}
 		if p.Notice != "" {
 			// Stays in sight as the page goes to the setting changed.
-			<div class="notification is-success is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
+			@stickyNotice(p.Notice)
 		}
 		<p class="is-size-7 mb-4">
 			Jump to:
@@ -228,15 +228,12 @@ templ CompetitionSettings(p SettingsPage) {
 					<button class="button is-small" type="submit">Replace the admin link</button>
 				</form>
 			}
-			@opens("Delete the competition", "and every entry, for good", "Delete", false) {
-				<form method="post" action={ templ.SafeURL(p.Base + "/delete") } class="mb-3">
-					<label class="checkbox is-size-7">
-						<input type="checkbox" name="confirm" value="1" required/>
-						Delete the competition and every entry, now
-					</label>
-					<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
-				</form>
-			}
+			// Deleting the whole competition looks unlike any other remove.
+			<div class="comp-danger-zone">
+				@opens("Delete the competition", "and every entry, for good", "Delete", false) {
+					@typeToDelete(p.Base+"/delete", "delete-competition", "the competition and every entry, for good", "Delete the competition")
+				}
+			</div>
 		}
 		<script>
 			// A change that comes back to a row's form (…#level-order) opens its row.

@@ -1,8 +1,10 @@
 // tables.js: wide tables on the competition pages.
 //
 // A table that scrolls sideways (in a .table-container), or a row of tabs
-// wider than a phone, shows a line at the edge where there's more to see,
-// left or right, so it's plain there is.
+// wider than a phone, fades out at the edge where there's more to see, left
+// or right, so it's plain there is (styles.css, the scroll fade). The fade
+// steps aside while it's being scrolled. A row of tabs starts with the
+// current one in view.
 //
 // Tables marked data-table-view="<id>" (each level's entries, say, all with
 // the same columns) can be set up by whoever is looking, with the Columns
@@ -12,17 +14,40 @@
 // until there is one, the columns in data-table-hidden are hidden.
 // On a phone, where such tables stack as cards, only hidden columns count.
 (function () {
-    // --- Lines at the edges with more to scroll ---
+    // --- Fades at the edges with more to scroll ---
     function edges(box) {
         const more = box.scrollWidth - box.clientWidth > 1;
         box.classList.toggle('has-more-left', more && box.scrollLeft > 1);
         box.classList.toggle('has-more-right', more && box.scrollLeft + box.clientWidth < box.scrollWidth - 1);
     }
+    // currentInView scrolls a row of tabs so its current tab shows whole,
+    // clear of the fade at either edge.
+    function currentInView(box) {
+        const tab = box.querySelector('li.is-active');
+        if (!tab || box.scrollWidth - box.clientWidth <= 1) { return; }
+        const room = 24;
+        const b = box.getBoundingClientRect();
+        const t = tab.getBoundingClientRect();
+        if (t.left < b.left + room) {
+            box.scrollLeft -= b.left + room - t.left;
+        } else if (t.right > b.right - room) {
+            box.scrollLeft += t.right - (b.right - room);
+        }
+    }
     function watchEdges() {
-        document.querySelectorAll('.table-container, .tabs, .comp-tt-areas, .comp-tt-dayrow').forEach((box) => {
+        document.querySelectorAll('.table-container, .tabs, .comp-tt-areas, .comp-tl-sheets, .comp-tt-dayrow').forEach((box) => {
             if (!box.dataset.edges) {
                 box.dataset.edges = '';
-                box.addEventListener('scroll', () => edges(box), { passive: true });
+                if (box.classList.contains('tabs')) { currentInView(box); }
+                // The timetable's row of days does this itself (competitions.js, dayPick).
+                let still;
+                box.addEventListener('scroll', () => {
+                    edges(box);
+                    if (box.classList.contains('comp-tt-dayrow')) { return; }
+                    box.classList.add('is-scrolling');
+                    clearTimeout(still);
+                    still = setTimeout(() => box.classList.remove('is-scrolling'), 200);
+                }, { passive: true });
             }
             edges(box);
         });

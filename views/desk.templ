@@ -65,7 +65,7 @@ templ Desk(p DeskPage) {
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
-			<div class="notification is-info is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		<form method="post" action={ templ.SafeURL(p.Base + "/desk") } class="box">
 			<p class="label is-small">To</p>
@@ -169,7 +169,7 @@ templ Desk(p DeskPage) {
 		@deskScreen(p)
 		@listSection("Sent", len(p.Sent)) {
 			if len(p.Sent) == 0 {
-				<p class="has-text-grey">Nothing sent yet.</p>
+				@emptyLine("Nothing sent yet.")
 			}
 			for _, m := range p.Sent {
 				<div class="box py-3">

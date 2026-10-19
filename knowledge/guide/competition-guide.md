@@ -77,12 +77,12 @@ performed as written.
 under its title: **Entries**, **Timetable**, **On the day** (once the
 timetable is published) and **Settings**. Tap a section to open it; its own
 pages are listed under the bar, with the page you're on marked. **Entries** has
-People, Late changes, Coaches (when you approve coaches) and Fees, with a count beside
-Late changes and Coaches when something waits for you. **Timetable** has the
-timetable, Officials, Simulate and the two "what if" pages. **On the day** has
-the day's page, Desk messages and the Venue screen. **Settings** has the
-Settings page, History and Feedback (its tab says how much feedback is new).
-On a phone the bar scrolls sideways. A helper's link shows only the sections
+All entries, People, Late changes, Coaches (when you approve coaches) and Fees, with a count beside
+Late changes and Coaches when something waits for you. **Timetable** has
+Flights (the timetable itself), Setup, Officials, Simulate and the two "what if" pages. **On the day** has
+Areas (the day's page), Desk messages and the Venue screen. **Settings** has
+Competition (the settings themselves), History and Feedback (its tab says how much feedback is new).
+On a phone the bar scrolls sideways: its edge fades, with a small arrow, where there's more. A helper's link shows only the sections
 it can open: one that can read feedback but not change settings has a
 **Feedback** tab.
 
@@ -95,7 +95,7 @@ asked, when it was sent, and whether you've checked it. To find entries:
 not, video, men or women, or **Problems only**, and sort by club, gymnast,
 latest sent or coach. The filters stay in the page's address, so you can
 bookmark or share a view; **Print** and **Download CSV**, below the entries, use them too. The page opens on the entries; the competition's dates and counts are at the bottom. With many filters, they're under **Filters**, which says how many are on. Each choice says how many entries it would leave ("UCD (12)"), and one that would leave none is greyed out. The filters you've chosen are listed under the search ("Club: UCD ×"): tap one to take it off. Each event's table starts folded (tap its heading to open it) and
-says how many of its entries are shown ("12 of 96"); **Columns** chooses which columns show (Sent is hidden until you tick it, so the rest fit a laptop's screen) and can clip long text to one line, and dragging the edge of a heading makes a column wider or narrower; a line at a table's edge means there's more to scroll to. **Expand all** and **Collapse all** open or fold every one, and
+says how many of its entries are shown ("12 of 96"); **Columns** chooses which columns show (Sent is hidden until you tick it, so the rest fit a laptop's screen) and can clip long text to one line, and dragging the edge of a heading makes a column wider or narrower; a table's edge fades where there's more to scroll to. The Coach column names the coach and says **Signed off**, **Needs changes** or **Waiting**; an asterisk after a coach's name means they aren't approved to sign off for this competition, so their sign-off doesn't count. **Expand all** opens every one (it then reads **Collapse all**, to fold them again), and
 your browser remembers which you left open. A search or filter opens the
 events it finds people in. Tap a gymnast to see both exercises in full (a synchro
 pair's one routine), checked as the Routine Builder checks them.
@@ -128,7 +128,9 @@ pair's one routine), checked as the Routine Builder checks them.
   order, so check where your own levels sit), choose which
   levels rank men and women separately, turn entering on their own, video proof or
   coach sign-off on or off, **Replace the admin link** if it's been shared too
-  widely, or delete the competition (each of those last two asks once more).
+  widely, or delete the competition (each of those last two asks once more;
+  deleting needs the word **delete** typed in a box, so it can't happen by
+  accident).
 - **Links for your helpers** (under **Links** on the Settings page): tap
   **Make a link**, name it (who it's for) and choose what it can do: **Checking cards** (for
   difficulty judges: check cards, add notes, review videos), **Chairs of
@@ -434,10 +436,10 @@ a **Change** button to open it.
    part of their name in **Find a name**: only the flights with them show,
    with their Check-in or Panel list open, and it stays that way as you tap
    Here. Each area's card has **Open**, which goes straight to that area's own page.
-   **What the colours mean.** Each state is a small label with a mark, the
-   same on every page: grey ○ not yet (not started, not checked in), blue ◐
-   under way or waiting on someone, green ✓ done (finished, here), amber !
-   needs a look (running late, a seat no one is in) and red ✕ out
+   **What the colours mean.** Each state is a small coloured label, the
+   same on every page: grey not yet (not started, not checked in), blue
+   under way or waiting on someone, green done (finished, here), amber
+   needs a look (running late, a seat no one is in) and red out
    (scratched, missing). Each flight says Not started, Under way, Running late
    or Finished; the Check-in and Panel headings count who's here and who's
    out, and a Panel lists any seat that still needs someone.
@@ -633,7 +635,8 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   everyone's skills** shares members' skills with the whole club (otherwise
   each member's are seen by them, their coaches and you). **Admin link**,
   **Replace**, and **Delete the club**, **Delete**, open to do it; replacing
-  the admin link asks first, as the old one stops working for everyone who has it. A
+  the admin link asks first, as the old one stops working for everyone who has it, and
+  deleting the club needs the word **delete** typed in a box. A
   club is deleted 13 months after anyone last used it (you, a coach or a
   member opening their page); Settings says when. **Opened from people's own
   links** lists anyone who added the admin link to their own page (see

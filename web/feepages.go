@@ -317,7 +317,7 @@ func (p *competitionPages) adminInvoice(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	p.invoice(w, r, c, r.URL.Query().Get("payer"), adminPath(r.PathValue("token"))+"/fees")
+	p.invoice(w, r, c, r.URL.Query().Get("payer"), adminPath(r.PathValue("token"))+"/fees", "Fees")
 }
 
 // clubInvoice is the club's invoice, for its comp sec.
@@ -330,7 +330,7 @@ func (p *competitionPages) clubInvoice(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	p.invoice(w, r, c, clubPayer(club.ID), clubCompetitionPath(r.PathValue("token"), c.ID)+"/fees")
+	p.invoice(w, r, c, clubPayer(club.ID), clubCompetitionPath(r.PathValue("token"), c.ID)+"/fees", "Fees")
 }
 
 // individualInvoice is an individual's invoice for their entry.
@@ -339,11 +339,12 @@ func (p *competitionPages) individualInvoice(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	p.invoice(w, r, c, entryPayer(e.ID), "/competitions/entry/"+r.PathValue("token"))
+	p.invoice(w, r, c, entryPayer(e.ID), "/competitions/entry/"+r.PathValue("token"), c.Name)
 }
 
-// invoice shows a payer's invoice, to print.
-func (p *competitionPages) invoice(w http.ResponseWriter, r *http.Request, c store.Competition, key, back string) {
+// invoice shows a payer's invoice, to print, with the way back to back
+// (backTo names it).
+func (p *competitionPages) invoice(w http.ResponseWriter, r *http.Request, c store.Competition, key, back, backTo string) {
 	page, ok, err := p.invoicePage(r.Context(), c, key, back)
 	if err != nil {
 		failed(w, r, err)
@@ -353,6 +354,7 @@ func (p *competitionPages) invoice(w http.ResponseWriter, r *http.Request, c sto
 		message(w, r, http.StatusNotFound, "No invoice", "There's nothing to pay for this competition yet.")
 		return
 	}
+	page.BackTo = backTo
 	render(w, r, views.Invoice(*page))
 }
 

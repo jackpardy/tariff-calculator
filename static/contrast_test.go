@@ -91,3 +91,46 @@ func TestPaletteContrast(t *testing.T) {
 		}
 	}
 }
+
+// Text on the competition pages reads at 4.5:1 or better on white: grey
+// small text, red Remove and Delete, the outlined danger button, white on
+// the danger button, and the shared look's own greys.
+func TestTextContrast(t *testing.T) {
+	css, err := files.ReadFile("css/styles.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sel := range []string{
+		`.has-text-grey {`,
+		`.has-text-danger {`,
+		`.button.is-danger:not(.is-light):not(.is-outlined) {`,
+		`.button.is-danger.is-outlined {`,
+		`.comp-opens-detail {`,
+		`.comp-empty {`,
+		`.comp-key {`,
+		`.comp-scratched {`,
+	} {
+		for rest, found := string(css), false; ; {
+			i := strings.Index(rest, sel)
+			if i < 0 {
+				if !found {
+					t.Errorf("no rule for %s", sel)
+				}
+				break
+			}
+			found = true
+			rule := rest[i:]
+			rule = rule[:strings.Index(rule, "}")]
+			rest = rest[i+len(sel):]
+			for _, m := range regexp.MustCompile(`(?:^|[^-])(?:background-)?color: (#[0-9a-f]{6})`).FindAllStringSubmatch(rule, -1) {
+				if c := contrast(m[1], "#ffffff"); c < 4.5 {
+					t.Errorf("%s: %s and white are %.2f:1", sel, m[1], c)
+				}
+			}
+		}
+	}
+	// A chip is never smaller than 12px, even inside small text.
+	if !strings.Contains(string(css), ".chip { display: inline-flex; align-items: baseline; gap: 0.3em; max-width: 100%; font-size: max(0.8em, 0.75rem);") {
+		t.Error("a chip's text has a floor of 0.75rem")
+	}
+}

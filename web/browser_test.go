@@ -192,7 +192,7 @@ func TestWriteRequirementsInTheBuilderInABrowser(t *testing.T) {
 		chromedp.Evaluate(`JSON.parse(localStorage.getItem('trampolineRoutines')).routines[0].requirements`, &saved),
 		chromedp.Evaluate(`JSON.parse(localStorage.getItem('trampolineRequirementSets')).find((s) => s.id === JSON.parse(localStorage.getItem('trampolineRoutines')).routines[0].requirements)?.set.name || ''`, &setName),
 	)
-	if chips != "!Not met,!Not met,!Not met" { // one skill: too few, too easy, and not the elements allowed
+	if chips != "Not met,Not met,Not met" { // one skill: too few, too easy, and not the elements allowed
 		t.Errorf("each rule says whether the routine meets it: %q", chips)
 	}
 	if name != "BUCS L7 · second exercise (copy)" {

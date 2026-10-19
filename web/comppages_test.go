@@ -136,14 +136,20 @@ func TestCreateCompetition(t *testing.T) {
 		t.Error("the replaced admin link stops working; the new one works")
 	}
 
-	// Deleting needs the box ticked.
-	if got := redirected(t, h, fresh+"/delete", url.Values{}); !strings.HasPrefix(got, fresh+"/settings") {
-		t.Errorf("unconfirmed, it goes back to the settings: %s", got)
+	// Deleting needs "delete" typed: nothing, the old tick box's "1" or
+	// another word deletes nothing, and says why.
+	for _, typed := range []string{"", "1", "yes", "deleted"} {
+		if got := redirected(t, h, fresh+"/delete", url.Values{"confirm": {typed}}); !strings.HasPrefix(got, fresh+"/settings") || !strings.Contains(got, "Type+delete") {
+			t.Errorf("%q typed: it goes back to the settings, saying to type delete: %s", typed, got)
+		}
 	}
 	if do(t, h, http.MethodGet, fresh, nil).Code != http.StatusOK {
-		t.Error("not deleted without confirming")
+		t.Error("not deleted without delete typed")
 	}
-	do(t, h, http.MethodPost, fresh+"/delete", url.Values{"confirm": {"1"}})
+	if page := do(t, h, http.MethodGet, fresh+"/settings", nil).Body.String(); !strings.Contains(page, `name="confirm" autocomplete="off"`) || !strings.Contains(page, ">Delete the competition</button>") {
+		t.Error("Settings asks for delete to be typed")
+	}
+	do(t, h, http.MethodPost, fresh+"/delete", url.Values{"confirm": {"delete"}})
 	if do(t, h, http.MethodGet, fresh, nil).Code != http.StatusNotFound {
 		t.Error("deleted")
 	}
