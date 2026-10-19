@@ -616,7 +616,10 @@ finds Mary Kate and "oneill" finds O'Néill; the count says how many are
 shown, and Clear shows everyone again. Each filter's choices say how many
 they would leave given the search and the other filters ("UCD (12)"),
 greyed out when that's nobody (but the one chosen); the filters chosen are
-chips after the count ("Club: UCD ×"), each taking its filter off. All
+chips after the count ("Club: UCD ×"), each taking its filter off. A
+withdrawn entry is listed, marked, but counted nowhere: not in "N of M", a
+level's count or what a choice would leave (`ListRow.Uncounted`), as it isn't
+in the total. All
 people can also be narrowed by the level someone can judge, so a judge from
 a club for a level is found, or plainly not there. The lists are the dashboard's
 entries, All people, Officials, the organiser's Coaches, the desk's People I

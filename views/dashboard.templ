@@ -468,8 +468,14 @@ func filtered(d Dashboard) bool { return len(d.Filter) > 0 }
 
 // shownCount says how many of a level's entries are shown, e.g. "12 of 96".
 func shownCount(d Dashboard, l DashboardLevel) string {
-	if filtered(d) && len(l.Rows) != l.Total {
-		return fmt.Sprintf("%d of %d", len(l.Rows), l.Total)
+	shown := 0 // withdrawn entries are listed, not counted
+	for _, r := range l.Rows {
+		if !r.Withdrawn {
+			shown++
+		}
+	}
+	if filtered(d) && shown != l.Total {
+		return fmt.Sprintf("%d of %d", shown, l.Total)
 	}
 	return strconv.Itoa(l.Total)
 }
@@ -699,7 +705,7 @@ func levelOpen(d Dashboard, l DashboardLevel) bool { return filtered(d) && len(l
 
 // dashboardRow is an entry's row in its level's table.
 templ dashboardRow(d Dashboard, l DashboardLevel, r DashboardRow) {
-	<tr class={ templ.KV("has-problems", len(r.Problems) > 0 && !r.Withdrawn), templ.KV("is-withdrawn", r.Withdrawn) } { ListRow{Name: r.Gymnast}.Attrs()... }>
+	<tr class={ templ.KV("has-problems", len(r.Problems) > 0 && !r.Withdrawn), templ.KV("is-withdrawn", r.Withdrawn) } { ListRow{Name: r.Gymnast, Uncounted: r.Withdrawn}.Attrs()... }>
 		if d.Access.Remove {
 			<td class="comp-stack-tick"><input type="checkbox" name="entry" value={ r.ID } form="remove-form" aria-label={ "Tick " + r.Gymnast }/></td>
 		}

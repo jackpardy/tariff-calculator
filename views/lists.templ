@@ -77,11 +77,18 @@ type ListOption struct {
 type ListRow struct {
 	Name   string              // searched, ignoring case and accents
 	Values map[string][]string // by filter key; a row can have several, or none
+	// Uncounted is a row listed but not counted (a withdrawn entry, which
+	// isn't counted or printed): it shows and filters like any other, but
+	// "N of M", a group's count and each choice's count leave it out.
+	Uncounted bool
 }
 
 // Attrs are the row's attributes for the script.
 func (r ListRow) Attrs() templ.Attributes {
 	a := templ.Attributes{"data-list-row": "", "data-name": r.Name}
+	if r.Uncounted {
+		a["data-list-uncounted"] = ""
+	}
 	if len(r.Values) > 0 {
 		values, _ := json.Marshal(r.Values)
 		a["data-values"] = string(values)

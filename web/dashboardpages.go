@@ -350,11 +350,15 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		if !j.Checked() && !j.Withdrawn {
 			d.Unchecked++
 		}
-		d.All = append(d.All, views.ListRow{Name: j.Entry.Entry.Gymnasts(), Values: j.filterValues()})
+		if !j.Withdrawn { // listed, but not counted: nor are what each filter choice would leave
+			d.All = append(d.All, views.ListRow{Name: j.Entry.Entry.Gymnasts(), Values: j.filterValues()})
+		}
 		if !j.matches(filter) {
 			continue
 		}
-		d.Shown++
+		if !j.Withdrawn {
+			d.Shown++
+		}
 		sentAt[j.ID] = j.SentAt
 		row := views.DashboardRow{
 			ID: j.ID, Gymnast: j.Entry.Entry.Gymnasts(), Club: j.club, Problems: j.problems, Coach: j.CoachName(),

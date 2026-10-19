@@ -835,7 +835,7 @@
             const readRow = (el) => {
                 let values = {};
                 try { values = JSON.parse(el.dataset.values || '{}'); } catch (e) { /* no values: matches no filter */ }
-                return { el, name: fold(el.dataset.name || ''), values };
+                return { el, name: fold(el.dataset.name || ''), values, counted: !('listUncounted' in el.dataset) };
             };
             const readRows = (list) => [...list.querySelectorAll('[data-list-row]')].map(readRow);
             const search = tools.querySelector('[data-list-search]');
@@ -870,7 +870,7 @@
             const every = (list) => {
                 if (!form) {
                     const waiting = [...list.querySelectorAll('template[data-lazy]')].flatMap((t) => [...t.content.querySelectorAll('[data-list-row]')]);
-                    return [...readRows(list), ...waiting.map(readRow)];
+                    return [...readRows(list), ...waiting.map(readRow)].filter((row) => row.counted);
                 }
                 if (sent) { return sent; }
                 sent = [];
@@ -940,13 +940,15 @@
                 // A search looks through every row, folded ones too.
                 if (words.length > 0) { lazyRows(list); }
                 const rows = readRows(list);
-                let total = form ? Number(tools.dataset.total) : rows.length;
+                // A row listed but not counted (data-list-uncounted: a withdrawn
+                // entry) shows and filters, but isn't in "N of M".
+                let total = form ? Number(tools.dataset.total) : rows.filter((row) => row.counted).length;
                 const chosen = filters.filter((f) => f.value !== '');
                 let shown = 0;
                 for (const row of rows) {
                     const show = words.every((w) => row.name.includes(w)) && chosen.every((f) => matches(row, f));
                     row.el.hidden = !show;
-                    if (show) { shown++; }
+                    if (show && row.counted) { shown++; }
                 }
                 if (filters.length > 0) { count(every(list), words); }
                 if (!form) { drawChips(chosen); }
@@ -962,7 +964,7 @@
                     const counted = group.querySelector(':scope > summary [data-group-count]');
                     if (counted) {
                         counted.dataset.shown ??= counted.textContent;
-                        const n = group.querySelectorAll('[data-list-row]:not([hidden])').length;
+                        const n = group.querySelectorAll('[data-list-row]:not([hidden]):not([data-list-uncounted])').length;
                         const of = counted.dataset.groupCount;
                         counted.textContent = words.length === 0 ? counted.dataset.shown : String(n) === of ? of : `${n} of ${of}`;
                     }

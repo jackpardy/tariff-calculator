@@ -85,11 +85,18 @@ type ListOption struct {
 type ListRow struct {
 	Name   string              // searched, ignoring case and accents
 	Values map[string][]string // by filter key; a row can have several, or none
+	// Uncounted is a row listed but not counted (a withdrawn entry, which
+	// isn't counted or printed): it shows and filters like any other, but
+	// "N of M", a group's count and each choice's count leave it out.
+	Uncounted bool
 }
 
 // Attrs are the row's attributes for the script.
 func (r ListRow) Attrs() templ.Attributes {
 	a := templ.Attributes{"data-list-row": "", "data-name": r.Name}
+	if r.Uncounted {
+		a["data-list-uncounted"] = ""
+	}
 	if len(r.Values) > 0 {
 		values, _ := json.Marshal(r.Values)
 		a["data-values"] = string(values)
@@ -140,7 +147,7 @@ func listSection(title string, count int) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 109, Col: 37}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 116, Col: 37}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -153,7 +160,7 @@ func listSection(title string, count int) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(count))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 109, Col: 115}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 116, Col: 115}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -208,7 +215,7 @@ func listTools(t ListTools) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 120, Col: 72}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 127, Col: 72}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 			if templ_7745c5c3_Err != nil {
@@ -221,7 +228,7 @@ func listTools(t ListTools) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.Noun)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 120, Col: 93}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 127, Col: 93}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 			if templ_7745c5c3_Err != nil {
@@ -234,7 +241,7 @@ func listTools(t ListTools) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(t.Total))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 120, Col: 130}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 127, Col: 130}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 			if templ_7745c5c3_Err != nil {
@@ -278,7 +285,7 @@ func listTools(t ListTools) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 126, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 133, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 			if templ_7745c5c3_Err != nil {
@@ -291,7 +298,7 @@ func listTools(t ListTools) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.Noun)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 126, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 133, Col: 79}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 			if templ_7745c5c3_Err != nil {
@@ -304,7 +311,7 @@ func listTools(t ListTools) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(t.Total))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 126, Col: 116}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 133, Col: 116}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 			if templ_7745c5c3_Err != nil {
@@ -398,7 +405,7 @@ func listControls(t ListTools) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(filtersOn(t)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 145, Col: 124}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 152, Col: 124}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -449,7 +456,7 @@ func listControls(t ListTools) templ.Component {
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(listCount(t))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 167, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 174, Col: 57}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 		if templ_7745c5c3_Err != nil {
@@ -469,7 +476,7 @@ func listControls(t ListTools) templ.Component {
 					var templ_7745c5c3_Var16 templ.SafeURL
 					templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(f.Remove))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 175, Col: 83}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 182, Col: 83}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 					if templ_7745c5c3_Err != nil {
@@ -482,7 +489,7 @@ func listControls(t ListTools) templ.Component {
 					var templ_7745c5c3_Var17 string
 					templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue("Take off " + chipText(f, f.Value))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 175, Col: 149}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 182, Col: 149}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 					if templ_7745c5c3_Err != nil {
@@ -495,7 +502,7 @@ func listControls(t ListTools) templ.Component {
 					var templ_7745c5c3_Var18 string
 					templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(chipText(f, f.Value))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 176, Col: 29}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 183, Col: 29}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 					if templ_7745c5c3_Err != nil {
@@ -520,7 +527,7 @@ func listControls(t ListTools) templ.Component {
 			var templ_7745c5c3_Var19 templ.SafeURL
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(t.Clear))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 184, Col: 83}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 191, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -608,7 +615,7 @@ func listFilter(t ListTools, f ListFilter) templ.Component {
 		var templ_7745c5c3_Var21 string
 		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.ResolveAttributeValue(f.Label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 210, Col: 30}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 217, Col: 30}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var21)
 		if templ_7745c5c3_Err != nil {
@@ -621,7 +628,7 @@ func listFilter(t ListTools, f ListFilter) templ.Component {
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.ResolveAttributeValue(f.Key)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 210, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 217, Col: 57}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var22)
 		if templ_7745c5c3_Err != nil {
@@ -654,7 +661,7 @@ func listFilter(t ListTools, f ListFilter) templ.Component {
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(f.Any)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 211, Col: 27}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 218, Col: 27}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
@@ -673,7 +680,7 @@ func listFilter(t ListTools, f ListFilter) templ.Component {
 				var templ_7745c5c3_Var24 string
 				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.ResolveAttributeValue(group[0].Group)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 214, Col: 37}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 221, Col: 37}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var24)
 				if templ_7745c5c3_Err != nil {
@@ -691,7 +698,7 @@ func listFilter(t ListTools, f ListFilter) templ.Component {
 					var templ_7745c5c3_Var25 string
 					templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.ResolveAttributeValue(o.Value)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 216, Col: 30}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 223, Col: 30}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var25)
 					if templ_7745c5c3_Err != nil {
@@ -714,7 +721,7 @@ func listFilter(t ListTools, f ListFilter) templ.Component {
 					var templ_7745c5c3_Var26 string
 					templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(o.Label)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 216, Col: 75}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 223, Col: 75}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 					if templ_7745c5c3_Err != nil {
@@ -738,7 +745,7 @@ func listFilter(t ListTools, f ListFilter) templ.Component {
 					var templ_7745c5c3_Var27 string
 					templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.ResolveAttributeValue(o.Value)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 221, Col: 29}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 228, Col: 29}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
 					if templ_7745c5c3_Err != nil {
@@ -761,7 +768,7 @@ func listFilter(t ListTools, f ListFilter) templ.Component {
 					var templ_7745c5c3_Var28 string
 					templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(o.Label)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 221, Col: 74}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/lists.templ`, Line: 228, Col: 74}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 					if templ_7745c5c3_Err != nil {
