@@ -203,10 +203,9 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 					</span>
 					// Flags a problem while the card is folded; the details say what it is.
 					if problem {
-						// A word, not "!" (the owner: no "!" on warnings).
-						<span class="card-problem" title={ text } aria-label={ "Problem: " + text }>
-							@StateChip(Attention, "Problem")
-						</span>
+						// A "!" on its own reads well on a folded card (the owner, 2026-10-19);
+						// it's the "!" inside a chip's words that was clutter.
+						<span class="card-problem" title={ text } aria-label={ "Problem: " + text }>!</span>
 					}
 					<span class="card-tariff">{ tariffText(sv.Skill.Tariff) }</span>
 				</button>

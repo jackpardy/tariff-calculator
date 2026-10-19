@@ -203,7 +203,10 @@ a.tool-banner-name:hover { color: #fff; text-decoration: underline; }
 .card-official { font-weight: 400; color: #555; }
 .card-fig { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; color: #555; white-space: nowrap; }
 .card-tariff { flex: none; min-width: 2.2em; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
-.card-problem { flex: none; display: inline-flex; align-items: center; }
+.card-problem {
+    flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1.35rem; height: 1.35rem; border-radius: 50%;
+    font-size: 0.8rem; font-weight: 700; color: var(--state-attention-ink); background: var(--state-attention-bg);
+}
 .card-buttons { flex: none; display: flex; gap: 0.35rem; }
 .card-buttons .button { height: 2.5rem; min-width: 2.5rem; padding: 0 0.65rem; }
 @media screen and (max-width: 768px) {
