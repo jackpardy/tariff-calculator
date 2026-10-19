@@ -22,9 +22,10 @@ func TestDashboardNavigation(t *testing.T) {
 		return do(t, h, http.MethodGet, admin+"?"+query, nil).Body.String()
 	}
 
-	// Levels start collapsed, with buttons to expand or collapse them all;
+	// Levels start collapsed, with one button to expand them all (it collapses
+	// them once they're all open);
 	// filtering opens the levels with something shown.
-	if page := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(page, `data-level="BUCS L3" data-remember data-list-group>`) || !strings.Contains(page, "Expand all") || !strings.Contains(page, "Collapse all") {
+	if page := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(page, `data-level="BUCS L3" data-remember data-list-group>`) || !strings.Contains(page, `data-expand-all aria-expanded="false">Expand all</button>`) {
 		t.Error("levels start collapsed")
 	}
 	if !strings.Contains(shows("q=oneill"), `data-level="BUCS L3" open`) {

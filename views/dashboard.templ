@@ -113,7 +113,8 @@ type EntryDetail struct {
 // Dashboard is the organiser's overview: every entry, by level, with its problems.
 templ CompetitionDashboard(d Dashboard) {
 	@competitionLayout(d.Competition.Name) {
-		<h1 class="title is-4">{ d.Competition.Name }</h1>
+		// Headed as every organiser page is: the page, then the competition.
+		@pageHead("Entries", d.Competition.Name)
 		@pageMenu(d.Menu)
 		if d.Access.Organiser {
 			// Saves the admin link in this browser whenever it's opened (static/js/competitions.js).
@@ -156,8 +157,9 @@ templ CompetitionDashboard(d Dashboard) {
 		}
 		if len(d.Levels) > 0 {
 			<div class="buttons mt-4 mb-0">
-				<button class="button is-small" type="button" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = true)">Expand all</button>
-				<button class="button is-small" type="button" onclick="document.querySelectorAll('details.comp-dash-level').forEach(e => e.open = false)">Collapse all</button>
+				// One button: Expand all, or Collapse all once every level is open
+				// (static/js/competitions.js, expandAll).
+				<button class="button is-small" type="button" data-expand-all aria-expanded="false">Expand all</button>
 				if d.Entries > 0 {
 					@tableViewMenu("entries")
 				}

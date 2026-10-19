@@ -44,7 +44,7 @@ templ feedbackButton(f *FeedbackForm) {
 		<div class="comp-feedback" id="feedback-sent">
 			<p class="comp-feedback-thanks is-size-7 mb-2">Thanks: your feedback is sent.</p>
 			<details>
-				<summary>Feedback</summary>
+				<summary class="button is-small comp-opens-button">Feedback</summary>
 				<form method="post" action={ templ.SafeURL(f.Action) } class="comp-feedback-form" data-feedback>
 					<input type="hidden" name="competition" value={ f.Competition }/>
 					<input type="hidden" name="page" value={ f.Page }/>

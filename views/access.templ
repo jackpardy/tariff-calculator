@@ -125,13 +125,13 @@ type HistoryChange struct {
 // History lists the latest changes, and which link made each.
 templ History(p HistoryPage) {
 	@competitionLayout("History · " + p.Competition.Name) {
-		<h1 class="title is-4">History</h1>
-		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		@pageHead("History", p.Competition.Name)
 		@pageMenu(p.Menu)
 		if len(p.Changes) == 0 {
-			<p class="has-text-grey">No changes yet.</p>
+			@emptyLine("No changes yet.")
 		} else {
-			<table class="table is-fullwidth is-narrow">
+			// On a phone each change is a card: when, then who and what.
+			<table class="table is-fullwidth is-narrow comp-stack">
 				<thead>
 					<tr><th>When</th><th>Who</th><th>What</th></tr>
 				</thead>
@@ -139,8 +139,8 @@ templ History(p HistoryPage) {
 					for _, c := range p.Changes {
 						<tr>
 							<td class="is-size-7 has-text-grey" style="white-space: nowrap">{ c.At }</td>
-							<td>{ c.Who }</td>
-							<td>{ c.What }</td>
+							<td data-label="Who">{ c.Who }</td>
+							<td data-label="What">{ c.What }</td>
 						</tr>
 					}
 				</tbody>

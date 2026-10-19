@@ -831,7 +831,7 @@ templ dayUpForm(p DayPage, f DayFlight, next bool) {
 // should be: them, their club's comp sec and coaches, or both.
 templ dayNotify(p DayPage, flight string, n DayNotify) {
 	<details class="comp-notify" data-key={ "notify:" + n.As + ":" + flight + ":" + n.Person }>
-		<summary class="is-size-7">Notify</summary>
+		<summary class="button is-small comp-opens-button">Notify</summary>
 		<form method="post" action={ templ.SafeURL(p.Base + "/day/notify") }>
 			<input type="hidden" name="person" value={ n.Person }/>
 			<input type="hidden" name="flight" value={ flight }/>

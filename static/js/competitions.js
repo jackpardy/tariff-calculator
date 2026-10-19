@@ -532,17 +532,24 @@
         update();
     }
 
-    // menuInView scrolls each row of the page's menu sideways so its current
-    // tab shows: on a phone the rows are wider than the screen.
-    function menuInView() {
-        document.querySelectorAll('.comp-menu .tabs').forEach((row) => {
-            const active = row.querySelector('li.is-active');
-            if (active && row.scrollWidth > row.clientWidth) {
-                const a = active.getBoundingClientRect();
-                const r = row.getBoundingClientRect();
-                row.scrollLeft += a.left - r.left - (r.width - a.width) / 2;
-            }
+    // expandAll is the entries page's one button opening every level, or,
+    // once they're all open, closing them: its words say which it does.
+    function expandAll() {
+        const button = document.querySelector('[data-expand-all]');
+        if (!button) { return; }
+        const levels = () => [...document.querySelectorAll('details.comp-dash-level')];
+        const sync = () => {
+            const open = levels().every((d) => d.open);
+            button.textContent = open ? 'Collapse all' : 'Expand all';
+            button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+        button.addEventListener('click', () => {
+            const open = !levels().every((d) => d.open);
+            levels().forEach((d) => { d.open = open; });
+            sync();
         });
+        document.addEventListener('toggle', (e) => { if (e.target.matches?.('details.comp-dash-level')) { sync(); } }, true);
+        sync();
     }
 
     // dayPage keeps the On the day page where it is when a button on it is
@@ -1089,7 +1096,7 @@
         listTools();
         offlineBanner();
         openLevels();
-        menuInView();
+        expandAll();
         tickBar();
         dayPick();
         dayPage();

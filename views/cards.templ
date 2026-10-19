@@ -55,8 +55,9 @@ templ entryCardChecks(c EntryCard) {
 			@StateChip(Done, "No problems found")
 		</p>
 	} else {
-		<div class="notification is-danger is-light" id="problems">
-			<p><strong>{ Count(len(c.Problems), "problem", "problems") }</strong></p>
+		// An amber chip and the list, as the entries page shows problems.
+		<div class="comp-problems" id="problems">
+			@StateChip(Attention, Count(len(c.Problems), "problem", "problems"))
 			<ul>
 				for _, p := range c.Problems {
 					<li>{ p }</li>
@@ -177,6 +178,7 @@ func elementNumbers(ns []int) string {
 // or, for more than fit on a phone's page, the levels to print one at a time.
 type CardsPage struct {
 	Title      string
+	Of         string // the competition's name
 	Back       string
 	Cards      []PrintedCard
 	Levels     []CardsLevel // the selection's levels with cards
@@ -205,8 +207,41 @@ type PrintedCard struct {
 	Details    SheetDetails
 }
 
-// CompetitionCards prints competition cards, one per page.
+// CompetitionCards prints competition cards, one per page; or, for more
+// than fit on a phone's page, lists the levels to print one at a time, as
+// one of the app's pages.
 templ CompetitionCards(p CardsPage) {
+	if p.Choose {
+		@cardLevels(p)
+	} else {
+		@printedCardsPage(p)
+	}
+}
+
+// cardLevels lists the selection's levels to print a level at a time, or
+// all of them for a computer: a row each, the level's name opening its cards.
+templ cardLevels(p CardsPage) {
+	@competitionLayout(p.Title) {
+		@backLink(p.Back, "Entries")
+		@pageHead("Print cards", p.Of)
+		<p class="mb-3">{ Count(p.Total, "card", "cards") }: too many for a phone to print at once. Print them a level at a time.</p>
+		<ul class="comp-card-levels">
+			for _, l := range p.Levels {
+				<li>
+					<a href={ templ.SafeURL(l.Href) }>{ l.Name }</a>
+					<span class="has-text-grey">{ Count(l.Cards, "card", "cards") }</span>
+				</li>
+			}
+		</ul>
+		<p>
+			<a class="button is-small" href={ templ.SafeURL(p.AllHref) }>Every level on one page</a>
+			<span class="has-text-grey is-size-7 ml-2">{ Count(p.Total, "card", "cards") }, slow on a phone</span>
+		</p>
+	}
+}
+
+// printedCardsPage is the cards to print, with a toolbar on screen.
+templ printedCardsPage(p CardsPage) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -219,36 +254,18 @@ templ CompetitionCards(p CardsPage) {
 			<link rel="stylesheet" href={ static.URL("css/sheet.css") }/>
 		</head>
 		<body>
-			if p.Choose {
-				<div class="toolbar screen-only">
-					<a href={ templ.SafeURL(p.Back) }>← Entries</a>
-					<span>{ Count(p.Total, "card", "cards") }</span>
-				</div>
-				// Too many for one page on a phone: a level at a time, each
-				// printed on its own, or all of them for a computer.
-				<div class="hint">
-					<p>Print the cards a level at a time:</p>
-					<ul class="card-levels">
-						for _, l := range p.Levels {
-							<li><a href={ templ.SafeURL(l.Href) }>{ l.Name }</a> · { Count(l.Cards, "card", "cards") }</li>
-						}
-					</ul>
-					<p><a href={ templ.SafeURL(p.AllHref) }>Every level on one page</a> · { Count(p.Total, "card", "cards") }, slow on a phone</p>
-				</div>
-			} else {
-				<div class="toolbar screen-only">
-					<a href={ templ.SafeURL(p.Back) }>← Entries</a>
-					if p.LevelsHref != "" {
-						<a href={ templ.SafeURL(p.LevelsHref) }>Other levels</a>
-					}
-					<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
-					<span>{ Count(len(p.Cards), "card", "cards") }</span>
-					if p.Next != nil {
-						<a href={ templ.SafeURL(p.Next.Href) }>Next: { p.Next.Name } →</a>
-					}
-				</div>
-				@printedCards(p)
-			}
+			<div class="toolbar screen-only">
+				<a href={ templ.SafeURL(p.Back) }>← Entries</a>
+				if p.LevelsHref != "" {
+					<a href={ templ.SafeURL(p.LevelsHref) }>Other levels</a>
+				}
+				<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
+				<span>{ Count(len(p.Cards), "card", "cards") }</span>
+				if p.Next != nil {
+					<a href={ templ.SafeURL(p.Next.Href) }>Next: { p.Next.Name } →</a>
+				}
+			</div>
+			@printedCards(p)
 		</body>
 	</html>
 }

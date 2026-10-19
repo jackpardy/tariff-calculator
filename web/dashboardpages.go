@@ -404,7 +404,7 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	page := views.CardsPage{Title: "Cards · " + c.Name, Back: adminPath(r.PathValue("token"))}
+	page := views.CardsPage{Title: "Cards · " + c.Name, Of: c.Name, Back: adminPath(r.PathValue("token"))}
 	q := r.URL.Query()
 	all, err := p.judgedOf(r.Context(), c.ID, false)
 	if err != nil {

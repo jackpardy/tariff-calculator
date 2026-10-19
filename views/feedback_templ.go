@@ -69,7 +69,7 @@ func feedbackButton(f *FeedbackForm) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if f != nil && f.On {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"comp-feedback\" id=\"feedback-sent\"><p class=\"comp-feedback-thanks is-size-7 mb-2\">Thanks: your feedback is sent.</p><details><summary>Feedback</summary><form method=\"post\" action=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"comp-feedback\" id=\"feedback-sent\"><p class=\"comp-feedback-thanks is-size-7 mb-2\">Thanks: your feedback is sent.</p><details><summary class=\"button is-small comp-opens-button\">Feedback</summary><form method=\"post\" action=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

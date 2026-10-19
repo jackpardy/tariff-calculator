@@ -652,7 +652,8 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-opens-action { border: 0; margin-bottom: 1rem; }
 .comp-opens-action > summary { display: block; padding: 0; }
 .comp-opens-button::after { content: ""; display: inline-block; width: 0.55em; height: 0.55em; margin-left: 0.5em; background: currentColor; clip-path: polygon(0 15%, 100% 15%, 50% 100%); transition: transform 0.15s; }
-.comp-opens[open] .comp-opens-button::after, .comp-popup[open] > .comp-opens-button::after, .routine-menu[open] > .comp-opens-button::after { transform: rotate(180deg); }
+.comp-opens[open] .comp-opens-button::after, .comp-popup[open] > .comp-opens-button::after, .routine-menu[open] > .comp-opens-button::after,
+details[open] > summary.comp-opens-button::after { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .comp-opens-button::after { transition: none; } }
 .comp-opens[open] .comp-opens-label, .comp-opens:not([open]) .comp-opens-close { display: none; }
 .comp-opens-form { margin: 0 0 0.9rem; padding: 0.25rem 0 0.25rem 1rem; border-left: 3px solid #dbdbdb; }
@@ -911,7 +912,7 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
 .comp-correct-times .input { min-height: 2.5rem; width: 8rem; }
 /* A tap kept on the phone until the signal is back (static/js/taps.js). */
 .comp-tap-note { flex-basis: 100%; margin-top: 0; }
-.comp-notify > summary { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 0.75rem; margin: 0.5rem 0 0.25rem; border: 1px solid #dbdbdb; border-radius: 4px; }
+.comp-notify > summary { min-height: 2.5rem; margin: 0.5rem 0 0.25rem; }
 .comp-notify .input { min-height: 2.5rem; }
 .comp-notify .checkbox { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2.5rem; }
 /* The venue screen (views/screen.templ), for a TV across a hall: black on white, each
@@ -1033,7 +1034,7 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
    and out of the way, but a full 40px to tap. Without JavaScript the page comes back at
    #feedback-sent, which shows the thanks. */
 .comp-feedback { margin-top: 3rem; padding-top: 0.75rem; border-top: 1px solid #ededed; }
-.comp-feedback > details > summary { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid #dbdbdb; border-radius: 4px; font-size: 0.875rem; }
+.comp-feedback > details > summary { min-height: 2.5rem; }
 .comp-feedback-form { max-width: 32rem; margin-top: 0.5rem; }
 .comp-feedback-form .button { min-height: 2.5rem; }
 .comp-feedback-thanks { display: none; }
