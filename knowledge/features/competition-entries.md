@@ -938,8 +938,12 @@ are then filled flight by flight.
   first what a new draft would no longer show (`dayMarks.lost`): flights started or finished
   that aren't in it (their times and who's up are dropped, by name), panel
   check-ins for seats no longer in it (the flight's gone, or the person's no
-  longer on it), and gymnasts checked in or scratched who aren't in it, with
-  **Publish anyway**. The dropped rows stay in the database, unseen. Moves,
+  longer on it), gymnasts checked in or scratched who aren't in it, and
+  those moved by hand to another flight, with **Publish anyway**. A gymnast
+  moved to another flight has their check-in cleared when it's published
+  (`movedFlight`; the owner, 2026-10-19): they check in again at the new
+  flight. Moving or redrawing a whole flight keeps its gymnasts in it, so
+  theirs stay. The dropped rows stay in the database, unseen. Moves,
   redraws, seats and a kept "what if" keep IDs, so they drop only what the
   change itself takes away. A page that only asks isn't recorded in History.
 

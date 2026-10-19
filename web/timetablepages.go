@@ -594,10 +594,21 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 				return
 			}
 		}
+		// Gymnasts moved by hand to another flight are checked in again there.
+		var moved []string
+		if c.Published != nil {
+			moved = movedFlight(*c.Published, s)
+		}
 		p.notify.changing(r.Context(), c)
 		if err := p.st.PublishTimetable(r.Context(), c.ID, &s); err != nil {
 			failed(w, r, err)
 			return
+		}
+		for _, id := range moved {
+			if err := p.st.SetCheckin(r.Context(), c.ID, id, "", ""); err != nil {
+				failed(w, r, err)
+				return
+			}
 		}
 		notice = "Published: clubs, members and gymnasts entering on their own see their flight, area and time, and officials their duties."
 	case "unpublish":

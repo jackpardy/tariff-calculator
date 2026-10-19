@@ -187,6 +187,7 @@ func TestDayMarksLost(t *testing.T) {
 		"1 flight that has started or finished isn't in the plan any more: its times and who's up are dropped (L3).",
 		"2 panel check-ins are for seats no longer in the plan.",
 		"1 gymnast checked in or scratched isn't in the plan any more: BEA.",
+		"1 gymnast checked in or scratched moves to another flight, so their check-in clears to be done again there: ANN.",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("lost:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
