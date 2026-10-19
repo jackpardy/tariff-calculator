@@ -133,6 +133,35 @@ func (m dayMarks) lost(published, next competitions.Schedule, name func(entryID 
 		out = append(out, views.Count(len(gymnasts), "gymnast checked in or scratched isn't", "gymnasts checked in or scratched aren't")+
 			" in the plan any more: "+someOf(gymnasts)+".")
 	}
+	var moved []string
+	for _, id := range movedFlight(published, next) {
+		if m.checkins[id].Status != "" {
+			moved = append(moved, name(id))
+		}
+	}
+	if len(moved) > 0 {
+		out = append(out, views.Count(len(moved), "gymnast checked in or scratched moves", "gymnasts checked in or scratched move")+
+			" to another flight, so "+map[bool]string{true: "their check-in clears", false: "their check-ins clear"}[len(moved) == 1]+
+			" to be done again there: "+someOf(moved)+".")
+	}
+	return out
+}
+
+// movedFlight are the entries in another flight in next than in published:
+// gymnasts moved by hand from one flight to another (moving or redrawing a
+// whole flight keeps its gymnasts in it). Their check-in is for the flight
+// they were in, so it clears when the move is published (the owner,
+// 2026-10-19): they're checked in again at the new one.
+func movedFlight(published, next competitions.Schedule) []string {
+	var out []string
+	for _, f := range published.Flights {
+		k := competitions.FlightKey(f)
+		for _, id := range f.Entries {
+			if i, in := next.Find(id); in && competitions.FlightKey(next.Flights[i]) != k {
+				out = append(out, id)
+			}
+		}
+	}
 	return out
 }
 
