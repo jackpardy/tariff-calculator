@@ -846,6 +846,30 @@ var migrations = []string{
 	CREATE INDEX concerns_sender ON concerns (competition_id, sender, at);
 	ALTER TABLE competitions RENAME COLUMN feedback TO messages;
 	UPDATE competitions SET messages = TRUE;`,
+
+	// 49: a message to the organiser is about any of the sender's entries
+	// (entries, a JSON list of ids) and, for a comp sec or coach, whole
+	// events (events, a JSON list of names), not just one entry: a
+	// message's entry_id moves into entries (a concern flagged from an
+	// admin link keeps its one). The organiser can say they've received it
+	// (acknowledged_at, _by), and both sides add to it as a thread
+	// (concern_posts: by_sender for the sender's, otherwise the
+	// organiser's, who by the link's name); resolution stays the
+	// organiser's own note.
+	`ALTER TABLE concerns ADD COLUMN entries TEXT NOT NULL DEFAULT '[]';
+	ALTER TABLE concerns ADD COLUMN events TEXT NOT NULL DEFAULT '[]';
+	ALTER TABLE concerns ADD COLUMN acknowledged_at TEXT NOT NULL DEFAULT '';
+	ALTER TABLE concerns ADD COLUMN acknowledged_by TEXT NOT NULL DEFAULT '';
+	UPDATE concerns SET entries = json_array(entry_id), entry_id = '' WHERE role <> '' AND entry_id <> '';
+	CREATE TABLE concern_posts (
+		id         TEXT PRIMARY KEY,
+		concern_id TEXT NOT NULL REFERENCES concerns (id) ON DELETE CASCADE,
+		at         TEXT NOT NULL,
+		by_sender  BOOLEAN NOT NULL DEFAULT FALSE,
+		who        TEXT NOT NULL,
+		text       TEXT NOT NULL
+	);
+	CREATE INDEX concern_posts_concern ON concern_posts (concern_id, at);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

@@ -646,8 +646,14 @@ func (s *seeder) run(out io.Writer) error {
 		}
 	}
 	s.post(chairs+"/concerns", url.Values{"text": {"Panel 2's trampoline has a loose spring cover: can someone look at it at lunch?"}})
-	// A member tells the organiser something, from their own page.
+	// A member tells the organiser something, from their own page; the
+	// organiser replies, and the member answers: a thread, waiting for the
+	// organiser again.
 	s.post(coached.link+"/competitions/"+compID+"/organiser", url.Values{"text": {"I'm doing my exams on the Friday morning: could I be in an afternoon flight?"}})
+	if m := regexp.MustCompile(`id="concern-([^"]+)"`).FindStringSubmatch(s.get(admin)); m != nil {
+		s.post(admin+"/concerns/"+m[1]+"/reply", url.Values{"reply": {"We'll try. Which exam, and when does it finish?"}})
+		s.post(coached.link+"/competitions/"+compID+"/organiser/"+m[1], url.Values{"text": {"Maths, finishing at 12:30. Anything after 2 would be great."}})
+	}
 
 	// Feedback about the app, from a member's My competition and a chair's
 	// page; the organiser has dealt with neither yet.

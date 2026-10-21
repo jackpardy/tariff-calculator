@@ -151,10 +151,34 @@ templ History(p HistoryPage) {
 // ConcernView is a concern flagged for the organiser, or a message sent
 // them from someone's own page.
 type ConcernView struct {
-	ID, Who, Text, At    string // who: the admin link's name, or the sender, e.g. "Ann Ryan, a member of Dublin TC"
-	About, AboutLink     string // the entry it's about, if any
-	Open                 bool
-	ResolvedBy, Resolution string
+	ID, Who, Text, At      string // who: the admin link's name, or the sender, e.g. "Ann Ryan, a member of Dublin TC"
+	About                  []AboutLink // the entries it's about, linked, and whole events
+	Open                   bool
+	ResolvedBy, Resolution string // who resolved it, and their own note
+	Message                bool   // from someone's own link: received, replies, a thread
+	Received               string // who said it was received, and when, e.g. "Mary, Wed 21 Oct, 14:05"; "" until then
+	Waiting                bool   // the last word is the sender's
+	Thread                 []ThreadPost
+}
+
+// aboutSep follows the i'th of n things a message is about: ";" between,
+// ":" before the message.
+func aboutSep(i, n int) string {
+	if i == n-1 {
+		return ":"
+	}
+	return ";"
+}
+
+// AboutLink is an entry a message is about, with the organiser's page of
+// it, or a whole event, without one.
+type AboutLink struct{ Label, Link string }
+
+// ThreadPost is something added to a message since, as the organiser sees
+// it: their reply (by the link's name) or the sender's.
+type ThreadPost struct {
+	Who, Text, At string
+	Organiser     bool
 }
 
 // concernsBox lists the messages and concerns: the open ones under a
@@ -196,27 +220,76 @@ templ concernsBox(base string, concerns []ConcernView, open int, a Access) {
 // concernView is one concern: what it is, who flagged it, and how it was
 // resolved, or the form to resolve it.
 templ concernView(base string, c ConcernView, a Access) {
-	<div class={ "comp-concern", templ.KV("has-text-grey", !c.Open) }>
+	<div class={ "comp-concern", templ.KV("has-text-grey", !c.Open) } id={ "concern-" + c.ID }>
+		if c.Message && c.Open {
+			<p class="mb-1">
+				if c.Waiting {
+					@StateChip(Attention, "Waiting for you")
+				} else {
+					@StateChip(InProgress, "Replied")
+				}
+				if c.Received != "" {
+					<span class="is-size-7 has-text-grey">Received: { c.Received }</span>
+				}
+			</p>
+		}
 		<p>
-			if c.About != "" {
-				<a href={ templ.SafeURL(c.AboutLink) }>{ c.About }</a>:
+			for i, ab := range c.About {
+				if ab.Link != "" {
+					<a href={ templ.SafeURL(ab.Link) }>{ ab.Label }</a>{ aboutSep(i, len(c.About)) }
+				} else {
+					{ ab.Label + aboutSep(i, len(c.About)) }
+				}
 			}
 			{ c.Text }
 		</p>
 		<p class="is-size-7 has-text-grey">{ c.Who } · { c.At }</p>
+		for _, p := range c.Thread {
+			<div class={ "comp-tell-post", templ.KV("is-organiser", p.Organiser) }>
+				<p class="is-size-7 has-text-grey">
+					if p.Organiser {
+						{ p.Who } replied, { p.At }
+					} else {
+						They added, { p.At }
+					}
+				</p>
+				<p class="comp-feedback-text">{ p.Text }</p>
+			</div>
+		}
 		if !c.Open {
 			<p class="is-size-7">
+				Resolved by { c.ResolvedBy }
 				if c.Resolution != "" {
-					{ "Resolved by " + c.ResolvedBy + ": " + c.Resolution }
-				} else {
-					Resolved by { c.ResolvedBy }
+					<span class="has-text-grey">· your note: { c.Resolution }</span>
 				}
 			</p>
 		} else if a.Resolve {
-			<form method="post" action={ templ.SafeURL(base + "/concerns/" + c.ID + "/resolve") } class="comp-flight-actions mt-1">
-				<input class="input is-small" name="note" maxlength="300" placeholder="What was done (optional)" aria-label="What was done"/>
-				<button class="button is-small" type="submit">Resolved</button>
-			</form>
+			<div class="comp-concern-actions mt-1">
+				if c.Message && c.Received == "" {
+					<form method="post" action={ templ.SafeURL(base + "/concerns/" + c.ID + "/received") }>
+						<button class="button is-small" type="submit">Received</button>
+					</form>
+				}
+				if c.Message {
+					@opens("", "", "Reply", false) {
+						<form method="post" action={ templ.SafeURL(base + "/concerns/" + c.ID + "/reply") }>
+							<textarea class="textarea is-small mb-2" name="reply" required maxlength="1000" rows="2" placeholder="They see this on their page" aria-label="Your reply"></textarea>
+							<button class="button is-small is-primary" type="submit">Send reply</button>
+						</form>
+					}
+				}
+				@opens("", "", "Resolve", false) {
+					<form method="post" action={ templ.SafeURL(base + "/concerns/" + c.ID + "/resolve") }>
+						if c.Message {
+							<label class="label is-small mb-1" for={ "reply-" + c.ID }>Reply to them <span class="has-text-weight-normal has-text-grey">(optional: they see it)</span></label>
+							<textarea class="textarea is-small mb-2" id={ "reply-" + c.ID } name="reply" maxlength="1000" rows="2" aria-label="Reply to them"></textarea>
+						}
+						<label class="label is-small mb-1" for={ "note-" + c.ID }>Note for yourself <span class="has-text-weight-normal has-text-grey">(optional: only organisers see it)</span></label>
+						<input class="input is-small mb-2" id={ "note-" + c.ID } name="note" maxlength="300" placeholder="What was done"/>
+						<button class="button is-small" type="submit">Mark resolved</button>
+					</form>
+				}
+			</div>
 		}
 	</div>
 }

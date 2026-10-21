@@ -243,3 +243,35 @@ func TestMessagesMigrate(t *testing.T) {
 		t.Errorf("turned off: %v %v", got.Messages, err)
 	}
 }
+
+// Migration 49 moves a message's one entry into its list, keeps a concern
+// flagged from an admin link as it was, and starts every message
+// unacknowledged, without replies.
+func TestMessagesAboutSeveralMigrate(t *testing.T) {
+	all := migrations
+	t.Cleanup(func() { migrations = all })
+	migrations = all[:49-1]
+	dir := t.TempDir()
+	s, err := Open(ctx, dir)
+	must(t, err)
+	c, _, err := s.CreateCompetition(ctx, competition())
+	must(t, err)
+	_, err = s.db.ExecContext(ctx, `INSERT INTO concerns (id, competition_id, entry_id, who, text, at, role, club, sender) VALUES
+		('m1', $1, 'e1', 'Ann', 'My card', '2026-10-15T10:00:00Z', 'member', 'UCD', 'member:x'),
+		('k1', $1, 'e2', 'Chairs', 'Element 7', '2026-10-15T11:00:00Z', '', '', '')`, c.ID)
+	must(t, err)
+	migrations = all
+	s = reopen(t, s, dir)
+	got, err := s.Concerns(ctx, c.ID)
+	must(t, err)
+	if len(got) != 2 {
+		t.Fatalf("both kept: %+v", got)
+	}
+	flag, msg := got[0], got[1]
+	if flag.ID != "k1" || flag.EntryID != "e2" || len(flag.Entries) != 0 {
+		t.Errorf("the flag keeps its entry: %+v", flag)
+	}
+	if msg.ID != "m1" || msg.EntryID != "" || !slices.Equal(msg.Entries, []string{"e1"}) || msg.Acknowledged() || len(msg.Thread) != 0 {
+		t.Errorf("the message's entry moves into its list: %+v", msg)
+	}
+}

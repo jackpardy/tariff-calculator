@@ -216,7 +216,14 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		}
 		return "Flagged a concern"
 	case "/concerns/{id}/resolve":
+		if strings.TrimSpace(f("reply")) != "" {
+			return "Replied to a message and resolved it"
+		}
 		return "Resolved a concern"
+	case "/concerns/{id}/received":
+		return "Said a message was received"
+	case "/concerns/{id}/reply":
+		return "Replied to a message"
 	case "/feedback":
 		return "Sent feedback about the app"
 	case "/late/settings":
@@ -494,11 +501,22 @@ func (p *competitionPages) flagConcern(w http.ResponseWriter, r *http.Request) {
 	seeOther(w, r, back, "Flagged for the organiser.")
 }
 
-// resolveConcern marks a concern dealt with (note optional).
+// resolveConcern marks a concern dealt with: note, optional, is the
+// organiser's own; reply, optional, goes to a message's sender first.
 func (p *competitionPages) resolveConcern(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
 	if !ok {
 		return
+	}
+	reply := limitMessage(r.FormValue("reply"))
+	if reply != "" {
+		if k, err := p.st.Concern(r.Context(), c.ID, r.PathValue("id")); err != nil || !k.Open() {
+			seeOther(w, r, concernsBack(r), "That was resolved already; nothing was changed.")
+			return
+		}
+		if _, ok := p.reply(w, r, c, reply); !ok {
+			return
+		}
 	}
 	err := p.st.ResolveConcern(r.Context(), c.ID, r.PathValue("id"), linkOf(r).Name, limitNote(strings.TrimSpace(r.FormValue("note"))))
 	switch {
@@ -511,7 +529,11 @@ func (p *competitionPages) resolveConcern(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return
 	}
-	seeOther(w, r, adminPath(r.PathValue("token"))+"#concerns", "Marked resolved.")
+	notice := "Marked resolved."
+	if k, err := p.st.Concern(r.Context(), c.ID, r.PathValue("id")); err == nil && k.Message() {
+		notice += " " + p.notify.tellSender(r.Context(), c, k, senderResolved, reply)
+	}
+	seeOther(w, r, concernsBack(r), notice)
 }
 
 // concernViews are a competition's concerns and messages, for the
@@ -523,16 +545,38 @@ func (p *competitionPages) concernViews(ctx context.Context, c store.Competition
 	}
 	var out []views.ConcernView
 	open := 0
+	var labels map[string]string
 	for _, k := range concerns {
 		v := views.ConcernView{ID: k.ID, Who: senderName(store.Sender{Role: k.Role, Name: k.Who, Club: k.Club}), Text: k.Text, At: k.At.In(local).Format("Mon 2 Jan, 15:04"), Open: k.Open(),
-			ResolvedBy: k.ResolvedBy, Resolution: k.Resolution}
+			ResolvedBy: k.ResolvedBy, Resolution: k.Resolution, Message: k.Message(), Waiting: k.Waiting()}
 		if k.Open() {
 			open++
 		}
+		if !k.AckAt.IsZero() {
+			v.Received = k.AckBy + ", " + k.AckAt.In(local).Format("Mon 2 Jan, 15:04")
+		}
+		for _, ev := range k.Events {
+			v.About = append(v.About, views.AboutLink{Label: "all of " + k.Club + "'s " + ev})
+		}
+		ids := k.Entries
 		if k.EntryID != "" {
-			if e, err := p.st.CompetitionEntry(ctx, c.ID, k.EntryID); err == nil {
-				v.About, v.AboutLink = e.Entry.Gymnasts()+" · "+e.Entry.Event(), base+"/entries/"+k.EntryID
+			ids = append([]string{k.EntryID}, ids...)
+		}
+		if len(ids) > 0 && labels == nil {
+			labels = map[string]string{}
+			if entries, err := p.entriesOf(ctx, c.ID); err == nil {
+				for _, e := range entries {
+					labels[e.ID] = entryLabel(e)
+				}
 			}
+		}
+		for _, id := range ids {
+			if l, ok := labels[id]; ok {
+				v.About = append(v.About, views.AboutLink{Label: l, Link: base + "/entries/" + id})
+			}
+		}
+		for _, post := range k.Thread {
+			v.Thread = append(v.Thread, views.ThreadPost{Who: post.Who, Text: post.Text, At: post.At.In(local).Format("Mon 2 Jan, 15:04"), Organiser: !post.BySender})
 		}
 		out = append(out, v)
 	}
