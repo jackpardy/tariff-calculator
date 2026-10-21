@@ -1,6 +1,7 @@
 package demo
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -186,7 +187,7 @@ func Sandbox(h Clocked, size Size, now time.Time) (Copy, error) {
 	// Routines kept on members' pages and the skills they've marked, over
 	// the last fortnight.
 	at = now.AddDate(0, 0, -14)
-	s.keptRoutines(open.runs)
+	shown := s.keptRoutines(open.runs)
 	if s.err != nil {
 		return sofar(), fmt.Errorf("routines and skills: %w", s.err)
 	}
@@ -201,7 +202,7 @@ func Sandbox(h Clocked, size Size, now time.Time) (Copy, error) {
 
 	first := open.runs[0]
 	coach := first.coaches[clubs[0].coaches[0]]
-	member := first.members[0]
+	member := cmp.Or(shown, first.members[0])
 	cp.Links = Links{
 		Open:        Competition{Name: open.name, ID: open.id, Organiser: open.admin, Enter: open.enter},
 		Day:         Competition{Name: day.name, ID: day.id, Organiser: day.admin, Enter: day.enter},
@@ -291,18 +292,24 @@ func (s *seeder) messages(m made) {
 // keptRoutines keeps routines on about two members' pages in three (ADR
 // 0011): the voluntary they'd compete, and an Elite's other one. About half
 // of them mark the skills in it Can do, and one or two from the next level
-// up Learning, for their coach to confirm. Each club's first member has
-// both, so the start page's member does. The club's Members, a coach's
+// up Learning, for their coach to confirm. In each club the first member
+// whose level has a voluntary to keep has both; the first club's is the
+// start page's member, which it returns. The club's Members, a coach's
 // gymnasts and the member's own Routines and Skills then show them.
-func (s *seeder) keptRoutines(runs []clubRun) {
+func (s *seeder) keptRoutines(runs []clubRun) (shown person) {
 	mark := func(link, skill, state string) {
 		s.post(link+"/skills", url.Values{"skill": {skill}, "state": {state}})
 	}
-	for _, run := range runs {
-		for i, m := range run.members {
+	for ci, run := range runs {
+		both := false // the club's member with both, once there is one
+		for _, m := range run.members {
 			vols := s.vols[m.level+"/2"]
-			if s.err != nil || len(vols) == 0 || i > 0 && s.rng.IntN(3) == 0 {
+			if s.err != nil || len(vols) == 0 || both && s.rng.IntN(3) == 0 {
 				continue
+			}
+			sure := !both
+			if both = true; sure && ci == 0 {
+				shown = m
 			}
 			raw := vols[s.rng.IntN(len(vols))]
 			routines := []keep{{ID: "sandbox-2", Name: "Voluntary", Skills: json.RawMessage(raw)}}
@@ -312,7 +319,7 @@ func (s *seeder) keptRoutines(runs []clubRun) {
 			}
 			data, _ := json.Marshal(routines)
 			s.post(m.link+"/routines", url.Values{"routines": {string(data)}})
-			if i > 0 && s.rng.IntN(2) == 0 {
+			if !sure && s.rng.IntN(2) == 0 {
 				continue
 			}
 			var can []json.RawMessage
@@ -344,6 +351,7 @@ func (s *seeder) keptRoutines(runs []clubRun) {
 			}
 		}
 	}
+	return shown
 }
 
 // keep is a routine kept on a member's page, as the browser posts it.

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -198,17 +199,15 @@ func TestSandboxSeed(t *testing.T) {
 	}
 	// Members keep routines and mark skills: the start page's member has
 	// both, and the club's Members links to them.
-	if body := do(t, s.h, http.MethodGet, l.Member.Link+"/routines", nil).Body.String(); !strings.Contains(strings.ToLower(body), "voluntary") {
-		t.Error("the start page's member keeps no routines")
-	}
-	if body := do(t, s.h, http.MethodGet, l.Member.Link+"/skills", nil).Body.String(); !strings.Contains(body, "Learning") {
-		t.Error("the start page's member has marked no skills")
-	}
 	members := do(t, s.h, http.MethodGet, l.CompSec.Link+"/members", nil).Body.String()
+	row := regexp.MustCompile(`(?s)>\s*` + regexp.QuoteMeta(html.EscapeString(l.Member.Name)) + `\s*<.*?</tr>`).FindString(members)
 	for _, want := range []string{"/routines\"", "can do "} {
-		if !strings.Contains(members, want) {
-			t.Errorf("the club's Members doesn't link %q", want)
+		if !strings.Contains(row, want) {
+			t.Errorf("the club's Members doesn't link %s's %q: %q", l.Member.Name, want, row)
 		}
+	}
+	if body := do(t, s.h, http.MethodGet, l.Member.Link+"/skills", nil).Body.String(); !strings.Contains(body, "Can do") {
+		t.Error("the start page's member has marked no skills")
 	}
 }
 
