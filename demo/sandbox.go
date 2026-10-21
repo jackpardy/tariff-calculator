@@ -39,7 +39,7 @@ type Links struct {
 	Day         Competition `json:"day"`         // the competition on the day
 	CardChecker string      `json:"cardChecker"` // a helper checking cards, while entries are open
 	Chair       string      `json:"chair"`       // a chair of judges, on the day
-	CompSec     Person      `json:"compSec"`     // a club's club admin: the club's link
+	CompSec     Person      `json:"compSec"`     // the club admin: the first club's link
 	Coach       Person      `json:"coach"`
 	Member      Person      `json:"member"`
 	Own         Person      `json:"own"`        // a gymnast entering on their own: their own page
@@ -197,7 +197,7 @@ func Sandbox(h Clocked, size Size, now time.Time) (Copy, error) {
 		Open:        Competition{Name: open.name, ID: open.id, Organiser: open.admin, Enter: open.enter},
 		Day:         Competition{Name: day.name, ID: day.id, Organiser: day.admin, Enter: day.enter},
 		CardChecker: open.judges, Chair: day.chairs, Screen: day.screen,
-		CompSec:    Person{Name: first.name + "'s club admin", Club: first.name, Link: first.admin},
+		CompSec:    Person{Name: "The club admin", Club: first.name, Link: first.admin},
 		Coach:      Person{Name: clubs[0].coaches[0], Club: first.name, Link: coach},
 		Member:     Person{Name: member.name, Club: first.name, Link: member.link},
 		Own:        Person{Name: open.ownName, Link: open.ownPage},
