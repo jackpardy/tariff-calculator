@@ -1,6 +1,8 @@
 package web
 
 import (
+	"net/http"
+
 	"tariffCalculator/store"
 	"tariffCalculator/views"
 )
@@ -23,14 +25,18 @@ func clubMembersPath(token string) string  { return clubPath(token) + "/members"
 func clubCoachesPath(token string) string  { return clubPath(token) + "/coaches" }
 func clubSettingsPath(token string) string { return clubPath(token) + "/settings" }
 
-// clubMenu is the menu of a comp sec's pages, with the section shown current.
-// The entry-editing pages are in Competitions.
-func clubMenu(token, current string) []views.MenuSection {
+// clubMenu is the menu of a club link's pages, with the section shown
+// current: Settings only for a link that can change them (ADR 0015). The
+// entry-editing pages are in Competitions.
+func clubMenu(r *http.Request, current string) []views.MenuSection {
+	token := r.PathValue("token")
 	sections := []views.MenuSection{
 		{Label: "Competitions", Href: clubPath(token), Current: current == clubCompetitions},
 		{Label: "Members", Href: clubMembersPath(token), Current: current == clubMembers},
 		{Label: "Coaches", Href: clubCoachesPath(token), Current: current == clubCoaches},
-		{Label: "Settings", Href: clubSettingsPath(token), Current: current == clubSettings},
+	}
+	if clubCan(r, store.ClubSettings) {
+		sections = append(sections, views.MenuSection{Label: "Settings", Href: clubSettingsPath(token), Current: current == clubSettings})
 	}
 	return sections
 }
@@ -50,18 +56,19 @@ func clubCompetitionPath(token, competitionID string) string {
 
 // clubCompetitionMenu is the comp sec's menu on a competition's pages:
 // Competitions current, with the competition's own tabs under it. Coaches
-// only where it approves coaches, Fees only where it charges.
-func clubCompetitionMenu(token string, c store.Competition, current string) []views.MenuSection {
-	page := clubCompetitionPath(token, c.ID)
+// only where it approves coaches, Fees only where it charges and the link
+// can see them.
+func clubCompetitionMenu(r *http.Request, c store.Competition, current string) []views.MenuSection {
+	page := clubCompetitionPath(r.PathValue("token"), c.ID)
 	items := []views.MenuItem{{Label: "Entries", Href: page, Current: current == clubCompEntries}}
 	if c.ApproveCoaches && c.Signoff {
 		items = append(items, views.MenuItem{Label: "Coaches", Href: page + "/coaches", Current: current == clubCompCoaches})
 	}
 	items = append(items, views.MenuItem{Label: "Judging and helping", Href: page + "/offers", Current: current == clubCompOffers})
-	if c.Fees.On() {
+	if c.Fees.On() && clubCan(r, store.ClubFees) {
 		items = append(items, views.MenuItem{Label: "Fees", Href: page + "/fees", Current: current == clubCompFees})
 	}
-	menu := clubMenu(token, clubCompetitions)
+	menu := clubMenu(r, clubCompetitions)
 	menu[0].Items = items
 	return menu
 }

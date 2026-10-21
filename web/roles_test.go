@@ -214,12 +214,12 @@ func TestSharedLinkOneWay(t *testing.T) {
 	get := func(path string) string { return dayAll(t, h, path) }
 	redirected(t, h, member+"/links", url.Values{"link": {"http://example.com" + club + "/settings"}})
 	home := get(member)
-	asCompSec := roleTabTo(t, home, "Competition secretary")
+	asCompSec := roleTabTo(t, home, "Club admin")
 	if !strings.HasPrefix(asCompSec, "/clubs/admin/"+strings.TrimPrefix(member, "/clubs/member/")+"~") {
 		t.Fatalf("the comp sec's pages, through the member's link: %s", asCompSec)
 	}
 	page := get(asCompSec + "/members")
-	if currentRole(t, page) != "Competition secretary" || !strings.Contains(page, "A. Murphy") {
+	if currentRole(t, page) != "Club admin" || !strings.Contains(page, "A. Murphy") {
 		t.Errorf("the Members section, with tabs: %s", page)
 	}
 	if page := get(asCompSec + "?new=created"); strings.Contains(page, "data-club-admin") || strings.Contains(page, "http://example.com"+asCompSec) {
@@ -237,8 +237,11 @@ func TestSharedLinkOneWay(t *testing.T) {
 			t.Errorf("%s opens: %d", path, rec.Code)
 		}
 	}
-	if rec := do(t, h, http.MethodPost, club+"/links", url.Values{"link": {"http://example.com" + member}}); rec.Code != http.StatusNotFound && rec.Code != http.StatusMethodNotAllowed {
-		t.Errorf("nothing is added to an admin link: %d", rec.Code)
+	// (Its /links makes the club's links with a role, ADR 0015: a pasted
+	// link is no such thing.)
+	if rec := do(t, h, http.MethodPost, club+"/links", url.Values{"link": {"http://example.com" + member}}); rec.Code != http.StatusSeeOther ||
+		!strings.Contains(rec.Header().Get("Location"), "nothing+was+changed") {
+		t.Errorf("nothing is added to an admin link: %d %s", rec.Code, rec.Header().Get("Location"))
 	}
 
 	// The comp sec sees who has it, and removes it.

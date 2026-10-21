@@ -1,0 +1,224 @@
+package views
+
+import (
+	"slices"
+	"strings"
+)
+
+// Club roles (ADR 0015): on the club's Settings, the club admin's roles and
+// links, and the club's history; above each page, which link it is.
+
+// ClubPermission is one thing a club role can be allowed, as the club admin
+// ticks it.
+type ClubPermission struct {
+	Value, Label, Help string
+}
+
+// ClubPermissions are the permissions, in the order offered: the values are
+// the store's.
+var ClubPermissions = []ClubPermission{
+	{"enter", "Enter and change entries", "Enter members, change or withdraw their entries, their offers to help, and late changes."},
+	{"send", "Send entries", "Send the club's entries and coaches to each competition's organiser."},
+	{"fees", "Fees", "Each competition's fees and invoice."},
+	{"members", "Manage members", "Share the join link; remove members, give one a new link, choose their coach, add their judging qualifications."},
+	{"coaches", "Manage coaches", "Add, remove and re-link coaches, make a member a coach, say who signs off, add their qualifications."},
+	{"certificates", "Certificates", "Open coaches' and judges' certificates. They're personal documents: tick it only for someone who needs them."},
+	{"organiser", "Talk to the organiser", "Tell a competition's organiser something and answer the club's messages; hear about changes by push or email."},
+	{"settings", "Club settings", "Whether coaches see every member and members see everyone's skills; the club's history."},
+}
+
+// ClubRoleView is one of the club's roles.
+type ClubRoleView struct {
+	ID, Name    string
+	Permissions []string // the values of those ticked
+	Links       int
+}
+
+// permissionWords says what a role can do, in a line.
+func permissionWords(perms []string) string {
+	var out []string
+	for _, p := range ClubPermissions {
+		if slices.Contains(perms, p.Value) {
+			out = append(out, p.Label)
+		}
+	}
+	if len(out) == 0 {
+		return "Sees the club"
+	}
+	return "Sees the club; " + strings.ToLower(strings.Join(out, ", "))
+}
+
+// chosenCoach is a member's coach by id, for a role that sees it but can't
+// choose.
+func chosenCoach(coaches []CoachOption, id string) string {
+	for _, c := range coaches {
+		if c.ID == id {
+			return c.Name
+		}
+	}
+	return "No coach chosen"
+}
+
+// ClubLinkView is a link the club admin made for someone, with a role.
+type ClubLinkView struct {
+	ID, Name, RoleID, Role, Made string
+}
+
+// clubAccessLine says, under the club's name, which link the page was
+// opened by: the club admin's is for setting up, so it points to a link of
+// one's own with a role, for every day.
+templ clubAccessLine(base string, a ClubAccess) {
+	if a.Admin {
+		<p class="is-size-7 has-text-grey mb-3">
+			You're using the <strong>club admin</strong> link: it's for setting the club up. For every day, make yourself a link with a role (a role called Comp sec, say) on <a href={ templ.SafeURL(base + "/settings#roles") }>Settings</a>, and keep this one safe.
+		</p>
+	} else {
+		<p class="is-size-7 has-text-grey mb-3">You're using the link for <strong>{ a.Who }</strong>. It shows what this role can do; ask your club admin for more.</p>
+	}
+}
+
+// permissionTicks are a role's permissions as ticks, for a form; key keeps
+// each form's ids apart.
+templ permissionTicks(key string, ticked []string) {
+	<fieldset class="field">
+		<legend class="label is-small mb-1">What it can do, besides seeing the club</legend>
+		for _, p := range ClubPermissions {
+			<label class="checkbox is-block mb-1 is-size-7" for={ key + "-" + p.Value }>
+				<input type="checkbox" id={ key + "-" + p.Value } name="permission" value={ p.Value } checked?={ slices.Contains(ticked, p.Value) }/>
+				<span class="has-text-weight-semibold">{ p.Label }</span> <span class="has-text-grey">{ p.Help }</span>
+			</label>
+		}
+	</fieldset>
+}
+
+// clubRolesBox is where the club admin makes, changes and removes roles.
+templ clubRolesBox(base string, roles []ClubRoleView) {
+	<section class="mb-5" id="roles">
+		<h2 class="title is-6 mb-1">Roles</h2>
+		<p class="help mb-2">A role says what a person's link can do. Every role sees the club: its competitions and entries, the members and coaches, timetables and the organisers' messages. Tick what else. A change counts at once for every link with the role.</p>
+		if len(roles) == 0 {
+			<p class="is-size-7 mb-2">The club has no roles yet. Make one for each kind of help you have: a Comp sec who enters and sends the entries, a Treasurer who sees the fees, a Team manager who talks to the organiser. Then make each person a link with their role, under Links.</p>
+		}
+		for _, r := range roles {
+			@opens(r.Name, permissionWords(r.Permissions)+" · "+Count(r.Links, "link", "links"), "Change", false) {
+				<form method="post" action={ templ.SafeURL(base + "/roles/" + r.ID) }>
+					<div class="field">
+						<label class="label is-small" for={ "role-name-" + r.ID }>Name</label>
+						<input class="input is-small" id={ "role-name-" + r.ID } name="name" required maxlength="40" value={ r.Name }/>
+					</div>
+					@permissionTicks("role-"+r.ID, r.Permissions)
+					<button class="button is-small is-primary" type="submit">Save</button>
+				</form>
+				if r.Links == 0 {
+					<form method="post" action={ templ.SafeURL(base + "/roles/" + r.ID + "/remove") } class="mt-2">
+						<button class="button is-small is-text has-text-danger" type="submit">Remove the role</button>
+					</form>
+				} else {
+					<p class="help mt-2">To remove it, give its links another role or remove them first.</p>
+				}
+			}
+		}
+		@opens("", "", "Make a role", len(roles) == 0) {
+			<form method="post" action={ templ.SafeURL(base + "/roles") }>
+				<div class="field">
+					<label class="label is-small" for="new-role-name">Name</label>
+					<input class="input is-small" id="new-role-name" name="name" required maxlength="40" placeholder="e.g. Treasurer"/>
+				</div>
+				@permissionTicks("new-role", nil)
+				<button class="button is-small is-primary" type="submit">Make the role</button>
+			</form>
+		}
+	</section>
+}
+
+// clubLinksBox is where the club admin makes a link for each person, with a
+// role, moves one to another role and removes one.
+templ clubLinksBox(base string, links []ClubLinkView, roles []ClubRoleView) {
+	<section class="mb-5" id="links">
+		<h2 class="title is-6 mb-1">Links</h2>
+		<p class="help mb-2">A link for each person, with their role. It opens these pages, showing only what the role can do, and the history says who made each change. Remove stops it at once.</p>
+		if len(links) > 0 {
+			<ul class="mb-2">
+				for _, l := range links {
+					<li class="comp-other-link">
+						<span>
+							<strong>{ l.Name }</strong>
+							<span class="has-text-grey is-size-7">{ l.Role } · made { l.Made }</span>
+						</span>
+						<span class="comp-flight-actions">
+							if len(roles) > 1 {
+								<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/role") } class="is-inline">
+									<div class="select is-small">
+										<select name="role" aria-label={ l.Name + "'s role" }>
+											for _, r := range roles {
+												<option value={ r.ID } selected?={ r.ID == l.RoleID }>{ r.Name }</option>
+											}
+										</select>
+									</div>
+									<button class="button is-small" type="submit">Change role</button>
+								</form>
+							}
+							<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/remove") } class="is-inline">
+								<button class="button is-small is-text has-text-danger" type="submit" aria-label={ "Remove the link for " + l.Name }>Remove</button>
+							</form>
+						</span>
+					</li>
+				}
+			</ul>
+		}
+		if len(roles) == 0 {
+			<p class="is-size-7 has-text-grey">Make a role first, then a link with it.</p>
+		} else {
+			@opens("", "", "Make a link", len(links) == 0) {
+				<form method="post" action={ templ.SafeURL(base + "/links") }>
+					<div class="field">
+						<label class="label is-small" for="new-link-name">Who it's for</label>
+						<input class="input is-small" id="new-link-name" name="name" required maxlength="60" placeholder="e.g. Mary Byrne"/>
+					</div>
+					<div class="field">
+						<label class="label is-small" for="new-link-role">Role</label>
+						<div class="select is-small">
+							<select id="new-link-role" name="role" required>
+								for _, r := range roles {
+									<option value={ r.ID }>{ r.Name }</option>
+								}
+							</select>
+						</div>
+					</div>
+					<button class="button is-small is-primary" type="submit">Make the link</button>
+					<p class="help">You see it once, to send them. If it's lost, remove it and make another.</p>
+				</form>
+			}
+		}
+	</section>
+}
+
+// clubHistoryBox is the club's latest changes, who made each, and where to
+// see all those kept (more; "" when they're all shown).
+templ clubHistoryBox(changes []HistoryChange, more string, open bool) {
+	<section class="mb-5" id="history">
+		@opens("History", "What was changed through the club's links, and by whom", "Show", open) {
+			if len(changes) == 0 {
+				@emptyLine("No changes yet.")
+			} else {
+				<table class="table is-fullwidth is-narrow comp-stack">
+					<thead>
+						<tr><th>When</th><th>Who</th><th>What</th></tr>
+					</thead>
+					<tbody>
+						for _, c := range changes {
+							<tr>
+								<td class="is-size-7 has-text-grey" style="white-space: nowrap">{ c.At }</td>
+								<td data-label="Who">{ c.Who }</td>
+								<td data-label="What">{ c.What }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				if more != "" {
+					<a class="is-size-7" href={ templ.SafeURL(more) }>See every change kept</a>
+				}
+			}
+		}
+	</section>
+}

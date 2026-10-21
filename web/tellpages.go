@@ -75,9 +75,11 @@ func individualTeller(e store.Entry) *teller {
 	return &teller{from: store.Sender{Role: store.RoleIndividual, Name: e.Entry.Gymnast, ID: "individual:" + e.Key()}, sees: hasPerson(e.Key())}
 }
 
-// clubTeller is a club's comp sec: every entry of the club's.
-func clubTeller(clubID, club string) *teller {
-	return &teller{from: store.Sender{Role: store.RoleClub, Name: club, Club: club, ID: "club:" + clubID},
+// clubTeller is a club's link (who: the club admin, or a person with a
+// role, ADR 0015): every entry of the club's. The message is the club's,
+// whichever of its links sends it, so any of them sees it and adds to it.
+func clubTeller(clubID, club, who string) *teller {
+	return &teller{from: store.Sender{Role: store.RoleClub, Name: who, Club: club, ID: "club:" + clubID},
 		sees: func(e store.Entry) bool { return e.ClubID == clubID }, events: true}
 }
 
@@ -208,6 +210,10 @@ func aboutText(k store.Concern, labels map[string]string) string {
 // sentView is a message as its sender sees it again.
 func sentView(k store.Concern, labels map[string]string) views.SentMessage {
 	m := views.SentMessage{ID: k.ID, Text: k.Text, About: aboutText(k, labels), At: k.At.In(local).Format("Mon 2 Jan, 15:04"), Status: "Sent", StatusState: views.NotYet}
+	club := k.Role == store.RoleClub // any of the club's links sees it: say who of the club
+	if club {
+		m.By = clubWho(k.Who, k.Club)
+	}
 	switch {
 	case !k.Open():
 		m.Status, m.StatusState = "Resolved", views.Done
@@ -215,7 +221,11 @@ func sentView(k store.Concern, labels map[string]string) views.SentMessage {
 		m.Status, m.StatusState = "Received", views.InProgress
 	}
 	for _, p := range k.Thread {
-		m.Thread = append(m.Thread, views.SentPost{Text: p.Text, At: p.At.In(local).Format("Mon 2 Jan, 15:04"), Organiser: !p.BySender})
+		post := views.SentPost{Text: p.Text, At: p.At.In(local).Format("Mon 2 Jan, 15:04"), Organiser: !p.BySender}
+		if club && p.BySender {
+			post.By = clubWho(p.Who, k.Club)
+		}
+		m.Thread = append(m.Thread, post)
 	}
 	return m
 }
@@ -231,7 +241,7 @@ func senderName(s store.Sender) string {
 	case store.RoleCoach:
 		return s.Name + ", a coach at " + s.Club
 	case store.RoleClub:
-		return s.Club + "'s comp sec"
+		return clubWho(s.Name, s.Club) + ", " + s.Club
 	case store.RoleIndividual:
 		return s.Name + ", entered on their own"
 	}
@@ -297,7 +307,11 @@ func (p *competitionPages) addToMessage(w http.ResponseWriter, r *http.Request) 
 		seeOther(w, r, back, "Write what to add first; nothing was sent.")
 		return
 	}
-	_, err := p.st.AddToMessage(r.Context(), a.c.ID, r.PathValue("message"), t.from.ID, text)
+	who := "" // a club's message says who of the club added to it
+	if t.from.Role == store.RoleClub {
+		who = t.from.Name
+	}
+	_, err := p.st.AddToMessage(r.Context(), a.c.ID, r.PathValue("message"), t.from.ID, who, text)
 	switch {
 	case errors.Is(err, store.ErrLimit):
 		seeOther(w, r, back, "That message is as long as it can be; send a new one, or speak to the organiser.")
@@ -399,17 +413,27 @@ func (p *competitionPages) tellerOf(w http.ResponseWriter, r *http.Request, a as
 			return nil, false
 		}
 	}
+	if a.kind == store.NotifyClub {
+		return clubTeller(a.owner, a.name, clubLinkOf(r).Who()), true
+	}
 	return tellerFor(a, club), true
 }
 
-// tellerFor is who a member (with their club's name), individual or comp sec
-// asking is, as a message's sender.
+// tellerFor is who a member (with their club's name) or individual asking
+// is, as a message's sender.
 func tellerFor(a asker, club string) *teller {
-	switch a.kind {
-	case store.NotifyMember:
+	if a.kind == store.NotifyMember {
 		return memberTeller(store.Member{ID: a.owner, Name: a.name}, club)
-	case store.NotifyIndividual:
-		return individualTeller(a.entry)
 	}
-	return clubTeller(a.owner, a.name)
+	return individualTeller(a.entry)
+}
+
+// clubWho is who of a club sent a message or added to it: the person and
+// their role, or the club admin (named by the club, from before ADR 0015,
+// when the admin link was the club's only one).
+func clubWho(who, club string) string {
+	if who == "" || who == club {
+		return "Club admin"
+	}
+	return who
 }

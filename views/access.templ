@@ -175,7 +175,8 @@ func aboutSep(i, n int) string {
 type AboutLink struct{ Label, Link string }
 
 // ThreadPost is something added to a message since, as the organiser sees
-// it: their reply (by the link's name) or the sender's.
+// it: their reply (by the link's name) or the sender's (Who only for a
+// club's, which says who of the club).
 type ThreadPost struct {
 	Who, Text, At string
 	Organiser     bool
@@ -249,6 +250,8 @@ templ concernView(base string, c ConcernView, a Access) {
 				<p class="is-size-7 has-text-grey">
 					if p.Organiser {
 						{ p.Who } replied, { p.At }
+					} else if p.Who != "" {
+						{ p.Who } added, { p.At }
 					} else {
 						They added, { p.At }
 					}

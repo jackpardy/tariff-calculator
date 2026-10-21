@@ -498,7 +498,7 @@ func (p *competitionPages) clubMemberRoutines(w http.ResponseWriter, r *http.Req
 	}
 	token := r.PathValue("token")
 	page := views.ClubMemberRoutinesPage{
-		Club:   views.ClubPage{Base: clubPath(token), Name: club.Name, Menu: clubMenu(token, clubMembers)},
+		Club:   views.ClubPage{Base: clubPath(token), Name: club.Name, Menu: clubMenu(r, clubMembers)},
 		Member: m.Name, Back: clubMembersPath(token),
 		Routines: routinesPart(list, named, m.Name+" hasn't kept any routines on their page yet.", nil),
 	}

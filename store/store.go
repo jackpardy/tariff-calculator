@@ -870,6 +870,38 @@ var migrations = []string{
 		text       TEXT NOT NULL
 	);
 	CREATE INDEX concern_posts_concern ON concern_posts (concern_id, at);`,
+
+	// 50: club roles (ADR 0015): the club admin names roles, each a set of
+	// permissions (a JSON list), and makes a link for each person, with a
+	// role; and the club's history of changes made through any of its
+	// links. A role with links can't be removed (role_id has no ON DELETE),
+	// but a club's roles and links go with it. Clubs start with none.
+	`CREATE TABLE club_roles (
+		id          TEXT PRIMARY KEY,
+		club_id     TEXT NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+		name        TEXT NOT NULL,
+		permissions TEXT NOT NULL DEFAULT '[]',
+		position    INTEGER NOT NULL DEFAULT 0
+	);
+	CREATE INDEX club_roles_club ON club_roles (club_id, position);
+	CREATE TABLE club_links (
+		id         TEXT PRIMARY KEY,
+		club_id    TEXT NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+		role_id    TEXT NOT NULL REFERENCES club_roles (id),
+		name       TEXT NOT NULL,
+		token_hash TEXT NOT NULL UNIQUE,
+		created_at TEXT NOT NULL
+	);
+	CREATE INDEX club_links_club ON club_links (club_id);
+	CREATE INDEX club_links_role ON club_links (role_id);
+	CREATE TABLE club_log (
+		id      INTEGER PRIMARY KEY AUTOINCREMENT,
+		club_id TEXT NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+		at      TEXT NOT NULL,
+		who     TEXT NOT NULL,
+		what    TEXT NOT NULL
+	);
+	CREATE INDEX club_log_club ON club_log (club_id, id);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run
@@ -966,7 +998,8 @@ func dropTies(ctx context.Context, tx *sql.Tx) error {
 			SELECT id FROM members UNION ALL SELECT id FROM coaches UNION ALL SELECT id FROM individuals)
 		OR (kind = 'club' AND target_id NOT IN (SELECT id FROM clubs))
 		OR (kind = 'organiser' AND target_id NOT IN (SELECT id FROM competitions))
-		OR (kind = 'helper' AND target_id NOT IN (SELECT id FROM competition_links))`)
+		OR (kind = 'helper' AND target_id NOT IN (SELECT id FROM competition_links))
+		OR (kind = 'clublink' AND target_id NOT IN (SELECT id FROM club_links))`)
 	return err
 }
 

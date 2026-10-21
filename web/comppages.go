@@ -54,6 +54,7 @@ type competitionPages struct {
 	feedbackLimiter                   *limiter                               // feedback from pages without a link, per address
 	siteFeedback                      atomic.Pointer[store.FeedbackSettings] // the maintainer's choices, once read
 	pages                             map[string]bool                        // the GET patterns of the pages here, which can send feedback
+	clubPatterns                      []string                               // the routes under a club's link, each through clubGate
 }
 
 func newCompetitionPages(st *store.Store) *competitionPages {
@@ -78,6 +79,8 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle := func(pattern string, h http.HandlerFunc) {
 		if strings.Contains(pattern, " "+adminPrefix) {
 			h = p.gate(pattern, h)
+		} else if _, ok := clubRoute(pattern); ok {
+			h = p.clubGate(pattern, h)
 		}
 		p.notePage(pattern)
 		mux.Handle(pattern, p.secret(h))

@@ -203,7 +203,7 @@ func (p *competitionPages) clubMemberSkills(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	token := r.PathValue("token")
-	render(w, r, views.ClubMemberSkills(views.ClubPage{Base: clubPath(token), Name: club.Name, Menu: clubMenu(token, clubMembers)},
+	render(w, r, views.ClubMemberSkills(views.ClubPage{Base: clubPath(token), Name: club.Name, Menu: clubMenu(r, clubMembers)},
 		views.SkillsViewPage{Back: clubMembersPath(token), BackTo: "Members", Name: m.Name, Skills: part}))
 }
 

@@ -41,7 +41,7 @@ func TestClubSections(t *testing.T) {
 			t.Errorf("Competitions should have %q", want)
 		}
 	}
-	for _, not := range []string{"Join link", "Add coach", "Replace the admin link"} {
+	for _, not := range []string{"Join link", "Add coach", "Replace the club admin link"} {
 		if strings.Contains(page, not) {
 			t.Errorf("Competitions shouldn't have %q", not)
 		}
@@ -117,7 +117,7 @@ func TestClubSections(t *testing.T) {
 	if got := currentTab(t, page); got != "Settings" {
 		t.Errorf("the settings section is %q", got)
 	}
-	if !strings.Contains(page, "Replace the admin link") || !strings.Contains(page, "Delete the club") || strings.Contains(page, "Add coach") {
+	if !strings.Contains(page, "Replace the club admin link") || !strings.Contains(page, "Delete the club") || strings.Contains(page, "Add coach") {
 		t.Error("Settings is the replace and delete forms")
 	}
 	if got := redirected(t, h, club+"/delete", url.Values{}); !strings.HasPrefix(got, club+"/settings?notice=") {
@@ -126,7 +126,7 @@ func TestClubSections(t *testing.T) {
 	// Replacing the admin link asks first, on Settings; then the new one
 	// is shown on the default page, where it's saved.
 	if rec := do(t, h, http.MethodPost, club+"/replace-link", url.Values{}); rec.Code != http.StatusOK || currentTab(t, rec.Body.String()) != "Settings" ||
-		!strings.Contains(rec.Body.String(), "Replace the admin link?") || !strings.Contains(rec.Body.String(), `href="`+club+`/settings">Cancel`) {
+		!strings.Contains(rec.Body.String(), "Replace the club admin link?") || !strings.Contains(rec.Body.String(), `href="`+club+`/settings">Cancel`) {
 		t.Errorf("replacing the admin link asks first: %d", rec.Code)
 	}
 	if got := redirected(t, h, club+"/replace-link", url.Values{"anyway": {"1"}}); !strings.HasSuffix(got, "?new=replaced") || strings.Contains(got, "/settings") {
