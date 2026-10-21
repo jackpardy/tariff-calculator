@@ -46,7 +46,9 @@ small step.
    - **every page has a banner**: "Sandbox: made-up people. It's reset from
      time to time; nothing here is kept.";
    - feedback goes to the sandbox's own maintainer page (its own
-     `maintainer-link`), apart from the live site's, in Full.
+     `maintainer-link`), apart from the live site's, in Full. It isn't
+     emailed: no email leaves the sandbox, `FEEDBACK_EMAIL` included (the
+     owner checks the sandbox's page, decided 2026-10-21).
 
 2. **What's in it: ISTO, in two phases.** A sandbox seed, from the demo's
    code, with ISTO's 2025 levels and events instead of BUCS, and two
