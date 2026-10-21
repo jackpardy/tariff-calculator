@@ -136,11 +136,12 @@ templ CompetitionDashboard(d Dashboard) {
 				<button class="button is-small ml-2" type="submit">Notify now</button>
 			</form>
 		}
-		// The entries come first; open concerns are a line here, listed below them.
+		// The entries come first; open messages and concerns are a line here,
+		// listed below them.
 		if d.OpenConcerns > 0 {
 			<p class="mb-3">
 				<a href="#concerns">
-					@StateChip(Attention, Count(d.OpenConcerns, "concern open", "concerns open"))
+					@StateChip(Attention, Count(d.OpenConcerns, "message or concern open", "messages and concerns open"))
 				</a>
 				<span class="is-size-7 has-text-grey ml-1">Below the entries.</span>
 			</p>

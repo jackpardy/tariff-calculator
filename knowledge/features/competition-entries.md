@@ -34,6 +34,7 @@ are `views/competitions.templ` (the layout and shared parts),
     - [The menu and the Settings page (roadmap 2026-10-14)](#the-menu-and-the-settings-page-roadmap-2026-10-14)
     - [All people (roadmap 2026-10-14)](#all-people-roadmap-2026-10-14)
     - [Helpers' links, history and concerns (ADR 0009)](#helpers-links-history-and-concerns-adr-0009)
+    - [Messages to the organiser (ready for the dry run)](#messages-to-the-organiser)
     - [Feedback about the app (ready for the dry run)](#feedback-about-the-app)
     - [When entries, changes and sign-offs close](#when-entries-changes-and-sign-offs-close)
     - [Late changes](#late-changes)
@@ -80,7 +81,7 @@ shared `pageMenu` in `views/menu.templ`, built by `orgMenu` in
 approved, Fees), **Timetable** (Timetable, Officials, Simulate, and once the
 timetable is planned the two "what if" pages), **On the day** (once the
 timetable is published: On the day, Desk messages, Venue screen) and
-**Settings** (Settings, History, and Feedback for links that may read it). Late changes, Coaches and Feedback show a count of
+**Settings** (Settings, History). Late changes and Coaches show a count of
 what waits; the menu works that out on every page. It shows only what the
 admin link may open (ADR 0009): a cards link sees Entries (with People); a
 chair of judges adds the day's pages, and finds the printed sheets in the
@@ -95,7 +96,7 @@ jump links at the top: Links (helpers' links for the organiser, the club
 link, the link for entering on their own), Entries and deadlines, Limits and waiting
 lists, Events and levels (events, order of levels, men and women), Sign-off
 and coaches, Video, Going live, Telling people about changes (when people
-can ask to hear), Entering on their own, Feedback, and Admin link and deleting (the
+can ask to hear), Entering on their own, Messages to you, and Admin link and deleting (the
 organiser only). Each setting is a row saying how it's set, with **Change**
 opening its form (`changeLine`, rendering.md "Settings and forms on a
 page"); replacing the admin link and deleting each open a step before they
@@ -196,18 +197,74 @@ and what ("Marked a card checked: Ann Ryan · BUCS L3"); the latest 2,000
 are kept.
 
 **Concerns:** anyone with an admin link can **flag a concern**, on an entry
-or generally (**Flag a concern**, a button opening the form). The dashboard
-lists the open ones under a Concerns heading with a count chip, with who and
-when, and those resolved closed beneath (with none open, one line opening to
-them); the organiser and co-organisers mark each **Resolved**, with a note. The demo has helpers' links (printed by `demo`),
-three cards checked and two concerns.
+or generally (**Flag a concern**, a button opening the form). They share a
+list with [messages to the organiser](#messages-to-the-organiser): the
+dashboard lists the open ones under a **Messages and concerns** heading with
+a count chip (and a "3 messages and concerns open" chip above the entries,
+linking down to them), with who and when, and those resolved closed beneath
+(with none open, one line opening to them); the organiser and co-organisers
+mark each **Resolved**, with a note. Up to 2,000 a competition. The demo has
+helpers' links (printed by `demo`), three cards checked, two concerns and a
+member's message.
+
+## Messages to the organiser
+
+People at a competition can tell its organiser something from their own
+pages: a question, or something to put right. It's separate from
+[feedback about the app](#feedback-about-the-app), which goes to the people
+who make the app; each says so.
+
+**Where.** A **Tell the organiser** row (`tellOrganiser` in
+`views/my.templ`, one line with a **Write** button opening the form, like
+a setting) at the bottom of a person's or club's page for the competition:
+a member's page for it and My competition; the comp sec's Entries for it;
+each competition on a coach's Entries; an individual's page for it (an
+entry's link opens that page) and My competition. Not on home pages that
+list competitions, the club link's page (whose sender isn't known), or any
+admin page.
+
+**Named, never typed.** The form says who it's from, as the organiser will
+see it, worked out from the link (`teller` in `web/tellpages.go`): "Ann
+Ryan, a member of UCD", "Cara Byrne, a coach at UCD", "UCD's comp sec", or
+"Bea Byrne, entered on their own". The name and the club's name are kept
+as they were when it was sent. **About** chooses, optionally, one of their
+entries the competition has (sent): a member's or individual's own (a
+synchro pair's too), a comp sec's club's, or a coach's gymnasts' (those
+the coach sees); the competition generally by default. Posting an entry
+that isn't theirs is a 404. The words are required, up to 1,000
+characters.
+
+**Where it goes.** `POST {their page}/organiser` (one handler for every
+kind of link, through `whose`) keeps it in `concerns` with the sender's
+role and club (migration 48), and comes back to the page it was sent from
+saying "Sent to the organiser of Student Open, with your name." It shows on
+the organiser's dashboard with the concerns, the entry linked. Each sender
+can send 10 a competition in 24 hours (`MaxMessagesPerDay`); past that the
+page says so and suggests speaking to the organiser.
+
+**The organiser's switch.** On Settings, under **Messages to you**, a
+**Tell the organiser** line says whether members, coaches, comp secs and
+gymnasts can send messages, with a button to stop them or let them again
+(`POST /messages`, the organiser's and everything links). It's on for every
+competition (migration 48 made the column the old Feedback button used,
+`competitions.feedback`, into `competitions.messages`, on for all). Off,
+the forms go and anything posted is refused; those sent stay on the
+dashboard.
+
+**Saying which is which.** The form ends: "Something wrong with the app
+itself? Use **Feedback** at the right edge of the screen: that goes to the
+people who make the app, not the organiser." On a page with the form, the
+Feedback tab's panel says "This doesn't go to the competition's organiser:
+for them, use **Tell the organiser** on this page" (on other competition
+pages, without the pointer).
 
 ## Feedback about the app
 
 Anyone on any page of the app can tell the maintainer what confused them,
 at the moment it does. Feedback goes to the **maintainer**, not to each
-competition's organiser (messages to the organiser are separate: helper
-links' **Flag a concern**, and later the same for everyone). Built for the
+competition's organiser (messages to the organiser are separate:
+[Tell the organiser](#messages-to-the-organiser), and helper links' **Flag a
+concern**). Built for the
 dry run, it replaced the first version (migration 40), which the organiser
 read on a Feedback page of their own; that page, its menu tab and its
 Settings switch are gone, and what had been sent moved to the maintainer

@@ -495,6 +495,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			MyLinks: p.competitionLinks(ctx, c, linksFor{base: base + "/competitions/" + c.ID,
 				people: memberKeys(members), clubs: clubIDs(club.ID), staff: clubIDs(club.ID)})}
 		if !home {
+			cc.Tell = p.tellForm(ctx, c, base+"/competitions/"+c.ID, clubTeller(club.ID, club.Name))
 			cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
 			if cc.Pairs, err = seen.pairViews(pairs, func(pe store.PairEntry) bool { return pe.CompetitionID != c.ID || ours[pe.EntrantMemberID] }); err != nil {
 				return nil, err
@@ -1202,7 +1203,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 	own := memberCompetitionPath(r.PathValue("token"), c.ID)
 	mc := views.MemberCompetition{ID: c.ID, Page: own, Competition: summary(c, now), Day: dayPath(path, c.ID),
 		MyLinks: p.competitionLinks(ctx, c, linksFor{base: own, key: store.MemberKey(m.ID), member: true,
-			people: []string{store.MemberKey(m.ID)}, clubs: clubIDs(m.ClubID)})}
+			people: []string{store.MemberKey(m.ID)}, clubs: clubIDs(m.ClubID), tell: memberTeller(m, club)})}
 	var sent []store.Entry
 	var coaches []store.Coach // who can sign off, read once an entry needs it
 	seeAll := false

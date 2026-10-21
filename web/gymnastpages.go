@@ -209,7 +209,8 @@ func (p *competitionPages) renderGymnastCompetition(w http.ResponseWriter, r *ht
 	first := entryPath(token, mine[0])
 	gc := views.GymnastCompetition{Competition: summary(c, p.now()), Status: views.Count(len(mine), "entry", "entries"), Day: first + "/day",
 		Saved: r.URL.Query().Get("saved") == "1"}
-	gc.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: first, key: mine[0].Key(), people: []string{mine[0].Key()}})
+	gc.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: first, key: mine[0].Key(), people: []string{mine[0].Key()},
+		tell: individualTeller(mine[0]), back: "gymnast"})
 	// Another discipline: the first not entered yet, if there's one.
 	if left := notEntered(c.Competition, mine); gc.Competition.Open && c.Individuals && len(left) > 0 {
 		gc.Enter = gymnastCompetitionPath(token, c.ID) + "/enter?discipline=" + url.QueryEscape(left[0])

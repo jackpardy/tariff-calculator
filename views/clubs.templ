@@ -516,6 +516,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 		// Synchro entries other clubs' gymnasts made with one of ours as
 		// partner: not the club's to send, but their members compete in them.
 		@pairEntries(comp.Pairs)
+		@tellOrganiser(comp.Tell)
 	}
 }
 
@@ -1015,6 +1016,7 @@ templ memberCompetitionBody(c MemberCompetition) {
 	if c.Offer != nil && c.Competition.ChangesOpen {
 		@offerBox(*c.Offer)
 	}
+	@tellOrganiser(c.Tell)
 }
 
 // MemberDetails is a member's details: their personal link and their coach.

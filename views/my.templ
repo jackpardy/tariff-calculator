@@ -36,6 +36,52 @@ type MyLinks struct {
 	ScoreSheets  string     // the score sheets of the flights they officiate, if any
 	Duties       []string   // their seats on panels, once published
 	Desk         []DeskNote // messages from the organisers that reach them
+	Tell         *TellOrganiser // the form for telling the organiser; nil while they aren't taking messages
+}
+
+// TellOrganiser is the form on a person's or club's page for a competition
+// for telling its organiser something (migration 48): named from their
+// link, and about one of their entries if they choose.
+type TellOrganiser struct {
+	ID     string       // the form's place on the page, unique where a page has several competitions
+	Action string       // where it posts
+	From   string       // who it's from, as the organiser sees it, e.g. "Ann Ryan, a member of Dublin TC"
+	Back   string       // the page to come back to, as the handler knows it ("day", "gymnast"), "" for where it posts
+	About  []ListOption // the entries it can be about, by id
+}
+
+// tellOrganiser is the form for telling the organiser, closed until asked
+// for, saying plainly it goes to the organiser (with their name) and that
+// the Feedback tab is for the app.
+templ tellOrganiser(t *TellOrganiser) {
+	if t != nil {
+		<div class="comp-tell mt-4" id={ t.ID }>
+			@opens("Tell the organiser", "a question, or something to put right; they see your name", "Write", false) {
+				<form method="post" action={ templ.SafeURL(t.Action) }>
+					if t.Back != "" {
+						<input type="hidden" name="back" value={ t.Back }/>
+					}
+					<p class="is-size-7 mb-2">From <strong>{ t.From }</strong>, to the competition's organiser.</p>
+					if len(t.About) > 0 {
+						<div class="field mb-2">
+							<label class="label is-small" for={ t.ID + "-about" }>About</label>
+							<div class="select is-small is-fullwidth">
+								<select id={ t.ID + "-about" } name="entry">
+									<option value="">The competition generally</option>
+									for _, o := range t.About {
+										<option value={ o.Value }>{ o.Label }</option>
+									}
+								</select>
+							</div>
+						</div>
+					}
+					<textarea class="textarea is-small mb-2" name="text" required maxlength="1000" rows="3" placeholder="e.g. A name is spelled wrong on the timetable" aria-label="What you want to tell the organiser"></textarea>
+					<button class="button is-small is-primary" type="submit">Send to the organiser</button>
+					<p class="help">Something wrong with the app itself? Use <strong>Feedback</strong> at the right edge of the screen: that goes to the people who make the app, not the organiser.</p>
+				</form>
+			}
+		</div>
+	}
 }
 
 // MyHere is the box that lets someone scratched from an event tell the
@@ -229,6 +275,7 @@ templ MyCompetition(p MyCompetitionPage) {
 			}
 		} else {
 			@dutiesBox(p.Duties, p.ScoreSheets)
+			@tellOrganiser(p.Tell)
 		}
 		if !p.Published && p.Admin == nil {
 			<div class="notification is-light">The timetable isn't published yet. Your flights, times and any judging show here once it is.</div>

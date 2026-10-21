@@ -493,17 +493,18 @@ func History(p HistoryPage) templ.Component {
 	})
 }
 
-// ConcernView is a concern flagged for the organiser.
+// ConcernView is a concern flagged for the organiser, or a message sent
+// them from someone's own page.
 type ConcernView struct {
-	ID, Who, Text, At      string
+	ID, Who, Text, At      string // who: the admin link's name, or the sender, e.g. "Ann Ryan, a member of Dublin TC"
 	About, AboutLink       string // the entry it's about, if any
 	Open                   bool
 	ResolvedBy, Resolution string
 }
 
-// concernsBox lists the concerns: the open ones under a heading, as they
-// need doing, and those resolved closed beneath; with none open, just a line
-// that opens to those resolved.
+// concernsBox lists the messages and concerns: the open ones under a
+// heading, as they need doing, and those resolved closed beneath; with none
+// open, just a line that opens to those resolved.
 func concernsBox(base string, concerns []ConcernView, open int, a Access) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -526,7 +527,7 @@ func concernsBox(base string, concerns []ConcernView, open int, a Access) templ.
 		}
 		ctx = templ.ClearChildren(ctx)
 		if open > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<section class=\"comp-concerns mb-4\" id=\"concerns\"><h2 class=\"title is-5 mb-2\">Concerns")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<section class=\"comp-concerns mb-4\" id=\"concerns\"><h2 class=\"title is-5 mb-2\">Messages and concerns")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -554,7 +555,7 @@ func concernsBox(base string, concerns []ConcernView, open int, a Access) templ.
 				var templ_7745c5c3_Var22 string
 				templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(resolved))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 176, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 177, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 				if templ_7745c5c3_Err != nil {
@@ -582,14 +583,14 @@ func concernsBox(base string, concerns []ConcernView, open int, a Access) templ.
 				return templ_7745c5c3_Err
 			}
 		} else if len(concerns) > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<details class=\"comp-concerns-resolved mb-4\" id=\"concerns\"><summary class=\"is-size-7\">Concerns · none open, ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<details class=\"comp-concerns-resolved mb-4\" id=\"concerns\"><summary class=\"is-size-7\">Messages and concerns · none open, ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(concerns)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 187, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 188, Col: 95}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -667,7 +668,7 @@ func concernView(base string, c ConcernView, a Access) templ.Component {
 			var templ_7745c5c3_Var27 templ.SafeURL
 			templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(c.AboutLink))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 201, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 202, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 			if templ_7745c5c3_Err != nil {
@@ -680,7 +681,7 @@ func concernView(base string, c ConcernView, a Access) templ.Component {
 			var templ_7745c5c3_Var28 string
 			templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(c.About)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 201, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 202, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 			if templ_7745c5c3_Err != nil {
@@ -694,7 +695,7 @@ func concernView(base string, c ConcernView, a Access) templ.Component {
 		var templ_7745c5c3_Var29 string
 		templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(c.Text)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 203, Col: 11}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 204, Col: 11}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 		if templ_7745c5c3_Err != nil {
@@ -707,7 +708,7 @@ func concernView(base string, c ConcernView, a Access) templ.Component {
 		var templ_7745c5c3_Var30 string
 		templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(c.Who)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 205, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 206, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 		if templ_7745c5c3_Err != nil {
@@ -720,7 +721,7 @@ func concernView(base string, c ConcernView, a Access) templ.Component {
 		var templ_7745c5c3_Var31 string
 		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(c.At)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 205, Col: 56}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 206, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 		if templ_7745c5c3_Err != nil {
@@ -739,7 +740,7 @@ func concernView(base string, c ConcernView, a Access) templ.Component {
 				var templ_7745c5c3_Var32 string
 				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs("Resolved by " + c.ResolvedBy + ": " + c.Resolution)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 209, Col: 58}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 210, Col: 58}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 				if templ_7745c5c3_Err != nil {
@@ -753,7 +754,7 @@ func concernView(base string, c ConcernView, a Access) templ.Component {
 				var templ_7745c5c3_Var33 string
 				templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(c.ResolvedBy)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 211, Col: 31}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 212, Col: 31}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 				if templ_7745c5c3_Err != nil {
@@ -772,7 +773,7 @@ func concernView(base string, c ConcernView, a Access) templ.Component {
 			var templ_7745c5c3_Var34 templ.SafeURL
 			templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(base + "/concerns/" + c.ID + "/resolve"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 215, Col: 86}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 216, Col: 86}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 			if templ_7745c5c3_Err != nil {
@@ -833,7 +834,7 @@ func concernForm(base, entryID, label string) templ.Component {
 			var templ_7745c5c3_Var37 templ.SafeURL
 			templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(base + "/concerns"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 227, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 228, Col: 64}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 			if templ_7745c5c3_Err != nil {
@@ -851,7 +852,7 @@ func concernForm(base, entryID, label string) templ.Component {
 				var templ_7745c5c3_Var38 string
 				templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.ResolveAttributeValue(entryID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 229, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/access.templ`, Line: 230, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var38)
 				if templ_7745c5c3_Err != nil {

@@ -209,3 +209,37 @@ func TestSiteFeedbackMigrates(t *testing.T) {
 		t.Errorf("the old table is gone: %d %v", n, err)
 	}
 }
+
+// Migration 48 makes competitions.feedback the switch for messages to the
+// organiser, on for every competition, and names who sent each concern;
+// those flagged before are from admin links.
+func TestMessagesMigrate(t *testing.T) {
+	all := migrations
+	t.Cleanup(func() { migrations = all })
+	migrations = all[:48-1]
+	dir := t.TempDir()
+	s, err := Open(ctx, dir)
+	must(t, err)
+	c, _, err := s.CreateCompetition(ctx, competition())
+	must(t, err)
+	_, err = s.db.ExecContext(ctx, `UPDATE competitions SET feedback = FALSE WHERE id = $1`, c.ID)
+	must(t, err)
+	_, err = s.db.ExecContext(ctx, `INSERT INTO concerns (id, competition_id, entry_id, who, text, at) VALUES ('k1', $1, '', 'Chairs', 'Element 7', '2026-10-15T10:00:00Z')`, c.ID)
+	must(t, err)
+	migrations = all
+	s = reopen(t, s, dir)
+	got, err := s.Competition(ctx, c.ID)
+	must(t, err)
+	if !got.Messages {
+		t.Error("messages are on, whatever the old button was")
+	}
+	concerns, err := s.Concerns(ctx, c.ID)
+	must(t, err)
+	if len(concerns) != 1 || concerns[0].Who != "Chairs" || concerns[0].Role != "" || concerns[0].Club != "" {
+		t.Errorf("the concern from before is from an admin link: %+v", concerns)
+	}
+	must(t, s.SetMessages(ctx, c.ID, false))
+	if got, err := s.Competition(ctx, c.ID); err != nil || got.Messages {
+		t.Errorf("turned off: %v %v", got.Messages, err)
+	}
+}

@@ -197,7 +197,7 @@ func (p *competitionPages) entryView(r *http.Request, e store.Entry, c store.Com
 		page.SignoffLink = origin(r) + signoffPath(e.SignoffLink)
 	}
 	page.Notice = r.URL.Query().Get("notice")
-	page.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: path, key: e.Key(), people: []string{e.Key()}})
+	page.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: path, key: e.Key(), people: []string{e.Key()}, tell: individualTeller(e)})
 	page.Fees = p.feesSummary(r.Context(), c, entryPayer(e.ID), path+"/invoice")
 	if lateOpen(c, p.now()) {
 		page.LateAsk = path + "/late"

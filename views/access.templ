@@ -148,22 +148,23 @@ templ History(p HistoryPage) {
 	}
 }
 
-// ConcernView is a concern flagged for the organiser.
+// ConcernView is a concern flagged for the organiser, or a message sent
+// them from someone's own page.
 type ConcernView struct {
-	ID, Who, Text, At    string
+	ID, Who, Text, At    string // who: the admin link's name, or the sender, e.g. "Ann Ryan, a member of Dublin TC"
 	About, AboutLink     string // the entry it's about, if any
 	Open                 bool
 	ResolvedBy, Resolution string
 }
 
-// concernsBox lists the concerns: the open ones under a heading, as they
-// need doing, and those resolved closed beneath; with none open, just a line
-// that opens to those resolved.
+// concernsBox lists the messages and concerns: the open ones under a
+// heading, as they need doing, and those resolved closed beneath; with none
+// open, just a line that opens to those resolved.
 templ concernsBox(base string, concerns []ConcernView, open int, a Access) {
 	if open > 0 {
 		<section class="comp-concerns mb-4" id="concerns">
 			<h2 class="title is-5 mb-2">
-				Concerns
+				Messages and concerns
 				@StateChip(Attention, fmt.Sprintf("%d open", open))
 			</h2>
 			for _, c := range concerns {
@@ -184,7 +185,7 @@ templ concernsBox(base string, concerns []ConcernView, open int, a Access) {
 		</section>
 	} else if len(concerns) > 0 {
 		<details class="comp-concerns-resolved mb-4" id="concerns">
-			<summary class="is-size-7">Concerns · none open, { strconv.Itoa(len(concerns)) } resolved</summary>
+			<summary class="is-size-7">Messages and concerns · none open, { strconv.Itoa(len(concerns)) } resolved</summary>
 			for _, c := range concerns {
 				@concernView(base, c, a)
 			}

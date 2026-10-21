@@ -135,6 +135,7 @@ templ GymnastCompetitionPage(p GymnastPage) {
 			if c.Enter != "" {
 				<a class="button" href={ templ.SafeURL(c.Enter) }>Enter another discipline</a>
 			}
+			@tellOrganiser(c.Tell)
 			if c.Competition.ChangesOpen {
 				@privacyNote(c.Competition)
 			}

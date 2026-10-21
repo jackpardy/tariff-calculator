@@ -125,6 +125,10 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
 - **Links for helpers**: give those checking cards, chairs of judges, the
   timetable team, a venue screen or a co-organiser a link of their own; every
   change is listed in a history, and anyone with a link can flag a concern.
+- **Tell the organiser**: members, coaches, comp secs and gymnasts send the
+  organiser a message from their pages, named, and about one of their
+  entries if they choose; it joins the concerns on the organiser's page,
+  and the organiser can turn it off.
 - **Feedback**: a tab at the edge of every page, for anyone to tell the
   people who make the app what confused them, with a picture of the screen
   and a copy of the page while it's being tried out.

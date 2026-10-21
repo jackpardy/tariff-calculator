@@ -320,6 +320,7 @@ var settingWords = map[string]string{
 	"/events":          "Changed the synchro, tumbling and DMT levels",
 	"/individuals":     "Changed whether gymnasts can enter on their own",
 	"/levels/move":     "Changed the order of the levels",
+	"/messages":        "Changed whether people can send you messages",
 	"/no-wait":         "Changed the wait before telling people of changes",
 	"/signoff":         "Changed coaches' sign-off",
 	"/split":           "Changed whether men and women are ranked separately",
@@ -504,17 +505,17 @@ func (p *competitionPages) resolveConcern(w http.ResponseWriter, r *http.Request
 	case errors.Is(err, store.ErrNotFound):
 		// Resolved already (from another page or link), or not there: say so,
 		// so the history doesn't record it again.
-		seeOther(w, r, adminPath(r.PathValue("token"))+"#concerns", "That concern was resolved already; nothing was changed.")
+		seeOther(w, r, adminPath(r.PathValue("token"))+"#concerns", "That was resolved already; nothing was changed.")
 		return
 	case err != nil:
 		failed(w, r, err)
 		return
 	}
-	seeOther(w, r, adminPath(r.PathValue("token"))+"#concerns", "Concern resolved.")
+	seeOther(w, r, adminPath(r.PathValue("token"))+"#concerns", "Marked resolved.")
 }
 
-// concernViews are a competition's concerns, for the dashboard, with the
-// entries they're about.
+// concernViews are a competition's concerns and messages, for the
+// dashboard, with the entries they're about.
 func (p *competitionPages) concernViews(ctx context.Context, c store.Competition, base string) ([]views.ConcernView, int, error) {
 	concerns, err := p.st.Concerns(ctx, c.ID)
 	if err != nil {
@@ -523,7 +524,7 @@ func (p *competitionPages) concernViews(ctx context.Context, c store.Competition
 	var out []views.ConcernView
 	open := 0
 	for _, k := range concerns {
-		v := views.ConcernView{ID: k.ID, Who: k.Who, Text: k.Text, At: k.At.In(local).Format("Mon 2 Jan, 15:04"), Open: k.Open(),
+		v := views.ConcernView{ID: k.ID, Who: senderName(store.Sender{Role: k.Role, Name: k.Who, Club: k.Club}), Text: k.Text, At: k.At.In(local).Format("Mon 2 Jan, 15:04"), Open: k.Open(),
 			ResolvedBy: k.ResolvedBy, Resolution: k.Resolution}
 		if k.Open() {
 			open++
