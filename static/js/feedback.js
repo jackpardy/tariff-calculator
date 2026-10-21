@@ -80,11 +80,22 @@
         timeout: 15000,
         style: { transform: `translate(${-scrollX}px, ${-scrollY}px)`, transformOrigin: '0 0', margin: '0' },
         filter: (node) => !ours(node),
-        onCloneEachNode: light ? (node) => {
-            if (node.nodeType === 1 && node.hasAttribute('data-private')) {
+        onCloneEachNode: (node) => {
+            if (node.nodeType !== 1) {
+                return;
+            }
+            // The picture is drawn from an SVG, which is XML: an attribute
+            // with a colon (Alpine's x-bind:value, x-on:click) is a prefix
+            // nobody declared, and makes the whole picture blank.
+            for (const a of [...node.attributes]) {
+                if (a.name.includes(':') && !/^(xml|xmlns|xlink)(:|$)/.test(a.name)) {
+                    node.removeAttribute(a.name);
+                }
+            }
+            if (light && node.hasAttribute('data-private')) {
                 node.style.filter = 'blur(6px)';
             }
-        } : null,
+        },
     }));
 
     const capture = () => {
