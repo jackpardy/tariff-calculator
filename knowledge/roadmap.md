@@ -947,6 +947,15 @@ decisions.
 [^club-software]: Gymnastics club management software round-up (2026)
 [^generators]: Vincent Beaulieu's trampoline routine generator
 
+**A sandbox (decided 2026-10-21, to build alongside club roles).** A
+separate instance of the app at `sandbox.tariff.pardy.ie` with ISTO-sized
+made-up competitions (one with entries open; one on the day, which rolls
+back to day 1 every fourth day), messages at every stage, a "Try it as…"
+start page with a link per role, notifications off, and a **Reset the
+sandbox** button on the maintainer's page; built so "make me my own sandbox"
+(smaller) can follow as a small step. For ISTO's organisers. Plan and
+decisions: [ADR 0016](../docs/adr/0016-sandbox.md).
+
 **Archive a competition (noted 2026-10-19, later).** The owner would like a
 competition to be archived once it's over, rather than only deleted: kept,
 read-only, out of the way of the live ones. Not designed yet.
