@@ -1037,12 +1037,6 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
 /* The Feedback button at the foot of a competition's pages (views/feedback.templ): small
    and out of the way, but a full 40px to tap. Without JavaScript the page comes back at
    #feedback-sent, which shows the thanks. */
-.comp-feedback { margin-top: 3rem; padding-top: 0.75rem; border-top: 1px solid #ededed; }
-.comp-feedback > details > summary { min-height: 2.5rem; }
-.comp-feedback-form { max-width: 32rem; margin-top: 0.5rem; }
-.comp-feedback-form .button { min-height: 2.5rem; }
-.comp-feedback-thanks { display: none; }
-#feedback-sent:target .comp-feedback-thanks { display: block; }
 .comp-feedback-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .comp-feedback-item.is-done { opacity: 0.6; }
 /* Search and filters on lists of people (views/lists.templ): the name search, then a
@@ -1527,7 +1521,7 @@ form:has(input[name="to"][value="people"]:not(:checked)) .desk-to-people { displ
 /* Printed, a page is what it shows: no menu, tabs, buttons, way back or
    Feedback. */
 @media print {
-  .comp-menu, .role-tabs, .comp-feedback, .comp-offline, .comp-back, .comp-tick-bar, .comp-list-controls,
+  .comp-menu, .role-tabs, .comp-offline, .comp-back, .comp-tick-bar, .comp-list-controls,
   .comp-page .button, .comp-page .delete, .comp-page summary.button, .comp-tt-daypick { display: none !important; }
   .comp-sticky-notice, .comp-day-notice { position: static; box-shadow: none; }
   .comp-page.section { padding: 0; }

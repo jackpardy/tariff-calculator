@@ -33,7 +33,6 @@ const (
 	menuScreen    = "/screen"
 	menuSettings  = "/settings"
 	menuHistory   = "/history"
-	menuFeedback  = "/feedback"
 )
 
 // menuState is what a competition's menu depends on besides the link: which
@@ -44,7 +43,6 @@ type menuState struct {
 	ApproveCoaches bool // coaches are approved, so there's a page to do it on
 	LateWaiting    int  // late changes to decide
 	CoachesWaiting int  // coaches sent or named, not decided yet
-	FeedbackNew    int  // feedback about the app not dealt with yet
 }
 
 // menuFor is the menu of a competition's pages for the request's link, with
@@ -67,9 +65,6 @@ func (p *competitionPages) menuFor(r *http.Request, c store.Competition, current
 		if err1 == nil && err2 == nil {
 			m.CoachesWaiting = coachApprovalForm(c.Competition, sent, named).Waiting
 		}
-	}
-	if a.Feedback {
-		m.FeedbackNew, _ = p.st.FeedbackWaiting(r.Context(), c.ID)
 	}
 	return orgMenu(adminPath(r.PathValue("token")), a, m, current)
 }
@@ -155,23 +150,9 @@ func orgMenu(base string, a views.Access, m menuState, current string) []views.M
 		add("On the day", day...)
 	}
 
-	// Feedback about the app, beside the history, for links that may read it.
-	// The history (payments, feedback) is for links that change the settings.
-	var more []views.MenuItem
+	// The history (payments) is for links that change the settings.
 	if a.Settings {
-		more = append(more, item("Competition", menuSettings, ""), item("History", menuHistory, ""))
-	}
-	if a.Feedback {
-		more = append(more, item("Feedback", menuFeedback, badge(m.FeedbackNew, "new")))
-	}
-	if a.Settings {
-		add("Settings", more...)
-		// The badge there is new feedback, not a setting: say so on the tab.
-		if last := &sections[len(sections)-1]; last.Badge != "" {
-			last.Badge += " feedback"
-		}
-	} else {
-		add("Feedback", more...) // a link without the settings has no history
+		add("Settings", item("Competition", menuSettings, ""), item("History", menuHistory, ""))
 	}
 	return sections
 }

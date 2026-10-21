@@ -19,8 +19,11 @@ An unknown path panics, so a bad link fails the tests.
 | Current version (`?v=` matches) | `public, max-age=31536000, immutable` |
 | Anything else | `no-cache`, revalidated cheaply with the hash as `ETag` |
 
-Vendored libraries (htmx, Alpine, SortableJS, Bulma) live alongside the app's
-own files. Nothing loads from a CDN.
+Vendored libraries (htmx, Alpine, SortableJS, Bulma, and modern-screenshot
+4.7.0, MIT, which draws the picture sent with
+[feedback](../features/competition-entries.md#feedback-about-the-app) and is
+loaded only when the Feedback form opens) live alongside the app's own files.
+Nothing loads from a CDN.
 
 # Compression
 

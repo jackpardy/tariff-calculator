@@ -47,8 +47,8 @@ func allowed(kind, pattern string) bool {
 	if post && (path == "/concerns" || path == "/feedback") {
 		return true // anyone can flag a concern, or send feedback about the app
 	}
-	// The history isn't among them: it says what was paid and sent about the
-	// app, which these links can't see (only the organiser's and everything links).
+	// The history isn't among them: it says what was paid, which these
+	// links can't see (only the organiser's and everything links).
 	viewing := get && (path == "" || path == "/entries/{id}" || path == "/cards" || path == "/entries.csv" || path == "/people" || path == "/people/{key}")
 	switch kind {
 	case store.LinkCards:
@@ -82,7 +82,6 @@ func access(r *http.Request) views.Access {
 		Coaches:   can(r, "GET", "/coaches"),
 		NotifyNow: can(r, "POST", "/notify-now"),
 		Resolve:   can(r, "POST", "/concerns/{id}/resolve"),
-		Feedback:  can(r, "GET", "/feedback"),
 		Day:       can(r, "GET", "/day"),
 		Desk:      can(r, "GET", "/desk"),
 		Screen:    can(r, "GET", "/screen"),
@@ -123,7 +122,7 @@ func (p *competitionPages) gate(pattern string, h http.HandlerFunc) http.Handler
 			return
 		}
 		r = r.WithContext(context.WithValue(r.Context(), linkKey{}, link))
-		feedbackOn(r, c)
+		feedbackAbout(r, c)
 		if r.Method != http.MethodPost {
 			h(w, r)
 			return
@@ -220,16 +219,6 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		return "Resolved a concern"
 	case "/feedback":
 		return "Sent feedback about the app"
-	case "/feedback/{id}/done":
-		if f("done") == "1" {
-			return "Marked feedback dealt with"
-		}
-		return "Marked feedback not dealt with"
-	case "/feedback-button":
-		if f("on") == "1" {
-			return "Turned the Feedback button on"
-		}
-		return "Turned the Feedback button off"
 	case "/late/settings":
 		return "Changed the late changes allowed"
 	case "/late/{id}/accept":

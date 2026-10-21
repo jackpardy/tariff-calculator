@@ -70,7 +70,7 @@ templ NotifyCompetition(p NotifyPage) {
 				<h2 class="title is-6 mb-2">By email</h2>
 				if p.Email.Address != "" {
 					<p class="mb-2">
-						<strong>{ p.Email.Address }</strong>
+						<strong data-private>{ p.Email.Address }</strong>
 						if p.Email.Confirmed {
 							@StateChip(Done, "On")
 						} else {
@@ -84,7 +84,7 @@ templ NotifyCompetition(p NotifyPage) {
 				<form method="post" action={ templ.SafeURL(p.Action) }>
 					<div class="field">
 						<label class="label is-small" for="notify-email">Email</label>
-						<input class="input is-small" id="notify-email" name="email" type="email" required maxlength="254" value={ p.Email.Address } autocomplete="email"/>
+						<input class="input is-small" id="notify-email" name="email" type="email" required maxlength="254" value={ p.Email.Address } autocomplete="email" data-private/>
 					</div>
 					<fieldset class="field">
 						<legend class="label is-small">About</legend>

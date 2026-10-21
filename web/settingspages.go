@@ -36,7 +36,7 @@ var settingsGroups = map[string]string{
 	"/events": "events", "/split": "events",
 	"/signoff": "signoff", "/approve-coaches": "signoff",
 	"/video": "video", "/live": "live", "/no-wait": "notify", "/individuals": "individuals",
-	"/feedback-button": "feedback", "/replace-link": "admin-link",
+	"/replace-link": "admin-link",
 }
 
 // liveFields are the date and time to suggest for going live: when it's due
@@ -77,7 +77,7 @@ func (p *competitionPages) renderSettings(w http.ResponseWriter, r *http.Request
 		ChangesDate: dateField(c.ChangesUntil, c.Deadline), ChangesTime: timeField(c.ChangesUntil, c.Deadline),
 		SignoffsDate: dateField(c.SignoffsUntil, c.Deadline), SignoffsTime: timeField(c.SignoffsUntil, c.Deadline),
 		LiveDate: liveDate, LiveTime: liveTime,
-		NotifyOn: p.notifyLink("/") != "", NoWait: c.NoWait, FeedbackButton: c.FeedbackButton,
+		NotifyOn: p.notifyLink("/") != "", NoWait: c.NoWait,
 		Limits: limitFields(c, entries), Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()),
 		Events: eventsForm(c.Competition), LevelOrder: levelOrderForm(c.Competition),
 	}

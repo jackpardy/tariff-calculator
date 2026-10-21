@@ -211,7 +211,7 @@ func TestSettingsLimitedLinks(t *testing.T) {
 				t.Errorf("%s is offered the settings", link)
 			}
 		}
-		// The history says what was paid and what feedback was sent: not theirs to read.
+		// The history says what was paid: not theirs to read.
 		if strings.Contains(strings.Join(menuLabels(page), ","), "History") {
 			t.Errorf("%s isn't offered the history: %v", link, menuLabels(page))
 		}

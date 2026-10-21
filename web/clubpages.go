@@ -28,7 +28,10 @@ const (
 )
 
 func (p *competitionPages) registerClubs(mux *http.ServeMux) {
-	handle := func(pattern string, h http.HandlerFunc) { mux.Handle(pattern, p.secret(h)) }
+	handle := func(pattern string, h http.HandlerFunc) {
+		p.notePage(pattern)
+		mux.Handle(pattern, p.secret(h))
+	}
 	handle("GET /competitions", p.hub)
 	handle("GET /clubs/new", p.newClub)
 	handle("POST /clubs", p.createClub)
@@ -708,7 +711,7 @@ func (p *competitionPages) enteredCompetition(w http.ResponseWriter, r *http.Req
 		failed(w, r, err)
 		return c, false
 	}
-	feedbackOn(r, c)
+	feedbackAbout(r, c)
 	return c, true
 }
 
@@ -958,7 +961,7 @@ func (p *competitionPages) clubLinkCompetition(w http.ResponseWriter, r *http.Re
 		failed(w, r, err)
 		return c, false
 	}
-	feedbackOn(r, c)
+	feedbackAbout(r, c)
 	return c, true
 }
 

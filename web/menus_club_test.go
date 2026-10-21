@@ -206,7 +206,7 @@ func TestMemberTabs(t *testing.T) {
 	if row == nil || !strings.Contains(list, "Not entered") || !strings.Contains(list, "Saturday 16 March 2030") {
 		t.Fatalf("the list has the competition, its date and status, linking to its page: %s", list)
 	}
-	if strings.Contains(list, "Your coach") || strings.Contains(list, "Change your entry") || strings.Contains(list, "<details") {
+	if strings.Contains(list, "Your coach") || strings.Contains(list, "Change your entry") || strings.Contains(withoutFeedback(list), "<details") {
 		t.Error("the list is only the list")
 	}
 

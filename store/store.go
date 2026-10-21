@@ -797,6 +797,40 @@ var migrations = []string{
 	// with it, so another device lists it under its level, not with the
 	// person's own requirements.
 	`ALTER TABLE person_requirements ADD COLUMN in_level INTEGER NOT NULL DEFAULT 0;`,
+
+	// 47: feedback about the app goes to the maintainer, from every page,
+	// not to each competition's organiser (migration 40's feedback moves
+	// here, keeping the competition's name). Each piece keeps the page's
+	// route pattern (never its path, which holds a secret link), the
+	// competition it was sent from if any, and details from the browser;
+	// what was captured with it (a picture of the screen, a copy of the
+	// page, gzipped) is kept apart, so it can be deleted on its own.
+	// competitions.feedback, the organiser's button, is left unused.
+	`CREATE TABLE site_feedback (
+		id             TEXT PRIMARY KEY,
+		text           TEXT NOT NULL,
+		reply_to       TEXT NOT NULL DEFAULT '',
+		role           TEXT NOT NULL,
+		page           TEXT NOT NULL,
+		competition_id TEXT NOT NULL DEFAULT '',
+		competition    TEXT NOT NULL DEFAULT '',
+		details        TEXT NOT NULL DEFAULT '',
+		at             TEXT NOT NULL,
+		done_at        TEXT NOT NULL DEFAULT ''
+	);
+	CREATE INDEX site_feedback_at ON site_feedback (at);
+	CREATE TABLE site_feedback_captures (
+		feedback_id  TEXT PRIMARY KEY REFERENCES site_feedback (id) ON DELETE CASCADE,
+		picture      BLOB,
+		picture_type TEXT NOT NULL DEFAULT '',
+		snapshot     BLOB,
+		at           TEXT NOT NULL
+	);
+	CREATE INDEX site_feedback_captures_at ON site_feedback_captures (at);
+	INSERT INTO site_feedback (id, text, reply_to, role, page, competition_id, competition, at, done_at)
+		SELECT f.id, f.text, f.reply_to, f.role, f.page, f.competition_id, c.name, f.at, f.done_at
+		FROM feedback f JOIN competitions c ON c.id = f.competition_id;
+	DROP TABLE feedback;`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run
