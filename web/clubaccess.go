@@ -184,8 +184,11 @@ func (p *competitionPages) clubGate(pattern string, h http.HandlerFunc) http.Han
 		what := p.describeClub(r, club, pattern)
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		h(rec, r)
+		// A refusal goes back saying "nothing was changed" (or sent, or
+		// added; "this wasn't sent"), or that it was done already: nothing
+		// to record.
 		to := strings.ToLower(rec.Header().Get("Location"))
-		refused := strings.Contains(to, "nothing+was+changed") || strings.Contains(to, "nothing+was+sent")
+		refused := slices.ContainsFunc([]string{"nothing+was+", "n%27t+sent", "n%27t+changed", "+already."}, func(s string) bool { return strings.Contains(to, s) })
 		if rec.status < 400 && !refused && !rec.asked && what != "" && !strings.HasSuffix(pattern, "/delete") {
 			p.st.RecordClub(context.WithoutCancel(r.Context()), club.ID, link.Who(), what)
 		}
