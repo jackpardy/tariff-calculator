@@ -183,6 +183,9 @@ transaction, and marks their club used (once a day) only when it's due.
 | `POST /site/{token}/feedback/{id}/done` | `done` (`1` or `0`), `all` | Marks feedback dealt with, or not |
 | `POST /site/{token}/captures/delete` | — | Deletes every picture and copy of a page kept; the words stay |
 | `GET /site/{token}/feedback/{id}/picture`, `/site/{token}/feedback/{id}/page` | — | The picture of their screen; the copy of the page, cleaned, served `sandbox` with `default-src 'none'` (`snapshotPolicy`), framed only by the maintainer's page |
+| `GET /sandbox` | — | The [sandbox](../features/sandbox.md)'s start page, "Try it as…": a card for each role with the shared copy's links; "being set up" before the first reset. Sandbox mode (`SANDBOX=1`) only; a 404 otherwise |
+| `POST /site/{token}/sandbox/reset` | — | Resets the sandbox in the background (a new copy, then the old deleted), one thing at a time, and comes back to the maintainer's page saying so. Sandbox mode only |
+| `POST /site/{token}/sandbox/restart` | — | Restarts the day of the competition on the day now, in the background: day 1 today, the day's marks cleared, the morning played again. Sandbox mode only |
 
 Every `/competitions/admin/{token}` route takes the admin link or a helper's
 link of a kind that may use it (`allowed`, ADR 0009); others get 403.

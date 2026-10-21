@@ -752,15 +752,22 @@ func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err erro
 			AND NOT EXISTS (SELECT 1 FROM entries WHERE individual_id = individuals.id)`, now.AddDate(0, 0, -competitions.RetentionDays).Format(timeLayout)); err != nil {
 			return err
 		}
-		if err := dropTies(ctx, tx); err != nil {
-			return err
-		}
-		if err := dropOrphanedKept(ctx, tx); err != nil {
-			return err
-		}
-		return dropEntryRows(ctx, tx, "")
+		return dropLeftovers(ctx, tx)
 	})
 	return comps, clubs, err
+}
+
+// dropLeftovers deletes what deleting competitions, clubs or individuals
+// leaves behind: the rows that refer to them without a foreign key, and the
+// requirements of people who are gone (DeleteExpired, DeleteCopy).
+func dropLeftovers(ctx context.Context, tx *sql.Tx) error {
+	if err := dropTies(ctx, tx); err != nil {
+		return err
+	}
+	if err := dropOrphanedKept(ctx, tx); err != nil {
+		return err
+	}
+	return dropEntryRows(ctx, tx, "")
 }
 
 // SetApproveCoaches says whether only coaches the organiser approves can sign

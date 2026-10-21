@@ -143,6 +143,7 @@ templ screenLayout(title string) {
 			<script defer src={ static.URL("js/screen.js") }></script>
 		</head>
 		<body class="screen-body">
+			@sandboxBanner()
 			{ children... }
 		</body>
 	</html>

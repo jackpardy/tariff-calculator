@@ -378,7 +378,7 @@ func (p *competitionPages) sendDesk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pushes, emails := p.notify.tellDesk(r.Context(), c, m)
-	seeOther(w, r, back, "Sent to "+m.Audience+". "+sendingNotice(pushes, emails)+" Everyone sees it on their own page.")
+	seeOther(w, r, back, "Sent to "+m.Audience+". "+p.sendingNotice(pushes, emails)+" Everyone sees it on their own page.")
 }
 
 // deskNotes are the messages that reach someone, newest first, at most

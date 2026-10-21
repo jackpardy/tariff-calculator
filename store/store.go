@@ -902,6 +902,24 @@ var migrations = []string{
 		what    TEXT NOT NULL
 	);
 	CREATE INDEX club_log_club ON club_log (club_id, id);`,
+
+	// 51: a sandbox's copies (ADR 0016): what each seed made (its
+	// competitions, clubs and individuals, and the feedback it sent), so
+	// deleting a copy deletes exactly that, and its links by role, for the
+	// start page. expires_at is empty for the shared copy.
+	`CREATE TABLE sandbox_copies (
+		id         TEXT PRIMARY KEY,
+		created_at TEXT NOT NULL,
+		expires_at TEXT NOT NULL DEFAULT '',
+		size       INTEGER NOT NULL,
+		links      TEXT NOT NULL
+	);
+	CREATE TABLE sandbox_items (
+		copy_id TEXT NOT NULL REFERENCES sandbox_copies (id) ON DELETE CASCADE,
+		kind    TEXT NOT NULL,
+		id      TEXT NOT NULL,
+		PRIMARY KEY (copy_id, kind, id)
+	);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

@@ -47,6 +47,10 @@ func message(w http.ResponseWriter, r *http.Request, status int, title, text str
 // hold a link's secret, so the page isn't kept, indexed or told to another
 // site, as a link's pages aren't (secret).
 func notFound(w http.ResponseWriter, r *http.Request) {
+	if views.SandboxOf(r.Context()) && sandboxLink(r.URL.Path) {
+		earlierSandbox(w, r)
+		return
+	}
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Robots-Tag", "noindex")
@@ -85,6 +89,8 @@ func competitionsDays(n int) string {
 // deadline passed, a limit reached, or something unexpected.
 func failed(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
+	case errors.Is(err, store.ErrNotFound) && views.SandboxOf(r.Context()):
+		earlierSandbox(w, r)
 	case errors.Is(err, store.ErrNotFound):
 		w.WriteHeader(http.StatusNotFound)
 		render(w, r, views.DeadLink("Link not found", "This link doesn't lead anywhere. It may have been replaced, or the competition deleted."))

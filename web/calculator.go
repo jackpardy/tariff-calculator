@@ -93,6 +93,9 @@ func routesWithPages(pages *competitionPages) http.Handler {
 			limit = maxKeepBytes
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, limit)
+		if pages.sandbox != nil {
+			r = r.WithContext(views.WithSandbox(r.Context()))
+		}
 		w.Header().Set(static.VersionHeader, static.Version)
 		mux.ServeHTTP(w, r)
 	}))

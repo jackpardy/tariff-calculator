@@ -103,6 +103,7 @@ type MaintainerPage struct {
 	Waiting  int
 	Total    int
 	Items    []SiteFeedbackItem
+	Sandbox  *SandboxPanel // the sandbox's buttons, in the sandbox only
 }
 
 // SiteFeedbackItem is one piece of feedback.
@@ -163,6 +164,9 @@ templ Maintainer(p MaintainerPage) {
 				</form>
 			}
 		</div>
+		if p.Sandbox != nil {
+			@sandboxPanel(*p.Sandbox)
+		}
 		<div class="tabs is-small mb-3">
 			<ul>
 				<li class={ templ.KV("is-active", !p.All) }><a href={ templ.SafeURL(p.Base) }>Not dealt with ({ strconv.Itoa(p.Waiting) })</a></li>

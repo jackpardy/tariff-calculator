@@ -75,7 +75,8 @@ func (p *competitionPages) maintainerPage(w http.ResponseWriter, r *http.Request
 	}
 	s := p.feedbackSettings()
 	page := views.MaintainerPage{Base: maintainerPath(r.PathValue("token")), Notice: r.URL.Query().Get("notice"),
-		Off: s.Off, Light: s.Light, Size: megabytes(kept), All: r.URL.Query().Get("all") == "1", Total: len(all)}
+		Off: s.Off, Light: s.Light, Size: megabytes(kept), All: r.URL.Query().Get("all") == "1", Total: len(all),
+		Sandbox: p.sandboxPanel(ctx, maintainerPath(r.PathValue("token")))}
 	for _, f := range all {
 		if f.Picture || f.Snapshot {
 			page.Captures++

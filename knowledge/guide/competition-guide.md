@@ -24,6 +24,13 @@ competition deleted, a link replaced) is dropped from the list when you open
 it, and its page has a way back to the list. On another phone, open the
 link itself; copy it somewhere safe with **Copy** when you get it.
 
+**To try it first**, there's a sandbox at
+<https://sandbox.tariff.pardy.ie/sandbox>: a copy full of made-up clubs and
+gymnasts, with one competition open for entries and one on the day. Its start
+page, **Try it as…**, has a link for each role (organiser, helper, comp sec,
+coach, member, gymnast on their own, the venue screen). Change anything: it's
+all put back from time to time, and nothing in it is emailed or pushed.
+
 Who does what:
 
 - The **organiser** creates the competition and sees every entry.

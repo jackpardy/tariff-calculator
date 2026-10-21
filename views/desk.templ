@@ -164,7 +164,11 @@ templ Desk(p DeskPage) {
 				<label class="checkbox comp-check"><input type="checkbox" name="come" value="1"/> Ask them to come to the organisers' desk</label>
 			</div>
 			<button class="button is-primary" type="submit">Send now</button>
-			<p class="help">It goes by push and email to those who asked to hear about this competition, sent in the background, and shows on each person's own page. Reload this page to see how the sending is going.</p>
+			if SandboxOf(ctx) {
+				<p class="help">{ NotificationsOff } It shows on each person's own page.</p>
+			} else {
+				<p class="help">It goes by push and email to those who asked to hear about this competition, sent in the background, and shows on each person's own page. Reload this page to see how the sending is going.</p>
+			}
 		</form>
 		@deskScreen(p)
 		@listSection("Sent", len(p.Sent)) {

@@ -37,6 +37,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 			@templ.JSONScript("level-data", levelData(groups))
 		</head>
 		<body>
+			@sandboxBanner()
 			<section class="section">
 				<div class="container" x-data="requirementsPage()">
 					<a class="is-size-7" href="/">← Routine Builder</a>

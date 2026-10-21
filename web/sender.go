@@ -92,7 +92,7 @@ func mailPerSecond() float64 {
 // send queues deliveries, counting a desk message's on its tally, and
 // returns at once.
 func (s *sender) send(ds []delivery) {
-	if len(ds) == 0 {
+	if len(ds) == 0 || s.n.sandbox {
 		return
 	}
 	s.start.Do(func() {

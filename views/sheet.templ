@@ -28,6 +28,7 @@ templ TariffSheetPage() {
 			<script defer src={ static.URL("js/menus.js") }></script>
 		</head>
 		<body>
+			@sandboxBanner()
 			<div class="toolbar screen-only">
 				<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
 				// Display options (static/js/sheet.js): each box hides part of the sheet, on

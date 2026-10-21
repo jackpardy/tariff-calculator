@@ -35,6 +35,7 @@ templ Page(groups []requirements.BuiltinGroup, back string) {
 			@templ.JSONScript("level-data", levelData(groups))
 		</head>
 		<body>
+			@sandboxBanner()
 			<section class="hero is-primary">
 				<div class="hero-body">
 					<div class="container">
