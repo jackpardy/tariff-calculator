@@ -203,9 +203,10 @@ dashboard lists the open ones under a **Messages and concerns** heading with
 a count chip (and a "3 messages and concerns open" chip above the entries,
 linking down to them), with who and when, and those resolved closed beneath
 (with none open, one line opening to them); the organiser and co-organisers
-mark each **Resolved**, with a note. Up to 2,000 a competition. The demo has
-helpers' links (printed by `demo`), three cards checked, two concerns and a
-member's message.
+mark each resolved, with a note of their own (messages also take replies,
+below). Up to 2,000 a competition. The demo has helpers' links (printed by
+`demo`), three cards checked, two concerns and a member's message, with the
+organiser's reply and the member's answer.
 
 ## Messages to the organiser
 
@@ -227,20 +228,54 @@ admin page.
 see it, worked out from the link (`teller` in `web/tellpages.go`): "Ann
 Ryan, a member of UCD", "Cara Byrne, a coach at UCD", "UCD's comp sec", or
 "Bea Byrne, entered on their own". The name and the club's name are kept
-as they were when it was sent. **About** chooses, optionally, one of their
-entries the competition has (sent): a member's or individual's own (a
-synchro pair's too), a comp sec's club's, or a coach's gymnasts' (those
-the coach sees); the competition generally by default. Posting an entry
-that isn't theirs is a 404. The words are required, up to 1,000
-characters.
+as they were when it was sent. **About** is a list to tick, any number,
+of their entries the competition has (sent): a member's or individual's own
+(a synchro pair's too; an individual's in every discipline), a comp sec's
+club's, or a coach's gymnasts' (those the coach sees); none ticked is the
+competition generally. A comp sec's and coach's are grouped by event, each
+with a whole-event choice ("BUCS L3 · all 8"), which greys out the entries
+it covers (`static/js/tell.js`; without it the server drops them); past 8
+entries the list has a search box (a gymnast or event, ignoring case and
+accents). Posting an entry that isn't theirs, an event they've no entries
+in, or (a member or individual) a whole event is a 404. The words are
+required, up to 1,000 characters.
 
 **Where it goes.** `POST {their page}/organiser` (one handler for every
 kind of link, through `whose`) keeps it in `concerns` with the sender's
-role and club (migration 48), and comes back to the page it was sent from
+role, club and record (migration 48) and what it's about (`entries`,
+`events`, migration 49), and comes back to the page it was sent from
 saying "Sent to the organiser of Student Open, with your name." It shows on
-the organiser's dashboard with the concerns, the entry linked. Each sender
-can send 10 a competition in 24 hours (`MaxMessagesPerDay`); past that the
-page says so and suggests speaking to the organiser.
+the organiser's dashboard with the concerns, each entry linked ("all of
+UCD's BUCS L3" for an event). Each sender can send 10 a competition in 24
+hours (`MaxMessagesPerDay`); past that the page says so and suggests
+speaking to the organiser.
+
+**A thread, both ways** (migration 49, `web/replies.go`). On the
+dashboard, a message from someone shows **Waiting for you** while the last
+word is theirs (or **Replied**), who said it was received, and the thread
+after it. The organiser and co-organisers can:
+
+- **Received**: tells the sender they have it (once; a reply says so too).
+- **Reply**: words the sender sees on their page.
+- **Resolve**: with, optionally, a reply the sender sees and a note for
+  themselves that only organisers see ("your note: …").
+
+Each is in the history ("Said a message was received", "Replied to a
+message", "Replied to a message and resolved it"). The sender is told of
+each by push or email if they've asked to hear about changes on that page
+(`tellSender`, the background sender; "The organiser of Student Open has
+your message", "Reply from the organiser of …", with their message quoted),
+and the notice says whether they were.
+
+The sender sees their messages under **Your messages to the organiser** (a
+line saying how many, and how many replied to) beneath the form: each with
+its state (**Sent**, **Received**, **Resolved**), when, what about, and the
+thread. **Add to this** (`POST {their page}/organiser/{message}`) adds
+their words to the thread, only to their own (anyone else's is a 404); more
+from them opens a resolved message again, waiting for the organiser. A
+thread takes 50 additions (`MaxPosts`). With messages off, they still see
+what they sent, without adding. A concern flagged from an admin link has no
+sender, so no Received, replies or thread: only Resolve, with a note.
 
 **The organiser's switch.** On Settings, under **Messages to you**, a
 **Tell the organiser** line says whether members, coaches, comp secs and

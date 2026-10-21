@@ -181,14 +181,19 @@ pair's one routine), checked as the Routine Builder checks them.
 - **Messages and concerns:** members, coaches, comp secs and gymnasts on
   their own can **Tell the organiser** something from their pages for the
   competition ("my surname is spelled wrong on the timetable"), with their
-  name and club, and the entry it's about if they choose
+  name and club, and the entries or events it's about if they choose
   ([how](#tell-the-organiser)). Anyone with one of your links can **Flag a
   concern**, about an entry or generally ("element 7 isn't on the card"). A
   chip at the top of the entries page says how many are open and goes to
-  them, listed at the foot of the page, each with who sent it; mark each
-  **Resolved**, with a note of what was done, and those resolved fold away
-  beneath. To stop messages, open **Settings**, **Messages to you**,
-  **Change**, **Stop messages** (those sent stay).
+  them, listed at the foot of the page, each with who sent it. A message
+  says **Waiting for you** until you answer: tap **Received** to let them
+  know you have it, **Reply** to write back (they see it on their page, and
+  hear by push or email if they've asked to), and **Resolve** when it's
+  done, with a reply for them and a note for yourself, both optional (they
+  never see the note). They can add to it, and more from them opens it
+  again. Those resolved fold away beneath. To stop messages, open
+  **Settings**, **Messages to you**, **Change**, **Stop messages** (those
+  sent stay).
 - **Feedback:** while the app is new, every page has a **Feedback** tab at
   the right edge of the screen, for anyone to say what confused them. It
   goes to the people who make the app, not to you; while the app is being
@@ -646,8 +651,8 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
 - **Tell the organiser**: at the foot of a competition's **Entries**, to send
-  its organiser a message from the club, about one of the club's entries or
-  generally ([how](#tell-the-organiser)).
+  its organiser a message from the club, about any of the club's entries,
+  whole events, or the competition generally ([how](#tell-the-organiser)).
 - **Settings** (its own section): a row for each setting, with its button at
   the right. **Members' skills**, **Change**: **Let every member see
   everyone's skills** shares members' skills with the whole club (otherwise
@@ -754,10 +759,16 @@ To tell the competition's organiser something (a question, or something to
 put right), tap **Write** beside **Tell the organiser** at the foot of your
 page for the competition or of **My competition**. It says who it's from,
 as the organiser will see it ("Ann Ryan, a member of UCD"): your name comes
-from your link, so there's nothing to type. Under **About**, choose one of
-your entries, or leave it on **The competition generally**; write your
+from your link, so there's nothing to type. Under **About**, tick any of
+your entries it's about, or none for the competition generally; write your
 message and tap **Send to the organiser**. The page says it's sent. You can
 send 10 a day; the organiser may also turn messages off.
+
+Your messages are listed beneath, under **Your messages to the organiser**:
+each says **Sent**, then **Received** once the organiser has it, then
+**Resolved**, with their replies. **Add to this** answers them or adds
+more. If you've turned on **Tell me about changes**, you hear of their
+answers by push or email too.
 
 It goes to the organiser only. Something wrong with the app itself? Use the
 **Feedback** tab at the right edge of the screen instead: that goes to the
@@ -767,7 +778,10 @@ Comp secs, coaches and gymnasts on their own have the same form: a comp sec
 at the foot of the competition's **Entries** (about any of the club's
 entries), a coach under each competition on **Entries** (about the gymnasts
 they see), and a gymnast on their own on their page for the competition and
-**My competition**.
+**My competition** (about any of their disciplines). A comp sec's and
+coach's list is grouped by event: tick an event's first box for all of the
+club's entries in it, or search for a gymnast or event when the list is
+long.
 
 ## Mark your skills
 

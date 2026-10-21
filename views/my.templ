@@ -1,6 +1,11 @@
 package views
 
-import "strconv"
+import (
+	"slices"
+	"strconv"
+
+	"tariffCalculator/static"
+)
 
 // MyCompetitionPage is one person's competition (roadmap: competitions 5):
 // their events, cards and flights, what they officiate, and the flights and
@@ -40,48 +45,155 @@ type MyLinks struct {
 }
 
 // TellOrganiser is the form on a person's or club's page for a competition
-// for telling its organiser something (migration 48): named from their
-// link, and about one of their entries if they choose.
+// for telling its organiser something (migrations 48, 49): named from their
+// link, and about any of their entries (a comp sec or coach: whole events
+// too) if they choose; and the messages they've sent, with the organiser's
+// replies.
 type TellOrganiser struct {
 	ID     string       // the form's place on the page, unique where a page has several competitions
-	Action string       // where it posts
+	Action string       // where it posts; "" while the organiser isn't taking messages (only those sent show)
 	From   string       // who it's from, as the organiser sees it, e.g. "Ann Ryan, a member of Dublin TC"
 	Back   string       // the page to come back to, as the handler knows it ("day", "gymnast"), "" for where it posts
-	About  []ListOption // the entries it can be about, by id
+	About  []AboutGroup // what it can be about: their entries, by event
+	Events bool         // whole events can be chosen (a comp sec's or coach's)
+	Search bool         // so many there's a search box
+	Sent   []SentMessage
+}
+
+// AboutGroup is an event in the About list: the entries in it, and (for a
+// comp sec or coach) the whole event to choose instead.
+type AboutGroup struct {
+	Event   string       // e.g. "BUCS L3"
+	Entries []ListOption // by id: the gymnasts, or for a person their event
+}
+
+// SentMessage is a message someone sent the organiser, as they see it
+// again: what it said and was about, where it's got to, and the thread
+// since, with a box to add to it.
+type SentMessage struct {
+	ID, Text, About, At string
+	Status              string // Sent, Received or Resolved
+	StatusState         State
+	Thread              []SentPost
+	Add                 string // where adding to it posts; "" while the organiser isn't taking messages
+}
+
+// SentPost is something added to a message since, as the sender sees it.
+type SentPost struct {
+	Text, At string
+	Organiser bool // the organiser's reply; otherwise theirs
 }
 
 // tellOrganiser is the form for telling the organiser, closed until asked
 // for, saying plainly it goes to the organiser (with their name) and that
-// the Feedback tab is for the app.
+// the Feedback tab is for the app; and beneath it the messages they've
+// sent, with the organiser's replies (static/js/tell.js searches the
+// About list and greys out the entries a whole event covers).
 templ tellOrganiser(t *TellOrganiser) {
 	if t != nil {
 		<div class="comp-tell mt-4" id={ t.ID }>
-			@opens("Tell the organiser", "a question, or something to put right; they see your name", "Write", false) {
-				<form method="post" action={ templ.SafeURL(t.Action) }>
-					if t.Back != "" {
-						<input type="hidden" name="back" value={ t.Back }/>
-					}
-					<p class="is-size-7 mb-2">From <strong>{ t.From }</strong>, to the competition's organiser.</p>
-					if len(t.About) > 0 {
-						<div class="field mb-2">
-							<label class="label is-small" for={ t.ID + "-about" }>About</label>
-							<div class="select is-small is-fullwidth">
-								<select id={ t.ID + "-about" } name="entry">
-									<option value="">The competition generally</option>
-									for _, o := range t.About {
-										<option value={ o.Value }>{ o.Label }</option>
+			if t.Action != "" {
+				@opens("Tell the organiser", "a question, or something to put right; they see your name", "Write", false) {
+					<form method="post" action={ templ.SafeURL(t.Action) } data-tell>
+						if t.Back != "" {
+							<input type="hidden" name="back" value={ t.Back }/>
+						}
+						<p class="is-size-7 mb-2">From <strong>{ t.From }</strong>, to the competition's organiser.</p>
+						if len(t.About) > 0 {
+							<fieldset class="field mb-2">
+								<legend class="label is-small mb-1">About <span class="has-text-weight-normal has-text-grey">(optional: tick any; none is the competition generally)</span></legend>
+								if t.Search {
+									<input class="input is-small mb-1" type="search" placeholder="Find a gymnast or event" aria-label="Find a gymnast or event" data-tell-search/>
+								}
+								<div class="comp-tell-about">
+									for _, g := range t.About {
+										<div class="comp-tell-group" data-tell-group>
+											if t.Events {
+												<label class="checkbox comp-tell-event" data-tell-text={ g.Event }>
+													<input type="checkbox" name="event" value={ g.Event } data-tell-event/>
+													<strong>{ g.Event }</strong> · { allOf(len(g.Entries)) }
+												</label>
+											}
+											for _, o := range g.Entries {
+												<label class={ "checkbox", "comp-tell-entry", templ.KV("is-grouped", t.Events) } data-tell-text={ g.Event + " " + o.Label }>
+													<input type="checkbox" name="entry" value={ o.Value }/>
+													{ o.Label }
+												</label>
+											}
+										</div>
 									}
-								</select>
-							</div>
+								</div>
+							</fieldset>
+						}
+						<textarea class="textarea is-small mb-2" name="text" required maxlength="1000" rows="3" placeholder="e.g. A name is spelled wrong on the timetable" aria-label="What you want to tell the organiser"></textarea>
+						<button class="button is-small is-primary" type="submit">Send to the organiser</button>
+						<p class="help">Something wrong with the app itself? Use <strong>Feedback</strong> at the right edge of the screen: that goes to the people who make the app, not the organiser.</p>
+					</form>
+				}
+				<script defer src={ static.URL("js/tell.js") }></script>
+			}
+			if len(t.Sent) > 0 {
+				@opens("Your messages to the organiser", sentLine(t.Sent), "Show", false) {
+					for _, m := range t.Sent {
+						<div class="comp-tell-sent" id={ "message-" + m.ID }>
+							<p class="mb-1">
+								@StateChip(m.StatusState, m.Status)
+								<span class="is-size-7 has-text-grey">{ m.At }</span>
+								if m.About != "" {
+									<span class="is-size-7 has-text-grey">· about { m.About }</span>
+								}
+							</p>
+							<p class="comp-feedback-text">{ m.Text }</p>
+							for _, r := range m.Thread {
+								<div class={ "comp-tell-post", templ.KV("is-organiser", r.Organiser) }>
+									if r.Organiser {
+										<p class="is-size-7 has-text-grey">The organiser replied, { r.At }</p>
+									} else {
+										<p class="is-size-7 has-text-grey">You added, { r.At }</p>
+									}
+									<p class="comp-feedback-text">{ r.Text }</p>
+								</div>
+							}
+							if m.Add != "" {
+								@opens("", "", "Add to this", false) {
+									<form method="post" action={ templ.SafeURL(m.Add) } class="mt-1">
+										if t.Back != "" {
+											<input type="hidden" name="back" value={ t.Back }/>
+										}
+										<textarea class="textarea is-small mb-2" name="text" required maxlength="1000" rows="2" placeholder="More to say, or a reply to the organiser" aria-label="What to add"></textarea>
+										<button class="button is-small" type="submit">Send</button>
+									</form>
+								}
+							}
 						</div>
 					}
-					<textarea class="textarea is-small mb-2" name="text" required maxlength="1000" rows="3" placeholder="e.g. A name is spelled wrong on the timetable" aria-label="What you want to tell the organiser"></textarea>
-					<button class="button is-small is-primary" type="submit">Send to the organiser</button>
-					<p class="help">Something wrong with the app itself? Use <strong>Feedback</strong> at the right edge of the screen: that goes to the people who make the app, not the organiser.</p>
-				</form>
+				}
 			}
 		</div>
 	}
+}
+
+// allOf is the whole-event choice's count, e.g. "all 5".
+func allOf(n int) string {
+	if n == 1 {
+		return "the 1 entry"
+	}
+	return "all " + strconv.Itoa(n)
+}
+
+// sentLine sums up the messages sent: how many, and replies.
+func sentLine(sent []SentMessage) string {
+	replied := 0
+	for _, m := range sent {
+		if slices.ContainsFunc(m.Thread, func(p SentPost) bool { return p.Organiser }) {
+			replied++
+		}
+	}
+	line := Count(len(sent), "sent", "sent")
+	if replied > 0 {
+		line += ", " + Count(replied, "replied to", "replied to")
+	}
+	return line
 }
 
 // MyHere is the box that lets someone scratched from an event tell the

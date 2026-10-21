@@ -84,6 +84,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	}
 	p.registerAccess(handle)
 	p.registerFeedback(handle)
+	p.registerReplies(handle)
 	p.registerTell(handle)
 	p.registerMaintainer(mux)
 	p.registerFees(handle)

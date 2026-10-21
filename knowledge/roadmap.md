@@ -616,7 +616,10 @@ December. Before it:
   ([messages](features/competition-entries.md#messages-to-the-organiser)):
   **Tell the organiser** on member, coach, comp sec and individual pages,
   named from the link and optionally about one of their entries, joining
-  the dashboard's concerns, which the organiser can turn off.
+  the dashboard's concerns, which the organiser can turn off. *Threads,
+  2026-10-21*: about several entries or whole events; Received, replies,
+  and a note of the organiser's own when resolving; the sender sees their
+  messages and adds to them, and hears of answers by push or email.
 - **Send in the background** (built 2026-10-15). A desk message, or a round of change
   notifications, emailed and pushed each person one at a time before the
   organiser's page answered: about half a second to a second an email, so
