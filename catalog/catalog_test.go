@@ -17,7 +17,14 @@ func TestCategoriesCoverEveryCommonSkillOnce(t *testing.T) {
 					t.Errorf("%s is in both %s and %s", e.ID(), prev, c.Key)
 				}
 				seen[e.ID()] = c.Key
-				seen[e.Key] = c.Key
+				// A body-landing tile gives each of its versions.
+				for _, v := range e.Versions() {
+					for key, s := range skills.CommonSkills {
+						if s.Equal(&v) {
+							seen[key] = c.Key
+						}
+					}
+				}
 			}
 		}
 		for _, e := range c.Entries {
@@ -137,13 +144,73 @@ func TestPickerGroups(t *testing.T) {
 		}
 	}
 	want := []string{
-		"drops To seat: Seat Drop, ½ Twist To Seat",
-		"drops From seat: To Feet, ½ Twist To Feet, ½ Twist To Seat, ½ Twist To Front",
-		"drops To back or front: Back Drop, ½ Twist To Back, Front Drop, ½ Twist To Front",
-		"drops From back or front: Back To Feet, Back ½ Twist To Feet, Front To Feet, Back ½ Twist To Back, Back 1½ Twist To Back, Back Full Twist To Back",
+		"drops From feet: Seat Drop, ½ Twist To Seat, Back Drop, ½ Twist To Back, Front Drop, ½ Twist To Front",
+		"drops From a body landing: To Feet, ½ Twist To Feet, To Seat, ½ Twist To Seat, To Back, ½ Twist To Back, Full Twist To Back, 1½ Twist To Back, To Front, ½ Twist To Front",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("groups:\n%s", strings.Join(got, "\n"))
+	}
+}
+
+// A body-landing tile takes off from where the skill before it landed: each
+// tile after feet, seat, back and front, and "(usual)" where nothing lands
+// like that from there, so it's the tile's usual skill.
+func TestLandingTilesFollow(t *testing.T) {
+	from := []skills.BodyPosition{skills.Feet, skills.Seat, skills.Back, skills.Front}
+	want := map[string][4]string{
+		"To Feet":            {"Seat To Feet 0.1 (usual)", "Seat To Feet 0.1", "Back To Feet 0.1", "Front To Feet 0.1"},
+		"½ Twist To Feet":    {"Seat Half Twist To Feet 0.1 (usual)", "Seat Half Twist To Feet 0.1", "Back Half Twist To Feet 0.2", "Front Half Twist To Feet 0.2"},
+		"To Seat":            {"Seat Drop 0.1", "Seat Drop 0.1 (usual)", "Seat Drop 0.1 (usual)", "Seat Drop 0.1 (usual)"},
+		"½ Twist To Seat":    {"Half Twist To Seat 0.1", "Seat Half Twist To Seat 0.1", "Back Half Twist To Seat 0.2", "Front Half Twist To Seat 0.2"},
+		"To Back":            {"Back Drop 0.1", "Seat To Back 0.1", "Back Drop 0.1 (usual)", "Front To Back 0.2"},
+		"½ Twist To Back":    {"Half Twist To Back 0.2", "Seat Half Twist To Back 0.2", "Back Half Twist To Back 0.3", "Front Half Twist To Back 0.1"},
+		"Full Twist To Back": {"Full Twist To Back 0.3", "Seat Full Twist To Back 0.3", "Back Full Twist To Back 0.2", "Front Full Twist To Back 0.4"},
+		"1½ Twist To Back":   {"1½ Twist To Back 0.4", "Seat 1½ Twist To Back 0.4", "Back 1½ Twist To Back 0.5", "Front 1½ Twist To Back 0.3"},
+		"To Front":           {"Front Drop 0.1", "Seat To Front 0.1", "Back To Front 0.2", "Front Drop 0.1 (usual)"},
+		"½ Twist To Front":   {"Half Twist To Front 0.2", "Seat Half Twist To Front 0.2", "Back Half Twist To Front 0.1", "Front Half Twist To Front 0.3"},
+	}
+	tiles := 0
+	for _, c := range Categories() {
+		for _, g := range c.Groups {
+			for _, e := range g.Options {
+				if e.Tile == nil {
+					continue // the drops from the feet, fixed tiles of their own
+				}
+				tiles++
+				w, ok := want[e.Label]
+				if !ok {
+					t.Errorf("no test for the %q tile", e.Label)
+					continue
+				}
+				for i, p := range from {
+					s, followed := e.Follow(p)
+					got := fmt.Sprintf("%s %.1f", s.Name, s.Tariff)
+					if !followed {
+						got += " (usual)"
+					}
+					if got != w[i] {
+						t.Errorf("%s after %s: %s, want %s", e.Label, p, got, w[i])
+					}
+					// What it gives lands where the tile says, from there.
+					if followed && (s.TakeoffPosition != p || s.LandingPosition() != e.Tile.To || s.TotalTwist() != e.Tile.Twist) {
+						t.Errorf("%s after %s gives %+v", e.Label, p, s)
+					}
+				}
+			}
+		}
+	}
+	if tiles != len(want) {
+		t.Errorf("%d tiles, want %d", tiles, len(want))
+	}
+
+	// The cradle is the catalogue's own, forwards, though backwards lands the same.
+	cradle, _ := LandingTile("halfToBack")
+	cradleSkill := skills.CommonSkills["cradle"]
+	if s, _ := cradle.Follow(skills.Back); !s.Equal(&cradleSkill) || s.Backward {
+		t.Errorf("½ twist to back after a back drop: %+v, want the cradle", s)
+	}
+	if _, ok := LandingTile("barani"); ok {
+		t.Error("a barani isn't a body-landing tile")
 	}
 }
 

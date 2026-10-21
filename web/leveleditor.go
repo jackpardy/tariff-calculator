@@ -213,7 +213,7 @@ func (p *competitionPages) showLevelEditor(w http.ResponseWriter, r *http.Reques
 	// Shown again after a save with problems: they show, by Save.
 	editor.Tried = r.Method == http.MethodPost
 	render(w, r, views.ClubLevelEditor(views.LevelEditorPage{
-		Frame: coachFrame(r, coach, club, coachLevelsTab), Title: title, Editor: editor,
+		Frame: coachFrame(r, coach, club, coachLevelsTab, nil), Title: title, Editor: editor,
 	}))
 }
 

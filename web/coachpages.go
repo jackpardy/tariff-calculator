@@ -137,7 +137,7 @@ func (p *competitionPages) newCoachLink(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return
 	}
-	if p.askReplace(w, r, club, clubCoaches, views.LinkAsk{
+	if p.askClub(w, r, club, clubCoaches, views.Ask{
 		Title:  "Make a new link for " + coach.Name + "?",
 		Text:   "Their old coach link stops working at once, wherever it's saved: in their browser, on their phone's home screen or in their bookmarks. Their sign-offs and notes stay. You see the new link once, here, to send them.",
 		Button: "Make a new link", Back: clubCoachesPath(r.PathValue("token")) + "#" + coachAnchor(coach.ID),
@@ -174,6 +174,14 @@ func (p *competitionPages) removeCoach(w http.ResponseWriter, r *http.Request) {
 	coach, err := p.clubCoach(r, club)
 	if err != nil {
 		failed(w, r, err)
+		return
+	}
+	if p.askClub(w, r, club, clubCoaches, views.Ask{
+		Remove: true, // takes something away: red
+		Title:  "Remove " + coach.Name + " as a coach?",
+		Text:   "Their coach link stops working at once. Members who chose them have no coach until one is chosen; their sign-offs stay.",
+		Button: "Remove " + coach.Name, Back: clubCoachesPath(r.PathValue("token")) + "#" + coachAnchor(coach.ID),
+	}) {
 		return
 	}
 	if err := p.st.RemoveCoach(r.Context(), club.ID, coach.ID); err != nil {
@@ -435,7 +443,7 @@ func (p *competitionPages) coachEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	withSignoff(&shown, memberSignoff(c.Competition, e))
-	frame := coachFrame(r, coach, club, coachEntriesTab)
+	frame := coachFrame(r, coach, club, coachEntriesTab, nil)
 	page := views.SignoffPage{
 		Frame: &frame, Back: coachPath(r.PathValue("token")), Competition: summary(c, p.now()),
 		Card: shown, Signoff: shown.Signoff, Action: r.URL.Path + "?discipline=" + e.Discipline,

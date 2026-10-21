@@ -73,7 +73,7 @@ func TestClubSections(t *testing.T) {
 		t.Errorf("a member's new link is shown on Members: %d", rec.Code)
 	}
 	remove := strings.TrimSuffix(newLink, "/new-link") + "/remove"
-	if got := withoutQuery(redirected(t, h, remove, url.Values{})); got != club+"/members" {
+	if got := withoutQuery(redirected(t, h, remove, url.Values{"anyway": {"1"}})); got != club+"/members" {
 		t.Errorf("removing a member goes back to Members: %s", got)
 	}
 	_ = member
@@ -105,7 +105,7 @@ func TestClubSections(t *testing.T) {
 	}{
 		{club + "/coaches-see-all", url.Values{"on": {"1"}}},
 		{club + "/coaches/" + coachID + "/signs-off", url.Values{"on": {""}}},
-		{club + "/coaches/" + coachID + "/remove", url.Values{}},
+		{club + "/coaches/" + coachID + "/remove", url.Values{"anyway": {"1"}}},
 	} {
 		if got := withoutQuery(redirected(t, h, post.path, post.form)); got != club+"/coaches" {
 			t.Errorf("POST %s goes back to Coaches: %s", post.path, got)
@@ -170,7 +170,7 @@ func TestClubCompetitionsSectionPages(t *testing.T) {
 		t.Error("changing a member's offer is in Competitions")
 	}
 	if got := withoutQuery(redirected(t, h, offer, url.Values{"recorder": {"1"}})); got != compPage+"/offers" {
-		t.Errorf("saving a member's offer goes back to Judging and helping: %s", got)
+		t.Errorf("saving a member's offer goes back to Officiating: %s", got)
 	}
 }
 
@@ -323,17 +323,17 @@ func TestEntryBrief(t *testing.T) {
 		want     string
 		state    views.State
 	}{
-		{"saved", store.MemberEntry{}, store.Entry{}, false, 0, 0, "Saved, not sent", views.NotYet},
+		{"saved", store.MemberEntry{}, store.Entry{}, false, 0, 0, "Not sent", views.NotYet},
 		{"sent", sent, store.Entry{}, false, 0, 0, "Sent", views.InProgress},
-		{"checked", checked, store.Entry{}, false, 0, 0, "Organiser checked", views.Done},
-		{"changed", changed, store.Entry{}, false, 0, 0, "Changed, send again", views.Attention},
+		{"checked", checked, store.Entry{}, false, 0, 0, "Checked", views.Done},
+		{"changed", changed, store.Entry{}, false, 0, 0, "Changed since sent", views.Attention},
 		{"one problem", checked, store.Entry{}, false, 1, 0, "1 problem", views.Attention},
 		{"problems", checked, store.Entry{}, false, 2, 0, "2 problems", views.Attention},
 		{"waiting", sent, store.Entry{}, false, 0, 3, "Waiting list, 3rd", views.InProgress},
 		{"on hold", sent, store.Entry{Removal: store.Held}, true, 0, 0, "On hold", views.Attention},
 		{"removed", sent, store.Entry{Removal: store.Removed}, true, 0, 0, "Removed", views.Stopped},
 	} {
-		if got, state := brief(memberState(c.e, c.removal, c.removed, c.place), c.problems, c.place, "Sent"); got != c.want || state != c.state {
+		if got, state := brief(memberState(c.e, c.removal, c.removed, c.place), c.problems, c.place); got != c.want || state != c.state {
 			t.Errorf("%s: %q %s, want %q %s", c.name, got, state, c.want, c.state)
 		}
 	}
@@ -369,15 +369,15 @@ func TestEntryStanding(t *testing.T) {
 	if got := memberStatus(memberState(sent, store.Entry{}, false, 1), store.Entry{}, false); got != "Sent by your club" {
 		t.Errorf("a member's checked entry on a waiting list: %q", got)
 	}
-	if got := memberStatus(memberState(sent, store.Entry{}, false, 0), store.Entry{}, false); got != "Sent by your club · checked by the organiser ✓" {
+	if got := memberStatus(memberState(sent, store.Entry{}, false, 0), store.Entry{}, false); got != "Checked by the organiser" {
 		t.Errorf("a member's checked entry: %q", got)
 	}
 	// An individual's: on a waiting list, and checked.
 	in := store.Entry{CheckedAt: time.Now()}
-	if got, _ := brief(individualState(in, 2), 0, 2, "Entered"); got != "Waiting list, 2nd" {
+	if got, _ := brief(individualState(in, 2), 0, 2); got != "Waiting list, 2nd" {
 		t.Errorf("an individual on a waiting list: %q", got)
 	}
-	if got, _ := brief(individualState(in, 0), 0, 0, "Entered"); got != "Organiser checked" {
+	if got, _ := brief(individualState(in, 0), 0, 0); got != "Checked" {
 		t.Errorf("an individual checked: %q", got)
 	}
 }

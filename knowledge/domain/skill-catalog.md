@@ -43,15 +43,62 @@ skill is placed by its rotation and positions: Singles holds every single
 somersault, twisting or not, to line up with Doubles and Triples. Body
 landings holds only the skills short of a somersault (seat, back and front
 drops and their twists); somersaults landing on the body, such as Crash Dive,
-Back s/s To Seat and Ball-Out, are Singles. The
-drops are further grouped into To seat, From seat, To back or front, and From
-back or front, so the tab isn't a wall of buttons.
+Back s/s To Seat and Ball-Out, are Singles.
+
+## Body landings follow the skill before
+
+The Body landings tab starts with **From feet**: the drops from the feet
+(Seat Drop, ½ Twist To Seat, Back Drop, ½ Twist To Back, Front Drop, ½ Twist
+To Front), fixed tiles with their tariffs, as before (`fromFeet`). Then one
+group, **From a body landing**, noting "Each takes off from where the skill
+before it lands" (`Group.Note`), in order of where the skill lands: to feet,
+seat, back, front (`landingTiles`; one group, not four, the owner,
+2026-10-19). Each of those tiles is a landing and a twist
+(`catalog.Tile`), not a take-off: "½ Twist To Seat" takes off from wherever
+the skill before it landed (the end of the routine Add puts it in, or the one
+before the skill being edited; feet at the start). The server works the
+version out (`Entry.Follow`): with that take-off, that landing and that twist,
+the least rotation that lands there by the skills package's own rules (a back
+drop from feet is a quarter backward, front to back a half somersault, a back
+to back with a full twist none), up to a half somersault. Between two that
+turn as little (a half somersault either way) it's the catalogue's own, else
+forward. It must have a name: the catalogue's, or one `FindCommonSkillName`
+makes from its parts, as long as that isn't another skill's name (a back drop
+to seat would read "Back To Seat", the somersault's name). Otherwise, and from
+feet to feet (a jump), it's the tile's usual skill, and the routine flags the
+bad transition as before. So is a landing in the position it took off from
+with no twist (seat to seat, back to back, front to front): that's a bounce,
+like a straight jump, not a skill (the owner, 2026-10-19).
+
+| Tile | after feet | after seat | after back | after front |
+|---|---|---|---|---|
+| To Feet | Seat To Feet* | Seat To Feet | Back To Feet | Front To Feet |
+| ½ Twist To Feet | Seat Half Twist To Feet* | Seat Half Twist To Feet | Back Half Twist To Feet | Front Half Twist To Feet |
+| To Seat | Seat Drop | Seat Drop* | Seat Drop* | Seat Drop* |
+| ½ Twist To Seat | Half Twist To Seat | Seat Half Twist To Seat (Swivel Hips) | Back Half Twist To Seat | Front Half Twist To Seat |
+| To Back | Back Drop | Seat To Back | Back Drop* | Front To Back |
+| ½ Twist To Back | Half Twist To Back | Seat Half Twist To Back | Back Half Twist To Back (Cradle) | Front Half Twist To Back |
+| Full Twist To Back | Full Twist To Back | Seat Full Twist To Back | Back Full Twist To Back (Cat Twist) | Front Full Twist To Back |
+| 1½ Twist To Back | 1½ Twist To Back | Seat 1½ Twist To Back | Back 1½ Twist To Back (Corkscrew) | Front 1½ Twist To Back |
+| To Front | Front Drop | Seat To Front | Back To Front | Front Drop* |
+| ½ Twist To Front | Half Twist To Front | Seat Half Twist To Front | Back Half Twist To Front | Front Half Twist To Front |
+
+\* the tile's usual skill: nothing lands like that from there.
+
+Every body landing in the catalogue is some tile after some landing, so none
+is a box of its own (`Categories` would list one that weren't). The tiles
+show no tariff, as it depends on the skill before; the card shows the version
+chosen, its tariff, and why ("From seat, after Seat Drop · also called Swivel Hips"). The club skills
+page lists each tile's catalogue versions. Search finds exact skills by name or notation, as before; and a landing
+typed word for word ("to feet", "½ twist to s") puts that tile first, so it
+too takes off where the skill before landed (`LandingTiles`). The set routine
+maker, with search only, gets it the same way.
 
 - The basic jump appears once per shape (Tuck, Pike, Straddle Jump), because
   for a jump the shape is the skill.
 - Skills whose shape matters offer tuck, pike and straight. The picker shows the
   base (tuck) tariff and each shape's difference, e.g. +0.1 piked (CoP §17.1.4).
-- Labels within a group are short ("½ Twist To Feet" under "From seat").
+- Labels within a group say where the skill lands ("½ Twist To Back" under "To back").
 
 # Search
 

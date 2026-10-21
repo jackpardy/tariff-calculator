@@ -282,3 +282,27 @@ func TestNotationNamesTwistingSkills(t *testing.T) {
 		t.Errorf("4 1 o: %v", got)
 	}
 }
+
+// A landing typed is its tile, first: whole words, the last one maybe
+// unfinished; too little, or notation, is no tile.
+func TestLandingTilesSearch(t *testing.T) {
+	for query, want := range map[string]string{
+		"to feet":            "To Feet",
+		"To Fe":              "To Feet",
+		"½ twist to seat":    "½ Twist To Seat",
+		"half twist to b":    "½ Twist To Back",
+		"1/2 twist to":       "½ Twist To Feet, ½ Twist To Seat, ½ Twist To Back, ½ Twist To Front",
+		"full twist to back": "Full Twist To Back",
+		"to":                 "",
+		"back drop":          "",
+		"8 2 - o":            "",
+	} {
+		var got []string
+		for _, e := range LandingTiles(query) {
+			got = append(got, e.Label)
+		}
+		if strings.Join(got, ", ") != want {
+			t.Errorf("%q: %v, want %s", query, got, want)
+		}
+	}
+}

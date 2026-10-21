@@ -208,7 +208,10 @@ templ MyCompetition(p MyCompetitionPage) {
 						}
 						<p class="is-size-7 has-text-grey">Routines at about { ev.Turn } and { ev.Turn2 }, if the flight runs to time: a guide only.</p>
 						if ev.Checkin != "" {
-							<p class="is-size-7">Check-in: <strong>{ ev.Checkin }</strong></p>
+							<p class="is-size-7">
+								Check-in:{ " " }
+								@StateChip(checkinWordState(ev.Checkin), ev.Checkin)
+							</p>
 						}
 					</div>
 				} else if p.Published && p.Admin != nil {
@@ -332,7 +335,10 @@ templ personOfficiating(o *PersonOfficiating) {
 				<p class="is-size-7 has-text-grey mt-2">{ o.SeatsNote }</p>
 			}
 			if o.Panel != "" {
-				<p class="is-size-7 mt-1">Panel check-in: <strong>{ o.Panel }</strong></p>
+				<p class="is-size-7 mt-1">
+					Panel check-in:{ " " }
+					@StateChip(checkinWordState(o.Panel), o.Panel)
+				</p>
 			}
 		</div>
 	}
@@ -527,4 +533,19 @@ func roleClass(r string) string {
 		return string(RoleCoach)
 	}
 	return string(RoleOrganiser)
+}
+
+// checkinWordState is the state of a check-in as the person's page words it
+// ("Here", "Scratched", "Missing", "Not checked in", or a panel's "Here for 2
+// of 3 flights"), for its chip.
+func checkinWordState(word string) State {
+	switch word {
+	case "Here":
+		return Done
+	case "Scratched", "Missing":
+		return Stopped
+	case "Not checked in":
+		return NotYet
+	}
+	return InProgress
 }

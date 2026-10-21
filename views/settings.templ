@@ -11,6 +11,7 @@ import (
 type SettingsPage struct {
 	Base           string // the admin link's path, which the page's own links extend
 	Notice         string // what just happened
+	Ask            *Ask   // asking before replacing the admin link or removing a helper's
 	New            string // "replaced" just after the admin link was replaced, to say to save it
 	Menu           []MenuSection
 	Access         Access // what the link it was opened by can do (ADR 0009)
@@ -58,6 +59,7 @@ templ CompetitionSettings(p SettingsPage) {
 			// Stays in sight as the page goes to the setting changed.
 			@stickyNotice(p.Notice)
 		}
+		@askBox(p.Ask)
 		<p class="is-size-7 mb-4">
 			Jump to:
 			<a href="#links">Links</a> ·
@@ -211,7 +213,7 @@ templ CompetitionSettings(p SettingsPage) {
 			@settingsGroup("admin-link", "Admin link and deleting")
 			@opens("Replace the admin link", "if it's been shared too widely: the old one stops working", "Replace", false) {
 				<form method="post" action={ templ.SafeURL(p.Base + "/replace-link") } class="mb-3">
-					<button class="button is-small" type="submit">Replace the admin link</button>
+					<button class="button is-small" type="submit" title="You're asked first, as the old one stops working">Replace the admin link</button>
 				</form>
 			}
 			// Deleting the whole competition looks unlike any other remove.

@@ -123,7 +123,7 @@ func TestCalendars(t *testing.T) {
 
 	// A republish keeps the UIDs.
 	first := icsField(ev, "UID")
-	redirected(t, h, tt+"/plan", url.Values{})
+	redirected(t, h, tt+"/plan", url.Values{"anyway": {"1"}})
 	redirected(t, h, tt+"/publish", url.Values{"action": {"publish"}})
 	if again := icsEvents(do(t, h, http.MethodGet, ivy+"/calendar.ics", nil).Body.String()); len(again) != 1 || icsField(again[0], "UID") != first {
 		t.Error("the UID stays the same when the timetable is published again")

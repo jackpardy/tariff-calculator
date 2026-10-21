@@ -19,7 +19,7 @@ the competition and club routes are registered by each page file in `web/`
 |---|---|---|
 | `GET /` | optional `back` (an entry form's address, under `/clubs/` or `/competitions/`) | The calculator page ([routine builder](../features/routine-builder.md)); with `back`, from an entry form's **Open the Routine Builder →**, a **← go back to your entry** link to it (`no-referrer`, `no-store`) |
 | `POST /skill-form` | optional `skill` (JSON) + `editIndex` | The "Add a skill" panel, for the default skill or the one being edited |
-| `POST /skill-inputs` | the form's fields, or `load=common` + `commonSkillKey` (+ `shape`), or `load=skill` + `skill` | The re-rendered editor; 204 while the form holds something unscorable |
+| `POST /skill-inputs` | the form's fields, or `load=common` + `commonSkillKey` (+ `shape`), or `load=landing` + `commonSkillKey` + `previous_skill` (a body-landing tile, taking off where that skill landed), or `load=skill` + `skill` | The re-rendered editor; 204 while the form holds something unscorable |
 | `GET /skill-search` | `q` | Search results ([skill catalog](../domain/skill-catalog.md)) |
 | `POST /calculate-skill` | the form's fields | The skill as JSON, named and priced, for the page to store |
 | `GET /judging` | the form's fields (query), optional `last=1` | The "How it's judged" pop-up ([execution judging](../domain/execution.md)); `last=1` adds the landing; 400 for a skill that can't land |
@@ -151,7 +151,7 @@ transaction, and marks their club used (once a day) only when it's due.
 | `POST /competitions/admin/{token}/video` | `video` (`""`, `skills`, `routine`), `videoTriples`, `videoDoubles`, `videoTariff` | Changes what video proof the competition asks for (also taken by `POST /competitions`) |
 | `POST /competitions/admin/{token}/entries/{id}/video` | `review` (`ok`, `more`, `""`), `note` | The organiser's review of an entry's videos |
 | `POST /competitions/admin/{token}/individuals` | `on` (`1`/`0`) | Turns individual entry on or off |
-| `POST /competitions/admin/{token}/replace-link` | — | 303 to the new admin link's Settings page, `?new=replaced` |
+| `POST /competitions/admin/{token}/replace-link` | `anyway=1` | Without `anyway`, Settings asking first (200): the old link stops working at once for everyone who has it. With it, 303 to the new admin link's Settings page, `?new=replaced` |
 | `GET`, `POST /clubs/member/{token}/competitions/{id}/late`, `/clubs/admin/{token}/members/{member}/competitions/{id}/late`, `/competitions/entry/{token}/late` | `discipline` (query), the entry form, `note` | Asking for a late change, once entries close |
 | `GET /competitions/admin/{token}/late` | — | Late changes: what's allowed and each request, with whether it fits |
 | `POST /competitions/admin/{token}/late/settings` | `late-<kind>=1`, `fee-<kind>` (`level`, `routines`) | Which late changes can be asked for, and their fees |
@@ -163,11 +163,11 @@ transaction, and marks their club used (once a day) only when it's due.
 | `GET /competitions/admin/{token}/fees` | — | Entry fees: what's charged, and each club's and individual's account |
 | `POST /competitions/admin/{token}/fees/settings` | `currency` (`GBP` or not), `fee-<discipline>`, `club`, `instructions` | Sets the fees |
 | `POST /competitions/admin/{token}/fees/payments` | `payer` (`club:<id>` or `entry:<id>`), `amount`, `note` | Records a payment |
-| `POST /competitions/admin/{token}/fees/payments/{id}/remove` | — | Removes a payment |
+| `POST /competitions/admin/{token}/fees/payments/{id}/remove` | `anyway=1` | Removes a payment; without `anyway`, Fees asking first (200). One removed already says so |
 | `GET /competitions/admin/{token}/fees/invoice` | `payer` | A payer's invoice, to print |
 | `GET /clubs/admin/{token}/competitions/{id}/invoice`, `/competitions/entry/{token}/invoice` | — | The club's, or an individual's, invoice, to print; Back goes to the club's Fees tab |
 | `POST /competitions/admin/{token}/links` | `name`, `kind` (`cards`, `chair`, `timetable`, `everything`) | Makes a helper's link (ADR 0009) and shows it once |
-| `POST /competitions/admin/{token}/links/{id}/remove` | — | Stops a helper's link working |
+| `POST /competitions/admin/{token}/links/{id}/remove` | `anyway=1` | Stops a helper's link working; without `anyway`, Settings asking first (200) |
 | `POST /competitions/admin/{token}/ties/remove` | `id` (the tie) | Stops someone's own link opening these pages through the admin link or a helper's (organiser only) |
 | `GET /competitions/admin/{token}/history` | — | Every change, when and by which link |
 | `POST /competitions/admin/{token}/concerns` | `text`, optional `entry` | Flags a concern for the organiser (any admin link) |
@@ -207,7 +207,7 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET`, `POST /clubs/admin/{token}/members/{member}/competitions/{id}` | as entering, without `gymnast` | Enters or changes a member's entry on their behalf (a synchro partner chosen from the members, or typed); saving goes back to the competition's Entries |
 | `POST /clubs/admin/{token}/members/{member}/competitions/{id}/withdraw` | `confirm=1`, `discipline` | Withdraws a member's entry, as they can; back to the competition's Entries |
 | `POST /clubs/admin/{token}/members/{member}/new-link` | `anyway=1` | Without `anyway`, Members asking first (the old link stops working), its button posting again with it; with it, the page with the member's new link, shown once |
-| `POST /clubs/admin/{token}/members/{member}/remove` | — | Removes the member and their entries |
+| `POST /clubs/admin/{token}/members/{member}/remove` | `anyway=1` | Removes the member and their entries; without `anyway`, Members asking first (200) |
 | `POST /clubs/admin/{token}/replace-link`, `/delete` | `anyway=1` to replace, `confirm` (the word `delete`, typed) to delete | As for a competition, but replacing asks first on Settings without `anyway` |
 | `GET`, `POST /clubs/join/{token}` | `name` | Joining a club: 303 to the member's page with `?new=joined` |
 | `GET /clubs/member/{token}` | optional `new`, `notice` | A member's Competitions tab (the default): a row for each competition the club is in, with its date and status |
@@ -223,7 +223,7 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST <personal link>/requirements/{kind}/{source}/remove` | optional `back` | Takes one off the person's page |
 | `GET /clubs/member/{token}/routines` | optional `notice` | A member's Routines tab (ADR 0011): their kept routines, each checked, with a link opening it in the routine builder (`/#share=j…`), and adding routines from this browser |
 | `POST /clubs/member/{token}/routines` | `routines` (a JSON list of `{id, name, skills, requirements, checks}`, as `RoutineStore.keepable` gives) | Keeps routines on the member's page (the builder's **Save to my page**, or adding from this browser); one with the same browser `id` is changed. Up to 512 KB. Back to Routines saying how many |
-| `POST /clubs/member/{token}/routines/{routine}/rename`, `/delete` | `name` to rename | Renames or deletes a kept routine; back to Routines |
+| `POST /clubs/member/{token}/routines/{routine}/rename`, `/delete` | `name` to rename, `anyway=1` to delete | Renames or deletes a kept routine (without `anyway`, Routines asking first, 200); back to Routines |
 | `GET /clubs/member/{token}/competitions/{id}/day` | `notice`, `timetable=all` (the whole timetable, not only their flights and panels) | My competition: their events, cards, flights and times, duties, and the published timetable; a box to say "I'm here for the rest" if they're scratched from something |
 | `POST /clubs/member/{token}/competitions/{id}/here` | — | "I'm here for the rest": a scratched member clears both scratch warnings for themselves, then goes back to My competition with a notice; only once the timetable is published |
 | `POST /clubs/member/{token}/competitions/{id}` | as entering, without `gymnast` | Saves the member's entry (their club sends it) |
@@ -232,7 +232,7 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST /clubs/admin/{token}/coaches` | `name` | Adds a coach: the club page with their coach link, shown once |
 | `POST /clubs/admin/{token}/coaches/from-member` | `member` | Makes a member a coach too; their member link opens the coach's page. Back to Coaches |
 | `POST /clubs/admin/{token}/ties/remove` | `id` (the tie) | Stops someone's own link opening the comp sec's pages. Back to Settings |
-| `POST /clubs/admin/{token}/coaches/{coach}/new-link`, `/remove` | `anyway=1` for a new link | A coach's new link (shown once; without `anyway`, Coaches asking first), or removing them |
+| `POST /clubs/admin/{token}/coaches/{coach}/new-link`, `/remove` | `anyway=1` | A coach's new link (shown once), or removing them; without `anyway`, Coaches asking first (200) |
 | `POST /clubs/admin/{token}/coaches-see-all` | `on` (`1`/`""`) | Whether every coach sees every member |
 | `GET /clubs/coach/{token}` | — | A coach's page: each competition's entries they see, and their sign-off |
 | `GET /clubs/coach/{token}/details` | optional `notice` | A coach's Your details: their coach link and their other links; 404 through another of their links (a member's who coaches too), whose page has them |
@@ -250,7 +250,7 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST /clubs/admin/{token}/skills-open` | `on` (`1`/`""`) | Whether every member sees everyone's skills. Back to Settings |
 | `GET /clubs/coach/{token}/club-skills` | optional `q` (a catalog search), `notice` | The club's own skills (ADR 0011), for its coaches: its names for catalog skills and anything else it tracks, with forms to add them |
 | `POST /clubs/coach/{token}/club-skills` | `name`, and `skill` (a catalog skill as JSON) to name it, or `note` for something else to track | Adds one of the club's skills; naming a skill already named renames it. Back with a notice (a name already used, or the club full, says so) |
-| `POST /clubs/coach/{token}/club-skills/{id}/remove` | — | Removes it, with its marks if it's something to track; 404 for another club's |
+| `POST /clubs/coach/{token}/club-skills/{id}/remove` | `anyway=1` | Removes it, with its marks if it's something to track; without `anyway`, Club skills asking first (200); 404 for another club's |
 | `GET /clubs/coach/{token}/levels` | optional `notice` | The club's levels (ADR 0011), in order: each one's requirements in words, its club skills to track, **Change** and **Copy as a new level** (the level editor), and a link to it on the Requirements page |
 | `GET /clubs/coach/{token}/levels/new` | optional `from` (a level's id, to copy) | The level editor for a new level: the requirements editor with the kinds of rule a level tracks and the club's own named skills to pick |
 | `POST /clubs/coach/{token}/levels/new` | the editor's form | Saves it as a new level, last; with problems, the editor again (422) |
@@ -259,7 +259,7 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST /clubs/coach/{token}/levels/editor` | the editor's form, `level` (its id, "" for a new one) in the query | Draws the level editor again as it changes (htmx, as `POST /requirements/editor`) |
 | `POST /clubs/coach/{token}/levels` | `set` (requirements as JSON), `id` (the browser's id for them) | Saves requirements as a club level, from the Requirements page's **Save to club levels**; the same `id` changes its level. Rules about a single routine are left out, saying so. 400 for requirements that can't be read |
 | `POST /clubs/levels/save` | `link` (a coach's link, or a personal link with a coach's role), `set`, `id`, `role` (which coach's role, when the link has several) | The Requirements page's **Save to club levels**, as `POST /clubs/coach/{token}/levels`, for any link that opens a coach's page, a member's who coaches too included (ADR 0010). Asks which club where the link has several coach's roles; 400 for a link that isn't someone's own, 409 for one with no coach's role |
-| `POST /clubs/coach/{token}/levels/{id}/move`, `/remove` | `by` (`-1` or `1`) to move | Moves a level earlier or later, or removes it; 404 for another club's |
+| `POST /clubs/coach/{token}/levels/{id}/move`, `/remove` | `by` (`-1` or `1`) to move, `anyway=1` to remove | Moves a level earlier or later, or removes it (without `anyway`, Levels asking first, 200); 404 for another club's |
 | `GET /clubs/levels/shared` | the level in the fragment, `#share=j…` | Where a shared club level's link opens: its script posts the fragment to be shown |
 | `POST /clubs/levels/shared` | `level` (the shared level as JSON) | The shared level, to add to a coach's club; 400 if it can't be read |
 | `POST /clubs/levels/import` | `level`, `link` (a coach's link, or a personal link with a coach's role), `role` (which coach's role, when the link has several) | Adds a copy of the shared level, with its club skills to track, to the coach's club, and opens their Levels. The coach is found from the link as for `POST /clubs/levels/save`, asking which club where there are several; 400 for a level that can't be read or a link that isn't someone's own, 409 for one with no coach's role |
@@ -281,11 +281,11 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `POST /competitions/admin/{token}/timetable/setup/timings` | `per-`, `between-`, `max-` per discipline; `rest`, `restMust`, `separate`, `separateLevel` | Saves timings, rest and which levels fly men and women apart |
 | `POST /competitions/admin/{token}/timetable/setup/blocks` | `name`, `minutes`, `day`, `at` or `from`/`to`, `area`, and officials needed: `chair`, `judges`, `recorder`, `marshal`; or `remove` | Adds or removes blocked time |
 | `POST /competitions/admin/{token}/timetable/setup/rules` | `kind` (`area`, `day`, `before`, `apart`; about officials: `role`, `off`, `hours`), `must`, `event`, `event2`, `area`, `day`, `person`, `role`, `from`, `to`; or `remove` | Adds or removes a rule |
-| `POST /competitions/admin/{token}/timetable/plan` | — | Plans afresh from the entries and setup, each flight keeping the ID of the one it was (`Schedule.KeepIDs`); refused once the day has begun (anything marked on a published flight) |
+| `POST /competitions/admin/{token}/timetable/plan` | `anyway=1` | Plans afresh from the entries and setup, each flight keeping the ID of the one it was (`Schedule.KeepIDs`); refused once the day has begun (anything marked on a published flight). Planning again (the draft is planned) shows **Before you change it** (200) instead, unless `anyway=1` |
 | `POST /competitions/admin/{token}/timetable/flight` | `flight` (index), `action` (`redraw`, `move` with `to` = `day:area`, `earlier`), `version`, `anyway=1` | Redraws or moves a flight; it keeps its ID. A move that would break something new shows **Before you change it** (200) instead, unless `anyway=1` |
 | `POST /competitions/admin/{token}/timetable/entry` | `entry`, `to` (flight index, `""` to take out), `version`, `anyway=1` | Moves or places a gymnast; as for a flight, it asks first if that breaks something new |
-| `POST /competitions/admin/{token}/timetable/publish` | `action` (`publish`, `unpublish`, `discard`; or `on` = `1`/`0`), `version` | Shows clubs and gymnasts their flight, or hides it; publishing a draft changed since the page was opened is refused; publishing what would drop marks on the day (flights run, panel check-ins, gymnasts checked in) asks first unless `anyway=1` |
-| `POST /competitions/admin/{token}/timetable/officials` | `action` (`rota`, or `seat` with `flight` or `block`, `seat`, `person`), `version`, `anyway=1` | Assigns every panel again, or gives one seat to someone (`""` empties it); giving a flight's seat asks first if that breaks something new |
+| `POST /competitions/admin/{token}/timetable/publish` | `action` (`publish`, `unpublish`, `discard`; or `on` = `1`/`0`), `version`, `anyway=1` | Shows clubs and gymnasts their flight, or hides it; publishing a draft changed since the page was opened is refused; publishing what would drop marks on the day (flights run, panel check-ins, gymnasts checked in) asks first unless `anyway=1`. Unpublishing and discarding the changes always ask first, on **Before you change it** (200), unless `anyway=1` |
+| `POST /competitions/admin/{token}/timetable/officials` | `action` (`rota`, or `seat` with `flight` or `block`, `seat`, `person`), `version`, `anyway=1` | Assigns every panel again (on a planned draft, asking first on **Before you change it** unless `anyway=1`), or gives one seat to someone (`""` empties it); giving a flight's seat asks first if that breaks something new |
 | `GET /competitions/admin/{token}/timetable/print` | `sheet` (`marshal`, `judges`, `scores`, `rota`, `timeline` or `timeline-officials`; any other is a 404, **No such sheet**), `draft` (`1` for the draft) | Of what's published (the draft, marked, before publishing, or with `draft=1` from a link that can change the timetable). Printable sheets, one area to a page, with each flight's panel; the recorders' score sheets, a flight to a landscape page; each person's duties; the panel timeline, every day's areas side by side; or the timeline with a column for each seat, a day's area to a sheet |
 | `GET /competitions/admin/{token}/timetable/timeline` | `officials` (`1` for a column for each seat), `draft` (`1`) | The panel timeline as a page of the Timetable menu, once planned: of what's published, as the print sheets |
 | `GET /competitions/admin/{token}/timetable/timeline.csv` | `draft` (`1`) | The panel timeline as CSV: a row per flight or block on each area, with its officials by role; of what's published, as the print sheets (a draft's first line says DRAFT) |
@@ -311,11 +311,11 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET`, `POST /competitions/signoff/{token}` | `coach` (their name), `signed`, `note` | An individual's coach signing off their entry |
 | `GET`, `POST /competitions/signoff/{token}/late` | `coach` (their name), `note` | An individual's coach signing off their late change |
 | `POST /competitions/entry/{token}/coach` | `name`, plus a `qualification` and its `certificate` (multipart) where the competition approves coaches | An individual names their coach, with the certificate the organiser checks |
-| `GET /competitions/admin/{token}/coaches` | — | Coaches (ADR 0007): each club's coaches sent for approval and individuals' coaches, with their qualifications and certificates, to approve or not |
+| `GET /competitions/admin/{token}/coaches` | optional `notice`, `undo` (a coach's anchor, after a withdrawal) | Coaches (ADR 0007): each club's coaches sent for approval and individuals' coaches, with their qualifications and certificates, to approve or not |
 | `POST /competitions/admin/{token}/approve-coaches` | `on` (`1`/`0`), `level-<discipline>`, `anyway=1` | Whether only approved coaches' sign-offs count. Turning it on where entries are signed off by coaches not approved shows **Before you change it** (200), with how many would wait, unless `anyway=1` |
-| `POST /competitions/admin/{token}/coaches/{coach}` | `action` (`approve`, `afresh` for sign-offs from now on, `refuse`, `withdraw`), `note` | The organiser's decision on a club's coach, with a note the club sees; back at the coach (`#coach-<id>`) |
+| `POST /competitions/admin/{token}/coaches/{coach}` | `action` (`approve`, `afresh` for sign-offs from now on, `refuse`, `withdraw`), `note`, `anyway=1` | The organiser's decision on a club's coach, with a note the club sees; back at the coach (`#coach-<id>`). Approving a coach sent with no qualifications shows Coaches asking first (200) unless `anyway=1`. A withdrawal comes back with `undo=coach-<id>`, its notice offering **Undo** (approving again, with their sign-offs before) |
 | `GET /competitions/admin/{token}/coaches/{coach}/certificates/{q}` | — | A club coach's certificate, as uploaded |
-| `POST /competitions/admin/{token}/entry-coaches/{entry}` | `action` (as above), `note` | The organiser's decision on an individual's coach; back at the coach (`#named-<entry>`) |
+| `POST /competitions/admin/{token}/entry-coaches/{entry}` | `action` (as above), `note` | The organiser's decision on an individual's coach; back at the coach (`#named-<entry>`), a withdrawal with `undo=named-<entry>` |
 | `GET /competitions/admin/{token}/entry-coaches/{entry}/certificate` | — | An individual's coach's certificate |
 | `POST /competitions/admin/{token}/remove` | `entry` (repeated), `action` (`hold` to hold rather than remove), `note`, `to` (who the note is for: the club, the member or both) | Removes or holds the ticked entries, with a note; back to the dashboard with the filters and `sort` in its query |
 | `POST /competitions/admin/{token}/entries/{id}/restore` | — | Puts a removed or held entry back |

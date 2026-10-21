@@ -45,7 +45,10 @@ func TestDraftTimetable(t *testing.T) {
 		t.Error("Ann still sees the published timetable")
 	}
 	// Discarded: back as published.
-	redirected(t, h, tt+"/publish", url.Values{"action": {"discard"}})
+	if page := do(t, h, http.MethodPost, tt+"/publish", url.Values{"action": {"discard"}}).Body.String(); !strings.Contains(page, "Before you change it") || !strings.Contains(page, "every change you&#39;ve made since is lost") {
+		t.Errorf("discarding asks first, on a page: %s", page)
+	}
+	redirected(t, h, tt+"/publish", url.Values{"action": {"discard"}, "anyway": {"1"}})
 	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); strings.Contains(page, "Changes not published") {
 		t.Error("discarded")
 	}
@@ -69,7 +72,10 @@ func TestDraftTimetable(t *testing.T) {
 	}
 
 	// Unpublished: Ann sees nothing.
-	redirected(t, h, tt+"/publish", url.Values{"action": {"unpublish"}})
+	if page := do(t, h, http.MethodPost, tt+"/publish", url.Values{"action": {"unpublish"}}).Body.String(); !strings.Contains(page, "Unpublish the timetable") || where() == "" {
+		t.Errorf("unpublishing asks first, on a page: %s", page)
+	}
+	redirected(t, h, tt+"/publish", url.Values{"action": {"unpublish"}, "anyway": {"1"}})
 	if where() != "" {
 		t.Error("unpublished")
 	}

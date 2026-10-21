@@ -286,7 +286,7 @@ func TestSettingsFormsReturnToSettings(t *testing.T) {
 	}
 
 	// Replacing the admin link shows the new one on the settings.
-	loc = redirected(t, h, admin+"/replace-link", url.Values{})
+	loc = redirected(t, h, admin+"/replace-link", url.Values{"anyway": {"1"}})
 	if !strings.HasSuffix(loc, "/settings?new=replaced") {
 		t.Errorf("replacing the link: %s", loc)
 	}
@@ -337,7 +337,7 @@ func TestMenuOnOrganiserPages(t *testing.T) {
 		t.Errorf("coaches: %q, %q", section, item)
 	}
 	redirected(t, h, admin+"/timetable/setup/days", url.Values{"day-0-name": {"Saturday"}, "day-0-start": {"09:00"}, "day-0-end": {"18:00"}})
-	redirected(t, h, admin+"/timetable/plan", url.Values{})
+	redirected(t, h, admin+"/timetable/plan", url.Values{"anyway": {"1"}})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"on": {"1"}})
 	if section, item := menuCurrent(dayAll(t, h, admin+"/day")); section != "On the day" || item != "Areas" {
 		t.Errorf("the day: %q, %q", section, item)

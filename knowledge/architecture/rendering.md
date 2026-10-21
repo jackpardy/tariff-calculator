@@ -75,7 +75,7 @@ dashboard):
   changes** · level change (€5) and routine change (no fee) can be asked for
   after the deadline [Change]". Late changes, What you charge, Panels and who
   may judge, the timetable's Days and areas, Timings and rest, Blocked time
-  and Your rules, and a person's Judging and helping. The server works out
+  and Your rules, and a person's Offer to officiate. The server works out
   `now` with the page, so the line always says what's saved.
 - `opens(what, now, label, open)`: the same with any button, for a form that
   does something: Add someone, Remove or hold entries, Change the entry.

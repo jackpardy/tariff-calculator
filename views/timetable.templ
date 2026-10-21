@@ -245,7 +245,7 @@ templ TimetableSetup(p TimetablePage) {
 			</div>
 		} else {
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/plan") } class="my-4">
-			<button class="button is-primary" type="submit" onclick={ confirmReplan(p.Planned) }>
+			<button class="button is-primary" type="submit">
 				if p.Planned {
 					Plan again
 				} else {
@@ -290,9 +290,9 @@ templ timetableStatus(p TimetablePage) {
 					} else {
 						if p.Changes {
 							<button class="button is-small is-primary" type="submit" name="action" value="publish">Publish changes</button>
-							<button class="button is-small" type="submit" name="action" value="discard" onclick="return confirm('Go back to the published timetable, losing your changes since?')">Discard changes</button>
+							<button class="button is-small" type="submit" name="action" value="discard">Discard changes</button>
 						}
-						<button class="button is-small is-text" type="submit" name="action" value="unpublish" onclick="return confirm('Take the timetable down? Clubs, gymnasts and officials stop seeing their flights and duties until you publish again.')">Unpublish</button>
+						<button class="button is-small is-text" type="submit" name="action" value="unpublish">Unpublish</button>
 					}
 				</form>
 				@printMenu(p.Base, p.Changes)
@@ -425,10 +425,6 @@ func timetableNames(p TimetablePage) int {
 		}
 	}
 	return n
-}
-
-script confirmReplan(planned bool) {
-	if (planned && !confirm("Plan again from scratch? Your changes to the flights are lost.")) { event.preventDefault(); }
 }
 
 // setupSections are the setup's forms, each collapsed.
@@ -709,7 +705,7 @@ templ rotaReport(p TimetablePage) {
 			</p>
 			<form method="post" action={ templ.SafeURL(p.Base + "/timetable/officials") }>
 				@versionField(p.Version)
-				<button class="button is-small" type="submit" name="action" value="rota" onclick={ confirmRota() }>Assign officials again</button>
+				<button class="button is-small" type="submit" name="action" value="rota">Assign officials again</button>
 			</form>
 		</div>
 		if p.Rota.People == 0 {
@@ -721,10 +717,6 @@ templ rotaReport(p TimetablePage) {
 		@problemsList("Judging their own club's gymnasts, times by club", p.Rota.OwnClub)
 		@problemsList("Busiest officials", p.Rota.Busiest)
 	</div>
-}
-
-script confirmRota() {
-	if (!confirm("Assign every panel again? Your changes to the officials are lost.")) { event.preventDefault(); }
 }
 
 templ reportView(r ReportView) {

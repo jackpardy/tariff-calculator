@@ -313,15 +313,4 @@ func whoChipText(r Role, name string) templ.Component {
 	})
 }
 
-// confirmFirst asks before a form does something hard to take back.
-func confirmFirst(question string) templ.ComponentScript {
-	return templ.ComponentScript{
-		Name: `__templ_confirmFirst_1f14`,
-		Function: `function __templ_confirmFirst_1f14(question){if (!confirm(question)) { event.preventDefault(); }
-}`,
-		Call:       templ.SafeScript(`__templ_confirmFirst_1f14`, question),
-		CallInline: templ.SafeScriptInline(`__templ_confirmFirst_1f14`, question),
-	}
-}
-
 var _ = templruntime.GeneratedTemplate

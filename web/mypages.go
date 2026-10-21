@@ -138,12 +138,12 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		ev := views.MyEvent{ID: j.ID, Event: j.Entry.Entry.Event(), Gymnasts: j.Entry.Entry.Gymnasts(), Category: j.Entry.Entry.Category}
 		switch {
 		case j.Checked():
-			ev.Status, ev.StatusState = "Checked by the organiser", views.Done
+			ev.Status, ev.StatusState = "Checked", views.Done
 		case len(j.problems) > 0:
-			ev.Status, ev.StatusState = views.Count(len(j.problems), "problem", "problems")+" to sort out", views.Attention
+			ev.Status, ev.StatusState = views.Count(len(j.problems), "problem", "problems"), views.Attention
 			ev.Problems = j.problems
 		default:
-			ev.Status, ev.StatusState = "Sent: the organiser hasn't checked it yet", views.InProgress
+			ev.Status, ev.StatusState = "Sent", views.InProgress
 		}
 		ev.Scratched = f.checkins[j.ID].Status == store.Scratched
 		if published {

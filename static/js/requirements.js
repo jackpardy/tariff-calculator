@@ -527,6 +527,8 @@ function setRoutineMaker() {
         addTargets() { return []; },
         addTarget() { return true; }, // always this list
         addToValue() { return ''; },
+        // previousSkill is the list's last skill, as JSON, for a body landing to take off where it landed.
+        previousSkill() { return this.skills.length ? JSON.stringify(this.skills[this.skills.length - 1]) : ''; },
         step(id, delta) {
             const input = document.getElementById(id);
             if (!input) { return; }
