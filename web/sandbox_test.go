@@ -5,6 +5,7 @@ import (
 	"html"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -182,6 +183,19 @@ func TestSandboxSeed(t *testing.T) {
 			t.Errorf("%s: %d", href, rec.Code)
 		}
 	}
+	// The club's links with a role (ADR 0015), each on the start page and
+	// opening the club as its role.
+	if len(l.ClubRoles) != 2 {
+		t.Fatalf("the club's links with a role: %+v", l.ClubRoles)
+	}
+	for _, r := range l.ClubRoles {
+		if !strings.Contains(page, r.Link) {
+			t.Errorf("the start page doesn't have %s's link", r.Role)
+		}
+		if body := do(t, s.h, http.MethodGet, r.Link, nil).Body.String(); !strings.Contains(body, html.EscapeString(r.Name+" ("+r.Role+")")) {
+			t.Errorf("%s's link doesn't open the club as %s", r.Name, r.Role)
+		}
+	}
 }
 
 // A reset makes a new copy and deletes the old, leaving nothing of it and
@@ -329,7 +343,7 @@ func TestSandboxRestartsTheDay(t *testing.T) {
 	}
 	cp, _ := s.st.SharedCopy(ctx)
 	after, _ := sandboxLinks(cp)
-	if after != l {
+	if !reflect.DeepEqual(after, l) {
 		t.Error("the links changed")
 	}
 	c, _ := s.st.Competition(ctx, day.ID)

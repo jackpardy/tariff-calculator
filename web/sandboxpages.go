@@ -149,8 +149,8 @@ func sandboxCards(l demo.Links) []views.SandboxCard {
 			Links: []views.SandboxLink{link("Entries open", l.Open.Organiser), link("On the day", l.Day.Organiser+"/day"), link("Its timetable", l.Day.Organiser+"/timetable")}},
 		{Role: "A helper", Try: "Check the gymnasts' cards while entries are open, or chair a panel's judges on the day.",
 			Links: []views.SandboxLink{link("Checking cards", l.CardChecker), link("A chair of judges", l.Chair)}},
-		{Role: "A comp sec", Who: who(l.CompSec), Try: "Enter your club's members and send the club's entries; send the organiser a message.",
-			Links: []views.SandboxLink{link("The club's page", l.CompSec.Link)}},
+		{Role: "A club admin", Who: who(l.CompSec), Try: "Set your club up: make roles and a link for each person on Settings. Enter your club's members and send the club's entries; send the organiser a message.",
+			Links: []views.SandboxLink{link("The club's page", l.CompSec.Link), link("Settings", l.CompSec.Link+"/settings")}},
 		{Role: "A coach", Who: who(l.Coach), Try: "Sign off your gymnasts' routines, and see the skills they're learning.",
 			Links: []views.SandboxLink{link("Their page", l.Coach.Link)}},
 		{Role: "A member", Who: who(l.Member), Try: "Enter the competition open for entries; see My competition on the day, and how you'd hear about changes.",
@@ -160,7 +160,18 @@ func sandboxCards(l demo.Links) []views.SandboxCard {
 			Links: []views.SandboxLink{link("Their page", l.Own.Link), link("Their coach's sign-off", l.OwnSignoff), link("Enter as someone new", l.Open.Enter)}},
 		{Role: "The venue screen", Try: "What's on each area now and next, and the organisers' announcements, as the hall's screen shows them.",
 			Links: []views.SandboxLink{link("The screen", l.Screen)}},
-		// A club role's card (ADR 0015) goes here once club roles are built.
+	}
+	// Links the club admin made with a role (ADR 0015): what each can and
+	// can't do.
+	if len(l.ClubRoles) > 0 {
+		c := views.SandboxCard{Role: "Someone in a club, with a role", Try: "A link the club admin made for one person: see what their role lets them do, and what it doesn't."}
+		var who []string
+		for _, r := range l.ClubRoles {
+			who = append(who, r.Name+" ("+r.Role+")")
+			c.Links = append(c.Links, link(r.Role, r.Link))
+		}
+		c.Who = strings.Join(who, ", ") + ", " + l.ClubRoles[0].Club
+		cards = append(cards, c)
 	}
 	return cards
 }

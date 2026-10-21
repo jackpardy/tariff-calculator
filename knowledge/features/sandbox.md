@@ -57,7 +57,7 @@ competitions:
 - **"ISTO (sandbox): entries open"**: on five weeks from the reset, closing
   in three, nothing published. Most members have entered; coaches have signed
   off about half; every other club has sent its entries (not the first, the
-  comp sec's); the first gymnast on their own waits for their coach's
+  club admin's); the first gymnast on their own waits for their coach's
   sign-off; two events have limits and a waiting list; the venue is set up but
   not planned; fees are set, three paid.
 - **"ISTO (sandbox): on the day"**: three days, Day 1 to Day 3, day 1 today;
@@ -93,11 +93,12 @@ as they are, which a sandbox of made-up people can afford.
 `/sandbox`, from the shared copy's links: a card for each role with a line
 of what to try and its links: the **organiser** (the competition open for
 entries; On the day and the timetable of the other), **a helper** (checking
-cards; a chair of judges), **a comp sec** (the first club, which hasn't sent
-its entries), **a coach**, **a member** (their page, My competition, Tell me
+cards; a chair of judges), **a club admin** (the first club, which hasn't sent
+its entries, and its Settings, for roles and links), **someone in a club,
+with a role** (the first club's treasurer and team manager, ADR 0015),
+**a coach**, **a member** (their page, My competition, Tell me
 about changes), **a gymnast on their own** (their page, their coach's sign-off
-link, and entering as someone new) and **the venue screen**. A club role's
-card (ADR 0015) is to come once both are merged. It says notifications don't
+link, and entering as someone new) and **the venue screen**. It says notifications don't
 work, and when it was last reset; before the first reset, that it's being
 set up. The calculator's home page points to it through the banner.
 

@@ -39,13 +39,19 @@ type Links struct {
 	Day         Competition `json:"day"`         // the competition on the day
 	CardChecker string      `json:"cardChecker"` // a helper checking cards, while entries are open
 	Chair       string      `json:"chair"`       // a chair of judges, on the day
-	CompSec     Person      `json:"compSec"`     // a club's comp sec: the club's link
+	CompSec     Person      `json:"compSec"`     // a club's club admin: the club's link
 	Coach       Person      `json:"coach"`
 	Member      Person      `json:"member"`
 	Own         Person      `json:"own"`        // a gymnast entering on their own: their own page
 	OwnSignoff  string      `json:"ownSignoff"` // their coach's sign-off link, for an entry not signed off yet
 	Screen      string      `json:"screen"`     // the venue screen, on the day
-	// A club role's link (ADR 0015) goes here once club roles are built.
+	ClubRoles   []ClubRole  `json:"clubRoles"`  // links the club admin made with a role (ADR 0015)
+}
+
+// ClubRole is a link a club admin made for someone, with a role.
+type ClubRole struct {
+	Role string `json:"role"`
+	Person
 }
 
 // Competition is one of the sandbox's competitions.
@@ -191,11 +197,14 @@ func Sandbox(h Clocked, size Size, now time.Time) (Copy, error) {
 		Open:        Competition{Name: open.name, ID: open.id, Organiser: open.admin, Enter: open.enter},
 		Day:         Competition{Name: day.name, ID: day.id, Organiser: day.admin, Enter: day.enter},
 		CardChecker: open.judges, Chair: day.chairs, Screen: day.screen,
-		CompSec:    Person{Name: first.name + "'s comp sec", Club: first.name, Link: first.admin},
+		CompSec:    Person{Name: first.name + "'s club admin", Club: first.name, Link: first.admin},
 		Coach:      Person{Name: clubs[0].coaches[0], Club: first.name, Link: coach},
 		Member:     Person{Name: member.name, Club: first.name, Link: member.link},
 		Own:        Person{Name: open.ownName, Link: open.ownPage},
 		OwnSignoff: open.ownSignoff,
+	}
+	for _, r := range first.roles {
+		cp.Links.ClubRoles = append(cp.Links.ClubRoles, ClubRole{Role: r.role, Person: Person{Name: r.person, Club: first.name, Link: r.link}})
 	}
 	if err := Morning(h, day.admin, now); err != nil {
 		return sofar(), fmt.Errorf("the morning on the day: %w", err)
@@ -206,8 +215,8 @@ func Sandbox(h Clocked, size Size, now time.Time) (Copy, error) {
 // messages sends the organiser of a competition the seed made a message at
 // every stage: just sent, received, replied to and answered (waiting for
 // them again), resolved with a reply and a note, and resolved then opened
-// again by the sender. Each is from someone else: members, a comp sec, a
-// coach and a gymnast on their own.
+// again by the sender. Each is from someone else: members, a club admin, a
+// club's team manager, a coach and a gymnast on their own.
 func (s *seeder) messages(m made) {
 	if s.err != nil {
 		return
@@ -241,6 +250,13 @@ func (s *seeder) messages(m made) {
 
 	// Just sent: waiting for the organiser.
 	send(in(run(1).members[0].link), "Is there anywhere to leave bags during the warm-up?")
+	// From a club's team manager, a link with a role (ADR 0015): it says
+	// who, and the club's other links that talk to the organiser see it.
+	for _, r := range run(0).roles {
+		if r.role == "Team manager" {
+			send(in(r.link), "Our coach is driving the minibus: is there parking for one at the venue?")
+		}
+	}
 	// Received.
 	if id := send(in(run(2).admin), "Two of our gymnasts may have placement exams that week. Could we swap them for others after the deadline?"); id != "" {
 		s.post(concern(id)+"/received", url.Values{})

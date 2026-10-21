@@ -207,10 +207,9 @@ Built as decided ([the feature](../../knowledge/features/sandbox.md)), but:
 - **ISTO's levels**: Novice to Elite-Pro are entered, Disability Levels 1–4
   offered with nobody in them; the days are "Day 1" to "Day 3", as their
   dates move.
-- **Club roles aren't seeded yet**, nor their card on the start page: they
-  are built on another branch, and go in once both are merged (the start
-  page and `demo.Links` say where). The sandbox's clubs are the demo
-  seeder's, so what that branch adds to them comes too.
-- **Migration 51** is the 50th on its own branch, until club roles' 50 is
-  merged before it.
+- **Club roles** come from the demo seeder: the first club's treasurer and
+  team manager, each with a link. The start page's **club admin** card (was
+  "a comp sec") opens the club and its Settings, and a card for **someone in
+  a club, with a role** has both role links. The team manager sends one of
+  the messages that waits for the organiser.
 - **The last reset** (when, how long) is kept in `settings`.
