@@ -59,6 +59,7 @@ are `views/competitions.templ` (the layout and shared parts),
     - [Simulation (ADR 0005, step 6)](#simulation-adr-0005-step-6)
 - [Coaches (coach link)](#coaches-coach-link)
 - [The club's comp sec (club admin link)](#the-clubs-comp-sec-club-admin-link)
+    - [Club roles and links (ADR 0015)](#club-roles-and-links-adr-0015)
 - [A member (personal link)](#a-member-personal-link)
 - [One link, several roles (ADR 0010)](#one-link-several-roles-adr-0010)
     - [Entering on your own: one page](#entering-on-your-own-one-page)
@@ -226,8 +227,13 @@ admin page.
 
 **Named, never typed.** The form says who it's from, as the organiser will
 see it, worked out from the link (`teller` in `web/tellpages.go`): "Ann
-Ryan, a member of UCD", "Cara Byrne, a coach at UCD", "UCD's comp sec", or
-"Bea Byrne, entered on their own". The name and the club's name are kept
+Ryan, a member of UCD", "Cara Byrne, a coach at UCD", "Club admin, UCD"
+or, from a club link with a role, "Mary (Treasurer), UCD" ([club
+roles](#club-roles-and-links-adr-0015)), or "Bea Byrne, entered on their
+own". A club's messages are the club's (sent as `club:<id>`): every club
+link that can talk to the organiser sees them and adds to them, and each
+says who of the club sent it or added to it ("Mary (Team manager), UCD
+added"; on the club's page "Mary (Team manager) added"). The name and the club's name are kept
 as they were when it was sent. **About** is a list to tick, any number,
 of their entries the competition has (sent): a member's or individual's own
 (a synchro pair's too; an individual's in every discipline), a comp sec's
@@ -347,7 +353,8 @@ which dropdowns were open.
 
 **What's kept** (`store/sitefeedback.go`): `site_feedback` has the words,
 the reply-to, the role (Organiser, "Helper link: Chairs (chairs of
-judges)", Comp sec, Member, Coach, Individual, Synchro partner, An
+judges)", "Club admin, UCD" or "Mary (Treasurer), UCD" from a club's link,
+Comp sec (from a competition's club link), Member, Coach, Individual, Synchro partner, An
 individual's coach, Calculator, or Without a link, from the link it's posted
 under, never from the form), the page as its **route pattern**
 (`/clubs/member/{token}/competitions/{id}/day`, only a page the app has;
@@ -1822,9 +1829,13 @@ Where a competition requires it, each entry needs a coach's **sign-off**
 
 # The club's comp sec (club admin link)
 
-The comp sec's page has a menu of four sections (roadmap 2026-10-13, finding
-your way round; the menu is `views/menu.templ`, built for each page in
-`web/menus_club.go`), each a page of its own:
+The club's link is the club admin's, and the club admin makes a link with a
+role for each person who helps ([club roles](#club-roles-and-links-adr-0015));
+each sees these pages, offering only what their role can do. The pages have
+a menu of four sections (roadmap 2026-10-13, finding your way round; the
+menu is `views/menu.templ`, built for each page in `web/menus_club.go`;
+Settings only for the club admin and a role with Club settings), each a page
+of its own:
 
 - **Competitions** (`/clubs/admin/{token}`, the default): a row for each
   competition the club is in (built 2026-10-15, like a member's list): its
@@ -1876,11 +1887,14 @@ your way round; the menu is `views/menu.templ`, built for each page in
   searched by name and filtered by whether they sign off routines and whether
   they have qualifications. Both are sections that can be collapsed and start
   open ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
-- **Settings** (`/settings`): setting rows (rendering.md, "Settings and forms
-  on a page"): who sees members' skills, replacing the admin link and
-  deleting the club, each opening its form,
-  when the club would be deleted if no one uses it, and who opens these pages
-  from their own link, each with **Remove**
+- **Settings** (`/settings`, for the club admin and a role with Club
+  settings): for the club admin, **Roles** and **Links**
+  ([club roles](#club-roles-and-links-adr-0015)); then setting rows
+  (rendering.md, "Settings and forms on a page"): who sees members' skills,
+  the club's **History**, and for the club admin replacing the club admin
+  link and deleting the club, each opening its form; when the club would be
+  deleted if no one uses it, and (the club admin) who opens these pages from
+  their own link, each with **Remove**
   ([one link, several roles](#one-link-several-roles-adr-0010)).
 
 **How long a club is kept** (ADR 0011 Decision 7, built 2026-10-15): until 13
@@ -1897,7 +1911,7 @@ link opens the coach's page. Members shows them with a Coach chip, Coaches as
 "A member too: opens from their member link".
 
 **Replacing a link asks first** (audit 2026-10-16, built 2026-10-19): a
-member's or coach's **New link** and **Replace the admin link** post once
+member's or coach's **New link** and **Replace the club admin link** post once
 to show the section with a box saying the old link stops working at once,
 wherever it's saved, what stays, and where the new one shows; its button
 posts again with `anyway=1` to replace it (`askClub`), and **Cancel**
@@ -1924,6 +1938,83 @@ the browser when it's opened (`data-club-page`), as the organiser's dashboard
 does (`data-competition-page`) and members', coaches' and gymnasts' pages do;
 never on a page opened through someone's own link or a helper's link (a "~" in
 the path). The new or replaced link is shown and saved too (`data-club-admin`).
+
+## Club roles and links (ADR 0015)
+
+Built 2026-10-21 (migration 50, `store/clubroles.go`, `web/clubaccess.go`,
+`web/clubrolepages.go`, `views/clubroles.templ`). The club's link is the
+**club admin**'s: it does everything, and only it makes, changes and
+removes roles and links, sees every link, replaces the club admin link and
+deletes the club. Its pages say, under the menu, that it's for setting the
+club up, and point to **Settings → Roles** to make yourself a link with a
+role (a club can call one "Comp sec") for every day. A link with a role
+says whose it is ("You're using the link for Mary (Treasurer).").
+
+**Roles** are the club's: the club admin names one and ticks what it can do
+besides seeing the club. A club starts with none (Settings explains them,
+with **Make a role** open); up to 10 (`store.MaxClubRoles`), one name each.
+The permissions (`store.ClubPermissions`, `views.ClubPermissions`):
+
+| Permission | Allows, besides seeing the club |
+|---|---|
+| *(every role)* See the club | Competitions and each one's entries, coaches sent and offers; Members and Coaches (looking); each member's routines and skills; timetables and calendars; the organisers' desk messages; Feedback |
+| Enter and change entries | Enter a member, change or withdraw an entry, offers to help, late changes |
+| Send entries | Send the entries, and the coaches to approve |
+| Fees | Each competition's Fees tab and invoice |
+| Manage members | The join link; a member's coach, New link, Remove; their judging qualifications |
+| Manage coaches | Add a coach, make a member one, New link, Remove, Signs off, qualifications |
+| Certificates | Open coaches' and judges' certificates (personal documents) |
+| Talk to the organiser | Tell the organiser and answer the club's messages; hear about changes (Notify) |
+| Club settings | The Settings tab: who coaches see, who sees members' skills, the History |
+
+A role's **Change** renames it and sets its ticks, for every link with it at
+once; **Remove the role** is offered only once it has no links (a role with
+links is refused, saying how many). **Links** are for people: **Make a
+link** takes a name (one link a name) and a role, and shows the link once
+(kept as a hash, ADR 0004); each link listed has **Change role** (a select)
+and **Remove**, which asks first and stops it at once. Up to 30
+(`store.MaxClubLinks`). A link has the club admin's address shape
+(`/clubs/admin/{token}`), so every page, bookmark and saved link works the
+same; the store finds the club by either (`ClubByLink`, which says which
+link; `ClubByAdmin` is the club alone). Entering the club in a competition
+through its club link takes the club admin link or one whose role can enter
+entries.
+
+**One gate.** Every route under `/clubs/admin/{token}`, those registered
+under the shared roots too (late changes, timelines, calendars,
+notifications, messages, feedback), is wrapped by `clubGate`, which looks
+the link up once (handlers read it from the request, `clubAdmin`) and checks
+`clubRoutes`: each route's permission, every role's (seeing the club) or the
+club admin's alone. A route a role can't use is a 403 page: "This link
+can't do that. Ask your club admin." A route left out of the table is the
+club admin's alone, and `TestEveryClubRouteHasAPermission` fails; another
+test tries every route with a role of each permission. Pages offer only what
+the link can do (`views.ClubAccess`, kept in the request's context): no
+Settings tab without Club settings, no Send without Send entries (where
+sending stands, instead), no Fees tab without Fees, no Enter a member,
+Change or late change without Enter and change entries, no join link,
+coach select, New link or Remove on Members without Manage members, no Add
+a coach, Signs off, New link, Remove or qualification forms on Coaches
+without Manage coaches, no certificate links without Certificates, no Tell
+the organiser or Notify without Talk to the organiser.
+
+**Names go with what's done.** Feedback from a club link is saved as "Mary
+(Treasurer), UCD" or "Club admin, UCD"; a message to the organiser and each
+thing added to it as the same ([messages](#messages-to-the-organiser)).
+
+**History** (`club_log`): each change made through any club link, when, who
+("Club admin", or "Mary (Treasurer)") and what ("Withdrew Ann Ryan · BUCS
+L3", "Sent the new and changed entries to Student Open", "Made a link for
+Mary (Treasurer)"), worked out before the change (`describeClub`); asks,
+refusals ("nothing was changed", "already") and deleting the club aren't
+recorded, nor hearing about changes. The latest 1,000 a club are kept; Settings shows
+the latest 50, with **See every change kept**.
+
+**On a personal link** (ADR 0010): pasting a club role's link into one's own
+page ties that role (tie kind `clublink`): their personal link then opens
+the club as that role, with a tab named for it ("Treasurer"); the club
+admin's link tied the same way opens the club admin's pages ("Club admin"
+tab). Removing a link ends it on their page too.
 
 # A member (personal link)
 
@@ -2266,7 +2357,7 @@ someone opens it.
 Roadmap item 5, built 2026-10-14. A person's **records** are their club
 memberships, their coaching for a club, and their entering on their own;
 records with the same `person_id` are one person, and **whichever of their
-personal links they open, tabs above the page** (Member, Coach, Competition secretary,
+personal links they open, tabs above the page** (Member, Coach, Club admin, a club role's name such as Treasurer ([ADR 0015](#club-roles-and-links-adr-0015)),
 On your own, Organiser · competition, or a helper link's name · competition)
 switch between their roles, each keeping its own menu. With one role there
 are no tabs. The tabs are worked out for any page a personal link opens

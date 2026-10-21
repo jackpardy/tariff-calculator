@@ -1,8 +1,9 @@
 # ADR 0015 — Club roles: the club admin makes roles and links for people
 
-- **Status:** Accepted (2026-10-21, the owner's decisions below); not built.
-  To be built before the dry run, so the dry-run clubs can try it and say
-  what they think
+- **Status:** Accepted; built (decided and built 2026-10-21, migration 50),
+  before the dry run, so the dry-run clubs can
+  try it and say what they think. How it was built, and where it differs,
+  is under "As built" at the end
 - **Date:** 2026-10-21
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 3 (a club has more than one admin link);
@@ -136,3 +137,49 @@ differently, and what a "comp sec" or "team manager" does varies.
 5. **Every role sees the members and coaches:** yes.
 6. **Before the dry run**, so the dry-run clubs try it and give feedback on
    it.
+
+## As built (2026-10-21)
+
+Built as decided, in `store/clubroles.go` (migration 50: `club_roles`,
+`club_links`, `club_log`), `web/clubaccess.go` (the table, the gate, the
+history's words), `web/clubrolepages.go` (Roles and Links) and
+`views/clubroles.templ`. The details, and where it differs from the plan
+above:
+
+- **The lookup.** `ClubByLink` finds the club and which link (the club
+  admin's, or one with a role, its permissions read each time);
+  `ClubByAdmin` stays, returning the club alone, for the callers that need
+  no more. The gate looks the link up once per request and the handlers
+  read it from there.
+- **The table** (`clubRoutes`) names a few routes the plan didn't: a
+  competition's Coaches and Judging and helping tabs are seeing the club
+  (sending coaches and changing offers aren't); opening a member's entry
+  to change it is Enter and change entries; a member's judging
+  certificate is Certificates; Notify (hearing about changes) is Talk to
+  the organiser; the Settings page itself is Club settings; taking someone
+  off the club admin link's ties is the club admin's. A route not in the
+  table is the club admin's alone, and a test fails until it's added.
+- **Entering the club in a competition** through the competition's club
+  link takes the club admin link, or a link whose role can enter and
+  change entries; others are told so.
+- **What pages show** is passed to the views in the request's context
+  (`views.ClubAccessOf`), not a field on each page, as the club's pages
+  are drawn by several views; outside a club link it's everything.
+- **Messages** stay the club's (`club:<id>`); the sender's name kept with
+  a message or post is the link's ("Club admin", "Mary (Treasurer)"), so
+  the organiser reads "Mary (Treasurer), UCD". Messages sent before, which
+  kept the club's name, read "Club admin, UCD". Each post added by the
+  club says who added it, on both sides.
+- **History**: asks, refusals ("nothing was changed", "already") and
+  deleting the club aren't recorded, nor hearing about changes; Settings
+  shows the latest 50, with a link to every change kept (1,000).
+- **Names**: a role's name is up to 40 characters and a link's up to 60,
+  each one a club (ignoring case), so reloading the page that shows a new
+  link doesn't make another. Roles keep the order they were made in.
+- **Ties** (Decision 7): a role's link pasted into someone's own page is
+  tie kind `clublink`; their tab is the role's name, and the club admin
+  link's tab is "Club admin" (it was "Competition secretary"). Settings'
+  "Opened from people's own links" still lists only the club admin link's
+  ties; removing a role's link ends any tie to it.
+- Feedback sent from a competition's club link page, where no club link is
+  known, still says "Comp sec".

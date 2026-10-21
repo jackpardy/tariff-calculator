@@ -93,7 +93,9 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
   listed ([competition entries](../features/competition-entries.md)).
 - **Clubs gather their members' entries.** Members join with a link and keep
   their own entries; the comp sec sees them all and sends them, then re-sends
-  what's changed.
+  what's changed. The club admin gives each helper a link with a role
+  (Comp sec, Treasurer, Team manager: the club names them and ticks what
+  each can do), and the club's history says who did what.
 - **Gymnasts without a club** can enter on their own, if the organiser allows.
 - **Trampoline, synchro, tumbling and DMT.** A gymnast can enter several;
   synchro pairs can be any two gymnasts, confirmed by a partner link. Tumbling

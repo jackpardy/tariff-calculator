@@ -186,6 +186,10 @@ transaction, and marks their club used (once a day) only when it's due.
 
 Every `/competitions/admin/{token}` route takes the admin link or a helper's
 link of a kind that may use it (`allowed`, ADR 0009); others get 403.
+Likewise every `/clubs/admin/{token}` route (those under the shared roots
+too) takes the club admin link, or a link with a role whose permissions
+allow it (`clubRoutes` in `web/clubaccess.go`, ADR 0015); others get 403,
+"This link can't do that. Ask your club admin."
 | `POST /competitions/admin/{token}/delete` | `confirm` (the word `delete`, typed) | Deletes the competition and its entries; anything else typed deletes nothing and says so |
 | `GET`, `POST /competitions/enter/{token}` | `gymnast`, `level`, `ex1Option`, `ex1Skills`, `ex2Option`, `ex2Skills`, and where video is asked for `ex1Video`, `ex1VideoNote`, `ex2Video`, `ex2VideoNote`; optional `as`, the link of the person's page (a member's, coach's or individual's, or an entry link) | The individual entry form; entering redirects to the entry, `/competitions/entry/{personal}~{entry id}?saved=1`, as that person or someone new; 422 for an `as` that isn't a page's link |
 | `GET`, `POST /competitions/entry/{token}` | as entering; `saved`, `notice` carried on | An individual's own entry: GET redirects (303) to their page for the competition with `entry=<id>`, opening its row, carrying the query; POST changes it until the deadline, back here, or with problems shows their page with the row and form open (422). `{token}` an entry link from before or a personal link's way to the entry; an entry on no one's page shows on its own |
@@ -200,20 +204,26 @@ link of a kind that may use it (`allowed`, ADR 0009); others get 403.
 | `GET /competitions/entry/{token}/day` | `notice`, `timetable=all` | My competition, for someone entering on their own (all their entries, matched by name) |
 | `POST /competitions/entry/{token}/here` | — | "I'm here for the rest": a scratched individual clears both scratch warnings for themselves, then goes back to My competition with a notice; only once the timetable is published |
 | `GET /competitions` | — | The competitions, clubs and entries this browser has links to |
-| `GET`, `POST /competitions/club/{token}` | `clubAdmin` (a club's admin link, or its token) | A competition's club link: a comp sec enters their club, then lands on the club's page for the competition |
+| `GET`, `POST /competitions/club/{token}` | `clubAdmin` (a club's admin link, or its token; or a club link whose role can enter entries) | A competition's club link: a comp sec enters their club, then lands on the club's page for the competition |
 | `GET /clubs/new`, `POST /clubs` | `name` | Creates a club: 303 to its page with `?new=created`; 429 after 5 an hour from one address |
 | `GET /clubs/admin/{token}` | optional `new`, `notice` | The comp sec's Competitions section (the default): a row for each competition the club is in (entries, to send, with problems, timetable published, messages), opening its page |
 | `GET /clubs/admin/{token}/competitions/{id}` | optional `notice` | The comp sec's page for one competition, its **Entries** tab: where they stand, sending them, and the members' entries; 404 if the club isn't entered |
 | `GET /clubs/admin/{token}/competitions/{id}/coaches`, `/offers`, `/fees` | optional `notice` | Its other tabs: the coaches to send for approval (404 unless it approves coaches), what members offer to judge and help with, and what the club owes with the invoice's lines (404 unless it charges) |
 | `GET /clubs/admin/{token}/competitions/{id}/enter-member` | `member`, `discipline` | **Enter a member**: to the member's entry form for that discipline; back with "Choose a member" for one who isn't the club's |
 | `GET /clubs/admin/{token}/competitions/{id}/add-offer` | `member` | **Add an offer**: to the member's offer form |
-| `GET /clubs/admin/{token}/members`, `/coaches`, `/settings` | optional `notice`; on Members, `at` (the member the notice is about, whose row says it too) | The comp sec's other sections: the join link, members and synchro entries made with them; the coaches; replacing the admin link and deleting the club. Each has the section menu |
+| `GET /clubs/admin/{token}/members`, `/coaches`, `/settings` | optional `notice`; on Members, `at` (the member the notice is about, whose row says it too); on Settings, `history=all` | The comp sec's other sections: the join link, members and synchro entries made with them; the coaches; Settings: the club admin's roles and links, members' skills, the club's history (the latest 50, or all kept), replacing the admin link and deleting the club. Each has the section menu |
 | `POST /clubs/admin/{token}/competitions/{id}/send` | `which` (`changed` or `all`) | Sends new and changed entries, or all again (taking back withdrawn ones); back to the competition's Entries |
 | `GET`, `POST /clubs/admin/{token}/members/{member}/competitions/{id}` | as entering, without `gymnast` | Enters or changes a member's entry on their behalf (a synchro partner chosen from the members, or typed); saving goes back to the competition's Entries |
 | `POST /clubs/admin/{token}/members/{member}/competitions/{id}/withdraw` | `confirm=1`, `discipline` | Withdraws a member's entry, as they can; back to the competition's Entries |
 | `POST /clubs/admin/{token}/members/{member}/new-link` | `anyway=1` | Without `anyway`, Members asking first (the old link stops working), its button posting again with it; with it, the page with the member's new link, shown once |
 | `POST /clubs/admin/{token}/members/{member}/remove` | `anyway=1` | Removes the member and their entries; without `anyway`, Members asking first (200) |
-| `POST /clubs/admin/{token}/replace-link`, `/delete` | `anyway=1` to replace, `confirm` (the word `delete`, typed) to delete | As for a competition, but replacing asks first on Settings without `anyway` |
+| `POST /clubs/admin/{token}/replace-link`, `/delete` | `anyway=1` to replace, `confirm` (the word `delete`, typed) to delete | As for a competition, but replacing asks first on Settings without `anyway`. The club admin's only |
+| `POST /clubs/admin/{token}/roles` | `name` (up to 40, one role a name), `permission` (repeated: `enter`, `send`, `fees`, `members`, `coaches`, `certificates`, `organiser`, `settings`) | [Club roles](../features/competition-entries.md#club-roles-and-links-adr-0015) (ADR 0015): makes a role; back to Settings `#links`. Refused with a notice for no name, a name taken, or past 10. The club admin's only |
+| `POST /clubs/admin/{token}/roles/{role}` | `name`, `permission` (repeated) | Renames a role and sets its permissions, for every link with it at once; back to Settings `#roles` |
+| `POST /clubs/admin/{token}/roles/{role}/remove` | — | Removes a role with no links; refused with a notice (how many links) while it has some |
+| `POST /clubs/admin/{token}/links` | `name` (up to 60, one link a name), `role` (its id) | Makes a link for a person with a role: Settings (200) with the link, shown once (`/clubs/admin/{token}` like the admin link). Refused with a notice past 30, for no name, a name taken or no role |
+| `POST /clubs/admin/{token}/links/{link}/role` | `role` (its id) | Gives a link another role, at once; back to Settings `#links` |
+| `POST /clubs/admin/{token}/links/{link}/remove` | `anyway=1` | Without `anyway`, Settings asking first (200); with it, the link stops at once |
 | `GET`, `POST /clubs/join/{token}` | `name` | Joining a club: 303 to the member's page with `?new=joined` |
 | `GET /clubs/member/{token}` | optional `new`, `notice` | A member's Competitions tab (the default): a row for each competition the club is in, with its date and status |
 | `GET /clubs/member/{token}/competitions/{id}` | optional `notice`, `discipline` (the row to open) | A member's page for one competition: facts, links, each discipline's entry as a row that opens to its card and forms, officiating, and the judging offer; 404 if the club isn't entered |
