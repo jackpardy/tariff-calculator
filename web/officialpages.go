@@ -109,9 +109,23 @@ func (p *competitionPages) editMemberOffer(w http.ResponseWriter, r *http.Reques
 		failed(w, r, err)
 		return
 	}
+	// What the link's role can do with them (ADR 0015).
+	if b := form.Judging; b != nil {
+		if !clubCan(r, store.ClubMembers) {
+			b.Add = ""
+		}
+		for i := range b.List {
+			if !clubCan(r, store.ClubMembers) {
+				b.List[i].Remove = ""
+			}
+			if !clubCan(r, store.ClubCertificates) {
+				b.List[i].Certificate = ""
+			}
+		}
+	}
 	render(w, r, views.ClubOfferEditPage(views.ClubOfferEdit{
 		Back: clubCompetitionPath(r.PathValue("token"), c.ID) + "/offers", Club: club.Name, Member: m.Name, Competition: summary(c, p.now()),
-		Menu: clubCompetitionMenu(r.PathValue("token"), c, clubCompOffers), Form: form,
+		Menu: clubCompetitionMenu(r, c, clubCompOffers), Form: form,
 	}))
 }
 
@@ -373,16 +387,17 @@ func (p *competitionPages) clubOffers(r *http.Request, base string, club store.C
 	}
 	var out []views.ClubOfferRow
 	var none []views.FlightOption
+	open := c.ChangesOpen(p.now()) && clubCan(r, store.ClubEnter) // a role without Enter only looks
 	for _, m := range members {
 		o, ok := offers[m.ID]
 		if !ok {
-			if c.ChangesOpen(p.now()) {
+			if open {
 				none = append(none, views.FlightOption{Value: m.ID, Label: m.Name})
 			}
 			continue
 		}
 		row := views.ClubOfferRow{Member: m.Name, Offer: o.Describe()}
-		if c.ChangesOpen(p.now()) {
+		if open {
 			row.Edit = base + "/members/" + m.ID + "/competitions/" + c.ID + "/offer"
 		}
 		out = append(out, row)

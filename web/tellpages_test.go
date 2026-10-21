@@ -75,7 +75,7 @@ func TestTellOrganiser(t *testing.T) {
 	}{
 		{"a member", ann, "Ann, a member of UCD", []string{"Ann · BUCS L3"}, ann},
 		{"a member's My competition", ann + "/day", "Ann, a member of UCD", []string{"Ann · BUCS L3"}, ann + "/day"},
-		{"a comp sec", compSec, "UCD's comp sec", []string{"Ann", "Cian", "all of BUCS L3"}, compSec},
+		{"a comp sec", compSec, "Club admin, UCD", []string{"Ann", "Cian", "all of BUCS L3"}, compSec},
 		// No one has chosen a coach yet, so Cara sees them all.
 		{"a coach", coach, "Cara, a coach at UCD", []string{"Ann", "Cian", "all of BUCS L3"}, coach},
 		// An entry's link opens the individual's page for the competition.
@@ -299,7 +299,7 @@ func TestMessageThreads(t *testing.T) {
 	fields.Set("text", "What time do our L3s warm up?")
 	redirected(t, h, action, fields)
 	got := messagesOn(t, h, admin)
-	if got[0][0] != "all of UCD's BUCS L3: What time do our L3s warm up?" || got[0][1] != "UCD's comp sec" {
+	if got[0][0] != "all of UCD's BUCS L3: What time do our L3s warm up?" || got[0][1] != "Club admin, UCD" {
 		t.Errorf("about the whole event, not the entry it covers: %v", got[0])
 	}
 	if sent := sentOn(t, h, compSec); len(sent) != 1 || !strings.HasPrefix(sent[0], "Sent") || !strings.Contains(sent[0], "about all of BUCS L3") {

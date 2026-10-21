@@ -28,7 +28,9 @@ Who does what:
 
 - The **organiser** creates the competition and sees every entry.
 - A club's **competition secretary** (comp sec) creates the club, enters it in
-  competitions and sends the members' entries.
+  competitions and sends the members' entries. Whoever creates the club is
+  its **club admin**, and gives each person who helps (a treasurer, a team
+  manager) a link with a role that says what they can do.
 - **Members** join their club and keep their own entries.
 - **Coaches** sign off their members' routines, if the competition asks.
 - A gymnast without a club can **enter on their own**, if the organiser allows.
@@ -567,15 +569,23 @@ venue setup, **Run again**.
 # 2. Run your club (comp secs)
 
 1. Go to **tariff.pardy.ie/competitions** and tap **New club**. Give its name
-   and tap **Create club**. Save the **admin link** you're given.
+   and tap **Create club**. Save the **club admin link** you're given: it
+   can do everything, so keep it for setting the club up.
 2. Open **Members** and share the **Join link** in the club's chat. Members
    join with it.
-3. To enter a competition, open the **club link** the organiser gave you,
-   choose your club (or paste its admin link) and tap **Enter the club**.
-   Members can then add their entries.
+3. On **Settings**, make a role for each kind of help you have and a link
+   for each person who helps, yourself too (see
+   [Roles and links](#roles-and-links)). Use your own link from then on.
+4. To enter a competition, open the **club link** the organiser gave you,
+   choose your club (or paste its club admin link, or your own if your
+   role can enter entries) and tap **Enter the club**. Members can then add
+   their entries.
 
 Your club page is in four sections, in a menu at the top: **Competitions**,
-**Members**, **Coaches** and **Settings**. It opens on **Competitions**, a
+**Members**, **Coaches** and **Settings** (only with the club admin link, or
+a role with **Club settings**). A link with a role shows only what it can
+do: without **Send entries** there's no **Send**, without **Manage members**
+no **Remove**, and so on; under the menu it says whose link it is. It opens on **Competitions**, a
 row for each competition your club is in, saying how many entries it has,
 how many are still to send or have problems, and whether the timetable is
 published or there's a message from the organisers. Tap one to open its
@@ -653,18 +663,56 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
 - **Tell the organiser**: at the foot of a competition's **Entries**, to send
   its organiser a message from the club, about any of the club's entries,
   whole events, or the competition generally ([how](#tell-the-organiser)).
-- **Settings** (its own section): a row for each setting, with its button at
-  the right. **Members' skills**, **Change**: **Let every member see
+- **Settings** (its own section, for the club admin and a role with **Club
+  settings**): the club admin's **Roles** and **Links** first (see
+  [Roles and links](#roles-and-links)), then a row for each setting, with its
+  button at the right. **Members' skills**, **Change**: **Let every member see
   everyone's skills** shares members' skills with the whole club (otherwise
-  each member's are seen by them, their coaches and you). **Admin link**,
-  **Replace**, and **Delete the club**, **Delete**, open to do it; replacing
-  the admin link asks first, as the old one stops working for everyone who has it, and
+  each member's are seen by them, their coaches and you). **History**,
+  **Show**: what was changed through the club's links, when and by whom.
+  **Club admin link**, **Replace**, and **Delete the club**, **Delete**, open
+  to do it; replacing the club admin link asks first, as the old one stops
+  working for everyone who has it (links with a role keep working), and
   deleting the club needs the word **delete** typed in a box. A
   club is deleted 13 months after anyone last used it (you, a coach or a
   member opening their page); Settings says when. **Opened from people's own
-  links** lists anyone who added the admin link to their own page (see
+  links** lists anyone who added the club admin link to their own page (see
   [One link for all your roles](#6-one-link-for-all-your-roles)), with
-  **Remove**; replacing the admin link ends it for all of them.
+  **Remove**; replacing the club admin link ends it for all of them.
+
+## Roles and links
+
+The club admin link can do everything, so it's for setting the club up.
+For every day, each person who helps the club (you too) gets a link of
+their own with a **role**, which says what it can do; the history says who
+did what.
+
+1. On **Settings**, under **Roles**, tap **Make a role**. Name it (for
+   example **Comp sec**, **Treasurer** or **Team manager**), tick what it can
+   do and tap **Make the role**. Every role sees the club: its competitions
+   and entries, the members and coaches, timetables and the organisers'
+   messages. Tick what else: **Enter and change entries**, **Send entries**,
+   **Fees**, **Manage members**, **Manage coaches**, **Certificates** (tick
+   it only for someone who needs coaches' and judges' certificates), **Talk
+   to the organiser** and **Club settings**. A club can have 10 roles.
+2. Under **Links**, tap **Make a link**, type who it's for, choose their
+   role and tap **Make the link**. Copy the link and send it to them: it's
+   shown only this once. A club can have 30 links.
+3. A link's pages show only what its role can do. If someone needs more,
+   open their role's **Change**, tick it and tap **Save**: it counts at once
+   for everyone with that role. Or give them another role: tap **Change**
+   beside their link, choose the role and tap **Change role**.
+4. **Remove**, under a link's **Change**, stops it working at once (the page
+   asks first).
+   If it's lost, remove it and make another. A role can be removed once no
+   link has it.
+
+What's sent from a link says who sent it: feedback and messages to the
+organiser say "Mary (Treasurer), UCD", or "Club admin, UCD" from the club
+admin link. The club's messages to an organiser are seen and answered by
+every link that can talk to the organiser. Anyone can add their link to
+their own page (see [One link for all your roles](#6-one-link-for-all-your-roles)),
+and it opens the club as their role there.
 
 # 3. Enter through your club (members)
 
@@ -988,16 +1036,19 @@ competitions on your own, or helping run one, you can open all of it from
 one link. On your page's **Your details**, under **Your other links**, tap **Add a link**, paste another of your
 links and tap **Add**. Add only your own links: if the name on the link
 isn't yours (your coach's, say), the page asks first, as adding it makes you
-and them one person. Then tabs at the top (Member, Coach, Competition secretary, On your own, or the
+and them one person. Then tabs at the top (Member, Coach, Club admin or your club role, such as Treasurer, On your own, or the
 competition's) switch between them, whichever of your links you open. Each
 link listed has **Undo**.
 
 - Only add links that are yours. Pasting a link is how you show it's yours,
   so there's nothing to approve.
-- A shared link, such as your club's comp sec link or a link the organiser
+- A shared link, such as your club's club admin link or a link the organiser
   gave a panel, opens from your page, but never opens your page: everyone
-  else who has it sees only what it always showed. The comp sec or organiser
+  else who has it sees only what it always showed. The club admin or organiser
   sees who added it, and can remove it; replacing it ends it for everyone.
+- A link your club admin made for you with a role (Treasurer, say) opens
+  the club as that role from your page, with a tab named for it, until the
+  club admin removes the link.
 - If your comp sec makes you a coach too, there's no coach link: your member
   link opens your coach's page.
 - If your comp sec gives you a **New link**, it opens only your pages at

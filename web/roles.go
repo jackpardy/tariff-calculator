@@ -58,7 +58,7 @@ func (p *competitionPages) roleTabs(r *http.Request, token string) []views.RoleT
 	places := map[string]bool{}
 	for _, role := range roles {
 		switch role.Kind {
-		case store.RoleMember, store.RoleCoach, store.RoleClub:
+		case store.RoleMember, store.RoleCoach, store.RoleClub, store.RoleClubLink:
 			places[role.Place] = true
 		}
 	}
@@ -104,7 +104,7 @@ func roleHref(personal string, h store.Holder, role store.Role) string {
 			return gymnastPath(personal)
 		}
 		return gymnastPath(via)
-	case store.RoleClub:
+	case store.RoleClub, store.RoleClubLink:
 		return clubPath(via)
 	}
 	return adminPath(via)
@@ -118,7 +118,9 @@ func roleLabel(role store.Role) string {
 	case store.RoleCoach:
 		return "Coach"
 	case store.RoleClub:
-		return "Competition secretary"
+		return "Club admin"
+	case store.RoleClubLink:
+		return role.Name // the club's role, e.g. "Treasurer"
 	case store.RoleIndividual:
 		return "On your own"
 	case store.RoleOrganiser:
@@ -135,7 +137,7 @@ func roleDescription(role store.Role) string {
 	case store.RoleCoach:
 		return "Coach at " + role.Place + ", as " + role.Name
 	case store.RoleClub:
-		return "Competition secretary of " + role.Place
+		return "Club admin of " + role.Place
 	case store.RoleIndividual:
 		return "Entering on your own, as " + role.Name
 	case store.RoleOrganiser:

@@ -407,13 +407,15 @@ func (s *Store) ReplyTo(ctx context.Context, competitionID, id, who, text string
 }
 
 // AddToMessage adds the sender's own words to a message they sent
-// (sender, as Sender.ID), opening it again if it was resolved;
+// (sender, as Sender.ID), opening it again if it was resolved; who is who
+// added it, for a club's message, which any of its links with Talk to the
+// organiser can add to (ADR 0015); "" for the message's sender.
 // ErrNotFound if it isn't theirs, ErrLimit past MaxPosts.
-func (s *Store) AddToMessage(ctx context.Context, competitionID, id, sender, text string) (Post, error) {
+func (s *Store) AddToMessage(ctx context.Context, competitionID, id, sender, who, text string) (Post, error) {
 	if sender == "" {
 		return Post{}, ErrNotFound
 	}
-	return s.post(ctx, competitionID, id, sender, Post{BySender: true, Text: text})
+	return s.post(ctx, competitionID, id, sender, Post{BySender: true, Who: who, Text: text})
 }
 
 // post adds to a message's thread: the sender's (sender set, which must be
@@ -435,7 +437,7 @@ func (s *Store) post(ctx context.Context, competitionID, id, sender string, p Po
 		}
 		at := s.stamp()
 		p.At = parseTime(at)
-		if p.BySender {
+		if p.BySender && p.Who == "" {
 			p.Who = who
 		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO concern_posts (id, concern_id, at, by_sender, who, text) VALUES ($1, $2, $3, $4, $5, $6)`,

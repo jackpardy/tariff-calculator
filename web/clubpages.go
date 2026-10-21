@@ -29,6 +29,9 @@ const (
 
 func (p *competitionPages) registerClubs(mux *http.ServeMux) {
 	handle := func(pattern string, h http.HandlerFunc) {
+		if _, ok := clubRoute(pattern); ok {
+			h = p.clubGate(pattern, h)
+		}
 		p.notePage(pattern)
 		mux.Handle(pattern, p.secret(h))
 	}
@@ -79,6 +82,7 @@ func (p *competitionPages) registerClubs(mux *http.ServeMux) {
 	handle("POST /clubs/coach/{token}/members/{member}/competitions/{id}", p.signOff)
 	handle("GET /competitions/club/{token}", p.clubLink)
 	handle("POST /competitions/club/{token}", p.enterClub)
+	p.registerClubRoles(handle)
 }
 
 func (p *competitionPages) hub(w http.ResponseWriter, r *http.Request) {
@@ -113,8 +117,12 @@ func (p *competitionPages) createClub(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, clubPath(admin)+"?new=created", http.StatusSeeOther)
 }
 
-// clubAdmin is the club an admin link opens, or a page saying it doesn't.
+// clubAdmin is the club a club link opens (the club admin's or one with a
+// role, as the gate found it), or a page saying it doesn't.
 func (p *competitionPages) clubAdmin(w http.ResponseWriter, r *http.Request) (store.Club, bool) {
+	if at, ok := r.Context().Value(clubKey{}).(clubAt); ok {
+		return at.club, true
+	}
 	c, err := p.st.ClubByAdmin(r.Context(), r.PathValue("token"))
 	if err != nil {
 		failed(w, r, err)
@@ -175,6 +183,7 @@ func (p *competitionPages) askClub(w http.ResponseWriter, r *http.Request, club 
 	if asked(r) {
 		return false
 	}
+	noteAsked(w)
 	p.renderClubWith(w, r, club, section, nil, inPlace(r, ask))
 	return true
 }
@@ -185,7 +194,7 @@ func (p *competitionPages) renderClubWith(w http.ResponseWriter, r *http.Request
 	base := clubPath(token)
 	page := views.ClubPage{
 		Base: base, Name: club.Name, New: r.URL.Query().Get("new"), NewLink: newLink, Ask: ask, Notice: r.URL.Query().Get("notice"), NoticeAt: r.URL.Query().Get("at"),
-		JoinLink: origin(r) + "/clubs/join/" + club.JoinLink, CoachesSeeAll: club.CoachesSeeAll, Menu: clubMenu(token, section),
+		JoinLink: origin(r) + "/clubs/join/" + club.JoinLink, CoachesSeeAll: club.CoachesSeeAll, Menu: clubMenu(r, section),
 	}
 	if page.New != "" && !store.IsVia(token) {
 		page.AdminLink = origin(r) + base
@@ -277,7 +286,7 @@ func (p *competitionPages) renderClubCompetition(w http.ResponseWriter, r *http.
 		return
 	}
 	token := r.PathValue("token")
-	page := views.ClubPage{Base: clubPath(token), Name: club.Name, Notice: r.URL.Query().Get("notice"), Menu: clubCompetitionMenu(token, c, tab)}
+	page := views.ClubPage{Base: clubPath(token), Name: club.Name, Notice: r.URL.Query().Get("notice"), Menu: clubCompetitionMenu(r, c, tab)}
 	ctx := r.Context()
 	coaches, err := p.st.Coaches(ctx, club.ID)
 	if err != nil {
@@ -439,11 +448,15 @@ func (p *competitionPages) clubCoachesPart(r *http.Request, club store.Club, pag
 	return nil
 }
 
-// clubSettingsPart fills in the Settings section: who opens the comp sec's
-// pages from their own link.
+// clubSettingsPart fills in the Settings section: the roles, links and
+// history (ADR 0015), and who opens the club admin's pages from their own
+// link.
 func (p *competitionPages) clubSettingsPart(r *http.Request, club store.Club, page *views.ClubPage) error {
 	page.KeptUntil = store.KeptUntil(club.LastUsed).In(local).Format("2 January 2006")
 	page.SkillsOpen = club.SkillsOpen
+	if err := p.clubRolesPart(r, club, page); err != nil {
+		return err
+	}
 	ties, err := p.st.ClubTies(r.Context(), club.ID)
 	for _, t := range ties {
 		page.Ties = append(page.Ties, views.TieView{ID: t.ID, Name: t.Name, Since: t.At.In(local).Format("2 January 2006")})
@@ -477,6 +490,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 	}
 	seen := p.seenFor(r)
 	home := only == "" // the counts alone (views.ClubAdmin): faster with many entries
+	// What the link's role offers (ADR 0015): a role without a permission
+	// sees the entries, not the ways to change them.
+	enter, fees, organiser := clubCan(r, store.ClubEnter), clubCan(r, store.ClubFees), clubCan(r, store.ClubOrganiser)
 	var out []views.ClubCompetition
 	for _, c := range comps {
 		if only != "" && c.ID != only {
@@ -494,16 +510,23 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			EnterMember: base + "/competitions/" + c.ID + "/enter-member",
 			MyLinks: p.competitionLinks(ctx, c, linksFor{base: base + "/competitions/" + c.ID,
 				people: memberKeys(members), clubs: clubIDs(club.ID), staff: clubIDs(club.ID)})}
+		if !organiser {
+			cc.Notify = ""
+		}
 		if !home {
-			cc.Tell = p.tellForm(ctx, c, base+"/competitions/"+c.ID, clubTeller(club.ID, club.Name))
-			cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
+			if organiser {
+				cc.Tell = p.tellForm(ctx, c, base+"/competitions/"+c.ID, clubTeller(club.ID, club.Name, clubLinkOf(r).Who()))
+			}
+			if fees {
+				cc.Fees = p.feesSummary(ctx, c, clubPayer(club.ID), base+"/competitions/"+c.ID+"/invoice")
+			}
 			if cc.Pairs, err = seen.pairViews(pairs, func(pe store.PairEntry) bool { return pe.CompetitionID != c.ID || ours[pe.EntrantMemberID] }); err != nil {
 				return nil, err
 			}
 		}
 		cc.NoSigner = c.Signoff && !slices.ContainsFunc(coaches, func(co store.Coach) bool { return co.SignsOff })
 		// To enter a member: who, and in what, while entries are open.
-		if cc.Competition.Open {
+		if cc.Competition.Open && enter {
 			for _, m := range members {
 				cc.Members = append(cc.Members, views.FlightOption{Value: m.ID, Label: m.Name})
 			}
@@ -587,14 +610,14 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			if row.Video == "" && e.VideoReview == store.VideoMore && !e.ChangedSinceSent() {
 				row.Video, row.Note = "need more", strings.TrimSpace(row.Note+" "+e.VideoNote)
 			}
-			if cc.Competition.ChangesOpen {
+			if cc.Competition.ChangesOpen && enter {
 				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline
 			}
 			if id := copyOf[e.MemberID+"/"+e.Discipline]; id != "" && !home {
 				if lr, ok := late[id]; ok {
 					row.Late = views.LateStatus{Text: lateStatusText(c, lr), State: lateState(lr)}
 				}
-				if lateOpen(c, p.now()) {
+				if lateOpen(c, p.now()) && enter {
 					row.LateAsk = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "/late?discipline=" + url.QueryEscape(e.Discipline)
 				}
 			}
@@ -764,7 +787,7 @@ func (p *competitionPages) editMemberEntry(w http.ResponseWriter, r *http.Reques
 func (p *competitionPages) renderMemberEdit(w http.ResponseWriter, r *http.Request, club store.Club, m store.Member, c store.Competition, existing *store.MemberEntry, form competitions.Entry, problems []string) {
 	page := views.ClubEntryEdit{
 		Back: clubCompetitionPath(r.PathValue("token"), c.ID), Club: club.Name, Member: m.Name, Competition: summary(c, p.now()),
-		Menu: clubCompetitionMenu(r.PathValue("token"), c, clubCompEntries), Form: entryForm(c.Competition, form, r.URL.Path, "Save"),
+		Menu: clubCompetitionMenu(r, c, clubCompEntries), Form: entryForm(c.Competition, form, r.URL.Path, "Save"),
 	}
 	page.Form.Member, page.Form.Problems = true, problems
 	page.Notice = r.URL.Query().Get("notice")
@@ -924,9 +947,9 @@ func (p *competitionPages) replaceClubLink(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if p.askClub(w, r, club, clubSettings, views.Ask{
-		Title:  "Replace the admin link?",
-		Text:   "The old one stops working at once, for everyone who has it, wherever it's saved: in browsers, on home screens, in bookmarks or in a chat. The new one is saved in this browser; send it to anyone else who should have it.",
-		Button: "Replace the admin link", Back: clubSettingsPath(r.PathValue("token")),
+		Title:  "Replace the club admin link?",
+		Text:   "The old one stops working at once, for everyone who has it, wherever it's saved: in browsers, on home screens, in bookmarks or in a chat. The new one is saved in this browser; send it to anyone else who should have it. Links with a role keep working.",
+		Button: "Replace the club admin link", Back: clubSettingsPath(r.PathValue("token")),
 	}) {
 		return
 	}
@@ -974,8 +997,9 @@ func (p *competitionPages) clubLink(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.ClubLink(views.ClubLinkPage{Competition: summary(c, p.now()), Action: r.URL.Path}))
 }
 
-// enterClub enters the club whose admin link is posted (clubAdmin: the link,
-// or just its token) in the competition.
+// enterClub enters the club whose link is posted (clubAdmin: the link, or
+// just its token) in the competition: the club admin's, or one whose role
+// can enter and change entries (ADR 0015).
 func (p *competitionPages) enterClub(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.clubLinkCompetition(w, r)
 	if !ok {
@@ -986,13 +1010,17 @@ func (p *competitionPages) enterClub(w http.ResponseWriter, r *http.Request) {
 		token = token[i+len("/clubs/admin/"):]
 	}
 	token, _, _ = strings.Cut(token, "?")
-	club, err := p.st.ClubByAdmin(r.Context(), token)
-	if err != nil {
+	club, link, err := p.st.ClubByLink(r.Context(), token)
+	problem := ""
+	switch {
+	case err != nil:
+		problem = "That isn't a club's admin link. Copy it from your club's page, or create the club first."
+	case !link.Can(store.ClubEnter):
+		problem = "That link's role can't enter the club in competitions. Use the club admin link, or ask your club admin."
+	}
+	if problem != "" {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		render(w, r, views.ClubLink(views.ClubLinkPage{
-			Competition: summary(c, p.now()), Action: r.URL.Path,
-			Problems: []string{"That isn't a club's admin link. Copy it from your club's page, or create the club first."},
-		}))
+		render(w, r, views.ClubLink(views.ClubLinkPage{Competition: summary(c, p.now()), Action: r.URL.Path, Problems: []string{problem}}))
 		return
 	}
 	if err := p.st.AttachClub(r.Context(), club.ID, c.ID); err != nil {

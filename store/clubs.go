@@ -89,20 +89,11 @@ func (s *Store) markUsed(ctx context.Context, clubID, lastUsed string) (bool, er
 	return n > 0, err
 }
 
-// ClubByAdmin is the club a comp sec's admin link opens: the link itself, or
-// a personal link's Via to the club, whose person added the admin link as it
-// is now to their page (ADR 0010).
+// ClubByAdmin is the club a club link opens, the club admin's or one with a
+// role (ClubByLink, which says which).
 func (s *Store) ClubByAdmin(ctx context.Context, token string) (Club, error) {
-	personal, id, ok := splitVia(token)
-	if !ok {
-		return s.clubBy(ctx, "admin_hash = $1", hash(token))
-	}
-	h, err := holderOf(ctx, s.db, personal)
-	if err != nil {
-		return Club{}, err
-	}
-	return s.clubBy(ctx, `id = $1 AND EXISTS (SELECT 1 FROM shared_ties t WHERE t.kind = 'club' AND t.target_id = clubs.id
-		AND t.link_hash = clubs.admin_hash AND t.record_id IN (`+personRecords("2")+`))`, id, h.PersonID)
+	c, _, err := s.ClubByLink(ctx, token)
+	return c, err
 }
 
 // ClubByJoinLink is the club a join link joins.

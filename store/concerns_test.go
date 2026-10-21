@@ -65,12 +65,12 @@ func TestMessagesAndReplies(t *testing.T) {
 
 	// The sender adds to it: theirs, and only theirs.
 	now = now.Add(time.Minute)
-	more, err := s.AddToMessage(ctx, c.ID, k.ID, club.ID, "And L4?")
+	more, err := s.AddToMessage(ctx, c.ID, k.ID, club.ID, "", "And L4?")
 	must(t, err)
-	if _, err := s.AddToMessage(ctx, c.ID, k.ID, ann.ID, "Not mine"); !errors.Is(err, ErrNotFound) {
+	if _, err := s.AddToMessage(ctx, c.ID, k.ID, ann.ID, "", "Not mine"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("adding to someone else's: %v", err)
 	}
-	if _, err := s.AddToMessage(ctx, c.ID, flag.ID, "", "A flag"); !errors.Is(err, ErrNotFound) {
+	if _, err := s.AddToMessage(ctx, c.ID, flag.ID, "", "", "A flag"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("adding to a flag: %v", err)
 	}
 	got, _ = s.Concern(ctx, c.ID, k.ID)
@@ -97,7 +97,7 @@ func TestMessagesAndReplies(t *testing.T) {
 	}
 
 	// More from Ann opens hers again; still received.
-	_, err = s.AddToMessage(ctx, c.ID, m.ID, ann.ID, "It's still wrong")
+	_, err = s.AddToMessage(ctx, c.ID, m.ID, ann.ID, "", "It's still wrong")
 	must(t, err)
 	if got, _ := s.Concern(ctx, c.ID, m.ID); !got.Open() || !got.Acknowledged() || !got.Waiting() || got.Resolution != "Swapped the cards" {
 		t.Errorf("open again: %+v", got)

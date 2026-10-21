@@ -14,16 +14,18 @@ import (
 // (coaches) and their entering on their own (individuals), each with its own
 // personal link; records with the same person_id are one person. A personal
 // link also opens the shared links the person has added to their page (a
-// club's admin link, a competition's admin or helper link), kept in
-// shared_ties against the record whose page they were added on.
+// club's admin link or a link with one of its roles, a competition's admin
+// or helper link), kept in shared_ties against the record whose page they
+// were added on.
 //
 // Tokens are only kept as hashes, so a page can't link to another of the
 // person's links. Instead a personal link opens the person's other roles at
 // their own paths with "{personal token}~{id}" in place of the role's token:
-// the member, coach, individual or entry's id, the club's id for its comp
-// sec's pages, or the competition's or helper link's id for an admin link.
-// Every way of finding a role by its token accepts both. A shared link never
-// opens a person: only a personal link's token goes before the "~".
+// the member, coach, individual or entry's id; the club's id for its club
+// admin's pages, or the club link's id for one of its roles; the
+// competition's or helper link's id for an admin link. Every way of finding
+// a role by its token accepts both. A shared link never opens a person: only
+// a personal link's token goes before the "~".
 
 var (
 	// ErrOwnLink is a link added to its own page.
@@ -68,6 +70,7 @@ const (
 	RoleClub       = "club"       // a club's comp sec, by its admin link
 	RoleOrganiser  = "organiser"  // a competition's organiser, by its admin link
 	RoleHelper     = "helper"     // a competition's helper, by an extra admin link (ADR 0009)
+	RoleClubLink   = "clublink"   // one of a club's roles, by a link the club admin made (ADR 0015)
 )
 
 // querier is the database or a transaction.
@@ -256,9 +259,9 @@ func individualsFromEntries(ctx context.Context, tx *sql.Tx) error {
 
 // Role is one of a person's roles, as the tabs of their pages show them.
 type Role struct {
-	Kind  string // RoleMember, RoleCoach, RoleIndividual, RoleClub, RoleOrganiser or RoleHelper
-	ID    string // the member, coach or individual; the club; the competition; the helper link
-	Name  string // their name in the role, or the helper link's name
+	Kind  string // RoleMember, RoleCoach, RoleIndividual, RoleClub, RoleClubLink, RoleOrganiser or RoleHelper
+	ID    string // the member, coach or individual; the club; the club's link; the competition; the helper link
+	Name  string // their name in the role, the club role's name, or the helper link's name
 	Place string // the club or competition
 	// TieID is a shared link's tie, to take it off the page; "" for the
 	// person's own records.
@@ -283,7 +286,10 @@ func (s *Store) Roles(ctx context.Context, token string) (Holder, []Role, error)
 			WHERE t.kind = 'organiser' AND t.record_id IN (`+personRecords("1")+`)
 		UNION ALL SELECT 'helper', l.id, l.name, c.name, t.id FROM shared_ties t JOIN competition_links l ON l.id = t.target_id AND l.token_hash = t.link_hash
 			JOIN competitions c ON c.id = l.competition_id
-			WHERE t.kind = 'helper' AND t.record_id IN (`+personRecords("1")+`)`, h.PersonID)
+			WHERE t.kind = 'helper' AND t.record_id IN (`+personRecords("1")+`)
+		UNION ALL SELECT 'clublink', l.id, r.name, c.name, t.id FROM shared_ties t JOIN club_links l ON l.id = t.target_id AND l.token_hash = t.link_hash
+			JOIN club_roles r ON r.id = l.role_id JOIN clubs c ON c.id = l.club_id
+			WHERE t.kind = 'clublink' AND t.record_id IN (`+personRecords("1")+`)`, h.PersonID)
 	if err != nil {
 		return h, nil, err
 	}
@@ -309,8 +315,8 @@ func (s *Store) Roles(ctx context.Context, token string) (Holder, []Role, error)
 // opens a role through): "pasted", a link of kind role. Pasting a link proves
 // holding it (ADR 0010). Another personal link (a member's, coach's or
 // individual's, or an entry link) joins its person to this one, both ways; a
-// shared link (RoleClub for a club's admin link, RoleOrganiser for any of a
-// competition's admin links) lets this person's links open it, but never the
+// shared link (RoleClub for any of a club's links, the club admin's or one
+// with a role; RoleOrganiser for any of a competition's admin links) lets this person's links open it, but never the
 // other way. It returns the role added.
 func (s *Store) Tie(ctx context.Context, token, kind, pasted string) (Role, error) {
 	var role Role
@@ -337,12 +343,18 @@ func (s *Store) Tie(ctx context.Context, token, kind, pasted string) (Role, erro
 			role = Role{Kind: other.Kind, ID: other.ID}
 			return s.merge(ctx, tx, own.PersonID, other.PersonID)
 		case RoleClub:
-			var clubID string
-			if err := tx.QueryRowContext(ctx, `SELECT id, name FROM clubs WHERE admin_hash = $1`, hash(pasted)).Scan(&clubID, &role.Place); err != nil {
+			err := tx.QueryRowContext(ctx, `SELECT id, name FROM clubs WHERE admin_hash = $1`, hash(pasted)).Scan(&role.ID, &role.Place)
+			role.Kind = RoleClub
+			if errors.Is(err, sql.ErrNoRows) {
+				// One of the club's roles, by a link the club admin made.
+				role.Kind = RoleClubLink
+				err = tx.QueryRowContext(ctx, `SELECT l.id, r.name, c.name FROM club_links l JOIN club_roles r ON r.id = l.role_id
+					JOIN clubs c ON c.id = l.club_id WHERE l.token_hash = $1`, hash(pasted)).Scan(&role.ID, &role.Name, &role.Place)
+			}
+			if err != nil {
 				return notFound(err)
 			}
-			role.Kind, role.ID = RoleClub, clubID
-			return s.addShared(ctx, tx, own, RoleClub, clubID, hash(pasted))
+			return s.addShared(ctx, tx, own, role.Kind, role.ID, hash(pasted))
 		case RoleOrganiser:
 			err := tx.QueryRowContext(ctx, `SELECT id, name FROM competitions WHERE admin_hash = $1`, hash(pasted)).Scan(&role.ID, &role.Place)
 			role.Kind = RoleOrganiser

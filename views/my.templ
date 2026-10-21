@@ -76,12 +76,14 @@ type SentMessage struct {
 	StatusState         State
 	Thread              []SentPost
 	Add                 string // where adding to it posts; "" while the organiser isn't taking messages
+	By                  string // who of the club sent it, for a club's (ADR 0015); "" for one's own
 }
 
 // SentPost is something added to a message since, as the sender sees it.
 type SentPost struct {
-	Text, At string
-	Organiser bool // the organiser's reply; otherwise theirs
+	Text, At  string
+	Organiser bool   // the organiser's reply; otherwise theirs
+	By        string // who of the club added it, for a club's message; "" for one's own
 }
 
 // tellOrganiser is the form for telling the organiser, closed until asked
@@ -138,7 +140,12 @@ templ tellOrganiser(t *TellOrganiser) {
 						<div class="comp-tell-sent" id={ "message-" + m.ID }>
 							<p class="mb-1">
 								@StateChip(m.StatusState, m.Status)
-								<span class="is-size-7 has-text-grey">{ m.At }</span>
+								<span class="is-size-7 has-text-grey">
+									if m.By != "" {
+										{ m.By },
+									}
+									{ m.At }
+								</span>
 								if m.About != "" {
 									<span class="is-size-7 has-text-grey">· about { m.About }</span>
 								}
@@ -148,6 +155,8 @@ templ tellOrganiser(t *TellOrganiser) {
 								<div class={ "comp-tell-post", templ.KV("is-organiser", r.Organiser) }>
 									if r.Organiser {
 										<p class="is-size-7 has-text-grey">The organiser replied, { r.At }</p>
+									} else if r.By != "" {
+										<p class="is-size-7 has-text-grey">{ r.By } added, { r.At }</p>
 									} else {
 										<p class="is-size-7 has-text-grey">You added, { r.At }</p>
 									}

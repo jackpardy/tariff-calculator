@@ -576,7 +576,15 @@ func (p *competitionPages) concernViews(ctx context.Context, c store.Competition
 			}
 		}
 		for _, post := range k.Thread {
-			v.Thread = append(v.Thread, views.ThreadPost{Who: post.Who, Text: post.Text, At: post.At.In(local).Format("Mon 2 Jan, 15:04"), Organiser: !post.BySender})
+			tp := views.ThreadPost{Who: post.Who, Text: post.Text, At: post.At.In(local).Format("Mon 2 Jan, 15:04"), Organiser: !post.BySender}
+			switch {
+			case post.BySender && k.Role == store.RoleClub:
+				// Any of the club's links adds to it (ADR 0015): who of the club.
+				tp.Who = senderName(store.Sender{Role: k.Role, Name: post.Who, Club: k.Club})
+			case post.BySender:
+				tp.Who = "" // the sender: "They added"
+			}
+			v.Thread = append(v.Thread, tp)
 		}
 		out = append(out, v)
 	}

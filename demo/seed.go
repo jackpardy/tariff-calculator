@@ -193,11 +193,61 @@ var (
 )
 
 // clubRun is a club as the demo made it: its admin link, coaches' links by
-// name, and members.
+// name, members, and the links its club admin made with a role (ADR 0015).
 type clubRun struct {
 	name, admin string
 	coaches     map[string]string
 	members     []person
+	roles       []roleLink
+}
+
+// roleLink is a link a club admin made for someone, with a role.
+type roleLink struct {
+	role, person, link string
+}
+
+// clubRoles are the club's roles (ADR 0015), made by its club admin on
+// Settings: a Treasurer, who sees the fees, and a Team manager, who talks
+// to the organiser, each with a link for one of its members.
+func (s *seeder) clubRoles(run clubRun) []roleLink {
+	var out []roleLink
+	for i, r := range []struct {
+		name        string
+		permissions []string
+	}{
+		{"Treasurer", []string{"fees"}},
+		{"Team manager", []string{"organiser"}},
+	} {
+		s.post(run.admin+"/roles", url.Values{"name": {r.name}, "permission": r.permissions})
+		// Settings lists the roles in the order they were made.
+		ids := regexp.MustCompile(`action="`+regexp.QuoteMeta(run.admin)+`/roles/([^"/]+)"`).FindAllStringSubmatch(s.get(run.admin+"/settings"), -1)
+		if s.err != nil {
+			return out
+		}
+		if len(ids) <= i {
+			s.fail("no role %s on %s's Settings", r.name, run.name)
+			return out
+		}
+		id := ids[i]
+		who := r.name // a member of the club, where there are enough
+		if len(run.members) > 4+i {
+			who = run.members[4+i].name
+		}
+		rec := s.do(http.MethodPost, run.admin+"/links", url.Values{"name": {who}, "role": {id[1]}})
+		if rec.Code != http.StatusOK {
+			s.fail("making %s's link: %d", who, rec.Code)
+			return out
+		}
+		// The new link is the page's one full address under /clubs/admin/:
+		// the page's own links are paths.
+		m := regexp.MustCompile(`http://example\.com(/clubs/admin/[A-Za-z0-9_-]+)`).FindStringSubmatch(rec.Body.String())
+		if m == nil {
+			s.fail("no link shown for %s", who)
+			return out
+		}
+		out = append(out, roleLink{role: r.name, person: who, link: m[1]})
+	}
+	return out
 }
 
 // levelShare is a level and how many of each hundred gymnasts enter it.
@@ -442,6 +492,7 @@ func (s *seeder) run(out io.Writer) error {
 	} else {
 		s.fail("no coach %s for %s", coachToo.name, coached.name)
 	}
+	runs[0].roles = s.clubRoles(first)
 
 	// Synchro pairs, up to four a club: men and women alike, about a third
 	// with a gymnast from another club, two gymnasts no more than a level
@@ -688,9 +739,12 @@ func (s *seeder) run(out io.Writer) error {
 	fmt.Fprintf(out, "Officials:              %s/officials\n", admin)
 	fmt.Fprintf(out, "Difficulty judges:      %s\n", judges)
 	fmt.Fprintf(out, "Chairs of judges:       %s\n\n", chairs)
-	fmt.Fprintln(out, "Clubs (comp sec pages):")
+	fmt.Fprintln(out, "Clubs (club admin pages):")
 	for _, c := range clubAdmins {
 		fmt.Fprintf(out, "  %s\n", c)
+	}
+	for _, r := range runs[0].roles {
+		fmt.Fprintf(out, "%-24s%s (%s): %s\n", "A "+strings.ToLower(r.role)+":", r.person, runs[0].name, r.link)
 	}
 	fmt.Fprintf(out, "\nA member:               %s\n", firstMember)
 	fmt.Fprintf(out, "Their competition:      %s\n", strings.SplitN(firstMember, ": ", 2)[1]+"/competitions/"+compID+"/day")

@@ -113,7 +113,7 @@ var calculatorPages = []string{"/", "/compare", "/view", "/tariff-sheet", "/requ
 // it's saved with (an admin link's is the link's own).
 var feedbackRoots = map[string]string{
 	adminPrefix:                     "",
-	"/clubs/admin/{token}":          "Comp sec",
+	"/clubs/admin/{token}":          "Club admin", // or the link's person and role (ADR 0015)
 	"/competitions/club/{token}":    "Comp sec",
 	"/clubs/member/{token}":         "Member",
 	"/clubs/coach/{token}":          "Coach",
@@ -315,6 +315,8 @@ func (p *competitionPages) feedbackFrom(w http.ResponseWriter, r *http.Request) 
 		if !found {
 			return role, nil, token, false
 		}
+		// Who of the club, and which club: "Mary (Treasurer), UCD" (ADR 0015).
+		role = clubLinkOf(r).Who() + ", " + club.Name
 		return competition(id != "" && entered(club.ID))
 	case "/clubs/member/{token}":
 		m, found := p.member(w, r)

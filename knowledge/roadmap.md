@@ -225,6 +225,9 @@ coaches, certificates, talk to the organiser, club settings), and makes a
 link for each person with a role; feedback, messages and a club history
 then say who. Built before the dry run so the clubs there try it. The plan
 and the owner's decisions are in [ADR 0015](../docs/adr/0015-club-roles.md).
+**Built 2026-10-21** ([club roles and links](features/competition-entries.md#club-roles-and-links-adr-0015)):
+the demo's first club has a treasurer's and a team manager's link. To
+refine after the dry-run clubs say what they think.
 
 **Later (decided 2026-10-15):** a member moving club takes their routines,
 marks and progress with them. Not to start with: they stay with the club.

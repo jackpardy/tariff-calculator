@@ -23,7 +23,7 @@ type OfferForm struct {
 type JudgingBox struct {
 	Whose   string // "Your", or the member's name and "'s"
 	List    []JudgingRow
-	Add     string // where adding posts (an upload)
+	Add     string // where adding posts (an upload); "" for a club role that can't (ADR 0015)
 	Back    string // the page to come back to
 	Options []FlightOption
 	Full    bool   // as many as a judge can have
@@ -33,7 +33,8 @@ type JudgingBox struct {
 	ID      string // its id on the page, where several entries each show one; "" for "judging"
 }
 
-// JudgingRow is one judging qualification.
+// JudgingRow is one judging qualification: Certificate and Remove are ""
+// for a club role that can't open or remove it (ADR 0015).
 type JudgingRow struct {
 	Name, Certificate, Remove string
 }
@@ -117,15 +118,22 @@ templ judgingBox(b JudgingBox) {
 		}
 		for _, q := range b.List {
 			<div class="comp-qualification">
-				<span>{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a></span>
-				<form method="post" action={ templ.SafeURL(q.Remove) } class="is-inline">
-					<input type="hidden" name="back" value={ b.Back }/>
-					<input type="hidden" name="at" value={ judgingID(b) }/>
-					<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
-				</form>
+				<span>
+					{ q.Name }
+					if q.Certificate != "" {
+						· <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a>
+					}
+				</span>
+				if q.Remove != "" {
+					<form method="post" action={ templ.SafeURL(q.Remove) } class="is-inline">
+						<input type="hidden" name="back" value={ b.Back }/>
+						<input type="hidden" name="at" value={ judgingID(b) }/>
+						<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
+					</form>
+				}
 			</div>
 		}
-		if !b.Full {
+		if !b.Full && b.Add != "" {
 			<details class="comp-judging-add mt-2">
 				<summary class="button is-small comp-opens-button">Add a judging qualification</summary>
 				<form method="post" action={ templ.SafeURL(b.Add) } enctype="multipart/form-data" class="comp-flight-actions">

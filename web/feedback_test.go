@@ -138,8 +138,8 @@ func TestFeedbackFromEveryLink(t *testing.T) {
 	}{
 		{"the organiser", admin, "Organiser", "Entries", "Student Open"},
 		{"a helper link", chair, "Helper link: Chairs (chairs of judges)", "Entries", "Student Open"},
-		{"a comp sec", unescape(compSec[1]), "Comp sec", "A member's entry", "Student Open"},
-		{"a club's home", ucd.page, "Comp sec", "Club home", ""},
+		{"a comp sec", unescape(compSec[1]), "Club admin, UCD", "A member's entry", "Student Open"},
+		{"a club's home", ucd.page, "Club admin, UCD", "Club home", ""},
 		{"a member", annPage, "Member", "Their entries", "Student Open"},
 		{"a member's My competition", annPage + "/day", "Member", "My competition", "Student Open"},
 		{"a member's home", ann, "Member", "Member home", ""},
