@@ -411,7 +411,7 @@ func (p *competitionPages) coachSees(w http.ResponseWriter, r *http.Request, coa
 				failed(w, r, err)
 				return e, c, false
 			}
-			feedbackOn(r, c)
+			feedbackAbout(r, c)
 			return e, c, true
 		}
 	}

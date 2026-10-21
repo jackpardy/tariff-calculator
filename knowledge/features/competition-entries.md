@@ -34,7 +34,7 @@ are `views/competitions.templ` (the layout and shared parts),
     - [The menu and the Settings page (roadmap 2026-10-14)](#the-menu-and-the-settings-page-roadmap-2026-10-14)
     - [All people (roadmap 2026-10-14)](#all-people-roadmap-2026-10-14)
     - [Helpers' links, history and concerns (ADR 0009)](#helpers-links-history-and-concerns-adr-0009)
-    - [Feedback about the app (ready for the dry run)](#feedback-about-the-app-ready-for-the-dry-run)
+    - [Feedback about the app (ready for the dry run)](#feedback-about-the-app)
     - [When entries, changes and sign-offs close](#when-entries-changes-and-sign-offs-close)
     - [Late changes](#late-changes)
     - [Limits and waiting lists](#limits-and-waiting-lists)
@@ -202,59 +202,112 @@ when, and those resolved closed beneath (with none open, one line opening to
 them); the organiser and co-organisers mark each **Resolved**, with a note. The demo has helpers' links (printed by `demo`),
 three cards checked and two concerns.
 
-## Feedback about the app (ready for the dry run)
+## Feedback about the app
 
-For the dry run, everyone using a competition's pages can tell the people
-who make the app what confused them, at the moment it does. A small
-**Feedback** dropdown sits at the foot of every page someone uses for one
-competition: the organiser's and helpers' pages, the comp sec's pages for a
-member's entry, offers, late changes, notifications and the club's
-timetable, the club link's entering page, a member's and coach's pages for
-the competition, an individual's entry pages and My competition, entering on
-their own, the synchro partner's page and the individual's coach's sign-off.
-Not the venue screen, printouts, cards, downloads, or pages about several
-competitions (a club's, member's, coach's or individual's home page, and a
-coach's late change). It opens a short form: what happened or what they
-think (required, up to 2,000 characters) and, optionally, a name or email
-for a reply (up to 200). `static/js/feedback.js` sends it without leaving
-the page and says "Thanks: your feedback is sent." there; without
-JavaScript the page comes back at `#feedback-sent`, which shows the thanks.
+Anyone on any page of the app can tell the maintainer what confused them,
+at the moment it does. Feedback goes to the **maintainer**, not to each
+competition's organiser (messages to the organiser are separate: helper
+links' **Flag a concern**, and later the same for everyone). Built for the
+dry run, it replaced the first version (migration 40), which the organiser
+read on a Feedback page of their own; that page, its menu tab and its
+Settings switch are gone, and what had been sent moved to the maintainer
+(migration 47).
 
-What's kept (migration 40, the `feedback` table, in `store/feedback.go`):
-the competition, the words, the reply-to, the role (Organiser, "Helper
-link: Chairs (chairs of judges)", Comp sec, Member, Coach, Individual,
-Synchro partner or An individual's coach, from the link it's posted under,
-never from the form), the page as its **route pattern**
-(`/clubs/member/{token}/competitions/{id}/day`, only one of those with the
-button; never the path, which holds the secret link) and the time. No
-token is kept. A competition takes 200 in any 24 hours; empty or overlong
-feedback is refused with a plain reason.
+**The button.** A **Feedback** tab sits at the right edge of the screen,
+half way down, on every page drawn with the app's layout: the calculator's
+pages (Routine builder, Compare, View, Tariff sheet, Requirements), the
+competition and club pages of every link, home pages included, and the pages
+before a link (making a competition or a club, joining one). Not the venue
+screen, printouts (cards, invoices, the timetable's sheets, score sheets) or
+downloads. Being at the edge, it's in reach wherever someone is on a page,
+and clear of the bars along the bottom. It opens a short form over the page:
+what happened or what they think (required, up to 2,000 characters) and,
+optionally, a name or email for a reply (up to 200). Its look is its own
+(`static/css/feedback.css`), the same on pages with Bulma and without.
+`static/js/feedback.js` sends it without leaving the page and says "Thanks:
+your feedback is sent."; without JavaScript the page comes back at
+`#feedback-sent`, which shows the thanks.
 
-How it works (`web/feedback.go`): `feedbackPages` lists the pages with the
-button by pattern. For those, the request gets an empty
-`views.FeedbackForm`; the loader that finds the page's competition
-(`gate` for the admin pages, `enteredCompetition`, `own`, `individual`,
-`clubLinkCompetition`, `invite`, `signoffEntry`, `gymnastEntered`,
-`coachSees`) fills in the competition and whether it shows the button, and
-the layout (`competitionLayout`) draws it. So no page loads the competition
-twice for it. The form posts to its link's own `/feedback` route; for a
-club's, member's, coach's or individual's link the posted competition must
-be one they're entered in.
+**Full or Light.** The maintainer chooses what goes with each piece:
 
-The organiser turns it off or on in **Settings** under Feedback ("Show a
-Feedback button on every page"); it's on for new competitions and, from the
-migration, for those already made. The **Feedback** page (in the Settings
-section of the menu, with a count of those not dealt with) lists it newest
-first: when, role, page, the words and the reply-to, with a **Dealt with**
-tick. Like resolving concerns, reading it needs the organiser's or a
-co-organiser's link; anyone with an admin link but the venue screen's can
-send it. Sending, marking and turning it on or off are in the history.
+- **Full** (to start with, for the demo and the dry run, where everyone has
+  been told): as the form opens, before it covers anything, a **picture of
+  the screen** (what's in the window, not the whole page, drawn in the
+  browser by the vendored modern-screenshot, loaded only then) and a **copy
+  of the page** (its HTML with what had been typed, ticked and picked written
+  in, without its scripts, gzipped where the browser can), plus every
+  detail below. The form says so: "A picture of your screen and a copy of
+  this page go with it, to the people who make the app only."
+- **Light** (before real entries open): the details, without the dropdowns'
+  names, and a picture only when they tick **Include a picture of the
+  screen**, which shows it before it's sent, with anything marked
+  `data-private` blurred (every link box, `linkBox`; the email on Hearing
+  about changes; the "your other link" box when entering). No copy of the
+  page.
 
-With `FEEDBACK_EMAIL` set and email set up ([deploy](../operations/deploy.md#notifications)),
-each is emailed there too, with a `Reply-To` when the reply-to is an email
-address, sent in the background (`emailFeedback`, one call to move onto the
-background sender). The demo has two, from a member's My competition and the
-chairs of judges.
+The **details** are what the browser says about itself, each bounded: its
+window and screen size, user agent and language, whether it thought it had
+signal, opened from the home screen, the app version and when the page was
+made (a page kept offline is older), how far down they'd scrolled, taps
+waiting for signal, the page's last script errors and failed requests (never
+an address), the pages opened before in that tab (as patterns), and in Full
+which dropdowns were open.
+
+**What's kept** (`store/sitefeedback.go`): `site_feedback` has the words,
+the reply-to, the role (Organiser, "Helper link: Chairs (chairs of
+judges)", Comp sec, Member, Coach, Individual, Synchro partner, An
+individual's coach, Calculator, or Without a link, from the link it's posted
+under, never from the form), the page as its **route pattern**
+(`/clubs/member/{token}/competitions/{id}/day`, only a page the app has;
+never the path, which holds the secret link), the competition it was sent
+from and its name, the details as JSON and the time. The sender's link token
+is taken out of the details and the copy wherever it appears. The picture
+and copy are in `site_feedback_captures`, apart, so they can be deleted on
+their own: they go by themselves after 90 days (with the rest of what
+expires), or all at once from the maintainer's page, and they're left off
+(the words still kept) past 500 MB of them or with the disk nearly full. The
+app takes 300 pieces a day; an address sends 30 an hour from the pages
+without a link (a whole gym on one wifi shares an address); a picture is up
+to 2 MB, a copy 3 MB as sent and 12 MB unzipped. A picture that isn't a
+JPEG, PNG or WebP is left off.
+
+**The copy, cleaned.** It's cleaned once, as it arrives (`web/snapshot.go`,
+`cleanSnapshot`): no scripts, frames, objects or `<base>`, no `on…`, htmx or
+Alpine attributes, no form action, every link going nowhere (`#`), only the
+app's own style sheets (at their current version, so a copy from before a
+deploy still looks right) and pictures, and a mark where they'd scrolled to.
+As it's shown, the app's style sheets go into it (`inlineStyles`), so it
+asks for nothing; it's served with a policy that runs nothing, sends no form
+and loads nothing from elsewhere (`snapshotPolicy`: `sandbox`, `default-src
+'none'`). On the maintainer's page, `static/js/maintainer.js` fetches it as
+its section opens into a sandboxed frame (`srcdoc`: the desktop app's
+browser refuses a sandboxed frame's own requests), the frame the page's
+whole height in a box the size of their window, scrolled to where they were.
+
+**How it works** (`web/feedback.go`): every GET page registered under the
+competition routes is noted (`notePage`), and the calculator's pages are
+wrapped (`public`); for those, while the button is on, the request gets a
+`views.FeedbackForm` and the layout draws it. A page under a link posts to
+that link's own `/feedback` route, so the role is the link's; the loader
+that finds the page's competition marks it (`feedbackAbout`), and for a
+club's, member's, coach's or individual's link the competition is kept only
+if they can see it. Any other page posts to `/feedback`.
+
+**The maintainer's page** (`web/maintainerpages.go`) is at `/site/{token}`,
+opened with a link made on the server (`tariffCalculator maintainer-link`,
+[deploy](../operations/deploy.md#notifications)); making one stops the last
+from working, and only its hash is kept. It lists what's not dealt with, or
+**All**, newest first: the words, when, role, page, competition, reply-to,
+the picture, **The page as they had it** and **Details**, with a **Dealt
+with** tick. Above, as settings lines: the button on every page or not shown
+anywhere, Full or Light, and the pictures and copies kept, with **Delete**.
+Any other address under `/site/` is a page that isn't there.
+
+With `FEEDBACK_EMAIL` set and email set up, each is emailed there too: the
+words, competition, role, page, time, reply-to (as `Reply-To` when it's an
+email address), a line of the details, and whether a picture and copy are on
+the maintainer's page; never a link. The demo has two, from a member's My
+competition and the chairs of judges.
 
 ## When entries, changes and sign-offs close
 

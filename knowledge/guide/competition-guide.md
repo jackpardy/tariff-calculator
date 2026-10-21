@@ -81,10 +81,9 @@ All entries, People, Late changes, Coaches (when you approve coaches) and Fees, 
 Late changes and Coaches when something waits for you. **Timetable** has
 Flights (the timetable itself), Setup, Officials, Simulate and the two "what if" pages. **On the day** has
 Areas (the day's page), Desk messages and the Venue screen. **Settings** has
-Competition (the settings themselves), History and Feedback (its tab says how much feedback is new).
+Competition (the settings themselves) and History.
 On a phone the bar scrolls sideways: its edge fades, with a small arrow, where there's more. A helper's link shows only the sections
-it can open: one that can read feedback but not change settings has a
-**Feedback** tab.
+it can open.
 
 The entries page shows the counts, then a table for each event (a level, or
 "Synchro BUCS L3", "Tumbling Novice"): gymnast (both names for a synchro pair), club,
@@ -181,12 +180,12 @@ pair's one routine), checked as the Routine Builder checks them.
   the entries page says how many are open and goes to them, listed at the
   foot of the page; mark each **Resolved**, with a note of what was done, and
   those resolved fold away beneath.
-- **Feedback:** while the app is new, every page has a **Feedback** button
-  at the foot, for anyone to say what confused them. It goes to the people
-  who make the app, and you see it under **Settings**, **Feedback** (the
-  Settings tab says how many are new): tick
-  **Dealt with** as you go. Turn the button off in **Settings**, under
-  Feedback.
+- **Feedback:** while the app is new, every page has a **Feedback** tab at
+  the right edge of the screen, for anyone to say what confused them. It
+  goes to the people who make the app, not to you; while the app is being
+  tried out, a picture of the screen and a copy of the page go with it, and
+  the form says so. For something about your competition, people tell you
+  as they always have (helpers can **Flag a concern**).
 - **Approved coaches:** where entries need sign-off, tick **Coaches must be
   approved** and choose the lowest coaching level you accept in each
   discipline (Level 2 to start with; British Gymnastics and Gymnastics

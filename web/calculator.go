@@ -42,7 +42,7 @@ func routesWithPages(pages *competitionPages) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET "+static.Prefix, static.Handler())
 
-	mux.HandleFunc("GET /{$}", handleIndex)
+	mux.HandleFunc("GET /{$}", pages.public(handleIndex))
 	mux.HandleFunc("POST /skill-form", handleSkillForm)
 	mux.HandleFunc("POST /skill-inputs", handleSkillInputs)
 	mux.HandleFunc("GET /skill-search", handleSkillSearch)
@@ -52,15 +52,15 @@ func routesWithPages(pages *competitionPages) http.Handler {
 	mux.HandleFunc("POST /routine", handleRoutineView)
 	mux.HandleFunc("POST /set-routine", handleSetRoutine)
 	mux.HandleFunc("POST /qr", handleQR)
-	mux.HandleFunc("GET /compare", handleComparePage)
+	mux.HandleFunc("GET /compare", pages.public(handleComparePage))
 	mux.HandleFunc("POST /compare", handleCompare)
-	mux.HandleFunc("GET /requirements", handleRequirementsPage)
+	mux.HandleFunc("GET /requirements", pages.public(handleRequirementsPage))
 	mux.HandleFunc("POST /requirements/editor", handleSetEditor)
 	mux.HandleFunc("POST /requirements/level-editor", handleLevelEditor)
 	mux.HandleFunc("POST /requirements/set-routine", handleSetRoutineFrom)
-	mux.HandleFunc("GET /view", handleViewPage)
+	mux.HandleFunc("GET /view", pages.public(handleViewPage))
 	mux.HandleFunc("POST /view", handleView)
-	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
+	mux.HandleFunc("GET /tariff-sheet", pages.public(handleTariffSheetPage))
 	mux.HandleFunc("POST /tariff-sheet", handleTariffSheet)
 	mux.HandleFunc("GET /sw.js", handleServiceWorker)
 	mux.HandleFunc("GET /manifest.webmanifest", handleManifest)
@@ -87,6 +87,8 @@ func routesWithPages(pages *competitionPages) http.Handler {
 		limit := int64(maxRequestBytes)
 		if r.Method == http.MethodPost && uploads(r.URL.Path) {
 			limit = maxUploadBytes
+		} else if r.Method == http.MethodPost && sendsFeedback(r.URL.Path) {
+			limit = maxFeedbackBytes
 		} else if r.Method == http.MethodPost && keepsRoutines(r.URL.Path) {
 			limit = maxKeepBytes
 		}

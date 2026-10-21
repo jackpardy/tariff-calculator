@@ -15,10 +15,10 @@ import (
 // those it does). A new table goes in one or the other.
 var notWatched = []string{
 	"checkins", "club_levels", "club_skills", "clubs", "coach_qualifications", "competition_links",
-	"competition_log", "concerns", "desk_messages", "feedback", "flight_times", "judge_qualifications",
+	"competition_log", "concerns", "desk_messages", "flight_times", "judge_qualifications",
 	"late_requests", "member_offers", "member_routines", "migrations", "notify_subscriptions",
 	"official_checkins", "payments", "person_requirements", "scratch_clears", "screen_notices", "settings",
-	"shared_ties", "skill_marks", "up_now",
+	"shared_ties", "site_feedback", "site_feedback_captures", "skill_marks", "up_now",
 }
 
 // Every table is either one the pages' cache reads from, so changes to it
@@ -139,8 +139,8 @@ func TestWrites(t *testing.T) {
 		return err
 	})
 	moves("a notice on the screens", func() error { return s.ShowOnScreen(ctx, a.ID, "Lunch", now.Add(time.Hour), "desk") })
-	moves("feedback", func() error {
-		_, err := s.AddFeedback(ctx, a.ID, Feedback{Text: "Lovely"})
+	moves("feedback about the app", func() error {
+		_, err := s.AddSiteFeedback(ctx, SiteFeedback{Text: "Lovely", CompetitionID: a.ID}, Capture{Picture: []byte("jpeg"), PictureType: "image/jpeg"})
 		return err
 	})
 	moves("a push subscription", func() error {

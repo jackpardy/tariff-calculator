@@ -170,6 +170,7 @@ func deleteExpired(st *store.Store) {
 		case comps+clubs > 0:
 			log.Printf("Deleted %d expired competitions and %d unused clubs", comps, clubs)
 		}
+		deleteOldCaptures(st, time.Now())
 		time.Sleep(6 * time.Hour)
 	}
 }

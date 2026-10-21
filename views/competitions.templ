@@ -134,13 +134,14 @@ templ problemList(problems []string) {
 	}
 }
 
-// linkBox shows a link to copy. A secret one says so.
+// linkBox shows a link to copy. A secret one says so. It's blurred in a
+// picture sent with feedback (data-private, Light).
 templ linkBox(label, url, hint string) {
 	<div class="field comp-link">
 		<label class="label is-small">{ label }</label>
 		<div class="field has-addons">
 			<div class="control is-expanded">
-				<input class="input is-small" type="text" readonly value={ url } aria-label={ label }/>
+				<input class="input is-small" type="text" readonly value={ url } aria-label={ label } data-private/>
 			</div>
 			<div class="control">
 				<button type="button" class="button is-small" data-copy={ url }>Copy</button>

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 	_ "time/tzdata" // the image has no zoneinfo; deadlines are Irish and UK time
 
@@ -46,21 +47,26 @@ type competitionPages struct {
 	limiter, clubLimiter, joinLimiter *limiter
 	emailLimiter                      *limiter // confirmation emails asked for, per address
 	now                               func() time.Time
-	notify                            *notifier // nil when storage is off
-	facts                             factCache // what the pages work out from each competition's entries
-	fixes                             fixCache  // changes that might make each timetable fit
-	feedbackTo                        string    // where feedback is emailed (FEEDBACK_EMAIL); "" for nowhere
+	notify                            *notifier                              // nil when storage is off
+	facts                             factCache                              // what the pages work out from each competition's entries
+	fixes                             fixCache                               // changes that might make each timetable fit
+	feedbackTo                        string                                 // where feedback is emailed (FEEDBACK_EMAIL); "" for nowhere
+	feedbackLimiter                   *limiter                               // feedback from pages without a link, per address
+	siteFeedback                      atomic.Pointer[store.FeedbackSettings] // the maintainer's choices, once read
+	pages                             map[string]bool                        // the GET patterns of the pages here, which can send feedback
 }
 
 func newCompetitionPages(st *store.Store) *competitionPages {
 	p := &competitionPages{
-		st:           st,
-		limiter:      newLimiter(maxCompetitionsPerHour, time.Hour),
-		clubLimiter:  newLimiter(maxClubsPerHour, time.Hour),
-		joinLimiter:  newLimiter(maxJoinsPerHour, time.Hour),
-		emailLimiter: newLimiter(maxEmailsPerHour, time.Hour),
-		now:          time.Now,
-		feedbackTo:   os.Getenv("FEEDBACK_EMAIL"),
+		st:              st,
+		limiter:         newLimiter(maxCompetitionsPerHour, time.Hour),
+		clubLimiter:     newLimiter(maxClubsPerHour, time.Hour),
+		joinLimiter:     newLimiter(maxJoinsPerHour, time.Hour),
+		emailLimiter:    newLimiter(maxEmailsPerHour, time.Hour),
+		feedbackLimiter: newLimiter(maxFeedbackPerHour, time.Hour),
+		now:             time.Now,
+		feedbackTo:      os.Getenv("FEEDBACK_EMAIL"),
+		pages:           map[string]bool{},
 	}
 	if st != nil {
 		p.notify = newNotifier(st)
@@ -73,10 +79,12 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 		if strings.Contains(pattern, " "+adminPrefix) {
 			h = p.gate(pattern, h)
 		}
+		p.notePage(pattern)
 		mux.Handle(pattern, p.secret(h))
 	}
 	p.registerAccess(handle)
 	p.registerFeedback(handle)
+	p.registerMaintainer(mux)
 	p.registerFees(handle)
 	p.registerLimits(handle)
 	p.registerLate(handle)
@@ -145,8 +153,15 @@ func (p *competitionPages) secret(h http.HandlerFunc) http.Handler {
 			message(w, r, http.StatusServiceUnavailable, "Not available yet", "Competition entries aren't available on this server yet.")
 			return
 		}
-		h(w, withFeedback(p.withRoles(r)))
+		h(w, p.withFeedback(p.withRoles(r)))
 	})
+}
+
+// notePage keeps a GET route's pattern, a page feedback can be sent from.
+func (p *competitionPages) notePage(pattern string) {
+	if path, ok := strings.CutPrefix(pattern, "GET "); ok {
+		p.pages[path] = true
+	}
 }
 
 // notOpen is why a competition's entries aren't open: not live yet (or

@@ -1,0 +1,58 @@
+/* feedback.css: the Feedback button on every page (views/feedback.templ),
+   on its own so it looks the same on pages with Bulma and without (the
+   routine view, the tariff sheet). A tab at the right edge, in the middle,
+   clear of the bars along the bottom; its form opens over the page. */
+
+.site-feedback { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.4; color: #363636; }
+.site-feedback-box > summary { list-style: none; }
+.site-feedback-box > summary::-webkit-details-marker { display: none; }
+.site-feedback-box > .site-feedback-tab::before { content: none; } /* a button: no dropdown arrow (styles.css) */
+.site-feedback-tab {
+  position: fixed; right: 0; top: 50%; transform: translateY(-50%) rotate(180deg); z-index: 35;
+  writing-mode: vertical-rl; padding: 0.7rem 0.3rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em;
+  color: #fff; background: #485fc7; border-radius: 0 6px 6px 0; cursor: pointer; user-select: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18); opacity: 0.85;
+}
+.site-feedback-tab:hover, .site-feedback-box[open] > .site-feedback-tab { opacity: 1; }
+.site-feedback-tab:focus-visible { outline: 2px solid #363636; outline-offset: 2px; }
+.site-feedback-panel {
+  position: fixed; right: calc(0.75rem + env(safe-area-inset-right, 0px)); bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); z-index: 1100;
+  width: min(24rem, calc(100vw - 1.5rem)); max-height: calc(100vh - 1.5rem); overflow: auto; box-sizing: border-box;
+  padding: 0.9rem 1rem; background: #fff; border: 1px solid #dbdbdb; border-radius: 8px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+.site-feedback-panel p { margin: 0 0 0.5rem; }
+.site-feedback-title { font-weight: 600; }
+.site-feedback-small { font-size: 0.8rem; }
+.site-feedback-grey { color: #6b6b6b; }
+.site-feedback-panel textarea, .site-feedback-panel input[type="text"] {
+  display: block; width: 100%; box-sizing: border-box; margin: 0 0 0.5rem; padding: 0.45rem 0.6rem;
+  font: inherit; font-size: 16px; /* 16px: no zoom on an iPhone */ color: inherit;
+  border: 1px solid #b5b5b5; border-radius: 4px; background: #fff;
+}
+.site-feedback-panel textarea { min-height: 5rem; resize: vertical; }
+.site-feedback-tick { display: flex; gap: 0.4rem; align-items: center; margin: 0 0 0.5rem; cursor: pointer; }
+.site-feedback-picture { margin: 0 0 0.5rem; }
+.site-feedback-picture img { display: block; max-width: 100%; max-height: 10rem; border: 1px solid #dbdbdb; border-radius: 4px; }
+.site-feedback-picture img:not([src]) { display: none; }
+.site-feedback-buttons { display: flex; gap: 0.5rem; }
+.site-feedback-buttons button {
+  min-height: 2.5rem; padding: 0 1rem; font: inherit; font-size: 0.9rem; cursor: pointer;
+  color: #363636; background: #fff; border: 1px solid #b5b5b5; border-radius: 4px;
+}
+.site-feedback-buttons .site-feedback-send { color: #fff; background: #485fc7; border-color: transparent; }
+.site-feedback-buttons button:disabled { opacity: 0.6; cursor: default; }
+.site-feedback-thanks {
+  display: none; position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%); z-index: 1100; margin: 0;
+  padding: 0.6rem 1rem; font-size: 0.85rem; color: #257953; background: #effaf5; border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+#feedback-sent:target .site-feedback-thanks { display: block; }
+
+/* The maintainer's page: a picture and a copy of the page, at the size of
+   their window. */
+.site-feedback-shot img { display: block; max-width: min(100%, 26rem); max-height: 30rem; border: 1px solid #dbdbdb; border-radius: 4px; }
+.site-feedback-frame { overflow: auto; max-width: 100%; border: 1px solid #dbdbdb; border-radius: 4px; background: #fff; }
+.site-feedback-frame iframe { display: block; border: 0; max-width: none; }
+.site-feedback-details th { white-space: nowrap; font-weight: 600; }
+.site-feedback-details td { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@media print { .site-feedback { display: none !important; } }

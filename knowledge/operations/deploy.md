@@ -135,11 +135,20 @@ with the 15 seconds for requests a stop can take 35 seconds: give the
 Compose file (Docker's default of 10 seconds kills it before the database is
 closed cleanly).
 
-`FEEDBACK_EMAIL`, if set, is where each piece of
-[feedback about the app](../features/competition-entries.md#feedback-about-the-app-ready-for-the-dry-run)
-is emailed as it's sent (for the maintainer, during the dry run); it needs
-the email settings above too. Without it, feedback is only on each
-competition's Feedback page.
+[Feedback about the app](../features/competition-entries.md#feedback-about-the-app)
+goes to the maintainer's own page. Make its link on the server, once and
+whenever it needs replacing (the last one stops working), and keep it to
+yourself:
+
+```sh
+docker compose exec tariff /app/tariffCalculator maintainer-link
+```
+
+It prints the link, from `PUBLIC_URL` (the path alone without it). Run
+locally, `DATA_DIR=./data go run . maintainer-link` does the same for a
+local copy. `FEEDBACK_EMAIL`, if set, is where each piece is emailed as it's
+sent too; it needs the email settings above. Without it, feedback is only on
+the maintainer's page.
 
 Without `SMTP_HOST` and `MAIL_FROM`, email isn't offered. Phone push needs
 nothing set: the app makes its push (VAPID) keys on first use and keeps them

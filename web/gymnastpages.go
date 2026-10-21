@@ -165,7 +165,7 @@ func (p *competitionPages) gymnastEntered(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return c, nil, false
 	}
-	feedbackOn(r, c)
+	feedbackAbout(r, c)
 	return c, mine, true
 }
 
@@ -204,7 +204,7 @@ func (p *competitionPages) renderGymnastCompetition(w http.ResponseWriter, r *ht
 		failed(w, r, err)
 		return
 	}
-	feedbackOn(r, c)
+	feedbackAbout(r, c)
 	page := p.gymnastPageOf(r, token, ind, gymnastCompetitions)
 	first := entryPath(token, mine[0])
 	gc := views.GymnastCompetition{Competition: summary(c, p.now()), Status: views.Count(len(mine), "entry", "entries"), Day: first + "/day",
