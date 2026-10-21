@@ -137,34 +137,26 @@ templ clubLinksBox(base string, links []ClubLinkView, roles []ClubRoleView) {
 	<section class="mb-5" id="links">
 		<h2 class="title is-6 mb-1">Links</h2>
 		<p class="help mb-2">A link for each person, with their role. It opens these pages, showing only what the role can do, and the history says who made each change. Remove stops it at once.</p>
-		if len(links) > 0 {
-			<ul class="mb-2">
-				for _, l := range links {
-					<li class="comp-other-link">
-						<span>
-							<strong>{ l.Name }</strong>
-							<span class="has-text-grey is-size-7">{ l.Role } · made { l.Made }</span>
-						</span>
-						<span class="comp-flight-actions">
-							if len(roles) > 1 {
-								<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/role") } class="is-inline">
-									<div class="select is-small">
-										<select name="role" aria-label={ l.Name + "'s role" }>
-											for _, r := range roles {
-												<option value={ r.ID } selected?={ r.ID == l.RoleID }>{ r.Name }</option>
-											}
-										</select>
-									</div>
-									<button class="button is-small" type="submit">Change role</button>
-								</form>
-							}
-							<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/remove") } class="is-inline">
-								<button class="button is-small is-text has-text-danger" type="submit" aria-label={ "Remove the link for " + l.Name }>Remove</button>
-							</form>
-						</span>
-					</li>
+		// A setting row each, as the roles are: Change opens the role to
+		// choose and Remove beneath it, so a phone's row stays one line.
+		for _, l := range links {
+			@opens(l.Name, l.Role+" · made "+l.Made, "Change", false) {
+				if len(roles) > 1 {
+					<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/role") } class="comp-flight-actions mb-2">
+						<div class="select is-small">
+							<select name="role" aria-label={ l.Name + "'s role" }>
+								for _, r := range roles {
+									<option value={ r.ID } selected?={ r.ID == l.RoleID }>{ r.Name }</option>
+								}
+							</select>
+						</div>
+						<button class="button is-small" type="submit">Change role</button>
+					</form>
 				}
-			</ul>
+				<form method="post" action={ templ.SafeURL(base + "/links/" + l.ID + "/remove") }>
+					<button class="button is-small is-text has-text-danger" type="submit" aria-label={ "Remove the link for " + l.Name }>Remove</button>
+				</form>
+			}
 		}
 		if len(roles) == 0 {
 			<p class="is-size-7 has-text-grey">Make a role first, then a link with it.</p>

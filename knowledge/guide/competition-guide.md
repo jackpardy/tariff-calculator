@@ -700,9 +700,10 @@ did what.
    shown only this once. A club can have 30 links.
 3. A link's pages show only what its role can do. If someone needs more,
    open their role's **Change**, tick it and tap **Save**: it counts at once
-   for everyone with that role. Or give them another role with **Change
-   role** beside their link.
-4. **Remove** beside a link stops it working at once (the page asks first).
+   for everyone with that role. Or give them another role: tap **Change**
+   beside their link, choose the role and tap **Change role**.
+4. **Remove**, under a link's **Change**, stops it working at once (the page
+   asks first).
    If it's lost, remove it and make another. A role can be removed once no
    link has it.
 

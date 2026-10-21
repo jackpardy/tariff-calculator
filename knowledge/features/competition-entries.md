@@ -1971,8 +1971,9 @@ A role's **Change** renames it and sets its ticks, for every link with it at
 once; **Remove the role** is offered only once it has no links (a role with
 links is refused, saying how many). **Links** are for people: **Make a
 link** takes a name (one link a name) and a role, and shows the link once
-(kept as a hash, ADR 0004); each link listed has **Change role** (a select)
-and **Remove**, which asks first and stops it at once. Up to 30
+(kept as a hash, ADR 0004); each link listed is a setting row (its name,
+role and when it was made) whose **Change** opens **Change role** (a
+select) and **Remove**, which asks first and stops it at once. Up to 30
 (`store.MaxClubLinks`). A link has the club admin's address shape
 (`/clubs/admin/{token}`), so every page, bookmark and saved link works the
 same; the store finds the club by either (`ClubByLink`, which says which
