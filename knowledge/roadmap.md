@@ -216,6 +216,16 @@ build on:
       uses, so a regional scheme's grades are made once. The club that
       opens the link gets its own copy to track against and change.
 
+**Club roles (proposed 2026-10-21, not built).** A club's link is shared
+by several people who all can do everything, and nothing says who did
+what. The owner asked for the club's link to be the **club admin**, who
+makes and names roles, chooses each one's permissions from a fixed list
+(enter and change entries, send entries, fees, members, coaches,
+certificates, talk to the organiser, club settings), and makes a link for
+each person with a role; feedback, messages and a club history then say
+who. The plan and the decisions it needs are in
+[ADR 0015](../docs/adr/0015-club-roles.md).
+
 **Later (decided 2026-10-15):** a member moving club takes their routines,
 marks and progress with them. Not to start with: they stay with the club.
 
