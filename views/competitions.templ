@@ -81,6 +81,7 @@ templ competitionLayout(title string) {
 			<script defer src={ static.URL("js/tables.js") }></script>
 		</head>
 		<body>
+			@sandboxBanner()
 			<section class="section comp-page">
 				<div class="container">
 					<div class="notification is-warning is-light comp-offline" hidden>You're offline: this is the page as it was when last opened (<span data-offline-when></span>).</div>

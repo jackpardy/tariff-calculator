@@ -280,6 +280,7 @@ templ printedCardsPage(p CardsPage) {
 			<link rel="stylesheet" href={ static.URL("css/sheet.css") }/>
 		</head>
 		<body>
+			@sandboxBanner()
 			<div class="toolbar screen-only">
 				<a href={ templ.SafeURL(p.Back) }>← Entries</a>
 				if p.LevelsHref != "" {

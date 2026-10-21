@@ -1,7 +1,8 @@
 # ADR 0016 — A sandbox to try the app in, reset by the maintainer
 
-- **Status:** Accepted (2026-10-21, the owner's decisions at the end); not
-  built. To be built alongside club roles (ADR 0015), before the dry run
+- **Status:** Accepted (2026-10-21, the owner's decisions at the end); built
+  (2026-10-21), alongside club roles (ADR 0015), with the deviations in
+  "As built" at the end. Decision 7 is not built
 - **Date:** 2026-10-21
 - **Deciders:** jackpardy (solo maintainer)
 
@@ -182,3 +183,34 @@ small step.
 5. **The address:** `sandbox.tariff.pardy.ie`.
 6. **When:** alongside club roles (ADR 0015), before the dry run, with the
    sandbox seeding club roles.
+
+## As built (2026-10-21)
+
+Built as decided ([the feature](../../knowledge/features/sandbox.md)), but:
+
+- **The seed's handler is a clock's.** `demo.Sandbox(h, size, now)` takes
+  `h` as a `demo.Clocked`, the site's handler at a clock it moves, not one
+  handler: the competition on the day is set up and entered four weeks
+  before (it can't be entered after its deadline), and its morning is tapped
+  at each tap's time. The web layer gives it a handler of its own over the
+  store with its own clock (`Store.Clocked`), so the live app's clock never
+  moves.
+- **The morning is today's**, 09:00 to 11:15, whenever the reset or restart
+  happens: before 09:00 its taps are ahead of the clock.
+- **A copy holds the feedback its seed sent**, and anyone who entered only its
+  competitions on their own, so a reset leaves neither behind; feedback
+  people send stays.
+- **"This was in an earlier sandbox"** is any link under `/clubs/` or
+  `/competitions/` that leads nowhere, in sandbox mode: a link from an old
+  copy can't be told from a mistyped one, and in the sandbox it nearly always
+  is the former.
+- **ISTO's levels**: Novice to Elite-Pro are entered, Disability Levels 1–4
+  offered with nobody in them; the days are "Day 1" to "Day 3", as their
+  dates move.
+- **Club roles aren't seeded yet**, nor their card on the start page: they
+  are built on another branch, and go in once both are merged (the start
+  page and `demo.Links` say where). The sandbox's clubs are the demo
+  seeder's, so what that branch adds to them comes too.
+- **Migration 51** is the 50th on its own branch, until club roles' 50 is
+  merged before it.
+- **The last reset** (when, how long) is kept in `settings`.

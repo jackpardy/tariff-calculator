@@ -422,7 +422,7 @@ func (p *competitionPages) notifyOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pushes, emails := p.notify.tellDesk(r.Context(), c, m)
-	notice := "Sent to " + m.Audience + ". " + sendingNotice(pushes, emails)
+	notice := "Sent to " + m.Audience + ". " + p.sendingNotice(pushes, emails)
 	http.Redirect(w, r, backToDay(r, notice, anchor), http.StatusSeeOther)
 }
 

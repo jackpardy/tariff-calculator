@@ -40,6 +40,8 @@ type notifier struct {
 	// confirms are the confirmation emails sent, by competition, to allow
 	// maxConfirmsPerDay. Kept in memory: a restart forgets them.
 	confirms *limiter
+	// sandbox is the sandbox's (ADR 0016): nothing is emailed or pushed.
+	sandbox bool
 }
 
 func newNotifier(st *store.Store) *notifier {

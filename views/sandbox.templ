@@ -1,0 +1,159 @@
+package views
+
+import "context"
+
+// The sandbox (ADR 0016): a copy of the app full of made-up people, for
+// trying it. Every page says so, the start page hands out a link for each
+// role, and the maintainer's page resets it.
+
+type sandboxKey struct{}
+
+// WithSandbox marks a request as the sandbox's, for the pages to say so.
+func WithSandbox(ctx context.Context) context.Context {
+	return context.WithValue(ctx, sandboxKey{}, true)
+}
+
+// SandboxOf says whether a page is the sandbox's.
+func SandboxOf(ctx context.Context) bool {
+	on, _ := ctx.Value(sandboxKey{}).(bool)
+	return on
+}
+
+// NotificationsOff is what the sandbox says wherever notifications are
+// offered.
+const NotificationsOff = "Notifications don't work in the sandbox."
+
+// sandboxBanner is the line at the top of every page in the sandbox.
+templ sandboxBanner() {
+	if SandboxOf(ctx) {
+		<div class="sandbox-banner screen-only" role="note" style="background:#fff1d1;color:#7a4a00;padding:0.4rem 1rem;font-size:0.875rem;text-align:center;">
+			Sandbox: made-up people. It's reset from time to time; nothing here is kept.
+			<a href="/sandbox">Start page</a>
+		</div>
+	}
+}
+
+// SandboxCard is a role on the start page: who, what to try, and the links.
+type SandboxCard struct {
+	Role  string // "Organiser"
+	Who   string // whose link it is, e.g. "Aoife Murphy, UCD"
+	Try   string // what to try
+	Links []SandboxLink
+}
+
+// SandboxLink is one of a card's links.
+type SandboxLink struct {
+	Label, Href string
+}
+
+// SandboxPage is the sandbox's start page, "Try it as…".
+type SandboxPage struct {
+	Ready bool // there's a copy to try
+	Reset string // when it was last reset, e.g. "Wed 21 Oct, 14:02"
+	Cards []SandboxCard
+}
+
+// SandboxStart is the start page: a card for each role, with what to try
+// and its link.
+templ SandboxStart(p SandboxPage) {
+	@competitionLayout("Try it as…") {
+		<h1 class="title is-4">Try it as…</h1>
+		<p class="subtitle is-6">The sandbox: a copy of the app with made-up clubs, gymnasts and two competitions</p>
+		if !p.Ready {
+			<p>The sandbox is being set up. Try again in a few minutes.</p>
+		} else {
+			<div class="content">
+				<p>Pick someone and open their link: it's what they'd be sent. Click anything, change anything and send messages; nothing here is real, and it's all put back when the sandbox is reset.</p>
+				<p><strong>{ NotificationsOff }</strong> Nothing is emailed or pushed, wherever it offers to tell someone.</p>
+				<p>Something confusing, wrong or missing? Use the <strong>Feedback</strong> tab at the side of any page.</p>
+			</div>
+			<div class="columns is-multiline">
+				for _, c := range p.Cards {
+					<div class="column is-half">
+						<div class="box sandbox-card">
+							<h2 class="title is-5 mb-1">{ c.Role }</h2>
+							if c.Who != "" {
+								<p class="is-size-7 has-text-grey mb-2">{ c.Who }</p>
+							}
+							<p class="mb-3">{ c.Try }</p>
+							<p class="buttons">
+								for i, l := range c.Links {
+									<a class={ "button", "is-small", templ.KV("is-primary", i == 0) } href={ templ.SafeURL(l.Href) }>{ l.Label }</a>
+								}
+							</p>
+						</div>
+					</div>
+				}
+				// A club role's card (ADR 0015) goes here once club roles are built.
+			</div>
+			if p.Reset != "" {
+				<p class="is-size-7 has-text-grey">Last reset { p.Reset }.</p>
+			}
+		}
+	}
+}
+
+// EarlierSandbox is a link from before the sandbox was last reset: what it
+// opened has gone. The browser forgets it if it saved it (data-dead-link).
+templ EarlierSandbox() {
+	@competitionLayout("This was in an earlier sandbox") {
+		<h1 class="title is-4">This was in an earlier sandbox</h1>
+		<p data-dead-link>The sandbox has been reset since this link was made, so what it opened has gone. Pick someone again from the start page.</p>
+		<p class="buttons mt-4">
+			<a class="button is-primary" href="/sandbox">Go to the start page</a>
+		</p>
+	}
+}
+
+// SandboxPanel is the sandbox's part of the maintainer's page.
+type SandboxPanel struct {
+	Base      string // the maintainer's page
+	Reset     string // when it was last reset, "" for never
+	Took      string // how long that took, e.g. "34 seconds"
+	Busy      string // what's under way, "" for nothing: e.g. "Resetting the sandbox, since 14:02"
+	Failed    string // why the last reset or restart failed, "" if it didn't
+	Day       string // the competition on the day's first day, e.g. "Wed 21 Oct"
+	StartPage string
+}
+
+// sandboxPanel is the maintainer's buttons for the sandbox: reset it, and
+// restart its competition's day.
+templ sandboxPanel(p SandboxPanel) {
+	<div class="box mb-5">
+		<h2 class="title is-5">Sandbox</h2>
+		<p class="mb-2">
+			if p.Reset != "" {
+				Last reset { p.Reset }, which took { p.Took }.
+			} else {
+				Not set up yet: reset it to make the first one.
+			}
+			<a href={ templ.SafeURL(p.StartPage) }>The start page</a>
+		</p>
+		if p.Busy != "" {
+			<p class="mb-2">
+				@StateChip(InProgress, p.Busy)
+				<span class="is-size-7 has-text-grey">Reload this page to see when it's done.</span>
+			</p>
+		}
+		if p.Failed != "" {
+			<p class="mb-2">
+				@StateChip(Attention, "The last one didn't work")
+				<span class="is-size-7">{ p.Failed }</span>
+			</p>
+		}
+		<form method="post" action={ templ.SafeURL(p.Base + "/sandbox/reset") } class="mb-3">
+			<p class="is-size-7 mb-2">Makes a new copy in the background, about half a minute, then deletes the old one, with everything people did in it. The start page works throughout. Links from the old copy then say they were in an earlier sandbox.</p>
+			<button class="button is-small" type="submit" disabled?={ p.Busy != "" }>Reset the sandbox</button>
+		</form>
+		<form method="post" action={ templ.SafeURL(p.Base + "/sandbox/restart") }>
+			<p class="is-size-7 mb-2">
+				The competition on the day starts again from day 1 by itself once its three days are over.
+				if p.Day != "" {
+					Its day 1 is { p.Day }.
+				}
+				This does it now: day 1 becomes today, what was marked on the day is cleared, and the morning is played again. Its links, entries, timetable and messages stay.
+			</p>
+			<button class="button is-small" type="submit" disabled?={ p.Busy != "" || p.Day == "" }>Restart the day</button>
+		</form>
+	</div>
+}

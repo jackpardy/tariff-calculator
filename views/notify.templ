@@ -62,6 +62,9 @@ templ NotifyCompetition(p NotifyPage) {
 		}
 		@problemList(p.Problems)
 		<p class="mb-4">Hear when the organiser changes something for { p.For }: one message for all of it, a few minutes after they publish, with what was and what is now.</p>
+		if SandboxOf(ctx) {
+			<div class="notification is-warning is-light">{ NotificationsOff } Nothing is emailed or pushed from here, so there's nothing to turn on.</div>
+		}
 		if p.PushKey != "" {
 			@pushBox(p)
 		}

@@ -55,6 +55,7 @@ type competitionPages struct {
 	siteFeedback                      atomic.Pointer[store.FeedbackSettings] // the maintainer's choices, once read
 	pages                             map[string]bool                        // the GET patterns of the pages here, which can send feedback
 	clubPatterns                      []string                               // the routes under a club's link, each through clubGate
+	sandbox                           *sandboxState                          // nil unless the app is the sandbox (ADR 0016)
 }
 
 func newCompetitionPages(st *store.Store) *competitionPages {
@@ -90,6 +91,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerReplies(handle)
 	p.registerTell(handle)
 	p.registerMaintainer(mux)
+	p.registerSandbox(mux)
 	p.registerFees(handle)
 	p.registerLimits(handle)
 	p.registerLate(handle)

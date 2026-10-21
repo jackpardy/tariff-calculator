@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"tariffCalculator/store"
+	"tariffCalculator/views"
 )
 
 // The organiser's answers to messages (migration 49): they say they've
@@ -110,6 +111,9 @@ const (
 func (n *notifier) tellSender(ctx context.Context, c store.Competition, k store.Concern, what, reply string) string {
 	if n == nil || k.Sender == "" {
 		return ""
+	}
+	if n.sandbox {
+		return "They see it on their page. " + views.NotificationsOff
 	}
 	kind, owner, _ := strings.Cut(k.Sender, ":")
 	subs, err := n.st.CompetitionSubscriptions(ctx, c.ID)
