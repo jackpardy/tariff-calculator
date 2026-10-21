@@ -19,6 +19,7 @@ type FeedbackForm struct {
 	Page        string // the page's route pattern, never its path
 	Back        string // the page, to come back to without JavaScript
 	Competition string // the competition's id, "" for none
+	Organiser   bool   // the page has a Tell the organiser form, which it points to
 	Light       bool   // only details, and a picture if they tick for it; otherwise (Full) a picture and a copy of the page always
 }
 
@@ -57,6 +58,11 @@ templ feedbackButton(f *FeedbackForm) {
 						<input type="hidden" name="back" value={ f.Back }/>
 						<p class="site-feedback-title">Feedback</p>
 						<p class="site-feedback-small">Something confusing, wrong or missing? Tell the people who make this app.</p>
+						if f.Organiser {
+							<p class="site-feedback-small site-feedback-grey">This doesn't go to the competition's organiser: for them, use <strong>Tell the organiser</strong> on this page.</p>
+						} else if f.Competition != "" {
+							<p class="site-feedback-small site-feedback-grey">This doesn't go to the competition's organiser.</p>
+						}
 						<textarea name="text" required maxlength="2000" rows="3" placeholder="What happened, or what you think" aria-label="What happened, or what you think"></textarea>
 						<input type="text" name="reply" maxlength="200" autocomplete="email" placeholder="Your name or email, for a reply (optional)" aria-label="Your name or email, for a reply (optional)"/>
 						if f.Light {

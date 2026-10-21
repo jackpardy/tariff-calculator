@@ -805,7 +805,8 @@ var migrations = []string{
 	// competition it was sent from if any, and details from the browser;
 	// what was captured with it (a picture of the screen, a copy of the
 	// page, gzipped) is kept apart, so it can be deleted on its own.
-	// competitions.feedback, the organiser's button, is left unused.
+	// competitions.feedback, the organiser's button, is left unused (48
+	// makes it the switch for messages to the organiser).
 	`CREATE TABLE site_feedback (
 		id             TEXT PRIMARY KEY,
 		text           TEXT NOT NULL,
@@ -831,6 +832,20 @@ var migrations = []string{
 		SELECT f.id, f.text, f.reply_to, f.role, f.page, f.competition_id, c.name, f.at, f.done_at
 		FROM feedback f JOIN competitions c ON c.id = f.competition_id;
 	DROP TABLE feedback;`,
+
+	// 48: messages to the organiser, from a member's, coach's, comp sec's or
+	// individual's own link, join the concerns, named: the sender's role
+	// ("" for a concern flagged from an admin link), their club's name when
+	// sent, and their record (kind:id), for how many each sends.
+	// competitions.feedback, left unused by 47, becomes the organiser's
+	// switch for them, named for it, and on for every competition: it said
+	// whether the old Feedback button showed, which isn't this.
+	`ALTER TABLE concerns ADD COLUMN role TEXT NOT NULL DEFAULT '';
+	ALTER TABLE concerns ADD COLUMN club TEXT NOT NULL DEFAULT '';
+	ALTER TABLE concerns ADD COLUMN sender TEXT NOT NULL DEFAULT '';
+	CREATE INDEX concerns_sender ON concerns (competition_id, sender, at);
+	ALTER TABLE competitions RENAME COLUMN feedback TO messages;
+	UPDATE competitions SET messages = TRUE;`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

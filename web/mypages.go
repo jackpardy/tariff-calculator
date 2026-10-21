@@ -33,10 +33,10 @@ func (p *competitionPages) myDay(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	c, frame := a.c, views.MyCompetitionPage{Back: a.back}
+	c, frame, club := a.c, views.MyCompetitionPage{Back: a.back}, ""
 	if a.kind == store.NotifyMember {
-		club, err := p.st.ClubName(r.Context(), a.club)
-		if err != nil {
+		var err error
+		if club, err = p.st.ClubName(r.Context(), a.club); err != nil {
 			failed(w, r, err)
 			return
 		}
@@ -48,7 +48,7 @@ func (p *competitionPages) myDay(w http.ResponseWriter, r *http.Request) {
 			frame.Menu, frame.Back = gymnastMenu(base, gymnastCompetitions), gymnastCompetitionPath(base, c.ID)
 		}
 	}
-	p.renderDay(w, r, c, a.key, a.club, a.name, frame)
+	p.renderDay(w, r, c, a.key, a.club, a.name, frame, tellerFor(a, club))
 }
 
 // here is someone scratched saying they're still here for the rest.
@@ -239,8 +239,9 @@ func byWarmUp(events []views.MyEvent, warmUp map[string]int) {
 // renderDay shows a person's competition: key is who they are, as the
 // timetable knows them, and club is their club's id ("" for an individual).
 // frame has what the page of theirs it came from gives it: who they are
-// with (Over), their tabs, the way back and their club's timetable.
-func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c store.Competition, key, club, name string, frame views.MyCompetitionPage) {
+// with (Over), their tabs, the way back and their club's timetable; tell is
+// who a message to the organiser from the page is from.
+func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c store.Competition, key, club, name string, frame views.MyCompetitionPage, tell *teller) {
 	page, f, err := p.dayOf(r, c, key, name)
 	if err != nil {
 		failed(w, r, err)
@@ -249,7 +250,8 @@ func (p *competitionPages) renderDay(w http.ResponseWriter, r *http.Request, c s
 	page.Over, page.Menu, page.Back, page.BackLabel = frame.Over, frame.Menu, frame.Back, frame.BackLabel
 	page.Notice = r.URL.Query().Get("notice")
 	own := strings.TrimSuffix(r.URL.Path, "/day")
-	page.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: own, key: key, member: club != "", people: []string{key}, clubs: clubIDs(club)})
+	page.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: own, key: key, member: club != "", people: []string{key}, clubs: clubIDs(club),
+		tell: tell, back: "day"})
 	if page.Published {
 		page.Here = hereBox(f.entries, f.people, key, len(page.Duties) > 0, f.checkins, f.official, f.clears, own+"/here")
 	}

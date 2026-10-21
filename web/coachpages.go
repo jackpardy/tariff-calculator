@@ -341,10 +341,11 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 	}
 	var levels []string
 	var competitionOptions []views.ListOption
+	tell := coachTeller(coach, club, coachSees(entries))
 	for _, c := range comps {
 		cc := views.CoachCompetition{Competition: summary(c, p.now()), Cannot: notApproved(c, sentTo),
 			MyLinks: p.competitionLinks(ctx, c, linksFor{base: path + "/competitions/" + c.ID,
-				people: memberKeys(coached), clubs: clubIDs(coach.ClubID), staff: clubIDs(coach.ClubID)})}
+				people: memberKeys(coached), clubs: clubIDs(coach.ClubID), staff: clubIDs(coach.ClubID), tell: tell})}
 		seen := map[string]bool{}
 		for _, e := range entries {
 			if e.CompetitionID == c.ID {

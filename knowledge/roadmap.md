@@ -611,9 +611,11 @@ December. Before it:
   every page (the calculator's and home pages too), on a page of their own,
   with a picture of the screen and a copy of the page (Full, for the demo
   and the dry run, where everyone has been told) or details and a ticked
-  picture (Light, before real entries open). **Next**: messages to the
-  organiser, separate from it: "Tell the organiser" on member, coach, comp
-  sec and individual pages, named and optionally about an entry, joining
+  picture (Light, before real entries open). *Messages to the organiser
+  built 2026-10-21*, separate from it
+  ([messages](features/competition-entries.md#messages-to-the-organiser)):
+  **Tell the organiser** on member, coach, comp sec and individual pages,
+  named from the link and optionally about one of their entries, joining
   the dashboard's concerns, which the organiser can turn off.
 - **Send in the background** (built 2026-10-15). A desk message, or a round of change
   notifications, emailed and pushed each person one at a time before the

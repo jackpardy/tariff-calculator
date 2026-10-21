@@ -372,6 +372,7 @@ templ CompetitionEntryPage(p EntryPage) {
 		<h2 class="title is-5 mt-4">{ p.Card.Gymnast }</h2>
 		@entryBody(p)
 		@pairEntries(p.Pairs)
+		@tellOrganiser(p.Tell)
 		if p.Competition.ChangesOpen {
 			@privacyNote(p.Competition)
 		}

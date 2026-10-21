@@ -178,17 +178,23 @@ pair's one routine), checked as the Routine Builder checks them.
   Clubs see what they owe on the competition's **Fees** tab of their club page, with their invoice;
   individuals on their entry. Removed, held and withdrawn entries aren't
   charged.
-- **Concerns:** anyone with one of your links can **Flag a concern**, about
-  an entry or generally ("element 7 isn't on the card"). A chip at the top of
-  the entries page says how many are open and goes to them, listed at the
-  foot of the page; mark each **Resolved**, with a note of what was done, and
-  those resolved fold away beneath.
+- **Messages and concerns:** members, coaches, comp secs and gymnasts on
+  their own can **Tell the organiser** something from their pages for the
+  competition ("my surname is spelled wrong on the timetable"), with their
+  name and club, and the entry it's about if they choose
+  ([how](#tell-the-organiser)). Anyone with one of your links can **Flag a
+  concern**, about an entry or generally ("element 7 isn't on the card"). A
+  chip at the top of the entries page says how many are open and goes to
+  them, listed at the foot of the page, each with who sent it; mark each
+  **Resolved**, with a note of what was done, and those resolved fold away
+  beneath. To stop messages, open **Settings**, **Messages to you**,
+  **Change**, **Stop messages** (those sent stay).
 - **Feedback:** while the app is new, every page has a **Feedback** tab at
   the right edge of the screen, for anyone to say what confused them. It
   goes to the people who make the app, not to you; while the app is being
   tried out, a picture of the screen and a copy of the page go with it, and
-  the form says so. For something about your competition, people tell you
-  as they always have (helpers can **Flag a concern**).
+  the form says so. For something about your competition, people use **Tell
+  the organiser** (helpers **Flag a concern**).
 - **Approved coaches:** where entries need sign-off, tick **Coaches must be
   approved** and choose the lowest coaching level you accept in each
   discipline (Level 2 to start with; British Gymnastics and Gymnastics
@@ -639,6 +645,9 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   certificate (up to 3 MB, four per coach, and 60 MB for the whole club), for competitions that ask for
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
+- **Tell the organiser**: at the foot of a competition's **Entries**, to send
+  its organiser a message from the club, about one of the club's entries or
+  generally ([how](#tell-the-organiser)).
 - **Settings** (its own section): a row for each setting, with its button at
   the right. **Members' skills**, **Change**: **Let every member see
   everyone's skills** shares members' skills with the whole club (otherwise
@@ -738,6 +747,27 @@ it stops all the emails to that address about that competition.
 To see it all, open your page from the link you saved: messages don't
 carry your link, so they can't be used to open your page. Tapping one
 opens **Competitions**, which lists the links saved on that phone.
+
+## Tell the organiser
+
+To tell the competition's organiser something (a question, or something to
+put right), tap **Write** beside **Tell the organiser** at the foot of your
+page for the competition or of **My competition**. It says who it's from,
+as the organiser will see it ("Ann Ryan, a member of UCD"): your name comes
+from your link, so there's nothing to type. Under **About**, choose one of
+your entries, or leave it on **The competition generally**; write your
+message and tap **Send to the organiser**. The page says it's sent. You can
+send 10 a day; the organiser may also turn messages off.
+
+It goes to the organiser only. Something wrong with the app itself? Use the
+**Feedback** tab at the right edge of the screen instead: that goes to the
+people who make the app.
+
+Comp secs, coaches and gymnasts on their own have the same form: a comp sec
+at the foot of the competition's **Entries** (about any of the club's
+entries), a coach under each competition on **Entries** (about the gymnasts
+they see), and a gymnast on their own on their page for the competition and
+**My competition**.
 
 ## Mark your skills
 
@@ -893,6 +923,9 @@ they've marked that you haven't marked the same has **Confirm**: tap it once
 you've seen it, and you mark it the same. Gymnasts lists how many each has to
 confirm.
 
+To send a competition's organiser a message, use **Tell the organiser**
+under the competition on **Entries** ([how](#tell-the-organiser)).
+
 # 5. Enter on your own
 
 1. Open the competition's **link for entering on your own** from the organiser.
@@ -930,6 +963,9 @@ confirm.
    works and they sign off as themselves; your page shows the organiser's
    decision and any note. Changing your coach sends them to be approved
    again.
+
+To send the organiser a message, use **Tell the organiser** at the foot of
+your page for the competition ([how](#tell-the-organiser)).
 
 # 6. One link for all your roles
 

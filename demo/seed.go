@@ -646,6 +646,8 @@ func (s *seeder) run(out io.Writer) error {
 		}
 	}
 	s.post(chairs+"/concerns", url.Values{"text": {"Panel 2's trampoline has a loose spring cover: can someone look at it at lunch?"}})
+	// A member tells the organiser something, from their own page.
+	s.post(coached.link+"/competitions/"+compID+"/organiser", url.Values{"text": {"I'm doing my exams on the Friday morning: could I be in an afternoon flight?"}})
 
 	// Feedback about the app, from a member's My competition and a chair's
 	// page; the organiser has dealt with neither yet.

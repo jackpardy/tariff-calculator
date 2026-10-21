@@ -29,6 +29,7 @@ type SettingsPage struct {
 	LiveTime       string
 	NotifyOn       bool // people can ask to hear about changes (ADR 0008)
 	NoWait         bool // no wait on the competition's days
+	Messages       bool // people can send the organiser messages from their pages
 	Limits         []LimitField
 	Video          VideoForm
 	CoachApproval  CoachApprovalForm
@@ -72,7 +73,8 @@ templ CompetitionSettings(p SettingsPage) {
 			if p.NotifyOn {
 				<a href="#notify">Telling people about changes</a> ·
 			}
-			<a href="#individuals">Entering on their own</a>
+			<a href="#individuals">Entering on their own</a> ·
+			<a href="#messages">Messages to you</a>
 			if p.Access.Organiser {
 				· <a href="#admin-link">Admin link and deleting</a>
 			}
@@ -207,6 +209,19 @@ templ CompetitionSettings(p SettingsPage) {
 					<input type="hidden" name="on" value="1"/>
 					<button class="button is-small" type="submit">Let gymnasts enter on their own</button>
 				}
+			</form>
+		}
+		@settingsGroup("messages", "Messages to you")
+		@changeLine("Tell the organiser", onOff(p.Messages, "members, coaches, comp secs and gymnasts can send you messages", "turned off"), false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/messages") } class="mb-3">
+				if p.Messages {
+					<input type="hidden" name="on" value="0"/>
+					<button class="button is-small" type="submit">Stop messages</button>
+				} else {
+					<input type="hidden" name="on" value="1"/>
+					<button class="button is-small" type="submit">Let people send you messages</button>
+				}
+				<p class="help">A <strong>Tell the organiser</strong> form on their pages for the competition, with their name and club, and the entry it's about if they choose. Messages come to your dashboard's <a href={ templ.SafeURL(p.Base + "#concerns") }>Messages and concerns</a>. Feedback about the app itself goes to the people who make it, not to you.</p>
 			</form>
 		}
 		if p.Access.Organiser {

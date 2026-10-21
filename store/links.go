@@ -176,11 +176,15 @@ func (s *Store) History(ctx context.Context, competitionID string, limit int) ([
 }
 
 // Concern is something a chair of judges (or anyone with an admin link)
-// flags for the organiser: about an entry, or the competition generally.
+// flags for the organiser, or a message someone sends the organiser from
+// their own link (migration 48): about an entry, or the competition
+// generally.
 type Concern struct {
 	ID         string
 	EntryID    string // "" for one about the competition
-	Who, Text  string
+	Who, Text  string // who: the admin link's name, or the sender's
+	Role       string // the sender's: RoleMember, RoleCoach, RoleClub or RoleIndividual; "" for a flag from an admin link
+	Club       string // the sender's club's name when they sent it; "" for an individual
 	At         time.Time
 	ResolvedAt time.Time // zero while it's open
 	ResolvedBy string
@@ -190,11 +194,45 @@ type Concern struct {
 // Open says whether it's still to be dealt with.
 func (c Concern) Open() bool { return c.ResolvedAt.IsZero() }
 
-// MaxConcerns is how many concerns a competition can have.
-const MaxConcerns = 500
+// Sender is who sends the organiser a message, from their own link.
+type Sender struct {
+	Role string // RoleMember, RoleCoach, RoleClub or RoleIndividual
+	Name string // their name; the club's for a comp sec
+	Club string // their club's name; "" for an individual
+	ID   string // their record, as kind:id, for how many they send
+}
 
-// FlagConcern records a concern.
+const (
+	// MaxConcerns is how many concerns and messages a competition can have.
+	MaxConcerns = 2000
+	// MaxMessagesPerDay is how many messages one sender can send a
+	// competition's organiser in 24 hours.
+	MaxMessagesPerDay = 10
+)
+
+// FlagConcern records a concern from an admin link.
 func (s *Store) FlagConcern(ctx context.Context, competitionID, entryID, who, text string) (Concern, error) {
+	return s.addConcern(ctx, competitionID, Concern{EntryID: entryID, Who: who, Text: text}, "")
+}
+
+// TellOrganiser records a message to the organiser from someone's own
+// link, refusing it with ErrLimit once they've sent MaxMessagesPerDay in the
+// last 24 hours.
+func (s *Store) TellOrganiser(ctx context.Context, competitionID, entryID string, from Sender, text string) (Concern, error) {
+	var n int
+	since := formatTime(s.now().Add(-24 * time.Hour))
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM concerns WHERE competition_id = $1 AND sender = $2 AND at > $3`,
+		competitionID, from.ID, since).Scan(&n); err != nil {
+		return Concern{}, err
+	}
+	if n >= MaxMessagesPerDay {
+		return Concern{}, ErrLimit
+	}
+	return s.addConcern(ctx, competitionID, Concern{EntryID: entryID, Who: from.Name, Role: from.Role, Club: from.Club, Text: text}, from.ID)
+}
+
+// addConcern keeps a concern or message, up to MaxConcerns a competition.
+func (s *Store) addConcern(ctx context.Context, competitionID string, c Concern, sender string) (Concern, error) {
 	var n int
 	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM concerns WHERE competition_id = $1`, competitionID).Scan(&n); err != nil {
 		return Concern{}, err
@@ -202,15 +240,23 @@ func (s *Store) FlagConcern(ctx context.Context, competitionID, entryID, who, te
 	if n >= MaxConcerns {
 		return Concern{}, ErrLimit
 	}
-	c := Concern{ID: newID(), EntryID: entryID, Who: who, Text: text, At: parseTime(s.stamp())}
-	_, err := s.db.ExecContext(ctx, `INSERT INTO concerns (id, competition_id, entry_id, who, text, at) VALUES ($1, $2, $3, $4, $5, $6)`,
-		c.ID, competitionID, entryID, who, text, s.stamp())
+	at := s.stamp()
+	c.ID, c.At = newID(), parseTime(at)
+	_, err := s.db.ExecContext(ctx, `INSERT INTO concerns (id, competition_id, entry_id, who, text, at, role, club, sender) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		c.ID, competitionID, c.EntryID, c.Who, c.Text, at, c.Role, c.Club, sender)
 	return c, err
 }
 
-// Concerns are a competition's concerns, open ones first, each latest first.
+// SetMessages lets people send the competition's organiser messages, or
+// stops them.
+func (s *Store) SetMessages(ctx context.Context, competitionID string, on bool) error {
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET messages = $1 WHERE id = $2`, on, competitionID))
+}
+
+// Concerns are a competition's concerns and messages, open ones first, each
+// latest first.
 func (s *Store) Concerns(ctx context.Context, competitionID string) ([]Concern, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, entry_id, who, text, at, resolved_at, resolved_by, resolution FROM concerns
+	rows, err := s.db.QueryContext(ctx, `SELECT id, entry_id, who, role, club, text, at, resolved_at, resolved_by, resolution FROM concerns
 		WHERE competition_id = $1 ORDER BY resolved_at <> '', at DESC, rowid DESC`, competitionID)
 	if err != nil {
 		return nil, err
@@ -220,7 +266,7 @@ func (s *Store) Concerns(ctx context.Context, competitionID string) ([]Concern, 
 	for rows.Next() {
 		var c Concern
 		var at, resolved string
-		if err := rows.Scan(&c.ID, &c.EntryID, &c.Who, &c.Text, &at, &resolved, &c.ResolvedBy, &c.Resolution); err != nil {
+		if err := rows.Scan(&c.ID, &c.EntryID, &c.Who, &c.Role, &c.Club, &c.Text, &at, &resolved, &c.ResolvedBy, &c.Resolution); err != nil {
 			return nil, err
 		}
 		c.At, c.ResolvedAt = parseTime(at), parseTime(resolved)
