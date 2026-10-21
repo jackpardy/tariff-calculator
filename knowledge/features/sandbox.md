@@ -72,6 +72,14 @@ competitions:
   official, and someone asked to come to the desk) and two notices on the
   venue screen.
 
+Both share the clubs and members. About two members in three keep their
+voluntary on their page (an Elite both), and about half of those have marked
+its skills Can do and one or two of a harder level's Learning, for a coach to
+confirm, so the club's Members, a coach's gymnasts and a member's own
+Routines and Skills have something in them; the start page's member has both.
+Voluntaries are drawn to suit each ISTO level (`style` in demo/routines.go),
+so most entries' cards pass.
+
 Both have **messages to the organiser** at every stage: just sent (Waiting
 for you), received, replied to and answered (waiting again), resolved with a
 reply and a note, and resolved then opened again by the sender; the demo's

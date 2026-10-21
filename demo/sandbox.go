@@ -1,6 +1,7 @@
 package demo
 
 import (
+	"encoding/json"
 	"fmt"
 	"html"
 	"io"
@@ -182,6 +183,14 @@ func Sandbox(h Clocked, size Size, now time.Time) (Copy, error) {
 	}
 	open := s.made
 
+	// Routines kept on members' pages and the skills they've marked, over
+	// the last fortnight.
+	at = now.AddDate(0, 0, -14)
+	s.keptRoutines(open.runs)
+	if s.err != nil {
+		return sofar(), fmt.Errorf("routines and skills: %w", s.err)
+	}
+
 	// Messages to the organisers, at every stage, sent lately.
 	at = now.Add(-3 * time.Hour)
 	s.messages(day)
@@ -277,6 +286,71 @@ func (s *seeder) messages(m made) {
 		s.post(concern(id)+"/resolve", url.Values{"note": {"Fixed: it was under the wrong club."}})
 		s.post(from+"/organiser/"+id, url.Values{"text": {"Thanks, but my page still shows the old club."}})
 	}
+}
+
+// keptRoutines keeps routines on about two members' pages in three (ADR
+// 0011): the voluntary they'd compete, and an Elite's other one. About half
+// of them mark the skills in it Can do, and one or two from the next level
+// up Learning, for their coach to confirm. Each club's first member has
+// both, so the start page's member does. The club's Members, a coach's
+// gymnasts and the member's own Routines and Skills then show them.
+func (s *seeder) keptRoutines(runs []clubRun) {
+	mark := func(link, skill, state string) {
+		s.post(link+"/skills", url.Values{"skill": {skill}, "state": {state}})
+	}
+	for _, run := range runs {
+		for i, m := range run.members {
+			vols := s.vols[m.level+"/2"]
+			if s.err != nil || len(vols) == 0 || i > 0 && s.rng.IntN(3) == 0 {
+				continue
+			}
+			raw := vols[s.rng.IntN(len(vols))]
+			routines := []keep{{ID: "sandbox-2", Name: "Voluntary", Skills: json.RawMessage(raw)}}
+			if first := s.vols[m.level+"/1"]; len(first) > 0 {
+				routines[0].Name = "Second voluntary"
+				routines = append([]keep{{ID: "sandbox-1", Name: "First voluntary", Skills: json.RawMessage(first[s.rng.IntN(len(first))])}}, routines...)
+			}
+			data, _ := json.Marshal(routines)
+			s.post(m.link+"/routines", url.Values{"routines": {string(data)}})
+			if i > 0 && s.rng.IntN(2) == 0 {
+				continue
+			}
+			var can []json.RawMessage
+			json.Unmarshal([]byte(raw), &can)
+			seen := map[string]bool{}
+			for _, skill := range can {
+				if !seen[string(skill)] {
+					seen[string(skill)] = true
+					mark(m.link, string(skill), "can")
+				}
+			}
+			next := s.levelIndex(m.level) + 1
+			if next >= len(s.v.levels) {
+				continue
+			}
+			harder := s.vols[s.v.levels[next].name+"/2"]
+			if len(harder) == 0 {
+				continue
+			}
+			var learning []json.RawMessage
+			json.Unmarshal([]byte(harder[s.rng.IntN(len(harder))]), &learning)
+			// The skills of a harder voluntary they can't do yet, up to two.
+			for n := 0; len(learning) > 0 && n < 2; learning = learning[1:] {
+				if skill := string(learning[0]); !seen[skill] {
+					seen[skill] = true
+					mark(m.link, skill, "learning")
+					n++
+				}
+			}
+		}
+	}
+}
+
+// keep is a routine kept on a member's page, as the browser posts it.
+type keep struct {
+	ID     string          `json:"id"`
+	Name   string          `json:"name"`
+	Skills json.RawMessage `json:"skills"`
 }
 
 // morningUntil is when the seeded morning stops, in minutes after midnight:

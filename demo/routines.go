@@ -109,6 +109,10 @@ func walk(rng *rand.Rand, n int, somersaults, doubles float64, limit int) []skil
 var style = map[string][3]float64{
 	"BUCS L1": {0.95, 0.5, 0}, "BUCS L2": {0.9, 0.15, 0}, "BUCS L3": {0.75, 0, 0},
 	"BUCS L4": {0.55, 0, 0}, "BUCS L5": {0.2, 0, 0}, "BUCS L6": {0.1, 0, 0}, "BUCS L7": {0, 0, 1},
+	// ISTO 2025's, for the sandbox: up to Advanced no rotation over 360°
+	// (Novice none), as their voluntaries allow.
+	"ISTO Novice": {0, 0, 1}, "ISTO Intermediate": {0.35, 0, 4}, "ISTO Intervanced": {0.75, 0, 4},
+	"ISTO Advanced": {0.75, 0, 4}, "ISTO Elite": {0.9, 0.15, 0}, "ISTO Elite-Pro": {0.95, 0.7, 0},
 }
 
 // voluntaries finds up to n voluntaries for a level's exercise that pass
