@@ -43,7 +43,7 @@ func peopleCompetition(t *testing.T) peopleSetup {
 	redirected(t, h, mo+"/coach", url.Values{"coach": {annID}})
 	save := formAction(t, memberCompetitionPage(t, h, mo), mo+"/competitions/")
 	redirected(t, h, save, bucsEntry(""))
-	redirected(t, h, save+"/offer", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, save+"/offer", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	comp := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/([^/"]+)/coaches`).FindStringSubmatch(clubCompetitionTab(t, h, club, "/coaches"))[1]
 	redirected(t, h, club+"/competitions/"+comp+"/coaches", url.Values{"coach": {annID}})
 	redirected(t, h, admin+"/coaches/"+annID, url.Values{"action": {"approve"}})
@@ -58,7 +58,7 @@ func peopleCompetition(t *testing.T) peopleSetup {
 	// A name with the characters a path can't carry as they are.
 	entry.Set("gymnast", "Kit O/Neil? 100% #1")
 	redirected(t, h, enter, entry)
-	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	return peopleSetup{h: h, admin: admin, member: mo}
 }
 
@@ -152,7 +152,7 @@ func TestPeople(t *testing.T) {
 	page := do(t, h, http.MethodGet, mo, nil).Body.String()
 	for _, want := range []string{"<h1 class=\"title is-4\">Mo</h1>", "UCD ·", `<span class="chip chip-who chip-who-organiser mr-1">Judge</span>`, `<span class="chip chip-who chip-who-organiser mr-1">Chair</span>`,
 		"← People", `href="` + admin + `/entries/`, "BUCS L3</a>", `<span class="chip chip-state-attention">3 problems</span>`, "Coach: <a href=\"" + admin + "/people/c:", ">Ann</a>",
-		"Judge Trampoline (can chair) · sent by their club", "Can judge:", "Judging rule: anyone, up to the level they say.", "No timetable is planned yet.",
+		"Judge Trampoline (execution, difficulty and chair at any level, and HD) · sent by their club", "Can judge:", "Judging rule: anyone, as they offer.", "No timetable is planned yet.",
 		"The timetable isn't published yet"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("Mo's page has %q", want)

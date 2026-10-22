@@ -913,6 +913,12 @@ Notifications (7) are built; numbers 1–7 below are built.
     ([ADR 0014](../docs/adr/0014-judges-qualifications.md)): judges add
     theirs with certificates beside their offer; the organiser sees them on
     Officials before ticking Qualified.
+  - **Judging levels by role** (asked 2026-10-22). *Built 2026-10-22*
+    ([ADR 0017](../docs/adr/0017-judge-levels-by-role.md)): HD and
+    synchronisation at any level; execution, difficulty and chair each up to
+    a level of their own; the "below their own level" rule replaced by a note
+    from the organiser; the timetable's seat dropdown lists who can take the
+    seat first, and the ask says why someone can't.
 - **For attendees:**
   - **Add to calendar**: a person's or club's flights and duties as a
     calendar link that updates when the timetable is published again

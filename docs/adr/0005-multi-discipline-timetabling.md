@@ -9,7 +9,8 @@
   timetable (roadmap: competitions 3)
 - **Amends:** the roadmap's officials rota (competitions 4), which becomes
   part of this
-- **Amended by:** ADR 0006 (one panel for a whole event, proposed
+- **Amended by:** ADR 0017 (judges offer each role up to a level of its
+  own, HD at any level; the "below their own level" rule is gone), ADR 0006 (one panel for a whole event, proposed
   2026-10-08), for Decisions 9 and 12
 
 ## Context
@@ -169,7 +170,8 @@ gymnasts are is for the coach and club to manage.
     - **minutes between flights** (warm-up and changeover), default 10;
     - **who can judge what**: anyone up to the level they say (the default),
       only levels below the one they compete at, or only people the organiser
-      marks as qualified;
+      marks as qualified (since ADR 0017: anyone as they offer, or only those
+      marked qualified);
     - the **rest** wanted between a person's turns, and whether it's a must or
       a prefer (Decision 8).
 

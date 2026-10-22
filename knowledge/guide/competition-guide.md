@@ -298,9 +298,12 @@ and anyone you add.
   **Recorders can change** or **Marshals can change** to let those seats
   change between the event's flights.
   Choose who may
-  judge: anyone up to the level they say, only levels below their own, or only
-  people you mark qualified. "Up to" and "below" go by the **Order of levels**
-  on the Settings page.
+  judge: anyone as they offer, or only people you mark qualified. Judges
+  offer HD and synchronisation at any level, and execution, difficulty and
+  chairing each up to a level they choose; "up to" goes by the **Order of
+  levels** on the Settings page. Write a **note to those offering** if you
+  like (who you're short of, or that you'd rather people didn't judge their
+  own level): it's shown above the form where they say what they'll do.
   To find people in a long list, type part of a name in **Find a name**, or
   narrow it by club, what they can do, the level they can judge (a level
   shows everyone who can judge it or a harder one) or qualified. Each choice
@@ -378,7 +381,7 @@ a **Change** button to open it.
    problem. Entries made after planning are listed for you to place.
    Changing the setup asks you to **Plan** again, on **Setup**. Open a flight's **Panel**
    to give a seat to someone else, for all the event's flights they had it
-   for; **Assign officials again** redoes every panel and keeps the flights
+   for (the people who can take the seat you chose are listed first); **Assign officials again** redoes every panel and keeps the flights
    (it asks first, as your changes to the panels are lost).
    Moving an event or a gymnast, or giving someone a seat, that would break
    something that holds now (someone in two places, a flight past the end of
@@ -757,8 +760,10 @@ and it opens the club as their role there.
    can, to ask your comp sec to add one.
 
 Under **Judging and helping**, say what you can do at the competition: judge a
-discipline (up to a level, and whether you can chair), or help as a recorder
-or marshal. Your comp sec can correct it, and sends it with the entries.
+discipline, or help as a recorder or marshal. Ticking **Judge** a discipline
+offers its HD (and in synchro, synchronisation) at any level; for
+**Execution**, **Difficulty** and **Chair**, choose no, any level, or up to a
+level, each on its own. Any note from the organiser is above the form. Your comp sec can correct it, and sends it with the entries.
 Below it, **Your judging qualifications**: tap **Add a judging
 qualification**, choose it and add a photo or PDF of its certificate. They're
 kept with you at the club for every competition; the organiser sees them with

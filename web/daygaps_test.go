@@ -147,7 +147,7 @@ func TestNotifyClubOfJudge(t *testing.T) {
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ucd.members["Ann"]), ucd.members["Ann"]+"/competitions/"), bucsEntry(""))
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ucd.members["Jude"]), ucd.members["Jude"]+"/competitions/")+"/offer", url.Values{"judge-trampoline": {"1"}})
 	redirected(t, h, formAction(t, clubEntriesPage(t, h, ucd.page), ucd.page+"/competitions/"), url.Values{"which": {"all"}})
-	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
 

@@ -62,8 +62,8 @@ func TestListFilterCountsInABrowser(t *testing.T) {
 	aClub(t, s.h, admin, "UCD", true, "Ann Byrne")
 	aClub(t, s.h, admin, "DCU", true, "Cara Doyle")
 	// BUCS L3 is the first trampoline level, FIG AG3 the second.
-	redirected(t, s.h, admin+"/officials/add", url.Values{"name": {"Seán Ó Briain"}, "club": {"UCD"}, "judge-trampoline": {"1"}, "upto-trampoline": {"BUCS L3"}})
-	redirected(t, s.h, admin+"/officials/add", url.Values{"name": {"Dara Kane"}, "club": {"DCU"}, "judge-trampoline": {"1"}, "upto-trampoline": {"FIG AG3 (17–21)"}})
+	redirected(t, s.h, admin+"/officials/add", url.Values{"name": {"Seán Ó Briain"}, "club": {"UCD"}, "judge-trampoline": {"1"}, "execution-trampoline": {"BUCS L3"}, "difficulty-trampoline": {"BUCS L3"}})
+	redirected(t, s.h, admin+"/officials/add", url.Values{"name": {"Dara Kane"}, "club": {"DCU"}, "judge-trampoline": {"1"}, "execution-trampoline": {"FIG AG3 (17–21)"}, "difficulty-trampoline": {"FIG AG3 (17–21)"}})
 	srv := httptest.NewServer(s.h)
 	defer srv.Close()
 

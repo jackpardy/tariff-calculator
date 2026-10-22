@@ -14,7 +14,9 @@ func judges(prefix string, n int, events ...string) []RotaPerson {
 		p := RotaPerson{Key: fmt.Sprintf("%s-%d", prefix, i), Name: fmt.Sprintf("%s %d", prefix, i), Club: []string{"A", "B", "C"}[i%3],
 			Judge: map[string]bool{}, Chair: map[string]bool{}, Recorder: true, Marshal: true}
 		for _, e := range events {
-			p.Judge[e], p.Chair[e] = true, true
+			for _, role := range LevelRoles {
+				p.Allow(role, e)
+			}
 		}
 		out = append(out, p)
 	}

@@ -7,7 +7,7 @@ import (
 
 func TestOfficialLeaves(t *testing.T) {
 	judge := func(key string, chair bool) RotaPerson {
-		return RotaPerson{Key: key, Name: strings.ToUpper(key), Judge: map[string]bool{"L": true}, Chair: map[string]bool{"L": chair}}
+		return RotaPerson{Key: key, Name: strings.ToUpper(key), Judge: map[string]bool{"L": true}, Execution: map[string]bool{"L": true}, Difficulty: map[string]bool{"L": true}, Chair: map[string]bool{"L": chair}}
 	}
 	helper := func(key string) RotaPerson {
 		return RotaPerson{Key: key, Name: strings.ToUpper(key), Recorder: true, Marshal: true}

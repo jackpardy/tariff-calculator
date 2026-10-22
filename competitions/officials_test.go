@@ -25,6 +25,8 @@ func TestPanels(t *testing.T) {
 	}
 	for _, bad := range []OfficialSettings{
 		{Judge: "anyone"},
+		{Judge: "below"}, // gone: the organiser's note asks for it instead
+		{Note: strings.Repeat("x", 501)},
 		{Panels: map[string]Panel{"aerobics": CodePanel}},
 		{Panels: map[string]Panel{Trampoline: {Execution: -1}}},
 	} {
@@ -42,44 +44,65 @@ func TestPanels(t *testing.T) {
 func TestOffers(t *testing.T) {
 	c := competition(t)
 	c.Tumbling = []string{"Novice", "Elite"}
-	o := Offer{Judge: map[string]JudgeOffer{Trampoline: {UpTo: "FIG AG3 (17–21)", Chair: true}, Tumbling: {}}, Recorder: true}
+	o := Offer{Judge: map[string]JudgeOffer{
+		Trampoline: {UpTo: map[string]string{RoleExecution: "FIG AG3 (17–21)", RoleDifficulty: "FIG AG3 (17–21)", RoleChair: ""}},
+		Tumbling:   {UpTo: map[string]string{RoleDifficulty: ""}},
+	}, Recorder: true}
 	if err := c.ValidateOffer(o); err != nil {
 		t.Fatal(err)
 	}
-	if got := o.Describe(); got != "Judge Trampoline up to FIG AG3 (17–21) (can chair) and Tumbling at any level; Recorder" {
+	if got := o.Describe(); got != "Judge Trampoline (execution and difficulty up to FIG AG3 (17–21), chair at any level, and HD) and Tumbling (difficulty at any level); Recorder" {
 		t.Errorf("described as %q", got)
+	}
+	if got := (Offer{Judge: map[string]JudgeOffer{Synchro: {}}}).Describe(); got != "Judge Synchro (HD and synchronisation only)" {
+		t.Errorf("HD only, described as %q", got)
 	}
 	if (Offer{}).Describe() != "" || !(Offer{}).Empty() || o.Empty() {
 		t.Error("empty offers")
 	}
 	for _, bad := range []Offer{
 		{Judge: map[string]JudgeOffer{DMT: {}}},
-		{Judge: map[string]JudgeOffer{Tumbling: {UpTo: "Master"}}},
+		{Judge: map[string]JudgeOffer{Tumbling: {UpTo: map[string]string{RoleExecution: "Master"}}}},
+		{Judge: map[string]JudgeOffer{Tumbling: {UpTo: map[string]string{RoleHD: ""}}}},
+		{Judge: map[string]JudgeOffer{Tumbling: {}}}, // nothing to judge: tumbling has no HD
 	} {
 		if c.ValidateOffer(bad) == nil {
 			t.Errorf("%+v should be refused", bad)
 		}
 	}
 
-	// Levels in order: BUCS L3, FIG AG3, Club novice.
-	upToAG3 := Offer{Judge: map[string]JudgeOffer{Trampoline: {UpTo: "FIG AG3 (17–21)"}}}
-	if !c.CanJudge(upToAG3, false, nil, Trampoline, "BUCS L3") || c.CanJudge(upToAG3, false, nil, Trampoline, "Club novice") {
-		t.Error("up to the level they say")
+	// Levels in order: BUCS L3, FIG AG3, Club novice. Each role up to its
+	// own level: difficulty at a level they don't judge execution at.
+	j := Offer{Judge: map[string]JudgeOffer{Trampoline: {UpTo: map[string]string{RoleExecution: "BUCS L3", RoleDifficulty: "FIG AG3 (17–21)"}}}}
+	if !c.CanJudge(j, false, Trampoline, "BUCS L3", RoleExecution) || c.CanJudge(j, false, Trampoline, "FIG AG3 (17–21)", RoleExecution) {
+		t.Error("execution up to the level they say")
 	}
-	if c.CanJudge(upToAG3, false, nil, Tumbling, "Novice") || c.CanJudge(upToAG3, false, nil, Trampoline, "BUCS L9") {
+	if !c.CanJudge(j, false, Trampoline, "FIG AG3 (17–21)", RoleDifficulty) || c.CanJudge(j, false, Trampoline, "Club novice", RoleDifficulty) {
+		t.Error("difficulty up to its own level")
+	}
+	if c.CanJudge(j, false, Trampoline, "BUCS L3", RoleChair) {
+		t.Error("not a role they didn't offer")
+	}
+	if !c.CanJudge(j, false, Trampoline, "Club novice", RoleHD) {
+		t.Error("HD at any level of a discipline they judge")
+	}
+	if c.CanJudge(j, false, Tumbling, "Novice", RoleExecution) || c.CanJudge(j, false, Trampoline, "BUCS L9", RoleHD) {
 		t.Error("not disciplines or levels they didn't offer")
 	}
-	any := Offer{Judge: map[string]JudgeOffer{Trampoline: {}}}
-	c.Officials.Judge = JudgeBelow
-	competing := map[string]string{Trampoline: "FIG AG3 (17–21)"}
-	if !c.CanJudge(any, false, competing, Trampoline, "BUCS L3") || c.CanJudge(any, false, competing, Trampoline, "FIG AG3 (17–21)") {
-		t.Error("only levels below their own")
-	}
-	if !c.CanJudge(any, false, nil, Trampoline, "Club novice") {
-		t.Error("someone not competing in the discipline judges any level they offer")
-	}
 	c.Officials.Judge = JudgeQualified
-	if c.CanJudge(any, false, nil, Trampoline, "BUCS L3") || !c.CanJudge(any, true, nil, Trampoline, "BUCS L3") {
-		t.Error("only people marked qualified")
+	if c.CanJudge(j, false, Trampoline, "BUCS L3", RoleExecution) || c.CanJudge(j, false, Trampoline, "BUCS L3", RoleHD) || !c.CanJudge(j, true, Trampoline, "BUCS L3", RoleExecution) {
+		t.Error("only people marked qualified, for every judging role")
+	}
+}
+
+func TestRotaPersonRoles(t *testing.T) {
+	var p RotaPerson
+	p.Allow(RoleDifficulty, "BUCS L7")
+	p.Allow(RoleHD, "BUCS L5")
+	if !p.Can(RoleDifficulty, "BUCS L7") || p.Can(RoleExecution, "BUCS L7") || !p.Can(RoleHD, "BUCS L7") || !p.Can(RoleHD, "BUCS L5") || p.Can(RoleDifficulty, "BUCS L5") {
+		t.Errorf("each role on its own, HD wherever they judge: %+v", p)
+	}
+	if !p.CanAny(RoleDifficulty) || p.CanAny(RoleChair) || p.CanAny(RoleRecorder) {
+		t.Errorf("blocked time: %+v", p)
 	}
 }

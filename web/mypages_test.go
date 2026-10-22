@@ -34,7 +34,7 @@ func TestMyCompetition(t *testing.T) {
 	// An individual who judges, in the same event.
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	own := withoutQuery(redirected(t, h, enter, bucsEntry("Ivy")))
-	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 
 	page := dayAll(t, h, day)
 	if !strings.Contains(page, chip(t, views.Attention, "2 problems")) || !strings.Contains(page, "Second exercise: Exactly 10 elements") || !strings.Contains(page, "The timetable isn't published yet") {

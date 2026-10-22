@@ -23,9 +23,9 @@ func TestPanelTimeline(t *testing.T) {
 	redirected(t, h, officials+"/settings", url.Values{
 		"panel-trampoline-chair": {"1"}, "panel-trampoline-execution": {"2"}, "panel-trampoline-difficulty": {"0"}, "panel-trampoline-recorder": {"0"}, "panel-trampoline-marshal": {"0"},
 		"panel-tumbling-chair": {"1"}, "panel-tumbling-execution": {"1"}, "panel-tumbling-difficulty": {"0"}, "panel-tumbling-recorder": {"0"}, "panel-tumbling-marshal": {"0"}})
-	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "club": {"UCD"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "club": {"UCD"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}})
-	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "judge-tumbling": {"1"}, "chair-tumbling": {"1"}})
+	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "judge-tumbling": {"1"}, "chair-tumbling": {""}})
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	redirected(t, h, enter, bucsEntry("Eve"))
 	redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "discipline": {"tumbling"}, "level": {"Novice"}})

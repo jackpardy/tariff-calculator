@@ -71,19 +71,54 @@ type Duty struct {
 // under the competition's judging rule.
 type RotaPerson struct {
 	Key, Name, Club   string
-	Judge             map[string]bool // events they may judge
+	Judge             map[string]bool // events they may judge: HD and synchronisation there, and what the maps below allow
+	Execution         map[string]bool // events they may judge execution at
+	Difficulty        map[string]bool // events they may judge difficulty at
 	Chair             map[string]bool // events they may chair
 	Recorder, Marshal bool
+	// Offer is what they offer, in words, and Unqualified says the
+	// competition approves judges and hasn't them: to say why they can't
+	// take a seat.
+	Offer       string
+	Unqualified bool
+}
+
+// whyNot says why they can't take a role at an event, after a colon: "they
+// aren't marked qualified", "their offer: Judge Trampoline (HD only)".
+func (p RotaPerson) whyNot(role string) string {
+	switch {
+	case p.Unqualified && isJudge(role):
+		return "they aren't marked qualified"
+	case p.Offer == "":
+		return "they offer nothing"
+	}
+	return "their offer: " + p.Offer
+}
+
+// Allow lets them take a judging role at an event (and so judge there).
+func (p *RotaPerson) Allow(role, event string) {
+	set := func(m *map[string]bool) {
+		if *m == nil {
+			*m = map[string]bool{}
+		}
+		(*m)[event] = true
+	}
+	set(&p.Judge)
+	switch role {
+	case RoleExecution:
+		set(&p.Execution)
+	case RoleDifficulty:
+		set(&p.Difficulty)
+	case RoleChair:
+		set(&p.Chair)
+	}
 }
 
 // CanAny says whether they may take a role at anything: for blocked time
 // that needs officials (an ad hoc event), which isn't one of the events.
 func (p RotaPerson) CanAny(role string) bool {
-	switch role {
-	case RoleChair:
-		return slices.Contains(slices.Collect(maps.Values(p.Chair)), true)
-	case RoleDifficulty, RoleHD, RoleSync, RoleExecution:
-		return slices.Contains(slices.Collect(maps.Values(p.Judge)), true)
+	if isJudge(role) {
+		return slices.Contains(slices.Collect(maps.Values(p.judging(role))), true)
 	}
 	return p.Can(role, "")
 }
@@ -91,16 +126,27 @@ func (p RotaPerson) CanAny(role string) bool {
 // Can says whether they may take a role at an event.
 func (p RotaPerson) Can(role, event string) bool {
 	switch role {
-	case RoleChair:
-		return p.Chair[event]
-	case RoleDifficulty, RoleHD, RoleSync, RoleExecution:
-		return p.Judge[event]
 	case RoleRecorder:
 		return p.Recorder
 	case RoleMarshal:
 		return p.Marshal
 	}
-	return false
+	return p.judging(role)[event]
+}
+
+// judging are the events they may take a judging role at; nil for another role.
+func (p RotaPerson) judging(role string) map[string]bool {
+	switch role {
+	case RoleChair:
+		return p.Chair
+	case RoleExecution:
+		return p.Execution
+	case RoleDifficulty:
+		return p.Difficulty
+	case RoleHD, RoleSync:
+		return p.Judge
+	}
+	return nil
 }
 
 // jobs are what needs officials: every flight, then each block that needs
@@ -453,9 +499,14 @@ func (r *rota) costOf(p RotaPerson, role string, i int) float64 {
 	if isJudge(role) && p.Club != "" && r.clubsIn[i][p.Club] {
 		cost += 4 + 2*float64(r.own[p.Club])
 	}
-	// Helpers who could judge here are better kept for judging.
+	// Helpers who could judge here are better kept for judging, and HD and
+	// synchronisation judges who could judge execution or difficulty here
+	// for those, which fewer can.
 	if !isJudge(role) && p.Judge[f.Event] {
 		cost += 5
+	}
+	if (role == RoleHD || role == RoleSync) && (p.Execution[f.Event] || p.Difficulty[f.Event]) {
+		cost += 3
 	}
 	// Rest before (and, less, after) their own turn to compete.
 	if rest := r.s.Setup.Rest; rest > 0 {
@@ -708,7 +759,7 @@ func (s Schedule) RotaBreaks(people map[string][]string, officials []RotaPerson,
 			if p, ok := byKey[d.Person]; !ok {
 				add(d.Person, MustBreak, fmt.Sprintf("%s isn't an official any more (%s, %s)", name(d.Person), strings.ToLower(roleNames[d.Role]), f.Name()))
 			} else if (i < len(s.Flights) && !p.Can(d.Role, f.Event)) || (i >= len(s.Flights) && !p.CanAny(d.Role)) {
-				add(d.Person, MustBreak, fmt.Sprintf("%s can't be %s at %s", name(d.Person), strings.ToLower(roleNames[d.Role]), f.Event))
+				add(d.Person, MustBreak, fmt.Sprintf("%s can't take the %s seat at %s: %s", name(d.Person), RoleWord(d.Role), f.Event, p.whyNot(d.Role)))
 			}
 			for j, g := range jobs {
 				if !overlaps(iv, interval{g.Day, g.Start, g.End}) {
