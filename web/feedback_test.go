@@ -526,11 +526,12 @@ func (c emailCatcher) send(to, subject, body string, headers map[string]string) 
 // the words, the role, the page and a reply-to, never a link.
 func TestFeedbackEmailed(t *testing.T) {
 	s := newTestServer(t, atTime(inDublin(2030, 1, 10, 12, 0)))
-	sent := make(emailCatcher, 1)
-	s.p.notify.mail, s.p.feedbackTo = sent, "maintainer@example.com"
 	h := s.h
 	admin := created(t, h, newCompetition())
 	own := anIndividual(t, h, admin, "Bea Byrne")
+	// After the competition's made, which is emailed too (competitionmade.go).
+	sent := make(emailCatcher, 1)
+	s.p.notify.mail, s.p.feedbackTo = sent, "maintainer@example.com"
 	action, fields, _ := feedbackFormOf(t, do(t, h, http.MethodGet, own, nil).Body.String())
 	fields.Set("text", "Where's my time?")
 	fields.Set("reply", "bea@example.com")

@@ -27,7 +27,9 @@ maintainer's page.
 
 - **Nothing is emailed or pushed**, whatever is set up (`SMTP_HOST`,
   `FEEDBACK_EMAIL`, push): the sender drops everything (`sender.send`), the
-  notifier has no mailer, and feedback isn't emailed. Where notifications are
+  notifier has no mailer, and feedback and competitions made aren't
+  emailed (the competitions people make are on its maintainer's page, the
+  seed's left out). Where notifications are
   offered it says "Notifications don't work in the sandbox.": **Tell me about
   changes** (no email or push form; a post saves nothing), the desk's help
   and its notice after sending (and a Notify from On the day), and the notice

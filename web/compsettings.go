@@ -106,11 +106,12 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 		message(w, r, http.StatusTooManyRequests, "Too many competitions", "This address has created several competitions in the last hour. Please try again later.")
 		return
 	}
-	_, admin, err := p.st.CreateCompetition(r.Context(), c)
+	sc, admin, err := p.st.CreateCompetition(r.Context(), c)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
+	p.emailMade(sc)
 	// The dashboard says to save the link; reloading it can't create another.
 	http.Redirect(w, r, adminPath(admin)+"?new=created", http.StatusSeeOther)
 }

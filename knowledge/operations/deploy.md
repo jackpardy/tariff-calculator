@@ -147,7 +147,8 @@ docker compose exec tariff /app/tariffCalculator maintainer-link
 It prints the link, from `PUBLIC_URL` (the path alone without it). Run
 locally, `DATA_DIR=./data go run . maintainer-link` does the same for a
 local copy. `FEEDBACK_EMAIL`, if set, is where each piece is emailed as it's
-sent too; it needs the email settings above. Without it, feedback is only on
+sent too, and an email for each competition made; it needs the email
+settings above. Without it, feedback and the competitions made are only on
 the maintainer's page.
 
 Without `SMTP_HOST` and `MAIL_FROM`, email isn't offered. Phone push needs

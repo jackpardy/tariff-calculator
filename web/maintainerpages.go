@@ -17,7 +17,8 @@ import (
 )
 
 // The maintainer's page (migration 47): the feedback sent about the app from
-// every page, with what came with it, and the choices for how it's taken.
+// every page, with what came with it, and the choices for how it's taken;
+// and the competitions made (competitionmade.go).
 // It's opened with the maintainer's link, made on the server
 // (`tariffCalculator maintainer-link`); anything else at /site/ is a page
 // that isn't there.
@@ -73,8 +74,13 @@ func (p *competitionPages) maintainerPage(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return
 	}
+	made, err := p.madeItems(ctx)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	s := p.feedbackSettings()
-	page := views.MaintainerPage{Base: maintainerPath(r.PathValue("token")), Notice: r.URL.Query().Get("notice"),
+	page := views.MaintainerPage{Site: p.site(), Made: made, Base: maintainerPath(r.PathValue("token")), Notice: r.URL.Query().Get("notice"),
 		Off: s.Off, Light: s.Light, Size: megabytes(kept), All: r.URL.Query().Get("all") == "1", Total: len(all),
 		Sandbox: p.sandboxPanel(ctx, maintainerPath(r.PathValue("token")))}
 	for _, f := range all {
