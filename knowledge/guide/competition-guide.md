@@ -418,7 +418,9 @@ a **Change** button to open it.
    anything you change (planning again, moving flights or gymnasts, giving
    seats to officials, keeping a "what if") is a **draft**: everyone else
    still sees what you published until you tap **Publish changes**. The page
-   says when there are changes not published yet; **Discard changes** goes
+   says when there are changes not published yet, and **What's changed since
+   you published** lists them (flights, gymnasts, panels, breaks), folded
+   when there are many; **Discard changes** goes
    back to what's published, and **Unpublish** takes it down. Each asks
    first, on a page saying what it does, as does **Plan again** once the
    timetable is planned.

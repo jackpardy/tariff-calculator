@@ -666,6 +666,10 @@ details[open] > summary.comp-opens-button::after { transform: rotate(180deg); }
 .comp-tt-state { flex: 1 1 18rem; }
 .comp-tt-state .chip { margin-right: 0.5rem; }
 .comp-tt-note { color: #6b6b6b; font-size: 0.875rem; }
+/* What the draft changes, under "Changes not published": each kind folds,
+   indented under the heading. */
+.comp-tt-change-group { margin: 0.35rem 0 0 1rem; }
+.comp-tt-change-group ul { margin: 0.2rem 0 0 1rem; list-style: disc; }
 .comp-tt-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .comp-tt-publish-form { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .comp-tt-check { border-top: 1px solid #ededed; margin-top: 1rem; padding-top: 0.9rem; }
