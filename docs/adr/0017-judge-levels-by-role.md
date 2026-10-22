@@ -66,3 +66,7 @@ can't be hd judge at ISTO Elite-Pro").
 - The "Can judge" filter on Officials goes by the hardest level someone takes
   execution, difficulty or chair at; someone offering HD only shows under
   "any level".
+- Tumbling and DMT have no HD, so an offer from before gives no seat there.
+  It reads "Judge Tumbling (no role chosen yet)", and isn't counted as
+  judging that discipline (Can do, Can judge, the panel's cover, the
+  qualification flag) until the judge picks a role (2026-10-22).

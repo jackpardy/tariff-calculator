@@ -145,6 +145,19 @@ func Measured(discipline string) []string {
 	return nil
 }
 
+// Judges says whether the offer gives them a judging seat in a discipline
+// (synchro's through trampoline's, as For): one of LevelRoles, or its HD and
+// synchronisation. Judging tumbling or DMT with no role, as offers from
+// before levels were by role read, gives none.
+func (o Offer) Judges(discipline string) bool {
+	j, ok := o.For(discipline)
+	return ok && (len(j.UpTo) > 0 || len(Measured(discipline)) > 0)
+}
+
+// JudgesAny says whether the offer gives them a judging seat in any
+// discipline.
+func (o Offer) JudgesAny() bool { return slices.ContainsFunc(AllDisciplines, o.Judges) }
+
 // Empty says whether the offer offers nothing.
 func (o Offer) Empty() bool { return len(o.Judge) == 0 && !o.Recorder && !o.Marshal }
 
@@ -241,8 +254,9 @@ func (c Competition) synchroMembers(event string) []string {
 }
 
 // Describe says what an offer offers, e.g. "Judge Trampoline (execution and
-// difficulty up to BUCS L5, chair at any level, and HD) and Synchro (HD and
-// synchronisation only); Recorder".
+// difficulty up to BUCS L5, chair at any level, and HD) and Tumbling
+// (difficulty at any level); Recorder", or "Judge Tumbling (no role chosen yet)"
+// for tumbling or DMT with no role (an offer from before levels were by role).
 func (o Offer) Describe() string {
 	var parts []string
 	for _, d := range AllDisciplines {
@@ -307,6 +321,9 @@ func (j JudgeOffer) describe(discipline string) string {
 			m += " only"
 		}
 		parts = append(parts, m)
+	}
+	if len(parts) == 0 {
+		return "no role chosen yet"
 	}
 	return strings.Join(parts, ", ")
 }

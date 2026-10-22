@@ -71,7 +71,7 @@ func canDoFilter() views.ListFilter {
 // canDo is what an offer offers to do, as canDoFilter's values.
 func canDo(o competitions.Offer) []string {
 	var out []string
-	if len(o.Judge) > 0 {
+	if o.JudgesAny() {
 		out = append(out, canJudge)
 	}
 	for _, j := range o.Judge {
@@ -108,11 +108,11 @@ func judgesFilter(c competitions.Competition) views.ListFilter {
 // with the place of the hardest level they judge execution, difficulty or
 // chair at, easiest first (synchro's, as trampoline's judges judge it at its
 // levels); HD or synchronisation only is none (0), which "any level" still
-// finds.
+// finds. Tumbling or DMT with no role is left out: no seat.
 func judges(c competitions.Competition, o competitions.Offer) []string {
 	var out []string
 	for _, d := range c.Disciplines() {
-		if _, ok := o.For(d); !ok {
+		if !o.Judges(d) {
 			continue
 		}
 		top := 0

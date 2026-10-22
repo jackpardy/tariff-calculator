@@ -248,8 +248,8 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		})
 		cover := views.Cover{Name: competitions.DisciplineName(d), PanelJudges: panel.Judges(), PanelChairs: panel.Chair}
 		for _, o := range people {
-			j, judges := o.Offer.For(d)
-			if !judges || (c.Officials.Judge == competitions.JudgeQualified && !o.Qualified) {
+			j, _ := o.Offer.For(d)
+			if !o.Offer.Judges(d) || (c.Officials.Judge == competitions.JudgeQualified && !o.Qualified) {
 				continue
 			}
 			cover.Judges++
@@ -286,7 +286,7 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		}
 		if !o.Added && c.Officials.Judge == competitions.JudgeQualified {
 			for _, d := range c.Disciplines() {
-				if _, judges := o.Offer.Judge[d]; !judges {
+				if !o.Offer.Judges(d) {
 					continue
 				}
 				if !slices.ContainsFunc(quals[o.ID], func(q store.JudgeQualification) bool {

@@ -13,6 +13,8 @@ import (
 	"testing"
 
 	"github.com/chromedp/chromedp"
+
+	"tariffCalculator/competitions"
 )
 
 // listRows are the search name and filter values of each row of the list
@@ -136,5 +138,23 @@ func TestListSearchInABrowser(t *testing.T) {
 		if got := shown(c.search); got != c.want {
 			t.Errorf("searching %q shows %q, want %q", c.search, got, c.want)
 		}
+	}
+}
+
+// An offer to judge tumbling or DMT with no role, as offers from before
+// levels were by role read, gives no seat there: it isn't "Judge" under Can
+// do, nor found under Can judge for that discipline.
+func TestOfferWithNoSeat(t *testing.T) {
+	c := competitions.Competition{Tumbling: []string{"Novice", "Elite"}, DMT: []string{"Novice"}}
+	tumbling := competitions.Offer{Judge: map[string]competitions.JudgeOffer{competitions.Tumbling: {}, competitions.DMT: {}}, Recorder: true}
+	if got := canDo(tumbling); !slices.Equal(got, []string{canRecorder}) {
+		t.Errorf("can do %v", got)
+	}
+	if got := judges(c, tumbling); len(got) != 0 {
+		t.Errorf("judges %v", got)
+	}
+	tumbling.Judge[competitions.Tumbling] = competitions.JudgeOffer{UpTo: map[string]string{competitions.RoleExecution: "Novice"}}
+	if got := judges(c, tumbling); !slices.Equal(got, []string{offerKey(competitions.Tumbling) + ":1"}) || !slices.Contains(canDo(tumbling), canJudge) {
+		t.Errorf("with a role: judges %v, can do %v", got, canDo(tumbling))
 	}
 }
