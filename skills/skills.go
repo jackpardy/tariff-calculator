@@ -710,8 +710,9 @@ const RoutineLength = 10
 // straight jumps (§15.1.3), the "10th skill must land on feet" rule (§16.1), and
 // only the first RoutineLength skills counting toward the total (§4.1, §16.5).
 //
-// The first straight jump or invalid landing interrupts the routine (§15.1.3,
-// §15.1.4): that skill gets no credit (§15.2) and later skills are not counted
+// The first straight jump after the routine has started (a straight jump
+// before any other skill is a preparation jump) or invalid landing
+// interrupts the routine (§15.1.3, §15.1.4): that skill gets no credit (§15.2) and later skills are not counted
 // (§15.3). Bad transitions are flagged but do not interrupt: they describe a
 // routine that cannot be performed as written rather than an interruption.
 //
@@ -745,6 +746,7 @@ func ValidateRoutineWith(routine []TrampolineSkill, opts ValidateOptions) Routin
 	}
 
 	duplicateMap := make(map[int]bool)
+	started := false // a skill other than a straight jump has been done (§15.1.3)
 
 	for i := range routine {
 		s := routine[i]
@@ -758,7 +760,8 @@ func ValidateRoutineWith(routine []TrampolineSkill, opts ValidateOptions) Routin
 
 		var msgs []string
 		isCurrentSkillDuplicate := false
-		for j := 0; j < i && !opts.AllowRepeats; j++ {
+		// A straight jump isn't an element, so it can't repeat one (§14.1).
+		for j := 0; j < i && !opts.AllowRepeats && !s.IsStraightJump(); j++ {
 			if res.Skills[i].Skill.Equal(&res.Skills[j].Skill) {
 				isCurrentSkillDuplicate = true
 				res.HasDuplicates = true
@@ -778,10 +781,14 @@ func ValidateRoutineWith(routine []TrampolineSkill, opts ValidateOptions) Routin
 		}
 
 		interrupted := res.InterruptedAt >= 0
-		if !interrupted && (s.IsStraightJump() || landing == Invalid) {
+		// Straight jumps before the first element are preparation jumps:
+		// the routine starts with the first skill that isn't one, so only
+		// a straight jump after that ends it.
+		if !interrupted && ((started && s.IsStraightJump()) || landing == Invalid) {
 			res.InterruptedAt = i
 			res.Skills[i].Interrupts = true
 		}
+		started = started || !s.IsStraightJump()
 		res.Skills[i].AfterInterruption = interrupted
 
 		scoredEarlier := false
